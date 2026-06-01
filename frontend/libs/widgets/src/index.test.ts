@@ -2,7 +2,14 @@ import type { ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
 
-import { createWidgetRegistry, renderScreenDescriptors, renderWidgetDescriptor } from "./index";
+import {
+  createWidgetRegistry,
+  LEGACY_WIDGET_KIND_MAPPINGS,
+  renderScreenDescriptors,
+  renderWidgetDescriptor,
+  resolveLegacyWidgetKind,
+  toBloomWidgetKind,
+} from "./index";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
 const sampleScreen = sampleBundle.applications[0]?.screens[0] as ScreenConfig;
@@ -66,5 +73,80 @@ describe("widget registry foundation", () => {
     const registry = createWidgetRegistry([{ kind: "command-button", displayName: "Command button" }]);
 
     expect(renderScreenDescriptors(sampleScreen, registry)).toHaveLength(1);
+  });
+});
+
+describe("legacy widget kind mapping", () => {
+  it("maps reusable extender_ui widgets to Bloom generic kinds", () => {
+    expect(toBloomWidgetKind("joystick")).toBe("joystick");
+    expect(toBloomWidgetKind("slider")).toBe("slider");
+    expect(toBloomWidgetKind("button")).toBe("command-button");
+    expect(toBloomWidgetKind("text")).toBe("label");
+    expect(toBloomWidgetKind("stream-display")).toBe("camera");
+    expect(toBloomWidgetKind("curves")).toBe("plot");
+  });
+
+  it("marks ROS and device widgets as adapter-dependent", () => {
+    expect(resolveLegacyWidgetKind("ros-message-toggle")).toMatchObject({
+      bloomKind: "toggle",
+      compatibility: "adapter-required",
+    });
+    expect(resolveLegacyWidgetKind("gripper-control")).toMatchObject({
+      bloomKind: "toggle",
+      compatibility: "adapter-required",
+    });
+    expect(resolveLegacyWidgetKind("max-velocity")).toMatchObject({
+      bloomKind: "slider",
+      compatibility: "adapter-required",
+    });
+  });
+
+  it("keeps app-specific widgets out of Bloom core", () => {
+    expect(resolveLegacyWidgetKind("throw-draw")).toMatchObject({
+      bloomKind: "unknown",
+      compatibility: "app-specific",
+    });
+    expect(resolveLegacyWidgetKind("drink")).toMatchObject({
+      bloomKind: "command-button",
+      compatibility: "app-specific",
+    });
+  });
+
+  it("returns an explicit unsupported mapping for unknown legacy kinds", () => {
+    expect(resolveLegacyWidgetKind("imaginary-widget")).toEqual({
+      legacyKind: "imaginary-widget",
+      bloomKind: "unknown",
+      compatibility: "unsupported",
+      displayName: "imaginary-widget",
+      notes: 'No legacy widget mapping is registered for kind "imaginary-widget".',
+    });
+  });
+
+  it("documents every enabled extender_ui widget kind", () => {
+    const enabledExtenderUiKinds = [
+      "joystick",
+      "slider",
+      "mode-button",
+      "save-pose-button",
+      "load-pose-button",
+      "navigation-button",
+      "navigation-bar",
+      "text",
+      "textarea",
+      "button",
+      "rosbag-control",
+      "max-velocity",
+      "gripper-control",
+      "magnet-control",
+      "toggle-publisher",
+      "ros-message-toggle",
+      "stream-display",
+      "throw-draw",
+      "drink",
+      "curves",
+      "logs",
+    ];
+
+    expect(Object.keys(LEGACY_WIDGET_KIND_MAPPINGS).sort()).toEqual(enabledExtenderUiKinds.sort());
   });
 });
