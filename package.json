@@ -1,0 +1,19 @@
+{
+  "name": "bloom",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Configurable web interface framework for robot teleoperation, supervision, and device control.",
+  "workspaces": [
+    "frontend/apps/*",
+    "frontend/libs/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @bloom/dashboard",
+    "dev": "npm run dev --workspace @bloom/dashboard",
+    "test": "npm run test --workspace @bloom/dashboard"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

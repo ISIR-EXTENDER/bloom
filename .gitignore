@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# JavaScript / TypeScript
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Tooling / OS
+.DS_Store
+*.log
+
