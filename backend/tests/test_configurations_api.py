@@ -1,8 +1,13 @@
+import json
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import ConfigurationBundle, FileConfigurationRepository
+
+SHARED_FIXTURE_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "configuration-bundle.json"
 
 
 def test_list_configurations(client: TestClient) -> None:
@@ -17,8 +22,15 @@ def test_get_configuration(client: TestClient) -> None:
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["metadata"]["source"] == "test-suite"
+    assert payload["metadata"]["source"] == "shared-contract-fixture"
     assert payload["applications"][0]["id"] == "sandbox"
+
+
+def test_get_configuration_matches_shared_contract_fixture(client: TestClient) -> None:
+    response = client.get("/api/v1/configurations/sandbox")
+
+    assert response.status_code == 200
+    assert response.json() == json.loads(SHARED_FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
 def test_get_missing_configuration_returns_404(client: TestClient) -> None:
@@ -67,4 +79,4 @@ def test_configuration_api_can_use_file_repository(tmp_path, sample_configuratio
 
     assert response.status_code == 200
     assert (tmp_path / "persisted.json").exists()
-    assert client.get("/api/v1/configurations/persisted").json()["metadata"]["source"] == "test-suite"
+    assert client.get("/api/v1/configurations/persisted").json()["metadata"]["source"] == "shared-contract-fixture"

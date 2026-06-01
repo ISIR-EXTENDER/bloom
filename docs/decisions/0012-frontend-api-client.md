@@ -18,6 +18,7 @@ The first client covers configuration endpoints and keeps transport details in o
 - URL encoding for configuration ids.
 - Typed configuration bundle responses shared with dashboard code.
 - `BloomApiError` for non-2xx responses so UI code can handle failures predictably.
+- Shared JSON contract fixtures used by backend and frontend tests.
 
 ## Consequences
 

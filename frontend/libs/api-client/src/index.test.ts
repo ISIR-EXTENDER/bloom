@@ -1,35 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { BloomApiError, createBloomApiClient, type ConfigurationBundle } from "./index";
+import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
 
-const sampleBundle: ConfigurationBundle = {
-  metadata: {
-    schema_version: 1,
-    exported_at: "2026-06-01T14:00:00Z",
-    source: "api-client-test",
-  },
-  applications: [
-    {
-      id: "sandbox",
-      name: "Sandbox",
-      description: "Sandbox operator interface",
-      screens: [
-        {
-          id: "main",
-          title: "Main",
-          widgets: [
-            {
-              id: "gripper",
-              kind: "toggle",
-              title: "Gripper",
-              settings: { topic: "/gripper_controller/commands" },
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
+const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
 
 describe("Bloom API client", () => {
   it("lists configuration ids", async () => {
@@ -46,6 +20,20 @@ describe("Bloom API client", () => {
 
     await expect(client.getConfiguration("sandbox/demo")).resolves.toEqual(sampleBundle);
     expect(fetcher).toHaveBeenCalledWith("/api/v1/configurations/sandbox%2Fdemo", {});
+  });
+
+  it("accepts the shared backend configuration contract fixture", async () => {
+    const fetcher = createJsonFetcher(sharedConfigurationBundle);
+    const client = createBloomApiClient({ fetcher });
+
+    const configuration = await client.getConfiguration("sandbox");
+
+    expect(configuration.metadata.source).toBe("shared-contract-fixture");
+    expect(configuration.applications[0]?.screens[0]?.widgets[0]?.settings).toEqual({
+      topic: "/ui/ros_toggle",
+      payloadOn: { data: [13, 1] },
+      payloadOff: { data: [13, 0] },
+    });
   });
 
   it("upserts a configuration bundle", async () => {
