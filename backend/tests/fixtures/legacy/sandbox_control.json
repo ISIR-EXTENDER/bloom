@@ -1,0 +1,211 @@
+{
+  "name": "sandbox_control",
+  "widgets": [
+    {
+      "id": "pet-state-teleop",
+      "kind": "button",
+      "label": "Teleop",
+      "topic": "/petanque_state_machine/change_state",
+      "payload": "teleop",
+      "rect": {
+        "x": 20,
+        "y": 21,
+        "w": 110,
+        "h": 58
+      }
+    },
+    {
+      "id": "pet-state-go-start",
+      "kind": "button",
+      "label": "HOME",
+      "topic": "/petanque_state_machine/change_state",
+      "payload": "go_to_start",
+      "rect": {
+        "x": 147,
+        "y": 21,
+        "w": 92,
+        "h": 58
+      }
+    },
+    {
+      "id": "pet-speed",
+      "kind": "max-velocity",
+      "label": "Speed",
+      "topic": "/petanque_throw/total_duration",
+      "min": 0.9,
+      "max": 3,
+      "step": 0.1,
+      "rect": {
+        "x": 281,
+        "y": 116,
+        "w": 359,
+        "h": 146
+      },
+      "reverseDirection": true,
+      "endpointLeftLabel": "Slow",
+      "endpointRightLabel": "Fast",
+      "bubbleMode": "power"
+    },
+    {
+      "id": "widget-1772022467451-82a89",
+      "kind": "joystick",
+      "binding": "rot",
+      "label": "Rotation",
+      "topic": "/cmd/joystick_rxry",
+      "showTopicInfo": true,
+      "color": "#ff4d67",
+      "deadzone": 0.1,
+      "diskSize": 80,
+      "labels": {
+        "top": "RY+",
+        "right": "RX+",
+        "bottom": "RY-",
+        "left": "RX-"
+      },
+      "rect": {
+        "x": 802,
+        "y": 268,
+        "w": 435,
+        "h": 441
+      }
+    },
+    {
+      "id": "widget-1772022635176-7136a",
+      "kind": "joystick",
+      "binding": "joy",
+      "label": "Translation",
+      "topic": "/cmd/joystick",
+      "showTopicInfo": true,
+      "color": "#4a9eff",
+      "deadzone": 0.1,
+      "diskSize": 80,
+      "labels": {
+        "top": "Y+",
+        "right": "X+",
+        "bottom": "Y-",
+        "left": "X-"
+      },
+      "rect": {
+        "x": 255,
+        "y": 268,
+        "w": 429,
+        "h": 441
+      }
+    },
+    {
+      "id": "widget-1772022867304-b6279",
+      "kind": "mode-button",
+      "label": "Mode",
+      "topic": "/cmd/mode",
+      "rect": {
+        "x": 20,
+        "y": 109,
+        "w": 173,
+        "h": 108
+      }
+    },
+    {
+      "id": "widget-1772023042956-44680",
+      "kind": "slider",
+      "binding": "rz",
+      "label": "RZ",
+      "topic": "/cmd/joystick_rz",
+      "direction": "horizontal",
+      "showLabel": false,
+      "showTopicInfo": false,
+      "labelAlign": "center",
+      "min": -1,
+      "max": 1,
+      "step": 0.01,
+      "rect": {
+        "x": 802,
+        "y": 124,
+        "w": 435,
+        "h": 130
+      }
+    },
+    {
+      "id": "widget-1772023858581-53021",
+      "kind": "slider",
+      "binding": "z",
+      "label": "Z",
+      "topic": "/cmd/joystick_z",
+      "direction": "vertical",
+      "showLabel": false,
+      "showTopicInfo": false,
+      "labelAlign": "center",
+      "min": -1,
+      "max": 1,
+      "step": 0.01,
+      "rect": {
+        "x": 75,
+        "y": 268,
+        "w": 162,
+        "h": 422
+      }
+    },
+    {
+      "id": "pet-magnet",
+      "kind": "magnet-control",
+      "label": "Magnet",
+      "topic": "/hub/digital_output",
+      "onPayload": "electromagnet_on",
+      "offPayload": "electromagnet_off",
+      "rect": {
+        "x": 1072,
+        "y": 17,
+        "w": 180,
+        "h": 92
+      }
+    },
+    {
+      "id": "pet-gripper",
+      "kind": "gripper-control",
+      "label": "Gripper",
+      "topic": "/cmd/gripper",
+      "showAdvancedControls": false,
+      "rect": {
+        "x": 859,
+        "y": 17,
+        "w": 188,
+        "h": 92
+      }
+    },
+    {
+      "id": "sandbox-toggle-output",
+      "kind": "ros-message-toggle",
+      "label": "Digital Output",
+      "topic": "/sandbox/digital_output",
+      "messageType": "std_msgs/msg/Float64",
+      "onPayload": "{data: 1.0}",
+      "offPayload": "{data: 0.0}",
+      "rect": {
+        "x": 640,
+        "y": 17,
+        "w": 188,
+        "h": 92
+      }
+    },
+    {
+      "id": "widget-1777993123607-1d1c3",
+      "kind": "ros-message-toggle",
+      "label": "ROS Toggle",
+      "topic": "/ui/ros_toggle",
+      "messageType": "std_msgs/msg/Int32MultiArray",
+      "onPayload": "{data: [13, 1]}",
+      "offPayload": "{data: [13, 0]}",
+      "rect": {
+        "x": 394,
+        "y": 17,
+        "w": 203,
+        "h": 91
+      }
+    }
+  ],
+  "poses": [],
+  "canvas": {
+    "presetId": "hd",
+    "runtimeMode": "fit"
+  },
+  "updatedAt": "2026-05-05T15:02:06.803Z"
+}

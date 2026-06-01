@@ -1,0 +1,164 @@
+{
+  "name": "configurations",
+  "widgets": [
+    {
+      "id": "cfg-title",
+      "kind": "text",
+      "label": "Text",
+      "topic": "/ui/text",
+      "text": "Configuration",
+      "fontSize": 26,
+      "align": "left",
+      "rect": {
+        "x": 20,
+        "y": 20,
+        "w": 260,
+        "h": 56
+      }
+    },
+    {
+      "id": "cfg-theme",
+      "kind": "textarea",
+      "label": "UI Preferences",
+      "topic": "/ui/config/theme",
+      "text": "TODO backend integration:\n- user profile binding\n- role-based page access",
+      "fontSize": 14,
+      "rect": {
+        "x": 20,
+        "y": 90,
+        "w": 430,
+        "h": 220
+      }
+    },
+    {
+      "id": "cfg-axis",
+      "kind": "textarea",
+      "label": "Axis Mapping",
+      "topic": "/ui/config/axis",
+      "text": "invert_x=false\ninvert_y=false\ninvert_z=false",
+      "fontSize": 14,
+      "rect": {
+        "x": 20,
+        "y": 330,
+        "w": 430,
+        "h": 220
+      }
+    },
+    {
+      "id": "cfg-save",
+      "kind": "button",
+      "label": "Apply Config",
+      "topic": "/ui/config/apply",
+      "payload": "apply",
+      "rect": {
+        "x": 20,
+        "y": 570,
+        "w": 200,
+        "h": 58
+      }
+    },
+    {
+      "id": "cfg-reset",
+      "kind": "button",
+      "label": "Reset Defaults",
+      "topic": "/ui/config/reset",
+      "payload": "reset",
+      "rect": {
+        "x": 240,
+        "y": 570,
+        "w": 210,
+        "h": 58
+      }
+    },
+    {
+      "id": "cfg-nav",
+      "kind": "navigation-bar",
+      "label": "All Pages",
+      "topic": "/ui/navigation",
+      "orientation": "vertical",
+      "items": [
+        {
+          "id": "cfg-nav-default_control",
+          "label": "default_control",
+          "targetScreenId": "default_control"
+        },
+        {
+          "id": "cfg-nav-live_teleop",
+          "label": "live_teleop",
+          "targetScreenId": "live_teleop"
+        },
+        {
+          "id": "cfg-nav-articular",
+          "label": "articular",
+          "targetScreenId": "articular"
+        },
+        {
+          "id": "cfg-nav-camera",
+          "label": "camera",
+          "targetScreenId": "camera"
+        },
+        {
+          "id": "cfg-nav-visual_servoing",
+          "label": "visual_servoing",
+          "targetScreenId": "visual_servoing"
+        },
+        {
+          "id": "cfg-nav-logs",
+          "label": "logs",
+          "targetScreenId": "logs"
+        },
+        {
+          "id": "cfg-nav-poses",
+          "label": "poses",
+          "targetScreenId": "poses"
+        },
+        {
+          "id": "cfg-nav-petanque",
+          "label": "petanque",
+          "targetScreenId": "petanque"
+        },
+        {
+          "id": "cfg-nav-curves",
+          "label": "curves",
+          "targetScreenId": "curves"
+        },
+        {
+          "id": "cfg-nav-configurations",
+          "label": "configurations",
+          "targetScreenId": "configurations"
+        },
+        {
+          "id": "cfg-nav-debug",
+          "label": "debug",
+          "targetScreenId": "debug"
+        }
+      ],
+      "rect": {
+        "x": 470,
+        "y": 90,
+        "w": 220,
+        "h": 540
+      }
+    },
+    {
+      "id": "cfg-open-debug",
+      "kind": "navigation-button",
+      "label": "Open Debug",
+      "topic": "/ui/navigation",
+      "targetScreenId": "debug",
+      "icon": "arrow-right",
+      "rect": {
+        "x": 710,
+        "y": 90,
+        "w": 220,
+        "h": 58
+      }
+    }
+  ],
+  "poses": [],
+  "canvas": {
+    "presetId": "tablet",
+    "runtimeMode": "fit"
+  },
+  "updatedAt": "2026-03-10T23:15:29.149Z"
+}
