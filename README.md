@@ -48,6 +48,7 @@ Backend:
 ```bash
 cd backend
 make test
+make run
 ```
 
 Frontend:
@@ -58,6 +59,8 @@ npm run build
 ```
 
 The backend test target disables external pytest plugin autoloading so a sourced ROS environment cannot leak ROS-specific pytest plugins into Bloom's generic tests.
+
+The backend API starts under `/api/v1`, with `/api/v1/health` as the first system endpoint.
 
 ## Python Environment
 
