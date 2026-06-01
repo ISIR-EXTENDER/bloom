@@ -8,12 +8,11 @@
     "frontend/libs/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace @bloom/dashboard",
+    "build": "npm run build --workspaces --if-present",
     "dev": "npm run dev --workspace @bloom/dashboard",
-    "test": "npm run test --workspace @bloom/dashboard"
+    "test": "npm run test --workspaces --if-present"
   },
   "engines": {
     "node": ">=20"
   }
 }
-
