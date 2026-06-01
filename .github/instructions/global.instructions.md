@@ -42,3 +42,4 @@ The scope should be the name of the module affected (e.g., `users`, `auth`, `mai
 
 - **Atomic Commits**: Try to keep commits focused on a single logical change.
 - **Descriptive**: The description should clearly state _what_ changed.
+- **Squash Merges**: When merging with `gh pr merge --squash`, do not pass `--subject` unless the subject explicitly includes the PR number suffix, for example `feat(cli): add backend command line (#3)`.

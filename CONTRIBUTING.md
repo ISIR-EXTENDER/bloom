@@ -31,6 +31,7 @@ Keep commits focused. If a commit mixes unrelated work, split it before opening 
 - Rebase on `main` before merge if the branch is behind.
 - Use squash merge for feature branches unless the PR intentionally contains a curated stack of atomic commits.
 - Do not use merge commits.
+- When using `gh pr merge --squash`, prefer the default generated squash subject so GitHub keeps the PR number suffix, for example `feat(cli): add backend command line (#3)`.
 
 ## Required Local Checks
 
@@ -48,4 +49,3 @@ npm install
 npm run build
 npm run test
 ```
-
