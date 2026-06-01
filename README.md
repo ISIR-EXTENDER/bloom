@@ -25,7 +25,6 @@ bloom/
       logging/
       ros_adapters/
       sessions/
-  docker/
   docs/
 ```
 
@@ -34,6 +33,7 @@ bloom/
 - Generic web logic must not depend directly on ROS.
 - ROS-specific code belongs in `backend/libs/ros_adapters`.
 - Extender-specific configuration belongs in deployment/configuration, not low-level shared libraries.
+- Development is local-first; do not add deployment tooling before there is a concrete need.
 - Migration must be iterative: no legacy file is deleted until the replacement is tested and accepted.
 - Tests should arrive with each migrated slice, not after the migration is done.
 
