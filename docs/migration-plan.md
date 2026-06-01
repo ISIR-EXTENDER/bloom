@@ -35,6 +35,7 @@
 3. Add configuration API endpoints.
    - Expose listing, loading, and saving configuration data through `/api/v1`.
    - Start with file-backed or in-memory storage before adding the database.
+   - Keep the route contract stable so later database-backed storage can replace the repository implementation.
 4. Start the frontend dashboard migration shell.
    - Move the generic app shell and configuration loading flow into Bloom.
    - Keep widgets and ROS behavior in later focused PRs.
