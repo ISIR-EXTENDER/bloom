@@ -23,6 +23,24 @@
 - Add Extender workspace deployment entrypoints.
 - Mark legacy repos/packages as legacy only after Bloom passes the full end-to-end pipeline.
 
+## Next Migration Slices
+
+1. Add configuration domain models.
+   - Define typed models for applications, screens, widgets, and configuration metadata.
+   - Keep this backend-only and independent from ROS, database storage, and frontend rendering.
+2. Add JSON import/export services.
+   - Load current JSON configuration files into the domain models.
+   - Export models back to JSON so existing files remain recoverable.
+3. Add configuration API endpoints.
+   - Expose listing, loading, and saving configuration data through `/api/v1`.
+   - Start with file-backed or in-memory storage before adding the database.
+4. Start the frontend dashboard migration shell.
+   - Move the generic app shell and configuration loading flow into Bloom.
+   - Keep widgets and ROS behavior in later focused PRs.
+5. Add SQLite-backed configuration storage.
+   - Introduce the database only after JSON compatibility and API behavior are tested.
+   - Keep JSON import/export as the safety bridge during migration.
+
 ## Non-Goals For The First Migration
 
 - Do not redesign the robot controllers.
