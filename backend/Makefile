@@ -4,9 +4,21 @@ SHELL := /bin/bash
 test: ## Run backend unit tests without external pytest plugin leakage
 	@PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 
+.PHONY: cli
+cli: ## Show Bloom backend CLI help
+	@uv run python -m apps.bloom_cli.main
+
+.PHONY: api
+api: ## Show Bloom API CLI help
+	@uv run python -m apps.bloom_cli.main api
+
+.PHONY: api-run
+api-run: ## Run the Bloom API locally through the CLI
+	@uv run python -m apps.bloom_cli.main api run --reload
+
 .PHONY: run
 run: ## Run the Bloom API locally
-	@uv run uvicorn apps.bloom_api.main:app --reload
+	@$(MAKE) -s api-run
 
 .PHONY: help
 help:

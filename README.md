@@ -41,7 +41,7 @@ bloom/
 - Migration must be iterative: no legacy file is deleted until the replacement is tested and accepted.
 - Tests should arrive with each migrated slice, not after the migration is done.
 
-## First Checks
+## Getting Started
 
 Backend:
 
@@ -50,6 +50,18 @@ cd backend
 make test
 make run
 ```
+
+Useful backend commands:
+
+| Command | Purpose |
+| --- | --- |
+| `make help` | List backend Make targets. |
+| `make test` | Run backend tests through `uv`. |
+| `make cli` | Show Bloom CLI help. |
+| `make api` | Show Bloom API CLI help. |
+| `make run` | Run the Bloom API locally with reload. |
+| `make api-run` | Explicit alias for running the Bloom API locally. |
+| `uv run python -m apps.bloom_cli.main version` | Print the backend version directly through Typer. |
 
 Frontend:
 
@@ -61,6 +73,8 @@ npm run build
 The backend test target disables external pytest plugin autoloading so a sourced ROS environment cannot leak ROS-specific pytest plugins into Bloom's generic tests.
 
 The backend API starts under `/api/v1`, with `/api/v1/health` as the first system endpoint.
+
+Backend developer commands are exposed through the Typer CLI in `backend/apps/bloom_cli`.
 
 ## Python Environment
 
