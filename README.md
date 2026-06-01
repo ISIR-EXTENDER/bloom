@@ -54,3 +54,9 @@ npm run build
 ```
 
 The backend test target disables external pytest plugin autoloading so a sourced ROS environment cannot leak ROS-specific pytest plugins into Bloom's generic tests.
+
+## Python Environment
+
+Use `uv` for backend dependency management and command execution whenever possible.
+
+`uv run ...` may create a local `.venv/` next to the backend `pyproject.toml`; that environment is uv-managed and ignored by git. Do not install backend dependencies manually with `pip` unless there is a specific debugging reason.
