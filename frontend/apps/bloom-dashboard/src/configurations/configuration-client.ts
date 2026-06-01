@@ -1,4 +1,4 @@
-import { createBloomApiClient, type BloomApiClient } from "@bloom/api-client";
+import { type BloomApiClient, createBloomApiClient } from "@bloom/api-client";
 
 export type ConfigurationClient = Pick<BloomApiClient, "getConfiguration" | "listConfigurations">;
 

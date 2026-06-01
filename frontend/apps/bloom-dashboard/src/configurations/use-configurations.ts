@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { ConfigurationClient } from "./configuration-client";
-import { loadConfigurations, type LoadedConfiguration } from "./configuration-loader";
+import { type LoadedConfiguration, loadConfigurations } from "./configuration-loader";
 
 export type ConfigurationLoadState =
   | { status: "loading" }

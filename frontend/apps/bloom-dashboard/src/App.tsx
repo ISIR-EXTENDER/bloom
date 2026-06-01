@@ -1,7 +1,7 @@
 import "./App.css";
 
 import { dashboardPrinciples, dashboardSteps } from "./app/dashboard-content";
-import { createDashboardConfigurationClient, type ConfigurationClient } from "./configurations/configuration-client";
+import { type ConfigurationClient, createDashboardConfigurationClient } from "./configurations/configuration-client";
 import { useConfigurations } from "./configurations/use-configurations";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
@@ -21,8 +21,8 @@ export function App({ configurationClient = defaultConfigurationClient }: AppPro
           <p className="eyebrow">Bloom dashboard</p>
           <h1 id="dashboard-title">Robot interfaces that grow cleanly.</h1>
           <p className="hero-copy">
-            Bloom is the new web foundation for configurable robot teleoperation,
-            supervision, and device control across ISIR projects.
+            Bloom is the new web foundation for configurable robot teleoperation, supervision, and device control across
+            ISIR projects.
           </p>
         </div>
 
