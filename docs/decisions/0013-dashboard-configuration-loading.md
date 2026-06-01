@@ -16,6 +16,7 @@ Add a minimal configuration loading path to the dashboard:
 - `configuration-loader` loads all listed configuration bundles through the API client.
 - `useConfigurations` owns React loading, ready, and error states.
 - `App` accepts an injected configuration client for tests while production uses the default client.
+- The Vite dev server proxies `/api` to `http://localhost:8000` so local frontend development can use relative API URLs.
 
 ## Consequences
 

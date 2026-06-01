@@ -67,7 +67,7 @@ export class BloomApiClient {
 
   constructor(options: BloomApiClientOptions = {}) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl ?? "");
-    this.fetcher = options.fetcher ?? fetch;
+    this.fetcher = options.fetcher ?? getDefaultFetcher();
   }
 
   async listConfigurations(): Promise<string[]> {
@@ -114,3 +114,6 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, "");
 }
 
+function getDefaultFetcher(): typeof fetch {
+  return globalThis.fetch.bind(globalThis);
+}

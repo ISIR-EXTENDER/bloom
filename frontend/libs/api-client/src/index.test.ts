@@ -14,6 +14,28 @@ describe("Bloom API client", () => {
     expect(fetcher).toHaveBeenCalledWith("http://localhost:8000/api/v1/configurations", {});
   });
 
+  it("binds the default fetcher to the global object", async () => {
+    const originalFetch = globalThis.fetch;
+    const fetcher = vi.fn(async function (this: typeof globalThis) {
+      if (this !== globalThis) {
+        throw new TypeError("Illegal invocation");
+      }
+      return new Response(JSON.stringify({ configuration_ids: ["sandbox"] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    globalThis.fetch = fetcher as typeof fetch;
+
+    try {
+      const client = createBloomApiClient();
+
+      await expect(client.listConfigurations()).resolves.toEqual(["sandbox"]);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("gets a configuration bundle with an encoded id", async () => {
     const fetcher = createJsonFetcher(sampleBundle);
     const client = createBloomApiClient({ fetcher });
