@@ -1,0 +1,36 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-06-01T14:00:00Z",
+    "source": "shared-contract-fixture"
+  },
+  "applications": [
+    {
+      "id": "sandbox",
+      "name": "Sandbox",
+      "description": "Sandbox operator interface",
+      "screens": [
+        {
+          "id": "main",
+          "title": "Main",
+          "widgets": [
+            {
+              "id": "toggle",
+              "kind": "command-button",
+              "title": "Toggle",
+              "settings": {
+                "topic": "/ui/ros_toggle",
+                "payloadOn": {
+                  "data": [13, 1]
+                },
+                "payloadOff": {
+                  "data": [13, 0]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

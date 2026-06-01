@@ -1,16 +1,17 @@
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import (
-    ApplicationConfig,
     ConfigurationBundle,
-    ConfigurationMetadata,
     InMemoryConfigurationRepository,
-    ScreenConfig,
-    WidgetConfig,
+    load_configuration_file,
 )
+
+SHARED_FIXTURE_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "configuration-bundle.json"
 
 
 @pytest.fixture
@@ -20,29 +21,7 @@ def test_settings() -> Settings:
 
 @pytest.fixture
 def sample_configuration_bundle() -> ConfigurationBundle:
-    return ConfigurationBundle(
-        metadata=ConfigurationMetadata(source="test-suite"),
-        applications=(
-            ApplicationConfig(
-                id="sandbox",
-                name="Sandbox",
-                screens=(
-                    ScreenConfig(
-                        id="main",
-                        title="Main",
-                        widgets=(
-                            WidgetConfig(
-                                id="toggle",
-                                kind="command-button",
-                                title="Toggle",
-                                settings={"topic": "/ui/ros_toggle", "payloadOn": {"data": [13, 1]}},
-                            ),
-                        ),
-                    ),
-                ),
-            ),
-        ),
-    )
+    return load_configuration_file(SHARED_FIXTURE_PATH)
 
 
 @pytest.fixture
