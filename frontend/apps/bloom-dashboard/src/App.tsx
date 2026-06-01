@@ -1,8 +1,18 @@
 import "./App.css";
 
 import { dashboardPrinciples, dashboardSteps } from "./app/dashboard-content";
+import { createDashboardConfigurationClient, type ConfigurationClient } from "./configurations/configuration-client";
+import { useConfigurations } from "./configurations/use-configurations";
 
-export function App() {
+const defaultConfigurationClient = createDashboardConfigurationClient();
+
+type AppProps = {
+  configurationClient?: ConfigurationClient;
+};
+
+export function App({ configurationClient = defaultConfigurationClient }: AppProps) {
+  const configurationState = useConfigurations(configurationClient);
+
   return (
     <main className="app-shell">
       <section className="hero" aria-labelledby="dashboard-title">
@@ -34,6 +44,47 @@ export function App() {
           </article>
         ))}
       </section>
+
+      <section className="configuration-panel" aria-labelledby="configuration-panel-title">
+        <div>
+          <p className="eyebrow">Live configuration</p>
+          <h2 id="configuration-panel-title">Available interfaces</h2>
+        </div>
+        <ConfigurationPanel state={configurationState} />
+      </section>
     </main>
+  );
+}
+
+type ConfigurationPanelProps = {
+  state: ReturnType<typeof useConfigurations>;
+};
+
+function ConfigurationPanel({ state }: ConfigurationPanelProps) {
+  if (state.status === "loading") {
+    return <p className="configuration-status">Loading configurations...</p>;
+  }
+
+  if (state.status === "error") {
+    return (
+      <p className="configuration-status configuration-status-error" role="alert">
+        {state.message}
+      </p>
+    );
+  }
+
+  if (state.configurations.length === 0) {
+    return <p className="configuration-status">No configurations found yet.</p>;
+  }
+
+  return (
+    <ul className="configuration-list">
+      {state.configurations.map(({ id, bundle }) => (
+        <li key={id}>
+          <span>{bundle.applications[0]?.name ?? id}</span>
+          <small>{id}</small>
+        </li>
+      ))}
+    </ul>
   );
 }

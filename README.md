@@ -67,8 +67,12 @@ Frontend:
 
 ```bash
 npm install
+npm run dev
 npm run build
 ```
+
+During local development, the Vite dev server proxies `/api` to the backend at `http://localhost:8000`.
+Start the backend with `cd backend && make run` before opening the dashboard if you want live configuration data.
 
 The backend test target disables external pytest plugin autoloading so a sourced ROS environment cannot leak ROS-specific pytest plugins into Bloom's generic tests.
 
