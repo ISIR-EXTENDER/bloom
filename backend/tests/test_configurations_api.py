@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 
-from libs.config import ConfigurationBundle
+from apps.bloom_api.main import create_app
+from apps.bloom_api.settings import Settings
+from libs.config import ConfigurationBundle, FileConfigurationRepository
 
 
 def test_list_configurations(client: TestClient) -> None:
@@ -55,3 +57,14 @@ def test_delete_missing_configuration_returns_404(client: TestClient) -> None:
 
     assert response.status_code == 404
     assert response.json() == {"detail": "configuration not found"}
+
+
+def test_configuration_api_can_use_file_repository(tmp_path, sample_configuration_bundle: ConfigurationBundle) -> None:
+    repository = FileConfigurationRepository(tmp_path)
+    client = TestClient(create_app(Settings(environment="test", configuration_dir=tmp_path), repository))
+
+    response = client.put("/api/v1/configurations/persisted", json=sample_configuration_bundle.model_dump(mode="json"))
+
+    assert response.status_code == 200
+    assert (tmp_path / "persisted.json").exists()
+    assert client.get("/api/v1/configurations/persisted").json()["metadata"]["source"] == "test-suite"

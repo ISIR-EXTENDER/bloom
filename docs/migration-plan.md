@@ -42,6 +42,7 @@
 5. Add SQLite-backed configuration storage.
    - Introduce the database only after JSON compatibility and API behavior are tested.
    - Keep JSON import/export as the safety bridge during migration.
+   - Use file-backed configuration storage as an intermediate persistence layer before SQLite.
 
 ## Non-Goals For The First Migration
 

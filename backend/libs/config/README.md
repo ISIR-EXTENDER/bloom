@@ -13,6 +13,13 @@ This library describes Bloom concepts such as applications, screens, widgets, an
 
 `json_io.py` contains file/string helpers for loading and saving configuration bundles. These helpers preserve the JSON migration bridge before database storage is introduced.
 
+## Repositories
+
+`repository.py` contains configuration repository implementations:
+
+- `InMemoryConfigurationRepository` for tests and temporary runtime state
+- `FileConfigurationRepository` for local JSON-backed persistence before database storage
+
 ## Legacy JSON
 
 `legacy_json.py` contains adapters for the current `extender_ui/data` JSON shapes. These adapters should preserve legacy payload details in widget settings while mapping screens and applications into Bloom domain models.

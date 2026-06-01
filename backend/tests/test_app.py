@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
-from libs.config import InMemoryConfigurationRepository
+from libs.config import FileConfigurationRepository, InMemoryConfigurationRepository
 
 
 def test_create_app_stores_settings() -> None:
@@ -23,3 +23,11 @@ def test_openapi_schema_is_available(client: TestClient) -> None:
     assert schema["info"]["title"] == "Bloom API"
     assert "/api/v1/health" in schema["paths"]
     assert "/api/v1/configurations" in schema["paths"]
+
+
+def test_create_app_uses_file_repository_by_default(test_settings: Settings, tmp_path) -> None:
+    settings = test_settings.model_copy(update={"configuration_dir": tmp_path})
+    app = create_app(settings)
+
+    assert isinstance(app.state.configuration_repository, FileConfigurationRepository)
+    assert app.state.configuration_repository.root_dir == tmp_path

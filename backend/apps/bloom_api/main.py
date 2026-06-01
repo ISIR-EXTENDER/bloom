@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from apps.bloom_api.routes import api_router
 from apps.bloom_api.settings import Settings, get_settings
-from libs.config import InMemoryConfigurationRepository
+from libs.config import FileConfigurationRepository, InMemoryConfigurationRepository
 
 
 def create_app(
@@ -17,7 +17,7 @@ def create_app(
     )
 
     app.state.settings = app_settings
-    app.state.configuration_repository = configuration_repository or InMemoryConfigurationRepository()
+    app.state.configuration_repository = configuration_repository or FileConfigurationRepository(app_settings.configuration_dir)
     app.include_router(api_router, prefix=app_settings.api_prefix)
 
     return app
