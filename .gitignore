@@ -15,8 +15,8 @@ coverage/
 .env
 .env.*
 !.env.example
+backend/data/
 
 # Tooling / OS
 .DS_Store
 *.log
-
