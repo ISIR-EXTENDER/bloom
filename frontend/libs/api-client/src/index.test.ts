@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-
-import { BloomApiError, createBloomApiClient, type ConfigurationBundle } from "./index";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
+import { type BloomApiError, type ConfigurationBundle, createBloomApiClient } from "./index";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
 

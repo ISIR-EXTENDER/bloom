@@ -9,4 +9,3 @@ if (!root) {
 }
 
 createRoot(root).render(<App />);
-
