@@ -31,6 +31,7 @@
 2. Add JSON import/export services.
    - Load current JSON configuration files into the domain models.
    - Export models back to JSON so existing files remain recoverable.
+   - Keep legacy adapters temporary and remove them once canonical Bloom configs replace old `extender_ui/data` files.
 3. Add configuration API endpoints.
    - Expose listing, loading, and saving configuration data through `/api/v1`.
    - Start with file-backed or in-memory storage before adding the database.
