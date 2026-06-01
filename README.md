@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom logo" width="220" />
+</p>
+
 # Bloom
 
 Bloom is a configurable web interface framework for robot teleoperation, supervision, and device control.
