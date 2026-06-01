@@ -6,6 +6,7 @@ from libs.config.models import (
     WidgetConfig,
     WidgetKind,
 )
+from libs.config.repository import ConfigurationNotFoundError, InMemoryConfigurationRepository
 from libs.config.json_io import (
     configuration_to_dict,
     dump_configuration_json,
@@ -26,6 +27,8 @@ __all__ = [
     "ApplicationConfig",
     "ConfigurationBundle",
     "ConfigurationMetadata",
+    "ConfigurationNotFoundError",
+    "InMemoryConfigurationRepository",
     "ScreenConfig",
     "WidgetConfig",
     "WidgetKind",
