@@ -366,6 +366,11 @@ h1 {
   border: 0;
   border-radius: inherit;
   background: transparent;
+  cursor: grab;
+}
+
+.builder-widget-selector:active {
+  cursor: grabbing;
 }
 
 .builder-widget-frame button,

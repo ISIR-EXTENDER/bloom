@@ -1,4 +1,4 @@
-import type { ScreenConfig, WidgetConfig } from "@bloom/api-client";
+import type { ScreenConfig, WidgetLayout } from "@bloom/api-client";
 import { renderWidgetDescriptor } from "@bloom/widget-renderers";
 import {
   createDefaultWidgetRegistry,
@@ -6,17 +6,18 @@ import {
   resolveCanvasArtboardSize,
   resolveCanvasPresetSize,
 } from "@bloom/widgets";
-import type { ReactNode } from "react";
+import { BuilderCanvasItem } from "./BuilderCanvasItem";
 
 const widgetRegistry = createDefaultWidgetRegistry();
 
 type BuilderCanvasProps = {
+  onMoveWidget: (widgetId: string, layout: WidgetLayout) => void;
   onSelectWidget: (widgetId: string) => void;
   screen: ScreenConfig;
   selectedWidgetId: string | null;
 };
 
-export function BuilderCanvas({ onSelectWidget, screen, selectedWidgetId }: BuilderCanvasProps) {
+export function BuilderCanvas({ onMoveWidget, onSelectWidget, screen, selectedWidgetId }: BuilderCanvasProps) {
   const descriptors = renderScreenDescriptors(screen, widgetRegistry);
   const artboardSize = resolveCanvasArtboardSize(screen.widgets, screen.canvas);
   const presetSize = resolveCanvasPresetSize(screen.canvas);
@@ -46,48 +47,18 @@ export function BuilderCanvas({ onSelectWidget, screen, selectedWidgetId }: Buil
         {isEmpty ? <BuilderComingSoonMessage screen={screen} /> : null}
 
         {descriptors.map((descriptor) => (
-          <BuilderWidgetFrame
+          <BuilderCanvasItem
+            canvasSize={artboardSize}
             key={descriptor.widget.id}
+            onMoveWidget={onMoveWidget}
             onSelectWidget={onSelectWidget}
             selected={descriptor.widget.id === selectedWidgetId}
             widget={descriptor.widget}
           >
             {renderWidgetDescriptor(descriptor)}
-          </BuilderWidgetFrame>
+          </BuilderCanvasItem>
         ))}
       </div>
-    </div>
-  );
-}
-
-type BuilderWidgetFrameProps = {
-  children: ReactNode;
-  onSelectWidget: (widgetId: string) => void;
-  selected: boolean;
-  widget: WidgetConfig;
-};
-
-function BuilderWidgetFrame({ children, onSelectWidget, selected, widget }: BuilderWidgetFrameProps) {
-  return (
-    <div
-      className={`builder-widget-frame widget-preview-card ${selected ? "is-selected" : ""}`}
-      data-widget-kind={widget.kind}
-      style={{
-        left: `${widget.layout.x}px`,
-        top: `${widget.layout.y}px`,
-        width: `${widget.layout.width}px`,
-        height: `${widget.layout.height}px`,
-      }}
-    >
-      <button
-        aria-label={`Select ${widget.title} widget`}
-        aria-pressed={selected}
-        className="builder-widget-selector"
-        onClick={() => onSelectWidget(widget.id)}
-        type="button"
-      />
-      {children}
-      <span className="builder-widget-frame-badge">{widget.kind}</span>
     </div>
   );
 }
