@@ -178,6 +178,56 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("/sandbox_controller/velocity_command")).toBeVisible();
     expect(screen.getByText("field: velocity.x")).toBeVisible();
   });
+
+  it("renders topic plot samples from widget data snapshots", () => {
+    const descriptor = renderScreenDescriptors(topicPlotScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic plot descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "velocity-x": {
+              samples: [
+                { timestamp: "2026-06-02T10:00:00.000Z", value: 0.2 },
+                { timestamp: "2026-06-02T10:00:01.000Z", value: 0.4 },
+              ],
+              type: "topic-plot",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText("latest: 0.4")).toBeVisible();
+  });
+
+  it("renders topic echo messages from widget data snapshots", () => {
+    const descriptor = renderScreenDescriptors(topicEchoScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic echo descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "joint-state-echo": {
+              messages: [
+                {
+                  receivedAt: "2026-06-02T10:00:00.000Z",
+                  topic: "/joint_states",
+                  value: { name: ["joint_1"], position: [0.42] },
+                },
+              ],
+              type: "topic-echo",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText(/joint_1/)).toBeVisible();
+    expect(screen.getByText(/0.42/)).toBeVisible();
+  });
 });
 
 const sampleScreen: ScreenConfig = {
@@ -362,6 +412,35 @@ const topicPlotScreen: ScreenConfig = {
         messageType: "geometry_msgs/msg/Twist",
         topic: "/sandbox_controller/velocity_command",
         unit: "m/s",
+      },
+    },
+  ],
+};
+
+const topicEchoScreen: ScreenConfig = {
+  id: "debug",
+  title: "Debug",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "joint-state-echo",
+      kind: "topic-echo",
+      title: "Joint state echo",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 480,
+        height: 260,
+      },
+      settings: {
+        fieldPath: "",
+        maxMessages: 100,
+        messageType: "sensor_msgs/msg/JointState",
+        prettyPrint: true,
+        topic: "/joint_states",
       },
     },
   ],

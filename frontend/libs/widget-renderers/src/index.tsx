@@ -1,6 +1,9 @@
 import type { WidgetKind } from "@bloom/api-client";
 import {
   createWidgetActionIntent,
+  formatTopicEchoValue,
+  type TopicMessage,
+  type TopicPlotSample,
   type WidgetActionIntent,
   type WidgetRenderContext,
   type WidgetRenderDescriptor,
@@ -10,6 +13,7 @@ import { type ReactNode, useState } from "react";
 import { type JoystickLabels, JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
 
 export type WidgetRendererProps = {
+  data?: WidgetDataSnapshot;
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
   onActionIntent?: WidgetActionIntentHandler;
 };
@@ -24,6 +28,16 @@ export type UnknownWidgetRenderer = (props: UnknownWidgetRendererProps) => React
 
 export type WidgetActionIntentHandler = (intent: WidgetActionIntent) => void;
 
+export type WidgetDataSnapshot =
+  | {
+      messages: readonly TopicMessage[];
+      type: "topic-echo";
+    }
+  | {
+      samples: readonly TopicPlotSample[];
+      type: "topic-plot";
+    };
+
 export type WidgetRendererRegistration = {
   kind: WidgetKind;
   render: WidgetRenderer;
@@ -32,6 +46,7 @@ export type WidgetRendererRegistration = {
 export type WidgetRendererRegistry = ReadonlyMap<WidgetKind, WidgetRenderer>;
 
 export type ScreenRendererOptions = {
+  dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
   onActionIntent?: WidgetActionIntentHandler;
   renderUnknown?: UnknownWidgetRenderer;
   registry?: WidgetRendererRegistry;
@@ -92,7 +107,13 @@ export function renderWidgetDescriptor(
   }
 
   const Renderer = renderer;
-  return <Renderer descriptor={descriptor} onActionIntent={options.onActionIntent} />;
+  return (
+    <Renderer
+      data={options.dataByWidgetId?.[descriptor.widget.id]}
+      descriptor={descriptor}
+      onActionIntent={options.onActionIntent}
+    />
+  );
 }
 
 export function renderScreenWidgets(
@@ -264,9 +285,39 @@ function PlaceholderWidget({ descriptor }: WidgetRendererProps) {
   );
 }
 
-function TopicDebugWidget({ descriptor }: WidgetRendererProps) {
+function TopicDebugWidget({ data, descriptor }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "No topic configured");
   const fieldPath = getStringSetting(descriptor.widget.settings, "fieldPath", "");
+
+  if (descriptor.widget.kind === "topic-echo") {
+    const messages = data?.type === "topic-echo" ? data.messages : [];
+    return (
+      <>
+        <strong>{descriptor.widget.title}</strong>
+        <span>{topic}</span>
+        <pre className="bloom-topic-echo">
+          {messages.length > 0
+            ? messages.map((message) => formatTopicEchoValue(message.value, true)).join("\n---\n")
+            : "Waiting for messages..."}
+        </pre>
+      </>
+    );
+  }
+
+  if (descriptor.widget.kind === "topic-plot") {
+    const samples = data?.type === "topic-plot" ? data.samples : [];
+    const latestSample = samples.at(-1);
+    return (
+      <>
+        <strong>{descriptor.widget.title}</strong>
+        <span>{topic}</span>
+        <div className="bloom-topic-plot" data-sample-count={samples.length}>
+          <span>{latestSample ? `latest: ${latestSample.value}` : "Waiting for samples..."}</span>
+        </div>
+        <span>{fieldPath ? `field: ${fieldPath}` : descriptor.definition.displayName}</span>
+      </>
+    );
+  }
 
   return (
     <>

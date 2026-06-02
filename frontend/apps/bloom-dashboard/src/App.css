@@ -393,6 +393,30 @@ h1 {
   background: #7fa95f;
 }
 
+.bloom-topic-echo {
+  max-height: 100%;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 10px;
+  background: rgba(25, 52, 45, 0.08);
+  color: #19342d;
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+}
+
+.bloom-topic-plot {
+  display: grid;
+  min-height: 56px;
+  place-items: center;
+  border: 1px solid rgba(25, 52, 45, 0.14);
+  border-radius: 12px;
+  background:
+    linear-gradient(to right, rgba(25, 52, 45, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(25, 52, 45, 0.08) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
 .widget-preview-unknown {
   border-color: rgba(155, 61, 46, 0.32);
 }
