@@ -3,24 +3,23 @@ import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
 
+import { BuilderWorkspace } from "./builder/BuilderWorkspace";
 import {
   type ConfigurationClient,
   createDashboardConfigurationClient,
   createDashboardRuntimeActionClient,
 } from "./configurations/configuration-client";
 import { useConfigurations } from "./configurations/use-configurations";
+import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
-import { CanvasPreview } from "./ui/CanvasPreview";
 import {
-  ConfigurationWorkspace,
   getInitialWorkspaceSelection,
   resolveSelectedWorkspace,
   type WorkspaceSelection,
 } from "./ui/ConfigurationWorkspace";
 import { LandingPage } from "./ui/LandingPage";
 import { ProductNavigation, type ProductView } from "./ui/ProductNavigation";
-import { RuntimeIntentPanel } from "./ui/RuntimeIntentPanel";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
 const defaultRuntimeActionClient = createDashboardRuntimeActionClient();
@@ -52,7 +51,7 @@ export function App({
 
   return (
     <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
-      <main className="app-shell" id="bloom-main">
+      <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
         <ProductNavigation activeView={activeView} onChangeView={setActiveView} />
 
         {activeView === "landing" ? (
@@ -62,7 +61,6 @@ export function App({
             activeView={activeView}
             onRuntimeIntent={handleRuntimeIntent}
             onSelectionChange={setSelection}
-            runtimeRecords={runtimeActions.records}
             selection={selection}
             state={configurationState}
           />
@@ -76,7 +74,6 @@ type MainApplicationViewProps = {
   activeView: Exclude<ProductView, "landing">;
   onRuntimeIntent: (intent: WidgetActionIntent) => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
-  runtimeRecords: ReturnType<typeof useRuntimeActionDispatcher>["records"];
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
 };
@@ -85,7 +82,6 @@ function MainApplicationView({
   activeView,
   onRuntimeIntent,
   onSelectionChange,
-  runtimeRecords,
   selection,
   state,
 }: MainApplicationViewProps) {
@@ -103,20 +99,24 @@ function MainApplicationView({
 
   const selectedWorkspace = resolveSelectedWorkspace(state.configurations, selection);
 
-  return (
-    <section className="main-application-grid" aria-label="Bloom main application">
-      <ConfigurationWorkspace
+  if (activeView === "builder") {
+    return (
+      <BuilderWorkspace
         configurations={state.configurations}
         onSelectionChange={onSelectionChange}
         selection={selection}
       />
-      <CanvasPreview
-        mode={activeView}
-        onActionIntent={activeView === "runtime" ? onRuntimeIntent : undefined}
-        screen={selectedWorkspace.screen}
-      />
-      {activeView === "runtime" ? <RuntimeIntentPanel records={runtimeRecords} /> : null}
-    </section>
+    );
+  }
+
+  return (
+    <RuntimeWorkspace
+      application={selectedWorkspace.application}
+      onActionIntent={onRuntimeIntent}
+      onSelectionChange={onSelectionChange}
+      screen={selectedWorkspace.screen}
+      selection={selection}
+    />
   );
 }
 

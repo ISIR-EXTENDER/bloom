@@ -30,11 +30,13 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
 
+    expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(await screen.findByRole("heading", { level: 2, name: "Choose what to preview" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
     expect(screen.getByText(/Sandbox operator interface/i)).toBeInTheDocument();
-    expect(screen.getByText("Digital output")).toBeVisible();
+    expect(screen.getAllByText("Digital output").length).toBeGreaterThan(0);
     expect(screen.getByText("/ui/ros_toggle")).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Digital output" })).toBeVisible();
   });
 
   it("switches screens inside the builder workspace", async () => {
@@ -48,7 +50,18 @@ describe("App", () => {
     expect(screen.getByText("Waiting for messages...")).toBeVisible();
   });
 
-  it("records runtime action intents from interactive widgets", async () => {
+  it("shows a coming soon message for registered screens without migrated widgets", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Placeholder/i }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Placeholder" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Screen implementation coming soon" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Coming soon" })).toBeVisible();
+  });
+
+  it("dispatches runtime action intents from the full app view", async () => {
     const runtimeActionClient = createRuntimeActionClient();
 
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
@@ -56,15 +69,26 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
     fireEvent.click(await screen.findByRole("button", { name: "OFF" }));
 
-    expect(screen.getByRole("heading", { level: 2, name: "Action intents" })).toBeVisible();
-    expect(screen.getByText("topic-publish")).toBeVisible();
-    expect(await screen.findByText("simulated")).toBeVisible();
-    expect(screen.getByText(/"widgetId": "ros-toggle"/)).toBeVisible();
+    expect(screen.getByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 2, name: "Choose what to preview" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "Action intents" })).not.toBeInTheDocument();
     expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith({
       topic: "/ui/ros_toggle",
       message_type: "std_msgs/msg/Int32MultiArray",
       payload_text: "{data: [13, 1]}",
     });
+  });
+
+  it("shows a safe coming soon state for empty runtime screens", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Placeholder/i }));
+
+    expect(screen.getByRole("region", { name: "Runtime screen coming soon" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 3, name: "Placeholder" })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 2, name: "Choose what to preview" })).not.toBeInTheDocument();
   });
 
   it("renders the first migrated legacy petanque screen end-to-end", async () => {
@@ -83,7 +107,7 @@ describe("App", () => {
 
     expect(await screen.findAllByText("app-petanque-admin")).toHaveLength(2);
     expect(screen.getByRole("heading", { level: 2, name: "default_control" })).toBeVisible();
-    expect(screen.getByText("RZ")).toBeVisible();
+    expect(screen.getAllByText("RZ").length).toBeGreaterThan(0);
     expect(screen.getByText("Z")).toBeVisible();
     expect(screen.getByText("Max Velocity")).toBeVisible();
     expect(screen.getByText("Translation")).toBeVisible();
@@ -210,6 +234,15 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
                 },
               },
             ],
+          },
+          {
+            id: "placeholder",
+            title: "Placeholder",
+            canvas: {
+              preset_id: "tablet",
+              runtime_mode: "fit",
+            },
+            widgets: [],
           },
         ],
       },
