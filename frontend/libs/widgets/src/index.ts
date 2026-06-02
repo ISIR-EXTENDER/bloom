@@ -9,6 +9,7 @@ import type {
 import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
 export * from "./editor";
+export * from "./extensions";
 export * from "./legacy";
 export * from "./runtime";
 export * from "./settings";
@@ -414,16 +415,17 @@ export const LEGACY_WIDGET_KIND_MAPPINGS: Readonly<Record<LegacyWidgetKind, Lega
   "throw-draw": {
     legacyKind: "throw-draw",
     bloomKind: "unknown",
-    compatibility: "app-specific",
-    displayName: "Throw draw",
-    notes: "Petanque-specific widget; keep outside Bloom core until app extensions exist.",
+    compatibility: "adapter-required",
+    displayName: "Gesture draw",
+    notes: "Reusable gesture/trajectory input candidate; keep as unknown until Bloom has a generic draw-control model.",
   },
   drink: {
     legacyKind: "drink",
     bloomKind: "command-button",
-    compatibility: "app-specific",
-    displayName: "Drink button",
-    notes: "Petanque-specific action; migrate later as an application widget.",
+    compatibility: "adapter-required",
+    displayName: "Media action button",
+    notes:
+      "Reusable media/action overlay candidate; migrate later as a generic widget instead of a Petanque-only widget.",
   },
   curves: {
     legacyKind: "curves",
@@ -435,9 +437,9 @@ export const LEGACY_WIDGET_KIND_MAPPINGS: Readonly<Record<LegacyWidgetKind, Lega
   logs: {
     legacyKind: "logs",
     bloomKind: "unknown",
-    compatibility: "unsupported",
+    compatibility: "adapter-required",
     displayName: "Logs",
-    notes: "Needs a logging/event source model before migration.",
+    notes: "Reusable logging/event viewer candidate; needs a generic log stream model before migration.",
   },
 };
 

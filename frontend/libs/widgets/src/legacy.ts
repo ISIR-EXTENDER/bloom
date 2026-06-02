@@ -103,7 +103,10 @@ function legacyRectToLayout(rect: Record<string, unknown> | undefined): WidgetLa
 }
 
 function legacyWidgetSettingsToConfig(widget: LegacyCanvasWidget): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(widget).filter(([key]) => !WIDGET_CONFIG_KEYS.has(key)));
+  return {
+    ...Object.fromEntries(Object.entries(widget).filter(([key]) => !WIDGET_CONFIG_KEYS.has(key))),
+    legacyKind: stringOrFallback(widget.kind, "unknown"),
+  };
 }
 
 function isCanvasPresetId(value: unknown): value is CanvasSettings["preset_id"] {

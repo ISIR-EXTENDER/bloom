@@ -14,6 +14,8 @@ The main improvement is to separate responsibilities earlier:
 - layout logic is tested outside React;
 - runtime actions go through explicit command/device/ROS boundaries;
 - app-specific widgets stay out of Bloom core until extension points exist.
+- widgets first discovered in Petanque should still become generic Bloom widgets when their behavior can serve other
+  apps.
 
 ## Why Adapters Exist
 
@@ -62,6 +64,7 @@ Avoid carrying these weaknesses forward:
 - ROS/device behavior mixed directly into UI widgets;
 - old tab/widget-instance shape competing with the newer canvas JSON shape;
 - app-specific widgets living in the generic catalog without an extension boundary.
+- reusable Petanque-era widgets being trapped as Petanque-only code when they should become lab-wide widgets.
 
 ## Current State
 
@@ -249,6 +252,10 @@ Tests:
 ### 8. App Extension Points
 
 Goal: support Petanque or future lab apps without polluting Bloom core.
+
+Use a generic-first rule: `drink`, `throw-draw`, `curves`, `logs`, stream/measure views, and similar Petanque-era
+widgets should be evaluated as reusable Bloom widgets before being assigned to a Petanque extension. The extension path
+is for explicitly app-owned behavior, not for every widget currently used by one app.
 
 Add a path for app-specific widgets:
 

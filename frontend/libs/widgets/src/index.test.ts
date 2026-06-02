@@ -7,6 +7,7 @@ import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-
 import {
   addWidgetToScreen,
   buildRosMessageToggleCliExample,
+  createAppExtensionRegistry,
   createDefaultWidgetRegistry,
   createWidgetActionIntent,
   createWidgetConfigFromDefinition,
@@ -16,6 +17,7 @@ import {
   getDefaultRosMessageTogglePayloads,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreenToConfig,
+  legacyCanvasWidgetToConfig,
   legacyRectToLayout,
   listWidgetDefinitionsByCategory,
   moveWidget,
@@ -29,6 +31,7 @@ import {
   resolveCanvasFitScale,
   resolveCanvasPresetSize,
   resolveLegacyWidgetKind,
+  resolveWidgetAppExtension,
   snapLayoutValue,
   toBloomWidgetKind,
   updateWidgetSettings,
@@ -398,14 +401,14 @@ describe("legacy widget kind mapping", () => {
     });
   });
 
-  it("keeps app-specific widgets out of Bloom core", () => {
+  it("keeps reusable complex widgets out of Bloom core until generic models exist", () => {
     expect(resolveLegacyWidgetKind("throw-draw")).toMatchObject({
       bloomKind: "unknown",
-      compatibility: "app-specific",
+      compatibility: "adapter-required",
     });
     expect(resolveLegacyWidgetKind("drink")).toMatchObject({
       bloomKind: "command-button",
-      compatibility: "app-specific",
+      compatibility: "adapter-required",
     });
   });
 
@@ -482,6 +485,7 @@ describe("legacy canvas configuration adapter", () => {
         height: 91,
       },
       settings: {
+        legacyKind: "ros-message-toggle",
         messageType: "std_msgs/msg/Int32MultiArray",
         onPayload: "{data: [13, 1]}",
         topic: "/ui/ros_toggle",
@@ -498,12 +502,84 @@ describe("legacy canvas configuration adapter", () => {
       kind: "unknown",
       title: "All Pages",
       settings: {
+        legacyKind: "navigation-bar",
         orientation: "vertical",
       },
     });
     expect((navigation?.settings.items as Array<{ targetScreenId: string }>)[0]?.targetScreenId).toBe(
       "default_control",
     );
+  });
+});
+
+describe("app widget extension points", () => {
+  it("creates app extension registries with unique ids and legacy widget ownership", () => {
+    expect(() =>
+      createAppExtensionRegistry([
+        {
+          id: "petanque",
+          label: "Petanque",
+          legacyWidgetKinds: ["throw-draw"],
+        },
+        {
+          id: "petanque-duplicate",
+          label: "Petanque duplicate",
+          legacyWidgetKinds: ["throw-draw"],
+        },
+      ]),
+    ).toThrow('Legacy widget kind "throw-draw" is already owned by app extension "petanque".');
+  });
+
+  it("resolves explicitly app-owned widgets through registered extensions", () => {
+    const registry = createAppExtensionRegistry([
+      {
+        id: "petanque",
+        label: "Petanque",
+        legacyWidgetKinds: ["drink", "throw-draw"],
+        rendererKey: "petanque.widgets",
+        runtimeAdapterKey: "petanque.runtime",
+      },
+    ]);
+    const widget = legacyCanvasWidgetToConfig({
+      id: "throw",
+      kind: "throw-draw",
+      label: "Throw draw",
+      appExtensionId: "petanque",
+    });
+
+    expect(resolveWidgetAppExtension(widget, registry)).toMatchObject({
+      status: "resolved",
+      legacyKind: "throw-draw",
+      extension: {
+        id: "petanque",
+        rendererKey: "petanque.widgets",
+        runtimeAdapterKey: "petanque.runtime",
+      },
+    });
+  });
+
+  it("uses explicit app extension ids instead of assuming legacy Petanque widgets are app-only", () => {
+    const registry = createAppExtensionRegistry();
+    const explicitAppWidget = legacyCanvasWidgetToConfig({
+      id: "drink",
+      kind: "drink",
+      label: "Drink",
+      appExtensionId: "petanque",
+    });
+    const genericWidget = legacyCanvasWidgetToConfig({
+      id: "throw",
+      kind: "throw-draw",
+      label: "Gesture draw",
+    });
+
+    expect(resolveWidgetAppExtension(explicitAppWidget, registry)).toEqual({
+      status: "missing",
+      legacyKind: "drink",
+      reason: 'No app extension registered for id "petanque".',
+    });
+    expect(resolveWidgetAppExtension(genericWidget, registry)).toEqual({
+      status: "none",
+    });
   });
 });
 
