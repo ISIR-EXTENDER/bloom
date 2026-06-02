@@ -17,7 +17,7 @@ def test_load_legacy_sandbox_control_screen() -> None:
     assert len(screen.widgets) == 12
 
     ros_toggle = next(widget for widget in screen.widgets if widget.id == "widget-1777993123607-1d1c3")
-    assert ros_toggle.kind == WidgetKind.COMMAND_BUTTON
+    assert ros_toggle.kind == WidgetKind.TOGGLE
     assert ros_toggle.title == "ROS Toggle"
     assert ros_toggle.layout.x == 394
     assert ros_toggle.layout.y == 17
@@ -30,6 +30,16 @@ def test_load_legacy_sandbox_control_screen() -> None:
     assert screen.canvas.preset_id == "hd"
     assert screen.canvas.runtime_mode == "fit"
 
+    max_velocity = next(widget for widget in screen.widgets if widget.id == "pet-speed")
+    assert max_velocity.kind == WidgetKind.SLIDER
+    assert max_velocity.settings["reverseDirection"] is True
+
+    gripper = next(widget for widget in screen.widgets if widget.id == "pet-gripper")
+    assert gripper.kind == WidgetKind.TOGGLE
+
+    state_button = next(widget for widget in screen.widgets if widget.id == "pet-state-teleop")
+    assert state_button.kind == WidgetKind.COMMAND_BUTTON
+
 
 def test_load_legacy_configurations_screen() -> None:
     screen = load_legacy_screen_file(FIXTURE_DIR / "configurations.json")
@@ -37,6 +47,7 @@ def test_load_legacy_configurations_screen() -> None:
     assert screen.id == "configurations"
     assert screen.widgets[0].kind == WidgetKind.LABEL
     assert screen.widgets[0].title == "Text"
+    assert screen.widgets[1].kind == WidgetKind.LABEL
 
     navigation = next(widget for widget in screen.widgets if widget.id == "cfg-nav")
     assert navigation.kind == WidgetKind.UNKNOWN

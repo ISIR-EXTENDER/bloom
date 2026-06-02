@@ -8,6 +8,7 @@ import type {
 } from "@bloom/api-client";
 import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
+export * from "./legacy";
 export * from "./settings";
 
 export type LegacyWidgetCompatibility = "direct" | "renamed" | "adapter-required" | "app-specific" | "unsupported";

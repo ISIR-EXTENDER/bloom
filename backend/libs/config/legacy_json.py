@@ -84,14 +84,26 @@ def _legacy_canvas_to_settings(value: Any) -> CanvasSettings:
 
 def _map_widget_kind(kind: str) -> WidgetKind:
     mapping = {
-        "button": WidgetKind.BUTTON,
+        "button": WidgetKind.COMMAND_BUTTON,
         "camera": WidgetKind.CAMERA,
+        "curves": WidgetKind.PLOT,
+        "drink": WidgetKind.COMMAND_BUTTON,
+        "gripper-control": WidgetKind.TOGGLE,
         "joystick": WidgetKind.JOYSTICK,
+        "magnet-control": WidgetKind.TOGGLE,
+        "max-velocity": WidgetKind.SLIDER,
+        "mode-button": WidgetKind.COMMAND_BUTTON,
+        "navigation-button": WidgetKind.BUTTON,
         "plot": WidgetKind.PLOT,
-        "ros-message-toggle": WidgetKind.COMMAND_BUTTON,
+        "rosbag-control": WidgetKind.COMMAND_BUTTON,
+        "ros-message-toggle": WidgetKind.TOGGLE,
+        "save-pose-button": WidgetKind.COMMAND_BUTTON,
         "slider": WidgetKind.SLIDER,
+        "stream-display": WidgetKind.CAMERA,
         "text": WidgetKind.LABEL,
+        "textarea": WidgetKind.LABEL,
         "toggle": WidgetKind.TOGGLE,
+        "toggle-publisher": WidgetKind.TOGGLE,
     }
     return mapping.get(kind, WidgetKind.UNKNOWN)
 

@@ -1,5 +1,7 @@
 import type { ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
+import legacyConfigurationsScreen from "../../../../backend/tests/fixtures/legacy/configurations.json";
+import legacySandboxScreen from "../../../../backend/tests/fixtures/legacy/sandbox_control.json";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
 
 import {
@@ -8,6 +10,7 @@ import {
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
   LEGACY_WIDGET_KIND_MAPPINGS,
+  legacyCanvasScreenToConfig,
   legacyRectToLayout,
   listWidgetDefinitionsByCategory,
   normalizeWidgetSettings,
@@ -389,6 +392,56 @@ describe("legacy widget kind mapping", () => {
       .map((mapping) => mapping.bloomKind);
 
     expect(mappedKinds.every((kind) => registry.has(kind))).toBe(true);
+  });
+});
+
+describe("legacy canvas configuration adapter", () => {
+  it("converts real legacy sandbox canvas JSON into Bloom screen config", () => {
+    const screen = legacyCanvasScreenToConfig(legacySandboxScreen);
+
+    expect(screen).toMatchObject({
+      id: "sandbox_control",
+      title: "sandbox_control",
+      canvas: {
+        preset_id: "hd",
+        runtime_mode: "fit",
+      },
+    });
+    expect(screen.widgets).toHaveLength(12);
+
+    const rosToggle = screen.widgets.find((widget) => widget.id === "widget-1777993123607-1d1c3");
+    expect(rosToggle).toMatchObject({
+      kind: "toggle",
+      title: "ROS Toggle",
+      layout: {
+        x: 394,
+        y: 17,
+        width: 203,
+        height: 91,
+      },
+      settings: {
+        messageType: "std_msgs/msg/Int32MultiArray",
+        onPayload: "{data: [13, 1]}",
+        topic: "/ui/ros_toggle",
+      },
+    });
+    expect(rosToggle?.settings).not.toHaveProperty("rect");
+  });
+
+  it("keeps unsupported legacy widgets visible as unknown", () => {
+    const screen = legacyCanvasScreenToConfig(legacyConfigurationsScreen);
+    const navigation = screen.widgets.find((widget) => widget.id === "cfg-nav");
+
+    expect(navigation).toMatchObject({
+      kind: "unknown",
+      title: "All Pages",
+      settings: {
+        orientation: "vertical",
+      },
+    });
+    expect((navigation?.settings.items as Array<{ targetScreenId: string }>)[0]?.targetScreenId).toBe(
+      "default_control",
+    );
   });
 });
 
