@@ -1,3 +1,4 @@
+import type { ConfigurationBundle } from "@bloom/api-client";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -27,6 +28,8 @@ describe("App", () => {
     expect(screen.getByText("Loading configurations...")).toBeVisible();
     expect(await screen.findByText("Sandbox")).toBeVisible();
     expect(screen.getByText("sandbox")).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
+    expect(screen.getByText("Command button")).toBeVisible();
   });
 
   it("renders an empty configuration state", async () => {
@@ -52,20 +55,49 @@ function createConfigurationClient(options: { ids?: string[]; error?: Error } = 
       }
       return ids;
     }),
-    getConfiguration: vi.fn(async (id: string) => ({
-      metadata: {
-        schema_version: 1,
-        exported_at: "2026-06-01T14:00:00Z",
-        source: "dashboard-test",
-      },
-      applications: [
-        {
-          id,
-          name: "Sandbox",
-          description: "Sandbox operator interface",
-          screens: [],
+    getConfiguration: vi.fn(
+      async (id: string): Promise<ConfigurationBundle> => ({
+        metadata: {
+          schema_version: 1,
+          exported_at: "2026-06-01T14:00:00Z",
+          source: "dashboard-test",
         },
-      ],
-    })),
+        applications: [
+          {
+            id,
+            name: "Sandbox",
+            description: "Sandbox operator interface",
+            screens: [
+              {
+                id: "main",
+                title: "Main",
+                canvas: {
+                  preset_id: "hd",
+                  runtime_mode: "fit",
+                },
+                widgets: [
+                  {
+                    id: "toggle",
+                    kind: "command-button",
+                    title: "Toggle",
+                    layout: {
+                      x: 24,
+                      y: 32,
+                      width: 220,
+                      height: 96,
+                    },
+                    settings: {
+                      topic: "/ui/ros_toggle",
+                      payloadOn: { data: [13, 1] },
+                      payloadOff: { data: [13, 0] },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ),
   };
 }

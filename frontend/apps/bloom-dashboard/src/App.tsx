@@ -1,3 +1,10 @@
+import type { ScreenConfig } from "@bloom/api-client";
+import {
+  createDefaultWidgetRegistry,
+  renderScreenDescriptors,
+  resolveCanvasArtboardSize,
+  type WidgetRenderDescriptor,
+} from "@bloom/widgets";
 import "./App.css";
 
 import { dashboardPrinciples, dashboardSteps } from "./app/dashboard-content";
@@ -5,6 +12,7 @@ import { type ConfigurationClient, createDashboardConfigurationClient } from "./
 import { useConfigurations } from "./configurations/use-configurations";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
+const widgetRegistry = createDefaultWidgetRegistry();
 
 type AppProps = {
   configurationClient?: ConfigurationClient;
@@ -52,6 +60,8 @@ export function App({ configurationClient = defaultConfigurationClient }: AppPro
         </div>
         <ConfigurationPanel state={configurationState} />
       </section>
+
+      <ScreenPreviewPanel state={configurationState} />
     </main>
   );
 }
@@ -86,5 +96,82 @@ function ConfigurationPanel({ state }: ConfigurationPanelProps) {
         </li>
       ))}
     </ul>
+  );
+}
+
+type ScreenPreviewPanelProps = {
+  state: ReturnType<typeof useConfigurations>;
+};
+
+function ScreenPreviewPanel({ state }: ScreenPreviewPanelProps) {
+  if (state.status !== "ready" || state.configurations.length === 0) {
+    return null;
+  }
+
+  const firstConfiguration = state.configurations[0];
+  const firstApplication = firstConfiguration?.bundle.applications[0];
+  const firstScreen = firstApplication?.screens[0];
+  if (!firstApplication || !firstScreen) {
+    return null;
+  }
+
+  return (
+    <section className="screen-preview-panel" aria-labelledby="screen-preview-title">
+      <div className="screen-preview-heading">
+        <div>
+          <p className="eyebrow">Screen preview</p>
+          <h2 id="screen-preview-title">{firstScreen.title}</h2>
+        </div>
+        <small>
+          {firstApplication.name} · {firstScreen.widgets.length} widgets
+        </small>
+      </div>
+      <ScreenPreview screen={firstScreen} />
+    </section>
+  );
+}
+
+type ScreenPreviewProps = {
+  screen: ScreenConfig;
+};
+
+function ScreenPreview({ screen }: ScreenPreviewProps) {
+  const descriptors = renderScreenDescriptors(screen, widgetRegistry);
+  const artboardSize = resolveCanvasArtboardSize(screen.widgets, screen.canvas);
+
+  return (
+    <div
+      className="screen-preview-artboard"
+      style={{
+        aspectRatio: `${artboardSize.width} / ${artboardSize.height}`,
+      }}
+    >
+      {descriptors.map((descriptor) => (
+        <WidgetPreview descriptor={descriptor} key={descriptor.widget.id} />
+      ))}
+    </div>
+  );
+}
+
+type WidgetPreviewProps = {
+  descriptor: WidgetRenderDescriptor;
+};
+
+function WidgetPreview({ descriptor }: WidgetPreviewProps) {
+  const { widget } = descriptor;
+
+  return (
+    <article
+      className={`widget-preview-card widget-preview-${descriptor.status}`}
+      style={{
+        left: `${widget.layout.x}px`,
+        top: `${widget.layout.y}px`,
+        width: `${widget.layout.width}px`,
+        height: `${widget.layout.height}px`,
+      }}
+    >
+      <strong>{widget.title}</strong>
+      <span>{descriptor.status === "resolved" ? descriptor.definition.displayName : descriptor.reason}</span>
+    </article>
   );
 }
