@@ -1,7 +1,11 @@
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from apps.bloom_cli.main import cli
 from libs.config import ConfigurationBundle, load_configuration_file, save_configuration_file
+
+LEGACY_FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
 
 
 def test_version_command_prints_backend_version() -> None:
@@ -112,6 +116,76 @@ def test_config_cli_keeps_file_storage_available(
     assert (configuration_dir / "sandbox.json").exists()
     assert list_result.exit_code == 0
     assert list_result.stdout.strip() == "sandbox"
+
+
+def test_config_cli_imports_legacy_screen_to_sqlite(tmp_path) -> None:
+    database_path = tmp_path / "bloom.db"
+    exported_path = tmp_path / "legacy-screen.json"
+    runner = CliRunner()
+
+    import_result = runner.invoke(
+        cli,
+        [
+            "config",
+            "import-legacy-screen",
+            "legacy-sandbox",
+            str(LEGACY_FIXTURE_DIR / "sandbox_control.json"),
+            "--application-id",
+            "sandbox",
+            "--application-name",
+            "Sandbox",
+            "--storage",
+            "sqlite",
+            "--database-path",
+            str(database_path),
+        ],
+    )
+    export_result = runner.invoke(
+        cli,
+        [
+            "config",
+            "export",
+            "legacy-sandbox",
+            str(exported_path),
+            "--storage",
+            "sqlite",
+            "--database-path",
+            str(database_path),
+        ],
+    )
+    bundle = load_configuration_file(exported_path)
+
+    assert import_result.exit_code == 0
+    assert "Imported legacy screen sandbox_control as legacy-sandbox" in import_result.stdout
+    assert export_result.exit_code == 0
+    assert bundle.metadata.source == "legacy-screen:sandbox_control.json"
+    assert bundle.applications[0].id == "sandbox"
+    assert bundle.applications[0].screens[0].id == "sandbox_control"
+    assert len(bundle.applications[0].screens[0].widgets) == 12
+
+
+def test_config_cli_imports_legacy_application_to_file_storage(tmp_path) -> None:
+    configuration_dir = tmp_path / "configurations"
+    runner = CliRunner()
+
+    import_result = runner.invoke(
+        cli,
+        [
+            "config",
+            "import-legacy-application",
+            "play-petanque",
+            str(LEGACY_FIXTURE_DIR / "application-play-petanque.json"),
+            "--configuration-dir",
+            str(configuration_dir),
+        ],
+    )
+    bundle = load_configuration_file(configuration_dir / "play-petanque.json")
+
+    assert import_result.exit_code == 0
+    assert "Imported legacy application application-play-petanque as play-petanque" in import_result.stdout
+    assert bundle.metadata.source == "legacy-application:application-play-petanque.json"
+    assert bundle.applications[0].id == "application-play-petanque"
+    assert bundle.applications[0].screens[0].id == "petanque"
 
 
 def test_config_cli_export_missing_configuration_fails(tmp_path) -> None:

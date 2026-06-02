@@ -5,11 +5,16 @@ import uvicorn
 
 from apps.bloom_api.settings import get_settings
 from libs.config import (
+    ApplicationConfig,
     ConfigurationNotFoundError,
     ConfigurationRepository,
     ConfigurationStorageKind,
+    ConfigurationBundle,
+    ConfigurationMetadata,
     create_configuration_repository,
     load_configuration_file,
+    load_legacy_application_file,
+    load_legacy_screen_file,
     save_configuration_file,
 )
 
@@ -106,6 +111,52 @@ def import_configuration(
     repository = open_configuration_repository(storage, configuration_dir, database_path)
     repository.upsert(config_id, load_configuration_file(source_path))
     typer.echo(f"Imported {config_id}")
+
+
+@config_cli.command("import-legacy-screen")
+def import_legacy_screen(
+    config_id: str = typer.Argument(..., help="Configuration ID to store."),
+    source_path: Path = typer.Argument(..., help="Legacy screen JSON file to import."),
+    application_id: str = typer.Option("legacy-application", "--application-id", help="Application ID to wrap the screen."),
+    application_name: str = typer.Option("Legacy Application", "--application-name", help="Application name to wrap the screen."),
+    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
+    database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
+) -> None:
+    """Import a legacy extender_ui screen JSON file into storage."""
+    repository = open_configuration_repository(storage, configuration_dir, database_path)
+    screen = load_legacy_screen_file(source_path)
+    bundle = ConfigurationBundle(
+        metadata=ConfigurationMetadata(source=f"legacy-screen:{source_path.name}"),
+        applications=(
+            ApplicationConfig(
+                id=application_id,
+                name=application_name,
+                screens=(screen,),
+            ),
+        ),
+    )
+    repository.upsert(config_id, bundle)
+    typer.echo(f"Imported legacy screen {screen.id} as {config_id}")
+
+
+@config_cli.command("import-legacy-application")
+def import_legacy_application(
+    config_id: str = typer.Argument(..., help="Configuration ID to store."),
+    source_path: Path = typer.Argument(..., help="Legacy application JSON file to import."),
+    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
+    database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
+) -> None:
+    """Import a legacy extender_ui application JSON file into storage."""
+    repository = open_configuration_repository(storage, configuration_dir, database_path)
+    application = load_legacy_application_file(source_path)
+    bundle = ConfigurationBundle(
+        metadata=ConfigurationMetadata(source=f"legacy-application:{source_path.name}"),
+        applications=(application,),
+    )
+    repository.upsert(config_id, bundle)
+    typer.echo(f"Imported legacy application {application.id} as {config_id}")
 
 
 @config_cli.command("export")

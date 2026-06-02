@@ -106,6 +106,13 @@ uv run python -m apps.bloom_cli.main config list --storage sqlite --database-pat
 uv run python -m apps.bloom_cli.main config export sandbox data/exports/sandbox.json --storage sqlite --database-path data/bloom.db
 ```
 
+Legacy `extender_ui` JSON can be imported through explicit migration commands:
+
+```bash
+uv run python -m apps.bloom_cli.main config import-legacy-screen legacy-sandbox tests/fixtures/legacy/sandbox_control.json --application-id sandbox --application-name Sandbox --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config import-legacy-application play-petanque tests/fixtures/legacy/application-play-petanque.json --storage sqlite --database-path data/bloom.db
+```
+
 The FastAPI app can already use SQLite by constructing `Settings(configuration_storage="sqlite", configuration_database_path=...)`. File-backed storage remains the fallback until the full frontend and runtime migration have passed end-to-end tests.
 
 ## Tests And Coverage
