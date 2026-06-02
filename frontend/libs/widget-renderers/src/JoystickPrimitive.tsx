@@ -113,7 +113,7 @@ export function JoystickPrimitive({
           ["--bloom-joystick-deadzone" as string]: `${Math.max(0, Math.min(1, deadzone))}`,
         }}
       />
-      <div className="bloom-joystick-zone" ref={zoneRef} />
+      <div className="bloom-joystick-zone" ref={zoneRef} style={{ position: "absolute" }} />
     </div>
   );
 }

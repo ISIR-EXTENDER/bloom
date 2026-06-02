@@ -1,0 +1,90 @@
+{
+  "name": "default_petanque",
+  "widgets": [
+    {
+      "id": "petanque-title",
+      "kind": "text",
+      "label": "Title",
+      "topic": "/ui/text/petanque/title",
+      "text": "Petanque",
+      "fontSize": 30,
+      "align": "left",
+      "rect": {
+        "x": 40,
+        "y": 32,
+        "w": 320,
+        "h": 64
+      }
+    },
+    {
+      "id": "petanque-score",
+      "kind": "textarea",
+      "label": "Score",
+      "topic": "/ui/text/petanque/score",
+      "text": "Team A: 0\nTeam B: 0",
+      "fontSize": 22,
+      "rect": {
+        "x": 40,
+        "y": 112,
+        "w": 280,
+        "h": 146
+      }
+    },
+    {
+      "id": "petanque-start",
+      "kind": "button",
+      "label": "Start Round",
+      "topic": "/cmd/petanque/round",
+      "payload": "start",
+      "rect": {
+        "x": 340,
+        "y": 112,
+        "w": 180,
+        "h": 52
+      }
+    },
+    {
+      "id": "petanque-stop",
+      "kind": "button",
+      "label": "Stop Round",
+      "topic": "/cmd/petanque/round",
+      "payload": "stop",
+      "rect": {
+        "x": 340,
+        "y": 176,
+        "w": 180,
+        "h": 52
+      }
+    },
+    {
+      "id": "petanque-camera",
+      "kind": "stream-display",
+      "label": "Camera Stream",
+      "topic": "/ui/stream/camera",
+      "source": "camera",
+      "streamUrl": "webrtc://localhost:8001/stream",
+      "rect": {
+        "x": 550,
+        "y": 112,
+        "w": 670,
+        "h": 430
+      }
+    },
+    {
+      "id": "petanque-back-home",
+      "kind": "navigation-button",
+      "label": "Home",
+      "topic": "/ui/navigation",
+      "targetScreenId": "default_home",
+      "icon": "home",
+      "rect": {
+        "x": 40,
+        "y": 560,
+        "w": 160,
+        "h": 52
+      }
+    }
+  ],
+  "poses": [],
+  "updatedAt": "2026-02-13T22:59:18.069Z"
+}

@@ -33,6 +33,15 @@ def load_legacy_application_file(path: str | Path) -> ApplicationConfig:
     return load_legacy_application_json(application_path.read_text(encoding="utf-8"))
 
 
+def load_legacy_application_with_screens_file(
+    application_path: str | Path,
+    screen_paths: tuple[str | Path, ...],
+) -> ApplicationConfig:
+    application_payload = json.loads(Path(application_path).read_text(encoding="utf-8"))
+    screen_payloads = tuple(json.loads(Path(screen_path).read_text(encoding="utf-8")) for screen_path in screen_paths)
+    return legacy_application_with_screens_to_config(application_payload, screen_payloads)
+
+
 def legacy_screen_to_config(payload: dict[str, Any]) -> ScreenConfig:
     screen_id = str(payload.get("id") or payload["name"])
     title = str(payload.get("title") or payload.get("label") or payload["name"])
@@ -53,6 +62,16 @@ def legacy_application_to_config(payload: dict[str, Any]) -> ApplicationConfig:
     )
 
 
+def legacy_application_with_screens_to_config(
+    application_payload: dict[str, Any],
+    screen_payloads: tuple[dict[str, Any], ...],
+) -> ApplicationConfig:
+    application = legacy_application_to_config(application_payload)
+    converted_screens = tuple(legacy_screen_to_config(screen_payload) for screen_payload in screen_payloads)
+    ordered_screens = _order_screens_for_legacy_application(application.screens, converted_screens)
+    return application.model_copy(update={"screens": ordered_screens})
+
+
 def _legacy_widget_to_config(payload: dict[str, Any]) -> WidgetConfig:
     widget_id = str(payload["id"])
     title = str(payload.get("title") or payload.get("label") or widget_id)
@@ -60,6 +79,28 @@ def _legacy_widget_to_config(payload: dict[str, Any]) -> WidgetConfig:
     layout = _legacy_rect_to_layout(payload.get("rect"))
     settings = {key: value for key, value in payload.items() if key not in {"id", "title", "label", "kind", "rect"}}
     return WidgetConfig(id=widget_id, title=title, kind=kind, layout=layout, settings=settings)
+
+
+def _order_screens_for_legacy_application(
+    placeholder_screens: tuple[ScreenConfig, ...],
+    converted_screens: tuple[ScreenConfig, ...],
+) -> tuple[ScreenConfig, ...]:
+    converted_by_candidate_id = {
+        candidate_id: screen for screen in converted_screens for candidate_id in _legacy_screen_id_candidates(screen.id)
+    }
+    ordered_screens = tuple(converted_by_candidate_id.get(screen.id, screen) for screen in placeholder_screens)
+    ordered_screen_ids = {screen.id for screen in ordered_screens}
+    remaining_screens = tuple(screen for screen in converted_screens if screen.id not in ordered_screen_ids)
+    return ordered_screens + remaining_screens
+
+
+def _legacy_screen_id_candidates(screen_id: str) -> tuple[str, ...]:
+    candidates = [screen_id]
+    if screen_id.startswith("default_"):
+        candidates.append(screen_id.removeprefix("default_"))
+    else:
+        candidates.append(f"default_{screen_id}")
+    return tuple(dict.fromkeys(candidates))
 
 
 def _legacy_rect_to_layout(value: Any) -> WidgetLayout:
@@ -90,6 +131,7 @@ def _map_widget_kind(kind: str) -> WidgetKind:
         "drink": WidgetKind.COMMAND_BUTTON,
         "gripper-control": WidgetKind.TOGGLE,
         "joystick": WidgetKind.JOYSTICK,
+        "load-pose-button": WidgetKind.COMMAND_BUTTON,
         "magnet-control": WidgetKind.TOGGLE,
         "max-velocity": WidgetKind.SLIDER,
         "mode-button": WidgetKind.COMMAND_BUTTON,

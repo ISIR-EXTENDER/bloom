@@ -188,6 +188,35 @@ def test_config_cli_imports_legacy_application_to_file_storage(tmp_path) -> None
     assert bundle.applications[0].screens[0].id == "petanque"
 
 
+def test_config_cli_imports_legacy_application_with_real_screens(tmp_path) -> None:
+    configuration_dir = tmp_path / "configurations"
+    runner = CliRunner()
+
+    import_result = runner.invoke(
+        cli,
+        [
+            "config",
+            "import-legacy-application-screens",
+            "petanque-admin",
+            str(LEGACY_FIXTURE_DIR / "app-petanque-admin.json"),
+            str(LEGACY_FIXTURE_DIR / "default_control.json"),
+            str(LEGACY_FIXTURE_DIR / "default_live_teleop.json"),
+            str(LEGACY_FIXTURE_DIR / "default_petanque.json"),
+            "--configuration-dir",
+            str(configuration_dir),
+        ],
+    )
+    bundle = load_configuration_file(configuration_dir / "petanque-admin.json")
+
+    assert import_result.exit_code == 0
+    assert "Imported legacy application app-petanque-admin with 12 screens as petanque-admin" in import_result.stdout
+    assert bundle.metadata.source == "legacy-application-screens:app-petanque-admin.json"
+    assert bundle.applications[0].screens[0].id == "default_control"
+    assert bundle.applications[0].screens[0].widgets[0].id == "control-rz"
+    assert bundle.applications[0].screens[1].id == "default_live_teleop"
+    assert bundle.applications[0].screens[1].widgets[1].kind == "camera"
+
+
 def test_config_cli_export_missing_configuration_fails(tmp_path) -> None:
     runner = CliRunner()
 

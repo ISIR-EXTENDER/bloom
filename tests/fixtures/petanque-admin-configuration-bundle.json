@@ -1,0 +1,474 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-06-02T15:30:00Z",
+    "source": "legacy-application-screens:app-petanque-admin.json"
+  },
+  "applications": [
+    {
+      "id": "app-petanque-admin",
+      "name": "app-petanque-admin",
+      "description": "Legacy home screen: default_control",
+      "screens": [
+        {
+          "id": "default_control",
+          "title": "default_control",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "control-rz",
+              "kind": "slider",
+              "title": "RZ",
+              "layout": {
+                "x": 670,
+                "y": 9,
+                "width": 338,
+                "height": 78
+              },
+              "settings": {
+                "binding": "rz",
+                "topic": "/cmd/joystick_rz",
+                "direction": "horizontal",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "showLabel": true,
+                "labelAlign": "left",
+                "showTopicInfo": false
+              }
+            },
+            {
+              "id": "control-z",
+              "kind": "slider",
+              "title": "Z",
+              "layout": {
+                "x": 3,
+                "y": 178,
+                "width": 74,
+                "height": 330
+              },
+              "settings": {
+                "binding": "z",
+                "topic": "/cmd/joystick_z",
+                "direction": "vertical",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "showTopicInfo": false
+              }
+            },
+            {
+              "id": "control-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 86,
+                "y": 98,
+                "width": 489,
+                "height": 489
+              },
+              "settings": {
+                "binding": "joy",
+                "topic": "/cmd/joystick_xy",
+                "color": "#4a9eff",
+                "deadzone": 0.1,
+                "diskSize": 90,
+                "labels": {
+                  "top": "Y+",
+                  "right": "X+",
+                  "bottom": "Y-",
+                  "left": "X-"
+                },
+                "showTopicInfo": false
+              }
+            },
+            {
+              "id": "control-rotation",
+              "kind": "joystick",
+              "title": "Rotation",
+              "layout": {
+                "x": 583,
+                "y": 101,
+                "width": 490,
+                "height": 490
+              },
+              "settings": {
+                "binding": "rot",
+                "topic": "/cmd/joystick_rxry",
+                "color": "#f97316",
+                "deadzone": 0.1,
+                "diskSize": 90,
+                "labels": {
+                  "top": "RY+",
+                  "right": "RX+",
+                  "bottom": "RY-",
+                  "left": "RX-"
+                },
+                "showTopicInfo": false
+              }
+            },
+            {
+              "id": "control-max-velocity",
+              "kind": "slider",
+              "title": "Max Velocity",
+              "layout": {
+                "x": 397,
+                "y": 622,
+                "width": 306,
+                "height": 106
+              },
+              "settings": {
+                "topic": "/cmd/max_velocity",
+                "min": 0,
+                "max": 2,
+                "step": 0.01
+              }
+            },
+            {
+              "id": "control-gripper",
+              "kind": "toggle",
+              "title": "Gripper Control",
+              "layout": {
+                "x": 1088,
+                "y": 135,
+                "width": 240,
+                "height": 149
+              },
+              "settings": {
+                "topic": "/cmd/gripper"
+              }
+            },
+            {
+              "id": "control-load-home-pose",
+              "kind": "command-button",
+              "title": "Load Home",
+              "layout": {
+                "x": 1060,
+                "y": 40,
+                "width": 145,
+                "height": 56
+              },
+              "settings": {
+                "topic": "/ui/load_pose",
+                "poseName": "home",
+                "icon": "home"
+              }
+            }
+          ]
+        },
+        {
+          "id": "default_live_teleop",
+          "title": "default_live_teleop",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "live-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 32,
+                "y": 30,
+                "width": 360,
+                "height": 64
+              },
+              "settings": {
+                "topic": "/ui/text/live/title",
+                "text": "Live Teleop",
+                "fontSize": 30,
+                "align": "left"
+              }
+            },
+            {
+              "id": "live-camera",
+              "kind": "camera",
+              "title": "Camera Stream",
+              "layout": {
+                "x": 32,
+                "y": 112,
+                "width": 700,
+                "height": 430
+              },
+              "settings": {
+                "topic": "/ui/stream/camera",
+                "source": "camera",
+                "streamUrl": "webrtc://localhost:8001/stream"
+              }
+            },
+            {
+              "id": "live-rviz",
+              "kind": "camera",
+              "title": "RViz Stream",
+              "layout": {
+                "x": 752,
+                "y": 112,
+                "width": 460,
+                "height": 260
+              },
+              "settings": {
+                "topic": "/ui/stream/rviz",
+                "source": "rviz",
+                "streamUrl": "webrtc://localhost:8001/rviz"
+              }
+            },
+            {
+              "id": "live-joystick",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 752,
+                "y": 392,
+                "width": 220,
+                "height": 220
+              },
+              "settings": {
+                "binding": "joy",
+                "topic": "/cmd/joystick_xy",
+                "color": "#4a9eff",
+                "deadzone": 0.1,
+                "diskSize": 78,
+                "labels": {
+                  "top": "Y+",
+                  "right": "X+",
+                  "bottom": "Y-",
+                  "left": "X-"
+                }
+              }
+            },
+            {
+              "id": "live-rotation",
+              "kind": "joystick",
+              "title": "Rotation",
+              "layout": {
+                "x": 992,
+                "y": 392,
+                "width": 220,
+                "height": 220
+              },
+              "settings": {
+                "binding": "rot",
+                "topic": "/cmd/joystick_rxry",
+                "color": "#f97316",
+                "deadzone": 0.1,
+                "diskSize": 78,
+                "labels": {
+                  "top": "RY+",
+                  "right": "RX+",
+                  "bottom": "RY-",
+                  "left": "RX-"
+                }
+              }
+            },
+            {
+              "id": "live-back-home",
+              "kind": "button",
+              "title": "Home",
+              "layout": {
+                "x": 32,
+                "y": 560,
+                "width": 160,
+                "height": 52
+              },
+              "settings": {
+                "topic": "/ui/navigation",
+                "targetScreenId": "default_home",
+                "icon": "home"
+              }
+            }
+          ]
+        },
+        {
+          "id": "articular",
+          "title": "articular",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "camera",
+          "title": "camera",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "visual_servoing",
+          "title": "visual_servoing",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "logs",
+          "title": "logs",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "poses",
+          "title": "poses",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "default_petanque",
+          "title": "default_petanque",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "petanque-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 320,
+                "height": 64
+              },
+              "settings": {
+                "topic": "/ui/text/petanque/title",
+                "text": "Petanque",
+                "fontSize": 30,
+                "align": "left"
+              }
+            },
+            {
+              "id": "petanque-score",
+              "kind": "label",
+              "title": "Score",
+              "layout": {
+                "x": 40,
+                "y": 112,
+                "width": 280,
+                "height": 146
+              },
+              "settings": {
+                "topic": "/ui/text/petanque/score",
+                "text": "Team A: 0\nTeam B: 0",
+                "fontSize": 22
+              }
+            },
+            {
+              "id": "petanque-start",
+              "kind": "command-button",
+              "title": "Start Round",
+              "layout": {
+                "x": 340,
+                "y": 112,
+                "width": 180,
+                "height": 52
+              },
+              "settings": {
+                "topic": "/cmd/petanque/round",
+                "payload": "start"
+              }
+            },
+            {
+              "id": "petanque-stop",
+              "kind": "command-button",
+              "title": "Stop Round",
+              "layout": {
+                "x": 340,
+                "y": 176,
+                "width": 180,
+                "height": 52
+              },
+              "settings": {
+                "topic": "/cmd/petanque/round",
+                "payload": "stop"
+              }
+            },
+            {
+              "id": "petanque-camera",
+              "kind": "camera",
+              "title": "Camera Stream",
+              "layout": {
+                "x": 550,
+                "y": 112,
+                "width": 670,
+                "height": 430
+              },
+              "settings": {
+                "topic": "/ui/stream/camera",
+                "source": "camera",
+                "streamUrl": "webrtc://localhost:8001/stream"
+              }
+            },
+            {
+              "id": "petanque-back-home",
+              "kind": "button",
+              "title": "Home",
+              "layout": {
+                "x": 40,
+                "y": 560,
+                "width": 160,
+                "height": 52
+              },
+              "settings": {
+                "topic": "/ui/navigation",
+                "targetScreenId": "default_home",
+                "icon": "home"
+              }
+            }
+          ]
+        },
+        {
+          "id": "petanque_teleop_config",
+          "title": "petanque_teleop_config",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "curves",
+          "title": "curves",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "configurations",
+          "title": "configurations",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        },
+        {
+          "id": "debug",
+          "title": "debug",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": []
+        }
+      ]
+    }
+  ]
+}

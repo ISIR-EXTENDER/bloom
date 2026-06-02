@@ -46,6 +46,14 @@ foundation plan.
    - Introduce the database only after JSON compatibility and API behavior are tested.
    - Keep JSON import/export as the safety bridge during migration.
    - Use file-backed configuration storage as an intermediate persistence layer before SQLite.
+6. Migrate legacy applications screen by screen.
+   - Import a legacy application together with the real screen JSON files already migrated.
+   - Keep missing screens as visible placeholders until their JSON files are migrated.
+   - Start with `app-petanque-admin` plus `default_control`, `default_live_teleop`, and `default_petanque`.
+7. Validate migrated screens through the dashboard.
+   - Load migrated bundles through the same configuration API contract used by the runtime app.
+   - Render the migrated screens in builder and runtime previews.
+   - Track renderer gaps explicitly when a legacy widget kind still maps to `unknown`.
 
 ## Non-Goals For The First Migration
 

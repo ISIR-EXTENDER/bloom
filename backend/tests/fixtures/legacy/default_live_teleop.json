@@ -1,0 +1,108 @@
+{
+  "name": "default_live_teleop",
+  "widgets": [
+    {
+      "id": "live-title",
+      "kind": "text",
+      "label": "Title",
+      "topic": "/ui/text/live/title",
+      "text": "Live Teleop",
+      "fontSize": 30,
+      "align": "left",
+      "rect": {
+        "x": 32,
+        "y": 30,
+        "w": 360,
+        "h": 64
+      }
+    },
+    {
+      "id": "live-camera",
+      "kind": "stream-display",
+      "label": "Camera Stream",
+      "topic": "/ui/stream/camera",
+      "source": "camera",
+      "streamUrl": "webrtc://localhost:8001/stream",
+      "rect": {
+        "x": 32,
+        "y": 112,
+        "w": 700,
+        "h": 430
+      }
+    },
+    {
+      "id": "live-rviz",
+      "kind": "stream-display",
+      "label": "RViz Stream",
+      "topic": "/ui/stream/rviz",
+      "source": "rviz",
+      "streamUrl": "webrtc://localhost:8001/rviz",
+      "rect": {
+        "x": 752,
+        "y": 112,
+        "w": 460,
+        "h": 260
+      }
+    },
+    {
+      "id": "live-joystick",
+      "kind": "joystick",
+      "binding": "joy",
+      "label": "Translation",
+      "topic": "/cmd/joystick_xy",
+      "color": "#4a9eff",
+      "deadzone": 0.1,
+      "diskSize": 78,
+      "labels": {
+        "top": "Y+",
+        "right": "X+",
+        "bottom": "Y-",
+        "left": "X-"
+      },
+      "rect": {
+        "x": 752,
+        "y": 392,
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "id": "live-rotation",
+      "kind": "joystick",
+      "binding": "rot",
+      "label": "Rotation",
+      "topic": "/cmd/joystick_rxry",
+      "color": "#f97316",
+      "deadzone": 0.1,
+      "diskSize": 78,
+      "labels": {
+        "top": "RY+",
+        "right": "RX+",
+        "bottom": "RY-",
+        "left": "RX-"
+      },
+      "rect": {
+        "x": 992,
+        "y": 392,
+        "w": 220,
+        "h": 220
+      }
+    },
+    {
+      "id": "live-back-home",
+      "kind": "navigation-button",
+      "label": "Home",
+      "topic": "/ui/navigation",
+      "targetScreenId": "default_home",
+      "icon": "home",
+      "rect": {
+        "x": 32,
+        "y": 560,
+        "w": 160,
+        "h": 52
+      }
+    }
+  ],
+  "poses": [],
+  "updatedAt": "2026-02-13T22:59:18.068Z"
+}

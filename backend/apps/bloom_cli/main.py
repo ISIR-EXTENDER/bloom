@@ -14,6 +14,7 @@ from libs.config import (
     create_configuration_repository,
     load_configuration_file,
     load_legacy_application_file,
+    load_legacy_application_with_screens_file,
     load_legacy_screen_file,
     save_configuration_file,
 )
@@ -157,6 +158,26 @@ def import_legacy_application(
     )
     repository.upsert(config_id, bundle)
     typer.echo(f"Imported legacy application {application.id} as {config_id}")
+
+
+@config_cli.command("import-legacy-application-screens")
+def import_legacy_application_screens(
+    config_id: str = typer.Argument(..., help="Configuration ID to store."),
+    application_path: Path = typer.Argument(..., help="Legacy application JSON file to import."),
+    screen_paths: list[Path] = typer.Argument(..., help="Legacy screen JSON files to attach to the application."),
+    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
+    database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
+) -> None:
+    """Import a legacy extender_ui application and replace matching screen placeholders with real screens."""
+    repository = open_configuration_repository(storage, configuration_dir, database_path)
+    application = load_legacy_application_with_screens_file(application_path, tuple(screen_paths))
+    bundle = ConfigurationBundle(
+        metadata=ConfigurationMetadata(source=f"legacy-application-screens:{application_path.name}"),
+        applications=(application,),
+    )
+    repository.upsert(config_id, bundle)
+    typer.echo(f"Imported legacy application {application.id} with {len(application.screens)} screens as {config_id}")
 
 
 @config_cli.command("export")
