@@ -133,7 +133,26 @@ describe("widget capability metadata", () => {
       },
       defaultTitle: "Joystick",
       displayName: "Joystick",
+      editor: {
+        movable: true,
+        resizable: true,
+        settings: true,
+        styleFields: ["accentColor", "backgroundColor"],
+      },
       runtimeRequirements: ["teleop-adapter"],
+    });
+  });
+
+  it("describes per-widget editor capabilities", () => {
+    const registry = createDefaultWidgetRegistry();
+
+    expect(registry.get("label")?.editor.styleFields).toEqual(["backgroundColor", "textColor"]);
+    expect(registry.get("camera")?.editor.styleFields).toEqual(["borderColor"]);
+    expect(registry.get("unknown")?.editor).toEqual({
+      movable: false,
+      resizable: false,
+      settings: false,
+      styleFields: [],
     });
   });
 
@@ -499,6 +518,12 @@ function createTestWidgetDefinition(kind: WidgetDefinition["kind"], displayName:
     defaultSettings: {},
     defaultTitle: displayName,
     description: `${displayName} test definition`,
+    editor: {
+      movable: true,
+      resizable: true,
+      settings: true,
+      styleFields: [],
+    },
     runtimeRequirements: ["none"],
   };
 }

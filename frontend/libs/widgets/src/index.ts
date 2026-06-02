@@ -66,6 +66,15 @@ export type WidgetDefaultLayout = {
   minHeight: number;
 };
 
+export type WidgetStyleCapability = "accentColor" | "backgroundColor" | "borderColor" | "textColor";
+
+export type WidgetEditorCapabilities = {
+  movable: boolean;
+  resizable: boolean;
+  settings: boolean;
+  styleFields: WidgetStyleCapability[];
+};
+
 export type CanvasPreset = {
   id: CanvasPresetId;
   label: string;
@@ -138,9 +147,19 @@ export type WidgetDefinition = {
   defaultLayout: WidgetDefaultLayout;
   runtimeRequirements: WidgetRuntimeRequirement[];
   availability: WidgetAvailability;
+  editor: WidgetEditorCapabilities;
 };
 
 export type WidgetRegistry = ReadonlyMap<WidgetKind, WidgetDefinition>;
+
+export function createDefaultEditorCapabilities(styleFields: WidgetStyleCapability[] = []): WidgetEditorCapabilities {
+  return {
+    movable: true,
+    resizable: true,
+    settings: true,
+    styleFields,
+  };
+}
 
 export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
   {
@@ -153,6 +172,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
     runtimeRequirements: ["none"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
   },
   {
     kind: "camera",
@@ -164,6 +184,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 360, height: 260, minWidth: 240, minHeight: 160 },
     runtimeRequirements: ["stream-source"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["borderColor"]),
   },
   {
     kind: "command-button",
@@ -175,6 +196,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
     runtimeRequirements: ["command-dispatcher"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
   },
   {
     kind: "gauge",
@@ -186,6 +208,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 180, height: 180, minWidth: 140, minHeight: 140 },
     runtimeRequirements: ["data-source"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
   },
   {
     kind: "joystick",
@@ -197,6 +220,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 220, height: 220, minWidth: 160, minHeight: 160 },
     runtimeRequirements: ["teleop-adapter"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor"]),
   },
   {
     kind: "label",
@@ -208,6 +232,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 280, height: 64, minWidth: 120, minHeight: 40 },
     runtimeRequirements: ["none"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
   },
   {
     kind: "plot",
@@ -219,6 +244,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 420, height: 240, minWidth: 240, minHeight: 160 },
     runtimeRequirements: ["data-source"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
   },
   {
     kind: "slider",
@@ -230,6 +256,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 120, height: 220, minWidth: 80, minHeight: 120 },
     runtimeRequirements: ["teleop-adapter"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor"]),
   },
   {
     kind: "toggle",
@@ -241,6 +268,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 220, height: 120, minWidth: 160, minHeight: 80 },
     runtimeRequirements: ["device-adapter"],
     availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "borderColor"]),
   },
   {
     kind: "unknown",
@@ -252,6 +280,12 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 220, height: 120, minWidth: 120, minHeight: 80 },
     runtimeRequirements: ["none"],
     availability: { editor: false, runtime: true },
+    editor: {
+      movable: false,
+      resizable: false,
+      settings: false,
+      styleFields: [],
+    },
   },
 ];
 

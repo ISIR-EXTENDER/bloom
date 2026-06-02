@@ -21,6 +21,7 @@ widgets to registered capabilities, including safe handling for unknown widget k
 - its category;
 - default title, settings, and layout size;
 - editor/runtime availability;
+- editor capabilities such as move, resize, settings, and style/color fields;
 - runtime requirements such as streams, data sources, device adapters, or teleoperation adapters.
 
 The metadata is still framework-independent. React renderers, inspector fields, and runtime adapters should consume this
