@@ -1,0 +1,20 @@
+{
+  "id": "app-petanque-admin",
+  "name": "app-petanque-admin",
+  "screenIds": [
+    "default_control",
+    "live_teleop",
+    "articular",
+    "camera",
+    "visual_servoing",
+    "logs",
+    "poses",
+    "petanque",
+    "petanque_teleop_config",
+    "curves",
+    "configurations",
+    "debug"
+  ],
+  "homeScreenId": "default_control",
+  "updatedAt": "2026-02-25T12:23:15.391Z"
+}

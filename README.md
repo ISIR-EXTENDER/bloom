@@ -111,9 +111,14 @@ Legacy `extender_ui` JSON can be imported through explicit migration commands:
 ```bash
 uv run python -m apps.bloom_cli.main config import-legacy-screen legacy-sandbox tests/fixtures/legacy/sandbox_control.json --application-id sandbox --application-name Sandbox --storage sqlite --database-path data/bloom.db
 uv run python -m apps.bloom_cli.main config import-legacy-application play-petanque tests/fixtures/legacy/application-play-petanque.json --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config import-legacy-application-screens petanque-admin tests/fixtures/legacy/app-petanque-admin.json tests/fixtures/legacy/default_control.json tests/fixtures/legacy/default_live_teleop.json tests/fixtures/legacy/default_petanque.json --configuration-dir data/configurations
 ```
 
 The FastAPI app can already use SQLite by constructing `Settings(configuration_storage="sqlite", configuration_database_path=...)`. File-backed storage remains the fallback until the full frontend and runtime migration have passed end-to-end tests.
+
+The first real screen migration fixture is `tests/fixtures/petanque-admin-configuration-bundle.json`. It imports the
+legacy Petanque admin app shell plus three real screens so the dashboard can render migrated controls, stream placeholders,
+sliders, joysticks, toggles, and command buttons end-to-end.
 
 ## Tests And Coverage
 
@@ -131,6 +136,7 @@ Current coverage focus:
 
 - Backend FastAPI/configuration tests cover API routes, repositories, JSON import/export, and real legacy fixtures.
 - Frontend widget tests cover contracts, editor operations, runtime intents, legacy conversion, render descriptors, and renderer behavior.
+- Dashboard tests render the first migrated legacy Petanque admin screens from a real configuration bundle fixture.
 - Integration tests round-trip real legacy JSON through frontend conversion, API-client semantics, backend persistence, and widget registry rendering.
 - Coverage is quality-focused rather than percentage-chasing for now; critical migration paths should be tested before UI polish.
 - Future work should add explicit coverage reporting once the SQLite storage layer and runtime adapters stabilize.

@@ -27,9 +27,11 @@ from libs.config.json_io import (
 )
 from libs.config.legacy_json import (
     legacy_application_to_config,
+    legacy_application_with_screens_to_config,
     legacy_screen_to_config,
     load_legacy_application_file,
     load_legacy_application_json,
+    load_legacy_application_with_screens_file,
     load_legacy_screen_file,
     load_legacy_screen_json,
 )
@@ -57,9 +59,11 @@ __all__ = [
     "load_configuration_file",
     "load_configuration_json",
     "legacy_application_to_config",
+    "legacy_application_with_screens_to_config",
     "legacy_screen_to_config",
     "load_legacy_application_file",
     "load_legacy_application_json",
+    "load_legacy_application_with_screens_file",
     "load_legacy_screen_file",
     "load_legacy_screen_json",
     "save_configuration_file",

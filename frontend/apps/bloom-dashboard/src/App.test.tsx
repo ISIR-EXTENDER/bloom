@@ -2,6 +2,7 @@ import type { ConfigurationBundle } from "@bloom/api-client";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 
@@ -56,6 +57,36 @@ describe("App", () => {
     expect(screen.getByText(/"widgetId": "command"/)).toBeVisible();
   });
 
+  it("renders the first migrated legacy petanque screen end-to-end", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "petanque-admin": migratedPetanqueAdminConfiguration as ConfigurationBundle,
+          },
+          ids: ["petanque-admin"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+
+    expect(await screen.findAllByText("app-petanque-admin")).toHaveLength(2);
+    expect(screen.getByRole("heading", { level: 2, name: "default_control" })).toBeVisible();
+    expect(screen.getByText("RZ")).toBeVisible();
+    expect(screen.getByText("Z")).toBeVisible();
+    expect(screen.getByText("Max Velocity")).toBeVisible();
+    expect(screen.getByText("Translation")).toBeVisible();
+    expect(screen.getByText("Gripper Control")).toBeVisible();
+    expect(screen.getAllByText(/Slider/).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: /default_live_teleop/i }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
+    expect(screen.getByText("Camera Stream")).toBeVisible();
+    expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
+  });
+
   it("renders an empty configuration state inside the main app", async () => {
     render(<App configurationClient={createConfigurationClient({ ids: [] })} />);
 
@@ -73,7 +104,9 @@ describe("App", () => {
   });
 });
 
-function createConfigurationClient(options: { ids?: string[]; error?: Error } = {}): ConfigurationClient {
+function createConfigurationClient(
+  options: { bundles?: Record<string, ConfigurationBundle>; ids?: string[]; error?: Error } = {},
+): ConfigurationClient {
   const ids = options.ids ?? ["sandbox"];
 
   return {
@@ -83,7 +116,9 @@ function createConfigurationClient(options: { ids?: string[]; error?: Error } = 
       }
       return ids;
     }),
-    getConfiguration: vi.fn(async (id: string): Promise<ConfigurationBundle> => createConfigurationBundle(id)),
+    getConfiguration: vi.fn(async (id: string): Promise<ConfigurationBundle> => {
+      return options.bundles?.[id] ?? createConfigurationBundle(id);
+    }),
   };
 }
 

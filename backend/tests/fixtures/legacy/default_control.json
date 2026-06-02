@@ -1,0 +1,132 @@
+{
+  "name": "default_control",
+  "widgets": [
+    {
+      "id": "control-rz",
+      "kind": "slider",
+      "binding": "rz",
+      "label": "RZ",
+      "topic": "/cmd/joystick_rz",
+      "direction": "horizontal",
+      "min": -1,
+      "max": 1,
+      "step": 0.01,
+      "rect": {
+        "x": 670,
+        "y": 9,
+        "w": 338,
+        "h": 78
+      },
+      "showLabel": true,
+      "labelAlign": "left",
+      "showTopicInfo": false
+    },
+    {
+      "id": "control-z",
+      "kind": "slider",
+      "binding": "z",
+      "label": "Z",
+      "topic": "/cmd/joystick_z",
+      "direction": "vertical",
+      "min": -1,
+      "max": 1,
+      "step": 0.01,
+      "rect": {
+        "x": 3,
+        "y": 178,
+        "w": 74,
+        "h": 330
+      },
+      "showTopicInfo": false
+    },
+    {
+      "id": "control-translation",
+      "kind": "joystick",
+      "binding": "joy",
+      "label": "Translation",
+      "topic": "/cmd/joystick_xy",
+      "color": "#4a9eff",
+      "deadzone": 0.1,
+      "diskSize": 90,
+      "labels": {
+        "top": "Y+",
+        "right": "X+",
+        "bottom": "Y-",
+        "left": "X-"
+      },
+      "rect": {
+        "x": 86,
+        "y": 98,
+        "w": 489,
+        "h": 489
+      },
+      "showTopicInfo": false
+    },
+    {
+      "id": "control-rotation",
+      "kind": "joystick",
+      "binding": "rot",
+      "label": "Rotation",
+      "topic": "/cmd/joystick_rxry",
+      "color": "#f97316",
+      "deadzone": 0.1,
+      "diskSize": 90,
+      "labels": {
+        "top": "RY+",
+        "right": "RX+",
+        "bottom": "RY-",
+        "left": "RX-"
+      },
+      "rect": {
+        "x": 583,
+        "y": 101,
+        "w": 490,
+        "h": 490
+      },
+      "showTopicInfo": false
+    },
+    {
+      "id": "control-max-velocity",
+      "kind": "max-velocity",
+      "label": "Max Velocity",
+      "topic": "/cmd/max_velocity",
+      "min": 0,
+      "max": 2,
+      "step": 0.01,
+      "rect": {
+        "x": 397,
+        "y": 622,
+        "w": 306,
+        "h": 106
+      }
+    },
+    {
+      "id": "control-gripper",
+      "kind": "gripper-control",
+      "label": "Gripper Control",
+      "topic": "/cmd/gripper",
+      "rect": {
+        "x": 1088,
+        "y": 135,
+        "w": 240,
+        "h": 149
+      }
+    },
+    {
+      "id": "control-load-home-pose",
+      "kind": "load-pose-button",
+      "label": "Load Home",
+      "topic": "/ui/load_pose",
+      "poseName": "home",
+      "icon": "home",
+      "rect": {
+        "x": 1060,
+        "y": 40,
+        "w": 145,
+        "h": 56
+      }
+    }
+  ],
+  "poses": [],
+  "updatedAt": "2026-02-16T15:32:20.473Z"
+}

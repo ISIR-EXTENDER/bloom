@@ -3,6 +3,7 @@ from pathlib import Path
 from libs.config import (
     WidgetKind,
     load_legacy_application_file,
+    load_legacy_application_with_screens_file,
     load_legacy_screen_file,
 )
 
@@ -72,3 +73,38 @@ def test_load_legacy_play_petanque_application() -> None:
         "play_petanque_ramassage",
         "play_petanque_measures",
     ]
+
+
+def test_load_legacy_application_with_real_screens() -> None:
+    application = load_legacy_application_with_screens_file(
+        FIXTURE_DIR / "app-petanque-admin.json",
+        (
+            FIXTURE_DIR / "default_control.json",
+            FIXTURE_DIR / "default_live_teleop.json",
+            FIXTURE_DIR / "default_petanque.json",
+        ),
+    )
+
+    assert application.id == "app-petanque-admin"
+    assert application.name == "app-petanque-admin"
+    assert [screen.id for screen in application.screens[:3]] == [
+        "default_control",
+        "default_live_teleop",
+        "articular",
+    ]
+
+    control_screen = application.screens[0]
+    assert len(control_screen.widgets) == 7
+    assert {widget.kind for widget in control_screen.widgets} >= {
+        WidgetKind.JOYSTICK,
+        WidgetKind.SLIDER,
+        WidgetKind.TOGGLE,
+    }
+
+    live_teleop_screen = application.screens[1]
+    assert len(live_teleop_screen.widgets) == 6
+    assert any(widget.kind == WidgetKind.CAMERA for widget in live_teleop_screen.widgets)
+
+    migrated_petanque_screen = next(screen for screen in application.screens if screen.id == "default_petanque")
+    assert migrated_petanque_screen.widgets[0].kind == WidgetKind.LABEL
+    assert migrated_petanque_screen.widgets[2].kind == WidgetKind.COMMAND_BUTTON

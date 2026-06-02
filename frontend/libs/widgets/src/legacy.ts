@@ -142,6 +142,7 @@ function legacyKindToBloomKind(kind: string): WidgetKind {
     drink: "command-button",
     "gripper-control": "toggle",
     joystick: "joystick",
+    "load-pose-button": "command-button",
     "magnet-control": "toggle",
     "max-velocity": "slider",
     "mode-button": "command-button",
