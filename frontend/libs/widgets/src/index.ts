@@ -10,6 +10,7 @@ import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
 export * from "./editor";
 export * from "./legacy";
+export * from "./runtime";
 export * from "./settings";
 
 export type LegacyWidgetCompatibility = "direct" | "renamed" | "adapter-required" | "app-specific" | "unsupported";

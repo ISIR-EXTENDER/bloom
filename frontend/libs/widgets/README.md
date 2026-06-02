@@ -59,3 +59,16 @@ Pure editor operations provide the non-visual foundation for future screen build
 - remove widgets safely.
 
 React editor components should call these operations instead of reimplementing state mutations.
+
+## Runtime Action Intents
+
+Widgets produce framework-independent action intents before anything talks to ROS, HTTP, or another runtime adapter:
+
+- command buttons emit command intents;
+- configured ROS/message toggles emit topic-publish intents with topic, message type, and payload;
+- local toggles emit generic toggle-state intents;
+- sliders and joysticks emit value-change intents;
+- display-only widgets return explicit unsupported intents.
+
+Runtime adapters should consume these intents instead of reading widget settings directly. This keeps Bloom generic while
+still preserving extender_ui patterns such as topic-driven buttons and operator input widgets.

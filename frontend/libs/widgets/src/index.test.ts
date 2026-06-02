@@ -8,6 +8,7 @@ import {
   addWidgetToScreen,
   buildRosMessageToggleCliExample,
   createDefaultWidgetRegistry,
+  createWidgetActionIntent,
   createWidgetConfigFromDefinition,
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
@@ -588,6 +589,130 @@ describe("widget editor operations", () => {
         offPayload: false,
       }),
     ).toThrow('Invalid settings for widget "device-toggle": initialValue: initialValue must be a boolean');
+  });
+});
+
+describe("widget runtime action intents", () => {
+  it("creates command intents for configured command buttons", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("command-button") as WidgetDefinition,
+          "run",
+          {
+            settings: { command: "activate_throw" },
+          },
+        ),
+        { type: "press" },
+      ),
+    ).toEqual({
+      type: "command",
+      widgetId: "run",
+      widgetKind: "command-button",
+      command: "activate_throw",
+    });
+  });
+
+  it("creates topic publish intents for ROS message toggles", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("toggle") as WidgetDefinition,
+          "digital-output",
+          {
+            settings: {
+              initialValue: false,
+              messageType: "std_msgs/msg/Int32MultiArray",
+              offPayload: "{data: [13, 0]}",
+              onPayload: "{data: [13, 1]}",
+              topic: "/ui/ros_toggle",
+            },
+          },
+        ),
+        { type: "toggle", nextState: "on" },
+      ),
+    ).toEqual({
+      type: "topic-publish",
+      widgetId: "digital-output",
+      widgetKind: "toggle",
+      topic: "/ui/ros_toggle",
+      messageType: "std_msgs/msg/Int32MultiArray",
+      nextState: "on",
+      payload: "{data: [13, 1]}",
+      payloadText: "{data: [13, 1]}",
+    });
+  });
+
+  it("keeps generic toggle state intents when no output topic is configured", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("toggle") as WidgetDefinition,
+          "local-toggle",
+          {
+            settings: {
+              initialValue: false,
+              offPayload: 0,
+              onPayload: 1,
+            },
+          },
+        ),
+        { type: "toggle", nextState: "off" },
+      ),
+    ).toEqual({
+      type: "toggle-state",
+      widgetId: "local-toggle",
+      widgetKind: "toggle",
+      nextState: "off",
+      value: false,
+      payload: 0,
+    });
+  });
+
+  it("creates scalar and vector value-change intents for input widgets", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(createDefaultWidgetRegistry().get("slider") as WidgetDefinition, "speed", {
+          settings: { max: 2, min: 0 },
+        }),
+        { type: "set-value", value: 1.5 },
+      ),
+    ).toEqual({
+      type: "value-change",
+      widgetId: "speed",
+      widgetKind: "slider",
+      value: 1.5,
+    });
+
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(createDefaultWidgetRegistry().get("joystick") as WidgetDefinition, "teleop", {
+          settings: { binding: "rot" },
+        }),
+        { type: "set-vector", value: { x: 0.5, y: -0.25 } },
+      ),
+    ).toEqual({
+      type: "value-change",
+      widgetId: "teleop",
+      widgetKind: "joystick",
+      value: { x: 0.5, y: -0.25 },
+      binding: "rot",
+    });
+  });
+
+  it("returns explicit unsupported intents for non-action widgets", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(createDefaultWidgetRegistry().get("camera") as WidgetDefinition, "camera"),
+        { type: "press" },
+      ),
+    ).toEqual({
+      type: "unsupported",
+      widgetId: "camera",
+      widgetKind: "camera",
+      eventType: "press",
+      reason: 'Widget kind "camera" does not produce runtime actions.',
+    });
   });
 });
 
