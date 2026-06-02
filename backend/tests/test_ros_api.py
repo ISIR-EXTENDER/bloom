@@ -79,6 +79,49 @@ def test_publish_ros_topic_defaults_to_simulated_when_ros_is_not_configured(clie
     }
 
 
+def test_publish_ros_topic_accepts_cli_style_payload_text() -> None:
+    gateway = RecordingRosPublisherGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            ros_publisher_gateway=gateway,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/ros/topics/publish",
+        json={
+            "topic": "/ui/ros_toggle",
+            "message_type": "std_msgs/msg/Int32MultiArray",
+            "payload_text": "{data: [13, 1]}",
+        },
+    )
+
+    assert response.status_code == 200
+    assert gateway.requests == [
+        RosPublishRequest(
+            topic="/ui/ros_toggle",
+            message_type="std_msgs/msg/Int32MultiArray",
+            payload={"data": [13, 1]},
+        )
+    ]
+
+
+def test_publish_ros_topic_rejects_multiple_payload_sources(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/ros/topics/publish",
+        json={
+            "topic": "/ui/ros_toggle",
+            "message_type": "std_msgs/msg/Bool",
+            "payload": {"data": True},
+            "payload_text": "{data: true}",
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_publish_ros_topic_rejects_invalid_topic(client: TestClient) -> None:
     response = client.post(
         "/api/v1/ros/topics/publish",

@@ -110,6 +110,29 @@ describe("Bloom API client", () => {
     });
   });
 
+  it("publishes CLI-style ROS payload text through the backend", async () => {
+    const responsePayload = {
+      topic: "/ui/ros_toggle",
+      message_type: "std_msgs/msg/Int32MultiArray",
+      status: "simulated",
+      detail: "ROS publisher gateway is not configured.",
+    };
+    const requestPayload = {
+      topic: "/ui/ros_toggle",
+      message_type: "std_msgs/msg/Int32MultiArray",
+      payload_text: "{data: [13, 1]}",
+    };
+    const fetcher = createJsonFetcher(responsePayload);
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.publishRosTopic(requestPayload)).resolves.toEqual(responsePayload);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestPayload),
+    });
+  });
+
   it("throws a typed error when the backend rejects a request", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ detail: "configuration not found" }), {

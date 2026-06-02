@@ -3,8 +3,14 @@ import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
 
-import { type ConfigurationClient, createDashboardConfigurationClient } from "./configurations/configuration-client";
+import {
+  type ConfigurationClient,
+  createDashboardConfigurationClient,
+  createDashboardRuntimeActionClient,
+} from "./configurations/configuration-client";
 import { useConfigurations } from "./configurations/use-configurations";
+import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
+import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { CanvasPreview } from "./ui/CanvasPreview";
 import {
   ConfigurationWorkspace,
@@ -17,16 +23,21 @@ import { ProductNavigation, type ProductView } from "./ui/ProductNavigation";
 import { RuntimeIntentPanel } from "./ui/RuntimeIntentPanel";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
+const defaultRuntimeActionClient = createDashboardRuntimeActionClient();
 
 type AppProps = {
   configurationClient?: ConfigurationClient;
+  runtimeActionClient?: RuntimeActionClient;
 };
 
-export function App({ configurationClient = defaultConfigurationClient }: AppProps) {
+export function App({
+  configurationClient = defaultConfigurationClient,
+  runtimeActionClient = defaultRuntimeActionClient,
+}: AppProps) {
   const configurationState = useConfigurations(configurationClient);
+  const runtimeActions = useRuntimeActionDispatcher(runtimeActionClient);
   const [activeView, setActiveView] = useState<ProductView>("landing");
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
-  const [runtimeIntents, setRuntimeIntents] = useState<WidgetActionIntent[]>([]);
 
   useEffect(() => {
     if (configurationState.status !== "ready" || selection) {
@@ -36,7 +47,7 @@ export function App({ configurationClient = defaultConfigurationClient }: AppPro
   }, [configurationState, selection]);
 
   const handleRuntimeIntent = (intent: WidgetActionIntent) => {
-    setRuntimeIntents((currentIntents) => [intent, ...currentIntents].slice(0, 6));
+    runtimeActions.dispatch(intent);
   };
 
   return (
@@ -51,7 +62,7 @@ export function App({ configurationClient = defaultConfigurationClient }: AppPro
             activeView={activeView}
             onRuntimeIntent={handleRuntimeIntent}
             onSelectionChange={setSelection}
-            runtimeIntents={runtimeIntents}
+            runtimeRecords={runtimeActions.records}
             selection={selection}
             state={configurationState}
           />
@@ -65,7 +76,7 @@ type MainApplicationViewProps = {
   activeView: Exclude<ProductView, "landing">;
   onRuntimeIntent: (intent: WidgetActionIntent) => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
-  runtimeIntents: readonly WidgetActionIntent[];
+  runtimeRecords: ReturnType<typeof useRuntimeActionDispatcher>["records"];
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
 };
@@ -74,7 +85,7 @@ function MainApplicationView({
   activeView,
   onRuntimeIntent,
   onSelectionChange,
-  runtimeIntents,
+  runtimeRecords,
   selection,
   state,
 }: MainApplicationViewProps) {
@@ -104,7 +115,7 @@ function MainApplicationView({
         onActionIntent={activeView === "runtime" ? onRuntimeIntent : undefined}
         screen={selectedWorkspace.screen}
       />
-      {activeView === "runtime" ? <RuntimeIntentPanel intents={runtimeIntents} /> : null}
+      {activeView === "runtime" ? <RuntimeIntentPanel records={runtimeRecords} /> : null}
     </section>
   );
 }

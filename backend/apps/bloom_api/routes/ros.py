@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from libs.ros_adapters import RosPublishReceipt, RosPublishRequest, RosPublisherGateway
+from libs.ros_adapters.payloads import parse_ros_payload_text
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -13,7 +14,21 @@ router = APIRouter(prefix="/ros", tags=["ros"])
 class RosTopicPublishRequest(BaseModel):
     topic: str = Field(min_length=1)
     message_type: str = Field(min_length=1)
-    payload: dict[str, Any] = Field(default_factory=dict)
+    payload: dict[str, Any] | None = None
+    payload_text: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_single_payload_source(self) -> "RosTopicPublishRequest":
+        if self.payload is not None and self.payload_text is not None:
+            raise ValueError("Use either payload or payload_text, not both")
+        return self
+
+    def to_payload(self) -> dict[str, Any]:
+        if self.payload is not None:
+            return self.payload
+        if self.payload_text is not None:
+            return _parse_payload_text(self.payload_text)
+        return {}
 
     @field_validator("topic")
     @classmethod
@@ -55,7 +70,7 @@ def publish_ros_topic(request: Request, publish_request: RosTopicPublishRequest)
             RosPublishRequest(
                 topic=publish_request.topic,
                 message_type=publish_request.message_type,
-                payload=publish_request.payload,
+                payload=publish_request.to_payload(),
             )
         )
     except ValueError as exc:
@@ -73,3 +88,10 @@ def _to_response(receipt: RosPublishReceipt) -> RosTopicPublishResponse:
         status=receipt.status,
         detail=receipt.detail,
     )
+
+
+def _parse_payload_text(payload_text: str) -> dict[str, Any]:
+    try:
+        return parse_ros_payload_text(payload_text)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc

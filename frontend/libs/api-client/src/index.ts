@@ -70,7 +70,8 @@ export type RosTopicPublishStatus = "published" | "simulated";
 export type RosTopicPublishRequest = {
   topic: string;
   message_type: string;
-  payload: Record<string, unknown>;
+  payload?: Record<string, unknown>;
+  payload_text?: string;
 };
 
 export type RosTopicPublishResponse = {
