@@ -88,6 +88,90 @@ describe("App", () => {
     });
   });
 
+  it("saves builder drafts through the configuration API", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await moveDigitalOutputWidget();
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const [configId, savedBundle] = configurationClient.upsertConfiguration.mock.calls[0] ?? [];
+    const savedWidget = savedBundle?.applications[0]?.screens[0]?.widgets[0];
+
+    expect(configId).toBe("sandbox");
+    expect(savedWidget?.layout).toEqual({ x: 64, y: 48, width: 220, height: 96 });
+    expect(await screen.findByRole("status")).toHaveTextContent("All changes saved.");
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+  });
+
+  it("discards builder drafts before saving", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await moveDigitalOutputWidget();
+
+    await waitFor(() => {
+      expect(screen.getByText((_, element) => element?.textContent === "64, 48")).toBeVisible();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+
+    await waitFor(() => {
+      expect(screen.getByText((_, element) => element?.textContent === "24, 32")).toBeVisible();
+    });
+
+    expect(configurationClient.upsertConfiguration).not.toHaveBeenCalled();
+  });
+
+  it("keeps builder drafts dirty when saving fails", async () => {
+    const configurationClient = createConfigurationClient({ saveError: new Error("SQLite write failed") });
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await moveDigitalOutputWidget();
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("SQLite write failed");
+    expect(screen.getByText((_, element) => element?.textContent === "64, 48")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  });
+
+  it("saves builder drafts from a real migrated legacy configuration", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        "petanque-admin": migratedPetanqueAdminConfiguration as ConfigurationBundle,
+      },
+      ids: ["petanque-admin"],
+    });
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await moveWidget("RZ");
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedBundle = configurationClient.upsertConfiguration.mock.calls[0]?.[1];
+    const savedWidget = savedBundle?.applications[0]?.screens[0]?.widgets.find((widget) => widget.id === "control-rz");
+
+    expect(savedWidget?.layout.width).toBe(338);
+    expect(savedWidget?.layout.height).toBe(78);
+    expect(savedWidget?.layout.x).toBeGreaterThan(670);
+    expect(savedWidget?.layout.y).toBeGreaterThan(9);
+  });
+
   it("resizes widgets on the builder canvas draft", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
@@ -199,9 +283,12 @@ describe("App", () => {
 });
 
 function createConfigurationClient(
-  options: { bundles?: Record<string, ConfigurationBundle>; ids?: string[]; error?: Error } = {},
-): ConfigurationClient {
+  options: { bundles?: Record<string, ConfigurationBundle>; ids?: string[]; error?: Error; saveError?: Error } = {},
+) {
   const ids = options.ids ?? ["sandbox"];
+  const storedBundles = new Map(
+    ids.map((id) => [id, structuredClone(options.bundles?.[id] ?? createConfigurationBundle(id))] as const),
+  );
 
   return {
     listConfigurations: vi.fn(async () => {
@@ -211,9 +298,18 @@ function createConfigurationClient(
       return ids;
     }),
     getConfiguration: vi.fn(async (id: string): Promise<ConfigurationBundle> => {
-      return options.bundles?.[id] ?? createConfigurationBundle(id);
+      return structuredClone(storedBundles.get(id) ?? createConfigurationBundle(id));
     }),
-  };
+    upsertConfiguration: vi.fn(async (id: string, bundle: ConfigurationBundle): Promise<ConfigurationBundle> => {
+      if (options.saveError) {
+        throw options.saveError;
+      }
+
+      const savedBundle = structuredClone(bundle);
+      storedBundles.set(id, savedBundle);
+      return structuredClone(savedBundle);
+    }),
+  } satisfies ConfigurationClient;
 }
 
 function createRuntimeActionClient(): RuntimeActionClient {
@@ -308,4 +404,15 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
       },
     ],
   };
+}
+
+async function moveDigitalOutputWidget() {
+  await moveWidget("Digital output");
+}
+
+async function moveWidget(widgetTitle: string) {
+  const moveHandle = await screen.findByRole("button", { name: `Select and move ${widgetTitle} widget` });
+  fireEvent.pointerDown(moveHandle, { button: 0, clientX: 10, clientY: 10 });
+  window.dispatchEvent(new MouseEvent("pointermove", { clientX: 50, clientY: 26 }));
+  window.dispatchEvent(new MouseEvent("pointerup"));
 }

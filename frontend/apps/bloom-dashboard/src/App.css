@@ -503,6 +503,18 @@ h1 {
   margin: 0;
 }
 
+.builder-save-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.builder-save-status-error {
+  color: #a23825;
+}
+
 .runtime-app-workspace {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);

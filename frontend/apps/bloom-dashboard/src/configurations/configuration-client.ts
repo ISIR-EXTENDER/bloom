@@ -1,7 +1,10 @@
 import { type BloomApiClient, createBloomApiClient } from "@bloom/api-client";
 import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
 
-export type ConfigurationClient = Pick<BloomApiClient, "getConfiguration" | "listConfigurations">;
+export type ConfigurationClient = Pick<
+  BloomApiClient,
+  "getConfiguration" | "listConfigurations" | "upsertConfiguration"
+>;
 
 export function createDashboardConfigurationClient(): ConfigurationClient {
   return createBloomApiClient({ baseUrl: getBloomApiBaseUrl() });
