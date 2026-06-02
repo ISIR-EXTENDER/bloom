@@ -51,6 +51,18 @@ class CanvasSettings(BloomModel):
     runtime_mode: RuntimeCanvasMode = RuntimeCanvasMode.FIT
 
 
+class ApplicationThemePalette(BloomModel):
+    primary: str = "#7f967e"
+    accent: str = "#d9a441"
+    background: str = "#f7f1e6"
+    surface: str = "#fffdf7"
+
+
+class ApplicationTheme(BloomModel):
+    preset_id: str = Field(default="bloom-default", min_length=1)
+    palette: ApplicationThemePalette = Field(default_factory=ApplicationThemePalette)
+
+
 class WidgetConfig(BloomModel):
     id: str = Field(min_length=1)
     kind: WidgetKind = WidgetKind.UNKNOWN
@@ -87,6 +99,7 @@ class ApplicationConfig(BloomModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str = ""
+    theme: ApplicationTheme = Field(default_factory=ApplicationTheme)
     screens: tuple[ScreenConfig, ...] = Field(default_factory=tuple)
 
     @model_validator(mode="after")

@@ -1,4 +1,4 @@
-import type { ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
+import { type ConfigurationBundle, DEFAULT_APPLICATION_THEME, type ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
 import { replaceScreenInConfigurationBundle } from "./configuration-editor";
@@ -51,6 +51,7 @@ function createBundle(): ConfigurationBundle {
         id: "sandbox",
         name: "Sandbox",
         description: "Sandbox operator interface",
+        theme: DEFAULT_APPLICATION_THEME,
         screens: [createScreen("main"), createScreen("diagnostics")],
       },
     ],

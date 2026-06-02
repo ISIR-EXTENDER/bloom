@@ -1,4 +1,4 @@
-import type { ConfigurationBundle } from "@bloom/api-client";
+import { type ConfigurationBundle, DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -31,19 +31,73 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
 
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to shape." })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Sandbox operator interface/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Create blank app/i })).toBeVisible();
+  });
+
+  it("opens app configuration before entering the full screen builder", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    await openAppConfig();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "App theme" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Main/i })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: /Main/i }));
+
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
-    expect(await screen.findByRole("heading", { level: 2, name: "Choose what to preview" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
-    expect(screen.getByText(/Sandbox operator interface/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Digital output").length).toBeGreaterThan(0);
     expect(screen.getByText("/ui/ros_toggle")).toBeVisible();
-    expect(screen.getByRole("heading", { level: 2, name: "Digital output" })).toBeVisible();
+  });
+
+  it("creates a blank app from the builder home", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Create blank app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedBundle = configurationClient.upsertConfiguration.mock.calls[0]?.[1];
+
+    expect(savedBundle?.applications.at(-1)).toMatchObject({
+      id: "new-bloom-app",
+      name: "New Bloom App",
+      theme: DEFAULT_APPLICATION_THEME,
+    });
+    expect(await screen.findByRole("heading", { level: 1, name: "New Bloom App" })).toBeVisible();
+  });
+
+  it("saves app-level design system changes from app configuration", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.change(screen.getByLabelText("primary color"), { target: { value: "#ff8800" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+
+    expect(savedApplication?.theme.palette.primary).toBe("#ff8800");
+    expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
   });
 
   it("switches screens inside the builder workspace", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openAppConfig();
     fireEvent.click(await screen.findByRole("button", { name: /Diagnostics/i }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
@@ -54,7 +108,7 @@ describe("App", () => {
   it("shows a coming soon message for registered screens without migrated widgets", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openAppConfig();
     fireEvent.click(await screen.findByRole("button", { name: /Placeholder/i }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Placeholder" })).toBeVisible();
@@ -65,7 +119,7 @@ describe("App", () => {
   it("moves widgets on the builder canvas draft", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
 
     const moveHandle = await screen.findByRole("button", { name: "Select and move Digital output widget" });
     fireEvent.pointerDown(moveHandle, { button: 0, clientX: 10, clientY: 10 });
@@ -94,7 +148,7 @@ describe("App", () => {
 
     render(<App configurationClient={configurationClient} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     await moveDigitalOutputWidget();
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
@@ -116,7 +170,7 @@ describe("App", () => {
 
     render(<App configurationClient={configurationClient} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     await moveDigitalOutputWidget();
 
     await waitFor(() => {
@@ -135,7 +189,7 @@ describe("App", () => {
   it("adds widgets from the builder palette", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     fireEvent.click(await screen.findByRole("button", { name: "Add Label widget" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Label" })).toBeVisible();
@@ -147,7 +201,7 @@ describe("App", () => {
   it("duplicates the selected builder widget", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     fireEvent.click(await screen.findByRole("button", { name: "Duplicate widget" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Digital output copy" })).toBeVisible();
@@ -158,7 +212,7 @@ describe("App", () => {
   it("removes the selected builder widget", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     fireEvent.click(await screen.findByRole("button", { name: "Remove widget" }));
 
     expect(screen.getByRole("region", { name: "Screen implementation coming soon" })).toBeVisible();
@@ -171,7 +225,7 @@ describe("App", () => {
 
     render(<App configurationClient={configurationClient} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     fireEvent.change(await screen.findByLabelText("Output topic"), { target: { value: "/ui/custom_output" } });
     fireEvent.change(screen.getByLabelText("ON payload"), { target: { value: "{data: [42, 1]}" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
@@ -192,7 +246,7 @@ describe("App", () => {
   it("updates label widget previews from inspector settings", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     fireEvent.click(await screen.findByRole("button", { name: "Add Label widget" }));
     fireEvent.change(screen.getByLabelText("Text"), { target: { value: "Bloom title" } });
 
@@ -203,7 +257,7 @@ describe("App", () => {
   it("shows field validation errors for invalid inspector settings", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     fireEvent.click(await screen.findByRole("button", { name: "Add Slider widget" }));
     fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "-2" } });
 
@@ -215,7 +269,7 @@ describe("App", () => {
 
     render(<App configurationClient={configurationClient} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
     await moveDigitalOutputWidget();
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
@@ -227,14 +281,14 @@ describe("App", () => {
   it("saves builder drafts from a real migrated legacy configuration", async () => {
     const configurationClient = createConfigurationClient({
       bundles: {
-        "petanque-admin": migratedPetanqueAdminConfiguration as ConfigurationBundle,
+        "petanque-admin": migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
       },
       ids: ["petanque-admin"],
     });
 
     render(<App configurationClient={configurationClient} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openPetanqueScreenBuilder("default_control");
     await moveWidget("RZ");
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
@@ -254,7 +308,7 @@ describe("App", () => {
   it("resizes widgets on the builder canvas draft", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
 
     const resizeHandle = await screen.findByRole("button", { name: "Resize Digital output widget" });
     fireEvent.pointerDown(resizeHandle, { button: 0, clientX: 10, clientY: 10 });
@@ -319,16 +373,17 @@ describe("App", () => {
       <App
         configurationClient={createConfigurationClient({
           bundles: {
-            "petanque-admin": migratedPetanqueAdminConfiguration as ConfigurationBundle,
+            "petanque-admin": migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
           },
           ids: ["petanque-admin"],
         })}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openPetanqueAppConfig();
 
-    expect(await screen.findAllByText("app-petanque-admin")).toHaveLength(2);
+    expect(await screen.findByRole("heading", { level: 1, name: "app-petanque-admin" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /default_control/i }));
     expect(screen.getByRole("heading", { level: 2, name: "default_control" })).toBeVisible();
     expect(screen.getAllByText("RZ").length).toBeGreaterThan(0);
     expect(screen.getByText("Z")).toBeVisible();
@@ -337,6 +392,7 @@ describe("App", () => {
     expect(screen.getByText("Gripper Control")).toBeVisible();
     expect(screen.getAllByText(/Slider/).length).toBeGreaterThan(0);
 
+    fireEvent.click(screen.getByRole("button", { name: "Back to app config" }));
     fireEvent.click(screen.getByRole("button", { name: /default_live_teleop/i }));
 
     expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
@@ -355,12 +411,12 @@ describe("App", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openDefaultScreenBuilder();
 
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
-    expect(screen.getByText((_, element) => element?.textContent === "0, 0")).toBeVisible();
-    expect(screen.getByText((_, element) => element?.textContent === "240 x 120")).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "128, 104")).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "272 x 192")).toBeVisible();
   });
 
   it("renders real legacy toggle settings when optional payload fields are missing", async () => {
@@ -368,14 +424,14 @@ describe("App", () => {
       <App
         configurationClient={createConfigurationClient({
           bundles: {
-            "petanque-admin": migratedPetanqueAdminConfiguration as ConfigurationBundle,
+            "petanque-admin": migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
           },
           ids: ["petanque-admin"],
         })}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    await openPetanqueScreenBuilder("default_control");
     fireEvent.click(await screen.findByRole("button", { name: "Select and move Gripper Control widget" }));
 
     expect(screen.getByLabelText("Output topic")).toHaveValue("/cmd/gripper");
@@ -456,6 +512,7 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
         id,
         name: "Sandbox",
         description: "Sandbox operator interface",
+        theme: DEFAULT_APPLICATION_THEME,
         screens: [
           {
             id: "main",
@@ -522,6 +579,26 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
       },
     ],
   };
+}
+
+async function openDefaultScreenBuilder() {
+  await openAppConfig();
+  fireEvent.click(await screen.findByRole("button", { name: /Main/i }));
+}
+
+async function openAppConfig() {
+  fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+  fireEvent.click(await screen.findByRole("button", { name: /Sandbox operator interface/i }));
+}
+
+async function openPetanqueAppConfig() {
+  fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+  fireEvent.click(await screen.findByRole("button", { name: /Legacy home screen: default_control/i }));
+}
+
+async function openPetanqueScreenBuilder(screenName: string) {
+  await openPetanqueAppConfig();
+  fireEvent.click(await screen.findByRole("button", { name: new RegExp(screenName, "i") }));
 }
 
 async function moveDigitalOutputWidget() {

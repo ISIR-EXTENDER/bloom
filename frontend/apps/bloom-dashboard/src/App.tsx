@@ -1,16 +1,22 @@
-import type { ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
 
+import { BuilderAppConfig } from "./builder/BuilderAppConfig";
+import { BuilderHome } from "./builder/BuilderHome";
 import { BuilderWorkspace } from "./builder/BuilderWorkspace";
 import {
   type ConfigurationClient,
   createDashboardConfigurationClient,
   createDashboardRuntimeActionClient,
 } from "./configurations/configuration-client";
-import { replaceScreenInConfigurationBundle } from "./configurations/configuration-editor";
+import {
+  appendApplicationToConfigurationBundle,
+  replaceApplicationInConfigurationBundle,
+  replaceScreenInConfigurationBundle,
+} from "./configurations/configuration-editor";
 import { useConfigurations } from "./configurations/use-configurations";
 import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
@@ -27,6 +33,8 @@ import { ProductNavigation, type ProductView } from "./ui/ProductNavigation";
 const defaultConfigurationClient = createDashboardConfigurationClient();
 const defaultRuntimeActionClient = createDashboardRuntimeActionClient();
 
+type BuilderMode = "app-config" | "home" | "screen-builder";
+
 type AppProps = {
   configurationClient?: ConfigurationClient;
   runtimeActionClient?: RuntimeActionClient;
@@ -39,6 +47,7 @@ export function App({
   const configurationState = useConfigurations(configurationClient);
   const runtimeActions = useRuntimeActionDispatcher(runtimeActionClient);
   const [activeView, setActiveView] = useState<ProductView>("landing");
+  const [builderMode, setBuilderMode] = useState<BuilderMode>("home");
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
 
   useEffect(() => {
@@ -67,6 +76,33 @@ export function App({
     await configurationState.saveConfiguration(selectedWorkspace.configuration.id, updatedBundle);
   };
 
+  const handleSaveApplication = async (application: ApplicationConfig) => {
+    if (configurationState.status !== "ready" || !selection) {
+      throw new Error("Bloom cannot save before an application is selected.");
+    }
+
+    const selectedWorkspace = resolveSelectedWorkspace(configurationState.configurations, selection);
+    const updatedBundle = replaceApplicationInConfigurationBundle(selectedWorkspace.bundle, application);
+
+    await configurationState.saveConfiguration(selectedWorkspace.configuration.id, updatedBundle);
+  };
+
+  const handleCreateApplication = async (configId: string, application: ApplicationConfig) => {
+    if (configurationState.status !== "ready") {
+      throw new Error("Bloom cannot create an application before configurations are loaded.");
+    }
+
+    const configuration = configurationState.configurations.find((candidate) => candidate.id === configId);
+    if (!configuration) {
+      throw new Error(`Configuration "${configId}" was not found.`);
+    }
+
+    const updatedBundle = appendApplicationToConfigurationBundle(configuration.bundle, application);
+    await configurationState.saveConfiguration(configId, updatedBundle);
+    setSelection({ configId, appId: application.id, screenId: application.screens[0]?.id ?? "main" });
+    setBuilderMode("app-config");
+  };
+
   return (
     <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
       <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
@@ -78,7 +114,11 @@ export function App({
           ) : (
             <MainApplicationView
               activeView={activeView}
+              builderMode={builderMode}
+              onChangeBuilderMode={setBuilderMode}
+              onCreateApplication={handleCreateApplication}
               onRuntimeIntent={handleRuntimeIntent}
+              onSaveApplication={handleSaveApplication}
               onSaveBuilderScreen={handleSaveBuilderScreen}
               onSelectionChange={setSelection}
               selection={selection}
@@ -93,7 +133,11 @@ export function App({
 
 type MainApplicationViewProps = {
   activeView: Exclude<ProductView, "landing">;
+  builderMode: BuilderMode;
+  onChangeBuilderMode: (mode: BuilderMode) => void;
+  onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
   onRuntimeIntent: (intent: WidgetActionIntent) => void;
+  onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   selection: WorkspaceSelection | null;
@@ -102,7 +146,11 @@ type MainApplicationViewProps = {
 
 function MainApplicationView({
   activeView,
+  builderMode,
+  onChangeBuilderMode,
+  onCreateApplication,
   onRuntimeIntent,
+  onSaveApplication,
   onSaveBuilderScreen,
   onSelectionChange,
   selection,
@@ -123,10 +171,39 @@ function MainApplicationView({
   const selectedWorkspace = resolveSelectedWorkspace(state.configurations, selection);
 
   if (activeView === "builder") {
+    if (builderMode === "home") {
+      return (
+        <BuilderHome
+          configurations={state.configurations}
+          onCreateApplication={onCreateApplication}
+          onOpenApplication={(nextSelection) => {
+            onSelectionChange(nextSelection);
+            onChangeBuilderMode("app-config");
+          }}
+        />
+      );
+    }
+
+    if (builderMode === "app-config") {
+      return (
+        <BuilderAppConfig
+          configurations={state.configurations}
+          onBackToHome={() => onChangeBuilderMode("home")}
+          onOpenScreenBuilder={(nextSelection) => {
+            onSelectionChange(nextSelection);
+            onChangeBuilderMode("screen-builder");
+          }}
+          onSaveApplication={onSaveApplication}
+          selection={selection}
+        />
+      );
+    }
+
     return (
       <BuilderWorkspace
         configurations={state.configurations}
-        onSelectionChange={onSelectionChange}
+        onBackToAppConfig={() => onChangeBuilderMode("app-config")}
+        onBackToBuilderHome={() => onChangeBuilderMode("home")}
         onSaveScreenDraft={onSaveBuilderScreen}
         selection={selection}
       />

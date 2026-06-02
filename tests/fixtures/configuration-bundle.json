@@ -9,6 +9,15 @@
       "id": "sandbox",
       "name": "Sandbox",
       "description": "Sandbox operator interface",
+      "theme": {
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
       "screens": [
         {
           "id": "main",

@@ -11,11 +11,7 @@ import {
 import { useEffect, useState } from "react";
 
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
-import {
-  ConfigurationWorkspace,
-  resolveSelectedWorkspace,
-  type WorkspaceSelection,
-} from "../ui/ConfigurationWorkspace";
+import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
@@ -23,7 +19,8 @@ import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 
 type BuilderWorkspaceProps = {
   configurations: readonly LoadedConfiguration[];
-  onSelectionChange: (selection: WorkspaceSelection) => void;
+  onBackToAppConfig: () => void;
+  onBackToBuilderHome: () => void;
   onSaveScreenDraft: (screen: ScreenConfig) => Promise<void>;
   selection: WorkspaceSelection;
 };
@@ -41,8 +38,9 @@ const availableWidgetDefinitions = Array.from(widgetRegistry.values()).filter(
 
 export function BuilderWorkspace({
   configurations,
+  onBackToAppConfig,
+  onBackToBuilderHome,
   onSaveScreenDraft,
-  onSelectionChange,
   selection,
 }: BuilderWorkspaceProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
@@ -147,14 +145,16 @@ export function BuilderWorkspace({
 
   return (
     <section className="builder-workspace" aria-label="Bloom builder workspace">
-      <ConfigurationWorkspace
-        configurations={configurations}
-        onSelectionChange={onSelectionChange}
-        selection={selection}
-      />
-
       <section className="builder-stage-panel" aria-labelledby="builder-stage-title">
         <header className="builder-stage-toolbar">
+          <div className="builder-stage-navigation">
+            <button className="builder-back-button" onClick={onBackToAppConfig} type="button">
+              Back to app config
+            </button>
+            <button className="builder-back-button" onClick={onBackToBuilderHome} type="button">
+              Builder home
+            </button>
+          </div>
           <div>
             <p className="eyebrow">Builder canvas</p>
             <h2 id="builder-stage-title">{draftScreen.title}</h2>

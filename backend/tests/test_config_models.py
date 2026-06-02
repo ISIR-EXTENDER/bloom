@@ -57,6 +57,15 @@ def test_configuration_bundle_serializes_to_json() -> None:
     parsed = json.loads(serialized)
 
     assert parsed["metadata"]["source"] == "unit-test"
+    assert parsed["applications"][0]["theme"] == {
+        "preset_id": "bloom-default",
+        "palette": {
+            "accent": "#d9a441",
+            "background": "#f7f1e6",
+            "primary": "#7f967e",
+            "surface": "#fffdf7",
+        },
+    }
     assert parsed["applications"][0]["screens"][0]["canvas"] == {"preset_id": "hd", "runtime_mode": "fit"}
     assert parsed["applications"][0]["screens"][0]["widgets"][0]["layout"] == {
         "x": 24,
@@ -99,6 +108,7 @@ def test_configuration_bundle_validates_from_json_payload() -> None:
     bundle = ConfigurationBundle.model_validate(payload)
 
     assert bundle.metadata.source == "legacy-json"
+    assert bundle.applications[0].theme.preset_id == "bloom-default"
     assert bundle.applications[0].screens[0].widgets[0].kind == WidgetKind.COMMAND_BUTTON
 
 

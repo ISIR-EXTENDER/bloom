@@ -1,5 +1,6 @@
 import type {
   ApplicationConfig,
+  ApplicationTheme,
   CanvasPresetId,
   CanvasSettings,
   ConfigurationBundle,
@@ -9,6 +10,7 @@ import type {
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
+import { DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
   applications?: PartialApplicationConfig[];
@@ -17,6 +19,11 @@ type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "application
 
 type PartialApplicationConfig = Partial<Omit<ApplicationConfig, "screens">> & {
   screens?: PartialScreenConfig[];
+  theme?: PartialApplicationTheme;
+};
+
+type PartialApplicationTheme = Partial<Omit<ApplicationTheme, "palette">> & {
+  palette?: Partial<ApplicationTheme["palette"]>;
 };
 
 type PartialScreenConfig = Partial<Omit<ScreenConfig, "canvas" | "widgets">> & {
@@ -77,7 +84,20 @@ function normalizeApplication(application: PartialApplicationConfig, index: numb
     id,
     name: asString(application.name, id),
     description: asString(application.description, ""),
+    theme: normalizeApplicationTheme(application.theme),
     screens: (application.screens ?? []).map((screen, screenIndex) => normalizeScreen(screen, screenIndex)),
+  };
+}
+
+function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): ApplicationTheme {
+  return {
+    preset_id: asString(theme?.preset_id, DEFAULT_APPLICATION_THEME.preset_id),
+    palette: {
+      accent: asColorString(theme?.palette?.accent, DEFAULT_APPLICATION_THEME.palette.accent),
+      background: asColorString(theme?.palette?.background, DEFAULT_APPLICATION_THEME.palette.background),
+      primary: asColorString(theme?.palette?.primary, DEFAULT_APPLICATION_THEME.palette.primary),
+      surface: asColorString(theme?.palette?.surface, DEFAULT_APPLICATION_THEME.palette.surface),
+    },
   };
 }
 
@@ -127,6 +147,10 @@ function asString(value: unknown, fallback: string): string {
 
 function asNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function asColorString(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

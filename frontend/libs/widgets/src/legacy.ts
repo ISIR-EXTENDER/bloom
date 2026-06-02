@@ -7,6 +7,7 @@ import type {
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
+import { DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
 
 export type LegacyCanvasScreen = {
   id?: string;
@@ -77,6 +78,7 @@ export function legacyCanvasScreensToApplicationConfig(
     id,
     name: stringOrFallback(application.name, id),
     description: stringOrFallback(application.description, homeScreenDescription),
+    theme: DEFAULT_APPLICATION_THEME,
     screens: orderedScreens,
   };
 }
