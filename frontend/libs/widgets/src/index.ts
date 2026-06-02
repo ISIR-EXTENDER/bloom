@@ -6,6 +6,9 @@ import type {
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
+import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
+
+export * from "./settings";
 
 export type LegacyWidgetCompatibility = "direct" | "renamed" | "adapter-required" | "app-specific" | "unsupported";
 
@@ -145,7 +148,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "command",
     description: "Generic button for local UI actions such as navigation or editor workflows.",
     defaultTitle: "Button",
-    defaultSettings: {},
+    defaultSettings: getDefaultWidgetSettings("button"),
     defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
     runtimeRequirements: ["none"],
     availability: { editor: true, runtime: true },
@@ -156,12 +159,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "display",
     description: "Displays a camera, RViz, or visualization stream.",
     defaultTitle: "Camera",
-    defaultSettings: {
-      fitMode: "contain",
-      showHeader: true,
-      showStatus: true,
-      streamUrl: "",
-    },
+    defaultSettings: getDefaultWidgetSettings("camera"),
     defaultLayout: { width: 360, height: 260, minWidth: 240, minHeight: 160 },
     runtimeRequirements: ["stream-source"],
     availability: { editor: true, runtime: true },
@@ -172,9 +170,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "command",
     description: "Sends a configured command intent through the runtime boundary.",
     defaultTitle: "Command",
-    defaultSettings: {
-      command: "",
-    },
+    defaultSettings: getDefaultWidgetSettings("command-button"),
     defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
     runtimeRequirements: ["command-dispatcher"],
     availability: { editor: true, runtime: true },
@@ -185,11 +181,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "feedback",
     description: "Displays a scalar value from a runtime data source.",
     defaultTitle: "Gauge",
-    defaultSettings: {
-      max: 1,
-      min: 0,
-      unit: "",
-    },
+    defaultSettings: getDefaultWidgetSettings("gauge"),
     defaultLayout: { width: 180, height: 180, minWidth: 140, minHeight: 140 },
     runtimeRequirements: ["data-source"],
     availability: { editor: true, runtime: true },
@@ -200,11 +192,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "input",
     description: "Captures planar operator input for teleoperation-like controls.",
     defaultTitle: "Joystick",
-    defaultSettings: {
-      binding: "joy",
-      deadzone: 0.1,
-      labels: { bottom: "Y-", left: "X-", right: "X+", top: "Y+" },
-    },
+    defaultSettings: getDefaultWidgetSettings("joystick"),
     defaultLayout: { width: 220, height: 220, minWidth: 160, minHeight: 160 },
     runtimeRequirements: ["teleop-adapter"],
     availability: { editor: true, runtime: true },
@@ -215,11 +203,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "display",
     description: "Displays static text in a screen.",
     defaultTitle: "Label",
-    defaultSettings: {
-      align: "left",
-      fontSize: 20,
-      text: "Text",
-    },
+    defaultSettings: getDefaultWidgetSettings("label"),
     defaultLayout: { width: 280, height: 64, minWidth: 120, minHeight: 40 },
     runtimeRequirements: ["none"],
     availability: { editor: true, runtime: true },
@@ -230,10 +214,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "feedback",
     description: "Displays timeseries or curve data from a runtime data source.",
     defaultTitle: "Plot",
-    defaultSettings: {
-      historySeconds: 10,
-      showLegend: true,
-    },
+    defaultSettings: getDefaultWidgetSettings("plot"),
     defaultLayout: { width: 420, height: 240, minWidth: 240, minHeight: 160 },
     runtimeRequirements: ["data-source"],
     availability: { editor: true, runtime: true },
@@ -244,12 +225,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "input",
     description: "Captures scalar operator input.",
     defaultTitle: "Slider",
-    defaultSettings: {
-      direction: "vertical",
-      max: 1,
-      min: -1,
-      step: 0.01,
-    },
+    defaultSettings: getDefaultWidgetSettings("slider"),
     defaultLayout: { width: 120, height: 220, minWidth: 80, minHeight: 120 },
     runtimeRequirements: ["teleop-adapter"],
     availability: { editor: true, runtime: true },
@@ -260,11 +236,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "device",
     description: "Captures an ON/OFF operator intent.",
     defaultTitle: "Toggle",
-    defaultSettings: {
-      initialValue: false,
-      offPayload: false,
-      onPayload: true,
-    },
+    defaultSettings: getDefaultWidgetSettings("toggle"),
     defaultLayout: { width: 220, height: 120, minWidth: 160, minHeight: 80 },
     runtimeRequirements: ["device-adapter"],
     availability: { editor: true, runtime: true },
@@ -275,7 +247,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     category: "unknown",
     description: "Fallback capability used to preserve unsupported widgets safely.",
     defaultTitle: "Unknown widget",
-    defaultSettings: {},
+    defaultSettings: getDefaultWidgetSettings("unknown"),
     defaultLayout: { width: 220, height: 120, minWidth: 120, minHeight: 80 },
     runtimeRequirements: ["none"],
     availability: { editor: false, runtime: true },
@@ -520,6 +492,15 @@ export function createWidgetConfigFromDefinition(
   id: string,
   overrides: Partial<Pick<WidgetConfig, "layout" | "settings" | "title">> = {},
 ): WidgetConfig {
+  const normalizedSettings = normalizeWidgetSettings(definition.kind, overrides.settings ?? {});
+  if (!normalizedSettings.success) {
+    throw new Error(
+      `Invalid settings for widget kind "${definition.kind}": ${normalizedSettings.errors
+        .map((error) => `${error.field}: ${error.message}`)
+        .join("; ")}`,
+    );
+  }
+
   return {
     id,
     kind: definition.kind,
@@ -530,10 +511,7 @@ export function createWidgetConfigFromDefinition(
       width: definition.defaultLayout.width,
       height: definition.defaultLayout.height,
     },
-    settings: {
-      ...definition.defaultSettings,
-      ...(overrides.settings ?? {}),
-    },
+    settings: normalizedSettings.settings,
   };
 }
 

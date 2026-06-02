@@ -38,3 +38,12 @@ The widgets package also exposes framework-independent canvas helpers inspired b
 
 These helpers are intended for editor state, layout rendering, and legacy migration adapters. They should remain free of
 React and storage concerns.
+
+## Settings Contracts
+
+Widget settings contracts define defaults, field metadata, and validation for each Bloom widget kind. They are used to:
+
+- normalize partial editor input with safe defaults;
+- report clear validation errors before runtime;
+- describe future inspector fields without duplicating settings knowledge in React components;
+- keep widget configuration JSON serializable for API and SQLite persistence.

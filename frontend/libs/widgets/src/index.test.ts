@@ -10,6 +10,7 @@ import {
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyRectToLayout,
   listWidgetDefinitionsByCategory,
+  normalizeWidgetSettings,
   renderScreenDescriptors,
   renderWidgetDescriptor,
   resolveCanvasArtboardSize,
@@ -18,6 +19,8 @@ import {
   resolveLegacyWidgetKind,
   snapLayoutValue,
   toBloomWidgetKind,
+  validateWidgetSettings,
+  WIDGET_SETTINGS_CONTRACTS,
   type WidgetDefinition,
 } from "./index";
 
@@ -219,6 +222,89 @@ describe("canvas layout foundation", () => {
       width: 203,
       height: 91,
     });
+  });
+});
+
+describe("widget settings contracts", () => {
+  it("provides settings contracts for every Bloom widget kind", () => {
+    expect(Object.keys(WIDGET_SETTINGS_CONTRACTS).sort()).toEqual([
+      "button",
+      "camera",
+      "command-button",
+      "gauge",
+      "joystick",
+      "label",
+      "plot",
+      "slider",
+      "toggle",
+      "unknown",
+    ]);
+  });
+
+  it("normalizes partial settings with widget defaults", () => {
+    expect(normalizeWidgetSettings("slider", { max: 3, min: 0 })).toEqual({
+      success: true,
+      settings: {
+        direction: "vertical",
+        max: 3,
+        min: 0,
+        step: 0.01,
+      },
+    });
+  });
+
+  it("reports clear validation errors for invalid settings", () => {
+    expect(validateWidgetSettings("slider", { direction: "sideways", max: 0, min: 1, step: 0 })).toEqual({
+      success: false,
+      errors: [
+        {
+          field: "direction",
+          message: "direction must be one of: horizontal, vertical",
+        },
+        {
+          field: "max",
+          message: "max must be greater than min",
+        },
+      ],
+    });
+  });
+
+  it("validates structured joystick labels", () => {
+    expect(
+      validateWidgetSettings("joystick", {
+        binding: "joy",
+        deadzone: 0.1,
+        labels: {
+          bottom: "Y-",
+          left: "X-",
+          right: "X+",
+          top: 42,
+        },
+      }),
+    ).toEqual({
+      success: false,
+      errors: [
+        {
+          field: "labels.top",
+          message: "top label must be a string",
+        },
+      ],
+    });
+  });
+
+  it("rejects invalid settings when creating a widget config from defaults", () => {
+    const definition = createDefaultWidgetRegistry().get("slider") as WidgetDefinition;
+
+    expect(() =>
+      createWidgetConfigFromDefinition(definition, "bad-slider", {
+        settings: {
+          direction: "vertical",
+          max: 1,
+          min: -1,
+          step: -1,
+        },
+      }),
+    ).toThrow('Invalid settings for widget kind "slider": step: step must be greater than or equal to 0');
   });
 });
 
