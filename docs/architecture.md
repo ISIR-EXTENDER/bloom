@@ -7,12 +7,18 @@ Bloom is split into product apps and reusable libraries.
 - `frontend/apps/bloom-dashboard`: the browser app that users open.
 - `frontend/libs/ui`: shared visual primitives.
 - `frontend/libs/widgets`: configurable widgets and widget registry.
-- `frontend/libs/ros-bridge`: frontend-side transport contracts, not raw ROS logic.
+- `frontend/libs/widget-renderers`: runtime-safe widget rendering from widget descriptors.
 - `frontend/libs/api-client`: typed client for the backend API.
 - `backend/apps/bloom_api`: FastAPI app composition and HTTP entrypoints.
+- `backend/apps/bloom_cli`: Typer command line entrypoint for local development and migration commands.
+- `backend/libs/config`: application configuration models, repositories, and legacy JSON adapters.
 - `backend/libs/db`: persistence and migrations.
-- `backend/libs/devices`: device models and command abstractions.
 - `backend/libs/ros_adapters`: the only backend layer that knows ROS topics, services, and actions.
+
+Planned boundaries should be introduced only with the feature that needs them:
+
+- `frontend/libs/ros-bridge`: frontend-side live transport contracts, not raw ROS logic.
+- `backend/libs/devices`: device models and command abstractions.
 - `backend/libs/sessions`: runtime state for active UI sessions.
 - `backend/libs/logging`: structured logging helpers.
 
