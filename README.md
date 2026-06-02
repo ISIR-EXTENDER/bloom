@@ -12,11 +12,11 @@ It starts from the current Extender tablet interface and UI work, but the goal i
 
 Bloom is currently in foundation work before the full UI/database migration:
 
-- Widget contracts now cover reusable controls, command actions, ROS-message-style toggles, and debug widgets.
-- Screen/canvas models preserve legacy widget layout while staying storage-neutral for the future SQLite migration.
-- Legacy `extender_ui` JSON fixtures are converted and tested against Bloom configuration bundles.
-- React renderers expose interactive slider, joystick, button, toggle, and topic-debug foundations without direct ROS side effects.
-- Runtime adapters, SQLite persistence, polished builder UI, and richer topic visualization are the next major pieces.
+- Product navigation now separates the landing page from builder and runtime previews.
+- The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
+- Runtime preview records widget action intents so controls can be tested visually before ROS adapters are connected.
+- The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
+- Next major pieces are the real screen builder, runtime app routes, SQLite-backed app management, ROS adapters, and richer topic visualization.
 
 ## Repository Shape
 
