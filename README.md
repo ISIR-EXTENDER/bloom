@@ -93,6 +93,21 @@ The backend API starts under `/api/v1`, with `/api/v1/health` as the first syste
 
 Backend developer commands are exposed through the Typer CLI in `backend/apps/bloom_cli`.
 
+## Configuration Storage
+
+Bloom keeps file-backed JSON storage as the default while SQLite is validated through migration slices.
+
+Use the configuration CLI to exercise both paths:
+
+```bash
+cd backend
+uv run python -m apps.bloom_cli.main config import sandbox tests/fixtures/configuration-bundle.json --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config export sandbox data/exports/sandbox.json --storage sqlite --database-path data/bloom.db
+```
+
+The FastAPI app can already use SQLite by constructing `Settings(configuration_storage="sqlite", configuration_database_path=...)`. File-backed storage remains the fallback until the full frontend and runtime migration have passed end-to-end tests.
+
 ## Tests And Coverage
 
 Run the main validation suite before opening PRs:
