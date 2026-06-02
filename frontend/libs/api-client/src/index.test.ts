@@ -87,6 +87,29 @@ describe("Bloom API client", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/v1/configurations/sandbox", { method: "DELETE" });
   });
 
+  it("publishes a ROS topic message through the backend", async () => {
+    const responsePayload = {
+      topic: "/petanque_state_machine/change_state",
+      message_type: "std_msgs/msg/String",
+      status: "published",
+      detail: "ROS message published.",
+    };
+    const requestPayload = {
+      topic: "/petanque_state_machine/change_state",
+      message_type: "std_msgs/msg/String",
+      payload: { data: "activate_throw" },
+    };
+    const fetcher = createJsonFetcher(responsePayload);
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.publishRosTopic(requestPayload)).resolves.toEqual(responsePayload);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestPayload),
+    });
+  });
+
   it("throws a typed error when the backend rejects a request", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ detail: "configuration not found" }), {
