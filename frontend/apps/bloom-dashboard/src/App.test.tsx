@@ -1,5 +1,5 @@
 import type { ConfigurationBundle } from "@bloom/api-client";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
@@ -59,6 +59,21 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Placeholder" })).toBeVisible();
     expect(screen.getByRole("region", { name: "Screen implementation coming soon" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Coming soon" })).toBeVisible();
+  });
+
+  it("moves widgets on the builder canvas draft", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+
+    const moveHandle = await screen.findByRole("button", { name: "Select and move Digital output widget" });
+    fireEvent.pointerDown(moveHandle, { button: 0, clientX: 10, clientY: 10 });
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 50, clientY: 26 }));
+    window.dispatchEvent(new MouseEvent("pointerup"));
+
+    await waitFor(() => {
+      expect(screen.getByText((_, element) => element?.textContent === "64, 48")).toBeVisible();
+    });
   });
 
   it("dispatches runtime action intents from the full app view", async () => {

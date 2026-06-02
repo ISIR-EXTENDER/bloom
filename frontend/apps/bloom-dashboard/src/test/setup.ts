@@ -18,6 +18,7 @@ class TestResizeObserver implements ResizeObserver {
 }
 
 globalThis.ResizeObserver = globalThis.ResizeObserver ?? TestResizeObserver;
+globalThis.PointerEvent = globalThis.PointerEvent ?? MouseEvent;
 
 afterEach(() => {
   cleanup();
