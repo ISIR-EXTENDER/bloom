@@ -3,6 +3,8 @@
 This plan focuses on Bloom's core product promise: people should be able to create reusable robot interfaces, screens,
 and apps without writing web code.
 
+See also `docs/widget-migration-inventory.md` for the current `extender_ui` widget/screen migration inventory.
+
 ## Why Not Just Copy `extender_ui`
 
 `extender_ui` already proves the interaction model works: widgets can be added from a catalog, moved, resized, edited,
