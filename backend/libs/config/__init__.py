@@ -1,10 +1,14 @@
 from libs.config.models import (
     ApplicationConfig,
+    CanvasPresetId,
+    CanvasSettings,
     ConfigurationBundle,
     ConfigurationMetadata,
+    RuntimeCanvasMode,
     ScreenConfig,
     WidgetConfig,
     WidgetKind,
+    WidgetLayout,
 )
 from libs.config.repository import ConfigurationNotFoundError, FileConfigurationRepository, InMemoryConfigurationRepository
 from libs.config.json_io import (
@@ -25,14 +29,18 @@ from libs.config.legacy_json import (
 
 __all__ = [
     "ApplicationConfig",
+    "CanvasPresetId",
+    "CanvasSettings",
     "ConfigurationBundle",
     "ConfigurationMetadata",
     "ConfigurationNotFoundError",
     "FileConfigurationRepository",
     "InMemoryConfigurationRepository",
+    "RuntimeCanvasMode",
     "ScreenConfig",
     "WidgetConfig",
     "WidgetKind",
+    "WidgetLayout",
     "configuration_to_dict",
     "dump_configuration_json",
     "load_configuration_file",

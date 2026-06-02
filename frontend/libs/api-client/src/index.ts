@@ -8,18 +8,38 @@ export type WidgetKind =
   | "plot"
   | "slider"
   | "toggle"
+  | "topic-echo"
+  | "topic-plot"
   | "unknown";
 
 export type WidgetConfig = {
   id: string;
   kind: WidgetKind;
   title: string;
+  layout: WidgetLayout;
   settings: Record<string, unknown>;
+};
+
+export type WidgetLayout = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type CanvasPresetId = "native-1024x600" | "hd" | "tablet" | "full-hd" | "local-screen";
+
+export type RuntimeCanvasMode = "left" | "center" | "fit";
+
+export type CanvasSettings = {
+  preset_id: CanvasPresetId;
+  runtime_mode: RuntimeCanvasMode;
 };
 
 export type ScreenConfig = {
   id: string;
   title: string;
+  canvas: CanvasSettings;
   widgets: WidgetConfig[];
 };
 

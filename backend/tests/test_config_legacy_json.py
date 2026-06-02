@@ -17,11 +17,28 @@ def test_load_legacy_sandbox_control_screen() -> None:
     assert len(screen.widgets) == 12
 
     ros_toggle = next(widget for widget in screen.widgets if widget.id == "widget-1777993123607-1d1c3")
-    assert ros_toggle.kind == WidgetKind.COMMAND_BUTTON
+    assert ros_toggle.kind == WidgetKind.TOGGLE
     assert ros_toggle.title == "ROS Toggle"
+    assert ros_toggle.layout.x == 394
+    assert ros_toggle.layout.y == 17
+    assert ros_toggle.layout.width == 203
+    assert ros_toggle.layout.height == 91
     assert ros_toggle.settings["topic"] == "/ui/ros_toggle"
     assert ros_toggle.settings["messageType"] == "std_msgs/msg/Int32MultiArray"
     assert ros_toggle.settings["onPayload"] == "{data: [13, 1]}"
+    assert "rect" not in ros_toggle.settings
+    assert screen.canvas.preset_id == "hd"
+    assert screen.canvas.runtime_mode == "fit"
+
+    max_velocity = next(widget for widget in screen.widgets if widget.id == "pet-speed")
+    assert max_velocity.kind == WidgetKind.SLIDER
+    assert max_velocity.settings["reverseDirection"] is True
+
+    gripper = next(widget for widget in screen.widgets if widget.id == "pet-gripper")
+    assert gripper.kind == WidgetKind.TOGGLE
+
+    state_button = next(widget for widget in screen.widgets if widget.id == "pet-state-teleop")
+    assert state_button.kind == WidgetKind.COMMAND_BUTTON
 
 
 def test_load_legacy_configurations_screen() -> None:
@@ -30,10 +47,13 @@ def test_load_legacy_configurations_screen() -> None:
     assert screen.id == "configurations"
     assert screen.widgets[0].kind == WidgetKind.LABEL
     assert screen.widgets[0].title == "Text"
+    assert screen.widgets[1].kind == WidgetKind.LABEL
 
     navigation = next(widget for widget in screen.widgets if widget.id == "cfg-nav")
     assert navigation.kind == WidgetKind.UNKNOWN
     assert navigation.settings["items"][0]["targetScreenId"] == "default_control"
+    assert navigation.layout.width > 0
+    assert navigation.layout.height > 0
 
 
 def test_load_legacy_play_petanque_application() -> None:
@@ -52,4 +72,3 @@ def test_load_legacy_play_petanque_application() -> None:
         "play_petanque_ramassage",
         "play_petanque_measures",
     ]
-

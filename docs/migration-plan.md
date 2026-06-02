@@ -25,6 +25,9 @@
 
 ## Next Migration Slices
 
+See also `docs/widgets-screens-apps-foundation-plan.md` for the detailed widgets, screens, layout, editor, and runtime
+foundation plan.
+
 1. Add configuration domain models.
    - Define typed models for applications, screens, widgets, and configuration metadata.
    - Keep this backend-only and independent from ROS, database storage, and frontend rendering.

@@ -8,6 +8,16 @@ Bloom is a configurable web interface framework for robot teleoperation, supervi
 
 It starts from the current Extender tablet interface and UI work, but the goal is broader: keep the web product generic enough for ISIR lab projects, while integrating with Extender through a clean ROS adapter layer.
 
+## Work In Progress
+
+Bloom is currently in foundation work before the full UI/database migration:
+
+- Widget contracts now cover reusable controls, command actions, ROS-message-style toggles, and debug widgets.
+- Screen/canvas models preserve legacy widget layout while staying storage-neutral for the future SQLite migration.
+- Legacy `extender_ui` JSON fixtures are converted and tested against Bloom configuration bundles.
+- React renderers expose interactive slider, joystick, button, toggle, and topic-debug foundations without direct ROS side effects.
+- Runtime adapters, SQLite persistence, polished builder UI, and richer topic visualization are the next major pieces.
+
 ## Repository Shape
 
 ```text
@@ -80,6 +90,26 @@ The backend test target disables external pytest plugin autoloading so a sourced
 The backend API starts under `/api/v1`, with `/api/v1/health` as the first system endpoint.
 
 Backend developer commands are exposed through the Typer CLI in `backend/apps/bloom_cli`.
+
+## Tests And Coverage
+
+Run the main validation suite before opening PRs:
+
+```bash
+npm run check
+npm run test
+npm run build
+cd backend
+make test
+```
+
+Current coverage focus:
+
+- Backend FastAPI/configuration tests cover API routes, repositories, JSON import/export, and real legacy fixtures.
+- Frontend widget tests cover contracts, editor operations, runtime intents, legacy conversion, render descriptors, and renderer behavior.
+- Integration tests round-trip real legacy JSON through frontend conversion, API-client semantics, backend persistence, and widget registry rendering.
+- Coverage is quality-focused rather than percentage-chasing for now; critical migration paths should be tested before UI polish.
+- Future work should add explicit coverage reporting once the SQLite storage layer and runtime adapters stabilize.
 
 ## Python Environment
 

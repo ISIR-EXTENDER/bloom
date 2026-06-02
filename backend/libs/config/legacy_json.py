@@ -2,7 +2,15 @@ import json
 from pathlib import Path
 from typing import Any
 
-from libs.config.models import ApplicationConfig, ScreenConfig, WidgetConfig, WidgetKind
+from libs.config.models import (
+    ApplicationConfig,
+    CanvasSettings,
+    RuntimeCanvasMode,
+    ScreenConfig,
+    WidgetConfig,
+    WidgetKind,
+    WidgetLayout,
+)
 
 
 def load_legacy_screen_json(content: str) -> ScreenConfig:
@@ -29,7 +37,7 @@ def legacy_screen_to_config(payload: dict[str, Any]) -> ScreenConfig:
     screen_id = str(payload.get("id") or payload["name"])
     title = str(payload.get("title") or payload.get("label") or payload["name"])
     widgets = tuple(_legacy_widget_to_config(widget) for widget in payload.get("widgets", []))
-    return ScreenConfig(id=screen_id, title=title, widgets=widgets)
+    return ScreenConfig(id=screen_id, title=title, canvas=_legacy_canvas_to_settings(payload.get("canvas")), widgets=widgets)
 
 
 def legacy_application_to_config(payload: dict[str, Any]) -> ApplicationConfig:
@@ -49,20 +57,53 @@ def _legacy_widget_to_config(payload: dict[str, Any]) -> WidgetConfig:
     widget_id = str(payload["id"])
     title = str(payload.get("title") or payload.get("label") or widget_id)
     kind = _map_widget_kind(str(payload.get("kind", WidgetKind.UNKNOWN.value)))
-    settings = {key: value for key, value in payload.items() if key not in {"id", "title", "label", "kind"}}
-    return WidgetConfig(id=widget_id, title=title, kind=kind, settings=settings)
+    layout = _legacy_rect_to_layout(payload.get("rect"))
+    settings = {key: value for key, value in payload.items() if key not in {"id", "title", "label", "kind", "rect"}}
+    return WidgetConfig(id=widget_id, title=title, kind=kind, layout=layout, settings=settings)
+
+
+def _legacy_rect_to_layout(value: Any) -> WidgetLayout:
+    if not isinstance(value, dict):
+        return WidgetLayout()
+    return WidgetLayout(
+        x=int(value.get("x", 0)),
+        y=int(value.get("y", 0)),
+        width=int(value.get("w", value.get("width", 160))),
+        height=int(value.get("h", value.get("height", 80))),
+    )
+
+
+def _legacy_canvas_to_settings(value: Any) -> CanvasSettings:
+    if not isinstance(value, dict):
+        return CanvasSettings()
+    return CanvasSettings(
+        preset_id=str(value.get("presetId", value.get("preset_id", "hd"))),
+        runtime_mode=RuntimeCanvasMode(str(value.get("runtimeMode", value.get("runtime_mode", "fit")))),
+    )
 
 
 def _map_widget_kind(kind: str) -> WidgetKind:
     mapping = {
-        "button": WidgetKind.BUTTON,
+        "button": WidgetKind.COMMAND_BUTTON,
         "camera": WidgetKind.CAMERA,
+        "curves": WidgetKind.PLOT,
+        "drink": WidgetKind.COMMAND_BUTTON,
+        "gripper-control": WidgetKind.TOGGLE,
         "joystick": WidgetKind.JOYSTICK,
+        "magnet-control": WidgetKind.TOGGLE,
+        "max-velocity": WidgetKind.SLIDER,
+        "mode-button": WidgetKind.COMMAND_BUTTON,
+        "navigation-button": WidgetKind.BUTTON,
         "plot": WidgetKind.PLOT,
-        "ros-message-toggle": WidgetKind.COMMAND_BUTTON,
+        "rosbag-control": WidgetKind.COMMAND_BUTTON,
+        "ros-message-toggle": WidgetKind.TOGGLE,
+        "save-pose-button": WidgetKind.COMMAND_BUTTON,
         "slider": WidgetKind.SLIDER,
+        "stream-display": WidgetKind.CAMERA,
         "text": WidgetKind.LABEL,
+        "textarea": WidgetKind.LABEL,
         "toggle": WidgetKind.TOGGLE,
+        "toggle-publisher": WidgetKind.TOGGLE,
     }
     return mapping.get(kind, WidgetKind.UNKNOWN)
 
@@ -72,4 +113,3 @@ def _legacy_application_description(payload: dict[str, Any]) -> str:
     if not home_screen_id:
         return ""
     return f"Legacy home screen: {home_screen_id}"
-

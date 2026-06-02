@@ -6,11 +6,15 @@ from pydantic import ValidationError
 
 from libs.config import (
     ApplicationConfig,
+    CanvasPresetId,
+    CanvasSettings,
     ConfigurationBundle,
     ConfigurationMetadata,
+    RuntimeCanvasMode,
     ScreenConfig,
     WidgetConfig,
     WidgetKind,
+    WidgetLayout,
 )
 
 
@@ -34,6 +38,7 @@ def test_configuration_bundle_serializes_to_json() -> None:
                                 id="enable-output",
                                 kind=WidgetKind.COMMAND_BUTTON,
                                 title="Enable Output",
+                                layout=WidgetLayout(x=24, y=32, width=220, height=96),
                                 settings={
                                     "topic": "/ui/ros_toggle",
                                     "messageType": "std_msgs/msg/Int32MultiArray",
@@ -52,6 +57,13 @@ def test_configuration_bundle_serializes_to_json() -> None:
     parsed = json.loads(serialized)
 
     assert parsed["metadata"]["source"] == "unit-test"
+    assert parsed["applications"][0]["screens"][0]["canvas"] == {"preset_id": "hd", "runtime_mode": "fit"}
+    assert parsed["applications"][0]["screens"][0]["widgets"][0]["layout"] == {
+        "x": 24,
+        "y": 32,
+        "width": 220,
+        "height": 96,
+    }
     assert parsed["applications"][0]["screens"][0]["widgets"][0]["settings"]["payloadOn"] == {"data": [13, 1]}
 
 
@@ -122,6 +134,27 @@ def test_duplicate_widget_ids_are_rejected() -> None:
                 WidgetConfig(id="camera", title="Camera B"),
             ),
         )
+
+
+def test_widget_layout_rejects_negative_positions() -> None:
+    with pytest.raises(ValidationError):
+        WidgetLayout(x=-1, y=0, width=160, height=80)
+
+
+def test_widget_layout_rejects_empty_sizes() -> None:
+    with pytest.raises(ValidationError):
+        WidgetLayout(x=0, y=0, width=0, height=80)
+
+
+def test_screen_canvas_settings_use_known_presets_and_modes() -> None:
+    screen = ScreenConfig(
+        id="control",
+        title="Control",
+        canvas=CanvasSettings(preset_id=CanvasPresetId.FULL_HD, runtime_mode=RuntimeCanvasMode.CENTER),
+    )
+
+    assert screen.canvas.preset_id == CanvasPresetId.FULL_HD
+    assert screen.canvas.runtime_mode == RuntimeCanvasMode.CENTER
 
 
 def test_extra_fields_are_rejected() -> None:
