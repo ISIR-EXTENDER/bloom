@@ -1,9 +1,16 @@
 import type { WidgetKind } from "@bloom/api-client";
-import type { WidgetRenderContext, WidgetRenderDescriptor } from "@bloom/widgets";
+import {
+  createWidgetActionIntent,
+  type WidgetActionIntent,
+  type WidgetRenderContext,
+  type WidgetRenderDescriptor,
+} from "@bloom/widgets";
+import * as SliderPrimitive from "@radix-ui/react-slider";
 import type { ReactNode } from "react";
 
 export type WidgetRendererProps = {
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
+  onActionIntent?: WidgetActionIntentHandler;
 };
 
 export type UnknownWidgetRendererProps = {
@@ -14,6 +21,8 @@ export type WidgetRenderer = (props: WidgetRendererProps) => ReactNode;
 
 export type UnknownWidgetRenderer = (props: UnknownWidgetRendererProps) => ReactNode;
 
+export type WidgetActionIntentHandler = (intent: WidgetActionIntent) => void;
+
 export type WidgetRendererRegistration = {
   kind: WidgetKind;
   render: WidgetRenderer;
@@ -22,6 +31,7 @@ export type WidgetRendererRegistration = {
 export type WidgetRendererRegistry = ReadonlyMap<WidgetKind, WidgetRenderer>;
 
 export type ScreenRendererOptions = {
+  onActionIntent?: WidgetActionIntentHandler;
   renderUnknown?: UnknownWidgetRenderer;
   registry?: WidgetRendererRegistry;
 };
@@ -78,7 +88,7 @@ export function renderWidgetDescriptor(
     );
   }
 
-  return renderer({ descriptor });
+  return renderer({ descriptor, onActionIntent: options.onActionIntent });
 }
 
 export function renderScreenWidgets(
@@ -150,17 +160,41 @@ function ToggleWidget({ descriptor }: WidgetRendererProps) {
   );
 }
 
-function SliderWidget({ descriptor }: WidgetRendererProps) {
-  const min = descriptor.widget.settings.min;
-  const max = descriptor.widget.settings.max;
+function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+  const min = getNumberSetting(descriptor.widget.settings, "min", -1);
+  const max = getNumberSetting(descriptor.widget.settings, "max", 1);
+  const step = getNumberSetting(descriptor.widget.settings, "step", 0.01);
+  const direction = getStringSetting(descriptor.widget.settings, "direction", "vertical");
+  const defaultValue = clamp(0, min, max);
+
+  const handleValueChange = (values: number[]) => {
+    const value = values[0];
+    if (value === undefined) {
+      return;
+    }
+    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
+  };
 
   return (
     <>
       <strong>{descriptor.widget.title}</strong>
+      <SliderPrimitive.Root
+        className={`bloom-slider bloom-slider-${direction === "horizontal" ? "horizontal" : "vertical"}`}
+        data-orientation={direction === "horizontal" ? "horizontal" : "vertical"}
+        defaultValue={[defaultValue]}
+        max={max}
+        min={min}
+        onValueChange={handleValueChange}
+        orientation={direction === "horizontal" ? "horizontal" : "vertical"}
+        step={step}
+      >
+        <SliderPrimitive.Track className="bloom-slider-track">
+          <SliderPrimitive.Range className="bloom-slider-range" />
+        </SliderPrimitive.Track>
+        <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-slider-thumb" />
+      </SliderPrimitive.Root>
       <span>
-        {typeof min === "number" && typeof max === "number"
-          ? `${descriptor.definition.displayName} ${min} → ${max}`
-          : descriptor.definition.displayName}
+        {descriptor.definition.displayName} {min} → {max}
       </span>
     </>
   );
@@ -200,4 +234,13 @@ function UnknownWidget({ descriptor }: UnknownWidgetRendererProps) {
 function getStringSetting(settings: Record<string, unknown>, key: string, fallback: string): string {
   const value = settings[key];
   return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function getNumberSetting(settings: Record<string, unknown>, key: string, fallback: number): number {
+  const value = settings[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
