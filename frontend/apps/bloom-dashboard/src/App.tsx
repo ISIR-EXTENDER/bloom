@@ -1,10 +1,6 @@
 import type { ScreenConfig } from "@bloom/api-client";
-import {
-  createDefaultWidgetRegistry,
-  renderScreenDescriptors,
-  resolveCanvasArtboardSize,
-  type WidgetRenderDescriptor,
-} from "@bloom/widgets";
+import { renderScreenWidgets } from "@bloom/widget-renderers";
+import { createDefaultWidgetRegistry, renderScreenDescriptors, resolveCanvasArtboardSize } from "@bloom/widgets";
 import "./App.css";
 
 import { dashboardPrinciples, dashboardSteps } from "./app/dashboard-content";
@@ -146,32 +142,7 @@ function ScreenPreview({ screen }: ScreenPreviewProps) {
         aspectRatio: `${artboardSize.width} / ${artboardSize.height}`,
       }}
     >
-      {descriptors.map((descriptor) => (
-        <WidgetPreview descriptor={descriptor} key={descriptor.widget.id} />
-      ))}
+      {renderScreenWidgets(descriptors)}
     </div>
-  );
-}
-
-type WidgetPreviewProps = {
-  descriptor: WidgetRenderDescriptor;
-};
-
-function WidgetPreview({ descriptor }: WidgetPreviewProps) {
-  const { widget } = descriptor;
-
-  return (
-    <article
-      className={`widget-preview-card widget-preview-${descriptor.status}`}
-      style={{
-        left: `${widget.layout.x}px`,
-        top: `${widget.layout.y}px`,
-        width: `${widget.layout.width}px`,
-        height: `${widget.layout.height}px`,
-      }}
-    >
-      <strong>{widget.title}</strong>
-      <span>{descriptor.status === "resolved" ? descriptor.definition.displayName : descriptor.reason}</span>
-    </article>
   );
 }
