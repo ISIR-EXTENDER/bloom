@@ -1,4 +1,4 @@
-import type { ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
+import { type ConfigurationBundle, createBloomApiClient, type ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 import legacyPetanqueApplication from "../../../../backend/tests/fixtures/legacy/application-play-petanque.json";
 import legacyConfigurationsScreen from "../../../../backend/tests/fixtures/legacy/configurations.json";
@@ -703,6 +703,29 @@ describe("legacy canvas configuration adapter", () => {
   });
 });
 
+describe("legacy migration integration", () => {
+  it("round trips real legacy JSON through the frontend API client and widget registry", async () => {
+    const bundle = legacyCanvasScreensToConfigurationBundle([legacyConfigurationsScreen, legacySandboxScreen], {
+      application: legacyPetanqueApplication,
+      exportedAt: "2026-06-02T10:00:00.000Z",
+    });
+    const client = createBloomApiClient({ fetcher: createInMemoryConfigurationFetcher() });
+
+    await client.upsertConfiguration("legacy-petanque", bundle);
+    const storedBundle = await client.getConfiguration("legacy-petanque");
+    const sandboxScreen = storedBundle.applications[0]?.screens.find((screen) => screen.id === "sandbox_control");
+    if (!sandboxScreen) throw new Error("Missing sandbox screen.");
+
+    const descriptors = renderScreenDescriptors(sandboxScreen, createDefaultWidgetRegistry());
+
+    expect(storedBundle.metadata.source).toBe("extender_ui_legacy");
+    expect(sandboxScreen.widgets).toHaveLength(12);
+    expect(descriptors).toHaveLength(12);
+    expect(descriptors.some((descriptor) => descriptor.status === "unknown")).toBe(false);
+    expect(descriptors.map((descriptor) => descriptor.widget.id)).toContain("widget-1777993123607-1d1c3");
+  });
+});
+
 describe("app widget extension points", () => {
   it("creates app extension registries with unique ids and legacy widget ownership", () => {
     expect(() =>
@@ -1017,4 +1040,36 @@ function createTopicMessage(receivedAt: string, value: unknown): TopicMessage {
     topic: "/debug/topic",
     value,
   };
+}
+
+function createInMemoryConfigurationFetcher(): typeof fetch {
+  const configurations = new Map<string, ConfigurationBundle>();
+
+  return async (input: RequestInfo | URL, init: RequestInit = {}) => {
+    const url = String(input);
+    const configId = decodeURIComponent(url.split("/api/v1/configurations/")[1] ?? "");
+
+    if (init.method === "PUT") {
+      const bundle = JSON.parse(String(init.body)) as ConfigurationBundle;
+      configurations.set(configId, bundle);
+      return jsonResponse(bundle);
+    }
+
+    if (configId) {
+      const bundle = configurations.get(configId);
+      if (!bundle) {
+        return jsonResponse({ detail: "configuration not found" }, 404);
+      }
+      return jsonResponse(bundle);
+    }
+
+    return jsonResponse({ configuration_ids: [...configurations.keys()].sort() });
+  };
+}
+
+function jsonResponse(payload: unknown, status = 200): Response {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
 }
