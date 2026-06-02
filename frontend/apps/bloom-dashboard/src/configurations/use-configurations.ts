@@ -1,15 +1,41 @@
-import { useEffect, useState } from "react";
+import type { ConfigurationBundle } from "@bloom/api-client";
+import { useCallback, useEffect, useState } from "react";
 
 import type { ConfigurationClient } from "./configuration-client";
 import { type LoadedConfiguration, loadConfigurations } from "./configuration-loader";
 
+type SaveConfiguration = (configId: string, bundle: ConfigurationBundle) => Promise<LoadedConfiguration>;
+
 export type ConfigurationLoadState =
   | { status: "loading" }
-  | { status: "ready"; configurations: LoadedConfiguration[] }
+  | { status: "ready"; configurations: LoadedConfiguration[]; saveConfiguration: SaveConfiguration }
   | { status: "error"; message: string };
 
 export function useConfigurations(client: ConfigurationClient): ConfigurationLoadState {
   const [state, setState] = useState<ConfigurationLoadState>({ status: "loading" });
+
+  const saveConfiguration = useCallback<SaveConfiguration>(
+    async (configId, bundle) => {
+      const savedBundle = await client.upsertConfiguration(configId, bundle);
+      const savedConfiguration = { id: configId, bundle: savedBundle };
+
+      setState((currentState) => {
+        if (currentState.status !== "ready") {
+          return currentState;
+        }
+
+        return {
+          ...currentState,
+          configurations: currentState.configurations.map((configuration) =>
+            configuration.id === configId ? savedConfiguration : configuration,
+          ),
+        };
+      });
+
+      return savedConfiguration;
+    },
+    [client],
+  );
 
   useEffect(() => {
     let isCurrent = true;
@@ -18,7 +44,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     loadConfigurations(client)
       .then((configurations) => {
         if (isCurrent) {
-          setState({ status: "ready", configurations });
+          setState({ status: "ready", configurations, saveConfiguration });
         }
       })
       .catch((error: unknown) => {
@@ -30,7 +56,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     return () => {
       isCurrent = false;
     };
-  }, [client]);
+  }, [client, saveConfiguration]);
 
   return state;
 }

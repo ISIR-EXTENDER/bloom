@@ -1,3 +1,6 @@
+import type { ScreenConfig } from "@bloom/api-client";
+import { useEffect, useState } from "react";
+
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import {
   ConfigurationWorkspace,
@@ -12,15 +15,54 @@ import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 type BuilderWorkspaceProps = {
   configurations: readonly LoadedConfiguration[];
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onSaveScreenDraft: (screen: ScreenConfig) => Promise<void>;
   selection: WorkspaceSelection;
 };
 
-export function BuilderWorkspace({ configurations, onSelectionChange, selection }: BuilderWorkspaceProps) {
+type DraftSaveState =
+  | { status: "idle" }
+  | { status: "saving" }
+  | { status: "saved" }
+  | { status: "error"; message: string };
+
+export function BuilderWorkspace({
+  configurations,
+  onSaveScreenDraft,
+  onSelectionChange,
+  selection,
+}: BuilderWorkspaceProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
-  const { canRedo, canUndo, commitWidgetLayout, draftScreen, previewWidgetLayout, redo, undo } = useBuilderScreenDraft(
-    selectedWorkspace.screen,
-  );
+  const { canRedo, canUndo, commitWidgetLayout, draftScreen, isDirty, previewWidgetLayout, redo, resetDraft, undo } =
+    useBuilderScreenDraft(selectedWorkspace.screen);
   const { selectedWidget, selectedWidgetId, setSelectedWidgetId } = useSelectedBuilderWidget(draftScreen);
+  const [saveState, setSaveState] = useState<DraftSaveState>({ status: "idle" });
+  const isSaving = saveState.status === "saving";
+
+  useEffect(() => {
+    if (isDirty && saveState.status === "saved") {
+      setSaveState({ status: "idle" });
+    }
+  }, [isDirty, saveState.status]);
+
+  const saveDraft = async () => {
+    if (!isDirty || isSaving) {
+      return;
+    }
+
+    setSaveState({ status: "saving" });
+
+    try {
+      await onSaveScreenDraft(draftScreen);
+      setSaveState({ status: "saved" });
+    } catch (error) {
+      setSaveState({ status: "error", message: getErrorMessage(error) });
+    }
+  };
+
+  const discardDraft = () => {
+    resetDraft();
+    setSaveState({ status: "idle" });
+  };
 
   return (
     <section className="builder-workspace" aria-label="Bloom builder workspace">
@@ -37,6 +79,12 @@ export function BuilderWorkspace({ configurations, onSelectionChange, selection 
             <h2 id="builder-stage-title">{draftScreen.title}</h2>
           </div>
           <div className="builder-stage-actions">
+            <button disabled={!isDirty || isSaving} onClick={saveDraft} type="button">
+              {isSaving ? "Saving..." : "Save changes"}
+            </button>
+            <button disabled={!isDirty || isSaving} onClick={discardDraft} type="button">
+              Discard
+            </button>
             <button disabled={!canUndo} onClick={undo} type="button">
               Undo
             </button>
@@ -55,9 +103,10 @@ export function BuilderWorkspace({ configurations, onSelectionChange, selection 
             </div>
             <div>
               <dt>Mode</dt>
-              <dd>Preview</dd>
+              <dd>{isDirty ? "Unsaved draft" : "Saved"}</dd>
             </div>
           </dl>
+          <DraftSaveStatus state={saveState} />
         </header>
 
         <BuilderCanvas
@@ -72,4 +121,32 @@ export function BuilderWorkspace({ configurations, onSelectionChange, selection 
       <BuilderInspector selectedWidget={selectedWidget} widgetCount={draftScreen.widgets.length} />
     </section>
   );
+}
+
+function DraftSaveStatus({ state }: { state: DraftSaveState }) {
+  if (state.status === "idle") {
+    return null;
+  }
+
+  if (state.status === "error") {
+    return (
+      <p className="builder-save-status builder-save-status-error" role="alert">
+        {state.message}
+      </p>
+    );
+  }
+
+  return (
+    <p className="builder-save-status" role="status">
+      {state.status === "saving" ? "Saving draft..." : "All changes saved."}
+    </p>
+  );
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Bloom could not save this builder draft.";
 }

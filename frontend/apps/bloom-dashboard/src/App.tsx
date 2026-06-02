@@ -1,3 +1,4 @@
+import type { ScreenConfig } from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
@@ -9,6 +10,7 @@ import {
   createDashboardConfigurationClient,
   createDashboardRuntimeActionClient,
 } from "./configurations/configuration-client";
+import { replaceScreenInConfigurationBundle } from "./configurations/configuration-editor";
 import { useConfigurations } from "./configurations/use-configurations";
 import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
@@ -49,6 +51,21 @@ export function App({
     runtimeActions.dispatch(intent);
   };
 
+  const handleSaveBuilderScreen = async (screen: ScreenConfig) => {
+    if (configurationState.status !== "ready" || !selection) {
+      throw new Error("Bloom cannot save before a configuration workspace is selected.");
+    }
+
+    const selectedWorkspace = resolveSelectedWorkspace(configurationState.configurations, selection);
+    const updatedBundle = replaceScreenInConfigurationBundle(
+      selectedWorkspace.bundle,
+      selectedWorkspace.application.id,
+      screen,
+    );
+
+    await configurationState.saveConfiguration(selectedWorkspace.configuration.id, updatedBundle);
+  };
+
   return (
     <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
       <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
@@ -60,6 +77,7 @@ export function App({
           <MainApplicationView
             activeView={activeView}
             onRuntimeIntent={handleRuntimeIntent}
+            onSaveBuilderScreen={handleSaveBuilderScreen}
             onSelectionChange={setSelection}
             selection={selection}
             state={configurationState}
@@ -73,6 +91,7 @@ export function App({
 type MainApplicationViewProps = {
   activeView: Exclude<ProductView, "landing">;
   onRuntimeIntent: (intent: WidgetActionIntent) => void;
+  onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
@@ -81,6 +100,7 @@ type MainApplicationViewProps = {
 function MainApplicationView({
   activeView,
   onRuntimeIntent,
+  onSaveBuilderScreen,
   onSelectionChange,
   selection,
   state,
@@ -104,6 +124,7 @@ function MainApplicationView({
       <BuilderWorkspace
         configurations={state.configurations}
         onSelectionChange={onSelectionChange}
+        onSaveScreenDraft={onSaveBuilderScreen}
         selection={selection}
       />
     );
