@@ -13,6 +13,7 @@ export * from "./extensions";
 export * from "./legacy";
 export * from "./runtime";
 export * from "./settings";
+export * from "./telemetry";
 
 export type LegacyWidgetCompatibility = "direct" | "renamed" | "adapter-required" | "app-specific" | "unsupported";
 

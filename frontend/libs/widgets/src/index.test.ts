@@ -6,6 +6,8 @@ import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-
 
 import {
   addWidgetToScreen,
+  appendTopicEchoMessage,
+  appendTopicPlotSample,
   buildRosMessageToggleCliExample,
   createAppExtensionRegistry,
   createDefaultWidgetRegistry,
@@ -14,6 +16,7 @@ import {
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
   findMatchingRosMessageTogglePreset,
+  formatTopicEchoValue,
   getDefaultRosMessageTogglePayloads,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreenToConfig,
@@ -30,9 +33,12 @@ import {
   resolveCanvasArtboardSize,
   resolveCanvasFitScale,
   resolveCanvasPresetSize,
+  resolveFieldPath,
   resolveLegacyWidgetKind,
   resolveWidgetAppExtension,
   snapLayoutValue,
+  type TopicMessage,
+  type TopicPlotSample,
   toBloomWidgetKind,
   updateWidgetSettings,
   updateWidgetTitle,
@@ -450,6 +456,76 @@ describe("widget settings contracts", () => {
         offPayload: "{data: 'teleop'}",
       })?.id,
     ).toBe("state-machine");
+  });
+});
+
+describe("topic telemetry primitives", () => {
+  it("resolves nested field paths including array indices", () => {
+    expect(
+      resolveFieldPath(
+        {
+          effort: [0.1, 0.2],
+          velocity: {
+            angular: {
+              z: -0.5,
+            },
+          },
+        },
+        "velocity.angular.z",
+      ),
+    ).toBe(-0.5);
+    expect(resolveFieldPath({ effort: [0.1, 0.2] }, "effort[1]")).toBe(0.2);
+    expect(resolveFieldPath({ effort: [0.1, 0.2] }, "effort[3]")).toBeUndefined();
+  });
+
+  it("appends topic echo messages while preserving a bounded buffer", () => {
+    const settings = {
+      fieldPath: "data",
+      maxMessages: 2,
+    };
+    const messages = [
+      createTopicMessage("2026-06-02T10:00:00.000Z", { data: "first" }),
+      createTopicMessage("2026-06-02T10:00:01.000Z", { data: "second" }),
+      createTopicMessage("2026-06-02T10:00:02.000Z", { data: "third" }),
+    ].reduce<TopicMessage[]>(
+      (previousMessages, message) => appendTopicEchoMessage(previousMessages, message, settings),
+      [],
+    );
+
+    expect(messages.map((message) => message.value)).toEqual(["second", "third"]);
+  });
+
+  it("formats topic echo payloads for console-like displays", () => {
+    expect(formatTopicEchoValue({ data: [13, 1] }, true)).toBe('{\n  "data": [\n    13,\n    1\n  ]\n}');
+    expect(formatTopicEchoValue("already text", true)).toBe("already text");
+  });
+
+  it("appends numeric topic plot samples and trims stale data", () => {
+    const settings = {
+      fieldPath: "velocity.x",
+      historySeconds: 2,
+      maxSamples: 3,
+    };
+    const samples = [
+      createTopicMessage("2026-06-02T10:00:00.000Z", { velocity: { x: 0.1 } }),
+      createTopicMessage("2026-06-02T10:00:01.000Z", { velocity: { x: 0.2 } }),
+      createTopicMessage("2026-06-02T10:00:03.000Z", { velocity: { x: 0.3 } }),
+      createTopicMessage("2026-06-02T10:00:04.000Z", { velocity: { x: "bad" } }),
+    ].reduce<TopicPlotSample[]>(
+      (previousSamples, message) => appendTopicPlotSample(previousSamples, message, settings),
+      [],
+    );
+
+    expect(samples).toEqual([
+      {
+        timestamp: "2026-06-02T10:00:01.000Z",
+        value: 0.2,
+      },
+      {
+        timestamp: "2026-06-02T10:00:03.000Z",
+        value: 0.3,
+      },
+    ]);
   });
 });
 
@@ -894,5 +970,13 @@ function createTestWidgetDefinition(kind: WidgetDefinition["kind"], displayName:
       styleFields: [],
     },
     runtimeRequirements: ["none"],
+  };
+}
+
+function createTopicMessage(receivedAt: string, value: unknown): TopicMessage {
+  return {
+    receivedAt,
+    topic: "/debug/topic",
+    value,
   };
 }
