@@ -138,8 +138,24 @@ Current coverage focus:
 - Frontend widget tests cover contracts, editor operations, runtime intents, legacy conversion, render descriptors, and renderer behavior.
 - Dashboard tests render the first migrated legacy Petanque admin screens from a real configuration bundle fixture.
 - Integration tests round-trip real legacy JSON through frontend conversion, API-client semantics, backend persistence, and widget registry rendering.
+- ROS adapter tests validate publish contracts through injected gateways so generic Bloom tests do not require ROS.
 - Coverage is quality-focused rather than percentage-chasing for now; critical migration paths should be tested before UI polish.
 - Future work should add explicit coverage reporting once the SQLite storage layer and runtime adapters stabilize.
+
+## ROS Runtime Boundary
+
+Bloom exposes ROS behavior through backend adapters instead of importing ROS in generic web code.
+
+The first runtime endpoint is:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/ros/topics/publish \
+  -H "Content-Type: application/json" \
+  -d '{"topic":"/petanque_state_machine/change_state","message_type":"std_msgs/msg/String","payload":{"data":"activate_throw"}}'
+```
+
+Without a configured ROS gateway, the backend returns `status: "simulated"`. Robot deployments can attach an `rclpy`
+publisher gateway so the same API publishes real ROS messages.
 
 ## Python Environment
 

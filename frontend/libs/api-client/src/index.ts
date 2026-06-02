@@ -65,6 +65,21 @@ export type ConfigurationListResponse = {
   configuration_ids: string[];
 };
 
+export type RosTopicPublishStatus = "published" | "simulated";
+
+export type RosTopicPublishRequest = {
+  topic: string;
+  message_type: string;
+  payload: Record<string, unknown>;
+};
+
+export type RosTopicPublishResponse = {
+  topic: string;
+  message_type: string;
+  status: RosTopicPublishStatus;
+  detail: string;
+};
+
 export type BloomApiClientOptions = {
   baseUrl?: string;
   fetcher?: typeof fetch;
@@ -110,6 +125,14 @@ export class BloomApiClient {
   async deleteConfiguration(configId: string): Promise<void> {
     await this.request<void>(`/api/v1/configurations/${encodeURIComponent(configId)}`, {
       method: "DELETE",
+    });
+  }
+
+  publishRosTopic(request: RosTopicPublishRequest): Promise<RosTopicPublishResponse> {
+    return this.request<RosTopicPublishResponse>("/api/v1/ros/topics/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
     });
   }
 
