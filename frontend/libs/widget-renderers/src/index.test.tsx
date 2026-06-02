@@ -4,7 +4,7 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, createWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +14,28 @@ import {
   renderWidgetDescriptor,
   type WidgetRendererRegistration,
 } from "./index";
+
+const nippleMock = vi.hoisted(() => {
+  const handlers = new Map<string, (...args: unknown[]) => void>();
+  const create = vi.fn(() => {
+    const manager = {
+      destroy: vi.fn(),
+      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+        handlers.set(event, handler);
+        return manager;
+      }),
+    };
+    return manager;
+  });
+  return { create, handlers };
+});
+
+vi.mock("nipplejs", () => ({
+  create: nippleMock.create,
+  default: {
+    create: nippleMock.create,
+  },
+}));
 
 class ResizeObserverMock {
   disconnect() {}
@@ -25,6 +47,8 @@ globalThis.ResizeObserver = ResizeObserverMock;
 
 afterEach(() => {
   cleanup();
+  nippleMock.create.mockClear();
+  nippleMock.handlers.clear();
 });
 
 describe("widget renderer registry", () => {
@@ -83,6 +107,25 @@ describe("widget renderer registry", () => {
       widgetId: "speed",
       widgetKind: "slider",
       value: expect.any(Number),
+    });
+  });
+
+  it("emits vector value-change intents from interactive joysticks", async () => {
+    const descriptor = renderScreenDescriptors(joystickScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing joystick descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    await waitFor(() => expect(nippleMock.create).toHaveBeenCalled());
+    nippleMock.handlers.get("move")?.({}, { vector: { x: 0.5, y: -0.25 } });
+
+    expect(onActionIntent).toHaveBeenCalledWith({
+      binding: "joy",
+      type: "value-change",
+      value: { x: 0.5, y: -0.25 },
+      widgetId: "translation",
+      widgetKind: "joystick",
     });
   });
 });
@@ -154,6 +197,38 @@ const sliderScreen: ScreenConfig = {
         max: 2,
         min: 0,
         step: 0.01,
+      },
+    },
+  ],
+};
+
+const joystickScreen: ScreenConfig = {
+  id: "controls",
+  title: "Controls",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "translation",
+      kind: "joystick",
+      title: "Translation",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 220,
+        height: 220,
+      },
+      settings: {
+        binding: "joy",
+        deadzone: 0.1,
+        labels: {
+          bottom: "Y-",
+          left: "X-",
+          right: "X+",
+          top: "Y+",
+        },
       },
     },
   ],

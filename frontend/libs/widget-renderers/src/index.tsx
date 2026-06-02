@@ -7,6 +7,7 @@ import {
 } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import type { ReactNode } from "react";
+import { type JoystickLabels, JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
 
 export type WidgetRendererProps = {
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
@@ -200,12 +201,28 @@ function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
   );
 }
 
-function JoystickWidget({ descriptor }: WidgetRendererProps) {
+function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
   const binding = getStringSetting(descriptor.widget.settings, "binding", "input");
+  const deadzone = getNumberSetting(descriptor.widget.settings, "deadzone", 0.1);
+  const labels = getJoystickLabels(descriptor.widget.settings);
+  const color = getStringSetting(descriptor.widget.settings, "color", "#7fa95f");
+  const size = Math.max(80, Math.min(descriptor.widget.layout.width, descriptor.widget.layout.height) - 48);
+
+  const handleVectorChange = (value: JoystickVector) => {
+    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-vector", value }));
+  };
 
   return (
     <>
       <strong>{descriptor.widget.title}</strong>
+      <JoystickPrimitive
+        color={color}
+        deadzone={deadzone}
+        labels={labels}
+        onVectorChange={handleVectorChange}
+        size={size}
+        title={descriptor.widget.title}
+      />
       <span>
         {descriptor.definition.displayName} · {binding}
       </span>
@@ -239,6 +256,24 @@ function getStringSetting(settings: Record<string, unknown>, key: string, fallba
 function getNumberSetting(settings: Record<string, unknown>, key: string, fallback: number): number {
   const value = settings[key];
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function getJoystickLabels(settings: Record<string, unknown>): JoystickLabels {
+  const labels = settings.labels;
+  if (!isRecord(labels)) {
+    return { bottom: "Y-", left: "X-", right: "X+", top: "Y+" };
+  }
+
+  return {
+    bottom: getStringSetting(labels, "bottom", "Y-"),
+    left: getStringSetting(labels, "left", "X-"),
+    right: getStringSetting(labels, "right", "X+"),
+    top: getStringSetting(labels, "top", "Y+"),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function clamp(value: number, min: number, max: number): number {

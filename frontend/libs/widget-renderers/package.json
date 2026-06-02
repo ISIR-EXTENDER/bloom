@@ -12,6 +12,7 @@
   "dependencies": {
     "@bloom/widgets": "0.1.0",
     "@radix-ui/react-slider": "^1.3.6",
+    "nipplejs": "^1.0.4",
     "react": "^19.2.0"
   },
   "devDependencies": {

@@ -296,6 +296,67 @@ h1 {
   outline-offset: 2px;
 }
 
+.bloom-joystick {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 112px;
+  aspect-ratio: 1;
+}
+
+.bloom-joystick-zone {
+  position: absolute;
+  inset: 28px;
+  border-radius: 999px;
+}
+
+.bloom-joystick-deadzone {
+  position: absolute;
+  width: calc(72% * var(--bloom-joystick-deadzone));
+  max-width: 72%;
+  aspect-ratio: 1;
+  border: 1px dashed rgba(25, 52, 45, 0.28);
+  border-radius: 999px;
+  background: rgba(127, 169, 95, 0.08);
+}
+
+.bloom-joystick::before {
+  position: absolute;
+  width: 72%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(25, 52, 45, 0.16);
+  border-radius: 999px;
+  background: radial-gradient(circle at center, rgba(127, 169, 95, 0.2), rgba(255, 252, 244, 0.68));
+  content: "";
+}
+
+.bloom-joystick-label {
+  position: absolute;
+  z-index: 1;
+  color: #64816f;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bloom-joystick-label-top {
+  top: 0;
+}
+
+.bloom-joystick-label-right {
+  right: 0;
+}
+
+.bloom-joystick-label-bottom {
+  bottom: 0;
+}
+
+.bloom-joystick-label-left {
+  left: 0;
+}
+
 .widget-preview-unknown {
   border-color: rgba(155, 61, 46, 0.32);
 }
