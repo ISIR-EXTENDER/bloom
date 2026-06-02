@@ -1,3 +1,4 @@
+import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
@@ -39,22 +40,24 @@ export function App({ configurationClient = defaultConfigurationClient }: AppPro
   };
 
   return (
-    <main className="app-shell" id="bloom-main">
-      <ProductNavigation activeView={activeView} onChangeView={setActiveView} />
+    <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
+      <main className="app-shell" id="bloom-main">
+        <ProductNavigation activeView={activeView} onChangeView={setActiveView} />
 
-      {activeView === "landing" ? (
-        <LandingPage onOpenView={setActiveView} />
-      ) : (
-        <MainApplicationView
-          activeView={activeView}
-          onRuntimeIntent={handleRuntimeIntent}
-          onSelectionChange={setSelection}
-          runtimeIntents={runtimeIntents}
-          selection={selection}
-          state={configurationState}
-        />
-      )}
-    </main>
+        {activeView === "landing" ? (
+          <LandingPage onOpenView={setActiveView} />
+        ) : (
+          <MainApplicationView
+            activeView={activeView}
+            onRuntimeIntent={handleRuntimeIntent}
+            onSelectionChange={setSelection}
+            runtimeIntents={runtimeIntents}
+            selection={selection}
+            state={configurationState}
+          />
+        )}
+      </main>
+    </BloomThemeProvider>
   );
 }
 

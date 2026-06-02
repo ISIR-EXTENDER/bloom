@@ -1,0 +1,220 @@
+:root {
+  --bloom-color-forest: #31493f;
+  --bloom-color-sage: #7e967e;
+  --bloom-color-mist: #c8d5c4;
+  --bloom-color-lilac: #c7bddc;
+  --bloom-color-petal: #eebbbb;
+  --bloom-color-pollen: #ffd89b;
+  --bloom-color-cream: #f2eadc;
+  --bloom-color-paper: #fffaf1;
+  --bloom-color-cloud: #f8f4eb;
+  --bloom-color-ink: #253d35;
+  --bloom-color-ink-soft: #536960;
+  --bloom-color-muted: #74847b;
+  --bloom-color-border: rgba(49, 73, 63, 0.16);
+  --bloom-color-accent: #839a82;
+  --bloom-color-accent-hover: #6f886f;
+  --bloom-color-accent-soft: #e7ede2;
+  --bloom-color-primary: var(--bloom-color-forest);
+  --bloom-color-on-primary: var(--bloom-color-paper);
+  --bloom-color-primary-container: var(--bloom-color-mist);
+  --bloom-color-on-primary-container: var(--bloom-color-ink);
+  --bloom-color-secondary: var(--bloom-color-accent);
+  --bloom-color-on-secondary: var(--bloom-color-paper);
+  --bloom-color-secondary-container: var(--bloom-color-accent-soft);
+  --bloom-color-on-secondary-container: var(--bloom-color-ink);
+  --bloom-color-surface: var(--bloom-color-paper);
+  --bloom-color-on-surface: var(--bloom-color-ink);
+  --bloom-color-on-surface-muted: var(--bloom-color-ink-soft);
+  --bloom-color-surface-container-low: var(--bloom-color-paper);
+  --bloom-color-surface-container: var(--bloom-color-cream);
+  --bloom-color-surface-container-high: var(--bloom-color-cloud);
+  --bloom-color-outline: var(--bloom-color-border);
+  --bloom-color-error: #9b3d2e;
+  --bloom-color-on-error: var(--bloom-color-paper);
+  --bloom-color-error-container: #f5ddd8;
+  --bloom-color-on-error-container: #4f1f16;
+  --bloom-shadow-soft: 0 18px 42px rgba(75, 83, 68, 0.14);
+  --bloom-shadow-card: 0 22px 54px rgba(82, 91, 76, 0.12);
+  --bloom-radius-lg: 28px;
+  --bloom-radius-md: 18px;
+  --bloom-radius-pill: 999px;
+  --bloom-touch-target: 48px;
+
+  --bloom-ink: var(--bloom-color-on-surface);
+  --bloom-ink-soft: var(--bloom-color-on-surface-muted);
+  --bloom-muted: var(--bloom-color-muted);
+  --bloom-surface: var(--bloom-color-surface);
+  --bloom-surface-soft: var(--bloom-color-surface-container-high);
+  --bloom-surface-container: var(--bloom-color-surface-container);
+  --bloom-surface-container-low: var(--bloom-color-surface-container-low);
+  --bloom-surface-container-high: var(--bloom-color-surface-container-high);
+  --bloom-panel: color-mix(in srgb, var(--bloom-color-surface) 90%, transparent);
+  --bloom-border: var(--bloom-color-outline);
+  --bloom-outline: var(--bloom-color-outline);
+  --bloom-primary: var(--bloom-color-primary);
+  --bloom-primary-container: var(--bloom-color-primary-container);
+  --bloom-on-primary: var(--bloom-color-on-primary);
+  --bloom-on-primary-container: var(--bloom-color-on-primary-container);
+  --bloom-secondary: var(--bloom-color-secondary);
+  --bloom-secondary-container: var(--bloom-color-secondary-container);
+  --bloom-on-secondary: var(--bloom-color-on-secondary);
+  --bloom-on-secondary-container: var(--bloom-color-on-secondary-container);
+  --bloom-on-surface: var(--bloom-color-on-surface);
+  --bloom-on-surface-muted: var(--bloom-color-on-surface-muted);
+  --bloom-accent: var(--bloom-color-secondary);
+  --bloom-accent-strong: var(--bloom-color-primary);
+  --bloom-sand: var(--bloom-color-surface-container);
+  --bloom-warning: var(--bloom-color-error);
+  --bloom-error: var(--bloom-color-error);
+  --bloom-error-container: var(--bloom-color-error-container);
+  --bloom-on-error: var(--bloom-color-on-error);
+  --bloom-on-error-container: var(--bloom-color-on-error-container);
+  --bloom-shadow: var(--bloom-shadow-card);
+}
+
+.bloom-nav-shell {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 86px;
+  padding: 14px clamp(20px, 4vw, 34px);
+  border: 1px solid rgba(63, 78, 70, 0.12);
+  border-top: 0;
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      color-mix(in srgb, var(--bloom-primary-container) 42%, transparent),
+      transparent 42%
+    ),
+    linear-gradient(90deg, var(--bloom-surface), var(--bloom-surface-container));
+  box-shadow: 0 10px 24px rgba(82, 91, 76, 0.1);
+}
+
+.bloom-nav-brand {
+  display: inline-flex;
+  gap: 14px;
+  align-items: center;
+  color: var(--bloom-on-surface, var(--bloom-ink));
+  font-family: "Georgia", "Times New Roman", serif;
+  font-size: clamp(2.2rem, 4vw, 3.25rem);
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.bloom-nav-brand img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.bloom-nav-links {
+  display: flex;
+  gap: clamp(8px, 2vw, 18px);
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.bloom-nav-link {
+  min-height: 44px;
+  padding: 8px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--bloom-on-surface, var(--bloom-ink));
+  font-size: clamp(0.88rem, 1.6vw, 1.05rem);
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.bloom-nav-link:hover {
+  background: rgba(37, 185, 79, 0.1);
+}
+
+.bloom-nav-link[aria-current="page"] {
+  background: var(--bloom-secondary);
+  color: var(--bloom-on-secondary, var(--bloom-color-paper));
+}
+
+.bloom-nav-link[aria-current="page"]:hover {
+  background: var(--bloom-color-accent-hover);
+}
+
+.bloom-nav-actions {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.bloom-button {
+  min-height: var(--bloom-touch-target);
+  padding: 12px 22px;
+  border: 1px solid var(--bloom-outline);
+  border-radius: var(--bloom-radius-pill);
+  font: inherit;
+  font-weight: 800;
+  color: var(--bloom-on-surface);
+}
+
+.bloom-button-primary {
+  border-color: rgba(49, 73, 63, 0.32);
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+}
+
+.bloom-button-primary:hover {
+  background: color-mix(in srgb, var(--bloom-primary) 88%, white);
+}
+
+.bloom-button-secondary {
+  background: var(--bloom-surface-container-low);
+}
+
+.bloom-button-secondary:hover,
+.bloom-button-subtle:hover {
+  background: var(--bloom-secondary-container);
+}
+
+.bloom-button-subtle {
+  border-color: transparent;
+  background: transparent;
+}
+
+.bloom-card,
+.bloom-panel {
+  border: 1px solid var(--bloom-outline);
+  border-radius: var(--bloom-radius-lg);
+  background: var(--bloom-panel);
+  box-shadow: var(--bloom-shadow-card);
+}
+
+.bloom-card-soft {
+  background: var(--bloom-surface-container-high);
+  box-shadow: none;
+}
+
+.bloom-card-canvas {
+  background:
+    radial-gradient(circle at 10% 5%, color-mix(in srgb, var(--bloom-color-pollen) 22%, transparent), transparent 34%),
+    linear-gradient(135deg, var(--bloom-surface), color-mix(in srgb, var(--bloom-surface-container) 72%, transparent));
+}
+
+@media (max-width: 760px) {
+  .bloom-nav-shell {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .bloom-nav-links {
+    justify-content: flex-start;
+    margin-left: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+}
