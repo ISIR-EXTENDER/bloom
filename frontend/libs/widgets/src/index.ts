@@ -33,6 +33,28 @@ export type LegacyWidgetKindMapping = {
   notes: string;
 };
 
+export type WidgetCategory = "command" | "device" | "display" | "feedback" | "input" | "unknown";
+
+export type WidgetRuntimeRequirement =
+  | "none"
+  | "command-dispatcher"
+  | "data-source"
+  | "device-adapter"
+  | "stream-source"
+  | "teleop-adapter";
+
+export type WidgetAvailability = {
+  editor: boolean;
+  runtime: boolean;
+};
+
+export type WidgetDefaultLayout = {
+  width: number;
+  height: number;
+  minWidth: number;
+  minHeight: number;
+};
+
 export type WidgetRenderContext = {
   screenId: string;
 };
@@ -54,9 +76,160 @@ export type WidgetRenderDescriptor =
 export type WidgetDefinition = {
   kind: WidgetKind;
   displayName: string;
+  category: WidgetCategory;
+  description: string;
+  defaultTitle: string;
+  defaultSettings: Record<string, unknown>;
+  defaultLayout: WidgetDefaultLayout;
+  runtimeRequirements: WidgetRuntimeRequirement[];
+  availability: WidgetAvailability;
 };
 
 export type WidgetRegistry = ReadonlyMap<WidgetKind, WidgetDefinition>;
+
+export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
+  {
+    kind: "button",
+    displayName: "Button",
+    category: "command",
+    description: "Generic button for local UI actions such as navigation or editor workflows.",
+    defaultTitle: "Button",
+    defaultSettings: {},
+    defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
+    runtimeRequirements: ["none"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "camera",
+    displayName: "Camera",
+    category: "display",
+    description: "Displays a camera, RViz, or visualization stream.",
+    defaultTitle: "Camera",
+    defaultSettings: {
+      fitMode: "contain",
+      showHeader: true,
+      showStatus: true,
+      streamUrl: "",
+    },
+    defaultLayout: { width: 360, height: 260, minWidth: 240, minHeight: 160 },
+    runtimeRequirements: ["stream-source"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "command-button",
+    displayName: "Command button",
+    category: "command",
+    description: "Sends a configured command intent through the runtime boundary.",
+    defaultTitle: "Command",
+    defaultSettings: {
+      command: "",
+    },
+    defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
+    runtimeRequirements: ["command-dispatcher"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "gauge",
+    displayName: "Gauge",
+    category: "feedback",
+    description: "Displays a scalar value from a runtime data source.",
+    defaultTitle: "Gauge",
+    defaultSettings: {
+      max: 1,
+      min: 0,
+      unit: "",
+    },
+    defaultLayout: { width: 180, height: 180, minWidth: 140, minHeight: 140 },
+    runtimeRequirements: ["data-source"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "joystick",
+    displayName: "Joystick",
+    category: "input",
+    description: "Captures planar operator input for teleoperation-like controls.",
+    defaultTitle: "Joystick",
+    defaultSettings: {
+      binding: "joy",
+      deadzone: 0.1,
+      labels: { bottom: "Y-", left: "X-", right: "X+", top: "Y+" },
+    },
+    defaultLayout: { width: 220, height: 220, minWidth: 160, minHeight: 160 },
+    runtimeRequirements: ["teleop-adapter"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "label",
+    displayName: "Label",
+    category: "display",
+    description: "Displays static text in a screen.",
+    defaultTitle: "Label",
+    defaultSettings: {
+      align: "left",
+      fontSize: 20,
+      text: "Text",
+    },
+    defaultLayout: { width: 280, height: 64, minWidth: 120, minHeight: 40 },
+    runtimeRequirements: ["none"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "plot",
+    displayName: "Plot",
+    category: "feedback",
+    description: "Displays timeseries or curve data from a runtime data source.",
+    defaultTitle: "Plot",
+    defaultSettings: {
+      historySeconds: 10,
+      showLegend: true,
+    },
+    defaultLayout: { width: 420, height: 240, minWidth: 240, minHeight: 160 },
+    runtimeRequirements: ["data-source"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "slider",
+    displayName: "Slider",
+    category: "input",
+    description: "Captures scalar operator input.",
+    defaultTitle: "Slider",
+    defaultSettings: {
+      direction: "vertical",
+      max: 1,
+      min: -1,
+      step: 0.01,
+    },
+    defaultLayout: { width: 120, height: 220, minWidth: 80, minHeight: 120 },
+    runtimeRequirements: ["teleop-adapter"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "toggle",
+    displayName: "Toggle",
+    category: "device",
+    description: "Captures an ON/OFF operator intent.",
+    defaultTitle: "Toggle",
+    defaultSettings: {
+      initialValue: false,
+      offPayload: false,
+      onPayload: true,
+    },
+    defaultLayout: { width: 220, height: 120, minWidth: 160, minHeight: 80 },
+    runtimeRequirements: ["device-adapter"],
+    availability: { editor: true, runtime: true },
+  },
+  {
+    kind: "unknown",
+    displayName: "Unknown widget",
+    category: "unknown",
+    description: "Fallback capability used to preserve unsupported widgets safely.",
+    defaultTitle: "Unknown widget",
+    defaultSettings: {},
+    defaultLayout: { width: 220, height: 120, minWidth: 120, minHeight: 80 },
+    runtimeRequirements: ["none"],
+    availability: { editor: false, runtime: true },
+  },
+];
 
 export const LEGACY_WIDGET_KIND_MAPPINGS: Readonly<Record<LegacyWidgetKind, LegacyWidgetKindMapping>> = {
   joystick: {
@@ -219,6 +392,33 @@ export function createWidgetRegistry(definitions: Iterable<WidgetDefinition> = [
   }
 
   return registry;
+}
+
+export function createDefaultWidgetRegistry(): WidgetRegistry {
+  return createWidgetRegistry(DEFAULT_WIDGET_DEFINITIONS);
+}
+
+export function listWidgetDefinitionsByCategory(
+  registry: WidgetRegistry,
+  category: WidgetCategory,
+): WidgetDefinition[] {
+  return [...registry.values()].filter((definition) => definition.category === category);
+}
+
+export function createWidgetConfigFromDefinition(
+  definition: WidgetDefinition,
+  id: string,
+  overrides: Partial<Pick<WidgetConfig, "settings" | "title">> = {},
+): WidgetConfig {
+  return {
+    id,
+    kind: definition.kind,
+    title: overrides.title ?? definition.defaultTitle,
+    settings: {
+      ...definition.defaultSettings,
+      ...(overrides.settings ?? {}),
+    },
+  };
 }
 
 export function resolveLegacyWidgetKind(kind: string): LegacyWidgetKindMapping {

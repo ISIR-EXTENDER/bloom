@@ -3,12 +3,17 @@ import { describe, expect, it } from "vitest";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
 
 import {
+  createDefaultWidgetRegistry,
+  createWidgetConfigFromDefinition,
   createWidgetRegistry,
+  DEFAULT_WIDGET_DEFINITIONS,
   LEGACY_WIDGET_KIND_MAPPINGS,
+  listWidgetDefinitionsByCategory,
   renderScreenDescriptors,
   renderWidgetDescriptor,
   resolveLegacyWidgetKind,
   toBloomWidgetKind,
+  type WidgetDefinition,
 } from "./index";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
@@ -17,25 +22,23 @@ const sampleWidget = sampleScreen.widgets[0];
 
 describe("widget registry foundation", () => {
   it("creates a registry from widget definitions", () => {
-    const registry = createWidgetRegistry([{ kind: "command-button", displayName: "Command button" }]);
+    const definition = createTestWidgetDefinition("command-button", "Command button");
+    const registry = createWidgetRegistry([definition]);
 
-    expect(registry.get("command-button")).toEqual({
-      kind: "command-button",
-      displayName: "Command button",
-    });
+    expect(registry.get("command-button")).toEqual(definition);
   });
 
   it("rejects duplicate widget definitions", () => {
     expect(() =>
       createWidgetRegistry([
-        { kind: "toggle", displayName: "Toggle A" },
-        { kind: "toggle", displayName: "Toggle B" },
+        createTestWidgetDefinition("toggle", "Toggle A"),
+        createTestWidgetDefinition("toggle", "Toggle B"),
       ]),
     ).toThrow('Duplicate widget definition for kind "toggle".');
   });
 
   it("resolves registered widgets from the shared configuration fixture", () => {
-    const registry = createWidgetRegistry([{ kind: "command-button", displayName: "Command button" }]);
+    const registry = createDefaultWidgetRegistry();
 
     const descriptor = renderWidgetDescriptor(sampleWidget, registry, { screenId: sampleScreen.id });
 
@@ -46,6 +49,7 @@ describe("widget registry foundation", () => {
         kind: "command-button",
       },
       definition: {
+        category: "command",
         displayName: "Command button",
       },
       context: {
@@ -70,9 +74,79 @@ describe("widget registry foundation", () => {
   });
 
   it("renders all widget descriptors for a screen", () => {
-    const registry = createWidgetRegistry([{ kind: "command-button", displayName: "Command button" }]);
+    const registry = createDefaultWidgetRegistry();
 
     expect(renderScreenDescriptors(sampleScreen, registry)).toHaveLength(1);
+  });
+});
+
+describe("widget capability metadata", () => {
+  it("provides default definitions for every Bloom widget kind", () => {
+    expect(DEFAULT_WIDGET_DEFINITIONS.map((definition) => definition.kind).sort()).toEqual([
+      "button",
+      "camera",
+      "command-button",
+      "gauge",
+      "joystick",
+      "label",
+      "plot",
+      "slider",
+      "toggle",
+      "unknown",
+    ]);
+  });
+
+  it("exposes catalog-ready metadata for future editors", () => {
+    const registry = createDefaultWidgetRegistry();
+    const joystick = registry.get("joystick");
+
+    expect(joystick).toMatchObject({
+      availability: {
+        editor: true,
+        runtime: true,
+      },
+      category: "input",
+      defaultLayout: {
+        height: 220,
+        minHeight: 160,
+        minWidth: 160,
+        width: 220,
+      },
+      defaultSettings: {
+        binding: "joy",
+        deadzone: 0.1,
+      },
+      defaultTitle: "Joystick",
+      displayName: "Joystick",
+      runtimeRequirements: ["teleop-adapter"],
+    });
+  });
+
+  it("groups widget definitions by category", () => {
+    const commandWidgets = listWidgetDefinitionsByCategory(createDefaultWidgetRegistry(), "command");
+
+    expect(commandWidgets.map((definition) => definition.kind).sort()).toEqual(["button", "command-button"]);
+  });
+
+  it("creates widget configs from capability defaults", () => {
+    const definition = createDefaultWidgetRegistry().get("slider") as WidgetDefinition;
+
+    expect(
+      createWidgetConfigFromDefinition(definition, "speed-slider", {
+        settings: { max: 3, min: 0 },
+        title: "Speed",
+      }),
+    ).toEqual({
+      id: "speed-slider",
+      kind: "slider",
+      title: "Speed",
+      settings: {
+        direction: "vertical",
+        max: 3,
+        min: 0,
+        step: 0.01,
+      },
+    });
   });
 });
 
@@ -149,4 +223,35 @@ describe("legacy widget kind mapping", () => {
 
     expect(Object.keys(LEGACY_WIDGET_KIND_MAPPINGS).sort()).toEqual(enabledExtenderUiKinds.sort());
   });
+
+  it("points reusable legacy mappings to existing Bloom capabilities", () => {
+    const registry = createDefaultWidgetRegistry();
+    const mappedKinds = Object.values(LEGACY_WIDGET_KIND_MAPPINGS)
+      .filter((mapping) => mapping.bloomKind !== "unknown")
+      .map((mapping) => mapping.bloomKind);
+
+    expect(mappedKinds.every((kind) => registry.has(kind))).toBe(true);
+  });
 });
+
+function createTestWidgetDefinition(kind: WidgetDefinition["kind"], displayName: string): WidgetDefinition {
+  return {
+    kind,
+    displayName,
+    availability: {
+      editor: true,
+      runtime: true,
+    },
+    category: "unknown",
+    defaultLayout: {
+      height: 120,
+      minHeight: 80,
+      minWidth: 120,
+      width: 220,
+    },
+    defaultSettings: {},
+    defaultTitle: displayName,
+    description: `${displayName} test definition`,
+    runtimeRequirements: ["none"],
+  };
+}

@@ -30,6 +30,19 @@ Use adapters only when a widget crosses a boundary:
 Do not add adapters for simple visual widgets that are already generic. For example, `label`, `slider`, and basic
 layout utilities should stay direct and boring.
 
+## Storage Direction
+
+Bloom should not reproduce the old local JSON sync as the long-term storage model. JSON import/export stays as a safety
+bridge for migration, but canonical saving/loading should move to SQLite-backed configuration storage.
+
+That means widget, screen, and app contracts should be:
+
+- stable enough to persist in a database;
+- serializable without React or ROS runtime state;
+- versioned through configuration metadata;
+- easy to import/export as JSON for backups and migration;
+- designed so screens/apps can be saved, loaded, listed, duplicated, and eventually migrated through database changes.
+
 ## Lessons From `extender_ui`
 
 Keep these concepts, but rebuild them as small tested contracts:
@@ -108,6 +121,9 @@ Add shared layout concepts:
 
 Backend config and frontend API types should both include layout/canvas fields.
 
+Keep the model storage-neutral so the same shape can be saved through file-backed storage today and SQLite-backed
+storage later.
+
 Tests:
 
 - duplicate widget IDs still fail;
@@ -159,6 +175,9 @@ Add pure conversion functions:
 - old canvas settings to Bloom screen/canvas settings.
 
 Keep Petanque-specific widgets explicit as app-specific or unknown until extension points exist.
+
+This adapter is temporary migration infrastructure. It should feed Bloom's canonical config model, which will later be
+persisted through SQLite instead of browser/local JSON sync.
 
 Tests:
 
