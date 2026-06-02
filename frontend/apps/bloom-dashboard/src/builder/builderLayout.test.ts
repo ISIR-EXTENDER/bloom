@@ -1,7 +1,7 @@
 import type { WidgetLayout } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
-import { moveWidgetLayout, parseScaleFromTransform } from "./builderLayout";
+import { moveWidgetLayout, parseScaleFromTransform, resizeWidgetLayout } from "./builderLayout";
 
 const baseLayout: WidgetLayout = {
   height: 80,
@@ -24,6 +24,26 @@ describe("builderLayout", () => {
       ...baseLayout,
       x: 120,
       y: 80,
+    });
+  });
+
+  it("resizes widgets on the editor grid", () => {
+    expect(
+      resizeWidgetLayout(baseLayout, { dx: 21, dy: 18 }, { width: 500, height: 400 }, { width: 80, height: 48 }),
+    ).toEqual({
+      ...baseLayout,
+      width: 144,
+      height: 96,
+    });
+  });
+
+  it("keeps resized widgets within min size and canvas bounds", () => {
+    expect(
+      resizeWidgetLayout(baseLayout, { dx: -400, dy: 500 }, { width: 180, height: 140 }, { width: 80, height: 48 }),
+    ).toEqual({
+      ...baseLayout,
+      width: 80,
+      height: 108,
     });
   });
 

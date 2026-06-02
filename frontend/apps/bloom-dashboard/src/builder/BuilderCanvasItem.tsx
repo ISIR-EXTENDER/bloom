@@ -1,25 +1,35 @@
 import type { WidgetConfig, WidgetLayout } from "@bloom/api-client";
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
-import { type BuilderCanvasSize, moveWidgetLayout, resolveElementScale } from "./builderLayout";
+import {
+  type BuilderCanvasSize,
+  type BuilderWidgetMinSize,
+  moveWidgetLayout,
+  resizeWidgetLayout,
+  resolveElementScale,
+} from "./builderLayout";
 
 type BuilderCanvasItemProps = {
   canvasSize: BuilderCanvasSize;
   children: ReactNode;
   onMoveWidget: (widgetId: string, layout: WidgetLayout) => void;
+  onResizeWidget: (widgetId: string, layout: WidgetLayout) => void;
   onSelectWidget: (widgetId: string) => void;
   selected: boolean;
+  minSize: BuilderWidgetMinSize;
   widget: WidgetConfig;
 };
 
 export function BuilderCanvasItem({
   canvasSize,
   children,
+  minSize,
   onMoveWidget,
+  onResizeWidget,
   onSelectWidget,
   selected,
   widget,
 }: BuilderCanvasItemProps) {
-  const startMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const startInteraction = (event: ReactPointerEvent<HTMLButtonElement>, mode: "move" | "resize") => {
     if (event.button && event.button !== 0) {
       return;
     }
@@ -35,13 +45,23 @@ export function BuilderCanvasItem({
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
 
-    document.body.style.cursor = "grabbing";
+    document.body.style.cursor = mode === "move" ? "grabbing" : "nwse-resize";
     document.body.style.userSelect = "none";
 
     const handlePointerMove = (moveEvent: PointerEvent) => {
       const dx = Math.round((moveEvent.clientX - startPointerX) / pointerScale);
       const dy = Math.round((moveEvent.clientY - startPointerY) / pointerScale);
-      onMoveWidget(widget.id, moveWidgetLayout(startLayout, { dx, dy }, canvasSize));
+      const nextLayout =
+        mode === "move"
+          ? moveWidgetLayout(startLayout, { dx, dy }, canvasSize)
+          : resizeWidgetLayout(startLayout, { dx, dy }, canvasSize, minSize);
+
+      if (mode === "move") {
+        onMoveWidget(widget.id, nextLayout);
+        return;
+      }
+
+      onResizeWidget(widget.id, nextLayout);
     };
 
     const cleanup = () => {
@@ -75,11 +95,17 @@ export function BuilderCanvasItem({
         aria-pressed={selected}
         className="builder-widget-selector"
         onClick={() => onSelectWidget(widget.id)}
-        onPointerDown={startMove}
+        onPointerDown={(event) => startInteraction(event, "move")}
         type="button"
       />
       {children}
       <span className="builder-widget-frame-badge">{widget.kind}</span>
+      <button
+        aria-label={`Resize ${widget.title} widget`}
+        className="builder-widget-resize-handle"
+        onPointerDown={(event) => startInteraction(event, "resize")}
+        type="button"
+      />
     </div>
   );
 }
