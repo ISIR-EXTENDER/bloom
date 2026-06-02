@@ -4,6 +4,8 @@ import {
   createDefaultWidgetRegistry,
   duplicateWidgetInScreen,
   removeWidgetFromScreen,
+  updateWidgetSettings,
+  updateWidgetTitle,
   type WidgetDefinition,
 } from "@bloom/widgets";
 import { useEffect, useState } from "react";
@@ -57,6 +59,7 @@ export function BuilderWorkspace({
     undo,
   } = useBuilderScreenDraft(selectedWorkspace.screen);
   const { selectedWidget, selectedWidgetId, setSelectedWidgetId } = useSelectedBuilderWidget(draftScreen);
+  const selectedWidgetDefinition = selectedWidget ? (widgetRegistry.get(selectedWidget.kind) ?? null) : null;
   const [saveState, setSaveState] = useState<DraftSaveState>({ status: "idle" });
   const isSaving = saveState.status === "saving";
 
@@ -121,6 +124,27 @@ export function BuilderWorkspace({
     setSelectedWidgetId(null);
   };
 
+  const updateSelectedWidgetTitle = (title: string) => {
+    if (!selectedWidget) {
+      return;
+    }
+
+    commitScreenChange(updateWidgetTitle(draftScreen, selectedWidget.id, title || "Untitled widget"));
+  };
+
+  const updateSelectedWidgetSettings = (settings: Record<string, unknown>): string | null => {
+    if (!selectedWidget) {
+      return null;
+    }
+
+    try {
+      commitScreenChange(updateWidgetSettings(draftScreen, selectedWidget.id, settings));
+      return null;
+    } catch (error) {
+      return getErrorMessage(error);
+    }
+  };
+
   return (
     <section className="builder-workspace" aria-label="Bloom builder workspace">
       <ConfigurationWorkspace
@@ -180,7 +204,10 @@ export function BuilderWorkspace({
         onAddWidget={addWidget}
         onDuplicateWidget={duplicateSelectedWidget}
         onRemoveWidget={removeSelectedWidget}
+        onUpdateWidgetSettings={updateSelectedWidgetSettings}
+        onUpdateWidgetTitle={updateSelectedWidgetTitle}
         selectedWidget={selectedWidget}
+        selectedWidgetDefinition={selectedWidgetDefinition}
         widgetCount={draftScreen.widgets.length}
       />
     </section>

@@ -1,13 +1,17 @@
 import type { WidgetConfig } from "@bloom/api-client";
 import type { WidgetDefinition } from "@bloom/widgets";
 import type { ReactNode } from "react";
+import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
 
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
   onAddWidget: (definition: WidgetDefinition) => void;
   onDuplicateWidget: () => void;
   onRemoveWidget: () => void;
+  onUpdateWidgetSettings: (settings: Record<string, unknown>) => string | null;
+  onUpdateWidgetTitle: (title: string) => void;
   selectedWidget: WidgetConfig | null;
+  selectedWidgetDefinition: WidgetDefinition | null;
   widgetCount: number;
 };
 
@@ -16,7 +20,10 @@ export function BuilderInspector({
   onAddWidget,
   onDuplicateWidget,
   onRemoveWidget,
+  onUpdateWidgetSettings,
+  onUpdateWidgetTitle,
   selectedWidget,
+  selectedWidgetDefinition,
   widgetCount,
 }: BuilderInspectorProps) {
   if (widgetCount === 0) {
@@ -65,8 +72,15 @@ export function BuilderInspector({
         </div>
       </dl>
       <p className="builder-inspector-copy">
-        Use duplicate or remove for quick layout iteration. Full settings controls are the next builder slice.
+        Use duplicate or remove for quick layout iteration. Settings are rendered from the widget contract.
       </p>
+      <BuilderWidgetSettingsEditor
+        definition={selectedWidgetDefinition}
+        key={selectedWidget.id}
+        onUpdateSettings={onUpdateWidgetSettings}
+        onUpdateTitle={onUpdateWidgetTitle}
+        widget={selectedWidget}
+      />
       <div className="builder-inspector-actions">
         <button onClick={onDuplicateWidget} type="button">
           Duplicate widget
