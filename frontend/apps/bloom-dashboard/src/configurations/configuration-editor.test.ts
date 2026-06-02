@@ -1,7 +1,79 @@
-import type { ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
+import { type ConfigurationBundle, DEFAULT_APPLICATION_THEME, type ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
-import { replaceScreenInConfigurationBundle } from "./configuration-editor";
+import {
+  addScreenToApplication,
+  removeScreenFromApplication,
+  replaceScreenInConfigurationBundle,
+} from "./configuration-editor";
+
+describe("addScreenToApplication", () => {
+  it("adds a cloned screen without mutating the source application", () => {
+    const application = createBundle().applications[0];
+    const screenToAdd = createScreen("camera");
+
+    if (!application) {
+      throw new Error("Test application is missing.");
+    }
+
+    const updatedApplication = addScreenToApplication(application, screenToAdd);
+
+    expect(updatedApplication.screens).toHaveLength(3);
+    expect(updatedApplication.screens.at(-1)).toEqual(screenToAdd);
+    expect(updatedApplication.screens.at(-1)).not.toBe(screenToAdd);
+    expect(application.screens).toHaveLength(2);
+  });
+
+  it("fails explicitly when the screen already belongs to the application", () => {
+    const application = createBundle().applications[0];
+
+    if (!application) {
+      throw new Error("Test application is missing.");
+    }
+
+    expect(() => addScreenToApplication(application, createScreen("main"))).toThrow(
+      'Screen "main" already exists in application "sandbox".',
+    );
+  });
+});
+
+describe("removeScreenFromApplication", () => {
+  it("removes one screen while preserving the rest of the application", () => {
+    const application = createBundle().applications[0];
+
+    if (!application) {
+      throw new Error("Test application is missing.");
+    }
+
+    const updatedApplication = removeScreenFromApplication(application, "diagnostics");
+
+    expect(updatedApplication.screens).toEqual([createScreen("main")]);
+    expect(application.screens).toHaveLength(2);
+  });
+
+  it("keeps at least one screen in the application", () => {
+    const application = {
+      ...createBundle().applications[0],
+      screens: [createScreen("main")],
+    };
+
+    expect(() => removeScreenFromApplication(application, "main")).toThrow(
+      'Application "sandbox" must keep at least one screen.',
+    );
+  });
+
+  it("fails explicitly when the screen is missing", () => {
+    const application = createBundle().applications[0];
+
+    if (!application) {
+      throw new Error("Test application is missing.");
+    }
+
+    expect(() => removeScreenFromApplication(application, "missing")).toThrow(
+      'Screen "missing" was not found in application "sandbox".',
+    );
+  });
+});
 
 describe("replaceScreenInConfigurationBundle", () => {
   it("replaces one screen while preserving the rest of the bundle", () => {
@@ -51,6 +123,7 @@ function createBundle(): ConfigurationBundle {
         id: "sandbox",
         name: "Sandbox",
         description: "Sandbox operator interface",
+        theme: DEFAULT_APPLICATION_THEME,
         screens: [createScreen("main"), createScreen("diagnostics")],
       },
     ],

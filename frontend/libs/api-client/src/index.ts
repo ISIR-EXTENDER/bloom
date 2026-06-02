@@ -43,10 +43,31 @@ export type ScreenConfig = {
   widgets: WidgetConfig[];
 };
 
+export type ApplicationTheme = {
+  preset_id: string;
+  palette: {
+    accent: string;
+    background: string;
+    primary: string;
+    surface: string;
+  };
+};
+
+export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
+  preset_id: "bloom-default",
+  palette: {
+    accent: "#d9a441",
+    background: "#f7f1e6",
+    primary: "#7f967e",
+    surface: "#fffdf7",
+  },
+};
+
 export type ApplicationConfig = {
   id: string;
   name: string;
   description: string;
+  theme: ApplicationTheme;
   screens: ScreenConfig[];
 };
 

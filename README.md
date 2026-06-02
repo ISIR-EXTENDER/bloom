@@ -2,11 +2,50 @@
   <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom logo" width="220" />
 </p>
 
-# Bloom
+<h1 align="center">Bloom</h1>
+
+<p align="center">
+  Configurable web interfaces for robot teleoperation, supervision, and device control.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7f987f?style=for-the-badge" /></a>
+  <img alt="React" src="https://img.shields.io/badge/React-19-f4efe4?style=for-the-badge&logo=react&logoColor=1d3a31" />
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-Backend-7f987f?style=for-the-badge&logo=fastapi&logoColor=white" />
+  <img alt="ROS ready" src="https://img.shields.io/badge/ROS-adapters-dfa83b?style=for-the-badge" />
+</p>
+
+<p align="center">
+  <a href="#preview">Preview</a> ·
+  <a href="#getting-started">Getting Started</a> ·
+  <a href="#architecture-rules">Architecture</a> ·
+  <a href="#tests-and-coverage">Tests</a> ·
+  <a href="docs/widgets-screens-apps-foundation-plan.md">Foundation Plan</a>
+</p>
 
 Bloom is a configurable web interface framework for robot teleoperation, supervision, and device control.
 
 It starts from the current Extender tablet interface and UI work, but the goal is broader: keep the web product generic enough for ISIR lab projects, while integrating with Extender through a clean ROS adapter layer.
+
+## What Bloom Gives You
+
+| Build apps visually | Keep ROS isolated | Ship reusable widgets |
+| --- | --- | --- |
+| Compose apps, screens, layouts, and app-level design tokens from a tablet-friendly builder. | Frontend and generic backend logic stay independent from ROS; robot behavior enters through adapters. | Widgets are described by contracts so they can be reused across Extender, Petanque, and future ISIR apps. |
+
+## Preview
+
+These screenshots are refreshed as the Bloom UI foundations evolve.
+
+| Landing page | Builder home | App configuration |
+| --- | --- | --- |
+| ![Bloom landing page](docs/assets/screenshots/landing-page.png) | ![Bloom builder home](docs/assets/screenshots/builder-home.png) | ![Bloom app configuration](docs/assets/screenshots/app-configuration.png) |
+
+To update them locally, run the backend and dashboard, then capture the current UI:
+
+```bash
+npm run capture:readme
+```
 
 ## Work In Progress
 
@@ -15,6 +54,7 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
 - Builder drafts can now be saved or discarded through the configuration API.
+- App configuration can edit app identity, app-level design tokens, and screen membership from existing screens.
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.

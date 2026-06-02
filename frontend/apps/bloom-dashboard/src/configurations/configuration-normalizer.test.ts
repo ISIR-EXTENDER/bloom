@@ -5,15 +5,15 @@ import compactSandboxConfiguration from "../../../../../backend/data/configurati
 import { normalizeConfigurationBundle } from "./configuration-normalizer";
 
 describe("normalizeConfigurationBundle", () => {
-  it("fills builder-safe defaults for compact backend configuration JSON", () => {
+  it("keeps real backend configuration JSON builder-safe", () => {
     const normalizedBundle = normalizeConfigurationBundle(
       compactSandboxConfiguration as unknown as ConfigurationBundle,
     );
     const screen = normalizedBundle.applications[0]?.screens[0];
     const widget = screen?.widgets[0];
 
-    expect(screen?.canvas).toEqual({ preset_id: "tablet", runtime_mode: "fit" });
-    expect(widget?.layout).toEqual({ x: 0, y: 0, width: 240, height: 120 });
+    expect(screen?.canvas).toEqual({ preset_id: "hd", runtime_mode: "fit" });
+    expect(widget?.layout).toEqual({ x: 128, y: 104, width: 272, height: 192 });
     expect(widget?.settings).toMatchObject({
       payloadOn: { data: [13, 1] },
       payloadOff: { data: [13, 0] },
