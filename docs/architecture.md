@@ -14,12 +14,12 @@ Bloom is split into product apps and reusable libraries.
 - `backend/libs/config`: application configuration models, repositories, and legacy JSON adapters.
 - `backend/libs/db`: persistence and migrations.
 - `backend/libs/ros_adapters`: the only backend layer that knows ROS topics, services, and actions.
+- `backend/libs/sessions`: runtime state and connected UI session coordination.
 
 Planned boundaries should be introduced only with the feature that needs them:
 
 - `frontend/libs/ros-bridge`: frontend-side live transport contracts, not raw ROS logic.
 - `backend/libs/devices`: device models and command abstractions.
-- `backend/libs/sessions`: runtime state for active UI sessions.
 - `backend/libs/logging`: structured logging helpers.
 
 ## Product Navigation
