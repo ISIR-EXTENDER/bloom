@@ -152,9 +152,13 @@ function parseJsonLikeValue(rawValue: string): unknown {
 }
 
 function formatJsonFieldValue(value: unknown): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
   if (typeof value === "string") {
     return value;
   }
 
-  return JSON.stringify(value, null, 2);
+  return JSON.stringify(value, null, 2) ?? "";
 }

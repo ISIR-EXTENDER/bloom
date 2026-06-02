@@ -290,7 +290,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
 };
 
 export function getWidgetSettingsContract(kind: WidgetKind): WidgetSettingsContract {
-  return WIDGET_SETTINGS_CONTRACTS[kind];
+  return WIDGET_SETTINGS_CONTRACTS[kind] ?? WIDGET_SETTINGS_CONTRACTS.unknown;
 }
 
 export function getDefaultWidgetSettings(kind: WidgetKind): Record<string, unknown> {

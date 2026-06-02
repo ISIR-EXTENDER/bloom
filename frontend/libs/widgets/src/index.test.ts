@@ -20,6 +20,7 @@ import {
   findMatchingRosMessageTogglePreset,
   formatTopicEchoValue,
   getDefaultRosMessageTogglePayloads,
+  getWidgetSettingsContract,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreensToApplicationConfig,
   legacyCanvasScreensToConfigurationBundle,
@@ -289,6 +290,10 @@ describe("widget settings contracts", () => {
       "topic-plot",
       "unknown",
     ]);
+  });
+
+  it("falls back to the unknown settings contract for unsupported runtime kinds", () => {
+    expect(getWidgetSettingsContract("legacy-special" as never)).toEqual(WIDGET_SETTINGS_CONTRACTS.unknown);
   });
 
   it("normalizes partial settings with widget defaults", () => {
