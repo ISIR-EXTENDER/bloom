@@ -5,15 +5,19 @@ import legacySandboxScreen from "../../../../backend/tests/fixtures/legacy/sandb
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
 
 import {
+  buildRosMessageToggleCliExample,
   createDefaultWidgetRegistry,
   createWidgetConfigFromDefinition,
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
+  findMatchingRosMessageTogglePreset,
+  getDefaultRosMessageTogglePayloads,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreenToConfig,
   legacyRectToLayout,
   listWidgetDefinitionsByCategory,
   normalizeWidgetSettings,
+  ROS_MESSAGE_TOGGLE_PRESETS,
   renderScreenDescriptors,
   renderWidgetDescriptor,
   resolveCanvasArtboardSize,
@@ -308,6 +312,38 @@ describe("widget settings contracts", () => {
         },
       }),
     ).toThrow('Invalid settings for widget kind "slider": step: step must be greater than or equal to 0');
+  });
+
+  it("keeps ROS message toggle presets available for non-web users", () => {
+    expect(ROS_MESSAGE_TOGGLE_PRESETS.map((preset) => preset.id)).toContain("digital-output-array");
+    expect(getDefaultRosMessageTogglePayloads("std_msgs/msg/Int32MultiArray")).toEqual({
+      onPayload: "{data: [13, 1]}",
+      offPayload: "{data: [13, 0]}",
+    });
+  });
+
+  it("builds ROS CLI-style previews for typed toggle payloads", () => {
+    expect(
+      buildRosMessageToggleCliExample(
+        {
+          topic: "/petanque_state_machine/change_state",
+          messageType: "std_msgs/msg/String",
+          onPayload: "{data: 'activate_throw'}",
+          offPayload: "{data: 'teleop'}",
+        },
+        "on",
+      ),
+    ).toBe("ros2 topic pub -1 /petanque_state_machine/change_state std_msgs/msg/String \"{data: 'activate_throw'}\"");
+  });
+
+  it("matches ROS message toggle presets from settings", () => {
+    expect(
+      findMatchingRosMessageTogglePreset({
+        messageType: "std_msgs/msg/String",
+        onPayload: "{data: 'activate_throw'}",
+        offPayload: "{data: 'teleop'}",
+      })?.id,
+    ).toBe("state-machine");
   });
 });
 

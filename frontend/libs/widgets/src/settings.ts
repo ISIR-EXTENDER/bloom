@@ -82,8 +82,11 @@ export type SliderSettings = {
 
 export type ToggleSettings = {
   initialValue: boolean;
+  messageType?: string;
   offPayload: unknown;
   onPayload: unknown;
+  presetId?: string;
+  topic?: string;
 };
 
 export type UnknownWidgetSettings = Record<string, unknown>;
@@ -212,6 +215,8 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     "toggle",
     [
       { key: "initialValue", label: "Initial value", type: "boolean", required: true },
+      { key: "topic", label: "Output topic", type: "text", required: false },
+      { key: "messageType", label: "ROS message type", type: "text", required: false },
       { key: "onPayload", label: "ON payload", type: "json", required: true },
       { key: "offPayload", label: "OFF payload", type: "json", required: true },
     ],
@@ -245,6 +250,152 @@ export function normalizeWidgetSettings(
     ...settings,
   };
   return validateWidgetSettings(kind, mergedSettings);
+}
+
+export type RosMessageTogglePreset = {
+  id: string;
+  label: string;
+  description: string;
+  messageType: string;
+  onPayload: string;
+  offPayload: string;
+};
+
+export const COMMON_ROS_MESSAGE_TYPES = [
+  "std_msgs/msg/Bool",
+  "std_msgs/msg/Float64",
+  "std_msgs/msg/Int32",
+  "std_msgs/msg/String",
+  "std_msgs/msg/Int32MultiArray",
+  "std_msgs/msg/UInt8MultiArray",
+  "geometry_msgs/msg/Vector3",
+] as const;
+
+export const ROS_MESSAGE_TOGGLE_PRESETS: readonly RosMessageTogglePreset[] = [
+  {
+    id: "bool",
+    label: "Bool true / false",
+    description: "Publish a standard ROS bool for ON and OFF.",
+    messageType: "std_msgs/msg/Bool",
+    onPayload: "{data: true}",
+    offPayload: "{data: false}",
+  },
+  {
+    id: "float64",
+    label: "Float64 1 / 0",
+    description: "Publish numeric ON/OFF values for simple bridge topics.",
+    messageType: "std_msgs/msg/Float64",
+    onPayload: "{data: 1.0}",
+    offPayload: "{data: 0.0}",
+  },
+  {
+    id: "int32",
+    label: "Int32 1 / 0",
+    description: "Publish integer ON/OFF values when the subscriber expects Int32.",
+    messageType: "std_msgs/msg/Int32",
+    onPayload: "{data: 1}",
+    offPayload: "{data: 0}",
+  },
+  {
+    id: "string-on-off",
+    label: "String on / off",
+    description: "Send text commands while keeping the ON/OFF interaction.",
+    messageType: "std_msgs/msg/String",
+    onPayload: "{data: 'on'}",
+    offPayload: "{data: 'off'}",
+  },
+  {
+    id: "state-machine",
+    label: "State machine commands",
+    description: "Example for toggling between two state machine commands.",
+    messageType: "std_msgs/msg/String",
+    onPayload: "{data: 'activate_throw'}",
+    offPayload: "{data: 'teleop'}",
+  },
+  {
+    id: "digital-output-array",
+    label: "Digital output array",
+    description: "Useful for bridges that expect [pin, state].",
+    messageType: "std_msgs/msg/Int32MultiArray",
+    onPayload: "{data: [13, 1]}",
+    offPayload: "{data: [13, 0]}",
+  },
+  {
+    id: "vector3",
+    label: "Vector3 mapping",
+    description: "Example of a structured payload with named ROS fields.",
+    messageType: "geometry_msgs/msg/Vector3",
+    onPayload: "{x: 0.1, y: 0.0, z: 0.0}",
+    offPayload: "{x: 0.0, y: 0.0, z: 0.0}",
+  },
+];
+
+export function getDefaultRosMessageTogglePayloads(
+  messageType: string,
+): Pick<ToggleSettings, "offPayload" | "onPayload"> {
+  const normalizedType = messageType.trim().toLowerCase();
+
+  if (normalizedType === "std_msgs/msg/bool") {
+    return {
+      onPayload: "{data: true}",
+      offPayload: "{data: false}",
+    };
+  }
+  if (normalizedType === "std_msgs/msg/string") {
+    return {
+      onPayload: "{data: 'on'}",
+      offPayload: "{data: 'off'}",
+    };
+  }
+  if (normalizedType === "std_msgs/msg/int32") {
+    return {
+      onPayload: "{data: 1}",
+      offPayload: "{data: 0}",
+    };
+  }
+  if (normalizedType === "std_msgs/msg/int32multiarray" || normalizedType === "std_msgs/msg/uint8multiarray") {
+    return {
+      onPayload: "{data: [13, 1]}",
+      offPayload: "{data: [13, 0]}",
+    };
+  }
+  if (normalizedType === "geometry_msgs/msg/vector3") {
+    return {
+      onPayload: "{x: 0.1, y: 0.0, z: 0.0}",
+      offPayload: "{x: 0.0, y: 0.0, z: 0.0}",
+    };
+  }
+  return {
+    onPayload: "{data: 1.0}",
+    offPayload: "{data: 0.0}",
+  };
+}
+
+export function buildRosMessageToggleCliExample(
+  settings: Pick<ToggleSettings, "messageType" | "offPayload" | "onPayload" | "topic">,
+  nextState: "off" | "on",
+): string {
+  const topic = settings.topic?.trim() || "/example/topic";
+  const messageType = settings.messageType?.trim() || "std_msgs/msg/Float64";
+  const payload = String(nextState === "on" ? settings.onPayload : settings.offPayload).replaceAll('"', '\\"');
+  return `ros2 topic pub -1 ${topic} ${messageType} "${payload}"`;
+}
+
+export function findMatchingRosMessageTogglePreset(
+  settings: Pick<ToggleSettings, "messageType" | "offPayload" | "onPayload">,
+): RosMessageTogglePreset | null {
+  const normalizedMessageType = settings.messageType?.trim().toLowerCase() ?? "";
+  const normalizedOnPayload = String(settings.onPayload).trim();
+  const normalizedOffPayload = String(settings.offPayload).trim();
+
+  return (
+    ROS_MESSAGE_TOGGLE_PRESETS.find(
+      (preset) =>
+        preset.messageType.trim().toLowerCase() === normalizedMessageType &&
+        preset.onPayload.trim() === normalizedOnPayload &&
+        preset.offPayload.trim() === normalizedOffPayload,
+    ) ?? null
+  );
 }
 
 function createContract<TSettings extends Record<string, unknown>>(
@@ -342,6 +493,15 @@ function validateSliderSettings(settings: Record<string, unknown>): WidgetSettin
 
 function validateToggleSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<ToggleSettings> {
   const errors = validateBoolean(settings, "initialValue");
+  if ("topic" in settings && settings.topic !== undefined) {
+    errors.push(...validateString(settings, "topic", { allowEmpty: true }));
+  }
+  if ("messageType" in settings && settings.messageType !== undefined) {
+    errors.push(...validateString(settings, "messageType", { allowEmpty: true }));
+  }
+  if ("presetId" in settings && settings.presetId !== undefined) {
+    errors.push(...validateString(settings, "presetId", { allowEmpty: true }));
+  }
   if (!isJsonSerializable(settings.onPayload)) {
     errors.push({ field: "onPayload", message: "onPayload must be JSON serializable" });
   }
