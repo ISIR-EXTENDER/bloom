@@ -9,6 +9,12 @@ export type AddWidgetOptions = {
   title?: string;
 };
 
+export type DuplicateWidgetOptions = {
+  id: string;
+  offset?: Pick<WidgetLayout, "x" | "y">;
+  title?: string;
+};
+
 export type MoveWidgetOptions = {
   snapToGrid?: boolean;
 };
@@ -37,6 +43,37 @@ export function removeWidgetFromScreen(screen: ScreenConfig, widgetId: string): 
   return {
     ...screen,
     widgets: screen.widgets.filter((widget) => widget.id !== widgetId),
+  };
+}
+
+export function duplicateWidgetInScreen(
+  screen: ScreenConfig,
+  sourceWidgetId: string,
+  options: DuplicateWidgetOptions,
+): ScreenConfig {
+  assertUniqueWidgetId(screen, options.id);
+
+  const sourceWidget = screen.widgets.find((widget) => widget.id === sourceWidgetId);
+  if (!sourceWidget) {
+    throw new Error(`Widget "${sourceWidgetId}" does not exist on screen "${screen.id}".`);
+  }
+
+  const offset = options.offset ?? { x: 24, y: 24 };
+  const duplicateWidget: WidgetConfig = {
+    ...sourceWidget,
+    id: options.id,
+    title: options.title ?? `${sourceWidget.title} copy`,
+    layout: {
+      ...sourceWidget.layout,
+      x: sourceWidget.layout.x + offset.x,
+      y: sourceWidget.layout.y + offset.y,
+    },
+    settings: cloneSettings(sourceWidget.settings),
+  };
+
+  return {
+    ...screen,
+    widgets: [...screen.widgets, duplicateWidget],
   };
 }
 
@@ -177,4 +214,8 @@ function snapLayoutValue(value: number, gridSize: number): number {
     return value;
   }
   return Math.round(value / gridSize) * gridSize;
+}
+
+function cloneSettings(settings: Record<string, unknown>): Record<string, unknown> {
+  return JSON.parse(JSON.stringify(settings)) as Record<string, unknown>;
 }

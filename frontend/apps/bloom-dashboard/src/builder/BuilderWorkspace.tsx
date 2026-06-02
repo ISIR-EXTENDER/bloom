@@ -1,4 +1,11 @@
 import type { ScreenConfig } from "@bloom/api-client";
+import {
+  addWidgetToScreen,
+  createDefaultWidgetRegistry,
+  duplicateWidgetInScreen,
+  removeWidgetFromScreen,
+  type WidgetDefinition,
+} from "@bloom/widgets";
 import { useEffect, useState } from "react";
 
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
@@ -25,6 +32,11 @@ type DraftSaveState =
   | { status: "saved" }
   | { status: "error"; message: string };
 
+const widgetRegistry = createDefaultWidgetRegistry();
+const availableWidgetDefinitions = Array.from(widgetRegistry.values()).filter(
+  (definition) => definition.availability.editor && definition.kind !== "unknown",
+);
+
 export function BuilderWorkspace({
   configurations,
   onSaveScreenDraft,
@@ -32,8 +44,18 @@ export function BuilderWorkspace({
   selection,
 }: BuilderWorkspaceProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
-  const { canRedo, canUndo, commitWidgetLayout, draftScreen, isDirty, previewWidgetLayout, redo, resetDraft, undo } =
-    useBuilderScreenDraft(selectedWorkspace.screen);
+  const {
+    canRedo,
+    canUndo,
+    commitScreenChange,
+    commitWidgetLayout,
+    draftScreen,
+    isDirty,
+    previewWidgetLayout,
+    redo,
+    resetDraft,
+    undo,
+  } = useBuilderScreenDraft(selectedWorkspace.screen);
   const { selectedWidget, selectedWidgetId, setSelectedWidgetId } = useSelectedBuilderWidget(draftScreen);
   const [saveState, setSaveState] = useState<DraftSaveState>({ status: "idle" });
   const isSaving = saveState.status === "saving";
@@ -62,6 +84,41 @@ export function BuilderWorkspace({
   const discardDraft = () => {
     resetDraft();
     setSaveState({ status: "idle" });
+  };
+
+  const addWidget = (definition: WidgetDefinition) => {
+    const widgetId = createUniqueWidgetId(draftScreen, definition.kind);
+    const nextScreen = addWidgetToScreen(draftScreen, definition, {
+      id: widgetId,
+      layout: createNewWidgetLayout(draftScreen, definition),
+    });
+
+    commitScreenChange(nextScreen);
+    setSelectedWidgetId(widgetId);
+  };
+
+  const duplicateSelectedWidget = () => {
+    if (!selectedWidget) {
+      return;
+    }
+
+    const widgetId = createUniqueWidgetId(draftScreen, `${selectedWidget.kind}-copy`);
+    const nextScreen = duplicateWidgetInScreen(draftScreen, selectedWidget.id, {
+      id: widgetId,
+      title: `${selectedWidget.title} copy`,
+    });
+
+    commitScreenChange(nextScreen);
+    setSelectedWidgetId(widgetId);
+  };
+
+  const removeSelectedWidget = () => {
+    if (!selectedWidget) {
+      return;
+    }
+
+    commitScreenChange(removeWidgetFromScreen(draftScreen, selectedWidget.id));
+    setSelectedWidgetId(null);
   };
 
   return (
@@ -118,7 +175,14 @@ export function BuilderWorkspace({
         />
       </section>
 
-      <BuilderInspector selectedWidget={selectedWidget} widgetCount={draftScreen.widgets.length} />
+      <BuilderInspector
+        availableWidgetDefinitions={availableWidgetDefinitions}
+        onAddWidget={addWidget}
+        onDuplicateWidget={duplicateSelectedWidget}
+        onRemoveWidget={removeSelectedWidget}
+        selectedWidget={selectedWidget}
+        widgetCount={draftScreen.widgets.length}
+      />
     </section>
   );
 }
@@ -149,4 +213,33 @@ function getErrorMessage(error: unknown): string {
   }
 
   return "Bloom could not save this builder draft.";
+}
+
+function createNewWidgetLayout(screen: ScreenConfig, definition: WidgetDefinition) {
+  const offset = (screen.widgets.length % 8) * 24;
+
+  return {
+    x: 32 + offset,
+    y: 32 + offset,
+    width: definition.defaultLayout.width,
+    height: definition.defaultLayout.height,
+  };
+}
+
+function createUniqueWidgetId(screen: ScreenConfig, baseId: string): string {
+  const normalizedBaseId =
+    baseId
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-") || "widget";
+  const usedIds = new Set(screen.widgets.map((widget) => widget.id));
+  let candidateId = `${normalizedBaseId}-${screen.widgets.length + 1}`;
+  let suffix = 2;
+
+  while (usedIds.has(candidateId)) {
+    candidateId = `${normalizedBaseId}-${screen.widgets.length + suffix}`;
+    suffix += 1;
+  }
+
+  return candidateId;
 }

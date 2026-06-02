@@ -12,6 +12,7 @@ export type BuilderScreenDraft = {
   canRedo: boolean;
   canUndo: boolean;
   commitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
+  commitScreenChange: (screen: ScreenConfig) => void;
   draftScreen: ScreenConfig;
   isDirty: boolean;
   previewWidgetLayout: (widgetId: string, layout: WidgetLayout) => void;
@@ -80,6 +81,20 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
     });
   };
 
+  const commitScreenChange = (screen: ScreenConfig) => {
+    setHistory((currentHistory) => {
+      if (areScreensEqual(screen, currentHistory.present)) {
+        return currentHistory;
+      }
+
+      return {
+        past: [...currentHistory.past, currentHistory.present],
+        present: screen,
+        future: [],
+      };
+    });
+  };
+
   const resetDraft = () => {
     setHistory(createInitialHistory(sourceScreen));
   };
@@ -88,6 +103,7 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
     canRedo: history.future.length > 0,
     canUndo: history.past.length > 0,
     commitWidgetLayout,
+    commitScreenChange,
     draftScreen: history.present,
     isDirty: !areScreensEqual(history.present, sourceScreen),
     previewWidgetLayout,

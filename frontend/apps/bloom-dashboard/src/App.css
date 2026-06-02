@@ -503,6 +503,47 @@ h1 {
   margin: 0;
 }
 
+.builder-inspector-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.builder-widget-palette {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.builder-widget-palette h3 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 1rem;
+}
+
+.builder-widget-palette-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.builder-widget-palette-grid button {
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  padding: 12px 14px;
+  border-color: color-mix(in srgb, var(--bloom-primary) 22%, var(--bloom-border));
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 92%, white);
+  text-align: left;
+}
+
+.builder-widget-palette-grid span {
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .builder-save-status {
   grid-column: 1 / -1;
   margin: 0;

@@ -131,6 +131,40 @@ describe("App", () => {
     expect(configurationClient.upsertConfiguration).not.toHaveBeenCalled();
   });
 
+  it("adds widgets from the builder palette", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add Label widget" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Label" })).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "56, 56")).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "280 x 64")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  });
+
+  it("duplicates the selected builder widget", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Duplicate widget" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Digital output copy" })).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "48, 56")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  });
+
+  it("removes the selected builder widget", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Remove widget" }));
+
+    expect(screen.getByRole("region", { name: "Screen implementation coming soon" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Add Label widget" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  });
+
   it("keeps builder drafts dirty when saving fails", async () => {
     const configurationClient = createConfigurationClient({ saveError: new Error("SQLite write failed") });
 
