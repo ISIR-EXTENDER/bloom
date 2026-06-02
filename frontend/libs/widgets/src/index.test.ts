@@ -5,6 +5,7 @@ import legacySandboxScreen from "../../../../backend/tests/fixtures/legacy/sandb
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
 
 import {
+  addWidgetToScreen,
   buildRosMessageToggleCliExample,
   createDefaultWidgetRegistry,
   createWidgetConfigFromDefinition,
@@ -16,16 +17,21 @@ import {
   legacyCanvasScreenToConfig,
   legacyRectToLayout,
   listWidgetDefinitionsByCategory,
+  moveWidget,
   normalizeWidgetSettings,
   ROS_MESSAGE_TOGGLE_PRESETS,
+  removeWidgetFromScreen,
   renderScreenDescriptors,
   renderWidgetDescriptor,
+  resizeWidget,
   resolveCanvasArtboardSize,
   resolveCanvasFitScale,
   resolveCanvasPresetSize,
   resolveLegacyWidgetKind,
   snapLayoutValue,
   toBloomWidgetKind,
+  updateWidgetSettings,
+  updateWidgetTitle,
   validateWidgetSettings,
   WIDGET_SETTINGS_CONTRACTS,
   type WidgetDefinition,
@@ -497,6 +503,91 @@ describe("legacy canvas configuration adapter", () => {
     expect((navigation?.settings.items as Array<{ targetScreenId: string }>)[0]?.targetScreenId).toBe(
       "default_control",
     );
+  });
+});
+
+describe("widget editor operations", () => {
+  it("adds widgets from capability defaults without mutating the original screen", () => {
+    const definition = createDefaultWidgetRegistry().get("label") as WidgetDefinition;
+    const nextScreen = addWidgetToScreen(sampleScreen, definition, {
+      id: "title",
+      title: "Title",
+      settings: { text: "Hello Bloom" },
+    });
+
+    expect(sampleScreen.widgets).toHaveLength(1);
+    expect(nextScreen.widgets).toHaveLength(2);
+    expect(nextScreen.widgets[1]).toMatchObject({
+      id: "title",
+      kind: "label",
+      title: "Title",
+      layout: {
+        x: 0,
+        y: 0,
+        width: 280,
+        height: 64,
+      },
+      settings: {
+        align: "left",
+        fontSize: 20,
+        text: "Hello Bloom",
+      },
+    });
+  });
+
+  it("updates widget title and settings while preserving other fields", () => {
+    const renamedScreen = updateWidgetTitle(sampleScreen, "toggle", "Digital output");
+    const updatedScreen = updateWidgetSettings(renamedScreen, "toggle", {
+      initialValue: false,
+      messageType: "std_msgs/msg/Int32MultiArray",
+      onPayload: "{data: [13, 1]}",
+      offPayload: "{data: [13, 0]}",
+      topic: "/ui/ros_toggle",
+    });
+
+    expect(updatedScreen.widgets[0]).toMatchObject({
+      id: "toggle",
+      title: "Digital output",
+      layout: sampleWidget.layout,
+      settings: {
+        messageType: "std_msgs/msg/Int32MultiArray",
+        topic: "/ui/ros_toggle",
+      },
+    });
+  });
+
+  it("moves and resizes widgets with optional grid snapping", () => {
+    const movedScreen = moveWidget(sampleScreen, "toggle", { x: 13, y: 19 }, { snapToGrid: true });
+    const resizedScreen = resizeWidget(movedScreen, "toggle", { width: 133, height: 77 }, { snapToGrid: true });
+
+    expect(resizedScreen.widgets[0]?.layout).toEqual({
+      x: 16,
+      y: 16,
+      width: 136,
+      height: 80,
+    });
+  });
+
+  it("removes widgets by id", () => {
+    expect(removeWidgetFromScreen(sampleScreen, "toggle").widgets).toEqual([]);
+  });
+
+  it("rejects invalid editor settings with field-level context", () => {
+    const toggleScreen = addWidgetToScreen(
+      sampleScreen,
+      createDefaultWidgetRegistry().get("toggle") as WidgetDefinition,
+      {
+        id: "device-toggle",
+      },
+    );
+
+    expect(() =>
+      updateWidgetSettings(toggleScreen, "device-toggle", {
+        initialValue: "nope",
+        onPayload: true,
+        offPayload: false,
+      }),
+    ).toThrow('Invalid settings for widget "device-toggle": initialValue: initialValue must be a boolean');
   });
 });
 

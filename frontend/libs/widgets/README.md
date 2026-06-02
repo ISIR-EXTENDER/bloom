@@ -48,3 +48,14 @@ Widget settings contracts define defaults, field metadata, and validation for ea
 - report clear validation errors before runtime;
 - describe future inspector fields without duplicating settings knowledge in React components;
 - keep widget configuration JSON serializable for API and SQLite persistence.
+
+## Editor Operations
+
+Pure editor operations provide the non-visual foundation for future screen builders:
+
+- add widgets from capability defaults;
+- update title, settings, and layout;
+- move and resize widgets with optional grid snapping;
+- remove widgets safely.
+
+React editor components should call these operations instead of reimplementing state mutations.
