@@ -12,16 +12,16 @@ import { BuilderCanvasItem } from "./BuilderCanvasItem";
 const widgetRegistry = createDefaultWidgetRegistry();
 
 type BuilderCanvasProps = {
-  onMoveWidget: (widgetId: string, layout: WidgetLayout) => void;
-  onResizeWidget: (widgetId: string, layout: WidgetLayout) => void;
+  onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
+  onPreviewWidgetLayout: (widgetId: string, layout: WidgetLayout) => void;
   onSelectWidget: (widgetId: string) => void;
   screen: ScreenConfig;
   selectedWidgetId: string | null;
 };
 
 export function BuilderCanvas({
-  onMoveWidget,
-  onResizeWidget,
+  onCommitWidgetLayout,
+  onPreviewWidgetLayout,
   onSelectWidget,
   screen,
   selectedWidgetId,
@@ -59,8 +59,8 @@ export function BuilderCanvas({
             canvasSize={artboardSize}
             key={descriptor.widget.id}
             minSize={resolveWidgetMinSize(descriptor)}
-            onMoveWidget={onMoveWidget}
-            onResizeWidget={onResizeWidget}
+            onCommitWidgetLayout={onCommitWidgetLayout}
+            onPreviewWidgetLayout={onPreviewWidgetLayout}
             onSelectWidget={onSelectWidget}
             selected={descriptor.widget.id === selectedWidgetId}
             widget={descriptor.widget}

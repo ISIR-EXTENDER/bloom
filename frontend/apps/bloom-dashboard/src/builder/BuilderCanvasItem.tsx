@@ -11,8 +11,8 @@ import {
 type BuilderCanvasItemProps = {
   canvasSize: BuilderCanvasSize;
   children: ReactNode;
-  onMoveWidget: (widgetId: string, layout: WidgetLayout) => void;
-  onResizeWidget: (widgetId: string, layout: WidgetLayout) => void;
+  onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
+  onPreviewWidgetLayout: (widgetId: string, layout: WidgetLayout) => void;
   onSelectWidget: (widgetId: string) => void;
   selected: boolean;
   minSize: BuilderWidgetMinSize;
@@ -23,8 +23,8 @@ export function BuilderCanvasItem({
   canvasSize,
   children,
   minSize,
-  onMoveWidget,
-  onResizeWidget,
+  onCommitWidgetLayout,
+  onPreviewWidgetLayout,
   onSelectWidget,
   selected,
   widget,
@@ -41,6 +41,7 @@ export function BuilderCanvasItem({
     const startPointerX = event.clientX;
     const startPointerY = event.clientY;
     const startLayout = widget.layout;
+    let finalLayout = startLayout;
     const pointerScale = resolveElementScale(event.currentTarget);
     const previousCursor = document.body.style.cursor;
     const previousUserSelect = document.body.style.userSelect;
@@ -56,12 +57,8 @@ export function BuilderCanvasItem({
           ? moveWidgetLayout(startLayout, { dx, dy }, canvasSize)
           : resizeWidgetLayout(startLayout, { dx, dy }, canvasSize, minSize);
 
-      if (mode === "move") {
-        onMoveWidget(widget.id, nextLayout);
-        return;
-      }
-
-      onResizeWidget(widget.id, nextLayout);
+      finalLayout = nextLayout;
+      onPreviewWidgetLayout(widget.id, nextLayout);
     };
 
     const cleanup = () => {
@@ -73,6 +70,9 @@ export function BuilderCanvasItem({
 
     const handlePointerUp = () => {
       cleanup();
+      if (finalLayout !== startLayout) {
+        onCommitWidgetLayout(widget.id, startLayout, finalLayout);
+      }
     };
 
     window.addEventListener("pointermove", handlePointerMove);
