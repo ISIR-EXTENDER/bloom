@@ -10,7 +10,13 @@ from libs.config.models import (
     WidgetKind,
     WidgetLayout,
 )
-from libs.config.repository import ConfigurationNotFoundError, FileConfigurationRepository, InMemoryConfigurationRepository
+from libs.config.repository import (
+    ConfigurationNotFoundError,
+    ConfigurationRepository,
+    FileConfigurationRepository,
+    InMemoryConfigurationRepository,
+)
+from libs.config.sqlite_repository import SQLiteConfigurationRepository
 from libs.config.json_io import (
     configuration_to_dict,
     dump_configuration_json,
@@ -34,10 +40,12 @@ __all__ = [
     "ConfigurationBundle",
     "ConfigurationMetadata",
     "ConfigurationNotFoundError",
+    "ConfigurationRepository",
     "FileConfigurationRepository",
     "InMemoryConfigurationRepository",
     "RuntimeCanvasMode",
     "ScreenConfig",
+    "SQLiteConfigurationRepository",
     "WidgetConfig",
     "WidgetKind",
     "WidgetLayout",

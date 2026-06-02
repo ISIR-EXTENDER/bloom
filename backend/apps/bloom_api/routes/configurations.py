@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel
 
-from libs.config import ConfigurationBundle, ConfigurationNotFoundError, InMemoryConfigurationRepository
+from libs.config import ConfigurationBundle, ConfigurationNotFoundError, ConfigurationRepository
 
 router = APIRouter(prefix="/configurations", tags=["configurations"])
 
@@ -10,7 +10,7 @@ class ConfigurationListResponse(BaseModel):
     configuration_ids: list[str]
 
 
-def get_configuration_repository(request: Request) -> InMemoryConfigurationRepository:
+def get_configuration_repository(request: Request) -> ConfigurationRepository:
     return request.app.state.configuration_repository
 
 
@@ -43,4 +43,3 @@ def delete_configuration(config_id: str, request: Request) -> Response:
     except ConfigurationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="configuration not found") from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-

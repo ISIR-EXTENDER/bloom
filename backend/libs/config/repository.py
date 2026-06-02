@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Protocol
 
 from libs.config.json_io import load_configuration_file, save_configuration_file
 from libs.config.models import ConfigurationBundle
@@ -6,6 +7,20 @@ from libs.config.models import ConfigurationBundle
 
 class ConfigurationNotFoundError(KeyError):
     pass
+
+
+class ConfigurationRepository(Protocol):
+    def list_ids(self) -> list[str]:
+        pass
+
+    def get(self, config_id: str) -> ConfigurationBundle:
+        pass
+
+    def upsert(self, config_id: str, bundle: ConfigurationBundle) -> ConfigurationBundle:
+        pass
+
+    def delete(self, config_id: str) -> None:
+        pass
 
 
 class InMemoryConfigurationRepository:

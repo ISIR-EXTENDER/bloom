@@ -12,7 +12,9 @@ class Settings(BaseModel):
     api_prefix: str = "/api/v1"
     service_name: str = "bloom-api"
     environment: Literal["local", "test", "staging", "production"] = Field(default="local")
+    configuration_storage: Literal["file", "sqlite"] = Field(default="file")
     configuration_dir: Path = Field(default=Path("data/configurations"))
+    configuration_database_path: Path = Field(default=Path("data/bloom.db"))
 
 
 @lru_cache
