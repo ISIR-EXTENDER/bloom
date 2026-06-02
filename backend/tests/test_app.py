@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from apps.bloom_api.main import create_app, create_app_configuration_repository
 from apps.bloom_api.settings import Settings
 from libs.config import FileConfigurationRepository, InMemoryConfigurationRepository, SQLiteConfigurationRepository
+from libs.sessions import RuntimeSessionManager
 
 
 def test_create_app_stores_settings() -> None:
@@ -13,6 +14,7 @@ def test_create_app_stores_settings() -> None:
     assert app.title == "Bloom Test API"
     assert app.state.settings == settings
     assert app.state.configuration_repository == repository
+    assert isinstance(app.state.runtime_session_manager, RuntimeSessionManager)
 
 
 def test_openapi_schema_is_available(client: TestClient) -> None:

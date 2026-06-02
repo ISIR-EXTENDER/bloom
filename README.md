@@ -18,6 +18,7 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
+- Backend runtime sessions expose the first WebSocket contract for live UI connections, topic subscription requests, and teleop command acknowledgements.
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Next major pieces are the real screen builder, runtime app routes, SQLite-backed app management, ROS adapters, and richer topic visualization.
@@ -42,11 +43,12 @@ bloom/
       config/
       db/
       ros_adapters/
+      sessions/
   docs/
 ```
 
-Planned libraries such as frontend transport bridges, backend device abstractions, runtime sessions, and structured
-logging should be added only when the corresponding migration slice needs them.
+Planned libraries such as frontend transport bridges, backend device abstractions, and structured logging should be
+added only when the corresponding migration slice needs them.
 
 ## Architecture Rules
 
