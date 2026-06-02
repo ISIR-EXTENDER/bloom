@@ -1,5 +1,6 @@
 import type { ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
+import legacyPetanqueApplication from "../../../../backend/tests/fixtures/legacy/application-play-petanque.json";
 import legacyConfigurationsScreen from "../../../../backend/tests/fixtures/legacy/configurations.json";
 import legacySandboxScreen from "../../../../backend/tests/fixtures/legacy/sandbox_control.json";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
@@ -19,6 +20,8 @@ import {
   formatTopicEchoValue,
   getDefaultRosMessageTogglePayloads,
   LEGACY_WIDGET_KIND_MAPPINGS,
+  legacyCanvasScreensToApplicationConfig,
+  legacyCanvasScreensToConfigurationBundle,
   legacyCanvasScreenToConfig,
   legacyCanvasWidgetToConfig,
   legacyRectToLayout,
@@ -662,6 +665,41 @@ describe("legacy canvas configuration adapter", () => {
     expect((navigation?.settings.items as Array<{ targetScreenId: string }>)[0]?.targetScreenId).toBe(
       "default_control",
     );
+  });
+
+  it("converts real legacy screens into a Bloom configuration bundle", () => {
+    const bundle = legacyCanvasScreensToConfigurationBundle([legacyConfigurationsScreen, legacySandboxScreen], {
+      application: legacyPetanqueApplication,
+      exportedAt: "2026-06-02T10:00:00.000Z",
+    });
+
+    expect(bundle).toMatchObject({
+      metadata: {
+        schema_version: 1,
+        exported_at: "2026-06-02T10:00:00.000Z",
+        source: "extender_ui_legacy",
+      },
+      applications: [
+        {
+          id: "application-play-petanque",
+          name: "PlayPetanque",
+        },
+      ],
+    });
+    expect(bundle.applications[0]?.screens.map((screen) => screen.id)).toEqual(["configurations", "sandbox_control"]);
+    expect(bundle.applications[0]?.screens.flatMap((screen) => screen.widgets)).toHaveLength(
+      legacyConfigurationsScreen.widgets.length + legacySandboxScreen.widgets.length,
+    );
+  });
+
+  it("orders converted screens using legacy application screen ids when available", () => {
+    const application = legacyCanvasScreensToApplicationConfig([legacySandboxScreen, legacyConfigurationsScreen], {
+      id: "debug",
+      name: "Debug",
+      screenIds: ["configurations", "sandbox_control"],
+    });
+
+    expect(application.screens.map((screen) => screen.id)).toEqual(["configurations", "sandbox_control"]);
   });
 });
 

@@ -1,4 +1,12 @@
-import type { CanvasSettings, ScreenConfig, WidgetConfig, WidgetKind, WidgetLayout } from "@bloom/api-client";
+import type {
+  ApplicationConfig,
+  CanvasSettings,
+  ConfigurationBundle,
+  ScreenConfig,
+  WidgetConfig,
+  WidgetKind,
+  WidgetLayout,
+} from "@bloom/api-client";
 
 export type LegacyCanvasScreen = {
   id?: string;
@@ -9,6 +17,14 @@ export type LegacyCanvasScreen = {
   widgets?: LegacyCanvasWidget[];
 };
 
+export type LegacyApplication = {
+  description?: string;
+  homeScreenId?: string;
+  id?: string;
+  name?: string;
+  screenIds?: string[];
+};
+
 export type LegacyCanvasWidget = {
   id: string;
   kind?: string;
@@ -16,6 +32,12 @@ export type LegacyCanvasWidget = {
   title?: string;
   rect?: Record<string, unknown>;
   [key: string]: unknown;
+};
+
+export type LegacyConfigurationBundleOptions = {
+  application?: LegacyApplication;
+  exportedAt?: string;
+  source?: string;
 };
 
 const WIDGET_CONFIG_KEYS = new Set(["id", "kind", "label", "rect", "title"]);
@@ -42,6 +64,37 @@ export function legacyCanvasScreenToConfig(screen: LegacyCanvasScreen): ScreenCo
   };
 }
 
+export function legacyCanvasScreensToApplicationConfig(
+  screens: readonly LegacyCanvasScreen[],
+  application: LegacyApplication = {},
+): ApplicationConfig {
+  const convertedScreens = screens.map(legacyCanvasScreenToConfig);
+  const orderedScreens = orderScreensByLegacyApplication(convertedScreens, application.screenIds);
+  const id = stringOrFallback(application.id, "legacy-application");
+  const homeScreenDescription = application.homeScreenId ? `Home screen: ${application.homeScreenId}` : "";
+
+  return {
+    id,
+    name: stringOrFallback(application.name, id),
+    description: stringOrFallback(application.description, homeScreenDescription),
+    screens: orderedScreens,
+  };
+}
+
+export function legacyCanvasScreensToConfigurationBundle(
+  screens: readonly LegacyCanvasScreen[],
+  options: LegacyConfigurationBundleOptions = {},
+): ConfigurationBundle {
+  return {
+    metadata: {
+      schema_version: 1,
+      exported_at: options.exportedAt ?? new Date(0).toISOString(),
+      source: options.source ?? "extender_ui_legacy",
+    },
+    applications: [legacyCanvasScreensToApplicationConfig(screens, options.application)],
+  };
+}
+
 export function legacyCanvasWidgetToConfig(widget: LegacyCanvasWidget): WidgetConfig {
   return {
     id: widget.id,
@@ -62,6 +115,23 @@ export function legacyCanvasSettingsToConfig(canvas: Record<string, unknown> | u
       ? canvas.runtimeMode
       : DEFAULT_LEGACY_CANVAS_SETTINGS.runtime_mode,
   };
+}
+
+function orderScreensByLegacyApplication(
+  screens: readonly ScreenConfig[],
+  screenIds: string[] | undefined,
+): ScreenConfig[] {
+  if (!screenIds || screenIds.length === 0) {
+    return [...screens];
+  }
+
+  const screensById = new Map(screens.map((screen) => [screen.id, screen]));
+  const orderedScreens = screenIds.flatMap((screenId) => {
+    const screen = screensById.get(screenId);
+    return screen ? [screen] : [];
+  });
+  const remainingScreens = screens.filter((screen) => !screenIds.includes(screen.id));
+  return [...orderedScreens, ...remainingScreens];
 }
 
 function legacyKindToBloomKind(kind: string): WidgetKind {
