@@ -30,6 +30,10 @@ export function BuilderWorkspace({ configurations, onSelectionChange, selection 
     setDraftScreen((currentScreen) => updateWidgetLayout(currentScreen, widgetId, layout));
   };
 
+  const handleResizeWidget = (widgetId: string, layout: WidgetLayout) => {
+    setDraftScreen((currentScreen) => updateWidgetLayout(currentScreen, widgetId, layout));
+  };
+
   return (
     <section className="builder-workspace" aria-label="Bloom builder workspace">
       <ConfigurationWorkspace
@@ -62,6 +66,7 @@ export function BuilderWorkspace({ configurations, onSelectionChange, selection 
 
         <BuilderCanvas
           onMoveWidget={handleMoveWidget}
+          onResizeWidget={handleResizeWidget}
           onSelectWidget={setSelectedWidgetId}
           screen={draftScreen}
           selectedWidgetId={selectedWidgetId}

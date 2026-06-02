@@ -11,6 +11,11 @@ export type BuilderPointerDelta = {
   dy: number;
 };
 
+export type BuilderWidgetMinSize = {
+  height: number;
+  width: number;
+};
+
 export function moveWidgetLayout(
   layout: WidgetLayout,
   delta: BuilderPointerDelta,
@@ -20,6 +25,22 @@ export function moveWidgetLayout(
     ...layout,
     x: clampLayoutValue(snapLayoutValue(layout.x + delta.dx), 0, Math.max(0, canvasSize.width - layout.width)),
     y: clampLayoutValue(snapLayoutValue(layout.y + delta.dy), 0, Math.max(0, canvasSize.height - layout.height)),
+  };
+}
+
+export function resizeWidgetLayout(
+  layout: WidgetLayout,
+  delta: BuilderPointerDelta,
+  canvasSize: BuilderCanvasSize,
+  minSize: BuilderWidgetMinSize,
+): WidgetLayout {
+  const maxWidth = Math.max(minSize.width, canvasSize.width - layout.x);
+  const maxHeight = Math.max(minSize.height, canvasSize.height - layout.y);
+
+  return {
+    ...layout,
+    width: clampLayoutValue(snapLayoutValue(layout.width + delta.dx), minSize.width, maxWidth),
+    height: clampLayoutValue(snapLayoutValue(layout.height + delta.dy), minSize.height, maxHeight),
   };
 }
 

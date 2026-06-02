@@ -76,6 +76,21 @@ describe("App", () => {
     });
   });
 
+  it("resizes widgets on the builder canvas draft", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+
+    const resizeHandle = await screen.findByRole("button", { name: "Resize Digital output widget" });
+    fireEvent.pointerDown(resizeHandle, { button: 0, clientX: 10, clientY: 10 });
+    window.dispatchEvent(new MouseEvent("pointermove", { clientX: 50, clientY: 50 }));
+    window.dispatchEvent(new MouseEvent("pointerup"));
+
+    await waitFor(() => {
+      expect(screen.getByText((_, element) => element?.textContent === "264 x 136")).toBeVisible();
+    });
+  });
+
   it("dispatches runtime action intents from the full app view", async () => {
     const runtimeActionClient = createRuntimeActionClient();
 

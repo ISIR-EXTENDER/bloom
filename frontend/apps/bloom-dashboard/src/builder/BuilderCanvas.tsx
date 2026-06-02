@@ -5,6 +5,7 @@ import {
   renderScreenDescriptors,
   resolveCanvasArtboardSize,
   resolveCanvasPresetSize,
+  type WidgetRenderDescriptor,
 } from "@bloom/widgets";
 import { BuilderCanvasItem } from "./BuilderCanvasItem";
 
@@ -12,12 +13,19 @@ const widgetRegistry = createDefaultWidgetRegistry();
 
 type BuilderCanvasProps = {
   onMoveWidget: (widgetId: string, layout: WidgetLayout) => void;
+  onResizeWidget: (widgetId: string, layout: WidgetLayout) => void;
   onSelectWidget: (widgetId: string) => void;
   screen: ScreenConfig;
   selectedWidgetId: string | null;
 };
 
-export function BuilderCanvas({ onMoveWidget, onSelectWidget, screen, selectedWidgetId }: BuilderCanvasProps) {
+export function BuilderCanvas({
+  onMoveWidget,
+  onResizeWidget,
+  onSelectWidget,
+  screen,
+  selectedWidgetId,
+}: BuilderCanvasProps) {
   const descriptors = renderScreenDescriptors(screen, widgetRegistry);
   const artboardSize = resolveCanvasArtboardSize(screen.widgets, screen.canvas);
   const presetSize = resolveCanvasPresetSize(screen.canvas);
@@ -50,7 +58,9 @@ export function BuilderCanvas({ onMoveWidget, onSelectWidget, screen, selectedWi
           <BuilderCanvasItem
             canvasSize={artboardSize}
             key={descriptor.widget.id}
+            minSize={resolveWidgetMinSize(descriptor)}
             onMoveWidget={onMoveWidget}
+            onResizeWidget={onResizeWidget}
             onSelectWidget={onSelectWidget}
             selected={descriptor.widget.id === selectedWidgetId}
             widget={descriptor.widget}
@@ -61,6 +71,20 @@ export function BuilderCanvas({ onMoveWidget, onSelectWidget, screen, selectedWi
       </div>
     </div>
   );
+}
+
+function resolveWidgetMinSize(descriptor: WidgetRenderDescriptor) {
+  if (descriptor.status === "resolved") {
+    return {
+      width: descriptor.definition.defaultLayout.minWidth,
+      height: descriptor.definition.defaultLayout.minHeight,
+    };
+  }
+
+  return {
+    width: 40,
+    height: 40,
+  };
 }
 
 function BuilderComingSoonMessage({ screen }: { screen: ScreenConfig }) {
