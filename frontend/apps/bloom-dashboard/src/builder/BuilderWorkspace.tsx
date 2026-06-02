@@ -1,6 +1,3 @@
-import type { ScreenConfig, WidgetLayout } from "@bloom/api-client";
-import { updateWidgetLayout } from "@bloom/widgets";
-import { useEffect, useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import {
   ConfigurationWorkspace,
@@ -9,6 +6,7 @@ import {
 } from "../ui/ConfigurationWorkspace";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
+import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 
 type BuilderWorkspaceProps = {
@@ -19,20 +17,10 @@ type BuilderWorkspaceProps = {
 
 export function BuilderWorkspace({ configurations, onSelectionChange, selection }: BuilderWorkspaceProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
-  const [draftScreen, setDraftScreen] = useState<ScreenConfig>(selectedWorkspace.screen);
+  const { canRedo, canUndo, commitWidgetLayout, draftScreen, previewWidgetLayout, redo, undo } = useBuilderScreenDraft(
+    selectedWorkspace.screen,
+  );
   const { selectedWidget, selectedWidgetId, setSelectedWidgetId } = useSelectedBuilderWidget(draftScreen);
-
-  useEffect(() => {
-    setDraftScreen(selectedWorkspace.screen);
-  }, [selectedWorkspace.screen]);
-
-  const handleMoveWidget = (widgetId: string, layout: WidgetLayout) => {
-    setDraftScreen((currentScreen) => updateWidgetLayout(currentScreen, widgetId, layout));
-  };
-
-  const handleResizeWidget = (widgetId: string, layout: WidgetLayout) => {
-    setDraftScreen((currentScreen) => updateWidgetLayout(currentScreen, widgetId, layout));
-  };
 
   return (
     <section className="builder-workspace" aria-label="Bloom builder workspace">
@@ -47,6 +35,14 @@ export function BuilderWorkspace({ configurations, onSelectionChange, selection 
           <div>
             <p className="eyebrow">Builder canvas</p>
             <h2 id="builder-stage-title">{draftScreen.title}</h2>
+          </div>
+          <div className="builder-stage-actions">
+            <button disabled={!canUndo} onClick={undo} type="button">
+              Undo
+            </button>
+            <button disabled={!canRedo} onClick={redo} type="button">
+              Redo
+            </button>
           </div>
           <dl className="builder-stage-meta">
             <div>
@@ -65,8 +61,8 @@ export function BuilderWorkspace({ configurations, onSelectionChange, selection 
         </header>
 
         <BuilderCanvas
-          onMoveWidget={handleMoveWidget}
-          onResizeWidget={handleResizeWidget}
+          onCommitWidgetLayout={commitWidgetLayout}
+          onPreviewWidgetLayout={previewWidgetLayout}
           onSelectWidget={setSelectedWidgetId}
           screen={draftScreen}
           selectedWidgetId={selectedWidgetId}

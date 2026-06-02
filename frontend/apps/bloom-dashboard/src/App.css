@@ -259,6 +259,28 @@ h1 {
   margin-bottom: 16px;
 }
 
+.builder-stage-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.builder-stage-actions button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 999px;
+  background: var(--bloom-surface-container-low);
+  color: var(--bloom-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.builder-stage-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .builder-stage-toolbar h2,
 .builder-inspector-panel h2 {
   margin: 0;

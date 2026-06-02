@@ -74,6 +74,18 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByText((_, element) => element?.textContent === "64, 48")).toBeVisible();
     });
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    await waitFor(() => {
+      expect(screen.getByText((_, element) => element?.textContent === "24, 32")).toBeVisible();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+
+    await waitFor(() => {
+      expect(screen.getByText((_, element) => element?.textContent === "64, 48")).toBeVisible();
+    });
   });
 
   it("resizes widgets on the builder canvas draft", async () => {
