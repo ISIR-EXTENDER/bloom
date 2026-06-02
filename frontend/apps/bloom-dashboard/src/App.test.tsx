@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
+import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 
 describe("App", () => {
   it("renders the separated landing page", () => {
@@ -32,7 +33,8 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Choose what to preview" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
     expect(screen.getByText(/Sandbox operator interface/i)).toBeInTheDocument();
-    expect(screen.getByText("Command button")).toBeVisible();
+    expect(screen.getByText("Digital output")).toBeVisible();
+    expect(screen.getByText("/ui/ros_toggle")).toBeVisible();
   });
 
   it("switches screens inside the builder workspace", async () => {
@@ -47,14 +49,22 @@ describe("App", () => {
   });
 
   it("records runtime action intents from interactive widgets", async () => {
-    render(<App configurationClient={createConfigurationClient()} />);
+    const runtimeActionClient = createRuntimeActionClient();
+
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Send" }));
+    fireEvent.click(await screen.findByRole("button", { name: "OFF" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Action intents" })).toBeVisible();
     expect(screen.getByText("topic-publish")).toBeVisible();
-    expect(screen.getByText(/"widgetId": "command"/)).toBeVisible();
+    expect(await screen.findByText("simulated")).toBeVisible();
+    expect(screen.getByText(/"widgetId": "ros-toggle"/)).toBeVisible();
+    expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith({
+      topic: "/ui/ros_toggle",
+      message_type: "std_msgs/msg/Int32MultiArray",
+      payload_text: "{data: [13, 1]}",
+    });
   });
 
   it("renders the first migrated legacy petanque screen end-to-end", async () => {
@@ -122,6 +132,20 @@ function createConfigurationClient(
   };
 }
 
+function createRuntimeActionClient(): RuntimeActionClient {
+  return {
+    publishRosTopic: vi.fn(
+      async (request) =>
+        ({
+          topic: request.topic,
+          message_type: request.message_type,
+          status: "simulated",
+          detail: "ROS publisher gateway is not configured.",
+        }) as const,
+    ),
+  };
+}
+
 function createConfigurationBundle(id: string): ConfigurationBundle {
   return {
     metadata: {
@@ -144,9 +168,9 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
             },
             widgets: [
               {
-                id: "command",
-                kind: "command-button",
-                title: "Toggle",
+                id: "ros-toggle",
+                kind: "toggle",
+                title: "Digital output",
                 layout: {
                   x: 24,
                   y: 32,
@@ -154,9 +178,11 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
                   height: 96,
                 },
                 settings: {
+                  initialValue: false,
+                  messageType: "std_msgs/msg/Int32MultiArray",
+                  offPayload: "{data: [13, 0]}",
+                  onPayload: "{data: [13, 1]}",
                   topic: "/ui/ros_toggle",
-                  payloadOn: { data: [13, 1] },
-                  payloadOff: { data: [13, 0] },
                 },
               },
             ],

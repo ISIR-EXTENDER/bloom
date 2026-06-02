@@ -334,6 +334,45 @@ h1 {
   background: var(--bloom-surface-container-low);
 }
 
+.runtime-intent-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.runtime-intent-header span {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--bloom-surface-container-high);
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.runtime-intent-header span[data-runtime-status="published"] {
+  background: var(--bloom-primary-container);
+  color: var(--bloom-primary);
+}
+
+.runtime-intent-header span[data-runtime-status="simulated"] {
+  background: color-mix(in srgb, var(--bloom-secondary-container) 80%, white);
+  color: var(--bloom-secondary);
+}
+
+.runtime-intent-header span[data-runtime-status="failed"] {
+  background: color-mix(in srgb, var(--bloom-error-container) 80%, white);
+  color: var(--bloom-error);
+}
+
+.runtime-intent-detail {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 0.88rem;
+}
+
 .runtime-intent-list code {
   max-height: 160px;
   overflow: auto;
