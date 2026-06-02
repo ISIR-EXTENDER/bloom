@@ -16,6 +16,7 @@ import {
   createWidgetConfigFromDefinition,
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
+  duplicateWidgetInScreen,
   findMatchingRosMessageTogglePreset,
   formatTopicEchoValue,
   getDefaultRosMessageTogglePayloads,
@@ -861,6 +862,33 @@ describe("widget editor operations", () => {
 
   it("removes widgets by id", () => {
     expect(removeWidgetFromScreen(sampleScreen, "toggle").widgets).toEqual([]);
+  });
+
+  it("duplicates widgets with cloned settings and an offset layout", () => {
+    const nextScreen = duplicateWidgetInScreen(sampleScreen, "toggle", {
+      id: "toggle-copy",
+      title: "Digital output copy",
+    });
+
+    expect(nextScreen.widgets).toHaveLength(2);
+    expect(nextScreen.widgets[1]).toEqual({
+      ...sampleWidget,
+      id: "toggle-copy",
+      title: "Digital output copy",
+      layout: {
+        ...sampleWidget.layout,
+        x: sampleWidget.layout.x + 24,
+        y: sampleWidget.layout.y + 24,
+      },
+      settings: sampleWidget.settings,
+    });
+    expect(nextScreen.widgets[1]?.settings).not.toBe(sampleWidget.settings);
+  });
+
+  it("rejects duplicated widgets with an existing id", () => {
+    expect(() => duplicateWidgetInScreen(sampleScreen, "toggle", { id: "toggle" })).toThrow(
+      'Widget "toggle" already exists on screen "main".',
+    );
   });
 
   it("rejects invalid editor settings with field-level context", () => {

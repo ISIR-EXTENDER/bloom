@@ -15,6 +15,7 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
 - Builder drafts can now be saved or discarded through the configuration API.
+- Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.

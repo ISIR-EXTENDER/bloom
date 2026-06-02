@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 export type SelectedBuilderWidget = {
   selectedWidget: WidgetConfig | null;
   selectedWidgetId: string | null;
-  setSelectedWidgetId: (widgetId: string) => void;
+  setSelectedWidgetId: (widgetId: string | null) => void;
 };
 
 export function useSelectedBuilderWidget(screen: ScreenConfig): SelectedBuilderWidget {
