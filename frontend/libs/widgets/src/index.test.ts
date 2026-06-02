@@ -117,6 +117,8 @@ describe("widget capability metadata", () => {
       "plot",
       "slider",
       "toggle",
+      "topic-echo",
+      "topic-plot",
       "unknown",
     ]);
   });
@@ -273,6 +275,8 @@ describe("widget settings contracts", () => {
       "plot",
       "slider",
       "toggle",
+      "topic-echo",
+      "topic-plot",
       "unknown",
     ]);
   });
@@ -325,6 +329,79 @@ describe("widget settings contracts", () => {
           message: "top label must be a string",
         },
       ],
+    });
+  });
+
+  it("validates topic plot debug settings", () => {
+    expect(
+      normalizeWidgetSettings("topic-plot", {
+        fieldPath: "velocity.x",
+        messageType: "geometry_msgs/msg/Twist",
+        topic: "/sandbox_controller/velocity_command",
+        unit: "m/s",
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        fieldPath: "velocity.x",
+        historySeconds: 30,
+        maxSamples: 500,
+        messageType: "geometry_msgs/msg/Twist",
+        topic: "/sandbox_controller/velocity_command",
+        unit: "m/s",
+      },
+    });
+
+    expect(
+      validateWidgetSettings("topic-plot", {
+        fieldPath: "",
+        historySeconds: 0,
+        maxSamples: 10,
+        messageType: "",
+        topic: "",
+        unit: "",
+        yMax: 1,
+        yMin: 1,
+      }),
+    ).toEqual({
+      success: false,
+      errors: [
+        {
+          field: "topic",
+          message: "topic is required",
+        },
+        {
+          field: "fieldPath",
+          message: "fieldPath is required",
+        },
+        {
+          field: "historySeconds",
+          message: "historySeconds must be greater than or equal to 1",
+        },
+        {
+          field: "yMax",
+          message: "yMax must be greater than yMin",
+        },
+      ],
+    });
+  });
+
+  it("validates topic echo debug settings", () => {
+    expect(
+      normalizeWidgetSettings("topic-echo", {
+        fieldPath: "",
+        messageType: "sensor_msgs/msg/JointState",
+        topic: "/joint_states",
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        fieldPath: "",
+        maxMessages: 100,
+        messageType: "sensor_msgs/msg/JointState",
+        prettyPrint: true,
+        topic: "/joint_states",
+      },
     });
   });
 

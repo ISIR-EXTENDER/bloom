@@ -89,6 +89,25 @@ export type ToggleSettings = {
   topic?: string;
 };
 
+export type TopicEchoSettings = {
+  fieldPath: string;
+  maxMessages: number;
+  messageType: string;
+  prettyPrint: boolean;
+  topic: string;
+};
+
+export type TopicPlotSettings = {
+  fieldPath: string;
+  historySeconds: number;
+  maxSamples: number;
+  messageType: string;
+  topic: string;
+  unit: string;
+  yMax?: number;
+  yMin?: number;
+};
+
 export type UnknownWidgetSettings = Record<string, unknown>;
 
 const BUTTON_DEFAULT_SETTINGS: ButtonSettings = {};
@@ -138,6 +157,23 @@ const TOGGLE_DEFAULT_SETTINGS: ToggleSettings = {
   initialValue: false,
   offPayload: false,
   onPayload: true,
+};
+
+const TOPIC_ECHO_DEFAULT_SETTINGS: TopicEchoSettings = {
+  fieldPath: "",
+  maxMessages: 100,
+  messageType: "",
+  prettyPrint: true,
+  topic: "",
+};
+
+const TOPIC_PLOT_DEFAULT_SETTINGS: TopicPlotSettings = {
+  fieldPath: "data",
+  historySeconds: 30,
+  maxSamples: 500,
+  messageType: "",
+  topic: "",
+  unit: "",
 };
 
 const UNKNOWN_DEFAULT_SETTINGS: UnknownWidgetSettings = {};
@@ -222,6 +258,33 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     ],
     TOGGLE_DEFAULT_SETTINGS,
     validateToggleSettings,
+  ),
+  "topic-echo": createContract(
+    "topic-echo",
+    [
+      { key: "topic", label: "Topic", type: "text", required: true },
+      { key: "messageType", label: "Message type", type: "text", required: false },
+      { key: "fieldPath", label: "Field path", type: "text", required: false },
+      { key: "maxMessages", label: "Max messages", type: "number", required: true },
+      { key: "prettyPrint", label: "Pretty print", type: "boolean", required: true },
+    ],
+    TOPIC_ECHO_DEFAULT_SETTINGS,
+    validateTopicEchoSettings,
+  ),
+  "topic-plot": createContract(
+    "topic-plot",
+    [
+      { key: "topic", label: "Topic", type: "text", required: true },
+      { key: "messageType", label: "Message type", type: "text", required: false },
+      { key: "fieldPath", label: "Field path", type: "text", required: true },
+      { key: "historySeconds", label: "History duration", type: "number", required: true },
+      { key: "maxSamples", label: "Max samples", type: "number", required: true },
+      { key: "unit", label: "Unit", type: "text", required: false },
+      { key: "yMin", label: "Y minimum", type: "number", required: false },
+      { key: "yMax", label: "Y maximum", type: "number", required: false },
+    ],
+    TOPIC_PLOT_DEFAULT_SETTINGS,
+    validateTopicPlotSettings,
   ),
   unknown: createContract("unknown", [], UNKNOWN_DEFAULT_SETTINGS, validateUnknownSettings),
 };
@@ -510,6 +573,44 @@ function validateToggleSettings(settings: Record<string, unknown>): WidgetSettin
   }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as ToggleSettings);
+}
+
+function validateTopicEchoSettings(
+  settings: Record<string, unknown>,
+): WidgetSettingsValidationResult<TopicEchoSettings> {
+  const errors = [
+    ...validateString(settings, "topic"),
+    ...validateString(settings, "messageType", { allowEmpty: true }),
+    ...validateString(settings, "fieldPath", { allowEmpty: true }),
+    ...validateNumber(settings, "maxMessages", { min: 1 }),
+    ...validateBoolean(settings, "prettyPrint"),
+  ];
+  if (errors.length > 0) return fail(errors);
+  return succeed(settings as TopicEchoSettings);
+}
+
+function validateTopicPlotSettings(
+  settings: Record<string, unknown>,
+): WidgetSettingsValidationResult<TopicPlotSettings> {
+  const errors = [
+    ...validateString(settings, "topic"),
+    ...validateString(settings, "messageType", { allowEmpty: true }),
+    ...validateString(settings, "fieldPath"),
+    ...validateNumber(settings, "historySeconds", { min: 1 }),
+    ...validateNumber(settings, "maxSamples", { min: 1 }),
+    ...validateString(settings, "unit", { allowEmpty: true }),
+  ];
+  if ("yMin" in settings && settings.yMin !== undefined) {
+    errors.push(...validateNumber(settings, "yMin"));
+  }
+  if ("yMax" in settings && settings.yMax !== undefined) {
+    errors.push(...validateNumber(settings, "yMax"));
+  }
+  if (isNumber(settings.yMin) && isNumber(settings.yMax) && settings.yMin >= settings.yMax) {
+    errors.push({ field: "yMax", message: "yMax must be greater than yMin" });
+  }
+  if (errors.length > 0) return fail(errors);
+  return succeed(settings as TopicPlotSettings);
 }
 
 function validateUnknownSettings(

@@ -47,6 +47,8 @@ const DEFAULT_WIDGET_RENDERERS: readonly WidgetRendererRegistration[] = [
   { kind: "camera", render: PlaceholderWidget },
   { kind: "gauge", render: PlaceholderWidget },
   { kind: "plot", render: PlaceholderWidget },
+  { kind: "topic-echo", render: TopicDebugWidget },
+  { kind: "topic-plot", render: TopicDebugWidget },
   { kind: "unknown", render: PlaceholderWidget },
 ];
 
@@ -258,6 +260,19 @@ function PlaceholderWidget({ descriptor }: WidgetRendererProps) {
     <>
       <strong>{descriptor.widget.title}</strong>
       <span>{descriptor.definition.displayName}</span>
+    </>
+  );
+}
+
+function TopicDebugWidget({ descriptor }: WidgetRendererProps) {
+  const topic = getStringSetting(descriptor.widget.settings, "topic", "No topic configured");
+  const fieldPath = getStringSetting(descriptor.widget.settings, "fieldPath", "");
+
+  return (
+    <>
+      <strong>{descriptor.widget.title}</strong>
+      <span>{topic}</span>
+      <span>{fieldPath ? `field: ${fieldPath}` : descriptor.definition.displayName}</span>
     </>
   );
 }

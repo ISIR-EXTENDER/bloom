@@ -8,6 +8,8 @@ export type WidgetKind =
   | "plot"
   | "slider"
   | "toggle"
+  | "topic-echo"
+  | "topic-plot"
   | "unknown";
 
 export type WidgetConfig = {

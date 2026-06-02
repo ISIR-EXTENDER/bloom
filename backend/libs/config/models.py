@@ -16,6 +16,8 @@ class WidgetKind(str, Enum):
     PLOT = "plot"
     SLIDER = "slider"
     TOGGLE = "toggle"
+    TOPIC_ECHO = "topic-echo"
+    TOPIC_PLOT = "topic-plot"
     UNKNOWN = "unknown"
 
 

@@ -167,6 +167,17 @@ describe("widget renderer registry", () => {
       widgetKind: "joystick",
     });
   });
+
+  it("renders topic debug widgets with topic and field context", () => {
+    const descriptor = renderScreenDescriptors(topicPlotScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic plot descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByText("Velocity X")).toBeVisible();
+    expect(screen.getByText("/sandbox_controller/velocity_command")).toBeVisible();
+    expect(screen.getByText("field: velocity.x")).toBeVisible();
+  });
 });
 
 const sampleScreen: ScreenConfig = {
@@ -321,6 +332,36 @@ const joystickScreen: ScreenConfig = {
           right: "X+",
           top: "Y+",
         },
+      },
+    },
+  ],
+};
+
+const topicPlotScreen: ScreenConfig = {
+  id: "debug",
+  title: "Debug",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "velocity-x",
+      kind: "topic-plot",
+      title: "Velocity X",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 480,
+        height: 260,
+      },
+      settings: {
+        fieldPath: "velocity.x",
+        historySeconds: 30,
+        maxSamples: 500,
+        messageType: "geometry_msgs/msg/Twist",
+        topic: "/sandbox_controller/velocity_command",
+        unit: "m/s",
       },
     },
   ],
