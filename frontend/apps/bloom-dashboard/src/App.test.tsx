@@ -2,6 +2,7 @@ import type { ConfigurationBundle } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import compactSandboxConfiguration from "../../../../backend/data/configurations/sandbox.json";
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
@@ -341,6 +342,45 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
     expect(screen.getByText("Camera Stream")).toBeVisible();
     expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
+  });
+
+  it("opens the builder from compact backend JSON without rendering a blank screen", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            sandbox: compactSandboxConfiguration as unknown as ConfigurationBundle,
+          },
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+
+    expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "0, 0")).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "240 x 120")).toBeVisible();
+  });
+
+  it("renders real legacy toggle settings when optional payload fields are missing", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "petanque-admin": migratedPetanqueAdminConfiguration as ConfigurationBundle,
+          },
+          ids: ["petanque-admin"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Select and move Gripper Control widget" }));
+
+    expect(screen.getByLabelText("Output topic")).toHaveValue("/cmd/gripper");
+    expect(screen.getByLabelText("ON payload")).toHaveValue("");
+    expect(screen.getByLabelText("OFF payload")).toHaveValue("");
   });
 
   it("renders an empty configuration state inside the main app", async () => {

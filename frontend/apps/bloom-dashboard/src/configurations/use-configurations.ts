@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { ConfigurationClient } from "./configuration-client";
 import { type LoadedConfiguration, loadConfigurations } from "./configuration-loader";
+import { normalizeConfigurationBundle } from "./configuration-normalizer";
 
 type SaveConfiguration = (configId: string, bundle: ConfigurationBundle) => Promise<LoadedConfiguration>;
 
@@ -16,7 +17,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
 
   const saveConfiguration = useCallback<SaveConfiguration>(
     async (configId, bundle) => {
-      const savedBundle = await client.upsertConfiguration(configId, bundle);
+      const savedBundle = normalizeConfigurationBundle(await client.upsertConfiguration(configId, bundle));
       const savedConfiguration = { id: configId, bundle: savedBundle };
 
       setState((currentState) => {

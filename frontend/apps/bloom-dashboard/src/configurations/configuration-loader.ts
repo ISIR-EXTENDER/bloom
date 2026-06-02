@@ -1,6 +1,7 @@
 import type { ConfigurationBundle } from "@bloom/api-client";
 
 import type { ConfigurationClient } from "./configuration-client";
+import { normalizeConfigurationBundle } from "./configuration-normalizer";
 
 export type LoadedConfiguration = {
   id: string;
@@ -12,7 +13,7 @@ export async function loadConfigurations(client: ConfigurationClient): Promise<L
   return Promise.all(
     configurationIds.map(async (id) => ({
       id,
-      bundle: await client.getConfiguration(id),
+      bundle: normalizeConfigurationBundle(await client.getConfiguration(id)),
     })),
   );
 }

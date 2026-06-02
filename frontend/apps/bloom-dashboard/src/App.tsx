@@ -15,6 +15,7 @@ import { useConfigurations } from "./configurations/use-configurations";
 import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
+import { AppErrorBoundary } from "./ui/AppErrorBoundary";
 import {
   getInitialWorkspaceSelection,
   resolveSelectedWorkspace,
@@ -71,18 +72,20 @@ export function App({
       <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
         <ProductNavigation activeView={activeView} onChangeView={setActiveView} />
 
-        {activeView === "landing" ? (
-          <LandingPage onOpenView={setActiveView} />
-        ) : (
-          <MainApplicationView
-            activeView={activeView}
-            onRuntimeIntent={handleRuntimeIntent}
-            onSaveBuilderScreen={handleSaveBuilderScreen}
-            onSelectionChange={setSelection}
-            selection={selection}
-            state={configurationState}
-          />
-        )}
+        <AppErrorBoundary resetKey={activeView}>
+          {activeView === "landing" ? (
+            <LandingPage onOpenView={setActiveView} />
+          ) : (
+            <MainApplicationView
+              activeView={activeView}
+              onRuntimeIntent={handleRuntimeIntent}
+              onSaveBuilderScreen={handleSaveBuilderScreen}
+              onSelectionChange={setSelection}
+              selection={selection}
+              state={configurationState}
+            />
+          )}
+        </AppErrorBoundary>
       </main>
     </BloomThemeProvider>
   );
