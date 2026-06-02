@@ -587,9 +587,14 @@ h1 {
   justify-content: center;
 }
 
-.runtime-app-artboard {
+.runtime-app-artboard-frame {
   position: relative;
   flex: 0 0 auto;
+  overflow: visible;
+}
+
+.runtime-app-artboard {
+  position: relative;
   min-width: 720px;
   min-height: 520px;
   overflow: hidden;
@@ -598,6 +603,7 @@ h1 {
   background:
     radial-gradient(circle at top right, rgba(127, 150, 126, 0.12), transparent 30%), var(--bloom-surface-container-low);
   box-shadow: inset 0 0 0 1px rgba(255, 253, 247, 0.7);
+  transform-origin: top left;
 }
 
 .runtime-coming-soon {

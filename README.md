@@ -14,8 +14,8 @@ Bloom is currently in foundation work before the full UI/database migration:
 
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
-- Runtime preview records widget action intents so controls can be tested visually before ROS adapters are connected.
-- Runtime topic-publish intents can now dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
+- Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
+- Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Next major pieces are the real screen builder, runtime app routes, SQLite-backed app management, ROS adapters, and richer topic visualization.
 
@@ -28,20 +28,22 @@ bloom/
       bloom-dashboard/
     libs/
       api-client/
-      ros-bridge/
       ui/
       widgets/
+      widget-renderers/
   backend/
     apps/
       bloom_api/
+      bloom_cli/
     libs/
+      config/
       db/
-      devices/
-      logging/
       ros_adapters/
-      sessions/
   docs/
 ```
+
+Planned libraries such as frontend transport bridges, backend device abstractions, runtime sessions, and structured
+logging should be added only when the corresponding migration slice needs them.
 
 ## Architecture Rules
 

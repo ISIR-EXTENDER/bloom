@@ -1,10 +1,22 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { renderScreenWidgets, type WidgetActionIntentHandler } from "@bloom/widget-renderers";
-import { createDefaultWidgetRegistry, renderScreenDescriptors, resolveCanvasArtboardSize } from "@bloom/widgets";
+import {
+  createDefaultWidgetRegistry,
+  renderScreenDescriptors,
+  resolveCanvasArtboardSize,
+  resolveCanvasFitScale,
+} from "@bloom/widgets";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 
 const widgetRegistry = createDefaultWidgetRegistry();
+const FIT_OVERFLOW_GUARD = 0.99;
+
+type RuntimeViewportSize = {
+  height: number;
+  width: number;
+};
 
 type RuntimeWorkspaceProps = {
   application: ApplicationConfig;
@@ -21,8 +33,44 @@ export function RuntimeWorkspace({
   screen,
   selection,
 }: RuntimeWorkspaceProps) {
+  const canvasViewportRef = useRef<HTMLDivElement | null>(null);
+  const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const descriptors = renderScreenDescriptors(screen, widgetRegistry);
   const artboardSize = resolveCanvasArtboardSize(screen.widgets, screen.canvas);
+  const artboardScale = useMemo(() => {
+    const rawScale = resolveCanvasFitScale(screen.canvas, artboardSize, viewportSize);
+
+    return screen.canvas.runtime_mode === "fit" ? rawScale * FIT_OVERFLOW_GUARD : rawScale;
+  }, [artboardSize, screen.canvas, viewportSize]);
+  const scaledArtboardSize = useMemo(
+    () => ({
+      height: Math.max(1, Math.floor(artboardSize.height * artboardScale)),
+      width: Math.max(1, Math.floor(artboardSize.width * artboardScale)),
+    }),
+    [artboardScale, artboardSize],
+  );
+
+  useEffect(() => {
+    const viewport = canvasViewportRef.current;
+    if (!viewport) {
+      return;
+    }
+
+    const updateViewportSize = () => {
+      setViewportSize(measureViewportSize(viewport));
+    };
+
+    updateViewportSize();
+
+    const resizeObserver = new ResizeObserver(updateViewportSize);
+    resizeObserver.observe(viewport);
+    window.addEventListener("resize", updateViewportSize);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateViewportSize);
+    };
+  }, []);
 
   return (
     <section className="runtime-app-workspace" aria-label="Runtime application">
@@ -56,24 +104,67 @@ export function RuntimeWorkspace({
       </header>
 
       <div className="runtime-app-canvas-shell">
-        <div className="runtime-app-canvas-viewport" data-runtime-mode={screen.canvas.runtime_mode}>
+        <div
+          className="runtime-app-canvas-viewport"
+          data-runtime-mode={screen.canvas.runtime_mode}
+          ref={canvasViewportRef}
+        >
           <div
-            className="runtime-app-artboard"
+            className="runtime-app-artboard-frame"
             style={{
-              width: `${artboardSize.width}px`,
-              height: `${artboardSize.height}px`,
+              height: `${scaledArtboardSize.height}px`,
+              width: `${scaledArtboardSize.width}px`,
             }}
           >
-            {screen.widgets.length === 0 ? (
-              <RuntimeComingSoonMessage screen={screen} />
-            ) : (
-              renderScreenWidgets(descriptors, { onActionIntent })
-            )}
+            <div
+              className="runtime-app-artboard"
+              data-testid="runtime-artboard"
+              style={{
+                height: `${artboardSize.height}px`,
+                transform: `scale(${artboardScale})`,
+                width: `${artboardSize.width}px`,
+              }}
+            >
+              {screen.widgets.length === 0 ? (
+                <RuntimeComingSoonMessage screen={screen} />
+              ) : (
+                renderScreenWidgets(descriptors, { onActionIntent })
+              )}
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
+}
+
+function measureViewportSize(viewport: HTMLDivElement): RuntimeViewportSize {
+  const style = window.getComputedStyle(viewport);
+  const horizontalPadding = readCssPixelValue(style.paddingLeft) + readCssPixelValue(style.paddingRight);
+  const verticalPadding = readCssPixelValue(style.paddingTop) + readCssPixelValue(style.paddingBottom);
+  const windowSize = getWindowViewportSize();
+
+  return {
+    height: Math.max(1, (viewport.clientHeight || windowSize.height) - verticalPadding),
+    width: Math.max(1, (viewport.clientWidth || windowSize.width) - horizontalPadding),
+  };
+}
+
+function getWindowViewportSize(): RuntimeViewportSize {
+  if (typeof window === "undefined") {
+    return { height: 1, width: 1 };
+  }
+
+  return {
+    height: Math.max(1, window.innerHeight),
+    width: Math.max(1, window.innerWidth),
+  };
+}
+
+function readCssPixelValue(value: string): number {
+  const parsedValue = Number.parseFloat(value);
+
+  return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
 function RuntimeComingSoonMessage({ screen }: { screen: ScreenConfig }) {

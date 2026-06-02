@@ -122,6 +122,24 @@ describe("App", () => {
     });
   });
 
+  it("fits the runtime canvas into the available application viewport", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    const artboard = await screen.findByTestId("runtime-artboard");
+    const artboardFrame = artboard.parentElement;
+    const frameWidth = Number.parseInt(artboardFrame?.style.width ?? "0", 10);
+    const frameHeight = Number.parseInt(artboardFrame?.style.height ?? "0", 10);
+
+    expect(artboard).toHaveStyle({ height: "720px", width: "1280px" });
+    expect(artboard.style.transform).toMatch(/^scale\(0\.\d+\)$/);
+    expect(frameWidth).toBeGreaterThan(1);
+    expect(frameWidth).toBeLessThan(1280);
+    expect(frameHeight).toBeGreaterThan(1);
+    expect(frameHeight).toBeLessThan(720);
+  });
+
   it("shows a safe coming soon state for empty runtime screens", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
