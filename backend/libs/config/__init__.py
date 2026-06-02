@@ -16,6 +16,7 @@ from libs.config.repository import (
     FileConfigurationRepository,
     InMemoryConfigurationRepository,
 )
+from libs.config.storage import ConfigurationStorageKind, create_configuration_repository
 from libs.config.sqlite_repository import SQLiteConfigurationRepository
 from libs.config.json_io import (
     configuration_to_dict,
@@ -41,6 +42,7 @@ __all__ = [
     "ConfigurationMetadata",
     "ConfigurationNotFoundError",
     "ConfigurationRepository",
+    "ConfigurationStorageKind",
     "FileConfigurationRepository",
     "InMemoryConfigurationRepository",
     "RuntimeCanvasMode",
@@ -50,6 +52,7 @@ __all__ = [
     "WidgetKind",
     "WidgetLayout",
     "configuration_to_dict",
+    "create_configuration_repository",
     "dump_configuration_json",
     "load_configuration_file",
     "load_configuration_json",

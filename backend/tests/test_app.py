@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from apps.bloom_api.main import create_app, create_configuration_repository
+from apps.bloom_api.main import create_app, create_app_configuration_repository
 from apps.bloom_api.settings import Settings
 from libs.config import FileConfigurationRepository, InMemoryConfigurationRepository, SQLiteConfigurationRepository
 
@@ -49,6 +49,6 @@ def test_create_app_can_use_sqlite_repository(test_settings: Settings, tmp_path)
 
 def test_configuration_repository_factory_keeps_file_storage_as_fallback(test_settings: Settings, tmp_path) -> None:
     settings = test_settings.model_copy(update={"configuration_dir": tmp_path, "configuration_storage": "file"})
-    repository = create_configuration_repository(settings)
+    repository = create_app_configuration_repository(settings)
 
     assert isinstance(repository, FileConfigurationRepository)

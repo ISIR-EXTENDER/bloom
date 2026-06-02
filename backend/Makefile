@@ -12,6 +12,10 @@ cli: ## Show Bloom backend CLI help
 api: ## Show Bloom API CLI help
 	@uv run python -m apps.bloom_cli.main api
 
+.PHONY: config
+config: ## Show Bloom configuration CLI help
+	@uv run python -m apps.bloom_cli.main config
+
 .PHONY: api-run
 api-run: ## Run the Bloom API locally through the CLI
 	@uv run python -m apps.bloom_cli.main api run --reload

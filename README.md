@@ -69,9 +69,11 @@ Useful backend commands:
 | `make test` | Run backend tests through `uv`. |
 | `make cli` | Show Bloom CLI help. |
 | `make api` | Show Bloom API CLI help. |
+| `make config` | Show Bloom configuration storage CLI help. |
 | `make run` | Run the Bloom API locally with reload. |
 | `make api-run` | Explicit alias for running the Bloom API locally. |
 | `uv run python -m apps.bloom_cli.main version` | Print the backend version directly through Typer. |
+| `uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db` | List configuration IDs from SQLite storage. |
 
 Frontend:
 
