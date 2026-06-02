@@ -3,7 +3,9 @@ from pathlib import Path
 import typer
 import uvicorn
 
+from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import get_settings
+from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
 from libs.config import (
     ApplicationConfig,
     ConfigurationNotFoundError,
@@ -73,6 +75,30 @@ def run_api(
         port=port,
         reload=reload,
     )
+
+
+@api_cli.command("run-ros")
+def run_ros_api(
+    host: str = typer.Option("127.0.0.1", "--host", help="Host interface to bind."),
+    port: int = typer.Option(8000, "--port", min=1, max=65535, help="Port to bind."),
+    node_name: str = typer.Option("bloom_api", "--node-name", help="ROS node name used by the API publisher gateway."),
+) -> None:
+    """Run the Bloom API with a ROS topic publisher gateway."""
+    try:
+        import rclpy
+        from rclpy.node import Node
+    except ModuleNotFoundError as exc:
+        typer.echo("ROS 2 Python packages are not available. Source a ROS environment before running this command.", err=True)
+        raise typer.Exit(code=1) from exc
+
+    rclpy.init()
+    node = Node(node_name)
+    try:
+        app = create_app(ros_publisher_gateway=RclpyRosPublisherGateway(node))
+        uvicorn.run(app, host=host, port=port, reload=False)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 def open_configuration_repository(

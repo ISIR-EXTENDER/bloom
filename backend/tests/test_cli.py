@@ -34,6 +34,7 @@ def test_api_without_args_shows_help() -> None:
     assert result.exit_code == 0
     assert "Run and inspect the Bloom API." in result.stdout
     assert "run" in result.stdout
+    assert "run-ros" in result.stdout
 
 
 def test_config_without_args_shows_help() -> None:

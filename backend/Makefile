@@ -20,6 +20,10 @@ config: ## Show Bloom configuration CLI help
 api-run: ## Run the Bloom API locally through the CLI
 	@uv run python -m apps.bloom_cli.main api run --reload
 
+.PHONY: ros-run
+ros-run: ## Run the Bloom API with a ROS publisher gateway
+	@uv run python -m apps.bloom_cli.main api run-ros
+
 .PHONY: run
 run: ## Run the Bloom API locally
 	@$(MAKE) -s api-run
