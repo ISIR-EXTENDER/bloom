@@ -44,9 +44,9 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "App theme" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Main/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open Main screen builder" })).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: /Main/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Main screen builder" }));
 
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
@@ -94,11 +94,53 @@ describe("App", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
   });
 
+  it("adds an existing screen to the current app from app configuration", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        sandbox: createBundleWithReusableScreen(),
+      },
+    });
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.click(screen.getByRole("button", { name: "Add Camera Feed to app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+
+    expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("camera-feed");
+    expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
+  });
+
+  it("removes a screen from the current app configuration", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Diagnostics from app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+
+    expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).not.toContain("diagnostics");
+    expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("main");
+  });
+
   it("switches screens inside the builder workspace", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     await openAppConfig();
-    fireEvent.click(await screen.findByRole("button", { name: /Diagnostics/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Diagnostics screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
     expect(screen.getByText("/teleop_cmd")).toBeVisible();
@@ -109,7 +151,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     await openAppConfig();
-    fireEvent.click(await screen.findByRole("button", { name: /Placeholder/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Placeholder screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Placeholder" })).toBeVisible();
     expect(screen.getByRole("region", { name: "Screen implementation coming soon" })).toBeVisible();
@@ -383,7 +425,7 @@ describe("App", () => {
     await openPetanqueAppConfig();
 
     expect(await screen.findByRole("heading", { level: 1, name: "app-petanque-admin" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: /default_control/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open default_control screen builder" }));
     expect(screen.getByRole("heading", { level: 2, name: "default_control" })).toBeVisible();
     expect(screen.getAllByText("RZ").length).toBeGreaterThan(0);
     expect(screen.getByText("Z")).toBeVisible();
@@ -393,7 +435,7 @@ describe("App", () => {
     expect(screen.getAllByText(/Slider/).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Back to app config" }));
-    fireEvent.click(screen.getByRole("button", { name: /default_live_teleop/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open default_live_teleop screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
     expect(screen.getByText("Camera Stream")).toBeVisible();
@@ -581,9 +623,52 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
   };
 }
 
+function createBundleWithReusableScreen(): ConfigurationBundle {
+  const bundle = createConfigurationBundle("sandbox");
+
+  return {
+    ...bundle,
+    applications: [
+      ...bundle.applications,
+      {
+        id: "shared-screens",
+        name: "Shared screens",
+        description: "Reusable screen library for tests",
+        theme: DEFAULT_APPLICATION_THEME,
+        screens: [
+          {
+            id: "camera-feed",
+            title: "Camera Feed",
+            canvas: {
+              preset_id: "tablet",
+              runtime_mode: "fit",
+            },
+            widgets: [
+              {
+                id: "camera",
+                kind: "camera",
+                title: "Camera Stream",
+                layout: {
+                  x: 32,
+                  y: 48,
+                  width: 480,
+                  height: 300,
+                },
+                settings: {
+                  topic: "/camera/image/compressed",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
 async function openDefaultScreenBuilder() {
   await openAppConfig();
-  fireEvent.click(await screen.findByRole("button", { name: /Main/i }));
+  fireEvent.click(await screen.findByRole("button", { name: "Open Main screen builder" }));
 }
 
 async function openAppConfig() {
@@ -598,7 +683,7 @@ async function openPetanqueAppConfig() {
 
 async function openPetanqueScreenBuilder(screenName: string) {
   await openPetanqueAppConfig();
-  fireEvent.click(await screen.findByRole("button", { name: new RegExp(screenName, "i") }));
+  fireEvent.click(await screen.findByRole("button", { name: `Open ${screenName} screen builder` }));
 }
 
 async function moveDigitalOutputWidget() {

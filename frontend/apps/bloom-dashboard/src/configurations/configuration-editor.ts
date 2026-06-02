@@ -39,6 +39,32 @@ export function replaceApplicationInConfigurationBundle(
   };
 }
 
+export function addScreenToApplication(application: ApplicationConfig, screen: ScreenConfig): ApplicationConfig {
+  if (application.screens.some((candidateScreen) => candidateScreen.id === screen.id)) {
+    throw new Error(`Screen "${screen.id}" already exists in application "${application.id}".`);
+  }
+
+  return {
+    ...application,
+    screens: [...application.screens, structuredClone(screen)],
+  };
+}
+
+export function removeScreenFromApplication(application: ApplicationConfig, screenId: string): ApplicationConfig {
+  if (!application.screens.some((candidateScreen) => candidateScreen.id === screenId)) {
+    throw new Error(`Screen "${screenId}" was not found in application "${application.id}".`);
+  }
+
+  if (application.screens.length <= 1) {
+    throw new Error(`Application "${application.id}" must keep at least one screen.`);
+  }
+
+  return {
+    ...application,
+    screens: application.screens.filter((screen) => screen.id !== screenId),
+  };
+}
+
 export function replaceScreenInConfigurationBundle(
   bundle: ConfigurationBundle,
   applicationId: string,

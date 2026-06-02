@@ -297,6 +297,11 @@ h1 {
   text-align: left;
 }
 
+.builder-screen-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
 .builder-app-card:hover,
 .builder-screen-card:hover {
   border-color: color-mix(in srgb, var(--bloom-primary) 46%, var(--bloom-border));
@@ -317,6 +322,55 @@ h1 {
 .builder-app-card span,
 .builder-screen-card span,
 .builder-screen-card small {
+  color: var(--bloom-ink-soft);
+}
+
+.builder-screen-membership {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  align-items: start;
+}
+
+.builder-screen-membership h3 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 1rem;
+}
+
+.builder-screen-card-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.builder-screen-card-actions button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 999px;
+  background: var(--bloom-surface-container-low);
+  color: var(--bloom-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.builder-screen-card-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.builder-screen-card-actions .builder-screen-action-danger {
+  color: color-mix(in srgb, #9a3428 82%, var(--bloom-ink));
+}
+
+.builder-empty-state {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--bloom-border);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 70%, transparent);
   color: var(--bloom-ink-soft);
 }
 
@@ -1332,6 +1386,8 @@ h1 {
 
   .hero,
   .main-application-grid,
+  .builder-app-config-grid,
+  .builder-screen-membership,
   .builder-workspace {
     grid-template-columns: 1fr;
   }

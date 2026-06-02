@@ -1,5 +1,6 @@
-import type { ApplicationConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { useEffect, useState } from "react";
+import { addScreenToApplication, removeScreenFromApplication } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 
@@ -28,6 +29,9 @@ export function BuilderAppConfig({
   const { application } = selectedWorkspace;
   const [draftApplication, setDraftApplication] = useState(application);
   const [saveState, setSaveState] = useState<AppSaveState>({ status: "idle" });
+  const availableScreens = collectAvailableScreens(selectedWorkspace.bundle.applications);
+  const assignedScreenIds = new Set(draftApplication.screens.map((screen) => screen.id));
+  const unassignedScreens = availableScreens.filter((screen) => !assignedScreenIds.has(screen.id));
   const isDirty = JSON.stringify(draftApplication) !== JSON.stringify(application);
   const isSaving = saveState.status === "saving";
 
@@ -48,6 +52,16 @@ export function BuilderAppConfig({
     } catch (error) {
       setSaveState({ status: "error", message: getErrorMessage(error) });
     }
+  };
+
+  const addScreen = (screen: ScreenConfig) => {
+    setDraftApplication((currentApplication) => addScreenToApplication(currentApplication, screen));
+    setSaveState({ status: "idle" });
+  };
+
+  const removeScreen = (screenId: string) => {
+    setDraftApplication((currentApplication) => removeScreenFromApplication(currentApplication, screenId));
+    setSaveState({ status: "idle" });
   };
 
   return (
@@ -145,32 +159,98 @@ export function BuilderAppConfig({
             <p className="eyebrow">Screens</p>
             <h2 id="builder-screens-title">Screen list</h2>
           </div>
-          <div className="builder-screen-cards">
-            {application.screens.map((screen) => (
-              <button
-                className="builder-screen-card"
-                key={screen.id}
-                onClick={() =>
-                  onOpenScreenBuilder({
-                    appId: application.id,
-                    configId: selectedWorkspace.configuration.id,
-                    screenId: screen.id,
-                  })
-                }
-                type="button"
-              >
-                <strong>{screen.title}</strong>
-                <span>
-                  {screen.widgets.length} widgets · {screen.canvas.preset_id}
-                </span>
-                <small>Open screen builder</small>
-              </button>
-            ))}
+          <div className="builder-screen-membership">
+            <div>
+              <h3>Screens in this app</h3>
+              <div className="builder-screen-cards">
+                {draftApplication.screens.map((screen) => (
+                  <article className="builder-screen-card" key={screen.id}>
+                    <div>
+                      <strong>{screen.title}</strong>
+                      <span>
+                        {screen.widgets.length} widgets · {screen.canvas.preset_id}
+                      </span>
+                    </div>
+                    <div className="builder-screen-card-actions">
+                      <button
+                        aria-label={`Open ${screen.title} screen builder`}
+                        disabled={isDirty || isSaving}
+                        onClick={() =>
+                          onOpenScreenBuilder({
+                            appId: application.id,
+                            configId: selectedWorkspace.configuration.id,
+                            screenId: screen.id,
+                          })
+                        }
+                        type="button"
+                      >
+                        Open builder
+                      </button>
+                      <button
+                        aria-label={`Remove ${screen.title} from app`}
+                        className="builder-screen-action-danger"
+                        disabled={draftApplication.screens.length <= 1 || isSaving}
+                        onClick={() => removeScreen(screen.id)}
+                        type="button"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3>Available screens</h3>
+              <div className="builder-screen-cards">
+                {unassignedScreens.length === 0 ? (
+                  <p className="builder-empty-state">
+                    All existing screens from this configuration are already in this app.
+                  </p>
+                ) : (
+                  unassignedScreens.map((screen) => (
+                    <article className="builder-screen-card" key={screen.id}>
+                      <div>
+                        <strong>{screen.title}</strong>
+                        <span>
+                          {screen.widgets.length} widgets · {screen.canvas.preset_id}
+                        </span>
+                      </div>
+                      <div className="builder-screen-card-actions">
+                        <button
+                          aria-label={`Add ${screen.title} to app`}
+                          disabled={isSaving}
+                          onClick={() => addScreen(screen)}
+                          type="button"
+                        >
+                          Add to app
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </section>
       </div>
     </section>
   );
+}
+
+function collectAvailableScreens(applications: readonly ApplicationConfig[]): ScreenConfig[] {
+  const screensById = new Map<string, ScreenConfig>();
+
+  for (const application of applications) {
+    for (const screen of application.screens) {
+      if (!screensById.has(screen.id)) {
+        screensById.set(screen.id, screen);
+      }
+    }
+  }
+
+  return [...screensById.values()];
 }
 
 function AppSaveStatus({ state }: { state: AppSaveState }) {

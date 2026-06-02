@@ -34,6 +34,17 @@ Bloom should separate product entry points from robot interface execution:
 Screen previews, canvas builders, and runtime apps should not live permanently on the landing page. They can appear there
 temporarily during migration only as development previews.
 
+## Builder Composition
+
+The builder has two product levels:
+
+- App configuration: edits app identity, app-level design tokens, and which existing screens belong to the app.
+- Screen builder: edits one selected screen in a full-page WYSIWYG canvas with builder-only controls.
+
+Until Bloom introduces a dedicated screen-library persistence model, the app configuration page derives available screens
+from the selected configuration bundle. SQLite migrations should keep that UX stable while moving storage from bundled
+JSON documents toward normalized app and screen records.
+
 ## Dependency Direction
 
 Apps may depend on libs. Libs should not depend on apps.
