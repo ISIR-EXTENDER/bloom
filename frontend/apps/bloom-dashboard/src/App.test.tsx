@@ -37,7 +37,7 @@ describe("App", () => {
   it("switches screens inside the builder workspace", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Builder\s*Compose screens/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
     fireEvent.click(await screen.findByRole("button", { name: /Diagnostics/i }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
@@ -48,7 +48,7 @@ describe("App", () => {
   it("records runtime action intents from interactive widgets", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Runtime\s*Operate and inspect/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
     fireEvent.click(await screen.findByRole("button", { name: "Send" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Action intents" })).toBeVisible();
@@ -59,7 +59,7 @@ describe("App", () => {
   it("renders an empty configuration state inside the main app", async () => {
     render(<App configurationClient={createConfigurationClient({ ids: [] })} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Builder\s*Compose screens/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
 
     expect(await screen.findByText("No configurations found yet.")).toBeVisible();
   });
@@ -67,7 +67,7 @@ describe("App", () => {
   it("renders configuration loading failures inside the main app", async () => {
     render(<App configurationClient={createConfigurationClient({ error: new Error("API unavailable") })} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Builder\s*Compose screens/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("API unavailable");
   });

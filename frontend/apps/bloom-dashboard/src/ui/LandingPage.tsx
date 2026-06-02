@@ -1,3 +1,5 @@
+import { BloomButton, BloomCard } from "@bloom/ui";
+
 import { dashboardPrinciples, dashboardSteps } from "../app/dashboard-content";
 import type { ProductView } from "./ProductNavigation";
 
@@ -9,7 +11,7 @@ export function LandingPage({ onOpenView }: LandingPageProps) {
   return (
     <>
       <section className="hero" aria-labelledby="dashboard-title">
-        <div className="hero-card">
+        <BloomCard className="hero-card" tone="canvas">
           <p className="eyebrow">Bloom dashboard</p>
           <h1 id="dashboard-title">Robot interfaces that grow cleanly.</h1>
           <p className="hero-copy">
@@ -17,31 +19,29 @@ export function LandingPage({ onOpenView }: LandingPageProps) {
             ISIR projects.
           </p>
           <div className="hero-actions">
-            <button className="primary-action" onClick={() => onOpenView("builder")} type="button">
+            <BloomButton onClick={() => onOpenView("builder")} tone="primary">
               Open builder preview
-            </button>
-            <button className="secondary-action" onClick={() => onOpenView("runtime")} type="button">
-              Open runtime preview
-            </button>
+            </BloomButton>
+            <BloomButton onClick={() => onOpenView("runtime")}>Open runtime preview</BloomButton>
           </div>
-        </div>
+        </BloomCard>
 
-        <aside className="principles-card" aria-labelledby="principles-title">
+        <BloomCard className="principles-card" tone="soft">
           <h2 id="principles-title">Architecture promises</h2>
           <ul>
             {dashboardPrinciples.map((principle) => (
               <li key={principle}>{principle}</li>
             ))}
           </ul>
-        </aside>
+        </BloomCard>
       </section>
 
       <section className="steps" aria-label="Bloom workflow">
         {dashboardSteps.map((step) => (
-          <article className="step-card" key={step.id}>
+          <BloomCard className="step-card" key={step.id} tone="soft">
             <h2>{step.title}</h2>
             <p>{step.description}</p>
-          </article>
+          </BloomCard>
         ))}
       </section>
     </>
