@@ -6,7 +6,7 @@ import {
   type WidgetRenderDescriptor,
 } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { type JoystickLabels, JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
 
 export type WidgetRendererProps = {
@@ -89,7 +89,8 @@ export function renderWidgetDescriptor(
     );
   }
 
-  return renderer({ descriptor, onActionIntent: options.onActionIntent });
+  const Renderer = renderer;
+  return <Renderer descriptor={descriptor} onActionIntent={options.onActionIntent} />;
 }
 
 export function renderScreenWidgets(
@@ -130,10 +131,17 @@ function WidgetFrame({
   );
 }
 
-function CommandLikeWidget({ descriptor }: WidgetRendererProps) {
+function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+  const handlePress = () => {
+    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
+  };
+
   return (
     <>
       <strong>{descriptor.widget.title}</strong>
+      <button className="bloom-command-button" onClick={handlePress} type="button">
+        Send
+      </button>
       <span>{descriptor.definition.displayName}</span>
     </>
   );
@@ -150,12 +158,27 @@ function LabelWidget({ descriptor }: WidgetRendererProps) {
   );
 }
 
-function ToggleWidget({ descriptor }: WidgetRendererProps) {
+function ToggleWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
+  const [isOn, setIsOn] = useState(getBooleanSetting(descriptor.widget.settings, "initialValue", false));
+
+  const handleToggle = () => {
+    const nextState = isOn ? "off" : "on";
+    setIsOn(nextState === "on");
+    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
+  };
 
   return (
     <>
       <strong>{descriptor.widget.title}</strong>
+      <button
+        aria-pressed={isOn}
+        className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
+        onClick={handleToggle}
+        type="button"
+      >
+        {isOn ? "ON" : "OFF"}
+      </button>
       <span>{topic || descriptor.definition.displayName}</span>
     </>
   );
@@ -256,6 +279,11 @@ function getStringSetting(settings: Record<string, unknown>, key: string, fallba
 function getNumberSetting(settings: Record<string, unknown>, key: string, fallback: number): number {
   const value = settings[key];
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function getBooleanSetting(settings: Record<string, unknown>, key: string, fallback: boolean): boolean {
+  const value = settings[key];
+  return typeof value === "boolean" ? value : fallback;
 }
 
 function getJoystickLabels(settings: Record<string, unknown>): JoystickLabels {

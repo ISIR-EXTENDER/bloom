@@ -110,6 +110,45 @@ describe("widget renderer registry", () => {
     });
   });
 
+  it("emits command intents from command buttons", async () => {
+    const descriptor = renderScreenDescriptors(commandButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing command button descriptor.");
+    const onActionIntent = vi.fn();
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    await user.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(onActionIntent).toHaveBeenCalledWith({
+      command: "activate_throw",
+      type: "command",
+      widgetId: "activate-throw",
+      widgetKind: "command-button",
+    });
+  });
+
+  it("emits topic publish intents from toggles", async () => {
+    const descriptor = renderScreenDescriptors(toggleScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing toggle descriptor.");
+    const onActionIntent = vi.fn();
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    await user.click(screen.getByRole("button", { name: "OFF" }));
+
+    expect(onActionIntent).toHaveBeenCalledWith({
+      nextState: "on",
+      payload: "{data: [13, 1]}",
+      payloadText: "{data: [13, 1]}",
+      topic: "/ui/ros_toggle",
+      type: "topic-publish",
+      widgetId: "ros-toggle",
+      widgetKind: "toggle",
+    });
+  });
+
   it("emits vector value-change intents from interactive joysticks", async () => {
     const descriptor = renderScreenDescriptors(joystickScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing joystick descriptor.");
@@ -197,6 +236,59 @@ const sliderScreen: ScreenConfig = {
         max: 2,
         min: 0,
         step: 0.01,
+      },
+    },
+  ],
+};
+
+const commandButtonScreen: ScreenConfig = {
+  id: "actions",
+  title: "Actions",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "activate-throw",
+      kind: "command-button",
+      title: "Activate throw",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 180,
+        height: 72,
+      },
+      settings: {
+        command: "activate_throw",
+      },
+    },
+  ],
+};
+
+const toggleScreen: ScreenConfig = {
+  id: "devices",
+  title: "Devices",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "ros-toggle",
+      kind: "toggle",
+      title: "Digital output",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 220,
+        height: 96,
+      },
+      settings: {
+        initialValue: false,
+        offPayload: "{data: [13, 0]}",
+        onPayload: "{data: [13, 1]}",
+        topic: "/ui/ros_toggle",
       },
     },
   ],

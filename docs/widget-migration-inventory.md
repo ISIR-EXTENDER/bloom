@@ -26,6 +26,7 @@ Bloom should migrate reusable primitives from both generations, but the canvas g
 | `stream-display` | Generic stream viewer | Camera, RViz, visualization, webcam, image result, and iframe use cases are reusable. |
 | `curves` / old `curvesPlots` | Generic plot/timeseries widget | Recharts-based telemetry plotting can serve many apps. |
 | `logs` / old logs widgets | Generic log/event viewer | Runtime logs, sessions, recording status, and diagnostics are lab-wide needs. |
+| topic visualization / topic echo | Generic debug and supervision widgets | Minimal PlotJuggler-like timeseries and console-style topic echo views are key for robot debugging. |
 | `text` / `textarea` | Generic label/text block widgets | Needed for status, instructions, JSON results, and formatted output. |
 | `navigation-button` / `navigation-bar` | Generic app navigation widgets | Builder/runtime app navigation needs this independently from robot logic. |
 | `rosbag-control` | Generic recording/session command widget | Could control rosbag or other recording/session backends. |
@@ -62,6 +63,8 @@ The widget UI can still be generic while the runtime adapter is app-specific.
    - Stream viewer for camera/RViz/visualization/webcam/image result.
    - Text/textarea/status block.
    - Plot/timeseries viewer using `recharts`.
+   - Minimal topic visualization for velocities, torques, positions, and scalar/vector telemetry.
+   - Console-style topic echo viewer for in-app ROS/debug monitoring.
    - Log/event viewer.
 
 4. **Builder primitives**

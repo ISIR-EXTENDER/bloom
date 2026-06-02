@@ -259,6 +259,27 @@ Use a generic-first rule: `drink`, `throw-draw`, `curves`, `logs`, stream/measur
 widgets should be evaluated as reusable Bloom widgets before being assigned to a Petanque extension. The extension path
 is for explicitly app-owned behavior, not for every widget currently used by one app.
 
+### 9. Debug And Topic Visualization Foundations
+
+Goal: make Bloom useful for robot debugging, not only app control.
+
+Add generic supervision primitives inspired by the useful parts of PlotJuggler, but intentionally lighter and adapted to
+Bloom screens:
+
+- scalar and vector timeseries visualization for topics such as velocities, torques, joint positions, force/torque, and
+  controller feedback;
+- configurable topic source, field path, unit, sampling/window duration, and display style;
+- console-style topic echo widgets for in-app monitoring, close to `ros2 topic echo` but readable in a runtime screen;
+- pause/resume, clear, and copy/export affordances for debug sessions;
+- runtime source adapters so ROS-specific subscriptions stay outside the generic widget renderer.
+
+Tests:
+
+- topic visualization configs validate field paths and display options;
+- topic echo configs preserve message payloads without lossy formatting;
+- renderers handle missing data, stale data, and unknown message shapes safely;
+- runtime adapters can be tested independently from React rendering.
+
 Add a path for app-specific widgets:
 
 - app widget namespace or plugin key;

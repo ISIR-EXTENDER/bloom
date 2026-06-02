@@ -357,6 +357,42 @@ h1 {
   left: 0;
 }
 
+.bloom-command-button,
+.bloom-toggle-button {
+  width: fit-content;
+  padding: 8px 14px;
+  border: 1px solid rgba(25, 52, 45, 0.18);
+  border-radius: 999px;
+  background: #19342d;
+  color: #fffcf4;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.bloom-command-button:hover,
+.bloom-toggle-button:hover {
+  background: #254a40;
+}
+
+.bloom-command-button:focus-visible,
+.bloom-toggle-button:focus-visible {
+  outline: 3px solid rgba(127, 169, 95, 0.35);
+  outline-offset: 2px;
+}
+
+.bloom-toggle-button.is-off {
+  background: rgba(25, 52, 45, 0.12);
+  color: #19342d;
+}
+
+.bloom-toggle-button.is-on {
+  background: #7fa95f;
+}
+
 .widget-preview-unknown {
   border-color: rgba(155, 61, 46, 0.32);
 }
