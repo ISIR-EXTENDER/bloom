@@ -73,6 +73,7 @@ Useful backend commands:
 | `make config` | Show Bloom configuration storage CLI help. |
 | `make run` | Run the Bloom API locally with reload. |
 | `make api-run` | Explicit alias for running the Bloom API locally. |
+| `make ros-run` | Run the Bloom API with a ROS publisher gateway after sourcing ROS. |
 | `uv run python -m apps.bloom_cli.main version` | Print the backend version directly through Typer. |
 | `uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db` | List configuration IDs from SQLite storage. |
 
@@ -157,6 +158,17 @@ curl -X POST http://localhost:8000/api/v1/ros/topics/publish \
 
 Without a configured ROS gateway, the backend returns `status: "simulated"`. Robot deployments can attach an `rclpy`
 publisher gateway so the same API publishes real ROS messages.
+
+To launch the API with a ROS publisher gateway:
+
+```bash
+source /opt/ros/humble/setup.bash
+source /path/to/extender_workspace/install/setup.bash
+cd backend
+make ros-run
+```
+
+Keep `make run` for generic web development; use `make ros-run` only in a sourced ROS environment.
 
 ## Python Environment
 
