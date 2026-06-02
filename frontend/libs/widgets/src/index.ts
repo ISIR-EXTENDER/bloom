@@ -1,4 +1,11 @@
-import type { ScreenConfig, WidgetConfig, WidgetKind } from "@bloom/api-client";
+import type {
+  CanvasPresetId,
+  CanvasSettings,
+  ScreenConfig,
+  WidgetConfig,
+  WidgetKind,
+  WidgetLayout,
+} from "@bloom/api-client";
 
 export type LegacyWidgetCompatibility = "direct" | "renamed" | "adapter-required" | "app-specific" | "unsupported";
 
@@ -53,6 +60,50 @@ export type WidgetDefaultLayout = {
   height: number;
   minWidth: number;
   minHeight: number;
+};
+
+export type CanvasPreset = {
+  id: CanvasPresetId;
+  label: string;
+  width: number;
+  height: number;
+};
+
+export type ViewportSize = {
+  width: number;
+  height: number;
+};
+
+export type LegacyWidgetRect = {
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
+  width?: number;
+  height?: number;
+};
+
+export const WIDGET_LAYOUT_GRID_SIZE = 8;
+export const CANVAS_WIDGET_EDGE_PADDING = 24;
+
+export const CANVAS_PRESETS: readonly CanvasPreset[] = [
+  { id: "native-1024x600", label: "Native Tablet (1024x600)", width: 1024, height: 600 },
+  { id: "hd", label: "HD (1280x720)", width: 1280, height: 720 },
+  { id: "tablet", label: "Tablet (1280x800)", width: 1280, height: 800 },
+  { id: "full-hd", label: "Full HD (1920x1080)", width: 1920, height: 1080 },
+  { id: "local-screen", label: "Local Screen (1920x1080)", width: 1920, height: 1080 },
+];
+
+export const DEFAULT_CANVAS_SETTINGS: CanvasSettings = {
+  preset_id: "hd",
+  runtime_mode: "fit",
+};
+
+export const DEFAULT_WIDGET_LAYOUT: WidgetLayout = {
+  x: 0,
+  y: 0,
+  width: 160,
+  height: 80,
 };
 
 export type WidgetRenderContext = {
@@ -405,15 +456,80 @@ export function listWidgetDefinitionsByCategory(
   return [...registry.values()].filter((definition) => definition.category === category);
 }
 
+export function snapLayoutValue(value: number, gridSize: number = WIDGET_LAYOUT_GRID_SIZE): number {
+  if (gridSize <= 0) {
+    return value;
+  }
+  return Math.round(value / gridSize) * gridSize;
+}
+
+export function getCanvasPreset(presetId: CanvasPresetId): CanvasPreset {
+  return CANVAS_PRESETS.find((preset) => preset.id === presetId) ?? CANVAS_PRESETS[0];
+}
+
+export function resolveCanvasPresetSize(settings: CanvasSettings): ViewportSize {
+  const preset = getCanvasPreset(settings.preset_id);
+  return {
+    width: preset.width,
+    height: preset.height,
+  };
+}
+
+export function resolveCanvasArtboardSize(widgets: readonly WidgetConfig[], settings: CanvasSettings): ViewportSize {
+  const presetSize = resolveCanvasPresetSize(settings);
+  const maxRight = widgets.reduce((right, widget) => Math.max(right, widget.layout.x + widget.layout.width), 0);
+  const maxBottom = widgets.reduce((bottom, widget) => Math.max(bottom, widget.layout.y + widget.layout.height), 0);
+
+  return {
+    width: Math.max(presetSize.width, maxRight + CANVAS_WIDGET_EDGE_PADDING),
+    height: Math.max(presetSize.height, maxBottom + CANVAS_WIDGET_EDGE_PADDING),
+  };
+}
+
+export function resolveCanvasFitScale(
+  settings: CanvasSettings,
+  canvasSize: ViewportSize,
+  viewportSize: ViewportSize,
+): number {
+  if (settings.runtime_mode !== "fit") {
+    return 1;
+  }
+  if (canvasSize.width <= 0 || canvasSize.height <= 0) {
+    return 1;
+  }
+  if (viewportSize.width <= 0 || viewportSize.height <= 0) {
+    return 1;
+  }
+  return Math.min(viewportSize.width / canvasSize.width, viewportSize.height / canvasSize.height);
+}
+
+export function legacyRectToLayout(rect: LegacyWidgetRect | null | undefined): WidgetLayout {
+  if (!rect) {
+    return { ...DEFAULT_WIDGET_LAYOUT };
+  }
+  return {
+    x: rect.x ?? DEFAULT_WIDGET_LAYOUT.x,
+    y: rect.y ?? DEFAULT_WIDGET_LAYOUT.y,
+    width: rect.w ?? rect.width ?? DEFAULT_WIDGET_LAYOUT.width,
+    height: rect.h ?? rect.height ?? DEFAULT_WIDGET_LAYOUT.height,
+  };
+}
+
 export function createWidgetConfigFromDefinition(
   definition: WidgetDefinition,
   id: string,
-  overrides: Partial<Pick<WidgetConfig, "settings" | "title">> = {},
+  overrides: Partial<Pick<WidgetConfig, "layout" | "settings" | "title">> = {},
 ): WidgetConfig {
   return {
     id,
     kind: definition.kind,
     title: overrides.title ?? definition.defaultTitle,
+    layout: overrides.layout ?? {
+      x: 0,
+      y: 0,
+      width: definition.defaultLayout.width,
+      height: definition.defaultLayout.height,
+    },
     settings: {
       ...definition.defaultSettings,
       ...(overrides.settings ?? {}),

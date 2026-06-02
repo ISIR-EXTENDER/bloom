@@ -13,11 +13,21 @@
         {
           "id": "main",
           "title": "Main",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
           "widgets": [
             {
               "id": "toggle",
               "kind": "command-button",
               "title": "Toggle",
+              "layout": {
+                "x": 24,
+                "y": 32,
+                "width": 220,
+                "height": 96
+              },
               "settings": {
                 "topic": "/ui/ros_toggle",
                 "payloadOn": {

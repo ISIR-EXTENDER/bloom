@@ -19,14 +19,41 @@ class WidgetKind(str, Enum):
     UNKNOWN = "unknown"
 
 
+class CanvasPresetId(str, Enum):
+    NATIVE_1024X600 = "native-1024x600"
+    HD = "hd"
+    TABLET = "tablet"
+    FULL_HD = "full-hd"
+    LOCAL_SCREEN = "local-screen"
+
+
+class RuntimeCanvasMode(str, Enum):
+    LEFT = "left"
+    CENTER = "center"
+    FIT = "fit"
+
+
 class BloomModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class WidgetLayout(BloomModel):
+    x: int = Field(default=0, ge=0)
+    y: int = Field(default=0, ge=0)
+    width: int = Field(default=160, gt=0)
+    height: int = Field(default=80, gt=0)
+
+
+class CanvasSettings(BloomModel):
+    preset_id: CanvasPresetId = CanvasPresetId.HD
+    runtime_mode: RuntimeCanvasMode = RuntimeCanvasMode.FIT
 
 
 class WidgetConfig(BloomModel):
     id: str = Field(min_length=1)
     kind: WidgetKind = WidgetKind.UNKNOWN
     title: str = Field(min_length=1)
+    layout: WidgetLayout = Field(default_factory=WidgetLayout)
     settings: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("settings")
@@ -42,6 +69,7 @@ class WidgetConfig(BloomModel):
 class ScreenConfig(BloomModel):
     id: str = Field(min_length=1)
     title: str = Field(min_length=1)
+    canvas: CanvasSettings = Field(default_factory=CanvasSettings)
     widgets: tuple[WidgetConfig, ...] = Field(default_factory=tuple)
 
     @model_validator(mode="after")

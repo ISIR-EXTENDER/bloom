@@ -8,10 +8,15 @@ import {
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
   LEGACY_WIDGET_KIND_MAPPINGS,
+  legacyRectToLayout,
   listWidgetDefinitionsByCategory,
   renderScreenDescriptors,
   renderWidgetDescriptor,
+  resolveCanvasArtboardSize,
+  resolveCanvasFitScale,
+  resolveCanvasPresetSize,
   resolveLegacyWidgetKind,
+  snapLayoutValue,
   toBloomWidgetKind,
   type WidgetDefinition,
 } from "./index";
@@ -140,12 +145,79 @@ describe("widget capability metadata", () => {
       id: "speed-slider",
       kind: "slider",
       title: "Speed",
+      layout: {
+        x: 0,
+        y: 0,
+        width: 120,
+        height: 220,
+      },
       settings: {
         direction: "vertical",
         max: 3,
         min: 0,
         step: 0.01,
       },
+    });
+  });
+});
+
+describe("canvas layout foundation", () => {
+  it("snaps layout values to the grid used by the editor", () => {
+    expect(snapLayoutValue(13)).toBe(16);
+    expect(snapLayoutValue(12)).toBe(16);
+    expect(snapLayoutValue(12, 0)).toBe(12);
+  });
+
+  it("resolves canvas preset sizes from canonical settings", () => {
+    expect(resolveCanvasPresetSize({ preset_id: "tablet", runtime_mode: "fit" })).toEqual({
+      width: 1280,
+      height: 800,
+    });
+  });
+
+  it("expands the artboard when widgets extend past the selected preset", () => {
+    const widget = createWidgetConfigFromDefinition(
+      createDefaultWidgetRegistry().get("camera") as WidgetDefinition,
+      "camera",
+      {
+        layout: {
+          x: 1800,
+          y: 1000,
+          width: 360,
+          height: 260,
+        },
+      },
+    );
+
+    expect(resolveCanvasArtboardSize([widget], { preset_id: "hd", runtime_mode: "fit" })).toEqual({
+      width: 2184,
+      height: 1284,
+    });
+  });
+
+  it("resolves fit scale only for fit runtime mode", () => {
+    expect(
+      resolveCanvasFitScale(
+        { preset_id: "hd", runtime_mode: "fit" },
+        { width: 1280, height: 720 },
+        { width: 640, height: 720 },
+      ),
+    ).toBe(0.5);
+    expect(
+      resolveCanvasFitScale(
+        { preset_id: "hd", runtime_mode: "center" },
+        { width: 1280, height: 720 },
+        { width: 640, height: 720 },
+      ),
+    ).toBe(1);
+  });
+
+  it("converts legacy rect values without losing coordinates", () => {
+    expect(legacyRectToLayout({ x: 394, y: 17, w: 203, h: 91 })).toEqual({
+      x: 394,
+      y: 17,
+      width: 203,
+      height: 91,
     });
   });
 });

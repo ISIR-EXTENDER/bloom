@@ -25,3 +25,16 @@ widgets to registered capabilities, including safe handling for unknown widget k
 
 The metadata is still framework-independent. React renderers, inspector fields, and runtime adapters should consume this
 contract instead of duplicating widget defaults.
+
+## Canvas Layout
+
+The widgets package also exposes framework-independent canvas helpers inspired by the working `extender_ui` editor:
+
+- canonical widget layout rectangles: `x`, `y`, `width`, `height`;
+- canvas presets and runtime fit modes;
+- snap-to-grid helpers;
+- artboard size and fit-scale helpers;
+- legacy `rect: { x, y, w, h }` conversion.
+
+These helpers are intended for editor state, layout rendering, and legacy migration adapters. They should remain free of
+React and storage concerns.

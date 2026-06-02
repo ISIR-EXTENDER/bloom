@@ -50,6 +50,16 @@ describe("Bloom API client", () => {
     const configuration = await client.getConfiguration("sandbox");
 
     expect(configuration.metadata.source).toBe("shared-contract-fixture");
+    expect(configuration.applications[0]?.screens[0]?.canvas).toEqual({
+      preset_id: "hd",
+      runtime_mode: "fit",
+    });
+    expect(configuration.applications[0]?.screens[0]?.widgets[0]?.layout).toEqual({
+      x: 24,
+      y: 32,
+      width: 220,
+      height: 96,
+    });
     expect(configuration.applications[0]?.screens[0]?.widgets[0]?.settings).toEqual({
       topic: "/ui/ros_toggle",
       payloadOn: { data: [13, 1] },
