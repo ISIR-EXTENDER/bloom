@@ -5,7 +5,14 @@ from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
-from libs.config import ApplicationConfig, ConfigurationBundle, ConfigurationMetadata, FileConfigurationRepository, load_legacy_screen_file
+from libs.config import (
+    ApplicationConfig,
+    ConfigurationBundle,
+    ConfigurationMetadata,
+    FileConfigurationRepository,
+    SQLiteConfigurationRepository,
+    load_legacy_screen_file,
+)
 
 SHARED_FIXTURE_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "configuration-bundle.json"
 LEGACY_FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
@@ -81,6 +88,31 @@ def test_configuration_api_can_use_file_repository(tmp_path, sample_configuratio
     assert response.status_code == 200
     assert (tmp_path / "persisted.json").exists()
     assert client.get("/api/v1/configurations/persisted").json()["metadata"]["source"] == "shared-contract-fixture"
+
+
+def test_configuration_api_persists_with_sqlite_between_app_instances(
+    tmp_path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    database_path = tmp_path / "bloom.db"
+    settings = Settings(
+        environment="test",
+        configuration_database_path=database_path,
+        configuration_storage="sqlite",
+    )
+    first_client = TestClient(create_app(settings))
+
+    put_response = first_client.put(
+        "/api/v1/configurations/persisted",
+        json=sample_configuration_bundle.model_dump(mode="json"),
+    )
+    second_client = TestClient(create_app(settings))
+    get_response = second_client.get("/api/v1/configurations/persisted")
+
+    assert put_response.status_code == 200
+    assert get_response.status_code == 200
+    assert get_response.json()["metadata"]["source"] == "shared-contract-fixture"
+    assert SQLiteConfigurationRepository(database_path).list_ids() == ["persisted"]
 
 
 def test_configuration_api_round_trips_real_legacy_screen_fixture(tmp_path) -> None:

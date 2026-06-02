@@ -69,9 +69,11 @@ Useful backend commands:
 | `make test` | Run backend tests through `uv`. |
 | `make cli` | Show Bloom CLI help. |
 | `make api` | Show Bloom API CLI help. |
+| `make config` | Show Bloom configuration storage CLI help. |
 | `make run` | Run the Bloom API locally with reload. |
 | `make api-run` | Explicit alias for running the Bloom API locally. |
 | `uv run python -m apps.bloom_cli.main version` | Print the backend version directly through Typer. |
+| `uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db` | List configuration IDs from SQLite storage. |
 
 Frontend:
 
@@ -90,6 +92,28 @@ The backend test target disables external pytest plugin autoloading so a sourced
 The backend API starts under `/api/v1`, with `/api/v1/health` as the first system endpoint.
 
 Backend developer commands are exposed through the Typer CLI in `backend/apps/bloom_cli`.
+
+## Configuration Storage
+
+Bloom keeps file-backed JSON storage as the default while SQLite is validated through migration slices.
+
+Use the configuration CLI to exercise both paths:
+
+```bash
+cd backend
+uv run python -m apps.bloom_cli.main config import sandbox tests/fixtures/configuration-bundle.json --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config export sandbox data/exports/sandbox.json --storage sqlite --database-path data/bloom.db
+```
+
+Legacy `extender_ui` JSON can be imported through explicit migration commands:
+
+```bash
+uv run python -m apps.bloom_cli.main config import-legacy-screen legacy-sandbox tests/fixtures/legacy/sandbox_control.json --application-id sandbox --application-name Sandbox --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config import-legacy-application play-petanque tests/fixtures/legacy/application-play-petanque.json --storage sqlite --database-path data/bloom.db
+```
+
+The FastAPI app can already use SQLite by constructing `Settings(configuration_storage="sqlite", configuration_database_path=...)`. File-backed storage remains the fallback until the full frontend and runtime migration have passed end-to-end tests.
 
 ## Tests And Coverage
 

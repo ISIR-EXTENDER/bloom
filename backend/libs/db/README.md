@@ -1,6 +1,12 @@
 # Database Library
 
-Database models, migration helpers, repositories, and JSON import/export tools will live here.
+Database connection helpers and migrations live here.
 
-The migration must preserve existing JSON configuration files until parity is verified.
+Current scope:
 
+- SQLite connection helper using Python's standard `sqlite3`.
+- Idempotent schema migration tracking.
+- Configuration bundle storage table used by `SQLiteConfigurationRepository`.
+
+The migration must preserve existing JSON configuration files until parity is verified. `FileConfigurationRepository`
+therefore remains the default backend storage unless `configuration_storage="sqlite"` is selected.
