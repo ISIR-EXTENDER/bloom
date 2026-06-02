@@ -165,6 +165,50 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
+  it("edits selected widget settings from the inspector", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.change(await screen.findByLabelText("Output topic"), { target: { value: "/ui/custom_output" } });
+    fireEvent.change(screen.getByLabelText("ON payload"), { target: { value: "{data: [42, 1]}" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedWidget =
+      configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0]?.screens[0]?.widgets[0];
+
+    expect(savedWidget?.settings).toMatchObject({
+      onPayload: "{data: [42, 1]}",
+      topic: "/ui/custom_output",
+    });
+  });
+
+  it("updates label widget previews from inspector settings", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add Label widget" }));
+    fireEvent.change(screen.getByLabelText("Text"), { target: { value: "Bloom title" } });
+
+    expect(screen.getByText("Bloom title")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  });
+
+  it("shows field validation errors for invalid inspector settings", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Add Slider widget" }));
+    fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "-2" } });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("max must be greater than min");
+  });
+
   it("keeps builder drafts dirty when saving fails", async () => {
     const configurationClient = createConfigurationClient({ saveError: new Error("SQLite write failed") });
 
