@@ -4,7 +4,7 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, createWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -111,6 +111,30 @@ describe("widget renderer registry", () => {
       widgetKind: "slider",
       value: expect.any(Number),
     });
+  });
+
+  it("returns teleop sliders to center when configured", async () => {
+    const descriptor = renderScreenDescriptors(returnToCenterSliderScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+    const onActionIntent = vi.fn();
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const slider = screen.getByRole("slider", { name: "Teleop X" });
+    slider.focus();
+    await user.keyboard("{ArrowRight}");
+    fireEvent.blur(slider);
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "value-change",
+        value: 0,
+        widgetId: "teleop-x",
+        widgetKind: "slider",
+      }),
+    );
+    expect(screen.getByText("0.00")).toBeVisible();
   });
 
   it("emits command intents from command buttons", async () => {
@@ -341,6 +365,35 @@ const sliderScreen: ScreenConfig = {
         direction: "horizontal",
         max: 2,
         min: 0,
+        step: 0.01,
+      },
+    },
+  ],
+};
+
+const returnToCenterSliderScreen: ScreenConfig = {
+  id: "controls",
+  title: "Controls",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "teleop-x",
+      kind: "slider",
+      title: "Teleop X",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 220,
+        height: 80,
+      },
+      settings: {
+        direction: "horizontal",
+        max: 1,
+        min: -1,
+        returnToCenter: true,
         step: 0.01,
       },
     },

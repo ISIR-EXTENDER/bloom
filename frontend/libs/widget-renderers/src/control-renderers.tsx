@@ -2,7 +2,7 @@ import { createWidgetActionIntent } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { useState } from "react";
 import { JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
-import { clamp, getJoystickLabels, getNumberSetting, getStringSetting } from "./settings-readers";
+import { clamp, getBooleanSetting, getJoystickLabels, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
 export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
@@ -10,8 +10,13 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   const max = getNumberSetting(descriptor.widget.settings, "max", 1);
   const step = getNumberSetting(descriptor.widget.settings, "step", 0.01);
   const direction = getStringSetting(descriptor.widget.settings, "direction", "vertical");
+  const returnToCenter = getBooleanSetting(descriptor.widget.settings, "returnToCenter", false);
   const defaultValue = clamp(0, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
+
+  const emitValueChange = (value: number) => {
+    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
+  };
 
   const handleValueChange = (values: number[]) => {
     const value = values[0];
@@ -19,7 +24,15 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
       return;
     }
     setCurrentValue(value);
-    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
+    emitValueChange(value);
+  };
+
+  const handleReleaseToCenter = () => {
+    if (!returnToCenter || currentValue === defaultValue) {
+      return;
+    }
+    setCurrentValue(defaultValue);
+    emitValueChange(defaultValue);
   };
 
   return (
@@ -33,12 +46,14 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
       <SliderPrimitive.Root
         className={`bloom-slider bloom-slider-${direction === "horizontal" ? "horizontal" : "vertical"}`}
         data-orientation={direction === "horizontal" ? "horizontal" : "vertical"}
-        defaultValue={[defaultValue]}
         max={max}
         min={min}
+        onBlur={handleReleaseToCenter}
         onValueChange={handleValueChange}
+        onValueCommit={handleReleaseToCenter}
         orientation={direction === "horizontal" ? "horizontal" : "vertical"}
         step={step}
+        value={[currentValue]}
       >
         <SliderPrimitive.Track className="bloom-slider-track">
           <SliderPrimitive.Range className="bloom-slider-range" />

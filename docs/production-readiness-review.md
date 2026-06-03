@@ -168,3 +168,5 @@ Functional:
 - Runtime widget styling is separated from the dashboard product stylesheet.
 - Slider and joystick tests now cover visible readouts, joystick sizing
   guardrails, and Bloom theme color fallback.
+- Sliders now support a `returnToCenter` setting for teleop axes while keeping
+  regular configuration sliders persistent by default.

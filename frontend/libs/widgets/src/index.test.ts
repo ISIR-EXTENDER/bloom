@@ -197,6 +197,7 @@ describe("widget capability metadata", () => {
         direction: "vertical",
         max: 3,
         min: 0,
+        returnToCenter: false,
         step: 0.01,
       },
     });
@@ -293,13 +294,16 @@ describe("widget settings contracts", () => {
         direction: "vertical",
         max: 3,
         min: 0,
+        returnToCenter: false,
         step: 0.01,
       },
     });
   });
 
   it("reports clear validation errors for invalid settings", () => {
-    expect(validateWidgetSettings("slider", { direction: "sideways", max: 0, min: 1, step: 0 })).toEqual({
+    expect(
+      validateWidgetSettings("slider", { direction: "sideways", max: 0, min: 1, returnToCenter: false, step: 0 }),
+    ).toEqual({
       success: false,
       errors: [
         {
