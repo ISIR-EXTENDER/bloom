@@ -58,6 +58,11 @@ const DEFAULT_CANVAS: CanvasSettings = {
   runtime_mode: "fit",
 };
 
+const DEFAULT_THEME_INSPIRATION: ApplicationTheme["inspiration"] = {
+  moodboard_image_uri: "",
+  reference_url: "",
+};
+
 const DEFAULT_WIDGET_LAYOUT: WidgetLayout = {
   x: 0,
   y: 0,
@@ -95,9 +100,9 @@ function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): 
     inspiration: {
       moodboard_image_uri: asString(
         theme?.inspiration?.moodboard_image_uri,
-        DEFAULT_APPLICATION_THEME.inspiration.moodboard_image_uri,
+        DEFAULT_THEME_INSPIRATION.moodboard_image_uri,
       ),
-      reference_url: asString(theme?.inspiration?.reference_url, DEFAULT_APPLICATION_THEME.inspiration.reference_url),
+      reference_url: asString(theme?.inspiration?.reference_url, DEFAULT_THEME_INSPIRATION.reference_url),
     },
     preset_id: asString(theme?.preset_id, DEFAULT_APPLICATION_THEME.preset_id),
     palette: {

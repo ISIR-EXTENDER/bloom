@@ -31,6 +31,10 @@ type AvailableScreen = {
 
 const MAX_MOODBOARD_IMAGE_BYTES = 1_000_000;
 const ACCEPTED_MOODBOARD_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const DEFAULT_THEME_INSPIRATION: ApplicationConfig["theme"]["inspiration"] = {
+  moodboard_image_uri: "",
+  reference_url: "",
+};
 
 export function BuilderAppConfig({
   configurations,
@@ -50,6 +54,7 @@ export function BuilderAppConfig({
   const unassignedScreens = availableScreens.filter(({ screen }) => !assignedScreenIds.has(screen.id));
   const isDirty = JSON.stringify(draftApplication) !== JSON.stringify(application);
   const isSaving = saveState.status === "saving";
+  const themeInspiration = draftApplication.theme.inspiration ?? DEFAULT_THEME_INSPIRATION;
   const palettePreview = Object.entries(draftApplication.theme.palette);
 
   useEffect(() => {
@@ -114,7 +119,7 @@ export function BuilderAppConfig({
       theme: {
         ...currentApplication.theme,
         inspiration: {
-          ...currentApplication.theme.inspiration,
+          ...(currentApplication.theme.inspiration ?? DEFAULT_THEME_INSPIRATION),
           ...nextInspiration,
         },
       },
@@ -231,8 +236,8 @@ export function BuilderAppConfig({
                   coherent app-specific design system generation.
                 </p>
               </div>
-              {draftApplication.theme.inspiration.moodboard_image_uri ? (
-                <img alt="Current app moodboard preview" src={draftApplication.theme.inspiration.moodboard_image_uri} />
+              {themeInspiration.moodboard_image_uri ? (
+                <img alt="Current app moodboard preview" src={themeInspiration.moodboard_image_uri} />
               ) : (
                 <div className="builder-theme-inspiration-empty">No moodboard image yet.</div>
               )}
@@ -253,7 +258,7 @@ export function BuilderAppConfig({
                   onChange={(event) => updateThemeInspiration({ reference_url: event.target.value })}
                   placeholder="https://example.com/inspiration"
                   type="url"
-                  value={draftApplication.theme.inspiration.reference_url}
+                  value={themeInspiration.reference_url}
                 />
               </label>
               {themeInspirationError ? <p className="builder-inline-error">{themeInspirationError}</p> : null}

@@ -174,6 +174,24 @@ describe("App", () => {
     expect(savedApplication?.theme.inspiration.moodboard_image_uri).toMatch(/^data:image\/png;base64,/);
   });
 
+  it("opens app configuration when an older theme has no inspiration metadata", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            sandbox: createBundleWithoutThemeInspiration(),
+          },
+        })}
+      />,
+    );
+
+    await openAppConfig();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
+    expect(screen.getByText("No moodboard image yet.")).toBeVisible();
+    expect(screen.getByLabelText("Website reference")).toHaveValue("");
+  });
+
   it("adds an existing screen to the current app from app configuration", async () => {
     const configurationClient = createConfigurationClient({
       bundles: {
@@ -873,6 +891,20 @@ function createBundleWithReusableScreen(): ConfigurationBundle {
       },
     ],
   };
+}
+
+function createBundleWithoutThemeInspiration(): ConfigurationBundle {
+  const bundle = createConfigurationBundle("sandbox") as unknown as {
+    applications: Array<{
+      theme: {
+        inspiration?: unknown;
+      };
+    }>;
+  };
+
+  delete bundle.applications[0]?.theme.inspiration;
+
+  return bundle as unknown as ConfigurationBundle;
 }
 
 async function openDefaultScreenBuilder() {
