@@ -12,13 +12,19 @@ export type JoystickLabels = {
   top: string;
 };
 
+export type JoystickLabelColors = Partial<Record<keyof JoystickLabels, string>>;
+
 export type JoystickPrimitiveProps = {
   color?: string;
   deadzone: number;
   labels: JoystickLabels;
+  labelColors?: JoystickLabelColors;
+  onInteractionEnd?: () => void;
+  onInteractionStart?: () => void;
   onVectorChange: (value: JoystickVector) => void;
   size: number;
   title: string;
+  zeroOnRelease?: boolean;
 };
 
 type NippleMoveData = {
@@ -39,17 +45,25 @@ export function JoystickPrimitive({
   color = DEFAULT_COLOR,
   deadzone,
   labels,
+  labelColors = {},
+  onInteractionEnd,
+  onInteractionStart,
   onVectorChange,
   size,
   title,
+  zeroOnRelease = true,
 }: JoystickPrimitiveProps) {
   const managerRef = useRef<NippleManager | null>(null);
+  const onInteractionEndRef = useRef(onInteractionEnd);
+  const onInteractionStartRef = useRef(onInteractionStart);
   const onVectorChangeRef = useRef(onVectorChange);
   const zoneRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    onInteractionEndRef.current = onInteractionEnd;
+    onInteractionStartRef.current = onInteractionStart;
     onVectorChangeRef.current = onVectorChange;
-  }, [onVectorChange]);
+  }, [onInteractionEnd, onInteractionStart, onVectorChange]);
 
   useEffect(() => {
     if (!zoneRef.current) {
@@ -81,12 +95,19 @@ export function JoystickPrimitive({
       }) as unknown as NippleManager;
       managerRef.current = manager;
 
+      manager.on("start", () => {
+        onInteractionStartRef.current?.();
+      });
+
       manager.on("move", (_event: unknown, data: NippleMoveData) => {
         onVectorChangeRef.current(normalizeJoystickVector(data.vector, deadzone));
       });
 
       manager.on("end", () => {
-        onVectorChangeRef.current({ x: 0, y: 0 });
+        onInteractionEndRef.current?.();
+        if (zeroOnRelease) {
+          onVectorChangeRef.current({ x: 0, y: 0 });
+        }
       });
     };
 
@@ -96,10 +117,14 @@ export function JoystickPrimitive({
 
     return () => {
       active = false;
+      if (zeroOnRelease) {
+        onVectorChangeRef.current({ x: 0, y: 0 });
+      }
+      onInteractionEndRef.current?.();
       managerRef.current?.destroy();
       managerRef.current = null;
     };
-  }, [color, deadzone, size]);
+  }, [color, deadzone, size, zeroOnRelease]);
 
   return (
     <div
@@ -108,10 +133,18 @@ export function JoystickPrimitive({
       role="application"
       style={{ ["--bloom-joystick-size" as string]: `${size}px` }}
     >
-      <span className="bloom-joystick-label bloom-joystick-label-top">{labels.top}</span>
-      <span className="bloom-joystick-label bloom-joystick-label-right">{labels.right}</span>
-      <span className="bloom-joystick-label bloom-joystick-label-bottom">{labels.bottom}</span>
-      <span className="bloom-joystick-label bloom-joystick-label-left">{labels.left}</span>
+      <span className="bloom-joystick-label bloom-joystick-label-top" style={{ color: labelColors.top }}>
+        {labels.top}
+      </span>
+      <span className="bloom-joystick-label bloom-joystick-label-right" style={{ color: labelColors.right }}>
+        {labels.right}
+      </span>
+      <span className="bloom-joystick-label bloom-joystick-label-bottom" style={{ color: labelColors.bottom }}>
+        {labels.bottom}
+      </span>
+      <span className="bloom-joystick-label bloom-joystick-label-left" style={{ color: labelColors.left }}>
+        {labels.left}
+      </span>
       <div
         className="bloom-joystick-deadzone"
         style={{

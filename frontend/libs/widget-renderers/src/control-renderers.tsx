@@ -1,8 +1,14 @@
-import { createWidgetActionIntent } from "@bloom/widgets";
+import { createWidgetActionIntent, normalizeWidgetSettings } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
-import { clamp, getBooleanSetting, getJoystickLabels, getNumberSetting, getStringSetting } from "./settings-readers";
+import {
+  clamp,
+  getBooleanSetting,
+  getNumberSetting,
+  getStringSetting,
+  resolveJoystickBinding,
+} from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
 export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
@@ -68,31 +74,70 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
 }
 
 export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
-  const binding = getStringSetting(descriptor.widget.settings, "binding", "input");
-  const deadzone = getNumberSetting(descriptor.widget.settings, "deadzone", 0.1);
-  const labels = getJoystickLabels(descriptor.widget.settings);
+  const normalizedSettings = normalizeWidgetSettings("joystick", descriptor.widget.settings);
+  const joystickSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
+  const deadzone = getNumberSetting(joystickSettings, "deadzone", 0.1);
+  const binding = resolveJoystickBinding(joystickSettings);
   const color = getStringSetting(descriptor.widget.settings, "accentColor", "#7fa95f");
   const size = resolveJoystickControlSize(descriptor.widget.layout.width, descriptor.widget.layout.height);
   const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
+  const isHeldRef = useRef(false);
+  const latestVectorRef = useRef<JoystickVector>({ x: 0, y: 0 });
+  const onActionIntentRef = useRef(onActionIntent);
+  const widgetRef = useRef(descriptor.widget);
+
+  useEffect(() => {
+    onActionIntentRef.current = onActionIntent;
+    widgetRef.current = descriptor.widget;
+  }, [descriptor.widget, onActionIntent]);
 
   const handleVectorChange = (value: JoystickVector) => {
+    latestVectorRef.current = value;
     setCurrentVector(value);
-    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-vector", value }));
+    emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, value);
   };
+
+  const handleInteractionStart = () => {
+    isHeldRef.current = true;
+  };
+
+  const handleInteractionEnd = () => {
+    isHeldRef.current = false;
+  };
+
+  useEffect(() => {
+    const intervalMs = Math.round(1000 / binding.publishRateHz);
+    const interval = window.setInterval(() => {
+      if (isHeldRef.current) {
+        emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, latestVectorRef.current);
+      }
+    }, intervalMs);
+
+    return () => window.clearInterval(interval);
+  }, [binding.publishRateHz]);
 
   return (
     <div className="bloom-joystick-widget">
       <header className="bloom-control-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>{binding}</span>
+        <span>{binding.modeId}</span>
       </header>
+      <div className="bloom-joystick-mode-strip" aria-label={`Joystick mode ${binding.modeId}`} role="note">
+        <span>{binding.axisSummary}</span>
+        <span>{binding.publishRateHz} Hz</span>
+        <span>{binding.runtimeTarget}</span>
+      </div>
       <JoystickPrimitive
         color={color}
         deadzone={deadzone}
-        labels={labels}
+        labelColors={binding.labelColors}
+        labels={binding.labels}
+        onInteractionEnd={handleInteractionEnd}
+        onInteractionStart={handleInteractionStart}
         onVectorChange={handleVectorChange}
         size={size}
         title={descriptor.widget.title}
+        zeroOnRelease={binding.zeroOnRelease}
       />
       <output aria-live="polite" className="bloom-control-vector-readout">
         <span>x {currentVector.x.toFixed(2)}</span>
@@ -100,6 +145,14 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
       </output>
     </div>
   );
+}
+
+function emitJoystickVectorChange(
+  widget: WidgetRendererProps["descriptor"]["widget"],
+  onActionIntent: WidgetRendererProps["onActionIntent"],
+  value: JoystickVector,
+) {
+  onActionIntent?.(createWidgetActionIntent(widget, { type: "set-vector", value }));
 }
 
 export function resolveJoystickControlSize(width: number, height: number): number {

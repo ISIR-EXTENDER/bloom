@@ -52,10 +52,14 @@ export type WidgetActionIntent =
     }
   | {
       binding?: string;
+      modeId?: string;
+      publishRateHz?: number;
+      runtimeBinding?: unknown;
       type: "value-change";
       value: number | Vector2Value;
       widgetId: string;
       widgetKind: WidgetKind;
+      zeroOnRelease?: boolean;
     }
   | {
       eventType: WidgetActionEvent["type"];
@@ -182,6 +186,10 @@ function createVectorInputIntent(
     widgetKind: widget.kind,
     value: event.value,
     binding: getOptionalString(settings, "binding"),
+    modeId: getOptionalString(settings, "mode_id"),
+    publishRateHz: getOptionalNumber(settings, "publish_rate_hz"),
+    runtimeBinding: settings.runtime_binding,
+    zeroOnRelease: getOptionalBoolean(settings, "zero_on_release"),
   };
 }
 
@@ -230,4 +238,14 @@ function getOptionalString(settings: Record<string, unknown>, key: string): stri
   }
   const trimmedValue = value.trim();
   return trimmedValue.length > 0 ? trimmedValue : undefined;
+}
+
+function getOptionalNumber(settings: Record<string, unknown>, key: string): number | undefined {
+  const value = settings[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function getOptionalBoolean(settings: Record<string, unknown>, key: string): boolean | undefined {
+  const value = settings[key];
+  return typeof value === "boolean" ? value : undefined;
 }

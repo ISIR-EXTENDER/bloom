@@ -48,6 +48,7 @@ globalThis.ResizeObserver = ResizeObserverMock;
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
   vi.restoreAllMocks();
   nippleMock.create.mockClear();
   nippleMock.handlers.clear();
@@ -191,13 +192,53 @@ describe("widget renderer registry", () => {
 
     expect(onActionIntent).toHaveBeenCalledWith({
       binding: "joy",
+      modeId: "translation",
+      publishRateHz: 30,
+      runtimeBinding: {
+        adapter: "teleop",
+        target: "translation",
+      },
       type: "value-change",
       value: { x: 0.5, y: -0.25 },
       widgetId: "translation",
       widgetKind: "joystick",
+      zeroOnRelease: true,
     });
     expect(screen.getByText("x 0.50")).toBeVisible();
     expect(screen.getByText("y -0.25")).toBeVisible();
+  });
+
+  it("keeps publishing joystick vectors while held and zeros on release", async () => {
+    const descriptor = renderScreenDescriptors(joystickScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing joystick descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    await waitFor(() => expect(nippleMock.create).toHaveBeenCalled());
+    act(() => {
+      nippleMock.handlers.get("start")?.({}, { vector: { x: 0, y: 0 } });
+      nippleMock.handlers.get("move")?.({}, { vector: { x: 0.25, y: 0.5 } });
+    });
+
+    await waitFor(() => expect(onActionIntent.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 250 });
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "value-change",
+        value: { x: 0.25, y: 0.5 },
+      }),
+    );
+
+    act(() => {
+      nippleMock.handlers.get("end")?.({}, { vector: { x: 0.25, y: 0.5 } });
+    });
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "value-change",
+        value: { x: 0, y: 0 },
+      }),
+    );
   });
 
   it("keeps joystick controls inside compact and large widget frames", () => {
