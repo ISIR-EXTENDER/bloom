@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
-from libs.ros_adapters import RosPublishReceipt, RosPublishRequest
+from libs.ros_adapters import RosPublishReceipt, RosPublishRequest, RosTopicInfo
 
 
 class RecordingRosPublisherGateway:
@@ -25,6 +25,41 @@ class RecordingRosPublisherGateway:
 class FailingRosPublisherGateway:
     def publish(self, request: RosPublishRequest) -> RosPublishReceipt:
         raise ValueError(f"Invalid payload for {request.message_type}")
+
+
+class StaticRosTopicCatalogGateway:
+    def list_topics(self) -> tuple[RosTopicInfo, ...]:
+        return (
+            RosTopicInfo(name="/joint_states", message_type="sensor_msgs/msg/JointState"),
+            RosTopicInfo(name="/teleop_cmd", message_type="geometry_msgs/msg/Twist"),
+        )
+
+
+def test_list_ros_topics_defaults_to_empty_when_ros_is_not_configured(client: TestClient) -> None:
+    response = client.get("/api/v1/ros/topics")
+
+    assert response.status_code == 200
+    assert response.json() == {"topics": []}
+
+
+def test_list_ros_topics_uses_configured_catalog_gateway() -> None:
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            ros_topic_catalog_gateway=StaticRosTopicCatalogGateway(),
+        )
+    )
+
+    response = client.get("/api/v1/ros/topics")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "topics": [
+            {"name": "/joint_states", "message_type": "sensor_msgs/msg/JointState"},
+            {"name": "/teleop_cmd", "message_type": "geometry_msgs/msg/Twist"},
+        ]
+    }
 
 
 def test_publish_ros_topic_uses_configured_gateway() -> None:

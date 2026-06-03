@@ -90,6 +90,8 @@ Status: started.
 - Move from bundled configuration documents toward normalized concepts where useful:
   apps, screens, widgets, app themes, runtime bindings.
 - Preserve the current app config UX while introducing a real screen library/store.
+- Add a builder-level screen library where users can create, edit, and runtime-preview reusable screens before assigning
+  them to an app.
 - Finish production-level builder workflows:
   builder home, app configuration, full-page screen builder, WYSIWYG canvas editing, save/discard, and runtime preview.
 
@@ -103,6 +105,8 @@ Remaining focus in this phase:
 - Normalize SQLite storage beyond bundled configuration documents.
 - Add app list/create/duplicate/archive flows backed by storage.
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
+- Add screen-only builder and screen-only runtime preview flows, so reusable screens can be designed before app
+  composition.
 - Replace early data-URL moodboard storage with a proper theme asset upload endpoint when normalized SQLite assets are introduced.
 - Keep app configuration cards intentionally human-readable: feature labels and source-app hints should replace raw
   technical metadata unless the user explicitly opens an inspector.
@@ -125,6 +129,8 @@ Status: started.
 Next focus in this phase:
 
 - WebSocket runtime topic subscriptions.
+- ROS topic catalog endpoint as the base for topic inspection, topic echo, telemetry plots, and rosbag-style recording
+  topic selection.
 - Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
 - Topic echo widgets and minimal PlotJuggler-like telemetry widgets.
 - Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
