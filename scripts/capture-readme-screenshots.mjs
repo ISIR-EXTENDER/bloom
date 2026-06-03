@@ -26,9 +26,10 @@ try {
   await capture(page, screenshots.landingPage);
 
   await page.getByRole("button", { name: "Builder: Compose screens" }).click();
-  await page.getByRole("heading", { name: "Choose an app to shape." }).waitFor();
+  await page.getByRole("heading", { name: "Choose what to build." }).waitFor();
   await capture(page, screenshots.builderHome);
 
+  await page.getByRole("button", { exact: true, name: "Apps" }).click();
   await page.getByRole("button", { name: "Open Sandbox app" }).click();
   await page.getByRole("heading", { name: "App theme" }).waitFor();
   await capture(page, screenshots.appConfiguration);

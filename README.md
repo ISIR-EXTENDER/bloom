@@ -75,7 +75,8 @@ Bloom is currently in foundation work before the full UI/database migration:
 - A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
 - A first Bloom Debug fixture can request runtime topic subscriptions and render live samples in echo and lightweight plot widgets.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
-- Next major pieces are the real screen builder, runtime app routes, SQLite-backed app management, ROS adapters, and richer topic visualization.
+- Next major pieces are Bloom Debug UX, topic catalog and recording controls, SQLite normalization, ROS safety allowlists,
+  and the next reusable widget migrations.
 
 ## Repository Shape
 

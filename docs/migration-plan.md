@@ -185,6 +185,8 @@ Validated runtime checks:
 - Bloom Debug topic widgets -> runtime WebSocket `subscribe_topic` -> backend `subscription_ack`.
 - Bloom Debug live samples -> runtime WebSocket `topic_sample` -> runtime workspace widget data -> topic echo/plot
   renderers.
+- Real dashboard Bloom Debug flow validates `subscribe_topic` messages with `widget_id`, backend `subscription_ack`,
+  and visible topic samples in runtime widgets.
 
 ### Phase 4 - Legacy App Migration
 
@@ -236,19 +238,21 @@ Status: idea captured, intentionally low priority.
 
 ## Ordered Next Steps
 
-1. Finish production-level builder workflows:
-   app builder home, app config, full-page WYSIWYG screen builder, runtime preview, reliable save/discard, and visual QA.
+1. Finish Bloom Debug UX:
+   topic catalog, topic echo controls, lightweight plot readability, pause/clear/copy actions, and a recording/rosbag
+   foundation for selected topics and approved folders.
 2. Normalize SQLite app/screen storage:
    keep JSON import/export, but add dedicated app/screen persistence records behind the existing API contract.
-3. Add runtime live ROS sessions:
-   WebSocket topic subscriptions, topic echo, and teleop publisher adapter.
+3. Harden runtime live ROS sessions:
+   add topic/message/payload allowlists, runtime session validation, audit logging, and safer CORS/deployment defaults.
 4. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
-5. Add Explorer-style control foundations:
+5. Finish production-level builder workflows:
+   app builder home, app config, full-page WYSIWYG screen builder, runtime preview, reliable save/discard, visual QA, and
+   accessible drag/drop fallbacks.
+6. Add Explorer-style control foundations:
    live action progress/cancel adapters, speed/gripper counters, profile-driven display settings, and optional 3D robot
    visualization adapters.
-6. Add the first security checks around ROS publish intents:
-   topic/message/payload allowlists, runtime session validation, and audit logging.
 7. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
 8. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
 
@@ -282,4 +286,6 @@ When ROS behavior is involved:
 - Keep generic tests independent from ROS.
 - Test ROS adapters through injected gateways.
 - Validate manually in a sourced ROS workspace before replacing legacy runtime behavior.
+- For live topic streaming, verify browser WebSocket `subscribe_topic` -> backend `subscription_ack` -> ROS publish or
+  ROS topic update -> browser `topic_sample`.
 - Validate that robot command endpoints reject unknown topics, message types, and malformed payloads.
