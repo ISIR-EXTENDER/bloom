@@ -289,26 +289,30 @@ function CameraWidget({ descriptor }: WidgetRendererProps) {
       {showHeader ? (
         <header className="bloom-camera-header">
           <strong>{descriptor.widget.title}</strong>
-          <span>{source === "webcam" ? "Local webcam" : streamUrl || descriptor.definition.displayName}</span>
+          <span>{source === "webcam" ? "Browser camera" : streamUrl || descriptor.definition.displayName}</span>
         </header>
       ) : null}
       {source === "webcam" ? (
-        <WebcamPreview
-          fitMode={fitMode}
-          showPicker={showWebcamPicker}
-          showStatus={showStatus}
-          streamUrl={streamUrl}
-          title={descriptor.widget.title}
-          widgetId={descriptor.widget.id}
-        />
+        <div className="bloom-camera-body">
+          <WebcamPreview
+            fitMode={fitMode}
+            showPicker={showWebcamPicker}
+            showStatus={showStatus}
+            streamUrl={streamUrl}
+            title={descriptor.widget.title}
+            widgetId={descriptor.widget.id}
+          />
+        </div>
       ) : (
         <>
-          <div className="bloom-camera-frame" data-fit-mode={fitMode === "cover" ? "cover" : "contain"}>
-            {streamUrl ? (
-              <StreamPreview fitMode={fitMode} streamUrl={streamUrl} title={descriptor.widget.title} />
-            ) : (
-              <CameraPlaceholder message="No camera source configured yet." />
-            )}
+          <div className="bloom-camera-body">
+            <div className="bloom-camera-frame" data-fit-mode={fitMode === "cover" ? "cover" : "contain"}>
+              {streamUrl ? (
+                <StreamPreview fitMode={fitMode} streamUrl={streamUrl} title={descriptor.widget.title} />
+              ) : (
+                <CameraPlaceholder message="No camera source configured yet." />
+              )}
+            </div>
           </div>
           {showStatus ? (
             <span className="bloom-camera-status">{streamUrl ? "Stream preview" : "Source not configured"}</span>

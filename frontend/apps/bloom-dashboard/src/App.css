@@ -1609,6 +1609,11 @@ h1 {
   box-shadow: 0 12px 25px rgba(82, 91, 76, 0.14);
 }
 
+.widget-preview-card[data-widget-kind="camera"] {
+  align-content: stretch;
+  padding: 14px;
+}
+
 .widget-preview-card strong {
   font-size: 0.95rem;
 }
@@ -1775,8 +1780,8 @@ h1 {
 
 .bloom-camera-widget {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -1828,10 +1833,17 @@ h1 {
   white-space: nowrap;
 }
 
+.bloom-camera-body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+}
+
 .bloom-camera-frame {
   position: relative;
   display: grid;
-  min-height: 0;
+  min-height: 120px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 20%, transparent);
   border-radius: 18px;
