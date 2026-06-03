@@ -69,6 +69,17 @@ describe("App", () => {
     expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
   });
 
+  it("opens an app runtime directly from the builder app list", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 1, name: "Sandbox" })).not.toBeInTheDocument();
+  });
+
   it("opens app configuration before entering the full screen builder", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 

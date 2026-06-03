@@ -100,6 +100,23 @@ export function BuilderHome({
                         Open app
                       </button>
                       <button
+                        aria-label={`Open ${application.name} runtime`}
+                        disabled={!firstScreen || isActingOnThisApp}
+                        onClick={() => {
+                          if (!firstScreen) {
+                            return;
+                          }
+                          onPreviewScreenRuntime({
+                            appId: application.id,
+                            configId: configuration.id,
+                            screenId: firstScreen.id,
+                          });
+                        }}
+                        type="button"
+                      >
+                        Open runtime
+                      </button>
+                      <button
                         aria-label={`Duplicate ${application.name} app`}
                         disabled={isActingOnThisApp}
                         onClick={async () => {
