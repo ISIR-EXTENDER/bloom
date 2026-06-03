@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
-import { type BloomApiError, type ConfigurationBundle, createBloomApiClient } from "./index";
+import widgetKindsContract from "../../../../tests/fixtures/widget-kinds-contract.json";
+import { type BloomApiError, type ConfigurationBundle, createBloomApiClient, WIDGET_KINDS } from "./index";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
+const contractWidgetKinds = widgetKindsContract.widget_kinds;
 
 describe("Bloom API client", () => {
+  it("keeps widget kind values aligned with the shared backend contract", () => {
+    expect([...WIDGET_KINDS].sort()).toEqual(contractWidgetKinds);
+  });
+
   it("lists configuration ids", async () => {
     const fetcher = createJsonFetcher({ configuration_ids: ["sandbox", "petanque"] });
     const client = createBloomApiClient({ baseUrl: "http://localhost:8000/", fetcher });

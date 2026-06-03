@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -16,6 +17,14 @@ from libs.config import (
     WidgetKind,
     WidgetLayout,
 )
+
+WIDGET_KIND_CONTRACT_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "widget-kinds-contract.json"
+
+
+def test_widget_kind_enum_matches_shared_contract() -> None:
+    contract = json.loads(WIDGET_KIND_CONTRACT_PATH.read_text(encoding="utf-8"))
+
+    assert sorted(widget_kind.value for widget_kind in WidgetKind) == contract["widget_kinds"]
 
 
 def test_configuration_bundle_serializes_to_json() -> None:

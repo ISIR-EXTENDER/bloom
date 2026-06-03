@@ -1,16 +1,19 @@
-export type WidgetKind =
-  | "button"
-  | "camera"
-  | "command-button"
-  | "gauge"
-  | "joystick"
-  | "label"
-  | "plot"
-  | "slider"
-  | "toggle"
-  | "topic-echo"
-  | "topic-plot"
-  | "unknown";
+export const WIDGET_KINDS = [
+  "button",
+  "camera",
+  "command-button",
+  "gauge",
+  "joystick",
+  "label",
+  "plot",
+  "slider",
+  "toggle",
+  "topic-echo",
+  "topic-plot",
+  "unknown",
+] as const;
+
+export type WidgetKind = (typeof WIDGET_KINDS)[number];
 
 export type WidgetConfig = {
   id: string;

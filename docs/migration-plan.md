@@ -47,6 +47,7 @@ Already merged:
 - App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
 - First security baseline document and minimal API security headers.
+- Shared widget-kind contract checks keep frontend and backend configuration models aligned.
 
 Current branch:
 
@@ -64,18 +65,20 @@ Status: complete.
 
 ### Phase 1 - Safe Extraction
 
-Status: foundation-complete, still receiving focused widget/runtime slices.
+Status: complete.
 
 - Move reusable frontend logic into `frontend/libs`.
 - Move backend API/CLI/configuration logic into `backend/apps` and `backend/libs`.
 - Keep reusable widget logic independent from React where possible.
 - Keep ROS-specific behavior inside `backend/libs/ros_adapters`.
 - Add tests with each migrated slice.
+- Add frontend/backend contract fixtures for shared configuration concepts.
 
-Remaining focus in this phase:
+Phase 1 closure notes:
 
-- Keep migrating reusable widgets from `extender_ui` and Petanque.
-- Strengthen frontend/backend contract checks around configuration data.
+- Reusable widget migrations continue in Phase 4, where each family can be validated against real legacy screens.
+- Storage normalization continues in Phase 2.
+- Runtime ROS behavior continues in Phase 3.
 
 ### Phase 2 - Storage And App Library
 
@@ -86,6 +89,8 @@ Status: started.
 - Move from bundled configuration documents toward normalized concepts where useful:
   apps, screens, widgets, app themes, runtime bindings.
 - Preserve the current app config UX while introducing a real screen library/store.
+- Finish production-level builder workflows:
+  builder home, app configuration, full-page screen builder, WYSIWYG canvas editing, save/discard, and runtime preview.
 
 Already done in this phase:
 
@@ -97,6 +102,7 @@ Remaining focus in this phase:
 - Normalize SQLite storage beyond bundled configuration documents.
 - Add app list/create/duplicate/archive flows backed by storage.
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
+- Finish visual and interaction QA for the builder so widgets stay visible, editable, and touch-friendly.
 
 ### Phase 3 - Runtime ROS Integration
 
@@ -159,8 +165,8 @@ Status: idea captured, intentionally low priority.
 
 ## Ordered Next Steps
 
-1. Start a builder UX/polish slice:
-   app builder home, app config, screen builder, and runtime should feel like one coherent product flow.
+1. Finish production-level builder workflows:
+   app builder home, app config, full-page WYSIWYG screen builder, runtime preview, reliable save/discard, and visual QA.
 2. Normalize SQLite app/screen storage:
    keep JSON import/export, but add dedicated app/screen persistence records behind the existing API contract.
 3. Add runtime live ROS sessions:
