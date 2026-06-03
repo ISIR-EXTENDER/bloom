@@ -38,12 +38,12 @@ Already merged:
 - Widget contracts, renderer registry, legacy conversion, widget palette, settings inspector, layout editing, resizing, and undo/redo.
 - Runtime separation from builder controls, fit canvas mode, ROS topic publish API, runtime action dispatch, and WebSocket session contracts.
 - App configuration flow with app identity, app-level theme tokens, and reusable screen membership.
+- App configuration screen lifecycle actions: blank screen creation, screen duplication, and source-app labels for reusable screens.
 - README product preview screenshots generated from the real dashboard UI.
 
 Current branch:
 
-- `feat/builder-screen-lifecycle`
-- Adds blank screen creation, screen duplication, source-app labels for reusable screens, and an updated app config preview.
+- None. `main` is synced after `feat(builder): add screen lifecycle actions (#32)`.
 
 ## Roadmap
 
@@ -132,16 +132,15 @@ Status: not started.
 
 ## Ordered Next Steps
 
-1. Push and merge `feat(builder-screen-lifecycle)`.
-2. Start a builder UX/polish slice:
+1. Start a builder UX/polish slice:
    app builder home, app config, screen builder, and runtime should feel like one coherent product flow.
-3. Add SQLite-backed app/screen lifecycle API usage from the dashboard:
+2. Add SQLite-backed app/screen lifecycle API usage from the dashboard:
    save, list, duplicate, and archive through backend storage instead of relying on bundled document replacement only.
-4. Add runtime live ROS sessions:
+3. Add runtime live ROS sessions:
    WebSocket topic subscriptions, topic echo, and teleop publisher adapter.
-5. Migrate the next reusable widget family:
+4. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
-6. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
+5. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
 
 ## Validation Rules
 
