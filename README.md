@@ -20,6 +20,7 @@
   <a href="#architecture-rules">Architecture</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
+  <a href="docs/accessibility-plan.md">Accessibility</a> ·
   <a href="docs/widgets-screens-apps-foundation-plan.md">Foundation Plan</a>
 </p>
 
@@ -109,6 +110,14 @@ added only when the corresponding migration slice needs them.
 - Development is local-first; do not add deployment tooling before there is a concrete need.
 - Migration must be iterative: no legacy file is deleted until the replacement is tested and accepted.
 - Tests should arrive with each migrated slice, not after the migration is done.
+
+## Accessibility
+
+Bloom treats accessibility as part of the product foundation, not as a final polish pass. The dashboard should stay
+keyboard reachable, readable on tablets, understandable without color alone, and calm enough for real robot operation.
+
+See `docs/accessibility-plan.md` for the current accessibility statement, quick wins, and testing roadmap. When changing
+UI, docs, interactions, or app themes, include an accessibility check in the PR.
 
 ## Getting Started
 

@@ -24,6 +24,13 @@ describe("App", () => {
     expect(screen.queryByRole("heading", { level: 2, name: "Choose what to preview" })).not.toBeInTheDocument();
   });
 
+  it("provides a keyboard skip link to the main content", () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    expect(screen.getByRole("link", { name: "Skip to main content" })).toHaveAttribute("href", "#bloom-main-content");
+    expect(document.querySelector("#bloom-main-content")).toHaveAttribute("tabindex", "-1");
+  });
+
   it("renders the first workflow cards on the landing page", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 

@@ -138,27 +138,29 @@ export function App({
       <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
         <ProductNavigation activeView={activeView} onChangeView={setActiveView} />
 
-        <AppErrorBoundary resetKey={activeView}>
-          {activeView === "landing" ? (
-            <LandingPage onOpenView={setActiveView} />
-          ) : (
-            <MainApplicationView
-              activeView={activeView}
-              builderMode={builderMode}
-              onChangeBuilderMode={setBuilderMode}
-              onCreateApplication={handleCreateApplication}
-              onDeleteApplication={handleDeleteApplication}
-              onDuplicateApplication={handleDuplicateApplication}
-              onRuntimeIntent={handleRuntimeIntent}
-              onSaveApplication={handleSaveApplication}
-              onSaveBuilderScreen={handleSaveBuilderScreen}
-              onSelectionChange={setSelection}
-              onViewChange={setActiveView}
-              selection={selection}
-              state={configurationState}
-            />
-          )}
-        </AppErrorBoundary>
+        <div id="bloom-main-content" tabIndex={-1}>
+          <AppErrorBoundary resetKey={activeView}>
+            {activeView === "landing" ? (
+              <LandingPage onOpenView={setActiveView} />
+            ) : (
+              <MainApplicationView
+                activeView={activeView}
+                builderMode={builderMode}
+                onChangeBuilderMode={setBuilderMode}
+                onCreateApplication={handleCreateApplication}
+                onDeleteApplication={handleDeleteApplication}
+                onDuplicateApplication={handleDuplicateApplication}
+                onRuntimeIntent={handleRuntimeIntent}
+                onSaveApplication={handleSaveApplication}
+                onSaveBuilderScreen={handleSaveBuilderScreen}
+                onSelectionChange={setSelection}
+                onViewChange={setActiveView}
+                selection={selection}
+                state={configurationState}
+              />
+            )}
+          </AppErrorBoundary>
+        </div>
       </main>
     </BloomThemeProvider>
   );

@@ -35,9 +35,36 @@ button {
 }
 
 button:focus-visible,
-select:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: 4px solid color-mix(in srgb, var(--bloom-primary) 28%, transparent);
   outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: 14px;
+  left: 14px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: var(--bloom-primary);
+  color: white;
+  font-weight: 900;
+  opacity: 0;
+  pointer-events: none;
+  text-decoration: none;
+  transform: translateY(-120%);
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
+}
+
+.skip-link:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .app-shell {
