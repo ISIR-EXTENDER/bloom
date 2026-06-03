@@ -1,0 +1,126 @@
+.runtime-app-workspace {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: 100%;
+  height: calc(100vh - 112px);
+  min-height: 620px;
+  overflow: hidden;
+  border: 1px solid var(--bloom-border);
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 92%, white);
+  box-shadow: var(--bloom-shadow);
+}
+
+.runtime-app-topbar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  border-bottom: 1px solid var(--bloom-border);
+  background:
+    radial-gradient(circle at 12% 12%, rgba(255, 216, 155, 0.18), transparent 34%),
+    color-mix(in srgb, var(--bloom-panel) 86%, white);
+}
+
+.runtime-app-topbar h2 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 1.5rem;
+}
+
+.runtime-screen-tabs {
+  display: flex;
+  max-width: min(720px, 64vw);
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px;
+}
+
+.runtime-screen-tab {
+  display: grid;
+  min-width: 148px;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 18px;
+  background: var(--bloom-surface-container-low);
+  color: var(--bloom-ink);
+  text-align: left;
+}
+
+.runtime-screen-tab[aria-current="page"] {
+  border-color: color-mix(in srgb, var(--bloom-primary) 48%, transparent);
+  background: var(--bloom-primary-container);
+}
+
+.runtime-screen-tab span {
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.runtime-app-canvas-shell {
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 20% 16%, rgba(127, 150, 126, 0.14), transparent 26%),
+    radial-gradient(circle at 88% 78%, rgba(199, 189, 220, 0.14), transparent 28%), var(--bloom-surface-container);
+}
+
+.runtime-app-canvas-viewport {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 20px;
+}
+
+.runtime-app-canvas-viewport[data-runtime-mode="center"],
+.runtime-app-canvas-viewport[data-runtime-mode="fit"] {
+  justify-content: center;
+}
+
+.runtime-app-artboard-frame {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.runtime-app-artboard {
+  position: relative;
+  min-width: 720px;
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid rgba(63, 78, 70, 0.18);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(127, 150, 126, 0.12), transparent 30%), var(--bloom-surface-container-low);
+  box-shadow: inset 0 0 0 1px rgba(255, 253, 247, 0.7);
+  transform-origin: top left;
+}
+
+.runtime-coming-soon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(430px, calc(100% - 48px));
+  padding: 28px;
+  border: 1px dashed color-mix(in srgb, var(--bloom-primary) 42%, var(--bloom-border));
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 94%, white);
+  box-shadow: var(--bloom-shadow);
+  transform: translate(-50%, -50%);
+}
+
+.runtime-coming-soon h3 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 1.35rem;
+}
+
+.runtime-coming-soon p:last-child {
+  color: var(--bloom-ink-soft);
+  line-height: 1.55;
+}

@@ -166,6 +166,8 @@ Functional:
 - Widget renderers are now split by runtime family instead of living in one
   large `index.tsx` file.
 - Runtime widget styling is separated from the dashboard product stylesheet.
+- Dashboard CSS is now split by product area: base shell, builder, runtime app,
+  runtime widgets, and responsive overrides.
 - Slider and joystick tests now cover visible readouts, joystick sizing
   guardrails, and Bloom theme color fallback.
 - Sliders now support a `returnToCenter` setting for teleop axes while keeping
