@@ -104,6 +104,7 @@ describe("App", () => {
     render(<App configurationClient={configurationClient} />);
 
     await openAppConfig();
+    expect(screen.getByText("From Shared screens")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Add Camera Feed to app" }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
@@ -115,6 +116,55 @@ describe("App", () => {
 
     expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("camera-feed");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
+  });
+
+  it("creates a blank screen from app configuration", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.change(screen.getByLabelText("New screen name"), { target: { value: "Inspection" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create screen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+    const createdScreen = savedApplication?.screens.find((screenConfig) => screenConfig.id === "inspection");
+
+    expect(createdScreen).toMatchObject({
+      id: "inspection",
+      title: "Inspection",
+      widgets: [],
+    });
+  });
+
+  it("duplicates a screen from app configuration", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate Main screen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+    const duplicatedScreen = savedApplication?.screens.find((screenConfig) => screenConfig.id === "main-copy");
+
+    expect(duplicatedScreen).toMatchObject({
+      id: "main-copy",
+      title: "Main Copy",
+    });
+    expect(duplicatedScreen?.widgets).toEqual(
+      savedApplication?.screens.find((screenConfig) => screenConfig.id === "main")?.widgets,
+    );
   });
 
   it("removes a screen from the current app configuration", async () => {

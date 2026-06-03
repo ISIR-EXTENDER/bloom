@@ -2,6 +2,10 @@
 
 This inventory reviews reusable UI ideas from `extender_ui` before migrating more Bloom widget foundations.
 
+Roadmap ownership lives in `docs/migration-plan.md`.
+
+Use this file as an inventory and classification reference only. Do not maintain ordered next steps here.
+
 ## Source Generations
 
 `extender_ui` currently has two widget generations:
@@ -47,6 +51,9 @@ Keep these outside Bloom core until extension points are ready:
 The widget UI can still be generic while the runtime adapter is app-specific.
 
 ## Foundation Priorities
+
+These priorities explain why a widget family matters. The current implementation order is tracked in
+`docs/migration-plan.md#ordered-next-steps`.
 
 1. **Control primitives**
    - Interactive slider using `@radix-ui/react-slider`.

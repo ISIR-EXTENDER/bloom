@@ -1,7 +1,11 @@
-# Widgets, Screens, And Apps Foundation Plan
+# Widgets, Screens, And Apps Foundation Notes
 
-This plan focuses on Bloom's core product promise: people should be able to create reusable robot interfaces, screens,
-and apps without writing web code.
+This document keeps the design notes behind Bloom's widgets, screens, and apps foundations.
+
+Roadmap ownership lives in `docs/migration-plan.md`.
+
+Use this file as reference material when implementing roadmap slices, especially when deciding whether a legacy widget
+belongs in Bloom core, an app extension, or a temporary migration adapter.
 
 See also `docs/widget-migration-inventory.md` for the current `extender_ui` widget/screen migration inventory.
 
@@ -68,7 +72,9 @@ Avoid carrying these weaknesses forward:
 - app-specific widgets living in the generic catalog without an extension boundary.
 - reusable Petanque-era widgets being trapped as Petanque-only code when they should become lab-wide widgets.
 
-## Current State
+## Foundation Status Snapshot
+
+For the current roadmap and ordered next steps, use `docs/migration-plan.md`.
 
 Already done:
 
@@ -77,16 +83,17 @@ Already done:
 - Unknown widgets produce explicit fallback descriptors.
 - Enabled `extender_ui` widget kinds are mapped to Bloom kinds with compatibility status.
 - Dashboard can load configurations from the backend API.
+- App configuration can edit app identity, app design tokens, screen membership, blank screen creation, and screen
+  duplication as saveable draft state.
+- The builder has tested canvas movement, resizing, history, widget palette, and inspector foundations.
+- Runtime screens render separately from builder controls.
 
-Still missing before serious widget migration:
+Still important for future roadmap slices:
 
-- richer widget capability metadata;
-- typed settings contracts per widget;
-- screen layout and canvas model;
-- legacy widget object to Bloom widget object adapter;
-- renderer registry for React components;
 - runtime action boundary for command/device/ROS widgets;
-- editor state and update operations;
+- richer ROS live subscriptions and telemetry visualization;
+- normalized SQLite app/screen storage beyond bundled configuration documents;
+- production-level screen builder polish and visual QA;
 - backend/frontend contract sync safeguards.
 
 ## Foundation Slices
@@ -293,14 +300,9 @@ Tests:
 - missing app extensions do not crash;
 - generic widgets remain independent from app widgets.
 
-## Recommended Next PRs
+## Roadmap Pointer
 
-1. `feat(widgets): add capability metadata`
-2. `feat(config): add widget layout and canvas model`
-3. `feat(widgets): add typed settings contracts`
-4. `feat(config): adapt legacy canvas configurations`
-5. `feat(dashboard): render configuration screens`
-6. `feat(widgets): add editor operations foundation`
-7. `feat(runtime): add command intent contracts`
+Do not maintain a second ordered TODO list here.
 
-Each PR should include tests before UI polish.
+The next PR order is tracked in `docs/migration-plan.md#ordered-next-steps` so the project has one place to update
+when priorities change.

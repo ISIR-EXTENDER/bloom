@@ -50,6 +50,32 @@ export function addScreenToApplication(application: ApplicationConfig, screen: S
   };
 }
 
+export function duplicateScreenInApplication(application: ApplicationConfig, screenId: string): ApplicationConfig {
+  const screen = application.screens.find((candidateScreen) => candidateScreen.id === screenId);
+
+  if (!screen) {
+    throw new Error(`Screen "${screenId}" was not found in application "${application.id}".`);
+  }
+
+  const duplicatedScreen = structuredClone(screen);
+  const nextId = createUniqueId(
+    `${screen.id}-copy`,
+    application.screens.map((candidateScreen) => candidateScreen.id),
+  );
+
+  return {
+    ...application,
+    screens: [
+      ...application.screens,
+      {
+        ...duplicatedScreen,
+        id: nextId,
+        title: `${screen.title} Copy`,
+      },
+    ],
+  };
+}
+
 export function removeScreenFromApplication(application: ApplicationConfig, screenId: string): ApplicationConfig {
   if (!application.screens.some((candidateScreen) => candidateScreen.id === screenId)) {
     throw new Error(`Screen "${screenId}" was not found in application "${application.id}".`);
@@ -63,6 +89,33 @@ export function removeScreenFromApplication(application: ApplicationConfig, scre
     ...application,
     screens: application.screens.filter((screen) => screen.id !== screenId),
   };
+}
+
+export function createUniqueId(preferredId: string, existingIds: readonly string[]): string {
+  const baseId = slugifyId(preferredId) || "screen";
+  const takenIds = new Set(existingIds);
+
+  if (!takenIds.has(baseId)) {
+    return baseId;
+  }
+
+  let suffix = 2;
+  let candidateId = `${baseId}-${suffix}`;
+
+  while (takenIds.has(candidateId)) {
+    suffix += 1;
+    candidateId = `${baseId}-${suffix}`;
+  }
+
+  return candidateId;
+}
+
+function slugifyId(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 export function replaceScreenInConfigurationBundle(
