@@ -87,6 +87,26 @@
   justify-items: center;
 }
 
+.bloom-joystick-mode-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: -4px;
+  color: var(--bloom-ink-soft);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bloom-joystick-mode-strip span {
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 84%, transparent);
+}
+
 .bloom-slider {
   display: flex;
   align-items: center;

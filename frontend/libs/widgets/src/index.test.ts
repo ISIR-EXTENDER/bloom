@@ -358,7 +358,7 @@ describe("widget settings contracts", () => {
 
   it("validates structured joystick labels", () => {
     expect(
-      validateWidgetSettings("joystick", {
+      normalizeWidgetSettings("joystick", {
         binding: "joy",
         deadzone: 0.1,
         labels: {
@@ -376,6 +376,26 @@ describe("widget settings contracts", () => {
           message: "top label must be a string",
         },
       ],
+    });
+  });
+
+  it("normalizes legacy rotation joystick bindings into mode-aware contracts", () => {
+    expect(
+      normalizeWidgetSettings("joystick", {
+        binding: "rot",
+      }),
+    ).toEqual({
+      success: true,
+      settings: expect.objectContaining({
+        binding: "rot",
+        mode_id: "rotation",
+        publish_rate_hz: 30,
+        runtime_binding: {
+          adapter: "teleop",
+          target: "rotation",
+        },
+        zero_on_release: true,
+      }),
     });
   });
 
@@ -1052,6 +1072,13 @@ describe("widget runtime action intents", () => {
       widgetKind: "joystick",
       value: { x: 0.5, y: -0.25 },
       binding: "rot",
+      modeId: "rotation",
+      publishRateHz: 30,
+      runtimeBinding: {
+        adapter: "teleop",
+        target: "rotation",
+      },
+      zeroOnRelease: true,
     });
   });
 

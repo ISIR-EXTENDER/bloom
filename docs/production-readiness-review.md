@@ -183,6 +183,8 @@ Functional:
   large `index.tsx` file.
 - Builder and runtime now share a `ScreenArtboard` renderer so the same screen
   model and widget descriptor pipeline drive both modes.
+- Joystick widgets now use a mode-aware runtime contract with axis hints,
+  publish rate, zero-on-release, and adapter binding metadata.
 - Runtime widget styling is separated from the dashboard product stylesheet.
 - Dashboard CSS is now split by product area: base shell, builder, runtime app,
   runtime widgets, and responsive overrides.

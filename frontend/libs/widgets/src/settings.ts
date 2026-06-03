@@ -53,8 +53,27 @@ export type GaugeSettings = {
   unit: string;
 };
 
+export type JoystickAxisSemantic = "custom" | "rotation" | "translation" | "vertical";
+
+export type JoystickAxisHint = {
+  color: string;
+  negative_label: string;
+  positive_label: string;
+  semantic: JoystickAxisSemantic;
+};
+
+export type JoystickRuntimeBinding = {
+  adapter: "custom" | "teleop" | "topic";
+  target: string;
+  value_mapping?: Record<string, unknown>;
+};
+
 export type JoystickSettings = {
-  binding: "joy" | "rot";
+  binding?: "joy" | "rot";
+  axis_hints: {
+    x: JoystickAxisHint;
+    y: JoystickAxisHint;
+  };
   deadzone: number;
   labels: {
     bottom: string;
@@ -62,6 +81,10 @@ export type JoystickSettings = {
     right: string;
     top: string;
   };
+  mode_id: string;
+  publish_rate_hz: number;
+  runtime_binding: JoystickRuntimeBinding;
+  zero_on_release: boolean;
 };
 
 export type LabelSettings = {
@@ -136,8 +159,29 @@ const GAUGE_DEFAULT_SETTINGS: GaugeSettings = {
 
 const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
   binding: "joy",
+  axis_hints: {
+    x: {
+      color: "#7fa95f",
+      negative_label: "X-",
+      positive_label: "X+",
+      semantic: "translation",
+    },
+    y: {
+      color: "#d89f5d",
+      negative_label: "Y-",
+      positive_label: "Y+",
+      semantic: "translation",
+    },
+  },
   deadzone: 0.1,
   labels: { bottom: "Y-", left: "X-", right: "X+", top: "Y+" },
+  mode_id: "translation",
+  publish_rate_hz: 30,
+  runtime_binding: {
+    adapter: "teleop",
+    target: "translation",
+  },
+  zero_on_release: true,
 };
 
 const LABEL_DEFAULT_SETTINGS: LabelSettings = {
@@ -224,9 +268,14 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   joystick: createContract(
     "joystick",
     [
-      { key: "binding", label: "Binding", type: "select", required: true, options: ["joy", "rot"] },
+      { key: "mode_id", label: "Mode", type: "text", required: true },
+      { key: "binding", label: "Legacy binding", type: "select", required: false, options: ["joy", "rot"] },
       { key: "deadzone", label: "Deadzone", type: "number", required: true },
+      { key: "publish_rate_hz", label: "Publish rate", type: "number", required: true },
+      { key: "zero_on_release", label: "Zero on release", type: "boolean", required: true },
       { key: "labels", label: "Axis labels", type: "json", required: true },
+      { key: "axis_hints", label: "Axis hints", type: "json", required: true },
+      { key: "runtime_binding", label: "Runtime binding", type: "json", required: true },
     ],
     JOYSTICK_DEFAULT_SETTINGS,
     validateJoystickSettings,
@@ -327,6 +376,9 @@ export function normalizeWidgetSettings(
     ...getDefaultWidgetSettings(kind),
     ...settings,
   };
+  if (kind === "joystick") {
+    return validateWidgetSettings(kind, normalizeJoystickCompatibility(mergedSettings));
+  }
   return validateWidgetSettings(kind, mergedSettings);
 }
 
@@ -528,11 +580,88 @@ function validateGaugeSettings(settings: Record<string, unknown>): WidgetSetting
   return succeed(settings as GaugeSettings);
 }
 
+function normalizeJoystickCompatibility(settings: Record<string, unknown>): Record<string, unknown> {
+  const binding = typeof settings.binding === "string" ? settings.binding : undefined;
+  const defaults =
+    binding === "rot" ? ROTATION_JOYSTICK_COMPATIBILITY_DEFAULTS : TRANSLATION_JOYSTICK_COMPATIBILITY_DEFAULTS;
+  const usesDefaultMode = settings.mode_id === JOYSTICK_DEFAULT_SETTINGS.mode_id;
+  const usesDefaultRuntimeBinding =
+    isRecord(settings.runtime_binding) &&
+    settings.runtime_binding.adapter === JOYSTICK_DEFAULT_SETTINGS.runtime_binding.adapter &&
+    settings.runtime_binding.target === JOYSTICK_DEFAULT_SETTINGS.runtime_binding.target;
+  const axisHints = isRecord(settings.axis_hints)
+    ? {
+        x: {
+          ...defaults.axis_hints.x,
+          ...(isRecord(settings.axis_hints.x) ? settings.axis_hints.x : {}),
+        },
+        y: {
+          ...defaults.axis_hints.y,
+          ...(isRecord(settings.axis_hints.y) ? settings.axis_hints.y : {}),
+        },
+      }
+    : defaults.axis_hints;
+
+  return {
+    ...settings,
+    axis_hints: axisHints,
+    labels: isRecord(settings.labels) ? settings.labels : defaults.labels,
+    mode_id:
+      typeof settings.mode_id === "string" && settings.mode_id.trim().length > 0 && !usesDefaultMode
+        ? settings.mode_id
+        : defaults.mode_id,
+    runtime_binding:
+      isRecord(settings.runtime_binding) && !usesDefaultRuntimeBinding
+        ? {
+            ...defaults.runtime_binding,
+            ...settings.runtime_binding,
+          }
+        : defaults.runtime_binding,
+  };
+}
+
+const TRANSLATION_JOYSTICK_COMPATIBILITY_DEFAULTS = {
+  axis_hints: JOYSTICK_DEFAULT_SETTINGS.axis_hints,
+  labels: JOYSTICK_DEFAULT_SETTINGS.labels,
+  mode_id: JOYSTICK_DEFAULT_SETTINGS.mode_id,
+  runtime_binding: JOYSTICK_DEFAULT_SETTINGS.runtime_binding,
+};
+
+const ROTATION_JOYSTICK_COMPATIBILITY_DEFAULTS = {
+  axis_hints: {
+    x: {
+      color: "#95a5c8",
+      negative_label: "RX-",
+      positive_label: "RX+",
+      semantic: "rotation",
+    },
+    y: {
+      color: "#c8a3cf",
+      negative_label: "RY-",
+      positive_label: "RY+",
+      semantic: "rotation",
+    },
+  },
+  labels: { bottom: "RY-", left: "RX-", right: "RX+", top: "RY+" },
+  mode_id: "rotation",
+  runtime_binding: {
+    adapter: "teleop",
+    target: "rotation",
+  },
+} satisfies Pick<JoystickSettings, "axis_hints" | "labels" | "mode_id" | "runtime_binding">;
+
 function validateJoystickSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<JoystickSettings> {
   const errors = [
-    ...validateOneOf(settings, "binding", ["joy", "rot"]),
+    ...("binding" in settings && settings.binding !== undefined
+      ? validateOneOf(settings, "binding", ["joy", "rot"])
+      : []),
+    ...validateString(settings, "mode_id"),
     ...validateNumber(settings, "deadzone", { min: 0, max: 1 }),
+    ...validateNumber(settings, "publish_rate_hz", { min: 1, max: 120 }),
+    ...validateBoolean(settings, "zero_on_release"),
     ...validateJoystickLabels(settings.labels),
+    ...validateJoystickAxisHints(settings.axis_hints),
+    ...validateJoystickRuntimeBinding(settings.runtime_binding),
   ];
   if (errors.length > 0) return fail(errors);
   return succeed(settings as JoystickSettings);
@@ -647,6 +776,59 @@ function validateJoystickLabels(value: unknown): WidgetSettingsValidationError[]
   return ["bottom", "left", "right", "top"].flatMap((key) =>
     typeof value[key] === "string" ? [] : [{ field: `labels.${key}`, message: `${key} label must be a string` }],
   );
+}
+
+function validateJoystickAxisHints(value: unknown): WidgetSettingsValidationError[] {
+  if (!isRecord(value)) {
+    return [{ field: "axis_hints", message: "axis_hints must be an object" }];
+  }
+
+  return ["x", "y"].flatMap((axis) => validateJoystickAxisHint(value[axis], `axis_hints.${axis}`));
+}
+
+function validateJoystickAxisHint(value: unknown, field: string): WidgetSettingsValidationError[] {
+  if (!isRecord(value)) {
+    return [{ field, message: `${field} must be an object` }];
+  }
+
+  const errors: WidgetSettingsValidationError[] = [];
+  for (const key of ["color", "negative_label", "positive_label"]) {
+    if (typeof value[key] !== "string" || value[key].trim().length === 0) {
+      errors.push({ field: `${field}.${key}`, message: `${key} must be a non-empty string` });
+    }
+  }
+  if (
+    typeof value.semantic !== "string" ||
+    !["custom", "rotation", "translation", "vertical"].includes(value.semantic)
+  ) {
+    errors.push({
+      field: `${field}.semantic`,
+      message: "semantic must be one of: custom, rotation, translation, vertical",
+    });
+  }
+  return errors;
+}
+
+function validateJoystickRuntimeBinding(value: unknown): WidgetSettingsValidationError[] {
+  if (!isRecord(value)) {
+    return [{ field: "runtime_binding", message: "runtime_binding must be an object" }];
+  }
+
+  const errors: WidgetSettingsValidationError[] = [];
+  if (typeof value.adapter !== "string" || !["custom", "teleop", "topic"].includes(value.adapter)) {
+    errors.push({ field: "runtime_binding.adapter", message: "adapter must be one of: custom, teleop, topic" });
+  }
+  if (typeof value.target !== "string" || value.target.trim().length === 0) {
+    errors.push({ field: "runtime_binding.target", message: "target is required" });
+  }
+  if (
+    "value_mapping" in value &&
+    value.value_mapping !== undefined &&
+    (!isRecord(value.value_mapping) || !isJsonSerializable(value.value_mapping))
+  ) {
+    errors.push({ field: "runtime_binding.value_mapping", message: "value_mapping must be a JSON object" });
+  }
+  return errors;
 }
 
 function validateBoolean(settings: Record<string, unknown>, field: string): WidgetSettingsValidationError[] {
