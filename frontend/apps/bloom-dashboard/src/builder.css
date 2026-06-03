@@ -124,6 +124,40 @@
   line-height: 1.55;
 }
 
+.builder-screen-library-search {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.builder-screen-library-search span {
+  color: var(--bloom-ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.builder-screen-library-search input {
+  width: min(520px, 100%);
+  min-height: 52px;
+  padding: 0 18px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 18%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 88%, white);
+  color: var(--bloom-ink);
+  cursor: text;
+  font: inherit;
+  font-size: 1rem;
+  box-shadow: inset 0 1px 0 rgba(255, 253, 247, 0.9);
+}
+
+.builder-screen-library-search input:focus-visible {
+  border-color: color-mix(in srgb, var(--bloom-primary) 58%, var(--bloom-border));
+  outline: 4px solid color-mix(in srgb, var(--bloom-primary) 18%, transparent);
+  outline-offset: 3px;
+}
+
 .builder-screen-library-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -133,7 +167,9 @@
 
 .builder-screen-library-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+  align-items: center;
   padding: 18px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
   border-radius: 22px;

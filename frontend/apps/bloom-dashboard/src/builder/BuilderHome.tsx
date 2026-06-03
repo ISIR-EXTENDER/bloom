@@ -31,6 +31,7 @@ export function BuilderHome({
   const firstConfiguration = configurations[0];
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
   const [appActionState, setAppActionState] = useState<AppActionState>({ status: "idle" });
+  const [screenSearch, setScreenSearch] = useState("");
   const isCreating = createState.status === "creating";
   const applications = configurations.flatMap((configuration) =>
     configuration.bundle.applications.map((application) => ({ application, configuration })),
@@ -38,6 +39,7 @@ export function BuilderHome({
   const screens = applications.flatMap(({ application, configuration }) =>
     application.screens.map((screen) => ({ application, configuration, screen })),
   );
+  const filteredScreens = filterScreens(screens, screenSearch);
 
   return (
     <section className="builder-home" aria-labelledby="builder-home-title">
@@ -226,52 +228,73 @@ export function BuilderHome({
             <p className="eyebrow">Screen library</p>
             <h2 id="builder-screen-library-title">Reusable screens</h2>
           </div>
-          <span>{screens.length} screens</span>
+          <span>{filteredScreens.length} screens</span>
         </div>
         <p>
           Work directly from reusable screens when you want to design a control, camera, or debug view before assigning
           it to a specific app flow.
         </p>
+        <label className="builder-screen-library-search">
+          <span>Find a screen</span>
+          <input
+            aria-label="Find a screen"
+            onChange={(event) => setScreenSearch(event.target.value)}
+            placeholder="Camera, teleop, debug..."
+            type="search"
+            value={screenSearch}
+          />
+        </label>
         <div className="builder-screen-library-grid">
-          {screens.map(({ application, configuration, screen }) => (
-            <article className="builder-screen-library-card" key={`${configuration.id}:${application.id}:${screen.id}`}>
-              <div>
-                <strong>{screen.title}</strong>
-                <span>{application.name}</span>
-              </div>
-              <small>
-                {screen.widgets.length} widgets · {screen.canvas.preset_id}
-              </small>
-              <div className="builder-app-card-actions">
-                <button
-                  aria-label={`Edit ${screen.title} screen`}
-                  onClick={() =>
-                    onOpenScreenBuilder({
-                      appId: application.id,
-                      configId: configuration.id,
-                      screenId: screen.id,
-                    })
-                  }
-                  type="button"
-                >
-                  Edit screen
-                </button>
-                <button
-                  aria-label={`Preview ${screen.title} screen runtime`}
-                  onClick={() =>
-                    onPreviewScreenRuntime({
-                      appId: application.id,
-                      configId: configuration.id,
-                      screenId: screen.id,
-                    })
-                  }
-                  type="button"
-                >
-                  Runtime preview
-                </button>
-              </div>
-            </article>
-          ))}
+          {filteredScreens.length === 0 ? (
+            <p className="builder-empty-state">
+              No screens match this search yet. Try another app name, screen name, or widget type.
+            </p>
+          ) : (
+            filteredScreens.map(({ application, configuration, screen }) => (
+              <article
+                className="builder-screen-library-card"
+                key={`${configuration.id}:${application.id}:${screen.id}`}
+              >
+                <div className="builder-screen-card-main">
+                  <strong>{screen.title}</strong>
+                  <span>{application.name}</span>
+                  <div className="builder-screen-card-details">
+                    <span>{screen.widgets.length} widgets</span>
+                    <span>{screen.canvas.preset_id}</span>
+                    <span>{configuration.id}</span>
+                  </div>
+                </div>
+                <div className="builder-app-card-actions">
+                  <button
+                    aria-label={`Edit ${screen.title} screen`}
+                    onClick={() =>
+                      onOpenScreenBuilder({
+                        appId: application.id,
+                        configId: configuration.id,
+                        screenId: screen.id,
+                      })
+                    }
+                    type="button"
+                  >
+                    Edit screen
+                  </button>
+                  <button
+                    aria-label={`Preview ${screen.title} screen runtime`}
+                    onClick={() =>
+                      onPreviewScreenRuntime({
+                        appId: application.id,
+                        configId: configuration.id,
+                        screenId: screen.id,
+                      })
+                    }
+                    type="button"
+                  >
+                    Runtime preview
+                  </button>
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </section>
     </section>
@@ -306,4 +329,30 @@ function slugify(value: string): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "bloom-app"
   );
+}
+
+function filterScreens<
+  TScreen extends {
+    application: ApplicationConfig;
+    configuration: { id: string };
+    screen: { title: string; widgets: readonly { kind: string }[] };
+  },
+>(screens: readonly TScreen[], search: string): TScreen[] {
+  const normalizedSearch = search.trim().toLowerCase();
+  if (!normalizedSearch) {
+    return [...screens];
+  }
+
+  return screens.filter(({ application, configuration, screen }) => {
+    const searchableText = [
+      application.name,
+      configuration.id,
+      screen.title,
+      ...screen.widgets.map((widget) => widget.kind),
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return searchableText.includes(normalizedSearch);
+  });
 }

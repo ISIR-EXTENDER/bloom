@@ -103,6 +103,8 @@ Already done in this phase:
 
 - App and screen saves now use dedicated backend API endpoints instead of frontend-only full-bundle replacement.
 - Reusable screen listing exposes source-app metadata for the early screen-library UX.
+- Builder home exposes a searchable screen library across loaded apps, with direct screen builder and runtime preview
+  actions.
 
 Remaining focus in this phase:
 

@@ -69,6 +69,27 @@ describe("App", () => {
     expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
   });
 
+  it("filters reusable screens from the builder screen library", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "petanque-admin": migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["petanque-admin"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.change(await screen.findByRole("searchbox", { name: "Find a screen" }), {
+      target: { value: "camera" },
+    });
+
+    expect(screen.getByRole("button", { name: "Edit default_live_teleop screen" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Edit default_control screen" })).not.toBeInTheDocument();
+  });
+
   it("opens an app runtime directly from the builder app list", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
