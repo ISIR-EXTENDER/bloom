@@ -1,0 +1,57 @@
+name: Bug report
+description: Report something that is broken or confusing in Bloom.
+title: "fix: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Bloom. If this is a security issue, please do not include exploit details here; follow `SECURITY.md` instead.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+      placeholder: The builder shows a blank page when...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Keep it concrete enough that someone else can reproduce it.
+      placeholder: |
+        1. Open...
+        2. Click...
+        3. See...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Frontend dashboard
+        - Builder
+        - Runtime app
+        - Widgets
+        - Backend API
+        - ROS adapter
+        - Storage / SQLite
+        - Documentation
+        - Tooling / CI
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Extra context
+      description: Screenshots, logs, browser, OS, ROS context, or anything else useful.

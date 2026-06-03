@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest a Bloom feature, widget, screen, adapter, or UX improvement.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What user need does this solve?
+      placeholder: Operators need to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the feature in product terms, not only implementation details.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - App builder
+        - Runtime app
+        - Widget library
+        - Design system
+        - Backend API
+        - ROS adapter
+        - Non-ROS adapter
+        - Storage / SQLite
+        - Security
+        - Documentation
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: How would we validate it?
+      description: Mention tests, demos, screenshots, robot/manual checks, or legacy behavior to preserve.
+      placeholder: This is done when...
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Link old Bloom/extender_ui behavior, screenshots, papers, ROS docs, or inspiration.

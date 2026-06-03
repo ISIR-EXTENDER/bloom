@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security report
+    url: https://github.com/ISIR-EXTENDER/bloom/security
+    about: Please avoid public security details and use the security policy first.
