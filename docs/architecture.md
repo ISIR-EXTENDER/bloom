@@ -45,6 +45,9 @@ Until Bloom introduces a dedicated screen-library persistence model, the app con
 from the selected configuration bundle. SQLite migrations should keep that UX stable while moving storage from bundled
 JSON documents toward normalized app and screen records.
 
+The app configuration page is also the screen lifecycle hub: users can create blank screens, duplicate existing screens,
+add reusable screens from other apps, remove screens from the current app, then save/discard the draft composition.
+
 ## Dependency Direction
 
 Apps may depend on libs. Libs should not depend on apps.

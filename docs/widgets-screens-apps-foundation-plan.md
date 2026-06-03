@@ -77,16 +77,17 @@ Already done:
 - Unknown widgets produce explicit fallback descriptors.
 - Enabled `extender_ui` widget kinds are mapped to Bloom kinds with compatibility status.
 - Dashboard can load configurations from the backend API.
+- App configuration can edit app identity, app design tokens, screen membership, blank screen creation, and screen
+  duplication as saveable draft state.
+- The builder has tested canvas movement, resizing, history, widget palette, and inspector foundations.
+- Runtime screens render separately from builder controls.
 
 Still missing before serious widget migration:
 
-- richer widget capability metadata;
-- typed settings contracts per widget;
-- screen layout and canvas model;
-- legacy widget object to Bloom widget object adapter;
-- renderer registry for React components;
 - runtime action boundary for command/device/ROS widgets;
-- editor state and update operations;
+- richer ROS live subscriptions and telemetry visualization;
+- normalized SQLite app/screen storage beyond bundled configuration documents;
+- production-level screen builder polish and visual QA;
 - backend/frontend contract sync safeguards.
 
 ## Foundation Slices

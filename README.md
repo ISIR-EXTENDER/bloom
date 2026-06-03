@@ -54,7 +54,7 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
 - Builder drafts can now be saved or discarded through the configuration API.
-- App configuration can edit app identity, app-level design tokens, and screen membership from existing screens.
+- App configuration can edit app identity, app-level design tokens, create/duplicate screens, and reuse screens from other apps.
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.

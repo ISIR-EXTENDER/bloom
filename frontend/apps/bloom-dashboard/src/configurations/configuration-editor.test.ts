@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   addScreenToApplication,
+  createUniqueId,
+  duplicateScreenInApplication,
   removeScreenFromApplication,
   replaceScreenInConfigurationBundle,
 } from "./configuration-editor";
@@ -72,6 +74,60 @@ describe("removeScreenFromApplication", () => {
     expect(() => removeScreenFromApplication(application, "missing")).toThrow(
       'Screen "missing" was not found in application "sandbox".',
     );
+  });
+});
+
+describe("duplicateScreenInApplication", () => {
+  it("duplicates a screen with a stable unique id and copied widgets", () => {
+    const application = createBundle().applications[0];
+
+    if (!application) {
+      throw new Error("Test application is missing.");
+    }
+
+    const updatedApplication = duplicateScreenInApplication(application, "main");
+    const duplicatedScreen = updatedApplication.screens.at(-1);
+
+    expect(duplicatedScreen).toMatchObject({
+      id: "main-copy",
+      title: "Main Copy",
+    });
+    expect(duplicatedScreen?.widgets).toEqual(application.screens[0]?.widgets);
+    expect(duplicatedScreen?.widgets).not.toBe(application.screens[0]?.widgets);
+    expect(application.screens).toHaveLength(2);
+  });
+
+  it("increments duplicate ids when a copy already exists", () => {
+    const application = {
+      ...createBundle().applications[0],
+      screens: [createScreen("main"), createScreen("main-copy")],
+    };
+
+    const updatedApplication = duplicateScreenInApplication(application, "main");
+
+    expect(updatedApplication.screens.at(-1)?.id).toBe("main-copy-2");
+  });
+
+  it("fails explicitly when the duplicated screen is missing", () => {
+    const application = createBundle().applications[0];
+
+    if (!application) {
+      throw new Error("Test application is missing.");
+    }
+
+    expect(() => duplicateScreenInApplication(application, "missing")).toThrow(
+      'Screen "missing" was not found in application "sandbox".',
+    );
+  });
+});
+
+describe("createUniqueId", () => {
+  it("slugifies labels into ids", () => {
+    expect(createUniqueId("Live Teleop Screen", [])).toBe("live-teleop-screen");
+  });
+
+  it("falls back to a screen id and increments existing ids", () => {
+    expect(createUniqueId("!!!", ["screen", "screen-2"])).toBe("screen-3");
   });
 });
 

@@ -338,6 +338,33 @@ h1 {
   font-size: 1rem;
 }
 
+.builder-screen-create-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 320px) auto;
+  gap: 16px;
+  align-items: end;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 18%, var(--bloom-surface-container-low));
+}
+
+.builder-screen-create-card h3 {
+  margin: 0 0 6px;
+  color: var(--bloom-ink);
+}
+
+.builder-screen-create-card button {
+  min-height: 46px;
+  padding: 10px 16px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 999px;
+  background: var(--bloom-primary);
+  color: white;
+  font-weight: 800;
+}
+
 .builder-screen-card-actions {
   display: flex;
   gap: 8px;
@@ -718,6 +745,10 @@ h1 {
 .builder-inspector-copy {
   color: var(--bloom-ink-soft);
   line-height: 1.55;
+}
+
+.builder-screen-create-card .builder-inspector-copy {
+  margin: 0;
 }
 
 .builder-inspector-panel {
@@ -1387,6 +1418,7 @@ h1 {
   .hero,
   .main-application-grid,
   .builder-app-config-grid,
+  .builder-screen-create-card,
   .builder-screen-membership,
   .builder-workspace {
     grid-template-columns: 1fr;
