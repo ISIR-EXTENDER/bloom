@@ -60,6 +60,20 @@ export type ApplicationTheme = {
   };
 };
 
+export type DisplayPreset = "compact" | "comfort" | "default" | "high-visibility";
+
+export type MotorAccessibilityPreset = "assisted-touch" | "default" | "large-targets" | "reduced-motion";
+
+export type UserProfile = {
+  id: string;
+  name: string;
+  display_preset: DisplayPreset;
+  font_scale: number;
+  app_theme_preset_id: string;
+  preferred_control_layout_id: string;
+  motor_accessibility_preset: MotorAccessibilityPreset;
+};
+
 export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
   inspiration: {
     moodboard_image_uri: "",
@@ -79,6 +93,7 @@ export type ApplicationConfig = {
   name: string;
   description: string;
   theme: ApplicationTheme;
+  profiles: UserProfile[];
   screens: ScreenConfig[];
 };
 

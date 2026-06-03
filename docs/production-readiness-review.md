@@ -185,6 +185,8 @@ Functional:
   model and widget descriptor pipeline drive both modes.
 - Joystick widgets now use a mode-aware runtime contract with axis hints,
   publish rate, zero-on-release, and adapter binding metadata.
+- Applications now keep a profile-ready model for display presets, font scale,
+  app theme preference, preferred control layout, and motor-accessibility presets.
 - Runtime widget styling is separated from the dashboard product stylesheet.
 - Dashboard CSS is now split by product area: base shell, builder, runtime app,
   runtime widgets, and responsive overrides.

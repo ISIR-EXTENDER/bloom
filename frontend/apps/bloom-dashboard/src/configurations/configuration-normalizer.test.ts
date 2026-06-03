@@ -57,6 +57,7 @@ describe("normalizeConfigurationBundle", () => {
       layout: { x: 0, y: 0, width: 240, height: 120 },
       settings: { appSpecific: true },
     });
+    expect(bundle.applications[0]?.profiles).toEqual([]);
   });
 
   it("normalizes app theme inspiration with safe defaults", () => {
@@ -98,5 +99,6 @@ describe("normalizeConfigurationBundle", () => {
         surface: "#fffdf7",
       },
     });
+    expect(bundle.applications[0]?.profiles).toEqual([]);
   });
 });

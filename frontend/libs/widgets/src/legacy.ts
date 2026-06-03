@@ -79,6 +79,7 @@ export function legacyCanvasScreensToApplicationConfig(
     name: stringOrFallback(application.name, id),
     description: stringOrFallback(application.description, homeScreenDescription),
     theme: DEFAULT_APPLICATION_THEME,
+    profiles: [],
     screens: orderedScreens,
   };
 }

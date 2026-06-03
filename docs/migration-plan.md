@@ -47,6 +47,8 @@ Already merged:
 - App configuration flow with app identity, app-level theme tokens, and reusable screen membership.
 - App configuration screen lifecycle actions: blank screen creation, screen duplication, and source-app labels for reusable screens.
 - App theme inspiration metadata for moodboard images and website references, kept separate from the applied palette.
+- Profile-ready app model for display presets, font scale, theme preference, preferred control layout, and
+  motor-accessibility presets.
 - App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
 - First security baseline document and minimal API security headers.
@@ -220,7 +222,7 @@ Status: idea captured, intentionally low priority.
 4. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
 5. Add Explorer-style control foundations:
-   mode-aware joystick bindings, action progress/cancel, speed/gripper counters, and display/profile settings.
+   mode-aware joystick bindings, action progress/cancel, speed/gripper counters, and profile-driven display settings.
 6. Add the first security checks around ROS publish intents:
    topic/message/payload allowlists, runtime session validation, and audit logging.
 7. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.

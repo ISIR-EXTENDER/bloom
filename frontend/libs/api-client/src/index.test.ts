@@ -56,6 +56,7 @@ describe("Bloom API client", () => {
     const configuration = await client.getConfiguration("sandbox");
 
     expect(configuration.metadata.source).toBe("shared-contract-fixture");
+    expect(configuration.applications[0]?.profiles).toEqual([]);
     expect(configuration.applications[0]?.screens[0]?.canvas).toEqual({
       preset_id: "hd",
       runtime_mode: "fit",

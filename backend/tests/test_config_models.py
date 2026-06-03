@@ -11,8 +11,11 @@ from libs.config import (
     CanvasSettings,
     ConfigurationBundle,
     ConfigurationMetadata,
+    DisplayPreset,
+    MotorAccessibilityPreset,
     RuntimeCanvasMode,
     ScreenConfig,
+    UserProfile,
     WidgetConfig,
     WidgetKind,
     WidgetLayout,
@@ -79,6 +82,7 @@ def test_configuration_bundle_serializes_to_json() -> None:
             "surface": "#fffdf7",
         },
     }
+    assert parsed["applications"][0]["profiles"] == []
     assert parsed["applications"][0]["screens"][0]["canvas"] == {"preset_id": "hd", "runtime_mode": "fit"}
     assert parsed["applications"][0]["screens"][0]["widgets"][0]["layout"] == {
         "x": 24,
@@ -150,6 +154,31 @@ def test_application_theme_accepts_inspiration_references() -> None:
     assert application.theme.inspiration.reference_url == "https://lifesum.com/nutrition-explained/"
 
 
+def test_application_accepts_user_profiles_for_future_personalization() -> None:
+    application = ApplicationConfig(
+        id="extender-tests",
+        name="Extender Tests",
+        profiles=(
+            UserProfile(
+                id="meal-layout",
+                name="Meal layout",
+                display_preset=DisplayPreset.COMFORT,
+                font_scale=1.25,
+                app_theme_preset_id="bloom-default",
+                preferred_control_layout_id="meal-control",
+                motor_accessibility_preset=MotorAccessibilityPreset.LARGE_TARGETS,
+            ),
+        ),
+    )
+
+    profile = application.profiles[0]
+
+    assert profile.display_preset == DisplayPreset.COMFORT
+    assert profile.font_scale == 1.25
+    assert profile.preferred_control_layout_id == "meal-control"
+    assert profile.motor_accessibility_preset == MotorAccessibilityPreset.LARGE_TARGETS
+
+
 def test_duplicate_application_ids_are_rejected() -> None:
     with pytest.raises(ValidationError, match="duplicate application ids: sandbox"):
         ConfigurationBundle(
@@ -157,6 +186,18 @@ def test_duplicate_application_ids_are_rejected() -> None:
                 ApplicationConfig(id="sandbox", name="Sandbox A"),
                 ApplicationConfig(id="sandbox", name="Sandbox B"),
             )
+        )
+
+
+def test_duplicate_profile_ids_are_rejected() -> None:
+    with pytest.raises(ValidationError, match="duplicate profile ids: default"):
+        ApplicationConfig(
+            id="sandbox",
+            name="Sandbox",
+            profiles=(
+                UserProfile(id="default", name="Default"),
+                UserProfile(id="default", name="Default copy"),
+            ),
         )
 
 
