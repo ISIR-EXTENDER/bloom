@@ -43,6 +43,7 @@ export type RuntimeTopicSubscriptionResponse = {
     field_path: string;
     message_type: string;
     topic: string;
+    widget_id?: string;
   };
   type: "subscription_ack";
 };

@@ -16,6 +16,7 @@ class RuntimeSubscribeTopicMessage(RuntimeModel):
     topic: str = Field(min_length=1)
     message_type: str = ""
     field_path: str = ""
+    widget_id: str = ""
 
     @field_validator("topic")
     @classmethod
@@ -26,6 +27,11 @@ class RuntimeSubscribeTopicMessage(RuntimeModel):
         if any(character.isspace() for character in normalized_topic):
             raise ValueError("topic must not contain whitespace")
         return normalized_topic
+
+    @field_validator("widget_id")
+    @classmethod
+    def normalize_widget_id(cls, value: str) -> str:
+        return value.strip()
 
 
 class RuntimeVector3Message(RuntimeModel):

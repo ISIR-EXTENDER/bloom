@@ -90,6 +90,7 @@ def test_runtime_websocket_accepts_topic_subscriptions() -> None:
                 "field_path": "data",
                 "message_type": "std_msgs/msg/Float64",
                 "topic": "/sandbox_controller/velocity_command",
+                "widget_id": "velocity-plot",
             }
         )
         response = websocket.receive_json()
@@ -102,6 +103,7 @@ def test_runtime_websocket_accepts_topic_subscriptions() -> None:
             "field_path": "data",
             "message_type": "std_msgs/msg/Float64",
             "topic": "/sandbox_controller/velocity_command",
+            "widget_id": "velocity-plot",
         },
         "session_id": connected["session_id"],
     }
@@ -125,12 +127,14 @@ def test_runtime_websocket_streams_topic_samples_after_subscription() -> None:
                 "field_path": "data",
                 "message_type": "std_msgs/msg/Float64",
                 "topic": "/cmd/max_velocity",
+                "widget_id": "max-velocity-echo",
             }
         )
         ack = websocket.receive_json()
         sample = websocket.receive_json()
 
     assert ack["type"] == "subscription_ack"
+    assert ack["payload"]["widget_id"] == "max-velocity-echo"
     assert sample == {
         "type": "topic_sample",
         "active_sessions": None,

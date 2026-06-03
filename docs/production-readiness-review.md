@@ -12,17 +12,17 @@ Bloom with cleaner boundaries, tests, and a more durable product architecture.
 | Product shell | Extender-specific app pages | Generic landing, builder, runtime navigation | 70% |
 | App and screen configuration | JSON/local sync, usable but brittle | API-backed configuration bundles, app/screen CRUD foundations, SQLite repository | 65% |
 | WYSIWYG builder | Strong canvas, drag/resize, inspector, widget controls | Full-page builder, save/discard, undo/redo, palette, inspector | 55% |
-| Runtime app view | Worked well, app-like, no builder chrome | Fullscreen runtime artboard and screen tabs | 55% |
-| Widgets foundation | Many working widgets, uneven settings contracts | Registry, settings contracts, renderer registry, action intents | 50% |
-| Slider and joystick controls | User-tested tactile design, large handles, axis labels, readouts | Functional primitives, but still too generic and visually underpowered | 45% |
+| Runtime app view | Worked well, app-like, no builder chrome | Fullscreen runtime artboard, screen tabs, shared renderer pipeline | 65% |
+| Widgets foundation | Many working widgets, uneven settings contracts | Registry, settings contracts, renderer registry, action intents, runtime data snapshots | 58% |
+| Slider and joystick controls | User-tested tactile design, large handles, axis labels, readouts | Pointer-native joystick, Radix sliders, teleop/topic bindings, still needs full visual parity QA | 62% |
 | Camera/stream widgets | Working camera and stream flows | Browser webcam demo works, stream preview exists | 55% |
-| Topic debug and plots | Basic logs/plots through app-specific code | Topic echo/plot contracts and placeholder data rendering | 35% |
-| ROS runtime bridge | `tablet_interface` works with ROS topics, typed messages, teleop, camera, measure bridges | HTTP runtime publish endpoint and ROS adapter skeleton | 30% |
+| Topic debug and plots | Basic logs/plots through app-specific code | Topic echo/plot contracts receive live WebSocket topic samples | 55% |
+| ROS runtime bridge | `tablet_interface` works with ROS topics, typed messages, teleop, camera, measure bridges | ROS publish API, WebSocket teleop, live topic streaming, sandbox smoke tests | 48% |
 | Petanque app migration | Working app-specific runtime | Fixtures and initial migration inventory | 25% |
 | Security | Mostly implicit/local trusted stack | Baseline documented, allowlists planned | 20% |
 
-Overall migration state: about 50% for the web product foundations, about 30%
-for live ROS parity with `tablet_interface`, and about 20-25% for full legacy app
+Overall migration state: about 60% for the web product foundations, about 45-50%
+for live ROS parity with `tablet_interface`, and about 25% for full legacy app
 parity.
 
 See also `docs/partner-interface-review.md` for the Inria/AUCTUS
@@ -67,8 +67,9 @@ Bloom's generic architecture.
   product area.
 - Widget settings contracts exist, but visual style capabilities are not yet
   editable as real fields.
-- Runtime action intents exist, but ROS live sessions are not yet connected to
-  WebSocket subscriptions and topic data streams.
+- Runtime action intents and ROS live sessions are now connected for teleop,
+  scalar topic publish, and live topic samples. The next gap is richer topic
+  catalog/debug UI and rosbag-style session controls.
 - SQLite storage still stores configuration bundles. Dedicated normalized
   app/screen/widget/theme asset tables are the next backend maturity step.
 - Security controls are documented but not enforced yet for topic publishing.
@@ -104,8 +105,9 @@ Functional:
 
 - The webcam demo proves the runtime direction.
 - Builder save/discard and undo/redo are in place.
-- The next critical function is live ROS session data: topic echo, telemetry, and
-  command publish feedback.
+- Live ROS session data now reaches topic echo/plot widgets. The next critical
+  function is making that debuggable by users: topic catalog, pause/clear/copy,
+  plot readability, and recording controls.
 
 ## Frontend Refactoring Plan
 
@@ -115,8 +117,10 @@ Functional:
 2. Split the monolithic dashboard CSS into product areas:
    shell/navigation, builder, runtime, widgets, and theme tokens.
 3. Promote reusable UI primitives from dashboard-local CSS into `frontend/libs/ui`.
-4. Keep `@radix-ui/react-slider` and `nipplejs`; both are relevant and already
-   proven in `extender_ui`.
+4. Keep `@radix-ui/react-slider` for accessible sliders, but keep joystick input
+   pointer-native in Bloom. `nipplejs` worked as a legacy reference, but Bloom
+   removed it after scaled runtime tests exposed pointer drift and zero-vector
+   risks.
 5. Add widget-specific interaction contracts:
    auto-center slider, square joystick, touch-size presets, compact/runtime modes.
 6. Add visual style editing from widget capabilities:
@@ -127,8 +131,9 @@ Functional:
 ## Backend Refactoring Plan
 
 1. Keep FastAPI/SQLite as Bloom's backend foundation.
-2. Add a runtime WebSocket service inspired by `tablet_interface/ws_server.py`,
-   but expose generic session events first.
+2. Continue the runtime WebSocket service inspired by `tablet_interface/ws_server.py`:
+   topic samples are live now, next are topic catalog UX, recording sessions,
+   and richer runtime status snapshots.
 3. Add ROS adapter services based on injected gateways:
    topic catalog, topic subscriptions, typed publisher, camera stream adapter,
    teleop publisher.
@@ -199,3 +204,7 @@ Functional:
   guardrails, and Bloom theme color fallback.
 - Sliders now support a `returnToCenter` setting for teleop axes while keeping
   regular configuration sliders persistent by default.
+- Runtime joysticks are pointer-native and validated against the ROS sandbox
+  pipeline, avoiding the legacy pointer offset and zero-vector risks.
+- Runtime topic subscriptions now stream live samples into topic echo and topic
+  plot widgets through the shared runtime renderer data pipeline.

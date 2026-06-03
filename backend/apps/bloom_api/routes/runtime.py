@@ -168,6 +168,7 @@ def build_runtime_ack(
                 "field_path": message.field_path,
                 "message_type": message.message_type,
                 "topic": message.topic,
+                "widget_id": message.widget_id,
             },
             session_id=session_id,
         )
