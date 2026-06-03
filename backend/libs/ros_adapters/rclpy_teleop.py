@@ -8,16 +8,18 @@ from libs.sessions import TeleopCommand, TeleopPublishReceipt
 class RclpyTeleopCommandGateway:
     """Publish Bloom runtime teleop commands as Extender TeleopCommand messages."""
 
-    def __init__(self, node: Any, qos_profile: int = 10) -> None:
+    def __init__(self, node: Any, qos_profile: int = 10, flush_after_publish: bool = True) -> None:
         self._node = node
         self._qos_profile = qos_profile
+        self._flush_after_publish = flush_after_publish
         self._publishers: dict[str, Any] = {}
 
     def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
         publisher = self._ensure_publisher(command.target)
         message = self._to_ros_message(command)
         publisher.publish(message)
-        self._flush_once()
+        if self._flush_after_publish:
+            self._flush_once()
         return TeleopPublishReceipt(
             detail="Teleop command published.",
             status="accepted",

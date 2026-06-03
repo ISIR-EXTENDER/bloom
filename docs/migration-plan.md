@@ -64,6 +64,8 @@ Already merged:
   horizontal/vertical sliders for ROS end-to-end validation.
 - Bloom Debug now has a first tracked runtime fixture with topic echo/plot widgets that request WebSocket topic
   subscriptions.
+- Runtime topic subscriptions now stream `topic_sample` messages into visible topic echo and plot widgets through the
+  shared renderer pipeline.
 
 ## Roadmap
 
@@ -181,6 +183,8 @@ Validated runtime checks:
 - `/teleop_cmd` -> `sandbox_controller` -> `/sandbox_controller/velocity_command` in the sandbox simulation.
 - Browser runtime slider -> ROS publish API -> `/cmd/max_velocity` as `std_msgs/msg/Float64`.
 - Bloom Debug topic widgets -> runtime WebSocket `subscribe_topic` -> backend `subscription_ack`.
+- Bloom Debug live samples -> runtime WebSocket `topic_sample` -> runtime workspace widget data -> topic echo/plot
+  renderers.
 
 ### Phase 4 - Legacy App Migration
 

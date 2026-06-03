@@ -154,6 +154,7 @@ export function App({
                 onSaveApplication={handleSaveApplication}
                 onSaveBuilderScreen={handleSaveBuilderScreen}
                 onSelectionChange={setSelection}
+                onTopicSample={runtimeActionClient.addRuntimeTopicSampleListener}
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onViewChange={setActiveView}
                 selection={selection}
@@ -178,6 +179,7 @@ type MainApplicationViewProps = {
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onTopicSample: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onViewChange: (view: ProductView) => void;
   selection: WorkspaceSelection | null;
@@ -195,6 +197,7 @@ function MainApplicationView({
   onSaveApplication,
   onSaveBuilderScreen,
   onSelectionChange,
+  onTopicSample,
   onTopicSubscriptionRequest,
   onViewChange,
   selection,
@@ -269,6 +272,7 @@ function MainApplicationView({
       application={selectedWorkspace.application}
       onActionIntent={onRuntimeIntent}
       onSelectionChange={onSelectionChange}
+      onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
       screen={selectedWorkspace.screen}
       selection={selection}

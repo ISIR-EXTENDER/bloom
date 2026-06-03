@@ -21,6 +21,7 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   const apiClient = createBloomApiClient({ baseUrl });
   const runtimeWebSocketClient = createRuntimeWebSocketClient({ url: resolveRuntimeWebSocketUrl(baseUrl) });
   return {
+    addRuntimeTopicSampleListener: runtimeWebSocketClient.addRuntimeTopicSampleListener,
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),
     sendTeleopCommand: runtimeWebSocketClient.sendTeleopCommand,
     subscribeRuntimeTopic: runtimeWebSocketClient.subscribeRuntimeTopic,

@@ -132,6 +132,64 @@ describe("runtime WebSocket client", () => {
     });
     expect(socket.sentMessages).toEqual([JSON.stringify(request)]);
   });
+
+  it("notifies topic sample listeners", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const receivedSamples: unknown[] = [];
+    const client = createRuntimeWebSocketClient({
+      url: "ws://localhost:8000/api/v1/runtime/ws",
+      WebSocketCtor,
+    } satisfies RuntimeWebSocketClientOptions);
+    client.addRuntimeTopicSampleListener((sample) => receivedSamples.push(sample));
+
+    const responsePromise = client.subscribeRuntimeTopic({
+      type: "subscribe_topic",
+      field_path: "data",
+      message_type: "std_msgs/msg/Float64",
+      topic: "/cmd/max_velocity",
+      widget_id: "max-velocity-plot",
+    });
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message({
+      type: "subscription_ack",
+      session_id: "runtime-session",
+      detail: "Subscribed to /cmd/max_velocity.",
+      payload: {
+        topic: "/cmd/max_velocity",
+        message_type: "std_msgs/msg/Float64",
+        field_path: "data",
+      },
+    });
+    await responsePromise;
+
+    socket.message({
+      type: "topic_sample",
+      session_id: "runtime-session",
+      detail: "Received /cmd/max_velocity.",
+      payload: {
+        topic: "/cmd/max_velocity",
+        message_type: "std_msgs/msg/Float64",
+        received_at: "2026-06-03T10:00:00+00:00",
+        value: { data: 0.5 },
+      },
+    });
+
+    expect(receivedSamples).toEqual([
+      {
+        type: "topic_sample",
+        session_id: "runtime-session",
+        detail: "Received /cmd/max_velocity.",
+        payload: {
+          topic: "/cmd/max_velocity",
+          message_type: "std_msgs/msg/Float64",
+          received_at: "2026-06-03T10:00:00+00:00",
+          value: { data: 0.5 },
+        },
+      },
+    ]);
+  });
 });
 
 function createFakeWebSocketConstructor() {

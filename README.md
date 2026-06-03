@@ -68,12 +68,12 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
-- Backend runtime sessions expose a WebSocket contract for live UI connections, topic subscription requests, and teleop command acknowledgements.
+- Backend runtime sessions expose a WebSocket contract for live UI connections, topic subscriptions, topic samples, and teleop command acknowledgements.
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
 - Mode-aware joystick intents can now map to runtime teleop commands and, in ROS mode, publish Extender `TeleopCommand`
   messages on `/teleop_cmd`.
 - A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
-- A first Bloom Debug fixture can request runtime topic subscriptions for echo and lightweight plot widgets.
+- A first Bloom Debug fixture can request runtime topic subscriptions and render live samples in echo and lightweight plot widgets.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Next major pieces are the real screen builder, runtime app routes, SQLite-backed app management, ROS adapters, and richer topic visualization.
 
@@ -265,8 +265,9 @@ curl -X POST http://localhost:8000/api/v1/ros/topics/publish \
 ```
 
 Without a configured ROS gateway, the backend returns `status: "simulated"`. Robot deployments can attach `rclpy`
-gateways so the same API publishes real ROS messages and runtime WebSocket teleop commands can publish
-`extender_msgs/msg/TeleopCommand` on `/teleop_cmd`.
+gateways so the same API publishes real ROS messages, runtime WebSocket teleop commands publish
+`extender_msgs/msg/TeleopCommand` on `/teleop_cmd`, and topic subscriptions stream `topic_sample` messages back to
+debug widgets.
 
 To launch the API with a ROS publisher gateway:
 

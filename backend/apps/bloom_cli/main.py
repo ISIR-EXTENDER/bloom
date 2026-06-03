@@ -1,4 +1,5 @@
 from pathlib import Path
+from threading import Thread
 
 import typer
 import uvicorn
@@ -7,6 +8,7 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import get_settings
 from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
 from libs.ros_adapters.rclpy_teleop import RclpyTeleopCommandGateway
+from libs.ros_adapters.rclpy_topic_streams import RclpyRuntimeTopicSubscriptionGateway
 from libs.config import (
     ApplicationConfig,
     ConfigurationNotFoundError,
@@ -94,13 +96,20 @@ def run_ros_api(
 
     rclpy.init()
     node = Node(node_name)
+    executor = rclpy.executors.SingleThreadedExecutor()
+    executor.add_node(node)
+    spin_thread = Thread(target=executor.spin, daemon=True)
+    spin_thread.start()
     try:
         app = create_app(
             ros_publisher_gateway=RclpyRosPublisherGateway(node),
-            teleop_command_gateway=RclpyTeleopCommandGateway(node),
+            runtime_topic_subscription_gateway=RclpyRuntimeTopicSubscriptionGateway(node),
+            teleop_command_gateway=RclpyTeleopCommandGateway(node, flush_after_publish=False),
         )
         uvicorn.run(app, host=host, port=port, reload=False)
     finally:
+        executor.shutdown()
+        spin_thread.join(timeout=2.0)
         node.destroy_node()
         rclpy.shutdown()
 
