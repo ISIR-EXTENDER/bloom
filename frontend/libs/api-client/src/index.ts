@@ -47,6 +47,10 @@ export type ScreenConfig = {
 };
 
 export type ApplicationTheme = {
+  inspiration: {
+    moodboard_image_uri: string;
+    reference_url: string;
+  };
   preset_id: string;
   palette: {
     accent: string;
@@ -57,6 +61,10 @@ export type ApplicationTheme = {
 };
 
 export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
+  inspiration: {
+    moodboard_image_uri: "",
+    reference_url: "",
+  },
   preset_id: "bloom-default",
   palette: {
     accent: "#d9a441",

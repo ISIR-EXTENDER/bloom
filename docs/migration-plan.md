@@ -44,6 +44,7 @@ Already merged:
 - Runtime separation from builder controls, fit canvas mode, ROS topic publish API, runtime action dispatch, and WebSocket session contracts.
 - App configuration flow with app identity, app-level theme tokens, and reusable screen membership.
 - App configuration screen lifecycle actions: blank screen creation, screen duplication, and source-app labels for reusable screens.
+- App theme inspiration metadata for moodboard images and website references, kept separate from the applied palette.
 - App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
 - First security baseline document and minimal API security headers.
@@ -102,6 +103,7 @@ Remaining focus in this phase:
 - Normalize SQLite storage beyond bundled configuration documents.
 - Add app list/create/duplicate/archive flows backed by storage.
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
+- Replace early data-URL moodboard storage with a proper theme asset upload endpoint when normalized SQLite assets are introduced.
 - Finish visual and interaction QA for the builder so widgets stay visible, editable, and touch-friendly.
 
 ### Phase 3 - Runtime ROS Integration

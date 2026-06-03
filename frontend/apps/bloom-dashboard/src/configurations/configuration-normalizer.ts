@@ -23,6 +23,7 @@ type PartialApplicationConfig = Partial<Omit<ApplicationConfig, "screens">> & {
 };
 
 type PartialApplicationTheme = Partial<Omit<ApplicationTheme, "palette">> & {
+  inspiration?: Partial<ApplicationTheme["inspiration"]>;
   palette?: Partial<ApplicationTheme["palette"]>;
 };
 
@@ -91,6 +92,13 @@ function normalizeApplication(application: PartialApplicationConfig, index: numb
 
 function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): ApplicationTheme {
   return {
+    inspiration: {
+      moodboard_image_uri: asString(
+        theme?.inspiration?.moodboard_image_uri,
+        DEFAULT_APPLICATION_THEME.inspiration.moodboard_image_uri,
+      ),
+      reference_url: asString(theme?.inspiration?.reference_url, DEFAULT_APPLICATION_THEME.inspiration.reference_url),
+    },
     preset_id: asString(theme?.preset_id, DEFAULT_APPLICATION_THEME.preset_id),
     palette: {
       accent: asColorString(theme?.palette?.accent, DEFAULT_APPLICATION_THEME.palette.accent),

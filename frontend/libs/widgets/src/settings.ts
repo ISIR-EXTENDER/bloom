@@ -38,7 +38,9 @@ export type CameraSettings = {
   fitMode: "contain" | "cover";
   showHeader: boolean;
   showStatus: boolean;
+  source: "placeholder" | "stream-url" | "webcam";
   streamUrl: string;
+  webcamPicker: boolean;
 };
 
 export type CommandButtonSettings = {
@@ -116,7 +118,9 @@ const CAMERA_DEFAULT_SETTINGS: CameraSettings = {
   fitMode: "contain",
   showHeader: true,
   showStatus: true,
+  source: "placeholder",
   streamUrl: "",
+  webcamPicker: true,
 };
 
 const COMMAND_BUTTON_DEFAULT_SETTINGS: CommandButtonSettings = {
@@ -184,9 +188,17 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     "camera",
     [
       { key: "streamUrl", label: "Stream URL", type: "text", required: false },
+      {
+        key: "source",
+        label: "Source",
+        type: "select",
+        required: true,
+        options: ["placeholder", "stream-url", "webcam"],
+      },
       { key: "fitMode", label: "Fit mode", type: "select", required: true, options: ["contain", "cover"] },
       { key: "showHeader", label: "Show header", type: "boolean", required: true },
       { key: "showStatus", label: "Show status", type: "boolean", required: true },
+      { key: "webcamPicker", label: "Show webcam picker", type: "boolean", required: true },
     ],
     CAMERA_DEFAULT_SETTINGS,
     validateCameraSettings,
@@ -482,9 +494,11 @@ function validateButtonSettings(settings: Record<string, unknown>): WidgetSettin
 function validateCameraSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<CameraSettings> {
   const errors = [
     ...validateString(settings, "streamUrl", { allowEmpty: true }),
+    ...validateOneOf(settings, "source", ["placeholder", "stream-url", "webcam"]),
     ...validateOneOf(settings, "fitMode", ["contain", "cover"]),
     ...validateBoolean(settings, "showHeader"),
     ...validateBoolean(settings, "showStatus"),
+    ...validateBoolean(settings, "webcamPicker"),
   ];
   if (errors.length > 0) return fail(errors);
   return succeed(settings as CameraSettings);

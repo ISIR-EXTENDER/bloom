@@ -67,6 +67,10 @@ def test_configuration_bundle_serializes_to_json() -> None:
 
     assert parsed["metadata"]["source"] == "unit-test"
     assert parsed["applications"][0]["theme"] == {
+        "inspiration": {
+            "moodboard_image_uri": "",
+            "reference_url": "",
+        },
         "preset_id": "bloom-default",
         "palette": {
             "accent": "#d9a441",
@@ -119,6 +123,31 @@ def test_configuration_bundle_validates_from_json_payload() -> None:
     assert bundle.metadata.source == "legacy-json"
     assert bundle.applications[0].theme.preset_id == "bloom-default"
     assert bundle.applications[0].screens[0].widgets[0].kind == WidgetKind.COMMAND_BUTTON
+
+
+def test_application_theme_accepts_inspiration_references() -> None:
+    application = ApplicationConfig.model_validate(
+        {
+            "id": "camera-demo",
+            "name": "Camera Demo",
+            "theme": {
+                "inspiration": {
+                    "moodboard_image_uri": "/theme-assets/camera-demo-moodboard.png",
+                    "reference_url": "https://lifesum.com/nutrition-explained/",
+                },
+                "preset_id": "custom-demo",
+                "palette": {
+                    "primary": "#5f7f63",
+                    "accent": "#ffd89b",
+                    "background": "#f7f1e6",
+                    "surface": "#fffdf7",
+                },
+            },
+        }
+    )
+
+    assert application.theme.inspiration.moodboard_image_uri == "/theme-assets/camera-demo-moodboard.png"
+    assert application.theme.inspiration.reference_url == "https://lifesum.com/nutrition-explained/"
 
 
 def test_duplicate_application_ids_are_rejected() -> None:

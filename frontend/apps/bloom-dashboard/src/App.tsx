@@ -12,6 +12,7 @@ import {
   createDashboardConfigurationClient,
   createDashboardRuntimeActionClient,
 } from "./configurations/configuration-client";
+import { duplicateApplicationInConfigurationBundle } from "./configurations/configuration-editor";
 import { useConfigurations } from "./configurations/use-configurations";
 import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
@@ -88,6 +89,46 @@ export function App({
     setBuilderMode("app-config");
   };
 
+  const handleDuplicateApplication = async (configId: string, applicationId: string) => {
+    if (configurationState.status !== "ready") {
+      throw new Error("Bloom cannot duplicate an application before configurations are loaded.");
+    }
+
+    const configuration = configurationState.configurations.find((candidate) => candidate.id === configId);
+
+    if (!configuration) {
+      throw new Error(`Configuration "${configId}" was not found.`);
+    }
+
+    const duplicatedApplication = duplicateApplicationInConfigurationBundle(configuration.bundle, applicationId);
+    await configurationState.saveApplication(configId, duplicatedApplication);
+    setSelection({
+      configId,
+      appId: duplicatedApplication.id,
+      screenId: duplicatedApplication.screens[0]?.id ?? "main",
+    });
+    setBuilderMode("app-config");
+  };
+
+  const handleDeleteApplication = async (configId: string, applicationId: string) => {
+    if (configurationState.status !== "ready") {
+      throw new Error("Bloom cannot delete an application before configurations are loaded.");
+    }
+
+    const savedConfiguration = await configurationState.deleteApplication(configId, applicationId);
+    const nextApplication = savedConfiguration.bundle.applications[0];
+    const nextScreen = nextApplication?.screens[0];
+
+    if (!nextApplication || !nextScreen) {
+      setSelection(null);
+      setBuilderMode("home");
+      return;
+    }
+
+    setSelection({ configId, appId: nextApplication.id, screenId: nextScreen.id });
+    setBuilderMode("home");
+  };
+
   return (
     <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
       <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
@@ -102,6 +143,8 @@ export function App({
               builderMode={builderMode}
               onChangeBuilderMode={setBuilderMode}
               onCreateApplication={handleCreateApplication}
+              onDeleteApplication={handleDeleteApplication}
+              onDuplicateApplication={handleDuplicateApplication}
               onRuntimeIntent={handleRuntimeIntent}
               onSaveApplication={handleSaveApplication}
               onSaveBuilderScreen={handleSaveBuilderScreen}
@@ -121,6 +164,8 @@ type MainApplicationViewProps = {
   builderMode: BuilderMode;
   onChangeBuilderMode: (mode: BuilderMode) => void;
   onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
+  onDeleteApplication: (configId: string, applicationId: string) => Promise<void>;
+  onDuplicateApplication: (configId: string, applicationId: string) => Promise<void>;
   onRuntimeIntent: (intent: WidgetActionIntent) => void;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
@@ -134,6 +179,8 @@ function MainApplicationView({
   builderMode,
   onChangeBuilderMode,
   onCreateApplication,
+  onDeleteApplication,
+  onDuplicateApplication,
   onRuntimeIntent,
   onSaveApplication,
   onSaveBuilderScreen,
@@ -161,6 +208,8 @@ function MainApplicationView({
         <BuilderHome
           configurations={state.configurations}
           onCreateApplication={onCreateApplication}
+          onDeleteApplication={onDeleteApplication}
+          onDuplicateApplication={onDuplicateApplication}
           onOpenApplication={(nextSelection) => {
             onSelectionChange(nextSelection);
             onChangeBuilderMode("app-config");

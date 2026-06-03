@@ -60,6 +60,7 @@ Bloom is currently in foundation work before the full UI/database migration:
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
 - Builder drafts can now be saved or discarded through the configuration API.
 - App configuration can edit app identity, app-level design tokens, create/duplicate screens, and reuse screens from other apps.
+- App themes can save inspiration references such as a moodboard image and website URL before automatic theme generation exists.
 - App and screen saves now use dedicated backend API endpoints, preparing the move from bundled JSON documents toward a SQLite app/screen library.
 - A first security baseline now documents minimum web/API/ROS controls, with API security headers covered by tests.
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
@@ -160,6 +161,7 @@ Use the configuration CLI to exercise both paths:
 ```bash
 cd backend
 uv run python -m apps.bloom_cli.main config import sandbox tests/fixtures/configuration-bundle.json --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config import webcam-visualizer tests/fixtures/webcam-visualizer-configuration-bundle.json --storage sqlite --database-path data/bloom.db
 uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db
 uv run python -m apps.bloom_cli.main config export sandbox data/exports/sandbox.json --storage sqlite --database-path data/bloom.db
 ```
@@ -177,6 +179,9 @@ The FastAPI app can already use SQLite by constructing `Settings(configuration_s
 The first real screen migration fixture is `tests/fixtures/petanque-admin-configuration-bundle.json`. It imports the
 legacy Petanque admin app shell plus three real screens so the dashboard can render migrated controls, stream placeholders,
 sliders, joysticks, toggles, and command buttons end-to-end.
+
+The first standalone demo app fixture is `tests/fixtures/webcam-visualizer-configuration-bundle.json`. It validates a
+local browser webcam screen without ROS first, then leaves room for future ROS camera adapters.
 
 ## Tests And Coverage
 

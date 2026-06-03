@@ -314,6 +314,44 @@ describe("widget settings contracts", () => {
     });
   });
 
+  it("validates camera source settings for local webcam demos and stream previews", () => {
+    expect(
+      normalizeWidgetSettings("camera", {
+        source: "webcam",
+        streamUrl: "webcam:///dev/video0",
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        fitMode: "contain",
+        showHeader: true,
+        showStatus: true,
+        source: "webcam",
+        streamUrl: "webcam:///dev/video0",
+        webcamPicker: true,
+      },
+    });
+
+    expect(
+      validateWidgetSettings("camera", {
+        fitMode: "contain",
+        showHeader: true,
+        showStatus: true,
+        source: "ros-camera",
+        streamUrl: "",
+        webcamPicker: true,
+      }),
+    ).toEqual({
+      success: false,
+      errors: [
+        {
+          field: "source",
+          message: "source must be one of: placeholder, stream-url, webcam",
+        },
+      ],
+    });
+  });
+
   it("validates structured joystick labels", () => {
     expect(
       validateWidgetSettings("joystick", {

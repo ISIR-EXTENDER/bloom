@@ -42,6 +42,11 @@ App-specific design systems should be expressed as token sets, not custom compon
 app can use a warmer, more playful palette while still rendering the same Bloom buttons, cards, panels, widgets, and
 runtime surfaces. The builder can later expose preset, palette, or moodboard-generated theme choices.
 
+App themes may also carry `inspiration` metadata, such as a moodboard image URI and a website reference URL. This is
+separate from the applied palette: inspiration explains where the design direction came from, while palette/semantic
+tokens define what the app currently renders. Automatic theme generation should read inspiration later, but not block the
+current builder from saving app-specific visual references.
+
 ## Consequences
 
 - Future landing, builder, and runtime screens can reuse shared primitives.

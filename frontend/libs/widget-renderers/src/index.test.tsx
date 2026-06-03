@@ -47,6 +47,7 @@ globalThis.ResizeObserver = ResizeObserverMock;
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   nippleMock.create.mockClear();
   nippleMock.handlers.clear();
 });
@@ -227,6 +228,37 @@ describe("widget renderer registry", () => {
 
     expect(screen.getByText(/joint_1/)).toBeVisible();
     expect(screen.getByText(/0.42/)).toBeVisible();
+  });
+
+  it("renders camera image streams with the configured fit mode", () => {
+    const descriptor = renderScreenDescriptors(cameraStreamScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing camera descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    const image = screen.getByRole("img", { name: "Garden camera stream" });
+    expect(image).toBeVisible();
+    expect(image).toHaveAttribute("src", "http://localhost:8000/camera.jpg");
+    expect(screen.getByText("Stream preview")).toBeVisible();
+  });
+
+  it("renders webcam previews with discovered browser cameras", async () => {
+    const descriptor = renderScreenDescriptors(webcamScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing webcam descriptor.");
+    const stream = createMediaStreamMock();
+
+    mockMediaDevices({
+      enumerateDevices: vi.fn(async () => [
+        { deviceId: "camera-a", kind: "videoinput" as const, label: "Integrated Camera" },
+      ]),
+      getUserMedia: vi.fn(async () => stream),
+    });
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(await screen.findByText("Webcam live")).toBeVisible();
+    expect(screen.getByRole("combobox", { name: /camera/i })).toBeVisible();
+    expect(screen.getByRole("option", { name: "Integrated Camera" })).toBeInTheDocument();
   });
 });
 
@@ -446,6 +478,81 @@ const topicEchoScreen: ScreenConfig = {
   ],
 };
 
+const cameraStreamScreen: ScreenConfig = {
+  id: "camera",
+  title: "Camera",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "garden-camera",
+      kind: "camera",
+      title: "Garden camera",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 640,
+        height: 360,
+      },
+      settings: {
+        fitMode: "cover",
+        showHeader: true,
+        showStatus: true,
+        source: "stream-url",
+        streamUrl: "http://localhost:8000/camera.jpg",
+      },
+    },
+  ],
+};
+
+const webcamScreen: ScreenConfig = {
+  id: "webcam",
+  title: "Webcam",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "local-webcam",
+      kind: "camera",
+      title: "Local webcam",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 640,
+        height: 360,
+      },
+      settings: {
+        fitMode: "cover",
+        showHeader: true,
+        showStatus: true,
+        source: "webcam",
+        streamUrl: "webcam:///dev/video0",
+        webcamPicker: true,
+      },
+    },
+  ],
+};
+
 function createWidgetRendererRegistryCompatibleWithNoWidgets() {
   return createWidgetRegistry();
+}
+
+function createMediaStreamMock(): MediaStream {
+  return {
+    getTracks: vi.fn(() => [{ stop: vi.fn() }]),
+  } as unknown as MediaStream;
+}
+
+function mockMediaDevices(mediaDevices: {
+  enumerateDevices: () => Promise<Partial<MediaDeviceInfo>[]>;
+  getUserMedia: () => Promise<MediaStream>;
+}) {
+  Object.defineProperty(navigator, "mediaDevices", {
+    configurable: true,
+    value: mediaDevices,
+  });
 }

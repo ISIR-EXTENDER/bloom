@@ -25,6 +25,8 @@ Reference: [`docs/brand/bloom-mood-board.png`](../../../docs/brand/bloom-mood-bo
 
 Apps can override the default design system through theme tokens. The long-term builder flow should let users choose a
 preset, palette, or generated moodboard-based theme, then apply those tokens to the runtime app without rewriting widgets.
+App themes can also store inspiration references, such as a moodboard image or website URL, so a future generator can
+derive coherent tokens without losing the human design intent.
 
 ## Theme Structure
 

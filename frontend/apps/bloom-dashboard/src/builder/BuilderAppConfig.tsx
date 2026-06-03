@@ -1,4 +1,5 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import {
   addScreenToApplication,
@@ -28,6 +29,9 @@ type AvailableScreen = {
   sourceApplicationName: string;
 };
 
+const MAX_MOODBOARD_IMAGE_BYTES = 1_000_000;
+const ACCEPTED_MOODBOARD_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 export function BuilderAppConfig({
   configurations,
   onBackToHome,
@@ -40,15 +44,18 @@ export function BuilderAppConfig({
   const [draftApplication, setDraftApplication] = useState(application);
   const [newScreenName, setNewScreenName] = useState("New screen");
   const [saveState, setSaveState] = useState<AppSaveState>({ status: "idle" });
+  const [themeInspirationError, setThemeInspirationError] = useState("");
   const availableScreens = collectAvailableScreens(selectedWorkspace.bundle.applications);
   const assignedScreenIds = new Set(draftApplication.screens.map((screen) => screen.id));
   const unassignedScreens = availableScreens.filter(({ screen }) => !assignedScreenIds.has(screen.id));
   const isDirty = JSON.stringify(draftApplication) !== JSON.stringify(application);
   const isSaving = saveState.status === "saving";
+  const palettePreview = Object.entries(draftApplication.theme.palette);
 
   useEffect(() => {
     setDraftApplication(application);
     setSaveState({ status: "idle" });
+    setThemeInspirationError("");
   }, [application]);
 
   const saveDraft = async () => {
@@ -101,13 +108,63 @@ export function BuilderAppConfig({
     setSaveState({ status: "idle" });
   };
 
+  const updateThemeInspiration = (nextInspiration: Partial<ApplicationConfig["theme"]["inspiration"]>) => {
+    setDraftApplication((currentApplication) => ({
+      ...currentApplication,
+      theme: {
+        ...currentApplication.theme,
+        inspiration: {
+          ...currentApplication.theme.inspiration,
+          ...nextInspiration,
+        },
+      },
+    }));
+    setThemeInspirationError("");
+    setSaveState({ status: "idle" });
+  };
+
+  const loadMoodboardFile = async (file: File | undefined) => {
+    if (!file) {
+      return;
+    }
+
+    if (!ACCEPTED_MOODBOARD_IMAGE_TYPES.has(file.type)) {
+      setThemeInspirationError("Use a PNG, JPEG, or WebP image for the moodboard.");
+      return;
+    }
+
+    if (file.size > MAX_MOODBOARD_IMAGE_BYTES) {
+      setThemeInspirationError("Keep moodboard images under 1 MB for now. Asset upload will replace this later.");
+      return;
+    }
+
+    try {
+      updateThemeInspiration({ moodboard_image_uri: await readFileAsDataUrl(file) });
+    } catch (error) {
+      setThemeInspirationError(getErrorMessage(error));
+    }
+  };
+
   return (
     <section className="builder-app-config" aria-labelledby="builder-app-config-title">
       <header className="builder-app-config-header">
-        <button className="builder-back-button" onClick={onBackToHome} type="button">
-          Back to apps
-        </button>
+        <div>
+          <p className="eyebrow">App configuration</p>
+          <h1 id="builder-app-config-title">{draftApplication.name}</h1>
+          <p>
+            Configure the app identity, visual language, and screens before opening a screen in the full WYSIWYG
+            builder.
+          </p>
+          <div className="builder-app-summary">
+            <span>{draftApplication.screens.length} screens</span>
+            <span>{draftApplication.screens.reduce((count, screen) => count + screen.widgets.length, 0)} widgets</span>
+            <span>{draftApplication.theme.preset_id}</span>
+          </div>
+        </div>
         <div className="builder-app-config-actions">
+          <button className="builder-back-button" onClick={onBackToHome} type="button">
+            Back to apps
+          </button>
           <button disabled={!isDirty || isSaving} onClick={saveDraft} type="button">
             {isSaving ? "Saving..." : "Save app"}
           </button>
@@ -122,79 +179,125 @@ export function BuilderAppConfig({
             Discard
           </button>
         </div>
-        <div>
-          <p className="eyebrow">App configuration</p>
-          <h1 id="builder-app-config-title">{draftApplication.name}</h1>
-        </div>
         <AppSaveStatus state={saveState} />
       </header>
 
       <div className="builder-app-config-grid">
-        <section className="builder-config-panel" aria-labelledby="builder-app-details-title">
-          <div>
-            <p className="eyebrow">Identity</p>
-            <h2 id="builder-app-details-title">App details</h2>
-          </div>
-          <label className="builder-settings-field">
-            <span>Name</span>
-            <input
-              onChange={(event) =>
-                setDraftApplication({ ...draftApplication, name: event.target.value || "Untitled app" })
-              }
-              type="text"
-              value={draftApplication.name}
-            />
-          </label>
-          <label className="builder-settings-field">
-            <span>Description</span>
-            <textarea
-              onChange={(event) => setDraftApplication({ ...draftApplication, description: event.target.value })}
-              rows={4}
-              value={draftApplication.description}
-            />
-          </label>
-        </section>
+        <aside className="builder-app-config-sidebar" aria-label="Application settings">
+          <section className="builder-config-panel" aria-labelledby="builder-app-details-title">
+            <div className="builder-config-panel-header">
+              <div>
+                <p className="eyebrow">Identity</p>
+                <h2 id="builder-app-details-title">App details</h2>
+              </div>
+              <span className="builder-section-badge">{isDirty ? "Draft" : "Saved"}</span>
+            </div>
+            <label className="builder-settings-field">
+              <span>Name</span>
+              <input
+                onChange={(event) =>
+                  setDraftApplication({ ...draftApplication, name: event.target.value || "Untitled app" })
+                }
+                type="text"
+                value={draftApplication.name}
+              />
+            </label>
+            <label className="builder-settings-field">
+              <span>Description</span>
+              <textarea
+                onChange={(event) => setDraftApplication({ ...draftApplication, description: event.target.value })}
+                rows={4}
+                value={draftApplication.description}
+              />
+            </label>
+          </section>
 
-        <section className="builder-config-panel" aria-labelledby="builder-theme-title">
-          <div>
-            <p className="eyebrow">Design system</p>
-            <h2 id="builder-theme-title">App theme</h2>
-          </div>
-          <p className="builder-inspector-copy">
-            Each app can carry its own coherent palette. Bloom keeps this simple for now, then future templates can
-            generate richer design systems from moodboards or presets.
-          </p>
-          <fieldset className="builder-theme-swatches">
-            <legend>Application palette</legend>
-            {Object.entries(draftApplication.theme.palette).map(([key, value]) => (
-              <label className="builder-theme-swatch" key={key}>
-                <span>{key}</span>
+          <section className="builder-config-panel" aria-labelledby="builder-theme-title">
+            <div className="builder-config-panel-header">
+              <div>
+                <p className="eyebrow">Design system</p>
+                <h2 id="builder-theme-title">App theme</h2>
+              </div>
+            </div>
+            <p className="builder-inspector-copy">
+              Each app can carry its own coherent palette. Bloom keeps this simple for now, then future templates can
+              generate richer design systems from moodboards or presets.
+            </p>
+            <div className="builder-theme-inspiration">
+              <div>
+                <h3>Theme inspiration</h3>
+                <p className="builder-inspector-copy">
+                  Save a moodboard image or website reference with the app. Bloom will later use this as input for
+                  coherent app-specific design system generation.
+                </p>
+              </div>
+              {draftApplication.theme.inspiration.moodboard_image_uri ? (
+                <img alt="Current app moodboard preview" src={draftApplication.theme.inspiration.moodboard_image_uri} />
+              ) : (
+                <div className="builder-theme-inspiration-empty">No moodboard image yet.</div>
+              )}
+              <label className="builder-settings-field">
+                <span>Moodboard image</span>
                 <input
-                  aria-label={`${key} color`}
-                  onChange={(event) =>
-                    setDraftApplication({
-                      ...draftApplication,
-                      theme: {
-                        ...draftApplication.theme,
-                        palette: {
-                          ...draftApplication.theme.palette,
-                          [key]: event.target.value,
-                        },
-                      },
-                    })
-                  }
-                  type="color"
-                  value={value}
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={(event) => {
+                    void loadMoodboardFile(event.target.files?.[0]);
+                    event.target.value = "";
+                  }}
+                  type="file"
                 />
               </label>
-            ))}
-          </fieldset>
-        </section>
+              <label className="builder-settings-field">
+                <span>Website reference</span>
+                <input
+                  onChange={(event) => updateThemeInspiration({ reference_url: event.target.value })}
+                  placeholder="https://example.com/inspiration"
+                  type="url"
+                  value={draftApplication.theme.inspiration.reference_url}
+                />
+              </label>
+              {themeInspirationError ? <p className="builder-inline-error">{themeInspirationError}</p> : null}
+            </div>
+            <fieldset className="builder-theme-swatches">
+              <legend>Application palette</legend>
+              <div className="builder-theme-preview">
+                {palettePreview.map(([key, value]) => (
+                  <span key={key} style={{ background: value }} title={key} />
+                ))}
+              </div>
+              {palettePreview.map(([key, value]) => (
+                <label className="builder-theme-swatch" key={key}>
+                  <span>{key}</span>
+                  <input
+                    aria-label={`${key} color`}
+                    onChange={(event) =>
+                      setDraftApplication({
+                        ...draftApplication,
+                        theme: {
+                          ...draftApplication.theme,
+                          palette: {
+                            ...draftApplication.theme.palette,
+                            [key]: event.target.value,
+                          },
+                        },
+                      })
+                    }
+                    type="color"
+                    value={value}
+                  />
+                </label>
+              ))}
+            </fieldset>
+          </section>
+        </aside>
 
         <section className="builder-config-panel builder-screens-panel" aria-labelledby="builder-screens-title">
-          <div>
-            <p className="eyebrow">Screens</p>
-            <h2 id="builder-screens-title">Screen list</h2>
+          <div className="builder-config-panel-header">
+            <div>
+              <p className="eyebrow">Screens</p>
+              <h2 id="builder-screens-title">Build this app flow</h2>
+            </div>
+            <span className="builder-section-badge">{draftApplication.screens.length} screens</span>
           </div>
           <div className="builder-screen-create-card">
             <div>
@@ -214,14 +317,14 @@ export function BuilderAppConfig({
           <div className="builder-screen-membership">
             <div>
               <h3>Screens in this app</h3>
+              {isDirty ? (
+                <p className="builder-inline-hint">Save or discard app changes before opening a screen builder.</p>
+              ) : null}
               <div className="builder-screen-cards">
                 {draftApplication.screens.map((screen) => (
-                  <article className="builder-screen-card" key={screen.id}>
+                  <article className="builder-screen-card" key={screen.id} style={createScreenAccentStyle(screen)}>
                     <div>
                       <strong>{screen.title}</strong>
-                      <span>
-                        {screen.widgets.length} widgets · {screen.canvas.preset_id}
-                      </span>
                     </div>
                     <div className="builder-screen-card-actions">
                       <button
@@ -274,13 +377,14 @@ export function BuilderAppConfig({
                   </p>
                 ) : (
                   unassignedScreens.map(({ screen, sourceApplicationName }) => (
-                    <article className="builder-screen-card" key={`${sourceApplicationName}-${screen.id}`}>
+                    <article
+                      className="builder-screen-card"
+                      key={`${sourceApplicationName}-${screen.id}`}
+                      style={createScreenAccentStyle(screen)}
+                    >
                       <div>
                         <strong>{screen.title}</strong>
-                        <span>
-                          {screen.widgets.length} widgets · {screen.canvas.preset_id}
-                        </span>
-                        <small>From {sourceApplicationName}</small>
+                        <span>From {sourceApplicationName}</span>
                       </div>
                       <div className="builder-screen-card-actions">
                         <button
@@ -302,6 +406,45 @@ export function BuilderAppConfig({
       </div>
     </section>
   );
+}
+
+function createScreenAccentStyle(screen: ScreenConfig): CSSProperties {
+  return { "--screen-card-accent": resolveScreenAccent(screen) } as CSSProperties;
+}
+
+function resolveScreenAccent(screen: ScreenConfig): string {
+  if (screen.widgets.some((widget) => widget.kind === "camera")) {
+    return "var(--bloom-color-mist)";
+  }
+
+  if (screen.widgets.some((widget) => widget.kind === "joystick" || widget.kind === "slider")) {
+    return "var(--bloom-color-pollen)";
+  }
+
+  if (screen.widgets.some((widget) => widget.kind === "topic-echo" || widget.kind === "topic-plot")) {
+    return "var(--bloom-color-lilac)";
+  }
+
+  if (screen.widgets.length === 0) {
+    return "var(--bloom-color-petal)";
+  }
+
+  return "var(--bloom-color-sage)";
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("Moodboard image could not be read."));
+    });
+    reader.addEventListener("error", () => reject(new Error("Moodboard image could not be read.")));
+    reader.readAsDataURL(file);
+  });
 }
 
 function collectAvailableScreens(applications: readonly ApplicationConfig[]): AvailableScreen[] {
