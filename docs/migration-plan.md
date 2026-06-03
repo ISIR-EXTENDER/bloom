@@ -44,7 +44,7 @@ Already merged:
 
 Current branch:
 
-- None. `main` is synced after `feat(builder): add screen lifecycle actions (#32)`.
+- None. `main` is synced after `feat(config): add app screen storage api (#34)`.
 
 ## Roadmap
 
