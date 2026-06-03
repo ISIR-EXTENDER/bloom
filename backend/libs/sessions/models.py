@@ -1,6 +1,6 @@
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator, model_validator
 
 
 class RuntimeModel(BaseModel):
@@ -28,11 +28,41 @@ class RuntimeSubscribeTopicMessage(RuntimeModel):
         return normalized_topic
 
 
+class RuntimeVector3Message(RuntimeModel):
+    x: float = Field(default=0.0, ge=-20.0, le=20.0)
+    y: float = Field(default=0.0, ge=-20.0, le=20.0)
+    z: float = Field(default=0.0, ge=-20.0, le=20.0)
+
+
 class RuntimeTeleopCommandMessage(RuntimeModel):
     type: Literal["teleop_cmd"]
-    mode: int = Field(default=0, ge=0)
+    mode: int = Field(default=0, ge=0, le=4)
     axes: dict[str, float] = Field(default_factory=dict)
+    angular: RuntimeVector3Message = Field(default_factory=RuntimeVector3Message)
+    linear: RuntimeVector3Message = Field(default_factory=RuntimeVector3Message)
     seq: int = Field(default=0, ge=0)
+    target: str = Field(default="/teleop_cmd", min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def apply_legacy_axes_alias(cls, payload: Any) -> Any:
+        if not isinstance(payload, dict):
+            return payload
+
+        axes = payload.get("axes")
+        if axes and "linear" not in payload:
+            return {**payload, "linear": axes}
+        return payload
+
+    @field_validator("target")
+    @classmethod
+    def target_must_be_absolute(cls, value: str) -> str:
+        normalized_target = value.strip()
+        if not normalized_target.startswith("/"):
+            raise ValueError("target must start with '/'")
+        if any(character.isspace() for character in normalized_target):
+            raise ValueError("target must not contain whitespace")
+        return normalized_target
 
 
 RuntimeClientMessage = Annotated[

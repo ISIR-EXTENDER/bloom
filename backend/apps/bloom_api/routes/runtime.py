@@ -8,6 +8,10 @@ from libs.sessions import (
     RuntimeSessionManager,
     RuntimeSubscribeTopicMessage,
     RuntimeTeleopCommandMessage,
+    NoopTeleopCommandGateway,
+    TeleopCommand,
+    TeleopCommandGateway,
+    TeleopVector3,
     parse_runtime_client_message,
 )
 
@@ -16,6 +20,10 @@ router = APIRouter(prefix="/runtime", tags=["runtime"])
 
 def get_runtime_session_manager(websocket: WebSocket) -> RuntimeSessionManager:
     return websocket.app.state.runtime_session_manager
+
+
+def get_teleop_command_gateway(websocket: WebSocket) -> TeleopCommandGateway:
+    return websocket.app.state.teleop_command_gateway
 
 
 @router.websocket("/ws")
@@ -49,12 +57,18 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 )
                 continue
 
-            await websocket.send_json(build_runtime_ack(session.id, message).model_dump())
+            await websocket.send_json(
+                build_runtime_ack(session.id, message, get_teleop_command_gateway(websocket)).model_dump()
+            )
     except WebSocketDisconnect:
         manager.disconnect(session)
 
 
-def build_runtime_ack(session_id: str, message: RuntimeClientMessage) -> RuntimeServerMessage:
+def build_runtime_ack(
+    session_id: str,
+    message: RuntimeClientMessage,
+    teleop_gateway: TeleopCommandGateway | None = None,
+) -> RuntimeServerMessage:
     if isinstance(message, RuntimePingMessage):
         return RuntimeServerMessage(type="pong", detail="Runtime session is alive.", session_id=session_id)
 
@@ -71,15 +85,38 @@ def build_runtime_ack(session_id: str, message: RuntimeClientMessage) -> Runtime
         )
 
     if isinstance(message, RuntimeTeleopCommandMessage):
+        gateway = teleop_gateway or NoopTeleopCommandGateway()
+        try:
+            receipt = gateway.publish(to_teleop_command(message))
+        except RuntimeError as exc:
+            return RuntimeServerMessage(
+                type="runtime_error",
+                detail="Teleop command could not be published.",
+                payload={"message": str(exc), "target": message.target},
+                session_id=session_id,
+            )
         return RuntimeServerMessage(
             type="teleop_ack",
-            detail="Teleop command accepted by runtime session.",
+            detail=receipt.detail,
             payload={
-                "axes": message.axes,
+                "angular": message.angular.model_dump(),
+                "linear": message.linear.model_dump(),
                 "mode": message.mode,
                 "seq": message.seq,
+                "status": receipt.status,
+                "target": receipt.target,
             },
             session_id=session_id,
         )
 
     return RuntimeServerMessage(type="runtime_error", detail="Unsupported runtime message.", session_id=session_id)
+
+
+def to_teleop_command(message: RuntimeTeleopCommandMessage) -> TeleopCommand:
+    return TeleopCommand(
+        angular=TeleopVector3(**message.angular.model_dump()),
+        linear=TeleopVector3(**message.linear.model_dump()),
+        mode=message.mode,
+        seq=message.seq,
+        target=message.target,
+    )

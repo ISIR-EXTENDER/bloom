@@ -193,11 +193,15 @@ const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
   },
   deadzone: 0.1,
   labels: { bottom: "Y-", left: "X-", right: "X+", top: "Y+" },
-  mode_id: "translation",
+  mode_id: "both",
   publish_rate_hz: 30,
   runtime_binding: {
     adapter: "teleop",
-    target: "translation",
+    target: "both",
+    value_mapping: {
+      mode: 3,
+      target_topic: "/teleop_cmd",
+    },
   },
   zero_on_release: true,
 };

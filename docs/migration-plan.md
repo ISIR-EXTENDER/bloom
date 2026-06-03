@@ -56,12 +56,8 @@ Already merged:
 - First security baseline document and minimal API security headers.
 - Shared widget-kind contract checks keep frontend and backend configuration models aligned.
 - Partner `extender-interface` review captured as Explorer-specific UX inspiration, not as a core architecture to copy.
-
-Current branch:
-
-- `feat/production-readiness-review-controls`: production readiness review,
-  slider/joystick polish, widget renderer modularization, and runtime widget CSS
-  cleanup.
+- Runtime teleop foundation now connects mode-aware joystick intents to the backend WebSocket contract and prepares
+  Extender `TeleopCommand` publication through a ROS adapter.
 
 ## Roadmap
 
@@ -162,6 +158,9 @@ Next focus in this phase:
 - Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
 - Mode-aware joystick runtime binding inspired by Explorer user-test UX:
   active mode, axis hints, deadzone, publish rate, zero-on-release, and adapter-specific topic/service bindings.
+- Tablet-friendly Explorer joystick presets should expose `BOTH` as the default cycle mode. `ROTATION` and `TRANSLATION`
+  remain supported as ROS compatibility modes, but should not be offered as primary tablet cycle choices when `BOTH`
+  covers the user workflow.
 - Long-running robot action support:
   connect accepted/progress/result/cancel contracts to backend adapters for deploy/repli-style commands.
 - Topic echo widgets and minimal PlotJuggler-like telemetry widgets.

@@ -192,11 +192,15 @@ describe("widget renderer registry", () => {
 
     expect(onActionIntent).toHaveBeenCalledWith({
       binding: "joy",
-      modeId: "translation",
+      modeId: "both",
       publishRateHz: 30,
       runtimeBinding: {
         adapter: "teleop",
-        target: "translation",
+        target: "both",
+        value_mapping: {
+          mode: 3,
+          target_topic: "/teleop_cmd",
+        },
       },
       type: "value-change",
       value: { x: 0.5, y: -0.25 },

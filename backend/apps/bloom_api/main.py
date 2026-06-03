@@ -11,6 +11,7 @@ from libs.ros_adapters import (
     RosTopicCatalogGateway,
 )
 from libs.sessions import RuntimeSessionManager
+from libs.sessions import NoopTeleopCommandGateway, TeleopCommandGateway
 
 
 def create_app(
@@ -18,6 +19,7 @@ def create_app(
     configuration_repository: ConfigurationRepository | None = None,
     ros_publisher_gateway: RosPublisherGateway | None = None,
     ros_topic_catalog_gateway: RosTopicCatalogGateway | None = None,
+    teleop_command_gateway: TeleopCommandGateway | None = None,
 ) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(
@@ -30,6 +32,7 @@ def create_app(
     app.state.configuration_repository = configuration_repository or create_app_configuration_repository(app_settings)
     app.state.ros_publisher_gateway = ros_publisher_gateway or NoopRosPublisherGateway()
     app.state.ros_topic_catalog_gateway = ros_topic_catalog_gateway or NoopRosTopicCatalogGateway()
+    app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
     app.state.runtime_session_manager = RuntimeSessionManager()
     install_security_headers(app)
     app.include_router(api_router, prefix=app_settings.api_prefix)
