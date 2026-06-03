@@ -47,7 +47,19 @@ export type RuntimeTopicSubscriptionResponse = {
   type: "subscription_ack";
 };
 
+export type RuntimeTopicSampleMessage = {
+  detail: string;
+  payload: {
+    message_type: string;
+    received_at: string;
+    topic: string;
+    value: unknown;
+  };
+  type: "topic_sample";
+};
+
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
+  addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;
   sendTeleopCommand?: (request: RuntimeTeleopCommandRequest) => Promise<RuntimeTeleopCommandResponse>;
   subscribeRuntimeTopic?: (request: RuntimeTopicSubscriptionRequest) => Promise<RuntimeTopicSubscriptionResponse>;
 };

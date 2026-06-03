@@ -1,11 +1,15 @@
 import type { ApplicationConfig, ScreenConfig, WidgetConfig } from "@bloom/api-client";
-import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
-import { resolveCanvasFitScale } from "@bloom/widgets";
+import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
+import { appendTopicEchoMessage, appendTopicPlotSample, resolveCanvasFitScale } from "@bloom/widgets";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
-import type { RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
+import type {
+  RuntimeActionClient,
+  RuntimeTopicSampleMessage,
+  RuntimeTopicSubscriptionRequest,
+} from "./runtime-action-dispatcher";
 
 const FIT_OVERFLOW_GUARD = 0.99;
 
@@ -18,6 +22,7 @@ type RuntimeWorkspaceProps = {
   application: ApplicationConfig;
   onActionIntent: WidgetActionIntentHandler;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
   screen: ScreenConfig;
   selection: WorkspaceSelection;
@@ -27,6 +32,7 @@ export function RuntimeWorkspace({
   application,
   onActionIntent,
   onSelectionChange,
+  onTopicSample,
   onTopicSubscriptionRequest,
   screen,
   selection,
@@ -47,6 +53,8 @@ export function RuntimeWorkspace({
     [artboardScale, artboardSize],
   );
   const runtimeScreen = useMemo(() => scaleRuntimeScreenLayout(screen, artboardScale), [artboardScale, screen]);
+  const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
+  const previousScreenIdRef = useRef(screen.id);
 
   useEffect(() => {
     const viewport = canvasViewportRef.current;
@@ -79,6 +87,24 @@ export function RuntimeWorkspace({
       onTopicSubscriptionRequest(request);
     }
   }, [onTopicSubscriptionRequest, screen]);
+
+  useEffect(() => {
+    if (previousScreenIdRef.current === screen.id) {
+      return;
+    }
+    previousScreenIdRef.current = screen.id;
+    setDataByWidgetId({});
+  }, [screen.id]);
+
+  useEffect(() => {
+    if (!onTopicSample) {
+      return;
+    }
+
+    return onTopicSample((sample) => {
+      setDataByWidgetId((currentData) => appendRuntimeTopicSample(currentData, screen, sample));
+    });
+  }, [onTopicSample, screen]);
 
   return (
     <section className="runtime-app-workspace" aria-label="Runtime application">
@@ -129,7 +155,7 @@ export function RuntimeWorkspace({
             <ScreenArtboard
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
-              rendererOptions={{ onActionIntent }}
+              rendererOptions={{ dataByWidgetId, onActionIntent }}
               screen={runtimeScreen}
               style={{
                 height: `${scaledArtboardSize.height}px`,
@@ -167,9 +193,62 @@ function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTo
   });
 }
 
+function appendRuntimeTopicSample(
+  currentData: Readonly<Record<string, WidgetDataSnapshot>>,
+  screen: ScreenConfig,
+  sample: RuntimeTopicSampleMessage,
+): Record<string, WidgetDataSnapshot> {
+  let nextData: Record<string, WidgetDataSnapshot> | null = null;
+  const topicMessage = {
+    receivedAt: sample.payload.received_at,
+    topic: sample.payload.topic,
+    value: sample.payload.value,
+  };
+
+  for (const widget of screen.widgets) {
+    if (readStringSetting(widget.settings, "topic") !== sample.payload.topic) {
+      continue;
+    }
+
+    if (widget.kind === "topic-echo") {
+      nextData = nextData ?? { ...currentData };
+      const currentWidgetData = currentData[widget.id];
+      const currentMessages = currentWidgetData?.type === "topic-echo" ? currentWidgetData.messages : [];
+      nextData[widget.id] = {
+        type: "topic-echo",
+        messages: appendTopicEchoMessage(currentMessages, topicMessage, {
+          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "",
+          maxMessages: readNumberSetting(widget.settings, "maxMessages", 100),
+        }),
+      };
+    }
+
+    if (widget.kind === "topic-plot") {
+      nextData = nextData ?? { ...currentData };
+      const currentWidgetData = currentData[widget.id];
+      const currentSamples = currentWidgetData?.type === "topic-plot" ? currentWidgetData.samples : [];
+      nextData[widget.id] = {
+        type: "topic-plot",
+        samples: appendTopicPlotSample(currentSamples, topicMessage, {
+          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "data",
+          historySeconds: readNumberSetting(widget.settings, "historySeconds", 30),
+          maxSamples: readNumberSetting(widget.settings, "maxSamples", 500),
+        }),
+      };
+    }
+  }
+
+  return nextData ?? { ...currentData };
+}
+
 function readStringSetting(settings: Record<string, unknown>, key: string): string | undefined {
   const value = settings[key];
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function readNumberSetting(settings: Record<string, unknown>, key: string, fallback: number): number {
+  const value = settings[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
 function scaleRuntimeScreenLayout(screen: ScreenConfig, scale: number): ScreenConfig {

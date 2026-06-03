@@ -2,6 +2,7 @@ import type {
   RuntimeActionClient,
   RuntimeTeleopCommandRequest,
   RuntimeTeleopCommandResponse,
+  RuntimeTopicSampleMessage,
   RuntimeTopicSubscriptionRequest,
   RuntimeTopicSubscriptionResponse,
 } from "./runtime-action-dispatcher";
@@ -44,12 +45,15 @@ export type RuntimeWebSocketClientOptions = {
 
 export function createRuntimeWebSocketClient(
   options: RuntimeWebSocketClientOptions,
-): Required<Pick<RuntimeActionClient, "sendTeleopCommand" | "subscribeRuntimeTopic">> {
+): Required<
+  Pick<RuntimeActionClient, "addRuntimeTopicSampleListener" | "sendTeleopCommand" | "subscribeRuntimeTopic">
+> {
   const WebSocketCtor = options.WebSocketCtor ?? getDefaultWebSocketConstructor();
   let socket: WebSocketLike | null = null;
   let connectPromise: Promise<WebSocketLike> | null = null;
   const pendingTeleopAcks: PendingTeleopAck[] = [];
   const pendingTopicSubscriptionAcks: PendingTopicSubscriptionAck[] = [];
+  const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
 
   async function ensureConnected(): Promise<WebSocketLike> {
     if (socket?.readyState === WebSocketCtor.OPEN) {
@@ -104,6 +108,14 @@ export function createRuntimeWebSocketClient(
       const subscriptionResponse = parseTopicSubscriptionAck(event.data);
       if (subscriptionResponse) {
         pendingTopicSubscriptionAcks.shift()?.resolve(subscriptionResponse);
+        return;
+      }
+
+      const topicSample = parseTopicSample(event.data);
+      if (topicSample) {
+        for (const listener of topicSampleListeners) {
+          listener(topicSample);
+        }
       }
     });
 
@@ -144,6 +156,12 @@ export function createRuntimeWebSocketClient(
   }
 
   return {
+    addRuntimeTopicSampleListener(listener: (sample: RuntimeTopicSampleMessage) => void) {
+      topicSampleListeners.add(listener);
+      return () => {
+        topicSampleListeners.delete(listener);
+      };
+    },
     async sendTeleopCommand(request: RuntimeTeleopCommandRequest): Promise<RuntimeTeleopCommandResponse> {
       const runtimeSocket = await ensureConnected();
       return new Promise((resolve, reject) => {
@@ -197,6 +215,22 @@ function parseTopicSubscriptionAck(data: unknown): RuntimeTopicSubscriptionRespo
       return null;
     }
     return parsed as RuntimeTopicSubscriptionResponse;
+  } catch {
+    return null;
+  }
+}
+
+function parseTopicSample(data: unknown): RuntimeTopicSampleMessage | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(data) as Partial<RuntimeTopicSampleMessage>;
+    if (parsed.type !== "topic_sample" || !parsed.payload || typeof parsed.payload.topic !== "string") {
+      return null;
+    }
+    return parsed as RuntimeTopicSampleMessage;
   } catch {
     return null;
   }

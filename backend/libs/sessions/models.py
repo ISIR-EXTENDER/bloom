@@ -74,7 +74,7 @@ runtime_client_message_adapter = TypeAdapter(RuntimeClientMessage)
 
 
 class RuntimeServerMessage(RuntimeModel):
-    type: Literal["session_connected", "pong", "subscription_ack", "teleop_ack", "runtime_error"]
+    type: Literal["session_connected", "pong", "subscription_ack", "teleop_ack", "topic_sample", "runtime_error"]
     active_sessions: int | None = None
     detail: str = ""
     payload: dict[str, Any] = Field(default_factory=dict)
