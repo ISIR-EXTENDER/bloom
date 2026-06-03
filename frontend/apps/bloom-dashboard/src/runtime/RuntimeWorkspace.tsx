@@ -1,10 +1,11 @@
-import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import { resolveCanvasFitScale } from "@bloom/widgets";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import type { RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
 
 const FIT_OVERFLOW_GUARD = 0.99;
 
@@ -17,6 +18,7 @@ type RuntimeWorkspaceProps = {
   application: ApplicationConfig;
   onActionIntent: WidgetActionIntentHandler;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
   screen: ScreenConfig;
   selection: WorkspaceSelection;
 };
@@ -25,6 +27,7 @@ export function RuntimeWorkspace({
   application,
   onActionIntent,
   onSelectionChange,
+  onTopicSubscriptionRequest,
   screen,
   selection,
 }: RuntimeWorkspaceProps) {
@@ -43,6 +46,7 @@ export function RuntimeWorkspace({
     }),
     [artboardScale, artboardSize],
   );
+  const runtimeScreen = useMemo(() => scaleRuntimeScreenLayout(screen, artboardScale), [artboardScale, screen]);
 
   useEffect(() => {
     const viewport = canvasViewportRef.current;
@@ -65,6 +69,16 @@ export function RuntimeWorkspace({
       window.removeEventListener("resize", updateViewportSize);
     };
   }, []);
+
+  useEffect(() => {
+    if (!onTopicSubscriptionRequest) {
+      return;
+    }
+
+    for (const request of createRuntimeTopicSubscriptionRequests(screen)) {
+      onTopicSubscriptionRequest(request);
+    }
+  }, [onTopicSubscriptionRequest, screen]);
 
   return (
     <section className="runtime-app-workspace" aria-label="Runtime application">
@@ -114,8 +128,11 @@ export function RuntimeWorkspace({
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
               rendererOptions={{ onActionIntent }}
-              screen={screen}
-              style={{ transform: `scale(${artboardScale})` }}
+              screen={runtimeScreen}
+              style={{
+                height: `${scaledArtboardSize.height}px`,
+                width: `${scaledArtboardSize.width}px`,
+              }}
               testId="runtime-artboard"
             />
           </div>
@@ -123,6 +140,57 @@ export function RuntimeWorkspace({
       </div>
     </section>
   );
+}
+
+function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTopicSubscriptionRequest[] {
+  return screen.widgets.flatMap((widget) => {
+    if (widget.kind !== "topic-echo" && widget.kind !== "topic-plot") {
+      return [];
+    }
+
+    const topic = readStringSetting(widget.settings, "topic");
+    if (!topic?.startsWith("/")) {
+      return [];
+    }
+
+    return [
+      {
+        type: "subscribe_topic",
+        topic,
+        message_type: readStringSetting(widget.settings, "messageType") ?? "",
+        field_path: readStringSetting(widget.settings, "fieldPath") ?? "",
+        widget_id: widget.id,
+      },
+    ];
+  });
+}
+
+function readStringSetting(settings: Record<string, unknown>, key: string): string | undefined {
+  const value = settings[key];
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function scaleRuntimeScreenLayout(screen: ScreenConfig, scale: number): ScreenConfig {
+  if (scale === 1) {
+    return screen;
+  }
+
+  return {
+    ...screen,
+    widgets: screen.widgets.map((widget) => scaleWidgetLayout(widget, scale)),
+  };
+}
+
+function scaleWidgetLayout(widget: WidgetConfig, scale: number): WidgetConfig {
+  return {
+    ...widget,
+    layout: {
+      height: Math.max(1, Math.round(widget.layout.height * scale)),
+      width: Math.max(1, Math.round(widget.layout.width * scale)),
+      x: Math.round(widget.layout.x * scale),
+      y: Math.round(widget.layout.y * scale),
+    },
+  };
 }
 
 function measureViewportSize(viewport: HTMLDivElement): RuntimeViewportSize {

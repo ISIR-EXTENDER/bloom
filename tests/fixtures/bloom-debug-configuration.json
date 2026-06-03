@@ -1,0 +1,95 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-06-03T16:00:00Z",
+    "source": "bloom-debug-runtime-fixture"
+  },
+  "applications": [
+    {
+      "id": "bloom-debug",
+      "name": "Bloom Debug",
+      "description": "Reusable runtime debug tools for topic inspection and telemetry checks.",
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [],
+      "screens": [
+        {
+          "id": "runtime-topic-monitor",
+          "title": "Runtime topic monitor",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "teleop-echo",
+              "kind": "topic-echo",
+              "title": "Teleop command echo",
+              "layout": {
+                "x": 64,
+                "y": 64,
+                "width": 560,
+                "height": 300
+              },
+              "settings": {
+                "topic": "/teleop_cmd",
+                "messageType": "extender_msgs/msg/TeleopCommand",
+                "fieldPath": "",
+                "maxMessages": 100,
+                "prettyPrint": true
+              }
+            },
+            {
+              "id": "velocity-plot",
+              "kind": "topic-plot",
+              "title": "Velocity command X",
+              "layout": {
+                "x": 688,
+                "y": 64,
+                "width": 560,
+                "height": 300
+              },
+              "settings": {
+                "topic": "/sandbox_controller/velocity_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.x",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "unit": "m/s"
+              }
+            },
+            {
+              "id": "joint-state-echo",
+              "kind": "topic-echo",
+              "title": "Joint states echo",
+              "layout": {
+                "x": 64,
+                "y": 420,
+                "width": 560,
+                "height": 260
+              },
+              "settings": {
+                "topic": "/joint_states",
+                "messageType": "sensor_msgs/msg/JointState",
+                "fieldPath": "",
+                "maxMessages": 50,
+                "prettyPrint": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

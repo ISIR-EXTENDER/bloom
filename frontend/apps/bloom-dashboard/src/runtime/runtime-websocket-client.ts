@@ -2,6 +2,8 @@ import type {
   RuntimeActionClient,
   RuntimeTeleopCommandRequest,
   RuntimeTeleopCommandResponse,
+  RuntimeTopicSubscriptionRequest,
+  RuntimeTopicSubscriptionResponse,
 } from "./runtime-action-dispatcher";
 
 type WebSocketEventMap = {
@@ -30,6 +32,11 @@ type PendingTeleopAck = {
   resolve: (response: RuntimeTeleopCommandResponse) => void;
 };
 
+type PendingTopicSubscriptionAck = {
+  reject: (error: Error) => void;
+  resolve: (response: RuntimeTopicSubscriptionResponse) => void;
+};
+
 export type RuntimeWebSocketClientOptions = {
   url: string;
   WebSocketCtor?: WebSocketConstructorLike;
@@ -37,11 +44,12 @@ export type RuntimeWebSocketClientOptions = {
 
 export function createRuntimeWebSocketClient(
   options: RuntimeWebSocketClientOptions,
-): Required<Pick<RuntimeActionClient, "sendTeleopCommand">> {
+): Required<Pick<RuntimeActionClient, "sendTeleopCommand" | "subscribeRuntimeTopic">> {
   const WebSocketCtor = options.WebSocketCtor ?? getDefaultWebSocketConstructor();
   let socket: WebSocketLike | null = null;
   let connectPromise: Promise<WebSocketLike> | null = null;
   const pendingTeleopAcks: PendingTeleopAck[] = [];
+  const pendingTopicSubscriptionAcks: PendingTopicSubscriptionAck[] = [];
 
   async function ensureConnected(): Promise<WebSocketLike> {
     if (socket?.readyState === WebSocketCtor.OPEN) {
@@ -83,26 +91,44 @@ export function createRuntimeWebSocketClient(
 
       const error = parseRuntimeError(event.data);
       if (error) {
-        pendingTeleopAcks.shift()?.reject(error);
+        rejectNextPendingAck(error);
         return;
       }
 
       const response = parseTeleopAck(event.data);
-      if (!response) {
+      if (response) {
+        pendingTeleopAcks.shift()?.resolve(response);
         return;
       }
-      pendingTeleopAcks.shift()?.resolve(response);
+
+      const subscriptionResponse = parseTopicSubscriptionAck(event.data);
+      if (subscriptionResponse) {
+        pendingTopicSubscriptionAcks.shift()?.resolve(subscriptionResponse);
+      }
     });
 
     runtimeSocket.addEventListener("close", () => {
       rejectPendingTeleopAcks("Bloom runtime WebSocket closed before a teleop ACK was received.");
+      rejectPendingTopicSubscriptionAcks(
+        "Bloom runtime WebSocket closed before a topic subscription ACK was received.",
+      );
       socket = null;
       connectPromise = null;
     });
 
     runtimeSocket.addEventListener("error", () => {
       rejectPendingTeleopAcks("Bloom runtime WebSocket failed while waiting for a teleop ACK.");
+      rejectPendingTopicSubscriptionAcks("Bloom runtime WebSocket failed while waiting for a topic subscription ACK.");
     });
+  }
+
+  function rejectNextPendingAck(error: Error) {
+    const pendingTeleopAck = pendingTeleopAcks.shift();
+    if (pendingTeleopAck) {
+      pendingTeleopAck.reject(error);
+      return;
+    }
+    pendingTopicSubscriptionAcks.shift()?.reject(error);
   }
 
   function rejectPendingTeleopAcks(message: string) {
@@ -111,11 +137,24 @@ export function createRuntimeWebSocketClient(
     }
   }
 
+  function rejectPendingTopicSubscriptionAcks(message: string) {
+    while (pendingTopicSubscriptionAcks.length > 0) {
+      pendingTopicSubscriptionAcks.shift()?.reject(new Error(message));
+    }
+  }
+
   return {
     async sendTeleopCommand(request: RuntimeTeleopCommandRequest): Promise<RuntimeTeleopCommandResponse> {
       const runtimeSocket = await ensureConnected();
       return new Promise((resolve, reject) => {
         pendingTeleopAcks.push({ resolve, reject });
+        runtimeSocket.send(JSON.stringify(request));
+      });
+    },
+    async subscribeRuntimeTopic(request: RuntimeTopicSubscriptionRequest): Promise<RuntimeTopicSubscriptionResponse> {
+      const runtimeSocket = await ensureConnected();
+      return new Promise((resolve, reject) => {
+        pendingTopicSubscriptionAcks.push({ resolve, reject });
         runtimeSocket.send(JSON.stringify(request));
       });
     },
@@ -142,6 +181,22 @@ function parseTeleopAck(data: unknown): RuntimeTeleopCommandResponse | null {
       return null;
     }
     return parsed as RuntimeTeleopCommandResponse;
+  } catch {
+    return null;
+  }
+}
+
+function parseTopicSubscriptionAck(data: unknown): RuntimeTopicSubscriptionResponse | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(data) as Partial<RuntimeTopicSubscriptionResponse>;
+    if (parsed.type !== "subscription_ack" || !parsed.payload) {
+      return null;
+    }
+    return parsed as RuntimeTopicSubscriptionResponse;
   } catch {
     return null;
   }

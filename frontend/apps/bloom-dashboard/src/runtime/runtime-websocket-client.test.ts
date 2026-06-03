@@ -92,6 +92,46 @@ describe("runtime WebSocket client", () => {
       "Teleop command could not be published. extender_msgs is required to publish teleop commands",
     );
   });
+
+  it("sends topic subscription requests and resolves subscription ACKs", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({
+      url: "ws://localhost:8000/api/v1/runtime/ws",
+      WebSocketCtor,
+    } satisfies RuntimeWebSocketClientOptions);
+    const request = {
+      type: "subscribe_topic" as const,
+      topic: "/sandbox_controller/velocity_command",
+      message_type: "geometry_msgs/msg/TwistStamped",
+      field_path: "twist.linear.x",
+      widget_id: "velocity-plot",
+    };
+
+    const responsePromise = client.subscribeRuntimeTopic(request);
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message({
+      type: "subscription_ack",
+      session_id: "runtime-session",
+      detail: "Subscribed to /sandbox_controller/velocity_command.",
+      payload: {
+        topic: request.topic,
+        message_type: request.message_type,
+        field_path: request.field_path,
+      },
+    });
+
+    await expect(responsePromise).resolves.toMatchObject({
+      type: "subscription_ack",
+      detail: "Subscribed to /sandbox_controller/velocity_command.",
+      payload: {
+        topic: "/sandbox_controller/velocity_command",
+        field_path: "twist.linear.x",
+      },
+    });
+    expect(socket.sentMessages).toEqual([JSON.stringify(request)]);
+  });
 });
 
 function createFakeWebSocketConstructor() {

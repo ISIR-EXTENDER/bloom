@@ -23,6 +23,7 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   return {
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),
     sendTeleopCommand: runtimeWebSocketClient.sendTeleopCommand,
+    subscribeRuntimeTopic: runtimeWebSocketClient.subscribeRuntimeTopic,
   };
 }
 

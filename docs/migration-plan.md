@@ -58,6 +58,12 @@ Already merged:
 - Partner `extender-interface` review captured as Explorer-specific UX inspiration, not as a core architecture to copy.
 - Runtime teleop foundation now connects mode-aware joystick intents to the backend WebSocket contract and prepares
   Extender `TeleopCommand` publication through a ROS adapter.
+- Runtime slider/topic bindings now publish scalar controls through the ROS topic publish API when widgets opt into a
+  topic binding.
+- The sandbox configuration includes a `Sandbox teleop lab` runtime screen with translation/rotation joysticks and
+  horizontal/vertical sliders for ROS end-to-end validation.
+- Bloom Debug now has a first tracked runtime fixture with topic echo/plot widgets that request WebSocket topic
+  subscriptions.
 
 ## Roadmap
 
@@ -158,6 +164,8 @@ Next focus in this phase:
 - Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
 - Mode-aware joystick runtime binding inspired by Explorer user-test UX:
   active mode, axis hints, deadzone, publish rate, zero-on-release, and adapter-specific topic/service bindings.
+- Scalar slider runtime bindings inspired by legacy Extender UI:
+  app-configured topic, ROS message type, payload field path, and local-only fallback when no topic is configured.
 - Tablet-friendly Explorer joystick presets should expose `BOTH` as the default cycle mode. `ROTATION` and `TRANSLATION`
   remain supported as ROS compatibility modes, but should not be offered as primary tablet cycle choices when `BOTH`
   covers the user workflow.
@@ -165,6 +173,14 @@ Next focus in this phase:
   connect accepted/progress/result/cancel contracts to backend adapters for deploy/repli-style commands.
 - Topic echo widgets and minimal PlotJuggler-like telemetry widgets.
 - Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
+- Live streaming for subscribed debug topics, after the current `subscription_ack` foundation is stable.
+
+Validated runtime checks:
+
+- Browser runtime joystick -> Bloom WebSocket -> backend ROS adapter -> `/teleop_cmd`.
+- `/teleop_cmd` -> `sandbox_controller` -> `/sandbox_controller/velocity_command` in the sandbox simulation.
+- Browser runtime slider -> ROS publish API -> `/cmd/max_velocity` as `std_msgs/msg/Float64`.
+- Bloom Debug topic widgets -> runtime WebSocket `subscribe_topic` -> backend `subscription_ack`.
 
 ### Phase 4 - Legacy App Migration
 

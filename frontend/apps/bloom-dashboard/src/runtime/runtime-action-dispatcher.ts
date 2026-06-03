@@ -29,8 +29,27 @@ export type RuntimeTeleopCommandResponse = {
   type: "teleop_ack";
 };
 
+export type RuntimeTopicSubscriptionRequest = {
+  field_path: string;
+  message_type: string;
+  topic: string;
+  type: "subscribe_topic";
+  widget_id?: string;
+};
+
+export type RuntimeTopicSubscriptionResponse = {
+  detail: string;
+  payload: {
+    field_path: string;
+    message_type: string;
+    topic: string;
+  };
+  type: "subscription_ack";
+};
+
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   sendTeleopCommand?: (request: RuntimeTeleopCommandRequest) => Promise<RuntimeTeleopCommandResponse>;
+  subscribeRuntimeTopic?: (request: RuntimeTopicSubscriptionRequest) => Promise<RuntimeTopicSubscriptionResponse>;
 };
 
 export type RuntimeActionDispatchStatus = "accepted" | "failed" | "published" | "simulated" | "unsupported";
@@ -43,16 +62,21 @@ export type RuntimeActionDispatchResult = {
   status: RuntimeActionDispatchStatus;
 };
 
+export type RuntimeActionDispatchOptions = {
+  teleopSequence?: number;
+};
+
 export async function dispatchRuntimeActionIntent(
   client: RuntimeActionClient,
   intent: WidgetActionIntent,
+  options: RuntimeActionDispatchOptions = {},
 ): Promise<RuntimeActionDispatchResult> {
   if (intent.type === "topic-publish") {
     return dispatchTopicPublishIntent(client, intent);
   }
 
   if (intent.type === "value-change") {
-    return dispatchTeleopValueIntent(client, intent);
+    return dispatchTeleopValueIntent(client, intent, options);
   }
 
   return {
@@ -96,41 +120,62 @@ async function dispatchTopicPublishIntent(
 async function dispatchTeleopValueIntent(
   client: RuntimeActionClient,
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
+  options: RuntimeActionDispatchOptions,
 ): Promise<RuntimeActionDispatchResult> {
-  const request = createTeleopCommandRequest(intent);
-  if (!request) {
-    return {
-      intent,
-      status: "unsupported",
-      detail: "Value-change intents need a teleop runtime binding before they can be sent.",
-    };
+  const request = createTeleopCommandRequest(intent, options.teleopSequence ?? 0);
+  if (request) {
+    if (!client.sendTeleopCommand) {
+      return {
+        intent,
+        request,
+        status: "unsupported",
+        detail: "Teleop intents need a runtime WebSocket client before they can be sent.",
+      };
+    }
+
+    try {
+      const response = await client.sendTeleopCommand(request);
+      return {
+        intent,
+        request,
+        status: response.payload.status,
+        detail: response.detail,
+      };
+    } catch (error: unknown) {
+      return {
+        intent,
+        request,
+        status: "failed",
+        detail: getErrorMessage(error),
+      };
+    }
   }
 
-  if (!client.sendTeleopCommand) {
-    return {
-      intent,
-      request,
-      status: "unsupported",
-      detail: "Teleop intents need a runtime WebSocket client before they can be sent.",
-    };
+  const scalarRequest = createScalarTopicPublishRequest(intent);
+  if (scalarRequest) {
+    try {
+      const response = await client.publishRosTopic(scalarRequest);
+      return {
+        intent,
+        request: scalarRequest,
+        status: response.status,
+        detail: response.detail,
+      };
+    } catch (error: unknown) {
+      return {
+        intent,
+        request: scalarRequest,
+        status: "failed",
+        detail: getErrorMessage(error),
+      };
+    }
   }
 
-  try {
-    const response = await client.sendTeleopCommand(request);
-    return {
-      intent,
-      request,
-      status: response.payload.status,
-      detail: response.detail,
-    };
-  } catch (error: unknown) {
-    return {
-      intent,
-      request,
-      status: "failed",
-      detail: getErrorMessage(error),
-    };
-  }
+  return {
+    intent,
+    status: "unsupported",
+    detail: "Value-change intents need a teleop or topic runtime binding before they can be sent.",
+  };
 }
 
 export function createRosTopicPublishRequest(intent: Extract<WidgetActionIntent, { type: "topic-publish" }>) {
@@ -170,6 +215,35 @@ export function createTeleopCommandRequest(
     mode,
     seq: sequence,
     target,
+  };
+}
+
+export function createScalarTopicPublishRequest(
+  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
+): RosTopicPublishRequest | null {
+  if (typeof intent.value !== "number" || !Number.isFinite(intent.value)) {
+    return null;
+  }
+
+  const runtimeBinding = getRecord(intent.runtimeBinding);
+  const valueMapping = getRecord(runtimeBinding.value_mapping);
+  const adapter = getOptionalString(runtimeBinding, "adapter");
+  const topic = resolveScalarTopic(intent, runtimeBinding, valueMapping);
+  if (!topic || (adapter && adapter !== "topic")) {
+    return null;
+  }
+
+  const messageType =
+    getOptionalString(valueMapping, "message_type") ??
+    getOptionalString(valueMapping, "messageType") ??
+    intent.messageType ??
+    "std_msgs/msg/Float64";
+  const fieldPath = getOptionalString(valueMapping, "field_path") ?? getOptionalString(valueMapping, "field") ?? "data";
+
+  return {
+    topic,
+    message_type: messageType,
+    payload: createScalarPayload(fieldPath, intent.value),
   };
 }
 
@@ -223,6 +297,36 @@ function resolveTeleopTarget(valueMapping: Record<string, unknown>): string {
     return topic;
   }
   return "/teleop_cmd";
+}
+
+function resolveScalarTopic(
+  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
+  runtimeBinding: Record<string, unknown>,
+  valueMapping: Record<string, unknown>,
+): string | null {
+  const topic =
+    getOptionalString(valueMapping, "target_topic") ??
+    getOptionalString(valueMapping, "topic") ??
+    getOptionalString(runtimeBinding, "target") ??
+    intent.topic;
+  return topic?.startsWith("/") ? topic : null;
+}
+
+function createScalarPayload(fieldPath: string, value: number): Record<string, unknown> {
+  const normalizedFieldPath = fieldPath.trim();
+  if (!normalizedFieldPath || normalizedFieldPath === "data") {
+    return { data: value };
+  }
+
+  const keys = normalizedFieldPath.split(".").filter(Boolean);
+  if (keys.length === 0) {
+    return { data: value };
+  }
+
+  return keys.reduceRight<Record<string, unknown> | number>((payload, key) => ({ [key]: payload }), value) as Record<
+    string,
+    unknown
+  >;
 }
 
 function isRotationMode(modeId: string | undefined): boolean {

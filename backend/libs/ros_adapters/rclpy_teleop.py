@@ -40,7 +40,7 @@ class RclpyTeleopCommandGateway:
         except ModuleNotFoundError as exc:
             raise RuntimeError("rclpy is required to publish teleop commands") from exc
 
-        rclpy.spin_once(self._node, timeout_sec=0)
+        rclpy.spin_once(self._node, timeout_sec=0.05)
 
     @staticmethod
     def _to_ros_message(command: TeleopCommand) -> Any:

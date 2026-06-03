@@ -93,9 +93,11 @@ export type WidgetActionIntent =
     }
   | {
       binding?: string;
+      messageType?: string;
       modeId?: string;
       publishRateHz?: number;
       runtimeBinding?: unknown;
+      topic?: string;
       type: "value-change";
       value: number | Vector2Value;
       widgetId: string;
@@ -210,7 +212,10 @@ function createScalarInputIntent(
     widgetId: widget.id,
     widgetKind: widget.kind,
     value: event.value,
-    binding: getOptionalString(settings, "binding"),
+    ...withOptional("binding", getOptionalString(settings, "binding")),
+    ...withOptional("messageType", getOptionalString(settings, "messageType")),
+    ...withOptional("runtimeBinding", settings.runtime_binding),
+    ...withOptional("topic", getOptionalString(settings, "topic")),
   };
 }
 
@@ -228,11 +233,11 @@ function createVectorInputIntent(
     widgetId: widget.id,
     widgetKind: widget.kind,
     value: event.value,
-    binding: getOptionalString(settings, "binding"),
-    modeId: getOptionalString(settings, "mode_id"),
-    publishRateHz: getOptionalNumber(settings, "publish_rate_hz"),
-    runtimeBinding: settings.runtime_binding,
-    zeroOnRelease: getOptionalBoolean(settings, "zero_on_release"),
+    ...withOptional("binding", getOptionalString(settings, "binding")),
+    ...withOptional("modeId", getOptionalString(settings, "mode_id")),
+    ...withOptional("publishRateHz", getOptionalNumber(settings, "publish_rate_hz")),
+    ...withOptional("runtimeBinding", settings.runtime_binding),
+    ...withOptional("zeroOnRelease", getOptionalBoolean(settings, "zero_on_release")),
   };
 }
 
@@ -318,4 +323,14 @@ function getOptionalNumber(settings: Record<string, unknown>, key: string): numb
 function getOptionalBoolean(settings: Record<string, unknown>, key: string): boolean | undefined {
   const value = settings[key];
   return typeof value === "boolean" ? value : undefined;
+}
+
+function withOptional<TKey extends string, TValue>(
+  key: TKey,
+  value: TValue | undefined,
+): Partial<Record<TKey, TValue>> {
+  if (value === undefined) {
+    return {};
+  }
+  return { [key]: value } as Partial<Record<TKey, TValue>>;
 }

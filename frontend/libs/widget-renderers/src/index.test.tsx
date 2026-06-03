@@ -4,7 +4,7 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, createWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -16,28 +16,6 @@ import {
   type WidgetRendererRegistration,
 } from "./index";
 
-const nippleMock = vi.hoisted(() => {
-  const handlers = new Map<string, (...args: unknown[]) => void>();
-  const create = vi.fn(() => {
-    const manager = {
-      destroy: vi.fn(),
-      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
-        handlers.set(event, handler);
-        return manager;
-      }),
-    };
-    return manager;
-  });
-  return { create, handlers };
-});
-
-vi.mock("nipplejs", () => ({
-  create: nippleMock.create,
-  default: {
-    create: nippleMock.create,
-  },
-}));
-
 class ResizeObserverMock {
   disconnect() {}
   observe() {}
@@ -45,13 +23,13 @@ class ResizeObserverMock {
 }
 
 globalThis.ResizeObserver = ResizeObserverMock;
+Element.prototype.setPointerCapture = vi.fn();
+Element.prototype.releasePointerCapture = vi.fn();
 
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
-  nippleMock.create.mockClear();
-  nippleMock.handlers.clear();
 });
 
 describe("widget renderer registry", () => {
@@ -184,11 +162,9 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    await waitFor(() => expect(nippleMock.create).toHaveBeenCalled());
-    expect(nippleMock.create).toHaveBeenCalledWith(expect.objectContaining({ color: "#7fa95f", size: 102 }));
-    act(() => {
-      nippleMock.handlers.get("move")?.({}, { vector: { x: 0.5, y: -0.25 } });
-    });
+    const joystickZone = getJoystickZone();
+    fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(joystickZone, { clientX: 175, clientY: 162.5, pointerId: 1 });
 
     expect(onActionIntent).toHaveBeenCalledWith({
       binding: "joy",
@@ -219,11 +195,9 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    await waitFor(() => expect(nippleMock.create).toHaveBeenCalled());
-    act(() => {
-      nippleMock.handlers.get("start")?.({}, { vector: { x: 0, y: 0 } });
-      nippleMock.handlers.get("move")?.({}, { vector: { x: 0.25, y: 0.5 } });
-    });
+    const joystickZone = getJoystickZone();
+    fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(joystickZone, { clientX: 162.5, clientY: 125, pointerId: 1 });
 
     await waitFor(() => expect(onActionIntent.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 250 });
     expect(onActionIntent).toHaveBeenLastCalledWith(
@@ -233,9 +207,7 @@ describe("widget renderer registry", () => {
       }),
     );
 
-    act(() => {
-      nippleMock.handlers.get("end")?.({}, { vector: { x: 0.25, y: 0.5 } });
-    });
+    fireEvent.pointerUp(joystickZone, { clientX: 162.5, clientY: 125, pointerId: 1 });
 
     expect(onActionIntent).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -650,6 +622,28 @@ const webcamScreen: ScreenConfig = {
 
 function createWidgetRendererRegistryCompatibleWithNoWidgets() {
   return createWidgetRegistry();
+}
+
+function getJoystickZone(): HTMLElement {
+  const joystickZone = document.querySelector<HTMLElement>(".bloom-joystick-zone");
+  if (!joystickZone) {
+    throw new Error("Missing joystick zone.");
+  }
+
+  joystickZone.getBoundingClientRect = () =>
+    ({
+      bottom: 200,
+      height: 100,
+      left: 100,
+      right: 200,
+      top: 100,
+      width: 100,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    }) as DOMRect;
+
+  return joystickZone;
 }
 
 function createMediaStreamMock(): MediaStream {

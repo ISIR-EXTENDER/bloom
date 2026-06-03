@@ -105,11 +105,15 @@ export type PlotSettings = {
 };
 
 export type SliderSettings = {
+  binding?: string;
   direction: "horizontal" | "vertical";
   max: number;
+  messageType?: string;
   min: number;
   returnToCenter: boolean;
+  runtime_binding?: JoystickRuntimeBinding;
   step: number;
+  topic?: string;
 };
 
 export type ToggleSettings = {
@@ -344,11 +348,15 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   slider: createContract(
     "slider",
     [
+      { key: "binding", label: "Binding", type: "text", required: false },
       { key: "min", label: "Minimum", type: "number", required: true },
       { key: "max", label: "Maximum", type: "number", required: true },
       { key: "step", label: "Step", type: "number", required: true },
       { key: "direction", label: "Direction", type: "select", required: true, options: ["horizontal", "vertical"] },
       { key: "returnToCenter", label: "Return to center", type: "boolean", required: true },
+      { key: "topic", label: "Output topic", type: "text", required: false },
+      { key: "messageType", label: "ROS message type", type: "text", required: false },
+      { key: "runtime_binding", label: "Runtime binding", type: "json", required: false },
     ],
     SLIDER_DEFAULT_SETTINGS,
     validateSliderSettings,
@@ -748,12 +756,24 @@ function validatePlotSettings(settings: Record<string, unknown>): WidgetSettings
 
 function validateSliderSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<SliderSettings> {
   const errors = [
+    ...("binding" in settings && settings.binding !== undefined
+      ? validateString(settings, "binding", { allowEmpty: true })
+      : []),
     ...validateNumber(settings, "min"),
     ...validateNumber(settings, "max"),
     ...validateNumber(settings, "step", { min: 0 }),
     ...validateOneOf(settings, "direction", ["horizontal", "vertical"]),
     ...validateBoolean(settings, "returnToCenter"),
+    ...("topic" in settings && settings.topic !== undefined
+      ? validateString(settings, "topic", { allowEmpty: true })
+      : []),
+    ...("messageType" in settings && settings.messageType !== undefined
+      ? validateString(settings, "messageType", { allowEmpty: true })
+      : []),
   ];
+  if ("runtime_binding" in settings && settings.runtime_binding !== undefined) {
+    errors.push(...validateJoystickRuntimeBinding(settings.runtime_binding));
+  }
   if (isNumber(settings.min) && isNumber(settings.max) && settings.min >= settings.max) {
     errors.push({ field: "max", message: "max must be greater than min" });
   }

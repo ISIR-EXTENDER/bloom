@@ -72,6 +72,8 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
 - Mode-aware joystick intents can now map to runtime teleop commands and, in ROS mode, publish Extender `TeleopCommand`
   messages on `/teleop_cmd`.
+- A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
+- A first Bloom Debug fixture can request runtime topic subscriptions for echo and lightweight plot widgets.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Next major pieces are the real screen builder, runtime app routes, SQLite-backed app management, ROS adapters, and richer topic visualization.
 
