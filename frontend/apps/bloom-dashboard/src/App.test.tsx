@@ -100,7 +100,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Diagnostics/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("tab", { name: /Diagnostics/i })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
     await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
     expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith({
@@ -678,7 +678,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: /Placeholder/i }));
+    fireEvent.click(await screen.findByRole("tab", { name: /Placeholder/i }));
 
     expect(screen.getByRole("region", { name: "Runtime screen coming soon" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 3, name: "Placeholder" })).toBeVisible();

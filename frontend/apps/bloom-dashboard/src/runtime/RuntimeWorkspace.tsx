@@ -89,10 +89,11 @@ export function RuntimeWorkspace({
         </div>
 
         {application.screens.length > 1 ? (
-          <nav className="runtime-screen-tabs" aria-label="Runtime screens">
+          <div aria-label="Runtime screens" className="runtime-screen-tabs" role="tablist">
             {application.screens.map((availableScreen) => (
               <button
                 aria-current={screen.id === availableScreen.id ? "page" : undefined}
+                aria-selected={screen.id === availableScreen.id}
                 className="runtime-screen-tab"
                 key={availableScreen.id}
                 onClick={() =>
@@ -101,13 +102,14 @@ export function RuntimeWorkspace({
                     screenId: availableScreen.id,
                   })
                 }
+                role="tab"
                 type="button"
               >
                 <strong>{availableScreen.title}</strong>
                 <span>{availableScreen.widgets.length} widgets</span>
               </button>
             ))}
-          </nav>
+          </div>
         ) : null}
       </header>
 
