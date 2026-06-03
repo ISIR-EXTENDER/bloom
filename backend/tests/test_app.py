@@ -27,6 +27,15 @@ def test_openapi_schema_is_available(client: TestClient) -> None:
     assert "/api/v1/configurations" in schema["paths"]
 
 
+def test_create_app_adds_minimal_security_headers(client: TestClient) -> None:
+    response = client.get("/api/v1/health")
+
+    assert response.status_code == 200
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "no-referrer"
+
+
 def test_create_app_uses_file_repository_by_default(test_settings: Settings, tmp_path) -> None:
     settings = test_settings.model_copy(update={"configuration_dir": tmp_path})
     app = create_app(settings)

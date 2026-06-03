@@ -18,6 +18,7 @@
   <a href="#getting-started">Getting Started</a> ·
   <a href="#architecture-rules">Architecture</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
+  <a href="docs/security-baseline.md">Security</a> ·
   <a href="docs/widgets-screens-apps-foundation-plan.md">Foundation Plan</a>
 </p>
 
@@ -54,6 +55,7 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Builder drafts can now be saved or discarded through the configuration API.
 - App configuration can edit app identity, app-level design tokens, create/duplicate screens, and reuse screens from other apps.
 - App and screen saves now use dedicated backend API endpoints, preparing the move from bundled JSON documents toward a SQLite app/screen library.
+- A first security baseline now documents minimum web/API/ROS controls, with API security headers covered by tests.
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
@@ -94,6 +96,7 @@ added only when the corresponding migration slice needs them.
 - Generic web logic must not depend directly on ROS.
 - ROS-specific code belongs in `backend/libs/ros_adapters`.
 - Extender-specific configuration belongs in deployment/configuration, not low-level shared libraries.
+- Robot commands must pass through typed backend validation and future topic/message allowlists before reaching ROS.
 - Development is local-first; do not add deployment tooling before there is a concrete need.
 - Migration must be iterative: no legacy file is deleted until the replacement is tested and accepted.
 - Tests should arrive with each migrated slice, not after the migration is done.

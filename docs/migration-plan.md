@@ -17,7 +17,8 @@ Bloom should let ISIR users create robot web apps without writing web code:
 - configure reusable widgets through typed settings;
 - run apps without builder controls;
 - keep ROS behind backend adapters;
-- persist apps/screens/widgets through SQLite, with JSON import/export as a migration safety bridge.
+- persist apps/screens/widgets through SQLite, with JSON import/export as a migration safety bridge;
+- keep robot-facing web features minimally secure by default.
 
 ## Non-Goals During Migration
 
@@ -26,6 +27,7 @@ Bloom should let ISIR users create robot web apps without writing web code:
 - Do not delete legacy JSON files or legacy repos during transition.
 - Do not mix ROS-specific behavior into generic frontend libraries.
 - Do not replace working legacy functionality until the Bloom replacement is tested end-to-end.
+- Do not expose unrestricted robot commands from configurable UI widgets.
 
 ## Current Status
 
@@ -41,6 +43,7 @@ Already merged:
 - App configuration screen lifecycle actions: blank screen creation, screen duplication, and source-app labels for reusable screens.
 - App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
+- First security baseline document and minimal API security headers.
 
 Current branch:
 
@@ -101,6 +104,7 @@ Status: started.
 - Add live topic subscriptions through runtime sessions.
 - Add configurable ROS message publishing for buttons/toggles.
 - Add topic echo and lightweight timeseries visualization for debugging.
+- Add allowlists for publishable topics, message types, and payload shapes before real robot deployment.
 
 Next focus in this phase:
 
@@ -130,6 +134,7 @@ Priority widget families:
 
 Status: not started.
 
+- Add authentication, authorization, CORS policy, runtime rate limiting, dependency audits, and basic dynamic security scans.
 - Add Extender workspace deployment entrypoints only after the core app flow is stable.
 - Validate Bloom against the full Extender + Petanque end-to-end pipeline.
 - Mark legacy repos/packages as legacy only after Bloom covers the required workflows.
@@ -145,7 +150,9 @@ Status: not started.
    WebSocket topic subscriptions, topic echo, and teleop publisher adapter.
 4. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
-5. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
+5. Add the first security checks around ROS publish intents:
+   topic/message/payload allowlists, runtime session validation, and audit logging.
+6. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
 
 ## Validation Rules
 
@@ -170,3 +177,4 @@ When ROS behavior is involved:
 - Keep generic tests independent from ROS.
 - Test ROS adapters through injected gateways.
 - Validate manually in a sourced ROS workspace before replacing legacy runtime behavior.
+- Validate that robot command endpoints reject unknown topics, message types, and malformed payloads.
