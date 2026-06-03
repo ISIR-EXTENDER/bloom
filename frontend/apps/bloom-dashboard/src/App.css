@@ -1048,6 +1048,53 @@ h1 {
   background: color-mix(in srgb, var(--bloom-primary-container) 16%, var(--bloom-surface-container-low));
 }
 
+.builder-widget-list {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 84%, white);
+}
+
+.builder-widget-list h3 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 1rem;
+}
+
+.builder-widget-list-items {
+  display: grid;
+  gap: 8px;
+}
+
+.builder-widget-list-items button {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bloom-surface) 72%, transparent);
+  color: var(--bloom-ink);
+  text-align: left;
+}
+
+.builder-widget-list-items button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--bloom-primary) 48%, var(--bloom-border));
+  background: color-mix(in srgb, var(--bloom-primary-container) 30%, var(--bloom-surface));
+  box-shadow: inset 4px 0 0 var(--bloom-primary);
+}
+
+.builder-widget-list-items span {
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .builder-widget-palette {
   display: grid;
   gap: 12px;

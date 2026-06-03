@@ -448,6 +448,18 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
+  it("selects builder widgets from the inspector widget list", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    await openDefaultScreenBuilder();
+    fireEvent.click(await screen.findByRole("button", { name: "Add Label widget" }));
+    fireEvent.click(screen.getByRole("button", { name: /Digital output.*toggle/i }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Digital output" })).toBeVisible();
+    expect(screen.getByLabelText("Output topic")).toHaveValue("/ui/ros_toggle");
+    expect(screen.getByRole("button", { name: /Digital output.*toggle/i })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("shows field validation errors for invalid inspector settings", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
@@ -580,17 +592,17 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open default_control screen builder" }));
     expect(screen.getByRole("heading", { level: 2, name: "default_control" })).toBeVisible();
     expect(screen.getAllByText("RZ").length).toBeGreaterThan(0);
-    expect(screen.getByText("Z")).toBeVisible();
-    expect(screen.getByText("Max Velocity")).toBeVisible();
-    expect(screen.getByText("Translation")).toBeVisible();
-    expect(screen.getByText("Gripper Control")).toBeVisible();
+    expect(screen.getAllByText("Z").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Max Velocity").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Translation").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Gripper Control").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Slider/).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Back to app config" }));
     fireEvent.click(screen.getByRole("button", { name: "Open default_live_teleop screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
-    expect(screen.getByText("Camera Stream")).toBeVisible();
+    expect(screen.getAllByText("Camera Stream").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
   });
 

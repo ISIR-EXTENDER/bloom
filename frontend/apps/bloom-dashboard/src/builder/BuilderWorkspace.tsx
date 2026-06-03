@@ -204,10 +204,12 @@ export function BuilderWorkspace({
         onAddWidget={addWidget}
         onDuplicateWidget={duplicateSelectedWidget}
         onRemoveWidget={removeSelectedWidget}
+        onSelectWidget={setSelectedWidgetId}
         onUpdateWidgetSettings={updateSelectedWidgetSettings}
         onUpdateWidgetTitle={updateSelectedWidgetTitle}
         selectedWidget={selectedWidget}
         selectedWidgetDefinition={selectedWidgetDefinition}
+        widgets={draftScreen.widgets}
         widgetCount={draftScreen.widgets.length}
       />
     </section>
