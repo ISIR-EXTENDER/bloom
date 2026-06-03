@@ -79,6 +79,7 @@ export type SliderSettings = {
   direction: "horizontal" | "vertical";
   max: number;
   min: number;
+  returnToCenter: boolean;
   step: number;
 };
 
@@ -154,6 +155,7 @@ const SLIDER_DEFAULT_SETTINGS: SliderSettings = {
   direction: "vertical",
   max: 1,
   min: -1,
+  returnToCenter: false,
   step: 0.01,
 };
 
@@ -255,6 +257,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "max", label: "Maximum", type: "number", required: true },
       { key: "step", label: "Step", type: "number", required: true },
       { key: "direction", label: "Direction", type: "select", required: true, options: ["horizontal", "vertical"] },
+      { key: "returnToCenter", label: "Return to center", type: "boolean", required: true },
     ],
     SLIDER_DEFAULT_SETTINGS,
     validateSliderSettings,
@@ -560,6 +563,7 @@ function validateSliderSettings(settings: Record<string, unknown>): WidgetSettin
     ...validateNumber(settings, "max"),
     ...validateNumber(settings, "step", { min: 0 }),
     ...validateOneOf(settings, "direction", ["horizontal", "vertical"]),
+    ...validateBoolean(settings, "returnToCenter"),
   ];
   if (isNumber(settings.min) && isNumber(settings.max) && settings.min >= settings.max) {
     errors.push({ field: "max", message: "max must be greater than min" });

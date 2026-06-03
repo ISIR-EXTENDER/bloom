@@ -4,7 +4,7 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, createWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,7 @@ import {
   createWidgetRendererRegistry,
   renderScreenWidgets,
   renderWidgetDescriptor,
+  resolveJoystickControlSize,
   type WidgetRendererRegistration,
 } from "./index";
 
@@ -100,6 +101,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
+    expect(screen.getByText("0.00")).toBeVisible();
     screen.getByRole("slider", { name: "Speed" }).focus();
     await user.keyboard("{ArrowRight}");
 
@@ -109,6 +111,30 @@ describe("widget renderer registry", () => {
       widgetKind: "slider",
       value: expect.any(Number),
     });
+  });
+
+  it("returns teleop sliders to center when configured", async () => {
+    const descriptor = renderScreenDescriptors(returnToCenterSliderScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+    const onActionIntent = vi.fn();
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const slider = screen.getByRole("slider", { name: "Teleop X" });
+    slider.focus();
+    await user.keyboard("{ArrowRight}");
+    fireEvent.blur(slider);
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "value-change",
+        value: 0,
+        widgetId: "teleop-x",
+        widgetKind: "slider",
+      }),
+    );
+    expect(screen.getByText("0.00")).toBeVisible();
   });
 
   it("emits command intents from command buttons", async () => {
@@ -158,7 +184,10 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
     await waitFor(() => expect(nippleMock.create).toHaveBeenCalled());
-    nippleMock.handlers.get("move")?.({}, { vector: { x: 0.5, y: -0.25 } });
+    expect(nippleMock.create).toHaveBeenCalledWith(expect.objectContaining({ color: "#7fa95f", size: 102 }));
+    act(() => {
+      nippleMock.handlers.get("move")?.({}, { vector: { x: 0.5, y: -0.25 } });
+    });
 
     expect(onActionIntent).toHaveBeenCalledWith({
       binding: "joy",
@@ -167,6 +196,14 @@ describe("widget renderer registry", () => {
       widgetId: "translation",
       widgetKind: "joystick",
     });
+    expect(screen.getByText("x 0.50")).toBeVisible();
+    expect(screen.getByText("y -0.25")).toBeVisible();
+  });
+
+  it("keeps joystick controls inside compact and large widget frames", () => {
+    expect(resolveJoystickControlSize(80, 80)).toBe(96);
+    expect(resolveJoystickControlSize(220, 220)).toBe(102);
+    expect(resolveJoystickControlSize(720, 720)).toBe(260);
   });
 
   it("renders topic debug widgets with topic and field context", () => {
@@ -328,6 +365,35 @@ const sliderScreen: ScreenConfig = {
         direction: "horizontal",
         max: 2,
         min: 0,
+        step: 0.01,
+      },
+    },
+  ],
+};
+
+const returnToCenterSliderScreen: ScreenConfig = {
+  id: "controls",
+  title: "Controls",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "teleop-x",
+      kind: "slider",
+      title: "Teleop X",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 220,
+        height: 80,
+      },
+      settings: {
+        direction: "horizontal",
+        max: 1,
+        min: -1,
+        returnToCenter: true,
         step: 0.01,
       },
     },

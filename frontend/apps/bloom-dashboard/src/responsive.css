@@ -1,0 +1,95 @@
+@media (max-width: 980px) {
+  .app-shell {
+    padding: 18px;
+  }
+
+  .app-shell-builder,
+  .app-shell-runtime {
+    padding: 14px;
+  }
+
+  .app-shell-builder .bloom-nav-shell,
+  .app-shell-runtime .bloom-nav-shell {
+    margin: -14px -14px 14px;
+  }
+
+  .hero,
+  .main-application-grid,
+  .builder-app-config-grid,
+  .builder-screen-create-card,
+  .builder-screen-membership,
+  .builder-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-workspace {
+    height: auto;
+    min-height: 0;
+  }
+
+  .runtime-app-workspace {
+    height: calc(100vh - 86px);
+    min-height: 560px;
+  }
+
+  .runtime-app-topbar {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .runtime-screen-tabs {
+    max-width: 100%;
+  }
+
+  .builder-workspace .workspace-panel,
+  .builder-inspector-panel {
+    max-height: none;
+  }
+
+  .builder-stage-panel {
+    min-height: 72vh;
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    display: grid;
+  }
+
+  .steps {
+    display: grid;
+  }
+
+  .runtime-panel {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero,
+  .steps {
+    grid-template-columns: 1fr;
+  }
+
+  .canvas-viewport {
+    padding: 10px;
+  }
+
+  .builder-stage-toolbar {
+    display: grid;
+  }
+
+  .builder-stage-meta {
+    justify-content: flex-start;
+  }
+
+  .builder-canvas-viewport {
+    padding: 10px;
+  }
+
+  .runtime-app-canvas-viewport {
+    padding: 12px;
+  }
+}

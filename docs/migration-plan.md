@@ -52,7 +52,9 @@ Already merged:
 
 Current branch:
 
-- None. `main` is synced after `feat(config): add app screen storage api (#34)`.
+- `feat/production-readiness-review-controls`: production readiness review,
+  slider/joystick polish, widget renderer modularization, and runtime widget CSS
+  cleanup.
 
 ## Roadmap
 
@@ -80,6 +82,8 @@ Phase 1 closure notes:
 - Reusable widget migrations continue in Phase 4, where each family can be validated against real legacy screens.
 - Storage normalization continues in Phase 2.
 - Runtime ROS behavior continues in Phase 3.
+- Widget renderer module boundaries are now in place, so future widget families
+  can be migrated without growing a single monolithic renderer file.
 
 ### Phase 2 - Storage And App Library
 
@@ -187,6 +191,11 @@ Status: idea captured, intentionally low priority.
    topic/message/payload allowlists, runtime session validation, and audit logging.
 6. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
 7. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
+
+See also:
+
+- [Production readiness review](./production-readiness-review.md) for the current comparison against `extender_ui` and
+  `tablet_interface`, migration estimates, and prioritized refactoring plans.
 
 ## Validation Rules
 

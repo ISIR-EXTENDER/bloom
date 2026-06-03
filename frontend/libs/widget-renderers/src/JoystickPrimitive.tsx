@@ -102,7 +102,12 @@ export function JoystickPrimitive({
   }, [color, deadzone, size]);
 
   return (
-    <div aria-label={title} className="bloom-joystick" role="application">
+    <div
+      aria-label={title}
+      className="bloom-joystick"
+      role="application"
+      style={{ ["--bloom-joystick-size" as string]: `${size}px` }}
+    >
       <span className="bloom-joystick-label bloom-joystick-label-top">{labels.top}</span>
       <span className="bloom-joystick-label bloom-joystick-label-right">{labels.right}</span>
       <span className="bloom-joystick-label bloom-joystick-label-bottom">{labels.bottom}</span>
