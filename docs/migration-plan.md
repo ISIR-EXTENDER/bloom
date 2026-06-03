@@ -18,6 +18,7 @@ Bloom should let ISIR users create robot web apps without writing web code:
 - configure reusable widgets through typed settings;
 - run apps without builder controls;
 - keep ROS behind backend adapters;
+- keep non-ROS machine integrations possible through the same adapter boundary;
 - persist apps/screens/widgets through SQLite, with JSON import/export as a migration safety bridge;
 - keep robot-facing web features minimally secure by default.
 
@@ -27,6 +28,7 @@ Bloom should let ISIR users create robot web apps without writing web code:
 - Do not move low-level ROS control packages into Bloom.
 - Do not delete legacy JSON files or legacy repos during transition.
 - Do not mix ROS-specific behavior into generic frontend libraries.
+- Do not encode Extender, Petanque, or ROS naming into generic app/screen/widget models.
 - Do not replace working legacy functionality until the Bloom replacement is tested end-to-end.
 - Do not expose unrestricted robot commands from configurable UI widgets.
 
@@ -145,6 +147,16 @@ Status: not started.
 - Mark legacy repos/packages as legacy only after Bloom covers the required workflows.
 - Do not delete legacy repos during the transition.
 
+### Phase 6 - Multi-Project And Non-ROS Integrations
+
+Status: idea captured, intentionally low priority.
+
+- Add a project/workspace level above apps once SQLite app/screen storage is stable enough to normalize safely.
+- Keep current apps such as Petanque and Sandbox as apps inside an Extender project/workspace.
+- Support future projects that are not robots or not ROS-based, such as a C++ machine supervision API.
+- Add `project_id` only when tables and API contracts are ready, instead of forcing it into the early bundled JSON model.
+- Keep widgets producing generic intents/actions so protocols remain replaceable through adapters.
+
 ## Ordered Next Steps
 
 1. Start a builder UX/polish slice:
@@ -157,7 +169,8 @@ Status: not started.
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
 5. Add the first security checks around ROS publish intents:
    topic/message/payload allowlists, runtime session validation, and audit logging.
-6. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
+6. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
+7. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
 
 ## Validation Rules
 
