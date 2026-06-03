@@ -301,6 +301,75 @@ h1 {
   margin-top: 24px;
 }
 
+.builder-screen-library {
+  margin-top: 24px;
+  padding: 28px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--bloom-color-mist) 34%, transparent), transparent 36%),
+    var(--bloom-panel);
+  box-shadow: var(--bloom-shadow);
+}
+
+.builder-screen-library-heading {
+  display: flex;
+  gap: 16px;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.builder-screen-library-heading h2 {
+  margin: 0;
+  color: var(--bloom-ink);
+}
+
+.builder-screen-library-heading span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 22%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 28%, var(--bloom-surface-container-low));
+  color: var(--bloom-ink);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.builder-screen-library p {
+  max-width: 820px;
+  color: var(--bloom-ink-soft);
+  line-height: 1.55;
+}
+
+.builder-screen-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.builder-screen-library-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 86%, white);
+}
+
+.builder-screen-library-card strong {
+  display: block;
+  color: var(--bloom-ink);
+  font-size: 1.06rem;
+}
+
+.builder-screen-library-card span,
+.builder-screen-library-card small {
+  color: var(--bloom-ink-soft);
+}
+
 .builder-app-list,
 .builder-create-card,
 .builder-config-panel {
@@ -363,9 +432,12 @@ h1 {
 
 .builder-screen-card {
   grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
   align-items: center;
+  min-height: 92px;
   position: relative;
   overflow: hidden;
+  padding-left: 24px;
 }
 
 .builder-screen-card::before {
@@ -391,13 +463,40 @@ h1 {
 
 .builder-app-card strong,
 .builder-screen-card strong {
+  display: block;
+  overflow-wrap: anywhere;
   font-size: 1.1rem;
+  line-height: 1.2;
 }
 
 .builder-app-card span,
 .builder-screen-card span,
 .builder-screen-card small {
   color: var(--bloom-ink-soft);
+}
+
+.builder-screen-card-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.builder-screen-card-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.builder-screen-card-details span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface) 68%, transparent);
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .builder-app-card-actions {
@@ -446,6 +545,26 @@ h1 {
   font-size: 1rem;
 }
 
+.builder-screen-section-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.builder-screen-section-heading span {
+  display: inline-grid;
+  min-width: 34px;
+  min-height: 34px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 20%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 28%, var(--bloom-surface-container-low));
+  color: var(--bloom-ink);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
 .builder-inline-hint {
   margin: 8px 0 0;
   color: var(--bloom-ink-soft);
@@ -492,11 +611,12 @@ h1 {
   gap: 8px;
   justify-content: flex-end;
   flex-wrap: wrap;
+  max-width: 340px;
 }
 
 .builder-screen-card-actions button {
-  min-height: 38px;
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 8px 14px;
   border: 1px solid var(--bloom-border);
   border-radius: 999px;
   background: var(--bloom-surface-container-low);
@@ -997,6 +1117,53 @@ h1 {
   background: color-mix(in srgb, var(--bloom-primary-container) 16%, var(--bloom-surface-container-low));
 }
 
+.builder-widget-list {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 84%, white);
+}
+
+.builder-widget-list h3 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 1rem;
+}
+
+.builder-widget-list-items {
+  display: grid;
+  gap: 8px;
+}
+
+.builder-widget-list-items button {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bloom-surface) 72%, transparent);
+  color: var(--bloom-ink);
+  text-align: left;
+}
+
+.builder-widget-list-items button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--bloom-primary) 48%, var(--bloom-border));
+  background: color-mix(in srgb, var(--bloom-primary-container) 30%, var(--bloom-surface));
+  box-shadow: inset 4px 0 0 var(--bloom-primary);
+}
+
+.builder-widget-list-items span {
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .builder-widget-palette {
   display: grid;
   gap: 12px;
@@ -1442,6 +1609,11 @@ h1 {
   box-shadow: 0 12px 25px rgba(82, 91, 76, 0.14);
 }
 
+.widget-preview-card[data-widget-kind="camera"] {
+  align-content: stretch;
+  padding: 14px;
+}
+
 .widget-preview-card strong {
   font-size: 0.95rem;
 }
@@ -1608,8 +1780,8 @@ h1 {
 
 .bloom-camera-widget {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -1661,10 +1833,17 @@ h1 {
   white-space: nowrap;
 }
 
+.bloom-camera-body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+}
+
 .bloom-camera-frame {
   position: relative;
   display: grid;
-  min-height: 0;
+  min-height: 120px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 20%, transparent);
   border-radius: 18px;

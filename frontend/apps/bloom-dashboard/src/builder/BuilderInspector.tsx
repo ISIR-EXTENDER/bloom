@@ -8,10 +8,12 @@ type BuilderInspectorProps = {
   onAddWidget: (definition: WidgetDefinition) => void;
   onDuplicateWidget: () => void;
   onRemoveWidget: () => void;
+  onSelectWidget: (widgetId: string) => void;
   onUpdateWidgetSettings: (settings: Record<string, unknown>) => string | null;
   onUpdateWidgetTitle: (title: string) => void;
   selectedWidget: WidgetConfig | null;
   selectedWidgetDefinition: WidgetDefinition | null;
+  widgets: readonly WidgetConfig[];
   widgetCount: number;
 };
 
@@ -20,10 +22,12 @@ export function BuilderInspector({
   onAddWidget,
   onDuplicateWidget,
   onRemoveWidget,
+  onSelectWidget,
   onUpdateWidgetSettings,
   onUpdateWidgetTitle,
   selectedWidget,
   selectedWidgetDefinition,
+  widgets,
   widgetCount,
 }: BuilderInspectorProps) {
   if (widgetCount === 0) {
@@ -42,6 +46,7 @@ export function BuilderInspector({
     return (
       <BuilderInspectorPanel title="Select a widget">
         <p className="builder-inspector-copy">Choose a widget on the canvas or in the screen list to inspect it.</p>
+        <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={null} widgets={widgets} />
         <WidgetPalette definitions={availableWidgetDefinitions} onAddWidget={onAddWidget} />
       </BuilderInspectorPanel>
     );
@@ -49,6 +54,7 @@ export function BuilderInspector({
 
   return (
     <BuilderInspectorPanel title={selectedWidget.title}>
+      <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={selectedWidget.id} widgets={widgets} />
       <dl className="builder-inspector-grid">
         <div>
           <dt>Kind</dt>
@@ -91,6 +97,44 @@ export function BuilderInspector({
       </div>
       <WidgetPalette definitions={availableWidgetDefinitions} onAddWidget={onAddWidget} />
     </BuilderInspectorPanel>
+  );
+}
+
+function WidgetList({
+  onSelectWidget,
+  selectedWidgetId,
+  widgets,
+}: {
+  onSelectWidget: (widgetId: string) => void;
+  selectedWidgetId: string | null;
+  widgets: readonly WidgetConfig[];
+}) {
+  if (widgets.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="builder-widget-list" aria-labelledby="builder-widget-list-title">
+      <div>
+        <p className="eyebrow">Screen widgets</p>
+        <h3 id="builder-widget-list-title">Select on canvas</h3>
+      </div>
+      <div className="builder-widget-list-items">
+        {widgets.map((widget) => (
+          <button
+            aria-pressed={widget.id === selectedWidgetId}
+            key={widget.id}
+            onClick={() => onSelectWidget(widget.id)}
+            type="button"
+          >
+            <strong>{widget.title}</strong>
+            <span>
+              {widget.kind} · {widget.layout.x}, {widget.layout.y}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 

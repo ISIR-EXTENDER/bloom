@@ -29,7 +29,7 @@ try {
   await page.getByRole("heading", { name: "Choose an app to shape." }).waitFor();
   await capture(page, screenshots.builderHome);
 
-  await page.getByRole("button", { name: /Sandbox operator interface/i }).click();
+  await page.getByRole("button", { name: "Open Sandbox app" }).click();
   await page.getByRole("heading", { name: "App theme" }).waitFor();
   await capture(page, screenshots.appConfiguration);
 } finally {

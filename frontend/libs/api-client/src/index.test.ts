@@ -200,6 +200,20 @@ describe("Bloom API client", () => {
     });
   });
 
+  it("lists ROS topics through the backend", async () => {
+    const responsePayload = {
+      topics: [
+        { name: "/joint_states", message_type: "sensor_msgs/msg/JointState" },
+        { name: "/teleop_cmd", message_type: "geometry_msgs/msg/Twist" },
+      ],
+    };
+    const fetcher = createJsonFetcher(responsePayload);
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.listRosTopics()).resolves.toEqual(responsePayload.topics);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics", {});
+  });
+
   it("throws a typed error when the backend rejects a request", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ detail: "configuration not found" }), {

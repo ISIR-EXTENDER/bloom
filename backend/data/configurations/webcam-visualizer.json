@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-06-03T12:00:00Z",
+    "source": "bloom-demo:webcam-visualizer"
+  },
+  "applications": [
+    {
+      "id": "webcam-visualizer",
+      "name": "Webcam visualizer",
+      "description": "Demo app for validating local browser webcam screens before ROS camera adapters.",
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "screens": [
+        {
+          "id": "camera-viewer",
+          "title": "Camera viewer",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "local-webcam",
+              "kind": "camera",
+              "title": "Local webcam",
+              "layout": {
+                "x": 64,
+                "y": 56,
+                "width": 960,
+                "height": 560
+              },
+              "settings": {
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "source": "webcam",
+                "streamUrl": "webcam:///dev/video0",
+                "webcamPicker": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

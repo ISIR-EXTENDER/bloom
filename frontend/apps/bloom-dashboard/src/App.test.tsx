@@ -41,6 +41,43 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Create blank app/i })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Reusable screens" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit Diagnostics screen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Preview Diagnostics screen runtime" })).toBeVisible();
+  });
+
+  it("opens a screen builder directly from the builder screen library", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Diagnostics screen" }));
+
+    expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
+    expect(screen.getByText("/teleop_cmd")).toBeVisible();
+  });
+
+  it("previews a screen runtime directly from the builder screen library", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview Diagnostics screen runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Diagnostics/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
+  });
+
+  it("opens an app runtime directly from the builder app list", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 1, name: "Sandbox" })).not.toBeInTheDocument();
   });
 
   it("opens app configuration before entering the full screen builder", async () => {
@@ -203,6 +240,8 @@ describe("App", () => {
 
     await openAppConfig();
     expect(screen.getByText("From Shared screens")).toBeVisible();
+    expect(screen.getByText("Camera")).toBeVisible();
+    expect(screen.queryByText(/widgets ·/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add Camera Feed to app" }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
@@ -446,6 +485,18 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
+  it("selects builder widgets from the inspector widget list", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    await openDefaultScreenBuilder();
+    fireEvent.click(await screen.findByRole("button", { name: "Add Label widget" }));
+    fireEvent.click(screen.getByRole("button", { name: /Digital output.*toggle/i }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Digital output" })).toBeVisible();
+    expect(screen.getByLabelText("Output topic")).toHaveValue("/ui/ros_toggle");
+    expect(screen.getByRole("button", { name: /Digital output.*toggle/i })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("shows field validation errors for invalid inspector settings", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
@@ -578,17 +629,17 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open default_control screen builder" }));
     expect(screen.getByRole("heading", { level: 2, name: "default_control" })).toBeVisible();
     expect(screen.getAllByText("RZ").length).toBeGreaterThan(0);
-    expect(screen.getByText("Z")).toBeVisible();
-    expect(screen.getByText("Max Velocity")).toBeVisible();
-    expect(screen.getByText("Translation")).toBeVisible();
-    expect(screen.getByText("Gripper Control")).toBeVisible();
+    expect(screen.getAllByText("Z").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Max Velocity").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Translation").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Gripper Control").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Slider/).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Back to app config" }));
     fireEvent.click(screen.getByRole("button", { name: "Open default_live_teleop screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
-    expect(screen.getByText("Camera Stream")).toBeVisible();
+    expect(screen.getAllByText("Camera Stream").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
   });
 
@@ -651,6 +702,26 @@ describe("App", () => {
     expect(screen.getAllByText("Local webcam").length).toBeGreaterThan(0);
     expect(screen.getByText("webcam:///dev/video0")).toBeVisible();
     expect(screen.getByText(/webcam permission/i)).toBeVisible();
+  });
+
+  it("renders the webcam visualizer as a runtime demo app", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "webcam-visualizer": webcamVisualizerConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["webcam-visualizer"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Webcam visualizer" })).toBeVisible();
+    expect(screen.getByLabelText("Local webcam webcam preview")).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
   });
 
   it("renders an empty configuration state inside the main app", async () => {

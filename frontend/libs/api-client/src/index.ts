@@ -127,6 +127,15 @@ export type RosTopicPublishResponse = {
   detail: string;
 };
 
+export type RosTopicInfo = {
+  name: string;
+  message_type: string;
+};
+
+export type RosTopicListResponse = {
+  topics: RosTopicInfo[];
+};
+
 export type BloomApiClientOptions = {
   baseUrl?: string;
   fetcher?: typeof fetch;
@@ -235,6 +244,11 @@ export class BloomApiClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
+  }
+
+  async listRosTopics(): Promise<RosTopicInfo[]> {
+    const response = await this.request<RosTopicListResponse>("/api/v1/ros/topics");
+    return response.topics;
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {

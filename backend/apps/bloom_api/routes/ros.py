@@ -5,7 +5,13 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from libs.ros_adapters import RosPublishReceipt, RosPublishRequest, RosPublisherGateway
+from libs.ros_adapters import (
+    RosPublishReceipt,
+    RosPublishRequest,
+    RosPublisherGateway,
+    RosTopicCatalogGateway,
+    RosTopicInfo,
+)
 from libs.ros_adapters.payloads import parse_ros_payload_text
 
 router = APIRouter(prefix="/ros", tags=["ros"])
@@ -58,8 +64,28 @@ class RosTopicPublishResponse(BaseModel):
     detail: str
 
 
+class RosTopicInfoResponse(BaseModel):
+    name: str
+    message_type: str
+
+
+class RosTopicListResponse(BaseModel):
+    topics: tuple[RosTopicInfoResponse, ...]
+
+
 def get_ros_publisher_gateway(request: Request) -> RosPublisherGateway:
     return request.app.state.ros_publisher_gateway
+
+
+def get_ros_topic_catalog_gateway(request: Request) -> RosTopicCatalogGateway:
+    return request.app.state.ros_topic_catalog_gateway
+
+
+@router.get("/topics", response_model=RosTopicListResponse)
+def list_ros_topics(request: Request) -> RosTopicListResponse:
+    gateway = get_ros_topic_catalog_gateway(request)
+    topics = tuple(_to_topic_response(topic) for topic in gateway.list_topics())
+    return RosTopicListResponse(topics=topics)
 
 
 @router.post("/topics/publish", response_model=RosTopicPublishResponse)
@@ -79,6 +105,10 @@ def publish_ros_topic(request: Request, publish_request: RosTopicPublishRequest)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
 
     return _to_response(receipt)
+
+
+def _to_topic_response(topic: RosTopicInfo) -> RosTopicInfoResponse:
+    return RosTopicInfoResponse(name=topic.name, message_type=topic.message_type)
 
 
 def _to_response(receipt: RosPublishReceipt) -> RosTopicPublishResponse:

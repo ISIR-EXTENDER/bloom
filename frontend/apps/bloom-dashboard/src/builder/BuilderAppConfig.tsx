@@ -29,6 +29,14 @@ type AvailableScreen = {
   sourceApplicationName: string;
 };
 
+type ScreenCardAction = {
+  ariaLabel: string;
+  disabled?: boolean;
+  isDanger?: boolean;
+  label: string;
+  onClick: () => void;
+};
+
 const MAX_MOODBOARD_IMAGE_BYTES = 1_000_000;
 const ACCEPTED_MOODBOARD_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const DEFAULT_THEME_INSPIRATION: ApplicationConfig["theme"]["inspiration"] = {
@@ -321,87 +329,76 @@ export function BuilderAppConfig({
           </div>
           <div className="builder-screen-membership">
             <div>
-              <h3>Screens in this app</h3>
+              <div className="builder-screen-section-heading">
+                <h3>Screens in this app</h3>
+                <span>{draftApplication.screens.length}</span>
+              </div>
               {isDirty ? (
                 <p className="builder-inline-hint">Save or discard app changes before opening a screen builder.</p>
               ) : null}
               <div className="builder-screen-cards">
                 {draftApplication.screens.map((screen) => (
-                  <article className="builder-screen-card" key={screen.id} style={createScreenAccentStyle(screen)}>
-                    <div>
-                      <strong>{screen.title}</strong>
-                    </div>
-                    <div className="builder-screen-card-actions">
-                      <button
-                        aria-label={`Open ${screen.title} screen builder`}
-                        disabled={isDirty || isSaving}
-                        onClick={() =>
+                  <ScreenCard
+                    actions={[
+                      {
+                        ariaLabel: `Open ${screen.title} screen builder`,
+                        disabled: isDirty || isSaving,
+                        label: "Open builder",
+                        onClick: () =>
                           onOpenScreenBuilder({
                             appId: application.id,
                             configId: selectedWorkspace.configuration.id,
                             screenId: screen.id,
-                          })
-                        }
-                        type="button"
-                      >
-                        Open builder
-                      </button>
-                      <button
-                        aria-label={`Remove ${screen.title} from app`}
-                        className="builder-screen-action-danger"
-                        disabled={draftApplication.screens.length <= 1 || isSaving}
-                        onClick={() => removeScreen(screen.id)}
-                        type="button"
-                      >
-                        Remove
-                      </button>
-                      <button
-                        aria-label={`Duplicate ${screen.title} screen`}
-                        disabled={isSaving}
-                        onClick={() => duplicateScreen(screen.id)}
-                        type="button"
-                      >
-                        Duplicate
-                      </button>
-                    </div>
-                  </article>
+                          }),
+                      },
+                      {
+                        ariaLabel: `Remove ${screen.title} from app`,
+                        disabled: draftApplication.screens.length <= 1 || isSaving,
+                        isDanger: true,
+                        label: "Remove",
+                        onClick: () => removeScreen(screen.id),
+                      },
+                      {
+                        ariaLabel: `Duplicate ${screen.title} screen`,
+                        disabled: isSaving,
+                        label: "Duplicate",
+                        onClick: () => duplicateScreen(screen.id),
+                      },
+                    ]}
+                    key={screen.id}
+                    screen={screen}
+                  />
                 ))}
               </div>
             </div>
 
             <div>
-              <h3>Available screens</h3>
+              <div className="builder-screen-section-heading">
+                <h3>Available screens</h3>
+                <span>{unassignedScreens.length}</span>
+              </div>
               <p className="builder-inspector-copy">
-                Pick reusable screens from other apps in this configuration. SQLite will turn this into a dedicated
-                screen library later.
+                Reuse screens from any app in this configuration. This is the first step toward the shared screen
+                library.
               </p>
               <div className="builder-screen-cards">
                 {unassignedScreens.length === 0 ? (
-                  <p className="builder-empty-state">
-                    All existing screens from this configuration are already in this app.
-                  </p>
+                  <p className="builder-empty-state">No extra reusable screens available yet.</p>
                 ) : (
                   unassignedScreens.map(({ screen, sourceApplicationName }) => (
-                    <article
-                      className="builder-screen-card"
+                    <ScreenCard
+                      actions={[
+                        {
+                          ariaLabel: `Add ${screen.title} to app`,
+                          disabled: isSaving,
+                          label: "Add to app",
+                          onClick: () => addScreen(screen),
+                        },
+                      ]}
                       key={`${sourceApplicationName}-${screen.id}`}
-                      style={createScreenAccentStyle(screen)}
-                    >
-                      <div>
-                        <strong>{screen.title}</strong>
-                        <span>From {sourceApplicationName}</span>
-                      </div>
-                      <div className="builder-screen-card-actions">
-                        <button
-                          aria-label={`Add ${screen.title} to app`}
-                          disabled={isSaving}
-                          onClick={() => addScreen(screen)}
-                          type="button"
-                        >
-                          Add to app
-                        </button>
-                      </div>
-                    </article>
+                      screen={screen}
+                      sourceApplicationName={sourceApplicationName}
+                    />
                   ))
                 )}
               </div>
@@ -413,8 +410,64 @@ export function BuilderAppConfig({
   );
 }
 
+function ScreenCard({
+  actions,
+  screen,
+  sourceApplicationName,
+}: {
+  actions: readonly ScreenCardAction[];
+  screen: ScreenConfig;
+  sourceApplicationName?: string;
+}) {
+  return (
+    <article className="builder-screen-card" style={createScreenAccentStyle(screen)}>
+      <div className="builder-screen-card-main">
+        <strong>{screen.title}</strong>
+        <div className="builder-screen-card-details">
+          <span>{describeScreenFeature(screen)}</span>
+          {sourceApplicationName ? <span>From {sourceApplicationName}</span> : null}
+        </div>
+      </div>
+      <div className="builder-screen-card-actions">
+        {actions.map((action) => (
+          <button
+            aria-label={action.ariaLabel}
+            className={action.isDanger ? "builder-screen-action-danger" : undefined}
+            disabled={action.disabled}
+            key={action.label}
+            onClick={action.onClick}
+            type="button"
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+    </article>
+  );
+}
+
 function createScreenAccentStyle(screen: ScreenConfig): CSSProperties {
   return { "--screen-card-accent": resolveScreenAccent(screen) } as CSSProperties;
+}
+
+function describeScreenFeature(screen: ScreenConfig): string {
+  if (screen.widgets.length === 0) {
+    return "Empty canvas";
+  }
+
+  if (screen.widgets.some((widget) => widget.kind === "camera")) {
+    return "Camera";
+  }
+
+  if (screen.widgets.some((widget) => widget.kind === "joystick" || widget.kind === "slider")) {
+    return "Controls";
+  }
+
+  if (screen.widgets.some((widget) => widget.kind === "topic-echo" || widget.kind === "topic-plot")) {
+    return "Debug";
+  }
+
+  return "Interface";
 }
 
 function resolveScreenAccent(screen: ScreenConfig): string {
