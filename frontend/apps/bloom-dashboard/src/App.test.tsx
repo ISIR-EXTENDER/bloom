@@ -13,7 +13,7 @@ import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-te
 import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-visualizer-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
-import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
+import type { RuntimeActionClient, RuntimeTopicSampleMessage } from "./runtime/runtime-action-dispatcher";
 
 Element.prototype.setPointerCapture = vi.fn();
 Element.prototype.releasePointerCapture = vi.fn();
@@ -110,6 +110,36 @@ describe("App", () => {
       field_path: "",
       widget_id: "echo",
     });
+  });
+
+  it("renders live topic samples in runtime debug widgets", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview Diagnostics screen runtime" }));
+
+    expect(await screen.findByText("Waiting for messages...")).toBeVisible();
+
+    runtimeActionClient.emitRuntimeTopicSample({
+      type: "topic_sample",
+      detail: "Received /teleop_cmd.",
+      payload: {
+        message_type: "extender_msgs/msg/TeleopCommand",
+        received_at: "2026-06-03T10:00:00+00:00",
+        topic: "/teleop_cmd",
+        value: {
+          mode: 3,
+          twist: {
+            linear: { x: 0.42, y: 0, z: 0 },
+          },
+        },
+      },
+    });
+
+    expect(await screen.findByText(/"mode": 3/)).toBeVisible();
+    expect(screen.getByText(/"x": 0.42/)).toBeVisible();
   });
 
   it("filters reusable screens from the builder screen library", async () => {
@@ -1016,8 +1046,23 @@ function createConfigurationClient(
   } satisfies ConfigurationClient;
 }
 
-function createRuntimeActionClient(): RuntimeActionClient {
+type TestRuntimeActionClient = RuntimeActionClient & {
+  emitRuntimeTopicSample: (sample: RuntimeTopicSampleMessage) => void;
+};
+
+function createRuntimeActionClient(): TestRuntimeActionClient {
+  const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
+
   return {
+    addRuntimeTopicSampleListener: vi.fn((listener) => {
+      topicSampleListeners.add(listener);
+      return () => topicSampleListeners.delete(listener);
+    }),
+    emitRuntimeTopicSample: (sample) => {
+      for (const listener of topicSampleListeners) {
+        listener(sample);
+      }
+    },
     publishRosTopic: vi.fn(
       async (request) =>
         ({
