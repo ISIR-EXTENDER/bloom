@@ -39,6 +39,7 @@ Already merged:
 - Runtime separation from builder controls, fit canvas mode, ROS topic publish API, runtime action dispatch, and WebSocket session contracts.
 - App configuration flow with app identity, app-level theme tokens, and reusable screen membership.
 - App configuration screen lifecycle actions: blank screen creation, screen duplication, and source-app labels for reusable screens.
+- App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
 
 Current branch:
@@ -57,7 +58,7 @@ Status: complete.
 
 ### Phase 1 - Safe Extraction
 
-Status: mostly complete, still receiving feature slices.
+Status: foundation-complete, still receiving focused widget/runtime slices.
 
 - Move reusable frontend logic into `frontend/libs`.
 - Move backend API/CLI/configuration logic into `backend/apps` and `backend/libs`.
@@ -65,9 +66,8 @@ Status: mostly complete, still receiving feature slices.
 - Keep ROS-specific behavior inside `backend/libs/ros_adapters`.
 - Add tests with each migrated slice.
 
-Next focus in this phase:
+Remaining focus in this phase:
 
-- Finish production-level builder workflows.
 - Keep migrating reusable widgets from `extender_ui` and Petanque.
 - Strengthen frontend/backend contract checks around configuration data.
 
@@ -81,9 +81,14 @@ Status: started.
   apps, screens, widgets, app themes, runtime bindings.
 - Preserve the current app config UX while introducing a real screen library/store.
 
-Next focus in this phase:
+Already done in this phase:
 
-- Save app/screen builder edits through SQLite-backed API paths in normal dashboard usage.
+- App and screen saves now use dedicated backend API endpoints instead of frontend-only full-bundle replacement.
+- Reusable screen listing exposes source-app metadata for the early screen-library UX.
+
+Remaining focus in this phase:
+
+- Normalize SQLite storage beyond bundled configuration documents.
 - Add app list/create/duplicate/archive flows backed by storage.
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
 
@@ -134,8 +139,8 @@ Status: not started.
 
 1. Start a builder UX/polish slice:
    app builder home, app config, screen builder, and runtime should feel like one coherent product flow.
-2. Add SQLite-backed app/screen lifecycle API usage from the dashboard:
-   save, list, duplicate, and archive through backend storage instead of relying on bundled document replacement only.
+2. Normalize SQLite app/screen storage:
+   keep JSON import/export, but add dedicated app/screen persistence records behind the existing API contract.
 3. Add runtime live ROS sessions:
    WebSocket topic subscriptions, topic echo, and teleop publisher adapter.
 4. Migrate the next reusable widget family:

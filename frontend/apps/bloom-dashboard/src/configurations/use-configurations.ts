@@ -1,4 +1,4 @@
-import type { ConfigurationBundle } from "@bloom/api-client";
+import type { ApplicationConfig, ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
 import { useCallback, useEffect, useState } from "react";
 
 import type { ConfigurationClient } from "./configuration-client";
@@ -6,36 +6,64 @@ import { type LoadedConfiguration, loadConfigurations } from "./configuration-lo
 import { normalizeConfigurationBundle } from "./configuration-normalizer";
 
 type SaveConfiguration = (configId: string, bundle: ConfigurationBundle) => Promise<LoadedConfiguration>;
+type SaveApplication = (configId: string, application: ApplicationConfig) => Promise<LoadedConfiguration>;
+type SaveScreen = (configId: string, applicationId: string, screen: ScreenConfig) => Promise<LoadedConfiguration>;
 
 export type ConfigurationLoadState =
   | { status: "loading" }
-  | { status: "ready"; configurations: LoadedConfiguration[]; saveConfiguration: SaveConfiguration }
+  | {
+      status: "ready";
+      configurations: LoadedConfiguration[];
+      saveApplication: SaveApplication;
+      saveConfiguration: SaveConfiguration;
+      saveScreen: SaveScreen;
+    }
   | { status: "error"; message: string };
 
 export function useConfigurations(client: ConfigurationClient): ConfigurationLoadState {
   const [state, setState] = useState<ConfigurationLoadState>({ status: "loading" });
 
+  const updateSavedConfiguration = useCallback((configId: string, savedBundle: ConfigurationBundle) => {
+    const savedConfiguration = { id: configId, bundle: savedBundle };
+
+    setState((currentState) => {
+      if (currentState.status !== "ready") {
+        return currentState;
+      }
+
+      return {
+        ...currentState,
+        configurations: currentState.configurations.map((configuration) =>
+          configuration.id === configId ? savedConfiguration : configuration,
+        ),
+      };
+    });
+
+    return savedConfiguration;
+  }, []);
+
   const saveConfiguration = useCallback<SaveConfiguration>(
     async (configId, bundle) => {
       const savedBundle = normalizeConfigurationBundle(await client.upsertConfiguration(configId, bundle));
-      const savedConfiguration = { id: configId, bundle: savedBundle };
-
-      setState((currentState) => {
-        if (currentState.status !== "ready") {
-          return currentState;
-        }
-
-        return {
-          ...currentState,
-          configurations: currentState.configurations.map((configuration) =>
-            configuration.id === configId ? savedConfiguration : configuration,
-          ),
-        };
-      });
-
-      return savedConfiguration;
+      return updateSavedConfiguration(configId, savedBundle);
     },
-    [client],
+    [client, updateSavedConfiguration],
+  );
+
+  const saveApplication = useCallback<SaveApplication>(
+    async (configId, application) => {
+      const savedBundle = normalizeConfigurationBundle(await client.upsertApplication(configId, application));
+      return updateSavedConfiguration(configId, savedBundle);
+    },
+    [client, updateSavedConfiguration],
+  );
+
+  const saveScreen = useCallback<SaveScreen>(
+    async (configId, applicationId, screen) => {
+      const savedBundle = normalizeConfigurationBundle(await client.upsertScreen(configId, applicationId, screen));
+      return updateSavedConfiguration(configId, savedBundle);
+    },
+    [client, updateSavedConfiguration],
   );
 
   useEffect(() => {
@@ -45,7 +73,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     loadConfigurations(client)
       .then((configurations) => {
         if (isCurrent) {
-          setState({ status: "ready", configurations, saveConfiguration });
+          setState({ status: "ready", configurations, saveApplication, saveConfiguration, saveScreen });
         }
       })
       .catch((error: unknown) => {
@@ -57,7 +85,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     return () => {
       isCurrent = false;
     };
-  }, [client, saveConfiguration]);
+  }, [client, saveApplication, saveConfiguration, saveScreen]);
 
   return state;
 }

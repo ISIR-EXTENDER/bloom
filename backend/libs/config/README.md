@@ -20,6 +20,18 @@ This library describes Bloom concepts such as applications, screens, widgets, an
 - `InMemoryConfigurationRepository` for tests and temporary runtime state
 - `FileConfigurationRepository` for local JSON-backed persistence before database storage
 
+`sqlite_repository.py` stores configuration bundles in SQLite while Bloom validates the database-backed migration path.
+
+## Editor Operations
+
+`editor.py` contains pure app/screen lifecycle operations used by the API layer:
+
+- upsert/delete applications;
+- upsert/delete screens;
+- list reusable screens with source application metadata.
+
+These operations keep route handlers thin and make the future normalized SQLite app/screen store easier to introduce.
+
 ## Legacy JSON
 
 `legacy_json.py` contains adapters for the current `extender_ui/data` JSON shapes. These adapters should preserve legacy payload details in widget settings while mapping screens and applications into Bloom domain models.
