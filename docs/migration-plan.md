@@ -6,6 +6,7 @@ Supporting documents:
 
 - `docs/widget-migration-inventory.md`: reusable widget ideas discovered in `extender_ui` and Petanque.
 - `docs/widgets-screens-apps-foundation-plan.md`: design notes behind the widgets/screens/apps foundation work.
+- `docs/security-baseline.md`: minimum security posture for web/API/ROS-facing work.
 - `docs/decisions/`: dated decisions and development journal entries.
 
 ## Product Goal
@@ -105,6 +106,8 @@ Status: started.
 - Add configurable ROS message publishing for buttons/toggles.
 - Add topic echo and lightweight timeseries visualization for debugging.
 - Add allowlists for publishable topics, message types, and payload shapes before real robot deployment.
+- Keep ROS transport replaceable so standard ROS 2, `rmw_zenoh_cpp`, or a future Hiroz/Zenoh adapter can be evaluated
+  without changing frontend widget contracts.
 
 Next focus in this phase:
 
