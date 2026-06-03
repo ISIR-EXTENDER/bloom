@@ -188,6 +188,11 @@ Status: idea captured, intentionally low priority.
 6. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
 7. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
 
+See also:
+
+- [Production readiness review](./production-readiness-review.md) for the current comparison against `extender_ui` and
+  `tablet_interface`, migration estimates, and prioritized refactoring plans.
+
 ## Validation Rules
 
 Before opening PRs:

@@ -213,18 +213,25 @@ function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
   const step = getNumberSetting(descriptor.widget.settings, "step", 0.01);
   const direction = getStringSetting(descriptor.widget.settings, "direction", "vertical");
   const defaultValue = clamp(0, min, max);
+  const [currentValue, setCurrentValue] = useState(defaultValue);
 
   const handleValueChange = (values: number[]) => {
     const value = values[0];
     if (value === undefined) {
       return;
     }
+    setCurrentValue(value);
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
   };
 
   return (
-    <>
-      <strong>{descriptor.widget.title}</strong>
+    <div className="bloom-slider-widget" data-direction={direction === "horizontal" ? "horizontal" : "vertical"}>
+      <header className="bloom-control-header">
+        <strong>{descriptor.widget.title}</strong>
+        <span>
+          {min} → {max}
+        </span>
+      </header>
       <SliderPrimitive.Root
         className={`bloom-slider bloom-slider-${direction === "horizontal" ? "horizontal" : "vertical"}`}
         data-orientation={direction === "horizontal" ? "horizontal" : "vertical"}
@@ -240,10 +247,10 @@ function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-slider-thumb" />
       </SliderPrimitive.Root>
-      <span>
-        {descriptor.definition.displayName} {min} → {max}
-      </span>
-    </>
+      <output aria-live="polite" className="bloom-control-readout">
+        {currentValue.toFixed(resolveDecimalPlaces(step))}
+      </output>
+    </div>
   );
 }
 
@@ -251,16 +258,21 @@ function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
   const binding = getStringSetting(descriptor.widget.settings, "binding", "input");
   const deadzone = getNumberSetting(descriptor.widget.settings, "deadzone", 0.1);
   const labels = getJoystickLabels(descriptor.widget.settings);
-  const color = getStringSetting(descriptor.widget.settings, "color", "#7fa95f");
-  const size = Math.max(80, Math.min(descriptor.widget.layout.width, descriptor.widget.layout.height) - 48);
+  const color = getStringSetting(descriptor.widget.settings, "accentColor", "#7fa95f");
+  const size = resolveJoystickControlSize(descriptor.widget.layout.width, descriptor.widget.layout.height);
+  const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
 
   const handleVectorChange = (value: JoystickVector) => {
+    setCurrentVector(value);
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-vector", value }));
   };
 
   return (
-    <>
-      <strong>{descriptor.widget.title}</strong>
+    <div className="bloom-joystick-widget">
+      <header className="bloom-control-header">
+        <strong>{descriptor.widget.title}</strong>
+        <span>{binding}</span>
+      </header>
       <JoystickPrimitive
         color={color}
         deadzone={deadzone}
@@ -269,10 +281,11 @@ function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
         size={size}
         title={descriptor.widget.title}
       />
-      <span>
-        {descriptor.definition.displayName} · {binding}
-      </span>
-    </>
+      <output aria-live="polite" className="bloom-control-vector-readout">
+        <span>x {currentVector.x.toFixed(2)}</span>
+        <span>y {currentVector.y.toFixed(2)}</span>
+      </output>
+    </div>
   );
 }
 
@@ -713,4 +726,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function resolveJoystickControlSize(width: number, height: number): number {
+  const horizontalRoom = Math.max(96, width - 56);
+  const verticalRoom = Math.max(96, height - 118);
+  return Math.round(clamp(Math.min(horizontalRoom, verticalRoom), 96, 260));
+}
+
+function resolveDecimalPlaces(step: number): number {
+  if (!Number.isFinite(step) || step <= 0) {
+    return 2;
+  }
+
+  const stepText = step.toString();
+  if (!stepText.includes(".")) {
+    return 0;
+  }
+
+  return Math.min(4, stepText.split(".")[1]?.length ?? 2);
 }

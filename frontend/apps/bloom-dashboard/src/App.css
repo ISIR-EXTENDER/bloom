@@ -1623,20 +1623,81 @@ h1 {
   font-size: 0.8rem;
 }
 
+.bloom-control-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.bloom-control-header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bloom-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloom-control-header span {
+  flex: 0 0 auto;
+  color: var(--bloom-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bloom-control-readout,
+.bloom-control-vector-readout {
+  display: inline-flex;
+  gap: 10px;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 16%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface-container-high) 82%, white);
+  color: var(--bloom-ink-soft);
+  font-family: "Cascadia Code", "Ubuntu Mono", monospace;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.bloom-slider-widget,
+.bloom-joystick-widget {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.bloom-slider-widget[data-direction="horizontal"] {
+  align-content: center;
+}
+
+.bloom-slider-widget[data-direction="vertical"] {
+  align-content: stretch;
+  justify-items: center;
+}
+
 .bloom-slider {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 22px;
+  min-height: 56px;
   touch-action: none;
   user-select: none;
 }
 
 .bloom-slider-vertical {
-  justify-self: start;
-  width: 22px;
+  justify-self: center;
+  width: 88px;
   height: 100%;
-  min-height: 72px;
+  min-height: 120px;
   flex-direction: column;
 }
 
@@ -1649,11 +1710,11 @@ h1 {
 }
 
 .bloom-slider-horizontal .bloom-slider-track {
-  height: 8px;
+  height: 14px;
 }
 
 .bloom-slider-vertical .bloom-slider-track {
-  width: 8px;
+  width: 14px;
 }
 
 .bloom-slider-range {
@@ -1664,47 +1725,101 @@ h1 {
 
 .bloom-slider-thumb {
   display: block;
-  width: 22px;
-  height: 22px;
-  border: 3px solid var(--bloom-surface-container-low);
+  width: 56px;
+  height: 56px;
+  border: 5px solid var(--bloom-surface-container-low);
   border-radius: 999px;
-  background: var(--bloom-ink);
-  box-shadow: 0 4px 12px rgba(32, 56, 50, 0.24);
+  background: var(--bloom-primary);
+  box-shadow:
+    0 0 0 8px color-mix(in srgb, var(--bloom-accent) 20%, transparent),
+    0 12px 24px rgba(32, 56, 50, 0.2);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.08s ease;
+}
+
+.bloom-slider-thumb:focus-visible,
+.bloom-slider-thumb:active {
+  background: color-mix(in srgb, var(--bloom-primary) 86%, white);
+  box-shadow:
+    0 0 0 10px color-mix(in srgb, var(--bloom-accent) 34%, transparent),
+    0 14px 28px rgba(32, 56, 50, 0.24);
+  transform: scale(1.04);
 }
 
 .bloom-joystick {
   position: relative;
   display: grid;
   place-items: center;
-  width: 100%;
-  min-height: 112px;
+  width: min(100%, var(--bloom-joystick-size, 220px));
+  min-width: min(100%, 128px);
+  min-height: min(100%, 128px);
+  max-width: 100%;
+  margin: 0 auto;
   aspect-ratio: 1;
+  border: 2px solid color-mix(in srgb, var(--bloom-primary) 28%, transparent);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--bloom-accent) 18%, transparent), transparent 34%),
+    color-mix(in srgb, var(--bloom-primary-container) 56%, var(--bloom-surface));
+  box-shadow:
+    inset 0 0 26px color-mix(in srgb, var(--bloom-primary) 12%, transparent),
+    0 12px 30px rgba(82, 91, 76, 0.12);
+  overflow: hidden;
+  touch-action: none;
 }
 
 .bloom-joystick-zone {
   position: absolute;
-  inset: 28px;
+  inset: max(22px, calc(var(--bloom-joystick-size, 220px) * 0.15));
   border-radius: 999px;
-  background: rgba(127, 159, 110, 0.08);
+  background: color-mix(in srgb, var(--bloom-primary) 7%, transparent);
 }
 
 .bloom-joystick::before {
   position: absolute;
-  width: 72%;
+  width: 68%;
   aspect-ratio: 1;
-  border: 1px solid rgba(63, 78, 70, 0.16);
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 18%, transparent);
   border-radius: 999px;
-  background: radial-gradient(circle at center, rgba(127, 159, 110, 0.2), rgba(255, 253, 247, 0.68));
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, var(--bloom-accent) 22%, transparent), transparent 28%),
+    color-mix(in srgb, var(--bloom-surface) 68%, transparent);
   content: "";
+}
+
+.bloom-joystick-deadzone {
+  position: absolute;
+  z-index: 1;
+  width: calc(68% * var(--bloom-joystick-deadzone, 0.1));
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--bloom-error) 38%, transparent);
+  border-radius: 999px;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.bloom-joystick-zone .back {
+  border: 2px solid color-mix(in srgb, var(--bloom-primary) 42%, transparent);
+  background: color-mix(in srgb, var(--bloom-surface) 82%, var(--bloom-primary-container));
+  box-shadow: inset 0 0 20px color-mix(in srgb, var(--bloom-primary) 16%, transparent);
+}
+
+.bloom-joystick-zone .front {
+  border: 3px solid color-mix(in srgb, var(--bloom-primary) 76%, black);
+  background: var(--bloom-accent);
+  box-shadow: 0 10px 24px rgba(32, 56, 50, 0.24);
 }
 
 .bloom-joystick-label {
   position: absolute;
-  z-index: 1;
-  color: var(--bloom-muted);
-  font-size: 0.72rem;
+  z-index: 2;
+  color: var(--bloom-ink);
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.08em;
+  text-shadow: 0 1px 0 color-mix(in srgb, var(--bloom-surface) 72%, transparent);
   text-transform: uppercase;
 }
 
