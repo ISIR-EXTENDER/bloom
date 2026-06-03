@@ -105,6 +105,8 @@ Already done in this phase:
 - Reusable screen listing exposes source-app metadata for the early screen-library UX.
 - Builder home exposes a searchable screen library across loaded apps, with direct screen builder and runtime preview
   actions.
+- Builder screen library now groups reusable screens by intent and uses human-readable display titles, type tags, and
+  meaningful color accents while preserving legacy screen ids for migration safety.
 
 Remaining focus in this phase:
 

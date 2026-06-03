@@ -1,4 +1,4 @@
-import { type ApplicationConfig, DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
+import { type ApplicationConfig, DEFAULT_APPLICATION_THEME, type ScreenConfig } from "@bloom/api-client";
 import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -19,6 +19,65 @@ type AppActionState =
   | { applicationId: string; status: "deleting" | "duplicating" }
   | { message: string; status: "error" };
 
+type ScreenLibraryType = "camera" | "control" | "debug" | "device" | "workflow" | "general";
+
+type ScreenLibraryItem = {
+  application: ApplicationConfig;
+  configuration: LoadedConfiguration;
+  displayTitle: string;
+  screen: ScreenConfig;
+  type: ScreenLibraryType;
+};
+
+const SCREEN_LIBRARY_GROUPS: readonly { description: string; label: string; type: ScreenLibraryType }[] = [
+  {
+    type: "camera",
+    label: "Camera views",
+    description: "Video, webcam, and stream inspection screens.",
+  },
+  {
+    type: "control",
+    label: "Control screens",
+    description: "Teleoperation, joystick, slider, and command-oriented screens.",
+  },
+  {
+    type: "debug",
+    label: "Debug monitors",
+    description: "Topic echoes, plots, logs, and diagnostics screens.",
+  },
+  {
+    type: "device",
+    label: "Device panels",
+    description: "Reusable controls for grippers, pumps, magnets, sensors, and devices.",
+  },
+  {
+    type: "workflow",
+    label: "Workflow screens",
+    description: "App-specific steps, state flows, and configuration screens.",
+  },
+  {
+    type: "general",
+    label: "General screens",
+    description: "Reusable layouts that do not belong to a specialized family yet.",
+  },
+];
+
+const SCREEN_LIBRARY_TYPE_LABELS: Record<ScreenLibraryType, string> = {
+  camera: "Camera",
+  control: "Control",
+  debug: "Debug",
+  device: "Device",
+  workflow: "Workflow",
+  general: "General",
+};
+
+const SCREEN_TITLE_ACRONYMS: Record<string, string> = {
+  api: "API",
+  hd: "HD",
+  ros: "ROS",
+  ui: "UI",
+};
+
 export function BuilderHome({
   configurations,
   onCreateApplication,
@@ -36,10 +95,9 @@ export function BuilderHome({
   const applications = configurations.flatMap((configuration) =>
     configuration.bundle.applications.map((application) => ({ application, configuration })),
   );
-  const screens = applications.flatMap(({ application, configuration }) =>
-    application.screens.map((screen) => ({ application, configuration, screen })),
-  );
+  const screens = createScreenLibraryItems(applications);
   const filteredScreens = filterScreens(screens, screenSearch);
+  const screenGroups = groupScreensByType(filteredScreens);
 
   return (
     <section className="builder-home" aria-labelledby="builder-home-title">
@@ -244,55 +302,76 @@ export function BuilderHome({
             value={screenSearch}
           />
         </label>
-        <div className="builder-screen-library-grid">
+        <div className="builder-screen-library-groups">
           {filteredScreens.length === 0 ? (
             <p className="builder-empty-state">
               No screens match this search yet. Try another app name, screen name, or widget type.
             </p>
           ) : (
-            filteredScreens.map(({ application, configuration, screen }) => (
-              <article
-                className="builder-screen-library-card"
-                key={`${configuration.id}:${application.id}:${screen.id}`}
+            screenGroups.map((group) => (
+              <section
+                aria-labelledby={`builder-screen-library-${group.definition.type}`}
+                className="builder-screen-library-group"
+                key={group.definition.type}
               >
-                <div className="builder-screen-card-main">
-                  <strong>{screen.title}</strong>
-                  <span>{application.name}</span>
-                  <div className="builder-screen-card-details">
-                    <span>{screen.widgets.length} widgets</span>
-                    <span>{screen.canvas.preset_id}</span>
-                    <span>{configuration.id}</span>
+                <div className="builder-screen-library-group-heading">
+                  <div>
+                    <h3 id={`builder-screen-library-${group.definition.type}`}>{group.definition.label}</h3>
+                    <p>{group.definition.description}</p>
                   </div>
+                  <span>{group.items.length}</span>
                 </div>
-                <div className="builder-app-card-actions">
-                  <button
-                    aria-label={`Edit ${screen.title} screen`}
-                    onClick={() =>
-                      onOpenScreenBuilder({
-                        appId: application.id,
-                        configId: configuration.id,
-                        screenId: screen.id,
-                      })
-                    }
-                    type="button"
-                  >
-                    Edit screen
-                  </button>
-                  <button
-                    aria-label={`Preview ${screen.title} screen runtime`}
-                    onClick={() =>
-                      onPreviewScreenRuntime({
-                        appId: application.id,
-                        configId: configuration.id,
-                        screenId: screen.id,
-                      })
-                    }
-                    type="button"
-                  >
-                    Runtime preview
-                  </button>
+                <div className="builder-screen-library-grid">
+                  {group.items.map(({ application, configuration, displayTitle, screen, type }) => (
+                    <article
+                      className="builder-screen-library-card"
+                      data-screen-type={type}
+                      key={`${configuration.id}:${application.id}:${screen.id}`}
+                    >
+                      <div className="builder-screen-card-main">
+                        <div className="builder-screen-card-title-row">
+                          <strong>{displayTitle}</strong>
+                          <span className="builder-screen-type-tag">{SCREEN_LIBRARY_TYPE_LABELS[type]}</span>
+                        </div>
+                        <span>{application.name}</span>
+                        <div className="builder-screen-card-details">
+                          <span>{screen.widgets.length} widgets</span>
+                          <span>{screen.canvas.preset_id}</span>
+                          <span>{configuration.id}</span>
+                        </div>
+                      </div>
+                      <div className="builder-app-card-actions">
+                        <button
+                          aria-label={`Edit ${displayTitle} screen`}
+                          onClick={() =>
+                            onOpenScreenBuilder({
+                              appId: application.id,
+                              configId: configuration.id,
+                              screenId: screen.id,
+                            })
+                          }
+                          type="button"
+                        >
+                          Edit screen
+                        </button>
+                        <button
+                          aria-label={`Preview ${displayTitle} screen runtime`}
+                          onClick={() =>
+                            onPreviewScreenRuntime({
+                              appId: application.id,
+                              configId: configuration.id,
+                              screenId: screen.id,
+                            })
+                          }
+                          type="button"
+                        >
+                          Runtime preview
+                        </button>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-              </article>
+              </section>
             ))
           )}
         </div>
@@ -331,22 +410,40 @@ function slugify(value: string): string {
   );
 }
 
-function filterScreens<
-  TScreen extends {
-    application: ApplicationConfig;
-    configuration: { id: string };
-    screen: { title: string; widgets: readonly { kind: string }[] };
-  },
->(screens: readonly TScreen[], search: string): TScreen[] {
+function createScreenLibraryItems(
+  applications: readonly { application: ApplicationConfig; configuration: LoadedConfiguration }[],
+): ScreenLibraryItem[] {
+  return applications.flatMap(({ application, configuration }) =>
+    application.screens.map((screen) => ({
+      application,
+      configuration,
+      displayTitle: formatScreenTitle(screen.title || screen.id),
+      screen,
+      type: classifyScreen(screen),
+    })),
+  );
+}
+
+function groupScreensByType(screens: readonly ScreenLibraryItem[]) {
+  return SCREEN_LIBRARY_GROUPS.map((definition) => ({
+    definition,
+    items: screens.filter((screen) => screen.type === definition.type),
+  })).filter((group) => group.items.length > 0);
+}
+
+function filterScreens(screens: readonly ScreenLibraryItem[], search: string): ScreenLibraryItem[] {
   const normalizedSearch = search.trim().toLowerCase();
   if (!normalizedSearch) {
     return [...screens];
   }
 
-  return screens.filter(({ application, configuration, screen }) => {
+  return screens.filter(({ application, configuration, displayTitle, screen, type }) => {
     const searchableText = [
       application.name,
       configuration.id,
+      displayTitle,
+      SCREEN_LIBRARY_TYPE_LABELS[type],
+      screen.id,
       screen.title,
       ...screen.widgets.map((widget) => widget.kind),
     ]
@@ -355,4 +452,66 @@ function filterScreens<
 
     return searchableText.includes(normalizedSearch);
   });
+}
+
+function classifyScreen(screen: ScreenConfig): ScreenLibraryType {
+  const screenText = `${screen.id} ${screen.title}`.toLowerCase();
+  const widgetKinds = new Set(screen.widgets.map((widget) => widget.kind));
+
+  if (widgetKinds.has("camera") || includesAny(screenText, ["camera", "stream", "video", "webcam"])) {
+    return "camera";
+  }
+
+  if (
+    widgetKinds.has("joystick") ||
+    widgetKinds.has("slider") ||
+    widgetKinds.has("button") ||
+    widgetKinds.has("command-button") ||
+    widgetKinds.has("toggle") ||
+    includesAny(screenText, ["control", "drive", "teleop", "command"])
+  ) {
+    return "control";
+  }
+
+  if (
+    widgetKinds.has("gauge") ||
+    widgetKinds.has("plot") ||
+    widgetKinds.has("topic-echo") ||
+    widgetKinds.has("topic-plot") ||
+    includesAny(screenText, ["debug", "diagnostic", "log", "monitor", "topic"])
+  ) {
+    return "debug";
+  }
+
+  if (includesAny(screenText, ["device", "gripper", "magnet", "pump", "sensor", "actuator"])) {
+    return "device";
+  }
+
+  if (includesAny(screenText, ["config", "state", "workflow", "petanque", "setup"])) {
+    return "workflow";
+  }
+
+  return "general";
+}
+
+function formatScreenTitle(title: string): string {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) {
+    return "Untitled Screen";
+  }
+
+  return normalizedTitle
+    .replace(/[_-]+/g, " ")
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => SCREEN_TITLE_ACRONYMS[word.toLowerCase()] ?? capitalize(word))
+    .join(" ");
+}
+
+function capitalize(value: string): string {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}`;
+}
+
+function includesAny(value: string, tokens: readonly string[]): boolean {
+  return tokens.some((token) => value.includes(token));
 }

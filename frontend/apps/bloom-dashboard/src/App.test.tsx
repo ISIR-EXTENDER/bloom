@@ -42,6 +42,8 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Create blank app/i })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Reusable screens" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 3, name: "Control screens" })).toBeVisible();
+    expect(screen.getByText("Control")).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Diagnostics screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Preview Diagnostics screen runtime" })).toBeVisible();
   });
@@ -86,8 +88,10 @@ describe("App", () => {
       target: { value: "camera" },
     });
 
-    expect(screen.getByRole("button", { name: "Edit default_live_teleop screen" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Edit default_control screen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: "Camera views" })).toBeVisible();
+    expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Edit Default Live Teleop screen" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Edit Default Control screen" })).not.toBeInTheDocument();
   });
 
   it("opens an app runtime directly from the builder app list", async () => {
