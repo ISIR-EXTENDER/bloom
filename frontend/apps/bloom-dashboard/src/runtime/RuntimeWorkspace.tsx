@@ -1,16 +1,11 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
-import { renderScreenWidgets, type WidgetActionIntentHandler } from "@bloom/widget-renderers";
-import {
-  createDefaultWidgetRegistry,
-  renderScreenDescriptors,
-  resolveCanvasArtboardSize,
-  resolveCanvasFitScale,
-} from "@bloom/widgets";
+import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
+import { resolveCanvasFitScale } from "@bloom/widgets";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 
-const widgetRegistry = createDefaultWidgetRegistry();
 const FIT_OVERFLOW_GUARD = 0.99;
 
 type RuntimeViewportSize = {
@@ -35,8 +30,7 @@ export function RuntimeWorkspace({
 }: RuntimeWorkspaceProps) {
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
-  const descriptors = renderScreenDescriptors(screen, widgetRegistry);
-  const artboardSize = resolveCanvasArtboardSize(screen.widgets, screen.canvas);
+  const { artboardSize } = resolveScreenArtboardLayout(screen);
   const artboardScale = useMemo(() => {
     const rawScale = resolveCanvasFitScale(screen.canvas, artboardSize, viewportSize);
 
@@ -116,21 +110,14 @@ export function RuntimeWorkspace({
               width: `${scaledArtboardSize.width}px`,
             }}
           >
-            <div
+            <ScreenArtboard
               className="runtime-app-artboard"
-              data-testid="runtime-artboard"
-              style={{
-                height: `${artboardSize.height}px`,
-                transform: `scale(${artboardScale})`,
-                width: `${artboardSize.width}px`,
-              }}
-            >
-              {screen.widgets.length === 0 ? (
-                <RuntimeComingSoonMessage screen={screen} />
-              ) : (
-                renderScreenWidgets(descriptors, { onActionIntent })
-              )}
-            </div>
+              renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
+              rendererOptions={{ onActionIntent }}
+              screen={screen}
+              style={{ transform: `scale(${artboardScale})` }}
+              testId="runtime-artboard"
+            />
           </div>
         </div>
       </div>
