@@ -154,6 +154,7 @@ export function App({
                 onSaveApplication={handleSaveApplication}
                 onSaveBuilderScreen={handleSaveBuilderScreen}
                 onSelectionChange={setSelection}
+                onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onViewChange={setActiveView}
                 selection={selection}
                 state={configurationState}
@@ -177,6 +178,7 @@ type MainApplicationViewProps = {
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onViewChange: (view: ProductView) => void;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
@@ -193,6 +195,7 @@ function MainApplicationView({
   onSaveApplication,
   onSaveBuilderScreen,
   onSelectionChange,
+  onTopicSubscriptionRequest,
   onViewChange,
   selection,
   state,
@@ -266,6 +269,7 @@ function MainApplicationView({
       application={selectedWorkspace.application}
       onActionIntent={onRuntimeIntent}
       onSelectionChange={onSelectionChange}
+      onTopicSubscriptionRequest={onTopicSubscriptionRequest}
       screen={selectedWorkspace.screen}
       selection={selection}
     />

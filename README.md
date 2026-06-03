@@ -68,8 +68,12 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
-- Backend runtime sessions expose the first WebSocket contract for live UI connections, topic subscription requests, and teleop command acknowledgements.
+- Backend runtime sessions expose a WebSocket contract for live UI connections, topic subscription requests, and teleop command acknowledgements.
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
+- Mode-aware joystick intents can now map to runtime teleop commands and, in ROS mode, publish Extender `TeleopCommand`
+  messages on `/teleop_cmd`.
+- A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
+- A first Bloom Debug fixture can request runtime topic subscriptions for echo and lightweight plot widgets.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Next major pieces are the real screen builder, runtime app routes, SQLite-backed app management, ROS adapters, and richer topic visualization.
 
@@ -155,6 +159,7 @@ npm run build
 
 During local development, the Vite dev server proxies `/api` to the backend at `http://localhost:8000`.
 Start the backend with `cd backend && make run` before opening the dashboard if you want live configuration data.
+The proxy also forwards runtime WebSocket traffic, so local joystick teleop uses `/api/v1/runtime/ws` from the browser.
 
 The backend test target disables external pytest plugin autoloading so a sourced ROS environment cannot leak ROS-specific pytest plugins into Bloom's generic tests.
 
@@ -259,8 +264,9 @@ curl -X POST http://localhost:8000/api/v1/ros/topics/publish \
   -d '{"topic":"/petanque_state_machine/change_state","message_type":"std_msgs/msg/String","payload":{"data":"activate_throw"}}'
 ```
 
-Without a configured ROS gateway, the backend returns `status: "simulated"`. Robot deployments can attach an `rclpy`
-publisher gateway so the same API publishes real ROS messages.
+Without a configured ROS gateway, the backend returns `status: "simulated"`. Robot deployments can attach `rclpy`
+gateways so the same API publishes real ROS messages and runtime WebSocket teleop commands can publish
+`extender_msgs/msg/TeleopCommand` on `/teleop_cmd`.
 
 To launch the API with a ROS publisher gateway:
 
@@ -272,6 +278,8 @@ make ros-run
 ```
 
 Keep `make run` for generic web development; use `make ros-run` only in a sourced ROS environment.
+Generated ROS Python messages require `numpy`, so it is part of the backend dependency set even though the generic web
+API can still run without ROS sourced.
 
 ## Python Environment
 

@@ -6,13 +6,17 @@ import {
 } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-
+import bloomDebugConfiguration from "../../../../tests/fixtures/bloom-debug-configuration.json";
 import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sandbox-configuration.json";
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
+import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-teleop-lab-configuration.json";
 import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-visualizer-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
+
+Element.prototype.setPointerCapture = vi.fn();
+Element.prototype.releasePointerCapture = vi.fn();
 
 describe("App", () => {
   it("renders the separated landing page", () => {
@@ -87,7 +91,8 @@ describe("App", () => {
   });
 
   it("previews a screen runtime directly from the builder screen library", async () => {
-    render(<App configurationClient={createConfigurationClient()} />);
+    const runtimeActionClient = createRuntimeActionClient();
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
     fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
@@ -97,6 +102,14 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Diagnostics/i })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
+    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith({
+      type: "subscribe_topic",
+      topic: "/teleop_cmd",
+      message_type: "",
+      field_path: "",
+      widget_id: "echo",
+    });
   });
 
   it("filters reusable screens from the builder screen library", async () => {
@@ -652,12 +665,13 @@ describe("App", () => {
     const frameHeight = Number.parseInt(artboardFrame?.style.height ?? "0", 10);
 
     expect(artboard).toHaveAttribute("data-screen-renderer", "screen-artboard");
-    expect(artboard).toHaveStyle({ height: "720px", width: "1280px" });
-    expect(artboard.style.transform).toMatch(/^scale\(0\.\d+\)$/);
+    expect(artboard.style.transform).toBe("");
     expect(frameWidth).toBeGreaterThan(1);
     expect(frameWidth).toBeLessThan(1280);
     expect(frameHeight).toBeGreaterThan(1);
     expect(frameHeight).toBeLessThan(720);
+    expect(Number.parseInt(artboard.style.width, 10)).toBe(frameWidth);
+    expect(Number.parseInt(artboard.style.height, 10)).toBe(frameHeight);
   });
 
   it("shows a safe coming soon state for empty runtime screens", async () => {
@@ -701,6 +715,120 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
     expect(screen.getAllByText("Camera Stream").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
+  });
+
+  it("dispatches sequenced teleop commands from migrated petanque joysticks", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "petanque-admin": migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["petanque-admin"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open app-petanque-admin runtime" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+
+    const joystickZone = getRuntimeJoystickZone();
+    fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(joystickZone, { clientX: 190, clientY: 150, pointerId: 1 });
+    fireEvent.pointerUp(joystickZone, { clientX: 190, clientY: 150, pointerId: 1 });
+
+    await waitFor(() => expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalled());
+    expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        linear: { x: expect.any(Number), y: 0, z: 0 },
+        mode: 3,
+        seq: expect.any(Number),
+        target: "/teleop_cmd",
+      }),
+    );
+    expect(runtimeActionClient.sendTeleopCommand).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        linear: { x: 0, y: 0, z: 0 },
+        seq: expect.any(Number),
+      }),
+    );
+    expect(
+      (runtimeActionClient.sendTeleopCommand as ReturnType<typeof vi.fn>).mock.calls.map(([request]) => request.seq),
+    ).toEqual(expect.arrayContaining([1, 2]));
+  });
+
+  it("opens the sandbox teleop lab runtime screen with joystick and slider bindings", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            sandbox: sandboxTeleopLabConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["sandbox"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
+    expect(screen.getByText("Translation joystick")).toBeVisible();
+    expect(screen.getByText("Rotation joystick")).toBeVisible();
+    expect(screen.getByRole("slider", { name: "Max velocity" })).toBeVisible();
+    expect(screen.getByRole("slider", { name: "Z axis" })).toBeVisible();
+
+    const joystickZone = getRuntimeJoystickZone();
+    fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(joystickZone, { clientX: 190, clientY: 150, pointerId: 1 });
+    fireEvent.pointerUp(joystickZone, { clientX: 190, clientY: 150, pointerId: 1 });
+
+    await waitFor(() => expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalled());
+    expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 3,
+        target: "/teleop_cmd",
+      }),
+    );
+  });
+
+  it("opens the Bloom debug runtime screen and subscribes topic widgets", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "bloom-debug": bloomDebugConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["bloom-debug"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByText("Teleop command echo")).toBeVisible();
+    expect(screen.getByText("Velocity command X")).toBeVisible();
+    expect(screen.getByText("Joint states echo")).toBeVisible();
+
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(3));
+    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        topic: "/sandbox_controller/velocity_command",
+        field_path: "twist.linear.x",
+        widget_id: "velocity-plot",
+      }),
+    );
   });
 
   it("opens the builder from compact backend JSON without rendering a blank screen", async () => {
@@ -899,6 +1027,27 @@ function createRuntimeActionClient(): RuntimeActionClient {
           detail: "ROS publisher gateway is not configured.",
         }) as const,
     ),
+    sendTeleopCommand: vi.fn(async (request) => ({
+      detail: "Teleop command accepted.",
+      payload: {
+        angular: request.angular,
+        linear: request.linear,
+        mode: request.mode,
+        seq: request.seq,
+        status: "accepted" as const,
+        target: request.target,
+      },
+      type: "teleop_ack" as const,
+    })),
+    subscribeRuntimeTopic: vi.fn(async (request) => ({
+      detail: `Subscribed to ${request.topic}.`,
+      payload: {
+        field_path: request.field_path,
+        message_type: request.message_type,
+        topic: request.topic,
+      },
+      type: "subscription_ack" as const,
+    })),
   };
 }
 
@@ -1073,4 +1222,26 @@ async function moveWidget(widgetTitle: string) {
   fireEvent.pointerDown(moveHandle, { button: 0, clientX: 10, clientY: 10 });
   window.dispatchEvent(new MouseEvent("pointermove", { clientX: 50, clientY: 26 }));
   window.dispatchEvent(new MouseEvent("pointerup"));
+}
+
+function getRuntimeJoystickZone(): HTMLElement {
+  const joystickZone = document.querySelector<HTMLElement>(".bloom-joystick-zone");
+  if (!joystickZone) {
+    throw new Error("Missing runtime joystick zone.");
+  }
+
+  joystickZone.getBoundingClientRect = () =>
+    ({
+      bottom: 200,
+      height: 100,
+      left: 100,
+      right: 200,
+      top: 100,
+      width: 100,
+      x: 100,
+      y: 100,
+      toJSON: () => ({}),
+    }) as DOMRect;
+
+  return joystickZone;
 }

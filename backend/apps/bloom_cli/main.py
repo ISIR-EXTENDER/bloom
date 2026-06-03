@@ -6,6 +6,7 @@ import uvicorn
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import get_settings
 from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
+from libs.ros_adapters.rclpy_teleop import RclpyTeleopCommandGateway
 from libs.config import (
     ApplicationConfig,
     ConfigurationNotFoundError,
@@ -94,7 +95,10 @@ def run_ros_api(
     rclpy.init()
     node = Node(node_name)
     try:
-        app = create_app(ros_publisher_gateway=RclpyRosPublisherGateway(node))
+        app = create_app(
+            ros_publisher_gateway=RclpyRosPublisherGateway(node),
+            teleop_command_gateway=RclpyTeleopCommandGateway(node),
+        )
         uvicorn.run(app, host=host, port=port, reload=False)
     finally:
         node.destroy_node()

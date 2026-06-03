@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
 
 export type JoystickVector = {
   x: number;
@@ -27,18 +27,6 @@ export type JoystickPrimitiveProps = {
   zeroOnRelease?: boolean;
 };
 
-type NippleMoveData = {
-  vector: {
-    x: number;
-    y: number;
-  };
-};
-
-type NippleManager = {
-  destroy: () => void;
-  on: (event: string, handler: (event: unknown, data: NippleMoveData) => void) => unknown;
-};
-
 const DEFAULT_COLOR = "#7fa95f";
 
 export function JoystickPrimitive({
@@ -53,11 +41,11 @@ export function JoystickPrimitive({
   title,
   zeroOnRelease = true,
 }: JoystickPrimitiveProps) {
-  const managerRef = useRef<NippleManager | null>(null);
   const onInteractionEndRef = useRef(onInteractionEnd);
   const onInteractionStartRef = useRef(onInteractionStart);
   const onVectorChangeRef = useRef(onVectorChange);
-  const zoneRef = useRef<HTMLDivElement | null>(null);
+  const pointerIdRef = useRef<number | null>(null);
+  const [vector, setVector] = useState<JoystickVector>({ x: 0, y: 0 });
 
   useEffect(() => {
     onInteractionEndRef.current = onInteractionEnd;
@@ -65,66 +53,47 @@ export function JoystickPrimitive({
     onVectorChangeRef.current = onVectorChange;
   }, [onInteractionEnd, onInteractionStart, onVectorChange]);
 
-  useEffect(() => {
-    if (!zoneRef.current) {
+  const emitVector = useCallback((nextVector: JoystickVector) => {
+    setVector(nextVector);
+    onVectorChangeRef.current(nextVector);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (zeroOnRelease) {
+        emitVector({ x: 0, y: 0 });
+      }
+      onInteractionEndRef.current?.();
+    },
+    [emitVector, zeroOnRelease],
+  );
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    pointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    onInteractionStartRef.current?.();
+    emitVector(readPointerVector(event, event.currentTarget, deadzone));
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+    emitVector(readPointerVector(event, event.currentTarget, deadzone));
+  };
+
+  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) {
       return;
     }
 
-    let active = true;
-
-    const setup = async () => {
-      const module = await import("nipplejs");
-      if (!active || !zoneRef.current) {
-        return;
-      }
-
-      const zone = zoneRef.current;
-      const centerX = Math.round((zone.clientWidth || size) / 2);
-      const centerY = Math.round((zone.clientHeight || size) / 2);
-      const api = module.default ?? module;
-
-      const manager = api.create({
-        color,
-        dynamicPage: true,
-        mode: "static",
-        position: { left: `${centerX}px`, top: `${centerY}px` },
-        restJoystick: true,
-        restOpacity: 0.8,
-        size,
-        zone,
-      }) as unknown as NippleManager;
-      managerRef.current = manager;
-
-      manager.on("start", () => {
-        onInteractionStartRef.current?.();
-      });
-
-      manager.on("move", (_event: unknown, data: NippleMoveData) => {
-        onVectorChangeRef.current(normalizeJoystickVector(data.vector, deadzone));
-      });
-
-      manager.on("end", () => {
-        onInteractionEndRef.current?.();
-        if (zeroOnRelease) {
-          onVectorChangeRef.current({ x: 0, y: 0 });
-        }
-      });
-    };
-
-    void setup().catch(() => {
-      onVectorChangeRef.current({ x: 0, y: 0 });
-    });
-
-    return () => {
-      active = false;
-      if (zeroOnRelease) {
-        onVectorChangeRef.current({ x: 0, y: 0 });
-      }
-      onInteractionEndRef.current?.();
-      managerRef.current?.destroy();
-      managerRef.current = null;
-    };
-  }, [color, deadzone, size, zeroOnRelease]);
+    pointerIdRef.current = null;
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    onInteractionEndRef.current?.();
+    if (zeroOnRelease) {
+      emitVector({ x: 0, y: 0 });
+    }
+  };
 
   return (
     <div
@@ -151,8 +120,42 @@ export function JoystickPrimitive({
           ["--bloom-joystick-deadzone" as string]: `${Math.max(0, Math.min(1, deadzone))}`,
         }}
       />
-      <div className="bloom-joystick-zone" ref={zoneRef} style={{ position: "absolute" }} />
+      <div
+        aria-hidden="true"
+        className="bloom-joystick-knob"
+        style={{
+          ["--bloom-joystick-knob-x" as string]: `${vector.x * 42}%`,
+          ["--bloom-joystick-knob-y" as string]: `${-vector.y * 42}%`,
+          background: color,
+        }}
+      />
+      <div
+        className="bloom-joystick-zone"
+        onPointerCancel={handlePointerEnd}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+      />
     </div>
+  );
+}
+
+export function readPointerVector(
+  event: Pick<PointerEvent, "clientX" | "clientY"> | Pick<ReactPointerEvent, "clientX" | "clientY">,
+  zone: HTMLElement,
+  deadzone: number,
+): JoystickVector {
+  const rect = zone.getBoundingClientRect();
+  const radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  return normalizeJoystickVector(
+    {
+      x: (event.clientX - centerX) / radius,
+      y: -(event.clientY - centerY) / radius,
+    },
+    deadzone,
   );
 }
 

@@ -1,0 +1,190 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-06-03T15:30:00Z",
+    "source": "sandbox-teleop-lab-runtime-fixture"
+  },
+  "applications": [
+    {
+      "id": "sandbox",
+      "name": "Sandbox",
+      "description": "Sandbox runtime validation app",
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [],
+      "screens": [
+        {
+          "id": "sandbox-teleop-lab",
+          "title": "Sandbox teleop lab",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "sandbox-translation-joystick",
+              "kind": "joystick",
+              "title": "Translation joystick",
+              "layout": {
+                "x": 120,
+                "y": 112,
+                "width": 420,
+                "height": 420
+              },
+              "settings": {
+                "binding": "joy",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "both",
+                "labels": {
+                  "top": "Y+",
+                  "right": "X+",
+                  "bottom": "Y-",
+                  "left": "X-"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#7fa95f",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#d89f5d",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "both",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/teleop_cmd"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sandbox-rotation-joystick",
+              "kind": "joystick",
+              "title": "Rotation joystick",
+              "layout": {
+                "x": 760,
+                "y": 112,
+                "width": 420,
+                "height": 420
+              },
+              "settings": {
+                "binding": "rot",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "rotation",
+                "labels": {
+                  "top": "RY+",
+                  "right": "RX+",
+                  "bottom": "RY-",
+                  "left": "RX-"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#95a5c8",
+                    "negative_label": "RX-",
+                    "positive_label": "RX+",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#c8a3cf",
+                    "negative_label": "RY-",
+                    "positive_label": "RY+",
+                    "semantic": "rotation"
+                  }
+                },
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 1,
+                    "target_topic": "/teleop_cmd"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sandbox-max-velocity-slider",
+              "kind": "slider",
+              "title": "Max velocity",
+              "layout": {
+                "x": 286,
+                "y": 612,
+                "width": 560,
+                "height": 96
+              },
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "topic": "/cmd/max_velocity",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/max_velocity",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                }
+              }
+            },
+            {
+              "id": "sandbox-z-slider",
+              "kind": "slider",
+              "title": "Z axis",
+              "layout": {
+                "x": 46,
+                "y": 160,
+                "width": 80,
+                "height": 420
+              },
+              "settings": {
+                "binding": "z",
+                "direction": "vertical",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": true,
+                "topic": "/cmd/joystick_z",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/joystick_z",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
