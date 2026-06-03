@@ -169,6 +169,7 @@ describe("App", () => {
     expect(savedApplication).toMatchObject({
       id: "new-bloom-app",
       name: "New Bloom App",
+      profiles: [],
       theme: DEFAULT_APPLICATION_THEME,
     });
     expect(await screen.findByRole("heading", { level: 1, name: "New Bloom App" })).toBeVisible();
@@ -914,6 +915,7 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
         name: "Sandbox",
         description: "Sandbox operator interface",
         theme: DEFAULT_APPLICATION_THEME,
+        profiles: [],
         screens: [
           {
             id: "main",
@@ -994,6 +996,7 @@ function createBundleWithReusableScreen(): ConfigurationBundle {
         name: "Shared screens",
         description: "Reusable screen library for tests",
         theme: DEFAULT_APPLICATION_THEME,
+        profiles: [],
         screens: [
           {
             id: "camera-feed",

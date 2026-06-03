@@ -232,6 +232,7 @@ function createBundle(): ConfigurationBundle {
         name: "Sandbox",
         description: "Sandbox operator interface",
         theme: DEFAULT_APPLICATION_THEME,
+        profiles: [],
         screens: [createScreen("main"), createScreen("diagnostics")],
       },
     ],

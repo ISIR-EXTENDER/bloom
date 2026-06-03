@@ -18,6 +18,7 @@ type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "application
 };
 
 type PartialApplicationConfig = Partial<Omit<ApplicationConfig, "screens">> & {
+  profiles?: ApplicationConfig["profiles"];
   screens?: PartialScreenConfig[];
   theme?: PartialApplicationTheme;
 };
@@ -91,6 +92,7 @@ function normalizeApplication(application: PartialApplicationConfig, index: numb
     name: asString(application.name, id),
     description: asString(application.description, ""),
     theme: normalizeApplicationTheme(application.theme),
+    profiles: Array.isArray(application.profiles) ? application.profiles : [],
     screens: (application.screens ?? []).map((screen, screenIndex) => normalizeScreen(screen, screenIndex)),
   };
 }

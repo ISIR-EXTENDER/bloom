@@ -35,6 +35,20 @@ class RuntimeCanvasMode(str, Enum):
     FIT = "fit"
 
 
+class DisplayPreset(str, Enum):
+    DEFAULT = "default"
+    COMPACT = "compact"
+    COMFORT = "comfort"
+    HIGH_VISIBILITY = "high-visibility"
+
+
+class MotorAccessibilityPreset(str, Enum):
+    DEFAULT = "default"
+    LARGE_TARGETS = "large-targets"
+    REDUCED_MOTION = "reduced-motion"
+    ASSISTED_TOUCH = "assisted-touch"
+
+
 class BloomModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -67,6 +81,16 @@ class ApplicationTheme(BloomModel):
     inspiration: ApplicationThemeInspiration = Field(default_factory=ApplicationThemeInspiration)
     preset_id: str = Field(default="bloom-default", min_length=1)
     palette: ApplicationThemePalette = Field(default_factory=ApplicationThemePalette)
+
+
+class UserProfile(BloomModel):
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    display_preset: DisplayPreset = DisplayPreset.DEFAULT
+    font_scale: float = Field(default=1.0, ge=0.75, le=2.0)
+    app_theme_preset_id: str = Field(default="bloom-default", min_length=1)
+    preferred_control_layout_id: str = ""
+    motor_accessibility_preset: MotorAccessibilityPreset = MotorAccessibilityPreset.DEFAULT
 
 
 class WidgetConfig(BloomModel):
@@ -106,6 +130,7 @@ class ApplicationConfig(BloomModel):
     name: str = Field(min_length=1)
     description: str = ""
     theme: ApplicationTheme = Field(default_factory=ApplicationTheme)
+    profiles: tuple[UserProfile, ...] = Field(default_factory=tuple)
     screens: tuple[ScreenConfig, ...] = Field(default_factory=tuple)
 
     @model_validator(mode="after")
@@ -114,6 +139,14 @@ class ApplicationConfig(BloomModel):
         duplicate_ids = sorted({screen_id for screen_id in screen_ids if screen_ids.count(screen_id) > 1})
         if duplicate_ids:
             raise ValueError(f"duplicate screen ids: {', '.join(duplicate_ids)}")
+        return self
+
+    @model_validator(mode="after")
+    def profile_ids_must_be_unique(self) -> "ApplicationConfig":
+        profile_ids = [profile.id for profile in self.profiles]
+        duplicate_ids = sorted({profile_id for profile_id in profile_ids if profile_ids.count(profile_id) > 1})
+        if duplicate_ids:
+            raise ValueError(f"duplicate profile ids: {', '.join(duplicate_ids)}")
         return self
 
 

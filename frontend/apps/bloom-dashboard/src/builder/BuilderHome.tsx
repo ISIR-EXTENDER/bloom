@@ -297,6 +297,7 @@ export function BuilderHome({
                     name,
                     description: "New Bloom app",
                     theme: DEFAULT_APPLICATION_THEME,
+                    profiles: [],
                     screens: [
                       {
                         id: "main",
