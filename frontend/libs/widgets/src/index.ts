@@ -55,6 +55,7 @@ export type WidgetRuntimeRequirement =
   | "command-dispatcher"
   | "data-source"
   | "device-adapter"
+  | "robot-model-source"
   | "stream-source"
   | "teleop-adapter";
 
@@ -249,6 +250,18 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     runtimeRequirements: ["data-source"],
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
+  },
+  {
+    kind: "robot-3d",
+    displayName: "3D robot view",
+    category: "display",
+    description: "Optional robot model visualization for URDF/joint-state extensions.",
+    defaultTitle: "3D robot",
+    defaultSettings: getDefaultWidgetSettings("robot-3d"),
+    defaultLayout: { width: 460, height: 320, minWidth: 280, minHeight: 220 },
+    runtimeRequirements: ["robot-model-source", "data-source"],
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor"]),
   },
   {
     kind: "slider",

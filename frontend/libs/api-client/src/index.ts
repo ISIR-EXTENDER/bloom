@@ -6,6 +6,7 @@ export const WIDGET_KINDS = [
   "joystick",
   "label",
   "plot",
+  "robot-3d",
   "slider",
   "toggle",
   "topic-echo",

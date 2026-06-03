@@ -8,6 +8,46 @@ export type Vector2Value = {
   y: number;
 };
 
+export type RuntimeActionFeedbackMode = "none" | "progress" | "result";
+
+export type RuntimeActionContract = {
+  actionId: string;
+  cancellable: boolean;
+  expectedFeedback: RuntimeActionFeedbackMode;
+  label: string;
+};
+
+export type RuntimeActionProgress = {
+  current?: number;
+  detail?: string;
+  percent?: number;
+  total?: number;
+};
+
+export type RuntimeActionLifecycleStatus =
+  | "accepted"
+  | "cancel-requested"
+  | "cancelled"
+  | "failed"
+  | "progress"
+  | "running"
+  | "succeeded";
+
+export type RuntimeActionLifecycleEvent = {
+  actionId: string;
+  detail?: string;
+  progress?: RuntimeActionProgress;
+  status: RuntimeActionLifecycleStatus;
+  widgetId?: string;
+};
+
+export type RuntimeActionCancelIntent = {
+  actionId: string;
+  reason?: string;
+  type: "action-cancel";
+  widgetId?: string;
+};
+
 export type WidgetActionEvent =
   | {
       type: "press";
@@ -27,6 +67,7 @@ export type WidgetActionEvent =
 
 export type WidgetActionIntent =
   | {
+      action?: RuntimeActionContract;
       command: string;
       type: "command";
       widgetId: string;
@@ -116,11 +157,13 @@ function createCommandLikeIntent(
     return createUnsupportedIntent(widget, event, `Widget "${widget.id}" has no command or topic configured.`);
   }
 
+  const action = createRuntimeActionContract(widget, settings, command);
   return {
     type: "command",
     widgetId: widget.id,
     widgetKind: widget.kind,
     command,
+    ...(action ? { action } : {}),
   };
 }
 
@@ -224,11 +267,38 @@ function createUnsupportedIntent(widget: WidgetConfig, event: WidgetActionEvent,
   };
 }
 
+function createRuntimeActionContract(
+  widget: WidgetConfig,
+  settings: Record<string, unknown>,
+  command: string,
+): RuntimeActionContract | undefined {
+  const actionId = getOptionalString(settings, "action_id");
+  const expectedFeedback = getRuntimeActionFeedbackMode(settings.action_feedback);
+  const cancellable = getOptionalBoolean(settings, "cancellable") ?? false;
+
+  if (!actionId && expectedFeedback === "none" && !cancellable) {
+    return undefined;
+  }
+
+  return {
+    actionId: actionId ?? `${widget.id}:${command}`,
+    cancellable,
+    expectedFeedback,
+    label: getOptionalString(settings, "action_label") ?? widget.title,
+  };
+}
+
 function resolveCommandPayload(settings: Record<string, unknown>): unknown {
   if ("payload" in settings) {
     return settings.payload;
   }
   return getOptionalString(settings, "command") ?? "";
+}
+
+function getRuntimeActionFeedbackMode(value: unknown): RuntimeActionFeedbackMode {
+  return typeof value === "string" && ["none", "progress", "result"].includes(value)
+    ? (value as RuntimeActionFeedbackMode)
+    : "none";
 }
 
 function getOptionalString(settings: Record<string, unknown>, key: string): string | undefined {

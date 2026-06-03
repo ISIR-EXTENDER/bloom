@@ -44,6 +44,8 @@ Already merged:
 - Frontend dashboard shell with product navigation, landing page, builder view, runtime view, and Bloom design-system foundation.
 - Widget contracts, renderer registry, legacy conversion, widget palette, settings inspector, layout editing, resizing, and undo/redo.
 - Runtime separation from builder controls, fit canvas mode, ROS topic publish API, runtime action dispatch, and WebSocket session contracts.
+- Mode-aware joystick runtime binding contracts, long-running action progress/cancel contracts, and optional `robot-3d`
+  widget family reservation.
 - App configuration flow with app identity, app-level theme tokens, and reusable screen membership.
 - App configuration screen lifecycle actions: blank screen creation, screen duplication, and source-app labels for reusable screens.
 - App theme inspiration metadata for moodboard images and website references, kept separate from the applied palette.
@@ -161,7 +163,7 @@ Next focus in this phase:
 - Mode-aware joystick runtime binding inspired by Explorer user-test UX:
   active mode, axis hints, deadzone, publish rate, zero-on-release, and adapter-specific topic/service bindings.
 - Long-running robot action support:
-  accepted/progress/result/cancel states for deploy/repli-style commands.
+  connect accepted/progress/result/cancel contracts to backend adapters for deploy/repli-style commands.
 - Topic echo widgets and minimal PlotJuggler-like telemetry widgets.
 - Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
 
@@ -224,7 +226,8 @@ Status: idea captured, intentionally low priority.
 4. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
 5. Add Explorer-style control foundations:
-   mode-aware joystick bindings, action progress/cancel, speed/gripper counters, and profile-driven display settings.
+   live action progress/cancel adapters, speed/gripper counters, profile-driven display settings, and optional 3D robot
+   visualization adapters.
 6. Add the first security checks around ROS publish intents:
    topic/message/payload allowlists, runtime session validation, and audit logging.
 7. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.

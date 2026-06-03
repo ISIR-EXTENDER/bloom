@@ -176,11 +176,14 @@ The partner repo is useful, but several choices should not become Bloom defaults
 
 ### Foundation Additions
 
-- Add a mode-aware joystick contract to the widget foundation.
-- Add runtime action progress/cancel contracts.
-- Add an Explorer user-test app plan to the migration roadmap.
-- Keep a display/profile/accessibility track for font scale and screen presets.
-- Keep 3D robot visualization as an optional widget family or app extension.
+- Mode-aware joystick contract: implemented in the widget foundation.
+- Runtime action progress/cancel contracts: implemented as generic command
+  action metadata and lifecycle event types; live adapters remain future work.
+- Explorer user-test app plan: captured in the migration roadmap.
+- Display/profile/accessibility track: implemented as profile-ready app model;
+  UI profile selection remains future work.
+- 3D robot visualization: reserved as optional `robot-3d` widget family or app
+  extension, without adding a heavy visualization dependency yet.
 - Keep AUCTUS bridge support as an optional backend adapter candidate.
 
 ### Explorer User Tests App Proposal

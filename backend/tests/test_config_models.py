@@ -179,6 +179,22 @@ def test_application_accepts_user_profiles_for_future_personalization() -> None:
     assert profile.motor_accessibility_preset == MotorAccessibilityPreset.LARGE_TARGETS
 
 
+def test_robot_3d_widget_kind_is_reserved_for_optional_visualization_extensions() -> None:
+    widget = WidgetConfig(
+        id="robot-state",
+        kind=WidgetKind.ROBOT_3D,
+        title="Robot state",
+        settings={
+            "modelSource": "extension",
+            "jointStateTopic": "/joint_states",
+            "showAxes": True,
+        },
+    )
+
+    assert widget.kind == WidgetKind.ROBOT_3D
+    assert widget.settings["jointStateTopic"] == "/joint_states"
+
+
 def test_duplicate_application_ids_are_rejected() -> None:
     with pytest.raises(ValidationError, match="duplicate application ids: sandbox"):
         ConfigurationBundle(
