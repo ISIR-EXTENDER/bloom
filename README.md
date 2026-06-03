@@ -2,8 +2,6 @@
   <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom logo" width="220" />
 </p>
 
-<h1 align="center">Bloom</h1>
-
 <p align="center">
   Configurable web interfaces for robot teleoperation, supervision, and device control.
 </p>
