@@ -15,11 +15,16 @@ const productViews: readonly BloomNavItem<ProductView>[] = [
 
 export function ProductNavigation({ activeView, onChangeView }: ProductNavigationProps) {
   return (
-    <BloomNavBar
-      activeItemId={activeView}
-      brand={{ imageSrc: "/favicon.png", label: "Bloom" }}
-      items={productViews}
-      onItemSelect={onChangeView}
-    />
+    <>
+      <a className="skip-link" href="#bloom-main-content">
+        Skip to main content
+      </a>
+      <BloomNavBar
+        activeItemId={activeView}
+        brand={{ imageSrc: "/favicon.png", label: "Bloom" }}
+        items={productViews}
+        onItemSelect={onChangeView}
+      />
+    </>
   );
 }

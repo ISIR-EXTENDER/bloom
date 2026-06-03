@@ -1,0 +1,59 @@
+name: Accessibility issue
+description: Report an accessibility, keyboard, readability, contrast, or assistive technology issue.
+title: "fix(a11y): "
+labels: ["accessibility"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make Bloom usable for more people and contexts. You do not need accessibility expert vocabulary; concrete observations are enough.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is hard to use, hard to read, unreachable, or confusing?
+      placeholder: I cannot reach the screen builder save button with the keyboard...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Landing page
+        - Builder overview
+        - App configuration
+        - Screen builder
+        - Runtime app
+        - Widget controls
+        - Documentation
+        - GitHub contribution flow
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - Blocks use
+        - Makes use difficult
+        - Makes content unclear
+        - Visual/readability improvement
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps or context
+      description: How can we reproduce it? Mention keyboard, screen reader, browser, tablet, sunlight, gloves, or screenshots if useful.
+      placeholder: |
+        1. Open Builder
+        2. Press Tab until...
+        3. The focus indicator...
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What would make this easier, clearer, or reachable?
