@@ -203,6 +203,8 @@ describe("App", () => {
 
     await openAppConfig();
     expect(screen.getByText("From Shared screens")).toBeVisible();
+    expect(screen.getByText("Camera")).toBeVisible();
+    expect(screen.queryByText(/widgets ·/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add Camera Feed to app" }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
@@ -651,6 +653,26 @@ describe("App", () => {
     expect(screen.getAllByText("Local webcam").length).toBeGreaterThan(0);
     expect(screen.getByText("webcam:///dev/video0")).toBeVisible();
     expect(screen.getByText(/webcam permission/i)).toBeVisible();
+  });
+
+  it("renders the webcam visualizer as a runtime demo app", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "webcam-visualizer": webcamVisualizerConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["webcam-visualizer"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Webcam visualizer" })).toBeVisible();
+    expect(screen.getByLabelText("Local webcam webcam preview")).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
   });
 
   it("renders an empty configuration state inside the main app", async () => {

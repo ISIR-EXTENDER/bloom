@@ -12,6 +12,7 @@ from libs.config import (
 )
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
+DATA_CONFIGURATION_DIR = Path(__file__).parents[1] / "data" / "configurations"
 
 
 def test_file_repository_persists_bundle(tmp_path, sample_configuration_bundle: ConfigurationBundle) -> None:
@@ -80,3 +81,18 @@ def test_file_repository_round_trips_real_legacy_screen_fixture(tmp_path) -> Non
     assert ros_toggle.settings["topic"] == "/ui/ros_toggle"
     assert ros_toggle.settings["messageType"] == "std_msgs/msg/Int32MultiArray"
     assert ros_toggle.settings["onPayload"] == "{data: [13, 1]}"
+
+
+def test_shipped_webcam_visualizer_demo_configuration_is_loadable() -> None:
+    repository = FileConfigurationRepository(DATA_CONFIGURATION_DIR)
+
+    bundle = repository.get("webcam-visualizer")
+    application = bundle.applications[0]
+    screen = application.screens[0]
+    widget = screen.widgets[0]
+
+    assert bundle.metadata.source == "bloom-demo:webcam-visualizer"
+    assert application.name == "Webcam visualizer"
+    assert screen.title == "Camera viewer"
+    assert widget.kind == "camera"
+    assert widget.settings["source"] == "webcam"

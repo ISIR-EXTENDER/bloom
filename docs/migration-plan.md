@@ -104,6 +104,8 @@ Remaining focus in this phase:
 - Add app list/create/duplicate/archive flows backed by storage.
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
 - Replace early data-URL moodboard storage with a proper theme asset upload endpoint when normalized SQLite assets are introduced.
+- Keep app configuration cards intentionally human-readable: feature labels and source-app hints should replace raw
+  technical metadata unless the user explicitly opens an inspector.
 - Finish visual and interaction QA for the builder so widgets stay visible, editable, and touch-friendly.
 
 ### Phase 3 - Runtime ROS Integration

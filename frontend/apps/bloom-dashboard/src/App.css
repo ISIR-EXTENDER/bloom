@@ -363,9 +363,12 @@ h1 {
 
 .builder-screen-card {
   grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
   align-items: center;
+  min-height: 92px;
   position: relative;
   overflow: hidden;
+  padding-left: 24px;
 }
 
 .builder-screen-card::before {
@@ -391,13 +394,40 @@ h1 {
 
 .builder-app-card strong,
 .builder-screen-card strong {
+  display: block;
+  overflow-wrap: anywhere;
   font-size: 1.1rem;
+  line-height: 1.2;
 }
 
 .builder-app-card span,
 .builder-screen-card span,
 .builder-screen-card small {
   color: var(--bloom-ink-soft);
+}
+
+.builder-screen-card-main {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.builder-screen-card-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.builder-screen-card-details span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface) 68%, transparent);
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .builder-app-card-actions {
@@ -446,6 +476,26 @@ h1 {
   font-size: 1rem;
 }
 
+.builder-screen-section-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.builder-screen-section-heading span {
+  display: inline-grid;
+  min-width: 34px;
+  min-height: 34px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 20%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 28%, var(--bloom-surface-container-low));
+  color: var(--bloom-ink);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
 .builder-inline-hint {
   margin: 8px 0 0;
   color: var(--bloom-ink-soft);
@@ -492,11 +542,12 @@ h1 {
   gap: 8px;
   justify-content: flex-end;
   flex-wrap: wrap;
+  max-width: 340px;
 }
 
 .builder-screen-card-actions button {
-  min-height: 38px;
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 8px 14px;
   border: 1px solid var(--bloom-border);
   border-radius: 999px;
   background: var(--bloom-surface-container-low);
