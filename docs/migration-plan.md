@@ -52,7 +52,9 @@ Already merged:
 
 Current branch:
 
-- None. `main` is synced after `feat(config): add app screen storage api (#34)`.
+- `feat/production-readiness-review-controls`: production readiness review,
+  slider/joystick polish, widget renderer modularization, and runtime widget CSS
+  cleanup.
 
 ## Roadmap
 
@@ -80,6 +82,8 @@ Phase 1 closure notes:
 - Reusable widget migrations continue in Phase 4, where each family can be validated against real legacy screens.
 - Storage normalization continues in Phase 2.
 - Runtime ROS behavior continues in Phase 3.
+- Widget renderer module boundaries are now in place, so future widget families
+  can be migrated without growing a single monolithic renderer file.
 
 ### Phase 2 - Storage And App Library
 

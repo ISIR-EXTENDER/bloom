@@ -3,6 +3,7 @@ import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
+import "./runtime-widgets.css";
 
 import { BuilderAppConfig } from "./builder/BuilderAppConfig";
 import { BuilderHome } from "./builder/BuilderHome";

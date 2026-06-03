@@ -4,7 +4,7 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, createWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -12,6 +12,7 @@ import {
   createWidgetRendererRegistry,
   renderScreenWidgets,
   renderWidgetDescriptor,
+  resolveJoystickControlSize,
   type WidgetRendererRegistration,
 } from "./index";
 
@@ -100,6 +101,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
+    expect(screen.getByText("0.00")).toBeVisible();
     screen.getByRole("slider", { name: "Speed" }).focus();
     await user.keyboard("{ArrowRight}");
 
@@ -158,7 +160,10 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
     await waitFor(() => expect(nippleMock.create).toHaveBeenCalled());
-    nippleMock.handlers.get("move")?.({}, { vector: { x: 0.5, y: -0.25 } });
+    expect(nippleMock.create).toHaveBeenCalledWith(expect.objectContaining({ color: "#7fa95f", size: 102 }));
+    act(() => {
+      nippleMock.handlers.get("move")?.({}, { vector: { x: 0.5, y: -0.25 } });
+    });
 
     expect(onActionIntent).toHaveBeenCalledWith({
       binding: "joy",
@@ -167,6 +172,14 @@ describe("widget renderer registry", () => {
       widgetId: "translation",
       widgetKind: "joystick",
     });
+    expect(screen.getByText("x 0.50")).toBeVisible();
+    expect(screen.getByText("y -0.25")).toBeVisible();
+  });
+
+  it("keeps joystick controls inside compact and large widget frames", () => {
+    expect(resolveJoystickControlSize(80, 80)).toBe(96);
+    expect(resolveJoystickControlSize(220, 220)).toBe(102);
+    expect(resolveJoystickControlSize(720, 720)).toBe(260);
   });
 
   it("renders topic debug widgets with topic and field context", () => {

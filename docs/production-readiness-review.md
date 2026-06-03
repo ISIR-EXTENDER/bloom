@@ -160,3 +160,11 @@ Functional:
   after widget primitives stabilize.
 - Visual verification should accompany widget PRs. Tests catch behavior, but the
   browser capture caught joystick overflow that unit tests could not see.
+
+## Completed Follow-Up Refactors
+
+- Widget renderers are now split by runtime family instead of living in one
+  large `index.tsx` file.
+- Runtime widget styling is separated from the dashboard product stylesheet.
+- Slider and joystick tests now cover visible readouts, joystick sizing
+  guardrails, and Bloom theme color fallback.
