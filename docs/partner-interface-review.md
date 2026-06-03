@@ -140,14 +140,20 @@ should stay compatible with profiles.
 ### Virtual Keyboard And Touch Editing
 
 The Raspberry/touch target makes the virtual keyboard a practical UX feature.
-Bloom should keep this as a later app-builder accessibility feature, especially
-for:
+Bloom now has a first touch-editing foundation: fields expose keyboard hints,
+structured payloads avoid autocorrect, and builder inputs keep tablet-sized
+targets. A full virtual keyboard should remain a later app-builder accessibility
+feature to validate on the real Raspberry/tablet setup, especially for:
 
 - app names;
 - screen names;
 - button labels;
 - typed ROS payloads;
 - notes and annotations.
+
+The goal is not to recreate a generic mobile keyboard in Bloom. The goal is to
+remove the real editing pain points when the native keyboard is too slow, hidden,
+or unreliable during robot tests.
 
 ## Architecture Practices To Avoid
 

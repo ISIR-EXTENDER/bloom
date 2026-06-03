@@ -9,6 +9,7 @@ import {
 } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import { getTouchEditingProps } from "../ui/touchEditing";
 
 type BuilderAppConfigProps = {
   configurations: readonly LoadedConfiguration[];
@@ -208,6 +209,7 @@ export function BuilderAppConfig({
             <label className="builder-settings-field">
               <span>Name</span>
               <input
+                {...getTouchEditingProps("name")}
                 onChange={(event) =>
                   setDraftApplication({ ...draftApplication, name: event.target.value || "Untitled app" })
                 }
@@ -218,6 +220,7 @@ export function BuilderAppConfig({
             <label className="builder-settings-field">
               <span>Description</span>
               <textarea
+                {...getTouchEditingProps("text")}
                 onChange={(event) => setDraftApplication({ ...draftApplication, description: event.target.value })}
                 rows={4}
                 value={draftApplication.description}
@@ -263,6 +266,7 @@ export function BuilderAppConfig({
               <label className="builder-settings-field">
                 <span>Website reference</span>
                 <input
+                  {...getTouchEditingProps("url")}
                   onChange={(event) => updateThemeInspiration({ reference_url: event.target.value })}
                   placeholder="https://example.com/inspiration"
                   type="url"
@@ -321,7 +325,12 @@ export function BuilderAppConfig({
             </div>
             <label className="builder-settings-field">
               <span>New screen name</span>
-              <input onChange={(event) => setNewScreenName(event.target.value)} type="text" value={newScreenName} />
+              <input
+                {...getTouchEditingProps("name")}
+                onChange={(event) => setNewScreenName(event.target.value)}
+                type="text"
+                value={newScreenName}
+              />
             </label>
             <button disabled={isSaving} onClick={createScreen} type="button">
               Create screen

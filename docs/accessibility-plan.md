@@ -45,6 +45,9 @@ security-sensitive.
 - Status and error feedback use `role="status"` or `role="alert"` where useful.
 - Color accents must be paired with text labels, icons, grouping, or shape.
 - Touch targets should stay at least 44 px high, with 48 px preferred for Bloom.
+- Editable fields should expose touch-friendly keyboard hints. Names stay human
+  and spellcheckable; URLs and structured ROS payloads disable autocorrect,
+  autocapitalization, and unrelated browser autocomplete.
 
 ## Builder And Runtime Rules
 
@@ -57,6 +60,10 @@ security-sensitive.
   readable contrast and visible focus.
 - Robot command widgets need clear labels, state, and confirmation/error
   feedback before being used with real hardware.
+- App-builder text editing must stay usable on Raspberry/tablet targets for app
+  names, screen names, widget labels, typed payloads, notes, and annotations.
+  A custom virtual keyboard remains a future option, but only after validating
+  that native OS/browser keyboards do not solve the target-device workflow.
 
 ## Documentation And Community Rules
 
@@ -92,3 +99,5 @@ Next tests to add:
   placement.
 - Add onboarding hints that can be dismissed and are reachable by keyboard.
 - Keep README screenshots updated with meaningful alt text and captions.
+- Explore an optional virtual keyboard or touch editing assistant for hardware
+  demos where the native keyboard is not practical.

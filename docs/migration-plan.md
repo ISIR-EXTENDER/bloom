@@ -129,6 +129,8 @@ Remaining focus in this phase:
 - Add a builder playground/draft lab for quick robot experiments without creating a saved app first:
   demo widgets, temporary screens, hardware joystick smoke tests, topic echo/publish checks, and a later "promote to
   reusable screen/app" action.
+- Keep touch editing reliable for tablet/Raspberry usage: app names, screen names, widget labels, payloads, notes, and
+  annotations should use field-specific keyboard hints now; optional virtual-keyboard workflows can be explored later.
 - Replace early data-URL moodboard storage with a proper theme asset upload endpoint when normalized SQLite assets are introduced.
 - Keep app configuration cards intentionally human-readable: feature labels and source-app hints should replace raw
   technical metadata unless the user explicitly opens an inspector.
