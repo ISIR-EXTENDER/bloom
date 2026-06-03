@@ -43,7 +43,13 @@ export type CameraSettings = {
   webcamPicker: boolean;
 };
 
+export type CommandActionFeedbackMode = "none" | "progress" | "result";
+
 export type CommandButtonSettings = {
+  action_feedback: CommandActionFeedbackMode;
+  action_id: string;
+  action_label: string;
+  cancellable: boolean;
   command: string;
 };
 
@@ -134,6 +140,14 @@ export type TopicPlotSettings = {
   yMin?: number;
 };
 
+export type Robot3dSettings = {
+  description: string;
+  jointStateTopic: string;
+  modelSource: "extension" | "urdf-url";
+  robotModelUrl: string;
+  showAxes: boolean;
+};
+
 export type UnknownWidgetSettings = Record<string, unknown>;
 
 const BUTTON_DEFAULT_SETTINGS: ButtonSettings = {};
@@ -148,6 +162,10 @@ const CAMERA_DEFAULT_SETTINGS: CameraSettings = {
 };
 
 const COMMAND_BUTTON_DEFAULT_SETTINGS: CommandButtonSettings = {
+  action_feedback: "none",
+  action_id: "",
+  action_label: "",
+  cancellable: false,
   command: "",
 };
 
@@ -226,6 +244,14 @@ const TOPIC_PLOT_DEFAULT_SETTINGS: TopicPlotSettings = {
   unit: "",
 };
 
+const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
+  description: "Optional 3D robot visualization extension.",
+  jointStateTopic: "/joint_states",
+  modelSource: "extension",
+  robotModelUrl: "",
+  showAxes: true,
+};
+
 const UNKNOWN_DEFAULT_SETTINGS: UnknownWidgetSettings = {};
 
 export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettingsContract>> = {
@@ -251,7 +277,19 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   ),
   "command-button": createContract(
     "command-button",
-    [{ key: "command", label: "Command", type: "text", required: true }],
+    [
+      { key: "command", label: "Command", type: "text", required: true },
+      { key: "action_id", label: "Action id", type: "text", required: false },
+      { key: "action_label", label: "Action label", type: "text", required: false },
+      {
+        key: "action_feedback",
+        label: "Action feedback",
+        type: "select",
+        required: true,
+        options: ["none", "progress", "result"],
+      },
+      { key: "cancellable", label: "Cancellable", type: "boolean", required: true },
+    ],
     COMMAND_BUTTON_DEFAULT_SETTINGS,
     validateCommandButtonSettings,
   ),
@@ -349,6 +387,18 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     ],
     TOPIC_PLOT_DEFAULT_SETTINGS,
     validateTopicPlotSettings,
+  ),
+  "robot-3d": createContract(
+    "robot-3d",
+    [
+      { key: "modelSource", label: "Model source", type: "select", required: true, options: ["extension", "urdf-url"] },
+      { key: "robotModelUrl", label: "Robot model URL", type: "text", required: false },
+      { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
+      { key: "showAxes", label: "Show axes", type: "boolean", required: true },
+      { key: "description", label: "Description", type: "text", required: false },
+    ],
+    ROBOT_3D_DEFAULT_SETTINGS,
+    validateRobot3dSettings,
   ),
   unknown: createContract("unknown", [], UNKNOWN_DEFAULT_SETTINGS, validateUnknownSettings),
 };
@@ -562,7 +612,13 @@ function validateCameraSettings(settings: Record<string, unknown>): WidgetSettin
 function validateCommandButtonSettings(
   settings: Record<string, unknown>,
 ): WidgetSettingsValidationResult<CommandButtonSettings> {
-  const errors = validateString(settings, "command", { allowEmpty: true });
+  const errors = [
+    ...validateString(settings, "command", { allowEmpty: true }),
+    ...validateString(settings, "action_id", { allowEmpty: true }),
+    ...validateString(settings, "action_label", { allowEmpty: true }),
+    ...validateOneOf(settings, "action_feedback", ["none", "progress", "result"]),
+    ...validateBoolean(settings, "cancellable"),
+  ];
   if (errors.length > 0) return fail(errors);
   return succeed(settings as CommandButtonSettings);
 }
@@ -758,6 +814,25 @@ function validateTopicPlotSettings(
   }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as TopicPlotSettings);
+}
+
+function validateRobot3dSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<Robot3dSettings> {
+  const errors = [
+    ...validateOneOf(settings, "modelSource", ["extension", "urdf-url"]),
+    ...validateString(settings, "robotModelUrl", { allowEmpty: true }),
+    ...validateString(settings, "jointStateTopic"),
+    ...validateBoolean(settings, "showAxes"),
+    ...validateString(settings, "description", { allowEmpty: true }),
+  ];
+  if (
+    settings.modelSource === "urdf-url" &&
+    typeof settings.robotModelUrl === "string" &&
+    !settings.robotModelUrl.trim()
+  ) {
+    errors.push({ field: "robotModelUrl", message: "robotModelUrl is required when modelSource is urdf-url" });
+  }
+  if (errors.length > 0) return fail(errors);
+  return succeed(settings as Robot3dSettings);
 }
 
 function validateUnknownSettings(

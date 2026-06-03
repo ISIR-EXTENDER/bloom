@@ -47,6 +47,7 @@ const WIDGET_KINDS = new Set<WidgetKind>([
   "joystick",
   "label",
   "plot",
+  "robot-3d",
   "slider",
   "toggle",
   "topic-echo",

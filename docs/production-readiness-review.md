@@ -187,6 +187,11 @@ Functional:
   publish rate, zero-on-release, and adapter binding metadata.
 - Applications now keep a profile-ready model for display presets, font scale,
   app theme preference, preferred control layout, and motor-accessibility presets.
+- Command buttons now carry optional long-running action metadata for future
+  accepted/progress/result/cancel flows.
+- `robot-3d` is now a reserved optional widget family, ready for future
+  Explorer/URDF visualization extensions without pulling heavy dependencies into
+  the generic core.
 - Runtime widget styling is separated from the dashboard product stylesheet.
 - Dashboard CSS is now split by product area: base shell, builder, runtime app,
   runtime widgets, and responsive overrides.

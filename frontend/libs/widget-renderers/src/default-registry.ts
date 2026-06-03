@@ -15,6 +15,7 @@ export const DEFAULT_WIDGET_RENDERERS: readonly WidgetRendererRegistration[] = [
   { kind: "camera", render: CameraWidget },
   { kind: "gauge", render: PlaceholderWidget },
   { kind: "plot", render: PlaceholderWidget },
+  { kind: "robot-3d", render: PlaceholderWidget },
   { kind: "topic-echo", render: TopicDebugWidget },
   { kind: "topic-plot", render: TopicDebugWidget },
   { kind: "unknown", render: PlaceholderWidget },

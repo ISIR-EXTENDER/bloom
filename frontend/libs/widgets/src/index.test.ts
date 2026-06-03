@@ -156,6 +156,31 @@ describe("widget capability metadata", () => {
     });
   });
 
+  it("keeps 3D robot visualization as an optional widget family", () => {
+    const robotView = createDefaultWidgetRegistry().get("robot-3d");
+
+    expect(robotView).toMatchObject({
+      availability: {
+        editor: true,
+        runtime: true,
+      },
+      category: "display",
+      defaultLayout: {
+        height: 320,
+        minHeight: 220,
+        minWidth: 280,
+        width: 460,
+      },
+      defaultSettings: {
+        jointStateTopic: "/joint_states",
+        modelSource: "extension",
+        showAxes: true,
+      },
+      displayName: "3D robot view",
+      runtimeRequirements: ["robot-model-source", "data-source"],
+    });
+  });
+
   it("describes per-widget editor capabilities", () => {
     const registry = createDefaultWidgetRegistry();
 
@@ -275,6 +300,7 @@ describe("widget settings contracts", () => {
       "joystick",
       "label",
       "plot",
+      "robot-3d",
       "slider",
       "toggle",
       "topic-echo",
@@ -985,6 +1011,38 @@ describe("widget runtime action intents", () => {
       widgetId: "run",
       widgetKind: "command-button",
       command: "activate_throw",
+    });
+  });
+
+  it("adds progress and cancellation metadata to long-running command intents", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("command-button") as WidgetDefinition,
+          "deploy",
+          {
+            settings: {
+              action_feedback: "progress",
+              action_id: "explorer.deploy",
+              action_label: "Deploy robot",
+              cancellable: true,
+              command: "deploy",
+            },
+          },
+        ),
+        { type: "press" },
+      ),
+    ).toEqual({
+      type: "command",
+      widgetId: "deploy",
+      widgetKind: "command-button",
+      command: "deploy",
+      action: {
+        actionId: "explorer.deploy",
+        cancellable: true,
+        expectedFeedback: "progress",
+        label: "Deploy robot",
+      },
     });
   });
 
