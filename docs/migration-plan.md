@@ -112,6 +112,9 @@ Remaining focus in this phase:
 
 - Normalize SQLite storage beyond bundled configuration documents.
 - Add app list/create/duplicate/archive flows backed by storage.
+- Replace the blank-app shortcut with an optional guided create-app wizard:
+  identity, description, design-system preset or moodboard/reference, starter screens, and onboarding attention spots
+  that highlight the zones users should configure first.
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
 - Add screen-only builder and screen-only runtime preview flows, so reusable screens can be designed before app
   composition.
