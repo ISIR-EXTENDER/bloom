@@ -39,6 +39,28 @@ export function replaceApplicationInConfigurationBundle(
   };
 }
 
+export function duplicateApplicationInConfigurationBundle(
+  bundle: ConfigurationBundle,
+  applicationId: string,
+): ApplicationConfig {
+  const application = bundle.applications.find((candidateApplication) => candidateApplication.id === applicationId);
+
+  if (!application) {
+    throw new Error(`Application "${applicationId}" was not found in the selected configuration.`);
+  }
+
+  const nextId = createUniqueId(
+    `${application.id}-copy`,
+    bundle.applications.map((candidateApplication) => candidateApplication.id),
+  );
+
+  return {
+    ...structuredClone(application),
+    id: nextId,
+    name: `${application.name} Copy`,
+  };
+}
+
 export function addScreenToApplication(application: ApplicationConfig, screen: ScreenConfig): ApplicationConfig {
   if (application.screens.some((candidateScreen) => candidateScreen.id === screen.id)) {
     throw new Error(`Screen "${screen.id}" already exists in application "${application.id}".`);

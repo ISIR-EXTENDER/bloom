@@ -8,12 +8,14 @@ import { normalizeConfigurationBundle } from "./configuration-normalizer";
 type SaveConfiguration = (configId: string, bundle: ConfigurationBundle) => Promise<LoadedConfiguration>;
 type SaveApplication = (configId: string, application: ApplicationConfig) => Promise<LoadedConfiguration>;
 type SaveScreen = (configId: string, applicationId: string, screen: ScreenConfig) => Promise<LoadedConfiguration>;
+type DeleteApplication = (configId: string, applicationId: string) => Promise<LoadedConfiguration>;
 
 export type ConfigurationLoadState =
   | { status: "loading" }
   | {
       status: "ready";
       configurations: LoadedConfiguration[];
+      deleteApplication: DeleteApplication;
       saveApplication: SaveApplication;
       saveConfiguration: SaveConfiguration;
       saveScreen: SaveScreen;
@@ -66,6 +68,16 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     [client, updateSavedConfiguration],
   );
 
+  const deleteApplication = useCallback<DeleteApplication>(
+    async (configId, applicationId) => {
+      await client.deleteApplication(configId, applicationId);
+
+      const savedBundle = normalizeConfigurationBundle(await client.getConfiguration(configId));
+      return updateSavedConfiguration(configId, savedBundle);
+    },
+    [client, updateSavedConfiguration],
+  );
+
   useEffect(() => {
     let isCurrent = true;
     setState({ status: "loading" });
@@ -73,7 +85,14 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     loadConfigurations(client)
       .then((configurations) => {
         if (isCurrent) {
-          setState({ status: "ready", configurations, saveApplication, saveConfiguration, saveScreen });
+          setState({
+            status: "ready",
+            configurations,
+            deleteApplication,
+            saveApplication,
+            saveConfiguration,
+            saveScreen,
+          });
         }
       })
       .catch((error: unknown) => {
@@ -85,7 +104,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     return () => {
       isCurrent = false;
     };
-  }, [client, saveApplication, saveConfiguration, saveScreen]);
+  }, [client, deleteApplication, saveApplication, saveConfiguration, saveScreen]);
 
   return state;
 }

@@ -1,0 +1,16 @@
+{
+  "widget_kinds": [
+    "button",
+    "camera",
+    "command-button",
+    "gauge",
+    "joystick",
+    "label",
+    "plot",
+    "slider",
+    "toggle",
+    "topic-echo",
+    "topic-plot",
+    "unknown"
+  ]
+}

@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from apps.bloom_api.routes import api_router
+from apps.bloom_api.security import install_security_headers
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import ConfigurationRepository, create_configuration_repository
 from libs.ros_adapters import NoopRosPublisherGateway, RosPublisherGateway
@@ -23,6 +24,7 @@ def create_app(
     app.state.configuration_repository = configuration_repository or create_app_configuration_repository(app_settings)
     app.state.ros_publisher_gateway = ros_publisher_gateway or NoopRosPublisherGateway()
     app.state.runtime_session_manager = RuntimeSessionManager()
+    install_security_headers(app)
     app.include_router(api_router, prefix=app_settings.api_prefix)
 
     return app

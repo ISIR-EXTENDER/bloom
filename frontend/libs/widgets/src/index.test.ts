@@ -1,9 +1,10 @@
-import { type ConfigurationBundle, createBloomApiClient, type ScreenConfig } from "@bloom/api-client";
+import { type ConfigurationBundle, createBloomApiClient, type ScreenConfig, WIDGET_KINDS } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 import legacyPetanqueApplication from "../../../../backend/tests/fixtures/legacy/application-play-petanque.json";
 import legacyConfigurationsScreen from "../../../../backend/tests/fixtures/legacy/configurations.json";
 import legacySandboxScreen from "../../../../backend/tests/fixtures/legacy/sandbox_control.json";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
+import widgetKindsContract from "../../../../tests/fixtures/widget-kinds-contract.json";
 
 import {
   addWidgetToScreen,
@@ -55,6 +56,7 @@ import {
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
 const sampleScreen = sampleBundle.applications[0]?.screens[0] as ScreenConfig;
 const sampleWidget = sampleScreen.widgets[0];
+const contractWidgetKinds = widgetKindsContract.widget_kinds;
 
 describe("widget registry foundation", () => {
   it("creates a registry from widget definitions", () => {
@@ -118,20 +120,8 @@ describe("widget registry foundation", () => {
 
 describe("widget capability metadata", () => {
   it("provides default definitions for every Bloom widget kind", () => {
-    expect(DEFAULT_WIDGET_DEFINITIONS.map((definition) => definition.kind).sort()).toEqual([
-      "button",
-      "camera",
-      "command-button",
-      "gauge",
-      "joystick",
-      "label",
-      "plot",
-      "slider",
-      "toggle",
-      "topic-echo",
-      "topic-plot",
-      "unknown",
-    ]);
+    expect([...WIDGET_KINDS].sort()).toEqual(contractWidgetKinds);
+    expect(DEFAULT_WIDGET_DEFINITIONS.map((definition) => definition.kind).sort()).toEqual(contractWidgetKinds);
   });
 
   it("exposes catalog-ready metadata for future editors", () => {
@@ -319,6 +309,44 @@ describe("widget settings contracts", () => {
         {
           field: "max",
           message: "max must be greater than min",
+        },
+      ],
+    });
+  });
+
+  it("validates camera source settings for local webcam demos and stream previews", () => {
+    expect(
+      normalizeWidgetSettings("camera", {
+        source: "webcam",
+        streamUrl: "webcam:///dev/video0",
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        fitMode: "contain",
+        showHeader: true,
+        showStatus: true,
+        source: "webcam",
+        streamUrl: "webcam:///dev/video0",
+        webcamPicker: true,
+      },
+    });
+
+    expect(
+      validateWidgetSettings("camera", {
+        fitMode: "contain",
+        showHeader: true,
+        showStatus: true,
+        source: "ros-camera",
+        streamUrl: "",
+        webcamPicker: true,
+      }),
+    ).toEqual({
+      success: false,
+      errors: [
+        {
+          field: "source",
+          message: "source must be one of: placeholder, stream-url, webcam",
         },
       ],
     });

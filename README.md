@@ -18,6 +18,7 @@
   <a href="#getting-started">Getting Started</a> ·
   <a href="#architecture-rules">Architecture</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
+  <a href="docs/security-baseline.md">Security</a> ·
   <a href="docs/widgets-screens-apps-foundation-plan.md">Foundation Plan</a>
 </p>
 
@@ -25,11 +26,17 @@ Bloom is a configurable web interface framework for robot teleoperation, supervi
 
 It starts from the current Extender tablet interface and UI work, but the goal is broader: keep the web product generic enough for ISIR lab projects, while integrating with Extender through a clean ROS adapter layer.
 
+Bloom is not limited to ROS projects. A non-ROS workspace could use the same builder, screens, widgets, SQLite storage,
+and runtime API while replacing the ROS adapter with another integration layer, such as an HTTP API, WebSocket service,
+MQTT bridge, C++ supervision gateway, or future Zenoh-based adapter. In that model, Extender is one workspace/project,
+Petanque and Sandbox are apps inside it, and another lab machine could have its own project with apps that supervise or
+control a different backend.
+
 ## What Bloom Gives You
 
 | Build apps visually | Keep ROS isolated | Ship reusable widgets |
 | --- | --- | --- |
-| Compose apps, screens, layouts, and app-level design tokens from a tablet-friendly builder. | Frontend and generic backend logic stay independent from ROS; robot behavior enters through adapters. | Widgets are described by contracts so they can be reused across Extender, Petanque, and future ISIR apps. |
+| Compose apps, screens, layouts, and app-level design tokens from a tablet-friendly builder. | Frontend and generic backend logic stay independent from ROS; robot or machine behavior enters through adapters. | Widgets are described by contracts so they can be reused across Extender, Petanque, and future ISIR apps. |
 
 ## Preview
 
@@ -53,7 +60,9 @@ Bloom is currently in foundation work before the full UI/database migration:
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
 - Builder drafts can now be saved or discarded through the configuration API.
 - App configuration can edit app identity, app-level design tokens, create/duplicate screens, and reuse screens from other apps.
+- App themes can save inspiration references such as a moodboard image and website URL before automatic theme generation exists.
 - App and screen saves now use dedicated backend API endpoints, preparing the move from bundled JSON documents toward a SQLite app/screen library.
+- A first security baseline now documents minimum web/API/ROS controls, with API security headers covered by tests.
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
@@ -93,7 +102,9 @@ added only when the corresponding migration slice needs them.
 
 - Generic web logic must not depend directly on ROS.
 - ROS-specific code belongs in `backend/libs/ros_adapters`.
+- Non-ROS integrations should use the same adapter boundary instead of leaking protocol-specific code into widgets.
 - Extender-specific configuration belongs in deployment/configuration, not low-level shared libraries.
+- Robot commands must pass through typed backend validation and future topic/message allowlists before reaching ROS.
 - Development is local-first; do not add deployment tooling before there is a concrete need.
 - Migration must be iterative: no legacy file is deleted until the replacement is tested and accepted.
 - Tests should arrive with each migrated slice, not after the migration is done.
@@ -150,6 +161,7 @@ Use the configuration CLI to exercise both paths:
 ```bash
 cd backend
 uv run python -m apps.bloom_cli.main config import sandbox tests/fixtures/configuration-bundle.json --storage sqlite --database-path data/bloom.db
+uv run python -m apps.bloom_cli.main config import webcam-visualizer tests/fixtures/webcam-visualizer-configuration-bundle.json --storage sqlite --database-path data/bloom.db
 uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db
 uv run python -m apps.bloom_cli.main config export sandbox data/exports/sandbox.json --storage sqlite --database-path data/bloom.db
 ```
@@ -167,6 +179,9 @@ The FastAPI app can already use SQLite by constructing `Settings(configuration_s
 The first real screen migration fixture is `tests/fixtures/petanque-admin-configuration-bundle.json`. It imports the
 legacy Petanque admin app shell plus three real screens so the dashboard can render migrated controls, stream placeholders,
 sliders, joysticks, toggles, and command buttons end-to-end.
+
+The first standalone demo app fixture is `tests/fixtures/webcam-visualizer-configuration-bundle.json`. It validates a
+local browser webcam screen without ROS first, then leaves room for future ROS camera adapters.
 
 ## Tests And Coverage
 

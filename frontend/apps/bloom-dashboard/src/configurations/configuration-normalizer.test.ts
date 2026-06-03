@@ -1,7 +1,7 @@
 import type { ConfigurationBundle } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
-import compactSandboxConfiguration from "../../../../../backend/data/configurations/sandbox.json";
+import compactSandboxConfiguration from "../../../../../tests/fixtures/compact-sandbox-configuration.json";
 import { normalizeConfigurationBundle } from "./configuration-normalizer";
 
 describe("normalizeConfigurationBundle", () => {
@@ -56,6 +56,47 @@ describe("normalizeConfigurationBundle", () => {
       kind: "unknown",
       layout: { x: 0, y: 0, width: 240, height: 120 },
       settings: { appSpecific: true },
+    });
+  });
+
+  it("normalizes app theme inspiration with safe defaults", () => {
+    const bundle = normalizeConfigurationBundle({
+      metadata: {
+        schema_version: 1,
+        exported_at: "2026-06-01T14:00:00Z",
+        source: "test",
+      },
+      applications: [
+        {
+          id: "demo",
+          name: "Demo",
+          description: "",
+          theme: {
+            inspiration: {
+              moodboard_image_uri: "/theme-assets/demo.png",
+              reference_url: "https://example.com/reference",
+            },
+            palette: {
+              primary: "#5f7f63",
+            },
+          },
+          screens: [],
+        },
+      ],
+    } as unknown as ConfigurationBundle);
+
+    expect(bundle.applications[0]?.theme).toEqual({
+      inspiration: {
+        moodboard_image_uri: "/theme-assets/demo.png",
+        reference_url: "https://example.com/reference",
+      },
+      preset_id: "bloom-default",
+      palette: {
+        accent: "#d9a441",
+        background: "#f7f1e6",
+        primary: "#5f7f63",
+        surface: "#fffdf7",
+      },
     });
   });
 });

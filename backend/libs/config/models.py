@@ -58,7 +58,13 @@ class ApplicationThemePalette(BloomModel):
     surface: str = "#fffdf7"
 
 
+class ApplicationThemeInspiration(BloomModel):
+    moodboard_image_uri: str = ""
+    reference_url: str = ""
+
+
 class ApplicationTheme(BloomModel):
+    inspiration: ApplicationThemeInspiration = Field(default_factory=ApplicationThemeInspiration)
     preset_id: str = Field(default="bloom-default", min_length=1)
     palette: ApplicationThemePalette = Field(default_factory=ApplicationThemePalette)
 

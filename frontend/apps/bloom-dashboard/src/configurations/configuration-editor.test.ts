@@ -1,13 +1,65 @@
-import { type ConfigurationBundle, DEFAULT_APPLICATION_THEME, type ScreenConfig } from "@bloom/api-client";
+import {
+  type ApplicationConfig,
+  type ConfigurationBundle,
+  DEFAULT_APPLICATION_THEME,
+  type ScreenConfig,
+} from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
 import {
   addScreenToApplication,
   createUniqueId,
+  duplicateApplicationInConfigurationBundle,
   duplicateScreenInApplication,
   removeScreenFromApplication,
   replaceScreenInConfigurationBundle,
 } from "./configuration-editor";
+
+describe("duplicateApplicationInConfigurationBundle", () => {
+  it("duplicates an app with a stable unique id and cloned screens", () => {
+    const bundle = createBundle();
+
+    const duplicatedApplication = duplicateApplicationInConfigurationBundle(bundle, "sandbox");
+
+    expect(duplicatedApplication).toMatchObject({
+      id: "sandbox-copy",
+      name: "Sandbox Copy",
+    });
+    expect(duplicatedApplication.screens).toEqual(bundle.applications[0]?.screens);
+    expect(duplicatedApplication.screens).not.toBe(bundle.applications[0]?.screens);
+  });
+
+  it("increments duplicate app ids when a copy already exists", () => {
+    const baseBundle = createBundle();
+    const baseApplication = baseBundle.applications[0];
+
+    if (!baseApplication) {
+      throw new Error("Test application is missing.");
+    }
+
+    const bundle = {
+      ...baseBundle,
+      applications: [
+        ...baseBundle.applications,
+        {
+          ...baseApplication,
+          id: "sandbox-copy",
+          name: "Sandbox Copy",
+        } as ApplicationConfig,
+      ],
+    };
+
+    const duplicatedApplication = duplicateApplicationInConfigurationBundle(bundle, "sandbox");
+
+    expect(duplicatedApplication.id).toBe("sandbox-copy-2");
+  });
+
+  it("fails explicitly when the duplicated app is missing", () => {
+    expect(() => duplicateApplicationInConfigurationBundle(createBundle(), "missing")).toThrow(
+      'Application "missing" was not found in the selected configuration.',
+    );
+  });
+});
 
 describe("addScreenToApplication", () => {
   it("adds a cloned screen without mutating the source application", () => {

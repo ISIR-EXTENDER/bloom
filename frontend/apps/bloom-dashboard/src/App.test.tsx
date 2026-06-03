@@ -7,8 +7,9 @@ import {
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import compactSandboxConfiguration from "../../../../backend/data/configurations/sandbox.json";
+import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sandbox-configuration.json";
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
+import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-visualizer-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
@@ -38,7 +39,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to shape." })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Sandbox operator interface/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Create blank app/i })).toBeVisible();
   });
 
@@ -80,6 +81,54 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "New Bloom App" })).toBeVisible();
   });
 
+  it("duplicates an app from the builder home", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Duplicate Sandbox app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const [, savedApplication] = configurationClient.upsertApplication.mock.calls[0] ?? [];
+
+    expect(savedApplication).toMatchObject({
+      id: "sandbox-copy",
+      name: "Sandbox Copy",
+    });
+    expect(savedApplication?.screens).toEqual(createConfigurationBundle("sandbox").applications[0]?.screens);
+    expect(await screen.findByRole("heading", { level: 1, name: "Sandbox Copy" })).toBeVisible();
+  });
+
+  it("deletes an app from the builder home", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        sandbox: createBundleWithReusableScreen(),
+      },
+    });
+    const originalConfirm = window.confirm;
+    window.confirm = vi.fn(() => true);
+
+    try {
+      render(<App configurationClient={configurationClient} />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Delete Sandbox app" }));
+
+      await waitFor(() => {
+        expect(configurationClient.deleteApplication).toHaveBeenCalledWith("sandbox", "sandbox");
+      });
+
+      expect(await screen.findByRole("button", { name: "Open Shared screens app" })).toBeVisible();
+      expect(screen.queryByRole("button", { name: "Open Sandbox app" })).not.toBeInTheDocument();
+    } finally {
+      window.confirm = originalConfirm;
+    }
+  });
+
   it("saves app-level design system changes from app configuration", async () => {
     const configurationClient = createConfigurationClient();
 
@@ -97,6 +146,50 @@ describe("App", () => {
 
     expect(savedApplication?.theme.palette.primary).toBe("#ff8800");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
+  });
+
+  it("saves app theme inspiration from a website reference and moodboard image", async () => {
+    const configurationClient = createConfigurationClient();
+    const moodboardFile = new File(["bloom moodboard"], "moodboard.png", { type: "image/png" });
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.change(screen.getByLabelText("Website reference"), { target: { value: "https://lifesum.com/" } });
+    fireEvent.change(screen.getByLabelText("Moodboard image"), { target: { files: [moodboardFile] } });
+
+    await waitFor(() => {
+      expect(screen.getByAltText("Current app moodboard preview")).toBeVisible();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+
+    expect(savedApplication?.theme.inspiration.reference_url).toBe("https://lifesum.com/");
+    expect(savedApplication?.theme.inspiration.moodboard_image_uri).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it("opens app configuration when an older theme has no inspiration metadata", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            sandbox: createBundleWithoutThemeInspiration(),
+          },
+        })}
+      />,
+    );
+
+    await openAppConfig();
+
+    expect(screen.getByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
+    expect(screen.getByText("No moodboard image yet.")).toBeVisible();
+    expect(screen.getByLabelText("Website reference")).toHaveValue("");
   });
 
   it("adds an existing screen to the current app from app configuration", async () => {
@@ -538,6 +631,28 @@ describe("App", () => {
     expect(screen.getByLabelText("OFF payload")).toHaveValue("");
   });
 
+  it("opens the webcam visualizer demo app with a camera viewer screen", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "webcam-visualizer": webcamVisualizerConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["webcam-visualizer"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Webcam visualizer app" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Camera viewer screen builder" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Camera viewer" })).toBeVisible();
+    expect(screen.getAllByText("Local webcam").length).toBeGreaterThan(0);
+    expect(screen.getByText("webcam:///dev/video0")).toBeVisible();
+    expect(screen.getByText(/webcam permission/i)).toBeVisible();
+  });
+
   it("renders an empty configuration state inside the main app", async () => {
     render(<App configurationClient={createConfigurationClient({ ids: [] })} />);
 
@@ -628,6 +743,15 @@ function createConfigurationClient(
         return structuredClone(bundle);
       },
     ),
+    deleteApplication: vi.fn(async (id: string, applicationId: string): Promise<void> => {
+      if (options.saveError) {
+        throw options.saveError;
+      }
+
+      const bundle = structuredClone(storedBundles.get(id) ?? createConfigurationBundle(id));
+      bundle.applications = bundle.applications.filter((application) => application.id !== applicationId);
+      storedBundles.set(id, bundle);
+    }),
   } satisfies ConfigurationClient;
 }
 
@@ -769,6 +893,20 @@ function createBundleWithReusableScreen(): ConfigurationBundle {
   };
 }
 
+function createBundleWithoutThemeInspiration(): ConfigurationBundle {
+  const bundle = createConfigurationBundle("sandbox") as unknown as {
+    applications: Array<{
+      theme: {
+        inspiration?: unknown;
+      };
+    }>;
+  };
+
+  delete bundle.applications[0]?.theme.inspiration;
+
+  return bundle as unknown as ConfigurationBundle;
+}
+
 async function openDefaultScreenBuilder() {
   await openAppConfig();
   fireEvent.click(await screen.findByRole("button", { name: "Open Main screen builder" }));
@@ -776,12 +914,12 @@ async function openDefaultScreenBuilder() {
 
 async function openAppConfig() {
   fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
-  fireEvent.click(await screen.findByRole("button", { name: /Sandbox operator interface/i }));
+  fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox app" }));
 }
 
 async function openPetanqueAppConfig() {
   fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
-  fireEvent.click(await screen.findByRole("button", { name: /Legacy home screen: default_control/i }));
+  fireEvent.click(await screen.findByRole("button", { name: "Open app-petanque-admin app" }));
 }
 
 async function openPetanqueScreenBuilder(screenName: string) {

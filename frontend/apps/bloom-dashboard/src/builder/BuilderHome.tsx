@@ -6,15 +6,31 @@ import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 type BuilderHomeProps = {
   configurations: readonly LoadedConfiguration[];
   onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
+  onDeleteApplication: (configId: string, applicationId: string) => Promise<void>;
+  onDuplicateApplication: (configId: string, applicationId: string) => Promise<void>;
   onOpenApplication: (selection: WorkspaceSelection) => void;
 };
 
 type CreateState = { status: "idle" } | { status: "creating" } | { status: "error"; message: string };
+type AppActionState =
+  | { status: "idle" }
+  | { applicationId: string; status: "deleting" | "duplicating" }
+  | { message: string; status: "error" };
 
-export function BuilderHome({ configurations, onCreateApplication, onOpenApplication }: BuilderHomeProps) {
+export function BuilderHome({
+  configurations,
+  onCreateApplication,
+  onDeleteApplication,
+  onDuplicateApplication,
+  onOpenApplication,
+}: BuilderHomeProps) {
   const firstConfiguration = configurations[0];
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
+  const [appActionState, setAppActionState] = useState<AppActionState>({ status: "idle" });
   const isCreating = createState.status === "creating";
+  const applications = configurations.flatMap((configuration) =>
+    configuration.bundle.applications.map((application) => ({ application, configuration })),
+  );
 
   return (
     <section className="builder-home" aria-labelledby="builder-home-title">
@@ -36,25 +52,19 @@ export function BuilderHome({ configurations, onCreateApplication, onOpenApplica
             <h2 id="builder-app-list-title">Available apps</h2>
           </div>
           <div className="builder-app-cards">
-            {configurations.flatMap((configuration) =>
-              configuration.bundle.applications.map((application) => {
+            {applications.length === 0 ? (
+              <p className="builder-empty-state">No apps found yet. Create the first app foundation to start.</p>
+            ) : (
+              applications.map(({ application, configuration }) => {
                 const firstScreen = application.screens[0];
+                const actionState =
+                  appActionState.status === "deleting" || appActionState.status === "duplicating"
+                    ? appActionState
+                    : null;
+                const isActingOnThisApp = actionState?.applicationId === application.id;
+
                 return (
-                  <button
-                    className="builder-app-card"
-                    key={`${configuration.id}:${application.id}`}
-                    onClick={() => {
-                      if (!firstScreen) {
-                        return;
-                      }
-                      onOpenApplication({
-                        appId: application.id,
-                        configId: configuration.id,
-                        screenId: firstScreen.id,
-                      });
-                    }}
-                    type="button"
-                  >
+                  <article className="builder-app-card" key={`${configuration.id}:${application.id}`}>
                     <span
                       className="builder-app-card-theme"
                       style={{ background: application.theme.palette.primary }}
@@ -64,11 +74,76 @@ export function BuilderHome({ configurations, onCreateApplication, onOpenApplica
                     <small>
                       {application.screens.length} screens · {configuration.id}
                     </small>
-                  </button>
+                    <div className="builder-app-card-actions">
+                      <button
+                        aria-label={`Open ${application.name} app`}
+                        disabled={!firstScreen || isActingOnThisApp}
+                        onClick={() => {
+                          if (!firstScreen) {
+                            return;
+                          }
+                          onOpenApplication({
+                            appId: application.id,
+                            configId: configuration.id,
+                            screenId: firstScreen.id,
+                          });
+                        }}
+                        type="button"
+                      >
+                        Open app
+                      </button>
+                      <button
+                        aria-label={`Duplicate ${application.name} app`}
+                        disabled={isActingOnThisApp}
+                        onClick={async () => {
+                          setAppActionState({ applicationId: application.id, status: "duplicating" });
+                          try {
+                            await onDuplicateApplication(configuration.id, application.id);
+                            setAppActionState({ status: "idle" });
+                          } catch (error) {
+                            setAppActionState({ status: "error", message: getErrorMessage(error) });
+                          }
+                        }}
+                        type="button"
+                      >
+                        {isActingOnThisApp && actionState?.status === "duplicating" ? "Duplicating..." : "Duplicate"}
+                      </button>
+                      <button
+                        aria-label={`Delete ${application.name} app`}
+                        className="builder-app-card-danger"
+                        disabled={isActingOnThisApp}
+                        onClick={async () => {
+                          if (
+                            !window.confirm(
+                              `Delete "${application.name}" from configuration "${configuration.id}"? This cannot be undone.`,
+                            )
+                          ) {
+                            return;
+                          }
+
+                          setAppActionState({ applicationId: application.id, status: "deleting" });
+                          try {
+                            await onDeleteApplication(configuration.id, application.id);
+                            setAppActionState({ status: "idle" });
+                          } catch (error) {
+                            setAppActionState({ status: "error", message: getErrorMessage(error) });
+                          }
+                        }}
+                        type="button"
+                      >
+                        {isActingOnThisApp && actionState?.status === "deleting" ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </article>
                 );
-              }),
+              })
             )}
           </div>
+          {appActionState.status === "error" ? (
+            <p className="builder-save-status builder-save-status-error" role="alert">
+              {appActionState.message}
+            </p>
+          ) : null}
         </section>
 
         <section className="builder-create-card" aria-labelledby="builder-create-title">

@@ -1,16 +1,19 @@
-export type WidgetKind =
-  | "button"
-  | "camera"
-  | "command-button"
-  | "gauge"
-  | "joystick"
-  | "label"
-  | "plot"
-  | "slider"
-  | "toggle"
-  | "topic-echo"
-  | "topic-plot"
-  | "unknown";
+export const WIDGET_KINDS = [
+  "button",
+  "camera",
+  "command-button",
+  "gauge",
+  "joystick",
+  "label",
+  "plot",
+  "slider",
+  "toggle",
+  "topic-echo",
+  "topic-plot",
+  "unknown",
+] as const;
+
+export type WidgetKind = (typeof WIDGET_KINDS)[number];
 
 export type WidgetConfig = {
   id: string;
@@ -44,6 +47,10 @@ export type ScreenConfig = {
 };
 
 export type ApplicationTheme = {
+  inspiration: {
+    moodboard_image_uri: string;
+    reference_url: string;
+  };
   preset_id: string;
   palette: {
     accent: string;
@@ -54,6 +61,10 @@ export type ApplicationTheme = {
 };
 
 export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
+  inspiration: {
+    moodboard_image_uri: "",
+    reference_url: "",
+  },
   preset_id: "bloom-default",
   palette: {
     accent: "#d9a441",

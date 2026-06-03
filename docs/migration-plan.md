@@ -6,6 +6,7 @@ Supporting documents:
 
 - `docs/widget-migration-inventory.md`: reusable widget ideas discovered in `extender_ui` and Petanque.
 - `docs/widgets-screens-apps-foundation-plan.md`: design notes behind the widgets/screens/apps foundation work.
+- `docs/security-baseline.md`: minimum security posture for web/API/ROS-facing work.
 - `docs/decisions/`: dated decisions and development journal entries.
 
 ## Product Goal
@@ -17,7 +18,9 @@ Bloom should let ISIR users create robot web apps without writing web code:
 - configure reusable widgets through typed settings;
 - run apps without builder controls;
 - keep ROS behind backend adapters;
-- persist apps/screens/widgets through SQLite, with JSON import/export as a migration safety bridge.
+- keep non-ROS machine integrations possible through the same adapter boundary;
+- persist apps/screens/widgets through SQLite, with JSON import/export as a migration safety bridge;
+- keep robot-facing web features minimally secure by default.
 
 ## Non-Goals During Migration
 
@@ -25,7 +28,9 @@ Bloom should let ISIR users create robot web apps without writing web code:
 - Do not move low-level ROS control packages into Bloom.
 - Do not delete legacy JSON files or legacy repos during transition.
 - Do not mix ROS-specific behavior into generic frontend libraries.
+- Do not encode Extender, Petanque, or ROS naming into generic app/screen/widget models.
 - Do not replace working legacy functionality until the Bloom replacement is tested end-to-end.
+- Do not expose unrestricted robot commands from configurable UI widgets.
 
 ## Current Status
 
@@ -39,8 +44,11 @@ Already merged:
 - Runtime separation from builder controls, fit canvas mode, ROS topic publish API, runtime action dispatch, and WebSocket session contracts.
 - App configuration flow with app identity, app-level theme tokens, and reusable screen membership.
 - App configuration screen lifecycle actions: blank screen creation, screen duplication, and source-app labels for reusable screens.
+- App theme inspiration metadata for moodboard images and website references, kept separate from the applied palette.
 - App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
+- First security baseline document and minimal API security headers.
+- Shared widget-kind contract checks keep frontend and backend configuration models aligned.
 
 Current branch:
 
@@ -58,18 +66,20 @@ Status: complete.
 
 ### Phase 1 - Safe Extraction
 
-Status: foundation-complete, still receiving focused widget/runtime slices.
+Status: complete.
 
 - Move reusable frontend logic into `frontend/libs`.
 - Move backend API/CLI/configuration logic into `backend/apps` and `backend/libs`.
 - Keep reusable widget logic independent from React where possible.
 - Keep ROS-specific behavior inside `backend/libs/ros_adapters`.
 - Add tests with each migrated slice.
+- Add frontend/backend contract fixtures for shared configuration concepts.
 
-Remaining focus in this phase:
+Phase 1 closure notes:
 
-- Keep migrating reusable widgets from `extender_ui` and Petanque.
-- Strengthen frontend/backend contract checks around configuration data.
+- Reusable widget migrations continue in Phase 4, where each family can be validated against real legacy screens.
+- Storage normalization continues in Phase 2.
+- Runtime ROS behavior continues in Phase 3.
 
 ### Phase 2 - Storage And App Library
 
@@ -80,6 +90,8 @@ Status: started.
 - Move from bundled configuration documents toward normalized concepts where useful:
   apps, screens, widgets, app themes, runtime bindings.
 - Preserve the current app config UX while introducing a real screen library/store.
+- Finish production-level builder workflows:
+  builder home, app configuration, full-page screen builder, WYSIWYG canvas editing, save/discard, and runtime preview.
 
 Already done in this phase:
 
@@ -91,6 +103,8 @@ Remaining focus in this phase:
 - Normalize SQLite storage beyond bundled configuration documents.
 - Add app list/create/duplicate/archive flows backed by storage.
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
+- Replace early data-URL moodboard storage with a proper theme asset upload endpoint when normalized SQLite assets are introduced.
+- Finish visual and interaction QA for the builder so widgets stay visible, editable, and touch-friendly.
 
 ### Phase 3 - Runtime ROS Integration
 
@@ -101,12 +115,17 @@ Status: started.
 - Add live topic subscriptions through runtime sessions.
 - Add configurable ROS message publishing for buttons/toggles.
 - Add topic echo and lightweight timeseries visualization for debugging.
+- Add intuitive recording/session controls for rosbag-style captures with selected topics and approved output folders.
+- Add allowlists for publishable topics, message types, and payload shapes before real robot deployment.
+- Keep ROS transport replaceable so standard ROS 2, `rmw_zenoh_cpp`, or a future Hiroz/Zenoh adapter can be evaluated
+  without changing frontend widget contracts.
 
 Next focus in this phase:
 
 - WebSocket runtime topic subscriptions.
 - Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
 - Topic echo widgets and minimal PlotJuggler-like telemetry widgets.
+- Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
 
 ### Phase 4 - Legacy App Migration
 
@@ -130,22 +149,36 @@ Priority widget families:
 
 Status: not started.
 
+- Add authentication, authorization, CORS policy, runtime rate limiting, dependency audits, and basic dynamic security scans.
 - Add Extender workspace deployment entrypoints only after the core app flow is stable.
 - Validate Bloom against the full Extender + Petanque end-to-end pipeline.
 - Mark legacy repos/packages as legacy only after Bloom covers the required workflows.
 - Do not delete legacy repos during the transition.
 
+### Phase 6 - Multi-Project And Non-ROS Integrations
+
+Status: idea captured, intentionally low priority.
+
+- Add a project/workspace level above apps once SQLite app/screen storage is stable enough to normalize safely.
+- Keep current apps such as Petanque and Sandbox as apps inside an Extender project/workspace.
+- Support future projects that are not robots or not ROS-based, such as a C++ machine supervision API.
+- Add `project_id` only when tables and API contracts are ready, instead of forcing it into the early bundled JSON model.
+- Keep widgets producing generic intents/actions so protocols remain replaceable through adapters.
+
 ## Ordered Next Steps
 
-1. Start a builder UX/polish slice:
-   app builder home, app config, screen builder, and runtime should feel like one coherent product flow.
+1. Finish production-level builder workflows:
+   app builder home, app config, full-page WYSIWYG screen builder, runtime preview, reliable save/discard, and visual QA.
 2. Normalize SQLite app/screen storage:
    keep JSON import/export, but add dedicated app/screen persistence records behind the existing API contract.
 3. Add runtime live ROS sessions:
    WebSocket topic subscriptions, topic echo, and teleop publisher adapter.
 4. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
-5. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
+5. Add the first security checks around ROS publish intents:
+   topic/message/payload allowlists, runtime session validation, and audit logging.
+6. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
+7. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
 
 ## Validation Rules
 
@@ -170,3 +203,4 @@ When ROS behavior is involved:
 - Keep generic tests independent from ROS.
 - Test ROS adapters through injected gateways.
 - Validate manually in a sourced ROS workspace before replacing legacy runtime behavior.
+- Validate that robot command endpoints reject unknown topics, message types, and malformed payloads.
