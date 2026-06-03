@@ -74,6 +74,100 @@
   line-height: 1.55;
 }
 
+.builder-home-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: fit-content;
+  margin-top: 24px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 78%, transparent);
+}
+
+.builder-home-switcher button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--bloom-ink);
+  cursor: pointer;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.builder-home-switcher button:hover {
+  background: color-mix(in srgb, var(--bloom-primary-container) 32%, transparent);
+}
+
+.builder-home-switcher button[aria-current="page"] {
+  background: var(--bloom-primary);
+  color: white;
+  box-shadow: 0 12px 28px rgba(37, 61, 53, 0.16);
+}
+
+.builder-section-overview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.builder-overview-card {
+  display: grid;
+  gap: 16px;
+  min-height: 260px;
+  padding: clamp(26px, 4vw, 44px);
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--bloom-color-mist) 30%, transparent), transparent 38%),
+    color-mix(in srgb, var(--bloom-panel) 92%, white);
+  color: var(--bloom-ink);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 22px 70px rgba(37, 61, 53, 0.08);
+}
+
+.builder-overview-card:hover {
+  border-color: color-mix(in srgb, var(--bloom-primary) 42%, var(--bloom-border));
+  transform: translateY(-1px);
+}
+
+.builder-overview-card:focus-visible {
+  outline: 4px solid color-mix(in srgb, var(--bloom-primary) 22%, transparent);
+  outline-offset: 4px;
+}
+
+.builder-overview-card-kicker {
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 56%, var(--bloom-surface-container-low));
+  color: var(--bloom-ink);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.builder-overview-card strong {
+  max-width: 520px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.98;
+}
+
+.builder-overview-card span:last-child {
+  max-width: 520px;
+  color: var(--bloom-ink-soft);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
 .builder-home-grid,
 .builder-app-config-grid {
   display: grid;

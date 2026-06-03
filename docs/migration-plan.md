@@ -115,6 +115,12 @@ Remaining focus in this phase:
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
 - Add screen-only builder and screen-only runtime preview flows, so reusable screens can be designed before app
   composition.
+- Replace early two-column screen membership UI with a production app-flow composition surface:
+  drag-and-drop screens into an app, reorder screens, keep explicit buttons as accessible fallbacks, and preserve the
+  same tactile affordance used by widget drag-and-drop inside the screen builder.
+- Add a builder playground/draft lab for quick robot experiments without creating a saved app first:
+  demo widgets, temporary screens, hardware joystick smoke tests, topic echo/publish checks, and a later "promote to
+  reusable screen/app" action.
 - Replace early data-URL moodboard storage with a proper theme asset upload endpoint when normalized SQLite assets are introduced.
 - Keep app configuration cards intentionally human-readable: feature labels and source-app hints should replace raw
   technical metadata unless the user explicitly opens an inspector.

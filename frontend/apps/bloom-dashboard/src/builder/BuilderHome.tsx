@@ -19,6 +19,8 @@ type AppActionState =
   | { applicationId: string; status: "deleting" | "duplicating" }
   | { message: string; status: "error" };
 
+type BuilderHomeSection = "overview" | "apps" | "screens";
+
 type ScreenLibraryType = "camera" | "control" | "debug" | "device" | "workflow" | "general";
 
 type ScreenLibraryItem = {
@@ -90,6 +92,7 @@ export function BuilderHome({
   const firstConfiguration = configurations[0];
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
   const [appActionState, setAppActionState] = useState<AppActionState>({ status: "idle" });
+  const [activeSection, setActiveSection] = useState<BuilderHomeSection>("overview");
   const [screenSearch, setScreenSearch] = useState("");
   const isCreating = createState.status === "creating";
   const applications = configurations.flatMap((configuration) =>
@@ -104,278 +107,321 @@ export function BuilderHome({
       <header className="builder-home-hero">
         <div>
           <p className="eyebrow">Builder</p>
-          <h1 id="builder-home-title">Choose an app to shape.</h1>
+          <h1 id="builder-home-title">Choose what to build.</h1>
           <p>
-            Start from an existing robot interface, create a new app, then open each screen in the full-page WYSIWYG
-            builder.
+            Start from apps when you want to shape a full workflow, or jump into the shared screen library when you only
+            need to design one reusable view.
           </p>
         </div>
       </header>
 
-      <div className="builder-home-grid">
-        <section className="builder-app-list" aria-labelledby="builder-app-list-title">
-          <div>
-            <p className="eyebrow">Saved apps</p>
-            <h2 id="builder-app-list-title">Available apps</h2>
-          </div>
-          <div className="builder-app-cards">
-            {applications.length === 0 ? (
-              <p className="builder-empty-state">No apps found yet. Create the first app foundation to start.</p>
-            ) : (
-              applications.map(({ application, configuration }) => {
-                const firstScreen = application.screens[0];
-                const actionState =
-                  appActionState.status === "deleting" || appActionState.status === "duplicating"
-                    ? appActionState
-                    : null;
-                const isActingOnThisApp = actionState?.applicationId === application.id;
+      <nav className="builder-home-switcher" aria-label="Builder sections">
+        <button
+          aria-current={activeSection === "overview" ? "page" : undefined}
+          onClick={() => setActiveSection("overview")}
+          type="button"
+        >
+          Overview
+        </button>
+        <button
+          aria-current={activeSection === "apps" ? "page" : undefined}
+          onClick={() => setActiveSection("apps")}
+          type="button"
+        >
+          Apps
+        </button>
+        <button
+          aria-current={activeSection === "screens" ? "page" : undefined}
+          onClick={() => setActiveSection("screens")}
+          type="button"
+        >
+          Screen library
+        </button>
+      </nav>
 
-                return (
-                  <article className="builder-app-card" key={`${configuration.id}:${application.id}`}>
-                    <span
-                      className="builder-app-card-theme"
-                      style={{ background: application.theme.palette.primary }}
-                    />
-                    <strong>{application.name}</strong>
-                    <span>{application.description || "No description yet."}</span>
-                    <small>
-                      {application.screens.length} screens · {configuration.id}
-                    </small>
-                    <div className="builder-app-card-actions">
-                      <button
-                        aria-label={`Open ${application.name} app`}
-                        disabled={!firstScreen || isActingOnThisApp}
-                        onClick={() => {
-                          if (!firstScreen) {
-                            return;
-                          }
-                          onOpenApplication({
-                            appId: application.id,
-                            configId: configuration.id,
-                            screenId: firstScreen.id,
-                          });
-                        }}
-                        type="button"
-                      >
-                        Open app
-                      </button>
-                      <button
-                        aria-label={`Open ${application.name} runtime`}
-                        disabled={!firstScreen || isActingOnThisApp}
-                        onClick={() => {
-                          if (!firstScreen) {
-                            return;
-                          }
-                          onPreviewScreenRuntime({
-                            appId: application.id,
-                            configId: configuration.id,
-                            screenId: firstScreen.id,
-                          });
-                        }}
-                        type="button"
-                      >
-                        Open runtime
-                      </button>
-                      <button
-                        aria-label={`Duplicate ${application.name} app`}
-                        disabled={isActingOnThisApp}
-                        onClick={async () => {
-                          setAppActionState({ applicationId: application.id, status: "duplicating" });
-                          try {
-                            await onDuplicateApplication(configuration.id, application.id);
-                            setAppActionState({ status: "idle" });
-                          } catch (error) {
-                            setAppActionState({ status: "error", message: getErrorMessage(error) });
-                          }
-                        }}
-                        type="button"
-                      >
-                        {isActingOnThisApp && actionState?.status === "duplicating" ? "Duplicating..." : "Duplicate"}
-                      </button>
-                      <button
-                        aria-label={`Delete ${application.name} app`}
-                        className="builder-app-card-danger"
-                        disabled={isActingOnThisApp}
-                        onClick={async () => {
-                          if (
-                            !window.confirm(
-                              `Delete "${application.name}" from configuration "${configuration.id}"? This cannot be undone.`,
-                            )
-                          ) {
-                            return;
-                          }
-
-                          setAppActionState({ applicationId: application.id, status: "deleting" });
-                          try {
-                            await onDeleteApplication(configuration.id, application.id);
-                            setAppActionState({ status: "idle" });
-                          } catch (error) {
-                            setAppActionState({ status: "error", message: getErrorMessage(error) });
-                          }
-                        }}
-                        type="button"
-                      >
-                        {isActingOnThisApp && actionState?.status === "deleting" ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })
-            )}
-          </div>
-          {appActionState.status === "error" ? (
-            <p className="builder-save-status builder-save-status-error" role="alert">
-              {appActionState.message}
-            </p>
-          ) : null}
-        </section>
-
-        <section className="builder-create-card" aria-labelledby="builder-create-title">
-          <div>
-            <p className="eyebrow">Create</p>
-            <h2 id="builder-create-title">New app foundation</h2>
-          </div>
-          <p>
-            Create a blank app with a first empty screen and the Bloom default design system. More templates can plug
-            into this flow later.
-          </p>
-          <button
-            disabled={!firstConfiguration || isCreating}
-            onClick={async () => {
-              if (!firstConfiguration) {
-                return;
-              }
-              const name = createNewApplicationName(firstConfiguration.bundle.applications);
-              const id = slugify(name);
-              setCreateState({ status: "creating" });
-              try {
-                await onCreateApplication(firstConfiguration.id, {
-                  id,
-                  name,
-                  description: "New Bloom app",
-                  theme: DEFAULT_APPLICATION_THEME,
-                  screens: [
-                    {
-                      id: "main",
-                      title: "Main",
-                      canvas: { preset_id: "tablet", runtime_mode: "fit" },
-                      widgets: [],
-                    },
-                  ],
-                });
-                setCreateState({ status: "idle" });
-              } catch (error) {
-                setCreateState({ status: "error", message: getErrorMessage(error) });
-              }
-            }}
-            type="button"
-          >
-            {isCreating ? "Creating..." : "Create blank app"}
+      {activeSection === "overview" ? (
+        <section className="builder-section-overview" aria-label="Builder overview">
+          <button className="builder-overview-card" onClick={() => setActiveSection("apps")} type="button">
+            <span className="builder-overview-card-kicker">Apps</span>
+            <strong>Manage complete app workflows</strong>
+            <span>{applications.length} apps ready for configuration, runtime launch, duplication, or deletion.</span>
           </button>
-          {createState.status === "error" ? (
-            <p className="builder-save-status builder-save-status-error" role="alert">
-              {createState.message}
-            </p>
-          ) : null}
+          <button className="builder-overview-card" onClick={() => setActiveSection("screens")} type="button">
+            <span className="builder-overview-card-kicker">Screens</span>
+            <strong>Design reusable screens first</strong>
+            <span>{screens.length} screens available across the shared library and existing apps.</span>
+          </button>
         </section>
-      </div>
+      ) : null}
 
-      <section className="builder-screen-library" aria-labelledby="builder-screen-library-title">
-        <div className="builder-screen-library-heading">
-          <div>
-            <p className="eyebrow">Screen library</p>
-            <h2 id="builder-screen-library-title">Reusable screens</h2>
-          </div>
-          <span>{filteredScreens.length} screens</span>
-        </div>
-        <p>
-          Work directly from reusable screens when you want to design a control, camera, or debug view before assigning
-          it to a specific app flow.
-        </p>
-        <label className="builder-screen-library-search">
-          <span>Find a screen</span>
-          <input
-            aria-label="Find a screen"
-            onChange={(event) => setScreenSearch(event.target.value)}
-            placeholder="Camera, teleop, debug..."
-            type="search"
-            value={screenSearch}
-          />
-        </label>
-        <div className="builder-screen-library-groups">
-          {filteredScreens.length === 0 ? (
-            <p className="builder-empty-state">
-              No screens match this search yet. Try another app name, screen name, or widget type.
-            </p>
-          ) : (
-            screenGroups.map((group) => (
-              <section
-                aria-labelledby={`builder-screen-library-${group.definition.type}`}
-                className="builder-screen-library-group"
-                key={group.definition.type}
-              >
-                <div className="builder-screen-library-group-heading">
-                  <div>
-                    <h3 id={`builder-screen-library-${group.definition.type}`}>{group.definition.label}</h3>
-                    <p>{group.definition.description}</p>
-                  </div>
-                  <span>{group.items.length}</span>
-                </div>
-                <div className="builder-screen-library-grid">
-                  {group.items.map(({ application, configuration, displayTitle, screen, type }) => (
-                    <article
-                      className="builder-screen-library-card"
-                      data-screen-type={type}
-                      key={`${configuration.id}:${application.id}:${screen.id}`}
-                    >
-                      <div className="builder-screen-card-main">
-                        <div className="builder-screen-card-title-row">
-                          <strong>{displayTitle}</strong>
-                          <span className="builder-screen-type-tag">{SCREEN_LIBRARY_TYPE_LABELS[type]}</span>
-                        </div>
-                        <span>{application.name}</span>
-                        <div className="builder-screen-card-details">
-                          <span>{screen.widgets.length} widgets</span>
-                          <span>{screen.canvas.preset_id}</span>
-                          <span>{configuration.id}</span>
-                        </div>
-                      </div>
+      {activeSection === "apps" ? (
+        <div className="builder-home-grid">
+          <section className="builder-app-list" aria-labelledby="builder-app-list-title">
+            <div>
+              <p className="eyebrow">Saved apps</p>
+              <h2 id="builder-app-list-title">Available apps</h2>
+            </div>
+            <div className="builder-app-cards">
+              {applications.length === 0 ? (
+                <p className="builder-empty-state">No apps found yet. Create the first app foundation to start.</p>
+              ) : (
+                applications.map(({ application, configuration }) => {
+                  const firstScreen = application.screens[0];
+                  const actionState =
+                    appActionState.status === "deleting" || appActionState.status === "duplicating"
+                      ? appActionState
+                      : null;
+                  const isActingOnThisApp = actionState?.applicationId === application.id;
+
+                  return (
+                    <article className="builder-app-card" key={`${configuration.id}:${application.id}`}>
+                      <span
+                        className="builder-app-card-theme"
+                        style={{ background: application.theme.palette.primary }}
+                      />
+                      <strong>{application.name}</strong>
+                      <span>{application.description || "No description yet."}</span>
+                      <small>
+                        {application.screens.length} screens · {configuration.id}
+                      </small>
                       <div className="builder-app-card-actions">
                         <button
-                          aria-label={`Edit ${displayTitle} screen`}
-                          onClick={() =>
-                            onOpenScreenBuilder({
+                          aria-label={`Open ${application.name} app`}
+                          disabled={!firstScreen || isActingOnThisApp}
+                          onClick={() => {
+                            if (!firstScreen) {
+                              return;
+                            }
+                            onOpenApplication({
                               appId: application.id,
                               configId: configuration.id,
-                              screenId: screen.id,
-                            })
-                          }
+                              screenId: firstScreen.id,
+                            });
+                          }}
                           type="button"
                         >
-                          Edit screen
+                          Open app
                         </button>
                         <button
-                          aria-label={`Preview ${displayTitle} screen runtime`}
-                          onClick={() =>
+                          aria-label={`Open ${application.name} runtime`}
+                          disabled={!firstScreen || isActingOnThisApp}
+                          onClick={() => {
+                            if (!firstScreen) {
+                              return;
+                            }
                             onPreviewScreenRuntime({
                               appId: application.id,
                               configId: configuration.id,
-                              screenId: screen.id,
-                            })
-                          }
+                              screenId: firstScreen.id,
+                            });
+                          }}
                           type="button"
                         >
-                          Runtime preview
+                          Open runtime
+                        </button>
+                        <button
+                          aria-label={`Duplicate ${application.name} app`}
+                          disabled={isActingOnThisApp}
+                          onClick={async () => {
+                            setAppActionState({ applicationId: application.id, status: "duplicating" });
+                            try {
+                              await onDuplicateApplication(configuration.id, application.id);
+                              setAppActionState({ status: "idle" });
+                            } catch (error) {
+                              setAppActionState({ status: "error", message: getErrorMessage(error) });
+                            }
+                          }}
+                          type="button"
+                        >
+                          {isActingOnThisApp && actionState?.status === "duplicating" ? "Duplicating..." : "Duplicate"}
+                        </button>
+                        <button
+                          aria-label={`Delete ${application.name} app`}
+                          className="builder-app-card-danger"
+                          disabled={isActingOnThisApp}
+                          onClick={async () => {
+                            if (
+                              !window.confirm(
+                                `Delete "${application.name}" from configuration "${configuration.id}"? This cannot be undone.`,
+                              )
+                            ) {
+                              return;
+                            }
+
+                            setAppActionState({ applicationId: application.id, status: "deleting" });
+                            try {
+                              await onDeleteApplication(configuration.id, application.id);
+                              setAppActionState({ status: "idle" });
+                            } catch (error) {
+                              setAppActionState({ status: "error", message: getErrorMessage(error) });
+                            }
+                          }}
+                          type="button"
+                        >
+                          {isActingOnThisApp && actionState?.status === "deleting" ? "Deleting..." : "Delete"}
                         </button>
                       </div>
                     </article>
-                  ))}
-                </div>
-              </section>
-            ))
-          )}
+                  );
+                })
+              )}
+            </div>
+            {appActionState.status === "error" ? (
+              <p className="builder-save-status builder-save-status-error" role="alert">
+                {appActionState.message}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="builder-create-card" aria-labelledby="builder-create-title">
+            <div>
+              <p className="eyebrow">Create</p>
+              <h2 id="builder-create-title">New app foundation</h2>
+            </div>
+            <p>
+              Create a blank app with a first empty screen and the Bloom default design system. More templates can plug
+              into this flow later.
+            </p>
+            <button
+              disabled={!firstConfiguration || isCreating}
+              onClick={async () => {
+                if (!firstConfiguration) {
+                  return;
+                }
+                const name = createNewApplicationName(firstConfiguration.bundle.applications);
+                const id = slugify(name);
+                setCreateState({ status: "creating" });
+                try {
+                  await onCreateApplication(firstConfiguration.id, {
+                    id,
+                    name,
+                    description: "New Bloom app",
+                    theme: DEFAULT_APPLICATION_THEME,
+                    screens: [
+                      {
+                        id: "main",
+                        title: "Main",
+                        canvas: { preset_id: "tablet", runtime_mode: "fit" },
+                        widgets: [],
+                      },
+                    ],
+                  });
+                  setCreateState({ status: "idle" });
+                } catch (error) {
+                  setCreateState({ status: "error", message: getErrorMessage(error) });
+                }
+              }}
+              type="button"
+            >
+              {isCreating ? "Creating..." : "Create blank app"}
+            </button>
+            {createState.status === "error" ? (
+              <p className="builder-save-status builder-save-status-error" role="alert">
+                {createState.message}
+              </p>
+            ) : null}
+          </section>
         </div>
-      </section>
+      ) : null}
+
+      {activeSection === "screens" ? (
+        <section className="builder-screen-library" aria-labelledby="builder-screen-library-title">
+          <div className="builder-screen-library-heading">
+            <div>
+              <p className="eyebrow">Screen library</p>
+              <h2 id="builder-screen-library-title">Reusable screens</h2>
+            </div>
+            <span>{filteredScreens.length} screens</span>
+          </div>
+          <p>
+            Work directly from reusable screens when you want to design a control, camera, or debug view before
+            assigning it to a specific app flow.
+          </p>
+          <label className="builder-screen-library-search">
+            <span>Find a screen</span>
+            <input
+              aria-label="Find a screen"
+              onChange={(event) => setScreenSearch(event.target.value)}
+              placeholder="Camera, teleop, debug..."
+              type="search"
+              value={screenSearch}
+            />
+          </label>
+          <div className="builder-screen-library-groups">
+            {filteredScreens.length === 0 ? (
+              <p className="builder-empty-state">
+                No screens match this search yet. Try another app name, screen name, or widget type.
+              </p>
+            ) : (
+              screenGroups.map((group) => (
+                <section
+                  aria-labelledby={`builder-screen-library-${group.definition.type}`}
+                  className="builder-screen-library-group"
+                  key={group.definition.type}
+                >
+                  <div className="builder-screen-library-group-heading">
+                    <div>
+                      <h3 id={`builder-screen-library-${group.definition.type}`}>{group.definition.label}</h3>
+                      <p>{group.definition.description}</p>
+                    </div>
+                    <span>{group.items.length}</span>
+                  </div>
+                  <div className="builder-screen-library-grid">
+                    {group.items.map(({ application, configuration, displayTitle, screen, type }) => (
+                      <article
+                        className="builder-screen-library-card"
+                        data-screen-type={type}
+                        key={`${configuration.id}:${application.id}:${screen.id}`}
+                      >
+                        <div className="builder-screen-card-main">
+                          <div className="builder-screen-card-title-row">
+                            <strong>{displayTitle}</strong>
+                            <span className="builder-screen-type-tag">{SCREEN_LIBRARY_TYPE_LABELS[type]}</span>
+                          </div>
+                          <span>{application.name}</span>
+                          <div className="builder-screen-card-details">
+                            <span>{screen.widgets.length} widgets</span>
+                            <span>{screen.canvas.preset_id}</span>
+                            <span>{configuration.id}</span>
+                          </div>
+                        </div>
+                        <div className="builder-app-card-actions">
+                          <button
+                            aria-label={`Edit ${displayTitle} screen`}
+                            onClick={() =>
+                              onOpenScreenBuilder({
+                                appId: application.id,
+                                configId: configuration.id,
+                                screenId: screen.id,
+                              })
+                            }
+                            type="button"
+                          >
+                            Edit screen
+                          </button>
+                          <button
+                            aria-label={`Preview ${displayTitle} screen runtime`}
+                            onClick={() =>
+                              onPreviewScreenRuntime({
+                                appId: application.id,
+                                configId: configuration.id,
+                                screenId: screen.id,
+                              })
+                            }
+                            type="button"
+                          >
+                            Runtime preview
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }

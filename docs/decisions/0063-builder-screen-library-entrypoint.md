@@ -17,7 +17,17 @@ screen in runtime mode without builder chrome.
 
 ## Decision
 
-The builder home screen library now supports searchable reusable screens across
+The builder home uses progressive disclosure instead of showing every builder
+concern at once. The top-level builder page now has:
+
+- an overview with two large entry cards;
+- an apps section for full app workflow management;
+- a screen library section for screen-first work.
+
+This keeps app composition and reusable screen design visible but not competing
+on the same page.
+
+The builder home screen library supports searchable reusable screens across
 all loaded apps. Search matches display titles, legacy screen ids, app names,
 configuration ids, screen type tags, and widget kinds.
 

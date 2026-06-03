@@ -37,10 +37,29 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to shape." })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose what to build." })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Apps" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Screen library" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Manage complete app workflows/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Design reusable screens first/i })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 2, name: "Available apps" })).not.toBeInTheDocument();
+  });
+
+  it("separates app management from the reusable screen library", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose what to build." })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Apps" }));
+
     expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Create blank app/i })).toBeVisible();
+    expect(screen.queryByRole("heading", { level: 2, name: "Reusable screens" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Screen library" }));
+
     expect(screen.getByRole("heading", { level: 2, name: "Reusable screens" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 3, name: "Control screens" })).toBeVisible();
     expect(screen.getByText("Control")).toBeVisible();
@@ -52,6 +71,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
     fireEvent.click(await screen.findByRole("button", { name: "Edit Diagnostics screen" }));
 
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
@@ -63,6 +83,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
     fireEvent.click(await screen.findByRole("button", { name: "Preview Diagnostics screen runtime" }));
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
@@ -84,6 +105,7 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
     fireEvent.change(await screen.findByRole("searchbox", { name: "Find a screen" }), {
       target: { value: "camera" },
     });
@@ -98,6 +120,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
     fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox runtime" }));
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
@@ -127,6 +150,7 @@ describe("App", () => {
     render(<App configurationClient={configurationClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
     fireEvent.click(await screen.findByRole("button", { name: "Create blank app" }));
 
     await waitFor(() => {
@@ -149,6 +173,7 @@ describe("App", () => {
     render(<App configurationClient={configurationClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
     fireEvent.click(await screen.findByRole("button", { name: "Duplicate Sandbox app" }));
 
     await waitFor(() => {
@@ -178,6 +203,7 @@ describe("App", () => {
       render(<App configurationClient={configurationClient} />);
 
       fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
       fireEvent.click(await screen.findByRole("button", { name: "Delete Sandbox app" }));
 
       await waitFor(() => {
@@ -720,6 +746,7 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
     fireEvent.click(await screen.findByRole("button", { name: "Open Webcam visualizer app" }));
     fireEvent.click(await screen.findByRole("button", { name: "Open Camera viewer screen builder" }));
 
@@ -1010,11 +1037,13 @@ async function openDefaultScreenBuilder() {
 
 async function openAppConfig() {
   fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
   fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox app" }));
 }
 
 async function openPetanqueAppConfig() {
   fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
   fireEvent.click(await screen.findByRole("button", { name: "Open app-petanque-admin app" }));
 }
 
