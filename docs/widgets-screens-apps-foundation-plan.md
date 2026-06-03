@@ -92,6 +92,7 @@ Still important for future roadmap slices:
 
 - runtime action boundary for command/device/ROS widgets;
 - richer ROS live subscriptions and telemetry visualization;
+- topic inspection and adapter-backed recording controls for rosbag-style capture workflows;
 - normalized SQLite app/screen storage beyond bundled configuration documents;
 - production-level screen builder polish and visual QA;
 - backend/frontend contract sync safeguards.

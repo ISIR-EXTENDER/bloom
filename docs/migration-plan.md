@@ -105,6 +105,7 @@ Status: started.
 - Add live topic subscriptions through runtime sessions.
 - Add configurable ROS message publishing for buttons/toggles.
 - Add topic echo and lightweight timeseries visualization for debugging.
+- Add intuitive recording/session controls for rosbag-style captures with selected topics and approved output folders.
 - Add allowlists for publishable topics, message types, and payload shapes before real robot deployment.
 - Keep ROS transport replaceable so standard ROS 2, `rmw_zenoh_cpp`, or a future Hiroz/Zenoh adapter can be evaluated
   without changing frontend widget contracts.
@@ -114,6 +115,7 @@ Next focus in this phase:
 - WebSocket runtime topic subscriptions.
 - Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
 - Topic echo widgets and minimal PlotJuggler-like telemetry widgets.
+- Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
 
 ### Phase 4 - Legacy App Migration
 

@@ -33,7 +33,7 @@ Bloom should migrate reusable primitives from both generations, but the canvas g
 | topic visualization / topic echo | Generic debug and supervision widgets | Minimal PlotJuggler-like timeseries and console-style topic echo views are key for robot debugging. |
 | `text` / `textarea` | Generic label/text block widgets | Needed for status, instructions, JSON results, and formatted output. |
 | `navigation-button` / `navigation-bar` | Generic app navigation widgets | Builder/runtime app navigation needs this independently from robot logic. |
-| `rosbag-control` | Generic recording/session command widget | Could control rosbag or other recording/session backends. |
+| `rosbag-control` | Generic recording/session command widget | Could control rosbag or other recording/session backends from selected topics and approved folders. |
 | `mode-button` | Generic state/mode command widget | Runtime mode switching is not Extender-only if modeled as state-machine action. |
 | `save-pose-button` / `load-pose-button` | Generic stored-command/preset widgets | Pose is one preset type, but saved commands/configurations are reusable. |
 | `throw-draw` | Generic gesture/trajectory input candidate | The Petanque use case is specific, but drawing an angle/power/gesture command is reusable. |
@@ -65,6 +65,8 @@ These priorities explain why a widget family matters. The current implementation
    - Generic ROS/message action button.
    - Toggle action with typed payloads.
    - Session/recording action contract.
+   - Rosbag-style recording widget with topic selection, output folder selection, start/stop status, and adapter-backed
+     commands.
 
 3. **Display primitives**
    - Stream viewer for camera/RViz/visualization/webcam/image result.
@@ -72,6 +74,7 @@ These priorities explain why a widget family matters. The current implementation
    - Plot/timeseries viewer using `recharts`.
    - Minimal topic visualization for velocities, torques, positions, and scalar/vector telemetry.
    - Console-style topic echo viewer for in-app ROS/debug monitoring.
+   - Topic inspector for browsing available topics, message types, frequencies, and recording eligibility.
    - Log/event viewer.
 
 4. **Builder primitives**
