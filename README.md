@@ -16,6 +16,7 @@
 <p align="center">
   <a href="#preview">Preview</a> ·
   <a href="#getting-started">Getting Started</a> ·
+  <a href="#tooling">Tooling</a> ·
   <a href="#architecture-rules">Architecture</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
@@ -151,6 +152,38 @@ The backend test target disables external pytest plugin autoloading so a sourced
 The backend API starts under `/api/v1`, with `/api/v1/health` as the first system endpoint.
 
 Backend developer commands are exposed through the Typer CLI in `backend/apps/bloom_cli`.
+
+## Tooling
+
+Bloom is developed with a small local-first toolchain. Keep these tools available before contributing:
+
+| Tool | Recommended | Used for |
+| --- | --- | --- |
+| Node.js | `>=20` | Frontend workspaces, Vite, React, TypeScript tests. |
+| npm | `>=10` | Workspace dependency installation and frontend scripts. |
+| uv | latest stable | Backend Python dependency locking, tests, and CLI commands. |
+| GitHub CLI | latest stable | PR creation, CI checks, and squash-merge workflow. |
+| Playwright | installed through npm | Browser-level checks and README screenshot capture. |
+
+Useful setup and verification commands:
+
+```bash
+# JavaScript and browser tooling
+npm install
+npx playwright install chromium
+
+# Python tooling
+uv self update
+cd backend
+uv lock --check
+uv sync
+
+# GitHub CLI tooling
+gh auth status
+gh pr checks --help
+```
+
+If `gh` was installed locally, make sure `~/.local/bin` appears before `/usr/bin` in `PATH` so the recent GitHub CLI is used. The modern CLI is useful for commands such as `gh pr checks --watch`.
 
 ## Configuration Storage
 
