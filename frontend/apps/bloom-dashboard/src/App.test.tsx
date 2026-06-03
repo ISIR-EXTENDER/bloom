@@ -1,4 +1,9 @@
-import { type ConfigurationBundle, DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
+import {
+  type ApplicationConfig,
+  type ConfigurationBundle,
+  DEFAULT_APPLICATION_THEME,
+  type ScreenConfig,
+} from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -62,12 +67,12 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Create blank app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
     });
 
-    const savedBundle = configurationClient.upsertConfiguration.mock.calls[0]?.[1];
+    const [, savedApplication] = configurationClient.upsertApplication.mock.calls[0] ?? [];
 
-    expect(savedBundle?.applications.at(-1)).toMatchObject({
+    expect(savedApplication).toMatchObject({
       id: "new-bloom-app",
       name: "New Bloom App",
       theme: DEFAULT_APPLICATION_THEME,
@@ -85,10 +90,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
     });
 
-    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
     expect(savedApplication?.theme.palette.primary).toBe("#ff8800");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
@@ -109,10 +114,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
     });
 
-    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
     expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("camera-feed");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
@@ -129,10 +134,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
     });
 
-    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
     const createdScreen = savedApplication?.screens.find((screenConfig) => screenConfig.id === "inspection");
 
     expect(createdScreen).toMatchObject({
@@ -152,10 +157,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
     });
 
-    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
     const duplicatedScreen = savedApplication?.screens.find((screenConfig) => screenConfig.id === "main-copy");
 
     expect(duplicatedScreen).toMatchObject({
@@ -177,10 +182,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
     });
 
-    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0];
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
     expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).not.toContain("diagnostics");
     expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("main");
@@ -245,13 +250,14 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertScreen).toHaveBeenCalledTimes(1);
     });
 
-    const [configId, savedBundle] = configurationClient.upsertConfiguration.mock.calls[0] ?? [];
-    const savedWidget = savedBundle?.applications[0]?.screens[0]?.widgets[0];
+    const [configId, appId, savedScreen] = configurationClient.upsertScreen.mock.calls[0] ?? [];
+    const savedWidget = savedScreen?.widgets[0];
 
     expect(configId).toBe("sandbox");
+    expect(appId).toBe("sandbox");
     expect(savedWidget?.layout).toEqual({ x: 64, y: 48, width: 220, height: 96 });
     expect(await screen.findByRole("status")).toHaveTextContent("All changes saved.");
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
@@ -276,6 +282,8 @@ describe("App", () => {
     });
 
     expect(configurationClient.upsertConfiguration).not.toHaveBeenCalled();
+    expect(configurationClient.upsertApplication).not.toHaveBeenCalled();
+    expect(configurationClient.upsertScreen).not.toHaveBeenCalled();
   });
 
   it("adds widgets from the builder palette", async () => {
@@ -323,11 +331,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertScreen).toHaveBeenCalledTimes(1);
     });
 
-    const savedWidget =
-      configurationClient.upsertConfiguration.mock.calls[0]?.[1].applications[0]?.screens[0]?.widgets[0];
+    const savedWidget = configurationClient.upsertScreen.mock.calls[0]?.[2].widgets[0];
 
     expect(savedWidget?.settings).toMatchObject({
       onPayload: "{data: [42, 1]}",
@@ -385,11 +392,11 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertScreen).toHaveBeenCalledTimes(1);
     });
 
-    const savedBundle = configurationClient.upsertConfiguration.mock.calls[0]?.[1];
-    const savedWidget = savedBundle?.applications[0]?.screens[0]?.widgets.find((widget) => widget.id === "control-rz");
+    const savedScreen = configurationClient.upsertScreen.mock.calls[0]?.[2];
+    const savedWidget = savedScreen?.widgets.find((widget) => widget.id === "control-rz");
 
     expect(savedWidget?.layout.width).toBe(338);
     expect(savedWidget?.layout.height).toBe(78);
@@ -575,6 +582,52 @@ function createConfigurationClient(
       storedBundles.set(id, savedBundle);
       return structuredClone(savedBundle);
     }),
+    upsertApplication: vi.fn(async (id: string, application: ApplicationConfig): Promise<ConfigurationBundle> => {
+      if (options.saveError) {
+        throw options.saveError;
+      }
+
+      const bundle = structuredClone(storedBundles.get(id) ?? createConfigurationBundle(id));
+      const applicationIndex = bundle.applications.findIndex(
+        (candidateApplication) => candidateApplication.id === application.id,
+      );
+
+      if (applicationIndex >= 0) {
+        bundle.applications[applicationIndex] = structuredClone(application);
+      } else {
+        bundle.applications.push(structuredClone(application));
+      }
+
+      storedBundles.set(id, bundle);
+      return structuredClone(bundle);
+    }),
+    upsertScreen: vi.fn(
+      async (id: string, applicationId: string, nextScreen: ScreenConfig): Promise<ConfigurationBundle> => {
+        if (options.saveError) {
+          throw options.saveError;
+        }
+
+        const bundle = structuredClone(storedBundles.get(id) ?? createConfigurationBundle(id));
+        const application = bundle.applications.find(
+          (candidateApplication) => candidateApplication.id === applicationId,
+        );
+
+        if (!application) {
+          throw new Error(`Application "${applicationId}" was not found.`);
+        }
+
+        const screenIndex = application.screens.findIndex((candidateScreen) => candidateScreen.id === nextScreen.id);
+
+        if (screenIndex >= 0) {
+          application.screens[screenIndex] = structuredClone(nextScreen);
+        } else {
+          application.screens.push(structuredClone(nextScreen));
+        }
+
+        storedBundles.set(id, bundle);
+        return structuredClone(bundle);
+      },
+    ),
   } satisfies ConfigurationClient;
 }
 

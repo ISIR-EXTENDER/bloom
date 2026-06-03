@@ -86,6 +86,20 @@ export type ConfigurationListResponse = {
   configuration_ids: string[];
 };
 
+export type ApplicationListResponse = {
+  applications: ApplicationConfig[];
+};
+
+export type ReusableScreen = {
+  screen: ScreenConfig;
+  source_application_id: string;
+  source_application_name: string;
+};
+
+export type ReusableScreensResponse = {
+  screens: ReusableScreen[];
+};
+
 export type RosTopicPublishStatus = "published" | "simulated";
 
 export type RosTopicPublishRequest = {
@@ -142,6 +156,60 @@ export class BloomApiClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(bundle),
     });
+  }
+
+  async listApplications(configId: string): Promise<ApplicationConfig[]> {
+    const response = await this.request<ApplicationListResponse>(
+      `/api/v1/configurations/${encodeURIComponent(configId)}/applications`,
+    );
+    return response.applications;
+  }
+
+  upsertApplication(configId: string, application: ApplicationConfig): Promise<ConfigurationBundle> {
+    return this.request<ConfigurationBundle>(
+      `/api/v1/configurations/${encodeURIComponent(configId)}/applications/${encodeURIComponent(application.id)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(application),
+      },
+    );
+  }
+
+  async deleteApplication(configId: string, applicationId: string): Promise<void> {
+    await this.request<void>(
+      `/api/v1/configurations/${encodeURIComponent(configId)}/applications/${encodeURIComponent(applicationId)}`,
+      { method: "DELETE" },
+    );
+  }
+
+  async listReusableScreens(configId: string): Promise<ReusableScreen[]> {
+    const response = await this.request<ReusableScreensResponse>(
+      `/api/v1/configurations/${encodeURIComponent(configId)}/screens`,
+    );
+    return response.screens;
+  }
+
+  upsertScreen(configId: string, applicationId: string, screen: ScreenConfig): Promise<ConfigurationBundle> {
+    return this.request<ConfigurationBundle>(
+      `/api/v1/configurations/${encodeURIComponent(configId)}/applications/${encodeURIComponent(
+        applicationId,
+      )}/screens/${encodeURIComponent(screen.id)}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(screen),
+      },
+    );
+  }
+
+  async deleteScreen(configId: string, applicationId: string, screenId: string): Promise<void> {
+    await this.request<void>(
+      `/api/v1/configurations/${encodeURIComponent(configId)}/applications/${encodeURIComponent(
+        applicationId,
+      )}/screens/${encodeURIComponent(screenId)}`,
+      { method: "DELETE" },
+    );
   }
 
   async deleteConfiguration(configId: string): Promise<void> {

@@ -79,6 +79,67 @@ describe("Bloom API client", () => {
     });
   });
 
+  it("lists applications from one configuration", async () => {
+    const applications = sampleBundle.applications;
+    const fetcher = createJsonFetcher({ applications });
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.listApplications("sandbox")).resolves.toEqual(applications);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/configurations/sandbox/applications", {});
+  });
+
+  it("upserts an application through the backend", async () => {
+    const application = sampleBundle.applications[0];
+    const fetcher = createJsonFetcher(sampleBundle);
+    const client = createBloomApiClient({ fetcher });
+
+    if (!application) {
+      throw new Error("Sample application is missing.");
+    }
+
+    await expect(client.upsertApplication("sandbox", application)).resolves.toEqual(sampleBundle);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/configurations/sandbox/applications/sandbox", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(application),
+    });
+  });
+
+  it("lists reusable screens with their source app", async () => {
+    const screen = sampleBundle.applications[0]?.screens[0];
+    const response = {
+      screens: [
+        {
+          screen,
+          source_application_id: "sandbox",
+          source_application_name: "Sandbox",
+        },
+      ],
+    };
+    const fetcher = createJsonFetcher(response);
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.listReusableScreens("sandbox")).resolves.toEqual(response.screens);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/configurations/sandbox/screens", {});
+  });
+
+  it("upserts a screen through the backend", async () => {
+    const screen = sampleBundle.applications[0]?.screens[0];
+    const fetcher = createJsonFetcher(sampleBundle);
+    const client = createBloomApiClient({ fetcher });
+
+    if (!screen) {
+      throw new Error("Sample screen is missing.");
+    }
+
+    await expect(client.upsertScreen("sandbox", "operator", screen)).resolves.toEqual(sampleBundle);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/configurations/sandbox/applications/operator/screens/main", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(screen),
+    });
+  });
+
   it("deletes a configuration bundle", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }));
     const client = createBloomApiClient({ fetcher });

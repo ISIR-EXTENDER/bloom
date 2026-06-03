@@ -10,6 +10,17 @@ from libs.config.models import (
     WidgetKind,
     WidgetLayout,
 )
+from libs.config.editor import (
+    ApplicationNotFoundError,
+    ConfigurationEditError,
+    ReusableScreen,
+    ScreenNotFoundError,
+    delete_application,
+    delete_screen,
+    list_reusable_screens,
+    upsert_application,
+    upsert_screen,
+)
 from libs.config.repository import (
     ConfigurationNotFoundError,
     ConfigurationRepository,
@@ -38,8 +49,10 @@ from libs.config.legacy_json import (
 
 __all__ = [
     "ApplicationConfig",
+    "ApplicationNotFoundError",
     "CanvasPresetId",
     "CanvasSettings",
+    "ConfigurationEditError",
     "ConfigurationBundle",
     "ConfigurationMetadata",
     "ConfigurationNotFoundError",
@@ -47,14 +60,18 @@ __all__ = [
     "ConfigurationStorageKind",
     "FileConfigurationRepository",
     "InMemoryConfigurationRepository",
+    "ReusableScreen",
     "RuntimeCanvasMode",
     "ScreenConfig",
+    "ScreenNotFoundError",
     "SQLiteConfigurationRepository",
     "WidgetConfig",
     "WidgetKind",
     "WidgetLayout",
     "configuration_to_dict",
     "create_configuration_repository",
+    "delete_application",
+    "delete_screen",
     "dump_configuration_json",
     "load_configuration_file",
     "load_configuration_json",
@@ -66,5 +83,8 @@ __all__ = [
     "load_legacy_application_with_screens_file",
     "load_legacy_screen_file",
     "load_legacy_screen_json",
+    "list_reusable_screens",
     "save_configuration_file",
+    "upsert_application",
+    "upsert_screen",
 ]

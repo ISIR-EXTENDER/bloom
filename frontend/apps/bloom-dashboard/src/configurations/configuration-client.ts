@@ -3,7 +3,7 @@ import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
 
 export type ConfigurationClient = Pick<
   BloomApiClient,
-  "getConfiguration" | "listConfigurations" | "upsertConfiguration"
+  "getConfiguration" | "listConfigurations" | "upsertApplication" | "upsertConfiguration" | "upsertScreen"
 >;
 
 export function createDashboardConfigurationClient(): ConfigurationClient {

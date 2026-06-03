@@ -12,11 +12,6 @@ import {
   createDashboardConfigurationClient,
   createDashboardRuntimeActionClient,
 } from "./configurations/configuration-client";
-import {
-  appendApplicationToConfigurationBundle,
-  replaceApplicationInConfigurationBundle,
-  replaceScreenInConfigurationBundle,
-} from "./configurations/configuration-editor";
 import { useConfigurations } from "./configurations/use-configurations";
 import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
@@ -67,13 +62,7 @@ export function App({
     }
 
     const selectedWorkspace = resolveSelectedWorkspace(configurationState.configurations, selection);
-    const updatedBundle = replaceScreenInConfigurationBundle(
-      selectedWorkspace.bundle,
-      selectedWorkspace.application.id,
-      screen,
-    );
-
-    await configurationState.saveConfiguration(selectedWorkspace.configuration.id, updatedBundle);
+    await configurationState.saveScreen(selectedWorkspace.configuration.id, selectedWorkspace.application.id, screen);
   };
 
   const handleSaveApplication = async (application: ApplicationConfig) => {
@@ -82,9 +71,7 @@ export function App({
     }
 
     const selectedWorkspace = resolveSelectedWorkspace(configurationState.configurations, selection);
-    const updatedBundle = replaceApplicationInConfigurationBundle(selectedWorkspace.bundle, application);
-
-    await configurationState.saveConfiguration(selectedWorkspace.configuration.id, updatedBundle);
+    await configurationState.saveApplication(selectedWorkspace.configuration.id, application);
   };
 
   const handleCreateApplication = async (configId: string, application: ApplicationConfig) => {
@@ -92,13 +79,11 @@ export function App({
       throw new Error("Bloom cannot create an application before configurations are loaded.");
     }
 
-    const configuration = configurationState.configurations.find((candidate) => candidate.id === configId);
-    if (!configuration) {
+    if (!configurationState.configurations.some((candidate) => candidate.id === configId)) {
       throw new Error(`Configuration "${configId}" was not found.`);
     }
 
-    const updatedBundle = appendApplicationToConfigurationBundle(configuration.bundle, application);
-    await configurationState.saveConfiguration(configId, updatedBundle);
+    await configurationState.saveApplication(configId, application);
     setSelection({ configId, appId: application.id, screenId: application.screens[0]?.id ?? "main" });
     setBuilderMode("app-config");
   };
