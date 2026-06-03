@@ -181,6 +181,8 @@ Functional:
 
 - Widget renderers are now split by runtime family instead of living in one
   large `index.tsx` file.
+- Builder and runtime now share a `ScreenArtboard` renderer so the same screen
+  model and widget descriptor pipeline drive both modes.
 - Runtime widget styling is separated from the dashboard product stylesheet.
 - Dashboard CSS is now split by product area: base shell, builder, runtime app,
   runtime widgets, and responsive overrides.

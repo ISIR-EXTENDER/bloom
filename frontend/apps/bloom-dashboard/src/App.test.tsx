@@ -650,6 +650,7 @@ describe("App", () => {
     const frameWidth = Number.parseInt(artboardFrame?.style.width ?? "0", 10);
     const frameHeight = Number.parseInt(artboardFrame?.style.height ?? "0", 10);
 
+    expect(artboard).toHaveAttribute("data-screen-renderer", "screen-artboard");
     expect(artboard).toHaveStyle({ height: "720px", width: "1280px" });
     expect(artboard.style.transform).toMatch(/^scale\(0\.\d+\)$/);
     expect(frameWidth).toBeGreaterThan(1);
@@ -715,6 +716,7 @@ describe("App", () => {
     await openDefaultScreenBuilder();
 
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+    expect(document.querySelector("[data-screen-renderer='screen-artboard']")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
     expect(screen.getByText((_, element) => element?.textContent === "128, 104")).toBeVisible();
     expect(screen.getByText((_, element) => element?.textContent === "272 x 192")).toBeVisible();
