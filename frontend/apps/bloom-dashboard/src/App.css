@@ -301,6 +301,75 @@ h1 {
   margin-top: 24px;
 }
 
+.builder-screen-library {
+  margin-top: 24px;
+  padding: 28px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 82% 0%, color-mix(in srgb, var(--bloom-color-mist) 34%, transparent), transparent 36%),
+    var(--bloom-panel);
+  box-shadow: var(--bloom-shadow);
+}
+
+.builder-screen-library-heading {
+  display: flex;
+  gap: 16px;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.builder-screen-library-heading h2 {
+  margin: 0;
+  color: var(--bloom-ink);
+}
+
+.builder-screen-library-heading span {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 22%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 28%, var(--bloom-surface-container-low));
+  color: var(--bloom-ink);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.builder-screen-library p {
+  max-width: 820px;
+  color: var(--bloom-ink-soft);
+  line-height: 1.55;
+}
+
+.builder-screen-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.builder-screen-library-card {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 86%, white);
+}
+
+.builder-screen-library-card strong {
+  display: block;
+  color: var(--bloom-ink);
+  font-size: 1.06rem;
+}
+
+.builder-screen-library-card span,
+.builder-screen-library-card small {
+  color: var(--bloom-ink-soft);
+}
+
 .builder-app-list,
 .builder-create-card,
 .builder-config-panel {

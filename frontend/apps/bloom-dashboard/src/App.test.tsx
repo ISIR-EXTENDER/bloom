@@ -41,6 +41,32 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Create blank app/i })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Reusable screens" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit Diagnostics screen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Preview Diagnostics screen runtime" })).toBeVisible();
+  });
+
+  it("opens a screen builder directly from the builder screen library", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Edit Diagnostics screen" }));
+
+    expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
+    expect(screen.getByText("/teleop_cmd")).toBeVisible();
+  });
+
+  it("previews a screen runtime directly from the builder screen library", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview Diagnostics screen runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Diagnostics/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
   });
 
   it("opens app configuration before entering the full screen builder", async () => {

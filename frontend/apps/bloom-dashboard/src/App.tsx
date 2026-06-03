@@ -149,6 +149,7 @@ export function App({
               onSaveApplication={handleSaveApplication}
               onSaveBuilderScreen={handleSaveBuilderScreen}
               onSelectionChange={setSelection}
+              onViewChange={setActiveView}
               selection={selection}
               state={configurationState}
             />
@@ -170,6 +171,7 @@ type MainApplicationViewProps = {
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onViewChange: (view: ProductView) => void;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
 };
@@ -185,6 +187,7 @@ function MainApplicationView({
   onSaveApplication,
   onSaveBuilderScreen,
   onSelectionChange,
+  onViewChange,
   selection,
   state,
 }: MainApplicationViewProps) {
@@ -213,6 +216,14 @@ function MainApplicationView({
           onOpenApplication={(nextSelection) => {
             onSelectionChange(nextSelection);
             onChangeBuilderMode("app-config");
+          }}
+          onOpenScreenBuilder={(nextSelection) => {
+            onSelectionChange(nextSelection);
+            onChangeBuilderMode("screen-builder");
+          }}
+          onPreviewScreenRuntime={(nextSelection) => {
+            onSelectionChange(nextSelection);
+            onViewChange("runtime");
           }}
         />
       );

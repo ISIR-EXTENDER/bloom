@@ -9,6 +9,8 @@ type BuilderHomeProps = {
   onDeleteApplication: (configId: string, applicationId: string) => Promise<void>;
   onDuplicateApplication: (configId: string, applicationId: string) => Promise<void>;
   onOpenApplication: (selection: WorkspaceSelection) => void;
+  onOpenScreenBuilder: (selection: WorkspaceSelection) => void;
+  onPreviewScreenRuntime: (selection: WorkspaceSelection) => void;
 };
 
 type CreateState = { status: "idle" } | { status: "creating" } | { status: "error"; message: string };
@@ -23,6 +25,8 @@ export function BuilderHome({
   onDeleteApplication,
   onDuplicateApplication,
   onOpenApplication,
+  onOpenScreenBuilder,
+  onPreviewScreenRuntime,
 }: BuilderHomeProps) {
   const firstConfiguration = configurations[0];
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
@@ -30,6 +34,9 @@ export function BuilderHome({
   const isCreating = createState.status === "creating";
   const applications = configurations.flatMap((configuration) =>
     configuration.bundle.applications.map((application) => ({ application, configuration })),
+  );
+  const screens = applications.flatMap(({ application, configuration }) =>
+    application.screens.map((screen) => ({ application, configuration, screen })),
   );
 
   return (
@@ -195,6 +202,61 @@ export function BuilderHome({
           ) : null}
         </section>
       </div>
+
+      <section className="builder-screen-library" aria-labelledby="builder-screen-library-title">
+        <div className="builder-screen-library-heading">
+          <div>
+            <p className="eyebrow">Screen library</p>
+            <h2 id="builder-screen-library-title">Reusable screens</h2>
+          </div>
+          <span>{screens.length} screens</span>
+        </div>
+        <p>
+          Work directly from reusable screens when you want to design a control, camera, or debug view before assigning
+          it to a specific app flow.
+        </p>
+        <div className="builder-screen-library-grid">
+          {screens.map(({ application, configuration, screen }) => (
+            <article className="builder-screen-library-card" key={`${configuration.id}:${application.id}:${screen.id}`}>
+              <div>
+                <strong>{screen.title}</strong>
+                <span>{application.name}</span>
+              </div>
+              <small>
+                {screen.widgets.length} widgets · {screen.canvas.preset_id}
+              </small>
+              <div className="builder-app-card-actions">
+                <button
+                  aria-label={`Edit ${screen.title} screen`}
+                  onClick={() =>
+                    onOpenScreenBuilder({
+                      appId: application.id,
+                      configId: configuration.id,
+                      screenId: screen.id,
+                    })
+                  }
+                  type="button"
+                >
+                  Edit screen
+                </button>
+                <button
+                  aria-label={`Preview ${screen.title} screen runtime`}
+                  onClick={() =>
+                    onPreviewScreenRuntime({
+                      appId: application.id,
+                      configId: configuration.id,
+                      screenId: screen.id,
+                    })
+                  }
+                  type="button"
+                >
+                  Runtime preview
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }
