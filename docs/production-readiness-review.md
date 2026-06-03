@@ -25,6 +25,11 @@ Overall migration state: about 50% for the web product foundations, about 30%
 for live ROS parity with `tablet_interface`, and about 20-25% for full legacy app
 parity.
 
+See also `docs/partner-interface-review.md` for the Inria/AUCTUS
+`extender-interface` review. That repo is useful as Explorer-specific UX
+inspiration, especially for global user-test flows, but should not replace
+Bloom's generic architecture.
+
 ## What To Preserve From `extender_ui`
 
 - The WYSIWYG split between builder chrome and true runtime app view is correct.

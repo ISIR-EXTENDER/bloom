@@ -6,6 +6,8 @@ Supporting documents:
 
 - `docs/widget-migration-inventory.md`: reusable widget ideas discovered in `extender_ui` and Petanque.
 - `docs/widgets-screens-apps-foundation-plan.md`: design notes behind the widgets/screens/apps foundation work.
+- `docs/partner-interface-review.md`: review of the Inria/AUCTUS `extender-interface` prototype and what Bloom should
+  take from it.
 - `docs/security-baseline.md`: minimum security posture for web/API/ROS-facing work.
 - `docs/decisions/`: dated decisions and development journal entries.
 
@@ -49,6 +51,7 @@ Already merged:
 - README product preview screenshots generated from the real dashboard UI.
 - First security baseline document and minimal API security headers.
 - Shared widget-kind contract checks keep frontend and backend configuration models aligned.
+- Partner `extender-interface` review captured as Explorer-specific UX inspiration, not as a core architecture to copy.
 
 Current branch:
 
@@ -142,6 +145,8 @@ Status: started.
 - Add allowlists for publishable topics, message types, and payload shapes before real robot deployment.
 - Keep ROS transport replaceable so standard ROS 2, `rmw_zenoh_cpp`, or a future Hiroz/Zenoh adapter can be evaluated
   without changing frontend widget contracts.
+- Keep the AUCTUS `/auctus_ui` bridge as an optional adapter candidate for Explorer user tests, not as a frontend-wide
+  dependency.
 
 Next focus in this phase:
 
@@ -149,6 +154,10 @@ Next focus in this phase:
 - ROS topic catalog endpoint as the base for topic inspection, topic echo, telemetry plots, and rosbag-style recording
   topic selection.
 - Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
+- Mode-aware joystick runtime binding inspired by Explorer user-test UX:
+  active mode, axis hints, deadzone, publish rate, zero-on-release, and adapter-specific topic/service bindings.
+- Long-running robot action support:
+  accepted/progress/result/cancel states for deploy/repli-style commands.
 - Topic echo widgets and minimal PlotJuggler-like telemetry widgets.
 - Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
 
@@ -169,6 +178,16 @@ Priority widget families:
 - Display primitives: camera/stream viewer, text/status, logs, topic echo, telemetry plot.
 - Builder primitives: navigation widgets, inspector metadata, app/screen composition.
 - Advanced reusable controls: gesture/trajectory input, saved preset/pose commands, media/action overlays.
+
+Explorer user-test app candidate:
+
+- Add a Bloom app or extension for global Extender/Explorer tests once app/screen storage and runtime adapter contracts
+  are stable enough.
+- Candidate screens: control modes, mode-aware joystick, robot actions, saved positions, safety zones, robot supervision,
+  debug console, and display/accessibility profile.
+- Keep Explorer-specific mode mappings, URDF assets, AUCTUS bridge item names, and QP/safety-zone semantics outside the
+  generic Bloom core.
+- Validate first as a non-ROS fixture/demo, then connect live behavior through backend adapters.
 
 ### Phase 5 - Deployment And Legacy Retirement
 
@@ -200,15 +219,19 @@ Status: idea captured, intentionally low priority.
    WebSocket topic subscriptions, topic echo, and teleop publisher adapter.
 4. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
-5. Add the first security checks around ROS publish intents:
+5. Add Explorer-style control foundations:
+   mode-aware joystick bindings, action progress/cancel, speed/gripper counters, and display/profile settings.
+6. Add the first security checks around ROS publish intents:
    topic/message/payload allowlists, runtime session validation, and audit logging.
-6. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
-7. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
+7. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
+8. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
 
 See also:
 
 - [Production readiness review](./production-readiness-review.md) for the current comparison against `extender_ui` and
   `tablet_interface`, migration estimates, and prioritized refactoring plans.
+- [Partner interface review](./partner-interface-review.md) for the Inria/AUCTUS Explorer user-test UX review and Bloom
+  integration proposal.
 
 ## Validation Rules
 
