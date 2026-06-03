@@ -165,6 +165,17 @@ Functional:
   after widget primitives stabilize.
 - Visual verification should accompany widget PRs. Tests catch behavior, but the
   browser capture caught joystick overflow that unit tests could not see.
+- Robin's `extender_ui` feedback highlights migration risks to avoid in Bloom:
+  pointer-to-control coordinate drift on joystick and velocity sliders, shared
+  state between duplicated velocity widgets, topic-specific sliders becoming
+  unusable on non-default topics, and widget defaults silently overriding edited
+  max values.
+- The `ros-message-toggle` widget is working well for visual servoing and should
+  stay a priority pattern for configurable ROS message publishing in Bloom.
+- Tablet control modes should avoid exposing redundant mode labels when a
+  combined mode already covers the practical workflow. Bloom should model
+  available control modes as app/runtime configuration instead of hard-coding all
+  legacy TeleopCommand enum values into every UI.
 
 ## Completed Follow-Up Refactors
 
