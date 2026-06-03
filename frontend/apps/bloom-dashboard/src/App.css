@@ -26,8 +26,16 @@ select {
 }
 
 button,
+input,
+textarea,
 select {
   min-height: 48px;
+}
+
+input,
+textarea,
+select {
+  font-size: max(1rem, 16px);
 }
 
 button {
@@ -40,6 +48,10 @@ select:focus-visible,
 textarea:focus-visible {
   outline: 4px solid color-mix(in srgb, var(--bloom-primary) 28%, transparent);
   outline-offset: 3px;
+}
+
+textarea {
+  line-height: 1.45;
 }
 
 .skip-link {

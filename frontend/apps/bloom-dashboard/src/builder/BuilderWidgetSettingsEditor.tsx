@@ -1,6 +1,7 @@
 import type { WidgetConfig } from "@bloom/api-client";
 import { getWidgetSettingsContract, type WidgetDefinition, type WidgetSettingField } from "@bloom/widgets";
 import { useState } from "react";
+import { getTouchEditingProps } from "../ui/touchEditing";
 
 type BuilderWidgetSettingsEditorProps = {
   definition: WidgetDefinition | null;
@@ -35,7 +36,12 @@ export function BuilderWidgetSettingsEditor({
 
       <label className="builder-settings-field">
         <span>Title</span>
-        <input onChange={(event) => onUpdateTitle(event.target.value)} type="text" value={widget.title} />
+        <input
+          {...getTouchEditingProps("name")}
+          onChange={(event) => onUpdateTitle(event.target.value)}
+          type="text"
+          value={widget.title}
+        />
       </label>
 
       {contract.fields.length === 0 ? (
@@ -104,7 +110,12 @@ function BuilderSettingsField({
     return (
       <label className="builder-settings-field">
         <span>{field.label}</span>
-        <textarea onChange={(event) => onChange(event.target.value)} rows={4} value={formatJsonFieldValue(value)} />
+        <textarea
+          {...getTouchEditingProps("json")}
+          onChange={(event) => onChange(event.target.value)}
+          rows={4}
+          value={formatJsonFieldValue(value)}
+        />
       </label>
     );
   }
@@ -113,6 +124,7 @@ function BuilderSettingsField({
     <label className="builder-settings-field">
       <span>{field.label}</span>
       <input
+        {...getTouchEditingProps(field.type === "number" ? "number" : "text")}
         onChange={(event) => onChange(event.target.value)}
         step={field.type === "number" ? "any" : undefined}
         type={field.type === "number" ? "number" : "text"}
