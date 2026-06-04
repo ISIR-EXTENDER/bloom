@@ -4,6 +4,8 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.sessions import (
+    InMemoryRuntimeAuditLog,
+    RuntimeAuditRecord,
     RuntimeTopicSample,
     RuntimeTopicSubscription,
     RuntimeTopicSubscriptionHandle,
@@ -270,6 +272,78 @@ def test_runtime_websocket_returns_errors_when_teleop_gateway_fails() -> None:
             "target": "/teleop_cmd",
         },
         "session_id": response["session_id"],
+    }
+
+
+def test_runtime_websocket_rejects_teleop_targets_outside_allowlist() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    gateway = RecordingTeleopGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_audit_log=audit_log,
+            teleop_command_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        connected = websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "mode": 4,
+                "seq": 1,
+                "target": "/dangerous/teleop",
+                "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+            }
+        )
+        response = websocket.receive_json()
+
+    assert response["type"] == "runtime_error"
+    assert response["detail"] == "Teleop command was rejected by runtime policy."
+    assert response["session_id"] == connected["session_id"]
+    assert gateway.commands == []
+    record = audit_log.list_records()[0]
+    assert record.channel == "websocket_teleop"
+    assert record.status == "rejected"
+    assert record.session_id == connected["session_id"]
+    assert record.target == "/dangerous/teleop"
+
+
+def test_runtime_audit_endpoint_lists_recent_records() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    audit_log.record(
+        RuntimeAuditRecord(
+            channel="websocket_teleop",
+            detail="accepted for test",
+            session_id="session-1",
+            status="accepted",
+            target="/teleop_cmd",
+        )
+    )
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_audit_log=audit_log,
+        )
+    )
+
+    response = client.get("/api/v1/runtime/audit")
+
+    assert response.status_code == 200
+    assert response.json()["records"][0] | {"recorded_at": ""} == {
+        "channel": "websocket_teleop",
+        "detail": "accepted for test",
+        "message_type": "",
+        "payload_summary": {},
+        "recorded_at": "",
+        "session_id": "session-1",
+        "status": "accepted",
+        "target": "/teleop_cmd",
+        "topic": "",
     }
 
 

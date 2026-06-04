@@ -164,6 +164,22 @@ export type RosTopicListResponse = {
   topics: RosTopicInfo[];
 };
 
+export type RuntimeAuditRecord = {
+  channel: string;
+  detail: string;
+  message_type: string;
+  payload_summary: Record<string, unknown>;
+  recorded_at: string;
+  session_id: string;
+  status: string;
+  target: string;
+  topic: string;
+};
+
+export type RuntimeAuditListResponse = {
+  records: RuntimeAuditRecord[];
+};
+
 export type BloomApiClientOptions = {
   baseUrl?: string;
   fetcher?: typeof fetch;
@@ -288,6 +304,12 @@ export class BloomApiClient {
   async listRosTopics(): Promise<RosTopicInfo[]> {
     const response = await this.request<RosTopicListResponse>("/api/v1/ros/topics");
     return response.topics;
+  }
+
+  async listRuntimeAuditRecords(limit = 100): Promise<RuntimeAuditRecord[]> {
+    const params = new URLSearchParams({ limit: String(limit) });
+    const response = await this.request<RuntimeAuditListResponse>(`/api/v1/runtime/audit?${params.toString()}`);
+    return response.records;
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {

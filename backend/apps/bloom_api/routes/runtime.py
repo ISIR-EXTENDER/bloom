@@ -1,22 +1,26 @@
 import asyncio
 from contextlib import suppress
+from dataclasses import asdict
 from typing import Callable
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import ValidationError
+from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, Field, ValidationError
 
+from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
 from libs.sessions import (
+    NoopTeleopCommandGateway,
+    RuntimeClientMessage,
+    RuntimeAuditLog,
+    RuntimeAuditRecord,
+    RuntimePingMessage,
+    RuntimeServerMessage,
+    RuntimeSessionManager,
     RuntimeTopicSample,
     RuntimeTopicSubscription,
     RuntimeTopicSubscriptionGateway,
     RuntimeTopicSubscriptionHandle,
-    RuntimeClientMessage,
-    RuntimePingMessage,
-    RuntimeServerMessage,
-    RuntimeSessionManager,
     RuntimeSubscribeTopicMessage,
     RuntimeTeleopCommandMessage,
-    NoopTeleopCommandGateway,
     TeleopCommand,
     TeleopCommandGateway,
     TeleopVector3,
@@ -36,6 +40,38 @@ def get_teleop_command_gateway(websocket: WebSocket) -> TeleopCommandGateway:
 
 def get_runtime_topic_subscription_gateway(websocket: WebSocket) -> RuntimeTopicSubscriptionGateway:
     return websocket.app.state.runtime_topic_subscription_gateway
+
+
+def get_runtime_audit_log(connection: Request | WebSocket) -> RuntimeAuditLog:
+    return connection.app.state.runtime_audit_log
+
+
+def get_runtime_command_policy(connection: Request | WebSocket) -> RuntimeCommandPolicy:
+    return connection.app.state.runtime_command_policy
+
+
+class RuntimeAuditRecordResponse(BaseModel):
+    channel: str
+    detail: str
+    message_type: str
+    payload_summary: dict = Field(default_factory=dict)
+    recorded_at: str
+    session_id: str
+    status: str
+    target: str
+    topic: str
+
+
+class RuntimeAuditListResponse(BaseModel):
+    records: tuple[RuntimeAuditRecordResponse, ...]
+
+
+@router.get("/audit", response_model=RuntimeAuditListResponse)
+def list_runtime_audit_records(request: Request, limit: int = 100) -> RuntimeAuditListResponse:
+    audit_log = get_runtime_audit_log(request)
+    return RuntimeAuditListResponse(
+        records=tuple(RuntimeAuditRecordResponse(**asdict(record)) for record in audit_log.list_records(limit))
+    )
 
 
 @router.websocket("/ws")
@@ -121,6 +157,8 @@ async def handle_runtime_client_payload(
             message,
             get_teleop_command_gateway(websocket),
             get_runtime_topic_subscription_gateway(websocket),
+            get_runtime_audit_log(websocket),
+            get_runtime_command_policy(websocket),
             lambda sample: event_loop.call_soon_threadsafe(enqueue_topic_sample, topic_samples, sample),
             topic_subscription_handles,
         ).model_dump()
@@ -132,6 +170,8 @@ def build_runtime_ack(
     message: RuntimeClientMessage,
     teleop_gateway: TeleopCommandGateway | None = None,
     topic_subscription_gateway: RuntimeTopicSubscriptionGateway | None = None,
+    audit_log: RuntimeAuditLog | None = None,
+    command_policy: RuntimeCommandPolicy | None = None,
     on_topic_sample: Callable[[RuntimeTopicSample], None] | None = None,
     topic_subscription_handles: list[RuntimeTopicSubscriptionHandle] | None = None,
 ) -> RuntimeServerMessage:
@@ -173,14 +213,59 @@ def build_runtime_ack(
 
     if isinstance(message, RuntimeTeleopCommandMessage):
         gateway = teleop_gateway or NoopTeleopCommandGateway()
+        policy = command_policy or RuntimeCommandPolicy(
+            allowed_message_types=("*",),
+            allowed_publish_topics=("*",),
+            allowed_teleop_targets=("/teleop_cmd",),
+        )
+        try:
+            policy.ensure_teleop_allowed(message.target)
+        except RuntimeCommandPolicyError as exc:
+            if audit_log:
+                audit_log.record(
+                    RuntimeAuditRecord(
+                        channel="websocket_teleop",
+                        detail=str(exc),
+                        session_id=session_id,
+                        status="rejected",
+                        target=message.target,
+                    )
+                )
+            return RuntimeServerMessage(
+                type="runtime_error",
+                detail="Teleop command was rejected by runtime policy.",
+                payload={"message": str(exc), "target": message.target},
+                session_id=session_id,
+            )
+
         try:
             receipt = gateway.publish(to_teleop_command(message))
         except RuntimeError as exc:
+            if audit_log:
+                audit_log.record(
+                    RuntimeAuditRecord(
+                        channel="websocket_teleop",
+                        detail=str(exc),
+                        session_id=session_id,
+                        status="rejected",
+                        target=message.target,
+                    )
+                )
             return RuntimeServerMessage(
                 type="runtime_error",
                 detail="Teleop command could not be published.",
                 payload={"message": str(exc), "target": message.target},
                 session_id=session_id,
+            )
+        if audit_log:
+            audit_log.record(
+                RuntimeAuditRecord(
+                    channel="websocket_teleop",
+                    detail=receipt.detail,
+                    session_id=session_id,
+                    status="accepted",
+                    target=receipt.target,
+                )
             )
         return RuntimeServerMessage(
             type="teleop_ack",
