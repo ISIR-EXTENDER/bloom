@@ -738,6 +738,114 @@
           ]
         },
         {
+          "id": "explorer-favorites",
+          "title": "Explorer favorites",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "favorites-title",
+              "kind": "label",
+              "title": "Favorite shortcuts",
+              "layout": {
+                "x": 76,
+                "y": 64,
+                "width": 820,
+                "height": 100
+              },
+              "settings": {
+                "align": "left",
+                "fontSize": 30,
+                "text": "Favorites give trained operators fast access to common layouts, positions, and task presets."
+              }
+            },
+            {
+              "id": "favorite-both-mode",
+              "kind": "command-button",
+              "title": "Favorite mode",
+              "layout": {
+                "x": 96,
+                "y": 226,
+                "width": 300,
+                "height": 146
+              },
+              "settings": {
+                "command": "explorer.favorite.mode.both",
+                "button_label": "BOTH mode",
+                "action_id": "explorer-favorite-mode-both",
+                "action_label": "Apply BOTH control mode favorite",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "favorite-tablet-layout",
+              "kind": "command-button",
+              "title": "Favorite layout",
+              "layout": {
+                "x": 444,
+                "y": 226,
+                "width": 300,
+                "height": 146
+              },
+              "settings": {
+                "command": "explorer.favorite.layout.tablet",
+                "button_label": "Tablet layout",
+                "action_id": "explorer-favorite-layout-tablet",
+                "action_label": "Apply tablet display favorite",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "favorite-work-position",
+              "kind": "command-button",
+              "title": "Favorite position",
+              "layout": {
+                "x": 792,
+                "y": 226,
+                "width": 300,
+                "height": 146
+              },
+              "settings": {
+                "command": "explorer.favorite.position.work",
+                "button_label": "Work pose",
+                "action_id": "explorer-favorite-position-work",
+                "action_label": "Apply work position favorite",
+                "action_feedback": "progress",
+                "cancellable": true
+              }
+            },
+            {
+              "id": "favorites-events",
+              "kind": "event-log",
+              "title": "Favorite feedback",
+              "layout": {
+                "x": 96,
+                "y": 460,
+                "width": 996,
+                "height": 230
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "success",
+                    "summary": "Favorites are app-level presets",
+                    "detail": "Bloom keeps shortcuts as configured commands so each project can decide what a favorite means.",
+                    "timestamp": "2026-06-04T10:09:30Z"
+                  }
+                ],
+                "maxEntries": 6,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": false,
+                "show_details": false
+              }
+            }
+          ]
+        },
+        {
           "id": "explorer-supervision",
           "title": "Explorer supervision",
           "canvas": {

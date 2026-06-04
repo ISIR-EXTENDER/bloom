@@ -305,6 +305,9 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Explorer drink mode/i }));
     expect(screen.getByRole("button", { name: "Start" })).toBeVisible();
     expect(screen.getByText("Task feedback")).toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: /Explorer favorites/i }));
+    expect(screen.getByRole("button", { name: "BOTH mode" })).toBeVisible();
+    expect(screen.getByText("Favorite feedback")).toBeVisible();
     expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
   });
 
@@ -331,6 +334,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Edit Explorer Saved Positions screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Explorer Safety Zones screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Explorer Drink Mode screen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit Explorer Favorites screen" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 3, name: "Debug monitors" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Preview Explorer Debug Console screen runtime" })).toBeVisible();
   });
