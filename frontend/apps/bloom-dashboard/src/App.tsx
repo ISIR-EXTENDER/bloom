@@ -17,7 +17,9 @@ import {
   createDashboardRuntimeActionClient,
 } from "./configurations/configuration-client";
 import { duplicateApplicationInConfigurationBundle } from "./configurations/configuration-editor";
+import type { LoadedConfiguration } from "./configurations/configuration-loader";
 import { useConfigurations } from "./configurations/use-configurations";
+import { HelpPage } from "./help/HelpPage";
 import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
@@ -34,6 +36,7 @@ const defaultConfigurationClient = createDashboardConfigurationClient();
 const defaultRuntimeActionClient = createDashboardRuntimeActionClient();
 
 type BuilderMode = "app-config" | "home" | "screen-builder";
+type RuntimeMode = "app" | "home";
 
 type AppProps = {
   configurationClient?: ConfigurationClient;
@@ -48,6 +51,8 @@ export function App({
   const runtimeActions = useRuntimeActionDispatcher(runtimeActionClient);
   const [activeView, setActiveView] = useState<ProductView>("landing");
   const [builderMode, setBuilderMode] = useState<BuilderMode>("home");
+  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>("home");
+  const [recentRuntimeSelections, setRecentRuntimeSelections] = useState<readonly WorkspaceSelection[]>([]);
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
 
   useEffect(() => {
@@ -79,6 +84,21 @@ export function App({
     await configurationState.saveApplication(selectedWorkspace.configuration.id, application);
   };
 
+  const handleUploadThemeAsset = async (file: File): Promise<string> => {
+    if (configurationState.status !== "ready" || !selection) {
+      throw new Error("Bloom cannot upload a theme asset before an application is selected.");
+    }
+
+    const selectedWorkspace = resolveSelectedWorkspace(configurationState.configurations, selection);
+    const contentBase64 = await readFileAsBase64(file);
+    const response = await configurationClient.uploadThemeAsset(selectedWorkspace.configuration.id, {
+      filename: file.name,
+      content_type: file.type,
+      content_base64: contentBase64,
+    });
+    return response.uri;
+  };
+
   const handleCreateApplication = async (configId: string, application: ApplicationConfig) => {
     if (configurationState.status !== "ready") {
       throw new Error("Bloom cannot create an application before configurations are loaded.");
@@ -91,6 +111,37 @@ export function App({
     await configurationState.saveApplication(configId, application);
     setSelection({ configId, appId: application.id, screenId: application.screens[0]?.id ?? "main" });
     setBuilderMode("app-config");
+  };
+
+  const handleProductViewChange = (view: ProductView) => {
+    if (view === "runtime") {
+      setRuntimeMode("home");
+    }
+    setActiveView(view);
+  };
+
+  const openRuntimeApp = (nextSelection: WorkspaceSelection) => {
+    setSelection(nextSelection);
+    setRecentRuntimeSelections((currentSelections) =>
+      [
+        nextSelection,
+        ...currentSelections.filter(
+          (candidate) => candidate.configId !== nextSelection.configId || candidate.appId !== nextSelection.appId,
+        ),
+      ].slice(0, 3),
+    );
+    setRuntimeMode("app");
+    setActiveView("runtime");
+  };
+
+  const editRuntimeApplication = () => {
+    setBuilderMode("app-config");
+    setActiveView("builder");
+  };
+
+  const editRuntimeScreen = () => {
+    setBuilderMode("screen-builder");
+    setActiveView("builder");
   };
 
   const handleDuplicateApplication = async (configId: string, applicationId: string) => {
@@ -136,27 +187,35 @@ export function App({
   return (
     <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
       <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
-        <ProductNavigation activeView={activeView} onChangeView={setActiveView} />
+        <ProductNavigation activeView={activeView} onChangeView={handleProductViewChange} />
 
         <div id="bloom-main-content" tabIndex={-1}>
           <AppErrorBoundary resetKey={activeView}>
             {activeView === "landing" ? (
               <LandingPage onOpenView={setActiveView} />
+            ) : activeView === "help" ? (
+              <HelpPage onOpenView={setActiveView} />
             ) : (
               <MainApplicationView
                 activeView={activeView}
                 builderMode={builderMode}
+                onBackToRuntimeHome={() => setRuntimeMode("home")}
                 onChangeBuilderMode={setBuilderMode}
                 onCreateApplication={handleCreateApplication}
                 onDeleteApplication={handleDeleteApplication}
                 onDuplicateApplication={handleDuplicateApplication}
+                onEditRuntimeApplication={editRuntimeApplication}
+                onEditRuntimeScreen={editRuntimeScreen}
+                onOpenRuntimeApp={openRuntimeApp}
                 onRuntimeIntent={handleRuntimeIntent}
                 onSaveApplication={handleSaveApplication}
                 onSaveBuilderScreen={handleSaveBuilderScreen}
                 onSelectionChange={setSelection}
                 onTopicSample={runtimeActionClient.addRuntimeTopicSampleListener}
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
-                onViewChange={setActiveView}
+                onUploadThemeAsset={handleUploadThemeAsset}
+                recentRuntimeSelections={recentRuntimeSelections}
+                runtimeMode={runtimeMode}
                 selection={selection}
                 state={configurationState}
               />
@@ -171,17 +230,23 @@ export function App({
 type MainApplicationViewProps = {
   activeView: Exclude<ProductView, "landing">;
   builderMode: BuilderMode;
+  onBackToRuntimeHome: () => void;
   onChangeBuilderMode: (mode: BuilderMode) => void;
   onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
   onDeleteApplication: (configId: string, applicationId: string) => Promise<void>;
   onDuplicateApplication: (configId: string, applicationId: string) => Promise<void>;
+  onEditRuntimeApplication: () => void;
+  onEditRuntimeScreen: () => void;
+  onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
   onRuntimeIntent: (intent: WidgetActionIntent) => void;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onTopicSample: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
-  onViewChange: (view: ProductView) => void;
+  onUploadThemeAsset: (file: File) => Promise<string>;
+  recentRuntimeSelections: readonly WorkspaceSelection[];
+  runtimeMode: RuntimeMode;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
 };
@@ -189,17 +254,23 @@ type MainApplicationViewProps = {
 function MainApplicationView({
   activeView,
   builderMode,
+  onBackToRuntimeHome,
   onChangeBuilderMode,
   onCreateApplication,
   onDeleteApplication,
   onDuplicateApplication,
+  onEditRuntimeApplication,
+  onEditRuntimeScreen,
+  onOpenRuntimeApp,
   onRuntimeIntent,
   onSaveApplication,
   onSaveBuilderScreen,
   onSelectionChange,
   onTopicSample,
   onTopicSubscriptionRequest,
-  onViewChange,
+  onUploadThemeAsset,
+  recentRuntimeSelections,
+  runtimeMode,
   selection,
   state,
 }: MainApplicationViewProps) {
@@ -234,8 +305,7 @@ function MainApplicationView({
             onChangeBuilderMode("screen-builder");
           }}
           onPreviewScreenRuntime={(nextSelection) => {
-            onSelectionChange(nextSelection);
-            onViewChange("runtime");
+            onOpenRuntimeApp(nextSelection);
           }}
         />
       );
@@ -251,6 +321,7 @@ function MainApplicationView({
             onChangeBuilderMode("screen-builder");
           }}
           onSaveApplication={onSaveApplication}
+          onUploadThemeAsset={onUploadThemeAsset}
           selection={selection}
         />
       );
@@ -267,10 +338,23 @@ function MainApplicationView({
     );
   }
 
+  if (runtimeMode === "home") {
+    return (
+      <RuntimeHome
+        configurations={state.configurations}
+        onOpenRuntimeApp={onOpenRuntimeApp}
+        recentRuntimeSelections={recentRuntimeSelections}
+      />
+    );
+  }
+
   return (
     <RuntimeWorkspace
       application={selectedWorkspace.application}
+      onBackToRuntimeHome={onBackToRuntimeHome}
       onActionIntent={onRuntimeIntent}
+      onEditApplication={onEditRuntimeApplication}
+      onEditScreen={onEditRuntimeScreen}
       onSelectionChange={onSelectionChange}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
@@ -278,6 +362,118 @@ function MainApplicationView({
       selection={selection}
     />
   );
+}
+
+type RuntimeHomeProps = {
+  configurations: readonly LoadedConfiguration[];
+  onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
+  recentRuntimeSelections: readonly WorkspaceSelection[];
+};
+
+function RuntimeHome({ configurations, onOpenRuntimeApp, recentRuntimeSelections }: RuntimeHomeProps) {
+  const runtimeApps = configurations.flatMap((configuration) =>
+    configuration.bundle.applications.map((application) => ({
+      application,
+      configuration,
+      firstScreen: application.screens[0],
+    })),
+  );
+  const recentRuntimeApps = recentRuntimeSelections
+    .map((recentSelection) => {
+      const configuration = configurations.find((candidate) => candidate.id === recentSelection.configId);
+      const application = configuration?.bundle.applications.find(
+        (candidate) => candidate.id === recentSelection.appId,
+      );
+      const screen =
+        application?.screens.find((candidate) => candidate.id === recentSelection.screenId) ?? application?.screens[0];
+
+      return configuration && application && screen ? { application, configuration, screen } : null;
+    })
+    .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
+
+  return (
+    <section className="runtime-home" aria-labelledby="runtime-home-title">
+      <div className="runtime-home-hero">
+        <div>
+          <p className="eyebrow">Runtime library</p>
+          <h1 id="runtime-home-title">Choose an app to operate.</h1>
+        </div>
+        <p>
+          Runtime is the clean operator view. Pick an app here, then use the small edit shortcuts only when something
+          needs to go back through the builder.
+        </p>
+      </div>
+
+      {recentRuntimeApps.length > 0 ? (
+        <section className="runtime-recent-panel" aria-labelledby="runtime-recent-title">
+          <div>
+            <p className="eyebrow">Recently opened</p>
+            <h2 id="runtime-recent-title">Resume quickly</h2>
+          </div>
+          <div className="runtime-recent-actions">
+            {recentRuntimeApps.map(({ application, configuration, screen }) => (
+              <button
+                aria-label={`Resume ${application.name} on ${screen.title}`}
+                className="runtime-recent-action"
+                key={`${configuration.id}:${application.id}`}
+                onClick={() =>
+                  onOpenRuntimeApp({ appId: application.id, configId: configuration.id, screenId: screen.id })
+                }
+                type="button"
+              >
+                <strong>{application.name}</strong>
+                <span>{screen.title}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <ul className="runtime-app-grid" aria-label="Available runtime apps">
+        {runtimeApps.map(({ application, configuration, firstScreen }) => (
+          <li className="runtime-app-card" key={`${configuration.id}:${application.id}`}>
+            <article>
+              <div>
+                <span className="runtime-app-card-tag">{application.screens.length} screens</span>
+                <h2>{application.name}</h2>
+                {application.description ? <p>{application.description}</p> : <p>Ready to launch in operator mode.</p>}
+              </div>
+              <button
+                aria-label={`Launch ${application.name} runtime`}
+                className="runtime-app-card-action"
+                disabled={!firstScreen}
+                onClick={() => {
+                  if (!firstScreen) {
+                    return;
+                  }
+                  onOpenRuntimeApp({ appId: application.id, configId: configuration.id, screenId: firstScreen.id });
+                }}
+                type="button"
+              >
+                Launch runtime
+              </button>
+            </article>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      if (typeof reader.result !== "string") {
+        reject(new Error("Bloom could not read this theme asset."));
+        return;
+      }
+
+      resolve(reader.result.split(",", 2)[1] ?? "");
+    });
+    reader.addEventListener("error", () => reject(new Error("Bloom could not read this theme asset.")));
+    reader.readAsDataURL(file);
+  });
 }
 
 type ConfigurationStatusProps = {

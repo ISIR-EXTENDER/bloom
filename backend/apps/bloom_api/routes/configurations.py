@@ -1,4 +1,9 @@
+import base64
+import hashlib
+import re
+
 from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from libs.config import (
@@ -16,8 +21,16 @@ from libs.config import (
     upsert_application,
     upsert_screen,
 )
+from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
 
 router = APIRouter(prefix="/configurations", tags=["configurations"])
+
+MAX_THEME_ASSET_BYTES = 1_000_000
+ALLOWED_THEME_ASSET_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
 
 
 class ConfigurationListResponse(BaseModel):
@@ -36,6 +49,18 @@ class ReusableScreenResponse(BaseModel):
 
 class ReusableScreensResponse(BaseModel):
     screens: list[ReusableScreenResponse]
+
+
+class ThemeAssetUploadRequest(BaseModel):
+    filename: str
+    content_type: str
+    content_base64: str
+
+
+class ThemeAssetUploadResponse(BaseModel):
+    uri: str
+    content_type: str
+    byte_size: int
 
 
 def get_configuration_repository(request: Request) -> ConfigurationRepository:
@@ -158,9 +183,111 @@ def delete_configuration(config_id: str, request: Request) -> Response:
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+@router.post("/{config_id}/theme-assets", response_model=ThemeAssetUploadResponse)
+def upload_theme_asset(
+    config_id: str,
+    upload: ThemeAssetUploadRequest,
+    request: Request,
+) -> ThemeAssetUploadResponse:
+    get_configuration_bundle(config_id, request)
+
+    content = decode_theme_asset(upload)
+    safe_extension = ALLOWED_THEME_ASSET_TYPES[upload.content_type]
+    asset_digest = hashlib.sha256(content).hexdigest()[:16]
+    safe_stem = slugify_asset_name(upload.filename) or "theme-asset"
+    asset_filename = f"{config_id}-{safe_stem}-{asset_digest}{safe_extension}"
+    asset_dir = request.app.state.settings.theme_asset_dir
+    asset_dir.mkdir(parents=True, exist_ok=True)
+    asset_path = asset_dir / asset_filename
+    asset_path.write_bytes(content)
+    asset_uri = f"{request.app.state.settings.api_prefix}/configurations/{config_id}/theme-assets/{asset_filename}"
+    register_theme_asset_if_sqlite(request, asset_digest, asset_uri, asset_filename, upload.content_type, len(content))
+
+    return ThemeAssetUploadResponse(
+        uri=asset_uri,
+        content_type=upload.content_type,
+        byte_size=len(content),
+    )
+
+
+@router.get("/{config_id}/theme-assets/{asset_filename}")
+def get_theme_asset(config_id: str, asset_filename: str, request: Request) -> FileResponse:
+    get_configuration_bundle(config_id, request)
+
+    asset_dir = request.app.state.settings.theme_asset_dir.resolve()
+    asset_path = (asset_dir / asset_filename).resolve()
+    if asset_dir not in asset_path.parents or not asset_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="theme asset not found")
+
+    content_type = resolve_asset_content_type(asset_filename)
+    if content_type is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="theme asset not found")
+
+    return FileResponse(asset_path, media_type=content_type)
+
+
 def get_configuration_bundle(config_id: str, request: Request) -> ConfigurationBundle:
     repository = get_configuration_repository(request)
     try:
         return repository.get(config_id)
     except ConfigurationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="configuration not found") from exc
+
+
+def decode_theme_asset(upload: ThemeAssetUploadRequest) -> bytes:
+    if upload.content_type not in ALLOWED_THEME_ASSET_TYPES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported theme asset type")
+
+    try:
+        content = base64.b64decode(upload.content_base64, validate=True)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid theme asset encoding") from exc
+
+    if len(content) > MAX_THEME_ASSET_BYTES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="theme asset is too large")
+
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="theme asset is empty")
+
+    return content
+
+
+def slugify_asset_name(filename: str) -> str:
+    stem = filename.rsplit(".", maxsplit=1)[0]
+    return re.sub(r"[^a-z0-9]+", "-", stem.lower()).strip("-")
+
+
+def resolve_asset_content_type(asset_filename: str) -> str | None:
+    for content_type, extension in ALLOWED_THEME_ASSET_TYPES.items():
+        if asset_filename.endswith(extension):
+            return content_type
+    return None
+
+
+def register_theme_asset_if_sqlite(
+    request: Request,
+    asset_id: str,
+    uri: str,
+    filename: str,
+    content_type: str,
+    byte_size: int,
+) -> None:
+    settings = request.app.state.settings
+    if settings.configuration_storage != "sqlite":
+        return
+
+    with sqlite_connection(settings.configuration_database_path) as connection:
+        apply_sqlite_migrations(connection)
+        connection.execute(
+            """
+            INSERT INTO theme_assets (asset_id, uri, filename, content_type, byte_size)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(asset_id) DO UPDATE SET
+                uri = excluded.uri,
+                filename = excluded.filename,
+                content_type = excluded.content_type,
+                byte_size = excluded.byte_size
+            """,
+            (asset_id, uri, filename, content_type, byte_size),
+        )
+        connection.commit()

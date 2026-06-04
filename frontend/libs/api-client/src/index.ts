@@ -127,6 +127,18 @@ export type ReusableScreensResponse = {
   screens: ReusableScreen[];
 };
 
+export type ThemeAssetUploadRequest = {
+  filename: string;
+  content_type: string;
+  content_base64: string;
+};
+
+export type ThemeAssetUploadResponse = {
+  uri: string;
+  content_type: string;
+  byte_size: number;
+};
+
 export type RosTopicPublishStatus = "published" | "simulated";
 
 export type RosTopicPublishRequest = {
@@ -252,6 +264,17 @@ export class BloomApiClient {
     await this.request<void>(`/api/v1/configurations/${encodeURIComponent(configId)}`, {
       method: "DELETE",
     });
+  }
+
+  uploadThemeAsset(configId: string, upload: ThemeAssetUploadRequest): Promise<ThemeAssetUploadResponse> {
+    return this.request<ThemeAssetUploadResponse>(
+      `/api/v1/configurations/${encodeURIComponent(configId)}/theme-assets`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(upload),
+      },
+    );
   }
 
   publishRosTopic(request: RosTopicPublishRequest): Promise<RosTopicPublishResponse> {

@@ -143,6 +143,7 @@ describe("widget capability metadata", () => {
       defaultSettings: {
         binding: "joy",
         deadzone: 0.1,
+        show_details: false,
       },
       defaultTitle: "Joystick",
       displayName: "Joystick",
@@ -223,6 +224,7 @@ describe("widget capability metadata", () => {
         max: 3,
         min: 0,
         returnToCenter: false,
+        show_details: false,
         step: 0.01,
       },
     });
@@ -321,6 +323,7 @@ describe("widget settings contracts", () => {
         max: 3,
         min: 0,
         returnToCenter: false,
+        show_details: false,
         step: 0.01,
       },
     });
@@ -335,6 +338,10 @@ describe("widget settings contracts", () => {
         {
           field: "direction",
           message: "direction must be one of: horizontal, vertical",
+        },
+        {
+          field: "show_details",
+          message: "show_details must be a boolean",
         },
         {
           field: "max",

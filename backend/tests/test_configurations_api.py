@@ -1,3 +1,4 @@
+import base64
 import json
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from libs.config import (
     SQLiteConfigurationRepository,
     load_legacy_screen_file,
 )
+from libs.db.sqlite import sqlite_connection
 
 SHARED_FIXTURE_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "configuration-bundle.json"
 LEGACY_FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
@@ -226,6 +228,63 @@ def test_configuration_api_persists_with_sqlite_between_app_instances(
     assert get_response.status_code == 200
     assert get_response.json()["metadata"]["source"] == "shared-contract-fixture"
     assert SQLiteConfigurationRepository(database_path).list_ids() == ["persisted"]
+
+
+def test_theme_asset_upload_stores_and_serves_image(tmp_path, sample_configuration_bundle: ConfigurationBundle) -> None:
+    database_path = tmp_path / "bloom.db"
+    settings = Settings(
+        environment="test",
+        configuration_database_path=database_path,
+        configuration_storage="sqlite",
+        theme_asset_dir=tmp_path / "theme-assets",
+    )
+    client = TestClient(create_app(settings))
+    client.put("/api/v1/configurations/sandbox", json=sample_configuration_bundle.model_dump(mode="json"))
+
+    response = client.post(
+        "/api/v1/configurations/sandbox/theme-assets",
+        json={
+            "filename": "Mood Board.png",
+            "content_type": "image/png",
+            "content_base64": base64.b64encode(b"fake png bytes").decode("ascii"),
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["content_type"] == "image/png"
+    assert payload["byte_size"] == len(b"fake png bytes")
+    assert payload["uri"].startswith("/api/v1/configurations/sandbox/theme-assets/sandbox-mood-board-")
+    assert client.get(payload["uri"]).content == b"fake png bytes"
+
+    with sqlite_connection(database_path) as connection:
+        row = connection.execute("SELECT uri, content_type, byte_size FROM theme_assets").fetchone()
+
+    assert row["uri"] == payload["uri"]
+    assert row["content_type"] == "image/png"
+    assert row["byte_size"] == len(b"fake png bytes")
+
+
+def test_theme_asset_upload_rejects_unsupported_type(
+    tmp_path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    client = TestClient(
+        create_app(Settings(environment="test", configuration_dir=tmp_path / "configurations", theme_asset_dir=tmp_path))
+    )
+    client.put("/api/v1/configurations/sandbox", json=sample_configuration_bundle.model_dump(mode="json"))
+
+    response = client.post(
+        "/api/v1/configurations/sandbox/theme-assets",
+        json={
+            "filename": "notes.txt",
+            "content_type": "text/plain",
+            "content_base64": base64.b64encode(b"not an image").decode("ascii"),
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "unsupported theme asset type"}
 
 
 def test_application_endpoint_persists_with_sqlite_between_app_instances(

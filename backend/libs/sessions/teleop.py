@@ -31,7 +31,7 @@ class TeleopPublishReceipt:
 
 class TeleopCommandGateway(Protocol):
     def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
-        ...
+        raise NotImplementedError
 
 
 class NoopTeleopCommandGateway:

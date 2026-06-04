@@ -5,11 +5,14 @@ import {
   addScreenToApplication,
   createUniqueId,
   duplicateScreenInApplication,
+  moveScreenBeforeInApplication,
   removeScreenFromApplication,
+  reorderScreenInApplication,
 } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import {
+  BLOOM_APP_SCREEN_REORDER_DRAG_TYPE,
   BLOOM_SCREEN_DRAG_TYPE,
   canReceiveBloomDrag,
   readBloomDragPayload,
@@ -22,6 +25,7 @@ type BuilderAppConfigProps = {
   onBackToHome: () => void;
   onOpenScreenBuilder: (selection: WorkspaceSelection) => void;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
+  onUploadThemeAsset: (file: File) => Promise<string>;
   selection: WorkspaceSelection;
 };
 
@@ -58,6 +62,7 @@ export function BuilderAppConfig({
   onBackToHome,
   onOpenScreenBuilder,
   onSaveApplication,
+  onUploadThemeAsset,
   selection,
 }: BuilderAppConfigProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
@@ -140,6 +145,18 @@ export function BuilderAppConfig({
     setSaveState({ status: "idle" });
   };
 
+  const reorderScreen = (screenId: string, direction: "down" | "up") => {
+    setDraftApplication((currentApplication) => reorderScreenInApplication(currentApplication, screenId, direction));
+    setSaveState({ status: "idle" });
+  };
+
+  const moveScreenBefore = (screenId: string, targetScreenId: string) => {
+    setDraftApplication((currentApplication) =>
+      moveScreenBeforeInApplication(currentApplication, screenId, targetScreenId),
+    );
+    setSaveState({ status: "idle" });
+  };
+
   const updateThemeInspiration = (nextInspiration: Partial<ApplicationConfig["theme"]["inspiration"]>) => {
     setDraftApplication((currentApplication) => ({
       ...currentApplication,
@@ -171,7 +188,7 @@ export function BuilderAppConfig({
     }
 
     try {
-      updateThemeInspiration({ moodboard_image_uri: await readFileAsDataUrl(file) });
+      updateThemeInspiration({ moodboard_image_uri: await onUploadThemeAsset(file) });
     } catch (error) {
       setThemeInspirationError(getErrorMessage(error));
     }
@@ -376,7 +393,7 @@ export function BuilderAppConfig({
                   addScreenById(readBloomDragPayload(event.dataTransfer, BLOOM_SCREEN_DRAG_TYPE));
                 }}
               >
-                {draftApplication.screens.map((screen) => (
+                {draftApplication.screens.map((screen, screenIndex) => (
                   <ScreenCard
                     actions={[
                       {
@@ -389,6 +406,18 @@ export function BuilderAppConfig({
                             configId: selectedWorkspace.configuration.id,
                             screenId: screen.id,
                           }),
+                      },
+                      {
+                        ariaLabel: `Move ${screen.title} earlier in app`,
+                        disabled: screenIndex === 0 || isSaving,
+                        label: "Move up",
+                        onClick: () => reorderScreen(screen.id, "up"),
+                      },
+                      {
+                        ariaLabel: `Move ${screen.title} later in app`,
+                        disabled: screenIndex === draftApplication.screens.length - 1 || isSaving,
+                        label: "Move down",
+                        onClick: () => reorderScreen(screen.id, "down"),
                       },
                       {
                         ariaLabel: `Remove ${screen.title} from app`,
@@ -404,7 +433,10 @@ export function BuilderAppConfig({
                         onClick: () => duplicateScreen(screen.id),
                       },
                     ]}
+                    draggable={!isSaving}
                     key={screen.id}
+                    onDropBefore={(screenId) => moveScreenBefore(screenId, screen.id)}
+                    reorderDragType={BLOOM_APP_SCREEN_REORDER_DRAG_TYPE}
                     screen={screen}
                   />
                 ))}
@@ -467,11 +499,15 @@ export function BuilderAppConfig({
 function ScreenCard({
   actions,
   draggable = false,
+  onDropBefore,
+  reorderDragType = BLOOM_SCREEN_DRAG_TYPE,
   screen,
   sourceApplicationName,
 }: {
   actions: readonly ScreenCardAction[];
   draggable?: boolean;
+  onDropBefore?: (screenId: string) => void;
+  reorderDragType?: string;
   screen: ScreenConfig;
   sourceApplicationName?: string;
 }) {
@@ -479,11 +515,23 @@ function ScreenCard({
     <article
       className="builder-screen-card"
       draggable={draggable}
+      onDragOver={(event) => {
+        if (onDropBefore && canReceiveBloomDrag(event.dataTransfer, reorderDragType)) {
+          event.preventDefault();
+        }
+      }}
       onDragStart={(event) => {
         if (!draggable) {
           return;
         }
-        writeBloomDragPayload(event.dataTransfer, BLOOM_SCREEN_DRAG_TYPE, screen.id);
+        writeBloomDragPayload(event.dataTransfer, reorderDragType, screen.id);
+      }}
+      onDrop={(event) => {
+        if (!onDropBefore || !canReceiveBloomDrag(event.dataTransfer, reorderDragType)) {
+          return;
+        }
+        event.preventDefault();
+        onDropBefore(readBloomDragPayload(event.dataTransfer, reorderDragType));
       }}
       style={createScreenAccentStyle(screen)}
     >
@@ -572,21 +620,6 @@ const SCREEN_FEATURE_COLORS = {
 } satisfies Record<ScreenFeature, string>;
 
 const SCREEN_FEATURE_ORDER: readonly ScreenFeature[] = ["controls", "camera", "debug", "interface", "empty"];
-
-function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-      reject(new Error("Moodboard image could not be read."));
-    });
-    reader.addEventListener("error", () => reject(new Error("Moodboard image could not be read.")));
-    reader.readAsDataURL(file);
-  });
-}
 
 function collectAvailableScreens(applications: readonly ApplicationConfig[]): AvailableScreen[] {
   const screensById = new Map<string, AvailableScreen>();

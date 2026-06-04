@@ -15,6 +15,7 @@ class Settings(BaseModel):
     configuration_storage: Literal["file", "sqlite"] = Field(default="file")
     configuration_dir: Path = Field(default=Path("data/configurations"))
     configuration_database_path: Path = Field(default=Path("data/bloom.db"))
+    theme_asset_dir: Path = Field(default=Path("data/theme-assets"))
 
 
 @lru_cache

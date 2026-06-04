@@ -25,7 +25,7 @@ RuntimeTopicSampleCallback = Callable[[RuntimeTopicSample], None]
 
 class RuntimeTopicSubscriptionHandle(Protocol):
     def close(self) -> None:
-        ...
+        raise NotImplementedError
 
 
 class RuntimeTopicSubscriptionGateway(Protocol):
@@ -34,7 +34,7 @@ class RuntimeTopicSubscriptionGateway(Protocol):
         subscription: RuntimeTopicSubscription,
         on_sample: RuntimeTopicSampleCallback,
     ) -> RuntimeTopicSubscriptionHandle:
-        ...
+        raise NotImplementedError
 
 
 class NoopRuntimeTopicSubscriptionHandle:

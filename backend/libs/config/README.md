@@ -21,6 +21,8 @@ This library describes Bloom concepts such as applications, screens, widgets, an
 - `FileConfigurationRepository` for local JSON-backed persistence before database storage
 
 `sqlite_repository.py` stores configuration bundles in SQLite while Bloom validates the database-backed migration path.
+It also synchronizes normalized mirror rows for apps, screens, widgets, and theme assets so Phase 2 can support a real
+app/screen library without losing the full JSON migration bridge.
 
 ## Editor Operations
 

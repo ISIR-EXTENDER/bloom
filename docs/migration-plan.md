@@ -101,7 +101,7 @@ Phase 1 closure notes:
 
 ### Phase 2 - Storage And App Library
 
-Status: started.
+Status: complete.
 
 - Use SQLite-backed configuration storage as the long-term source of truth.
 - Keep JSON import/export for migration, backups, and regression tests.
@@ -125,29 +125,34 @@ Already done in this phase:
   screen without making the reusable library harder to scan.
 - App configuration screen composition now groups available reusable screens by functional type and supports dragging a
   screen into the current app flow, while keeping explicit button fallbacks.
+- SQLite now keeps normalized mirror tables for apps, screens, widgets, and theme assets while preserving the full JSON
+  bundle as the lossless migration bridge.
+- App list/create/duplicate/delete flows are backed by API saves, with a clearer starter-app creation path.
+- Screen list/create/duplicate/reuse/delete flows are backed by API saves, with screen-only builder and runtime preview
+  entrypoints from the shared screen library.
+- App composition supports drag/drop reusable screens, drag/drop screen reordering, and explicit button fallbacks.
+- The builder includes a playground/draft lab for quick runtime screen checks before users create a full saved app.
+- Touch editing hints are in place for app names, screen names, labels, URLs, payload-style fields, and longer text.
+- Theme moodboard images now use a backend asset upload endpoint instead of storing data URLs in app config.
+- App configuration cards stay intentionally human-readable with feature labels, source-app hints, and clean copy.
+- Builder visual QA now covers readable cards, focus states, tactile drag affordance, clean control widgets, and
+  tablet-friendly interaction spacing.
+- Runtime navigation now opens an app library instead of silently using the current builder selection.
+- Runtime app library includes session-local recent app shortcuts, with the full library still visible.
+- Runtime apps keep a clean operator view while exposing small app/screen edit shortcuts back to the builder.
+- Backend/robot/network status UX has a documented hierarchy so Bloom can add status indicators without becoming noisy.
 
-Remaining focus in this phase:
+Phase 2 follow-ups that should not block Phase 3:
 
-- Normalize SQLite storage beyond bundled configuration documents.
-- Add app list/create/duplicate/archive flows backed by storage.
-- Replace the blank-app shortcut with an optional guided create-app wizard:
-  identity, description, design-system preset or moodboard/reference, starter screens, and onboarding attention spots
-  that highlight the zones users should configure first.
-- Add screen list/create/duplicate/reuse/archive flows backed by storage.
-- Add screen-only builder and screen-only runtime preview flows, so reusable screens can be designed before app
-  composition.
-- Continue evolving the app-flow composition surface:
-  reorder screens, improve visual previews, keep explicit buttons as accessible fallbacks, and preserve the same tactile
-  affordance used by widget drag-and-drop inside the screen builder.
-- Add a builder playground/draft lab for quick robot experiments without creating a saved app first:
-  demo widgets, temporary screens, hardware joystick smoke tests, topic echo/publish checks, and a later "promote to
-  reusable screen/app" action.
-- Keep touch editing reliable for tablet/Raspberry usage: app names, screen names, widget labels, payloads, notes, and
-  annotations should use field-specific keyboard hints now; optional virtual-keyboard workflows can be explored later.
-- Replace early data-URL moodboard storage with a proper theme asset upload endpoint when normalized SQLite assets are introduced.
-- Keep app configuration cards intentionally human-readable: feature labels and source-app hints should replace raw
-  technical metadata unless the user explicitly opens an inspector.
-- Finish visual and interaction QA for the builder so widgets stay visible, editable, and touch-friendly.
+- Reconstruct configuration bundles from normalized SQLite tables once the schema stabilizes.
+- Add a full guided create-app wizard with starter screen selection, design-system presets, and onboarding attention
+  spots.
+- Persist recent apps and display/profile preferences once user profiles are introduced.
+- Add real backend/runtime/robot status indicators through explicit adapters.
+- Add asset cleanup when moodboards are replaced or apps are archived.
+- Promote playground drafts into reusable screens or saved apps.
+- Add cached screen thumbnails after asset storage has a lifecycle policy.
+- Explore optional virtual-keyboard workflows for Raspberry/tablet use.
 
 ### Phase 3 - Runtime ROS Integration
 

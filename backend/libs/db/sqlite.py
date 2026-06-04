@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def connect_sqlite_database(path: str | Path) -> sqlite3.Connection:
@@ -39,11 +39,69 @@ def apply_sqlite_migrations(connection: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS configuration_applications (
+            config_id TEXT NOT NULL,
+            app_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT NOT NULL,
+            theme_json TEXT NOT NULL,
+            profiles_json TEXT NOT NULL,
+            position INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (config_id, app_id),
+            FOREIGN KEY (config_id)
+                REFERENCES configuration_bundles(config_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS configuration_screens (
+            config_id TEXT NOT NULL,
+            app_id TEXT NOT NULL,
+            screen_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            canvas_json TEXT NOT NULL,
+            position INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (config_id, app_id, screen_id),
+            FOREIGN KEY (config_id, app_id)
+                REFERENCES configuration_applications(config_id, app_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS configuration_widgets (
+            config_id TEXT NOT NULL,
+            app_id TEXT NOT NULL,
+            screen_id TEXT NOT NULL,
+            widget_id TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            title TEXT NOT NULL,
+            layout_json TEXT NOT NULL,
+            settings_json TEXT NOT NULL,
+            position INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (config_id, app_id, screen_id, widget_id),
+            FOREIGN KEY (config_id, app_id, screen_id)
+                REFERENCES configuration_screens(config_id, app_id, screen_id)
+                ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS theme_assets (
+            asset_id TEXT PRIMARY KEY,
+            uri TEXT NOT NULL UNIQUE,
+            filename TEXT NOT NULL,
+            content_type TEXT NOT NULL,
+            byte_size INTEGER NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
         """
     )
-    connection.execute(
+    connection.executemany(
         "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",
-        (SCHEMA_VERSION,),
+        [(version,) for version in range(1, SCHEMA_VERSION + 1)],
     )
     connection.commit()
 

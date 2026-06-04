@@ -20,7 +20,7 @@ type AppActionState =
   | { applicationId: string; status: "deleting" | "duplicating" }
   | { message: string; status: "error" };
 
-type BuilderHomeSection = "overview" | "apps" | "screens";
+type BuilderHomeSection = "overview" | "apps" | "playground" | "screens";
 
 type ScreenLibraryType = "camera" | "control" | "debug" | "device" | "workflow" | "general";
 
@@ -138,6 +138,13 @@ export function BuilderHome({
         >
           Screen library
         </button>
+        <button
+          aria-current={activeSection === "playground" ? "page" : undefined}
+          onClick={() => setActiveSection("playground")}
+          type="button"
+        >
+          Playground
+        </button>
       </nav>
 
       {activeSection === "overview" ? (
@@ -151,6 +158,11 @@ export function BuilderHome({
             <span className="builder-overview-card-kicker">Screens</span>
             <strong>Design reusable screens first</strong>
             <span>{screens.length} screens available across the shared library and existing apps.</span>
+          </button>
+          <button className="builder-overview-card" onClick={() => setActiveSection("playground")} type="button">
+            <span className="builder-overview-card-kicker">Playground</span>
+            <strong>Try runtime screens without setup</strong>
+            <span>Open camera, debug, or teleop smoke screens quickly before promoting ideas into apps.</span>
           </button>
         </section>
       ) : null}
@@ -277,11 +289,11 @@ export function BuilderHome({
           <section className="builder-create-card" aria-labelledby="builder-create-title">
             <div>
               <p className="eyebrow">Create</p>
-              <h2 id="builder-create-title">New app foundation</h2>
+              <h2 id="builder-create-title">Create an app</h2>
             </div>
             <p>
-              Create a blank app with a first empty screen and the Bloom default design system. More templates can plug
-              into this flow later.
+              Start with a named app, a first main screen, and the Bloom default design system. The next wizard steps
+              will add starter screens, presets, and onboarding attention spots.
             </p>
             <button
               disabled={!firstConfiguration || isCreating}
@@ -315,7 +327,7 @@ export function BuilderHome({
               }}
               type="button"
             >
-              {isCreating ? "Creating..." : "Create blank app"}
+              {isCreating ? "Creating..." : "Create starter app"}
             </button>
             {createState.status === "error" ? (
               <p className="builder-save-status builder-save-status-error" role="alert">
@@ -422,6 +434,60 @@ export function BuilderHome({
                 </section>
               ))
             )}
+          </div>
+        </section>
+      ) : null}
+
+      {activeSection === "playground" ? (
+        <section className="builder-playground" aria-labelledby="builder-playground-title">
+          <div>
+            <p className="eyebrow">Draft lab</p>
+            <h2 id="builder-playground-title">Try screens before creating an app</h2>
+            <p>
+              Use the playground for quick robot experiments, hardware checks, and widget demos. Nothing here forces a
+              saved workflow yet, but every screen can later become reusable.
+            </p>
+          </div>
+          <div className="builder-playground-grid">
+            {selectPlaygroundScreens(screens).map(({ application, configuration, displayTitle, screen, type }) => (
+              <article
+                className="builder-playground-card"
+                data-screen-type={type}
+                key={`${configuration.id}:${application.id}:${screen.id}`}
+              >
+                <span className="builder-screen-type-tag">{SCREEN_LIBRARY_TYPE_LABELS[type]}</span>
+                <strong>{displayTitle}</strong>
+                <span>{application.name}</span>
+                <div className="builder-app-card-actions">
+                  <button
+                    aria-label={`Open ${displayTitle} in runtime playground`}
+                    onClick={() =>
+                      onPreviewScreenRuntime({
+                        appId: application.id,
+                        configId: configuration.id,
+                        screenId: screen.id,
+                      })
+                    }
+                    type="button"
+                  >
+                    Open runtime
+                  </button>
+                  <button
+                    aria-label={`Edit ${displayTitle} from playground`}
+                    onClick={() =>
+                      onOpenScreenBuilder({
+                        appId: application.id,
+                        configId: configuration.id,
+                        screenId: screen.id,
+                      })
+                    }
+                    type="button"
+                  >
+                    Edit screen
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       ) : null}
@@ -532,6 +598,20 @@ function filterScreens(screens: readonly ScreenLibraryItem[], search: string): S
 
     return searchableText.includes(normalizedSearch);
   });
+}
+
+function selectPlaygroundScreens(screens: readonly ScreenLibraryItem[]): ScreenLibraryItem[] {
+  const preferredTypes: readonly ScreenLibraryType[] = ["camera", "debug", "control"];
+  const selectedScreens: ScreenLibraryItem[] = [];
+
+  for (const type of preferredTypes) {
+    const candidate = screens.find((screen) => screen.type === type);
+    if (candidate) {
+      selectedScreens.push(candidate);
+    }
+  }
+
+  return selectedScreens.length > 0 ? selectedScreens : screens.slice(0, 3);
 }
 
 function classifyScreen(screen: ScreenConfig): ScreenLibraryType {

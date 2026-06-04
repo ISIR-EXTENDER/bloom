@@ -18,6 +18,8 @@
   <a href="#getting-started">Getting Started</a> ·
   <a href="#tooling">Tooling</a> ·
   <a href="#architecture-rules">Architecture</a> ·
+  <a href="docs/design-system.md">Design System</a> ·
+  <a href="docs/extender-tablet-hardware.md">Tablet Hardware</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
   <a href="docs/accessibility-plan.md">Accessibility</a> ·
@@ -64,14 +66,22 @@ Bloom is currently in foundation work before the full UI/database migration:
 - App configuration can edit app identity, app-level design tokens, create/duplicate screens, and reuse screens from other apps.
 - App configuration now starts feeling more tactile: reusable screens are grouped by type and can be dragged into an app
   flow, with buttons kept as accessible fallbacks.
+- App configuration can reorder screens with drag/drop or explicit Move up/down buttons, so tablet users are not forced
+  into a single interaction style.
 - The shared screen library now shows on-demand content previews so reusable screens stay easy to scan before editing or
   launching runtime preview.
-- App themes can save inspiration references such as a moodboard image and website URL before automatic theme generation exists.
-- App and screen saves now use dedicated backend API endpoints, preparing the move from bundled JSON documents toward a SQLite app/screen library.
+- The builder includes a Playground section for quick runtime checks before users create or save a full app workflow.
+- App themes can save inspiration references such as a moodboard image and website URL; moodboard images now go through
+  a backend asset endpoint instead of being embedded as data URLs in app config.
+- App and screen saves now use dedicated backend API endpoints, and SQLite keeps normalized mirror tables for apps,
+  screens, widgets, and theme assets while preserving JSON import/export.
+- A Help / Get Started page is available from the top navigation and explains current Bloom workflows step by step.
 - A first security baseline now documents minimum web/API/ROS controls, with API security headers covered by tests.
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
+- Runtime now starts from an app library, offers recently opened app shortcuts, and keeps small edit shortcuts back to
+  the current app or screen.
 - Backend runtime sessions expose a WebSocket contract for live UI connections, topic subscriptions, topic samples, and teleop command acknowledgements.
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
 - Mode-aware joystick intents can now map to runtime teleop commands and, in ROS mode, publish Extender `TeleopCommand`
@@ -81,8 +91,20 @@ Bloom is currently in foundation work before the full UI/database migration:
 - Runtime canvases keep builder geometry intact while fitting to the viewport, and topic echo widgets can copy visible
   messages for quick debugging.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
-- Next major pieces are Bloom Debug pause/clear controls, topic catalog and recording controls, SQLite normalization, ROS safety allowlists,
-  and the next reusable widget migrations.
+- Runtime/status UX is intentionally calm: backend/API status can be shown first, while robot/ROS/network indicators
+  must come from explicit adapters before Bloom claims they are connected.
+- Next major pieces are Bloom Debug pause/clear controls, topic catalog and recording controls, bundle reconstruction
+  from normalized SQLite rows, ROS safety allowlists, and the next reusable widget migrations.
+
+## In-App Help
+
+Bloom includes a Help page in the dashboard so future users can learn the product without reading the codebase first.
+The guide covers what Bloom can do, how to create/configure apps, how to reuse screens, how to edit a WYSIWYG canvas,
+and how to preview runtime screens.
+
+The Help page also contains a small documentation freshness card. For now the dates are manually maintained in
+`frontend/apps/bloom-dashboard/src/help/help-content.ts`; update them when user-facing workflows or docs change. Later,
+Bloom can replace the code reference date with GitHub release or commit metadata.
 
 ## Repository Shape
 
@@ -129,6 +151,20 @@ keyboard reachable, readable on tablets, understandable without color alone, and
 
 See `docs/accessibility-plan.md` for the current accessibility statement, quick wins, and testing roadmap. When changing
 UI, docs, interactions, or app themes, include an accessibility check in the PR.
+
+## Extender Tablet Target
+
+The current Extender touchscreen target and Linux calibration workflow are documented in
+`docs/extender-tablet-hardware.md`. It includes the HMTECH screen specs, the `xrandr` / `xinput` commands currently used
+for touch mapping, automation options, and the viewport sizes Bloom should validate: `1024x600` and `1920x1080`.
+
+## Design System
+
+Bloom's design system is documented in `docs/design-system.md`. It explains the mood-board direction, token model,
+theme presets, touch/tablet rules, runtime/builder guidelines, and current critiques.
+
+When adding UI, prefer semantic Bloom tokens from `@bloom/ui`, keep app-specific visual identity in theme presets or app
+configuration, and update the design system notes when a reusable pattern becomes stable.
 
 ## Getting Started
 
@@ -209,6 +245,9 @@ If `gh` was installed locally, make sure `~/.local/bin` appears before `/usr/bin
 ## Configuration Storage
 
 Bloom keeps file-backed JSON storage as the default while SQLite is validated through migration slices.
+
+SQLite now stores the full configuration bundle plus normalized mirror rows for applications, screens, widgets, and
+theme assets. The full bundle remains the lossless migration bridge while the normalized schema stabilizes.
 
 Use the configuration CLI to exercise both paths:
 
