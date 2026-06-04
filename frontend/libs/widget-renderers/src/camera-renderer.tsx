@@ -15,7 +15,7 @@ export function CameraWidget({ descriptor }: WidgetRendererProps) {
       {showHeader ? (
         <header className="bloom-camera-header">
           <strong>{descriptor.widget.title}</strong>
-          <span>{source === "webcam" ? "Browser camera" : streamUrl || descriptor.definition.displayName}</span>
+          <span>{source === "webcam" ? "Local camera" : streamUrl ? "Stream configured" : "No source"}</span>
         </header>
       ) : null}
       {source === "webcam" ? (
@@ -40,9 +40,7 @@ export function CameraWidget({ descriptor }: WidgetRendererProps) {
               )}
             </div>
           </div>
-          {showStatus ? (
-            <span className="bloom-camera-status">{streamUrl ? "Stream preview" : "Source not configured"}</span>
-          ) : null}
+          {showStatus ? <span className="bloom-camera-status">{streamUrl ? "Ready" : "Source needed"}</span> : null}
         </>
       )}
     </div>

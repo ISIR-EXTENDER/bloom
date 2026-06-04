@@ -157,8 +157,10 @@
 
 .builder-overview-card strong {
   max-width: 520px;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--bloom-font-display);
   font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
   line-height: 0.98;
 }
 

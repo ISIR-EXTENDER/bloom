@@ -19,6 +19,9 @@
   <a href="#tooling">Tooling</a> ·
   <a href="#architecture-rules">Architecture</a> ·
   <a href="docs/design-system.md">Design System</a> ·
+  <a href="docs/component-styleguide.md">Components</a> ·
+  <a href="docs/widget-ux-review.md">Widget UX</a> ·
+  <a href="docs/production-readiness-review.md">Readiness</a> ·
   <a href="docs/extender-tablet-hardware.md">Tablet Hardware</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
@@ -59,6 +62,10 @@ npm run capture:readme
 ## Work In Progress
 
 Bloom is currently in foundation work before the full UI/database migration:
+
+Current review snapshot: Bloom's web product foundation is strong enough to continue Phase 3 work, but real robot
+deployment still needs runtime command allowlists, audit logging, Bloom Debug polish, and systematic legacy widget
+migration. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current roadmap.
 
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
@@ -162,6 +169,15 @@ for touch mapping, automation options, and the viewport sizes Bloom should valid
 
 Bloom's design system is documented in `docs/design-system.md`. It explains the mood-board direction, token model,
 theme presets, touch/tablet rules, runtime/builder guidelines, and current critiques.
+
+Typography is controlled through open-source fonts bundled by `@bloom/ui`: `Cormorant Garamond` for refined display,
+`Atkinson Hyperlegible` for readable UI text, and `JetBrains Mono` for debug/code-like values.
+
+Reusable component examples and promotion rules live in `docs/component-styleguide.md`. Visual smoke checks cover the
+key tablet/desktop viewports with `npm run visual:smoke`.
+
+Widget-specific usability notes live in `docs/widget-ux-review.md`. Update it when a widget family changes behavior,
+touch affordances, or runtime/debug information density.
 
 When adding UI, prefer semantic Bloom tokens from `@bloom/ui`, keep app-specific visual identity in theme presets or app
 configuration, and update the design system notes when a reusable pattern becomes stable.

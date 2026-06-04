@@ -77,7 +77,7 @@ function createThemePreset({ description, id, name, palette, roles = {} }: Bloom
       onErrorContainer: roles.onErrorContainer ?? palette.ink,
       onPrimary: roles.onPrimary ?? palette.paper,
       onPrimaryContainer: roles.onPrimaryContainer ?? palette.ink,
-      onSecondary: roles.onSecondary ?? palette.paper,
+      onSecondary: roles.onSecondary ?? palette.ink,
       onSecondaryContainer: roles.onSecondaryContainer ?? palette.ink,
       onSurface: roles.onSurface ?? palette.ink,
       onSurfaceMuted: roles.onSurfaceMuted ?? palette.inkSoft,
@@ -120,6 +120,7 @@ export const BLOOM_THEME_PRESETS: Readonly<Record<BloomThemePresetId, BloomTheme
     roles: {
       error: "#9b3d2e",
       errorContainer: "#f5ddd8",
+      onSecondary: "#0d1f19",
       onError: "#fffaf1",
       onErrorContainer: "#4f1f16",
     },
@@ -149,6 +150,7 @@ export const BLOOM_THEME_PRESETS: Readonly<Record<BloomThemePresetId, BloomTheme
     roles: {
       error: "#a33b2f",
       errorContainer: "#f1dedb",
+      onSecondary: "#0d1f19",
       primary: "#2d423b",
       primaryContainer: "#d4ddd2",
     },

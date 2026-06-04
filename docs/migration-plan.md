@@ -36,6 +36,20 @@ Bloom should let ISIR users create robot web apps without writing web code:
 
 ## Current Status
 
+Last full review: 2026-06-04.
+
+Current migration estimate:
+
+- Web product foundation: about 70%.
+- Live ROS/runtime parity with `tablet_interface`: about 50%.
+- Full legacy app parity with `extender_ui` and Petanque screens: about 30%.
+- Safety/security readiness for real configurable robot commands: about 30%.
+
+The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
+shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions, and
+a recognizable tablet-first design system. The next phase should focus less on new surface area and more on safe runtime
+operation, Bloom Debug, and systematic legacy widget migration.
+
 Already merged:
 
 - Monorepo skeleton, docs, MIT license, contribution rules, and commit conventions.
@@ -53,6 +67,8 @@ Already merged:
   motor-accessibility presets.
 - App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
+- Design-system quality gates for contrast, responsive smoke checks, density rules, iconography rules, and reusable
+  primitive promotion.
 - First security baseline document and minimal API security headers.
 - Shared widget-kind contract checks keep frontend and backend configuration models aligned.
 - Partner `extender-interface` review captured as Explorer-specific UX inspiration, not as a core architecture to copy.
@@ -172,9 +188,10 @@ Status: started.
 
 Next focus in this phase:
 
-- WebSocket runtime topic subscriptions.
-- ROS topic catalog endpoint as the base for topic inspection, topic echo, telemetry plots, and rosbag-style recording
-  topic selection.
+- ROS safety foundation before broader robot deployment:
+  topic allowlists, message type allowlists, payload shape validation, command rate limits, and runtime audit logs.
+- ROS topic catalog endpoint and UI as the base for topic inspection, topic echo, telemetry plots, and rosbag-style
+  recording topic selection.
 - Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
 - Mode-aware joystick runtime binding inspired by Explorer user-test UX:
   active mode, axis hints, deadzone, publish rate, zero-on-release, and adapter-specific topic/service bindings.
@@ -185,7 +202,9 @@ Next focus in this phase:
   covers the user workflow.
 - Long-running robot action support:
   connect accepted/progress/result/cancel contracts to backend adapters for deploy/repli-style commands.
-- Topic echo widgets and minimal PlotJuggler-like telemetry widgets.
+- Bloom Debug UX:
+  topic selector, pause/clear/copy, readable topic echo, minimal PlotJuggler-like telemetry widgets, and recording
+  controls for selected topics and approved folders.
 - Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
 - Live streaming for subscribed debug topics, after the current `subscription_ack` foundation is stable.
 
@@ -252,23 +271,24 @@ Status: idea captured, intentionally low priority.
 
 ## Ordered Next Steps
 
-1. Finish Bloom Debug UX:
-   topic catalog, topic echo controls, lightweight plot readability, pause/clear/copy actions, and a recording/rosbag
-   foundation for selected topics and approved folders.
-2. Normalize SQLite app/screen storage:
-   keep JSON import/export, but add dedicated app/screen persistence records behind the existing API contract.
-3. Harden runtime live ROS sessions:
+1. Harden runtime live ROS sessions:
    add topic/message/payload allowlists, runtime session validation, audit logging, and safer CORS/deployment defaults.
-4. Migrate the next reusable widget family:
+2. Finish Bloom Debug UX:
+   topic catalog, topic selector, topic echo controls, lightweight plot readability, pause/clear/copy actions, and a
+   recording/rosbag foundation for selected topics and approved folders.
+3. Migrate the next reusable widget family:
    configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
-5. Finish production-level builder workflows:
-   app builder home, app config, full-page WYSIWYG screen builder, runtime preview, reliable save/discard, visual QA, and
-   accessible drag/drop fallbacks.
-6. Add Explorer-style control foundations:
+4. Normalize SQLite app/screen storage:
+   keep JSON import/export, but reconstruct configuration bundles from dedicated app/screen/widget/theme records once
+   the schema is stable.
+5. Add Explorer-style control foundations:
    live action progress/cancel adapters, speed/gripper counters, profile-driven display settings, and optional 3D robot
    visualization adapters.
+6. Add tablet runtime layout presets:
+   keep the WYSIWYG source layout canonical, but let apps provide tablet/high-visibility display profiles so real
+   operator controls are comfortable at `1024x600` and `1920x1080`.
 7. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
-8. Run end-to-end checks with real legacy JSON and the live dashboard after each slice.
+8. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
 
 See also:
 

@@ -8,9 +8,11 @@ type WidgetFrameProps = {
 
 export function WidgetFrame({ children, descriptor }: WidgetFrameProps) {
   const { widget } = descriptor;
+  const displayName = descriptor.status === "resolved" ? descriptor.definition.displayName : "widget";
 
   return (
     <article
+      aria-label={`${widget.title} ${displayName}`}
       className={`widget-preview-card widget-preview-${descriptor.status}`}
       data-screen-id={descriptor.context.screenId}
       data-widget-kind={widget.kind}

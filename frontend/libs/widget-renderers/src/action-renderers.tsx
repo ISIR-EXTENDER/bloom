@@ -4,18 +4,22 @@ import { getBooleanSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
 export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+  const buttonLabel = getStringSetting(descriptor.widget.settings, "button_label", "") || descriptor.widget.title;
+  const actionLabel = getStringSetting(descriptor.widget.settings, "action_label", "");
+  const command = getStringSetting(descriptor.widget.settings, "command", "");
+
   const handlePress = () => {
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
   };
 
   return (
-    <>
+    <div className="bloom-action-widget">
       <strong>{descriptor.widget.title}</strong>
-      <button className="bloom-command-button" onClick={handlePress} type="button">
-        Send
+      <button aria-label={buttonLabel} className="bloom-command-button" onClick={handlePress} type="button">
+        {buttonLabel}
       </button>
-      <span>{descriptor.definition.displayName}</span>
-    </>
+      {actionLabel || command ? <span>{actionLabel || command}</span> : null}
+    </div>
   );
 }
 
@@ -32,7 +36,11 @@ export function LabelWidget({ descriptor }: WidgetRendererProps) {
 
 export function ToggleWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
+  const offLabel = getStringSetting(descriptor.widget.settings, "offLabel", "Inactive");
+  const onLabel = getStringSetting(descriptor.widget.settings, "onLabel", "Active");
+  const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const [isOn, setIsOn] = useState(getBooleanSetting(descriptor.widget.settings, "initialValue", false));
+  const stateLabel = isOn ? onLabel : offLabel;
 
   const handleToggle = () => {
     const nextState = isOn ? "off" : "on";
@@ -41,17 +49,18 @@ export function ToggleWidget({ descriptor, onActionIntent }: WidgetRendererProps
   };
 
   return (
-    <>
+    <div className="bloom-toggle-widget" data-state={isOn ? "active" : "inactive"}>
       <strong>{descriptor.widget.title}</strong>
       <button
         aria-pressed={isOn}
+        aria-label={`${descriptor.widget.title}: ${stateLabel}`}
         className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
         onClick={handleToggle}
         type="button"
       >
-        {isOn ? "ON" : "OFF"}
+        {stateLabel}
       </button>
-      <span>{topic || descriptor.definition.displayName}</span>
-    </>
+      {showDetails && topic ? <span>{topic}</span> : null}
+    </div>
   );
 }

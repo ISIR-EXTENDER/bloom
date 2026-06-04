@@ -5,8 +5,11 @@ Reusable visual primitives for Bloom applications.
 This package owns the shared Bloom design system:
 
 - color and surface tokens inspired by Material 3 roles;
+- controlled open-source typography through `Cormorant Garamond`, `Atkinson Hyperlegible`, and `JetBrains Mono`;
+- spacing, touch target, and density tokens;
 - navigation primitives;
 - button, card, and panel primitives;
+- tag primitive for readable metadata;
 - touch-friendly interaction states;
 - neutral, light UI foundations for tablet use.
 - application theme presets that can be selected per app.
@@ -25,6 +28,8 @@ Reference: [`docs/brand/bloom-mood-board.png`](../../../docs/brand/bloom-mood-bo
 
 Design system documentation: [`docs/design-system.md`](../../../docs/design-system.md).
 
+Component styleguide: [`docs/component-styleguide.md`](../../../docs/component-styleguide.md).
+
 Apps can override the default design system through theme tokens. The long-term builder flow should let users choose a
 preset, palette, or generated moodboard-based theme, then apply those tokens to the runtime app without rewriting widgets.
 App themes can also store inspiration references, such as a moodboard image or website URL, so a future generator can
@@ -40,3 +45,16 @@ Bloom themes have two layers:
 
 Components should consume semantic roles first. Palette tokens remain available for brand-specific illustrations,
 gradients, or decorative details.
+
+## Typography
+
+The UI package imports Bloom's font assets through `@fontsource` so apps do not depend on local machine fonts or a public
+CDN.
+
+Use the shared tokens:
+
+- `--bloom-font-display` for brand/display headings;
+- `--bloom-font-ui` for controls, forms, cards, and runtime text;
+- `--bloom-font-mono` for debug payloads, topic values, and code-like text.
+
+Avoid hard-coding font families in app-specific CSS. Add new typography roles here only when they are reusable.

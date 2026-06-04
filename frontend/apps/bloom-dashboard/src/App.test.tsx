@@ -5,7 +5,7 @@ import {
   type ScreenConfig,
 } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import bloomDebugConfiguration from "../../../../tests/fixtures/bloom-debug-configuration.json";
 import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sandbox-configuration.json";
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
@@ -18,6 +18,10 @@ import { BLOOM_APP_SCREEN_REORDER_DRAG_TYPE, BLOOM_SCREEN_DRAG_TYPE } from "./ui
 
 Element.prototype.setPointerCapture = vi.fn();
 Element.prototype.releasePointerCapture = vi.fn();
+
+beforeEach(() => {
+  window.history.replaceState(null, "", "/");
+});
 
 describe("App", () => {
   it("renders the separated landing page", () => {
@@ -44,6 +48,45 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Read get started guide/i }));
 
     expect(await screen.findByText("Keep this useful after handover")).toBeVisible();
+  });
+
+  it("keeps browser back and forward affordances aligned with Bloom navigation", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose what to build." })).toBeVisible();
+    expect(window.location.hash).toBe("#/builder");
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
+    expect(window.location.hash).toBe("#/runtime");
+
+    window.history.back();
+
+    await waitFor(() => expect(window.location.hash).toBe("#/builder"));
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose what to build." })).toBeVisible();
+
+    window.history.forward();
+
+    await waitFor(() => expect(window.location.hash).toBe("#/runtime"));
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
+  });
+
+  it("restores direct runtime and builder routes from the browser URL", async () => {
+    window.history.replaceState(null, "", "#/runtime");
+
+    const { unmount } = render(<App configurationClient={createConfigurationClient()} />);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
+
+    unmount();
+    window.history.replaceState(null, "", "#/builder/screen");
+
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Main" })).toBeVisible();
   });
 
   it("provides a keyboard skip link to the main content", () => {
@@ -260,7 +303,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
-    expect(screen.getByText("/ui/ros_toggle")).toBeVisible();
+    expect(screen.getByRole("article", { name: "Digital output toggle widget" })).toBeVisible();
   });
 
   it("creates a blank app from the builder home", async () => {
@@ -831,7 +874,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     await openSandboxRuntimeFromNavigation();
-    fireEvent.click(await screen.findByRole("button", { name: "OFF" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Digital output: Inactive" }));
 
     expect(screen.getByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
@@ -1059,8 +1102,8 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Select and move Gripper Control widget" }));
 
     expect(screen.getByLabelText("Output topic")).toHaveValue("/cmd/gripper");
-    expect(screen.getByLabelText("ON payload")).toHaveValue("");
-    expect(screen.getByLabelText("OFF payload")).toHaveValue("");
+    expect(screen.getByLabelText("ON payload")).toHaveValue("true");
+    expect(screen.getByLabelText("OFF payload")).toHaveValue("false");
   });
 
   it("opens the webcam visualizer demo app with a camera viewer screen", async () => {

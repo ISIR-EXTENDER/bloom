@@ -1,5 +1,10 @@
 import type { WidgetConfig } from "@bloom/api-client";
-import { getWidgetSettingsContract, type WidgetDefinition, type WidgetSettingField } from "@bloom/widgets";
+import {
+  getWidgetSettingsContract,
+  normalizeWidgetSettings,
+  type WidgetDefinition,
+  type WidgetSettingField,
+} from "@bloom/widgets";
 import { useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 
@@ -18,6 +23,8 @@ export function BuilderWidgetSettingsEditor({
 }: BuilderWidgetSettingsEditorProps) {
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const contract = getWidgetSettingsContract(widget.kind);
+  const normalizedSettings = normalizeWidgetSettings(widget.kind, widget.settings);
+  const effectiveSettings = normalizedSettings.success ? normalizedSettings.settings : widget.settings;
 
   const updateSetting = (field: WidgetSettingField, rawValue: string | boolean) => {
     const nextSettings = {
@@ -52,7 +59,7 @@ export function BuilderWidgetSettingsEditor({
             field={field}
             key={field.key}
             onChange={(rawValue) => updateSetting(field, rawValue)}
-            value={widget.settings[field.key]}
+            value={effectiveSettings[field.key]}
           />
         ))
       )}

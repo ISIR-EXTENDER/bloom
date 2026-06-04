@@ -215,8 +215,10 @@ async def cancel_runtime_task(task: asyncio.Task | None) -> None:
     if not task.done():
         task.cancel()
 
-    with suppress(asyncio.CancelledError, WebSocketDisconnect):
+    try:
         await task
+    except (asyncio.CancelledError, WebSocketDisconnect):
+        return
 
 
 def build_runtime_topic_sample(session_id: str, sample: RuntimeTopicSample) -> RuntimeServerMessage:
