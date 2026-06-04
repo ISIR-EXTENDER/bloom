@@ -594,6 +594,150 @@
           ]
         },
         {
+          "id": "explorer-drink-mode",
+          "title": "Explorer drink mode",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "drink-mode-title",
+              "kind": "label",
+              "title": "Drink mode instructions",
+              "layout": {
+                "x": 76,
+                "y": 56,
+                "width": 760,
+                "height": 106
+              },
+              "settings": {
+                "align": "left",
+                "fontSize": 30,
+                "text": "Task flows should feel guided: start the assistance, pause safely, then mark the task complete."
+              }
+            },
+            {
+              "id": "drink-mode-camera",
+              "kind": "camera",
+              "title": "Task view",
+              "layout": {
+                "x": 76,
+                "y": 202,
+                "width": 520,
+                "height": 300
+              },
+              "settings": {
+                "source": "placeholder",
+                "streamUrl": "",
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "drink-mode-progress",
+              "kind": "gauge",
+              "title": "Task progress",
+              "layout": {
+                "x": 650,
+                "y": 202,
+                "width": 250,
+                "height": 180
+              },
+              "settings": {
+                "min": 0,
+                "max": 100,
+                "value": 35,
+                "unit": "%"
+              }
+            },
+            {
+              "id": "start-drink-mode",
+              "kind": "command-button",
+              "title": "Start drink assistance",
+              "layout": {
+                "x": 948,
+                "y": 190,
+                "width": 230,
+                "height": 120
+              },
+              "settings": {
+                "command": "explorer.task.drink.start",
+                "button_label": "Start",
+                "action_id": "explorer-drink-start",
+                "action_label": "Start drink assistance",
+                "action_feedback": "progress",
+                "cancellable": true
+              }
+            },
+            {
+              "id": "pause-drink-mode",
+              "kind": "command-button",
+              "title": "Pause assistance",
+              "layout": {
+                "x": 948,
+                "y": 334,
+                "width": 230,
+                "height": 120
+              },
+              "settings": {
+                "command": "explorer.task.drink.pause",
+                "button_label": "Pause",
+                "action_id": "explorer-drink-pause",
+                "action_label": "Pause drink assistance",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "complete-drink-mode",
+              "kind": "command-button",
+              "title": "Complete task",
+              "layout": {
+                "x": 948,
+                "y": 478,
+                "width": 230,
+                "height": 120
+              },
+              "settings": {
+                "command": "explorer.task.drink.complete",
+                "button_label": "Complete",
+                "action_id": "explorer-drink-complete",
+                "action_label": "Complete drink task",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "drink-mode-events",
+              "kind": "event-log",
+              "title": "Task feedback",
+              "layout": {
+                "x": 76,
+                "y": 546,
+                "width": 824,
+                "height": 140
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "info",
+                    "summary": "Task assistance ready",
+                    "detail": "This screen models a reusable guided-task pattern rather than a hard-coded drink widget.",
+                    "timestamp": "2026-06-04T10:09:00Z"
+                  }
+                ],
+                "maxEntries": 5,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": false,
+                "show_details": false
+              }
+            }
+          ]
+        },
+        {
           "id": "explorer-supervision",
           "title": "Explorer supervision",
           "canvas": {

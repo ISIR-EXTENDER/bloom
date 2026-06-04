@@ -112,6 +112,8 @@ current roadmap.
   and cancel flows can be validated before adapter-specific wiring exists.
 - The Explorer user-test candidate includes a safety-zone screen that models QP/safety workflows with generic status,
   command, and event widgets.
+- The Explorer user-test candidate includes a guided drink-mode task screen that stays generic enough for other
+  assistance workflows.
 - A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
 - A first Bloom Debug fixture can request runtime topic subscriptions and render live samples in echo and lightweight plot widgets.
 - Bloom Debug can inspect the topic catalog, refresh runtime audit records, start/stop a safe recording request for
