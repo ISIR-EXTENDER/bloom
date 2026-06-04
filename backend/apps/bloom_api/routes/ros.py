@@ -16,7 +16,7 @@ from libs.ros_adapters import (
 )
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import RuntimeCommandPolicy
-from libs.sessions import RuntimeAuditLog
+from libs.sessions import RuntimeAuditLog, RuntimeCommandRateLimiter
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -93,6 +93,10 @@ def get_runtime_command_policy(request: Request) -> RuntimeCommandPolicy:
     return request.app.state.runtime_command_policy
 
 
+def get_runtime_command_rate_limiter(request: Request) -> RuntimeCommandRateLimiter:
+    return request.app.state.runtime_command_rate_limiter
+
+
 @router.get("/topics", response_model=RosTopicListResponse)
 def list_ros_topics(request: Request) -> RosTopicListResponse:
     gateway = get_ros_topic_catalog_gateway(request)
@@ -105,6 +109,7 @@ def publish_ros_topic(request: Request, publish_request: RosTopicPublishRequest)
     gateway = get_ros_publisher_gateway(request)
     audit_log = get_runtime_audit_log(request)
     policy = get_runtime_command_policy(request)
+    rate_limiter = get_runtime_command_rate_limiter(request)
     ros_publish_request = RosPublishRequest(
         topic=publish_request.topic,
         message_type=publish_request.message_type,
@@ -116,6 +121,7 @@ def publish_ros_topic(request: Request, publish_request: RosTopicPublishRequest)
             policy,
             audit_log,
             ros_publish_request,
+            rate_limiter,
         )
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc

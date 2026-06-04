@@ -1,6 +1,6 @@
 .runtime-app-workspace {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   width: 100%;
   height: calc(100vh - 112px);
   min-height: 620px;
@@ -9,6 +9,147 @@
   border-radius: 28px;
   background: color-mix(in srgb, var(--bloom-surface-container-low) 92%, white);
   box-shadow: var(--bloom-shadow);
+}
+
+.bloom-debug-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(200px, 0.45fr) minmax(320px, 1.25fr);
+  gap: 14px;
+  align-items: start;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--bloom-border);
+  background:
+    radial-gradient(circle at 8% 12%, rgba(199, 189, 220, 0.14), transparent 32%),
+    color-mix(in srgb, var(--bloom-surface-container-low) 94%, white);
+}
+
+.bloom-debug-panel-main {
+  display: grid;
+  gap: 8px;
+}
+
+.bloom-debug-panel-main h3 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 1.1rem;
+}
+
+.bloom-debug-panel-main p,
+.bloom-debug-panel-grid p {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  line-height: 1.4;
+}
+
+.bloom-debug-panel-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.bloom-debug-panel-actions button {
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 72%, white);
+  color: var(--bloom-ink);
+  font-weight: 850;
+}
+
+.bloom-debug-panel-actions .bloom-debug-danger-action {
+  background: color-mix(in srgb, var(--bloom-danger-container) 74%, white);
+  color: var(--bloom-danger);
+}
+
+.bloom-debug-panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.bloom-debug-panel-grid section {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bloom-panel) 82%, white);
+}
+
+.bloom-debug-panel-grid h4 {
+  margin: 0 0 8px;
+  color: var(--bloom-ink);
+  font-size: 0.95rem;
+}
+
+.bloom-debug-topic-list,
+.bloom-debug-audit-list {
+  display: grid;
+  max-height: 168px;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.bloom-debug-topic-list label,
+.bloom-debug-audit-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--bloom-border) 72%, transparent);
+  border-radius: 14px;
+  background: var(--bloom-surface-container-low);
+}
+
+.bloom-debug-topic-list input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--bloom-primary);
+}
+
+.bloom-debug-topic-list span,
+.bloom-debug-audit-list li {
+  min-width: 0;
+}
+
+.bloom-debug-topic-list strong,
+.bloom-debug-audit-list span {
+  display: block;
+  overflow: hidden;
+  color: var(--bloom-ink);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloom-debug-topic-list small,
+.bloom-debug-audit-list small {
+  display: block;
+  overflow: hidden;
+  color: var(--bloom-muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloom-debug-audit-list strong {
+  align-self: start;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: var(--bloom-primary-container);
+  color: var(--bloom-ink);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.bloom-debug-audit-list strong[data-status="rejected"] {
+  background: var(--bloom-danger-container);
+  color: var(--bloom-danger);
 }
 
 .runtime-home {

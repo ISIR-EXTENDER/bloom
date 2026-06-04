@@ -257,6 +257,7 @@ export function App({
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onUploadThemeAsset={handleUploadThemeAsset}
                 recentRuntimeSelections={recentRuntimeSelections}
+                runtimeActionClient={runtimeActionClient}
                 runtimeMode={runtimeMode}
                 selection={selection}
                 state={configurationState}

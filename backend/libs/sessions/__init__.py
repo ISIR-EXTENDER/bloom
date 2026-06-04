@@ -20,6 +20,13 @@ from libs.sessions.teleop import (
     TeleopPublishReceipt,
     TeleopVector3,
 )
+from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
+from libs.sessions.recording import (
+    NoopRuntimeRecordingGateway,
+    RuntimeRecordingGateway,
+    RuntimeRecordingReceipt,
+    RuntimeRecordingRequest,
+)
 from libs.sessions.topics import (
     NoopRuntimeTopicSubscriptionGateway,
     RuntimeTopicSample,
@@ -33,6 +40,9 @@ __all__ = [
     "InMemoryRuntimeAuditLog",
     "NoopTeleopCommandGateway",
     "NoopRuntimeTopicSubscriptionGateway",
+    "NoopRuntimeRecordingGateway",
+    "RuntimeCommandRateLimiter",
+    "RuntimeRateLimitError",
     "RuntimeAuditLog",
     "RuntimeAuditRecord",
     "RuntimeClientMessage",
@@ -42,6 +52,9 @@ __all__ = [
     "RuntimeTopicSubscription",
     "RuntimeTopicSubscriptionGateway",
     "RuntimeTopicSubscriptionHandle",
+    "RuntimeRecordingGateway",
+    "RuntimeRecordingReceipt",
+    "RuntimeRecordingRequest",
     "RuntimeServerMessage",
     "RuntimeSession",
     "RuntimeSessionManager",

@@ -33,6 +33,7 @@ type ProductWorkspaceProps = {
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onUploadThemeAsset: (file: File) => Promise<string>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
+  runtimeActionClient: RuntimeActionClient;
   runtimeMode: RuntimeMode;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
@@ -57,6 +58,7 @@ export function ProductWorkspace({
   onTopicSubscriptionRequest,
   onUploadThemeAsset,
   recentRuntimeSelections,
+  runtimeActionClient,
   runtimeMode,
   selection,
   state,
@@ -114,6 +116,7 @@ export function ProductWorkspace({
       onSelectionChange={onSelectionChange}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
+      runtimeActionClient={runtimeActionClient}
       screen={selectedWorkspace.screen}
       selection={selection}
     />

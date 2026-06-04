@@ -42,6 +42,8 @@ class Settings(BaseModel):
         "/ui/ros_toggle",
     )
     allowed_teleop_targets: tuple[str, ...] = ("/teleop_cmd",)
+    runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
+    allowed_recording_output_folders: tuple[str, ...] = ("data/recordings",)
 
 
 @lru_cache

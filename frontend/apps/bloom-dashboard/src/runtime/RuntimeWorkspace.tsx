@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import { BloomDebugPanel } from "./BloomDebugPanel";
 import type {
   RuntimeActionClient,
   RuntimeTopicSampleMessage,
@@ -27,6 +28,7 @@ type RuntimeWorkspaceProps = {
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
+  runtimeActionClient: RuntimeActionClient;
   screen: ScreenConfig;
   selection: WorkspaceSelection;
 };
@@ -40,6 +42,7 @@ export function RuntimeWorkspace({
   onSelectionChange,
   onTopicSample,
   onTopicSubscriptionRequest,
+  runtimeActionClient,
   screen,
   selection,
 }: RuntimeWorkspaceProps) {
@@ -155,6 +158,8 @@ export function RuntimeWorkspace({
           </div>
         ) : null}
       </header>
+
+      {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
 
       <div className="runtime-app-canvas-shell">
         <div

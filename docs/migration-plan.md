@@ -41,9 +41,9 @@ Last full review: 2026-06-04.
 Current migration estimate:
 
 - Web product foundation: about 70%.
-- Live ROS/runtime parity with `tablet_interface`: about 50%.
+- Live ROS/runtime parity with `tablet_interface`: about 65%.
 - Full legacy app parity with `extender_ui` and Petanque screens: about 30%.
-- Safety/security readiness for real configurable robot commands: about 30%.
+- Safety/security readiness for real configurable robot commands: about 55%.
 
 The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
 shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions, and
@@ -84,6 +84,11 @@ Already merged:
   shared renderer pipeline.
 - Runtime command safety now has first backend allowlists and audit records for HTTP ROS publishes and WebSocket teleop
   commands, with an API endpoint ready for Bloom Debug.
+- Runtime command safety now also has command rate limits for HTTP ROS publishes and WebSocket teleop commands.
+- Bloom Debug now exposes the topic catalog, runtime audit refresh, topic recording start/stop controls, and topic echo
+  pause/clear/copy actions.
+- Runtime recording requests now go through a backend gateway with selected topics, approved relative output folders,
+  and audit records. The default gateway is simulated so the API is safe in CI and non-ROS development.
 - Runtime fit rendering now keeps one canonical screen/widget layout model and applies visual scaling only at the
   artboard boundary, preserving WYSIWYG geometry while avoiding clipped teleop controls.
 - Topic echo widgets now include a first user-facing debug action to copy the latest visible messages.
@@ -174,7 +179,7 @@ Phase 2 follow-ups that should not block Phase 3:
 
 ### Phase 3 - Runtime ROS Integration
 
-Status: started.
+Status: complete for the runtime safety/debug foundation.
 
 - Keep generic runtime widgets producing command intents.
 - Route ROS behavior through backend adapters.
@@ -188,27 +193,27 @@ Status: started.
 - Keep the AUCTUS `/auctus_ui` bridge as an optional adapter candidate for Explorer user tests, not as a frontend-wide
   dependency.
 
-Next focus in this phase:
+Completed in this phase:
 
 - ROS safety foundation before broader robot deployment:
   topic allowlists, message type allowlists, payload shape validation, command rate limits, and runtime audit logs.
-- ROS topic catalog endpoint and UI as the base for topic inspection, topic echo, telemetry plots, and rosbag-style
+- ROS topic catalog endpoint and Bloom Debug UI as the base for topic inspection, topic echo, telemetry plots, and
   recording topic selection.
-- Teleop publisher adapter inspired by `tablet_interface`, but isolated behind Bloom runtime services.
+- Teleop publisher adapter inspired by `tablet_interface`, isolated behind Bloom runtime services.
 - Mode-aware joystick runtime binding inspired by Explorer user-test UX:
   active mode, axis hints, deadzone, publish rate, zero-on-release, and adapter-specific topic/service bindings.
 - Scalar slider runtime bindings inspired by legacy Extender UI:
   app-configured topic, ROS message type, payload field path, and local-only fallback when no topic is configured.
-- Tablet-friendly Explorer joystick presets should expose `BOTH` as the default cycle mode. `ROTATION` and `TRANSLATION`
-  remain supported as ROS compatibility modes, but should not be offered as primary tablet cycle choices when `BOTH`
-  covers the user workflow.
-- Long-running robot action support:
-  connect accepted/progress/result/cancel contracts to backend adapters for deploy/repli-style commands.
+- Tablet-friendly Explorer joystick presets expose `BOTH` as the default cycle mode. `ROTATION` and `TRANSLATION` remain
+  supported as ROS compatibility modes, but are not primary tablet cycle choices when `BOTH` covers the user workflow.
+- Long-running robot action contracts exist for accepted/progress/result/cancel metadata at the widget/runtime contract
+  layer. Concrete deploy/repli adapters should be migrated with the corresponding robot app screens.
 - Bloom Debug UX:
   topic selector, pause/clear/copy, readable topic echo, minimal PlotJuggler-like telemetry widgets, and recording
   controls for selected topics and approved folders.
-- Topic inspector and recording adapter foundations for selecting topics and starting/stopping rosbag captures safely.
-- Live streaming for subscribed debug topics, after the current `subscription_ack` foundation is stable.
+- Topic inspector and recording gateway foundations for selecting topics and starting/stopping rosbag-style captures
+  safely.
+- Live streaming for subscribed debug topics through runtime WebSocket sessions and shared renderer data snapshots.
 
 Validated runtime checks:
 
@@ -220,8 +225,11 @@ Validated runtime checks:
   renderers.
 - Unknown HTTP ROS publish topics and WebSocket teleop targets are rejected by the runtime policy and recorded in the
   audit log.
+- Rate-limited HTTP ROS publish and WebSocket teleop commands are rejected before reaching adapters and recorded in the
+  audit log.
 - Real dashboard Bloom Debug flow validates `subscribe_topic` messages with `widget_id`, backend `subscription_ack`,
   and visible topic samples in runtime widgets.
+- Real dashboard Bloom Debug controls validate topic catalog refresh, audit refresh, and recording start/stop calls.
 - Real dashboard Sandbox teleop lab flow validates the fit runtime artboard visually at tablet-like viewport sizes, so
   translation/rotation joysticks and horizontal/vertical sliders remain visible.
 

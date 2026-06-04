@@ -5,7 +5,10 @@ from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
+    RuntimeCommandRateLimiter,
     RuntimeAuditRecord,
+    RuntimeRecordingReceipt,
+    RuntimeRecordingRequest,
     RuntimeTopicSample,
     RuntimeTopicSubscription,
     RuntimeTopicSubscriptionHandle,
@@ -28,6 +31,32 @@ class RecordingTeleopGateway:
 class FailingTeleopGateway:
     def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
         raise RuntimeError("extender_msgs is required to publish teleop commands")
+
+
+class RecordingRuntimeRecordingGateway:
+    def __init__(self) -> None:
+        self.started_requests: list[RuntimeRecordingRequest] = []
+        self.stopped_recording_ids: list[str] = []
+
+    def start(self, request: RuntimeRecordingRequest) -> RuntimeRecordingReceipt:
+        self.started_requests.append(request)
+        return RuntimeRecordingReceipt(
+            detail="Recording started.",
+            output_folder=request.output_folder,
+            recording_id="recording-1",
+            status="recording",
+            topics=request.topics,
+        )
+
+    def stop(self, recording_id: str) -> RuntimeRecordingReceipt:
+        self.stopped_recording_ids.append(recording_id)
+        return RuntimeRecordingReceipt(
+            detail="Recording stopped.",
+            output_folder="data/recordings",
+            recording_id=recording_id,
+            status="stopped",
+            topics=(),
+        )
 
 
 class RecordingTopicSubscriptionHandle:
@@ -312,6 +341,45 @@ def test_runtime_websocket_rejects_teleop_targets_outside_allowlist() -> None:
     assert record.target == "/dangerous/teleop"
 
 
+def test_runtime_websocket_rejects_rate_limited_teleop_commands() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    clock = ControlledClock()
+    gateway = RecordingTeleopGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_audit_log=audit_log,
+            runtime_command_rate_limiter=RuntimeCommandRateLimiter(max_commands_per_second=1, clock=clock),
+            teleop_command_gateway=gateway,
+        )
+    )
+    command = {
+        "type": "teleop_cmd",
+        "mode": 4,
+        "seq": 1,
+        "target": "/teleop_cmd",
+        "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
+        "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+    }
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(command)
+        accepted = websocket.receive_json()
+        websocket.send_json({**command, "seq": 2})
+        rejected = websocket.receive_json()
+
+    assert accepted["type"] == "teleop_ack"
+    assert rejected["type"] == "runtime_error"
+    assert rejected["detail"] == "Teleop command was rejected by runtime rate limit."
+    assert len(gateway.commands) == 1
+    record = audit_log.list_records()[0]
+    assert record.channel == "websocket_teleop"
+    assert record.status == "rejected"
+    assert record.target == "/teleop_cmd"
+
+
 def test_runtime_audit_endpoint_lists_recent_records() -> None:
     audit_log = InMemoryRuntimeAuditLog()
     audit_log.record(
@@ -362,3 +430,76 @@ def test_runtime_websocket_reports_invalid_messages_without_closing() -> None:
     assert error["session_id"] == connected["session_id"]
     assert "topic must start with '/'" in error["payload"]["message"]
     assert pong["type"] == "pong"
+
+
+def test_runtime_recording_start_and_stop_use_configured_gateway() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    gateway = RecordingRuntimeRecordingGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_audit_log=audit_log,
+            runtime_recording_gateway=gateway,
+        )
+    )
+
+    start_response = client.post(
+        "/api/v1/runtime/recordings",
+        json={
+            "topics": ["/teleop_cmd", "/teleop_cmd", "/joint_states"],
+            "output_folder": "data/recordings",
+            "label": "sandbox debug",
+        },
+    )
+    stop_response = client.post("/api/v1/runtime/recordings/recording-1/stop")
+
+    assert start_response.status_code == 200
+    assert start_response.json() == {
+        "detail": "Recording started.",
+        "output_folder": "data/recordings",
+        "recording_id": "recording-1",
+        "status": "recording",
+        "topics": ["/teleop_cmd", "/joint_states"],
+    }
+    assert stop_response.status_code == 200
+    assert gateway.started_requests == [
+        RuntimeRecordingRequest(
+            label="sandbox debug",
+            output_folder="data/recordings",
+            topics=("/teleop_cmd", "/joint_states"),
+        )
+    ]
+    assert gateway.stopped_recording_ids == ["recording-1"]
+    assert audit_log.list_records()[1].channel == "runtime_recording"
+
+
+def test_runtime_recording_rejects_unapproved_output_folders() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_audit_log=audit_log,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/runtime/recordings",
+        json={"topics": ["/teleop_cmd"], "output_folder": "tmp"},
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Recording output folder is not allowed."}
+    record = audit_log.list_records()[0]
+    assert record.channel == "runtime_recording"
+    assert record.status == "rejected"
+    assert record.target == "tmp"
+
+
+class ControlledClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now

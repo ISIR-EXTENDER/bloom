@@ -1066,6 +1066,46 @@ describe("App", () => {
     );
   });
 
+  it("uses Bloom Debug controls to inspect topics, audit, and runtime recordings", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "bloom-debug": bloomDebugConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["bloom-debug"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    await openBloomDebugRuntimeFromNavigation();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Refresh topics" }));
+
+    expect(await screen.findByLabelText(/\/teleop_cmd/)).toBeChecked();
+    expect(screen.getByLabelText(/\/joint_states/)).toBeChecked();
+
+    fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
+
+    await waitFor(() => expect(runtimeActionClient.startRuntimeRecording).toHaveBeenCalled());
+    expect(runtimeActionClient.startRuntimeRecording).toHaveBeenCalledWith({
+      label: "Bloom Debug recording",
+      output_folder: "data/recordings",
+      topics: ["/teleop_cmd", "/sandbox_controller/velocity_command", "/joint_states"],
+    });
+    expect(await screen.findByRole("button", { name: "Stop recording" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh audit" }));
+    expect(await screen.findByText("Recording started.")).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
+
+    await waitFor(() => expect(runtimeActionClient.stopRuntimeRecording).toHaveBeenCalledWith("recording-1"));
+    expect(await screen.findByRole("button", { name: "Start recording" })).toBeVisible();
+  });
+
   it("opens the builder from compact backend JSON without rendering a blank screen", async () => {
     render(
       <App
@@ -1287,6 +1327,24 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
           detail: "ROS publisher gateway is not configured.",
         }) as const,
     ),
+    listRosTopics: vi.fn(async () => [
+      { name: "/teleop_cmd", message_type: "extender_msgs/msg/TeleopCommand" },
+      { name: "/sandbox_controller/velocity_command", message_type: "geometry_msgs/msg/Twist" },
+      { name: "/joint_states", message_type: "sensor_msgs/msg/JointState" },
+    ]),
+    listRuntimeAuditRecords: vi.fn(async () => [
+      {
+        channel: "runtime_recording",
+        detail: "Recording started.",
+        message_type: "",
+        payload_summary: { topic_count: 3 },
+        recorded_at: "2026-06-04T08:00:00+00:00",
+        session_id: "recording-1",
+        status: "accepted",
+        target: "data/recordings",
+        topic: "",
+      },
+    ]),
     sendTeleopCommand: vi.fn(async (request) => ({
       detail: "Teleop command accepted.",
       payload: {
@@ -1298,6 +1356,20 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         target: request.target,
       },
       type: "teleop_ack" as const,
+    })),
+    startRuntimeRecording: vi.fn(async (request) => ({
+      detail: "Recording started.",
+      output_folder: request.output_folder,
+      recording_id: "recording-1",
+      status: "simulated" as const,
+      topics: request.topics,
+    })),
+    stopRuntimeRecording: vi.fn(async (recordingId) => ({
+      detail: "Recording stopped.",
+      output_folder: "data/recordings",
+      recording_id: recordingId,
+      status: "stopped" as const,
+      topics: ["/teleop_cmd", "/sandbox_controller/velocity_command", "/joint_states"],
     })),
     subscribeRuntimeTopic: vi.fn(async (request) => ({
       detail: `Subscribed to ${request.topic}.`,

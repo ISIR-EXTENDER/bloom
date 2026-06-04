@@ -14,9 +14,12 @@ from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import RuntimeSessionManager
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
+    NoopRuntimeRecordingGateway,
     NoopRuntimeTopicSubscriptionGateway,
     NoopTeleopCommandGateway,
+    RuntimeCommandRateLimiter,
     RuntimeAuditLog,
+    RuntimeRecordingGateway,
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
@@ -30,6 +33,8 @@ def create_app(
     runtime_topic_subscription_gateway: RuntimeTopicSubscriptionGateway | None = None,
     runtime_audit_log: RuntimeAuditLog | None = None,
     runtime_command_policy: RuntimeCommandPolicy | None = None,
+    runtime_command_rate_limiter: RuntimeCommandRateLimiter | None = None,
+    runtime_recording_gateway: RuntimeRecordingGateway | None = None,
     teleop_command_gateway: TeleopCommandGateway | None = None,
 ) -> FastAPI:
     app_settings = settings or get_settings()
@@ -52,6 +57,10 @@ def create_app(
         allowed_publish_topics=app_settings.allowed_ros_publish_topics,
         allowed_teleop_targets=app_settings.allowed_teleop_targets,
     )
+    app.state.runtime_command_rate_limiter = runtime_command_rate_limiter or RuntimeCommandRateLimiter(
+        max_commands_per_second=app_settings.runtime_command_rate_limit_per_second
+    )
+    app.state.runtime_recording_gateway = runtime_recording_gateway or NoopRuntimeRecordingGateway()
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
     app.state.runtime_session_manager = RuntimeSessionManager()
     install_security_headers(app)
