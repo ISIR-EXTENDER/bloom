@@ -1,5 +1,5 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
-import { BLOOM_THEME_PRESETS, BloomButton, BloomCard, BloomTag, BloomThemeProvider } from "@bloom/ui";
+import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
@@ -8,19 +8,15 @@ import "./runtime-app.css";
 import "./runtime-widgets.css";
 import "./responsive.css";
 
-import { BuilderAppConfig } from "./builder/BuilderAppConfig";
-import { BuilderHome } from "./builder/BuilderHome";
-import { BuilderWorkspace } from "./builder/BuilderWorkspace";
 import {
   type ConfigurationClient,
   createDashboardConfigurationClient,
   createDashboardRuntimeActionClient,
 } from "./configurations/configuration-client";
 import { duplicateApplicationInConfigurationBundle } from "./configurations/configuration-editor";
-import type { LoadedConfiguration } from "./configurations/configuration-loader";
 import { useConfigurations } from "./configurations/use-configurations";
 import { HelpPage } from "./help/HelpPage";
-import { RuntimeWorkspace } from "./runtime/RuntimeWorkspace";
+import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { AppErrorBoundary } from "./ui/AppErrorBoundary";
@@ -42,9 +38,6 @@ import { ProductNavigation, type ProductView } from "./ui/ProductNavigation";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
 const defaultRuntimeActionClient = createDashboardRuntimeActionClient();
-
-type BuilderMode = "app-config" | "home" | "screen-builder";
-type RuntimeMode = "app" | "home";
 
 type AppProps = {
   configurationClient?: ConfigurationClient;
@@ -245,7 +238,7 @@ export function App({
             ) : activeView === "help" ? (
               <HelpPage onOpenView={handleProductViewChange} />
             ) : (
-              <MainApplicationView
+              <ProductWorkspace
                 activeView={activeView}
                 builderMode={builderMode}
                 onBackToRuntimeHome={() => handleRuntimeModeChange("home")}
@@ -284,239 +277,6 @@ function getInitialBloomRoute(): BloomRoute {
   return parseBloomRoute(window.location.hash);
 }
 
-type MainApplicationViewProps = {
-  activeView: Exclude<ProductView, "landing">;
-  builderMode: BuilderMode;
-  onBackToRuntimeHome: () => void;
-  onChangeBuilderMode: (mode: BuilderMode) => void;
-  onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
-  onDeleteApplication: (configId: string, applicationId: string) => Promise<void>;
-  onDuplicateApplication: (configId: string, applicationId: string) => Promise<void>;
-  onEditRuntimeApplication: () => void;
-  onEditRuntimeScreen: () => void;
-  onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
-  onRuntimeIntent: (intent: WidgetActionIntent) => void;
-  onSaveApplication: (application: ApplicationConfig) => Promise<void>;
-  onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
-  onSelectionChange: (selection: WorkspaceSelection) => void;
-  onTopicSample: RuntimeActionClient["addRuntimeTopicSampleListener"];
-  onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
-  onUploadThemeAsset: (file: File) => Promise<string>;
-  recentRuntimeSelections: readonly WorkspaceSelection[];
-  runtimeMode: RuntimeMode;
-  selection: WorkspaceSelection | null;
-  state: ReturnType<typeof useConfigurations>;
-};
-
-function MainApplicationView({
-  activeView,
-  builderMode,
-  onBackToRuntimeHome,
-  onChangeBuilderMode,
-  onCreateApplication,
-  onDeleteApplication,
-  onDuplicateApplication,
-  onEditRuntimeApplication,
-  onEditRuntimeScreen,
-  onOpenRuntimeApp,
-  onRuntimeIntent,
-  onSaveApplication,
-  onSaveBuilderScreen,
-  onSelectionChange,
-  onTopicSample,
-  onTopicSubscriptionRequest,
-  onUploadThemeAsset,
-  recentRuntimeSelections,
-  runtimeMode,
-  selection,
-  state,
-}: MainApplicationViewProps) {
-  if (state.status === "loading") {
-    return <ConfigurationStatus message="Loading configurations..." />;
-  }
-
-  if (state.status === "error") {
-    return <ConfigurationStatus isError message={state.message} />;
-  }
-
-  if (state.configurations.length === 0 || !selection) {
-    return <ConfigurationStatus message="No configurations found yet." />;
-  }
-
-  const selectedWorkspace = resolveSelectedWorkspace(state.configurations, selection);
-
-  if (activeView === "builder") {
-    if (builderMode === "home") {
-      return (
-        <BuilderHome
-          configurations={state.configurations}
-          onCreateApplication={onCreateApplication}
-          onDeleteApplication={onDeleteApplication}
-          onDuplicateApplication={onDuplicateApplication}
-          onOpenApplication={(nextSelection) => {
-            onSelectionChange(nextSelection);
-            onChangeBuilderMode("app-config");
-          }}
-          onOpenScreenBuilder={(nextSelection) => {
-            onSelectionChange(nextSelection);
-            onChangeBuilderMode("screen-builder");
-          }}
-          onPreviewScreenRuntime={(nextSelection) => {
-            onOpenRuntimeApp(nextSelection);
-          }}
-        />
-      );
-    }
-
-    if (builderMode === "app-config") {
-      return (
-        <BuilderAppConfig
-          configurations={state.configurations}
-          onBackToHome={() => onChangeBuilderMode("home")}
-          onOpenScreenBuilder={(nextSelection) => {
-            onSelectionChange(nextSelection);
-            onChangeBuilderMode("screen-builder");
-          }}
-          onSaveApplication={onSaveApplication}
-          onUploadThemeAsset={onUploadThemeAsset}
-          selection={selection}
-        />
-      );
-    }
-
-    return (
-      <BuilderWorkspace
-        configurations={state.configurations}
-        onBackToAppConfig={() => onChangeBuilderMode("app-config")}
-        onBackToBuilderHome={() => onChangeBuilderMode("home")}
-        onSaveScreenDraft={onSaveBuilderScreen}
-        selection={selection}
-      />
-    );
-  }
-
-  if (runtimeMode === "home") {
-    return (
-      <RuntimeHome
-        configurations={state.configurations}
-        onOpenRuntimeApp={onOpenRuntimeApp}
-        recentRuntimeSelections={recentRuntimeSelections}
-      />
-    );
-  }
-
-  return (
-    <RuntimeWorkspace
-      application={selectedWorkspace.application}
-      onBackToRuntimeHome={onBackToRuntimeHome}
-      onActionIntent={onRuntimeIntent}
-      onEditApplication={onEditRuntimeApplication}
-      onEditScreen={onEditRuntimeScreen}
-      onSelectionChange={onSelectionChange}
-      onTopicSample={onTopicSample}
-      onTopicSubscriptionRequest={onTopicSubscriptionRequest}
-      screen={selectedWorkspace.screen}
-      selection={selection}
-    />
-  );
-}
-
-type RuntimeHomeProps = {
-  configurations: readonly LoadedConfiguration[];
-  onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
-  recentRuntimeSelections: readonly WorkspaceSelection[];
-};
-
-function RuntimeHome({ configurations, onOpenRuntimeApp, recentRuntimeSelections }: RuntimeHomeProps) {
-  const runtimeApps = configurations.flatMap((configuration) =>
-    configuration.bundle.applications.map((application) => ({
-      application,
-      configuration,
-      firstScreen: application.screens[0],
-    })),
-  );
-  const recentRuntimeApps = recentRuntimeSelections
-    .map((recentSelection) => {
-      const configuration = configurations.find((candidate) => candidate.id === recentSelection.configId);
-      const application = configuration?.bundle.applications.find(
-        (candidate) => candidate.id === recentSelection.appId,
-      );
-      const screen =
-        application?.screens.find((candidate) => candidate.id === recentSelection.screenId) ?? application?.screens[0];
-
-      return configuration && application && screen ? { application, configuration, screen } : null;
-    })
-    .filter((candidate): candidate is NonNullable<typeof candidate> => candidate !== null);
-
-  return (
-    <section className="runtime-home" aria-labelledby="runtime-home-title">
-      <div className="runtime-home-hero">
-        <div>
-          <p className="eyebrow">Runtime library</p>
-          <h1 id="runtime-home-title">Choose an app to operate.</h1>
-        </div>
-        <p>
-          Runtime is the clean operator view. Pick an app here, then use the small edit shortcuts only when something
-          needs to go back through the builder.
-        </p>
-      </div>
-
-      {recentRuntimeApps.length > 0 ? (
-        <section className="runtime-recent-panel" aria-labelledby="runtime-recent-title">
-          <div>
-            <p className="eyebrow">Recently opened</p>
-            <h2 id="runtime-recent-title">Resume quickly</h2>
-          </div>
-          <div className="runtime-recent-actions">
-            {recentRuntimeApps.map(({ application, configuration, screen }) => (
-              <button
-                aria-label={`Resume ${application.name} on ${screen.title}`}
-                className="runtime-recent-action"
-                key={`${configuration.id}:${application.id}`}
-                onClick={() =>
-                  onOpenRuntimeApp({ appId: application.id, configId: configuration.id, screenId: screen.id })
-                }
-                type="button"
-              >
-                <strong>{application.name}</strong>
-                <span>{screen.title}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      <ul className="runtime-app-grid" aria-label="Available runtime apps">
-        {runtimeApps.map(({ application, configuration, firstScreen }) => (
-          <li key={`${configuration.id}:${application.id}`}>
-            <BloomCard className="runtime-app-card" tone="default">
-              <div>
-                <BloomTag tone="primary">{application.screens.length} screens</BloomTag>
-                <h2>{application.name}</h2>
-                {application.description ? <p>{application.description}</p> : <p>Ready to launch in operator mode.</p>}
-              </div>
-              <BloomButton
-                ariaLabel={`Launch ${application.name} runtime`}
-                className="runtime-app-card-action"
-                disabled={!firstScreen}
-                onClick={() => {
-                  if (!firstScreen) {
-                    return;
-                  }
-                  onOpenRuntimeApp({ appId: application.id, configId: configuration.id, screenId: firstScreen.id });
-                }}
-                tone="primary"
-              >
-                Launch runtime
-              </BloomButton>
-            </BloomCard>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
 function readFileAsBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -531,26 +291,4 @@ function readFileAsBase64(file: File): Promise<string> {
     reader.addEventListener("error", () => reject(new Error("Bloom could not read this theme asset.")));
     reader.readAsDataURL(file);
   });
-}
-
-type ConfigurationStatusProps = {
-  isError?: boolean;
-  message: string;
-};
-
-function ConfigurationStatus({ isError = false, message }: ConfigurationStatusProps) {
-  return (
-    <section className="configuration-panel" aria-labelledby="configuration-panel-title">
-      <div>
-        <p className="eyebrow">Live configuration</p>
-        <h2 id="configuration-panel-title">Available interfaces</h2>
-      </div>
-      <p
-        className={`configuration-status ${isError ? "configuration-status-error" : ""}`}
-        role={isError ? "alert" : undefined}
-      >
-        {message}
-      </p>
-    </section>
-  );
 }
