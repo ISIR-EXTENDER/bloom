@@ -35,7 +35,7 @@ Bloom should migrate reusable primitives from both generations, but the canvas g
 | `navigation-button` / `navigation-bar` | Generic app navigation widgets | Builder/runtime app navigation needs this independently from robot logic. |
 | `rosbag-control` | Generic recording/session command widget | Could control rosbag or other recording/session backends from selected topics and approved folders. |
 | `mode-button` | Generic state/mode command widget | Runtime mode switching is not Extender-only if modeled as state-machine action. |
-| `save-pose-button` / `load-pose-button` | Generic stored-command/preset widgets | Pose is one preset type, but saved commands/configurations are reusable. |
+| `save-pose-button` / `load-pose-button` | Generic command-button presets | First Explorer saved-position candidate is covered by generic command buttons; reusable preset libraries still need a richer builder UX. |
 | `throw-draw` | Generic gesture/trajectory input candidate | The Petanque use case is specific, but drawing an angle/power/gesture command is reusable. |
 | `drink` | Generic media/action overlay candidate | It is playful, but technically a media overlay/action button pattern. |
 

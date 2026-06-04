@@ -330,6 +330,139 @@
           ]
         },
         {
+          "id": "explorer-saved-positions",
+          "title": "Explorer saved positions",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "saved-positions-title",
+              "kind": "label",
+              "title": "Saved positions instructions",
+              "layout": {
+                "x": 76,
+                "y": 64,
+                "width": 820,
+                "height": 108
+              },
+              "settings": {
+                "align": "left",
+                "fontSize": 30,
+                "text": "Saved positions are generic command presets: save, replay, and cancel without hard-coding Explorer into Bloom."
+              }
+            },
+            {
+              "id": "save-current-position",
+              "kind": "command-button",
+              "title": "Save current pose",
+              "layout": {
+                "x": 96,
+                "y": 230,
+                "width": 260,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.pose.save_current",
+                "button_label": "Save pose",
+                "action_id": "explorer-pose-save-current",
+                "action_label": "Save current position",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "load-home-position",
+              "kind": "command-button",
+              "title": "Load home position",
+              "layout": {
+                "x": 392,
+                "y": 230,
+                "width": 260,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.pose.load.home",
+                "button_label": "Home",
+                "action_id": "explorer-pose-load-home",
+                "action_label": "Load home position",
+                "action_feedback": "progress",
+                "cancellable": true
+              }
+            },
+            {
+              "id": "load-meal-position",
+              "kind": "command-button",
+              "title": "Load meal position",
+              "layout": {
+                "x": 688,
+                "y": 230,
+                "width": 260,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.pose.load.meal",
+                "button_label": "Meal",
+                "action_id": "explorer-pose-load-meal",
+                "action_label": "Load meal position",
+                "action_feedback": "progress",
+                "cancellable": true
+              }
+            },
+            {
+              "id": "cancel-position-motion",
+              "kind": "command-button",
+              "title": "Cancel position motion",
+              "layout": {
+                "x": 984,
+                "y": 230,
+                "width": 220,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.pose.cancel",
+                "button_label": "Cancel",
+                "action_id": "explorer-pose-cancel",
+                "action_label": "Cancel position motion",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "saved-position-events",
+              "kind": "event-log",
+              "title": "Saved position status",
+              "layout": {
+                "x": 96,
+                "y": 452,
+                "width": 1108,
+                "height": 250
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "info",
+                    "summary": "Saved positions are ready for adapter binding",
+                    "detail": "These commands can later map to ROS actions, services, topics, or a non-ROS robot API.",
+                    "timestamp": "2026-06-04T10:07:00Z"
+                  },
+                  {
+                    "severity": "warning",
+                    "summary": "Cancel remains visible",
+                    "detail": "Any replayable motion should keep a clear cancel affordance in the runtime screen.",
+                    "timestamp": "2026-06-04T10:07:30Z"
+                  }
+                ],
+                "maxEntries": 8,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": true,
+                "show_details": false
+              }
+            }
+          ]
+        },
+        {
           "id": "explorer-supervision",
           "title": "Explorer supervision",
           "canvas": {
