@@ -121,6 +121,8 @@ Already done in this phase:
   actions.
 - Builder screen library now groups reusable screens by intent and uses human-readable display titles, type tags, and
   meaningful color accents while preserving legacy screen ids for migration safety.
+- Builder screen library cards now include on-demand visual previews based on widget layouts, so users can inspect a
+  screen without making the reusable library harder to scan.
 - App configuration screen composition now groups available reusable screens by functional type and supports dragging a
   screen into the current app flow, while keeping explicit button fallbacks.
 

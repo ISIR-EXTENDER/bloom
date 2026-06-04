@@ -64,6 +64,8 @@ Bloom is currently in foundation work before the full UI/database migration:
 - App configuration can edit app identity, app-level design tokens, create/duplicate screens, and reuse screens from other apps.
 - App configuration now starts feeling more tactile: reusable screens are grouped by type and can be dragged into an app
   flow, with buttons kept as accessible fallbacks.
+- The shared screen library now shows on-demand content previews so reusable screens stay easy to scan before editing or
+  launching runtime preview.
 - App themes can save inspiration references such as a moodboard image and website URL before automatic theme generation exists.
 - App and screen saves now use dedicated backend API endpoints, preparing the move from bundled JSON documents toward a SQLite app/screen library.
 - A first security baseline now documents minimum web/API/ROS controls, with API security headers covered by tests.

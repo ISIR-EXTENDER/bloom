@@ -75,6 +75,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Reusable screens" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 3, name: "Control screens" })).toBeVisible();
     expect(screen.getByText("Control")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Show Diagnostics layout preview" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Diagnostics screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Preview Diagnostics screen runtime" })).toBeVisible();
   });

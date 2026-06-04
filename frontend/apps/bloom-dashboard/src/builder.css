@@ -298,6 +298,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px;
+  align-items: start;
+  isolation: isolate;
 }
 
 .builder-screen-library-card {
@@ -305,15 +307,21 @@
   --screen-type-container: color-mix(in srgb, var(--screen-type-color) 18%, var(--bloom-surface-container-low));
 
   position: relative;
+  z-index: 1;
   display: grid;
   gap: 16px;
   align-items: start;
-  overflow: hidden;
+  overflow: visible;
   min-height: 116px;
   padding: 18px 18px 18px 24px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
   border-radius: 22px;
   background: color-mix(in srgb, var(--bloom-surface-container-low) 86%, white);
+}
+
+.builder-screen-library-card:hover,
+.builder-screen-library-card:focus-within {
+  z-index: 30;
 }
 
 .builder-screen-library-card::before {
@@ -323,6 +331,115 @@
   background: var(--screen-type-color);
   content: "";
   opacity: 0.88;
+}
+
+.builder-screen-library-preview {
+  position: relative;
+  width: 100%;
+}
+
+.builder-screen-library-preview-trigger {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--screen-type-color) 28%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--screen-type-color) 12%, white);
+  color: var(--bloom-ink);
+  cursor: help;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.builder-screen-library-preview-popover {
+  position: relative;
+  display: block;
+  width: min(320px, 72vw);
+  height: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--screen-type-color) 32%, var(--bloom-border));
+  border-radius: 20px;
+  background:
+    linear-gradient(to right, color-mix(in srgb, var(--screen-type-color) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--screen-type-color) 13%, transparent) 1px, transparent 1px),
+    var(--bloom-surface);
+  background-size: 18px 18px;
+  box-shadow:
+    0 24px 80px rgba(37, 61, 53, 0.18),
+    inset 0 0 0 1px rgba(255, 253, 247, 0.72);
+  margin-top: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    height 150ms ease,
+    margin-top 150ms ease,
+    opacity 120ms ease,
+    transform 150ms ease;
+  transform: translateY(-4px);
+}
+
+.builder-screen-library-preview-popover::after {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 80% 18%,
+    color-mix(in srgb, var(--screen-type-color) 18%, transparent),
+    transparent 42%
+  );
+  content: "";
+}
+
+.builder-screen-library-preview:hover .builder-screen-library-preview-popover,
+.builder-screen-library-preview:focus-within .builder-screen-library-preview-popover {
+  height: 184px;
+  margin-top: 8px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.builder-screen-library-preview-trigger:focus-visible {
+  outline: 4px solid color-mix(in srgb, var(--screen-type-color) 24%, transparent);
+  outline-offset: 3px;
+}
+
+.builder-screen-library-preview-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--bloom-ink-soft);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.builder-screen-library-preview-widget {
+  position: absolute;
+  z-index: 1;
+  min-width: 8px;
+  min-height: 8px;
+  border: 1px solid color-mix(in srgb, var(--screen-type-color) 48%, var(--bloom-border));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--screen-type-color) 34%, var(--bloom-surface-container-low));
+  box-shadow: 0 8px 22px rgba(37, 61, 53, 0.08);
+}
+
+.builder-screen-library-preview-widget[data-widget-kind="camera"] {
+  background: color-mix(in srgb, var(--bloom-color-mist) 58%, white);
+}
+
+.builder-screen-library-preview-widget[data-widget-kind="joystick"],
+.builder-screen-library-preview-widget[data-widget-kind="slider"] {
+  background: color-mix(in srgb, var(--bloom-color-pollen) 56%, white);
+}
+
+.builder-screen-library-preview-widget[data-widget-kind="topic-echo"],
+.builder-screen-library-preview-widget[data-widget-kind="topic-plot"] {
+  background: color-mix(in srgb, var(--bloom-color-lilac) 56%, white);
 }
 
 .builder-screen-library-card[data-screen-type="camera"] {
@@ -513,6 +630,8 @@
 }
 
 .builder-screen-card-main {
+  position: relative;
+  z-index: 2;
   display: grid;
   gap: 8px;
   min-width: 0;
@@ -544,6 +663,8 @@
 }
 
 .builder-screen-library-card .builder-app-card-actions {
+  position: relative;
+  z-index: 1;
   justify-content: flex-start;
 }
 
