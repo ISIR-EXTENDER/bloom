@@ -9,6 +9,12 @@ import {
 } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import {
+  BLOOM_SCREEN_DRAG_TYPE,
+  canReceiveBloomDrag,
+  readBloomDragPayload,
+  writeBloomDragPayload,
+} from "../ui/dragDrop";
 import { getTouchEditingProps } from "../ui/touchEditing";
 
 type BuilderAppConfigProps = {
@@ -29,6 +35,8 @@ type AvailableScreen = {
   screen: ScreenConfig;
   sourceApplicationName: string;
 };
+
+type ScreenFeature = "camera" | "controls" | "debug" | "empty" | "interface";
 
 type ScreenCardAction = {
   ariaLabel: string;
@@ -61,6 +69,7 @@ export function BuilderAppConfig({
   const availableScreens = collectAvailableScreens(selectedWorkspace.bundle.applications);
   const assignedScreenIds = new Set(draftApplication.screens.map((screen) => screen.id));
   const unassignedScreens = availableScreens.filter(({ screen }) => !assignedScreenIds.has(screen.id));
+  const availableScreenGroups = groupAvailableScreensByFeature(unassignedScreens);
   const isDirty = JSON.stringify(draftApplication) !== JSON.stringify(application);
   const isSaving = saveState.status === "saving";
   const themeInspiration = draftApplication.theme.inspiration ?? DEFAULT_THEME_INSPIRATION;
@@ -89,6 +98,15 @@ export function BuilderAppConfig({
   const addScreen = (screen: ScreenConfig) => {
     setDraftApplication((currentApplication) => addScreenToApplication(currentApplication, screen));
     setSaveState({ status: "idle" });
+  };
+
+  const addScreenById = (screenId: string) => {
+    const availableScreen = unassignedScreens.find(({ screen }) => screen.id === screenId);
+    if (!availableScreen) {
+      return;
+    }
+
+    addScreen(availableScreen.screen);
   };
 
   const createScreen = () => {
@@ -345,7 +363,19 @@ export function BuilderAppConfig({
               {isDirty ? (
                 <p className="builder-inline-hint">Save or discard app changes before opening a screen builder.</p>
               ) : null}
-              <div className="builder-screen-cards">
+              <section
+                aria-label="Screens currently assigned to this app. Drop reusable screens here to add them."
+                className="builder-screen-cards builder-screen-dropzone"
+                onDragOver={(event) => {
+                  if (canReceiveBloomDrag(event.dataTransfer, BLOOM_SCREEN_DRAG_TYPE)) {
+                    event.preventDefault();
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  addScreenById(readBloomDragPayload(event.dataTransfer, BLOOM_SCREEN_DRAG_TYPE));
+                }}
+              >
                 {draftApplication.screens.map((screen) => (
                   <ScreenCard
                     actions={[
@@ -378,7 +408,7 @@ export function BuilderAppConfig({
                     screen={screen}
                   />
                 ))}
-              </div>
+              </section>
             </div>
 
             <div>
@@ -387,27 +417,42 @@ export function BuilderAppConfig({
                 <span>{unassignedScreens.length}</span>
               </div>
               <p className="builder-inspector-copy">
-                Reuse screens from any app in this configuration. This is the first step toward the shared screen
-                library.
+                Reuse screens from any app in this configuration. Drag one into the app flow, or use the button
+                fallback.
               </p>
-              <div className="builder-screen-cards">
+              <div className="builder-screen-available-groups">
                 {unassignedScreens.length === 0 ? (
                   <p className="builder-empty-state">No extra reusable screens available yet.</p>
                 ) : (
-                  unassignedScreens.map(({ screen, sourceApplicationName }) => (
-                    <ScreenCard
-                      actions={[
-                        {
-                          ariaLabel: `Add ${screen.title} to app`,
-                          disabled: isSaving,
-                          label: "Add to app",
-                          onClick: () => addScreen(screen),
-                        },
-                      ]}
-                      key={`${sourceApplicationName}-${screen.id}`}
-                      screen={screen}
-                      sourceApplicationName={sourceApplicationName}
-                    />
+                  availableScreenGroups.map((group) => (
+                    <section
+                      className="builder-screen-available-group"
+                      key={group.feature}
+                      style={createFeatureAccentStyle(group.feature)}
+                    >
+                      <div className="builder-screen-available-group-heading">
+                        <h4>{SCREEN_FEATURE_LABELS[group.feature]}</h4>
+                        <span>{group.screens.length}</span>
+                      </div>
+                      <div className="builder-screen-cards">
+                        {group.screens.map(({ screen, sourceApplicationName }) => (
+                          <ScreenCard
+                            actions={[
+                              {
+                                ariaLabel: `Add ${screen.title} to app`,
+                                disabled: isSaving,
+                                label: "Add to app",
+                                onClick: () => addScreen(screen),
+                              },
+                            ]}
+                            draggable={!isSaving}
+                            key={`${sourceApplicationName}-${screen.id}`}
+                            screen={screen}
+                            sourceApplicationName={sourceApplicationName}
+                          />
+                        ))}
+                      </div>
+                    </section>
                   ))
                 )}
               </div>
@@ -421,15 +466,27 @@ export function BuilderAppConfig({
 
 function ScreenCard({
   actions,
+  draggable = false,
   screen,
   sourceApplicationName,
 }: {
   actions: readonly ScreenCardAction[];
+  draggable?: boolean;
   screen: ScreenConfig;
   sourceApplicationName?: string;
 }) {
   return (
-    <article className="builder-screen-card" style={createScreenAccentStyle(screen)}>
+    <article
+      className="builder-screen-card"
+      draggable={draggable}
+      onDragStart={(event) => {
+        if (!draggable) {
+          return;
+        }
+        writeBloomDragPayload(event.dataTransfer, BLOOM_SCREEN_DRAG_TYPE, screen.id);
+      }}
+      style={createScreenAccentStyle(screen)}
+    >
       <div className="builder-screen-card-main">
         <strong>{screen.title}</strong>
         <div className="builder-screen-card-details">
@@ -459,45 +516,62 @@ function createScreenAccentStyle(screen: ScreenConfig): CSSProperties {
   return { "--screen-card-accent": resolveScreenAccent(screen) } as CSSProperties;
 }
 
+function createFeatureAccentStyle(feature: ScreenFeature): CSSProperties {
+  return { "--screen-card-accent": SCREEN_FEATURE_COLORS[feature] } as CSSProperties;
+}
+
 function describeScreenFeature(screen: ScreenConfig): string {
+  return SCREEN_FEATURE_LABELS[resolveScreenFeature(screen)];
+}
+
+function resolveScreenFeature(screen: ScreenConfig): ScreenFeature {
   if (screen.widgets.length === 0) {
-    return "Empty canvas";
+    return "empty";
   }
 
   if (screen.widgets.some((widget) => widget.kind === "camera")) {
-    return "Camera";
+    return "camera";
   }
 
   if (screen.widgets.some((widget) => widget.kind === "joystick" || widget.kind === "slider")) {
-    return "Controls";
+    return "controls";
   }
 
   if (screen.widgets.some((widget) => widget.kind === "topic-echo" || widget.kind === "topic-plot")) {
-    return "Debug";
+    return "debug";
   }
 
-  return "Interface";
+  return "interface";
 }
 
 function resolveScreenAccent(screen: ScreenConfig): string {
-  if (screen.widgets.some((widget) => widget.kind === "camera")) {
-    return "var(--bloom-color-mist)";
-  }
-
-  if (screen.widgets.some((widget) => widget.kind === "joystick" || widget.kind === "slider")) {
-    return "var(--bloom-color-pollen)";
-  }
-
-  if (screen.widgets.some((widget) => widget.kind === "topic-echo" || widget.kind === "topic-plot")) {
-    return "var(--bloom-color-lilac)";
-  }
-
-  if (screen.widgets.length === 0) {
-    return "var(--bloom-color-petal)";
-  }
-
-  return "var(--bloom-color-sage)";
+  return SCREEN_FEATURE_COLORS[resolveScreenFeature(screen)];
 }
+
+function groupAvailableScreensByFeature(screens: readonly AvailableScreen[]) {
+  return SCREEN_FEATURE_ORDER.map((feature) => ({
+    feature,
+    screens: screens.filter(({ screen }) => resolveScreenFeature(screen) === feature),
+  })).filter((group) => group.screens.length > 0);
+}
+
+const SCREEN_FEATURE_LABELS = {
+  camera: "Camera views",
+  controls: "Control screens",
+  debug: "Debug screens",
+  empty: "Blank starters",
+  interface: "Interface screens",
+} satisfies Record<ScreenFeature, string>;
+
+const SCREEN_FEATURE_COLORS = {
+  camera: "var(--bloom-color-mist)",
+  controls: "var(--bloom-color-pollen)",
+  debug: "var(--bloom-color-lilac)",
+  empty: "var(--bloom-color-petal)",
+  interface: "var(--bloom-color-sage)",
+} satisfies Record<ScreenFeature, string>;
+
+const SCREEN_FEATURE_ORDER: readonly ScreenFeature[] = ["controls", "camera", "debug", "interface", "empty"];
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

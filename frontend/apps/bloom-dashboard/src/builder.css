@@ -448,6 +448,14 @@
   padding-left: 24px;
 }
 
+.builder-screen-card[draggable="true"] {
+  cursor: grab;
+}
+
+.builder-screen-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 .builder-screen-card::before {
   width: 9px;
   position: absolute;
@@ -461,6 +469,27 @@
 .builder-screen-card:hover {
   border-color: color-mix(in srgb, var(--bloom-primary) 46%, var(--bloom-border));
   background: color-mix(in srgb, var(--bloom-primary-container) 18%, var(--bloom-surface-container-low));
+}
+
+.builder-screen-dropzone {
+  min-height: 140px;
+  padding: 12px;
+  border: 1px dashed color-mix(in srgb, var(--bloom-primary) 28%, var(--bloom-border));
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--bloom-color-mist) 18%, transparent), transparent 42%),
+    color-mix(in srgb, var(--bloom-surface-container-low) 58%, transparent);
+}
+
+.builder-screen-dropzone::before {
+  display: block;
+  margin: 0 0 10px;
+  color: var(--bloom-ink-soft);
+  content: "Drop reusable screens here";
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .builder-app-card-theme {
@@ -549,6 +578,47 @@
   gap: 24px;
   align-items: start;
   margin-top: 24px;
+}
+
+.builder-screen-available-groups {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.builder-screen-available-group {
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--screen-card-accent) 24%, var(--bloom-border));
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--screen-card-accent) 18%, transparent), transparent 42%),
+    color-mix(in srgb, var(--bloom-surface-container-low) 72%, white);
+}
+
+.builder-screen-available-group-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.builder-screen-available-group-heading h4 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: 0.92rem;
+}
+
+.builder-screen-available-group-heading span {
+  display: inline-grid;
+  min-width: 30px;
+  min-height: 30px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--screen-card-accent) 32%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--screen-card-accent) 16%, white);
+  color: var(--bloom-ink);
+  font-size: 0.76rem;
+  font-weight: 900;
 }
 
 .builder-screen-membership h3 {
