@@ -85,6 +85,9 @@ Usable:
   breadcrumbs and less technical metadata in primary cards.
 - App configuration is improving, but screen membership should feel more like a
   content library than a database table.
+- App configuration now groups reusable screens by type and supports
+  drag-to-add as progressive enhancement. The next UX step is screen reordering
+  and richer visual previews.
 - Controls need immediate feedback. Joysticks and sliders should visibly confirm
   the value being sent.
 
@@ -153,7 +156,9 @@ Functional:
 2. Make builder canvas use more of the viewport while keeping inspector readable.
 3. Replace technical card metadata with human labels, with details available in
    secondary inspectors.
-4. Improve app config screen membership as a reusable screen library.
+4. Improve app config screen membership as a reusable screen library:
+   drag-to-add is started, next are reorder, visual screen thumbnails, and
+   stronger tablet feedback.
 5. Add runtime launch actions directly where users manage apps and screens.
 6. Improve empty states with clear next actions.
 7. Add sunlight/tablet checks:
@@ -213,3 +218,5 @@ Functional:
   clipping risk for teleop controls.
 - Topic echo widgets now expose a first operator-facing debug action:
   copy the latest visible messages to the clipboard.
+- App configuration now uses reusable drag/drop payload helpers for screen
+  composition and keeps button fallbacks for accessible operation.

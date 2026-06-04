@@ -121,6 +121,8 @@ Already done in this phase:
   actions.
 - Builder screen library now groups reusable screens by intent and uses human-readable display titles, type tags, and
   meaningful color accents while preserving legacy screen ids for migration safety.
+- App configuration screen composition now groups available reusable screens by functional type and supports dragging a
+  screen into the current app flow, while keeping explicit button fallbacks.
 
 Remaining focus in this phase:
 
@@ -132,9 +134,9 @@ Remaining focus in this phase:
 - Add screen list/create/duplicate/reuse/archive flows backed by storage.
 - Add screen-only builder and screen-only runtime preview flows, so reusable screens can be designed before app
   composition.
-- Replace early two-column screen membership UI with a production app-flow composition surface:
-  drag-and-drop screens into an app, reorder screens, keep explicit buttons as accessible fallbacks, and preserve the
-  same tactile affordance used by widget drag-and-drop inside the screen builder.
+- Continue evolving the app-flow composition surface:
+  reorder screens, improve visual previews, keep explicit buttons as accessible fallbacks, and preserve the same tactile
+  affordance used by widget drag-and-drop inside the screen builder.
 - Add a builder playground/draft lab for quick robot experiments without creating a saved app first:
   demo widgets, temporary screens, hardware joystick smoke tests, topic echo/publish checks, and a later "promote to
   reusable screen/app" action.

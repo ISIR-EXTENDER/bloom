@@ -14,6 +14,7 @@ import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-vis
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient, RuntimeTopicSampleMessage } from "./runtime/runtime-action-dispatcher";
+import { BLOOM_SCREEN_DRAG_TYPE } from "./ui/dragDrop";
 
 Element.prototype.setPointerCapture = vi.fn();
 Element.prototype.releasePointerCapture = vi.fn();
@@ -342,7 +343,7 @@ describe("App", () => {
 
     await openAppConfig();
     expect(screen.getByText("From Shared screens")).toBeVisible();
-    expect(screen.getByText("Camera")).toBeVisible();
+    expect(screen.getAllByText("Camera views")).toHaveLength(2);
     expect(screen.queryByText(/widgets ·/i)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Add Camera Feed to app" }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
@@ -355,6 +356,34 @@ describe("App", () => {
 
     expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("camera-feed");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
+  });
+
+  it("adds a reusable screen by dropping it into the current app flow", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        sandbox: createBundleWithReusableScreen(),
+      },
+    });
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    const dropzone = screen.getByRole("region", {
+      name: "Screens currently assigned to this app. Drop reusable screens here to add them.",
+    });
+    const dataTransfer = createDragDataTransfer("camera-feed");
+
+    fireEvent.dragOver(dropzone, { dataTransfer });
+    fireEvent.drop(dropzone, { dataTransfer });
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+
+    expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("camera-feed");
   });
 
   it("creates a blank screen from app configuration", async () => {
@@ -1291,4 +1320,16 @@ function getRuntimeJoystickZone(): HTMLElement {
     }) as DOMRect;
 
   return joystickZone;
+}
+
+function createDragDataTransfer(screenId: string): DataTransfer {
+  return {
+    dropEffect: "copy",
+    effectAllowed: "copy",
+    files: [] as unknown as FileList,
+    getData: vi.fn((dragType: string) => (dragType === BLOOM_SCREEN_DRAG_TYPE ? screenId : "")),
+    items: [] as unknown as DataTransferItemList,
+    setData: vi.fn(),
+    types: [BLOOM_SCREEN_DRAG_TYPE],
+  } as unknown as DataTransfer;
 }
