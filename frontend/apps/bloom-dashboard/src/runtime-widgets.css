@@ -303,6 +303,52 @@
   background: var(--bloom-accent);
 }
 
+.bloom-topic-debug-widget {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  min-height: 0;
+}
+
+.bloom-topic-debug-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.bloom-topic-debug-header div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bloom-topic-debug-action {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 22%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 82%, white);
+  color: var(--bloom-primary);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.bloom-topic-debug-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.bloom-topic-debug-status {
+  min-height: 1em;
+  color: var(--bloom-ink-soft);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
 .bloom-topic-echo {
   max-height: 100%;
   margin: 0;

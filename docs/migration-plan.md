@@ -66,6 +66,9 @@ Already merged:
   subscriptions.
 - Runtime topic subscriptions now stream `topic_sample` messages into visible topic echo and plot widgets through the
   shared renderer pipeline.
+- Runtime fit rendering now keeps one canonical screen/widget layout model and applies visual scaling only at the
+  artboard boundary, preserving WYSIWYG geometry while avoiding clipped teleop controls.
+- Topic echo widgets now include a first user-facing debug action to copy the latest visible messages.
 
 ## Roadmap
 
@@ -187,6 +190,8 @@ Validated runtime checks:
   renderers.
 - Real dashboard Bloom Debug flow validates `subscribe_topic` messages with `widget_id`, backend `subscription_ack`,
   and visible topic samples in runtime widgets.
+- Real dashboard Sandbox teleop lab flow validates the fit runtime artboard visually at tablet-like viewport sizes, so
+  translation/rotation joysticks and horizontal/vertical sliders remain visible.
 
 ### Phase 4 - Legacy App Migration
 
