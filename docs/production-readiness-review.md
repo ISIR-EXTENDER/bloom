@@ -7,22 +7,24 @@ Bloom with cleaner boundaries, tests, and a more durable product architecture.
 
 ## Current Migration Estimate
 
+Last reviewed: 2026-06-04.
+
 | Area | Legacy baseline | Bloom state | Migration estimate |
 | --- | --- | --- | --- |
-| Product shell | Extender-specific app pages | Generic landing, builder, runtime navigation | 70% |
-| App and screen configuration | JSON/local sync, usable but brittle | API-backed configuration bundles, app/screen CRUD foundations, SQLite repository | 65% |
-| WYSIWYG builder | Strong canvas, drag/resize, inspector, widget controls | Full-page builder, save/discard, undo/redo, palette, inspector | 55% |
-| Runtime app view | Worked well, app-like, no builder chrome | Fullscreen runtime artboard, screen tabs, shared renderer pipeline | 65% |
-| Widgets foundation | Many working widgets, uneven settings contracts | Registry, settings contracts, renderer registry, action intents, runtime data snapshots | 58% |
-| Slider and joystick controls | User-tested tactile design, large handles, axis labels, readouts | Pointer-native joystick, Radix sliders, teleop/topic bindings, still needs full visual parity QA | 62% |
-| Camera/stream widgets | Working camera and stream flows | Browser webcam demo works, stream preview exists | 55% |
-| Topic debug and plots | Basic logs/plots through app-specific code | Topic echo/plot contracts receive live WebSocket topic samples | 55% |
-| ROS runtime bridge | `tablet_interface` works with ROS topics, typed messages, teleop, camera, measure bridges | ROS publish API, WebSocket teleop, live topic streaming, sandbox smoke tests | 48% |
+| Product shell | Extender-specific app pages | Generic landing, builder, runtime navigation, help page, browser history support | 80% |
+| App and screen configuration | JSON/local sync, usable but brittle | API-backed app/screen flows, screen library, drag/drop, SQLite mirror tables | 70% |
+| WYSIWYG builder | Strong canvas, drag/resize, inspector, widget controls | Full-page builder, save/discard, undo/redo, palette, inspector, screen runtime preview | 70% |
+| Runtime app view | Worked well, app-like, no builder chrome | Runtime app library, recent apps, clean artboard, edit shortcuts, shared renderer pipeline | 75% |
+| Widgets foundation | Many working widgets, uneven settings contracts | Registry, settings contracts, renderer registry, action intents, runtime data snapshots, cleaner runtime labels | 68% |
+| Slider and joystick controls | User-tested tactile design, large handles, axis labels, readouts | Pointer-native joystick, Radix sliders, teleop/topic bindings, good HD layout, small-tablet comfort still pending | 70% |
+| Camera/stream widgets | Working camera and stream flows | Browser webcam demo works, stream preview exists, ROS stream adapter pending | 58% |
+| Topic debug and plots | Basic logs/plots through app-specific code | Topic echo/plot contracts receive live WebSocket samples, copy action exists, pause/clear/catalog pending | 58% |
+| ROS runtime bridge | `tablet_interface` works with ROS topics, typed messages, teleop, camera, measure bridges | ROS publish API, WebSocket teleop, live topic streaming, sandbox smoke tests, safety allowlists pending | 50% |
 | Petanque app migration | Working app-specific runtime | Fixtures and initial migration inventory | 25% |
-| Security | Mostly implicit/local trusted stack | Baseline documented, allowlists planned | 20% |
+| Security | Mostly implicit/local trusted stack | Baseline documented, headers tested, command allowlists/audit logs pending | 30% |
 
-Overall migration state: about 60% for the web product foundations, about 45-50%
-for live ROS parity with `tablet_interface`, and about 25% for full legacy app
+Overall migration state: about 70% for the web product foundations, about 50%
+for live ROS parity with `tablet_interface`, and about 30% for full legacy app
 parity.
 
 See also `docs/partner-interface-review.md` for the Inria/AUCTUS
@@ -60,11 +62,15 @@ Bloom's generic architecture.
 
 ## Architecture Gaps In Bloom
 
-- `frontend/libs/widget-renderers/src/index.tsx` is too large. It should be split
-  by renderer family once the next widget migration slice starts.
-- `frontend/apps/bloom-dashboard/src/App.css` is still a monolithic product style
-  file. Bloom needs component-scoped CSS layers or at least app sections split by
-  product area.
+- `frontend/apps/bloom-dashboard/src/App.tsx` is becoming the product
+  orchestration hotspot. It should be split into shell, builder route, runtime
+  route, and configuration-selection controllers before the next major UI slice.
+- `BuilderHome` and `BuilderAppConfig` mix page composition, grouping,
+  drag/drop, and copy. They should be split into smaller panels and pure helpers.
+- `frontend/libs/widgets/src/settings.ts` is now the central contract authority,
+  but should be split by widget family once ROS/debug widget contracts grow.
+- `frontend/apps/bloom-dashboard/src/App.test.tsx` is very useful but too large.
+  Split by product area to keep future failures easier to diagnose.
 - Widget settings contracts exist, but visual style capabilities are not yet
   editable as real fields.
 - Runtime action intents and ROS live sessions are now connected for teleop,
@@ -113,24 +119,28 @@ Functional:
 - Live ROS session data now reaches topic echo/plot widgets. The next critical
   function is making that debuggable by users: topic catalog, pause/clear,
   plot readability, and recording controls.
+- Runtime teleop is visually comfortable at the configured `1920x1080` Extender
+  resolution, but too small for confident operation at the native `1024x600`
+  tablet checkpoint. Bloom needs app/display presets instead of relying on one
+  layout to serve every viewport.
 
 ## Frontend Refactoring Plan
 
-1. Split widget renderers by family:
-   `controls`, `camera`, `actions`, `debug`, `fallbacks`, and shared setting
-   readers.
-2. Split the monolithic dashboard CSS into product areas:
-   shell/navigation, builder, runtime, widgets, and theme tokens.
-3. Promote reusable UI primitives from dashboard-local CSS into `frontend/libs/ui`.
-4. Keep `@radix-ui/react-slider` for accessible sliders, but keep joystick input
+1. Split `App.tsx` into shell, route/controller, and product-view components.
+2. Split `BuilderHome` and `BuilderAppConfig` into focused panels and pure
+   grouping/selection helpers.
+3. Split widget setting contracts by family while keeping one registry export.
+4. Split large dashboard tests by product area.
+5. Promote reusable UI primitives from dashboard-local CSS into `frontend/libs/ui`.
+6. Keep `@radix-ui/react-slider` for accessible sliders, but keep joystick input
    pointer-native in Bloom. `nipplejs` worked as a legacy reference, but Bloom
    removed it after scaled runtime tests exposed pointer drift and zero-vector
    risks.
-5. Add widget-specific interaction contracts:
+7. Add widget-specific interaction contracts:
    auto-center slider, square joystick, touch-size presets, compact/runtime modes.
-6. Add visual style editing from widget capabilities:
+8. Add visual style editing from widget capabilities:
    accent/background/text/border colors with app theme defaults.
-7. Add Playwright product smoke tests for landing, builder home, app config,
+9. Add Playwright product smoke tests for landing, builder home, app config,
    screen builder, runtime, and webcam demo.
 
 ## Backend Refactoring Plan
@@ -158,9 +168,9 @@ Functional:
 2. Make builder canvas use more of the viewport while keeping inspector readable.
 3. Replace technical card metadata with human labels, with details available in
    secondary inspectors.
-4. Improve app config screen membership as a reusable screen library:
-   drag-to-add is started, next are reorder, visual screen thumbnails, and
-   stronger tablet feedback.
+4. Improve app config and screen library UX beyond the current drag/drop base:
+   guided creation, clearer screen intent grouping, cached thumbnails, and
+   stronger tablet feedback for drag/reorder operations.
 5. Add runtime launch actions directly where users manage apps and screens.
 6. Improve empty states with clear next actions.
 7. Add sunlight/tablet checks:

@@ -200,6 +200,19 @@ Rules:
   smoke coverage.
 - Use `npm run visual:smoke` after layout changes that affect shell, builder, runtime, or reusable UI primitives.
 
+Current review finding:
+
+- The Sandbox teleop lab is comfortable at the configured Extender `1920x1080` resolution.
+- The same screen is readable but not comfortable enough for confident operation at the native `1024x600` checkpoint.
+- Bloom should keep WYSIWYG geometry as the source of truth, but add app/display presets so runtime can choose
+  tablet, comfortable, or high-visibility layouts without pretending one layout fits every deployment context.
+
+Design implication:
+
+- Do not solve tablet runtime comfort by silently changing widget coordinates in runtime.
+- Prefer explicit app-level display profiles, duplicated/adapted screens, or builder-supported layout presets.
+- Treat `1024x600` as a usability target, not just a no-clipping target.
+
 ## Color Usage
 
 Color should help users read state and intent:

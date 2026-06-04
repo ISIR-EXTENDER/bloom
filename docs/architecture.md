@@ -48,6 +48,14 @@ Bloom should separate product entry points from robot interface execution:
 Screen previews, canvas builders, and runtime apps should not live permanently on the landing page. They can appear there
 temporarily during migration only as development previews.
 
+Current refactoring direction:
+
+- Keep the top-level app shell responsible for theme, navigation, and route selection only.
+- Move builder orchestration into focused builder route/controllers.
+- Move runtime orchestration into focused runtime route/controllers.
+- Keep configuration selection and persistence glue separate from presentational pages.
+- Avoid letting `App.tsx` become the long-term home for product logic as builder/runtime features grow.
+
 ## Builder Composition
 
 The builder has two product levels:

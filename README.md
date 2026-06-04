@@ -21,6 +21,7 @@
   <a href="docs/design-system.md">Design System</a> ·
   <a href="docs/component-styleguide.md">Components</a> ·
   <a href="docs/widget-ux-review.md">Widget UX</a> ·
+  <a href="docs/production-readiness-review.md">Readiness</a> ·
   <a href="docs/extender-tablet-hardware.md">Tablet Hardware</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
@@ -61,6 +62,10 @@ npm run capture:readme
 ## Work In Progress
 
 Bloom is currently in foundation work before the full UI/database migration:
+
+Current review snapshot: Bloom's web product foundation is strong enough to continue Phase 3 work, but real robot
+deployment still needs runtime command allowlists, audit logging, Bloom Debug polish, and systematic legacy widget
+migration. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current roadmap.
 
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
