@@ -506,6 +506,56 @@ describe("widget settings contracts", () => {
         topic: "/joint_states",
       },
     });
+
+    expect(
+      normalizeWidgetSettings("camera", {
+        source: "rviz",
+        streamUrl: "webrtc://localhost:8001/rviz",
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        fitMode: "contain",
+        showHeader: true,
+        showStatus: true,
+        source: "stream-url",
+        streamUrl: "webrtc://localhost:8001/rviz",
+        webcamPicker: true,
+      },
+    });
+  });
+
+  it("validates display widgets that replaced legacy placeholders", () => {
+    expect(
+      normalizeWidgetSettings("gauge", {
+        max: 100,
+        min: 0,
+        unit: "%",
+        value: 68,
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        max: 100,
+        min: 0,
+        unit: "%",
+        value: 68,
+      },
+    });
+
+    expect(
+      normalizeWidgetSettings("plot", {
+        historySeconds: 20,
+        samples: [0.1, 0.4, 0.3],
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        historySeconds: 20,
+        samples: [0.1, 0.4, 0.3],
+        showLegend: true,
+      },
+    });
   });
 
   it("rejects invalid settings when creating a widget config from defaults", () => {

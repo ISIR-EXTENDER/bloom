@@ -63,10 +63,11 @@ npm run capture:readme
 
 Bloom is currently in foundation work before the full UI/database migration:
 
-Current review snapshot: Bloom's web product foundation has completed the Phase 3 runtime safety/debug foundation:
-command allowlists, command rate limits, runtime audit, topic catalog, recording gateway, and Bloom Debug controls are
-now in place. Real robot deployment still needs concrete rosbag/action adapters and systematic legacy widget migration.
-See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current roadmap.
+Current review snapshot: Bloom has completed the Phase 3 runtime safety/debug foundation and is now in Phase 4 legacy
+widget/app migration. Command allowlists, command rate limits, runtime audit, topic catalog, recording gateway, and
+Bloom Debug controls are in place. The current focus is systematic widget migration from `extender_ui` with real legacy
+fixtures and useful runtime screens. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the
+current roadmap.
 
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
@@ -88,6 +89,9 @@ See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the c
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
+- Runtime display widgets now include useful first foundations for labels, gauges, lightweight plots, and robot-3D
+  extension placeholders instead of generic placeholder text.
+- Seeded app fixtures are tested so shipped apps do not accidentally include empty runtime screens.
 - Runtime now starts from an app library, offers recently opened app shortcuts, and keeps small edit shortcuts back to
   the current app or screen.
 - Backend runtime sessions expose a WebSocket contract for live UI connections, topic subscriptions, topic samples, and teleop command acknowledgements.
@@ -104,8 +108,9 @@ See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the c
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Runtime/status UX is intentionally calm: backend/API status can be shown first, while robot/ROS/network indicators
   must come from explicit adapters before Bloom claims they are connected.
-- Next major pieces are bundle reconstruction from normalized SQLite rows, concrete rosbag adapter wiring, deploy/repli
-  action adapters, and the next reusable widget migrations.
+- Next major pieces are richer logs/telemetry widgets, configurable ROS message command variants, saved preset/pose
+  actions, bundle reconstruction from normalized SQLite rows, concrete rosbag adapter wiring, and deploy/repli action
+  adapters.
 
 ## In-App Help
 

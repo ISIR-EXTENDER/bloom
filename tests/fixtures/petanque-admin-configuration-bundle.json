@@ -7,12 +7,26 @@
   "applications": [
     {
       "id": "app-petanque-admin",
-      "name": "app-petanque-admin",
+      "name": "Petanque admin",
       "description": "Legacy home screen: default_control",
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [],
       "screens": [
         {
           "id": "default_control",
-          "title": "default_control",
+          "title": "Teleop controls",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -45,8 +59,8 @@
               "kind": "slider",
               "title": "Z",
               "layout": {
-                "x": 3,
-                "y": 178,
+                "x": 8,
+                "y": 176,
                 "width": 74,
                 "height": 330
               },
@@ -138,7 +152,14 @@
                 "height": 149
               },
               "settings": {
-                "topic": "/cmd/gripper"
+                "topic": "/cmd/gripper",
+                "messageType": "std_msgs/msg/Bool",
+                "onLabel": "Closed",
+                "offLabel": "Open",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "initialValue": false,
+                "show_details": false
               }
             },
             {
@@ -153,15 +174,33 @@
               },
               "settings": {
                 "topic": "/ui/load_pose",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'home'}",
+                "button_label": "Load home",
                 "poseName": "home",
                 "icon": "home"
+              }
+            },
+            {
+              "id": "plot-8",
+              "kind": "plot",
+              "title": "Plot",
+              "layout": {
+                "x": 248,
+                "y": 80,
+                "width": 504,
+                "height": 256
+              },
+              "settings": {
+                "historySeconds": 10,
+                "showLegend": true
               }
             }
           ]
         },
         {
           "id": "default_live_teleop",
-          "title": "default_live_teleop",
+          "title": "Live teleop",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -284,52 +323,361 @@
         },
         {
           "id": "articular",
-          "title": "articular",
+          "title": "Joint controls",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "articular-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 380,
+                "height": 72
+              },
+              "settings": {
+                "text": "Joint controls",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "articular-joint-plot",
+              "kind": "topic-plot",
+              "title": "Joint 1 position",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 560,
+                "height": 230
+              },
+              "settings": {
+                "topic": "/joint_states",
+                "messageType": "sensor_msgs/msg/JointState",
+                "fieldPath": "position.0",
+                "unit": "rad",
+                "show_details": false
+              }
+            },
+            {
+              "id": "articular-joint-echo",
+              "kind": "topic-echo",
+              "title": "Joint states",
+              "layout": {
+                "x": 640,
+                "y": 124,
+                "width": 560,
+                "height": 360
+              },
+              "settings": {
+                "topic": "/joint_states",
+                "messageType": "sensor_msgs/msg/JointState",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": true
+              }
+            }
+          ]
         },
         {
           "id": "camera",
-          "title": "camera",
+          "title": "Camera supervision",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "camera-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 420,
+                "height": 72
+              },
+              "settings": {
+                "text": "Camera supervision",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "camera-main-stream",
+              "kind": "camera",
+              "title": "Robot camera",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 720,
+                "height": 430
+              },
+              "settings": {
+                "source": "stream-url",
+                "streamUrl": "webrtc://localhost:8001/stream",
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "camera-result-stream",
+              "kind": "camera",
+              "title": "Measure result",
+              "layout": {
+                "x": 792,
+                "y": 124,
+                "width": 420,
+                "height": 270
+              },
+              "settings": {
+                "source": "stream-url",
+                "streamUrl": "/petanque/measure/result_image/compressed",
+                "fitMode": "contain",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": false
+              }
+            }
+          ]
         },
         {
           "id": "visual_servoing",
-          "title": "visual_servoing",
+          "title": "Visual servoing",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "visual-servoing-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 420,
+                "height": 72
+              },
+              "settings": {
+                "text": "Visual servoing",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "visual-servoing-toggle",
+              "kind": "toggle",
+              "title": "Visual servoing",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 300,
+                "height": 130
+              },
+              "settings": {
+                "topic": "/visual_servoing/enabled",
+                "messageType": "std_msgs/msg/Bool",
+                "onLabel": "Enabled",
+                "offLabel": "Disabled",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "initialValue": false,
+                "show_details": false
+              }
+            },
+            {
+              "id": "visual-servoing-camera",
+              "kind": "camera",
+              "title": "Tracking camera",
+              "layout": {
+                "x": 380,
+                "y": 124,
+                "width": 500,
+                "height": 330
+              },
+              "settings": {
+                "source": "stream-url",
+                "streamUrl": "webrtc://localhost:8001/stream",
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "visual-servoing-error",
+              "kind": "topic-plot",
+              "title": "Tracking error",
+              "layout": {
+                "x": 920,
+                "y": 124,
+                "width": 300,
+                "height": 220
+              },
+              "settings": {
+                "topic": "/visual_servoing/error",
+                "messageType": "std_msgs/msg/Float64",
+                "fieldPath": "data",
+                "unit": "px",
+                "show_details": false
+              }
+            }
+          ]
         },
         {
           "id": "logs",
-          "title": "logs",
+          "title": "Logs",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "logs-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 320,
+                "height": 72
+              },
+              "settings": {
+                "text": "Runtime logs",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "logs-rosout",
+              "kind": "topic-echo",
+              "title": "ROS logs",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 820,
+                "height": 430
+              },
+              "settings": {
+                "topic": "/rosout",
+                "messageType": "rcl_interfaces/msg/Log",
+                "fieldPath": "",
+                "maxMessages": 40,
+                "prettyPrint": true,
+                "show_details": true
+              }
+            },
+            {
+              "id": "logs-events",
+              "kind": "topic-echo",
+              "title": "Petanque events",
+              "layout": {
+                "x": 900,
+                "y": 124,
+                "width": 320,
+                "height": 300
+              },
+              "settings": {
+                "topic": "/petanque_state_machine/change_state",
+                "messageType": "std_msgs/msg/String",
+                "fieldPath": "data",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false
+              }
+            }
+          ]
         },
         {
           "id": "poses",
-          "title": "poses",
+          "title": "Saved poses",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "poses-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 380,
+                "height": 72
+              },
+              "settings": {
+                "text": "Saved poses",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "poses-load-home",
+              "kind": "command-button",
+              "title": "Home pose",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 220,
+                "height": 88
+              },
+              "settings": {
+                "topic": "/ui/load_pose",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'home'}",
+                "button_label": "Load home"
+              }
+            },
+            {
+              "id": "poses-save-current",
+              "kind": "command-button",
+              "title": "Current pose",
+              "layout": {
+                "x": 288,
+                "y": 124,
+                "width": 220,
+                "height": 88
+              },
+              "settings": {
+                "topic": "/ui/save_pose",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'current'}",
+                "button_label": "Save current"
+              }
+            },
+            {
+              "id": "poses-joint-state",
+              "kind": "topic-echo",
+              "title": "Current joint state",
+              "layout": {
+                "x": 540,
+                "y": 124,
+                "width": 600,
+                "height": 360
+              },
+              "settings": {
+                "topic": "/joint_states",
+                "messageType": "sensor_msgs/msg/JointState",
+                "fieldPath": "",
+                "maxMessages": 10,
+                "prettyPrint": true,
+                "show_details": false
+              }
+            }
+          ]
         },
         {
           "id": "default_petanque",
-          "title": "default_petanque",
+          "title": "Petanque match",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -380,7 +728,9 @@
               },
               "settings": {
                 "topic": "/cmd/petanque/round",
-                "payload": "start"
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'start'}",
+                "button_label": "Start"
               }
             },
             {
@@ -395,7 +745,9 @@
               },
               "settings": {
                 "topic": "/cmd/petanque/round",
-                "payload": "stop"
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'stop'}",
+                "button_label": "Stop"
               }
             },
             {
@@ -434,39 +786,275 @@
         },
         {
           "id": "petanque_teleop_config",
-          "title": "petanque_teleop_config",
+          "title": "Teleop settings",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "teleop-config-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 420,
+                "height": 72
+              },
+              "settings": {
+                "text": "Teleop settings",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "teleop-config-max-velocity",
+              "kind": "slider",
+              "title": "Max velocity",
+              "layout": {
+                "x": 40,
+                "y": 132,
+                "width": 520,
+                "height": 110
+              },
+              "settings": {
+                "topic": "/cmd/max_velocity",
+                "messageType": "std_msgs/msg/Float64",
+                "direction": "horizontal",
+                "min": 0,
+                "max": 2,
+                "step": 0.01,
+                "show_details": true
+              }
+            },
+            {
+              "id": "teleop-config-throw-alpha",
+              "kind": "slider",
+              "title": "Throw alpha",
+              "layout": {
+                "x": 40,
+                "y": 280,
+                "width": 520,
+                "height": 110
+              },
+              "settings": {
+                "topic": "/petanque/throw/alpha",
+                "messageType": "std_msgs/msg/Float64",
+                "direction": "horizontal",
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "show_details": true
+              }
+            },
+            {
+              "id": "teleop-config-mode",
+              "kind": "toggle",
+              "title": "Teleop mode",
+              "layout": {
+                "x": 620,
+                "y": 132,
+                "width": 260,
+                "height": 130
+              },
+              "settings": {
+                "topic": "/petanque/teleop/enabled",
+                "messageType": "std_msgs/msg/Bool",
+                "onLabel": "Teleop",
+                "offLabel": "Observe",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "initialValue": true,
+                "show_details": false
+              }
+            }
+          ]
         },
         {
           "id": "curves",
-          "title": "curves",
+          "title": "Telemetry curves",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "curves-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 420,
+                "height": 72
+              },
+              "settings": {
+                "text": "Telemetry curves",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "curves-velocity-x",
+              "kind": "topic-plot",
+              "title": "Velocity X",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 560,
+                "height": 230
+              },
+              "settings": {
+                "topic": "/sandbox_controller/velocity_command",
+                "messageType": "geometry_msgs/msg/Twist",
+                "fieldPath": "linear.x",
+                "unit": "m/s",
+                "show_details": false
+              }
+            },
+            {
+              "id": "curves-velocity-z",
+              "kind": "topic-plot",
+              "title": "Velocity Z",
+              "layout": {
+                "x": 640,
+                "y": 124,
+                "width": 560,
+                "height": 230
+              },
+              "settings": {
+                "topic": "/sandbox_controller/velocity_command",
+                "messageType": "geometry_msgs/msg/Twist",
+                "fieldPath": "linear.z",
+                "unit": "m/s",
+                "show_details": false
+              }
+            }
+          ]
         },
         {
           "id": "configurations",
-          "title": "configurations",
+          "title": "Configuration",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "configuration-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 420,
+                "height": 72
+              },
+              "settings": {
+                "text": "Configuration",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "configuration-note",
+              "kind": "label",
+              "title": "Note",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 620,
+                "height": 150
+              },
+              "settings": {
+                "text": "This screen keeps operator-facing configuration shortcuts. Use the builder for deeper app edits.",
+                "fontSize": 22,
+                "align": "left"
+              }
+            },
+            {
+              "id": "configuration-request-image",
+              "kind": "command-button",
+              "title": "Request image",
+              "layout": {
+                "x": 700,
+                "y": 124,
+                "width": 240,
+                "height": 92
+              },
+              "settings": {
+                "topic": "/petanque/measure/request_image",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'capture'}",
+                "button_label": "Capture"
+              }
+            }
+          ]
         },
         {
           "id": "debug",
-          "title": "debug",
+          "title": "Debug",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
           },
-          "widgets": []
+          "widgets": [
+            {
+              "id": "debug-title",
+              "kind": "label",
+              "title": "Title",
+              "layout": {
+                "x": 40,
+                "y": 32,
+                "width": 320,
+                "height": 72
+              },
+              "settings": {
+                "text": "Debug",
+                "fontSize": 32,
+                "align": "left"
+              }
+            },
+            {
+              "id": "debug-teleop",
+              "kind": "topic-echo",
+              "title": "Teleop commands",
+              "layout": {
+                "x": 40,
+                "y": 124,
+                "width": 540,
+                "height": 360
+              },
+              "settings": {
+                "topic": "/teleop_cmd",
+                "messageType": "extender_msgs/msg/TeleopCommand",
+                "fieldPath": "",
+                "maxMessages": 30,
+                "prettyPrint": true,
+                "show_details": true
+              }
+            },
+            {
+              "id": "debug-state-machine",
+              "kind": "topic-echo",
+              "title": "State changes",
+              "layout": {
+                "x": 620,
+                "y": 124,
+                "width": 520,
+                "height": 300
+              },
+              "settings": {
+                "topic": "/petanque_state_machine/change_state",
+                "messageType": "std_msgs/msg/String",
+                "fieldPath": "data",
+                "maxMessages": 30,
+                "prettyPrint": true,
+                "show_details": true
+              }
+            }
+          ]
         }
       ]
     }

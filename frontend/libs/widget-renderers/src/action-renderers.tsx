@@ -1,6 +1,6 @@
 import { createWidgetActionIntent } from "@bloom/widgets";
 import { useState } from "react";
-import { getBooleanSetting, getStringSetting } from "./settings-readers";
+import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
 export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
@@ -25,12 +25,13 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
 
 export function LabelWidget({ descriptor }: WidgetRendererProps) {
   const text = getStringSetting(descriptor.widget.settings, "text", descriptor.widget.title);
+  const fontSize = getNumberSetting(descriptor.widget.settings, "fontSize", 20);
+  const align = getLabelAlignment(getStringSetting(descriptor.widget.settings, "align", "left"));
 
   return (
-    <>
-      <strong>{text}</strong>
-      <span>{descriptor.definition.displayName}</span>
-    </>
+    <div className="bloom-label-widget" data-align={align} style={{ fontSize }}>
+      <span>{text}</span>
+    </div>
   );
 }
 
@@ -63,4 +64,12 @@ export function ToggleWidget({ descriptor, onActionIntent }: WidgetRendererProps
       {showDetails && topic ? <span>{topic}</span> : null}
     </div>
   );
+}
+
+function getLabelAlignment(value: string): "center" | "left" | "right" {
+  if (value === "center" || value === "right") {
+    return value;
+  }
+
+  return "left";
 }

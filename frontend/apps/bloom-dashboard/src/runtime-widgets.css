@@ -334,11 +334,244 @@
 }
 
 .bloom-action-widget,
+.bloom-label-widget,
 .bloom-toggle-widget,
-.bloom-topic-plot-widget {
+.bloom-topic-plot-widget,
+.bloom-gauge-widget,
+.bloom-plot-widget,
+.bloom-robot-3d-widget {
   display: grid;
   gap: 8px;
   min-width: 0;
+}
+
+.bloom-label-widget {
+  align-content: center;
+  justify-items: start;
+  min-height: 100%;
+  color: var(--bloom-ink);
+  font-family: var(--bloom-font-body);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.18;
+  white-space: pre-wrap;
+}
+
+.bloom-label-widget[data-align="center"] {
+  justify-items: center;
+  text-align: center;
+}
+
+.bloom-label-widget[data-align="right"] {
+  justify-items: end;
+  text-align: right;
+}
+
+.bloom-display-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.bloom-display-header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bloom-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloom-display-header span {
+  flex: 0 0 auto;
+  color: var(--bloom-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.bloom-gauge-widget {
+  align-content: center;
+}
+
+.bloom-gauge-meter {
+  --bloom-gauge-percent: 0%;
+
+  position: relative;
+  display: grid;
+  min-height: 96px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 18%, transparent);
+  border-radius: 24px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--bloom-accent) 52%, white) var(--bloom-gauge-percent), transparent 0),
+    color-mix(in srgb, var(--bloom-primary-container) 58%, var(--bloom-surface));
+  box-shadow: inset 0 0 28px color-mix(in srgb, var(--bloom-primary) 10%, transparent);
+}
+
+.bloom-gauge-meter span {
+  color: var(--bloom-ink);
+  font-family: var(--bloom-font-display);
+  font-size: clamp(2rem, 8vw, 3.8rem);
+  font-weight: 500;
+  line-height: 0.95;
+}
+
+.bloom-gauge-meter small {
+  color: var(--bloom-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bloom-gauge-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--bloom-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.bloom-plot-widget {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.bloom-plot-sparkline {
+  width: 100%;
+  min-height: 92px;
+  max-height: 100%;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 16%, transparent);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--bloom-primary-container) 58%, transparent), transparent),
+    color-mix(in srgb, var(--bloom-surface) 88%, white);
+}
+
+.bloom-plot-gridline {
+  fill: none;
+  stroke: color-mix(in srgb, var(--bloom-primary) 14%, transparent);
+  stroke-width: 1;
+}
+
+.bloom-plot-area {
+  fill: color-mix(in srgb, var(--bloom-accent) 22%, transparent);
+}
+
+.bloom-plot-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--bloom-primary) 82%, black);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.bloom-plot-readout {
+  justify-self: end;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary-container) 72%, white);
+  color: var(--bloom-ink-soft);
+  font-family: var(--bloom-font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.bloom-robot-3d-widget {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.bloom-robot-3d-stage {
+  position: relative;
+  display: grid;
+  min-height: 120px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 16%, transparent);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--bloom-accent) 20%, transparent), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--bloom-primary-container) 58%, transparent), transparent),
+    color-mix(in srgb, var(--bloom-surface) 88%, white);
+}
+
+.bloom-robot-3d-axes {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.bloom-robot-3d-axes span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--bloom-surface);
+  font-size: 0.64rem;
+  font-weight: 900;
+}
+
+.bloom-robot-3d-axes [data-axis="x"] {
+  background: #b66d6d;
+}
+
+.bloom-robot-3d-axes [data-axis="y"] {
+  background: #7f987f;
+}
+
+.bloom-robot-3d-axes [data-axis="z"] {
+  background: #7f8fb8;
+}
+
+.bloom-robot-3d-arm {
+  position: relative;
+  width: min(62%, 260px);
+  height: min(52%, 160px);
+}
+
+.bloom-robot-3d-arm span {
+  position: absolute;
+  display: block;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary) 68%, white);
+  box-shadow: 0 12px 24px rgba(32, 56, 50, 0.14);
+  transform-origin: left center;
+}
+
+.bloom-robot-3d-arm span:nth-child(1) {
+  top: 50%;
+  left: 4%;
+  width: 48%;
+  transform: rotate(-18deg);
+}
+
+.bloom-robot-3d-arm span:nth-child(2) {
+  top: 34%;
+  left: 42%;
+  width: 38%;
+  transform: rotate(28deg);
+}
+
+.bloom-robot-3d-arm span:nth-child(3) {
+  top: 52%;
+  left: 70%;
+  width: 24%;
+  transform: rotate(-32deg);
+}
+
+.bloom-robot-3d-widget p {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 0.78rem;
 }
 
 .bloom-command-button,

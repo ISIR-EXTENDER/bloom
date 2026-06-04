@@ -21,13 +21,33 @@ from libs.config import (
     WidgetLayout,
 )
 
-WIDGET_KIND_CONTRACT_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "widget-kinds-contract.json"
+FIXTURE_DIR = Path(__file__).parents[2] / "tests" / "fixtures"
+WIDGET_KIND_CONTRACT_PATH = FIXTURE_DIR / "widget-kinds-contract.json"
+APP_CONFIGURATION_FIXTURE_PATHS = (
+    FIXTURE_DIR / "configuration-bundle.json",
+    FIXTURE_DIR / "petanque-admin-configuration-bundle.json",
+    FIXTURE_DIR / "webcam-visualizer-configuration-bundle.json",
+    FIXTURE_DIR / "bloom-debug-configuration.json",
+    FIXTURE_DIR / "sandbox-teleop-lab-configuration.json",
+)
 
 
 def test_widget_kind_enum_matches_shared_contract() -> None:
     contract = json.loads(WIDGET_KIND_CONTRACT_PATH.read_text(encoding="utf-8"))
 
     assert sorted(widget_kind.value for widget_kind in WidgetKind) == contract["widget_kinds"]
+
+
+def test_app_configuration_fixtures_do_not_ship_empty_runtime_screens() -> None:
+    for configuration_path in APP_CONFIGURATION_FIXTURE_PATHS:
+        bundle = ConfigurationBundle.model_validate_json(configuration_path.read_text(encoding="utf-8"))
+
+        for application in bundle.applications:
+            for screen in application.screens:
+                assert screen.widgets, (
+                    f"{configuration_path.name}:{application.id}/{screen.id} should contain at least one widget "
+                    "or stay out of the seeded app library."
+                )
 
 
 def test_configuration_bundle_serializes_to_json() -> None:

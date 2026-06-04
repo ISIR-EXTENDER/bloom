@@ -25,8 +25,11 @@ and recover confidence quickly when something is not configured.
 | Camera / stream | Good foundation | Webcam and stream views work; status text is now more human. Needs ROS image stream adapter and clearer permission fallback copy. |
 | Topic echo | Debug-oriented | Correct for Bloom Debug, but should be used intentionally. Details remain visible by default because it is a debug widget. |
 | Topic plot | Debug-oriented | Now formats latest values with units and can hide technical topic/field details. Needs real chart rendering and pause/clear controls. |
-| Label | Basic | Useful, but needs style presets and better multiline support for instruction screens. |
-| Gauge / Plot / Robot 3D / Unknown | Foundation only | Contracts exist, but visual/runtime implementations are still placeholders or future extension points. |
+| Label | Improved | Renders configured text, alignment, and font size. Needs style presets once instruction/status blocks become common. |
+| Gauge | Good foundation | Accessible meter with min/max/value/unit. Good for battery, score, progress, or simple state. Needs live data binding. |
+| Plot | Good foundation | First-party sparkline with readable latest value. Good for preview/simple telemetry; richer runtime plots may need a chart library. |
+| Robot 3D | Extension placeholder | No fake 3D yet, but the placeholder communicates joint topic and future adapter boundary without looking broken. |
+| Unknown | Safe fallback | Keeps missing widgets visible to builders without crashing runtime. |
 
 ## Fixes Applied In This Review
 
@@ -38,6 +41,9 @@ and recover confidence quickly when something is not configured.
 - Camera stream status now uses concise operator text: `Ready` or `Source needed`.
 - Widget frames now expose better accessible names using the widget title and kind.
 - Button/toggle touch targets now fill their widget area more comfortably.
+- Label widgets now avoid debug metadata and render configured operator text.
+- Gauge, plot, and robot-3D widgets now have useful runtime renderers instead of generic placeholders.
+- Seeded app fixtures are tested so shipped apps do not include empty runtime screens.
 
 ## Remaining UX Risks
 
@@ -51,6 +57,6 @@ and recover confidence quickly when something is not configured.
 
 1. Add unit and intent labels to slider runtime settings.
 2. Add pause, clear, and copy controls to topic echo/plot widgets.
-3. Add a first real minimal chart renderer for topic plots.
+3. Add richer chart rendering for topic plots only when real runtime requirements need more than the first-party sparkline.
 4. Add camera permission guidance with one clear recovery action.
 5. Add visual smoke snapshots for the sandbox teleop lab and Bloom Debug screens specifically.
