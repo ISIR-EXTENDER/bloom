@@ -447,6 +447,7 @@ describe("widget settings contracts", () => {
         historySeconds: 30,
         maxSamples: 500,
         messageType: "geometry_msgs/msg/Twist",
+        show_details: true,
         topic: "/sandbox_controller/velocity_command",
         unit: "m/s",
       },
@@ -458,6 +459,7 @@ describe("widget settings contracts", () => {
         historySeconds: 0,
         maxSamples: 10,
         messageType: "",
+        show_details: true,
         topic: "",
         unit: "",
         yMax: 1,
@@ -500,6 +502,7 @@ describe("widget settings contracts", () => {
         maxMessages: 100,
         messageType: "sensor_msgs/msg/JointState",
         prettyPrint: true,
+        show_details: true,
         topic: "/joint_states",
       },
     });

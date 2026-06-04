@@ -80,7 +80,8 @@ export function BuilderCanvasItem({
   };
 
   return (
-    <div
+    <article
+      aria-label={`${widget.title} ${widget.kind} widget`}
       className={`builder-widget-frame widget-preview-card ${selected ? "is-selected" : ""}`}
       data-widget-kind={widget.kind}
       style={{
@@ -106,6 +107,6 @@ export function BuilderCanvasItem({
         onPointerDown={(event) => startInteraction(event, "resize")}
         type="button"
       />
-    </div>
+    </article>
   );
 }

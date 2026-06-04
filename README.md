@@ -20,6 +20,7 @@
   <a href="#architecture-rules">Architecture</a> ·
   <a href="docs/design-system.md">Design System</a> ·
   <a href="docs/component-styleguide.md">Components</a> ·
+  <a href="docs/widget-ux-review.md">Widget UX</a> ·
   <a href="docs/extender-tablet-hardware.md">Tablet Hardware</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
@@ -169,6 +170,9 @@ Typography is controlled through open-source fonts bundled by `@bloom/ui`: `Corm
 
 Reusable component examples and promotion rules live in `docs/component-styleguide.md`. Visual smoke checks cover the
 key tablet/desktop viewports with `npm run visual:smoke`.
+
+Widget-specific usability notes live in `docs/widget-ux-review.md`. Update it when a widget family changes behavior,
+touch affordances, or runtime/debug information density.
 
 When adding UI, prefer semantic Bloom tokens from `@bloom/ui`, keep app-specific visual identity in theme presets or app
 configuration, and update the design system notes when a reusable pattern becomes stable.

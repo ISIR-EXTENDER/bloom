@@ -49,6 +49,7 @@ export type CommandButtonSettings = {
   action_feedback: CommandActionFeedbackMode;
   action_id: string;
   action_label: string;
+  button_label: string;
   cancellable: boolean;
   command: string;
 };
@@ -119,11 +120,14 @@ export type SliderSettings = {
 };
 
 export type ToggleSettings = {
+  offLabel: string;
   initialValue: boolean;
   messageType?: string;
   offPayload: unknown;
+  onLabel: string;
   onPayload: unknown;
   presetId?: string;
+  show_details: boolean;
   topic?: string;
 };
 
@@ -132,6 +136,7 @@ export type TopicEchoSettings = {
   maxMessages: number;
   messageType: string;
   prettyPrint: boolean;
+  show_details: boolean;
   topic: string;
 };
 
@@ -140,6 +145,7 @@ export type TopicPlotSettings = {
   historySeconds: number;
   maxSamples: number;
   messageType: string;
+  show_details: boolean;
   topic: string;
   unit: string;
   yMax?: number;
@@ -171,6 +177,7 @@ const COMMAND_BUTTON_DEFAULT_SETTINGS: CommandButtonSettings = {
   action_feedback: "none",
   action_id: "",
   action_label: "",
+  button_label: "",
   cancellable: false,
   command: "",
 };
@@ -235,8 +242,11 @@ const SLIDER_DEFAULT_SETTINGS: SliderSettings = {
 
 const TOGGLE_DEFAULT_SETTINGS: ToggleSettings = {
   initialValue: false,
+  offLabel: "Inactive",
   offPayload: false,
+  onLabel: "Active",
   onPayload: true,
+  show_details: false,
 };
 
 const TOPIC_ECHO_DEFAULT_SETTINGS: TopicEchoSettings = {
@@ -244,6 +254,7 @@ const TOPIC_ECHO_DEFAULT_SETTINGS: TopicEchoSettings = {
   maxMessages: 100,
   messageType: "",
   prettyPrint: true,
+  show_details: true,
   topic: "",
 };
 
@@ -252,6 +263,7 @@ const TOPIC_PLOT_DEFAULT_SETTINGS: TopicPlotSettings = {
   historySeconds: 30,
   maxSamples: 500,
   messageType: "",
+  show_details: true,
   topic: "",
   unit: "",
 };
@@ -291,6 +303,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     "command-button",
     [
       { key: "command", label: "Command", type: "text", required: true },
+      { key: "button_label", label: "Button label", type: "text", required: false },
       { key: "action_id", label: "Action id", type: "text", required: false },
       { key: "action_label", label: "Action label", type: "text", required: false },
       {
@@ -373,8 +386,11 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "initialValue", label: "Initial value", type: "boolean", required: true },
       { key: "topic", label: "Output topic", type: "text", required: false },
       { key: "messageType", label: "ROS message type", type: "text", required: false },
+      { key: "onLabel", label: "Active label", type: "text", required: true },
+      { key: "offLabel", label: "Inactive label", type: "text", required: true },
       { key: "onPayload", label: "ON payload", type: "json", required: true },
       { key: "offPayload", label: "OFF payload", type: "json", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
     ],
     TOGGLE_DEFAULT_SETTINGS,
     validateToggleSettings,
@@ -387,6 +403,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "fieldPath", label: "Field path", type: "text", required: false },
       { key: "maxMessages", label: "Max messages", type: "number", required: true },
       { key: "prettyPrint", label: "Pretty print", type: "boolean", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
     ],
     TOPIC_ECHO_DEFAULT_SETTINGS,
     validateTopicEchoSettings,
@@ -397,6 +414,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "topic", label: "Topic", type: "text", required: true },
       { key: "messageType", label: "Message type", type: "text", required: false },
       { key: "fieldPath", label: "Field path", type: "text", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "historySeconds", label: "History duration", type: "number", required: true },
       { key: "maxSamples", label: "Max samples", type: "number", required: true },
       { key: "unit", label: "Unit", type: "text", required: false },
@@ -632,6 +650,7 @@ function validateCommandButtonSettings(
 ): WidgetSettingsValidationResult<CommandButtonSettings> {
   const errors = [
     ...validateString(settings, "command", { allowEmpty: true }),
+    ...validateString(settings, "button_label", { allowEmpty: true }),
     ...validateString(settings, "action_id", { allowEmpty: true }),
     ...validateString(settings, "action_label", { allowEmpty: true }),
     ...validateOneOf(settings, "action_feedback", ["none", "progress", "result"]),
@@ -790,7 +809,12 @@ function validateSliderSettings(settings: Record<string, unknown>): WidgetSettin
 }
 
 function validateToggleSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<ToggleSettings> {
-  const errors = validateBoolean(settings, "initialValue");
+  const errors = [
+    ...validateBoolean(settings, "initialValue"),
+    ...validateString(settings, "onLabel"),
+    ...validateString(settings, "offLabel"),
+    ...validateBoolean(settings, "show_details"),
+  ];
   if ("topic" in settings && settings.topic !== undefined) {
     errors.push(...validateString(settings, "topic", { allowEmpty: true }));
   }
@@ -819,6 +843,7 @@ function validateTopicEchoSettings(
     ...validateString(settings, "fieldPath", { allowEmpty: true }),
     ...validateNumber(settings, "maxMessages", { min: 1 }),
     ...validateBoolean(settings, "prettyPrint"),
+    ...validateBoolean(settings, "show_details"),
   ];
   if (errors.length > 0) return fail(errors);
   return succeed(settings as TopicEchoSettings);
@@ -831,6 +856,7 @@ function validateTopicPlotSettings(
     ...validateString(settings, "topic"),
     ...validateString(settings, "messageType", { allowEmpty: true }),
     ...validateString(settings, "fieldPath"),
+    ...validateBoolean(settings, "show_details"),
     ...validateNumber(settings, "historySeconds", { min: 1 }),
     ...validateNumber(settings, "maxSamples", { min: 1 }),
     ...validateString(settings, "unit", { allowEmpty: true }),

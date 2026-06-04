@@ -303,7 +303,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
-    expect(screen.getByText("/ui/ros_toggle")).toBeVisible();
+    expect(screen.getByRole("article", { name: "Digital output toggle widget" })).toBeVisible();
   });
 
   it("creates a blank app from the builder home", async () => {
@@ -874,7 +874,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     await openSandboxRuntimeFromNavigation();
-    fireEvent.click(await screen.findByRole("button", { name: "OFF" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Digital output: Inactive" }));
 
     expect(screen.getByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
@@ -1102,8 +1102,8 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Select and move Gripper Control widget" }));
 
     expect(screen.getByLabelText("Output topic")).toHaveValue("/cmd/gripper");
-    expect(screen.getByLabelText("ON payload")).toHaveValue("");
-    expect(screen.getByLabelText("OFF payload")).toHaveValue("");
+    expect(screen.getByLabelText("ON payload")).toHaveValue("true");
+    expect(screen.getByLabelText("OFF payload")).toHaveValue("false");
   });
 
   it("opens the webcam visualizer demo app with a camera viewer screen", async () => {

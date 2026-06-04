@@ -68,8 +68,8 @@ describe("widget renderer registry", () => {
     const { container } = render(<div>{renderScreenWidgets(descriptors)}</div>);
 
     expect(screen.getByText("Hello Bloom")).toBeVisible();
-    expect(screen.getByText("/ui/ros_toggle")).toBeVisible();
     expect(container.querySelectorAll("[data-screen-id='main']")).toHaveLength(2);
+    expect(container.querySelector("[aria-label='Digital output Toggle']")).toBeInTheDocument();
   });
 
   it("emits value-change intents from interactive sliders", async () => {
@@ -134,7 +134,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(screen.getByRole("button", { name: "Activate throw" }));
 
     expect(onActionIntent).toHaveBeenCalledWith({
       command: "activate_throw",
@@ -152,7 +152,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    await user.click(screen.getByRole("button", { name: "OFF" }));
+    await user.click(screen.getByRole("button", { name: "Digital output: Inactive" }));
 
     expect(onActionIntent).toHaveBeenCalledWith({
       nextState: "on",
@@ -277,7 +277,30 @@ describe("widget renderer registry", () => {
       </div>,
     );
 
-    expect(screen.getByText("latest: 0.4")).toBeVisible();
+    expect(screen.getByText("0.4 m/s")).toBeVisible();
+  });
+
+  it("can hide technical topic plot context for operator-facing runtime screens", () => {
+    const descriptor = renderScreenDescriptors(topicPlotCleanScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic plot descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "velocity-x": {
+              samples: [{ timestamp: "2026-06-02T10:00:01.000Z", value: 0.4 }],
+              type: "topic-plot",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText("Velocity X")).toBeVisible();
+    expect(screen.queryByText("/sandbox_controller/velocity_command")).not.toBeInTheDocument();
+    expect(screen.queryByText("field: velocity.x")).not.toBeInTheDocument();
+    expect(screen.getByText("1 samples")).toBeVisible();
   });
 
   it("renders topic echo messages from widget data snapshots", () => {
@@ -351,7 +374,7 @@ describe("widget renderer registry", () => {
     const image = screen.getByRole("img", { name: "Garden camera stream" });
     expect(image).toBeVisible();
     expect(image).toHaveAttribute("src", "http://localhost:8000/camera.jpg");
-    expect(screen.getByText("Stream preview")).toBeVisible();
+    expect(screen.getByText("Ready")).toBeVisible();
   });
 
   it("renders webcam previews with discovered browser cameras", async () => {
@@ -611,6 +634,19 @@ const topicPlotScreen: ScreenConfig = {
         messageType: "geometry_msgs/msg/Twist",
         topic: "/sandbox_controller/velocity_command",
         unit: "m/s",
+      },
+    },
+  ],
+};
+
+const topicPlotCleanScreen: ScreenConfig = {
+  ...topicPlotScreen,
+  widgets: [
+    {
+      ...topicPlotScreen.widgets[0],
+      settings: {
+        ...topicPlotScreen.widgets[0]?.settings,
+        show_details: false,
       },
     },
   ],
