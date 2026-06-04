@@ -161,6 +161,7 @@
                 "action_label": "Emergency stop",
                 "action_feedback": "result",
                 "cancellable": false,
+                "presetId": "emergency-stop-bool",
                 "topic": "/explorer/emergency_stop",
                 "messageType": "std_msgs/msg/Bool",
                 "payload": "{data: true}"

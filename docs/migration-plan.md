@@ -273,10 +273,13 @@ Completed in this phase so far:
 - The Explorer candidate validates mode-aware joystick settings, action progress/cancel metadata, configurable
   gripper/emergency commands, topic debug widgets, profile-ready app metadata, and operator event logs without making
   Explorer semantics part of Bloom core.
+- `command-button` now supports optional ROS one-shot publish fields and shared presets, so state-machine commands,
+  emergency stop triggers, and bridge-style button actions do not require a separate widget family.
 
 Phase 4 remaining work:
 
-- Migrate configurable ROS message command variants beyond button/toggle into reusable command presets.
+- Extend configurable ROS message command presets toward saved pose/preset command families and app-specific adapter
+  policies.
 - Add richer telemetry plot variants, likely with a chart dependency once real runtime plot requirements stabilize.
 - Migrate saved pose/preset command widgets and Petanque gesture/trajectory candidates behind generic contracts.
 - Continue app-by-app runtime validation against real legacy JSON and ROS adapter behavior.

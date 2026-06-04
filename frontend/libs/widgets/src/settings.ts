@@ -52,6 +52,10 @@ export type CommandButtonSettings = {
   button_label: string;
   cancellable: boolean;
   command: string;
+  messageType?: string;
+  payload?: unknown;
+  presetId?: string;
+  topic?: string;
 };
 
 export type EventLogSettings = {
@@ -190,6 +194,10 @@ const COMMAND_BUTTON_DEFAULT_SETTINGS: CommandButtonSettings = {
   button_label: "",
   cancellable: false,
   command: "",
+  messageType: "",
+  payload: "",
+  presetId: "",
+  topic: "",
 };
 
 const EVENT_LOG_DEFAULT_SETTINGS: EventLogSettings = {
@@ -340,6 +348,10 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
         options: ["none", "progress", "result"],
       },
       { key: "cancellable", label: "Cancellable", type: "boolean", required: true },
+      { key: "topic", label: "Output topic", type: "text", required: false },
+      { key: "messageType", label: "ROS message type", type: "text", required: false },
+      { key: "payload", label: "Payload", type: "json", required: false },
+      { key: "presetId", label: "Preset id", type: "text", required: false },
     ],
     COMMAND_BUTTON_DEFAULT_SETTINGS,
     validateCommandButtonSettings,
@@ -520,6 +532,17 @@ export type RosMessageTogglePreset = {
   offPayload: string;
 };
 
+export type RosMessageCommandPreset = {
+  id: string;
+  label: string;
+  description: string;
+  buttonLabel: string;
+  command: string;
+  messageType: string;
+  payload: string;
+  topic: string;
+};
+
 export const COMMON_ROS_MESSAGE_TYPES = [
   "std_msgs/msg/Bool",
   "std_msgs/msg/Float64",
@@ -589,6 +612,49 @@ export const ROS_MESSAGE_TOGGLE_PRESETS: readonly RosMessageTogglePreset[] = [
   },
 ];
 
+export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
+  {
+    id: "state-machine-activate-throw",
+    label: "State machine command",
+    description: "Publish one string command to a ROS state-machine topic.",
+    buttonLabel: "Activate throw",
+    command: "activate_throw",
+    messageType: "std_msgs/msg/String",
+    payload: "{data: 'activate_throw'}",
+    topic: "/petanque_state_machine/change_state",
+  },
+  {
+    id: "emergency-stop-bool",
+    label: "Emergency stop",
+    description: "Publish a boolean stop request on a safety topic.",
+    buttonLabel: "Stop",
+    command: "emergency_stop",
+    messageType: "std_msgs/msg/Bool",
+    payload: "{data: true}",
+    topic: "/explorer/emergency_stop",
+  },
+  {
+    id: "trigger-bool",
+    label: "Trigger action",
+    description: "Publish a one-shot boolean trigger to any configured topic.",
+    buttonLabel: "Trigger",
+    command: "trigger",
+    messageType: "std_msgs/msg/Bool",
+    payload: "{data: true}",
+    topic: "/example/trigger",
+  },
+  {
+    id: "digital-output-on",
+    label: "Digital output ON",
+    description: "Publish a structured array payload for an Arduino-style digital output bridge.",
+    buttonLabel: "Pin ON",
+    command: "digital_output_on",
+    messageType: "std_msgs/msg/Int32MultiArray",
+    payload: "{data: [13, 1]}",
+    topic: "/ui/ros_toggle",
+  },
+];
+
 export function getDefaultRosMessageTogglePayloads(
   messageType: string,
 ): Pick<ToggleSettings, "offPayload" | "onPayload"> {
@@ -640,6 +706,15 @@ export function buildRosMessageToggleCliExample(
   return `ros2 topic pub -1 ${topic} ${messageType} "${payload}"`;
 }
 
+export function buildRosMessageCommandCliExample(
+  settings: Pick<CommandButtonSettings, "messageType" | "payload" | "topic">,
+): string {
+  const topic = settings.topic?.trim() || "/example/topic";
+  const messageType = settings.messageType?.trim() || "std_msgs/msg/Bool";
+  const payload = String(settings.payload ?? "{data: true}").replaceAll('"', '\\"');
+  return `ros2 topic pub -1 ${topic} ${messageType} "${payload}"`;
+}
+
 export function findMatchingRosMessageTogglePreset(
   settings: Pick<ToggleSettings, "messageType" | "offPayload" | "onPayload">,
 ): RosMessageTogglePreset | null {
@@ -653,6 +728,23 @@ export function findMatchingRosMessageTogglePreset(
         preset.messageType.trim().toLowerCase() === normalizedMessageType &&
         preset.onPayload.trim() === normalizedOnPayload &&
         preset.offPayload.trim() === normalizedOffPayload,
+    ) ?? null
+  );
+}
+
+export function findMatchingRosMessageCommandPreset(
+  settings: Pick<CommandButtonSettings, "messageType" | "payload" | "topic">,
+): RosMessageCommandPreset | null {
+  const normalizedMessageType = settings.messageType?.trim().toLowerCase() ?? "";
+  const normalizedPayload = String(settings.payload ?? "").trim();
+  const normalizedTopic = settings.topic?.trim() ?? "";
+
+  return (
+    ROS_MESSAGE_COMMAND_PRESETS.find(
+      (preset) =>
+        preset.messageType.trim().toLowerCase() === normalizedMessageType &&
+        preset.payload.trim() === normalizedPayload &&
+        preset.topic.trim() === normalizedTopic,
     ) ?? null
   );
 }
@@ -698,7 +790,13 @@ function validateCommandButtonSettings(
     ...validateString(settings, "action_label", { allowEmpty: true }),
     ...validateOneOf(settings, "action_feedback", ["none", "progress", "result"]),
     ...validateBoolean(settings, "cancellable"),
+    ...validateString(settings, "topic", { allowEmpty: true }),
+    ...validateString(settings, "messageType", { allowEmpty: true }),
+    ...validateString(settings, "presetId", { allowEmpty: true }),
   ];
+  if (!isJsonSerializable(settings.payload)) {
+    errors.push({ field: "payload", message: "payload must be JSON serializable" });
+  }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as CommandButtonSettings);
 }

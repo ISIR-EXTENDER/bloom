@@ -23,7 +23,7 @@ Bloom should migrate reusable primitives from both generations, but the canvas g
 | --- | --- | --- |
 | `joystick` | Generic input widget | Tactile 2D control can serve teleop, camera, games, servoing, and teaching apps. |
 | `slider` / `max-velocity` | Generic scalar input widget | Axis, speed, angle, alpha, power, and threshold controls are reusable. |
-| `button` | Generic action button | Topic/payload actions are already generic. |
+| `button` | Generic action button | One-shot command buttons now support optional ROS topic/message/payload presets while staying generic. |
 | `ros-message-toggle` | Generic message action/toggle widget | Fully configurable topic/message/payload is reusable across robot stacks. |
 | `toggle-publisher` | Generic toggle action widget | Simpler ON/OFF publisher remains useful. |
 | `gripper-control` / `magnet-control` | Generic device toggle/action widget | Device name and payloads should be configurable instead of tied to gripper/magnet. |

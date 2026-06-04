@@ -10,6 +10,7 @@ import {
   addWidgetToScreen,
   appendTopicEchoMessage,
   appendTopicPlotSample,
+  buildRosMessageCommandCliExample,
   buildRosMessageToggleCliExample,
   createAppExtensionRegistry,
   createDefaultWidgetRegistry,
@@ -18,6 +19,7 @@ import {
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
   duplicateWidgetInScreen,
+  findMatchingRosMessageCommandPreset,
   findMatchingRosMessageTogglePreset,
   formatTopicEchoValue,
   getDefaultRosMessageTogglePayloads,
@@ -31,6 +33,7 @@ import {
   listWidgetDefinitionsByCategory,
   moveWidget,
   normalizeWidgetSettings,
+  ROS_MESSAGE_COMMAND_PRESETS,
   ROS_MESSAGE_TOGGLE_PRESETS,
   removeWidgetFromScreen,
   renderScreenDescriptors,
@@ -647,6 +650,33 @@ describe("widget settings contracts", () => {
     });
   });
 
+  it("keeps one-shot ROS message command presets available for non-web users", () => {
+    expect(ROS_MESSAGE_COMMAND_PRESETS.map((preset) => preset.id)).toEqual(
+      expect.arrayContaining(["state-machine-activate-throw", "emergency-stop-bool", "digital-output-on"]),
+    );
+
+    expect(
+      normalizeWidgetSettings("command-button", {
+        button_label: "Stop",
+        command: "emergency_stop",
+        messageType: "std_msgs/msg/Bool",
+        payload: "{data: true}",
+        presetId: "emergency-stop-bool",
+        topic: "/explorer/emergency_stop",
+      }),
+    ).toEqual({
+      success: true,
+      settings: expect.objectContaining({
+        button_label: "Stop",
+        command: "emergency_stop",
+        messageType: "std_msgs/msg/Bool",
+        payload: "{data: true}",
+        presetId: "emergency-stop-bool",
+        topic: "/explorer/emergency_stop",
+      }),
+    });
+  });
+
   it("builds ROS CLI-style previews for typed toggle payloads", () => {
     expect(
       buildRosMessageToggleCliExample(
@@ -661,6 +691,16 @@ describe("widget settings contracts", () => {
     ).toBe("ros2 topic pub -1 /petanque_state_machine/change_state std_msgs/msg/String \"{data: 'activate_throw'}\"");
   });
 
+  it("builds ROS CLI-style previews for one-shot command payloads", () => {
+    expect(
+      buildRosMessageCommandCliExample({
+        topic: "/explorer/emergency_stop",
+        messageType: "std_msgs/msg/Bool",
+        payload: "{data: true}",
+      }),
+    ).toBe('ros2 topic pub -1 /explorer/emergency_stop std_msgs/msg/Bool "{data: true}"');
+  });
+
   it("matches ROS message toggle presets from settings", () => {
     expect(
       findMatchingRosMessageTogglePreset({
@@ -669,6 +709,16 @@ describe("widget settings contracts", () => {
         offPayload: "{data: 'teleop'}",
       })?.id,
     ).toBe("state-machine");
+  });
+
+  it("matches one-shot ROS message command presets from settings", () => {
+    expect(
+      findMatchingRosMessageCommandPreset({
+        messageType: "std_msgs/msg/String",
+        payload: "{data: 'activate_throw'}",
+        topic: "/petanque_state_machine/change_state",
+      })?.id,
+    ).toBe("state-machine-activate-throw");
   });
 });
 
@@ -1170,6 +1220,36 @@ describe("widget runtime action intents", () => {
         expectedFeedback: "progress",
         label: "Deploy robot",
       },
+    });
+  });
+
+  it("creates topic publish intents for one-shot ROS message command buttons", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("command-button") as WidgetDefinition,
+          "emergency-stop",
+          {
+            settings: {
+              button_label: "Stop",
+              command: "emergency_stop",
+              messageType: "std_msgs/msg/Bool",
+              payload: "{data: true}",
+              presetId: "emergency-stop-bool",
+              topic: "/explorer/emergency_stop",
+            },
+          },
+        ),
+        { type: "press" },
+      ),
+    ).toEqual({
+      type: "topic-publish",
+      widgetId: "emergency-stop",
+      widgetKind: "command-button",
+      topic: "/explorer/emergency_stop",
+      messageType: "std_msgs/msg/Bool",
+      payload: "{data: true}",
+      payloadText: "{data: true}",
     });
   });
 
