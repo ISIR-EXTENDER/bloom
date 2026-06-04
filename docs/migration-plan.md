@@ -53,6 +53,8 @@ Already merged:
   motor-accessibility presets.
 - App/screen lifecycle API endpoints with dashboard usage for app and screen saves.
 - README product preview screenshots generated from the real dashboard UI.
+- Design-system quality gates for contrast, responsive smoke checks, density rules, iconography rules, and reusable
+  primitive promotion.
 - First security baseline document and minimal API security headers.
 - Shared widget-kind contract checks keep frontend and backend configuration models aligned.
 - Partner `extender-interface` review captured as Explorer-specific UX inspiration, not as a core architecture to copy.

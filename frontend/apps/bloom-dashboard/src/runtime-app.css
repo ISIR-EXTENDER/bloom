@@ -18,8 +18,7 @@
   margin: 0 auto;
 }
 
-.runtime-home-hero,
-.runtime-app-card {
+.runtime-home-hero {
   border: 1px solid var(--bloom-border);
   background: color-mix(in srgb, var(--bloom-panel) 90%, white);
   box-shadow: var(--bloom-shadow);
@@ -100,14 +99,11 @@
 }
 
 .runtime-app-card {
-  min-height: 260px;
-}
-
-.runtime-app-card article {
   display: grid;
-  min-height: 100%;
+  gap: 18px;
+  align-content: space-between;
+  min-height: 260px;
   padding: 24px;
-  border-radius: 28px;
 }
 
 .runtime-app-card h2 {
@@ -122,32 +118,9 @@
   line-height: 1.55;
 }
 
-.runtime-app-card-tag {
-  display: inline-flex;
-  width: fit-content;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: var(--bloom-primary-container);
-  color: var(--bloom-primary);
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .runtime-app-card-action {
   align-self: end;
   width: 100%;
-  border: 0;
-  border-radius: 999px;
-  background: var(--bloom-primary);
-  color: var(--bloom-on-primary);
-  font-weight: 900;
-}
-
-.runtime-app-card-action:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .runtime-app-topbar {

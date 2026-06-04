@@ -3,6 +3,10 @@
     padding: 18px;
   }
 
+  .bloom-nav-shell {
+    margin: -18px -18px 18px;
+  }
+
   .app-shell-builder,
   .app-shell-runtime {
     padding: 14px;

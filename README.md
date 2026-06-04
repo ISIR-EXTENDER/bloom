@@ -19,6 +19,7 @@
   <a href="#tooling">Tooling</a> ·
   <a href="#architecture-rules">Architecture</a> ·
   <a href="docs/design-system.md">Design System</a> ·
+  <a href="docs/component-styleguide.md">Components</a> ·
   <a href="docs/extender-tablet-hardware.md">Tablet Hardware</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
@@ -165,6 +166,9 @@ theme presets, touch/tablet rules, runtime/builder guidelines, and current criti
 
 Typography is controlled through open-source fonts bundled by `@bloom/ui`: `Cormorant Garamond` for refined display,
 `Atkinson Hyperlegible` for readable UI text, and `JetBrains Mono` for debug/code-like values.
+
+Reusable component examples and promotion rules live in `docs/component-styleguide.md`. Visual smoke checks cover the
+key tablet/desktop viewports with `npm run visual:smoke`.
 
 When adding UI, prefer semantic Bloom tokens from `@bloom/ui`, keep app-specific visual identity in theme presets or app
 configuration, and update the design system notes when a reusable pattern becomes stable.

@@ -10,6 +10,7 @@ export * from "./components/BloomButton";
 export * from "./components/BloomCard";
 export * from "./components/BloomNavBar";
 export * from "./components/BloomPanel";
+export * from "./components/BloomTag";
 export * from "./components/BloomThemeProvider";
 export type {
   BloomPaletteTokenName,

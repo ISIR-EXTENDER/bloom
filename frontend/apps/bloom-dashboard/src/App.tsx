@@ -1,5 +1,5 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
-import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
+import { BLOOM_THEME_PRESETS, BloomButton, BloomCard, BloomTag, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
@@ -431,15 +431,15 @@ function RuntimeHome({ configurations, onOpenRuntimeApp, recentRuntimeSelections
 
       <ul className="runtime-app-grid" aria-label="Available runtime apps">
         {runtimeApps.map(({ application, configuration, firstScreen }) => (
-          <li className="runtime-app-card" key={`${configuration.id}:${application.id}`}>
-            <article>
+          <li key={`${configuration.id}:${application.id}`}>
+            <BloomCard className="runtime-app-card" tone="default">
               <div>
-                <span className="runtime-app-card-tag">{application.screens.length} screens</span>
+                <BloomTag tone="primary">{application.screens.length} screens</BloomTag>
                 <h2>{application.name}</h2>
                 {application.description ? <p>{application.description}</p> : <p>Ready to launch in operator mode.</p>}
               </div>
-              <button
-                aria-label={`Launch ${application.name} runtime`}
+              <BloomButton
+                ariaLabel={`Launch ${application.name} runtime`}
                 className="runtime-app-card-action"
                 disabled={!firstScreen}
                 onClick={() => {
@@ -448,11 +448,11 @@ function RuntimeHome({ configurations, onOpenRuntimeApp, recentRuntimeSelections
                   }
                   onOpenRuntimeApp({ appId: application.id, configId: configuration.id, screenId: firstScreen.id });
                 }}
-                type="button"
+                tone="primary"
               >
                 Launch runtime
-              </button>
-            </article>
+              </BloomButton>
+            </BloomCard>
           </li>
         ))}
       </ul>

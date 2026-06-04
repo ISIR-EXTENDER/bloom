@@ -156,6 +156,10 @@ Rules:
 Current defaults:
 
 - `--bloom-touch-target: 48px`;
+- `--bloom-touch-target-compact: 40px`;
+- `--bloom-touch-target-comfortable: 56px`;
+- `--bloom-touch-target-high-visibility: 64px`;
+- spacing tokens from `--bloom-space-xs` to `--bloom-space-2xl`;
 - pill buttons for primary navigation/actions;
 - large rounded cards and panels;
 - soft shadows;
@@ -168,6 +172,33 @@ Rules:
 - Prefer fewer, clearer cards over dense grids.
 - Avoid hiding primary actions behind hover-only UI because the target device is touch-first.
 - If drag/drop is introduced, keep button alternatives.
+
+## Responsive And Density
+
+Bloom is tablet-first for runtime and common operator flows, but desktop-enhanced for builder/configuration flows.
+
+Required responsive checkpoints:
+
+- `1024x600`: native HMTECH panel constraint and worst-case density.
+- `1280x800`: comfortable tablet/laptop validation point.
+- `1920x1080`: current Extender configured resolution.
+
+Density scale:
+
+- `compact`: builder/admin surfaces with many configuration fields, minimum target `40px`, never for stressful robot
+  runtime controls.
+- `tablet`: default Bloom density, minimum target `48px`, balanced for touch and readability.
+- `comfortable`: preferred runtime/operator density, target `56px`, fewer controls per view.
+- `high-visibility`: sunlight, gloves, motor-accessibility, or safety-critical screens, target `64px`, larger text,
+  stronger contrast, fewer secondary labels.
+
+Rules:
+
+- Runtime screens should be designed from `1024x600` upward, not squeezed down from desktop.
+- Builder pages may stack panels on tablets, but must not create horizontal page overflow.
+- Full-bleed surfaces such as navigation bars need explicit tablet rules; negative margins are allowed only with visual
+  smoke coverage.
+- Use `npm run visual:smoke` after layout changes that affect shell, builder, runtime, or reusable UI primitives.
 
 ## Color Usage
 
@@ -185,6 +216,27 @@ Do not rely on color alone. Pair color with:
 - icon or tag when available;
 - button state;
 - heading or grouping.
+
+Contrast requirements:
+
+- Theme semantic pairs must meet at least WCAG AA `4.5:1` for normal text.
+- Accent/pastel backgrounds should usually use dark text, not white.
+- Visual grouping colors can be soft, but interactive labels must remain readable.
+
+The `@bloom/ui` test suite includes contrast checks for all theme presets.
+
+## Iconography
+
+Bloom should not accumulate random icons. Icons are useful only when they clarify interaction faster than text alone.
+
+Rules:
+
+- Do not introduce a large icon library before a repeated need exists.
+- Prefer text labels for primary robot/runtime actions.
+- Pair icons with labels in operator and builder flows; icon-only buttons need an accessible name and should be rare.
+- Use icons for stable semantic families: navigation, camera/vision, controls, debug, safety, devices, logs, settings.
+- Icons should use current text color or semantic tokens, not hard-coded brand colors.
+- Avoid aggressive/game-like pictograms; Bloom's tone is calm, medtech-neutral, and human-centric.
 
 ## Builder UI Guidelines
 
@@ -238,6 +290,17 @@ For now these dates live in:
 
 When a PR changes user-facing workflows, update the Help page and design system docs if relevant.
 
+## Component Styleguide
+
+The lightweight component styleguide lives in `docs/component-styleguide.md`.
+
+It documents current reusable primitives and the rule for promotion:
+
+- keep feature-specific CSS near the feature while it is still changing;
+- promote a component to `@bloom/ui` when it appears in multiple product areas or carries accessibility/design-system
+  behavior;
+- add examples and tests when promoting it.
+
 ## Current Critique
 
 Things that are good enough for Phase 2:
@@ -245,6 +308,9 @@ Things that are good enough for Phase 2:
 - token architecture is in place;
 - app-level theme presets exist;
 - controlled open-source fonts are bundled through `@bloom/ui`;
+- contrast checks protect semantic theme pairs;
+- visual smoke checks cover `1024x600`, `1280x800`, and `1920x1080`;
+- density and iconography rules are documented;
 - visible UI is coherent with the Bloom mood board;
 - touch target defaults are documented;
 - app configuration and screen library now use color for grouping and comprehension.
@@ -253,11 +319,10 @@ Things that are good enough for Phase 2:
 Things to improve before a public release:
 
 - Move repeated dashboard card/action styles into reusable `@bloom/ui` primitives once patterns stabilize.
-- Add automated visual regression checks for key viewports: `1024x600`, `1280x800`, and `1920x1080`.
-- Add contrast checks for every theme preset.
-- Add a documented density scale for tablet, desktop, and high-visibility modes.
-- Add iconography rules before introducing many icons.
-- Add component examples or a lightweight styleguide page once the component set grows.
+- Expand visual checks from smoke assertions to screenshot diff baselines when layouts stabilize enough.
+- Add app-theme authoring guardrails so user palettes keep contrast.
+- Continue promoting repeated dashboard card/action styles into reusable `@bloom/ui` primitives.
+- Add more component examples as the primitive set grows.
 
 ## Contribution Rules
 
