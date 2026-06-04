@@ -5,6 +5,7 @@ import type { WidgetRendererProps } from "./types";
 
 const DEFAULT_PLOT_VALUES = [0.18, 0.34, 0.28, 0.52, 0.47, 0.68, 0.61, 0.79, 0.73, 0.88];
 const EVENT_LOG_SEVERITIES = ["error", "info", "success", "warning"] as const;
+const PLOT_VARIANTS = ["area", "bars", "sparkline"] as const;
 
 type EventLogEntry = {
   detail: string;
@@ -12,6 +13,8 @@ type EventLogEntry = {
   summary: string;
   timestamp: string;
 };
+
+type PlotVariant = (typeof PLOT_VARIANTS)[number];
 
 const DEFAULT_EVENT_LOG_ENTRIES: readonly EventLogEntry[] = [
   {
@@ -104,11 +107,19 @@ export function PlotWidget({ descriptor }: WidgetRendererProps) {
   const showLegend = getBooleanSetting(descriptor.widget.settings, "showLegend", true);
   const historySeconds = getNumberSetting(descriptor.widget.settings, "historySeconds", 10);
   const values = readNumberArraySetting(descriptor.widget.settings.samples) ?? DEFAULT_PLOT_VALUES;
-  const path = createSparklinePath(values, 220, 82);
+  const variant = readPlotVariant(descriptor.widget.settings.variant);
+  const unit = getStringSetting(descriptor.widget.settings, "unit", "");
+  const yBounds = resolvePlotBounds(
+    values,
+    readOptionalNumberSetting(descriptor.widget.settings.yMin),
+    readOptionalNumberSetting(descriptor.widget.settings.yMax),
+  );
+  const path = createSparklinePath(values, 220, 82, yBounds);
+  const bars = createPlotBars(values, 220, 82, yBounds);
   const latestValue = values.at(-1) ?? 0;
 
   return (
-    <div className="bloom-plot-widget">
+    <div className="bloom-plot-widget" data-variant={variant}>
       <header className="bloom-display-header">
         <strong>{descriptor.widget.title}</strong>
         {showLegend ? <span>{historySeconds}s history</span> : null}
@@ -116,11 +127,13 @@ export function PlotWidget({ descriptor }: WidgetRendererProps) {
       <svg aria-label={`${descriptor.widget.title} plot`} className="bloom-plot-sparkline" viewBox="0 0 220 82">
         <title>{descriptor.widget.title}</title>
         <path className="bloom-plot-gridline" d="M0 20 H220 M0 41 H220 M0 62 H220" />
-        <path className="bloom-plot-area" d={`${path} L220 82 L0 82 Z`} />
-        <path className="bloom-plot-line" d={path} />
+        {variant === "bars" ? bars.map((bar) => <rect className="bloom-plot-bar" key={bar.key} {...bar.rect} />) : null}
+        {variant === "area" ? <path className="bloom-plot-area" d={`${path} L220 82 L0 82 Z`} /> : null}
+        {variant !== "bars" ? <path className="bloom-plot-line" d={path} /> : null}
       </svg>
       <output className="bloom-plot-readout" aria-live="polite">
         latest {formatNumber(latestValue)}
+        {unit ? ` ${unit}` : ""}
       </output>
     </div>
   );
@@ -158,21 +171,76 @@ export function Robot3dWidget({ descriptor }: WidgetRendererProps) {
   );
 }
 
-function createSparklinePath(values: readonly number[], width: number, height: number): string {
+function createSparklinePath(
+  values: readonly number[],
+  width: number,
+  height: number,
+  bounds: { max: number; min: number },
+): string {
   if (values.length === 0) {
     return `M0 ${height}`;
   }
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
+  const range = bounds.max - bounds.min || 1;
   return values
     .map((value, index) => {
       const x = values.length === 1 ? width : (index / (values.length - 1)) * width;
-      const y = height - ((value - min) / range) * height;
+      const y = height - ((value - bounds.min) / range) * height;
       return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
+}
+
+function createPlotBars(
+  values: readonly number[],
+  width: number,
+  height: number,
+  bounds: { max: number; min: number },
+): Array<{ key: string; rect: { height: number; rx: number; width: number; x: number; y: number } }> {
+  if (values.length === 0) {
+    return [];
+  }
+
+  const range = bounds.max - bounds.min || 1;
+  const gap = Math.min(6, width / values.length / 3);
+  const barWidth = Math.max(2, width / values.length - gap);
+
+  return values.map((value, index) => {
+    const normalized = Math.max(0, Math.min(1, (value - bounds.min) / range));
+    const barHeight = Math.max(2, normalized * height);
+    const x = index * (width / values.length) + gap / 2;
+    const y = height - barHeight;
+
+    return {
+      key: `${index}-${value}`,
+      rect: {
+        height: Number(barHeight.toFixed(2)),
+        rx: 3,
+        width: Number(barWidth.toFixed(2)),
+        x: Number(x.toFixed(2)),
+        y: Number(y.toFixed(2)),
+      },
+    };
+  });
+}
+
+function resolvePlotBounds(
+  values: readonly number[],
+  configuredMin: number | undefined,
+  configuredMax: number | undefined,
+): { max: number; min: number } {
+  const min = configuredMin ?? Math.min(...values);
+  const max = configuredMax ?? Math.max(...values);
+
+  return max > min ? { max, min } : { max: min + 1, min };
+}
+
+function readPlotVariant(value: unknown): PlotVariant {
+  return typeof value === "string" && PLOT_VARIANTS.includes(value as PlotVariant) ? (value as PlotVariant) : "area";
+}
+
+function readOptionalNumberSetting(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function readNumberArraySetting(value: unknown): number[] | null {

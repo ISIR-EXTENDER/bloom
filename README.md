@@ -91,6 +91,8 @@ current roadmap.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
 - Runtime display widgets now include useful first foundations for labels, gauges, lightweight plots, and robot-3D
   extension placeholders instead of generic placeholder text.
+- Lightweight plots support area, sparkline, and bar variants with units and optional Y bounds for simple telemetry
+  screens before Bloom needs a heavier chart dependency.
 - Runtime feedback widgets now include a generic `event-log` primitive with severity filtering and calm operator-facing
   defaults, so logs can become readable events instead of raw console noise.
 - A first `Explorer User Tests` candidate fixture demonstrates control modes, action progress metadata, supervision,

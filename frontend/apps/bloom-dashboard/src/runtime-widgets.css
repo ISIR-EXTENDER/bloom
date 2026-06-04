@@ -531,6 +531,10 @@
   fill: color-mix(in srgb, var(--bloom-accent) 22%, transparent);
 }
 
+.bloom-plot-bar {
+  fill: color-mix(in srgb, var(--bloom-primary) 70%, var(--bloom-accent));
+}
+
 .bloom-plot-line {
   fill: none;
   stroke: color-mix(in srgb, var(--bloom-primary) 82%, black);
