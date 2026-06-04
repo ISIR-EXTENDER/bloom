@@ -113,6 +113,66 @@ export function removeScreenFromApplication(application: ApplicationConfig, scre
   };
 }
 
+export function reorderScreenInApplication(
+  application: ApplicationConfig,
+  screenId: string,
+  direction: "down" | "up",
+): ApplicationConfig {
+  const currentIndex = application.screens.findIndex((screen) => screen.id === screenId);
+
+  if (currentIndex < 0) {
+    throw new Error(`Screen "${screenId}" was not found in application "${application.id}".`);
+  }
+
+  const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+  if (nextIndex < 0 || nextIndex >= application.screens.length) {
+    return application;
+  }
+
+  const screens = [...application.screens];
+  const [screen] = screens.splice(currentIndex, 1);
+  if (!screen) {
+    return application;
+  }
+  screens.splice(nextIndex, 0, screen);
+
+  return {
+    ...application,
+    screens,
+  };
+}
+
+export function moveScreenBeforeInApplication(
+  application: ApplicationConfig,
+  screenId: string,
+  targetScreenId: string,
+): ApplicationConfig {
+  if (screenId === targetScreenId) {
+    return application;
+  }
+
+  const screen = application.screens.find((candidateScreen) => candidateScreen.id === screenId);
+  if (!screen) {
+    throw new Error(`Screen "${screenId}" was not found in application "${application.id}".`);
+  }
+
+  const screensWithoutMovedScreen = application.screens.filter((candidateScreen) => candidateScreen.id !== screenId);
+  const targetIndex = screensWithoutMovedScreen.findIndex((candidateScreen) => candidateScreen.id === targetScreenId);
+
+  if (targetIndex < 0) {
+    throw new Error(`Screen "${targetScreenId}" was not found in application "${application.id}".`);
+  }
+
+  return {
+    ...application,
+    screens: [
+      ...screensWithoutMovedScreen.slice(0, targetIndex),
+      screen,
+      ...screensWithoutMovedScreen.slice(targetIndex),
+    ],
+  };
+}
+
 export function createUniqueId(preferredId: string, existingIds: readonly string[]): string {
   const baseId = slugifyId(preferredId) || "screen";
   const takenIds = new Set(existingIds);

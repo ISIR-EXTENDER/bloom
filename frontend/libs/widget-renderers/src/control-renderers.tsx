@@ -17,6 +17,7 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   const step = getNumberSetting(descriptor.widget.settings, "step", 0.01);
   const direction = getStringSetting(descriptor.widget.settings, "direction", "vertical");
   const returnToCenter = getBooleanSetting(descriptor.widget.settings, "returnToCenter", false);
+  const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const defaultValue = clamp(0, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
 
@@ -42,10 +43,14 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   };
 
   return (
-    <div className="bloom-slider-widget" data-direction={direction === "horizontal" ? "horizontal" : "vertical"}>
+    <div
+      className="bloom-slider-widget"
+      data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
+      data-show-details={showDetails ? "true" : "false"}
+    >
       <header className="bloom-control-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>
+        <span className={showDetails ? undefined : "bloom-control-detail-hidden"}>
           {min} → {max}
         </span>
       </header>
@@ -66,7 +71,7 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-slider-thumb" />
       </SliderPrimitive.Root>
-      <output aria-live="polite" className="bloom-control-readout">
+      <output aria-live="polite" className={showDetails ? "bloom-control-readout" : "bloom-control-readout sr-only"}>
         {currentValue.toFixed(resolveDecimalPlaces(step))}
       </output>
     </div>
@@ -79,6 +84,7 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
   const deadzone = getNumberSetting(joystickSettings, "deadzone", 0.1);
   const binding = resolveJoystickBinding(joystickSettings);
   const color = getStringSetting(descriptor.widget.settings, "accentColor", "#7fa95f");
+  const showDetails = getBooleanSetting(joystickSettings, "show_details", false);
   const size = resolveJoystickControlSize(descriptor.widget.layout.width, descriptor.widget.layout.height);
   const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
   const isHeldRef = useRef(false);
@@ -117,16 +123,18 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
   }, [binding.publishRateHz]);
 
   return (
-    <div className="bloom-joystick-widget">
+    <div className="bloom-joystick-widget" data-show-details={showDetails ? "true" : "false"}>
       <header className="bloom-control-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>{binding.modeId}</span>
+        <span className={showDetails ? undefined : "bloom-control-detail-hidden"}>{binding.modeId}</span>
       </header>
-      <div className="bloom-joystick-mode-strip" aria-label={`Joystick mode ${binding.modeId}`} role="note">
-        <span>{binding.axisSummary}</span>
-        <span>{binding.publishRateHz} Hz</span>
-        <span>{binding.runtimeTarget}</span>
-      </div>
+      {showDetails ? (
+        <div className="bloom-joystick-mode-strip" aria-label={`Joystick mode ${binding.modeId}`} role="note">
+          <span>{binding.axisSummary}</span>
+          <span>{binding.publishRateHz} Hz</span>
+          <span>{binding.runtimeTarget}</span>
+        </div>
+      ) : null}
       <JoystickPrimitive
         color={color}
         deadzone={deadzone}
@@ -139,7 +147,10 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
         title={descriptor.widget.title}
         zeroOnRelease={binding.zeroOnRelease}
       />
-      <output aria-live="polite" className="bloom-control-vector-readout">
+      <output
+        aria-live="polite"
+        className={showDetails ? "bloom-control-vector-readout" : "bloom-control-vector-readout sr-only"}
+      >
         <span>x {currentVector.x.toFixed(2)}</span>
         <span>y {currentVector.y.toFixed(2)}</span>
       </output>

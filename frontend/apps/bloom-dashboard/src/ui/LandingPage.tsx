@@ -23,6 +23,7 @@ export function LandingPage({ onOpenView }: LandingPageProps) {
               Open builder preview
             </BloomButton>
             <BloomButton onClick={() => onOpenView("runtime")}>Open runtime preview</BloomButton>
+            <BloomButton onClick={() => onOpenView("help")}>Read get started guide</BloomButton>
           </div>
         </BloomCard>
 

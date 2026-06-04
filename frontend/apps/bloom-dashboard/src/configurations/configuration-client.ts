@@ -10,6 +10,7 @@ export type ConfigurationClient = Pick<
   | "upsertApplication"
   | "upsertConfiguration"
   | "upsertScreen"
+  | "uploadThemeAsset"
 >;
 
 export function createDashboardConfigurationClient(): ConfigurationClient {

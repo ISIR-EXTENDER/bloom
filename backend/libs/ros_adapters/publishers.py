@@ -23,7 +23,7 @@ class RosPublishReceipt:
 
 class RosPublisherGateway(Protocol):
     def publish(self, request: RosPublishRequest) -> RosPublishReceipt:
-        ...
+        raise NotImplementedError
 
 
 class NoopRosPublisherGateway:

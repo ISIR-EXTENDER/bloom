@@ -218,6 +218,137 @@ h1 {
   margin-top: 24px;
 }
 
+.help-page {
+  display: grid;
+  gap: 24px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.help-hero-card {
+  padding: clamp(32px, 5vw, 54px);
+}
+
+.help-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.55fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.help-panel {
+  padding: 28px;
+}
+
+.help-panel-heading {
+  margin-bottom: 18px;
+}
+
+.help-panel-heading h2 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-size: clamp(1.45rem, 3vw, 2rem);
+}
+
+.help-capability-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.help-capability-card,
+.help-step-list li {
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 78%, white);
+}
+
+.help-capability-card h3,
+.help-step-list h3 {
+  margin: 0 0 8px;
+  color: var(--bloom-ink);
+  font-size: 1rem;
+}
+
+.help-capability-card p,
+.help-step-list p,
+.help-freshness-card p {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  line-height: 1.55;
+}
+
+.help-step-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: help-steps;
+}
+
+.help-step-list li {
+  counter-increment: help-steps;
+}
+
+.help-step-list li::before {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  background: var(--bloom-primary);
+  color: white;
+  content: counter(help-steps);
+  font-weight: 900;
+}
+
+.help-freshness-card dl {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.help-freshness-card dl div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 76%, white);
+}
+
+.help-freshness-card dt {
+  color: var(--bloom-ink-soft);
+  font-weight: 800;
+}
+
+.help-freshness-card dd {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-weight: 900;
+}
+
+.help-maintenance-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.help-maintenance-list li {
+  padding-left: 18px;
+  border-left: 4px solid var(--bloom-accent);
+  color: var(--bloom-ink-soft);
+  line-height: 1.55;
+}
+
 .step-card {
   min-height: 168px;
   padding: 24px;

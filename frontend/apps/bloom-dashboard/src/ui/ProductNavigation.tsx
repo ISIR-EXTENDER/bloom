@@ -1,6 +1,6 @@
 import { BloomNavBar, type BloomNavItem } from "@bloom/ui";
 
-export type ProductView = "builder" | "landing" | "runtime";
+export type ProductView = "builder" | "help" | "landing" | "runtime";
 
 type ProductNavigationProps = {
   activeView: ProductView;
@@ -11,6 +11,7 @@ const productViews: readonly BloomNavItem<ProductView>[] = [
   { id: "landing", label: "Home", description: "Project overview" },
   { id: "builder", label: "Builder", description: "Compose screens" },
   { id: "runtime", label: "Runtime", description: "Operate and inspect" },
+  { id: "help", label: "Help", description: "Get started guide" },
 ];
 
 export function ProductNavigation({ activeView, onChangeView }: ProductNavigationProps) {

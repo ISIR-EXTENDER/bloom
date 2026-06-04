@@ -80,7 +80,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    expect(screen.getByText("0.00")).toBeVisible();
+    expect(screen.getByText("0.00")).toHaveClass("sr-only");
     screen.getByRole("slider", { name: "Speed" }).focus();
     await user.keyboard("{ArrowRight}");
 
@@ -113,6 +113,16 @@ describe("widget renderer registry", () => {
         widgetKind: "slider",
       }),
     );
+    expect(screen.getByText("0.00")).toHaveClass("sr-only");
+  });
+
+  it("shows slider runtime details only when requested", () => {
+    const descriptor = renderScreenDescriptors(sliderDebugScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByText("0 → 2")).toBeVisible();
     expect(screen.getByText("0.00")).toBeVisible();
   });
 
@@ -184,8 +194,21 @@ describe("widget renderer registry", () => {
       widgetKind: "joystick",
       zeroOnRelease: true,
     });
-    expect(screen.getByText("x 0.50")).toBeVisible();
-    expect(screen.getByText("y -0.25")).toBeVisible();
+    expect(screen.getByText("x 0.50").parentElement).toHaveClass("sr-only");
+    expect(screen.getByText("y -0.25").parentElement).toHaveClass("sr-only");
+  });
+
+  it("shows joystick runtime details only when requested", () => {
+    const descriptor = renderScreenDescriptors(joystickDebugScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing joystick descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getAllByText("both")).toHaveLength(2);
+    expect(screen.getByText("translation / translation")).toBeVisible();
+    expect(screen.getByText("30 Hz")).toBeVisible();
+    expect(screen.getByText("x 0.00")).toBeVisible();
+    expect(screen.getByText("y 0.00")).toBeVisible();
   });
 
   it("keeps publishing joystick vectors while held and zeros on release", async () => {
@@ -423,6 +446,19 @@ const sliderScreen: ScreenConfig = {
   ],
 };
 
+const sliderDebugScreen: ScreenConfig = {
+  ...sliderScreen,
+  widgets: [
+    {
+      ...sliderScreen.widgets[0],
+      settings: {
+        ...sliderScreen.widgets[0]?.settings,
+        show_details: true,
+      },
+    },
+  ],
+};
+
 const returnToCenterSliderScreen: ScreenConfig = {
   id: "controls",
   title: "Controls",
@@ -532,6 +568,19 @@ const joystickScreen: ScreenConfig = {
           right: "X+",
           top: "Y+",
         },
+      },
+    },
+  ],
+};
+
+const joystickDebugScreen: ScreenConfig = {
+  ...joystickScreen,
+  widgets: [
+    {
+      ...joystickScreen.widgets[0],
+      settings: {
+        ...joystickScreen.widgets[0]?.settings,
+        show_details: true,
       },
     },
   ],

@@ -90,6 +90,7 @@ export type JoystickSettings = {
   mode_id: string;
   publish_rate_hz: number;
   runtime_binding: JoystickRuntimeBinding;
+  show_details: boolean;
   zero_on_release: boolean;
 };
 
@@ -112,6 +113,7 @@ export type SliderSettings = {
   min: number;
   returnToCenter: boolean;
   runtime_binding?: JoystickRuntimeBinding;
+  show_details: boolean;
   step: number;
   topic?: string;
 };
@@ -207,6 +209,7 @@ const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
       target_topic: "/teleop_cmd",
     },
   },
+  show_details: false,
   zero_on_release: true,
 };
 
@@ -226,6 +229,7 @@ const SLIDER_DEFAULT_SETTINGS: SliderSettings = {
   max: 1,
   min: -1,
   returnToCenter: false,
+  show_details: false,
   step: 0.01,
 };
 
@@ -318,6 +322,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "binding", label: "Legacy binding", type: "select", required: false, options: ["joy", "rot"] },
       { key: "deadzone", label: "Deadzone", type: "number", required: true },
       { key: "publish_rate_hz", label: "Publish rate", type: "number", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "zero_on_release", label: "Zero on release", type: "boolean", required: true },
       { key: "labels", label: "Axis labels", type: "json", required: true },
       { key: "axis_hints", label: "Axis hints", type: "json", required: true },
@@ -354,6 +359,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "step", label: "Step", type: "number", required: true },
       { key: "direction", label: "Direction", type: "select", required: true, options: ["horizontal", "vertical"] },
       { key: "returnToCenter", label: "Return to center", type: "boolean", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "topic", label: "Output topic", type: "text", required: false },
       { key: "messageType", label: "ROS message type", type: "text", required: false },
       { key: "runtime_binding", label: "Runtime binding", type: "json", required: false },
@@ -726,6 +732,7 @@ function validateJoystickSettings(settings: Record<string, unknown>): WidgetSett
     ...validateString(settings, "mode_id"),
     ...validateNumber(settings, "deadzone", { min: 0, max: 1 }),
     ...validateNumber(settings, "publish_rate_hz", { min: 1, max: 120 }),
+    ...validateBoolean(settings, "show_details"),
     ...validateBoolean(settings, "zero_on_release"),
     ...validateJoystickLabels(settings.labels),
     ...validateJoystickAxisHints(settings.axis_hints),
@@ -764,6 +771,7 @@ function validateSliderSettings(settings: Record<string, unknown>): WidgetSettin
     ...validateNumber(settings, "step", { min: 0 }),
     ...validateOneOf(settings, "direction", ["horizontal", "vertical"]),
     ...validateBoolean(settings, "returnToCenter"),
+    ...validateBoolean(settings, "show_details"),
     ...("topic" in settings && settings.topic !== undefined
       ? validateString(settings, "topic", { allowEmpty: true })
       : []),

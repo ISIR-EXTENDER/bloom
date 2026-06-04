@@ -46,6 +46,8 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     event_loop = asyncio.get_running_loop()
     topic_samples: asyncio.Queue[RuntimeTopicSample] = asyncio.Queue(maxsize=100)
     topic_subscription_handles: list[RuntimeTopicSubscriptionHandle] = []
+    receive_task: asyncio.Task | None = None
+    sample_task: asyncio.Task | None = None
 
     try:
         await websocket.send_json(
@@ -88,12 +90,8 @@ async def runtime_websocket(websocket: WebSocket) -> None:
         manager.disconnect(session)
         for handle in topic_subscription_handles:
             handle.close()
-        for task in (locals().get("receive_task"), locals().get("sample_task")):
-            if isinstance(task, asyncio.Task):
-                if not task.done():
-                    task.cancel()
-                with suppress(asyncio.CancelledError, WebSocketDisconnect):
-                    await task
+        await cancel_runtime_task(receive_task)
+        await cancel_runtime_task(sample_task)
 
 
 async def handle_runtime_client_payload(
@@ -208,6 +206,17 @@ def enqueue_topic_sample(topic_samples: asyncio.Queue[RuntimeTopicSample], sampl
         with suppress(asyncio.QueueEmpty):
             topic_samples.get_nowait()
         topic_samples.put_nowait(sample)
+
+
+async def cancel_runtime_task(task: asyncio.Task | None) -> None:
+    if task is None:
+        return
+
+    if not task.done():
+        task.cancel()
+
+    with suppress(asyncio.CancelledError, WebSocketDisconnect):
+        await task
 
 
 def build_runtime_topic_sample(session_id: str, sample: RuntimeTopicSample) -> RuntimeServerMessage:

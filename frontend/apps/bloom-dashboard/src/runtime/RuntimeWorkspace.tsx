@@ -20,7 +20,10 @@ type RuntimeViewportSize = {
 
 type RuntimeWorkspaceProps = {
   application: ApplicationConfig;
+  onBackToRuntimeHome: () => void;
   onActionIntent: WidgetActionIntentHandler;
+  onEditApplication: () => void;
+  onEditScreen: () => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
@@ -30,7 +33,10 @@ type RuntimeWorkspaceProps = {
 
 export function RuntimeWorkspace({
   application,
+  onBackToRuntimeHome,
   onActionIntent,
+  onEditApplication,
+  onEditScreen,
   onSelectionChange,
   onTopicSample,
   onTopicSubscriptionRequest,
@@ -112,6 +118,18 @@ export function RuntimeWorkspace({
           <p className="eyebrow">Runtime app</p>
           <h2>{application.name}</h2>
         </div>
+
+        <nav className="runtime-app-actions" aria-label="Runtime shortcuts">
+          <button className="runtime-app-action" onClick={onBackToRuntimeHome} type="button">
+            App library
+          </button>
+          <button className="runtime-app-action" onClick={onEditApplication} type="button">
+            Edit app
+          </button>
+          <button className="runtime-app-action" onClick={onEditScreen} type="button">
+            Edit screen
+          </button>
+        </nav>
 
         {application.screens.length > 1 ? (
           <div aria-label="Runtime screens" className="runtime-screen-tabs" role="tablist">

@@ -14,7 +14,7 @@ import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-vis
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient, RuntimeTopicSampleMessage } from "./runtime/runtime-action-dispatcher";
-import { BLOOM_SCREEN_DRAG_TYPE } from "./ui/dragDrop";
+import { BLOOM_APP_SCREEN_REORDER_DRAG_TYPE, BLOOM_SCREEN_DRAG_TYPE } from "./ui/dragDrop";
 
 Element.prototype.setPointerCapture = vi.fn();
 Element.prototype.releasePointerCapture = vi.fn();
@@ -26,7 +26,24 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 1, name: /robot interfaces that grow cleanly/i })).toBeVisible();
     expect(screen.getByText(/configurable robot teleoperation/i)).toBeVisible();
     expect(screen.getByRole("button", { name: /open builder preview/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /read get started guide/i })).toBeVisible();
     expect(screen.queryByRole("heading", { level: 2, name: "Choose what to preview" })).not.toBeInTheDocument();
+  });
+
+  it("opens the get started help guide from navigation and landing page", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Help: Get started guide" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Build Bloom apps with confidence." })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Bloom capabilities" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "First app workflow" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Guide is aligned" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Home: Project overview" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Read get started guide/i }));
+
+    expect(await screen.findByText("Keep this useful after handover")).toBeVisible();
   });
 
   it("provides a keyboard skip link to the main content", () => {
@@ -52,8 +69,10 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Choose what to build." })).toBeVisible();
     expect(screen.getByRole("button", { name: "Apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Screen library" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Playground" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Manage complete app workflows/i })).toBeVisible();
     expect(screen.getByRole("button", { name: /Design reusable screens first/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Try runtime screens without setup/i })).toBeVisible();
     expect(screen.queryByRole("heading", { level: 2, name: "Available apps" })).not.toBeInTheDocument();
   });
 
@@ -67,7 +86,7 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Create blank app/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Create starter app/i })).toBeVisible();
     expect(screen.queryByRole("heading", { level: 2, name: "Reusable screens" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Screen library" }));
@@ -78,6 +97,17 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Show Diagnostics layout preview" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Diagnostics screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Preview Diagnostics screen runtime" })).toBeVisible();
+  });
+
+  it("opens a builder playground for quick runtime screen checks", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Playground" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Try screens before creating an app" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open Diagnostics in runtime playground" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit Diagnostics from playground" })).toBeVisible();
   });
 
   it("opens a screen builder directly from the builder screen library", async () => {
@@ -180,6 +210,43 @@ describe("App", () => {
     expect(screen.queryByRole("heading", { level: 1, name: "Sandbox" })).not.toBeInTheDocument();
   });
 
+  it("lets runtime users choose an app before launching operator mode", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Launch Sandbox runtime" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Launch Sandbox runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "App library" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit app" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit screen" })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "App library" }));
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Resume Sandbox on Main" })).toBeVisible();
+  });
+
+  it("links runtime users back to app and screen editing", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    await openSandboxRuntimeFromNavigation();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit app" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "App theme" })).toBeVisible();
+
+    await openSandboxRuntimeFromNavigation();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit screen" }));
+    expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
+  });
+
   it("opens app configuration before entering the full screen builder", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
@@ -203,7 +270,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
     fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Create blank app" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Create starter app" }));
 
     await waitFor(() => {
       expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
@@ -300,6 +367,11 @@ describe("App", () => {
     fireEvent.change(screen.getByLabelText("Moodboard image"), { target: { files: [moodboardFile] } });
 
     await waitFor(() => {
+      expect(configurationClient.uploadThemeAsset).toHaveBeenCalledWith("sandbox", {
+        filename: "moodboard.png",
+        content_type: "image/png",
+        content_base64: expect.any(String),
+      });
       expect(screen.getByAltText("Current app moodboard preview")).toBeVisible();
     });
 
@@ -312,7 +384,9 @@ describe("App", () => {
     const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
     expect(savedApplication?.theme.inspiration.reference_url).toBe("https://lifesum.com/");
-    expect(savedApplication?.theme.inspiration.moodboard_image_uri).toMatch(/^data:image\/png;base64,/);
+    expect(savedApplication?.theme.inspiration.moodboard_image_uri).toBe(
+      "/api/v1/configurations/sandbox/theme-assets/moodboard.png",
+    );
   });
 
   it("opens app configuration when an older theme has no inspiration metadata", async () => {
@@ -385,6 +459,62 @@ describe("App", () => {
     const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
     expect(savedApplication?.screens.map((screenConfig) => screenConfig.id)).toContain("camera-feed");
+  });
+
+  it("reorders screens in the app flow with accessible button fallbacks", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        sandbox: createBundleWithReusableScreen(),
+      },
+    });
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.click(screen.getByRole("button", { name: "Add Camera Feed to app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Camera Feed earlier in app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Camera Feed earlier in app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Move Camera Feed earlier in app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+    expectScreenBefore(savedApplication, "camera-feed", "main");
+  });
+
+  it("reorders screens in the app flow by dropping one screen before another", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        sandbox: createBundleWithReusableScreen(),
+      },
+    });
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.click(screen.getByRole("button", { name: "Add Camera Feed to app" }));
+
+    const cameraCard = screen.getByText("Camera Feed").closest("article");
+    const mainCard = screen.getByText("Main").closest("article");
+    if (!cameraCard || !mainCard) {
+      throw new Error("Expected app screen cards to render.");
+    }
+
+    const dataTransfer = createDragDataTransfer("camera-feed", BLOOM_APP_SCREEN_REORDER_DRAG_TYPE);
+    fireEvent.dragStart(cameraCard, { dataTransfer });
+    fireEvent.dragOver(mainCard, { dataTransfer });
+    fireEvent.drop(mainCard, { dataTransfer });
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+    expectScreenBefore(savedApplication, "camera-feed", "main");
   });
 
   it("creates a blank screen from app configuration", async () => {
@@ -700,7 +830,7 @@ describe("App", () => {
 
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openSandboxRuntimeFromNavigation();
     fireEvent.click(await screen.findByRole("button", { name: "OFF" }));
 
     expect(screen.getByRole("region", { name: "Runtime application" })).toBeVisible();
@@ -717,7 +847,7 @@ describe("App", () => {
   it("fits the runtime canvas into the available application viewport", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openSandboxRuntimeFromNavigation();
 
     const artboard = await screen.findByTestId("runtime-artboard");
     const artboardFrame = artboard.parentElement;
@@ -739,7 +869,7 @@ describe("App", () => {
   it("shows a safe coming soon state for empty runtime screens", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openSandboxRuntimeFromNavigation();
     fireEvent.click(await screen.findByRole("tab", { name: /Placeholder/i }));
 
     expect(screen.getByRole("region", { name: "Runtime screen coming soon" })).toBeVisible();
@@ -876,7 +1006,7 @@ describe("App", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openBloomDebugRuntimeFromNavigation();
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByText("Teleop command echo")).toBeVisible();
@@ -969,6 +1099,7 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Launch Webcam visualizer runtime" }));
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Webcam visualizer" })).toBeVisible();
@@ -1064,6 +1195,15 @@ function createConfigurationClient(
 
         storedBundles.set(id, bundle);
         return structuredClone(bundle);
+      },
+    ),
+    uploadThemeAsset: vi.fn(
+      async (_id: string, upload): Promise<{ byte_size: number; content_type: string; uri: string }> => {
+        return {
+          byte_size: upload.content_base64.length,
+          content_type: upload.content_type,
+          uri: `/api/v1/configurations/sandbox/theme-assets/${upload.filename}`,
+        };
       },
     ),
     deleteApplication: vi.fn(async (id: string, applicationId: string): Promise<void> => {
@@ -1279,6 +1419,16 @@ async function openAppConfig() {
   fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox app" }));
 }
 
+async function openSandboxRuntimeFromNavigation() {
+  fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox runtime" }));
+}
+
+async function openBloomDebugRuntimeFromNavigation() {
+  fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Launch Bloom Debug runtime" }));
+}
+
 async function openPetanqueAppConfig() {
   fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
   fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
@@ -1323,14 +1473,26 @@ function getRuntimeJoystickZone(): HTMLElement {
   return joystickZone;
 }
 
-function createDragDataTransfer(screenId: string): DataTransfer {
+function createDragDataTransfer(screenId: string, dragType = BLOOM_SCREEN_DRAG_TYPE): DataTransfer {
   return {
     dropEffect: "copy",
     effectAllowed: "copy",
     files: [] as unknown as FileList,
-    getData: vi.fn((dragType: string) => (dragType === BLOOM_SCREEN_DRAG_TYPE ? screenId : "")),
+    getData: vi.fn((candidateDragType: string) => (candidateDragType === dragType ? screenId : "")),
     items: [] as unknown as DataTransferItemList,
     setData: vi.fn(),
-    types: [BLOOM_SCREEN_DRAG_TYPE],
+    types: [dragType],
   } as unknown as DataTransfer;
+}
+
+function expectScreenBefore(
+  application: ApplicationConfig | undefined,
+  screenId: string,
+  targetScreenId: string,
+): void {
+  const screenIds = application?.screens.map((screenConfig) => screenConfig.id) ?? [];
+
+  expect(screenIds).toContain(screenId);
+  expect(screenIds).toContain(targetScreenId);
+  expect(screenIds.indexOf(screenId)).toBeLessThan(screenIds.indexOf(targetScreenId));
 }

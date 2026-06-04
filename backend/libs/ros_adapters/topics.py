@@ -12,7 +12,7 @@ class RosTopicInfo:
 
 class RosTopicCatalogGateway(Protocol):
     def list_topics(self) -> tuple[RosTopicInfo, ...]:
-        ...
+        raise NotImplementedError
 
 
 class NoopRosTopicCatalogGateway:
