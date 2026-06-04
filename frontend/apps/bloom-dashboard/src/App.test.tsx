@@ -237,8 +237,8 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 3, name: "Camera views" })).toBeVisible();
     expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "Edit Default Live Teleop screen" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Edit Default Control screen" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit Live Teleop screen" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Edit Teleop Controls screen" })).not.toBeInTheDocument();
   });
 
   it("opens an app runtime directly from the builder app list", async () => {
@@ -934,9 +934,9 @@ describe("App", () => {
 
     await openPetanqueAppConfig();
 
-    expect(await screen.findByRole("heading", { level: 1, name: "app-petanque-admin" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Open default_control screen builder" }));
-    expect(screen.getByRole("heading", { level: 2, name: "default_control" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Petanque admin" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Open Teleop controls screen builder" }));
+    expect(screen.getByRole("heading", { level: 2, name: "Teleop controls" })).toBeVisible();
     expect(screen.getAllByText("RZ").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Z").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Max Velocity").length).toBeGreaterThan(0);
@@ -945,9 +945,9 @@ describe("App", () => {
     expect(screen.getAllByText(/Slider/).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Back to app config" }));
-    fireEvent.click(screen.getByRole("button", { name: "Open default_live_teleop screen builder" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Live teleop screen builder" }));
 
-    expect(screen.getByRole("heading", { level: 2, name: "default_live_teleop" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Live teleop" })).toBeVisible();
     expect(screen.getAllByText("Camera Stream").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
   });
@@ -968,7 +968,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
     fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Open app-petanque-admin runtime" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Petanque admin runtime" }));
     await screen.findByRole("region", { name: "Runtime application" });
 
     const joystickZone = getRuntimeJoystickZone();
@@ -1142,8 +1142,8 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Select and move Gripper Control widget" }));
 
     expect(screen.getByLabelText("Output topic")).toHaveValue("/cmd/gripper");
-    expect(screen.getByLabelText("ON payload")).toHaveValue("true");
-    expect(screen.getByLabelText("OFF payload")).toHaveValue("false");
+    expect(screen.getByLabelText("ON payload")).toHaveValue("{data: true}");
+    expect(screen.getByLabelText("OFF payload")).toHaveValue("{data: false}");
   });
 
   it("opens the webcam visualizer demo app with a camera viewer screen", async () => {
@@ -1547,12 +1547,17 @@ async function openBloomDebugRuntimeFromNavigation() {
 async function openPetanqueAppConfig() {
   fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
   fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
-  fireEvent.click(await screen.findByRole("button", { name: "Open app-petanque-admin app" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Open Petanque admin app" }));
 }
 
 async function openPetanqueScreenBuilder(screenName: string) {
   await openPetanqueAppConfig();
-  fireEvent.click(await screen.findByRole("button", { name: `Open ${screenName} screen builder` }));
+  const screenTitleById: Record<string, string> = {
+    default_control: "Teleop controls",
+    default_live_teleop: "Live teleop",
+  };
+  const screenTitle = screenTitleById[screenName] ?? screenName;
+  fireEvent.click(await screen.findByRole("button", { name: `Open ${screenTitle} screen builder` }));
 }
 
 async function moveDigitalOutputWidget() {

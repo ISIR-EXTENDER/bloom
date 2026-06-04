@@ -49,7 +49,7 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
     expect(screen.getByText("Hello Bloom")).toBeVisible();
-    expect(screen.getByText("Label")).toBeVisible();
+    expect(screen.queryByText("Label")).not.toBeInTheDocument();
   });
 
   it("renders unknown widgets through a safe fallback", () => {
@@ -70,6 +70,19 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("Hello Bloom")).toBeVisible();
     expect(container.querySelectorAll("[data-screen-id='main']")).toHaveLength(2);
     expect(container.querySelector("[aria-label='Digital output Toggle']")).toBeInTheDocument();
+  });
+
+  it("renders labels as configured text instead of placeholder metadata", () => {
+    const descriptors = renderScreenDescriptors(centeredLabelScreen, createDefaultWidgetRegistry());
+    const descriptor = descriptors[0];
+    if (!descriptor) throw new Error("Missing centered label descriptor.");
+
+    const { container } = render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByText("Ready for teleop")).toBeVisible();
+    expect(screen.queryByText("Label")).not.toBeInTheDocument();
+    expect(container.querySelector(".bloom-label-widget")).toHaveAttribute("data-align", "center");
+    expect(container.querySelector(".bloom-label-widget")).toHaveStyle({ fontSize: "28px" });
   });
 
   it("emits value-change intents from interactive sliders", async () => {
@@ -454,6 +467,41 @@ describe("widget renderer registry", () => {
     expect(screen.getByRole("combobox", { name: /camera/i })).toBeVisible();
     expect(screen.getByRole("option", { name: "Integrated Camera" })).toBeInTheDocument();
   });
+
+  it("renders gauge widgets as accessible meters", () => {
+    const descriptor = renderScreenDescriptors(gaugeScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing gauge descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    const meter = screen.getByRole("meter", { name: "Battery: 68 %" });
+    expect(meter).toHaveAttribute("min", "0");
+    expect(meter).toHaveAttribute("max", "100");
+    expect(meter).toHaveAttribute("value", "68");
+    expect(screen.getAllByText("68")).toHaveLength(2);
+  });
+
+  it("renders generic plot widgets with a readable sparkline", () => {
+    const descriptor = renderScreenDescriptors(plotScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing plot descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByLabelText("Velocity trend plot")).toBeVisible();
+    expect(screen.getByText("20s history")).toBeVisible();
+    expect(screen.getByText("latest 0.9")).toBeVisible();
+  });
+
+  it("renders robot 3d extension placeholders without looking empty", () => {
+    const descriptor = renderScreenDescriptors(robot3dScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing robot 3d descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByLabelText("Explorer model placeholder")).toBeVisible();
+    expect(screen.getByText("/joint_states")).toBeVisible();
+    expect(screen.getByText("URDF adapter coming next.")).toBeVisible();
+  });
 });
 
 const sampleScreen: ScreenConfig = {
@@ -495,6 +543,33 @@ const sampleScreen: ScreenConfig = {
         offPayload: "{data: [13, 0]}",
         onPayload: "{data: [13, 1]}",
         topic: "/ui/ros_toggle",
+      },
+    },
+  ],
+};
+
+const centeredLabelScreen: ScreenConfig = {
+  id: "labels",
+  title: "Labels",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "status-label",
+      kind: "label",
+      title: "Status label",
+      layout: {
+        height: 72,
+        width: 320,
+        x: 16,
+        y: 24,
+      },
+      settings: {
+        align: "center",
+        fontSize: 28,
+        text: "Ready for teleop",
       },
     },
   ],
@@ -794,6 +869,90 @@ const webcamScreen: ScreenConfig = {
         source: "webcam",
         streamUrl: "webcam:///dev/video0",
         webcamPicker: true,
+      },
+    },
+  ],
+};
+
+const gaugeScreen: ScreenConfig = {
+  id: "status",
+  title: "Status",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "battery",
+      kind: "gauge",
+      title: "Battery",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 240,
+        height: 160,
+      },
+      settings: {
+        max: 100,
+        min: 0,
+        unit: "%",
+        value: 68,
+      },
+    },
+  ],
+};
+
+const plotScreen: ScreenConfig = {
+  id: "plots",
+  title: "Plots",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "velocity-trend",
+      kind: "plot",
+      title: "Velocity trend",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 360,
+        height: 220,
+      },
+      settings: {
+        historySeconds: 20,
+        samples: [0.1, 0.5, 0.4, 0.9],
+        showLegend: true,
+      },
+    },
+  ],
+};
+
+const robot3dScreen: ScreenConfig = {
+  id: "robot",
+  title: "Robot",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "explorer-model",
+      kind: "robot-3d",
+      title: "Explorer model",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 360,
+        height: 240,
+      },
+      settings: {
+        description: "URDF adapter coming next.",
+        jointStateTopic: "/joint_states",
+        modelSource: "extension",
+        robotModelUrl: "",
+        showAxes: true,
       },
     },
   ],

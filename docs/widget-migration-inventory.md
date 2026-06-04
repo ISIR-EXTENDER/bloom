@@ -28,7 +28,7 @@ Bloom should migrate reusable primitives from both generations, but the canvas g
 | `toggle-publisher` | Generic toggle action widget | Simpler ON/OFF publisher remains useful. |
 | `gripper-control` / `magnet-control` | Generic device toggle/action widget | Device name and payloads should be configurable instead of tied to gripper/magnet. |
 | `stream-display` | Generic stream viewer | Camera, RViz, visualization, webcam, image result, and iframe use cases are reusable. |
-| `curves` / old `curvesPlots` | Generic plot/timeseries widget | Recharts-based telemetry plotting can serve many apps. |
+| `curves` / old `curvesPlots` | Generic plot/timeseries widget | Lightweight first-party plots cover previews now; richer telemetry can add a chart dependency later. |
 | `logs` / old logs widgets | Generic log/event viewer | Runtime logs, sessions, recording status, and diagnostics are lab-wide needs. |
 | topic visualization / topic echo | Generic debug and supervision widgets | Minimal PlotJuggler-like timeseries and console-style topic echo views are key for robot debugging. |
 | `text` / `textarea` | Generic label/text block widgets | Needed for status, instructions, JSON results, and formatted output. |
@@ -71,7 +71,9 @@ These priorities explain why a widget family matters. The current implementation
 3. **Display primitives**
    - Stream viewer for camera/RViz/visualization/webcam/image result.
    - Text/textarea/status block.
-   - Plot/timeseries viewer using `recharts`.
+   - Accessible gauge/status meters.
+   - Lightweight first-party plot/timeseries preview.
+   - Rich plot/timeseries viewer using a chart dependency only after real runtime requirements justify it.
    - Minimal topic visualization for velocities, torques, positions, and scalar/vector telemetry.
    - Console-style topic echo viewer for in-app ROS/debug monitoring.
    - Topic inspector for browsing available topics, message types, frequencies, and recording eligibility.
@@ -91,7 +93,7 @@ These priorities explain why a widget family matters. The current implementation
 
 - `@radix-ui/react-slider` worked well for slider primitives.
 - `nipplejs` worked well for tactile joystick control.
-- `recharts` worked well for plots.
+- `recharts` worked well for legacy plots, but Bloom starts with a first-party SVG sparkline to keep the foundation small.
 - Streams should stay first-party React/browser components around `<video>`, `<img>`, `<iframe>`, and `getUserMedia`.
 - `zustand` worked for local UI state, but Bloom should introduce global state only when the builder/runtime needs it.
 

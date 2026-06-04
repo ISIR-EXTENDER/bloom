@@ -235,7 +235,7 @@ Validated runtime checks:
 
 ### Phase 4 - Legacy App Migration
 
-Status: started with Petanque admin fixtures.
+Status: in progress with useful Petanque/Sandbox fixture screens and first display widget foundations.
 
 - Migrate screens one by one from real legacy JSON.
 - Convert reusable Petanque widgets into generic Bloom widgets whenever topic names, labels, payloads, and adapters can
@@ -250,6 +250,29 @@ Priority widget families:
 - Display primitives: camera/stream viewer, text/status, logs, topic echo, telemetry plot.
 - Builder primitives: navigation widgets, inspector metadata, app/screen composition.
 - Advanced reusable controls: gesture/trajectory input, saved preset/pose commands, media/action overlays.
+
+Completed in this phase so far:
+
+- Petanque admin fixture screens now use human-readable app/screen titles while keeping stable technical IDs.
+- Previously empty Petanque screens now contain useful generic Bloom widgets:
+  labels, camera streams, topic echo, topic plots, scalar sliders, command buttons, and configurable toggles.
+- Generic display primitives are now real renderers instead of placeholders:
+  `label`, `gauge`, `plot`, and `robot-3d`.
+- `label` respects configured text, alignment, and font size so instructions/status blocks can be reused across apps.
+- `gauge` provides an accessible meter for state-like values such as battery, progress, or score.
+- `plot` provides a lightweight first-party sparkline for previews and simple telemetry without adding a heavier chart
+  dependency yet.
+- `robot-3d` is kept as an explicit extension placeholder so robot-model visualization can evolve behind an adapter.
+- Seeded app configuration fixtures are tested to avoid shipping empty runtime screens in the app library.
+- Legacy camera source aliases such as `camera` and `rviz` normalize toward Bloom's stream configuration model.
+
+Phase 4 remaining work:
+
+- Complete richer logs/event viewer migration with filtering and severity styling.
+- Migrate configurable ROS message command variants beyond button/toggle into reusable command presets.
+- Add richer telemetry plot variants, likely with a chart dependency once real runtime plot requirements stabilize.
+- Migrate saved pose/preset command widgets and Petanque gesture/trajectory candidates behind generic contracts.
+- Continue app-by-app runtime validation against real legacy JSON and ROS adapter behavior.
 
 Explorer user-test app candidate:
 

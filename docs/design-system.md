@@ -203,7 +203,10 @@ Rules:
 Current review finding:
 
 - The Sandbox teleop lab is comfortable at the configured Extender `1920x1080` resolution.
-- The same screen is readable but not comfortable enough for confident operation at the native `1024x600` checkpoint.
+- The same screen now fits the native `1024x600` visual smoke checkpoint without hiding the primary joysticks/sliders,
+  after compacting runtime chrome for short tablet viewports.
+- `1024x600` is still a constrained interaction target: controls are visible, but truly comfortable robot operation
+  should prefer app display profiles or adapted screens.
 - Bloom should keep WYSIWYG geometry as the source of truth, but add app/display presets so runtime can choose
   tablet, comfortable, or high-visibility layouts without pretending one layout fits every deployment context.
 

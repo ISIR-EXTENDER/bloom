@@ -58,6 +58,7 @@ export type GaugeSettings = {
   max: number;
   min: number;
   unit: string;
+  value: number;
 };
 
 export type JoystickAxisSemantic = "custom" | "rotation" | "translation" | "vertical";
@@ -103,6 +104,7 @@ export type LabelSettings = {
 
 export type PlotSettings = {
   historySeconds: number;
+  samples: number[];
   showLegend: boolean;
 };
 
@@ -186,6 +188,7 @@ const GAUGE_DEFAULT_SETTINGS: GaugeSettings = {
   max: 1,
   min: 0,
   unit: "",
+  value: 0,
 };
 
 const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
@@ -228,6 +231,7 @@ const LABEL_DEFAULT_SETTINGS: LabelSettings = {
 
 const PLOT_DEFAULT_SETTINGS: PlotSettings = {
   historySeconds: 10,
+  samples: [0.18, 0.34, 0.28, 0.52, 0.47, 0.68, 0.61, 0.79, 0.73, 0.88],
   showLegend: true,
 };
 
@@ -323,6 +327,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     [
       { key: "min", label: "Minimum", type: "number", required: true },
       { key: "max", label: "Maximum", type: "number", required: true },
+      { key: "value", label: "Value", type: "number", required: true },
       { key: "unit", label: "Unit", type: "text", required: false },
     ],
     GAUGE_DEFAULT_SETTINGS,
@@ -359,6 +364,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     [
       { key: "historySeconds", label: "History duration", type: "number", required: true },
       { key: "showLegend", label: "Show legend", type: "boolean", required: true },
+      { key: "samples", label: "Preview samples", type: "json", required: true },
     ],
     PLOT_DEFAULT_SETTINGS,
     validatePlotSettings,
@@ -464,6 +470,9 @@ export function normalizeWidgetSettings(
   };
   if (kind === "joystick") {
     return validateWidgetSettings(kind, normalizeJoystickCompatibility(mergedSettings));
+  }
+  if (kind === "camera") {
+    return validateWidgetSettings(kind, normalizeCameraCompatibility(mergedSettings));
   }
   return validateWidgetSettings(kind, mergedSettings);
 }
@@ -664,6 +673,7 @@ function validateGaugeSettings(settings: Record<string, unknown>): WidgetSetting
   const errors = [
     ...validateNumber(settings, "min"),
     ...validateNumber(settings, "max"),
+    ...validateNumber(settings, "value"),
     ...validateString(settings, "unit", { allowEmpty: true }),
   ];
   if (isNumber(settings.min) && isNumber(settings.max) && settings.min >= settings.max) {
@@ -775,9 +785,21 @@ function validatePlotSettings(settings: Record<string, unknown>): WidgetSettings
   const errors = [
     ...validateNumber(settings, "historySeconds", { min: 1 }),
     ...validateBoolean(settings, "showLegend"),
+    ...validateNumberArray(settings.samples, "samples"),
   ];
   if (errors.length > 0) return fail(errors);
   return succeed(settings as PlotSettings);
+}
+
+function normalizeCameraCompatibility(settings: Record<string, unknown>): Record<string, unknown> {
+  const source = typeof settings.source === "string" ? settings.source.trim().toLowerCase() : "";
+  if (source === "camera" || source === "rviz" || source === "stream") {
+    return {
+      ...settings,
+      source: "stream-url",
+    };
+  }
+  return settings;
 }
 
 function validateSliderSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<SliderSettings> {
@@ -984,6 +1006,15 @@ function validateNumber(
     return [{ field, message: `${field} must be less than or equal to ${options.max}` }];
   }
   return [];
+}
+
+function validateNumberArray(value: unknown, field: string): WidgetSettingsValidationError[] {
+  if (!Array.isArray(value)) {
+    return [{ field, message: `${field} must be an array` }];
+  }
+  return value.every((candidate) => typeof candidate === "number" && Number.isFinite(candidate))
+    ? []
+    : [{ field, message: `${field} must contain only finite numbers` }];
 }
 
 function validateOneOf(

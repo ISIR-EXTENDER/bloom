@@ -97,3 +97,51 @@
     padding: 12px;
   }
 }
+
+@media (max-height: 700px) {
+  .app-shell-runtime {
+    padding-bottom: 10px;
+  }
+
+  .app-shell-runtime .bloom-nav-shell {
+    margin-bottom: 8px;
+  }
+
+  .runtime-app-workspace {
+    height: calc(100svh - 92px);
+    min-height: 0;
+    border-radius: 22px;
+  }
+
+  .runtime-app-topbar {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .runtime-app-topbar h2 {
+    font-size: 1.25rem;
+  }
+
+  .runtime-app-actions {
+    gap: 6px;
+  }
+
+  .runtime-app-action {
+    min-height: 34px;
+    padding: 6px 10px;
+  }
+
+  .runtime-screen-tabs {
+    gap: 6px;
+    padding: 2px;
+  }
+
+  .runtime-screen-tab {
+    min-width: 128px;
+    padding: 7px 10px;
+  }
+
+  .runtime-app-canvas-viewport {
+    padding: 8px;
+  }
+}
