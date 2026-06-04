@@ -198,6 +198,7 @@ Current candidate screens:
 - `Explorer control modes`: mode hints, mode-aware joystick, speed, gripper, emergency stop, event feedback.
 - `Robot actions`: deploy/retract/safety commands with progress/cancel metadata.
 - `Saved positions`: save/replay/cancel preset commands with operator feedback.
+- `Safety zones`: QP/safety-zone status and enable/disable/reset commands.
 - `Robot supervision`: camera placeholder, optional 3D robot view, battery gauge, velocity plot, event feedback.
 - `Debug console`: topic echo, topic plot, runtime events, adapter status.
 - `Display profile`: font scale, touch layout, theme preset, screen size.
@@ -205,7 +206,7 @@ Current candidate screens:
 Still to add as Explorer-specific screens or extensions:
 
 - richer favorites/preset libraries;
-- safety-zone/QP configuration and status;
+- richer safety-zone/QP configuration policies and adapter status;
 - drink mode or other task-specific flows;
 - richer Explorer mode names once the final user-test mapping is confirmed.
 
