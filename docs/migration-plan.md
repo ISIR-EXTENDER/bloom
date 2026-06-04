@@ -277,22 +277,23 @@ Completed in this phase so far:
   emergency stop triggers, and bridge-style button actions do not require a separate widget family.
 - Lightweight `plot` now supports `area`, `sparkline`, and `bars` variants, optional units, and optional Y bounds before
   Bloom commits to a heavier chart dependency.
+- The Explorer candidate now includes a saved-position screen built from generic command buttons and event logs, so
+  save/replay/cancel preset flows can be validated without adding Explorer-specific widgets to Bloom core.
 
 Phase 4 remaining work:
 
-- Extend configurable ROS message command presets toward saved pose/preset command families and app-specific adapter
-  policies.
+- Extend configurable ROS message command presets toward reusable preset libraries and app-specific adapter policies.
 - Continue Bloom Debug telemetry polish and evaluate a richer chart dependency only when first-party variants are no
   longer enough.
-- Migrate saved pose/preset command widgets and Petanque gesture/trajectory candidates behind generic contracts.
+- Migrate Petanque gesture/trajectory candidates and richer saved-preset variants behind generic contracts.
 - Continue app-by-app runtime validation against real legacy JSON and ROS adapter behavior.
 
 Explorer user-test app candidate:
 
 - First candidate is tracked as `tests/fixtures/explorer-user-tests-configuration-bundle.json`.
-- Current candidate screens: control modes, robot actions, robot supervision, debug console, and display/accessibility
-  profile.
-- Next candidate screens to add: saved positions, safety zones, drink mode, and richer Explorer-specific favorites.
+- Current candidate screens: control modes, robot actions, saved positions, robot supervision, debug console, and
+  display/accessibility profile.
+- Next candidate screens to add: safety zones, drink mode, and richer Explorer-specific favorites.
 - Keep Explorer-specific mode mappings, URDF assets, AUCTUS bridge item names, and QP/safety-zone semantics outside the
   generic Bloom core.
 - Validate first as a non-ROS fixture/demo, then connect live behavior through backend adapters.

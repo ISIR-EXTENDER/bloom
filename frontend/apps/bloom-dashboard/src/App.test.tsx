@@ -296,6 +296,9 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Explorer User Tests" })).toBeVisible();
     expect(screen.getByText("Mode-aware joystick")).toBeVisible();
     expect(screen.getByText("Control feedback")).toBeVisible();
+    fireEvent.click(screen.getByRole("tab", { name: /Explorer saved positions/i }));
+    expect(screen.getByText("Save current pose")).toBeVisible();
+    expect(screen.getByText("Saved position status")).toBeVisible();
     expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
   });
 
@@ -319,6 +322,7 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 3, name: "Control screens" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Explorer Control Modes screen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit Explorer Saved Positions screen" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 3, name: "Debug monitors" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Preview Explorer Debug Console screen runtime" })).toBeVisible();
   });

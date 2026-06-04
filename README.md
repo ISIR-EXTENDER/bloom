@@ -108,6 +108,8 @@ current roadmap.
   messages on `/teleop_cmd`.
 - One-shot command buttons can now carry optional ROS topic/message/payload settings and shared presets for common
   commands such as state-machine transitions, emergency stop, and digital output triggers.
+- The Explorer user-test candidate includes a saved-position screen built from generic command buttons, so save/replay
+  and cancel flows can be validated before adapter-specific wiring exists.
 - A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
 - A first Bloom Debug fixture can request runtime topic subscriptions and render live samples in echo and lightweight plot widgets.
 - Bloom Debug can inspect the topic catalog, refresh runtime audit records, start/stop a safe recording request for
@@ -116,7 +118,7 @@ current roadmap.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Runtime/status UX is intentionally calm: backend/API status can be shown first, while robot/ROS/network indicators
   must come from explicit adapters before Bloom claims they are connected.
-- Next major pieces are richer telemetry widgets, saved preset/pose actions, bundle reconstruction from normalized
+- Next major pieces are richer telemetry widgets, reusable preset libraries, bundle reconstruction from normalized
   SQLite rows, concrete rosbag adapter wiring, and deploy/repli action adapters.
 
 ## In-App Help
