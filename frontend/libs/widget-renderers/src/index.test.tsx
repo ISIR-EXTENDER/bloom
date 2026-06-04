@@ -284,6 +284,41 @@ describe("widget renderer registry", () => {
     expect(screen.getByText(/0.42/)).toBeVisible();
   });
 
+  it("copies topic echo messages to the clipboard", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    const descriptor = renderScreenDescriptors(topicEchoScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic echo descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "joint-state-echo": {
+              messages: [
+                {
+                  receivedAt: "2026-06-02T10:00:00.000Z",
+                  topic: "/joint_states",
+                  value: { name: ["joint_1"], position: [0.42] },
+                },
+              ],
+              type: "topic-echo",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Copy latest" }));
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("joint_1"));
+    expect(await screen.findByText("Copied to clipboard.")).toBeVisible();
+  });
+
   it("renders camera image streams with the configured fit mode", () => {
     const descriptor = renderScreenDescriptors(cameraStreamScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing camera descriptor.");

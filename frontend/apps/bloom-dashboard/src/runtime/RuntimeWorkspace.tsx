@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ScreenConfig, WidgetConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { appendTopicEchoMessage, appendTopicPlotSample, resolveCanvasFitScale } from "@bloom/widgets";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -52,7 +52,6 @@ export function RuntimeWorkspace({
     }),
     [artboardScale, artboardSize],
   );
-  const runtimeScreen = useMemo(() => scaleRuntimeScreenLayout(screen, artboardScale), [artboardScale, screen]);
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const previousScreenIdRef = useRef(screen.id);
 
@@ -156,10 +155,11 @@ export function RuntimeWorkspace({
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
               rendererOptions={{ dataByWidgetId, onActionIntent }}
-              screen={runtimeScreen}
+              screen={screen}
               style={{
-                height: `${scaledArtboardSize.height}px`,
-                width: `${scaledArtboardSize.width}px`,
+                height: `${artboardSize.height}px`,
+                transform: `scale(${artboardScale})`,
+                width: `${artboardSize.width}px`,
               }}
               testId="runtime-artboard"
             />
@@ -249,29 +249,6 @@ function readStringSetting(settings: Record<string, unknown>, key: string): stri
 function readNumberSetting(settings: Record<string, unknown>, key: string, fallback: number): number {
   const value = settings[key];
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function scaleRuntimeScreenLayout(screen: ScreenConfig, scale: number): ScreenConfig {
-  if (scale === 1) {
-    return screen;
-  }
-
-  return {
-    ...screen,
-    widgets: screen.widgets.map((widget) => scaleWidgetLayout(widget, scale)),
-  };
-}
-
-function scaleWidgetLayout(widget: WidgetConfig, scale: number): WidgetConfig {
-  return {
-    ...widget,
-    layout: {
-      height: Math.max(1, Math.round(widget.layout.height * scale)),
-      width: Math.max(1, Math.round(widget.layout.width * scale)),
-      x: Math.round(widget.layout.x * scale),
-      y: Math.round(widget.layout.y * scale),
-    },
-  };
 }
 
 function measureViewportSize(viewport: HTMLDivElement): RuntimeViewportSize {

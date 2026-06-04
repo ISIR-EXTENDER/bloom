@@ -106,7 +106,7 @@ Functional:
 - The webcam demo proves the runtime direction.
 - Builder save/discard and undo/redo are in place.
 - Live ROS session data now reaches topic echo/plot widgets. The next critical
-  function is making that debuggable by users: topic catalog, pause/clear/copy,
+  function is making that debuggable by users: topic catalog, pause/clear,
   plot readability, and recording controls.
 
 ## Frontend Refactoring Plan
@@ -208,3 +208,8 @@ Functional:
   pipeline, avoiding the legacy pointer offset and zero-vector risks.
 - Runtime topic subscriptions now stream live samples into topic echo and topic
   plot widgets through the shared runtime renderer data pipeline.
+- Runtime fit rendering now scales the artboard visually instead of mutating
+  widget coordinates, keeping builder/runtime geometry aligned and reducing
+  clipping risk for teleop controls.
+- Topic echo widgets now expose a first operator-facing debug action:
+  copy the latest visible messages to the clipboard.

@@ -693,15 +693,17 @@ describe("App", () => {
     const artboardFrame = artboard.parentElement;
     const frameWidth = Number.parseInt(artboardFrame?.style.width ?? "0", 10);
     const frameHeight = Number.parseInt(artboardFrame?.style.height ?? "0", 10);
+    const artboardWidth = Number.parseInt(artboard.style.width, 10);
+    const artboardHeight = Number.parseInt(artboard.style.height, 10);
 
     expect(artboard).toHaveAttribute("data-screen-renderer", "screen-artboard");
-    expect(artboard.style.transform).toBe("");
+    expect(artboard.style.transform).toMatch(/^scale\(/);
     expect(frameWidth).toBeGreaterThan(1);
     expect(frameWidth).toBeLessThan(1280);
     expect(frameHeight).toBeGreaterThan(1);
     expect(frameHeight).toBeLessThan(720);
-    expect(Number.parseInt(artboard.style.width, 10)).toBe(frameWidth);
-    expect(Number.parseInt(artboard.style.height, 10)).toBe(frameHeight);
+    expect(artboardWidth).toBeGreaterThan(frameWidth);
+    expect(artboardHeight).toBeGreaterThan(frameHeight);
   });
 
   it("shows a safe coming soon state for empty runtime screens", async () => {
