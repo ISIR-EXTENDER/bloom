@@ -28,7 +28,7 @@ Bloom should migrate reusable primitives from both generations, but the canvas g
 | `toggle-publisher` | Generic toggle action widget | Simpler ON/OFF publisher remains useful. |
 | `gripper-control` / `magnet-control` | Generic device toggle/action widget | Device name and payloads should be configurable instead of tied to gripper/magnet. |
 | `stream-display` | Generic stream viewer | Camera, RViz, visualization, webcam, image result, and iframe use cases are reusable. |
-| `curves` / old `curvesPlots` | Generic plot/timeseries widget | Lightweight first-party plots cover previews now; richer telemetry can add a chart dependency later. |
+| `curves` / old `curvesPlots` | Generic plot/timeseries widget | Lightweight first-party plots now cover area, sparkline, and bar variants; richer telemetry can add a chart dependency later. |
 | `logs` / old logs widgets | Generic log/event viewer | First `event-log` primitive exists for severity-filtered operator feedback; runtime logs, sessions, recording status, and diagnostics remain lab-wide needs. |
 | topic visualization / topic echo | Generic debug and supervision widgets | Minimal PlotJuggler-like timeseries and console-style topic echo views are key for robot debugging. |
 | `text` / `textarea` | Generic label/text block widgets | Needed for status, instructions, JSON results, and formatted output. |

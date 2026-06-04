@@ -558,6 +558,30 @@ describe("widget settings contracts", () => {
         historySeconds: 20,
         samples: [0.1, 0.4, 0.3],
         showLegend: true,
+        unit: "",
+        variant: "area",
+      },
+    });
+
+    expect(
+      normalizeWidgetSettings("plot", {
+        historySeconds: 15,
+        samples: [0, 1, 0.5],
+        unit: "m/s",
+        variant: "bars",
+        yMax: 1,
+        yMin: 0,
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        historySeconds: 15,
+        samples: [0, 1, 0.5],
+        showLegend: true,
+        unit: "m/s",
+        variant: "bars",
+        yMax: 1,
+        yMin: 0,
       },
     });
   });

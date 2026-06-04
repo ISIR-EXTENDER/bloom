@@ -118,6 +118,10 @@ export type PlotSettings = {
   historySeconds: number;
   samples: number[];
   showLegend: boolean;
+  unit: string;
+  variant: "area" | "bars" | "sparkline";
+  yMax?: number;
+  yMin?: number;
 };
 
 export type SliderSettings = {
@@ -263,6 +267,8 @@ const PLOT_DEFAULT_SETTINGS: PlotSettings = {
   historySeconds: 10,
   samples: [0.18, 0.34, 0.28, 0.52, 0.47, 0.68, 0.61, 0.79, 0.73, 0.88],
   showLegend: true,
+  unit: "",
+  variant: "area",
 };
 
 const SLIDER_DEFAULT_SETTINGS: SliderSettings = {
@@ -411,6 +417,10 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "historySeconds", label: "History duration", type: "number", required: true },
       { key: "showLegend", label: "Show legend", type: "boolean", required: true },
       { key: "samples", label: "Preview samples", type: "json", required: true },
+      { key: "variant", label: "Variant", type: "select", required: true, options: ["area", "bars", "sparkline"] },
+      { key: "unit", label: "Unit", type: "text", required: false },
+      { key: "yMin", label: "Y minimum", type: "number", required: false },
+      { key: "yMax", label: "Y maximum", type: "number", required: false },
     ],
     PLOT_DEFAULT_SETTINGS,
     validatePlotSettings,
@@ -935,7 +945,18 @@ function validatePlotSettings(settings: Record<string, unknown>): WidgetSettings
     ...validateNumber(settings, "historySeconds", { min: 1 }),
     ...validateBoolean(settings, "showLegend"),
     ...validateNumberArray(settings.samples, "samples"),
+    ...validateOneOf(settings, "variant", ["area", "bars", "sparkline"]),
+    ...validateString(settings, "unit", { allowEmpty: true }),
   ];
+  if (settings.yMin !== undefined) {
+    errors.push(...validateNumber(settings, "yMin"));
+  }
+  if (settings.yMax !== undefined) {
+    errors.push(...validateNumber(settings, "yMax"));
+  }
+  if (isNumber(settings.yMin) && isNumber(settings.yMax) && settings.yMin >= settings.yMax) {
+    errors.push({ field: "yMax", message: "yMax must be greater than yMin" });
+  }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as PlotSettings);
 }

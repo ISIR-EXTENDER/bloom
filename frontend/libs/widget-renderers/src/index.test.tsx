@@ -492,6 +492,17 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("latest 0.9")).toBeVisible();
   });
 
+  it("renders generic plot bar variants with units", () => {
+    const descriptor = renderScreenDescriptors(plotBarsScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing plot descriptor.");
+
+    const { container } = render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByText("latest 0.5 m/s")).toBeVisible();
+    expect(container.querySelectorAll(".bloom-plot-bar")).toHaveLength(3);
+    expect(container.querySelector(".bloom-plot-widget")).toHaveAttribute("data-variant", "bars");
+  });
+
   it("renders robot 3d extension placeholders without looking empty", () => {
     const descriptor = renderScreenDescriptors(robot3dScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing robot 3d descriptor.");
@@ -946,6 +957,24 @@ const plotScreen: ScreenConfig = {
         historySeconds: 20,
         samples: [0.1, 0.5, 0.4, 0.9],
         showLegend: true,
+      },
+    },
+  ],
+};
+
+const plotBarsScreen: ScreenConfig = {
+  ...plotScreen,
+  widgets: [
+    {
+      ...plotScreen.widgets[0],
+      settings: {
+        historySeconds: 15,
+        samples: [0, 1, 0.5],
+        showLegend: true,
+        unit: "m/s",
+        variant: "bars",
+        yMax: 1,
+        yMin: 0,
       },
     },
   ],
