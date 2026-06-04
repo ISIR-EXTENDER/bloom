@@ -359,10 +359,69 @@ describe("widget renderer registry", () => {
       </div>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Copy latest" }));
+    await userEvent.click(screen.getByRole("button", { name: "Copy" }));
 
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("joint_1"));
     expect(await screen.findByText("Copied to clipboard.")).toBeVisible();
+  });
+
+  it("pauses and clears visible topic echo messages", async () => {
+    const descriptor = renderScreenDescriptors(topicEchoScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic echo descriptor.");
+
+    const { rerender } = render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "joint-state-echo": {
+              messages: [
+                {
+                  receivedAt: "2026-06-02T10:00:00.000Z",
+                  topic: "/joint_states",
+                  value: { name: ["joint_1"], position: [0.42] },
+                },
+              ],
+              type: "topic-echo",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Pause" }));
+
+    rerender(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "joint-state-echo": {
+              messages: [
+                {
+                  receivedAt: "2026-06-02T10:00:00.000Z",
+                  topic: "/joint_states",
+                  value: { name: ["joint_1"], position: [0.42] },
+                },
+                {
+                  receivedAt: "2026-06-02T10:00:01.000Z",
+                  topic: "/joint_states",
+                  value: { name: ["joint_2"], position: [0.84] },
+                },
+              ],
+              type: "topic-echo",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText(/joint_1/)).toBeVisible();
+    expect(screen.queryByText(/joint_2/)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Resume" }));
+    expect(screen.getByText(/joint_2/)).toBeVisible();
+
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+    expect(screen.getByText("Waiting for messages...")).toBeVisible();
   });
 
   it("renders camera image streams with the configured fit mode", () => {

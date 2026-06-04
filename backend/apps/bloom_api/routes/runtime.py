@@ -1,16 +1,21 @@
 import asyncio
 from contextlib import suppress
 from dataclasses import asdict
+from pathlib import Path
 from typing import Callable
 
-from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, Field, ValidationError
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import (
     RuntimeClientMessage,
     RuntimeAuditLog,
+    RuntimeAuditRecord,
+    RuntimeCommandRateLimiter,
     RuntimePingMessage,
+    RuntimeRecordingGateway,
+    RuntimeRecordingRequest,
     RuntimeServerMessage,
     RuntimeSessionManager,
     RuntimeTopicSample,
@@ -47,6 +52,18 @@ def get_runtime_command_policy(connection: Request | WebSocket) -> RuntimeComman
     return connection.app.state.runtime_command_policy
 
 
+def get_runtime_command_rate_limiter(connection: Request | WebSocket) -> RuntimeCommandRateLimiter:
+    return connection.app.state.runtime_command_rate_limiter
+
+
+def get_runtime_recording_gateway(request: Request) -> RuntimeRecordingGateway:
+    return request.app.state.runtime_recording_gateway
+
+
+def get_allowed_recording_output_folders(request: Request) -> tuple[str, ...]:
+    return request.app.state.settings.allowed_recording_output_folders
+
+
 class RuntimeAuditRecordResponse(BaseModel):
     channel: str
     detail: str
@@ -63,12 +80,100 @@ class RuntimeAuditListResponse(BaseModel):
     records: tuple[RuntimeAuditRecordResponse, ...]
 
 
+class RuntimeRecordingStartRequest(BaseModel):
+    topics: tuple[str, ...] = Field(min_length=1)
+    output_folder: str = Field(default="data/recordings", min_length=1)
+    label: str = ""
+
+    @field_validator("topics")
+    @classmethod
+    def topics_must_be_absolute(cls, topics: tuple[str, ...]) -> tuple[str, ...]:
+        normalized_topics: list[str] = []
+        for topic in topics:
+            normalized_topic = topic.strip()
+            if not normalized_topic.startswith("/"):
+                raise ValueError("recording topics must start with '/'")
+            if any(character.isspace() for character in normalized_topic):
+                raise ValueError("recording topics must not contain whitespace")
+            normalized_topics.append(normalized_topic)
+        return tuple(dict.fromkeys(normalized_topics))
+
+    @field_validator("output_folder")
+    @classmethod
+    def output_folder_must_be_relative(cls, output_folder: str) -> str:
+        normalized_folder = output_folder.strip()
+        path = Path(normalized_folder)
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError("recording output folder must be a safe relative path")
+        return normalized_folder
+
+
+class RuntimeRecordingResponse(BaseModel):
+    detail: str
+    output_folder: str
+    recording_id: str
+    status: str
+    topics: tuple[str, ...]
+
+
 @router.get("/audit", response_model=RuntimeAuditListResponse)
 def list_runtime_audit_records(request: Request, limit: int = 100) -> RuntimeAuditListResponse:
     audit_log = get_runtime_audit_log(request)
     return RuntimeAuditListResponse(
         records=tuple(RuntimeAuditRecordResponse(**asdict(record)) for record in audit_log.list_records(limit))
     )
+
+
+@router.post("/recordings", response_model=RuntimeRecordingResponse)
+def start_runtime_recording(request: Request, recording_request: RuntimeRecordingStartRequest) -> RuntimeRecordingResponse:
+    if recording_request.output_folder not in get_allowed_recording_output_folders(request):
+        get_runtime_audit_log(request).record(
+            RuntimeAuditRecord(
+                channel="runtime_recording",
+                detail="Recording output folder is not allowed.",
+                payload_summary={"topic_count": len(recording_request.topics)},
+                status="rejected",
+                target=recording_request.output_folder,
+            )
+        )
+        raise HTTPException(status_code=403, detail="Recording output folder is not allowed.")
+
+    gateway = get_runtime_recording_gateway(request)
+    receipt = gateway.start(
+        RuntimeRecordingRequest(
+            label=recording_request.label,
+            output_folder=recording_request.output_folder,
+            topics=recording_request.topics,
+        )
+    )
+    get_runtime_audit_log(request).record(
+        RuntimeAuditRecord(
+            channel="runtime_recording",
+            detail=receipt.detail,
+            payload_summary={"topic_count": len(receipt.topics)},
+            session_id=receipt.recording_id,
+            status="accepted",
+            target=receipt.output_folder,
+        )
+    )
+    return RuntimeRecordingResponse(**asdict(receipt))
+
+
+@router.post("/recordings/{recording_id}/stop", response_model=RuntimeRecordingResponse)
+def stop_runtime_recording(request: Request, recording_id: str) -> RuntimeRecordingResponse:
+    gateway = get_runtime_recording_gateway(request)
+    receipt = gateway.stop(recording_id)
+    get_runtime_audit_log(request).record(
+        RuntimeAuditRecord(
+            channel="runtime_recording",
+            detail=receipt.detail,
+            payload_summary={"topic_count": len(receipt.topics)},
+            session_id=receipt.recording_id,
+            status="accepted",
+            target=receipt.output_folder,
+        )
+    )
+    return RuntimeRecordingResponse(**asdict(receipt))
 
 
 @router.websocket("/ws")
@@ -156,6 +261,7 @@ async def handle_runtime_client_payload(
             get_runtime_topic_subscription_gateway(websocket),
             get_runtime_audit_log(websocket),
             get_runtime_command_policy(websocket),
+            get_runtime_command_rate_limiter(websocket),
             lambda sample: event_loop.call_soon_threadsafe(enqueue_topic_sample, topic_samples, sample),
             topic_subscription_handles,
         ).model_dump()
@@ -169,6 +275,7 @@ def build_runtime_ack(
     topic_subscription_gateway: RuntimeTopicSubscriptionGateway | None = None,
     audit_log: RuntimeAuditLog | None = None,
     command_policy: RuntimeCommandPolicy | None = None,
+    rate_limiter: RuntimeCommandRateLimiter | None = None,
     on_topic_sample: Callable[[RuntimeTopicSample], None] | None = None,
     topic_subscription_handles: list[RuntimeTopicSubscriptionHandle] | None = None,
 ) -> RuntimeServerMessage:
@@ -215,6 +322,7 @@ def build_runtime_ack(
             teleop_gateway=teleop_gateway,
             audit_log=audit_log,
             command_policy=command_policy,
+            rate_limiter=rate_limiter,
         )
 
     return RuntimeServerMessage(type="runtime_error", detail="Unsupported runtime message.", session_id=session_id)

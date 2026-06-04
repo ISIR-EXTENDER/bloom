@@ -3,6 +3,7 @@ from __future__ import annotations
 from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
 from libs.sessions.models import RuntimeServerMessage, RuntimeTeleopCommandMessage
+from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
 from libs.sessions.teleop import NoopTeleopCommandGateway, TeleopCommand, TeleopCommandGateway, TeleopVector3
 
 
@@ -12,6 +13,7 @@ def build_teleop_ack(
     teleop_gateway: TeleopCommandGateway | None = None,
     audit_log: RuntimeAuditLog | None = None,
     command_policy: RuntimeCommandPolicy | None = None,
+    rate_limiter: RuntimeCommandRateLimiter | None = None,
 ) -> RuntimeServerMessage:
     gateway = teleop_gateway or NoopTeleopCommandGateway()
     policy = command_policy or RuntimeCommandPolicy(
@@ -36,6 +38,24 @@ def build_teleop_ack(
             payload={"message": str(exc), "target": message.target},
             session_id=session_id,
         )
+
+    if rate_limiter is not None:
+        try:
+            rate_limiter.ensure_allowed(f"websocket_teleop:{message.target}")
+        except RuntimeRateLimitError as exc:
+            record_teleop_audit(
+                audit_log,
+                detail=str(exc),
+                session_id=session_id,
+                status="rejected",
+                target=message.target,
+            )
+            return RuntimeServerMessage(
+                type="runtime_error",
+                detail="Teleop command was rejected by runtime rate limit.",
+                payload={"message": str(exc), "target": message.target},
+                session_id=session_id,
+            )
 
     try:
         receipt = gateway.publish(to_teleop_command(message))

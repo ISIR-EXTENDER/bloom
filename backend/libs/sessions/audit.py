@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 RuntimeAuditStatus = Literal["accepted", "rejected"]
-RuntimeAuditChannel = Literal["http_ros_publish", "websocket_teleop"]
+RuntimeAuditChannel = Literal["http_ros_publish", "runtime_recording", "websocket_teleop"]
 
 
 @dataclass(frozen=True)

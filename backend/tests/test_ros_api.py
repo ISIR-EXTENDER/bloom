@@ -6,7 +6,7 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters import RosPublishReceipt, RosPublishRequest, RosTopicInfo
-from libs.sessions import InMemoryRuntimeAuditLog
+from libs.sessions import InMemoryRuntimeAuditLog, RuntimeCommandRateLimiter
 
 
 class RecordingRosPublisherGateway:
@@ -248,3 +248,40 @@ def test_publish_ros_topic_records_accepted_audit_events() -> None:
     assert record.topic == "/ui/ros_toggle"
     assert record.message_type == "std_msgs/msg/Int32MultiArray"
     assert record.payload_summary == {"data_length": 2, "field_count": 1, "fields": ["data"]}
+
+
+def test_publish_ros_topic_rejects_rate_limited_commands() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    clock = ControlledClock()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            ros_publisher_gateway=RecordingRosPublisherGateway(),
+            runtime_audit_log=audit_log,
+            runtime_command_rate_limiter=RuntimeCommandRateLimiter(max_commands_per_second=1, clock=clock),
+        )
+    )
+    payload = {
+        "topic": "/ui/ros_toggle",
+        "message_type": "std_msgs/msg/Int32MultiArray",
+        "payload": {"data": [13, 1]},
+    }
+
+    assert client.post("/api/v1/ros/topics/publish", json=payload).status_code == 200
+    response = client.post("/api/v1/ros/topics/publish", json=payload)
+
+    assert response.status_code == 429
+    assert "rate limit exceeded" in response.json()["detail"]
+    record = audit_log.list_records()[0]
+    assert record.channel == "http_ros_publish"
+    assert record.status == "rejected"
+    assert record.topic == "/ui/ros_toggle"
+
+
+class ControlledClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now

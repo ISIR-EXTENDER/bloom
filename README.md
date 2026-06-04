@@ -63,9 +63,10 @@ npm run capture:readme
 
 Bloom is currently in foundation work before the full UI/database migration:
 
-Current review snapshot: Bloom's web product foundation is strong enough to continue Phase 3 work, but real robot
-deployment still needs runtime command allowlists, audit logging, Bloom Debug polish, and systematic legacy widget
-migration. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current roadmap.
+Current review snapshot: Bloom's web product foundation has completed the Phase 3 runtime safety/debug foundation:
+command allowlists, command rate limits, runtime audit, topic catalog, recording gateway, and Bloom Debug controls are
+now in place. Real robot deployment still needs concrete rosbag/action adapters and systematic legacy widget migration.
+See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current roadmap.
 
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
@@ -91,17 +92,20 @@ migration. See `docs/production-readiness-review.md` and `docs/migration-plan.md
   the current app or screen.
 - Backend runtime sessions expose a WebSocket contract for live UI connections, topic subscriptions, topic samples, and teleop command acknowledgements.
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
+- Runtime command safety includes topic/message/payload allowlists, command rate limits, and audit records for HTTP ROS
+  publishes and WebSocket teleop commands.
 - Mode-aware joystick intents can now map to runtime teleop commands and, in ROS mode, publish Extender `TeleopCommand`
   messages on `/teleop_cmd`.
 - A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
 - A first Bloom Debug fixture can request runtime topic subscriptions and render live samples in echo and lightweight plot widgets.
-- Runtime canvases keep builder geometry intact while fitting to the viewport, and topic echo widgets can copy visible
-  messages for quick debugging.
+- Bloom Debug can inspect the topic catalog, refresh runtime audit records, start/stop a safe recording request for
+  selected topics, and use topic echo pause/clear/copy actions during live debugging.
+- Runtime canvases keep builder geometry intact while fitting to the viewport.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Runtime/status UX is intentionally calm: backend/API status can be shown first, while robot/ROS/network indicators
   must come from explicit adapters before Bloom claims they are connected.
-- Next major pieces are Bloom Debug pause/clear controls, topic catalog and recording controls, bundle reconstruction
-  from normalized SQLite rows, ROS safety allowlists, and the next reusable widget migrations.
+- Next major pieces are bundle reconstruction from normalized SQLite rows, concrete rosbag adapter wiring, deploy/repli
+  action adapters, and the next reusable widget migrations.
 
 ## In-App Help
 

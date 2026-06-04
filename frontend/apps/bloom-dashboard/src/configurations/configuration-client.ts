@@ -23,8 +23,12 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   const runtimeWebSocketClient = createRuntimeWebSocketClient({ url: resolveRuntimeWebSocketUrl(baseUrl) });
   return {
     addRuntimeTopicSampleListener: runtimeWebSocketClient.addRuntimeTopicSampleListener,
+    listRosTopics: apiClient.listRosTopics.bind(apiClient),
+    listRuntimeAuditRecords: apiClient.listRuntimeAuditRecords.bind(apiClient),
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),
     sendTeleopCommand: runtimeWebSocketClient.sendTeleopCommand,
+    startRuntimeRecording: apiClient.startRuntimeRecording.bind(apiClient),
+    stopRuntimeRecording: apiClient.stopRuntimeRecording.bind(apiClient),
     subscribeRuntimeTopic: runtimeWebSocketClient.subscribeRuntimeTopic,
   };
 }

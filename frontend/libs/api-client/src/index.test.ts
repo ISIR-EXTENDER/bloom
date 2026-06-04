@@ -238,6 +238,59 @@ describe("Bloom API client", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/v1/runtime/audit?limit=25", {});
   });
 
+  it("starts and stops runtime recordings through the backend", async () => {
+    const startPayload = {
+      detail: "Recording started.",
+      output_folder: "data/recordings",
+      recording_id: "recording-1",
+      status: "recording",
+      topics: ["/teleop_cmd"],
+    };
+    const stopPayload = {
+      ...startPayload,
+      detail: "Recording stopped.",
+      status: "stopped",
+      topics: [],
+    };
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(startPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(stopPayload), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+      );
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(
+      client.startRuntimeRecording({
+        label: "Sandbox debug",
+        output_folder: "data/recordings",
+        topics: ["/teleop_cmd"],
+      }),
+    ).resolves.toEqual(startPayload);
+    await expect(client.stopRuntimeRecording("recording-1")).resolves.toEqual(stopPayload);
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, "/api/v1/runtime/recordings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        label: "Sandbox debug",
+        output_folder: "data/recordings",
+        topics: ["/teleop_cmd"],
+      }),
+    });
+    expect(fetcher).toHaveBeenNthCalledWith(2, "/api/v1/runtime/recordings/recording-1/stop", {
+      method: "POST",
+    });
+  });
+
   it("throws a typed error when the backend rejects a request", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ detail: "configuration not found" }), {

@@ -180,6 +180,20 @@ export type RuntimeAuditListResponse = {
   records: RuntimeAuditRecord[];
 };
 
+export type RuntimeRecordingStartRequest = {
+  label?: string;
+  output_folder: string;
+  topics: string[];
+};
+
+export type RuntimeRecordingResponse = {
+  detail: string;
+  output_folder: string;
+  recording_id: string;
+  status: "recording" | "simulated" | "stopped";
+  topics: string[];
+};
+
 export type BloomApiClientOptions = {
   baseUrl?: string;
   fetcher?: typeof fetch;
@@ -310,6 +324,21 @@ export class BloomApiClient {
     const params = new URLSearchParams({ limit: String(limit) });
     const response = await this.request<RuntimeAuditListResponse>(`/api/v1/runtime/audit?${params.toString()}`);
     return response.records;
+  }
+
+  startRuntimeRecording(request: RuntimeRecordingStartRequest): Promise<RuntimeRecordingResponse> {
+    return this.request<RuntimeRecordingResponse>("/api/v1/runtime/recordings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+  }
+
+  stopRuntimeRecording(recordingId: string): Promise<RuntimeRecordingResponse> {
+    return this.request<RuntimeRecordingResponse>(
+      `/api/v1/runtime/recordings/${encodeURIComponent(recordingId)}/stop`,
+      { method: "POST" },
+    );
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {

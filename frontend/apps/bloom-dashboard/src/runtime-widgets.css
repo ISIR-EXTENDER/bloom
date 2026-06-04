@@ -411,6 +411,13 @@
   min-width: 0;
 }
 
+.bloom-topic-debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
 .bloom-topic-debug-action {
   flex: 0 0 auto;
   min-height: 36px;

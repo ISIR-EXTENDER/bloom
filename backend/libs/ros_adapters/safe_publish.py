@@ -6,6 +6,7 @@ from typing import Literal
 from libs.ros_adapters.publishers import RosPublishReceipt, RosPublishRequest, RosPublisherGateway
 from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, RuntimePayloadShapeError
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, summarize_payload
+from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
 
 
 @dataclass(frozen=True)
@@ -19,6 +20,7 @@ def publish_with_runtime_policy(
     policy: RuntimeCommandPolicy,
     audit_log: RuntimeAuditLog,
     publish_request: RosPublishRequest,
+    rate_limiter: RuntimeCommandRateLimiter | None = None,
 ) -> RosPublishReceipt:
     try:
         policy.ensure_publish_allowed(
@@ -32,6 +34,13 @@ def publish_with_runtime_policy(
     except RuntimePayloadShapeError as exc:
         record_publish_audit(audit_log, publish_request, str(exc), "rejected")
         raise SafeRosPublishError(detail=str(exc), status_code=422) from exc
+
+    if rate_limiter is not None:
+        try:
+            rate_limiter.ensure_allowed(f"http_ros_publish:{publish_request.topic}")
+        except RuntimeRateLimitError as exc:
+            record_publish_audit(audit_log, publish_request, str(exc), "rejected")
+            raise SafeRosPublishError(detail=str(exc), status_code=429) from exc
 
     try:
         receipt = gateway.publish(publish_request)
