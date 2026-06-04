@@ -43,6 +43,7 @@ const WIDGET_KINDS = new Set<WidgetKind>([
   "button",
   "camera",
   "command-button",
+  "event-log",
   "gauge",
   "joystick",
   "label",

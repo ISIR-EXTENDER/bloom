@@ -4,6 +4,62 @@ import { getBooleanSetting, getNumberSetting, getStringSetting } from "./setting
 import type { WidgetRendererProps } from "./types";
 
 const DEFAULT_PLOT_VALUES = [0.18, 0.34, 0.28, 0.52, 0.47, 0.68, 0.61, 0.79, 0.73, 0.88];
+const EVENT_LOG_SEVERITIES = ["error", "info", "success", "warning"] as const;
+
+type EventLogEntry = {
+  detail: string;
+  severity: (typeof EVENT_LOG_SEVERITIES)[number];
+  summary: string;
+  timestamp: string;
+};
+
+const DEFAULT_EVENT_LOG_ENTRIES: readonly EventLogEntry[] = [
+  {
+    detail: "Connect a runtime log source or configure static events for this screen.",
+    severity: "info",
+    summary: "No events yet",
+    timestamp: "",
+  },
+];
+
+export function EventLogWidget({ descriptor }: WidgetRendererProps) {
+  const maxEntries = Math.max(1, Math.round(getNumberSetting(descriptor.widget.settings, "maxEntries", 20)));
+  const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
+  const showTimestamps = getBooleanSetting(descriptor.widget.settings, "showTimestamps", true);
+  const severityFilter = readStringArraySetting(descriptor.widget.settings.severityFilter);
+  const entries = readEventLogEntries(descriptor.widget.settings.entries)
+    .filter((entry) => severityFilter.length === 0 || severityFilter.includes(entry.severity))
+    .slice(0, maxEntries);
+
+  return (
+    <div className="bloom-event-log-widget">
+      <header className="bloom-display-header">
+        <strong>{descriptor.widget.title}</strong>
+        <span>{formatEventCount(entries.length)}</span>
+      </header>
+      <ol className="bloom-event-log-list">
+        {entries.map((entry) => (
+          <li className="bloom-event-log-entry" data-severity={entry.severity} key={createEventLogEntryKey(entry)}>
+            <span aria-hidden="true" className="bloom-event-log-marker" />
+            <div>
+              <strong>{entry.summary}</strong>
+              {showTimestamps && entry.timestamp ? <time dateTime={entry.timestamp}>{entry.timestamp}</time> : null}
+              {showDetails && entry.detail ? <p>{entry.detail}</p> : null}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function createEventLogEntryKey(entry: EventLogEntry): string {
+  return [entry.timestamp, entry.severity, entry.summary, entry.detail].join("|");
+}
+
+function formatEventCount(count: number): string {
+  return count === 1 ? "1 event" : `${count} events`;
+}
 
 export function GaugeWidget({ descriptor }: WidgetRendererProps) {
   const min = getNumberSetting(descriptor.widget.settings, "min", 0);
@@ -127,6 +183,58 @@ function readNumberArraySetting(value: unknown): number[] | null {
     (candidate): candidate is number => typeof candidate === "number" && Number.isFinite(candidate),
   );
   return values.length > 0 ? values : null;
+}
+
+function readStringArraySetting(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((candidate): candidate is string => typeof candidate === "string");
+}
+
+function readEventLogEntries(value: unknown): readonly EventLogEntry[] {
+  if (!Array.isArray(value)) {
+    return DEFAULT_EVENT_LOG_ENTRIES;
+  }
+
+  const entries = value.flatMap((candidate) => {
+    if (!isRecord(candidate)) {
+      return [];
+    }
+
+    const summary = readString(candidate.summary, "");
+    if (!summary) {
+      return [];
+    }
+
+    return [
+      {
+        detail: readString(candidate.detail, ""),
+        severity: readSeverity(candidate.severity),
+        summary,
+        timestamp: readString(candidate.timestamp, ""),
+      },
+    ];
+  });
+
+  return entries.length > 0 ? entries : DEFAULT_EVENT_LOG_ENTRIES;
+}
+
+function readSeverity(value: unknown): EventLogEntry["severity"] {
+  return typeof value === "string" && isEventLogSeverity(value) ? value : "info";
+}
+
+function isEventLogSeverity(value: string): value is EventLogEntry["severity"] {
+  return EVENT_LOG_SEVERITIES.includes(value as EventLogEntry["severity"]);
+}
+
+function readString(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value.trim() : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function clamp(value: number, min: number, max: number): number {

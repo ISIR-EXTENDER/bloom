@@ -298,6 +298,7 @@ describe("widget settings contracts", () => {
       "button",
       "camera",
       "command-button",
+      "event-log",
       "gauge",
       "joystick",
       "label",
@@ -558,6 +559,71 @@ describe("widget settings contracts", () => {
     });
   });
 
+  it("validates generic event log settings for operator-facing feedback", () => {
+    expect(
+      normalizeWidgetSettings("event-log", {
+        entries: [
+          {
+            detail: "The safety-zone adapter accepted the new limit.",
+            severity: "success",
+            summary: "Safety zone updated",
+            timestamp: "2026-06-04T10:00:00.000Z",
+          },
+          {
+            severity: "warning",
+            summary: "Joystick deadzone reached",
+          },
+        ],
+        maxEntries: 4,
+        severityFilter: ["success", "warning"],
+        showTimestamps: true,
+        show_details: false,
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        entries: [
+          {
+            detail: "The safety-zone adapter accepted the new limit.",
+            severity: "success",
+            summary: "Safety zone updated",
+            timestamp: "2026-06-04T10:00:00.000Z",
+          },
+          {
+            severity: "warning",
+            summary: "Joystick deadzone reached",
+          },
+        ],
+        maxEntries: 4,
+        severityFilter: ["success", "warning"],
+        showTimestamps: true,
+        show_details: false,
+      },
+    });
+
+    expect(
+      validateWidgetSettings("event-log", {
+        entries: "not-json-array",
+        maxEntries: 0,
+        severityFilter: ["info"],
+        showTimestamps: true,
+        show_details: false,
+      }),
+    ).toEqual({
+      success: false,
+      errors: [
+        {
+          field: "entries",
+          message: "entries must be an array",
+        },
+        {
+          field: "maxEntries",
+          message: "maxEntries must be greater than or equal to 1",
+        },
+      ],
+    });
+  });
+
   it("rejects invalid settings when creating a widget config from defaults", () => {
     const definition = createDefaultWidgetRegistry().get("slider") as WidgetDefinition;
 
@@ -684,6 +750,7 @@ describe("legacy widget kind mapping", () => {
     expect(toBloomWidgetKind("text")).toBe("label");
     expect(toBloomWidgetKind("stream-display")).toBe("camera");
     expect(toBloomWidgetKind("curves")).toBe("plot");
+    expect(toBloomWidgetKind("logs")).toBe("event-log");
   });
 
   it("marks ROS and device widgets as adapter-dependent", () => {

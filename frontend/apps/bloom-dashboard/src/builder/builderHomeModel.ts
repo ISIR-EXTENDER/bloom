@@ -158,6 +158,7 @@ export function classifyScreen(screen: ScreenConfig): ScreenLibraryType {
   if (
     widgetKinds.has("gauge") ||
     widgetKinds.has("plot") ||
+    widgetKinds.has("event-log") ||
     widgetKinds.has("topic-echo") ||
     widgetKinds.has("topic-plot") ||
     includesAny(screenText, ["debug", "diagnostic", "log", "monitor", "topic"])

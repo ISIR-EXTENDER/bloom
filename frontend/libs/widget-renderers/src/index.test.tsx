@@ -502,6 +502,28 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("/joint_states")).toBeVisible();
     expect(screen.getByText("URDF adapter coming next.")).toBeVisible();
   });
+
+  it("renders event logs as concise operator feedback by default", () => {
+    const descriptor = renderScreenDescriptors(eventLogScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing event log descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByText("Safety zone active")).toBeVisible();
+    expect(screen.getByText("Controller ready")).toBeVisible();
+    expect(screen.queryByText("Hidden debug entry")).not.toBeInTheDocument();
+    expect(screen.queryByText("Safety adapter accepted the configured boundary.")).not.toBeInTheDocument();
+  });
+
+  it("can reveal event log details for debug-focused screens", () => {
+    const descriptor = renderScreenDescriptors(eventLogDebugScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing event log descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByText("Safety adapter accepted the configured boundary.")).toBeVisible();
+    expect(screen.getByText("2026-06-04T10:00:00.000Z")).toBeVisible();
+  });
 });
 
 const sampleScreen: ScreenConfig = {
@@ -953,6 +975,65 @@ const robot3dScreen: ScreenConfig = {
         modelSource: "extension",
         robotModelUrl: "",
         showAxes: true,
+      },
+    },
+  ],
+};
+
+const eventLogScreen: ScreenConfig = {
+  id: "events",
+  title: "Events",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "operator-events",
+      kind: "event-log",
+      title: "Operator events",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 520,
+        height: 280,
+      },
+      settings: {
+        entries: [
+          {
+            detail: "Safety adapter accepted the configured boundary.",
+            severity: "success",
+            summary: "Safety zone active",
+            timestamp: "2026-06-04T10:00:00.000Z",
+          },
+          {
+            severity: "info",
+            summary: "Controller ready",
+            timestamp: "2026-06-04T10:00:01.000Z",
+          },
+          {
+            severity: "error",
+            summary: "Hidden debug entry",
+          },
+        ],
+        maxEntries: 5,
+        severityFilter: ["success", "info"],
+        showTimestamps: false,
+        show_details: false,
+      },
+    },
+  ],
+};
+
+const eventLogDebugScreen: ScreenConfig = {
+  ...eventLogScreen,
+  widgets: [
+    {
+      ...eventLogScreen.widgets[0],
+      settings: {
+        ...eventLogScreen.widgets[0]?.settings,
+        showTimestamps: true,
+        show_details: true,
       },
     },
   ],

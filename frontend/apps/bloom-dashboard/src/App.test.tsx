@@ -8,6 +8,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import bloomDebugConfiguration from "../../../../tests/fixtures/bloom-debug-configuration.json";
 import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sandbox-configuration.json";
+import explorerUserTestsConfiguration from "../../../../tests/fixtures/explorer-user-tests-configuration-bundle.json";
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
 import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-teleop-lab-configuration.json";
 import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-visualizer-configuration-bundle.json";
@@ -272,6 +273,54 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Resume Sandbox on Main" })).toBeVisible();
+  });
+
+  it("launches the Explorer user-test candidate app from runtime", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "explorer-user-tests": explorerUserTestsConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["explorer-user-tests"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    expect(await screen.findByRole("button", { name: "Launch Explorer User Tests runtime" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Launch Explorer User Tests runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Explorer User Tests" })).toBeVisible();
+    expect(screen.getByText("Mode-aware joystick")).toBeVisible();
+    expect(screen.getByText("Control feedback")).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
+  });
+
+  it("lists Explorer user-test screens as reusable builder candidates", async () => {
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "explorer-user-tests": explorerUserTestsConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["explorer-user-tests"],
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
+    fireEvent.change(await screen.findByRole("searchbox", { name: "Find a screen" }), {
+      target: { value: "explorer" },
+    });
+
+    expect(screen.getByRole("heading", { level: 3, name: "Control screens" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit Explorer Control Modes screen" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 3, name: "Debug monitors" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Preview Explorer Debug Console screen runtime" })).toBeVisible();
   });
 
   it("links runtime users back to app and screen editing", async () => {

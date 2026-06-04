@@ -91,6 +91,10 @@ current roadmap.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
 - Runtime display widgets now include useful first foundations for labels, gauges, lightweight plots, and robot-3D
   extension placeholders instead of generic placeholder text.
+- Runtime feedback widgets now include a generic `event-log` primitive with severity filtering and calm operator-facing
+  defaults, so logs can become readable events instead of raw console noise.
+- A first `Explorer User Tests` candidate fixture demonstrates control modes, action progress metadata, supervision,
+  debug, and profile-ready screens without coupling Bloom core to Explorer-specific semantics.
 - Seeded app fixtures are tested so shipped apps do not accidentally include empty runtime screens.
 - Runtime now starts from an app library, offers recently opened app shortcuts, and keeps small edit shortcuts back to
   the current app or screen.
