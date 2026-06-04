@@ -4,6 +4,7 @@ from libs.ros_adapters.publishers import (
     RosPublishRequest,
     RosPublisherGateway,
 )
+from libs.ros_adapters.safe_publish import SafeRosPublishError, publish_with_runtime_policy
 from libs.ros_adapters.topics import NoopRosTopicCatalogGateway, RosTopicCatalogGateway, RosTopicInfo
 
 __all__ = [
@@ -14,4 +15,6 @@ __all__ = [
     "RosPublisherGateway",
     "RosTopicCatalogGateway",
     "RosTopicInfo",
+    "SafeRosPublishError",
+    "publish_with_runtime_policy",
 ]

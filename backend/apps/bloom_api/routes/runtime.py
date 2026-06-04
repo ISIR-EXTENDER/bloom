@@ -6,12 +6,10 @@ from typing import Callable
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, ValidationError
 
-from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
+from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import (
-    NoopTeleopCommandGateway,
     RuntimeClientMessage,
     RuntimeAuditLog,
-    RuntimeAuditRecord,
     RuntimePingMessage,
     RuntimeServerMessage,
     RuntimeSessionManager,
@@ -21,11 +19,10 @@ from libs.sessions import (
     RuntimeTopicSubscriptionHandle,
     RuntimeSubscribeTopicMessage,
     RuntimeTeleopCommandMessage,
-    TeleopCommand,
     TeleopCommandGateway,
-    TeleopVector3,
     parse_runtime_client_message,
 )
+from libs.sessions.teleop_runtime import build_teleop_ack
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
 
@@ -212,73 +209,12 @@ def build_runtime_ack(
         )
 
     if isinstance(message, RuntimeTeleopCommandMessage):
-        gateway = teleop_gateway or NoopTeleopCommandGateway()
-        policy = command_policy or RuntimeCommandPolicy(
-            allowed_message_types=("*",),
-            allowed_publish_topics=("*",),
-            allowed_teleop_targets=("/teleop_cmd",),
-        )
-        try:
-            policy.ensure_teleop_allowed(message.target)
-        except RuntimeCommandPolicyError as exc:
-            if audit_log:
-                audit_log.record(
-                    RuntimeAuditRecord(
-                        channel="websocket_teleop",
-                        detail=str(exc),
-                        session_id=session_id,
-                        status="rejected",
-                        target=message.target,
-                    )
-                )
-            return RuntimeServerMessage(
-                type="runtime_error",
-                detail="Teleop command was rejected by runtime policy.",
-                payload={"message": str(exc), "target": message.target},
-                session_id=session_id,
-            )
-
-        try:
-            receipt = gateway.publish(to_teleop_command(message))
-        except RuntimeError as exc:
-            if audit_log:
-                audit_log.record(
-                    RuntimeAuditRecord(
-                        channel="websocket_teleop",
-                        detail=str(exc),
-                        session_id=session_id,
-                        status="rejected",
-                        target=message.target,
-                    )
-                )
-            return RuntimeServerMessage(
-                type="runtime_error",
-                detail="Teleop command could not be published.",
-                payload={"message": str(exc), "target": message.target},
-                session_id=session_id,
-            )
-        if audit_log:
-            audit_log.record(
-                RuntimeAuditRecord(
-                    channel="websocket_teleop",
-                    detail=receipt.detail,
-                    session_id=session_id,
-                    status="accepted",
-                    target=receipt.target,
-                )
-            )
-        return RuntimeServerMessage(
-            type="teleop_ack",
-            detail=receipt.detail,
-            payload={
-                "angular": message.angular.model_dump(),
-                "linear": message.linear.model_dump(),
-                "mode": message.mode,
-                "seq": message.seq,
-                "status": receipt.status,
-                "target": receipt.target,
-            },
+        return build_teleop_ack(
             session_id=session_id,
+            message=message,
+            teleop_gateway=teleop_gateway,
+            audit_log=audit_log,
+            command_policy=command_policy,
         )
 
     return RuntimeServerMessage(type="runtime_error", detail="Unsupported runtime message.", session_id=session_id)
@@ -317,14 +253,4 @@ def build_runtime_topic_sample(session_id: str, sample: RuntimeTopicSample) -> R
             "value": sample.value,
         },
         session_id=session_id,
-    )
-
-
-def to_teleop_command(message: RuntimeTeleopCommandMessage) -> TeleopCommand:
-    return TeleopCommand(
-        angular=TeleopVector3(**message.angular.model_dump()),
-        linear=TeleopVector3(**message.linear.model_dump()),
-        mode=message.mode,
-        seq=message.seq,
-        target=message.target,
     )

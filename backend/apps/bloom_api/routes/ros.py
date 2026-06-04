@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from libs.ros_adapters import (
@@ -11,10 +11,12 @@ from libs.ros_adapters import (
     RosPublisherGateway,
     RosTopicCatalogGateway,
     RosTopicInfo,
+    SafeRosPublishError,
+    publish_with_runtime_policy,
 )
 from libs.ros_adapters.payloads import parse_ros_payload_text
-from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, RuntimePayloadShapeError
-from libs.sessions import RuntimeAuditLog, RuntimeAuditRecord, summarize_payload
+from libs.ros_adapters.safety import RuntimeCommandPolicy
+from libs.sessions import RuntimeAuditLog
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -103,78 +105,20 @@ def publish_ros_topic(request: Request, publish_request: RosTopicPublishRequest)
     gateway = get_ros_publisher_gateway(request)
     audit_log = get_runtime_audit_log(request)
     policy = get_runtime_command_policy(request)
-    payload = publish_request.to_payload()
-
-    try:
-        policy.ensure_publish_allowed(publish_request.topic, publish_request.message_type, payload)
-    except RuntimeCommandPolicyError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_ros_publish",
-                detail=str(exc),
-                message_type=publish_request.message_type,
-                payload_summary=summarize_payload(payload),
-                status="rejected",
-                topic=publish_request.topic,
-            )
-        )
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
-    except RuntimePayloadShapeError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_ros_publish",
-                detail=str(exc),
-                message_type=publish_request.message_type,
-                payload_summary=summarize_payload(payload),
-                status="rejected",
-                topic=publish_request.topic,
-            )
-        )
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-
-    try:
-        receipt = gateway.publish(
-            RosPublishRequest(
-                topic=publish_request.topic,
-                message_type=publish_request.message_type,
-                payload=payload,
-            )
-        )
-    except ValueError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_ros_publish",
-                detail=str(exc),
-                message_type=publish_request.message_type,
-                payload_summary=summarize_payload(payload),
-                status="rejected",
-                topic=publish_request.topic,
-            )
-        )
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except RuntimeError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_ros_publish",
-                detail=str(exc),
-                message_type=publish_request.message_type,
-                payload_summary=summarize_payload(payload),
-                status="rejected",
-                topic=publish_request.topic,
-            )
-        )
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-
-    audit_log.record(
-        RuntimeAuditRecord(
-            channel="http_ros_publish",
-            detail=receipt.detail,
-            message_type=receipt.message_type,
-            payload_summary=summarize_payload(payload),
-            status="accepted",
-            topic=receipt.topic,
-        )
+    ros_publish_request = RosPublishRequest(
+        topic=publish_request.topic,
+        message_type=publish_request.message_type,
+        payload=publish_request.to_payload(),
     )
+    try:
+        receipt = publish_with_runtime_policy(
+            gateway,
+            policy,
+            audit_log,
+            ros_publish_request,
+        )
+    except SafeRosPublishError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     return _to_response(receipt)
 
 
