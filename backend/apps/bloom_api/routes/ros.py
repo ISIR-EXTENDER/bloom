@@ -13,6 +13,8 @@ from libs.ros_adapters import (
     RosTopicInfo,
 )
 from libs.ros_adapters.payloads import parse_ros_payload_text
+from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, RuntimePayloadShapeError
+from libs.sessions import RuntimeAuditLog, RuntimeAuditRecord, summarize_payload
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -81,6 +83,14 @@ def get_ros_topic_catalog_gateway(request: Request) -> RosTopicCatalogGateway:
     return request.app.state.ros_topic_catalog_gateway
 
 
+def get_runtime_audit_log(request: Request) -> RuntimeAuditLog:
+    return request.app.state.runtime_audit_log
+
+
+def get_runtime_command_policy(request: Request) -> RuntimeCommandPolicy:
+    return request.app.state.runtime_command_policy
+
+
 @router.get("/topics", response_model=RosTopicListResponse)
 def list_ros_topics(request: Request) -> RosTopicListResponse:
     gateway = get_ros_topic_catalog_gateway(request)
@@ -91,19 +101,80 @@ def list_ros_topics(request: Request) -> RosTopicListResponse:
 @router.post("/topics/publish", response_model=RosTopicPublishResponse)
 def publish_ros_topic(request: Request, publish_request: RosTopicPublishRequest) -> RosTopicPublishResponse:
     gateway = get_ros_publisher_gateway(request)
+    audit_log = get_runtime_audit_log(request)
+    policy = get_runtime_command_policy(request)
+    payload = publish_request.to_payload()
+
+    try:
+        policy.ensure_publish_allowed(publish_request.topic, publish_request.message_type, payload)
+    except RuntimeCommandPolicyError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=str(exc),
+                message_type=publish_request.message_type,
+                payload_summary=summarize_payload(payload),
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except RuntimePayloadShapeError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=str(exc),
+                message_type=publish_request.message_type,
+                payload_summary=summarize_payload(payload),
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     try:
         receipt = gateway.publish(
             RosPublishRequest(
                 topic=publish_request.topic,
                 message_type=publish_request.message_type,
-                payload=publish_request.to_payload(),
+                payload=payload,
             )
         )
     except ValueError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=str(exc),
+                message_type=publish_request.message_type,
+                payload_summary=summarize_payload(payload),
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except RuntimeError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=str(exc),
+                message_type=publish_request.message_type,
+                payload_summary=summarize_payload(payload),
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
 
+    audit_log.record(
+        RuntimeAuditRecord(
+            channel="http_ros_publish",
+            detail=receipt.detail,
+            message_type=receipt.message_type,
+            payload_summary=summarize_payload(payload),
+            status="accepted",
+            topic=receipt.topic,
+        )
+    )
     return _to_response(receipt)
 
 

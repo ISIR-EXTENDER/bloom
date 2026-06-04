@@ -10,10 +10,13 @@ from libs.ros_adapters import (
     RosPublisherGateway,
     RosTopicCatalogGateway,
 )
+from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import RuntimeSessionManager
 from libs.sessions import (
+    InMemoryRuntimeAuditLog,
     NoopRuntimeTopicSubscriptionGateway,
     NoopTeleopCommandGateway,
+    RuntimeAuditLog,
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
@@ -25,6 +28,8 @@ def create_app(
     ros_publisher_gateway: RosPublisherGateway | None = None,
     ros_topic_catalog_gateway: RosTopicCatalogGateway | None = None,
     runtime_topic_subscription_gateway: RuntimeTopicSubscriptionGateway | None = None,
+    runtime_audit_log: RuntimeAuditLog | None = None,
+    runtime_command_policy: RuntimeCommandPolicy | None = None,
     teleop_command_gateway: TeleopCommandGateway | None = None,
 ) -> FastAPI:
     app_settings = settings or get_settings()
@@ -40,6 +45,12 @@ def create_app(
     app.state.ros_topic_catalog_gateway = ros_topic_catalog_gateway or NoopRosTopicCatalogGateway()
     app.state.runtime_topic_subscription_gateway = (
         runtime_topic_subscription_gateway or NoopRuntimeTopicSubscriptionGateway()
+    )
+    app.state.runtime_audit_log = runtime_audit_log or InMemoryRuntimeAuditLog()
+    app.state.runtime_command_policy = runtime_command_policy or RuntimeCommandPolicy(
+        allowed_message_types=app_settings.allowed_ros_message_types,
+        allowed_publish_topics=app_settings.allowed_ros_publish_topics,
+        allowed_teleop_targets=app_settings.allowed_teleop_targets,
     )
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
     app.state.runtime_session_manager = RuntimeSessionManager()

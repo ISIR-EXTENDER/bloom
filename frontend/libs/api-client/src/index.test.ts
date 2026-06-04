@@ -215,6 +215,29 @@ describe("Bloom API client", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics", {});
   });
 
+  it("lists runtime audit records through the backend", async () => {
+    const responsePayload = {
+      records: [
+        {
+          channel: "http_ros_publish",
+          detail: "recorded for test",
+          message_type: "std_msgs/msg/Bool",
+          payload_summary: { data_type: "boolean", field_count: 1, fields: ["data"] },
+          recorded_at: "2026-06-04T12:00:00+00:00",
+          session_id: "",
+          status: "accepted",
+          target: "",
+          topic: "/ui/ros_toggle",
+        },
+      ],
+    };
+    const fetcher = createJsonFetcher(responsePayload);
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.listRuntimeAuditRecords(25)).resolves.toEqual(responsePayload.records);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/runtime/audit?limit=25", {});
+  });
+
   it("throws a typed error when the backend rejects a request", async () => {
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
       new Response(JSON.stringify({ detail: "configuration not found" }), {

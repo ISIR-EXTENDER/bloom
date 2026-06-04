@@ -16,6 +16,32 @@ class Settings(BaseModel):
     configuration_dir: Path = Field(default=Path("data/configurations"))
     configuration_database_path: Path = Field(default=Path("data/bloom.db"))
     theme_asset_dir: Path = Field(default=Path("data/theme-assets"))
+    allowed_ros_message_types: tuple[str, ...] = (
+        "extender_msgs/msg/TeleopCommand",
+        "geometry_msgs/msg/Twist",
+        "geometry_msgs/msg/TwistStamped",
+        "sensor_msgs/msg/JointState",
+        "std_msgs/msg/Bool",
+        "std_msgs/msg/Float64",
+        "std_msgs/msg/Int32",
+        "std_msgs/msg/Int32MultiArray",
+        "std_msgs/msg/String",
+    )
+    allowed_ros_publish_topics: tuple[str, ...] = (
+        "/cmd/gripper",
+        "/cmd/joystick_rxry",
+        "/cmd/joystick_rz",
+        "/cmd/joystick_xy",
+        "/cmd/joystick_z",
+        "/cmd/max_velocity",
+        "/cmd/petanque/round",
+        "/petanque_state_machine/change_state",
+        "/teleop_cmd",
+        "/ui/load_pose",
+        "/ui/navigation",
+        "/ui/ros_toggle",
+    )
+    allowed_teleop_targets: tuple[str, ...] = ("/teleop_cmd",)
 
 
 @lru_cache

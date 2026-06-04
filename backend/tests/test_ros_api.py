@@ -6,6 +6,7 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters import RosPublishReceipt, RosPublishRequest, RosTopicInfo
+from libs.sessions import InMemoryRuntimeAuditLog
 
 
 class RecordingRosPublisherGateway:
@@ -189,4 +190,61 @@ def test_publish_ros_topic_returns_gateway_payload_errors() -> None:
     )
 
     assert response.status_code == 422
-    assert response.json() == {"detail": "Invalid payload for std_msgs/msg/Bool"}
+    assert response.json() == {"detail": "std_msgs/msg/Bool payload must include a 'data' field."}
+
+
+def test_publish_ros_topic_rejects_topics_outside_allowlist() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    gateway = RecordingRosPublisherGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            ros_publisher_gateway=gateway,
+            runtime_audit_log=audit_log,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/ros/topics/publish",
+        json={
+            "topic": "/dangerous/custom_topic",
+            "message_type": "std_msgs/msg/Bool",
+            "payload": {"data": True},
+        },
+    )
+
+    assert response.status_code == 403
+    assert "not allowed" in response.json()["detail"]
+    assert gateway.requests == []
+    assert audit_log.list_records()[0].status == "rejected"
+    assert audit_log.list_records()[0].topic == "/dangerous/custom_topic"
+
+
+def test_publish_ros_topic_records_accepted_audit_events() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            ros_publisher_gateway=RecordingRosPublisherGateway(),
+            runtime_audit_log=audit_log,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/ros/topics/publish",
+        json={
+            "topic": "/ui/ros_toggle",
+            "message_type": "std_msgs/msg/Int32MultiArray",
+            "payload": {"data": [13, 1]},
+        },
+    )
+
+    assert response.status_code == 200
+    record = audit_log.list_records()[0]
+    assert record.channel == "http_ros_publish"
+    assert record.status == "accepted"
+    assert record.topic == "/ui/ros_toggle"
+    assert record.message_type == "std_msgs/msg/Int32MultiArray"
+    assert record.payload_summary == {"data_length": 2, "field_count": 1, "fields": ["data"]}

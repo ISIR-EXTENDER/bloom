@@ -82,6 +82,8 @@ Already merged:
   subscriptions.
 - Runtime topic subscriptions now stream `topic_sample` messages into visible topic echo and plot widgets through the
   shared renderer pipeline.
+- Runtime command safety now has first backend allowlists and audit records for HTTP ROS publishes and WebSocket teleop
+  commands, with an API endpoint ready for Bloom Debug.
 - Runtime fit rendering now keeps one canonical screen/widget layout model and applies visual scaling only at the
   artboard boundary, preserving WYSIWYG geometry while avoiding clipped teleop controls.
 - Topic echo widgets now include a first user-facing debug action to copy the latest visible messages.
@@ -216,6 +218,8 @@ Validated runtime checks:
 - Bloom Debug topic widgets -> runtime WebSocket `subscribe_topic` -> backend `subscription_ack`.
 - Bloom Debug live samples -> runtime WebSocket `topic_sample` -> runtime workspace widget data -> topic echo/plot
   renderers.
+- Unknown HTTP ROS publish topics and WebSocket teleop targets are rejected by the runtime policy and recorded in the
+  audit log.
 - Real dashboard Bloom Debug flow validates `subscribe_topic` messages with `widget_id`, backend `subscription_ack`,
   and visible topic samples in runtime widgets.
 - Real dashboard Sandbox teleop lab flow validates the fit runtime artboard visually at tablet-like viewport sizes, so
