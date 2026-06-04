@@ -463,6 +463,137 @@
           ]
         },
         {
+          "id": "explorer-safety-zones",
+          "title": "Explorer safety zones",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "safety-zone-title",
+              "kind": "label",
+              "title": "Safety zone instructions",
+              "layout": {
+                "x": 76,
+                "y": 56,
+                "width": 760,
+                "height": 104
+              },
+              "settings": {
+                "align": "left",
+                "fontSize": 30,
+                "text": "Safety zones expose QP/test constraints as simple operator controls with explicit status."
+              }
+            },
+            {
+              "id": "safety-zone-status",
+              "kind": "gauge",
+              "title": "Constraint confidence",
+              "layout": {
+                "x": 900,
+                "y": 64,
+                "width": 260,
+                "height": 180
+              },
+              "settings": {
+                "min": 0,
+                "max": 100,
+                "value": 88,
+                "unit": "%"
+              }
+            },
+            {
+              "id": "enable-safety-zone",
+              "kind": "command-button",
+              "title": "Enable safety zone",
+              "layout": {
+                "x": 96,
+                "y": 238,
+                "width": 300,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.safety_zone.enable",
+                "button_label": "Enable",
+                "action_id": "explorer-safety-zone-enable",
+                "action_label": "Enable safety zone",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "disable-safety-zone",
+              "kind": "command-button",
+              "title": "Disable safety zone",
+              "layout": {
+                "x": 432,
+                "y": 238,
+                "width": 300,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.safety_zone.disable",
+                "button_label": "Disable",
+                "action_id": "explorer-safety-zone-disable",
+                "action_label": "Disable safety zone",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "reset-safety-zone",
+              "kind": "command-button",
+              "title": "Reset safety zone",
+              "layout": {
+                "x": 768,
+                "y": 238,
+                "width": 300,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.safety_zone.reset",
+                "button_label": "Reset",
+                "action_id": "explorer-safety-zone-reset",
+                "action_label": "Reset safety zone",
+                "action_feedback": "progress",
+                "cancellable": true
+              }
+            },
+            {
+              "id": "safety-zone-events",
+              "kind": "event-log",
+              "title": "Safety zone feedback",
+              "layout": {
+                "x": 96,
+                "y": 454,
+                "width": 972,
+                "height": 238
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "success",
+                    "summary": "Safety zone active",
+                    "detail": "The app keeps safety-zone semantics in configuration so a future Explorer adapter can bind them to QP state.",
+                    "timestamp": "2026-06-04T10:08:00Z"
+                  },
+                  {
+                    "severity": "info",
+                    "summary": "Reset is cancellable",
+                    "detail": "Long-running constraint recalibration should expose progress and cancellation when adapters support it.",
+                    "timestamp": "2026-06-04T10:08:20Z"
+                  }
+                ],
+                "maxEntries": 8,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": false,
+                "show_details": false
+              }
+            }
+          ]
+        },
+        {
           "id": "explorer-supervision",
           "title": "Explorer supervision",
           "canvas": {
