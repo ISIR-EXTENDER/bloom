@@ -265,10 +265,17 @@ Completed in this phase so far:
 - `robot-3d` is kept as an explicit extension placeholder so robot-model visualization can evolve behind an adapter.
 - Seeded app configuration fixtures are tested to avoid shipping empty runtime screens in the app library.
 - Legacy camera source aliases such as `camera` and `rviz` normalize toward Bloom's stream configuration model.
+- Generic `event-log` widget is now a real display primitive with severity filtering, optional timestamps/details, and
+  quiet operator-facing defaults instead of raw console noise.
+- Legacy `logs` widgets now map to Bloom's generic `event-log` direction in the widget migration registry.
+- A first `Explorer User Tests` candidate app fixture exists with useful non-empty screens for control modes, robot
+  actions, supervision, debug console, and display/profile presets.
+- The Explorer candidate validates mode-aware joystick settings, action progress/cancel metadata, configurable
+  gripper/emergency commands, topic debug widgets, profile-ready app metadata, and operator event logs without making
+  Explorer semantics part of Bloom core.
 
 Phase 4 remaining work:
 
-- Complete richer logs/event viewer migration with filtering and severity styling.
 - Migrate configurable ROS message command variants beyond button/toggle into reusable command presets.
 - Add richer telemetry plot variants, likely with a chart dependency once real runtime plot requirements stabilize.
 - Migrate saved pose/preset command widgets and Petanque gesture/trajectory candidates behind generic contracts.
@@ -276,10 +283,10 @@ Phase 4 remaining work:
 
 Explorer user-test app candidate:
 
-- Add a Bloom app or extension for global Extender/Explorer tests once app/screen storage and runtime adapter contracts
-  are stable enough.
-- Candidate screens: control modes, mode-aware joystick, robot actions, saved positions, safety zones, robot supervision,
-  debug console, and display/accessibility profile.
+- First candidate is tracked as `tests/fixtures/explorer-user-tests-configuration-bundle.json`.
+- Current candidate screens: control modes, robot actions, robot supervision, debug console, and display/accessibility
+  profile.
+- Next candidate screens to add: saved positions, safety zones, drink mode, and richer Explorer-specific favorites.
 - Keep Explorer-specific mode mappings, URDF assets, AUCTUS bridge item names, and QP/safety-zone semantics outside the
   generic Bloom core.
 - Validate first as a non-ROS fixture/demo, then connect live behavior through backend adapters.

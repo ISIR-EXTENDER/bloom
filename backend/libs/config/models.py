@@ -10,6 +10,7 @@ class WidgetKind(str, Enum):
     BUTTON = "button"
     CAMERA = "camera"
     COMMAND_BUTTON = "command-button"
+    EVENT_LOG = "event-log"
     GAUGE = "gauge"
     JOYSTICK = "joystick"
     LABEL = "label"

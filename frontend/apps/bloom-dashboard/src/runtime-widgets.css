@@ -334,6 +334,7 @@
 }
 
 .bloom-action-widget,
+.bloom-event-log-widget,
 .bloom-label-widget,
 .bloom-toggle-widget,
 .bloom-topic-plot-widget,
@@ -390,6 +391,74 @@
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+.bloom-event-log-widget {
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.bloom-event-log-list {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  margin: 0;
+  overflow: auto;
+  padding: 0;
+  list-style: none;
+}
+
+.bloom-event-log-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 12%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--bloom-surface) 84%, white);
+}
+
+.bloom-event-log-marker {
+  width: 10px;
+  margin-top: 0.35em;
+  border-radius: 999px;
+  aspect-ratio: 1;
+  background: var(--bloom-primary);
+}
+
+.bloom-event-log-entry[data-severity="success"] .bloom-event-log-marker {
+  background: var(--bloom-accent);
+}
+
+.bloom-event-log-entry[data-severity="warning"] .bloom-event-log-marker {
+  background: var(--bloom-pollen);
+}
+
+.bloom-event-log-entry[data-severity="error"] .bloom-event-log-marker {
+  background: var(--bloom-error);
+}
+
+.bloom-event-log-entry strong {
+  display: block;
+  color: var(--bloom-ink);
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.bloom-event-log-entry time {
+  display: block;
+  margin-top: 2px;
+  color: var(--bloom-muted);
+  font-family: var(--bloom-font-mono);
+  font-size: 0.68rem;
+}
+
+.bloom-event-log-entry p {
+  margin: 6px 0 0;
+  color: var(--bloom-ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .bloom-gauge-widget {

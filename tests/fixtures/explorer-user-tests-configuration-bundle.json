@@ -1,0 +1,570 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-06-04T10:00:00Z",
+    "source": "explorer-user-tests-candidate-fixture"
+  },
+  "applications": [
+    {
+      "id": "explorer-user-tests",
+      "name": "Explorer User Tests",
+      "description": "Candidate Bloom app for Extender/Explorer user-test flows: control modes, robot actions, supervision, debug, and profile-ready layouts.",
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "/theme-assets/bloom-mood-board.png",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [
+        {
+          "id": "operator-comfort",
+          "name": "Operator comfort",
+          "display_preset": "comfort",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "explorer-control-modes",
+          "motor_accessibility_preset": "default"
+        },
+        {
+          "id": "large-targets",
+          "name": "Large tactile targets",
+          "display_preset": "high-visibility",
+          "font_scale": 1.2,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "explorer-control-modes",
+          "motor_accessibility_preset": "large-targets"
+        }
+      ],
+      "screens": [
+        {
+          "id": "explorer-control-modes",
+          "title": "Explorer control modes",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "mode-context",
+              "kind": "label",
+              "title": "Mode context",
+              "layout": {
+                "x": 80,
+                "y": 64,
+                "width": 620,
+                "height": 100
+              },
+              "settings": {
+                "align": "left",
+                "fontSize": 28,
+                "text": "Mode 0 candidate: joystick-first control with explicit deadzone and safe release."
+              }
+            },
+            {
+              "id": "explorer-mode-joystick",
+              "kind": "joystick",
+              "title": "Mode-aware joystick",
+              "layout": {
+                "x": 120,
+                "y": 210,
+                "width": 440,
+                "height": 440
+              },
+              "settings": {
+                "binding": "joy",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "show_details": false,
+                "mode_id": "both",
+                "labels": {
+                  "top": "Forward",
+                  "right": "Right",
+                  "bottom": "Back",
+                  "left": "Left"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#7fa95f",
+                    "negative_label": "Left",
+                    "positive_label": "Right",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#d89f5d",
+                    "negative_label": "Back",
+                    "positive_label": "Forward",
+                    "semantic": "translation"
+                  }
+                },
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "both",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/teleop_cmd"
+                  }
+                }
+              }
+            },
+            {
+              "id": "explorer-max-velocity",
+              "kind": "slider",
+              "title": "Max velocity",
+              "layout": {
+                "x": 680,
+                "y": 248,
+                "width": 520,
+                "height": 116
+              },
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/cmd/max_velocity",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/max_velocity",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                }
+              }
+            },
+            {
+              "id": "explorer-emergency-stop",
+              "kind": "command-button",
+              "title": "Emergency stop",
+              "layout": {
+                "x": 680,
+                "y": 410,
+                "width": 250,
+                "height": 120
+              },
+              "settings": {
+                "command": "emergency_stop",
+                "button_label": "Stop",
+                "action_id": "explorer-emergency-stop",
+                "action_label": "Emergency stop",
+                "action_feedback": "result",
+                "cancellable": false,
+                "topic": "/explorer/emergency_stop",
+                "messageType": "std_msgs/msg/Bool",
+                "payload": "{data: true}"
+              }
+            },
+            {
+              "id": "explorer-gripper-enable",
+              "kind": "toggle",
+              "title": "Gripper command",
+              "layout": {
+                "x": 950,
+                "y": 410,
+                "width": 250,
+                "height": 120
+              },
+              "settings": {
+                "initialValue": false,
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onLabel": "Close",
+                "offLabel": "Open",
+                "onPayload": "{data: [0.0]}",
+                "offPayload": "{data: [0.8]}",
+                "show_details": false
+              }
+            },
+            {
+              "id": "control-events",
+              "kind": "event-log",
+              "title": "Control feedback",
+              "layout": {
+                "x": 680,
+                "y": 570,
+                "width": 520,
+                "height": 210
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "success",
+                    "summary": "Teleop channel ready",
+                    "detail": "Joystick publishes to /teleop_cmd with zero-on-release.",
+                    "timestamp": "2026-06-04T10:00:00Z"
+                  },
+                  {
+                    "severity": "info",
+                    "summary": "Deadzone set to 10%",
+                    "detail": "Small touch noise is ignored before publishing.",
+                    "timestamp": "2026-06-04T10:00:01Z"
+                  }
+                ],
+                "maxEntries": 5,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": false,
+                "show_details": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "explorer-robot-actions",
+          "title": "Explorer robot actions",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "actions-title",
+              "kind": "label",
+              "title": "Action instructions",
+              "layout": {
+                "x": 80,
+                "y": 64,
+                "width": 680,
+                "height": 96
+              },
+              "settings": {
+                "align": "left",
+                "fontSize": 30,
+                "text": "Action flow with progress/cancel contracts for user-test scenarios."
+              }
+            },
+            {
+              "id": "deploy-action",
+              "kind": "command-button",
+              "title": "Deploy robot",
+              "layout": {
+                "x": 100,
+                "y": 230,
+                "width": 310,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.deploy",
+                "button_label": "Deploy",
+                "action_id": "explorer-deploy",
+                "action_label": "Deploy robot",
+                "action_feedback": "progress",
+                "cancellable": true
+              }
+            },
+            {
+              "id": "retract-action",
+              "kind": "command-button",
+              "title": "Retract robot",
+              "layout": {
+                "x": 450,
+                "y": 230,
+                "width": 310,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.retract",
+                "button_label": "Retract",
+                "action_id": "explorer-retract",
+                "action_label": "Retract robot",
+                "action_feedback": "progress",
+                "cancellable": true
+              }
+            },
+            {
+              "id": "safe-zone-action",
+              "kind": "command-button",
+              "title": "Enable safe zone",
+              "layout": {
+                "x": 800,
+                "y": 230,
+                "width": 310,
+                "height": 150
+              },
+              "settings": {
+                "command": "explorer.safe_zone.enable",
+                "button_label": "Safe zone",
+                "action_id": "explorer-safe-zone",
+                "action_label": "Enable safety zone",
+                "action_feedback": "result",
+                "cancellable": false
+              }
+            },
+            {
+              "id": "action-events",
+              "kind": "event-log",
+              "title": "Action progress",
+              "layout": {
+                "x": 100,
+                "y": 470,
+                "width": 1010,
+                "height": 260
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "info",
+                    "summary": "Actions expose progress and cancel contracts",
+                    "detail": "The runtime bridge can later map these commands to ROS actions, services, or a non-ROS adapter.",
+                    "timestamp": "2026-06-04T10:05:00Z"
+                  }
+                ],
+                "maxEntries": 8,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": true,
+                "show_details": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "explorer-supervision",
+          "title": "Explorer supervision",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "explorer-camera",
+              "kind": "camera",
+              "title": "Operator camera",
+              "layout": {
+                "x": 70,
+                "y": 92,
+                "width": 620,
+                "height": 360
+              },
+              "settings": {
+                "source": "placeholder",
+                "streamUrl": "",
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "explorer-model",
+              "kind": "robot-3d",
+              "title": "Explorer model",
+              "layout": {
+                "x": 730,
+                "y": 92,
+                "width": 420,
+                "height": 360
+              },
+              "settings": {
+                "modelSource": "extension",
+                "robotModelUrl": "",
+                "jointStateTopic": "/joint_states",
+                "showAxes": true,
+                "description": "Optional 3D visualization extension point for Explorer."
+              }
+            },
+            {
+              "id": "battery-gauge",
+              "kind": "gauge",
+              "title": "Battery",
+              "layout": {
+                "x": 70,
+                "y": 520,
+                "width": 250,
+                "height": 170
+              },
+              "settings": {
+                "min": 0,
+                "max": 100,
+                "value": 76,
+                "unit": "%"
+              }
+            },
+            {
+              "id": "velocity-plot",
+              "kind": "plot",
+              "title": "Velocity trend",
+              "layout": {
+                "x": 370,
+                "y": 520,
+                "width": 380,
+                "height": 190
+              },
+              "settings": {
+                "historySeconds": 20,
+                "showLegend": true,
+                "samples": [0.1, 0.2, 0.18, 0.3, 0.28, 0.36, 0.32, 0.42]
+              }
+            },
+            {
+              "id": "supervision-events",
+              "kind": "event-log",
+              "title": "Supervision status",
+              "layout": {
+                "x": 800,
+                "y": 520,
+                "width": 350,
+                "height": 190
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "success",
+                    "summary": "Robot state visible",
+                    "detail": "Camera, state, and plot families are all available on one screen.",
+                    "timestamp": "2026-06-04T10:10:00Z"
+                  }
+                ],
+                "maxEntries": 5,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": false,
+                "show_details": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "explorer-debug-console",
+          "title": "Explorer debug console",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "teleop-echo",
+              "kind": "topic-echo",
+              "title": "Teleop command echo",
+              "layout": {
+                "x": 64,
+                "y": 72,
+                "width": 560,
+                "height": 300
+              },
+              "settings": {
+                "topic": "/teleop_cmd",
+                "messageType": "extender_msgs/msg/TeleopCommand",
+                "fieldPath": "",
+                "maxMessages": 80,
+                "prettyPrint": true,
+                "show_details": true
+              }
+            },
+            {
+              "id": "joint-velocity-plot",
+              "kind": "topic-plot",
+              "title": "Joint velocity monitor",
+              "layout": {
+                "x": 680,
+                "y": 72,
+                "width": 500,
+                "height": 300
+              },
+              "settings": {
+                "topic": "/joint_states",
+                "messageType": "sensor_msgs/msg/JointState",
+                "fieldPath": "velocity[0]",
+                "historySeconds": 30,
+                "maxSamples": 300,
+                "unit": "rad/s",
+                "show_details": true
+              }
+            },
+            {
+              "id": "debug-events",
+              "kind": "event-log",
+              "title": "Debug events",
+              "layout": {
+                "x": 64,
+                "y": 430,
+                "width": 1116,
+                "height": 260
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "info",
+                    "summary": "Topic echo and plot are ready",
+                    "detail": "Use this screen as the first debug shell before adding rosbag recording flows.",
+                    "timestamp": "2026-06-04T10:15:00Z"
+                  }
+                ],
+                "maxEntries": 12,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": true,
+                "show_details": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "explorer-profile-presets",
+          "title": "Explorer profile presets",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "profile-title",
+              "kind": "label",
+              "title": "Profile title",
+              "layout": {
+                "x": 90,
+                "y": 86,
+                "width": 820,
+                "height": 96
+              },
+              "settings": {
+                "align": "left",
+                "fontSize": 32,
+                "text": "Profiles keep Bloom ready for tablet-first personalization."
+              }
+            },
+            {
+              "id": "profile-log",
+              "kind": "event-log",
+              "title": "Profile decisions",
+              "layout": {
+                "x": 90,
+                "y": 230,
+                "width": 1000,
+                "height": 360
+              },
+              "settings": {
+                "entries": [
+                  {
+                    "severity": "success",
+                    "summary": "Operator comfort profile",
+                    "detail": "Default density with standard targets for trained operators.",
+                    "timestamp": "2026-06-04T10:20:00Z"
+                  },
+                  {
+                    "severity": "info",
+                    "summary": "Large tactile targets profile",
+                    "detail": "High-visibility preset and larger font scale for tablet and motor-accessibility tests.",
+                    "timestamp": "2026-06-04T10:21:00Z"
+                  }
+                ],
+                "maxEntries": 6,
+                "severityFilter": ["success", "info", "warning", "error"],
+                "showTimestamps": false,
+                "show_details": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

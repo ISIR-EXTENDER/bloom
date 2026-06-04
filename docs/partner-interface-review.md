@@ -188,17 +188,25 @@ The partner repo is useful, but several choices should not become Bloom defaults
 
 ### Explorer User Tests App Proposal
 
-The app could start as a Bloom demo/configuration, then gain live adapters.
+The app now starts as a Bloom demo/configuration fixture:
+`tests/fixtures/explorer-user-tests-configuration-bundle.json`. This keeps the
+Explorer scenario testable without hard-coding Explorer behavior into Bloom core.
+Live adapters can be attached screen by screen later.
 
-Candidate screens:
+Current candidate screens:
 
-- `Explorer control modes`: B1-B4, mode hints, joystick, speed, gripper.
-- `Robot actions`: deploy, repli, drink, emergency stop, progress/cancel.
-- `Saved positions`: named poses, favorites, run/cancel feedback.
-- `Safety zones`: future QP/safety-zone configuration and status.
-- `Robot supervision`: 3D robot view, joint state, connection health.
+- `Explorer control modes`: mode hints, mode-aware joystick, speed, gripper, emergency stop, event feedback.
+- `Robot actions`: deploy/retract/safety commands with progress/cancel metadata.
+- `Robot supervision`: camera placeholder, optional 3D robot view, battery gauge, velocity plot, event feedback.
 - `Debug console`: topic echo, topic plot, runtime events, adapter status.
 - `Display profile`: font scale, touch layout, theme preset, screen size.
+
+Still to add as Explorer-specific screens or extensions:
+
+- saved positions and favorites;
+- safety-zone/QP configuration and status;
+- drink mode or other task-specific flows;
+- richer Explorer mode names once the final user-test mapping is confirmed.
 
 This should be an app-level integration, not a generic Bloom rewrite.
 
@@ -230,9 +238,9 @@ The migration priority becomes:
 
 ## Recommendation
 
-Create a Bloom app/extension named something like `Explorer User Tests` once the
-builder app/screen storage is stable enough. Start with a non-ROS fixture/demo,
-then connect runtime behavior through backend adapters.
+Keep evolving the `Explorer User Tests` fixture into a real Bloom app/extension.
+Start with non-ROS fixture/demo validation, then connect runtime behavior through
+backend adapters.
 
 That gives us the best of both worlds: their good Explorer UX work becomes a
 real Bloom app, while Bloom stays generic, tested, and reusable for ISIR projects

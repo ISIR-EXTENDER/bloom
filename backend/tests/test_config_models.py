@@ -29,6 +29,7 @@ APP_CONFIGURATION_FIXTURE_PATHS = (
     FIXTURE_DIR / "webcam-visualizer-configuration-bundle.json",
     FIXTURE_DIR / "bloom-debug-configuration.json",
     FIXTURE_DIR / "sandbox-teleop-lab-configuration.json",
+    FIXTURE_DIR / "explorer-user-tests-configuration-bundle.json",
 )
 
 

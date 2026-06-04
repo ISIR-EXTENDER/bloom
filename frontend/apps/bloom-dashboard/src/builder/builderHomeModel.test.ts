@@ -29,6 +29,7 @@ describe("builderHomeModel", () => {
     expect(classifyScreen(createScreen({ id: "camera", widgets: [{ kind: "camera" }] }))).toBe("camera");
     expect(classifyScreen(createScreen({ id: "drive", widgets: [{ kind: "joystick" }] }))).toBe("control");
     expect(classifyScreen(createScreen({ id: "topic-monitor", widgets: [{ kind: "topic-echo" }] }))).toBe("debug");
+    expect(classifyScreen(createScreen({ id: "operator-events", widgets: [{ kind: "event-log" }] }))).toBe("debug");
     expect(classifyScreen(createScreen({ id: "gripper", widgets: [] }))).toBe("device");
     expect(classifyScreen(createScreen({ id: "petanque-setup", widgets: [] }))).toBe("workflow");
     expect(classifyScreen(createScreen({ id: "overview", widgets: [] }))).toBe("general");

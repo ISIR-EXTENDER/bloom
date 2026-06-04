@@ -204,6 +204,18 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
   },
   {
+    kind: "event-log",
+    displayName: "Event log",
+    category: "feedback",
+    description: "Displays operator-friendly runtime events with severity and optional details.",
+    defaultTitle: "Event log",
+    defaultSettings: getDefaultWidgetSettings("event-log"),
+    defaultLayout: { width: 520, height: 280, minWidth: 300, minHeight: 180 },
+    runtimeRequirements: ["data-source"],
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
+  },
+  {
     kind: "gauge",
     displayName: "Gauge",
     category: "feedback",
@@ -474,10 +486,10 @@ export const LEGACY_WIDGET_KIND_MAPPINGS: Readonly<Record<LegacyWidgetKind, Lega
   },
   logs: {
     legacyKind: "logs",
-    bloomKind: "unknown",
-    compatibility: "adapter-required",
+    bloomKind: "event-log",
+    compatibility: "renamed",
     displayName: "Logs",
-    notes: "Reusable logging/event viewer candidate; needs a generic log stream model before migration.",
+    notes: "Legacy logs map to Bloom's generic event log for operator-readable events.",
   },
 };
 
