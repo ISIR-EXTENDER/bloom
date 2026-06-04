@@ -281,6 +281,8 @@ Completed in this phase so far:
   save/replay/cancel preset flows can be validated without adding Explorer-specific widgets to Bloom core.
 - The Explorer candidate now includes a safety-zone screen built from generic status, command, and event widgets, so
   QP/safety workflows can be explored without coupling Bloom core to Explorer algorithms.
+- The Explorer candidate now includes a guided task screen for drink assistance, modeled with generic camera, progress,
+  command, and event widgets instead of a task-specific core widget.
 
 Phase 4 remaining work:
 
@@ -293,9 +295,9 @@ Phase 4 remaining work:
 Explorer user-test app candidate:
 
 - First candidate is tracked as `tests/fixtures/explorer-user-tests-configuration-bundle.json`.
-- Current candidate screens: control modes, robot actions, saved positions, safety zones, robot supervision, debug
-  console, and display/accessibility profile.
-- Next candidate screens to add: drink mode and richer Explorer-specific favorites.
+- Current candidate screens: control modes, robot actions, saved positions, safety zones, drink mode, robot supervision,
+  debug console, and display/accessibility profile.
+- Next candidate screens to add: richer Explorer-specific favorites and final user-test mode mappings.
 - Keep Explorer-specific mode mappings, URDF assets, AUCTUS bridge item names, and QP/safety-zone semantics outside the
   generic Bloom core.
 - Validate first as a non-ROS fixture/demo, then connect live behavior through backend adapters.
