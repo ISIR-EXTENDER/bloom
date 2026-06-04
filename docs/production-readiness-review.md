@@ -88,6 +88,8 @@ Usable:
 - App configuration now groups reusable screens by type and supports
   drag-to-add as progressive enhancement. The next UX step is screen reordering
   and richer visual previews.
+- The shared screen library now has on-demand visual previews, making reusable
+  screens easier to inspect without reducing default scanability.
 - Controls need immediate feedback. Joysticks and sliders should visibly confirm
   the value being sent.
 
@@ -220,3 +222,6 @@ Functional:
   copy the latest visible messages to the clipboard.
 - App configuration now uses reusable drag/drop payload helpers for screen
   composition and keeps button fallbacks for accessible operation.
+- Screen library cards now include abstract content previews derived from widget
+  layout data, improving visual scanning without rendering full apps in every
+  card.

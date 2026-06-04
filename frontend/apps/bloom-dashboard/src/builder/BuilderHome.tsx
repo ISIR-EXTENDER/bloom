@@ -1,4 +1,5 @@
 import { type ApplicationConfig, DEFAULT_APPLICATION_THEME, type ScreenConfig } from "@bloom/api-client";
+import type { CSSProperties } from "react";
 import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -379,6 +380,7 @@ export function BuilderHome({
                             <strong>{displayTitle}</strong>
                             <span className="builder-screen-type-tag">{SCREEN_LIBRARY_TYPE_LABELS[type]}</span>
                           </div>
+                          <ScreenLibraryPreview screen={screen} type={type} />
                           <span>{application.name}</span>
                           <div className="builder-screen-card-details">
                             <span>{screen.widgets.length} widgets</span>
@@ -424,6 +426,37 @@ export function BuilderHome({
         </section>
       ) : null}
     </section>
+  );
+}
+
+function ScreenLibraryPreview({ screen, type }: { screen: ScreenConfig; type: ScreenLibraryType }) {
+  const previewWidgets = screen.widgets.slice(0, 8);
+
+  return (
+    <div className="builder-screen-library-preview" data-screen-type={type}>
+      <button
+        aria-label={`Show ${screen.title || screen.id} layout preview`}
+        className="builder-screen-library-preview-trigger"
+        type="button"
+      >
+        Preview layout
+      </button>
+      <span aria-hidden="true" className="builder-screen-library-preview-popover">
+        {previewWidgets.length === 0 ? (
+          <span className="builder-screen-library-preview-empty">Empty canvas</span>
+        ) : (
+          previewWidgets.map((widget) => (
+            <span
+              className="builder-screen-library-preview-widget"
+              data-widget-kind={widget.kind}
+              key={widget.id}
+              style={createPreviewWidgetStyle(widget.layout, screen)}
+              title={`${widget.title} ${widget.kind}`}
+            />
+          ))
+        )}
+      </span>
+    </div>
   );
 }
 
@@ -561,4 +594,26 @@ function capitalize(value: string): string {
 
 function includesAny(value: string, tokens: readonly string[]): boolean {
   return tokens.some((token) => value.includes(token));
+}
+
+function createPreviewWidgetStyle(
+  layout: ScreenConfig["widgets"][number]["layout"],
+  screen: ScreenConfig,
+): CSSProperties {
+  const bounds = resolveScreenPreviewBounds(screen);
+
+  return {
+    height: `${Math.max(10, (layout.height / bounds.height) * 100)}%`,
+    left: `${(layout.x / bounds.width) * 100}%`,
+    top: `${(layout.y / bounds.height) * 100}%`,
+    width: `${Math.max(10, (layout.width / bounds.width) * 100)}%`,
+  };
+}
+
+function resolveScreenPreviewBounds(screen: ScreenConfig): { height: number; width: number } {
+  if (screen.canvas.preset_id === "tablet") {
+    return { height: 800, width: 1280 };
+  }
+
+  return { height: 1080, width: 1920 };
 }
