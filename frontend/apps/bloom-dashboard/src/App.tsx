@@ -30,6 +30,14 @@ import {
   type WorkspaceSelection,
 } from "./ui/ConfigurationWorkspace";
 import { LandingPage } from "./ui/LandingPage";
+import {
+  type BloomRoute,
+  builderModeRoute,
+  parseBloomRoute,
+  productViewRoute,
+  routeToHash,
+  runtimeModeRoute,
+} from "./ui/navigationRoute";
 import { ProductNavigation, type ProductView } from "./ui/ProductNavigation";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
@@ -49,11 +57,29 @@ export function App({
 }: AppProps) {
   const configurationState = useConfigurations(configurationClient);
   const runtimeActions = useRuntimeActionDispatcher(runtimeActionClient);
-  const [activeView, setActiveView] = useState<ProductView>("landing");
-  const [builderMode, setBuilderMode] = useState<BuilderMode>("home");
-  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>("home");
+  const initialRoute = getInitialBloomRoute();
+  const [activeView, setActiveView] = useState<ProductView>(initialRoute.activeView);
+  const [builderMode, setBuilderMode] = useState<BuilderMode>(initialRoute.builderMode);
+  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(initialRoute.runtimeMode);
   const [recentRuntimeSelections, setRecentRuntimeSelections] = useState<readonly WorkspaceSelection[]>([]);
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
+
+  useEffect(() => {
+    const syncRouteFromBrowserHistory = () => {
+      const route = parseBloomRoute(window.location.hash);
+      setActiveView(route.activeView);
+      setBuilderMode(route.builderMode);
+      setRuntimeMode(route.runtimeMode);
+    };
+
+    window.addEventListener("hashchange", syncRouteFromBrowserHistory);
+    window.addEventListener("popstate", syncRouteFromBrowserHistory);
+
+    return () => {
+      window.removeEventListener("hashchange", syncRouteFromBrowserHistory);
+      window.removeEventListener("popstate", syncRouteFromBrowserHistory);
+    };
+  }, []);
 
   useEffect(() => {
     if (configurationState.status !== "ready" || selection) {
@@ -110,14 +136,19 @@ export function App({
 
     await configurationState.saveApplication(configId, application);
     setSelection({ configId, appId: application.id, screenId: application.screens[0]?.id ?? "main" });
-    setBuilderMode("app-config");
+    navigateToRoute(builderModeRoute("app-config"));
   };
 
   const handleProductViewChange = (view: ProductView) => {
-    if (view === "runtime") {
-      setRuntimeMode("home");
-    }
-    setActiveView(view);
+    navigateToRoute(productViewRoute(view));
+  };
+
+  const handleBuilderModeChange = (mode: BuilderMode) => {
+    navigateToRoute(builderModeRoute(mode));
+  };
+
+  const handleRuntimeModeChange = (mode: RuntimeMode) => {
+    navigateToRoute(runtimeModeRoute(mode));
   };
 
   const openRuntimeApp = (nextSelection: WorkspaceSelection) => {
@@ -130,18 +161,15 @@ export function App({
         ),
       ].slice(0, 3),
     );
-    setRuntimeMode("app");
-    setActiveView("runtime");
+    navigateToRoute(runtimeModeRoute("app"));
   };
 
   const editRuntimeApplication = () => {
-    setBuilderMode("app-config");
-    setActiveView("builder");
+    navigateToRoute(builderModeRoute("app-config"));
   };
 
   const editRuntimeScreen = () => {
-    setBuilderMode("screen-builder");
-    setActiveView("builder");
+    navigateToRoute(builderModeRoute("screen-builder"));
   };
 
   const handleDuplicateApplication = async (configId: string, applicationId: string) => {
@@ -162,7 +190,7 @@ export function App({
       appId: duplicatedApplication.id,
       screenId: duplicatedApplication.screens[0]?.id ?? "main",
     });
-    setBuilderMode("app-config");
+    navigateToRoute(builderModeRoute("app-config"));
   };
 
   const handleDeleteApplication = async (configId: string, applicationId: string) => {
@@ -176,13 +204,34 @@ export function App({
 
     if (!nextApplication || !nextScreen) {
       setSelection(null);
-      setBuilderMode("home");
+      navigateToRoute(builderModeRoute("home"));
       return;
     }
 
     setSelection({ configId, appId: nextApplication.id, screenId: nextScreen.id });
-    setBuilderMode("home");
+    navigateToRoute(builderModeRoute("home"));
   };
+
+  function applyRoute(route: BloomRoute) {
+    setActiveView(route.activeView);
+    setBuilderMode(route.builderMode);
+    setRuntimeMode(route.runtimeMode);
+  }
+
+  function navigateToRoute(route: BloomRoute) {
+    applyRoute(route);
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const nextHash = routeToHash(route);
+    if (window.location.hash === nextHash) {
+      return;
+    }
+
+    window.history.pushState(null, "", nextHash);
+  }
 
   return (
     <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
@@ -192,15 +241,15 @@ export function App({
         <div id="bloom-main-content" tabIndex={-1}>
           <AppErrorBoundary resetKey={activeView}>
             {activeView === "landing" ? (
-              <LandingPage onOpenView={setActiveView} />
+              <LandingPage onOpenView={handleProductViewChange} />
             ) : activeView === "help" ? (
-              <HelpPage onOpenView={setActiveView} />
+              <HelpPage onOpenView={handleProductViewChange} />
             ) : (
               <MainApplicationView
                 activeView={activeView}
                 builderMode={builderMode}
-                onBackToRuntimeHome={() => setRuntimeMode("home")}
-                onChangeBuilderMode={setBuilderMode}
+                onBackToRuntimeHome={() => handleRuntimeModeChange("home")}
+                onChangeBuilderMode={handleBuilderModeChange}
                 onCreateApplication={handleCreateApplication}
                 onDeleteApplication={handleDeleteApplication}
                 onDuplicateApplication={handleDuplicateApplication}
@@ -225,6 +274,14 @@ export function App({
       </main>
     </BloomThemeProvider>
   );
+}
+
+function getInitialBloomRoute(): BloomRoute {
+  if (typeof window === "undefined") {
+    return parseBloomRoute("");
+  }
+
+  return parseBloomRoute(window.location.hash);
 }
 
 type MainApplicationViewProps = {

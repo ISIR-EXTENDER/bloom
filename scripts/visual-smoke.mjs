@@ -66,6 +66,7 @@ try {
         });
       }
 
+      await assertBrowserHistoryAffordance(page, viewport.name);
       await page.close();
     }
   } finally {
@@ -162,6 +163,23 @@ async function showRuntime(page) {
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { name: "Launch Sandbox runtime" }).click();
   await page.getByRole("region", { name: "Runtime application" }).waitFor();
+}
+
+async function assertBrowserHistoryAffordance(page, label) {
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Builder: Compose screens" }).click();
+  await page.getByRole("heading", { name: "Choose what to build." }).waitFor();
+
+  await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
+  await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+
+  await page.goBack({ waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Choose what to build." }).waitFor();
+  await assertNoHorizontalOverflow(page, `${label}:browser-back`);
+
+  await page.goForward({ waitUntil: "networkidle" });
+  await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+  await assertNoHorizontalOverflow(page, `${label}:browser-forward`);
 }
 
 async function assertNoHorizontalOverflow(page, label) {
