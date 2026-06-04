@@ -114,6 +114,8 @@ current roadmap.
   command, and event widgets.
 - The Explorer user-test candidate includes a guided drink-mode task screen that stays generic enough for other
   assistance workflows.
+- The Explorer user-test candidate includes a favorites screen for fast operator shortcuts while keeping favorites as
+  app-level commands for now.
 - A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
 - A first Bloom Debug fixture can request runtime topic subscriptions and render live samples in echo and lightweight plot widgets.
 - Bloom Debug can inspect the topic catalog, refresh runtime audit records, start/stop a safe recording request for
