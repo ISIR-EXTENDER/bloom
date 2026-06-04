@@ -1,7 +1,7 @@
 :root {
   color: var(--bloom-ink);
   background: var(--bloom-surface-soft);
-  font-family: "Aptos", "Trebuchet MS", sans-serif;
+  font-family: var(--bloom-font-ui);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -158,8 +158,10 @@ h1 {
   max-width: 760px;
   margin: 0;
   color: var(--bloom-ink);
-  font-family: "Georgia", "Times New Roman", serif;
+  font-family: var(--bloom-font-display);
   font-size: clamp(3.3rem, 7vw, 6.4rem);
+  font-weight: 600;
+  letter-spacing: -0.04em;
   line-height: 0.92;
 }
 
@@ -560,7 +562,7 @@ h1 {
   max-height: 160px;
   overflow: auto;
   color: var(--bloom-ink-soft);
-  font-family: "Cascadia Code", "Ubuntu Mono", monospace;
+  font-family: var(--bloom-font-mono);
   font-size: 0.78rem;
   white-space: pre-wrap;
 }

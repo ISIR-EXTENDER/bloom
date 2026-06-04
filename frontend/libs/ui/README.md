@@ -5,6 +5,7 @@ Reusable visual primitives for Bloom applications.
 This package owns the shared Bloom design system:
 
 - color and surface tokens inspired by Material 3 roles;
+- controlled open-source typography through `Cormorant Garamond`, `Atkinson Hyperlegible`, and `JetBrains Mono`;
 - navigation primitives;
 - button, card, and panel primitives;
 - touch-friendly interaction states;
@@ -40,3 +41,16 @@ Bloom themes have two layers:
 
 Components should consume semantic roles first. Palette tokens remain available for brand-specific illustrations,
 gradients, or decorative details.
+
+## Typography
+
+The UI package imports Bloom's font assets through `@fontsource` so apps do not depend on local machine fonts or a public
+CDN.
+
+Use the shared tokens:
+
+- `--bloom-font-display` for brand/display headings;
+- `--bloom-font-ui` for controls, forms, cards, and runtime text;
+- `--bloom-font-mono` for debug payloads, topic values, and code-like text.
+
+Avoid hard-coding font families in app-specific CSS. Add new typography roles here only when they are reusable.

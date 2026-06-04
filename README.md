@@ -163,6 +163,9 @@ for touch mapping, automation options, and the viewport sizes Bloom should valid
 Bloom's design system is documented in `docs/design-system.md`. It explains the mood-board direction, token model,
 theme presets, touch/tablet rules, runtime/builder guidelines, and current critiques.
 
+Typography is controlled through open-source fonts bundled by `@bloom/ui`: `Cormorant Garamond` for refined display,
+`Atkinson Hyperlegible` for readable UI text, and `JetBrains Mono` for debug/code-like values.
+
 When adding UI, prefer semantic Bloom tokens from `@bloom/ui`, keep app-specific visual identity in theme presets or app
 configuration, and update the design system notes when a reusable pattern becomes stable.
 

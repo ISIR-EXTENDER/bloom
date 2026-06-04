@@ -79,7 +79,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--bloom-surface-container-high) 82%, white);
   color: var(--bloom-ink-soft);
-  font-family: "Cascadia Code", "Ubuntu Mono", monospace;
+  font-family: var(--bloom-font-mono);
   font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;

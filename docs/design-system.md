@@ -129,17 +129,27 @@ themes from moodboard/reference inputs.
 
 ## Typography
 
+Bloom uses a controlled open-source font pairing shipped through `@fontsource` packages and imported by `@bloom/ui`.
+
 Current direction:
 
-- Serif display typography for Bloom identity and large landing headings.
-- Sans-serif UI typography for controls, builder forms, runtime widgets, and dense operational screens.
+- `Cormorant Garamond` in lighter medium weights for Bloom identity, large headings, landing moments, and expressive
+  builder cards.
+- `Atkinson Hyperlegible` for controls, builder forms, runtime widgets, dense operational screens, and tablet use.
+- `JetBrains Mono` for debug payloads, topic values, and code-like text.
 
-Current critique:
+Typography tokens:
 
-- The stack still relies on local/system fonts (`Georgia`, `Aptos`, `Trebuchet MS`) instead of a controlled open-source
-  font pairing.
-- This is acceptable during foundation work, but before a public release Bloom should choose documented web fonts or
-  committed local font assets to reduce visual drift across machines.
+- `--bloom-font-display`;
+- `--bloom-font-ui`;
+- `--bloom-font-mono`.
+
+Rules:
+
+- Use typography tokens instead of hard-coded font-family stacks.
+- Keep runtime and builder controls on the UI font for readability.
+- Use the display font sparingly and prefer medium weights so the interface stays calm, refined, and functional.
+- Avoid CDN font loading; Bloom should remain local-first and reproducible.
 
 ## Shape, Spacing, And Touch
 
@@ -234,6 +244,7 @@ Things that are good enough for Phase 2:
 
 - token architecture is in place;
 - app-level theme presets exist;
+- controlled open-source fonts are bundled through `@bloom/ui`;
 - visible UI is coherent with the Bloom mood board;
 - touch target defaults are documented;
 - app configuration and screen library now use color for grouping and comprehension.
@@ -241,7 +252,6 @@ Things that are good enough for Phase 2:
 
 Things to improve before a public release:
 
-- Add a controlled typography decision instead of relying on system fonts.
 - Move repeated dashboard card/action styles into reusable `@bloom/ui` primitives once patterns stabilize.
 - Add automated visual regression checks for key viewports: `1024x600`, `1280x800`, and `1920x1080`.
 - Add contrast checks for every theme preset.
