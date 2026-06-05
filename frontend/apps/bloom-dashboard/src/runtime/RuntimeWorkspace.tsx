@@ -133,6 +133,7 @@ export function RuntimeWorkspace({
       aria-label="Runtime application"
       className="runtime-app-workspace"
       data-display-preset={runtimeProfile.displayPreset}
+      data-has-debug={application.id === "bloom-debug" ? "true" : "false"}
       data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
     >

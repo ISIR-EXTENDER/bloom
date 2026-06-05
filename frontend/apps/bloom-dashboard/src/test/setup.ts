@@ -19,6 +19,10 @@ class TestResizeObserver implements ResizeObserver {
 
 globalThis.ResizeObserver = globalThis.ResizeObserver ?? TestResizeObserver;
 globalThis.PointerEvent = globalThis.PointerEvent ?? MouseEvent;
+Object.defineProperty(globalThis, "scrollTo", {
+  configurable: true,
+  value: () => undefined,
+});
 
 afterEach(() => {
   cleanup();

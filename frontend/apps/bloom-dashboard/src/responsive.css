@@ -32,7 +32,7 @@
   }
 
   .runtime-app-workspace {
-    height: calc(100vh - 86px);
+    height: calc(100svh - 86px);
     min-height: 560px;
   }
 
@@ -73,7 +73,8 @@
 
 @media (max-width: 700px) {
   .hero,
-  .steps {
+  .steps,
+  .builder-section-overview {
     grid-template-columns: 1fr;
   }
 
@@ -114,8 +115,14 @@
   }
 
   .runtime-app-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
     padding: 10px 12px;
+  }
+
+  .runtime-app-topbar .eyebrow,
+  .runtime-profile-label {
+    display: none;
   }
 
   .runtime-app-topbar h2 {
@@ -142,6 +149,30 @@
   }
 
   .runtime-app-canvas-viewport {
+    padding: 6px;
+  }
+}
+
+@media (max-width: 1100px) and (max-height: 700px) {
+  .app-shell-builder,
+  .app-shell-runtime {
     padding: 8px;
+  }
+
+  .app-shell-builder .bloom-nav-shell,
+  .app-shell-runtime .bloom-nav-shell {
+    margin: -8px -8px 8px;
+  }
+
+  .builder-home-hero {
+    padding: 20px 24px;
+  }
+
+  .builder-home-switcher {
+    margin-top: 12px;
+  }
+
+  .runtime-app-workspace {
+    height: calc(100svh - 74px);
   }
 }
