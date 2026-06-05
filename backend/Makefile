@@ -4,6 +4,15 @@ SHELL := /bin/bash
 test: ## Run backend unit tests without external pytest plugin leakage
 	@PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 
+.PHONY: audit
+audit: ## Run Python dependency vulnerability audit
+	@requirements_file="$$(mktemp)" && \
+	uv export --no-hashes --format requirements-txt --all-groups > "$$requirements_file" && \
+	uv run pip-audit -r "$$requirements_file"; \
+	status="$$?"; \
+	rm -f "$$requirements_file"; \
+	exit "$$status"
+
 .PHONY: cli
 cli: ## Show Bloom backend CLI help
 	@uv run python -m apps.bloom_cli.main

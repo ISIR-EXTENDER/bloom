@@ -322,13 +322,32 @@ Explorer user-test app candidate:
 
 ### Phase 5 - Deployment And Legacy Retirement
 
-Status: next.
+Status: in progress.
 
-- Add authentication, authorization, CORS policy, dependency audits, and basic dynamic security scans.
+- Add authentication, authorization, CORS policy, runtime rate limiting, dependency audits, and basic dynamic security scans.
 - Add Extender workspace deployment entrypoints only after the core app flow is stable.
 - Validate Bloom against the full Extender + Petanque end-to-end pipeline.
 - Mark legacy repos/packages as legacy only after Bloom covers the required workflows.
 - Do not delete legacy repos during the transition.
+
+Completed in this phase so far:
+
+- API-key authentication can be enabled for staging/production deployments.
+- Admin/operator roles protect configuration mutations, runtime endpoints, ROS publish endpoints, and runtime WebSocket
+  sessions while local/test development remains frictionless.
+- Production settings fail closed if authentication or the admin key is missing.
+- CORS is restricted to configured dashboard origins instead of wildcard defaults.
+- A global HTTP rate limit protects the API from noisy clients, in addition to runtime command-specific rate limits.
+- Frontend and backend dependency audit commands are available through `npm run audit:security`.
+- A basic dynamic security smoke scan verifies security headers, OpenAPI reachability, and CORS behavior against a
+  running backend through `npm run security:dynamic`.
+
+Remaining work in this phase:
+
+- Promote the basic dynamic smoke scan into CI once deployment preview startup is scriptable end-to-end.
+- Add Extender workspace deployment entrypoints after the secured core app flow is validated.
+- Validate Bloom against the full Extender + Petanque end-to-end pipeline.
+- Decide exactly which legacy repos/packages should be marked legacy, without deleting them during transition.
 
 ### Phase 6 - Multi-Project And Non-ROS Integrations
 

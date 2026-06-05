@@ -4,9 +4,10 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Callable
 
-from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from apps.bloom_api.security import BloomPrincipal, require_operator, require_runtime_websocket_operator
 from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import (
     RuntimeClientMessage,
@@ -117,7 +118,11 @@ class RuntimeRecordingResponse(BaseModel):
 
 
 @router.get("/audit", response_model=RuntimeAuditListResponse)
-def list_runtime_audit_records(request: Request, limit: int = 100) -> RuntimeAuditListResponse:
+def list_runtime_audit_records(
+    request: Request,
+    limit: int = 100,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RuntimeAuditListResponse:
     audit_log = get_runtime_audit_log(request)
     return RuntimeAuditListResponse(
         records=tuple(RuntimeAuditRecordResponse(**asdict(record)) for record in audit_log.list_records(limit))
@@ -125,7 +130,11 @@ def list_runtime_audit_records(request: Request, limit: int = 100) -> RuntimeAud
 
 
 @router.post("/recordings", response_model=RuntimeRecordingResponse)
-def start_runtime_recording(request: Request, recording_request: RuntimeRecordingStartRequest) -> RuntimeRecordingResponse:
+def start_runtime_recording(
+    request: Request,
+    recording_request: RuntimeRecordingStartRequest,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RuntimeRecordingResponse:
     if recording_request.output_folder not in get_allowed_recording_output_folders(request):
         get_runtime_audit_log(request).record(
             RuntimeAuditRecord(
@@ -160,7 +169,11 @@ def start_runtime_recording(request: Request, recording_request: RuntimeRecordin
 
 
 @router.post("/recordings/{recording_id}/stop", response_model=RuntimeRecordingResponse)
-def stop_runtime_recording(request: Request, recording_id: str) -> RuntimeRecordingResponse:
+def stop_runtime_recording(
+    request: Request,
+    recording_id: str,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RuntimeRecordingResponse:
     gateway = get_runtime_recording_gateway(request)
     receipt = gateway.stop(recording_id)
     get_runtime_audit_log(request).record(
@@ -178,6 +191,7 @@ def stop_runtime_recording(request: Request, recording_id: str) -> RuntimeRecord
 
 @router.websocket("/ws")
 async def runtime_websocket(websocket: WebSocket) -> None:
+    await require_runtime_websocket_operator(websocket)
     manager = get_runtime_session_manager(websocket)
     await websocket.accept()
     session = manager.connect()

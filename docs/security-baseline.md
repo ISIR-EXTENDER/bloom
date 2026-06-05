@@ -36,21 +36,42 @@ The first things to protect are:
 - Keep ROS access behind backend adapters; generic frontend code should emit intents, not talk to ROS directly.
 - Keep SQLite as the source of truth and JSON import/export as an explicit migration path, not silent filesystem sync.
 - Add HTTP security headers on every backend response.
+- Keep API-key authentication available for staging/production deployments, with admin/operator roles.
+- Require authentication for production settings so Bloom does not start an open production API by accident.
+- Restrict CORS to configured dashboard origins.
+- Apply a global HTTP rate limit, plus runtime command-specific rate limits for robot commands.
 - Keep file paths controlled by repositories/services, never by raw user-provided paths.
 - Keep dependency lock files committed.
+- Run dependency audits through `npm run audit:security` before deployment-oriented releases.
+- Run the basic dynamic smoke scan through `npm run security:dynamic` against a running backend before deployment-oriented
+  releases.
 - Keep tests independent from ROS by injecting adapters/gateways.
 
 ## Controls To Add Before Real Robot Deployment
 
-- Authentication for the dashboard and API.
-- Authorization for robot actions, with at least operator/admin roles.
+- User-facing dashboard login/session UX if Bloom is deployed beyond trusted lab devices.
+- Stronger authorization policy per app/workspace once profiles and projects exist.
 - Explicit allowlists for publishable ROS topics, message types, and payload schemas.
 - CSRF protection or same-site cookie strategy if browser-authenticated sessions are used.
-- CORS restricted to the expected frontend origins.
-- Rate limits for command endpoints and runtime WebSocket messages.
-- Audit log for app config changes and robot command intents.
+- Persistent audit log for app config changes and robot command intents.
 - SROS2 deployment notes for secure ROS graph communication.
-- Security CI checks: dependency audits, secret scanning, and a ZAP baseline scan.
+- Security CI checks: scheduled dependency audits, secret scanning, and a ZAP baseline scan.
+
+## API Perimeter Configuration
+
+Local development keeps authentication disabled by default. Staging and production deployments should configure:
+
+```bash
+export BLOOM_AUTH_ENABLED=true
+export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
+export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
+export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.local:5173'
+export BLOOM_HTTP_RATE_LIMIT_PER_MINUTE=600
+```
+
+Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the same header, or the `api_key` query
+parameter when the WebSocket client cannot set headers. Treat query-string keys as a compatibility fallback because they
+are easier to leak in logs.
 
 ## Minimum Security Tests
 
@@ -61,7 +82,9 @@ The first things to protect are:
 - WebSocket sessions reject unknown actions and handle disconnects cleanly.
 - HTTP responses include minimal security headers.
 - Dependency checks run regularly in CI or before releases.
-- ZAP baseline runs against a local preview once the dashboard routes are stable enough.
+- Basic dynamic smoke verifies security headers, OpenAPI reachability, and configured CORS behavior against a real
+  running backend.
+- ZAP baseline runs against a local preview once dashboard/backend deployment startup is scriptable end-to-end.
 
 ## Notes For ROS Features
 

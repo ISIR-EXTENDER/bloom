@@ -2,10 +2,11 @@ import base64
 import hashlib
 import re
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from apps.bloom_api.security import BloomPrincipal, require_admin, require_operator
 from libs.config import (
     ApplicationConfig,
     ApplicationNotFoundError,
@@ -68,13 +69,20 @@ def get_configuration_repository(request: Request) -> ConfigurationRepository:
 
 
 @router.get("", response_model=ConfigurationListResponse)
-def list_configurations(request: Request) -> ConfigurationListResponse:
+def list_configurations(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> ConfigurationListResponse:
     repository = get_configuration_repository(request)
     return ConfigurationListResponse(configuration_ids=repository.list_ids())
 
 
 @router.get("/{config_id}", response_model=ConfigurationBundle)
-def get_configuration(config_id: str, request: Request) -> ConfigurationBundle:
+def get_configuration(
+    config_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> ConfigurationBundle:
     repository = get_configuration_repository(request)
     try:
         return repository.get(config_id)
@@ -83,13 +91,22 @@ def get_configuration(config_id: str, request: Request) -> ConfigurationBundle:
 
 
 @router.put("/{config_id}", response_model=ConfigurationBundle)
-def upsert_configuration(config_id: str, bundle: ConfigurationBundle, request: Request) -> ConfigurationBundle:
+def upsert_configuration(
+    config_id: str,
+    bundle: ConfigurationBundle,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
+) -> ConfigurationBundle:
     repository = get_configuration_repository(request)
     return repository.upsert(config_id, bundle)
 
 
 @router.get("/{config_id}/applications", response_model=ApplicationListResponse)
-def list_applications(config_id: str, request: Request) -> ApplicationListResponse:
+def list_applications(
+    config_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> ApplicationListResponse:
     bundle = get_configuration_bundle(config_id, request)
     return ApplicationListResponse(applications=list(bundle.applications))
 
@@ -100,6 +117,7 @@ def upsert_configuration_application(
     application_id: str,
     application: ApplicationConfig,
     request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
 ) -> ConfigurationBundle:
     if application.id != application_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="application id does not match path")
@@ -111,7 +129,12 @@ def upsert_configuration_application(
 
 
 @router.delete("/{config_id}/applications/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_configuration_application(config_id: str, application_id: str, request: Request) -> Response:
+def delete_configuration_application(
+    config_id: str,
+    application_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
+) -> Response:
     repository = get_configuration_repository(request)
     bundle = get_configuration_bundle(config_id, request)
     try:
@@ -123,7 +146,11 @@ def delete_configuration_application(config_id: str, application_id: str, reques
 
 
 @router.get("/{config_id}/screens", response_model=ReusableScreensResponse)
-def list_configuration_screens(config_id: str, request: Request) -> ReusableScreensResponse:
+def list_configuration_screens(
+    config_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> ReusableScreensResponse:
     bundle = get_configuration_bundle(config_id, request)
     return ReusableScreensResponse(
         screens=[
@@ -144,6 +171,7 @@ def upsert_configuration_screen(
     screen_id: str,
     screen: ScreenConfig,
     request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
 ) -> ConfigurationBundle:
     if screen.id != screen_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="screen id does not match path")
@@ -158,7 +186,13 @@ def upsert_configuration_screen(
 
 
 @router.delete("/{config_id}/applications/{application_id}/screens/{screen_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_configuration_screen(config_id: str, application_id: str, screen_id: str, request: Request) -> Response:
+def delete_configuration_screen(
+    config_id: str,
+    application_id: str,
+    screen_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
+) -> Response:
     repository = get_configuration_repository(request)
     bundle = get_configuration_bundle(config_id, request)
     try:
@@ -174,7 +208,11 @@ def delete_configuration_screen(config_id: str, application_id: str, screen_id: 
 
 
 @router.delete("/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_configuration(config_id: str, request: Request) -> Response:
+def delete_configuration(
+    config_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
+) -> Response:
     repository = get_configuration_repository(request)
     try:
         repository.delete(config_id)
@@ -188,6 +226,7 @@ def upload_theme_asset(
     config_id: str,
     upload: ThemeAssetUploadRequest,
     request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
 ) -> ThemeAssetUploadResponse:
     get_configuration_bundle(config_id, request)
 
@@ -211,7 +250,12 @@ def upload_theme_asset(
 
 
 @router.get("/{config_id}/theme-assets/{asset_filename}")
-def get_theme_asset(config_id: str, asset_filename: str, request: Request) -> FileResponse:
+def get_theme_asset(
+    config_id: str,
+    asset_filename: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> FileResponse:
     get_configuration_bundle(config_id, request)
 
     asset_dir = request.app.state.settings.theme_asset_dir.resolve()
