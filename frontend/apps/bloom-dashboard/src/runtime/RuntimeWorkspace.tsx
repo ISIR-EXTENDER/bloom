@@ -22,7 +22,10 @@ type RuntimeViewportSize = {
 type RuntimeWorkspaceProps = {
   application: ApplicationConfig;
   onBackToRuntimeHome: () => void;
-  onActionIntent: WidgetActionIntentHandler;
+  onActionIntent: (
+    intent: Parameters<WidgetActionIntentHandler>[0],
+    runtimePolicy?: ApplicationConfig["runtime_policy"],
+  ) => void;
   onEditApplication: () => void;
   onEditScreen: () => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
@@ -63,6 +66,9 @@ export function RuntimeWorkspace({
   );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const previousScreenIdRef = useRef(screen.id);
+  const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
+    onActionIntent(intent, application.runtime_policy);
+  };
 
   useEffect(() => {
     const viewport = canvasViewportRef.current;
@@ -177,7 +183,7 @@ export function RuntimeWorkspace({
             <ScreenArtboard
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
-              rendererOptions={{ dataByWidgetId, onActionIntent }}
+              rendererOptions={{ dataByWidgetId, onActionIntent: handleRuntimeActionIntent }}
               screen={screen}
               style={{
                 height: `${artboardSize.height}px`,

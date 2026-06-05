@@ -1,6 +1,7 @@
 import {
   type ApplicationConfig,
   DEFAULT_APPLICATION_THEME,
+  DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
   type WidgetKind,
 } from "@bloom/api-client";
@@ -124,6 +125,7 @@ function createApplication({
     id,
     name,
     profiles: [],
+    runtime_policy: DEFAULT_RUNTIME_POLICY,
     screens,
     theme: DEFAULT_APPLICATION_THEME,
   };

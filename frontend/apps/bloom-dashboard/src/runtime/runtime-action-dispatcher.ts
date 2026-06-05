@@ -1,4 +1,4 @@
-import type { BloomApiClient, RosTopicPublishRequest } from "@bloom/api-client";
+import type { BloomApiClient, RosTopicPublishRequest, RuntimeAdapterPolicy } from "@bloom/api-client";
 import type { Vector2Value, WidgetActionIntent } from "@bloom/widgets";
 
 export type RuntimeVector3 = {
@@ -69,7 +69,7 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   subscribeRuntimeTopic?: (request: RuntimeTopicSubscriptionRequest) => Promise<RuntimeTopicSubscriptionResponse>;
 };
 
-export type RuntimeActionDispatchStatus = "accepted" | "failed" | "published" | "simulated" | "unsupported";
+export type RuntimeActionDispatchStatus = "accepted" | "blocked" | "failed" | "published" | "simulated" | "unsupported";
 export type RuntimeActionRequest = RosTopicPublishRequest | RuntimeTeleopCommandRequest;
 
 export type RuntimeActionDispatchResult = {
@@ -80,6 +80,7 @@ export type RuntimeActionDispatchResult = {
 };
 
 export type RuntimeActionDispatchOptions = {
+  runtimePolicy?: RuntimeAdapterPolicy;
   teleopSequence?: number;
 };
 
@@ -89,7 +90,7 @@ export async function dispatchRuntimeActionIntent(
   options: RuntimeActionDispatchOptions = {},
 ): Promise<RuntimeActionDispatchResult> {
   if (intent.type === "topic-publish") {
-    return dispatchTopicPublishIntent(client, intent);
+    return dispatchTopicPublishIntent(client, intent, options);
   }
 
   if (intent.type === "value-change") {
@@ -106,6 +107,7 @@ export async function dispatchRuntimeActionIntent(
 async function dispatchTopicPublishIntent(
   client: RuntimeActionClient,
   intent: Extract<WidgetActionIntent, { type: "topic-publish" }>,
+  options: RuntimeActionDispatchOptions,
 ): Promise<RuntimeActionDispatchResult> {
   const request = createRosTopicPublishRequest(intent);
   if (!request) {
@@ -113,6 +115,16 @@ async function dispatchTopicPublishIntent(
       intent,
       status: "unsupported",
       detail: "Topic publish intents need a ROS message type before they can be sent.",
+    };
+  }
+
+  const policyError = validateTopicPublishRequest(request, options.runtimePolicy);
+  if (policyError) {
+    return {
+      intent,
+      request,
+      status: "blocked",
+      detail: policyError,
     };
   }
 
@@ -141,6 +153,16 @@ async function dispatchTeleopValueIntent(
 ): Promise<RuntimeActionDispatchResult> {
   const request = createTeleopCommandRequest(intent, options.teleopSequence ?? 0);
   if (request) {
+    const policyError = validateTeleopCommandRequest(request, options.runtimePolicy);
+    if (policyError) {
+      return {
+        intent,
+        request,
+        status: "blocked",
+        detail: policyError,
+      };
+    }
+
     if (!client.sendTeleopCommand) {
       return {
         intent,
@@ -170,6 +192,16 @@ async function dispatchTeleopValueIntent(
 
   const scalarRequest = createScalarTopicPublishRequest(intent);
   if (scalarRequest) {
+    const policyError = validateTopicPublishRequest(scalarRequest, options.runtimePolicy);
+    if (policyError) {
+      return {
+        intent,
+        request: scalarRequest,
+        status: "blocked",
+        detail: policyError,
+      };
+    }
+
     try {
       const response = await client.publishRosTopic(scalarRequest);
       return {
@@ -262,6 +294,36 @@ export function createScalarTopicPublishRequest(
     message_type: messageType,
     payload: createScalarPayload(fieldPath, intent.value),
   };
+}
+
+function validateTopicPublishRequest(
+  request: RosTopicPublishRequest,
+  policy: RuntimeAdapterPolicy | undefined,
+): string | null {
+  if (!policy) {
+    return null;
+  }
+  if (!isAllowedByPolicy(request.topic, policy.allowed_publish_topics)) {
+    return `ROS topic "${request.topic}" is not allowed by this app runtime policy.`;
+  }
+  if (!isAllowedByPolicy(request.message_type, policy.allowed_message_types)) {
+    return `ROS message type "${request.message_type}" is not allowed by this app runtime policy.`;
+  }
+  return null;
+}
+
+function validateTeleopCommandRequest(
+  request: RuntimeTeleopCommandRequest,
+  policy: RuntimeAdapterPolicy | undefined,
+): string | null {
+  if (!policy || isAllowedByPolicy(request.target, policy.allowed_teleop_targets)) {
+    return null;
+  }
+  return `Teleop target "${request.target}" is not allowed by this app runtime policy.`;
+}
+
+function isAllowedByPolicy(value: string, allowedValues: readonly string[]): boolean {
+  return allowedValues.length === 0 || allowedValues.includes("*") || allowedValues.includes(value);
 }
 
 function toPayloadBody(payload: unknown): Pick<RosTopicPublishRequest, "payload" | "payload_text"> {

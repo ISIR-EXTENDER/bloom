@@ -200,6 +200,26 @@ def test_application_accepts_user_profiles_for_future_personalization() -> None:
     assert profile.motor_accessibility_preset == MotorAccessibilityPreset.LARGE_TARGETS
 
 
+def test_application_accepts_runtime_adapter_policy_for_app_specific_safety() -> None:
+    application = ApplicationConfig.model_validate(
+        {
+            "id": "petanque",
+            "name": "Petanque",
+            "runtime_policy": {
+                "allowed_message_types": ["std_msgs/msg/String"],
+                "allowed_publish_topics": ["/petanque_state_machine/change_state"],
+                "allowed_recording_topics": ["/rosout"],
+                "allowed_teleop_targets": ["/teleop_cmd"],
+            },
+        }
+    )
+
+    assert application.runtime_policy.allowed_message_types == ("std_msgs/msg/String",)
+    assert application.runtime_policy.allowed_publish_topics == ("/petanque_state_machine/change_state",)
+    assert application.runtime_policy.allowed_recording_topics == ("/rosout",)
+    assert application.runtime_policy.allowed_teleop_targets == ("/teleop_cmd",)
+
+
 def test_robot_3d_widget_kind_is_reserved_for_optional_visualization_extensions() -> None:
     widget = WidgetConfig(
         id="robot-state",

@@ -104,6 +104,8 @@ current roadmap.
 - Runtime topic-publish intents dispatch through the backend ROS publish endpoint with simulated status when ROS is not configured.
 - Runtime command safety includes topic/message/payload allowlists, command rate limits, and audit records for HTTP ROS
   publishes and WebSocket teleop commands.
+- Apps can declare runtime adapter policies for allowed publish topics, message types, recording topics, and teleop
+  targets; the frontend uses them for early feedback while the backend remains the final safety boundary.
 - Mode-aware joystick intents can now map to runtime teleop commands and, in ROS mode, publish Extender `TeleopCommand`
   messages on `/teleop_cmd`.
 - One-shot command buttons can now carry optional ROS topic/message/payload settings and shared presets for common

@@ -94,3 +94,7 @@ robot, ROS, network, or hardware state must come from explicit adapters instead 
 Apps may depend on libs. Libs should not depend on apps.
 
 Generic libs may not import ROS. ROS integration stays behind adapter interfaces so Bloom can also run in tests, demos, or non-ROS projects.
+
+App configurations may declare runtime adapter policies for allowed topics, message types, recording topics, and teleop
+targets. These policies improve runtime UX and fixture clarity, but backend adapter policies remain the final safety
+boundary before commands reach ROS or any other machine protocol.

@@ -77,6 +77,20 @@ export type UserProfile = {
   motor_accessibility_preset: MotorAccessibilityPreset;
 };
 
+export type RuntimeAdapterPolicy = {
+  allowed_message_types: string[];
+  allowed_publish_topics: string[];
+  allowed_recording_topics: string[];
+  allowed_teleop_targets: string[];
+};
+
+export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
+  allowed_message_types: [],
+  allowed_publish_topics: [],
+  allowed_recording_topics: [],
+  allowed_teleop_targets: [],
+};
+
 export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
   inspiration: {
     moodboard_image_uri: "",
@@ -95,6 +109,7 @@ export type ApplicationConfig = {
   id: string;
   name: string;
   description: string;
+  runtime_policy: RuntimeAdapterPolicy;
   theme: ApplicationTheme;
   profiles: UserProfile[];
   screens: ScreenConfig[];

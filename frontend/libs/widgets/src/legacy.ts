@@ -2,12 +2,13 @@ import type {
   ApplicationConfig,
   CanvasSettings,
   ConfigurationBundle,
+  RuntimeAdapterPolicy,
   ScreenConfig,
   WidgetConfig,
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
-import { DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
+import { DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 
 export type LegacyCanvasScreen = {
   id?: string;
@@ -78,9 +79,19 @@ export function legacyCanvasScreensToApplicationConfig(
     id,
     name: stringOrFallback(application.name, id),
     description: stringOrFallback(application.description, homeScreenDescription),
+    runtime_policy: cloneRuntimePolicy(DEFAULT_RUNTIME_POLICY),
     theme: DEFAULT_APPLICATION_THEME,
     profiles: [],
     screens: orderedScreens,
+  };
+}
+
+function cloneRuntimePolicy(policy: RuntimeAdapterPolicy): RuntimeAdapterPolicy {
+  return {
+    allowed_message_types: [...policy.allowed_message_types],
+    allowed_publish_topics: [...policy.allowed_publish_topics],
+    allowed_recording_topics: [...policy.allowed_recording_topics],
+    allowed_teleop_targets: [...policy.allowed_teleop_targets],
   };
 }
 

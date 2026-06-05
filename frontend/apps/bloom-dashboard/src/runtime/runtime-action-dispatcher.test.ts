@@ -65,6 +65,32 @@ describe("runtime action dispatcher", () => {
     expect(client.publishRosTopic).toHaveBeenCalledOnce();
   });
 
+  it("blocks topic publish intents outside the active app runtime policy", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(),
+    };
+    const intent = createTopicPublishIntent("{data: [13, 1]}");
+
+    await expect(
+      dispatchRuntimeActionIntent(client, intent, {
+        runtimePolicy: {
+          allowed_message_types: ["std_msgs/msg/Int32MultiArray"],
+          allowed_publish_topics: ["/safe/topic"],
+          allowed_recording_topics: [],
+          allowed_teleop_targets: [],
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "blocked",
+      detail: 'ROS topic "/ui/ros_toggle" is not allowed by this app runtime policy.',
+      request: {
+        topic: "/ui/ros_toggle",
+        message_type: "std_msgs/msg/Int32MultiArray",
+      },
+    });
+    expect(client.publishRosTopic).not.toHaveBeenCalled();
+  });
+
   it("returns unsupported results when topic publish intents miss the message type", async () => {
     const client: RuntimeActionClient = {
       publishRosTopic: vi.fn(),
@@ -176,6 +202,40 @@ describe("runtime action dispatcher", () => {
     });
     expect(client.sendTeleopCommand).toHaveBeenCalledOnce();
     expect(client.publishRosTopic).not.toHaveBeenCalled();
+  });
+
+  it("blocks teleop commands outside the active app runtime policy", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(),
+      sendTeleopCommand: vi.fn(),
+    };
+    const intent = createTeleopValueIntent({
+      modeId: "translation",
+      runtimeBinding: {
+        adapter: "teleop",
+      },
+      value: { x: 0.2, y: 0.3 },
+    });
+
+    await expect(
+      dispatchRuntimeActionIntent(client, intent, {
+        runtimePolicy: {
+          allowed_message_types: [],
+          allowed_publish_topics: [],
+          allowed_recording_topics: [],
+          allowed_teleop_targets: ["/safe_teleop"],
+        },
+        teleopSequence: 43,
+      }),
+    ).resolves.toMatchObject({
+      status: "blocked",
+      detail: 'Teleop target "/teleop_cmd" is not allowed by this app runtime policy.',
+      request: {
+        target: "/teleop_cmd",
+        type: "teleop_cmd",
+      },
+    });
+    expect(client.sendTeleopCommand).not.toHaveBeenCalled();
   });
 
   it("converts scalar value-change intents to topic publish requests", () => {

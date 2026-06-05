@@ -184,7 +184,13 @@
             }
           ]
         }
-      ]
+      ],
+      "runtime_policy": {
+        "allowed_message_types": ["std_msgs/msg/Float64"],
+        "allowed_publish_topics": ["/cmd/joystick_z", "/cmd/max_velocity"],
+        "allowed_recording_topics": ["/joint_states", "/sandbox_controller/velocity_command", "/teleop_cmd"],
+        "allowed_teleop_targets": ["/teleop_cmd"]
+      }
     }
   ]
 }

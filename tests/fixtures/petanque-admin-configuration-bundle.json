@@ -1075,7 +1075,42 @@
             }
           ]
         }
-      ]
+      ],
+      "runtime_policy": {
+        "allowed_message_types": [
+          "std_msgs/msg/Bool",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/Int32MultiArray",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": [
+          "/cmd/gripper",
+          "/cmd/joystick_rxry",
+          "/cmd/joystick_rz",
+          "/cmd/joystick_xy",
+          "/cmd/joystick_z",
+          "/cmd/max_velocity",
+          "/cmd/petanque/round",
+          "/petanque/measure/request_image",
+          "/petanque/teleop/enabled",
+          "/petanque/throw/alpha",
+          "/petanque/throw/gesture",
+          "/petanque_state_machine/change_state",
+          "/ui/load_pose",
+          "/ui/navigation",
+          "/ui/save_pose",
+          "/visual_servoing/enabled"
+        ],
+        "allowed_recording_topics": [
+          "/joint_states",
+          "/petanque_state_machine/change_state",
+          "/rosout",
+          "/sandbox_controller/velocity_command",
+          "/teleop_cmd"
+        ],
+        "allowed_teleop_targets": ["/teleop_cmd"]
+      }
     }
   ]
 }

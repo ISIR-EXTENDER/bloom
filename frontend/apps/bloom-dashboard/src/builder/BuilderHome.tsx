@@ -1,4 +1,9 @@
-import { type ApplicationConfig, DEFAULT_APPLICATION_THEME, type ScreenConfig } from "@bloom/api-client";
+import {
+  type ApplicationConfig,
+  DEFAULT_APPLICATION_THEME,
+  DEFAULT_RUNTIME_POLICY,
+  type ScreenConfig,
+} from "@bloom/api-client";
 import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -258,6 +263,7 @@ export function BuilderHome({
                     id,
                     name,
                     description: "New Bloom app",
+                    runtime_policy: DEFAULT_RUNTIME_POLICY,
                     theme: DEFAULT_APPLICATION_THEME,
                     profiles: [],
                     screens: [

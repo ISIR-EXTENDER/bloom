@@ -89,7 +89,19 @@
             }
           ]
         }
-      ]
+      ],
+      "runtime_policy": {
+        "allowed_message_types": [],
+        "allowed_publish_topics": [],
+        "allowed_recording_topics": [
+          "/joint_states",
+          "/petanque_state_machine/change_state",
+          "/rosout",
+          "/sandbox_controller/velocity_command",
+          "/teleop_cmd"
+        ],
+        "allowed_teleop_targets": []
+      }
     }
   ]
 }

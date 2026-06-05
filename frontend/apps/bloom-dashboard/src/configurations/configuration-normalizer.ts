@@ -4,13 +4,14 @@ import type {
   CanvasPresetId,
   CanvasSettings,
   ConfigurationBundle,
+  RuntimeAdapterPolicy,
   RuntimeCanvasMode,
   ScreenConfig,
   WidgetConfig,
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
-import { DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
+import { DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
   applications?: PartialApplicationConfig[];
@@ -19,9 +20,12 @@ type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "application
 
 type PartialApplicationConfig = Partial<Omit<ApplicationConfig, "screens">> & {
   profiles?: ApplicationConfig["profiles"];
+  runtime_policy?: PartialRuntimeAdapterPolicy;
   screens?: PartialScreenConfig[];
   theme?: PartialApplicationTheme;
 };
+
+type PartialRuntimeAdapterPolicy = Partial<RuntimeAdapterPolicy>;
 
 type PartialApplicationTheme = Partial<Omit<ApplicationTheme, "palette">> & {
   inspiration?: Partial<ApplicationTheme["inspiration"]>;
@@ -94,9 +98,28 @@ function normalizeApplication(application: PartialApplicationConfig, index: numb
     id,
     name: asString(application.name, id),
     description: asString(application.description, ""),
+    runtime_policy: normalizeRuntimePolicy(application.runtime_policy),
     theme: normalizeApplicationTheme(application.theme),
     profiles: Array.isArray(application.profiles) ? application.profiles : [],
     screens: (application.screens ?? []).map((screen, screenIndex) => normalizeScreen(screen, screenIndex)),
+  };
+}
+
+function normalizeRuntimePolicy(policy: PartialRuntimeAdapterPolicy | undefined): RuntimeAdapterPolicy {
+  return {
+    allowed_message_types: asStringArray(policy?.allowed_message_types, DEFAULT_RUNTIME_POLICY.allowed_message_types),
+    allowed_publish_topics: asStringArray(
+      policy?.allowed_publish_topics,
+      DEFAULT_RUNTIME_POLICY.allowed_publish_topics,
+    ),
+    allowed_recording_topics: asStringArray(
+      policy?.allowed_recording_topics,
+      DEFAULT_RUNTIME_POLICY.allowed_recording_topics,
+    ),
+    allowed_teleop_targets: asStringArray(
+      policy?.allowed_teleop_targets,
+      DEFAULT_RUNTIME_POLICY.allowed_teleop_targets,
+    ),
   };
 }
 
@@ -169,6 +192,13 @@ function asNumber(value: unknown, fallback: number): number {
 
 function asColorString(value: unknown, fallback: string): string {
   return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function asStringArray(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) {
+    return fallback;
+  }
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
