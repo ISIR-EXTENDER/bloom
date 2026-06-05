@@ -99,6 +99,7 @@ jobs:
         working-directory: backend
         run: |
           uv run uvicorn apps.bloom_api.main:app --host 127.0.0.1 --port 8000 > /tmp/bloom-api.log 2>&1 &
+          echo "$!" > /tmp/bloom-api.pid
           for attempt in {1..20}; do
             if curl --fail --silent http://127.0.0.1:8000/api/v1/health > /dev/null; then
               exit 0
@@ -110,3 +111,10 @@ jobs:
 
       - name: Run dynamic security smoke
         run: npm run security:dynamic
+
+      - name: Stop Bloom API
+        if: always()
+        run: |
+          if [ -f /tmp/bloom-api.pid ]; then
+            kill "$(cat /tmp/bloom-api.pid)" || true
+          fi
