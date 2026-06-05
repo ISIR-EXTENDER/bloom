@@ -56,6 +56,7 @@ export function App({
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(initialRoute.runtimeMode);
   const [recentRuntimeSelections, setRecentRuntimeSelections] = useState<readonly WorkspaceSelection[]>([]);
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
+  const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}`;
 
   useEffect(() => {
     const syncRouteFromBrowserHistory = () => {
@@ -80,6 +81,10 @@ export function App({
     }
     setSelection(getInitialWorkspaceSelection(configurationState.configurations));
   }, [configurationState, selection]);
+
+  useEffect(() => {
+    resetViewportForRoute(activeRouteKey);
+  }, [activeRouteKey]);
 
   const handleRuntimeIntent = (
     intent: WidgetActionIntent,
@@ -298,4 +303,13 @@ function readFileAsBase64(file: File): Promise<string> {
     reader.addEventListener("error", () => reject(new Error("Bloom could not read this theme asset.")));
     reader.readAsDataURL(file);
   });
+}
+
+function resetViewportForRoute(_routeKey: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.scrollTo({ top: 0 });
+  document.getElementById("bloom-main-content")?.focus({ preventScroll: true });
 }

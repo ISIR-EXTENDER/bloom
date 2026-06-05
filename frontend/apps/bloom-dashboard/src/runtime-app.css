@@ -4,7 +4,7 @@
   --runtime-shell-padding: 20px;
 
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
   height: calc(100vh - 112px);
   min-height: 620px;
@@ -14,6 +14,10 @@
   background: color-mix(in srgb, var(--bloom-surface-container-low) 92%, white);
   box-shadow: var(--bloom-shadow);
   font-size: calc(1rem * var(--runtime-font-scale));
+}
+
+.runtime-app-workspace[data-has-debug="true"] {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .runtime-app-workspace[data-display-preset="comfort"] {
