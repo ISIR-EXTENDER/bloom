@@ -130,6 +130,7 @@ def _map_widget_kind(kind: str) -> WidgetKind:
         "curves": WidgetKind.PLOT,
         "drink": WidgetKind.COMMAND_BUTTON,
         "gripper-control": WidgetKind.TOGGLE,
+        "throw-draw": WidgetKind.GESTURE_PAD,
         "joystick": WidgetKind.JOYSTICK,
         "load-pose-button": WidgetKind.COMMAND_BUTTON,
         "magnet-control": WidgetKind.TOGGLE,

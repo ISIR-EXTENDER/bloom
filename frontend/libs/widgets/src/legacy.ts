@@ -158,6 +158,7 @@ function legacyKindToBloomKind(kind: string): WidgetKind {
     "stream-display": "camera",
     text: "label",
     textarea: "label",
+    "throw-draw": "gesture-pad",
     toggle: "toggle",
     "toggle-publisher": "toggle",
   };

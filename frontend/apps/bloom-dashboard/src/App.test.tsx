@@ -1015,6 +1015,13 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Live teleop" })).toBeVisible();
     expect(screen.getAllByText("Camera Stream").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Camera").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to app config" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Teleop settings screen builder" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Teleop settings" })).toBeVisible();
+    expect(screen.getAllByText("Throw gesture").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Gesture pad").length).toBeGreaterThan(0);
   });
 
   it("dispatches sequenced teleop commands from migrated petanque joysticks", async () => {

@@ -228,6 +228,18 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
   },
   {
+    kind: "gesture-pad",
+    displayName: "Gesture pad",
+    category: "input",
+    description: "Captures an angle and power gesture for trajectory-like commands.",
+    defaultTitle: "Gesture",
+    defaultSettings: getDefaultWidgetSettings("gesture-pad"),
+    defaultLayout: { width: 360, height: 280, minWidth: 260, minHeight: 220 },
+    runtimeRequirements: ["command-dispatcher"],
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "borderColor"]),
+  },
+  {
     kind: "joystick",
     displayName: "Joystick",
     category: "input",
@@ -464,10 +476,10 @@ export const LEGACY_WIDGET_KIND_MAPPINGS: Readonly<Record<LegacyWidgetKind, Lega
   },
   "throw-draw": {
     legacyKind: "throw-draw",
-    bloomKind: "unknown",
-    compatibility: "adapter-required",
+    bloomKind: "gesture-pad",
+    compatibility: "renamed",
     displayName: "Gesture draw",
-    notes: "Reusable gesture/trajectory input candidate; keep as unknown until Bloom has a generic draw-control model.",
+    notes: "Maps to Bloom gesture-pad semantics for angle/power trajectory-like commands.",
   },
   drink: {
     legacyKind: "drink",

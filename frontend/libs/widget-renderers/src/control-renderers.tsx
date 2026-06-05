@@ -1,6 +1,6 @@
 import { createWidgetActionIntent, normalizeWidgetSettings } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 import { JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
 import {
   clamp,
@@ -156,6 +156,106 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
       </output>
     </div>
   );
+}
+
+export function GesturePadWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+  const angleLabel = getStringSetting(descriptor.widget.settings, "angleLabel", "Angle");
+  const powerLabel = getStringSetting(descriptor.widget.settings, "powerLabel", "Power");
+  const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
+  const [gesture, setGesture] = useState({ angleDegrees: 45, power: 0.5 });
+
+  const emitGesture = (nextGesture: { angleDegrees: number; power: number }) => {
+    setGesture(nextGesture);
+    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-gesture", value: nextGesture }));
+  };
+
+  const handlePointerGesture = (event: PointerEvent<HTMLButtonElement>) => {
+    emitGesture(resolveGestureFromPointer(event));
+  };
+
+  const handleKeyboardGesture = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const nextGesture = resolveGestureFromKeyboard(event, gesture);
+    if (!nextGesture) {
+      return;
+    }
+    event.preventDefault();
+    emitGesture(nextGesture);
+  };
+
+  const angle = Math.round(gesture.angleDegrees);
+  const power = Math.round(gesture.power * 100);
+
+  return (
+    <div className="bloom-gesture-widget" data-show-details={showDetails ? "true" : "false"}>
+      <header className="bloom-control-header">
+        <strong>{descriptor.widget.title}</strong>
+        <span className={showDetails ? undefined : "bloom-control-detail-hidden"}>
+          {angleLabel} / {powerLabel}
+        </span>
+      </header>
+      <button
+        aria-label={`${descriptor.widget.title}: choose trajectory gesture`}
+        className="bloom-gesture-pad"
+        onKeyDown={handleKeyboardGesture}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          handlePointerGesture(event);
+        }}
+        onPointerMove={(event) => {
+          if (event.buttons === 1) {
+            handlePointerGesture(event);
+          }
+        }}
+        type="button"
+      >
+        <span aria-hidden="true" className="bloom-gesture-arc" />
+        <span
+          aria-hidden="true"
+          className="bloom-gesture-vector"
+          style={
+            {
+              "--bloom-gesture-angle": `${angle}deg`,
+              "--bloom-gesture-power": gesture.power.toString(),
+            } as CSSProperties
+          }
+        />
+        <span className="bloom-gesture-hint">Drag to set trajectory</span>
+      </button>
+      <output aria-live="polite" className={showDetails ? "bloom-control-readout" : "bloom-control-readout sr-only"}>
+        {angleLabel} {angle} deg · {powerLabel} {power}%
+      </output>
+    </div>
+  );
+}
+
+function resolveGestureFromPointer(event: PointerEvent<HTMLElement>): { angleDegrees: number; power: number } {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  const normalizedX = clamp(x / Math.max(rect.width, 1), 0, 1);
+  const normalizedY = clamp(1 - y / Math.max(rect.height, 1), 0, 1);
+  const angleDegrees = Math.round(normalizedX * 180);
+  const power = Number(normalizedY.toFixed(3));
+  return { angleDegrees, power };
+}
+
+function resolveGestureFromKeyboard(
+  event: KeyboardEvent<HTMLElement>,
+  currentGesture: { angleDegrees: number; power: number },
+): { angleDegrees: number; power: number } | null {
+  if (event.key === "ArrowLeft") {
+    return { ...currentGesture, angleDegrees: Math.round(clamp(currentGesture.angleDegrees - 5, 0, 180)) };
+  }
+  if (event.key === "ArrowRight") {
+    return { ...currentGesture, angleDegrees: Math.round(clamp(currentGesture.angleDegrees + 5, 0, 180)) };
+  }
+  if (event.key === "ArrowDown") {
+    return { ...currentGesture, power: Number(clamp(currentGesture.power - 0.05, 0, 1).toFixed(3)) };
+  }
+  if (event.key === "ArrowUp") {
+    return { ...currentGesture, power: Number(clamp(currentGesture.power + 0.05, 0, 1).toFixed(3)) };
+  }
+  return null;
 }
 
 function emitJoystickVectorChange(

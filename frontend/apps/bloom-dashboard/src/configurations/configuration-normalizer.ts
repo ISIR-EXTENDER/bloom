@@ -45,6 +45,7 @@ const WIDGET_KINDS = new Set<WidgetKind>([
   "command-button",
   "event-log",
   "gauge",
+  "gesture-pad",
   "joystick",
   "label",
   "plot",

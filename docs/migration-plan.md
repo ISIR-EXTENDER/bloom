@@ -285,13 +285,15 @@ Completed in this phase so far:
   command, and event widgets instead of a task-specific core widget.
 - The Explorer candidate now includes a favorites screen that models fast operator shortcuts as configured commands
   without introducing a premature favorites subsystem.
+- The Petanque `throw-draw` idea now maps to a generic `gesture-pad` widget foundation that emits angle/power value
+  intents and keeps Petanque topics/commands in configuration.
 
 Phase 4 remaining work:
 
 - Extend configurable ROS message command presets toward reusable preset libraries and app-specific adapter policies.
 - Continue Bloom Debug telemetry polish and evaluate a richer chart dependency only when first-party variants are no
   longer enough.
-- Migrate Petanque gesture/trajectory candidates and richer saved-preset variants behind generic contracts.
+- Migrate richer saved-preset variants behind generic contracts.
 - Continue app-by-app runtime validation against real legacy JSON and ROS adapter behavior.
 
 Explorer user-test app candidate:

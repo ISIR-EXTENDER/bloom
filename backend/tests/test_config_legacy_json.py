@@ -108,3 +108,32 @@ def test_load_legacy_application_with_real_screens() -> None:
     migrated_petanque_screen = next(screen for screen in application.screens if screen.id == "default_petanque")
     assert migrated_petanque_screen.widgets[0].kind == WidgetKind.LABEL
     assert migrated_petanque_screen.widgets[2].kind == WidgetKind.COMMAND_BUTTON
+
+
+def test_load_legacy_petanque_gesture_widget_as_generic_pad(tmp_path: Path) -> None:
+    screen_path = tmp_path / "play_petanque_lancer_draw.json"
+    screen_path.write_text(
+        """
+        {
+          "name": "play_petanque_lancer_draw",
+          "widgets": [
+            {
+              "id": "throw-gesture",
+              "kind": "throw-draw",
+              "label": "Throw gesture",
+              "topic": "/petanque/throw/gesture",
+              "rect": { "x": 40, "y": 120, "w": 420, "h": 280 }
+            }
+          ]
+        }
+        """,
+        encoding="utf-8",
+    )
+    screen = load_legacy_screen_file(screen_path)
+
+    gesture = next(widget for widget in screen.widgets if widget.kind == WidgetKind.GESTURE_PAD)
+
+    assert gesture.title == "Throw gesture"
+    assert gesture.layout.width > 0
+    assert gesture.layout.height > 0
+    assert gesture.settings["topic"] == "/petanque/throw/gesture"

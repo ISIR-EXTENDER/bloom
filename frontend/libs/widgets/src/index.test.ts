@@ -303,6 +303,7 @@ describe("widget settings contracts", () => {
       "command-button",
       "event-log",
       "gauge",
+      "gesture-pad",
       "joystick",
       "label",
       "plot",
@@ -329,6 +330,25 @@ describe("widget settings contracts", () => {
         returnToCenter: false,
         show_details: false,
         step: 0.01,
+      },
+    });
+  });
+
+  it("normalizes gesture pad settings with operator-facing details hidden by default", () => {
+    expect(
+      normalizeWidgetSettings("gesture-pad", {
+        command: "petanque.throw.preview",
+        topic: "/petanque/throw/gesture",
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        angleLabel: "Angle",
+        command: "petanque.throw.preview",
+        messageType: "",
+        powerLabel: "Power",
+        show_details: false,
+        topic: "/petanque/throw/gesture",
       },
     });
   });
@@ -825,6 +845,7 @@ describe("legacy widget kind mapping", () => {
     expect(toBloomWidgetKind("stream-display")).toBe("camera");
     expect(toBloomWidgetKind("curves")).toBe("plot");
     expect(toBloomWidgetKind("logs")).toBe("event-log");
+    expect(toBloomWidgetKind("throw-draw")).toBe("gesture-pad");
   });
 
   it("marks ROS and device widgets as adapter-dependent", () => {
@@ -842,10 +863,10 @@ describe("legacy widget kind mapping", () => {
     });
   });
 
-  it("keeps reusable complex widgets out of Bloom core until generic models exist", () => {
+  it("maps trajectory-like legacy widgets to reusable generic contracts", () => {
     expect(resolveLegacyWidgetKind("throw-draw")).toMatchObject({
-      bloomKind: "unknown",
-      compatibility: "adapter-required",
+      bloomKind: "gesture-pad",
+      compatibility: "renamed",
     });
     expect(resolveLegacyWidgetKind("drink")).toMatchObject({
       bloomKind: "command-button",
@@ -1333,7 +1354,7 @@ describe("widget runtime action intents", () => {
     });
   });
 
-  it("creates scalar and vector value-change intents for input widgets", () => {
+  it("creates scalar, vector, and gesture value-change intents for input widgets", () => {
     expect(
       createWidgetActionIntent(
         createWidgetConfigFromDefinition(createDefaultWidgetRegistry().get("slider") as WidgetDefinition, "speed", {
@@ -1368,6 +1389,31 @@ describe("widget runtime action intents", () => {
         target: "rotation",
       },
       zeroOnRelease: true,
+    });
+
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("gesture-pad") as WidgetDefinition,
+          "throw-gesture",
+          {
+            settings: {
+              command: "petanque.throw.preview",
+              messageType: "std_msgs/msg/String",
+              topic: "/petanque/throw/gesture",
+            },
+          },
+        ),
+        { type: "set-gesture", value: { angleDegrees: 42, power: 0.7 } },
+      ),
+    ).toEqual({
+      type: "value-change",
+      widgetId: "throw-gesture",
+      widgetKind: "gesture-pad",
+      value: { angleDegrees: 42, power: 0.7 },
+      binding: "petanque.throw.preview",
+      messageType: "std_msgs/msg/String",
+      topic: "/petanque/throw/gesture",
     });
   });
 

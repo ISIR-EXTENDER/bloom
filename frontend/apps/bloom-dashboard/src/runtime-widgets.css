@@ -86,7 +86,8 @@
 }
 
 .bloom-slider-widget,
-.bloom-joystick-widget {
+.bloom-joystick-widget,
+.bloom-gesture-widget {
   display: grid;
   gap: 10px;
   width: 100%;
@@ -95,7 +96,8 @@
 }
 
 .bloom-slider-widget[data-show-details="false"],
-.bloom-joystick-widget[data-show-details="false"] {
+.bloom-joystick-widget[data-show-details="false"],
+.bloom-gesture-widget[data-show-details="false"] {
   gap: 8px;
 }
 
@@ -333,12 +335,88 @@
   left: 0;
 }
 
+.bloom-gesture-pad {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 168px;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--bloom-primary) 22%, transparent);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--bloom-accent) 24%, transparent), transparent 42%),
+    linear-gradient(135deg, color-mix(in srgb, var(--bloom-primary-container) 72%, white), var(--bloom-surface));
+  color: var(--bloom-ink);
+  cursor: crosshair;
+  touch-action: none;
+  box-shadow:
+    inset 0 0 32px color-mix(in srgb, var(--bloom-primary) 10%, transparent),
+    0 14px 30px rgba(82, 91, 76, 0.12);
+}
+
+.bloom-gesture-pad:focus-visible {
+  outline: 4px solid color-mix(in srgb, var(--bloom-accent) 55%, transparent);
+  outline-offset: 4px;
+}
+
+.bloom-gesture-arc {
+  position: absolute;
+  right: 14%;
+  bottom: -34%;
+  left: 14%;
+  border: 2px dashed color-mix(in srgb, var(--bloom-primary) 30%, transparent);
+  border-radius: 999px 999px 0 0;
+  aspect-ratio: 2 / 1;
+}
+
+.bloom-gesture-vector {
+  position: absolute;
+  bottom: 18%;
+  left: 50%;
+  width: calc(42% * var(--bloom-gesture-power, 0.5));
+  min-width: 48px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bloom-primary);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--bloom-primary) 24%, transparent);
+  transform: rotate(calc(var(--bloom-gesture-angle, 45deg) - 90deg));
+  transform-origin: left center;
+}
+
+.bloom-gesture-vector::after {
+  position: absolute;
+  top: 50%;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--bloom-accent);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.bloom-gesture-hint {
+  z-index: 1;
+  align-self: end;
+  margin-bottom: 16px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface) 76%, transparent);
+  color: var(--bloom-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .bloom-action-widget,
 .bloom-event-log-widget,
 .bloom-label-widget,
 .bloom-toggle-widget,
 .bloom-topic-plot-widget,
 .bloom-gauge-widget,
+.bloom-gesture-widget,
 .bloom-plot-widget,
 .bloom-robot-3d-widget {
   display: grid;
