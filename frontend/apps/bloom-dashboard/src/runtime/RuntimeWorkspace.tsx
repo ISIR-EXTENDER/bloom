@@ -1,6 +1,7 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { appendTopicEchoMessage, appendTopicPlotSample, resolveCanvasFitScale } from "@bloom/widgets";
+import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
@@ -11,6 +12,7 @@ import type {
   RuntimeTopicSampleMessage,
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
+import { resolveRuntimeProfile } from "./runtimeProfile";
 
 const FIT_OVERFLOW_GUARD = 0.99;
 
@@ -66,6 +68,7 @@ export function RuntimeWorkspace({
     }),
     [artboardScale, artboardSize],
   );
+  const runtimeProfile = useMemo(() => resolveRuntimeProfile(application, viewportSize), [application, viewportSize]);
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
@@ -126,11 +129,18 @@ export function RuntimeWorkspace({
   }, [onTopicSample, screen]);
 
   return (
-    <section className="runtime-app-workspace" aria-label="Runtime application">
+    <section
+      aria-label="Runtime application"
+      className="runtime-app-workspace"
+      data-display-preset={runtimeProfile.displayPreset}
+      data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
+      style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
+    >
       <header className="runtime-app-topbar">
         <div>
           <p className="eyebrow">Runtime app</p>
           <h2>{application.name}</h2>
+          <p className="runtime-profile-label">{runtimeProfile.name}</p>
         </div>
 
         <nav className="runtime-app-actions" aria-label="Runtime shortcuts">
