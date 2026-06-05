@@ -2,6 +2,7 @@ import {
   type ApplicationConfig,
   type ConfigurationBundle,
   DEFAULT_APPLICATION_THEME,
+  DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
 } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
@@ -231,6 +232,7 @@ function createBundle(): ConfigurationBundle {
         id: "sandbox",
         name: "Sandbox",
         description: "Sandbox operator interface",
+        runtime_policy: DEFAULT_RUNTIME_POLICY,
         theme: DEFAULT_APPLICATION_THEME,
         profiles: [],
         screens: [createScreen("main"), createScreen("diagnostics")],

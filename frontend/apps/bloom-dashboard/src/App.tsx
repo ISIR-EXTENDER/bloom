@@ -81,8 +81,8 @@ export function App({
     setSelection(getInitialWorkspaceSelection(configurationState.configurations));
   }, [configurationState, selection]);
 
-  const handleRuntimeIntent = (intent: WidgetActionIntent) => {
-    runtimeActions.dispatch(intent);
+  const handleRuntimeIntent = (intent: WidgetActionIntent, runtimePolicy?: ApplicationConfig["runtime_policy"]) => {
+    runtimeActions.dispatch(intent, { runtimePolicy });
   };
 
   const handleSaveBuilderScreen = async (screen: ScreenConfig) => {

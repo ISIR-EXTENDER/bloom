@@ -1081,7 +1081,18 @@
             }
           ]
         }
-      ]
+      ],
+      "runtime_policy": {
+        "allowed_message_types": [
+          "std_msgs/msg/Bool",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": ["/cmd/max_velocity", "/explorer/emergency_stop", "/gripper_controller/commands"],
+        "allowed_recording_topics": ["/joint_states", "/teleop_cmd"],
+        "allowed_teleop_targets": ["/teleop_cmd"]
+      }
     }
   ]
 }

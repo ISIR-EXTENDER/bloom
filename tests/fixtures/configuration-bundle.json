@@ -9,6 +9,12 @@
       "id": "sandbox",
       "name": "Sandbox",
       "description": "Sandbox operator interface",
+      "runtime_policy": {
+        "allowed_message_types": [],
+        "allowed_publish_topics": [],
+        "allowed_recording_topics": [],
+        "allowed_teleop_targets": []
+      },
       "theme": {
         "inspiration": {
           "moodboard_image_uri": "",

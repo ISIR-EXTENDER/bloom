@@ -2,6 +2,7 @@ import {
   type ApplicationConfig,
   type ConfigurationBundle,
   DEFAULT_APPLICATION_THEME,
+  DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
 } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -1467,6 +1468,7 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
         id,
         name: "Sandbox",
         description: "Sandbox operator interface",
+        runtime_policy: DEFAULT_RUNTIME_POLICY,
         theme: DEFAULT_APPLICATION_THEME,
         profiles: [],
         screens: [
@@ -1548,6 +1550,7 @@ function createBundleWithReusableScreen(): ConfigurationBundle {
         id: "shared-screens",
         name: "Shared screens",
         description: "Reusable screen library for tests",
+        runtime_policy: DEFAULT_RUNTIME_POLICY,
         theme: DEFAULT_APPLICATION_THEME,
         profiles: [],
         screens: [

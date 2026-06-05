@@ -96,6 +96,13 @@ class UserProfile(BloomModel):
     motor_accessibility_preset: MotorAccessibilityPreset = MotorAccessibilityPreset.DEFAULT
 
 
+class RuntimeAdapterPolicy(BloomModel):
+    allowed_message_types: tuple[str, ...] = Field(default_factory=tuple)
+    allowed_publish_topics: tuple[str, ...] = Field(default_factory=tuple)
+    allowed_recording_topics: tuple[str, ...] = Field(default_factory=tuple)
+    allowed_teleop_targets: tuple[str, ...] = Field(default_factory=tuple)
+
+
 class WidgetConfig(BloomModel):
     id: str = Field(min_length=1)
     kind: WidgetKind = WidgetKind.UNKNOWN
@@ -132,6 +139,7 @@ class ApplicationConfig(BloomModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str = ""
+    runtime_policy: RuntimeAdapterPolicy = Field(default_factory=RuntimeAdapterPolicy)
     theme: ApplicationTheme = Field(default_factory=ApplicationTheme)
     profiles: tuple[UserProfile, ...] = Field(default_factory=tuple)
     screens: tuple[ScreenConfig, ...] = Field(default_factory=tuple)

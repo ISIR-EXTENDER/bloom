@@ -1,3 +1,4 @@
+import type { RuntimeAdapterPolicy } from "@bloom/api-client";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useRef, useState } from "react";
 import {
@@ -17,13 +18,17 @@ export type RuntimeActionRecord = {
   status: RuntimeActionRecordStatus;
 };
 
+export type RuntimeDispatchOptions = {
+  runtimePolicy?: RuntimeAdapterPolicy;
+};
+
 export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const nextRecordIndex = useRef(0);
   const nextTeleopSequence = useRef(0);
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
 
   const dispatch = useCallback(
-    (intent: WidgetActionIntent) => {
+    (intent: WidgetActionIntent, options: RuntimeDispatchOptions = {}) => {
       nextRecordIndex.current += 1;
       const recordId = createRecordId(intent, nextRecordIndex.current);
       setRecords((currentRecords) =>
@@ -40,7 +45,10 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
       const teleopSequence = intent.type === "value-change" ? ++nextTeleopSequence.current : undefined;
 
-      void dispatchRuntimeActionIntent(client, intent, { teleopSequence }).then((result) => {
+      void dispatchRuntimeActionIntent(client, intent, {
+        runtimePolicy: options.runtimePolicy,
+        teleopSequence,
+      }).then((result) => {
         setRecords((currentRecords) =>
           currentRecords.map((record) =>
             record.id === recordId
