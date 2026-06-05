@@ -36,7 +36,7 @@ Bloom should let ISIR users create robot web apps without writing web code:
 
 ## Current Status
 
-Last full review: 2026-06-04.
+Last full review: 2026-06-05.
 
 Current migration estimate:
 
@@ -93,6 +93,12 @@ Already merged:
 - Runtime fit rendering now keeps one canonical screen/widget layout model and applies visual scaling only at the
   artboard boundary, preserving WYSIWYG geometry while avoiding clipped teleop controls.
 - Topic echo widgets now include a first user-facing debug action to copy the latest visible messages.
+- Tablet UX review and visual smoke coverage now include landing, builder home, app configuration, and runtime at
+  `1024x600`, `1280x800`, and `1920x1080`.
+- Runtime app layout now gives normal operator apps the full available canvas height instead of reserving Bloom Debug
+  space when the debug panel is not mounted.
+- Product route changes now reset scroll/focus to the main content region, so app configuration and runtime pages open
+  with their title and primary actions visible.
 
 ## Roadmap
 
@@ -164,6 +170,9 @@ Already done in this phase:
 - Runtime navigation now opens an app library instead of silently using the current builder selection.
 - Runtime app library includes session-local recent app shortcuts, with the full library still visible.
 - Runtime apps keep a clean operator view while exposing small app/screen edit shortcuts back to the builder.
+- Builder home now has tablet-density rules so apps, screen library, and playground choices are visible in the first
+  `1024x600` viewport instead of being pushed below a tall hero.
+- App configuration is now part of visual smoke coverage, which caught and fixed the route scroll-position bug.
 - Backend/robot/network status UX has a documented hierarchy so Bloom can add status indicators without becoming noisy.
 
 Phase 2 follow-ups that should not block Phase 3:
@@ -405,8 +414,12 @@ make test
 When UI changes affect the visible product flow:
 
 ```bash
+npm run visual:smoke
 npm run capture:readme
 ```
+
+Use `npm run visual:smoke` for shell, builder, runtime, widget, or responsive layout changes. Use
+`npm run capture:readme` only when README preview screenshots should be refreshed.
 
 When ROS behavior is involved:
 

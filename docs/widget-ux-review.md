@@ -1,6 +1,6 @@
 # Widget UX Review
 
-Date: 2026-06-04
+Date: 2026-06-05
 
 This review looks at Bloom widgets from a user-centered, tablet-first perspective. The goal is not to expose every
 technical detail on every widget. The goal is to help an operator understand what a widget does, touch it comfortably,
@@ -20,8 +20,8 @@ and recover confidence quickly when something is not configured.
 | --- | --- | --- |
 | Button / command button | Improved | Runtime now uses the configured action label or widget title instead of a generic "Send". Needs action progress states when long-running actions land. |
 | Toggle | Improved | Runtime now shows human state labels such as `Active` / `Inactive`, hides topics by default, and keeps `aria-pressed`. App builders should customize labels for real devices. |
-| Slider | Good foundation | Large Radix handle, return-to-center option, details hidden by default. Needs more visual QA on crowded tablet layouts and clearer units when configured. |
-| Joystick | Good foundation | Pointer-native, large tactile control, deadzone, continuous publish, zero-on-release. Needs visual QA per app mode and optional simplified labels for non-debug operators. |
+| Slider | Good foundation | Large Radix handle, return-to-center option, details hidden by default. The sandbox teleop lab now has visual smoke coverage at tablet and HD sizes. Needs clearer units when configured. |
+| Joystick | Good foundation | Pointer-native, large tactile control, deadzone, continuous publish, zero-on-release. Runtime layout now gives joysticks more room on `1024x600`; still needs per-app mode copy validation with real operators. |
 | Camera / stream | Good foundation | Webcam and stream views work; status text is now more human. Needs ROS image stream adapter and clearer permission fallback copy. |
 | Topic echo | Debug-oriented | Correct for Bloom Debug, but should be used intentionally. Details remain visible by default because it is a debug widget. |
 | Topic plot | Debug-oriented | Now uses first-party SVG area/sparkline/bar telemetry, formats latest values with units, and can hide technical topic/field details. Pause/clear controls remain a future debug refinement. |
@@ -44,14 +44,19 @@ and recover confidence quickly when something is not configured.
 - Label widgets now avoid debug metadata and render configured operator text.
 - Gauge, plot, and robot-3D widgets now have useful runtime renderers instead of generic placeholders.
 - Seeded app fixtures are tested so shipped apps do not include empty runtime screens.
+- Runtime workspace layout no longer reserves Bloom Debug panel space for normal operator apps, improving joystick and
+  slider comfort on tablet viewports.
+- Visual smoke now includes the app configuration page and validates the sandbox runtime at `1024x600`, `1280x800`, and
+  `1920x1080`.
 
 ## Remaining UX Risks
 
 - Some migrated legacy screens still contain dense layouts that were designed before Bloom's runtime card chrome.
 - Debug widgets are useful but can make an operator screen feel like a console if used without intention.
 - The widget inspector should make "operator clean mode" versus "debug details mode" obvious for every widget.
-- Sliders need unit labels and intent labels, especially when controlling velocity, gains, or angles.
-- Joysticks need app-level mode presets so Explorer/Petanque/Sandbox can present mode labels that match the operator's mental model.
+- Sliders still need unit labels and intent labels, especially when controlling velocity, gains, or angles.
+- Joysticks still need app-level mode presets so Explorer/Petanque/Sandbox can present mode labels that match the
+  operator's mental model.
 
 ## Next Recommended Fixes
 
@@ -60,4 +65,4 @@ and recover confidence quickly when something is not configured.
 3. Evaluate a richer chart dependency only when real runtime requirements need multi-series plots, zoom, cursor
    inspection, or longer offline traces.
 4. Add camera permission guidance with one clear recovery action.
-5. Add visual smoke snapshots for the sandbox teleop lab and Bloom Debug screens specifically.
+5. Add visual smoke snapshots for Bloom Debug screens specifically, now that the regular runtime path is covered.
