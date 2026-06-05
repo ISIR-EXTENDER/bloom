@@ -73,6 +73,15 @@ export type GaugeSettings = {
   value: number;
 };
 
+export type GesturePadSettings = {
+  angleLabel: string;
+  command: string;
+  messageType?: string;
+  powerLabel: string;
+  show_details: boolean;
+  topic?: string;
+};
+
 export type JoystickAxisSemantic = "custom" | "rotation" | "translation" | "vertical";
 
 export type JoystickAxisHint = {
@@ -223,6 +232,15 @@ const GAUGE_DEFAULT_SETTINGS: GaugeSettings = {
   min: 0,
   unit: "",
   value: 0,
+};
+
+const GESTURE_PAD_DEFAULT_SETTINGS: GesturePadSettings = {
+  angleLabel: "Angle",
+  command: "gesture",
+  messageType: "",
+  powerLabel: "Power",
+  show_details: false,
+  topic: "",
 };
 
 const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
@@ -384,6 +402,19 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     ],
     GAUGE_DEFAULT_SETTINGS,
     validateGaugeSettings,
+  ),
+  "gesture-pad": createContract(
+    "gesture-pad",
+    [
+      { key: "command", label: "Command", type: "text", required: true },
+      { key: "topic", label: "Output topic", type: "text", required: false },
+      { key: "messageType", label: "ROS message type", type: "text", required: false },
+      { key: "angleLabel", label: "Angle label", type: "text", required: true },
+      { key: "powerLabel", label: "Power label", type: "text", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
+    ],
+    GESTURE_PAD_DEFAULT_SETTINGS,
+    validateGesturePadSettings,
   ),
   joystick: createContract(
     "joystick",
@@ -840,6 +871,21 @@ function validateGaugeSettings(settings: Record<string, unknown>): WidgetSetting
   }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as GaugeSettings);
+}
+
+function validateGesturePadSettings(
+  settings: Record<string, unknown>,
+): WidgetSettingsValidationResult<GesturePadSettings> {
+  const errors = [
+    ...validateString(settings, "command", { allowEmpty: true }),
+    ...validateString(settings, "topic", { allowEmpty: true }),
+    ...validateString(settings, "messageType", { allowEmpty: true }),
+    ...validateString(settings, "angleLabel"),
+    ...validateString(settings, "powerLabel"),
+    ...validateBoolean(settings, "show_details"),
+  ];
+  if (errors.length > 0) return fail(errors);
+  return succeed(settings as GesturePadSettings);
 }
 
 function normalizeJoystickCompatibility(settings: Record<string, unknown>): Record<string, unknown> {

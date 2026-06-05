@@ -849,6 +849,25 @@
               }
             },
             {
+              "id": "teleop-config-throw-gesture",
+              "kind": "gesture-pad",
+              "title": "Throw gesture",
+              "layout": {
+                "x": 40,
+                "y": 424,
+                "width": 520,
+                "height": 220
+              },
+              "settings": {
+                "command": "petanque.throw.preview",
+                "topic": "/petanque/throw/gesture",
+                "messageType": "std_msgs/msg/String",
+                "angleLabel": "Angle",
+                "powerLabel": "Power",
+                "show_details": false
+              }
+            },
+            {
               "id": "teleop-config-mode",
               "kind": "toggle",
               "title": "Teleop mode",

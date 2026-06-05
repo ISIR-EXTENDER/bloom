@@ -224,6 +224,62 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("y 0.00")).toBeVisible();
   });
 
+  it("emits gesture value-change intents from trajectory pads", () => {
+    const descriptor = renderScreenDescriptors(gesturePadScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing gesture pad descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const gesturePad = screen.getByRole("button", { name: "Throw gesture: choose trajectory gesture" });
+    vi.spyOn(gesturePad, "getBoundingClientRect").mockReturnValue({
+      bottom: 100,
+      height: 100,
+      left: 0,
+      right: 200,
+      toJSON: () => {},
+      top: 0,
+      width: 200,
+      x: 0,
+      y: 0,
+    } as DOMRect);
+
+    fireEvent.pointerDown(gesturePad, { clientX: 100, clientY: 25, pointerId: 1 });
+
+    expect(onActionIntent).toHaveBeenCalledWith({
+      binding: "petanque.throw.preview",
+      messageType: "std_msgs/msg/String",
+      topic: "/petanque/throw/gesture",
+      type: "value-change",
+      value: { angleDegrees: 90, power: 0.75 },
+      widgetId: "throw-gesture",
+      widgetKind: "gesture-pad",
+    });
+    expect(screen.getByText("Drag to set trajectory")).toBeVisible();
+    expect(screen.getByText("Angle 90 deg · Power 75%")).toHaveClass("sr-only");
+  });
+
+  it("supports keyboard gesture adjustments for accessible trajectory pads", async () => {
+    const descriptor = renderScreenDescriptors(gesturePadScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing gesture pad descriptor.");
+    const onActionIntent = vi.fn();
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    screen.getByRole("button", { name: "Throw gesture: choose trajectory gesture" }).focus();
+    await user.keyboard("{ArrowRight}{ArrowUp}");
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "value-change",
+        value: { angleDegrees: 50, power: 0.55 },
+        widgetId: "throw-gesture",
+        widgetKind: "gesture-pad",
+      }),
+    );
+  });
+
   it("keeps publishing joystick vectors while held and zeros on release", async () => {
     const descriptor = renderScreenDescriptors(joystickScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing joystick descriptor.");
@@ -771,6 +827,33 @@ const joystickDebugScreen: ScreenConfig = {
       settings: {
         ...joystickScreen.widgets[0]?.settings,
         show_details: true,
+      },
+    },
+  ],
+};
+
+const gesturePadScreen: ScreenConfig = {
+  id: "throw",
+  title: "Throw",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "throw-gesture",
+      kind: "gesture-pad",
+      title: "Throw gesture",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 360,
+        height: 280,
+      },
+      settings: {
+        command: "petanque.throw.preview",
+        messageType: "std_msgs/msg/String",
+        topic: "/petanque/throw/gesture",
       },
     },
   ],

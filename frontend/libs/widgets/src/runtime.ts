@@ -8,6 +8,11 @@ export type Vector2Value = {
   y: number;
 };
 
+export type GestureValue = {
+  angleDegrees: number;
+  power: number;
+};
+
 export type RuntimeActionFeedbackMode = "none" | "progress" | "result";
 
 export type RuntimeActionContract = {
@@ -63,6 +68,10 @@ export type WidgetActionEvent =
   | {
       type: "set-vector";
       value: Vector2Value;
+    }
+  | {
+      type: "set-gesture";
+      value: GestureValue;
     };
 
 export type WidgetActionIntent =
@@ -99,7 +108,7 @@ export type WidgetActionIntent =
       runtimeBinding?: unknown;
       topic?: string;
       type: "value-change";
-      value: number | Vector2Value;
+      value: GestureValue | number | Vector2Value;
       widgetId: string;
       widgetKind: WidgetKind;
       zeroOnRelease?: boolean;
@@ -133,6 +142,9 @@ export function createWidgetActionIntent(widget: WidgetConfig, event: WidgetActi
   }
   if (widget.kind === "joystick") {
     return createVectorInputIntent(widget, event, normalizedSettings.settings);
+  }
+  if (widget.kind === "gesture-pad") {
+    return createGestureInputIntent(widget, event, normalizedSettings.settings);
   }
   return createUnsupportedIntent(widget, event, `Widget kind "${widget.kind}" does not produce runtime actions.`);
 }
@@ -238,6 +250,26 @@ function createVectorInputIntent(
     ...withOptional("publishRateHz", getOptionalNumber(settings, "publish_rate_hz")),
     ...withOptional("runtimeBinding", settings.runtime_binding),
     ...withOptional("zeroOnRelease", getOptionalBoolean(settings, "zero_on_release")),
+  };
+}
+
+function createGestureInputIntent(
+  widget: WidgetConfig,
+  event: WidgetActionEvent,
+  settings: Record<string, unknown>,
+): WidgetActionIntent {
+  if (event.type !== "set-gesture") {
+    return createUnsupportedIntent(widget, event, `Widget kind "${widget.kind}" only supports gesture actions.`);
+  }
+
+  return {
+    type: "value-change",
+    widgetId: widget.id,
+    widgetKind: widget.kind,
+    value: event.value,
+    ...withOptional("binding", getOptionalString(settings, "command")),
+    ...withOptional("messageType", getOptionalString(settings, "messageType")),
+    ...withOptional("topic", getOptionalString(settings, "topic")),
   };
 }
 

@@ -4,6 +4,7 @@ export const WIDGET_KINDS = [
   "command-button",
   "event-log",
   "gauge",
+  "gesture-pad",
   "joystick",
   "label",
   "plot",
