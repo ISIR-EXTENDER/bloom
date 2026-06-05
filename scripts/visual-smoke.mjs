@@ -175,7 +175,7 @@ async function mockRuntimeDebugApi(page) {
     });
   });
 
-  await page.route("**/api/v1/runtime/audit", async (route) => {
+  await page.route("**/api/v1/runtime/audit**", async (route) => {
     await route.fulfill({
       contentType: "application/json",
       json: { records: [] },
@@ -339,7 +339,7 @@ async function showDebugRuntime(page) {
   await page.getByRole("heading", { name: "Bloom Debug" }).waitFor();
   await page.getByRole("heading", { name: "Inspect, record, and audit runtime topics." }).waitFor();
   await page.getByRole("button", { name: "Refresh topics" }).click();
-  await page.getByText("/teleop_cmd").waitFor();
+  await page.locator(".bloom-debug-panel").getByText("/teleop_cmd").waitFor();
   await page.getByRole("button", { name: "Refresh audit" }).click();
   await page.getByRole("article", { name: /Teleop command echo/i }).waitFor();
   await page.getByRole("article", { name: /Velocity command X/i }).waitFor();
