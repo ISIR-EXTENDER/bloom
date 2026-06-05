@@ -23,6 +23,7 @@ from libs.sessions.teleop import (
 from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
 from libs.sessions.recording import (
     NoopRuntimeRecordingGateway,
+    RosbagRuntimeRecordingGateway,
     RuntimeRecordingGateway,
     RuntimeRecordingReceipt,
     RuntimeRecordingRequest,
@@ -41,6 +42,7 @@ __all__ = [
     "NoopTeleopCommandGateway",
     "NoopRuntimeTopicSubscriptionGateway",
     "NoopRuntimeRecordingGateway",
+    "RosbagRuntimeRecordingGateway",
     "RuntimeCommandRateLimiter",
     "RuntimeRateLimitError",
     "RuntimeAuditLog",

@@ -59,6 +59,14 @@ class RecordingRuntimeRecordingGateway:
         )
 
 
+class FailingRuntimeRecordingGateway:
+    def start(self, request: RuntimeRecordingRequest) -> RuntimeRecordingReceipt:
+        raise RuntimeError("ros2 executable is not available for rosbag recording")
+
+    def stop(self, recording_id: str) -> RuntimeRecordingReceipt:
+        raise RuntimeError("recording gateway unavailable")
+
+
 class RecordingTopicSubscriptionHandle:
     def __init__(self) -> None:
         self.closed = False
@@ -495,6 +503,55 @@ def test_runtime_recording_rejects_unapproved_output_folders() -> None:
     assert record.channel == "runtime_recording"
     assert record.status == "rejected"
     assert record.target == "tmp"
+
+
+def test_runtime_recording_rejects_topics_outside_allowlist() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    gateway = RecordingRuntimeRecordingGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_audit_log=audit_log,
+            runtime_recording_gateway=gateway,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/runtime/recordings",
+        json={"topics": ["/dangerous/topic"], "output_folder": "data/recordings"},
+    )
+
+    assert response.status_code == 403
+    assert "recording topic '/dangerous/topic' is not allowed" in response.json()["detail"]
+    assert gateway.started_requests == []
+    record = audit_log.list_records()[0]
+    assert record.channel == "runtime_recording"
+    assert record.status == "rejected"
+    assert record.topic == "/dangerous/topic"
+
+
+def test_runtime_recording_reports_gateway_failures_as_service_unavailable() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_audit_log=audit_log,
+            runtime_recording_gateway=FailingRuntimeRecordingGateway(),
+        )
+    )
+
+    response = client.post(
+        "/api/v1/runtime/recordings",
+        json={"topics": ["/teleop_cmd"], "output_folder": "data/recordings"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "ros2 executable is not available for rosbag recording"}
+    record = audit_log.list_records()[0]
+    assert record.channel == "runtime_recording"
+    assert record.status == "rejected"
 
 
 class ControlledClock:

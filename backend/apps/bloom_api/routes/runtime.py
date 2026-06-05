@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSo
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from apps.bloom_api.security import BloomPrincipal, require_operator, require_runtime_websocket_operator
-from libs.ros_adapters.safety import RuntimeCommandPolicy
+from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
 from libs.sessions import (
     RuntimeClientMessage,
     RuntimeAuditLog,
@@ -147,14 +147,42 @@ def start_runtime_recording(
         )
         raise HTTPException(status_code=403, detail="Recording output folder is not allowed.")
 
-    gateway = get_runtime_recording_gateway(request)
-    receipt = gateway.start(
-        RuntimeRecordingRequest(
-            label=recording_request.label,
-            output_folder=recording_request.output_folder,
-            topics=recording_request.topics,
+    policy = get_runtime_command_policy(request)
+    try:
+        policy.ensure_recording_topics_allowed(recording_request.topics)
+    except RuntimeCommandPolicyError as exc:
+        get_runtime_audit_log(request).record(
+            RuntimeAuditRecord(
+                channel="runtime_recording",
+                detail=str(exc),
+                payload_summary={"topic_count": len(recording_request.topics)},
+                status="rejected",
+                target=recording_request.output_folder,
+                topic=find_rejected_recording_topic(recording_request.topics, policy.allowed_recording_topics),
+            )
         )
-    )
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    gateway = get_runtime_recording_gateway(request)
+    try:
+        receipt = gateway.start(
+            RuntimeRecordingRequest(
+                label=recording_request.label,
+                output_folder=recording_request.output_folder,
+                topics=recording_request.topics,
+            )
+        )
+    except RuntimeError as exc:
+        get_runtime_audit_log(request).record(
+            RuntimeAuditRecord(
+                channel="runtime_recording",
+                detail=str(exc),
+                payload_summary={"topic_count": len(recording_request.topics)},
+                status="rejected",
+                target=recording_request.output_folder,
+            )
+        )
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     get_runtime_audit_log(request).record(
         RuntimeAuditRecord(
             channel="runtime_recording",
@@ -166,6 +194,12 @@ def start_runtime_recording(
         )
     )
     return RuntimeRecordingResponse(**asdict(receipt))
+
+
+def find_rejected_recording_topic(topics: tuple[str, ...], allowed_topics: tuple[str, ...]) -> str:
+    if "*" in allowed_topics:
+        return ""
+    return next((topic for topic in topics if topic not in allowed_topics), "")
 
 
 @router.post("/recordings/{recording_id}/stop", response_model=RuntimeRecordingResponse)

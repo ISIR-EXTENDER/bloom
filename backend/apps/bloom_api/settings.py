@@ -54,7 +54,15 @@ class Settings(BaseModel):
     )
     allowed_teleop_targets: tuple[str, ...] = ("/teleop_cmd",)
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
+    allowed_recording_topics: tuple[str, ...] = (
+        "/joint_states",
+        "/sandbox_controller/velocity_command",
+        "/teleop_cmd",
+    )
     allowed_recording_output_folders: tuple[str, ...] = ("data/recordings",)
+    runtime_recording_gateway: Literal["noop", "rosbag"] = Field(default="noop")
+    runtime_recording_base_directory: Path = Field(default=Path("."))
+    runtime_recording_executable: str = "ros2"
 
     @model_validator(mode="after")
     def production_requires_authentication(self) -> "Settings":
@@ -99,6 +107,29 @@ class Settings(BaseModel):
                 cls.model_fields["http_rate_limit_per_minute"].default,
             ),
             operator_api_key=os.getenv("BLOOM_OPERATOR_API_KEY", ""),
+            allowed_recording_topics=_read_tuple_env(
+                "BLOOM_ALLOWED_RECORDING_TOPICS",
+                cls.model_fields["allowed_recording_topics"].default,
+            ),
+            allowed_recording_output_folders=_read_tuple_env(
+                "BLOOM_ALLOWED_RECORDING_OUTPUT_FOLDERS",
+                cls.model_fields["allowed_recording_output_folders"].default,
+            ),
+            runtime_recording_base_directory=Path(
+                os.getenv(
+                    "BLOOM_RUNTIME_RECORDING_BASE_DIRECTORY",
+                    str(cls.model_fields["runtime_recording_base_directory"].default),
+                )
+            ),
+            runtime_recording_executable=os.getenv(
+                "BLOOM_RUNTIME_RECORDING_EXECUTABLE",
+                cls.model_fields["runtime_recording_executable"].default,
+            ),
+            runtime_recording_gateway=_read_literal_env(
+                "BLOOM_RUNTIME_RECORDING_GATEWAY",
+                ("noop", "rosbag"),
+                cls.model_fields["runtime_recording_gateway"].default,
+            ),
             service_name=os.getenv("BLOOM_SERVICE_NAME", cls.model_fields["service_name"].default),
             theme_asset_dir=Path(os.getenv("BLOOM_THEME_ASSET_DIR", str(cls.model_fields["theme_asset_dir"].default))),
         )

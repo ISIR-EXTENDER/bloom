@@ -17,6 +17,7 @@ from libs.sessions import (
     InMemoryRuntimeAuditLog,
     NoopRuntimeRecordingGateway,
     NoopRuntimeTopicSubscriptionGateway,
+    RosbagRuntimeRecordingGateway,
     NoopTeleopCommandGateway,
     RuntimeCommandRateLimiter,
     RuntimeAuditLog,
@@ -56,12 +57,13 @@ def create_app(
     app.state.runtime_command_policy = runtime_command_policy or RuntimeCommandPolicy(
         allowed_message_types=app_settings.allowed_ros_message_types,
         allowed_publish_topics=app_settings.allowed_ros_publish_topics,
+        allowed_recording_topics=app_settings.allowed_recording_topics,
         allowed_teleop_targets=app_settings.allowed_teleop_targets,
     )
     app.state.runtime_command_rate_limiter = runtime_command_rate_limiter or RuntimeCommandRateLimiter(
         max_commands_per_second=app_settings.runtime_command_rate_limit_per_second
     )
-    app.state.runtime_recording_gateway = runtime_recording_gateway or NoopRuntimeRecordingGateway()
+    app.state.runtime_recording_gateway = runtime_recording_gateway or create_runtime_recording_gateway(app_settings)
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
     app.state.runtime_session_manager = RuntimeSessionManager()
     app.state.http_rate_limit_buckets = {}
@@ -92,6 +94,16 @@ def create_app_configuration_repository(settings: Settings) -> ConfigurationRepo
         configuration_dir=settings.configuration_dir,
         database_path=settings.configuration_database_path,
     )
+
+
+def create_runtime_recording_gateway(settings: Settings) -> RuntimeRecordingGateway:
+    if settings.runtime_recording_gateway == "rosbag":
+        return RosbagRuntimeRecordingGateway(
+            base_directory=settings.runtime_recording_base_directory,
+            executable=settings.runtime_recording_executable,
+        )
+
+    return NoopRuntimeRecordingGateway()
 
 
 app = create_app()
