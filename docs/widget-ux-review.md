@@ -48,6 +48,8 @@ and recover confidence quickly when something is not configured.
   slider comfort on tablet viewports.
 - Visual smoke now includes the app configuration page and validates the sandbox runtime at `1024x600`, `1280x800`, and
   `1920x1080`.
+- Visual smoke now also covers Bloom Debug runtime with mocked topic catalog, runtime WebSocket subscription ACKs, and
+  live topic samples so debug regressions are visible in screenshot review.
 
 ## Remaining UX Risks
 
@@ -65,4 +67,4 @@ and recover confidence quickly when something is not configured.
 3. Evaluate a richer chart dependency only when real runtime requirements need multi-series plots, zoom, cursor
    inspection, or longer offline traces.
 4. Add camera permission guidance with one clear recovery action.
-5. Add visual smoke snapshots for Bloom Debug screens specifically, now that the regular runtime path is covered.
+5. Add topic plot freeze/export affordances only if real debug sessions show operators need them.

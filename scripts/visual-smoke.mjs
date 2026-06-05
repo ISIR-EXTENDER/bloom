@@ -7,7 +7,10 @@ import { chromium } from "@playwright/test";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 const dashboardRoot = resolve(repoRoot, "frontend/apps/bloom-dashboard");
-const fixturePath = resolve(repoRoot, "tests/fixtures/sandbox-teleop-lab-configuration.json");
+const configurationFixturePaths = {
+  "bloom-debug": resolve(repoRoot, "tests/fixtures/bloom-debug-configuration.json"),
+  sandbox: resolve(repoRoot, "tests/fixtures/sandbox-teleop-lab-configuration.json"),
+};
 const outputDir = process.env.BLOOM_VISUAL_OUTPUT_DIR ?? resolve("/tmp", "bloom-visual-smoke");
 const port = Number(process.env.BLOOM_VISUAL_PORT ?? "5178");
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -23,9 +26,17 @@ const routes = [
   { name: "builder", setup: showBuilder },
   { name: "app-config", setup: showAppConfig },
   { name: "runtime", setup: showRuntime },
+  { name: "debug-runtime", setup: showDebugRuntime },
 ];
 
-const configuration = JSON.parse(await readFile(fixturePath, "utf8"));
+const configurations = Object.fromEntries(
+  await Promise.all(
+    Object.entries(configurationFixturePaths).map(async ([id, fixturePath]) => [
+      id,
+      JSON.parse(await readFile(fixturePath, "utf8")),
+    ]),
+  ),
+);
 await mkdir(outputDir, { recursive: true });
 
 const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
@@ -134,17 +145,162 @@ async function mockConfigurationApi(page) {
   await page.route("**/api/v1/configurations", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      json: { configuration_ids: ["sandbox"] },
+      json: { configuration_ids: Object.keys(configurations) },
       status: 200,
     });
   });
 
-  await page.route("**/api/v1/configurations/sandbox", async (route) => {
+  for (const [configurationId, configuration] of Object.entries(configurations)) {
+    await page.route(`**/api/v1/configurations/${configurationId}`, async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        json: configuration,
+        status: 200,
+      });
+    });
+  }
+}
+
+async function mockRuntimeDebugApi(page) {
+  await page.route("**/api/v1/ros/topics", async (route) => {
     await route.fulfill({
       contentType: "application/json",
-      json: configuration,
+      json: {
+        topics: [
+          { name: "/teleop_cmd", message_type: "extender_msgs/msg/TeleopCommand" },
+          { name: "/cmd/max_velocity", message_type: "std_msgs/msg/Float64" },
+        ],
+      },
       status: 200,
     });
+  });
+
+  await page.route("**/api/v1/runtime/audit**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { records: [] },
+      status: 200,
+    });
+  });
+}
+
+async function mockRuntimeWebSocket(page) {
+  await page.addInitScript(() => {
+    class BloomVisualSmokeWebSocket extends EventTarget {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      static CLOSING = 2;
+      static CLOSED = 3;
+
+      readyState = BloomVisualSmokeWebSocket.CONNECTING;
+
+      constructor(url) {
+        super();
+        this.url = url;
+        window.setTimeout(() => {
+          this.readyState = BloomVisualSmokeWebSocket.OPEN;
+          this.dispatchEvent(new Event("open"));
+        }, 0);
+      }
+
+      close() {
+        this.readyState = BloomVisualSmokeWebSocket.CLOSED;
+        this.dispatchEvent(new CloseEvent("close"));
+      }
+
+      send(data) {
+        const message = parseRuntimeCommand(data);
+        if (!message) {
+          return;
+        }
+
+        if (message.type === "subscribe_topic") {
+          this.acknowledgeSubscription(message);
+          return;
+        }
+
+        if (message.type === "teleop_cmd") {
+          this.acknowledgeTeleopCommand(message);
+        }
+      }
+
+      acknowledgeSubscription(message) {
+        window.setTimeout(() => {
+          this.dispatchEvent(
+            new MessageEvent("message", {
+              data: JSON.stringify({
+                type: "subscription_ack",
+                detail: `Subscribed to ${message.topic}.`,
+                payload: {
+                  field_path: message.field_path ?? "",
+                  message_type: message.message_type ?? "",
+                  topic: message.topic,
+                  widget_id: message.widget_id,
+                },
+              }),
+            }),
+          );
+          this.dispatchEvent(
+            new MessageEvent("message", {
+              data: JSON.stringify({
+                type: "topic_sample",
+                detail: `Sample received from ${message.topic}.`,
+                payload: {
+                  message_type: message.message_type ?? "",
+                  received_at: new Date().toISOString(),
+                  topic: message.topic,
+                  value: createSampleValue(message.field_path),
+                },
+              }),
+            }),
+          );
+        }, 0);
+      }
+
+      acknowledgeTeleopCommand(message) {
+        window.setTimeout(() => {
+          this.dispatchEvent(
+            new MessageEvent("message", {
+              data: JSON.stringify({
+                type: "teleop_ack",
+                detail: "Teleop command accepted by visual smoke runtime.",
+                payload: {
+                  angular: message.angular,
+                  linear: message.linear,
+                  mode: message.mode,
+                  seq: message.seq,
+                  status: "simulated",
+                  target: message.target,
+                },
+              }),
+            }),
+          );
+        }, 0);
+      }
+    }
+
+    function createSampleValue(fieldPath) {
+      if (fieldPath === "twist.linear.x") {
+        return { twist: { linear: { x: 0.12 }, angular: { z: 0 } } };
+      }
+      if (fieldPath === "data") {
+        return { data: 0.12 };
+      }
+      return { data: "visual-smoke-sample" };
+    }
+
+    function parseRuntimeCommand(data) {
+      if (typeof data !== "string") {
+        return null;
+      }
+      try {
+        return JSON.parse(data);
+      } catch {
+        return null;
+      }
+    }
+
+    window.WebSocket = BloomVisualSmokeWebSocket;
   });
 }
 
@@ -172,6 +328,22 @@ async function showRuntime(page) {
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { name: "Launch Sandbox runtime" }).click();
   await page.getByRole("region", { name: "Runtime application" }).waitFor();
+}
+
+async function showDebugRuntime(page) {
+  await mockRuntimeDebugApi(page);
+  await mockRuntimeWebSocket(page);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
+  await page.getByRole("button", { name: "Launch Bloom Debug runtime" }).click();
+  await page.getByRole("heading", { name: "Bloom Debug" }).waitFor();
+  await page.getByRole("heading", { name: "Inspect, record, and audit runtime topics." }).waitFor();
+  await page.getByRole("button", { name: "Refresh topics" }).click();
+  await page.locator(".bloom-debug-panel").getByText("/teleop_cmd").waitFor();
+  await page.getByRole("button", { name: "Refresh audit" }).click();
+  await page.getByRole("article", { name: /Teleop command echo/i }).waitFor();
+  await page.getByRole("article", { name: /Velocity command X/i }).waitFor();
+  await page.getByRole("heading", { name: "Topic catalog" }).waitFor();
 }
 
 async function assertBrowserHistoryAffordance(page, label) {
