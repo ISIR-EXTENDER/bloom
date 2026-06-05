@@ -61,13 +61,14 @@ npm run capture:readme
 
 ## Work In Progress
 
-Bloom is currently in foundation work before the full UI/database migration:
+Bloom is currently moving from foundation and legacy migration work toward deployment hardening:
 
-Current review snapshot: Bloom has completed the Phase 3 runtime safety/debug foundation and is now in Phase 4 legacy
-widget/app migration. Command allowlists, command rate limits, runtime audit, topic catalog, recording gateway, and
-Bloom Debug controls are in place. The current focus is systematic widget migration from `extender_ui` with real legacy
-fixtures and useful runtime screens. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the
-current roadmap.
+Current review snapshot: Bloom has completed the Phase 4 legacy widget/app foundation. Command allowlists, command rate
+limits, runtime audit, topic catalog, recording gateway, Bloom Debug controls, reusable command presets, app runtime
+policies, migrated fixture apps, and seeded runtime smoke tests are in place. The next focus is Phase 5 deployment and
+security hardening, deeper full-robot validation, normalized SQLite bundle reconstruction, and concrete robot action
+adapters before legacy retirement. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current
+roadmap.
 
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
@@ -124,14 +125,18 @@ current roadmap.
   keeping ROS topics and app semantics configurable.
 - A sandbox teleop lab screen validates joystick and scalar slider bindings against the ROS sandbox simulation.
 - A first Bloom Debug fixture can request runtime topic subscriptions and render live samples in echo and lightweight plot widgets.
+- Bloom Debug topic plots now render first-party live SVG telemetry with area, sparkline, or bar variants, keeping the
+  latest value prominent without adding a heavier chart dependency.
 - Bloom Debug can inspect the topic catalog, refresh runtime audit records, start/stop a safe recording request for
   selected topics, and use topic echo pause/clear/copy actions during live debugging.
+- Petanque, Sandbox, Bloom Debug, Explorer User Tests, and Webcam demo fixtures are smoke-tested in runtime so migrated
+  apps do not silently regress to blank or unfinished screens.
 - Runtime canvases keep builder geometry intact while fitting to the viewport.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Runtime/status UX is intentionally calm: backend/API status can be shown first, while robot/ROS/network indicators
   must come from explicit adapters before Bloom claims they are connected.
-- Next major pieces are richer telemetry widgets, reusable preset libraries, bundle reconstruction from normalized
-  SQLite rows, concrete rosbag adapter wiring, and deploy/repli action adapters.
+- Next major pieces are deployment/security hardening, bundle reconstruction from normalized SQLite rows, concrete
+  rosbag adapter wiring, deploy/repli action adapters, and full Extender/Petanque robot validation.
 
 ## In-App Help
 

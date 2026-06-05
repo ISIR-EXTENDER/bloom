@@ -40,15 +40,16 @@ Last full review: 2026-06-04.
 
 Current migration estimate:
 
-- Web product foundation: about 70%.
-- Live ROS/runtime parity with `tablet_interface`: about 65%.
-- Full legacy app parity with `extender_ui` and Petanque screens: about 30%.
-- Safety/security readiness for real configurable robot commands: about 55%.
+- Web product foundation: about 78%.
+- Live ROS/runtime parity with `tablet_interface`: about 70%.
+- Full legacy app parity with `extender_ui` and Petanque screens: about 42%.
+- Safety/security readiness for real configurable robot commands: about 62%.
 
 The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
-shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions, and
-a recognizable tablet-first design system. The next phase should focus less on new surface area and more on safe runtime
-operation, Bloom Debug, and systematic legacy widget migration.
+shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions,
+migrated useful fixture apps, and a recognizable tablet-first design system. The next phase should focus less on new
+surface area and more on deployment/security hardening, normalized storage reconstruction, concrete robot action
+adapters, and full Extender/Petanque validation before legacy retirement.
 
 Already merged:
 
@@ -235,7 +236,7 @@ Validated runtime checks:
 
 ### Phase 4 - Legacy App Migration
 
-Status: in progress with useful Petanque/Sandbox fixture screens and first display widget foundations.
+Status: complete for the legacy app/widget foundation.
 
 - Migrate screens one by one from real legacy JSON.
 - Convert reusable Petanque widgets into generic Bloom widgets whenever topic names, labels, payloads, and adapters can
@@ -292,12 +293,18 @@ Completed in this phase so far:
   without introducing a premature favorites subsystem.
 - The Petanque `throw-draw` idea now maps to a generic `gesture-pad` widget foundation that emits angle/power value
   intents and keeps Petanque topics/commands in configuration.
+- Bloom Debug `topic-plot` widgets now share the first-party SVG plot helpers with generic `plot`, supporting `area`,
+  `sparkline`, and `bars` variants while keeping the latest value prominent for live robot telemetry.
+- Petanque, Sandbox teleop lab, Bloom Debug, Explorer User Tests, and Webcam demo fixtures are smoke-tested in runtime
+  so migrated app entries do not regress to blank or unfinished screens.
+- A richer chart dependency remains intentionally deferred until first-party plots cannot cover multi-series telemetry,
+  zoom, cursor inspection, or longer offline traces.
 
-Phase 4 remaining work:
+Phase 4 closure notes:
 
-- Continue Bloom Debug telemetry polish and evaluate a richer chart dependency only when first-party variants are no
-  longer enough.
-- Continue app-by-app runtime validation against real legacy JSON and ROS adapter behavior before closing the phase.
+- Bloom now has enough migrated fixture coverage to proceed to Phase 5 without moving unfinished Phase 4 work forward.
+- Deeper app-specific behavior still belongs to later concrete adapters, especially deploy/repli actions, final Explorer
+  user-test mode mappings, and real rosbag recording.
 
 Explorer user-test app candidate:
 
@@ -311,9 +318,9 @@ Explorer user-test app candidate:
 
 ### Phase 5 - Deployment And Legacy Retirement
 
-Status: not started.
+Status: next.
 
-- Add authentication, authorization, CORS policy, runtime rate limiting, dependency audits, and basic dynamic security scans.
+- Add authentication, authorization, CORS policy, dependency audits, and basic dynamic security scans.
 - Add Extender workspace deployment entrypoints only after the core app flow is stable.
 - Validate Bloom against the full Extender + Petanque end-to-end pipeline.
 - Mark legacy repos/packages as legacy only after Bloom covers the required workflows.
@@ -331,24 +338,22 @@ Status: idea captured, intentionally low priority.
 
 ## Ordered Next Steps
 
-1. Harden runtime live ROS sessions:
-   add topic/message/payload allowlists, runtime session validation, audit logging, and safer CORS/deployment defaults.
-2. Finish Bloom Debug UX:
-   topic catalog, topic selector, topic echo controls, lightweight plot readability, pause/clear/copy actions, and a
-   recording/rosbag foundation for selected topics and approved folders.
-3. Migrate the next reusable widget family:
-   configurable ROS/message action widgets, then slider/joystick and stream/log/plot widgets.
-4. Normalize SQLite app/screen storage:
+1. Harden deployment/security:
+   authentication, authorization, CORS/deployment defaults, dependency audits, and basic dynamic security checks.
+2. Validate the full Extender/Petanque robot pipeline:
+   run Bloom runtime against sandbox simulation, Petanque screens, tablet hardware, and legacy parity scenarios before
+   retiring any old workflow.
+3. Normalize SQLite app/screen storage:
    keep JSON import/export, but reconstruct configuration bundles from dedicated app/screen/widget/theme records once
    the schema is stable.
-5. Add Explorer-style control foundations:
-   live action progress/cancel adapters, speed/gripper counters, profile-driven display settings, and optional 3D robot
-   visualization adapters.
-6. Add tablet runtime layout presets:
+4. Add concrete robot action adapters:
+   deploy/repli actions, saved pose replay, concrete rosbag recording, speed/gripper counters, and final Explorer
+   user-test mode mappings.
+5. Add tablet runtime layout presets:
    keep the WYSIWYG source layout canonical, but let apps provide tablet/high-visibility display profiles so real
    operator controls are comfortable at `1024x600` and `1920x1080`.
-7. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
-8. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+6. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
+7. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
 
 See also:
 

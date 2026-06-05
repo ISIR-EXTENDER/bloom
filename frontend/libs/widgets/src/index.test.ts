@@ -474,6 +474,7 @@ describe("widget settings contracts", () => {
         show_details: true,
         topic: "/sandbox_controller/velocity_command",
         unit: "m/s",
+        variant: "area",
       },
     });
 
@@ -486,6 +487,7 @@ describe("widget settings contracts", () => {
         show_details: true,
         topic: "",
         unit: "",
+        variant: "pie",
         yMax: 1,
         yMin: 1,
       }),
@@ -503,6 +505,10 @@ describe("widget settings contracts", () => {
         {
           field: "historySeconds",
           message: "historySeconds must be greater than or equal to 1",
+        },
+        {
+          field: "variant",
+          message: "variant must be one of: area, bars, sparkline",
         },
         {
           field: "yMax",
