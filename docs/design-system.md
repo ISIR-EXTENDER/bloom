@@ -199,12 +199,19 @@ Rules:
 - Full-bleed surfaces such as navigation bars need explicit tablet rules; negative margins are allowed only with visual
   smoke coverage.
 - Use `npm run visual:smoke` after layout changes that affect shell, builder, runtime, or reusable UI primitives.
+- Product route changes should reset scroll/focus to the main content region so standard browser navigation and in-app
+  navigation both land users on useful context.
+- Runtime chrome should be compact on short tablet viewports. When a panel such as Bloom Debug is not mounted, it must
+  not reserve empty layout space.
 
 Current review finding:
 
 - The Sandbox teleop lab is comfortable at the configured Extender `1920x1080` resolution.
 - The same screen now fits the native `1024x600` visual smoke checkpoint without hiding the primary joysticks/sliders,
   after compacting runtime chrome for short tablet viewports.
+- Builder home now shows the main builder paths in the first `1024x600` viewport, reducing the need to scroll before
+  choosing between apps, screen library, and playground.
+- App configuration is included in visual smoke coverage because it is a primary workflow, not an internal admin page.
 - `1024x600` is still a constrained interaction target: controls are visible, but truly comfortable robot operation
   should prefer app display profiles or adapted screens.
 - Bloom should keep WYSIWYG geometry as the source of truth, but add app/display presets so runtime can choose
@@ -259,6 +266,8 @@ Rules:
 - Builder home should separate apps, screen library, and playground.
 - App configuration should be human-readable: app names, source-app hints, and screen type labels should appear before
   technical IDs.
+- App configuration should open at the top context with title, app summary, and save/back actions visible. Route changes
+  must not preserve a stale scroll position from the previous page.
 - Screen composition should support drag/drop and explicit buttons.
 - Screen previews should be on-demand or compact so they do not overwhelm the library.
 - Builder panels should not steal space from the WYSIWYG canvas once a user is editing a screen.
@@ -273,6 +282,8 @@ Rules:
 - Debug/detail visibility should be configurable per widget.
 - Joysticks and sliders should preserve the interaction design validated in legacy Extender UI, while adopting Bloom
   colors and accessibility states.
+- Regular runtime apps should use a two-row workspace layout: topbar plus artboard. Bloom Debug can opt into an
+  additional debug row, but that row must not be reserved for normal operator apps.
 
 ## Status Surfaces
 
@@ -326,6 +337,7 @@ Things that are good enough for Phase 2:
 - controlled open-source fonts are bundled through `@bloom/ui`;
 - contrast checks protect semantic theme pairs;
 - visual smoke checks cover `1024x600`, `1280x800`, and `1920x1080`;
+- visual smoke now covers landing, builder home, app configuration, and runtime;
 - density and iconography rules are documented;
 - visible UI is coherent with the Bloom mood board;
 - touch target defaults are documented;

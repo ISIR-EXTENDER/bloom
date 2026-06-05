@@ -73,9 +73,12 @@ full-robot validation, normalized SQLite bundle reconstruction, concrete robot a
 before legacy retirement. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current roadmap.
 
 - Product navigation now separates the landing page from builder and runtime previews.
+- Product routes now reset scroll/focus to useful page context, so browser and in-app navigation keep standard
+  affordances instead of landing mid-page.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
 - Builder drafts can now be saved or discarded through the configuration API.
 - App configuration can edit app identity, app-level design tokens, create/duplicate screens, and reuse screens from other apps.
+- App configuration is now part of visual smoke coverage because it is a primary builder workflow.
 - App configuration now starts feeling more tactile: reusable screens are grouped by type and can be dragged into an app
   flow, with buttons kept as accessible fallbacks.
 - App configuration can reorder screens with drag/drop or explicit Move up/down buttons, so tablet users are not forced
@@ -96,6 +99,8 @@ before legacy retirement. See `docs/production-readiness-review.md` and `docs/mi
 - App configuration exposes a first command preset library and can synchronize publish-topic/message-type guardrails from
   the presets selected for the app.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
+- Runtime apps no longer reserve Bloom Debug layout space unless the debug panel is mounted, giving operator controls
+  more useful room on tablet viewports.
 - Runtime display widgets now include useful first foundations for labels, gauges, lightweight plots, and robot-3D
   extension placeholders instead of generic placeholder text.
 - Lightweight plots support area, sparkline, and bar variants with units and optional Y bounds for simple telemetry
@@ -138,6 +143,8 @@ before legacy retirement. See `docs/production-readiness-review.md` and `docs/mi
 - Petanque, Sandbox, Bloom Debug, Explorer User Tests, and Webcam demo fixtures are smoke-tested in runtime so migrated
   apps do not silently regress to blank or unfinished screens.
 - Runtime canvases keep builder geometry intact while fitting to the viewport.
+- Visual smoke checks now cover landing, builder home, app configuration, and runtime at `1024x600`, `1280x800`, and
+  `1920x1080`.
 - The visual direction is moving toward a light Bloom theme: beige, grey, white, high readability, tablet-friendly targets.
 - Runtime/status UX is intentionally calm: backend/API status can be shown first, while robot/ROS/network indicators
   must come from explicit adapters before Bloom claims they are connected.
@@ -234,7 +241,7 @@ Typography is controlled through open-source fonts bundled by `@bloom/ui`: `Corm
 `Atkinson Hyperlegible` for readable UI text, and `JetBrains Mono` for debug/code-like values.
 
 Reusable component examples and promotion rules live in `docs/component-styleguide.md`. Visual smoke checks cover the
-key tablet/desktop viewports with `npm run visual:smoke`.
+key tablet/desktop viewports and primary product routes with `npm run visual:smoke`.
 
 Widget-specific usability notes live in `docs/widget-ux-review.md`. Update it when a widget family changes behavior,
 touch affordances, or runtime/debug information density.
