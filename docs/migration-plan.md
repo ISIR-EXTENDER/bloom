@@ -341,6 +341,7 @@ Completed in this phase so far:
 - Frontend and backend dependency audit commands are available through `npm run audit:security`.
 - A basic dynamic security smoke scan verifies security headers, OpenAPI reachability, and CORS behavior against a
   running backend through `npm run security:dynamic`.
+- The CI `Security` job now runs dependency audits and the dynamic security smoke against a started Bloom API.
 - A transition Extender workspace launcher starts Bloom API in ROS-adapter mode and the dashboard next to the existing
   ROS workspace without turning Bloom into a ROS package.
 - Extender/Petanque validation now has an explicit acceptance protocol and record.
@@ -348,7 +349,6 @@ Completed in this phase so far:
 
 Remaining work in this phase:
 
-- Promote the basic dynamic smoke scan into CI once deployment preview startup is scriptable end-to-end.
 - Validate and refine the Extender workspace launcher with the full sandbox/Petanque pipeline.
 - Execute and record the full Extender + Petanque end-to-end validation.
 - Mark only accepted legacy workflows as legacy, without deleting them during transition.
