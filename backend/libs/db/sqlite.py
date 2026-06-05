@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 def connect_sqlite_database(path: str | Path) -> sqlite3.Connection:
@@ -99,6 +99,24 @@ def apply_sqlite_migrations(connection: sqlite3.Connection) -> None:
         );
         """
     )
+    ensure_column(
+        connection,
+        "configuration_bundles",
+        "metadata_json",
+        "TEXT NOT NULL DEFAULT '{}'",
+    )
+    ensure_column(
+        connection,
+        "configuration_applications",
+        "runtime_policy_json",
+        "TEXT NOT NULL DEFAULT '{}'",
+    )
+    ensure_column(
+        connection,
+        "configuration_applications",
+        "action_presets_json",
+        "TEXT NOT NULL DEFAULT '[]'",
+    )
     connection.executemany(
         "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",
         [(version,) for version in range(1, SCHEMA_VERSION + 1)],
@@ -110,3 +128,16 @@ def get_applied_schema_versions(connection: sqlite3.Connection) -> list[int]:
     apply_sqlite_migrations(connection)
     rows = connection.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall()
     return [int(row["version"]) for row in rows]
+
+
+def ensure_column(
+    connection: sqlite3.Connection,
+    table_name: str,
+    column_name: str,
+    column_definition: str,
+) -> None:
+    columns = connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+    if any(row["name"] == column_name for row in columns):
+        return
+
+    connection.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}")

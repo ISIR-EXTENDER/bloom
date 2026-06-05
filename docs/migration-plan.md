@@ -346,6 +346,8 @@ Completed in this phase so far:
   ROS workspace without turning Bloom into a ROS package.
 - Extender/Petanque validation now has an explicit acceptance protocol and record.
 - Legacy retirement now has explicit gates; current status is "do not retire yet".
+- SQLite now reconstructs configuration bundles from normalized app/screen/widget/theme/profile/runtime-policy/action
+  preset rows, while keeping bundle JSON as a migration/export fallback.
 
 Remaining work in this phase:
 
@@ -370,17 +372,14 @@ Status: idea captured, intentionally low priority.
 2. Validate the full Extender/Petanque robot pipeline:
    run Bloom runtime against sandbox simulation, Petanque screens, tablet hardware, and legacy parity scenarios before
    retiring any old workflow.
-3. Normalize SQLite app/screen storage:
-   keep JSON import/export, but reconstruct configuration bundles from dedicated app/screen/widget/theme records once
-   the schema is stable.
-4. Add concrete robot action adapters:
+3. Add concrete robot action adapters:
    deploy/repli actions, saved pose replay, concrete rosbag recording, speed/gripper counters, and final Explorer
    user-test mode mappings.
-5. Add tablet runtime layout presets:
+4. Add tablet runtime layout presets:
    keep the WYSIWYG source layout canonical, but let apps provide tablet/high-visibility display profiles so real
    operator controls are comfortable at `1024x600` and `1920x1080`.
-6. Keep the future project/workspace level unblocked while normalizing SQLite app/screen storage.
-7. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+5. Keep the future project/workspace level unblocked while evolving normalized SQLite app/screen storage.
+6. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
 
 See also:
 
