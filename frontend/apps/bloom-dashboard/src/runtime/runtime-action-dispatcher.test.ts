@@ -140,6 +140,54 @@ describe("runtime action dispatcher", () => {
     expect(client.publishRosTopic).toHaveBeenCalledOnce();
   });
 
+  it("dispatches saved-position command presets through the same generic publish contract", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(
+        async (request) =>
+          ({
+            topic: request.topic,
+            message_type: request.message_type,
+            status: "published",
+            detail: "Saved preset command published.",
+          }) as const,
+      ),
+    };
+
+    await expect(
+      dispatchRuntimeActionIntent(client, createCommandIntent("saved_position.replay_selected"), {
+        actionPresets: [
+          {
+            id: "saved-position-replay-selected",
+            name: "Replay saved position",
+            kind: "topic-publish",
+            description: "",
+            command: "saved_position.replay_selected",
+            topic: "/explorer/saved_position/command",
+            message_type: "std_msgs/msg/String",
+            payload: null,
+            payload_text: "{data: 'replay_selected'}",
+            tags: ["saved-preset", "library"],
+          },
+        ],
+        runtimePolicy: {
+          allowed_message_types: ["std_msgs/msg/String"],
+          allowed_publish_topics: ["/explorer/saved_position/command"],
+          allowed_recording_topics: [],
+          allowed_teleop_targets: [],
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "published",
+      detail: "Saved preset command published.",
+      request: {
+        topic: "/explorer/saved_position/command",
+        message_type: "std_msgs/msg/String",
+        payload_text: "{data: 'replay_selected'}",
+      },
+    });
+    expect(client.publishRosTopic).toHaveBeenCalledOnce();
+  });
+
   it("returns unsupported results when topic publish intents miss the message type", async () => {
     const client: RuntimeActionClient = {
       publishRosTopic: vi.fn(),

@@ -478,12 +478,14 @@ describe("App", () => {
     fireEvent.change(screen.getByLabelText("Allowed message types"), {
       target: { value: "std_msgs/msg/Bool\nstd_msgs/msg/String" },
     });
+    fireEvent.click(screen.getByRole("button", { name: "Add Emergency stop preset from library" }));
     fireEvent.change(screen.getByLabelText("Preset name"), { target: { value: "Emergency stop" } });
     fireEvent.change(screen.getByLabelText("Command"), { target: { value: "emergency_stop" } });
     fireEvent.change(screen.getByLabelText("Topic"), { target: { value: "/explorer/emergency_stop" } });
     fireEvent.change(screen.getByLabelText("Message type"), { target: { value: "std_msgs/msg/Bool" } });
     fireEvent.change(screen.getByLabelText("Payload"), { target: { value: "{data: true}" } });
     fireEvent.click(screen.getByRole("button", { name: "Add preset" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sync publish guardrails from presets" }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
@@ -501,6 +503,15 @@ describe("App", () => {
       "std_msgs/msg/String",
     ]);
     expect(savedApplication?.action_presets).toEqual([
+      expect.objectContaining({
+        id: "emergency-stop-bool",
+        command: "emergency_stop",
+        message_type: "std_msgs/msg/Bool",
+        name: "Emergency stop",
+        payload_text: "{data: true}",
+        tags: ["safety", "library"],
+        topic: "/explorer/emergency_stop",
+      }),
       expect.objectContaining({
         id: "emergency-stop",
         command: "emergency_stop",

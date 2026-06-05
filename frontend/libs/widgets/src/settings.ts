@@ -581,6 +581,7 @@ export type RosMessageCommandPreset = {
   label: string;
   description: string;
   buttonLabel: string;
+  category: "bridge" | "motion" | "safety" | "saved-preset" | "state-machine" | "utility";
   command: string;
   messageType: string;
   payload: string;
@@ -662,6 +663,7 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
     label: "State machine command",
     description: "Publish one string command to a ROS state-machine topic.",
     buttonLabel: "Activate throw",
+    category: "state-machine",
     command: "activate_throw",
     messageType: "std_msgs/msg/String",
     payload: "{data: 'activate_throw'}",
@@ -672,6 +674,7 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
     label: "Emergency stop",
     description: "Publish a boolean stop request on a safety topic.",
     buttonLabel: "Stop",
+    category: "safety",
     command: "emergency_stop",
     messageType: "std_msgs/msg/Bool",
     payload: "{data: true}",
@@ -682,6 +685,7 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
     label: "Trigger action",
     description: "Publish a one-shot boolean trigger to any configured topic.",
     buttonLabel: "Trigger",
+    category: "utility",
     command: "trigger",
     messageType: "std_msgs/msg/Bool",
     payload: "{data: true}",
@@ -692,12 +696,57 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
     label: "Digital output ON",
     description: "Publish a structured array payload for an Arduino-style digital output bridge.",
     buttonLabel: "Pin ON",
+    category: "bridge",
     command: "digital_output_on",
     messageType: "std_msgs/msg/Int32MultiArray",
     payload: "{data: [13, 1]}",
     topic: "/ui/ros_toggle",
   },
+  {
+    id: "saved-position-save-current",
+    label: "Save current position",
+    description: "Capture the current robot pose through an app-specific saved-position adapter.",
+    buttonLabel: "Save pose",
+    category: "saved-preset",
+    command: "saved_position.save_current",
+    messageType: "std_msgs/msg/String",
+    payload: "{data: 'save_current'}",
+    topic: "/explorer/saved_position/command",
+  },
+  {
+    id: "saved-position-replay-selected",
+    label: "Replay saved position",
+    description: "Request replay of the selected saved pose without a dedicated Explorer widget.",
+    buttonLabel: "Replay pose",
+    category: "saved-preset",
+    command: "saved_position.replay_selected",
+    messageType: "std_msgs/msg/String",
+    payload: "{data: 'replay_selected'}",
+    topic: "/explorer/saved_position/command",
+  },
+  {
+    id: "saved-position-cancel-motion",
+    label: "Cancel saved-position motion",
+    description: "Cancel an in-progress saved-position motion through the same generic command contract.",
+    buttonLabel: "Cancel motion",
+    category: "motion",
+    command: "saved_position.cancel_motion",
+    messageType: "std_msgs/msg/String",
+    payload: "{data: 'cancel_motion'}",
+    topic: "/explorer/saved_position/command",
+  },
 ];
+
+export function getRosMessageCommandPresetsByCategory(): ReadonlyMap<
+  RosMessageCommandPreset["category"],
+  readonly RosMessageCommandPreset[]
+> {
+  const groups = new Map<RosMessageCommandPreset["category"], RosMessageCommandPreset[]>();
+  for (const preset of ROS_MESSAGE_COMMAND_PRESETS) {
+    groups.set(preset.category, [...(groups.get(preset.category) ?? []), preset]);
+  }
+  return groups;
+}
 
 export function getDefaultRosMessageTogglePayloads(
   messageType: string,

@@ -1,4 +1,5 @@
 import type { ApplicationConfig, RuntimeActionPreset, RuntimeAdapterPolicy, ScreenConfig } from "@bloom/api-client";
+import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -56,6 +57,7 @@ const DEFAULT_THEME_INSPIRATION: ApplicationConfig["theme"]["inspiration"] = {
   moodboard_image_uri: "",
   reference_url: "",
 };
+const COMMAND_PRESET_GROUPS = Array.from(getRosMessageCommandPresetsByCategory());
 
 export function BuilderAppConfig({
   configurations,
@@ -218,6 +220,35 @@ export function BuilderAppConfig({
     setSaveState({ status: "idle" });
   };
 
+  const addLibraryActionPreset = (preset: RosMessageCommandPreset) => {
+    setDraftApplication((currentApplication) => ({
+      ...currentApplication,
+      action_presets: [
+        ...currentApplication.action_presets,
+        createRuntimePresetFromLibraryPreset(preset, currentApplication.action_presets),
+      ],
+    }));
+    setSaveState({ status: "idle" });
+  };
+
+  const syncRuntimePolicyFromActionPresets = () => {
+    setDraftApplication((currentApplication) => ({
+      ...currentApplication,
+      runtime_policy: {
+        ...currentApplication.runtime_policy,
+        allowed_message_types: mergeUniqueRuntimePolicyValues(
+          currentApplication.runtime_policy.allowed_message_types,
+          currentApplication.action_presets.map((preset) => preset.message_type),
+        ),
+        allowed_publish_topics: mergeUniqueRuntimePolicyValues(
+          currentApplication.runtime_policy.allowed_publish_topics,
+          currentApplication.action_presets.map((preset) => preset.topic),
+        ),
+      },
+    }));
+    setSaveState({ status: "idle" });
+  };
+
   const loadMoodboardFile = async (file: File | undefined) => {
     if (!file) {
       return;
@@ -321,6 +352,9 @@ export function BuilderAppConfig({
               These lists help the runtime block accidental commands before they reach backend safety policies. Leave a
               list empty only for unrestricted local demos.
             </p>
+            <button className="builder-secondary-action" onClick={syncRuntimePolicyFromActionPresets} type="button">
+              Sync publish guardrails from presets
+            </button>
             <RuntimePolicyField
               label="Allowed publish topics"
               onChange={(value) => updateRuntimePolicyList("allowed_publish_topics", value)}
@@ -354,6 +388,26 @@ export function BuilderAppConfig({
             <p className="builder-inspector-copy">
               Save common app commands once, then reference them from command widgets with their preset id.
             </p>
+            <ul className="builder-action-preset-library" aria-label="Reusable command preset library">
+              {COMMAND_PRESET_GROUPS.map(([category, presets]) => (
+                <li key={category}>
+                  <h3>{formatPresetCategory(category)}</h3>
+                  <div className="builder-action-preset-library-grid">
+                    {presets.map((preset) => (
+                      <button
+                        aria-label={`Add ${preset.label} preset from library`}
+                        key={preset.id}
+                        onClick={() => addLibraryActionPreset(preset)}
+                        type="button"
+                      >
+                        <strong>{preset.label}</strong>
+                        <span>{preset.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
             <div className="builder-action-preset-list">
               {draftApplication.action_presets.length === 0 ? (
                 <p className="builder-empty-state">No reusable command presets yet.</p>
@@ -850,6 +904,24 @@ function createEmptyActionPresetDraft(): RuntimeActionPreset {
   };
 }
 
+function createRuntimePresetFromLibraryPreset(
+  preset: RosMessageCommandPreset,
+  existingPresets: readonly RuntimeActionPreset[],
+): RuntimeActionPreset {
+  return {
+    id: createUniquePresetId(preset.id, existingPresets),
+    name: preset.label,
+    kind: "topic-publish",
+    description: preset.description,
+    command: preset.command,
+    topic: preset.topic,
+    message_type: preset.messageType,
+    payload: null,
+    payload_text: preset.payload,
+    tags: [preset.category, "library"],
+  };
+}
+
 function createUniquePresetId(name: string, presets: readonly RuntimeActionPreset[]): string {
   const baseId = createUniqueId(name, []);
   const usedIds = new Set(presets.map((preset) => preset.id));
@@ -864,6 +936,21 @@ function createUniquePresetId(name: string, presets: readonly RuntimeActionPrese
     nextId = `${baseId}-${suffix}`;
   }
   return nextId;
+}
+
+function mergeUniqueRuntimePolicyValues(currentValues: readonly string[], nextValues: readonly string[]): string[] {
+  return [...new Set([...currentValues, ...nextValues].map((value) => value.trim()).filter(Boolean))];
+}
+
+function formatPresetCategory(category: RosMessageCommandPreset["category"]): string {
+  return {
+    bridge: "Bridge commands",
+    motion: "Motion commands",
+    safety: "Safety commands",
+    "saved-preset": "Saved presets",
+    "state-machine": "State machines",
+    utility: "Utility commands",
+  }[category];
 }
 
 function formatLines(values: readonly string[]): string {
