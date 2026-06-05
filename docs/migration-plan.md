@@ -281,10 +281,14 @@ Completed in this phase so far:
   teleop targets; the runtime dispatcher uses it as an early app-level guard before backend safety policy enforcement.
 - App configuration can edit runtime allowlists and reusable command presets from the builder, while runtime resolves
   `presetId` references against the active app before applying policy checks.
+- The app configuration builder now exposes a first reusable command preset library and can synchronize app-level
+  publish-topic/message-type guardrails from selected presets.
 - Lightweight `plot` now supports `area`, `sparkline`, and `bars` variants, optional units, and optional Y bounds before
   Bloom commits to a heavier chart dependency.
 - The Explorer candidate now includes a saved-position screen built from generic command buttons and event logs, so
   save/replay/cancel preset flows can be validated without adding Explorer-specific widgets to Bloom core.
+- Saved-position save/replay/cancel variants now exist as generic command presets, keeping richer saved-preset flows
+  behind existing runtime contracts and future adapters.
 - The Explorer candidate now includes a safety-zone screen built from generic status, command, and event widgets, so
   QP/safety workflows can be explored without coupling Bloom core to Explorer algorithms.
 - The Explorer candidate now includes a guided task screen for drink assistance, modeled with generic camera, progress,

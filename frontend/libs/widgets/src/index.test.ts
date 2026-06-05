@@ -23,6 +23,7 @@ import {
   findMatchingRosMessageTogglePreset,
   formatTopicEchoValue,
   getDefaultRosMessageTogglePayloads,
+  getRosMessageCommandPresetsByCategory,
   getWidgetSettingsContract,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreensToApplicationConfig,
@@ -702,8 +703,20 @@ describe("widget settings contracts", () => {
 
   it("keeps one-shot ROS message command presets available for non-web users", () => {
     expect(ROS_MESSAGE_COMMAND_PRESETS.map((preset) => preset.id)).toEqual(
-      expect.arrayContaining(["state-machine-activate-throw", "emergency-stop-bool", "digital-output-on"]),
+      expect.arrayContaining([
+        "state-machine-activate-throw",
+        "emergency-stop-bool",
+        "digital-output-on",
+        "saved-position-save-current",
+        "saved-position-replay-selected",
+        "saved-position-cancel-motion",
+      ]),
     );
+    expect(
+      getRosMessageCommandPresetsByCategory()
+        .get("saved-preset")
+        ?.map((preset) => preset.id),
+    ).toEqual(["saved-position-save-current", "saved-position-replay-selected"]);
 
     expect(
       normalizeWidgetSettings("command-button", {

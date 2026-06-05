@@ -91,6 +91,8 @@ roadmap.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
 - App configuration can now edit runtime command guardrails and reusable command presets, so recurring ROS/state-machine
   actions can be shared across widgets without hard-coding robot behavior in Bloom core.
+- App configuration exposes a first command preset library and can synchronize publish-topic/message-type guardrails from
+  the presets selected for the app.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
 - Runtime display widgets now include useful first foundations for labels, gauges, lightweight plots, and robot-3D
   extension placeholders instead of generic placeholder text.
@@ -113,6 +115,8 @@ roadmap.
   messages on `/teleop_cmd`.
 - One-shot command buttons can now carry optional ROS topic/message/payload settings and shared presets for common
   commands such as state-machine transitions, emergency stop, and digital output triggers.
+- Saved-position save/replay/cancel flows are modeled as generic command presets, so richer preset variants can be wired
+  later through adapters without introducing Explorer-specific widgets in Bloom core.
 - The Explorer user-test candidate includes a saved-position screen built from generic command buttons, so save/replay
   and cancel flows can be validated before adapter-specific wiring exists.
 - The Explorer user-test candidate includes a safety-zone screen that models QP/safety workflows with generic status,
