@@ -337,6 +337,9 @@ Bloom is developed with a small local-first toolchain. Keep these tools availabl
 | GitHub CLI | latest stable | PR creation, CI checks, and squash-merge workflow. |
 | Playwright | installed through npm | Browser-level checks and README screenshot capture. |
 
+Local frontend work remains compatible with Node.js 20+, but GitHub CI runs Node.js 24 to match the current hosted
+runner baseline and avoid Node 20 deprecation annotations.
+
 Useful setup and verification commands:
 
 ```bash
