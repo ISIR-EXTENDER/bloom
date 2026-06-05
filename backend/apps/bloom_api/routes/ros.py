@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from apps.bloom_api.security import BloomPrincipal, require_operator
 from libs.ros_adapters import (
     RosPublishReceipt,
     RosPublishRequest,
@@ -98,14 +99,21 @@ def get_runtime_command_rate_limiter(request: Request) -> RuntimeCommandRateLimi
 
 
 @router.get("/topics", response_model=RosTopicListResponse)
-def list_ros_topics(request: Request) -> RosTopicListResponse:
+def list_ros_topics(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RosTopicListResponse:
     gateway = get_ros_topic_catalog_gateway(request)
     topics = tuple(_to_topic_response(topic) for topic in gateway.list_topics())
     return RosTopicListResponse(topics=topics)
 
 
 @router.post("/topics/publish", response_model=RosTopicPublishResponse)
-def publish_ros_topic(request: Request, publish_request: RosTopicPublishRequest) -> RosTopicPublishResponse:
+def publish_ros_topic(
+    request: Request,
+    publish_request: RosTopicPublishRequest,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RosTopicPublishResponse:
     gateway = get_ros_publisher_gateway(request)
     audit_log = get_runtime_audit_log(request)
     policy = get_runtime_command_policy(request)

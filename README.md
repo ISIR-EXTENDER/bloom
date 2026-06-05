@@ -63,12 +63,12 @@ npm run capture:readme
 
 Bloom is currently moving from foundation and legacy migration work toward deployment hardening:
 
-Current review snapshot: Bloom has completed the Phase 4 legacy widget/app foundation. Command allowlists, command rate
-limits, runtime audit, topic catalog, recording gateway, Bloom Debug controls, reusable command presets, app runtime
-policies, migrated fixture apps, and seeded runtime smoke tests are in place. The next focus is Phase 5 deployment and
-security hardening, deeper full-robot validation, normalized SQLite bundle reconstruction, and concrete robot action
-adapters before legacy retirement. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current
-roadmap.
+Current review snapshot: Bloom has completed the Phase 4 legacy widget/app foundation and has started Phase 5 deployment
+hardening. Command allowlists, command rate limits, runtime audit, topic catalog, recording gateway, Bloom Debug
+controls, reusable command presets, app runtime policies, migrated fixture apps, seeded runtime smoke tests, API-key
+roles, configurable CORS, global HTTP rate limiting, and dependency audit scripts are in place. The next focus is deeper
+full-robot validation, normalized SQLite bundle reconstruction, concrete robot action adapters, and deployment entrypoints
+before legacy retirement. See `docs/production-readiness-review.md` and `docs/migration-plan.md` for the current roadmap.
 
 - Product navigation now separates the landing page from builder and runtime previews.
 - The dashboard can load configurations, select applications/screens, and render a canvas preview from widget contracts.
@@ -237,6 +237,7 @@ Useful backend commands:
 | --- | --- |
 | `make help` | List backend Make targets. |
 | `make test` | Run backend tests through `uv`. |
+| `make audit` | Run Python dependency vulnerability audit through `pip-audit`. |
 | `make cli` | Show Bloom CLI help. |
 | `make api` | Show Bloom API CLI help. |
 | `make config` | Show Bloom configuration storage CLI help. |
@@ -258,6 +259,37 @@ npm run build
 During local development, the Vite dev server proxies `/api` to the backend at `http://localhost:8000`.
 Start the backend with `cd backend && make run` before opening the dashboard if you want live configuration data.
 The proxy also forwards runtime WebSocket traffic, so local joystick teleop uses `/api/v1/runtime/ws` from the browser.
+
+## Security And Deployment Defaults
+
+Local development keeps authentication disabled so UI and adapter work stays fast. Staging and production deployments
+should enable API-key authentication and restrict dashboard origins:
+
+```bash
+export BLOOM_AUTH_ENABLED=true
+export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
+export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
+export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.local:5173'
+```
+
+Use the `X-Bloom-API-Key` header for API calls. Admin keys can mutate apps, screens, and assets; operator keys can read
+configuration and use runtime/ROS endpoints. Production settings intentionally fail to start without authentication and
+an admin key.
+
+Dependency audits:
+
+```bash
+npm run audit:security
+```
+
+Basic dynamic security smoke against a running backend:
+
+```bash
+npm run security:dynamic
+```
+
+Set `BLOOM_SECURITY_SCAN_BASE_URL`, `BLOOM_SECURITY_SCAN_ORIGIN`, and `BLOOM_SECURITY_SCAN_API_KEY` when scanning a
+non-default staging deployment.
 
 The backend test target disables external pytest plugin autoloading so a sourced ROS environment cannot leak ROS-specific pytest plugins into Bloom's generic tests.
 

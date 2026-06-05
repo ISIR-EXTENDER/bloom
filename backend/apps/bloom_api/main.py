@@ -1,7 +1,8 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from apps.bloom_api.routes import api_router
-from apps.bloom_api.security import install_security_headers
+from apps.bloom_api.security import install_http_rate_limit, install_security_headers
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import ConfigurationRepository, create_configuration_repository
 from libs.ros_adapters import (
@@ -63,10 +64,26 @@ def create_app(
     app.state.runtime_recording_gateway = runtime_recording_gateway or NoopRuntimeRecordingGateway()
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
     app.state.runtime_session_manager = RuntimeSessionManager()
+    app.state.http_rate_limit_buckets = {}
+    install_cors(app, app_settings)
+    install_http_rate_limit(app)
     install_security_headers(app)
     app.include_router(api_router, prefix=app_settings.api_prefix)
 
     return app
+
+
+def install_cors(app: FastAPI, settings: Settings) -> None:
+    if not settings.cors_allowed_origins:
+        return
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_credentials=False,
+        allow_headers=["Content-Type", "X-Bloom-API-Key"],
+        allow_methods=["DELETE", "GET", "OPTIONS", "POST", "PUT"],
+        allow_origins=list(settings.cors_allowed_origins),
+    )
 
 
 def create_app_configuration_repository(settings: Settings) -> ConfigurationRepository:

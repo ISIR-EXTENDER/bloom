@@ -8,12 +8,16 @@
     "frontend/libs/*"
   ],
   "scripts": {
+    "audit:backend": "cd backend && make audit",
+    "audit:frontend": "npm audit --audit-level=moderate",
+    "audit:security": "npm run audit:frontend && npm run audit:backend",
     "build": "npm run build --workspaces --if-present",
     "capture:readme": "node scripts/capture-readme-screenshots.mjs",
     "check": "biome check .",
     "format": "biome check --write .",
     "dev": "npm run dev --workspace @bloom/dashboard",
     "test": "npm run test --workspaces --if-present",
+    "security:dynamic": "node scripts/dynamic-security-smoke.mjs",
     "visual:smoke": "node scripts/visual-smoke.mjs"
   },
   "engines": {
