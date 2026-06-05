@@ -175,6 +175,7 @@ export type TopicPlotSettings = {
   show_details: boolean;
   topic: string;
   unit: string;
+  variant: "area" | "bars" | "sparkline";
   yMax?: number;
   yMin?: number;
 };
@@ -324,6 +325,7 @@ const TOPIC_PLOT_DEFAULT_SETTINGS: TopicPlotSettings = {
   show_details: true,
   topic: "",
   unit: "",
+  variant: "area",
 };
 
 const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
@@ -510,6 +512,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "historySeconds", label: "History duration", type: "number", required: true },
       { key: "maxSamples", label: "Max samples", type: "number", required: true },
+      { key: "variant", label: "Variant", type: "select", required: true, options: ["area", "bars", "sparkline"] },
       { key: "unit", label: "Unit", type: "text", required: false },
       { key: "yMin", label: "Y minimum", type: "number", required: false },
       { key: "yMax", label: "Y maximum", type: "number", required: false },
@@ -1097,6 +1100,7 @@ function validateTopicPlotSettings(
     ...validateBoolean(settings, "show_details"),
     ...validateNumber(settings, "historySeconds", { min: 1 }),
     ...validateNumber(settings, "maxSamples", { min: 1 }),
+    ...validateOneOf(settings, "variant", ["area", "bars", "sparkline"]),
     ...validateString(settings, "unit", { allowEmpty: true }),
   ];
   if ("yMin" in settings && settings.yMin !== undefined) {

@@ -1,7 +1,12 @@
 import { formatTopicEchoValue } from "@bloom/widgets";
 import { useState } from "react";
+import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { getBooleanSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
+
+const TOPIC_PLOT_VARIANTS = ["area", "bars", "sparkline"] as const;
+
+type TopicPlotVariant = (typeof TOPIC_PLOT_VARIANTS)[number];
 
 export function TopicDebugWidget({ data, descriptor }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "No topic configured");
@@ -114,8 +119,20 @@ function TopicPlotWidget({
 }: WidgetRendererProps & { fieldPath: string; showDetails: boolean; topic: string }) {
   const samples = data?.type === "topic-plot" ? data.samples : [];
   const latestSample = samples.at(-1);
+  const values = samples.map((sample) => sample.value);
+  const variant = readTopicPlotVariant(descriptor.widget.settings.variant);
+  const unit = getStringSetting(descriptor.widget.settings, "unit", "");
+  const yBounds = resolvePlotBounds(
+    values,
+    readOptionalNumberSetting(descriptor.widget.settings.yMin),
+    readOptionalNumberSetting(descriptor.widget.settings.yMax),
+  );
+  const path = createSparklinePath(values, 220, 82, yBounds);
+  const bars = createPlotBars(values, 220, 82, yBounds);
+  const formattedLatest = latestSample ? formatLatestSample(latestSample.value, unit) : "";
+
   return (
-    <div className="bloom-topic-plot-widget">
+    <div className="bloom-topic-plot-widget" data-variant={variant}>
       <header className="bloom-topic-debug-header">
         <div>
           <strong>{descriptor.widget.title}</strong>
@@ -124,11 +141,34 @@ function TopicPlotWidget({
         <span className="bloom-topic-debug-summary">{samples.length} samples</span>
       </header>
       <div className="bloom-topic-plot" data-sample-count={samples.length}>
-        <span>
-          {latestSample
-            ? formatLatestSample(latestSample.value, getStringSetting(descriptor.widget.settings, "unit", ""))
-            : "Waiting for samples..."}
-        </span>
+        {samples.length > 0 ? (
+          <>
+            <svg
+              aria-label={`${descriptor.widget.title} live topic plot`}
+              className="bloom-topic-plot-sparkline"
+              role="img"
+              viewBox="0 0 220 82"
+            >
+              <title>{`${descriptor.widget.title} telemetry shape`}</title>
+              <path className="bloom-plot-gridline" d="M0 20 H220 M0 41 H220 M0 62 H220" />
+              {variant === "bars"
+                ? bars.map((bar) => <rect className="bloom-plot-bar" key={bar.key} {...bar.rect} />)
+                : null}
+              {variant === "area" ? <path className="bloom-plot-area" d={`${path} L220 82 L0 82 Z`} /> : null}
+              {variant !== "bars" ? <path className="bloom-plot-line" d={path} /> : null}
+            </svg>
+            <output aria-live="polite" className="bloom-topic-plot-readout">
+              {formattedLatest}
+            </output>
+            <span className="bloom-topic-plot-range">
+              {formatPlotNumber(yBounds.min)}
+              {unit ? ` ${unit}` : ""} {"->"} {formatPlotNumber(yBounds.max)}
+              {unit ? ` ${unit}` : ""}
+            </span>
+          </>
+        ) : (
+          <span>Waiting for samples...</span>
+        )}
       </div>
       {showDetails ? <span>{fieldPath ? `field: ${fieldPath}` : descriptor.definition.displayName}</span> : null}
     </div>
@@ -140,6 +180,16 @@ function formatLatestSample(value: number, unit: string): string {
     ? value.toString()
     : value.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
   return unit ? `${formattedValue} ${unit}` : formattedValue;
+}
+
+function readOptionalNumberSetting(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function readTopicPlotVariant(value: unknown): TopicPlotVariant {
+  return typeof value === "string" && TOPIC_PLOT_VARIANTS.includes(value as TopicPlotVariant)
+    ? (value as TopicPlotVariant)
+    : "area";
 }
 
 async function copyTopicEchoText(

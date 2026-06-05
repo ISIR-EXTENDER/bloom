@@ -347,6 +347,8 @@ describe("widget renderer registry", () => {
     );
 
     expect(screen.getByText("0.4 m/s")).toBeVisible();
+    expect(screen.getByRole("img", { name: "Velocity X live topic plot" })).toBeVisible();
+    expect(screen.getByText("0.2 m/s -> 0.4 m/s")).toBeVisible();
   });
 
   it("can hide technical topic plot context for operator-facing runtime screens", () => {

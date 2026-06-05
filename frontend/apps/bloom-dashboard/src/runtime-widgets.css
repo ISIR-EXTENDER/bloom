@@ -841,8 +841,10 @@
 
 .bloom-topic-plot {
   display: grid;
-  min-height: 56px;
-  place-items: center;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  min-height: 124px;
+  padding: 10px;
   border: 1px solid rgba(63, 78, 70, 0.14);
   border-radius: 12px;
   background:
@@ -851,7 +853,9 @@
   background-size: 18px 18px;
 }
 
-.bloom-topic-plot span {
+.bloom-topic-plot > span:not(.bloom-topic-plot-range) {
+  align-self: center;
+  justify-self: center;
   padding: 6px 10px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--bloom-surface) 84%, transparent);
@@ -859,6 +863,34 @@
   font-family: var(--bloom-font-mono);
   font-size: 0.86rem;
   font-weight: 800;
+}
+
+.bloom-topic-plot-sparkline {
+  width: 100%;
+  min-height: 72px;
+  color: var(--bloom-primary);
+}
+
+.bloom-topic-plot-readout {
+  justify-self: start;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 16%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface) 88%, transparent);
+  color: var(--bloom-ink);
+  font-family: var(--bloom-font-mono);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.bloom-topic-plot-range {
+  color: var(--bloom-ink-soft);
+  font-family: var(--bloom-font-mono);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .bloom-camera-widget {

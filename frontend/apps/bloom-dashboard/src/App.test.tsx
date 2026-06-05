@@ -1310,6 +1310,71 @@ describe("App", () => {
     expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
   });
 
+  it.each([
+    {
+      bundle: migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
+      configId: "petanque-admin",
+      heading: "Petanque admin",
+      launchButton: "Launch Petanque admin runtime",
+      visibleCopy: "Translation",
+    },
+    {
+      bundle: sandboxTeleopLabConfiguration as unknown as ConfigurationBundle,
+      configId: "sandbox",
+      heading: "Sandbox",
+      launchButton: "Launch Sandbox runtime",
+      visibleCopy: "Translation joystick",
+    },
+    {
+      bundle: bloomDebugConfiguration as unknown as ConfigurationBundle,
+      configId: "bloom-debug",
+      heading: "Bloom Debug",
+      launchButton: "Launch Bloom Debug runtime",
+      visibleCopy: "Teleop command echo",
+    },
+    {
+      bundle: explorerUserTestsConfiguration as unknown as ConfigurationBundle,
+      configId: "explorer-user-tests",
+      heading: "Explorer User Tests",
+      launchButton: "Launch Explorer User Tests runtime",
+      visibleCopy: "Mode-aware joystick",
+    },
+    {
+      bundle: webcamVisualizerConfiguration as unknown as ConfigurationBundle,
+      configId: "webcam-visualizer",
+      heading: "Webcam visualizer",
+      launchButton: "Launch Webcam visualizer runtime",
+      visibleCopy: "Local webcam",
+    },
+  ])("opens the seeded $heading runtime app without an empty screen", async ({
+    bundle,
+    configId,
+    heading,
+    launchButton,
+    visibleCopy,
+  }) => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            [configId]: bundle,
+          },
+          ids: [configId],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: launchButton }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: heading })).toBeVisible();
+    expect(screen.getAllByText(visibleCopy).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("region", { name: "Runtime screen coming soon" })).not.toBeInTheDocument();
+  });
+
   it("renders an empty configuration state inside the main app", async () => {
     render(<App configurationClient={createConfigurationClient({ ids: [] })} />);
 
