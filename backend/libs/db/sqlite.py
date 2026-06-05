@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 def connect_sqlite_database(path: str | Path) -> sqlite3.Connection:
@@ -116,6 +116,60 @@ def apply_sqlite_migrations(connection: sqlite3.Connection) -> None:
         "configuration_applications",
         "action_presets_json",
         "TEXT NOT NULL DEFAULT '[]'",
+    )
+    ensure_column(
+        connection,
+        "configuration_bundles",
+        "workspace_id",
+        "TEXT NOT NULL DEFAULT 'default'",
+    )
+    ensure_column(
+        connection,
+        "configuration_applications",
+        "workspace_id",
+        "TEXT NOT NULL DEFAULT 'default'",
+    )
+    ensure_column(
+        connection,
+        "configuration_applications",
+        "project_id",
+        "TEXT NOT NULL DEFAULT ''",
+    )
+    ensure_column(
+        connection,
+        "configuration_screens",
+        "workspace_id",
+        "TEXT NOT NULL DEFAULT 'default'",
+    )
+    ensure_column(
+        connection,
+        "configuration_screens",
+        "project_id",
+        "TEXT NOT NULL DEFAULT ''",
+    )
+    ensure_column(
+        connection,
+        "configuration_widgets",
+        "workspace_id",
+        "TEXT NOT NULL DEFAULT 'default'",
+    )
+    ensure_column(
+        connection,
+        "configuration_widgets",
+        "project_id",
+        "TEXT NOT NULL DEFAULT ''",
+    )
+    connection.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_configuration_bundles_workspace
+            ON configuration_bundles(workspace_id, config_id);
+
+        CREATE INDEX IF NOT EXISTS idx_configuration_applications_workspace_project
+            ON configuration_applications(workspace_id, project_id, config_id, app_id);
+
+        CREATE INDEX IF NOT EXISTS idx_configuration_screens_workspace_project
+            ON configuration_screens(workspace_id, project_id, config_id, app_id, screen_id);
+        """
     )
     connection.executemany(
         "INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)",

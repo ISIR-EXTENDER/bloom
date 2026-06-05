@@ -26,7 +26,7 @@ def test_sqlite_migrations_are_idempotent(tmp_path: Path) -> None:
         apply_sqlite_migrations(connection)
         versions = get_applied_schema_versions(connection)
 
-    assert versions == [1, 2, 3]
+    assert versions == [1, 2, 3, 4]
 
 
 def test_sqlite_repository_lists_ids_sorted(tmp_path: Path, sample_configuration_bundle: ConfigurationBundle) -> None:
@@ -144,6 +144,54 @@ def test_sqlite_repository_syncs_normalized_app_screen_and_widget_rows(
     assert [(row["screen_id"], row["title"], row["position"]) for row in screen_rows] == [("main", "Main", 0)]
     assert [row["widget_id"] for row in widget_rows] == ["toggle"]
     assert [row["kind"] for row in widget_rows] == ["command-button"]
+
+
+def test_sqlite_repository_prepares_workspace_and_project_columns(
+    tmp_path: Path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    database_path = tmp_path / "bloom.db"
+    repository = SQLiteConfigurationRepository(database_path)
+
+    repository.upsert("sandbox", sample_configuration_bundle)
+
+    with sqlite_connection(database_path) as connection:
+        bundle_row = connection.execute(
+            "SELECT workspace_id FROM configuration_bundles WHERE config_id = ?",
+            ("sandbox",),
+        ).fetchone()
+        application_row = connection.execute(
+            """
+            SELECT workspace_id, project_id
+            FROM configuration_applications
+            WHERE config_id = ? AND app_id = ?
+            """,
+            ("sandbox", "sandbox"),
+        ).fetchone()
+        screen_row = connection.execute(
+            """
+            SELECT workspace_id, project_id
+            FROM configuration_screens
+            WHERE config_id = ? AND app_id = ? AND screen_id = ?
+            """,
+            ("sandbox", "sandbox", "main"),
+        ).fetchone()
+        widget_row = connection.execute(
+            """
+            SELECT workspace_id, project_id
+            FROM configuration_widgets
+            WHERE config_id = ? AND app_id = ? AND screen_id = ? AND widget_id = ?
+            """,
+            ("sandbox", "sandbox", "main", "toggle"),
+        ).fetchone()
+
+    assert bundle_row["workspace_id"] == "default"
+    assert application_row["workspace_id"] == "default"
+    assert application_row["project_id"] == ""
+    assert screen_row["workspace_id"] == "default"
+    assert screen_row["project_id"] == ""
+    assert widget_row["workspace_id"] == "default"
+    assert widget_row["project_id"] == ""
 
 
 def test_sqlite_repository_deletes_normalized_rows_with_bundle(

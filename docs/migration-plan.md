@@ -352,6 +352,8 @@ Completed in this phase so far:
   approved relative folders, and controlled service-unavailable failures when ROS is not available.
 - Runtime workspaces now apply app display profiles at render time, choosing high-visibility or comfort presentation
   from viewport size while keeping the WYSIWYG screen layout canonical.
+- SQLite schema now includes non-breaking workspace/project hooks on normalized bundle/app/screen/widget rows so Phase 6
+  can add multi-project APIs without rebuilding the storage layer.
 
 Remaining work in this phase:
 
@@ -380,8 +382,7 @@ Status: idea captured, intentionally low priority.
 3. Add concrete robot action adapters:
    deploy/repli actions, saved pose replay, concrete rosbag recording, speed/gripper counters, and final Explorer
    user-test mode mappings.
-4. Keep the future project/workspace level unblocked while evolving normalized SQLite app/screen storage.
-5. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+4. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
 
 See also:
 
