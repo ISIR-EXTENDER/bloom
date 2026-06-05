@@ -23,6 +23,7 @@
   <a href="docs/widget-ux-review.md">Widget UX</a> ·
   <a href="docs/production-readiness-review.md">Readiness</a> ·
   <a href="docs/extender-tablet-hardware.md">Tablet Hardware</a> ·
+  <a href="docs/extender-workspace-deployment.md">Extender Deployment</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
   <a href="docs/accessibility-plan.md">Accessibility</a> ·
@@ -197,6 +198,17 @@ keyboard reachable, readable on tablets, understandable without color alone, and
 
 See `docs/accessibility-plan.md` for the current accessibility statement, quick wins, and testing roadmap. When changing
 UI, docs, interactions, or app themes, include an accessibility check in the PR.
+
+## Extender Workspace Deployment
+
+Bloom now includes a transition launcher for the Extender lab workspace:
+
+```bash
+scripts/extender-workspace-dev.sh
+```
+
+It sources the Extender ROS workspace, starts the Bloom API with ROS adapters, and starts the dashboard dev server. See
+`docs/extender-workspace-deployment.md` for variables, tablet mapping, validation steps, and the legacy-retirement rule.
 
 ## Extender Tablet Target
 
