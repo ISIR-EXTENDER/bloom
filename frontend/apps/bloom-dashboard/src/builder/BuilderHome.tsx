@@ -51,6 +51,7 @@ export function BuilderHome({
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
   const [appActionState, setAppActionState] = useState<AppActionState>({ status: "idle" });
   const [activeSection, setActiveSection] = useState<BuilderHomeSection>("overview");
+  const [pendingDeleteApplicationId, setPendingDeleteApplicationId] = useState<string | null>(null);
   const [screenSearch, setScreenSearch] = useState("");
   const isCreating = createState.status === "creating";
   const applications = createBuilderApplicationItems(configurations);
@@ -140,6 +141,7 @@ export function BuilderHome({
                       ? appActionState
                       : null;
                   const isActingOnThisApp = actionState?.applicationId === application.id;
+                  const isConfirmingDelete = pendingDeleteApplicationId === application.id;
 
                   return (
                     <article className="builder-app-card" key={`${configuration.id}:${application.id}`}>
@@ -207,28 +209,42 @@ export function BuilderHome({
                           aria-label={`Delete ${application.name} app`}
                           className="builder-app-card-danger"
                           disabled={isActingOnThisApp}
-                          onClick={async () => {
-                            if (
-                              !window.confirm(
-                                `Delete "${application.name}" from configuration "${configuration.id}"? This cannot be undone.`,
-                              )
-                            ) {
-                              return;
-                            }
-
-                            setAppActionState({ applicationId: application.id, status: "deleting" });
-                            try {
-                              await onDeleteApplication(configuration.id, application.id);
-                              setAppActionState({ status: "idle" });
-                            } catch (error) {
-                              setAppActionState({ status: "error", message: getErrorMessage(error) });
-                            }
-                          }}
+                          onClick={() => setPendingDeleteApplicationId(application.id)}
                           type="button"
                         >
                           {isActingOnThisApp && actionState?.status === "deleting" ? "Deleting..." : "Delete"}
                         </button>
                       </div>
+                      {isConfirmingDelete ? (
+                        <fieldset className="builder-app-delete-confirmation">
+                          <legend>Confirm delete {application.name}</legend>
+                          <p>
+                            Delete <strong>{application.name}</strong>? This removes the app from this configuration.
+                          </p>
+                          <div>
+                            <button onClick={() => setPendingDeleteApplicationId(null)} type="button">
+                              Cancel
+                            </button>
+                            <button
+                              className="builder-app-delete-confirmation-danger"
+                              disabled={isActingOnThisApp}
+                              onClick={async () => {
+                                setAppActionState({ applicationId: application.id, status: "deleting" });
+                                try {
+                                  await onDeleteApplication(configuration.id, application.id);
+                                  setPendingDeleteApplicationId(null);
+                                  setAppActionState({ status: "idle" });
+                                } catch (error) {
+                                  setAppActionState({ status: "error", message: getErrorMessage(error) });
+                                }
+                              }}
+                              type="button"
+                            >
+                              Delete permanently
+                            </button>
+                          </div>
+                        </fieldset>
+                      ) : null}
                     </article>
                   );
                 })

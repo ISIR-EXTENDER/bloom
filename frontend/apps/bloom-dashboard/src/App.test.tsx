@@ -426,25 +426,40 @@ describe("App", () => {
         sandbox: createBundleWithReusableScreen(),
       },
     });
-    const originalConfirm = window.confirm;
-    window.confirm = vi.fn(() => true);
 
-    try {
-      render(<App configurationClient={configurationClient} />);
+    render(<App configurationClient={configurationClient} />);
 
-      fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
-      fireEvent.click(await screen.findByRole("button", { name: "Delete Sandbox app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete Sandbox app" }));
+    expect(screen.getByRole("group", { name: "Confirm delete Sandbox" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Delete permanently" }));
 
-      await waitFor(() => {
-        expect(configurationClient.deleteApplication).toHaveBeenCalledWith("sandbox", "sandbox");
-      });
+    await waitFor(() => {
+      expect(configurationClient.deleteApplication).toHaveBeenCalledWith("sandbox", "sandbox");
+    });
 
-      expect(await screen.findByRole("button", { name: "Open Shared screens app" })).toBeVisible();
-      expect(screen.queryByRole("button", { name: "Open Sandbox app" })).not.toBeInTheDocument();
-    } finally {
-      window.confirm = originalConfirm;
-    }
+    expect(await screen.findByRole("button", { name: "Open Shared screens app" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Open Sandbox app" })).not.toBeInTheDocument();
+  });
+
+  it("keeps an app when deletion is cancelled from the builder home", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        sandbox: createBundleWithReusableScreen(),
+      },
+    });
+
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Delete Sandbox app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(configurationClient.deleteApplication).not.toHaveBeenCalled();
+    expect(screen.queryByRole("group", { name: "Confirm delete Sandbox" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
   });
 
   it("saves app-level design system changes from app configuration", async () => {

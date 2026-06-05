@@ -271,6 +271,8 @@ Rules:
 - Screen composition should support drag/drop and explicit buttons.
 - Screen previews should be on-demand or compact so they do not overwhelm the library.
 - Builder panels should not steal space from the WYSIWYG canvas once a user is editing a screen.
+- Destructive actions should use inline Bloom confirmation UI with cancel/confirm buttons. Avoid browser-native
+  `confirm()` dialogs because they are inconsistent, hard to style, and poor on the target tablet.
 
 ## Runtime UI Guidelines
 
