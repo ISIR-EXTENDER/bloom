@@ -7,6 +7,8 @@ from libs.config import (
     ConfigurationBundle,
     ConfigurationMetadata,
     ConfigurationNotFoundError,
+    RuntimeActionPreset,
+    RuntimeAdapterPolicy,
     SQLiteConfigurationRepository,
     load_legacy_screen_file,
 )
@@ -24,7 +26,7 @@ def test_sqlite_migrations_are_idempotent(tmp_path: Path) -> None:
         apply_sqlite_migrations(connection)
         versions = get_applied_schema_versions(connection)
 
-    assert versions == [1, 2]
+    assert versions == [1, 2, 3]
 
 
 def test_sqlite_repository_lists_ids_sorted(tmp_path: Path, sample_configuration_bundle: ConfigurationBundle) -> None:
@@ -45,6 +47,74 @@ def test_sqlite_repository_upserts_and_gets_bundle(
     repository.upsert("sandbox", sample_configuration_bundle)
 
     assert repository.get("sandbox") == sample_configuration_bundle
+
+
+def test_sqlite_repository_reconstructs_bundle_from_normalized_rows(
+    tmp_path: Path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    database_path = tmp_path / "bloom.db"
+    repository = SQLiteConfigurationRepository(database_path)
+    repository.upsert("sandbox", sample_configuration_bundle)
+
+    with sqlite_connection(database_path) as connection:
+        connection.execute(
+            """
+            UPDATE configuration_widgets
+            SET title = ?, settings_json = ?
+            WHERE config_id = ? AND widget_id = ?
+            """,
+            (
+                "Reconstructed toggle",
+                '{"command": "test.reconstructed", "payload": {"data": true}}',
+                "sandbox",
+                "toggle",
+            ),
+        )
+        connection.commit()
+
+    loaded = repository.get("sandbox")
+    loaded_widget = loaded.applications[0].screens[0].widgets[0]
+
+    assert loaded_widget.title == "Reconstructed toggle"
+    assert loaded_widget.settings == {
+        "command": "test.reconstructed",
+        "payload": {"data": True},
+    }
+
+
+def test_sqlite_repository_reconstructs_runtime_policy_and_action_presets(tmp_path: Path) -> None:
+    bundle = ConfigurationBundle(
+        metadata=ConfigurationMetadata(source="normalized-policy-test"),
+        applications=(
+            ApplicationConfig(
+                id="robot-app",
+                name="Robot App",
+                action_presets=(
+                    RuntimeActionPreset(
+                        id="activate",
+                        name="Activate",
+                        message_type="std_msgs/msg/String",
+                        payload={"data": "activate"},
+                        topic="/state_machine/change_state",
+                    ),
+                ),
+                runtime_policy=RuntimeAdapterPolicy(
+                    allowed_message_types=("std_msgs/msg/String",),
+                    allowed_publish_topics=("/state_machine/change_state",),
+                ),
+            ),
+        ),
+    )
+    repository = SQLiteConfigurationRepository(tmp_path / "bloom.db")
+
+    repository.upsert("robot", bundle)
+    loaded = repository.get("robot")
+
+    loaded_app = loaded.applications[0]
+    assert loaded.metadata.source == "normalized-policy-test"
+    assert loaded_app.runtime_policy.allowed_publish_topics == ("/state_machine/change_state",)
+    assert loaded_app.action_presets[0].payload == {"data": "activate"}
 
 
 def test_sqlite_repository_syncs_normalized_app_screen_and_widget_rows(
