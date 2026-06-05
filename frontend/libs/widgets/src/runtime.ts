@@ -78,6 +78,7 @@ export type WidgetActionIntent =
   | {
       action?: RuntimeActionContract;
       command: string;
+      presetId?: string;
       type: "command";
       widgetId: string;
       widgetKind: WidgetKind;
@@ -87,6 +88,7 @@ export type WidgetActionIntent =
       nextState?: ToggleState;
       payload: unknown;
       payloadText?: string;
+      presetId?: string;
       topic: string;
       type: "topic-publish";
       widgetId: string;
@@ -159,6 +161,7 @@ function createCommandLikeIntent(
   }
 
   const topic = getOptionalString(settings, "topic");
+  const presetId = getOptionalString(settings, "presetId");
   if (topic) {
     return createTopicPublishIntent(widget, topic, {
       messageType: getOptionalString(settings, "messageType"),
@@ -167,16 +170,17 @@ function createCommandLikeIntent(
   }
 
   const command = getOptionalString(settings, "command");
-  if (!command) {
+  if (!command && !presetId) {
     return createUnsupportedIntent(widget, event, `Widget "${widget.id}" has no command or topic configured.`);
   }
 
-  const action = createRuntimeActionContract(widget, settings, command);
+  const action = createRuntimeActionContract(widget, settings, command ?? presetId ?? widget.id);
   return {
     type: "command",
     widgetId: widget.id,
     widgetKind: widget.kind,
-    command,
+    command: command ?? presetId ?? widget.id,
+    ...withOptional("presetId", presetId),
     ...(action ? { action } : {}),
   };
 }
@@ -280,6 +284,7 @@ function createTopicPublishIntent(
     messageType?: string;
     nextState?: ToggleState;
     payload: unknown;
+    presetId?: string;
   },
 ): WidgetActionIntent {
   return {
@@ -288,9 +293,10 @@ function createTopicPublishIntent(
     widgetKind: widget.kind,
     topic,
     messageType: options.messageType,
-    nextState: options.nextState,
     payload: options.payload,
     payloadText: typeof options.payload === "string" ? options.payload : undefined,
+    ...withOptional("nextState", options.nextState),
+    ...withOptional("presetId", options.presetId),
   };
 }
 

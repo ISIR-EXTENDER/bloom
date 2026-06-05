@@ -19,12 +19,14 @@ type RuntimeViewportSize = {
   width: number;
 };
 
+type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "runtime_policy">;
+
 type RuntimeWorkspaceProps = {
   application: ApplicationConfig;
   onBackToRuntimeHome: () => void;
   onActionIntent: (
     intent: Parameters<WidgetActionIntentHandler>[0],
-    runtimePolicy?: ApplicationConfig["runtime_policy"],
+    runtimeContext?: ApplicationRuntimeContext,
   ) => void;
   onEditApplication: () => void;
   onEditScreen: () => void;
@@ -67,7 +69,10 @@ export function RuntimeWorkspace({
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
-    onActionIntent(intent, application.runtime_policy);
+    onActionIntent(intent, {
+      action_presets: application.action_presets,
+      runtime_policy: application.runtime_policy,
+    });
   };
 
   useEffect(() => {

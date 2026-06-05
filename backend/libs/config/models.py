@@ -103,6 +103,28 @@ class RuntimeAdapterPolicy(BloomModel):
     allowed_teleop_targets: tuple[str, ...] = Field(default_factory=tuple)
 
 
+class RuntimeActionPreset(BloomModel):
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    kind: str = Field(default="topic-publish", min_length=1)
+    description: str = ""
+    command: str = ""
+    topic: str = ""
+    message_type: str = ""
+    payload: Any = None
+    payload_text: str = ""
+    tags: tuple[str, ...] = Field(default_factory=tuple)
+
+    @field_validator("payload")
+    @classmethod
+    def payload_must_be_json_serializable(cls, value: Any) -> Any:
+        try:
+            json.dumps(value)
+        except TypeError as exc:
+            raise ValueError("payload must be JSON serializable") from exc
+        return value
+
+
 class WidgetConfig(BloomModel):
     id: str = Field(min_length=1)
     kind: WidgetKind = WidgetKind.UNKNOWN
@@ -139,6 +161,7 @@ class ApplicationConfig(BloomModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str = ""
+    action_presets: tuple[RuntimeActionPreset, ...] = Field(default_factory=tuple)
     runtime_policy: RuntimeAdapterPolicy = Field(default_factory=RuntimeAdapterPolicy)
     theme: ApplicationTheme = Field(default_factory=ApplicationTheme)
     profiles: tuple[UserProfile, ...] = Field(default_factory=tuple)
@@ -158,6 +181,14 @@ class ApplicationConfig(BloomModel):
         duplicate_ids = sorted({profile_id for profile_id in profile_ids if profile_ids.count(profile_id) > 1})
         if duplicate_ids:
             raise ValueError(f"duplicate profile ids: {', '.join(duplicate_ids)}")
+        return self
+
+    @model_validator(mode="after")
+    def action_preset_ids_must_be_unique(self) -> "ApplicationConfig":
+        preset_ids = [preset.id for preset in self.action_presets]
+        duplicate_ids = sorted({preset_id for preset_id in preset_ids if preset_ids.count(preset_id) > 1})
+        if duplicate_ids:
+            raise ValueError(f"duplicate action preset ids: {', '.join(duplicate_ids)}")
         return self
 
 

@@ -1,4 +1,9 @@
-import type { BloomApiClient, RosTopicPublishRequest, RuntimeAdapterPolicy } from "@bloom/api-client";
+import type {
+  BloomApiClient,
+  RosTopicPublishRequest,
+  RuntimeActionPreset,
+  RuntimeAdapterPolicy,
+} from "@bloom/api-client";
 import type { Vector2Value, WidgetActionIntent } from "@bloom/widgets";
 
 export type RuntimeVector3 = {
@@ -80,6 +85,7 @@ export type RuntimeActionDispatchResult = {
 };
 
 export type RuntimeActionDispatchOptions = {
+  actionPresets?: readonly RuntimeActionPreset[];
   runtimePolicy?: RuntimeAdapterPolicy;
   teleopSequence?: number;
 };
@@ -97,11 +103,58 @@ export async function dispatchRuntimeActionIntent(
     return dispatchTeleopValueIntent(client, intent, options);
   }
 
+  if (intent.type === "command") {
+    return dispatchCommandIntent(client, intent, options);
+  }
+
   return {
     intent,
     status: "unsupported",
     detail: `Runtime intent "${intent.type}" is not connected to a backend adapter yet.`,
   };
+}
+
+async function dispatchCommandIntent(
+  client: RuntimeActionClient,
+  intent: Extract<WidgetActionIntent, { type: "command" }>,
+  options: RuntimeActionDispatchOptions,
+): Promise<RuntimeActionDispatchResult> {
+  const preset = findActionPreset(intent, options.actionPresets ?? []);
+  const request = preset ? createPresetTopicPublishRequest(preset) : null;
+  if (!request) {
+    return {
+      intent,
+      status: "unsupported",
+      detail: `Command "${intent.command}" is not connected to a runtime adapter yet.`,
+    };
+  }
+
+  const policyError = validateTopicPublishRequest(request, options.runtimePolicy);
+  if (policyError) {
+    return {
+      intent,
+      request,
+      status: "blocked",
+      detail: policyError,
+    };
+  }
+
+  try {
+    const response = await client.publishRosTopic(request);
+    return {
+      intent,
+      request,
+      status: response.status,
+      detail: response.detail,
+    };
+  } catch (error: unknown) {
+    return {
+      intent,
+      request,
+      status: "failed",
+      detail: getErrorMessage(error),
+    };
+  }
 }
 
 async function dispatchTopicPublishIntent(
@@ -224,6 +277,30 @@ async function dispatchTeleopValueIntent(
     intent,
     status: "unsupported",
     detail: "Value-change intents need a teleop or topic runtime binding before they can be sent.",
+  };
+}
+
+function findActionPreset(
+  intent: Extract<WidgetActionIntent, { type: "command" }>,
+  presets: readonly RuntimeActionPreset[],
+): RuntimeActionPreset | null {
+  return (
+    presets.find((preset) => preset.id === intent.presetId) ??
+    presets.find((preset) => preset.command && preset.command === intent.command) ??
+    null
+  );
+}
+
+function createPresetTopicPublishRequest(preset: RuntimeActionPreset): RosTopicPublishRequest | null {
+  if (preset.kind !== "topic-publish" || !preset.topic || !preset.message_type) {
+    return null;
+  }
+
+  const payload = preset.payload_text || preset.payload;
+  return {
+    topic: preset.topic,
+    message_type: preset.message_type,
+    ...toPayloadBody(payload),
   };
 }
 

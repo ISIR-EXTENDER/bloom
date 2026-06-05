@@ -1,5 +1,6 @@
 import {
   type ApplicationConfig,
+  DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
@@ -263,6 +264,7 @@ export function BuilderHome({
                     id,
                     name,
                     description: "New Bloom app",
+                    action_presets: DEFAULT_ACTION_PRESETS,
                     runtime_policy: DEFAULT_RUNTIME_POLICY,
                     theme: DEFAULT_APPLICATION_THEME,
                     profiles: [],

@@ -1,4 +1,4 @@
-import type { RuntimeAdapterPolicy } from "@bloom/api-client";
+import type { RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useRef, useState } from "react";
 import {
@@ -19,6 +19,7 @@ export type RuntimeActionRecord = {
 };
 
 export type RuntimeDispatchOptions = {
+  actionPresets?: readonly RuntimeActionPreset[];
   runtimePolicy?: RuntimeAdapterPolicy;
 };
 
@@ -46,6 +47,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       const teleopSequence = intent.type === "value-change" ? ++nextTeleopSequence.current : undefined;
 
       void dispatchRuntimeActionIntent(client, intent, {
+        actionPresets: options.actionPresets,
         runtimePolicy: options.runtimePolicy,
         teleopSequence,
       }).then((result) => {

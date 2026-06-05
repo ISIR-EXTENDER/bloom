@@ -84,12 +84,27 @@ export type RuntimeAdapterPolicy = {
   allowed_teleop_targets: string[];
 };
 
+export type RuntimeActionPreset = {
+  id: string;
+  name: string;
+  kind: string;
+  description: string;
+  command: string;
+  topic: string;
+  message_type: string;
+  payload: unknown;
+  payload_text: string;
+  tags: string[];
+};
+
 export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
   allowed_message_types: [],
   allowed_publish_topics: [],
   allowed_recording_topics: [],
   allowed_teleop_targets: [],
 };
+
+export const DEFAULT_ACTION_PRESETS: RuntimeActionPreset[] = [];
 
 export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
   inspiration: {
@@ -109,6 +124,7 @@ export type ApplicationConfig = {
   id: string;
   name: string;
   description: string;
+  action_presets: RuntimeActionPreset[];
   runtime_policy: RuntimeAdapterPolicy;
   theme: ApplicationTheme;
   profiles: UserProfile[];

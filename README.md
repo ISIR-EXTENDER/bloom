@@ -88,6 +88,8 @@ current roadmap.
 - A first security baseline now documents minimum web/API/ROS controls, with API security headers covered by tests.
 - Builder screens can add, duplicate, and remove widgets from the shared widget palette.
 - Builder inspectors render widget title and settings fields from shared widget contracts.
+- App configuration can now edit runtime command guardrails and reusable command presets, so recurring ROS/state-machine
+  actions can be shared across widgets without hard-coding robot behavior in Bloom core.
 - Runtime apps render without builder controls, scale `fit` canvases to the viewport, and show safe coming-soon states for empty screens.
 - Runtime display widgets now include useful first foundations for labels, gauges, lightweight plots, and robot-3D
   extension placeholders instead of generic placeholder text.

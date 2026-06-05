@@ -79,6 +79,7 @@ export function legacyCanvasScreensToApplicationConfig(
     id,
     name: stringOrFallback(application.name, id),
     description: stringOrFallback(application.description, homeScreenDescription),
+    action_presets: [],
     runtime_policy: cloneRuntimePolicy(DEFAULT_RUNTIME_POLICY),
     theme: DEFAULT_APPLICATION_THEME,
     profiles: [],
