@@ -366,22 +366,21 @@ Remaining work in this phase:
 
 Status: idea captured, intentionally low priority.
 
-- Add a project/workspace level above apps once SQLite app/screen storage is stable enough to normalize safely.
+- Add a project/workspace level above apps once UI/API contracts are ready.
 - Keep current apps such as Petanque and Sandbox as apps inside an Extender project/workspace.
 - Support future projects that are not robots or not ROS-based, such as a C++ machine supervision API.
-- Add `project_id` only when tables and API contracts are ready, instead of forcing it into the early bundled JSON model.
+- SQLite now has non-breaking workspace/project hooks; keep the public JSON model unchanged until the user-facing
+  project workflow is designed.
 - Keep widgets producing generic intents/actions so protocols remain replaceable through adapters.
 
 ## Ordered Next Steps
 
-1. Harden deployment/security:
-   authentication, authorization, CORS/deployment defaults, dependency audits, and basic dynamic security checks.
-2. Validate the full Extender/Petanque robot pipeline:
+1. Validate the full Extender/Petanque robot pipeline:
    run Bloom runtime against sandbox simulation, Petanque screens, tablet hardware, and legacy parity scenarios before
    retiring any old workflow.
-3. Add concrete robot action adapters:
-   deploy/repli actions, saved pose replay, concrete rosbag recording, speed/gripper counters, and final Explorer
-   user-test mode mappings.
+2. Add remaining concrete robot action adapters:
+   deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.
+3. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
 4. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
 
 See also:
