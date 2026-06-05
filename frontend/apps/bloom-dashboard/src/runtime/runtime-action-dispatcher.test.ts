@@ -91,6 +91,55 @@ describe("runtime action dispatcher", () => {
     expect(client.publishRosTopic).not.toHaveBeenCalled();
   });
 
+  it("dispatches configured command presets through the runtime client", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(
+        async (request) =>
+          ({
+            topic: request.topic,
+            message_type: request.message_type,
+            status: "published",
+            detail: "Command preset published.",
+          }) as const,
+      ),
+    };
+    const intent = createCommandIntent("emergency_stop", "emergency-stop");
+
+    await expect(
+      dispatchRuntimeActionIntent(client, intent, {
+        actionPresets: [
+          {
+            id: "emergency-stop",
+            name: "Emergency stop",
+            kind: "topic-publish",
+            description: "",
+            command: "emergency_stop",
+            topic: "/explorer/emergency_stop",
+            message_type: "std_msgs/msg/Bool",
+            payload: null,
+            payload_text: "{data: true}",
+            tags: ["safety"],
+          },
+        ],
+        runtimePolicy: {
+          allowed_message_types: ["std_msgs/msg/Bool"],
+          allowed_publish_topics: ["/explorer/emergency_stop"],
+          allowed_recording_topics: [],
+          allowed_teleop_targets: [],
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "published",
+      detail: "Command preset published.",
+      request: {
+        topic: "/explorer/emergency_stop",
+        message_type: "std_msgs/msg/Bool",
+        payload_text: "{data: true}",
+      },
+    });
+    expect(client.publishRosTopic).toHaveBeenCalledOnce();
+  });
+
   it("returns unsupported results when topic publish intents miss the message type", async () => {
     const client: RuntimeActionClient = {
       publishRosTopic: vi.fn(),
@@ -339,6 +388,16 @@ function createTopicPublishIntent(
     nextState: "on",
     payload,
     payloadText: typeof payload === "string" ? payload : undefined,
+  };
+}
+
+function createCommandIntent(command: string, presetId?: string): Extract<WidgetActionIntent, { type: "command" }> {
+  return {
+    type: "command",
+    widgetId: "command",
+    widgetKind: "command-button",
+    command,
+    presetId,
   };
 }
 

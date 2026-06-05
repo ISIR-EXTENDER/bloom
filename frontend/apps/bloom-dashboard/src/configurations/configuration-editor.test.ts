@@ -1,6 +1,7 @@
 import {
   type ApplicationConfig,
   type ConfigurationBundle,
+  DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
@@ -232,6 +233,7 @@ function createBundle(): ConfigurationBundle {
         id: "sandbox",
         name: "Sandbox",
         description: "Sandbox operator interface",
+        action_presets: DEFAULT_ACTION_PRESETS,
         runtime_policy: DEFAULT_RUNTIME_POLICY,
         theme: DEFAULT_APPLICATION_THEME,
         profiles: [],

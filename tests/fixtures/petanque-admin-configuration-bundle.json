@@ -1110,7 +1110,35 @@
           "/teleop_cmd"
         ],
         "allowed_teleop_targets": ["/teleop_cmd"]
-      }
+      },
+      "action_presets": [
+        {
+          "id": "petanque-activate-throw",
+          "name": "Activate throw",
+          "kind": "topic-publish",
+          "description": "Trigger the Petanque state machine throw state.",
+          "command": "activate_throw",
+          "topic": "/petanque_state_machine/change_state",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'activate_throw'}",
+          "tags": ["petanque", "state-machine"]
+        },
+        {
+          "id": "petanque-gripper-open",
+          "name": "Open gripper",
+          "kind": "topic-publish",
+          "description": "Open the Petanque gripper through the configured Boolean command topic.",
+          "command": "open_gripper",
+          "topic": "/cmd/gripper",
+          "message_type": "std_msgs/msg/Bool",
+          "payload": {
+            "data": true
+          },
+          "payload_text": "",
+          "tags": ["petanque", "device"]
+        }
+      ]
     }
   ]
 }

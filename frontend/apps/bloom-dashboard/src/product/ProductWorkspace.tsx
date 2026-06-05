@@ -25,7 +25,10 @@ type ProductWorkspaceProps = {
   onEditRuntimeApplication: () => void;
   onEditRuntimeScreen: () => void;
   onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
-  onRuntimeIntent: (intent: WidgetActionIntent, runtimePolicy?: ApplicationConfig["runtime_policy"]) => void;
+  onRuntimeIntent: (
+    intent: WidgetActionIntent,
+    applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy">,
+  ) => void;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;

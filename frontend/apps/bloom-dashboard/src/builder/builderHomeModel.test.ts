@@ -1,5 +1,6 @@
 import {
   type ApplicationConfig,
+  DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
@@ -121,6 +122,7 @@ function createApplication({
   screens: ScreenConfig[];
 }): ApplicationConfig {
   return {
+    action_presets: DEFAULT_ACTION_PRESETS,
     description: "",
     id,
     name,

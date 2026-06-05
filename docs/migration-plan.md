@@ -273,10 +273,13 @@ Completed in this phase so far:
 - The Explorer candidate validates mode-aware joystick settings, action progress/cancel metadata, configurable
   gripper/emergency commands, topic debug widgets, profile-ready app metadata, and operator event logs without making
   Explorer semantics part of Bloom core.
-- `command-button` now supports optional ROS one-shot publish fields and shared presets, so state-machine commands,
-  emergency stop triggers, and bridge-style button actions do not require a separate widget family.
+- `command-button` supports optional ROS one-shot publish fields and app-level `action_presets`, so state-machine
+  commands, emergency stop triggers, saved-preset flows, and bridge-style button actions do not require a separate
+  widget family.
 - Applications can now declare a `runtime_policy` with allowed publish topics, message types, recording topics, and
   teleop targets; the runtime dispatcher uses it as an early app-level guard before backend safety policy enforcement.
+- App configuration can edit runtime allowlists and reusable command presets from the builder, while runtime resolves
+  `presetId` references against the active app before applying policy checks.
 - Lightweight `plot` now supports `area`, `sparkline`, and `bars` variants, optional units, and optional Y bounds before
   Bloom commits to a heavier chart dependency.
 - The Explorer candidate now includes a saved-position screen built from generic command buttons and event logs, so
@@ -292,12 +295,9 @@ Completed in this phase so far:
 
 Phase 4 remaining work:
 
-- Extend configurable ROS message command presets toward reusable preset libraries and builder-facing app-specific
-  adapter policy editing.
 - Continue Bloom Debug telemetry polish and evaluate a richer chart dependency only when first-party variants are no
   longer enough.
-- Migrate richer saved-preset variants behind generic contracts.
-- Continue app-by-app runtime validation against real legacy JSON and ROS adapter behavior.
+- Continue app-by-app runtime validation against real legacy JSON and ROS adapter behavior before closing the phase.
 
 Explorer user-test app candidate:
 

@@ -101,4 +101,53 @@ describe("normalizeConfigurationBundle", () => {
     });
     expect(bundle.applications[0]?.profiles).toEqual([]);
   });
+
+  it("normalizes reusable action presets with unique ids", () => {
+    const bundle = normalizeConfigurationBundle({
+      metadata: {
+        schema_version: 1,
+        exported_at: "2026-06-01T14:00:00Z",
+        source: "test",
+      },
+      applications: [
+        {
+          id: "demo",
+          name: "Demo",
+          description: "",
+          action_presets: [
+            {
+              id: "stop",
+              name: "Stop",
+              kind: "topic-publish",
+              topic: "/stop",
+              message_type: "std_msgs/msg/Bool",
+              payload_text: "{data: true}",
+              tags: ["safety"],
+            },
+            {
+              id: "stop",
+              name: "Stop duplicate",
+            },
+          ],
+          screens: [],
+        },
+      ],
+    } as unknown as ConfigurationBundle);
+
+    expect(bundle.applications[0]?.action_presets).toEqual([
+      expect.objectContaining({
+        id: "stop",
+        name: "Stop",
+        payload: null,
+        payload_text: "{data: true}",
+        tags: ["safety"],
+      }),
+      expect.objectContaining({
+        id: "stop-2",
+        name: "Stop duplicate",
+        kind: "topic-publish",
+        tags: [],
+      }),
+    ]);
+  });
 });

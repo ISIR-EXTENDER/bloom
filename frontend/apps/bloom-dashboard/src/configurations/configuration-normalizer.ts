@@ -4,6 +4,7 @@ import type {
   CanvasPresetId,
   CanvasSettings,
   ConfigurationBundle,
+  RuntimeActionPreset,
   RuntimeAdapterPolicy,
   RuntimeCanvasMode,
   ScreenConfig,
@@ -11,7 +12,7 @@ import type {
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
-import { DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
+import { DEFAULT_ACTION_PRESETS, DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
   applications?: PartialApplicationConfig[];
@@ -19,6 +20,7 @@ type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "application
 };
 
 type PartialApplicationConfig = Partial<Omit<ApplicationConfig, "screens">> & {
+  action_presets?: PartialRuntimeActionPreset[];
   profiles?: ApplicationConfig["profiles"];
   runtime_policy?: PartialRuntimeAdapterPolicy;
   screens?: PartialScreenConfig[];
@@ -26,6 +28,7 @@ type PartialApplicationConfig = Partial<Omit<ApplicationConfig, "screens">> & {
 };
 
 type PartialRuntimeAdapterPolicy = Partial<RuntimeAdapterPolicy>;
+type PartialRuntimeActionPreset = Partial<RuntimeActionPreset>;
 
 type PartialApplicationTheme = Partial<Omit<ApplicationTheme, "palette">> & {
   inspiration?: Partial<ApplicationTheme["inspiration"]>;
@@ -98,11 +101,38 @@ function normalizeApplication(application: PartialApplicationConfig, index: numb
     id,
     name: asString(application.name, id),
     description: asString(application.description, ""),
+    action_presets: normalizeActionPresets(application.action_presets),
     runtime_policy: normalizeRuntimePolicy(application.runtime_policy),
     theme: normalizeApplicationTheme(application.theme),
     profiles: Array.isArray(application.profiles) ? application.profiles : [],
     screens: (application.screens ?? []).map((screen, screenIndex) => normalizeScreen(screen, screenIndex)),
   };
+}
+
+function normalizeActionPresets(presets: PartialRuntimeActionPreset[] | undefined): RuntimeActionPreset[] {
+  if (!Array.isArray(presets)) {
+    return DEFAULT_ACTION_PRESETS;
+  }
+
+  const usedIds = new Set<string>();
+  return presets.map((preset, index) => {
+    const fallbackId = `preset-${index + 1}`;
+    const id = createUniquePresetId(asString(preset.id, fallbackId), usedIds);
+    usedIds.add(id);
+
+    return {
+      id,
+      name: asString(preset.name, id),
+      kind: asString(preset.kind, "topic-publish"),
+      description: asString(preset.description, ""),
+      command: asString(preset.command, ""),
+      topic: asString(preset.topic, ""),
+      message_type: asString(preset.message_type, ""),
+      payload: isJsonLike(preset.payload) ? preset.payload : null,
+      payload_text: asString(preset.payload_text, ""),
+      tags: asStringArray(preset.tags, []),
+    };
+  });
 }
 
 function normalizeRuntimePolicy(policy: PartialRuntimeAdapterPolicy | undefined): RuntimeAdapterPolicy {
@@ -121,6 +151,33 @@ function normalizeRuntimePolicy(policy: PartialRuntimeAdapterPolicy | undefined)
       DEFAULT_RUNTIME_POLICY.allowed_teleop_targets,
     ),
   };
+}
+
+function createUniquePresetId(id: string, usedIds: ReadonlySet<string>): string {
+  if (!usedIds.has(id)) {
+    return id;
+  }
+
+  let suffix = 2;
+  let nextId = `${id}-${suffix}`;
+  while (usedIds.has(nextId)) {
+    suffix += 1;
+    nextId = `${id}-${suffix}`;
+  }
+  return nextId;
+}
+
+function isJsonLike(value: unknown): boolean {
+  if (value === undefined) {
+    return false;
+  }
+
+  try {
+    JSON.stringify(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): ApplicationTheme {

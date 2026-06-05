@@ -190,7 +190,23 @@
         "allowed_publish_topics": ["/cmd/joystick_z", "/cmd/max_velocity"],
         "allowed_recording_topics": ["/joint_states", "/sandbox_controller/velocity_command", "/teleop_cmd"],
         "allowed_teleop_targets": ["/teleop_cmd"]
-      }
+      },
+      "action_presets": [
+        {
+          "id": "sandbox-max-velocity-safe",
+          "name": "Safe max velocity",
+          "kind": "topic-publish",
+          "description": "Set a conservative max velocity in the sandbox lab.",
+          "command": "set_safe_max_velocity",
+          "topic": "/cmd/max_velocity",
+          "message_type": "std_msgs/msg/Float64",
+          "payload": {
+            "data": 0.5
+          },
+          "payload_text": "",
+          "tags": ["sandbox", "teleop"]
+        }
+      ]
     }
   ]
 }

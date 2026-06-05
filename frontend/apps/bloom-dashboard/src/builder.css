@@ -618,9 +618,9 @@
 }
 
 .builder-screen-card {
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
-  align-items: center;
+  align-items: start;
   min-height: 92px;
   position: relative;
   overflow: hidden;
@@ -638,10 +638,10 @@
 .builder-screen-card[draggable="true"]::after {
   position: absolute;
   right: 16px;
-  bottom: 12px;
+  top: 12px;
   z-index: 1;
   color: color-mix(in srgb, var(--bloom-ink-soft) 76%, transparent);
-  content: "Drag to reorder";
+  content: "Drag";
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -692,6 +692,71 @@
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.builder-action-preset-list,
+.builder-action-preset-form {
+  display: grid;
+  gap: 12px;
+}
+
+.builder-action-preset-list {
+  margin: 18px 0;
+}
+
+.builder-action-preset-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 14px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 84%, white);
+}
+
+.builder-action-preset-card div {
+  display: grid;
+  gap: 2px;
+}
+
+.builder-action-preset-card strong,
+.builder-action-preset-card span,
+.builder-action-preset-card small {
+  overflow-wrap: anywhere;
+}
+
+.builder-action-preset-card span,
+.builder-action-preset-card small {
+  color: var(--bloom-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.builder-action-preset-card button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-danger) 24%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-danger) 8%, var(--bloom-surface-container-low));
+  color: var(--bloom-danger);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.builder-action-preset-form button {
+  min-height: 48px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 14px;
+  background: var(--bloom-primary);
+  color: white;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.builder-action-preset-form button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .builder-app-card-theme {
@@ -780,7 +845,7 @@
 
 .builder-screen-membership {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(360px, 1.15fr) minmax(320px, 0.85fr);
   gap: 24px;
   align-items: start;
   margin-top: 24px;
@@ -897,9 +962,9 @@
 .builder-screen-card-actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
   flex-wrap: wrap;
-  max-width: 340px;
+  max-width: none;
 }
 
 .builder-screen-card-actions button {

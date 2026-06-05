@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeActionPreset, RuntimeAdapterPolicy, ScreenConfig } from "@bloom/api-client";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -68,6 +68,7 @@ export function BuilderAppConfig({
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
   const { application } = selectedWorkspace;
   const [draftApplication, setDraftApplication] = useState(application);
+  const [newPreset, setNewPreset] = useState(createEmptyActionPresetDraft());
   const [newScreenName, setNewScreenName] = useState("New screen");
   const [saveState, setSaveState] = useState<AppSaveState>({ status: "idle" });
   const [themeInspirationError, setThemeInspirationError] = useState("");
@@ -82,6 +83,7 @@ export function BuilderAppConfig({
 
   useEffect(() => {
     setDraftApplication(application);
+    setNewPreset(createEmptyActionPresetDraft());
     setSaveState({ status: "idle" });
     setThemeInspirationError("");
   }, [application]);
@@ -169,6 +171,50 @@ export function BuilderAppConfig({
       },
     }));
     setThemeInspirationError("");
+    setSaveState({ status: "idle" });
+  };
+
+  const updateRuntimePolicyList = (field: keyof RuntimeAdapterPolicy, value: string) => {
+    setDraftApplication((currentApplication) => ({
+      ...currentApplication,
+      runtime_policy: {
+        ...currentApplication.runtime_policy,
+        [field]: parseLines(value),
+      },
+    }));
+    setSaveState({ status: "idle" });
+  };
+
+  const addActionPreset = () => {
+    const name = newPreset.name.trim();
+    if (!name) {
+      return;
+    }
+
+    setDraftApplication((currentApplication) => ({
+      ...currentApplication,
+      action_presets: [
+        ...currentApplication.action_presets,
+        {
+          ...newPreset,
+          command: newPreset.command.trim(),
+          id: createUniquePresetId(name, currentApplication.action_presets),
+          message_type: newPreset.message_type.trim(),
+          name,
+          payload_text: newPreset.payload_text.trim(),
+          topic: newPreset.topic.trim(),
+        },
+      ],
+    }));
+    setNewPreset(createEmptyActionPresetDraft());
+    setSaveState({ status: "idle" });
+  };
+
+  const removeActionPreset = (presetId: string) => {
+    setDraftApplication((currentApplication) => ({
+      ...currentApplication,
+      action_presets: currentApplication.action_presets.filter((preset) => preset.id !== presetId),
+    }));
     setSaveState({ status: "idle" });
   };
 
@@ -261,6 +307,130 @@ export function BuilderAppConfig({
                 value={draftApplication.description}
               />
             </label>
+          </section>
+
+          <section className="builder-config-panel" aria-labelledby="builder-runtime-policy-title">
+            <div className="builder-config-panel-header">
+              <div>
+                <p className="eyebrow">Runtime</p>
+                <h2 id="builder-runtime-policy-title">Adapter guardrails</h2>
+              </div>
+              <span className="builder-section-badge">App level</span>
+            </div>
+            <p className="builder-inspector-copy">
+              These lists help the runtime block accidental commands before they reach backend safety policies. Leave a
+              list empty only for unrestricted local demos.
+            </p>
+            <RuntimePolicyField
+              label="Allowed publish topics"
+              onChange={(value) => updateRuntimePolicyList("allowed_publish_topics", value)}
+              value={draftApplication.runtime_policy.allowed_publish_topics}
+            />
+            <RuntimePolicyField
+              label="Allowed message types"
+              onChange={(value) => updateRuntimePolicyList("allowed_message_types", value)}
+              value={draftApplication.runtime_policy.allowed_message_types}
+            />
+            <RuntimePolicyField
+              label="Allowed teleop targets"
+              onChange={(value) => updateRuntimePolicyList("allowed_teleop_targets", value)}
+              value={draftApplication.runtime_policy.allowed_teleop_targets}
+            />
+            <RuntimePolicyField
+              label="Allowed recording topics"
+              onChange={(value) => updateRuntimePolicyList("allowed_recording_topics", value)}
+              value={draftApplication.runtime_policy.allowed_recording_topics}
+            />
+          </section>
+
+          <section className="builder-config-panel" aria-labelledby="builder-action-presets-title">
+            <div className="builder-config-panel-header">
+              <div>
+                <p className="eyebrow">Commands</p>
+                <h2 id="builder-action-presets-title">Reusable presets</h2>
+              </div>
+              <span className="builder-section-badge">{draftApplication.action_presets.length} presets</span>
+            </div>
+            <p className="builder-inspector-copy">
+              Save common app commands once, then reference them from command widgets with their preset id.
+            </p>
+            <div className="builder-action-preset-list">
+              {draftApplication.action_presets.length === 0 ? (
+                <p className="builder-empty-state">No reusable command presets yet.</p>
+              ) : (
+                draftApplication.action_presets.map((preset) => (
+                  <article className="builder-action-preset-card" key={preset.id}>
+                    <div>
+                      <strong>{preset.name}</strong>
+                      <span>{preset.id}</span>
+                    </div>
+                    <small>{preset.topic || preset.command || "No runtime target configured yet."}</small>
+                    <button
+                      aria-label={`Remove ${preset.name} preset`}
+                      onClick={() => removeActionPreset(preset.id)}
+                      type="button"
+                    >
+                      Remove
+                    </button>
+                  </article>
+                ))
+              )}
+            </div>
+            <div className="builder-action-preset-form">
+              <label className="builder-settings-field">
+                <span>Preset name</span>
+                <input
+                  {...getTouchEditingProps("name")}
+                  onChange={(event) => setNewPreset({ ...newPreset, name: event.target.value })}
+                  placeholder="Emergency stop"
+                  type="text"
+                  value={newPreset.name}
+                />
+              </label>
+              <label className="builder-settings-field">
+                <span>Command</span>
+                <input
+                  {...getTouchEditingProps("text")}
+                  onChange={(event) => setNewPreset({ ...newPreset, command: event.target.value })}
+                  placeholder="emergency_stop"
+                  type="text"
+                  value={newPreset.command}
+                />
+              </label>
+              <label className="builder-settings-field">
+                <span>Topic</span>
+                <input
+                  {...getTouchEditingProps("text")}
+                  onChange={(event) => setNewPreset({ ...newPreset, topic: event.target.value })}
+                  placeholder="/explorer/emergency_stop"
+                  type="text"
+                  value={newPreset.topic}
+                />
+              </label>
+              <label className="builder-settings-field">
+                <span>Message type</span>
+                <input
+                  {...getTouchEditingProps("text")}
+                  onChange={(event) => setNewPreset({ ...newPreset, message_type: event.target.value })}
+                  placeholder="std_msgs/msg/Bool"
+                  type="text"
+                  value={newPreset.message_type}
+                />
+              </label>
+              <label className="builder-settings-field">
+                <span>Payload</span>
+                <textarea
+                  {...getTouchEditingProps("text")}
+                  onChange={(event) => setNewPreset({ ...newPreset, payload_text: event.target.value })}
+                  placeholder="{data: true}"
+                  rows={3}
+                  value={newPreset.payload_text}
+                />
+              </label>
+              <button disabled={!newPreset.name.trim()} onClick={addActionPreset} type="button">
+                Add preset
+              </button>
+            </div>
           </section>
 
           <section className="builder-config-panel" aria-labelledby="builder-theme-title">
@@ -560,6 +730,29 @@ function ScreenCard({
   );
 }
 
+function RuntimePolicyField({
+  label,
+  onChange,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  value: readonly string[];
+}) {
+  return (
+    <label className="builder-settings-field">
+      <span>{label}</span>
+      <textarea
+        {...getTouchEditingProps("text")}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="One value per line"
+        rows={3}
+        value={formatLines(value)}
+      />
+    </label>
+  );
+}
+
 function createScreenAccentStyle(screen: ScreenConfig): CSSProperties {
   return { "--screen-card-accent": resolveScreenAccent(screen) } as CSSProperties;
 }
@@ -640,6 +833,52 @@ function collectAvailableScreens(applications: readonly ApplicationConfig[]): Av
   }
 
   return [...screensById.values()];
+}
+
+function createEmptyActionPresetDraft(): RuntimeActionPreset {
+  return {
+    id: "",
+    name: "",
+    kind: "topic-publish",
+    description: "",
+    command: "",
+    topic: "",
+    message_type: "",
+    payload: null,
+    payload_text: "",
+    tags: [],
+  };
+}
+
+function createUniquePresetId(name: string, presets: readonly RuntimeActionPreset[]): string {
+  const baseId = createUniqueId(name, []);
+  const usedIds = new Set(presets.map((preset) => preset.id));
+  if (!usedIds.has(baseId)) {
+    return baseId;
+  }
+
+  let suffix = 2;
+  let nextId = `${baseId}-${suffix}`;
+  while (usedIds.has(nextId)) {
+    suffix += 1;
+    nextId = `${baseId}-${suffix}`;
+  }
+  return nextId;
+}
+
+function formatLines(values: readonly string[]): string {
+  return values.join("\n");
+}
+
+function parseLines(value: string): string[] {
+  return [
+    ...new Set(
+      value
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function AppSaveStatus({ state }: { state: AppSaveState }) {

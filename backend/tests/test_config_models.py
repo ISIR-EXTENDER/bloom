@@ -14,6 +14,7 @@ from libs.config import (
     DisplayPreset,
     MotorAccessibilityPreset,
     RuntimeCanvasMode,
+    RuntimeActionPreset,
     ScreenConfig,
     UserProfile,
     WidgetConfig,
@@ -218,6 +219,50 @@ def test_application_accepts_runtime_adapter_policy_for_app_specific_safety() ->
     assert application.runtime_policy.allowed_publish_topics == ("/petanque_state_machine/change_state",)
     assert application.runtime_policy.allowed_recording_topics == ("/rosout",)
     assert application.runtime_policy.allowed_teleop_targets == ("/teleop_cmd",)
+
+
+def test_application_accepts_reusable_runtime_action_presets() -> None:
+    application = ApplicationConfig.model_validate(
+        {
+            "id": "explorer-tests",
+            "name": "Explorer Tests",
+            "action_presets": [
+                {
+                    "id": "emergency-stop",
+                    "name": "Emergency stop",
+                    "kind": "topic-publish",
+                    "command": "emergency_stop",
+                    "topic": "/explorer/emergency_stop",
+                    "message_type": "std_msgs/msg/Bool",
+                    "payload": {"data": True},
+                    "tags": ["safety", "explorer"],
+                }
+            ],
+        }
+    )
+
+    preset = application.action_presets[0]
+
+    assert preset.name == "Emergency stop"
+    assert preset.payload == {"data": True}
+    assert preset.tags == ("safety", "explorer")
+
+
+def test_duplicate_runtime_action_preset_ids_are_rejected() -> None:
+    with pytest.raises(ValidationError, match="duplicate action preset ids: stop"):
+        ApplicationConfig(
+            id="explorer-tests",
+            name="Explorer Tests",
+            action_presets=(
+                RuntimeActionPreset(id="stop", name="Stop"),
+                RuntimeActionPreset(id="stop", name="Stop duplicate"),
+            ),
+        )
+
+
+def test_runtime_action_preset_payload_must_be_json_serializable() -> None:
+    with pytest.raises(ValidationError, match="payload must be JSON serializable"):
+        RuntimeActionPreset(id="bad", name="Bad", payload=object())
 
 
 def test_robot_3d_widget_kind_is_reserved_for_optional_visualization_extensions() -> None:

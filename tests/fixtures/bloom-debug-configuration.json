@@ -101,7 +101,8 @@
           "/teleop_cmd"
         ],
         "allowed_teleop_targets": []
-      }
+      },
+      "action_presets": []
     }
   ]
 }

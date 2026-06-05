@@ -1092,7 +1092,35 @@
         "allowed_publish_topics": ["/cmd/max_velocity", "/explorer/emergency_stop", "/gripper_controller/commands"],
         "allowed_recording_topics": ["/joint_states", "/teleop_cmd"],
         "allowed_teleop_targets": ["/teleop_cmd"]
-      }
+      },
+      "action_presets": [
+        {
+          "id": "explorer-emergency-stop",
+          "name": "Emergency stop",
+          "kind": "topic-publish",
+          "description": "Send an immediate stop request for Explorer user tests.",
+          "command": "emergency_stop",
+          "topic": "/explorer/emergency_stop",
+          "message_type": "std_msgs/msg/Bool",
+          "payload": null,
+          "payload_text": "{data: true}",
+          "tags": ["explorer", "safety"]
+        },
+        {
+          "id": "explorer-gripper-close",
+          "name": "Close gripper",
+          "kind": "topic-publish",
+          "description": "Close the gripper through the Explorer fixture command topic.",
+          "command": "close_gripper",
+          "topic": "/gripper_controller/commands",
+          "message_type": "std_msgs/msg/Float64MultiArray",
+          "payload": {
+            "data": [0.8]
+          },
+          "payload_text": "",
+          "tags": ["explorer", "device"]
+        }
+      ]
     }
   ]
 }

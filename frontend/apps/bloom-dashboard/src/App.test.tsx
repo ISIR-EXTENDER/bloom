@@ -1,6 +1,7 @@
 import {
   type ApplicationConfig,
   type ConfigurationBundle,
+  DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
@@ -463,6 +464,52 @@ describe("App", () => {
 
     expect(savedApplication?.theme.palette.primary).toBe("#ff8800");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
+  });
+
+  it("saves runtime guardrails and reusable command presets from app configuration", async () => {
+    const configurationClient = createConfigurationClient();
+
+    render(<App configurationClient={configurationClient} />);
+
+    await openAppConfig();
+    fireEvent.change(screen.getByLabelText("Allowed publish topics"), {
+      target: { value: "/teleop_cmd\n/explorer/emergency_stop\n/teleop_cmd" },
+    });
+    fireEvent.change(screen.getByLabelText("Allowed message types"), {
+      target: { value: "std_msgs/msg/Bool\nstd_msgs/msg/String" },
+    });
+    fireEvent.change(screen.getByLabelText("Preset name"), { target: { value: "Emergency stop" } });
+    fireEvent.change(screen.getByLabelText("Command"), { target: { value: "emergency_stop" } });
+    fireEvent.change(screen.getByLabelText("Topic"), { target: { value: "/explorer/emergency_stop" } });
+    fireEvent.change(screen.getByLabelText("Message type"), { target: { value: "std_msgs/msg/Bool" } });
+    fireEvent.change(screen.getByLabelText("Payload"), { target: { value: "{data: true}" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add preset" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+
+    expect(savedApplication?.runtime_policy.allowed_publish_topics).toEqual([
+      "/teleop_cmd",
+      "/explorer/emergency_stop",
+    ]);
+    expect(savedApplication?.runtime_policy.allowed_message_types).toEqual([
+      "std_msgs/msg/Bool",
+      "std_msgs/msg/String",
+    ]);
+    expect(savedApplication?.action_presets).toEqual([
+      expect.objectContaining({
+        id: "emergency-stop",
+        command: "emergency_stop",
+        message_type: "std_msgs/msg/Bool",
+        name: "Emergency stop",
+        payload_text: "{data: true}",
+        topic: "/explorer/emergency_stop",
+      }),
+    ]);
   });
 
   it("saves app theme inspiration from a website reference and moodboard image", async () => {
@@ -1468,6 +1515,7 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
         id,
         name: "Sandbox",
         description: "Sandbox operator interface",
+        action_presets: DEFAULT_ACTION_PRESETS,
         runtime_policy: DEFAULT_RUNTIME_POLICY,
         theme: DEFAULT_APPLICATION_THEME,
         profiles: [],
@@ -1550,6 +1598,7 @@ function createBundleWithReusableScreen(): ConfigurationBundle {
         id: "shared-screens",
         name: "Shared screens",
         description: "Reusable screen library for tests",
+        action_presets: DEFAULT_ACTION_PRESETS,
         runtime_policy: DEFAULT_RUNTIME_POLICY,
         theme: DEFAULT_APPLICATION_THEME,
         profiles: [],
