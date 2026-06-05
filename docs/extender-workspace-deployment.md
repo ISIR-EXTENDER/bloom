@@ -32,6 +32,22 @@ The script:
 | `BLOOM_FRONTEND_PORT` | `5173` | Dashboard dev-server port. |
 | `BLOOM_APPLY_TABLET_TOUCH_MAP` | `0` | Set to `1` to run `scripts/extender-tablet-touch-map.sh` before launch. |
 
+## Recording Variables
+
+Bloom Debug can keep using the simulated recording gateway for UI and CI checks. For ROS-enabled lab sessions, opt into
+real rosbag process management explicitly:
+
+```bash
+export BLOOM_RUNTIME_RECORDING_GATEWAY=rosbag
+export BLOOM_ALLOWED_RECORDING_TOPICS='/teleop_cmd,/joint_states,/sandbox_controller/velocity_command'
+export BLOOM_ALLOWED_RECORDING_OUTPUT_FOLDERS='data/recordings'
+export BLOOM_RUNTIME_RECORDING_BASE_DIRECTORY="$PWD/backend"
+export BLOOM_RUNTIME_RECORDING_EXECUTABLE=ros2
+```
+
+Recording remains constrained by both topic and folder allowlists. Keep folders relative and approved so a dashboard
+operator cannot write bags outside the intended Bloom data area.
+
 ## Security Variables
 
 For shared lab tablets or staging deployments, enable the Phase 5 API perimeter:

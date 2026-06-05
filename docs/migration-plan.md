@@ -348,10 +348,13 @@ Completed in this phase so far:
 - Legacy retirement now has explicit gates; current status is "do not retire yet".
 - SQLite now reconstructs configuration bundles from normalized app/screen/widget/theme/profile/runtime-policy/action
   preset rows, while keeping bundle JSON as a migration/export fallback.
+- Bloom Debug recording now has an opt-in `ros2 bag record` gateway with process management, recording topic allowlists,
+  approved relative folders, and controlled service-unavailable failures when ROS is not available.
 
 Remaining work in this phase:
 
-- Validate and refine the Extender workspace launcher with the full sandbox/Petanque pipeline.
+- Validate and refine the Extender workspace launcher with the full sandbox/Petanque pipeline, including the opt-in
+  rosbag recording gateway.
 - Execute and record the full Extender + Petanque end-to-end validation.
 - Mark only accepted legacy workflows as legacy, without deleting them during transition.
 
