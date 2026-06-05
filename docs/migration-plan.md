@@ -95,6 +95,8 @@ Already merged:
 - Topic echo widgets now include a first user-facing debug action to copy the latest visible messages.
 - Tablet UX review and visual smoke coverage now include landing, builder home, app configuration, and runtime at
   `1024x600`, `1280x800`, and `1920x1080`.
+- Bloom Debug visual smoke coverage now exercises the runtime debug app with mocked topic catalog data, WebSocket
+  subscription ACKs, and live topic samples at the same key tablet/HD viewports.
 - Runtime app layout now gives normal operator apps the full available canvas height instead of reserving Bloom Debug
   space when the debug panel is not mounted.
 - Product route changes now reset scroll/focus to the main content region, so app configuration and runtime pages open
@@ -240,6 +242,8 @@ Validated runtime checks:
 - Real dashboard Bloom Debug flow validates `subscribe_topic` messages with `widget_id`, backend `subscription_ack`,
   and visible topic samples in runtime widgets.
 - Real dashboard Bloom Debug controls validate topic catalog refresh, audit refresh, and recording start/stop calls.
+- Visual smoke screenshots include Bloom Debug runtime with loaded topic catalog and live topic echo/plot widgets at
+  `1024x600`, `1280x800`, and `1920x1080`.
 - Real dashboard Sandbox teleop lab flow validates the fit runtime artboard visually at tablet-like viewport sizes, so
   translation/rotation joysticks and horizontal/vertical sliders remain visible.
 
