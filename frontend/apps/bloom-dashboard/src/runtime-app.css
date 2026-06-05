@@ -1,4 +1,8 @@
 .runtime-app-workspace {
+  --runtime-font-scale: 1;
+  --runtime-control-touch-target: var(--bloom-touch-target);
+  --runtime-shell-padding: 20px;
+
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   width: 100%;
@@ -9,6 +13,19 @@
   border-radius: 28px;
   background: color-mix(in srgb, var(--bloom-surface-container-low) 92%, white);
   box-shadow: var(--bloom-shadow);
+  font-size: calc(1rem * var(--runtime-font-scale));
+}
+
+.runtime-app-workspace[data-display-preset="comfort"] {
+  --runtime-control-touch-target: var(--bloom-touch-target-comfortable);
+  --runtime-shell-padding: 18px;
+}
+
+.runtime-app-workspace[data-display-preset="high-visibility"],
+.runtime-app-workspace[data-motor-accessibility-preset="large-targets"],
+.runtime-app-workspace[data-motor-accessibility-preset="assisted-touch"] {
+  --runtime-control-touch-target: var(--bloom-touch-target-high-visibility);
+  --runtime-shell-padding: 16px;
 }
 
 .bloom-debug-panel {
@@ -283,6 +300,13 @@
   font-size: 1.5rem;
 }
 
+.runtime-profile-label {
+  margin: 4px 0 0;
+  color: var(--bloom-muted);
+  font-size: 0.78em;
+  font-weight: 850;
+}
+
 .runtime-app-actions {
   display: flex;
   gap: 8px;
@@ -290,13 +314,19 @@
 }
 
 .runtime-app-action {
-  min-height: 42px;
+  min-height: max(42px, var(--runtime-control-touch-target));
   padding: 9px 14px;
   border: 1px solid var(--bloom-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bloom-surface-container-low) 88%, white);
   color: var(--bloom-ink);
   font-weight: 850;
+}
+
+.runtime-app-workspace[data-display-preset="high-visibility"] .runtime-app-action,
+.runtime-app-workspace[data-motor-accessibility-preset="large-targets"] .runtime-app-action,
+.runtime-app-workspace[data-motor-accessibility-preset="assisted-touch"] .runtime-app-action {
+  padding-inline: 18px;
 }
 
 .runtime-app-action:hover {
@@ -321,6 +351,11 @@
   background: var(--bloom-surface-container-low);
   color: var(--bloom-ink);
   text-align: left;
+}
+
+.runtime-app-workspace[data-display-preset="high-visibility"] .runtime-screen-tab {
+  min-height: var(--runtime-control-touch-target);
+  border-color: color-mix(in srgb, var(--bloom-primary) 34%, var(--bloom-border));
 }
 
 .runtime-screen-tab[aria-current="page"] {
@@ -348,7 +383,7 @@
   width: 100%;
   height: 100%;
   overflow: auto;
-  padding: 20px;
+  padding: var(--runtime-shell-padding);
 }
 
 .runtime-app-canvas-viewport[data-runtime-mode="center"],

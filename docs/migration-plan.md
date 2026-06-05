@@ -350,6 +350,8 @@ Completed in this phase so far:
   preset rows, while keeping bundle JSON as a migration/export fallback.
 - Bloom Debug recording now has an opt-in `ros2 bag record` gateway with process management, recording topic allowlists,
   approved relative folders, and controlled service-unavailable failures when ROS is not available.
+- Runtime workspaces now apply app display profiles at render time, choosing high-visibility or comfort presentation
+  from viewport size while keeping the WYSIWYG screen layout canonical.
 
 Remaining work in this phase:
 
@@ -378,11 +380,8 @@ Status: idea captured, intentionally low priority.
 3. Add concrete robot action adapters:
    deploy/repli actions, saved pose replay, concrete rosbag recording, speed/gripper counters, and final Explorer
    user-test mode mappings.
-4. Add tablet runtime layout presets:
-   keep the WYSIWYG source layout canonical, but let apps provide tablet/high-visibility display profiles so real
-   operator controls are comfortable at `1024x600` and `1920x1080`.
-5. Keep the future project/workspace level unblocked while evolving normalized SQLite app/screen storage.
-6. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+4. Keep the future project/workspace level unblocked while evolving normalized SQLite app/screen storage.
+5. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
 
 See also:
 
