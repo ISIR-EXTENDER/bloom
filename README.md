@@ -24,6 +24,7 @@
   <a href="docs/production-readiness-review.md">Readiness</a> ·
   <a href="docs/extender-tablet-hardware.md">Tablet Hardware</a> ·
   <a href="docs/extender-workspace-deployment.md">Extender Deployment</a> ·
+  <a href="docs/extender-petanque-validation.md">Validation</a> ·
   <a href="#tests-and-coverage">Tests</a> ·
   <a href="docs/security-baseline.md">Security</a> ·
   <a href="docs/accessibility-plan.md">Accessibility</a> ·
@@ -198,6 +199,14 @@ keyboard reachable, readable on tablets, understandable without color alone, and
 
 See `docs/accessibility-plan.md` for the current accessibility statement, quick wins, and testing roadmap. When changing
 UI, docs, interactions, or app themes, include an accessibility check in the PR.
+
+## Validation And Legacy Retirement
+
+Phase 5 validation is tracked in `docs/extender-petanque-validation.md`. Legacy retirement rules are tracked in
+`docs/legacy-retirement-gates.md`.
+
+Short version: do not delete or archive legacy workflows during the transition. `extender_ui`, `tablet_interface`, and
+Petanque packages remain rollback paths until Bloom is validated end-to-end and accepted by users.
 
 ## Extender Workspace Deployment
 

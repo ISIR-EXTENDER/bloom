@@ -343,13 +343,15 @@ Completed in this phase so far:
   running backend through `npm run security:dynamic`.
 - A transition Extender workspace launcher starts Bloom API in ROS-adapter mode and the dashboard next to the existing
   ROS workspace without turning Bloom into a ROS package.
+- Extender/Petanque validation now has an explicit acceptance protocol and record.
+- Legacy retirement now has explicit gates; current status is "do not retire yet".
 
 Remaining work in this phase:
 
 - Promote the basic dynamic smoke scan into CI once deployment preview startup is scriptable end-to-end.
 - Validate and refine the Extender workspace launcher with the full sandbox/Petanque pipeline.
-- Validate Bloom against the full Extender + Petanque end-to-end pipeline.
-- Decide exactly which legacy repos/packages should be marked legacy, without deleting them during transition.
+- Execute and record the full Extender + Petanque end-to-end validation.
+- Mark only accepted legacy workflows as legacy, without deleting them during transition.
 
 ### Phase 6 - Multi-Project And Non-ROS Integrations
 
