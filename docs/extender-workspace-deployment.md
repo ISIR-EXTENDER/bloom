@@ -69,6 +69,8 @@ Before replacing a legacy workflow with Bloom:
 - build and source the Extender workspace;
 - launch the sandbox simulation with the existing `sandbox_controller` launch file;
 - start Bloom with `scripts/extender-workspace-dev.sh`;
+- verify ROS graph diagnostics in Bloom Debug or with `GET /api/v1/ros/topics/status` for `/teleop_cmd`,
+  `/joint_states`, and `/sandbox_controller/velocity_command`;
 - open the Sandbox teleop lab app in runtime;
 - move the translation/rotation joysticks and verify `/teleop_cmd` plus robot motion in RViz/Gazebo;
 - open Bloom Debug and verify topic catalog, topic echo, plot, audit, and recording controls;

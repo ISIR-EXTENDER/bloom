@@ -66,6 +66,7 @@ export type RuntimeTopicSampleMessage = {
 
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;
+  listRosTopicStatus?: BloomApiClient["listRosTopicStatus"];
   listRosTopics?: BloomApiClient["listRosTopics"];
   listRuntimeAuditRecords?: BloomApiClient["listRuntimeAuditRecords"];
   sendTeleopCommand?: (request: RuntimeTeleopCommandRequest) => Promise<RuntimeTeleopCommandResponse>;

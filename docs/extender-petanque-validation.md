@@ -45,6 +45,8 @@ legacy yet. The remaining decision needs a real operator pass on the target tabl
 
    - `Sandbox teleop lab` opens without builder chrome.
    - Translation and rotation joystick gestures publish `/teleop_cmd`.
+   - Bloom Debug or `GET /api/v1/ros/topics/status` shows publishers/subscribers for `/teleop_cmd`, `/joint_states`,
+     and `/sandbox_controller/velocity_command`.
    - Robot motion is visible in RViz/Gazebo.
    - Scalar sliders publish expected values and do not jump unexpectedly.
    - Bloom Debug topic catalog loads.

@@ -215,6 +215,24 @@ describe("Bloom API client", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics", {});
   });
 
+  it("lists ROS topic status diagnostics through the backend", async () => {
+    const responsePayload = {
+      topics: [
+        {
+          name: "/teleop_cmd",
+          message_type: "extender_msgs/msg/TeleopCommand",
+          publisher_count: 1,
+          subscription_count: 2,
+        },
+      ],
+    };
+    const fetcher = createJsonFetcher(responsePayload);
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.listRosTopicStatus()).resolves.toEqual(responsePayload.topics);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics/status", {});
+  });
+
   it("lists runtime audit records through the backend", async () => {
     const responsePayload = {
       records: [

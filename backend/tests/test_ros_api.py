@@ -5,7 +5,13 @@ from fastapi.testclient import TestClient
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
-from libs.ros_adapters import RclpyRosTopicCatalogGateway, RosPublishReceipt, RosPublishRequest, RosTopicInfo
+from libs.ros_adapters import (
+    RclpyRosTopicCatalogGateway,
+    RosPublishReceipt,
+    RosPublishRequest,
+    RosTopicInfo,
+    RosTopicStatus,
+)
 from libs.sessions import InMemoryRuntimeAuditLog, RuntimeCommandRateLimiter
 
 
@@ -35,6 +41,22 @@ class StaticRosTopicCatalogGateway:
             RosTopicInfo(name="/teleop_cmd", message_type="geometry_msgs/msg/Twist"),
         )
 
+    def list_topic_status(self) -> tuple[RosTopicStatus, ...]:
+        return (
+            RosTopicStatus(
+                name="/joint_states",
+                message_type="sensor_msgs/msg/JointState",
+                publisher_count=1,
+                subscription_count=0,
+            ),
+            RosTopicStatus(
+                name="/teleop_cmd",
+                message_type="geometry_msgs/msg/Twist",
+                publisher_count=1,
+                subscription_count=2,
+            ),
+        )
+
 
 class FakeRclpyNode:
     def get_topic_names_and_types(self) -> tuple[tuple[str, tuple[str, ...]], ...]:
@@ -43,6 +65,22 @@ class FakeRclpyNode:
             ("/joint_states", ("sensor_msgs/msg/JointState",)),
             ("/multi_type", ("std_msgs/msg/String", "std_msgs/msg/Bool")),
         )
+
+    def get_publishers_info_by_topic(self, topic_name: str) -> tuple[object, ...]:
+        publisher_counts = {
+            "/joint_states": 1,
+            "/multi_type": 0,
+            "/teleop_cmd": 1,
+        }
+        return tuple(object() for _ in range(publisher_counts.get(topic_name, 0)))
+
+    def get_subscriptions_info_by_topic(self, topic_name: str) -> tuple[object, ...]:
+        subscription_counts = {
+            "/joint_states": 0,
+            "/multi_type": 1,
+            "/teleop_cmd": 2,
+        }
+        return tuple(object() for _ in range(subscription_counts.get(topic_name, 0)))
 
 
 def test_list_ros_topics_defaults_to_empty_when_ros_is_not_configured(client: TestClient) -> None:
@@ -72,6 +110,36 @@ def test_list_ros_topics_uses_configured_catalog_gateway() -> None:
     }
 
 
+def test_list_ros_topic_status_uses_configured_catalog_gateway() -> None:
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            ros_topic_catalog_gateway=StaticRosTopicCatalogGateway(),
+        )
+    )
+
+    response = client.get("/api/v1/ros/topics/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "topics": [
+            {
+                "name": "/joint_states",
+                "message_type": "sensor_msgs/msg/JointState",
+                "publisher_count": 1,
+                "subscription_count": 0,
+            },
+            {
+                "name": "/teleop_cmd",
+                "message_type": "geometry_msgs/msg/Twist",
+                "publisher_count": 1,
+                "subscription_count": 2,
+            },
+        ]
+    }
+
+
 def test_rclpy_topic_catalog_gateway_normalizes_live_topic_list() -> None:
     gateway = RclpyRosTopicCatalogGateway(FakeRclpyNode())
 
@@ -80,6 +148,37 @@ def test_rclpy_topic_catalog_gateway_normalizes_live_topic_list() -> None:
         RosTopicInfo(name="/multi_type", message_type="std_msgs/msg/Bool"),
         RosTopicInfo(name="/multi_type", message_type="std_msgs/msg/String"),
         RosTopicInfo(name="/teleop_cmd", message_type="geometry_msgs/msg/Twist"),
+    )
+
+
+def test_rclpy_topic_catalog_gateway_reports_endpoint_counts() -> None:
+    gateway = RclpyRosTopicCatalogGateway(FakeRclpyNode())
+
+    assert gateway.list_topic_status() == (
+        RosTopicStatus(
+            name="/joint_states",
+            message_type="sensor_msgs/msg/JointState",
+            publisher_count=1,
+            subscription_count=0,
+        ),
+        RosTopicStatus(
+            name="/multi_type",
+            message_type="std_msgs/msg/Bool",
+            publisher_count=0,
+            subscription_count=1,
+        ),
+        RosTopicStatus(
+            name="/multi_type",
+            message_type="std_msgs/msg/String",
+            publisher_count=0,
+            subscription_count=1,
+        ),
+        RosTopicStatus(
+            name="/teleop_cmd",
+            message_type="geometry_msgs/msg/Twist",
+            publisher_count=1,
+            subscription_count=2,
+        ),
     )
 
 

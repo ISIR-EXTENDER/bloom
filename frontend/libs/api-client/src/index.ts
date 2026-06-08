@@ -193,8 +193,17 @@ export type RosTopicInfo = {
   message_type: string;
 };
 
+export type RosTopicStatus = RosTopicInfo & {
+  publisher_count: number;
+  subscription_count: number;
+};
+
 export type RosTopicListResponse = {
   topics: RosTopicInfo[];
+};
+
+export type RosTopicStatusListResponse = {
+  topics: RosTopicStatus[];
 };
 
 export type RuntimeAuditRecord = {
@@ -350,6 +359,11 @@ export class BloomApiClient {
 
   async listRosTopics(): Promise<RosTopicInfo[]> {
     const response = await this.request<RosTopicListResponse>("/api/v1/ros/topics");
+    return response.topics;
+  }
+
+  async listRosTopicStatus(): Promise<RosTopicStatus[]> {
+    const response = await this.request<RosTopicStatusListResponse>("/api/v1/ros/topics/status");
     return response.topics;
   }
 

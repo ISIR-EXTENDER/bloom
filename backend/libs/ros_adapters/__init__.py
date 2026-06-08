@@ -10,6 +10,7 @@ from libs.ros_adapters.topics import (
     RclpyRosTopicCatalogGateway,
     RosTopicCatalogGateway,
     RosTopicInfo,
+    RosTopicStatus,
 )
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "RosPublisherGateway",
     "RosTopicCatalogGateway",
     "RosTopicInfo",
+    "RosTopicStatus",
     "SafeRosPublishError",
     "publish_with_runtime_policy",
 ]
