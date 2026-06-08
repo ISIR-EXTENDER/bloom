@@ -1,5 +1,6 @@
 import type {
   RosTopicInfo,
+  RosTopicStatus,
   RuntimeAuditRecord,
   RuntimeRecordingResponse,
   RuntimeRecordingStartRequest,
@@ -16,16 +17,16 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
   const [recording, setRecording] = useState<RuntimeRecordingResponse | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [status, setStatus] = useState("Load topics to start a debug session.");
-  const [topics, setTopics] = useState<RosTopicInfo[]>([]);
+  const [topics, setTopics] = useState<DebugTopic[]>([]);
 
   const loadTopics = async () => {
-    if (!client.listRosTopics) {
+    if (!client.listRosTopicStatus && !client.listRosTopics) {
       setStatus("Topic catalog is not connected in this runtime.");
       return;
     }
 
     try {
-      const nextTopics = await client.listRosTopics();
+      const nextTopics = await loadDebugTopics(client);
       setTopics(nextTopics);
       setSelectedTopics((currentTopics) =>
         currentTopics.length > 0 ? currentTopics : nextTopics.slice(0, 3).map((topic) => topic.name),
@@ -137,6 +138,11 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
                     <span>
                       <strong>{topic.name}</strong>
                       <small>{topic.message_type}</small>
+                      {topic.publisher_count !== undefined && topic.subscription_count !== undefined ? (
+                        <small>
+                          {topic.publisher_count} pub · {topic.subscription_count} sub
+                        </small>
+                      ) : null}
                     </span>
                   </label>
                 </li>
@@ -164,6 +170,26 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
       </div>
     </aside>
   );
+}
+
+type DebugTopic = RosTopicInfo & Partial<Pick<RosTopicStatus, "publisher_count" | "subscription_count">>;
+
+async function loadDebugTopics(client: RuntimeActionClient): Promise<DebugTopic[]> {
+  if (client.listRosTopicStatus) {
+    try {
+      return await client.listRosTopicStatus();
+    } catch (error) {
+      if (!client.listRosTopics) {
+        throw error;
+      }
+    }
+  }
+
+  if (client.listRosTopics) {
+    return client.listRosTopics();
+  }
+
+  return [];
 }
 
 function toggleTopic(currentTopics: readonly string[], topic: string): string[] {

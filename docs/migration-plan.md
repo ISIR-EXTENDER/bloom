@@ -230,7 +230,6 @@ Completed in this phase:
 Validated runtime checks:
 
 - Browser runtime joystick -> Bloom WebSocket -> backend ROS adapter -> `/teleop_cmd`.
-- `/teleop_cmd` -> `sandbox_controller` -> `/sandbox_controller/velocity_command` in the sandbox simulation.
 - Browser runtime slider -> ROS publish API -> `/cmd/max_velocity` as `std_msgs/msg/Float64`.
 - Bloom Debug topic widgets -> runtime WebSocket `subscribe_topic` -> backend `subscription_ack`.
 - Bloom Debug live samples -> runtime WebSocket `topic_sample` -> runtime workspace widget data -> topic echo/plot
@@ -246,6 +245,15 @@ Validated runtime checks:
   `1024x600`, `1280x800`, and `1920x1080`.
 - Real dashboard Sandbox teleop lab flow validates the fit runtime artboard visually at tablet-like viewport sizes, so
   translation/rotation joysticks and horizontal/vertical sliders remain visible.
+- ROS topic status diagnostics expose publisher/subscriber counts through `/api/v1/ros/topics/status`, which should be
+  used before robot tests to confirm that `/teleop_cmd`, `/joint_states`, and controller feedback topics are actually
+  connected.
+
+Pending live robot/simulation validation:
+
+- `/teleop_cmd` -> `sandbox_controller` -> `/sandbox_controller/velocity_command` in the sandbox simulation. The last
+  manual isolation test confirmed that Bloom published `/teleop_cmd`, but controller feedback stayed at zero even for a
+  direct `ros2 topic pub`; this must be rechecked from the ROS/controller side before real robot tests.
 
 ### Phase 4 - Legacy App Migration
 

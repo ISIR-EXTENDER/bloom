@@ -23,6 +23,7 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   const runtimeWebSocketClient = createRuntimeWebSocketClient({ url: resolveRuntimeWebSocketUrl(baseUrl) });
   return {
     addRuntimeTopicSampleListener: runtimeWebSocketClient.addRuntimeTopicSampleListener,
+    listRosTopicStatus: apiClient.listRosTopicStatus.bind(apiClient),
     listRosTopics: apiClient.listRosTopics.bind(apiClient),
     listRuntimeAuditRecords: apiClient.listRuntimeAuditRecords.bind(apiClient),
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),

@@ -1232,6 +1232,7 @@ describe("App", () => {
 
     expect(await screen.findByLabelText(/\/teleop_cmd/)).toBeChecked();
     expect(screen.getByLabelText(/\/joint_states/)).toBeChecked();
+    expect(screen.getAllByText("1 pub · 1 sub").length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
 
@@ -1542,6 +1543,26 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
       { name: "/teleop_cmd", message_type: "extender_msgs/msg/TeleopCommand" },
       { name: "/sandbox_controller/velocity_command", message_type: "geometry_msgs/msg/Twist" },
       { name: "/joint_states", message_type: "sensor_msgs/msg/JointState" },
+    ]),
+    listRosTopicStatus: vi.fn(async () => [
+      {
+        name: "/teleop_cmd",
+        message_type: "extender_msgs/msg/TeleopCommand",
+        publisher_count: 1,
+        subscription_count: 1,
+      },
+      {
+        name: "/sandbox_controller/velocity_command",
+        message_type: "geometry_msgs/msg/Twist",
+        publisher_count: 1,
+        subscription_count: 1,
+      },
+      {
+        name: "/joint_states",
+        message_type: "sensor_msgs/msg/JointState",
+        publisher_count: 1,
+        subscription_count: 0,
+      },
     ]),
     listRuntimeAuditRecords: vi.fn(async () => [
       {

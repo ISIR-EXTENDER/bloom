@@ -12,6 +12,7 @@ from libs.ros_adapters import (
     RosPublisherGateway,
     RosTopicCatalogGateway,
     RosTopicInfo,
+    RosTopicStatus,
     SafeRosPublishError,
     publish_with_runtime_policy,
 )
@@ -78,6 +79,17 @@ class RosTopicListResponse(BaseModel):
     topics: tuple[RosTopicInfoResponse, ...]
 
 
+class RosTopicStatusResponse(BaseModel):
+    name: str
+    message_type: str
+    publisher_count: int
+    subscription_count: int
+
+
+class RosTopicStatusListResponse(BaseModel):
+    topics: tuple[RosTopicStatusResponse, ...]
+
+
 def get_ros_publisher_gateway(request: Request) -> RosPublisherGateway:
     return request.app.state.ros_publisher_gateway
 
@@ -106,6 +118,16 @@ def list_ros_topics(
     gateway = get_ros_topic_catalog_gateway(request)
     topics = tuple(_to_topic_response(topic) for topic in gateway.list_topics())
     return RosTopicListResponse(topics=topics)
+
+
+@router.get("/topics/status", response_model=RosTopicStatusListResponse)
+def list_ros_topic_status(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RosTopicStatusListResponse:
+    gateway = get_ros_topic_catalog_gateway(request)
+    topics = tuple(_to_topic_status_response(topic) for topic in gateway.list_topic_status())
+    return RosTopicStatusListResponse(topics=topics)
 
 
 @router.post("/topics/publish", response_model=RosTopicPublishResponse)
@@ -138,6 +160,15 @@ def publish_ros_topic(
 
 def _to_topic_response(topic: RosTopicInfo) -> RosTopicInfoResponse:
     return RosTopicInfoResponse(name=topic.name, message_type=topic.message_type)
+
+
+def _to_topic_status_response(topic: RosTopicStatus) -> RosTopicStatusResponse:
+    return RosTopicStatusResponse(
+        name=topic.name,
+        message_type=topic.message_type,
+        publisher_count=topic.publisher_count,
+        subscription_count=topic.subscription_count,
+    )
 
 
 def _to_response(receipt: RosPublishReceipt) -> RosTopicPublishResponse:

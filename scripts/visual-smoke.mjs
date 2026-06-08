@@ -162,6 +162,29 @@ async function mockConfigurationApi(page) {
 }
 
 async function mockRuntimeDebugApi(page) {
+  await page.route("**/api/v1/ros/topics/status", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        topics: [
+          {
+            name: "/teleop_cmd",
+            message_type: "extender_msgs/msg/TeleopCommand",
+            publisher_count: 1,
+            subscription_count: 1,
+          },
+          {
+            name: "/cmd/max_velocity",
+            message_type: "std_msgs/msg/Float64",
+            publisher_count: 1,
+            subscription_count: 0,
+          },
+        ],
+      },
+      status: 200,
+    });
+  });
+
   await page.route("**/api/v1/ros/topics", async (route) => {
     await route.fulfill({
       contentType: "application/json",
