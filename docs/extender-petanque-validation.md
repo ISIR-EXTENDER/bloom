@@ -51,6 +51,17 @@ legacy yet. The remaining decision needs a real operator pass on the target tabl
    - Topic echo and plot widgets can subscribe to live topics.
    - Runtime audit records accepted and rejected commands.
 
+If Bloom publishes `/teleop_cmd` but the robot does not move, isolate the issue with a direct ROS command before
+debugging the web stack:
+
+```bash
+ros2 topic pub --times 12 --rate 10 /teleop_cmd extender_msgs/msg/TeleopCommand \
+  "{twist: {linear: {x: 0.2, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}, mode: 3}"
+```
+
+Then monitor `/sandbox_controller/velocity_command`. If it also stays at zero, the current blocker is in the
+ROS/simulation controller path rather than Bloom's runtime transport.
+
 ## Petanque Validation
 
 Validate against the legacy Petanque flow before marking the Petanque UI path as covered:
