@@ -13,6 +13,14 @@ BLOOM_APPLY_TABLET_TOUCH_MAP=${BLOOM_APPLY_TABLET_TOUCH_MAP:-"0"}
 API_PID=""
 FRONTEND_PID=""
 
+source_extender_workspace() {
+  # ROS/colcon setup hooks are not guaranteed to be nounset-safe.
+  set +u
+  # shellcheck source=/dev/null
+  source "${EXTENDER_SETUP_FILE}"
+  set -u
+}
+
 cleanup() {
   if [[ -n "${FRONTEND_PID}" ]]; then
     kill "${FRONTEND_PID}" 2>/dev/null || true
@@ -38,8 +46,7 @@ fi
 echo "Starting Bloom API with ROS adapters..."
 (
   cd "${BLOOM_ROOT}/backend"
-  # shellcheck source=/dev/null
-  source "${EXTENDER_SETUP_FILE}"
+  source_extender_workspace
   uv run python -m apps.bloom_cli.main api run-ros --host "${BLOOM_API_HOST}" --port "${BLOOM_API_PORT}"
 ) &
 API_PID="$!"
