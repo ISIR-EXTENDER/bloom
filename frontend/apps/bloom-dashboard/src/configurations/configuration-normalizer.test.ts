@@ -37,8 +37,17 @@ describe("normalizeConfigurationBundle", () => {
     ]);
 
     const controlPanel = application?.screens.find((screen) => screen.id === "control_panel");
+    expect(controlPanel?.title).toBe("Control Panel");
     expect(controlPanel?.canvas).toEqual({ preset_id: "hd", runtime_mode: "fit" });
     expect(controlPanel?.widgets.some((widget) => widget.kind === "unknown")).toBe(false);
+    expect(controlPanel?.widgets.find((widget) => widget.id === "control-panel-mode")).toMatchObject({
+      kind: "toggle",
+      settings: {
+        offPayload: { data: 0 },
+        onPayload: { data: 3 },
+        topic: "/cmd/mode",
+      },
+    });
 
     const snakeHold = application?.screens
       .find((screen) => screen.id === "snake_control")
@@ -54,13 +63,62 @@ describe("normalizeConfigurationBundle", () => {
       },
     });
 
-    const monitorTopics = application?.screens
-      .find((screen) => screen.id === "visual_servoing_monitor")
-      ?.widgets.filter((widget) => widget.kind === "topic-echo")
+    const monitorScreen = application?.screens.find((screen) => screen.id === "visual_servoing_monitor");
+    expect(monitorScreen?.title).toBe("Visual Servoing Monitor");
+
+    const monitorEchoTopics = monitorScreen?.widgets
+      .filter((widget) => widget.kind === "topic-echo")
       .map((widget) => widget.settings.topic)
       .sort();
-    expect(monitorTopics).toEqual([
+    expect(monitorEchoTopics).toEqual(["/tag_detections"]);
+
+    const monitorPlotFields = monitorScreen?.widgets
+      .filter((widget) => widget.kind === "topic-plot")
+      .map((widget) => `${widget.settings.topic}:${widget.settings.fieldPath}`)
+      .sort();
+    expect(monitorPlotFields).toEqual([
+      "/visual_servoing/error_TAGtoTAGd:twist.linear.x",
+      "/visual_servoing/error_TAGtoTAGd:twist.linear.y",
+      "/visual_servoing/error_TAGtoTAGd:twist.linear.z",
+      "/visual_servoing/velocity_command:twist.linear.x",
+      "/visual_servoing/velocity_command:twist.linear.y",
+      "/visual_servoing/velocity_command:twist.linear.z",
+    ]);
+    expect(application?.runtime_policy.allowed_publish_topics).toEqual([
+      "/cmd/gripper",
+      "/cmd/joystick_rz",
+      "/cmd/joystick_z",
+      "/cmd/max_velocity",
+      "/cmd/mode",
+      "/sandbox/digital_output",
+      "/snake_control/enable",
+      "/teleop_config/angular_scale_x",
+      "/teleop_config/angular_scale_y",
+      "/teleop_config/angular_scale_z",
+      "/teleop_config/invert_angular_x",
+      "/teleop_config/invert_angular_y",
+      "/teleop_config/invert_angular_z",
+      "/teleop_config/invert_linear_x",
+      "/teleop_config/invert_linear_y",
+      "/teleop_config/invert_linear_z",
+      "/teleop_config/linear_scale_x",
+      "/teleop_config/linear_scale_y",
+      "/teleop_config/linear_scale_z",
+      "/teleop_config/reset_defaults",
+      "/teleop_config/rotation_gain",
+      "/teleop_config/save_profile",
+      "/teleop_config/swap_xy",
+      "/teleop_config/translation_gain",
+      "/ui/visual_servoing/on",
+      "/ui/visual_servoing/save",
+    ]);
+    expect(application?.runtime_policy.allowed_recording_topics).toEqual([
+      "/joint_states",
+      "/sandbox_controller/ee_pose",
+      "/sandbox_controller/joint_pose",
+      "/sandbox_controller/velocity_command",
       "/tag_detections",
+      "/teleop_cmd",
       "/visual_servoing/error_TAGtoTAGd",
       "/visual_servoing/velocity_command",
     ]);

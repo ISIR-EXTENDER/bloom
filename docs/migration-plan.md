@@ -359,8 +359,13 @@ Completed in this phase so far:
   `npm run validation:extender`.
 - `snake_control` uses a momentary command button that publishes `true` while pressed and `false` on release to
   `/snake_control/enable`.
+- Sandbox B1/B2 mode controls are now runtime toggles that publish `0` for B1 and `3` for B2 on `/cmd/mode`, keeping the
+  operator-facing state visible.
+- Legacy screen navigation buttons now switch Bloom runtime screens locally instead of publishing fake navigation topics.
 - Visual-servoing monitor topics are expanded into individual Bloom topic subscriptions for:
   `/tag_detections`, `/visual_servoing/velocity_command`, and `/visual_servoing/error_TAGtoTAGd`.
+- The visual-servoing monitor now plots `TwistStamped` linear XYZ fields for velocity command and servo error while
+  keeping AprilTag detections visible as an echo panel.
 - The imported `control_panel` gives Robin-style one-screen access to camera preview, gripper, visual-servoing commands,
   max velocity, joystick controls, and monitor shortcuts.
 - Bloom Debug `topic-plot` widgets now share the first-party SVG plot helpers with generic `plot`, supporting `area`,
@@ -376,8 +381,8 @@ Phase 4 closure notes:
   Phase 4 work forward.
 - Deeper app-specific behavior still belongs to later concrete adapters, especially deploy/repli actions, final Explorer
   user-test mode mappings, shared mode-store semantics, and final visual-servoing integration.
-- Imported Sandbox V0.0 screen titles and layouts are intentionally preserved for traceability, but should be polished
-  before broader operator handover.
+- Imported Sandbox V0.0 runtime screens now keep stable legacy IDs while showing human operator titles in the runtime
+  menu.
 
 Explorer user-test app candidate:
 
@@ -461,9 +466,9 @@ Status: idea captured, intentionally low priority.
    visual-servoing monitor topics.
 3. Validate Robin's visual-servoing path:
    webcam preview, AprilTag detections, velocity command topic, error topic, and the expected camera/ROS processing split.
-4. Polish imported Sandbox V0.0 screens:
-   human screen titles, tighter tablet layout for `snake_control`, and clearer control-panel grouping without changing
-   the working topic contracts.
+4. Polish remaining Sandbox V0.0 tablet layout details:
+   tighter native-tablet spacing for `snake_control`, clearer control-panel grouping, and unit labels for teleop sliders
+   without changing the working topic contracts.
 5. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
 6. Add remaining concrete robot action adapters:
    deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.

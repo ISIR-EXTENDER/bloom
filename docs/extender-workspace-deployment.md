@@ -54,7 +54,7 @@ real rosbag process management explicitly:
 
 ```bash
 export BLOOM_RUNTIME_RECORDING_GATEWAY=rosbag
-export BLOOM_ALLOWED_RECORDING_TOPICS='/teleop_cmd,/joint_states,/sandbox_controller/velocity_command'
+export BLOOM_ALLOWED_RECORDING_TOPICS='/teleop_cmd,/joint_states,/sandbox_controller/velocity_command,/tag_detections,/visual_servoing/velocity_command,/visual_servoing/error_TAGtoTAGd'
 export BLOOM_ALLOWED_RECORDING_OUTPUT_FOLDERS='data/recordings'
 export BLOOM_RUNTIME_RECORDING_BASE_DIRECTORY="$PWD/backend"
 export BLOOM_RUNTIME_RECORDING_EXECUTABLE=ros2
@@ -69,8 +69,8 @@ The app configuration should remain the first guardrail, but lab sessions can al
 without editing code:
 
 ```bash
-export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/teleop_cmd,/petanque_state_machine/change_state,/visual_servoing/enabled'
-export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='extender_msgs/msg/TeleopCommand,std_msgs/msg/String,std_msgs/msg/Bool'
+export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/cmd/mode,/cmd/gripper,/cmd/max_velocity,/cmd/joystick_z,/cmd/joystick_rz,/snake_control/enable,/ui/visual_servoing/on,/ui/visual_servoing/save,/petanque_state_machine/change_state'
+export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='std_msgs/msg/Bool,std_msgs/msg/Float64,std_msgs/msg/Int32,std_msgs/msg/String'
 export BLOOM_ALLOWED_TELEOP_TARGETS='/teleop_cmd'
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
 ```

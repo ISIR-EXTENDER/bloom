@@ -91,10 +91,29 @@ export function App({
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy">,
   ) => {
+    if (intent.type === "screen-navigation" && tryNavigateRuntimeScreen(intent.targetScreenId)) {
+      return;
+    }
+
     runtimeActions.dispatch(intent, {
       actionPresets: applicationRuntime?.action_presets,
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
+  };
+
+  const tryNavigateRuntimeScreen = (targetScreenId: string): boolean => {
+    if (configurationState.status !== "ready" || !selection) {
+      return false;
+    }
+
+    const selectedWorkspace = resolveSelectedWorkspace(configurationState.configurations, selection);
+    const targetScreen = selectedWorkspace.application.screens.find((screen) => screen.id === targetScreenId);
+    if (!targetScreen) {
+      return false;
+    }
+
+    setSelection({ ...selection, screenId: targetScreen.id });
+    return true;
   };
 
   const handleSaveBuilderScreen = async (screen: ScreenConfig) => {

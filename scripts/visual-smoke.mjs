@@ -26,13 +26,13 @@ const routes = [
   { name: "builder", setup: showBuilder },
   { name: "app-config", setup: showAppConfig },
   { name: "runtime", setup: showRuntime },
-  { name: "runtime-sandbox-teleop-config", setup: (page) => showSandboxRuntimeScreen(page, "sandbox_teleop_config") },
-  { name: "runtime-control-panel", setup: (page) => showSandboxRuntimeScreen(page, "control_panel") },
-  { name: "runtime-snake-control", setup: (page) => showSandboxRuntimeScreen(page, "snake_control") },
-  { name: "runtime-visual-servoing", setup: (page) => showSandboxRuntimeScreen(page, "visual_servoing") },
+  { name: "runtime-sandbox-teleop-config", setup: (page) => showSandboxRuntimeScreen(page, "Teleop Configuration") },
+  { name: "runtime-control-panel", setup: (page) => showSandboxRuntimeScreen(page, "Control Panel") },
+  { name: "runtime-snake-control", setup: (page) => showSandboxRuntimeScreen(page, "Snake Control") },
+  { name: "runtime-visual-servoing", setup: (page) => showSandboxRuntimeScreen(page, "Visual Servoing") },
   {
     name: "runtime-visual-servoing-monitor",
-    setup: (page) => showSandboxRuntimeScreen(page, "visual_servoing_monitor"),
+    setup: (page) => showSandboxRuntimeScreen(page, "Visual Servoing Monitor"),
   },
   { name: "debug-runtime", setup: showDebugRuntime },
 ];

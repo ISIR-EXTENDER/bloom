@@ -1,5 +1,5 @@
 import { createWidgetActionIntent, type WidgetActionIntent } from "@bloom/widgets";
-import { useState } from "react";
+import { type PointerEvent, useRef, useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
@@ -10,9 +10,37 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
   const momentary = getBooleanSetting(descriptor.widget.settings, "momentary", false);
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const messageType = getStringSetting(descriptor.widget.settings, "messageType", "");
+  const isMomentaryPressedRef = useRef(false);
+  const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
 
   const handlePress = () => {
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
+  };
+  const handleMomentaryPress = (event: PointerEvent<HTMLButtonElement>) => {
+    if (isMomentaryPressedRef.current) {
+      return;
+    }
+    if (typeof event.currentTarget.setPointerCapture === "function") {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    isMomentaryPressedRef.current = true;
+    setIsMomentaryPressed(true);
+    publishMomentaryPayload("payload");
+  };
+  const handleMomentaryRelease = (event: PointerEvent<HTMLButtonElement>) => {
+    if (!isMomentaryPressedRef.current) {
+      return;
+    }
+    if (
+      typeof event.currentTarget.hasPointerCapture === "function" &&
+      event.currentTarget.hasPointerCapture(event.pointerId) &&
+      typeof event.currentTarget.releasePointerCapture === "function"
+    ) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    isMomentaryPressedRef.current = false;
+    setIsMomentaryPressed(false);
+    publishMomentaryPayload("releasedPayload");
   };
   const publishMomentaryPayload = (payloadKey: "payload" | "releasedPayload") => {
     if (!topic || !messageType) {
@@ -34,11 +62,12 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
       <button
         aria-label={buttonLabel}
         className="bloom-command-button"
+        data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
         onClick={momentary ? undefined : handlePress}
-        onPointerCancel={momentary ? () => publishMomentaryPayload("releasedPayload") : undefined}
-        onPointerDown={momentary ? () => publishMomentaryPayload("payload") : undefined}
-        onPointerLeave={momentary ? () => publishMomentaryPayload("releasedPayload") : undefined}
-        onPointerUp={momentary ? () => publishMomentaryPayload("releasedPayload") : undefined}
+        onPointerCancel={momentary ? handleMomentaryRelease : undefined}
+        onPointerDown={momentary ? handleMomentaryPress : undefined}
+        onPointerLeave={momentary ? handleMomentaryRelease : undefined}
+        onPointerUp={momentary ? handleMomentaryRelease : undefined}
         type="button"
       >
         {buttonLabel}

@@ -26,7 +26,7 @@
       "screens": [
         {
           "id": "sandbox_control",
-          "title": "sandbox_control",
+          "title": "Sandbox Control",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -161,26 +161,27 @@
             },
             {
               "id": "sandbox-mode",
-              "title": "Mode",
+              "title": "Mode B1/B2",
               "layout": {
                 "x": 20,
                 "y": 109,
                 "width": 173,
                 "height": 108
               },
-              "kind": "command-button",
+              "kind": "toggle",
               "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "set_mode_b2",
-                "button_label": "Mode",
-                "cancellable": false,
-                "command": "set_mode_b2",
+                "initialValue": false,
+                "offLabel": "B1",
+                "onLabel": "B2",
                 "topic": "/cmd/mode",
                 "messageType": "std_msgs/msg/Int32",
-                "payload": {
+                "onPayload": {
                   "data": 3
                 },
+                "offPayload": {
+                  "data": 0
+                },
+                "show_details": false,
                 "legacyKind": "mode-button"
               }
             },
@@ -294,7 +295,7 @@
         },
         {
           "id": "sandbox_teleop_config",
-          "title": "sandbox_teleop_config",
+          "title": "Teleop Configuration",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -777,7 +778,7 @@
         },
         {
           "id": "control_panel",
-          "title": "control_panel",
+          "title": "Control Panel",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -785,7 +786,7 @@
           "widgets": [
             {
               "id": "control-panel-title",
-              "title": "Text",
+              "title": "Control Panel",
               "layout": {
                 "x": 20,
                 "y": 20,
@@ -794,7 +795,7 @@
               },
               "kind": "label",
               "settings": {
-                "text": "Text",
+                "text": "Control Panel",
                 "fontSize": 28,
                 "align": "left",
                 "legacyKind": "text"
@@ -1107,26 +1108,27 @@
             },
             {
               "id": "control-panel-mode",
-              "title": "Mode",
+              "title": "Mode B1/B2",
               "layout": {
                 "x": 600,
                 "y": 616,
                 "width": 141,
                 "height": 71
               },
-              "kind": "command-button",
+              "kind": "toggle",
               "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "set_mode_b2",
-                "button_label": "Mode",
-                "cancellable": false,
-                "command": "set_mode_b2",
+                "initialValue": false,
+                "offLabel": "B1",
+                "onLabel": "B2",
                 "topic": "/cmd/mode",
                 "messageType": "std_msgs/msg/Int32",
-                "payload": {
+                "onPayload": {
                   "data": 3
                 },
+                "offPayload": {
+                  "data": 0
+                },
+                "show_details": false,
                 "legacyKind": "mode-button"
               }
             },
@@ -1197,7 +1199,7 @@
         },
         {
           "id": "snake_control",
-          "title": "snake_control",
+          "title": "Snake Control",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -1222,26 +1224,27 @@
             },
             {
               "id": "snake-mode-toggle",
-              "title": "B1 / B2",
+              "title": "Mode B1/B2",
               "layout": {
                 "x": 210,
                 "y": 116,
                 "width": 210,
-                "height": 76
+                "height": 96
               },
-              "kind": "command-button",
+              "kind": "toggle",
               "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "set_mode_b2",
-                "button_label": "B1 / B2",
-                "cancellable": false,
-                "command": "set_mode_b2",
+                "initialValue": false,
+                "offLabel": "B1",
+                "onLabel": "B2",
                 "topic": "/cmd/mode",
                 "messageType": "std_msgs/msg/Int32",
-                "payload": {
+                "onPayload": {
                   "data": 3
                 },
+                "offPayload": {
+                  "data": 0
+                },
+                "show_details": false,
                 "legacyKind": "mode-button"
               }
             },
@@ -1252,7 +1255,7 @@
                 "x": 860,
                 "y": 116,
                 "width": 220,
-                "height": 76
+                "height": 96
               },
               "kind": "command-button",
               "settings": {
@@ -1322,7 +1325,7 @@
         },
         {
           "id": "visual_servoing",
-          "title": "visual_servoing",
+          "title": "Visual Servoing",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -1330,7 +1333,7 @@
           "widgets": [
             {
               "id": "servo-title",
-              "title": "Text",
+              "title": "Visual Servoing",
               "layout": {
                 "x": 20,
                 "y": 20,
@@ -1339,7 +1342,7 @@
               },
               "kind": "label",
               "settings": {
-                "text": "Text",
+                "text": "Visual Servoing",
                 "fontSize": 28,
                 "align": "left",
                 "legacyKind": "text"
@@ -1464,7 +1467,7 @@
         },
         {
           "id": "visual_servoing_monitor",
-          "title": "visual_servoing_monitor",
+          "title": "Visual Servoing Monitor",
           "canvas": {
             "preset_id": "hd",
             "runtime_mode": "fit"
@@ -1472,7 +1475,7 @@
           "widgets": [
             {
               "id": "servo-monitor-title",
-              "title": "Text",
+              "title": "Visual Servoing Monitor",
               "layout": {
                 "x": 20,
                 "y": 20,
@@ -1481,7 +1484,7 @@
               },
               "kind": "label",
               "settings": {
-                "text": "Text",
+                "text": "Visual Servoing Monitor",
                 "fontSize": 28,
                 "align": "left",
                 "legacyKind": "text"
@@ -1520,8 +1523,8 @@
               "layout": {
                 "x": 20,
                 "y": 100,
-                "width": 1240,
-                "height": 200
+                "width": 390,
+                "height": 530
               },
               "settings": {
                 "topic": "/tag_detections",
@@ -1535,42 +1538,138 @@
               }
             },
             {
-              "id": "servo-topic-monitor-2",
-              "kind": "topic-echo",
-              "title": "Velocity command",
+              "id": "servo-velocity-linear-x",
+              "kind": "topic-plot",
+              "title": "Velocity X",
               "layout": {
-                "x": 20,
-                "y": 300,
-                "width": 1240,
-                "height": 200
+                "x": 430,
+                "y": 100,
+                "width": 390,
+                "height": 190
               },
               "settings": {
                 "topic": "/visual_servoing/velocity_command",
                 "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "",
-                "maxMessages": 20,
-                "prettyPrint": true,
+                "fieldPath": "twist.linear.x",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "variant": "area",
+                "unit": "m/s",
                 "show_details": false,
                 "legacyKind": "topic-monitor",
                 "sourceTopicMonitorId": "servo-topic-monitor"
               }
             },
             {
-              "id": "servo-topic-monitor-3",
-              "kind": "topic-echo",
-              "title": "Servo error",
+              "id": "servo-velocity-linear-y",
+              "kind": "topic-plot",
+              "title": "Velocity Y",
               "layout": {
-                "x": 20,
-                "y": 500,
-                "width": 1240,
-                "height": 200
+                "x": 430,
+                "y": 310,
+                "width": 390,
+                "height": 190
+              },
+              "settings": {
+                "topic": "/visual_servoing/velocity_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.y",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "variant": "area",
+                "unit": "m/s",
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "servo-topic-monitor"
+              }
+            },
+            {
+              "id": "servo-velocity-linear-z",
+              "kind": "topic-plot",
+              "title": "Velocity Z",
+              "layout": {
+                "x": 430,
+                "y": 520,
+                "width": 390,
+                "height": 190
+              },
+              "settings": {
+                "topic": "/visual_servoing/velocity_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.z",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "variant": "area",
+                "unit": "m/s",
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "servo-topic-monitor"
+              }
+            },
+            {
+              "id": "servo-error-linear-x",
+              "kind": "topic-plot",
+              "title": "Error X",
+              "layout": {
+                "x": 850,
+                "y": 100,
+                "width": 390,
+                "height": 190
               },
               "settings": {
                 "topic": "/visual_servoing/error_TAGtoTAGd",
                 "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "",
-                "maxMessages": 20,
-                "prettyPrint": true,
+                "fieldPath": "twist.linear.x",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "variant": "area",
+                "unit": "m",
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "servo-topic-monitor"
+              }
+            },
+            {
+              "id": "servo-error-linear-y",
+              "kind": "topic-plot",
+              "title": "Error Y",
+              "layout": {
+                "x": 850,
+                "y": 310,
+                "width": 390,
+                "height": 190
+              },
+              "settings": {
+                "topic": "/visual_servoing/error_TAGtoTAGd",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.y",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "variant": "area",
+                "unit": "m",
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "servo-topic-monitor"
+              }
+            },
+            {
+              "id": "servo-error-linear-z",
+              "kind": "topic-plot",
+              "title": "Error Z",
+              "layout": {
+                "x": 850,
+                "y": 520,
+                "width": 390,
+                "height": 190
+              },
+              "settings": {
+                "topic": "/visual_servoing/error_TAGtoTAGd",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.z",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "variant": "area",
+                "unit": "m",
                 "show_details": false,
                 "legacyKind": "topic-monitor",
                 "sourceTopicMonitorId": "servo-topic-monitor"
@@ -1615,8 +1714,6 @@
           "/teleop_config/save_profile",
           "/teleop_config/swap_xy",
           "/teleop_config/translation_gain",
-          "/ui/navigation/visual_servoing",
-          "/ui/navigation/visual_servoing_monitor",
           "/ui/visual_servoing/on",
           "/ui/visual_servoing/save"
         ],

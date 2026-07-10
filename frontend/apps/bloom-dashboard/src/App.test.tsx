@@ -1344,17 +1344,129 @@ describe("App", () => {
     expect(screen.getByText("Translation")).toBeVisible();
     expect(screen.getByText("Max Velocity")).toBeVisible();
 
-    selectRuntimeScreen("control_panel");
-    expect(await screen.findByText("Visual Servoing")).toBeVisible();
+    const modeToggle = screen.getByRole("button", { name: "Mode B1/B2: B1" });
+    fireEvent.click(modeToggle);
+    await waitFor(() => expect(runtimeActionClient.publishRosTopic).toHaveBeenCalled());
+    expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message_type: "std_msgs/msg/Int32",
+        payload: { data: 3 },
+        topic: "/cmd/mode",
+      }),
+    );
+
+    selectRuntimeScreen("Control Panel");
+    expect(await screen.findByRole("button", { name: "Visual Servoing: Off" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Save Tag" })).toBeVisible();
 
-    selectRuntimeScreen("snake_control");
-    expect(await screen.findByText("Snake Control")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Hold Snake" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Visual Servoing: Off" }));
+    await waitFor(() =>
+      expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message_type: "std_msgs/msg/Bool",
+          payload_text: "{data: true}",
+          topic: "/ui/visual_servoing/on",
+        }),
+      ),
+    );
 
-    selectRuntimeScreen("visual_servoing_monitor");
+    fireEvent.click(screen.getByRole("button", { name: "Save Tag" }));
+    await waitFor(() =>
+      expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message_type: "std_msgs/msg/String",
+          payload: { data: "save" },
+          topic: "/ui/visual_servoing/save",
+        }),
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Monitor" }));
+    expect(document.querySelector(".runtime-active-screen-label")).toHaveTextContent("Visual Servoing Monitor");
+    expect(screen.getByText("Velocity X")).toBeVisible();
+    expect(screen.getByText("Error Z")).toBeVisible();
+    expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalledWith(
+      expect.objectContaining({ topic: "/ui/navigation/visual_servoing_monitor" }),
+    );
+
+    await waitFor(() =>
+      expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
+        expect.objectContaining({
+          field_path: "twist.linear.x",
+          topic: "/visual_servoing/velocity_command",
+          widget_id: "servo-velocity-linear-x",
+        }),
+      ),
+    );
+    runtimeActionClient.emitRuntimeTopicSample({
+      detail: "Received /visual_servoing/velocity_command.",
+      payload: {
+        message_type: "geometry_msgs/msg/TwistStamped",
+        received_at: "2026-07-10T10:00:00.000Z",
+        topic: "/visual_servoing/velocity_command",
+        value: {
+          twist: {
+            angular: { x: 0, y: 0, z: 0.12 },
+            linear: { x: 0.25, y: -0.1, z: 0.05 },
+          },
+        },
+      },
+      type: "topic_sample",
+    });
+    expect(await screen.findByText("0.25 m/s")).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Control" }));
+    expect(await screen.findByText("Camera Preview")).toBeVisible();
+
+    selectRuntimeScreen("Snake Control");
+    expect(document.querySelector(".runtime-active-screen-label")).toHaveTextContent("Snake Control");
+    const snakeModeToggle = screen.getByRole("button", { name: "Mode B1/B2: B1" });
+    fireEvent.click(snakeModeToggle);
+    await waitFor(() =>
+      expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message_type: "std_msgs/msg/Int32",
+          payload: { data: 3 },
+          topic: "/cmd/mode",
+        }),
+      ),
+    );
+
+    const holdSnakeButton = screen.getByRole("button", { name: "Hold Snake" });
+    fireEvent.pointerDown(holdSnakeButton, { pointerId: 1 });
+    fireEvent.pointerUp(holdSnakeButton, { pointerId: 1 });
+    await waitFor(() =>
+      expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message_type: "std_msgs/msg/Bool",
+          payload_text: "{data: true}",
+          topic: "/snake_control/enable",
+        }),
+      ),
+    );
+    expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message_type: "std_msgs/msg/Bool",
+        payload_text: "{data: false}",
+        topic: "/snake_control/enable",
+      }),
+    );
+
+    const snakeJoystickZone = getRuntimeJoystickZone();
+    fireEvent.pointerDown(snakeJoystickZone, { clientX: 150, clientY: 150, pointerId: 2 });
+    fireEvent.pointerMove(snakeJoystickZone, { clientX: 190, clientY: 150, pointerId: 2 });
+    await waitFor(() =>
+      expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 3,
+          target: "/teleop_cmd",
+        }),
+      ),
+    );
+
+    selectRuntimeScreen("Visual Servoing Monitor");
     expect(await screen.findByText("AprilTag detections")).toBeVisible();
-    expect(screen.getByText("Velocity command")).toBeVisible();
+    expect(screen.getByText("Velocity X")).toBeVisible();
     await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
     expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
       expect.objectContaining({

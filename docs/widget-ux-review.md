@@ -53,6 +53,11 @@ and recover confidence quickly when something is not configured.
 - Gauge, plot, event-log, and robot-3D widgets can now receive live runtime topic samples.
 - Legacy Extender `momentary-ros-message` and `topic-monitor` widgets now migrate into usable Bloom runtime widgets.
 - Sandbox V0.0 visual smoke now covers the six imported screens.
+- Sandbox V0.0 runtime screens now use human titles while keeping stable legacy screen IDs for migration traceability.
+- Legacy navigation buttons now switch runtime screens locally, and B1/B2 mode controls are visible toggles that publish
+  the agreed mode values.
+- The visual-servoing monitor plots velocity/error XYZ fields from `TwistStamped` samples instead of only showing raw
+  message echoes.
 - Visual smoke now includes the app configuration page and validates the sandbox runtime at `1024x600`, `1280x800`, and
   `1920x1080`.
 - Visual smoke now also covers Bloom Debug runtime with mocked topic catalog, runtime WebSocket subscription ACKs, and
@@ -61,8 +66,7 @@ and recover confidence quickly when something is not configured.
 ## Remaining UX Risks
 
 - Some migrated legacy screens still contain dense layouts that were designed before Bloom's runtime card chrome.
-- Imported Sandbox V0.0 screen titles still use technical IDs, which is good for traceability but not ideal for operators.
-- `snake_control` is usable but visually sparse/awkward on the native tablet height and needs layout polish.
+- `snake_control` is operational but still visually sparse on the native tablet height and can use a tighter layout pass.
 - Debug widgets are useful but can make an operator screen feel like a console if used without intention.
 - The widget inspector should make "operator clean mode" versus "debug details mode" obvious for every widget.
 - Sliders still need unit labels and intent labels, especially when controlling velocity, gains, or angles.
@@ -73,7 +77,7 @@ and recover confidence quickly when something is not configured.
 
 ## Next Recommended Fixes
 
-1. Polish imported Sandbox V0.0 screen titles and tablet layouts, starting with `snake_control` and `control_panel`.
+1. Polish remaining imported Sandbox V0.0 tablet layouts, starting with `snake_control` and `control_panel` spacing.
 2. Add unit and intent labels to slider runtime settings.
 3. Add clearer camera permission guidance with one recovery action for operator screens.
 4. Add pause, clear, and copy controls to topic plot widgets if live debugging requires freezing plotted samples.
