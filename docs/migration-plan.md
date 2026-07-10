@@ -490,6 +490,9 @@ Completed validation records:
 - [2026-07-10 Robin visual-servoing contract](validation/2026-07-10-robin-visual-servoing-contract.md): accepted for
   UI/ROS split contract after `npm run validation:visual-servoing` verified browser webcam previews, AprilTag monitor
   topics, velocity/error plot topics, and raw image exclusion from UI monitors.
+- [2026-07-10 Sandbox V0.0 tablet layout](validation/2026-07-10-sandbox-tablet-layout.md): accepted for `1024x600`
+  browser layout after `npm run validation:sandbox-tablet` caught and fixed undersized Snake hold and B1/B2 controls
+  under HD canvas scaling.
 
 See also:
 

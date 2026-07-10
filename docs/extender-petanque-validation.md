@@ -19,6 +19,9 @@ Latest Sandbox contract record:
 Latest Robin visual-servoing contract record:
 [2026-07-10 Robin visual-servoing contract](validation/2026-07-10-robin-visual-servoing-contract.md).
 
+Latest Sandbox tablet-layout record:
+[2026-07-10 Sandbox V0.0 tablet layout](validation/2026-07-10-sandbox-tablet-layout.md).
+
 ## Preconditions
 
 - Extender ROS workspace builds and sources cleanly.
@@ -68,6 +71,12 @@ Run the Sandbox runtime contract check before the live sandbox simulation pass:
 
 ```bash
 npm run validation:sandbox-runtime
+```
+
+Run the Sandbox tablet layout check after runtime layout or control sizing changes:
+
+```bash
+npm run validation:sandbox-tablet
 ```
 
 Run the visual-servoing contract check before Robin's live camera/tag pass:
@@ -162,6 +171,7 @@ Use this table during validation sessions.
 | 2026-07-10 | Local Extender lab preflight | Sandbox V0.0, Bloom Debug, Petanque admin | Accepted for lab entry | Preflight passed, setup file found, validation configs present, and required ROS packages discovered. See [record](validation/2026-07-10-extender-lab-preflight.md). | Codex |
 | 2026-07-10 | Fixture/runtime contract | Sandbox V0.0 | Accepted for fixture/runtime contract | Added `npm run validation:sandbox-runtime` for controls, topics, message types, monitor topics, and app policy. See [record](validation/2026-07-10-sandbox-runtime-contract.md). | Codex |
 | 2026-07-10 | Fixture/runtime contract | Robin visual-servoing | Accepted for UI/ROS split contract | Added `npm run validation:visual-servoing` for webcam preview, AprilTag detection topics, visual-servoing velocity/error topics, and raw image exclusion from UI monitors. See [record](validation/2026-07-10-robin-visual-servoing-contract.md). | Codex |
+| 2026-07-10 | Browser tablet layout | Sandbox V0.0 | Accepted for `1024x600` browser layout | Added `npm run validation:sandbox-tablet`; it caught and fixed undersized Snake hold and B1/B2 controls after HD scaling. See [record](validation/2026-07-10-sandbox-tablet-layout.md). | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
 | _pending_ | Petanque stack | Petanque candidate | Pending | Needs legacy parity pass. | _pending_ |

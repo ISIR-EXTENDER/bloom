@@ -227,6 +227,7 @@ Additional checks:
 
 ```bash
 npm run validation:extender
+npm run validation:sandbox-tablet
 npm run validation:sandbox-runtime
 npm run validation:visual-servoing
 npm run visual:smoke
