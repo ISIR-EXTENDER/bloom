@@ -25,6 +25,7 @@ Element.prototype.releasePointerCapture = vi.fn();
 
 beforeEach(() => {
   window.history.replaceState(null, "", "/");
+  window.localStorage.clear();
 });
 
 describe("App", () => {
@@ -133,7 +134,7 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Create starter app/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Create guided app/i })).toBeVisible();
     expect(screen.queryByRole("heading", { level: 2, name: "Reusable screens" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Screen library" }));
@@ -155,6 +156,60 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Try screens before creating an app" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Diagnostics in runtime playground" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Diagnostics from playground" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save Diagnostics as app" })).toBeVisible();
+  });
+
+  it("creates a guided app with starter screen and design preset choices", async () => {
+    const configurationClient = createConfigurationClient();
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.change(screen.getByLabelText("New app name"), { target: { value: "Robot Check" } });
+    fireEvent.change(screen.getByLabelText("Starter screen"), { target: { value: "debug-monitor" } });
+    fireEvent.change(screen.getByLabelText("Design preset"), { target: { value: "bloom-default" } });
+    fireEvent.click(screen.getByLabelText("Include onboarding spots"));
+    fireEvent.click(screen.getByRole("button", { name: "Create guided app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+    expect(savedApplication).toMatchObject({
+      id: "robot-check",
+      name: "Robot Check",
+      theme: {
+        preset_id: "bloom-default",
+      },
+    });
+    expect(savedApplication?.screens[0]).toMatchObject({
+      id: "main",
+      title: "Debug Monitor",
+    });
+    expect(savedApplication?.screens[0]?.widgets.map((widget) => widget.kind)).toEqual(["topic-echo", "event-log"]);
+  });
+
+  it("promotes a playground screen into a saved app", async () => {
+    const configurationClient = createConfigurationClient();
+    render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Playground" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save Diagnostics as app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+
+    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+    expect(savedApplication).toMatchObject({
+      id: "diagnostics-draft",
+      name: "Diagnostics Draft",
+      description: "Promoted from Sandbox",
+    });
+    expect(savedApplication?.screens).toHaveLength(1);
+    expect(savedApplication?.screens[0]).toMatchObject({ id: "main", title: "Diagnostics" });
   });
 
   it("opens a screen builder directly from the builder screen library", async () => {
@@ -279,6 +334,32 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Resume Sandbox on Main" })).toBeVisible();
+  });
+
+  it("persists recent runtime apps and display profile preferences", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        "explorer-user-tests": explorerUserTestsConfiguration as unknown as ConfigurationBundle,
+      },
+      ids: ["explorer-user-tests"],
+    });
+    const { unmount } = render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.change(await screen.findByLabelText("Explorer User Tests display profile"), {
+      target: { value: "large-targets" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Launch Explorer User Tests runtime" }));
+
+    expect(await screen.findByText("Large tactile targets")).toBeVisible();
+    unmount();
+
+    window.history.replaceState(null, "", "#/runtime");
+    render(<App configurationClient={configurationClient} />);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Resume Explorer User Tests on Explorer control modes" })).toBeVisible();
+    expect(screen.getByLabelText("Explorer User Tests display profile")).toHaveValue("large-targets");
   });
 
   it("streams robot topic samples into operator display widgets", async () => {
@@ -446,14 +527,14 @@ describe("App", () => {
     expect(screen.getByRole("article", { name: "Digital output toggle widget" })).toBeVisible();
   });
 
-  it("creates a blank app from the builder home", async () => {
+  it("creates a guided app from the builder home defaults", async () => {
     const configurationClient = createConfigurationClient();
 
     render(<App configurationClient={configurationClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
     fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Create starter app" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Create guided app" }));
 
     await waitFor(() => {
       expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
@@ -466,6 +547,10 @@ describe("App", () => {
       name: "New Bloom App",
       profiles: [],
       theme: DEFAULT_APPLICATION_THEME,
+    });
+    expect(savedApplication?.screens[0]).toMatchObject({
+      id: "main",
+      title: "Operator Controls",
     });
     expect(await screen.findByRole("heading", { level: 1, name: "New Bloom App" })).toBeVisible();
   });

@@ -1,6 +1,8 @@
 import base64
 import hashlib
 import re
+from pathlib import Path
+from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
@@ -98,7 +100,10 @@ def upsert_configuration(
     _principal: BloomPrincipal = Depends(require_admin),
 ) -> ConfigurationBundle:
     repository = get_configuration_repository(request)
-    return repository.upsert(config_id, bundle)
+    previous_bundle = try_get_configuration_bundle(config_id, request)
+    updated_bundle = repository.upsert(config_id, bundle)
+    cleanup_unreferenced_theme_assets(config_id, previous_bundle, updated_bundle, request)
+    return updated_bundle
 
 
 @router.get("/{config_id}/applications", response_model=ApplicationListResponse)
@@ -125,7 +130,9 @@ def upsert_configuration_application(
     repository = get_configuration_repository(request)
     bundle = get_configuration_bundle(config_id, request)
     updated_bundle = upsert_application(bundle, application)
-    return repository.upsert(config_id, updated_bundle)
+    saved_bundle = repository.upsert(config_id, updated_bundle)
+    cleanup_unreferenced_theme_assets(config_id, bundle, saved_bundle, request)
+    return saved_bundle
 
 
 @router.delete("/{config_id}/applications/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -142,6 +149,7 @@ def delete_configuration_application(
     except ApplicationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="application not found") from exc
     repository.upsert(config_id, updated_bundle)
+    cleanup_unreferenced_theme_assets(config_id, bundle, updated_bundle, request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -182,7 +190,9 @@ def upsert_configuration_screen(
         updated_bundle = upsert_screen(bundle, application_id, screen)
     except ApplicationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="application not found") from exc
-    return repository.upsert(config_id, updated_bundle)
+    saved_bundle = repository.upsert(config_id, updated_bundle)
+    cleanup_unreferenced_theme_assets(config_id, bundle, saved_bundle, request)
+    return saved_bundle
 
 
 @router.delete("/{config_id}/applications/{application_id}/screens/{screen_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -204,6 +214,7 @@ def delete_configuration_screen(
     except ConfigurationEditError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     repository.upsert(config_id, updated_bundle)
+    cleanup_unreferenced_theme_assets(config_id, bundle, updated_bundle, request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -214,10 +225,12 @@ def delete_configuration(
     _principal: BloomPrincipal = Depends(require_admin),
 ) -> Response:
     repository = get_configuration_repository(request)
+    previous_bundle = try_get_configuration_bundle(config_id, request)
     try:
         repository.delete(config_id)
     except ConfigurationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="configuration not found") from exc
+    cleanup_unreferenced_theme_assets(config_id, previous_bundle, None, request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -278,6 +291,13 @@ def get_configuration_bundle(config_id: str, request: Request) -> ConfigurationB
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="configuration not found") from exc
 
 
+def try_get_configuration_bundle(config_id: str, request: Request) -> ConfigurationBundle | None:
+    try:
+        return get_configuration_repository(request).get(config_id)
+    except ConfigurationNotFoundError:
+        return None
+
+
 def decode_theme_asset(upload: ThemeAssetUploadRequest) -> bytes:
     if upload.content_type not in ALLOWED_THEME_ASSET_TYPES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="unsupported theme asset type")
@@ -334,4 +354,69 @@ def register_theme_asset_if_sqlite(
             """,
             (asset_id, uri, filename, content_type, byte_size),
         )
+        connection.commit()
+
+
+def cleanup_unreferenced_theme_assets(
+    config_id: str,
+    previous_bundle: ConfigurationBundle | None,
+    updated_bundle: ConfigurationBundle | None,
+    request: Request,
+) -> None:
+    if previous_bundle is None:
+        return
+
+    previous_uris = collect_theme_asset_uris(previous_bundle)
+    current_uris = collect_theme_asset_uris(updated_bundle) if updated_bundle is not None else set()
+    removable_uris = previous_uris - current_uris
+    if not removable_uris:
+        return
+
+    asset_dir = request.app.state.settings.theme_asset_dir
+    for uri in removable_uris:
+        asset_filename = resolve_theme_asset_filename(config_id, uri)
+        if not asset_filename:
+            continue
+        delete_theme_asset_file(asset_dir, asset_filename)
+        unregister_theme_asset_if_sqlite(request, uri)
+
+
+def collect_theme_asset_uris(bundle: ConfigurationBundle | None) -> set[str]:
+    if bundle is None:
+        return set()
+    return {
+        application.theme.inspiration.moodboard_image_uri
+        for application in bundle.applications
+        if application.theme.inspiration.moodboard_image_uri
+    }
+
+
+def resolve_theme_asset_filename(config_id: str, uri: str) -> str | None:
+    marker = f"/configurations/{config_id}/theme-assets/"
+    if marker not in uri:
+        return None
+    filename = unquote(uri.rsplit(marker, maxsplit=1)[-1])
+    if not filename or "/" in filename or "\\" in filename or filename in {".", ".."}:
+        return None
+    if resolve_asset_content_type(filename) is None:
+        return None
+    return filename
+
+
+def delete_theme_asset_file(asset_dir: Path, asset_filename: str) -> None:
+    resolved_asset_dir = asset_dir.resolve()
+    asset_path = (resolved_asset_dir / asset_filename).resolve()
+    if resolved_asset_dir not in asset_path.parents:
+        return
+    asset_path.unlink(missing_ok=True)
+
+
+def unregister_theme_asset_if_sqlite(request: Request, uri: str) -> None:
+    settings = request.app.state.settings
+    if settings.configuration_storage != "sqlite":
+        return
+
+    with sqlite_connection(settings.configuration_database_path) as connection:
+        apply_sqlite_migrations(connection)
+        connection.execute("DELETE FROM theme_assets WHERE uri = ?", (uri,))
         connection.commit()

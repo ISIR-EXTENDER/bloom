@@ -265,6 +265,70 @@ def test_theme_asset_upload_stores_and_serves_image(tmp_path, sample_configurati
     assert row["byte_size"] == len(b"fake png bytes")
 
 
+def test_theme_asset_cleanup_removes_replaced_moodboard_asset(
+    tmp_path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    database_path = tmp_path / "bloom.db"
+    asset_dir = tmp_path / "theme-assets"
+    settings = Settings(
+        environment="test",
+        configuration_database_path=database_path,
+        configuration_storage="sqlite",
+        theme_asset_dir=asset_dir,
+    )
+    client = TestClient(create_app(settings))
+    client.put("/api/v1/configurations/sandbox", json=sample_configuration_bundle.model_dump(mode="json"))
+    first_asset_uri = upload_theme_asset(client, "first.png", b"first moodboard")
+    second_asset_uri = upload_theme_asset(client, "second.png", b"second moodboard")
+
+    application_payload = client.get("/api/v1/configurations/sandbox").json()["applications"][0]
+    application_payload["theme"]["inspiration"]["moodboard_image_uri"] = first_asset_uri
+    client.put("/api/v1/configurations/sandbox/applications/sandbox", json=application_payload)
+    first_asset_path = asset_dir / first_asset_uri.rsplit("/", maxsplit=1)[-1]
+    assert first_asset_path.exists()
+
+    application_payload["theme"]["inspiration"]["moodboard_image_uri"] = second_asset_uri
+    response = client.put("/api/v1/configurations/sandbox/applications/sandbox", json=application_payload)
+
+    assert response.status_code == 200
+    assert not first_asset_path.exists()
+    assert (asset_dir / second_asset_uri.rsplit("/", maxsplit=1)[-1]).exists()
+    with sqlite_connection(database_path) as connection:
+        rows = connection.execute("SELECT uri FROM theme_assets ORDER BY uri").fetchall()
+    assert [row["uri"] for row in rows] == [second_asset_uri]
+
+
+def test_theme_asset_cleanup_removes_archived_app_moodboard_asset(
+    tmp_path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    database_path = tmp_path / "bloom.db"
+    asset_dir = tmp_path / "theme-assets"
+    settings = Settings(
+        environment="test",
+        configuration_database_path=database_path,
+        configuration_storage="sqlite",
+        theme_asset_dir=asset_dir,
+    )
+    client = TestClient(create_app(settings))
+    client.put("/api/v1/configurations/sandbox", json=sample_configuration_bundle.model_dump(mode="json"))
+    asset_uri = upload_theme_asset(client, "archived.png", b"archived moodboard")
+    application_payload = client.get("/api/v1/configurations/sandbox").json()["applications"][0]
+    application_payload["theme"]["inspiration"]["moodboard_image_uri"] = asset_uri
+    client.put("/api/v1/configurations/sandbox/applications/sandbox", json=application_payload)
+    asset_path = asset_dir / asset_uri.rsplit("/", maxsplit=1)[-1]
+    assert asset_path.exists()
+
+    response = client.delete("/api/v1/configurations/sandbox/applications/sandbox")
+
+    assert response.status_code == 204
+    assert not asset_path.exists()
+    with sqlite_connection(database_path) as connection:
+        rows = connection.execute("SELECT uri FROM theme_assets").fetchall()
+    assert rows == []
+
+
 def test_theme_asset_upload_rejects_unsupported_type(
     tmp_path,
     sample_configuration_bundle: ConfigurationBundle,
@@ -376,3 +440,17 @@ def test_configuration_api_round_trips_real_legacy_screen_fixture(tmp_path) -> N
     assert payload["applications"][0]["screens"][0]["id"] == "sandbox_control"
     assert len(payload["applications"][0]["screens"][0]["widgets"]) == 12
     assert (tmp_path / "legacy-sandbox.json").exists()
+
+
+def upload_theme_asset(client: TestClient, filename: str, content: bytes) -> str:
+    response = client.post(
+        "/api/v1/configurations/sandbox/theme-assets",
+        json={
+            "filename": filename,
+            "content_type": "image/png",
+            "content_base64": base64.b64encode(content).decode("ascii"),
+        },
+    )
+
+    assert response.status_code == 200
+    return str(response.json()["uri"])

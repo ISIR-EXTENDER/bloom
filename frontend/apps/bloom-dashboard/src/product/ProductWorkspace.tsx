@@ -29,6 +29,10 @@ type ProductWorkspaceProps = {
   onOpenHelp: () => void;
   onOpenLanding: () => void;
   onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
+  onRuntimeProfilePreferenceChange: (
+    selection: Pick<WorkspaceSelection, "appId" | "configId">,
+    profileId: string,
+  ) => void;
   onRuntimeIntent: (
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
@@ -42,6 +46,7 @@ type ProductWorkspaceProps = {
   onTopicSample: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onUploadThemeAsset: (file: File) => Promise<string>;
+  profilePreferences: Record<string, string>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
   runtimeActionClient: RuntimeActionClient;
   runtimeMode: RuntimeMode;
@@ -64,6 +69,7 @@ export function ProductWorkspace({
   onOpenHelp,
   onOpenLanding,
   onOpenRuntimeApp,
+  onRuntimeProfilePreferenceChange,
   onRuntimeIntent,
   onSaveApplication,
   onSaveBuilderScreen,
@@ -71,6 +77,7 @@ export function ProductWorkspace({
   onTopicSample,
   onTopicSubscriptionRequest,
   onUploadThemeAsset,
+  profilePreferences,
   recentRuntimeSelections,
   runtimeActionClient,
   runtimeMode,
@@ -116,6 +123,8 @@ export function ProductWorkspace({
       <RuntimeHome
         configurations={state.configurations}
         onOpenRuntimeApp={onOpenRuntimeApp}
+        onProfilePreferenceChange={onRuntimeProfilePreferenceChange}
+        profilePreferences={profilePreferences}
         recentRuntimeSelections={recentRuntimeSelections}
       />
     );
@@ -134,6 +143,7 @@ export function ProductWorkspace({
       onSelectionChange={onSelectionChange}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
+      preferredProfileId={profilePreferences[`${selection.configId}:${selection.appId}`] ?? ""}
       runtimeActionClient={runtimeActionClient}
       runtimeModeState={runtimeModeState}
       screen={selectedWorkspace.screen}

@@ -193,18 +193,21 @@ Already done in this phase:
   `1024x600` viewport instead of being pushed below a tall hero.
 - App configuration is now part of visual smoke coverage, which caught and fixed the route scroll-position bug.
 - Backend/robot/network status UX has a documented hierarchy so Bloom can add status indicators without becoming noisy.
+- SQLite now reconstructs configuration bundles from normalized rows for apps, screens, widgets, profiles, runtime
+  policies, action presets, and themes.
+- Builder Home now includes a guided create-app flow with app name, starter screen, design preset, and optional
+  onboarding spots.
+- Runtime recent apps and display-profile preferences now persist in versioned browser storage while remaining
+  user-local, not shared server state.
+- Theme moodboard assets are cleaned up when replaced or when an app/configuration no longer references them.
+- Playground screens can be promoted into saved one-screen apps that preserve the source app theme, profiles, runtime
+  policy, and action presets.
 
 Phase 2 follow-ups that should not block Phase 3:
 
-- Reconstruct configuration bundles from normalized SQLite tables once the schema stabilizes.
-- Add a full guided create-app wizard with starter screen selection, design-system presets, and onboarding attention
-  spots.
-- Persist recent apps and display/profile preferences once user profiles are introduced.
 - Add real backend/runtime/robot status indicators through explicit adapters.
-- Add asset cleanup when moodboards are replaced or apps are archived.
-- Promote playground drafts into reusable screens or saved apps.
-- Add cached screen thumbnails after asset storage has a lifecycle policy.
-- Explore optional virtual-keyboard workflows for Raspberry/tablet use.
+- Add cached screen thumbnails now that theme asset storage has a cleanup lifecycle.
+- Validate optional virtual-keyboard workflows on Raspberry/tablet hardware before adding a custom keyboard to Bloom.
 
 ### Phase 3 - Runtime ROS Integration
 
@@ -521,6 +524,8 @@ Completed validation records:
 - [2026-07-10 ROS backend and DB finish flow](validation/2026-07-10-ros-backend-db-finish-flow.md): accepted for
   saved runtime action dispatch, Explorer concrete action presets, SQLite app/screen save-load tests, and the documented
   Bloom-vs-`extender_ui` runtime flow.
+- [2026-07-10 Phase 2 app flow polish](validation/2026-07-10-phase-2-app-flow-polish.md): accepted for guided app
+  creation, runtime preference persistence, playground promotion, and moodboard asset cleanup.
 
 See also:
 

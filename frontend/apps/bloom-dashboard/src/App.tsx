@@ -36,6 +36,12 @@ import {
   runtimeModeRoute,
 } from "./ui/navigationRoute";
 import { ProductNavigation, type ProductView } from "./ui/ProductNavigation";
+import {
+  addRecentRuntimeSelection,
+  loadRuntimeUserPreferences,
+  saveRuntimeUserPreferences,
+  setRuntimeProfilePreference,
+} from "./ui/runtime-user-preferences";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
 const defaultRuntimeActionClient = createDashboardRuntimeActionClient();
@@ -56,7 +62,7 @@ export function App({
   const [builderMode, setBuilderMode] = useState<BuilderMode>(initialRoute.builderMode);
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(initialRoute.runtimeMode);
   const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
-  const [recentRuntimeSelections, setRecentRuntimeSelections] = useState<readonly WorkspaceSelection[]>([]);
+  const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}`;
   const isRuntimeAppView = activeView === "runtime" && runtimeMode === "app";
@@ -94,6 +100,10 @@ export function App({
   useEffect(() => {
     resetViewportForRoute(activeRouteKey);
   }, [activeRouteKey]);
+
+  useEffect(() => {
+    saveRuntimeUserPreferences(runtimeUserPreferences);
+  }, [runtimeUserPreferences]);
 
   const handleRuntimeIntent = (
     intent: WidgetActionIntent,
@@ -191,15 +201,17 @@ export function App({
 
   const openRuntimeApp = (nextSelection: WorkspaceSelection) => {
     setSelection(nextSelection);
-    setRecentRuntimeSelections((currentSelections) =>
-      [
-        nextSelection,
-        ...currentSelections.filter(
-          (candidate) => candidate.configId !== nextSelection.configId || candidate.appId !== nextSelection.appId,
-        ),
-      ].slice(0, 3),
-    );
+    setRuntimeUserPreferences((currentPreferences) => addRecentRuntimeSelection(currentPreferences, nextSelection));
     navigateToRoute(runtimeModeRoute("app"));
+  };
+
+  const handleRuntimeProfilePreferenceChange = (
+    preferenceSelection: Pick<WorkspaceSelection, "appId" | "configId">,
+    profileId: string,
+  ) => {
+    setRuntimeUserPreferences((currentPreferences) =>
+      setRuntimeProfilePreference(currentPreferences, preferenceSelection, profileId),
+    );
   };
 
   const editRuntimeApplication = () => {
@@ -300,6 +312,7 @@ export function App({
                 onOpenHelp={() => handleProductViewChange("help")}
                 onOpenLanding={() => handleProductViewChange("landing")}
                 onOpenRuntimeApp={openRuntimeApp}
+                onRuntimeProfilePreferenceChange={handleRuntimeProfilePreferenceChange}
                 onRuntimeIntent={handleRuntimeIntent}
                 onSaveApplication={handleSaveApplication}
                 onSaveBuilderScreen={handleSaveBuilderScreen}
@@ -307,7 +320,8 @@ export function App({
                 onTopicSample={runtimeActionClient.addRuntimeTopicSampleListener}
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onUploadThemeAsset={handleUploadThemeAsset}
-                recentRuntimeSelections={recentRuntimeSelections}
+                profilePreferences={runtimeUserPreferences.profilePreferences}
+                recentRuntimeSelections={runtimeUserPreferences.recentRuntimeSelections}
                 runtimeActionClient={runtimeActionClient}
                 runtimeMode={runtimeMode}
                 runtimeModeState={runtimeModeState}
