@@ -1,4 +1,4 @@
-import { createWidgetActionIntent } from "@bloom/widgets";
+import { createWidgetActionIntent, type WidgetActionIntent } from "@bloom/widgets";
 import { useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
@@ -7,15 +7,40 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
   const buttonLabel = getStringSetting(descriptor.widget.settings, "button_label", "") || descriptor.widget.title;
   const actionLabel = getStringSetting(descriptor.widget.settings, "action_label", "");
   const command = getStringSetting(descriptor.widget.settings, "command", "");
+  const momentary = getBooleanSetting(descriptor.widget.settings, "momentary", false);
+  const topic = getStringSetting(descriptor.widget.settings, "topic", "");
+  const messageType = getStringSetting(descriptor.widget.settings, "messageType", "");
 
   const handlePress = () => {
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
+  };
+  const publishMomentaryPayload = (payloadKey: "payload" | "releasedPayload") => {
+    if (!topic || !messageType) {
+      return;
+    }
+    onActionIntent?.({
+      type: "topic-publish",
+      widgetId: descriptor.widget.id,
+      widgetKind: descriptor.widget.kind,
+      topic,
+      messageType,
+      payload: descriptor.widget.settings[payloadKey],
+    } satisfies WidgetActionIntent);
   };
 
   return (
     <div className="bloom-action-widget">
       <strong>{descriptor.widget.title}</strong>
-      <button aria-label={buttonLabel} className="bloom-command-button" onClick={handlePress} type="button">
+      <button
+        aria-label={buttonLabel}
+        className="bloom-command-button"
+        onClick={momentary ? undefined : handlePress}
+        onPointerCancel={momentary ? () => publishMomentaryPayload("releasedPayload") : undefined}
+        onPointerDown={momentary ? () => publishMomentaryPayload("payload") : undefined}
+        onPointerLeave={momentary ? () => publishMomentaryPayload("releasedPayload") : undefined}
+        onPointerUp={momentary ? () => publishMomentaryPayload("releasedPayload") : undefined}
+        type="button"
+      >
         {buttonLabel}
       </button>
       {actionLabel || command ? <span>{actionLabel || command}</span> : null}

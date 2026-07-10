@@ -160,6 +160,7 @@ function legacyKindToBloomKind(kind: string): WidgetKind {
     "load-pose-button": "command-button",
     "magnet-control": "toggle",
     "max-velocity": "slider",
+    "momentary-ros-message": "command-button",
     "mode-button": "command-button",
     "navigation-button": "button",
     plot: "plot",
@@ -171,6 +172,7 @@ function legacyKindToBloomKind(kind: string): WidgetKind {
     text: "label",
     textarea: "label",
     "throw-draw": "gesture-pad",
+    "topic-monitor": "topic-echo",
     toggle: "toggle",
     "toggle-publisher": "toggle",
   };
@@ -190,10 +192,39 @@ function legacyRectToLayout(rect: Record<string, unknown> | undefined): WidgetLa
 }
 
 function legacyWidgetSettingsToConfig(widget: LegacyCanvasWidget): Record<string, unknown> {
+  const legacyKind = stringOrFallback(widget.kind, "unknown");
+  if (legacyKind === "momentary-ros-message") {
+    return {
+      ...copyLegacyWidgetSettings(widget),
+      legacyKind,
+      button_label: stringOrFallback(widget.label, widget.id),
+      command: "momentary_ros_message",
+      momentary: true,
+      payload: widget.pressedPayload ?? "{data: true}",
+      releasedPayload: widget.releasedPayload ?? "{data: false}",
+    };
+  }
+  if (legacyKind === "topic-monitor") {
+    const firstTopic = Array.isArray(widget.topics) ? widget.topics.find(isRecord) : undefined;
+    return {
+      ...copyLegacyWidgetSettings(widget),
+      legacyKind,
+      fieldPath: "",
+      maxMessages: 20,
+      messageType: stringOrFallback(firstTopic?.messageType, ""),
+      prettyPrint: true,
+      show_details: widget.showDetails === true,
+      topic: stringOrFallback(firstTopic?.topic, stringOrFallback(widget.topic, "")),
+    };
+  }
   return {
-    ...Object.fromEntries(Object.entries(widget).filter(([key]) => !WIDGET_CONFIG_KEYS.has(key))),
-    legacyKind: stringOrFallback(widget.kind, "unknown"),
+    ...copyLegacyWidgetSettings(widget),
+    legacyKind,
   };
+}
+
+function copyLegacyWidgetSettings(widget: LegacyCanvasWidget): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(widget).filter(([key]) => !WIDGET_CONFIG_KEYS.has(key)));
 }
 
 function isCanvasPresetId(value: unknown): value is CanvasSettings["preset_id"] {
@@ -201,13 +232,14 @@ function isCanvasPresetId(value: unknown): value is CanvasSettings["preset_id"] 
     value === "native-1024x600" ||
     value === "hd" ||
     value === "tablet" ||
+    value === "wide-tablet" ||
     value === "full-hd" ||
     value === "local-screen"
   );
 }
 
 function isRuntimeCanvasMode(value: unknown): value is CanvasSettings["runtime_mode"] {
-  return value === "left" || value === "center" || value === "fit";
+  return value === "left" || value === "center" || value === "fit" || value === "operator-fit";
 }
 
 function stringOrFallback(value: unknown, fallback: string): string {
@@ -216,4 +248,8 @@ function stringOrFallback(value: unknown, fallback: string): string {
 
 function numberOrFallback(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

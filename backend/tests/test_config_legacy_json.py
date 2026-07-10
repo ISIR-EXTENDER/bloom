@@ -100,6 +100,15 @@ def test_load_legacy_application_with_real_screens() -> None:
         WidgetKind.SLIDER,
         WidgetKind.TOGGLE,
     }
+    translation_joystick = next(widget for widget in control_screen.widgets if widget.id == "control-translation")
+    assert translation_joystick.settings["mode_id"] == "both"
+    assert translation_joystick.settings["runtime_binding"] == {
+        "adapter": "teleop",
+        "value_mapping": {"mode": 3, "target_topic": "/teleop_cmd"},
+    }
+    rotation_joystick = next(widget for widget in control_screen.widgets if widget.id == "control-rotation")
+    assert rotation_joystick.settings["mode_id"] == "rotation"
+    assert rotation_joystick.settings["runtime_binding"]["value_mapping"]["mode"] == 1
 
     live_teleop_screen = application.screens[1]
     assert len(live_teleop_screen.widgets) == 6
@@ -137,3 +146,54 @@ def test_load_legacy_petanque_gesture_widget_as_generic_pad(tmp_path: Path) -> N
     assert gesture.layout.width > 0
     assert gesture.layout.height > 0
     assert gesture.settings["topic"] == "/petanque/throw/gesture"
+
+
+def test_load_legacy_sandbox_momentary_and_topic_monitor_widgets(tmp_path: Path) -> None:
+    screen_path = tmp_path / "snake_and_monitor.json"
+    screen_path.write_text(
+        """
+        {
+          "name": "snake_and_monitor",
+          "widgets": [
+            {
+              "id": "snake-hold",
+              "kind": "momentary-ros-message",
+              "label": "Hold Snake",
+              "topic": "/snake_control/enable",
+              "messageType": "std_msgs/msg/Bool",
+              "pressedPayload": "{data: true}",
+              "releasedPayload": "{data: false}",
+              "rect": { "x": 20, "y": 20, "w": 220, "h": 76 }
+            },
+            {
+              "id": "servo-topic-monitor",
+              "kind": "topic-monitor",
+              "label": "ROS Topic Monitor",
+              "topics": [
+                {
+                  "label": "Velocity command",
+                  "topic": "/visual_servoing/velocity_command",
+                  "messageType": "geometry_msgs/msg/TwistStamped"
+                }
+              ],
+              "rect": { "x": 20, "y": 120, "w": 420, "h": 240 }
+            }
+          ]
+        }
+        """,
+        encoding="utf-8",
+    )
+    screen = load_legacy_screen_file(screen_path)
+
+    momentary = next(widget for widget in screen.widgets if widget.id == "snake-hold")
+    assert momentary.kind == WidgetKind.COMMAND_BUTTON
+    assert momentary.settings["momentary"] is True
+    assert momentary.settings["topic"] == "/snake_control/enable"
+    assert momentary.settings["payload"] == "{data: true}"
+    assert momentary.settings["releasedPayload"] == "{data: false}"
+
+    monitor = next(widget for widget in screen.widgets if widget.id == "servo-topic-monitor")
+    assert monitor.kind == WidgetKind.TOPIC_ECHO
+    assert monitor.settings["topic"] == "/visual_servoing/velocity_command"
+    assert monitor.settings["messageType"] == "geometry_msgs/msg/TwistStamped"
+    assert monitor.settings["maxMessages"] == 20

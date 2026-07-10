@@ -75,9 +75,12 @@ def legacy_application_with_screens_to_config(
 def _legacy_widget_to_config(payload: dict[str, Any]) -> WidgetConfig:
     widget_id = str(payload["id"])
     title = str(payload.get("title") or payload.get("label") or widget_id)
-    kind = _map_widget_kind(str(payload.get("kind", WidgetKind.UNKNOWN.value)))
+    legacy_kind = str(payload.get("kind", WidgetKind.UNKNOWN.value))
+    kind = _map_widget_kind(legacy_kind)
     layout = _legacy_rect_to_layout(payload.get("rect"))
     settings = {key: value for key, value in payload.items() if key not in {"id", "title", "label", "kind", "rect"}}
+    settings = _with_legacy_widget_settings(legacy_kind, title, settings)
+    settings = _with_legacy_runtime_binding(kind, settings)
     return WidgetConfig(id=widget_id, title=title, kind=kind, layout=layout, settings=settings)
 
 
@@ -123,6 +126,81 @@ def _legacy_canvas_to_settings(value: Any) -> CanvasSettings:
     )
 
 
+def _with_legacy_runtime_binding(kind: WidgetKind, settings: dict[str, Any]) -> dict[str, Any]:
+    if kind != WidgetKind.JOYSTICK or "runtime_binding" in settings:
+        return settings
+
+    binding = str(settings.get("binding", "")).strip().lower()
+    topic = str(settings.get("topic", "")).strip().lower()
+
+    if binding == "joy" or topic.endswith("/joystick_xy"):
+        return {
+            **settings,
+            "mode_id": "both",
+            "publish_rate_hz": 20,
+            "zero_on_release": True,
+            "runtime_binding": _teleop_runtime_binding(mode=3),
+        }
+
+    if binding == "rot" or topic.endswith("/joystick_rxry"):
+        return {
+            **settings,
+            "mode_id": "rotation",
+            "publish_rate_hz": 20,
+            "zero_on_release": True,
+            "runtime_binding": _teleop_runtime_binding(mode=1),
+        }
+
+    return settings
+
+
+def _with_legacy_widget_settings(legacy_kind: str, title: str, settings: dict[str, Any]) -> dict[str, Any]:
+    if legacy_kind == "momentary-ros-message":
+        return {
+            **settings,
+            "button_label": title,
+            "command": "momentary_ros_message",
+            "legacyKind": legacy_kind,
+            "momentary": True,
+            "payload": settings.get("pressedPayload", "{data: true}"),
+            "releasedPayload": settings.get("releasedPayload", "{data: false}"),
+        }
+
+    if legacy_kind == "topic-monitor":
+        first_topic = _first_topic_monitor_entry(settings.get("topics"))
+        return {
+            **settings,
+            "fieldPath": "",
+            "legacyKind": legacy_kind,
+            "maxMessages": 20,
+            "messageType": str(first_topic.get("messageType", "")),
+            "prettyPrint": True,
+            "show_details": bool(settings.get("showDetails", False)),
+            "topic": str(first_topic.get("topic") or settings.get("topic") or ""),
+        }
+
+    return {**settings, "legacyKind": legacy_kind}
+
+
+def _first_topic_monitor_entry(value: Any) -> dict[str, Any]:
+    if not isinstance(value, list):
+        return {}
+    for item in value:
+        if isinstance(item, dict):
+            return item
+    return {}
+
+
+def _teleop_runtime_binding(mode: int) -> dict[str, Any]:
+    return {
+        "adapter": "teleop",
+        "value_mapping": {
+            "mode": mode,
+            "target_topic": "/teleop_cmd",
+        },
+    }
+
+
 def _map_widget_kind(kind: str) -> WidgetKind:
     mapping = {
         "button": WidgetKind.COMMAND_BUTTON,
@@ -135,6 +213,7 @@ def _map_widget_kind(kind: str) -> WidgetKind:
         "load-pose-button": WidgetKind.COMMAND_BUTTON,
         "magnet-control": WidgetKind.TOGGLE,
         "max-velocity": WidgetKind.SLIDER,
+        "momentary-ros-message": WidgetKind.COMMAND_BUTTON,
         "mode-button": WidgetKind.COMMAND_BUTTON,
         "navigation-button": WidgetKind.BUTTON,
         "plot": WidgetKind.PLOT,
@@ -147,6 +226,7 @@ def _map_widget_kind(kind: str) -> WidgetKind:
         "textarea": WidgetKind.LABEL,
         "toggle": WidgetKind.TOGGLE,
         "toggle-publisher": WidgetKind.TOGGLE,
+        "topic-monitor": WidgetKind.TOPIC_ECHO,
     }
     return mapping.get(kind, WidgetKind.UNKNOWN)
 

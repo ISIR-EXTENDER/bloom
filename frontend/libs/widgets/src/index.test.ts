@@ -286,6 +286,16 @@ describe("canvas layout foundation", () => {
     ).toBe(1);
   });
 
+  it("resolves operator-fit scale without overflowing the viewport", () => {
+    expect(
+      resolveCanvasFitScale(
+        { preset_id: "wide-tablet", runtime_mode: "operator-fit" },
+        { width: 1820, height: 720 },
+        { width: 910, height: 360 },
+      ),
+    ).toBe(0.5);
+  });
+
   it("converts legacy rect values without losing coordinates", () => {
     expect(legacyRectToLayout({ x: 394, y: 17, w: 203, h: 91 })).toEqual({
       x: 394,
@@ -567,8 +577,12 @@ describe("widget settings contracts", () => {
     ).toEqual({
       success: true,
       settings: {
+        fieldPath: "data",
         max: 100,
+        messageType: "",
         min: 0,
+        show_details: false,
+        topic: "",
         unit: "%",
         value: 68,
       },
@@ -582,9 +596,14 @@ describe("widget settings contracts", () => {
     ).toEqual({
       success: true,
       settings: {
+        fieldPath: "data",
         historySeconds: 20,
+        maxSamples: 500,
+        messageType: "",
         samples: [0.1, 0.4, 0.3],
+        show_details: false,
         showLegend: true,
+        topic: "",
         unit: "",
         variant: "area",
       },
@@ -602,9 +621,14 @@ describe("widget settings contracts", () => {
     ).toEqual({
       success: true,
       settings: {
+        fieldPath: "data",
         historySeconds: 15,
+        maxSamples: 500,
+        messageType: "",
         samples: [0, 1, 0.5],
+        show_details: false,
         showLegend: true,
+        topic: "",
         unit: "m/s",
         variant: "bars",
         yMax: 1,
@@ -628,10 +652,13 @@ describe("widget settings contracts", () => {
             summary: "Joystick deadzone reached",
           },
         ],
+        fieldPath: "",
         maxEntries: 4,
+        messageType: "",
         severityFilter: ["success", "warning"],
         showTimestamps: true,
         show_details: false,
+        topic: "",
       }),
     ).toEqual({
       success: true,
@@ -648,20 +675,26 @@ describe("widget settings contracts", () => {
             summary: "Joystick deadzone reached",
           },
         ],
+        fieldPath: "",
         maxEntries: 4,
+        messageType: "",
         severityFilter: ["success", "warning"],
         showTimestamps: true,
         show_details: false,
+        topic: "",
       },
     });
 
     expect(
       validateWidgetSettings("event-log", {
         entries: "not-json-array",
+        fieldPath: "",
         maxEntries: 0,
+        messageType: "",
         severityFilter: ["info"],
         showTimestamps: true,
         show_details: false,
+        topic: "",
       }),
     ).toEqual({
       success: false,
@@ -865,6 +898,7 @@ describe("legacy widget kind mapping", () => {
     expect(toBloomWidgetKind("curves")).toBe("plot");
     expect(toBloomWidgetKind("logs")).toBe("event-log");
     expect(toBloomWidgetKind("throw-draw")).toBe("gesture-pad");
+    expect(toBloomWidgetKind("topic-monitor")).toBe("topic-echo");
   });
 
   it("marks ROS and device widgets as adapter-dependent", () => {
@@ -878,6 +912,10 @@ describe("legacy widget kind mapping", () => {
     });
     expect(resolveLegacyWidgetKind("max-velocity")).toMatchObject({
       bloomKind: "slider",
+      compatibility: "adapter-required",
+    });
+    expect(resolveLegacyWidgetKind("momentary-ros-message")).toMatchObject({
+      bloomKind: "command-button",
       compatibility: "adapter-required",
     });
   });
@@ -917,12 +955,14 @@ describe("legacy widget kind mapping", () => {
       "button",
       "rosbag-control",
       "max-velocity",
+      "momentary-ros-message",
       "gripper-control",
       "magnet-control",
       "toggle-publisher",
       "ros-message-toggle",
       "stream-display",
       "throw-draw",
+      "topic-monitor",
       "drink",
       "curves",
       "logs",

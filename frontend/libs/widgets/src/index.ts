@@ -38,7 +38,9 @@ export type LegacyWidgetKind =
   | "throw-draw"
   | "drink"
   | "curves"
-  | "logs";
+  | "logs"
+  | "momentary-ros-message"
+  | "topic-monitor";
 
 export type LegacyWidgetKindMapping = {
   legacyKind: string;
@@ -108,6 +110,7 @@ export const CANVAS_PRESETS: readonly CanvasPreset[] = [
   { id: "native-1024x600", label: "Native Tablet (1024x600)", width: 1024, height: 600 },
   { id: "hd", label: "HD (1280x720)", width: 1280, height: 720 },
   { id: "tablet", label: "Tablet (1280x800)", width: 1280, height: 800 },
+  { id: "wide-tablet", label: "Wide Tablet Runtime (1820x720)", width: 1820, height: 720 },
   { id: "full-hd", label: "Full HD (1920x1080)", width: 1920, height: 1080 },
   { id: "local-screen", label: "Local Screen (1920x1080)", width: 1920, height: 1080 },
 ];
@@ -467,6 +470,20 @@ export const LEGACY_WIDGET_KIND_MAPPINGS: Readonly<Record<LegacyWidgetKind, Lega
     displayName: "ROS message toggle",
     notes: "Requires typed ROS message publishing before it can emit structured ON/OFF payloads.",
   },
+  "momentary-ros-message": {
+    legacyKind: "momentary-ros-message",
+    bloomKind: "command-button",
+    compatibility: "adapter-required",
+    displayName: "Momentary ROS message",
+    notes: "Maps to a momentary Bloom command button that publishes pressed and released payloads.",
+  },
+  "topic-monitor": {
+    legacyKind: "topic-monitor",
+    bloomKind: "topic-echo",
+    compatibility: "renamed",
+    displayName: "Topic monitor",
+    notes: "Maps to topic echo semantics for live diagnostic topic snapshots.",
+  },
   "stream-display": {
     legacyKind: "stream-display",
     bloomKind: "camera",
@@ -564,7 +581,7 @@ export function resolveCanvasFitScale(
   canvasSize: ViewportSize,
   viewportSize: ViewportSize,
 ): number {
-  if (settings.runtime_mode !== "fit") {
+  if (settings.runtime_mode !== "fit" && settings.runtime_mode !== "operator-fit") {
     return 1;
   }
   if (canvasSize.width <= 0 || canvasSize.height <= 0) {
