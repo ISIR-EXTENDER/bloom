@@ -48,6 +48,18 @@ describe("normalizeConfigurationBundle", () => {
         topic: "/cmd/mode",
       },
     });
+    expect(
+      Object.fromEntries(
+        ["control-panel-max-velocity", "control-panel-z", "control-panel-rz"].map((widgetId) => {
+          const widget = controlPanel?.widgets.find((candidate) => candidate.id === widgetId);
+          return [widgetId, { intent: widget?.settings.intent_label, unit: widget?.settings.unit }];
+        }),
+      ),
+    ).toEqual({
+      "control-panel-max-velocity": { intent: "Teleoperation gain", unit: "x" },
+      "control-panel-rz": { intent: "Yaw velocity", unit: "rad/s" },
+      "control-panel-z": { intent: "Vertical velocity", unit: "m/s" },
+    });
 
     const snakeHold = application?.screens
       .find((screen) => screen.id === "snake_control")

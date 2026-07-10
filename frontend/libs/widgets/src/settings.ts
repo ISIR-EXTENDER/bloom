@@ -148,6 +148,7 @@ export type PlotSettings = {
 export type SliderSettings = {
   binding?: string;
   direction: "horizontal" | "vertical";
+  intent_label: string;
   max: number;
   messageType?: string;
   min: number;
@@ -156,6 +157,7 @@ export type SliderSettings = {
   show_details: boolean;
   step: number;
   topic?: string;
+  unit: string;
 };
 
 export type ToggleSettings = {
@@ -316,11 +318,13 @@ const PLOT_DEFAULT_SETTINGS: PlotSettings = {
 
 const SLIDER_DEFAULT_SETTINGS: SliderSettings = {
   direction: "vertical",
+  intent_label: "",
   max: 1,
   min: -1,
   returnToCenter: false,
   show_details: false,
   step: 0.01,
+  unit: "",
 };
 
 const TOGGLE_DEFAULT_SETTINGS: ToggleSettings = {
@@ -502,6 +506,8 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "max", label: "Maximum", type: "number", required: true },
       { key: "step", label: "Step", type: "number", required: true },
       { key: "direction", label: "Direction", type: "select", required: true, options: ["horizontal", "vertical"] },
+      { key: "intent_label", label: "Operator intent", type: "text", required: false },
+      { key: "unit", label: "Unit", type: "text", required: false },
       { key: "returnToCenter", label: "Return to center", type: "boolean", required: true },
       { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "topic", label: "Output topic", type: "text", required: false },
@@ -1127,6 +1133,12 @@ function validateSliderSettings(settings: Record<string, unknown>): WidgetSettin
     ...validateNumber(settings, "max"),
     ...validateNumber(settings, "step", { min: 0 }),
     ...validateOneOf(settings, "direction", ["horizontal", "vertical"]),
+    ...("intent_label" in settings && settings.intent_label !== undefined
+      ? validateString(settings, "intent_label", { allowEmpty: true })
+      : []),
+    ...("unit" in settings && settings.unit !== undefined
+      ? validateString(settings, "unit", { allowEmpty: true })
+      : []),
     ...validateBoolean(settings, "returnToCenter"),
     ...validateBoolean(settings, "show_details"),
     ...("topic" in settings && settings.topic !== undefined

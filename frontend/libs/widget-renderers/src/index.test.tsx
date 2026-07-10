@@ -93,7 +93,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    expect(screen.getByText("0.00")).toHaveClass("sr-only");
+    expect(screen.getByText("0.00 m/s")).toHaveClass("sr-only");
     screen.getByRole("slider", { name: "Speed" }).focus();
     await user.keyboard("{ArrowRight}");
 
@@ -135,8 +135,20 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
-    expect(screen.getByText("0 → 2")).toBeVisible();
-    expect(screen.getByText("0.00")).toBeVisible();
+    expect(screen.getByText("0.00 m/s → 2.00 m/s")).toBeVisible();
+    expect(screen.getByText("0.00 m/s")).toBeVisible();
+  });
+
+  it("shows slider unit and operator intent without exposing runtime details", () => {
+    const descriptor = renderScreenDescriptors(sliderScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    expect(screen.getByText("m/s")).toBeVisible();
+    expect(screen.getByText("Teleoperation gain")).toBeVisible();
+    expect(screen.getByText("0.00 m/s")).toHaveClass("sr-only");
+    expect(screen.getByText("0.00 m/s → 2.00 m/s")).toHaveClass("bloom-control-detail-hidden");
   });
 
   it("emits command intents from command buttons", async () => {
@@ -815,9 +827,11 @@ const sliderScreen: ScreenConfig = {
       },
       settings: {
         direction: "horizontal",
+        intent_label: "Teleoperation gain",
         max: 2,
         min: 0,
         step: 0.01,
+        unit: "m/s",
       },
     },
   ],

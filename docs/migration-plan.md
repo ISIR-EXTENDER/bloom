@@ -368,6 +368,8 @@ Completed in this phase so far:
   keeping AprilTag detections visible as an echo panel.
 - The imported `control_panel` gives Robin-style one-screen access to camera preview, gripper, visual-servoing commands,
   max velocity, joystick controls, and monitor shortcuts.
+- Sandbox robot-facing sliders now carry operator intent labels and units for teleop gain, vertical velocity, and yaw
+  velocity without changing the configured ROS topics.
 - Bloom Debug `topic-plot` widgets now share the first-party SVG plot helpers with generic `plot`, supporting `area`,
   `sparkline`, and `bars` variants while keeping the latest value prominent for live robot telemetry.
 - Petanque, Sandbox teleop lab, Bloom Debug, Explorer User Tests, and Webcam demo fixtures are smoke-tested in runtime
@@ -467,8 +469,8 @@ Status: idea captured, intentionally low priority.
 3. Validate Robin's visual-servoing path:
    webcam preview, AprilTag detections, velocity command topic, error topic, and the expected camera/ROS processing split.
 4. Polish remaining Sandbox V0.0 tablet layout details:
-   tighter native-tablet spacing for `snake_control`, clearer control-panel grouping, and unit labels for teleop sliders
-   without changing the working topic contracts.
+   tighter native-tablet spacing for `snake_control` and clearer control-panel grouping without changing the working
+   topic contracts.
 5. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
 6. Add remaining concrete robot action adapters:
    deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.

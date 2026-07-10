@@ -20,7 +20,7 @@ and recover confidence quickly when something is not configured.
 | --- | --- | --- |
 | Button / command button | Improved | Runtime now uses the configured action label or widget title instead of a generic "Send". Needs action progress states when long-running actions land. |
 | Toggle | Improved | Runtime now shows human state labels such as `Active` / `Inactive`, hides topics by default, and keeps `aria-pressed`. App builders should customize labels for real devices. |
-| Slider | Good foundation | Large Radix handle, return-to-center option, details hidden by default. Sandbox V0.0 and the sandbox teleop lab now have visual smoke coverage at tablet and HD sizes. Needs clearer units when configured. |
+| Slider | Good foundation | Large Radix handle, return-to-center option, operator intent labels, optional units, details hidden by default. Sandbox V0.0 and the sandbox teleop lab now have visual smoke coverage at tablet and HD sizes. |
 | Joystick | Good foundation | Pointer-native, large tactile control, deadzone, continuous publish, zero-on-release. Runtime layout now gives joysticks more room on `1024x600`; still needs per-app mode copy validation with real operators. |
 | Camera / stream | Good foundation | Webcam and stream views work; status text is now more human. Needs ROS image stream adapter and clearer permission fallback copy. |
 | Topic echo | Debug-oriented | Correct for Bloom Debug, but should be used intentionally. Details remain visible by default because it is a debug widget. |
@@ -58,6 +58,8 @@ and recover confidence quickly when something is not configured.
   the agreed mode values.
 - The visual-servoing monitor plots velocity/error XYZ fields from `TwistStamped` samples instead of only showing raw
   message echoes.
+- Slider widgets now support operator intent labels and units, and Sandbox V0.0 uses them for teleop gain, Z velocity,
+  and RZ/yaw velocity.
 - Visual smoke now includes the app configuration page and validates the sandbox runtime at `1024x600`, `1280x800`, and
   `1920x1080`.
 - Visual smoke now also covers Bloom Debug runtime with mocked topic catalog, runtime WebSocket subscription ACKs, and
@@ -69,7 +71,6 @@ and recover confidence quickly when something is not configured.
 - `snake_control` is operational but still visually sparse on the native tablet height and can use a tighter layout pass.
 - Debug widgets are useful but can make an operator screen feel like a console if used without intention.
 - The widget inspector should make "operator clean mode" versus "debug details mode" obvious for every widget.
-- Sliders still need unit labels and intent labels, especially when controlling velocity, gains, or angles.
 - Joysticks still need app-level mode presets so Explorer/Petanque/Sandbox can present mode labels that match the
   operator's mental model.
 - Camera/webcam behavior still needs live validation against Robin's visual-servoing pipeline and the ROS-side image
@@ -78,10 +79,9 @@ and recover confidence quickly when something is not configured.
 ## Next Recommended Fixes
 
 1. Polish remaining imported Sandbox V0.0 tablet layouts, starting with `snake_control` and `control_panel` spacing.
-2. Add unit and intent labels to slider runtime settings.
-3. Add clearer camera permission guidance with one recovery action for operator screens.
-4. Add pause, clear, and copy controls to topic plot widgets if live debugging requires freezing plotted samples.
-5. Evaluate a richer chart dependency only when real runtime requirements need multi-series plots, zoom, cursor
+2. Add clearer camera permission guidance with one recovery action for operator screens.
+3. Add pause, clear, and copy controls to topic plot widgets if live debugging requires freezing plotted samples.
+4. Evaluate a richer chart dependency only when real runtime requirements need multi-series plots, zoom, cursor
    inspection, or longer offline traces.
-6. Decide whether Bloom should implement a shared mode-store abstraction or keep mode changes as explicit configured ROS
+5. Decide whether Bloom should implement a shared mode-store abstraction or keep mode changes as explicit configured ROS
    publishes for the first Extender handover.
