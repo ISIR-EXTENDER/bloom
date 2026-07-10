@@ -253,7 +253,7 @@
   flex: 1;
   overflow: hidden;
   border-radius: 999px;
-  background: transparent;
+  background: color-mix(in srgb, var(--bloom-ink) 12%, transparent);
 }
 
 .bloom-slider-horizontal .bloom-slider-track {
@@ -262,6 +262,7 @@
 
 .bloom-slider-vertical .bloom-slider-track {
   width: var(--bloom-slider-track-size);
+  min-height: 100%;
 }
 
 .bloom-slider-range {
@@ -357,6 +358,39 @@
   opacity: 0.72;
   pointer-events: none;
   aspect-ratio: 1;
+}
+
+.bloom-joystick-axis-guide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-ink) 36%, transparent);
+  opacity: 0.24;
+  pointer-events: none;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease;
+}
+
+.bloom-joystick-axis-guide-active {
+  background: color-mix(in srgb, white 92%, var(--bloom-primary-container));
+  box-shadow: 0 0 10px color-mix(in srgb, white 45%, transparent);
+  opacity: 0.82;
+}
+
+.bloom-joystick-axis-guide-x {
+  width: 72%;
+  height: 2px;
+  transform: translate(-50%, -50%);
+}
+
+.bloom-joystick-axis-guide-y {
+  width: 2px;
+  height: 72%;
+  transform: translate(-50%, -50%);
 }
 
 .bloom-joystick-knob {
@@ -532,6 +566,28 @@
   display: grid;
   gap: 8px;
   min-width: 0;
+}
+
+.bloom-action-widget {
+  align-content: center;
+}
+
+.bloom-action-widget[data-show-details="false"] {
+  gap: 6px;
+}
+
+.bloom-action-widget[data-momentary="true"] {
+  --bloom-action-color: #ea7b2a;
+  --bloom-action-color-strong: #b94e13;
+  --bloom-action-color-soft: #ffe0c2;
+}
+
+.bloom-action-widget > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--bloom-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bloom-label-widget {
@@ -861,11 +917,38 @@
   touch-action: manipulation;
 }
 
+.bloom-command-button[data-momentary="true"] {
+  border-color: color-mix(in srgb, var(--bloom-action-color, #ea7b2a) 48%, var(--bloom-border));
+  background: var(--bloom-action-color, #ea7b2a);
+  color: white;
+  box-shadow:
+    inset 0 -2px 0 color-mix(in srgb, var(--bloom-action-color-strong, #b94e13) 44%, transparent),
+    0 8px 18px color-mix(in srgb, var(--bloom-action-color, #ea7b2a) 18%, transparent);
+}
+
+.bloom-command-button[data-momentary="true"][data-pressed="true"] {
+  background: var(--bloom-action-color-strong, #b94e13);
+  box-shadow:
+    inset 0 2px 0 color-mix(in srgb, black 18%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--bloom-action-color-soft, #ffe0c2) 78%, transparent);
+  transform: translateY(1px) scale(0.99);
+}
+
 .bloom-command-button:hover,
 .bloom-command-button:focus-visible,
 .bloom-toggle-button:hover,
 .bloom-toggle-button:focus-visible {
   background: #2e4b43;
+}
+
+.bloom-command-button[data-momentary="true"]:hover,
+.bloom-command-button[data-momentary="true"]:focus-visible {
+  background: color-mix(in srgb, var(--bloom-action-color, #ea7b2a) 86%, white);
+}
+
+.bloom-command-button[data-momentary="true"][data-pressed="true"]:hover,
+.bloom-command-button[data-momentary="true"][data-pressed="true"]:focus-visible {
+  background: var(--bloom-action-color-strong, #b94e13);
 }
 
 .bloom-toggle-button.is-off {

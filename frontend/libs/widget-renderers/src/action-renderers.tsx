@@ -8,6 +8,7 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
   const actionLabel = getStringSetting(descriptor.widget.settings, "action_label", "");
   const command = getStringSetting(descriptor.widget.settings, "command", "");
   const momentary = getBooleanSetting(descriptor.widget.settings, "momentary", false);
+  const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const messageType = getStringSetting(descriptor.widget.settings, "messageType", "");
   const isMomentaryPressedRef = useRef(false);
@@ -57,11 +58,16 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
   };
 
   return (
-    <div className="bloom-action-widget">
+    <div
+      className="bloom-action-widget"
+      data-momentary={momentary ? "true" : "false"}
+      data-show-details={showDetails ? "true" : "false"}
+    >
       <strong>{descriptor.widget.title}</strong>
       <button
         aria-label={buttonLabel}
         className="bloom-command-button"
+        data-momentary={momentary ? "true" : "false"}
         data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
         onClick={momentary ? undefined : handlePress}
         onPointerCancel={momentary ? handleMomentaryRelease : undefined}
@@ -72,7 +78,7 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
       >
         {buttonLabel}
       </button>
-      {actionLabel || command ? <span>{actionLabel || command}</span> : null}
+      {showDetails && (actionLabel || command) ? <span>{actionLabel || command}</span> : null}
     </div>
   );
 }
