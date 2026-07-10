@@ -996,14 +996,14 @@
 }
 
 .bloom-action-widget[data-variant="snake-hold"] .bloom-command-button {
-  width: min(100%, 122px);
+  width: min(100%, 168px);
   min-width: 0;
-  min-height: 48px;
-  padding: 5px 16px;
+  min-height: 72px;
+  padding: 10px 20px;
   border-color: color-mix(in srgb, var(--bloom-primary) 42%, var(--bloom-border));
   background: color-mix(in srgb, var(--bloom-primary-container) 76%, white);
   color: var(--bloom-primary);
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   line-height: 1;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, white 62%, transparent);
 }
@@ -1038,9 +1038,9 @@
   gap: 2px;
   align-items: center;
   width: auto;
-  min-width: 90px;
-  min-height: 48px;
-  padding: 3px;
+  min-width: 220px;
+  min-height: 72px;
+  padding: 5px;
   border-color: color-mix(in srgb, var(--bloom-primary) 30%, var(--bloom-border));
   background: color-mix(in srgb, var(--bloom-surface-container-low) 86%, white);
   color: var(--bloom-muted);
@@ -1056,10 +1056,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
-  min-height: 24px;
+  min-width: 72px;
+  min-height: 48px;
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.92rem;
   line-height: 1;
 }
 
