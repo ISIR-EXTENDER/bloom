@@ -23,9 +23,7 @@ describe("normalizeConfigurationBundle", () => {
   });
 
   it("keeps the Sandbox V0.0 six-screen runtime configuration intact", () => {
-    const normalizedBundle = normalizeConfigurationBundle(
-      sandboxV0Configuration as unknown as ConfigurationBundle,
-    );
+    const normalizedBundle = normalizeConfigurationBundle(sandboxV0Configuration as unknown as ConfigurationBundle);
     const application = normalizedBundle.applications[0];
 
     expect(application?.name).toBe("Sandbox V0.0");

@@ -1630,9 +1630,7 @@
           "/visual_servoing/error_TAGtoTAGd",
           "/visual_servoing/velocity_command"
         ],
-        "allowed_teleop_targets": [
-          "/teleop_cmd"
-        ]
+        "allowed_teleop_targets": ["/teleop_cmd"]
       },
       "action_presets": [
         {
@@ -1647,10 +1645,7 @@
             "data": 0.5
           },
           "payload_text": "",
-          "tags": [
-            "sandbox",
-            "teleop"
-          ]
+          "tags": ["sandbox", "teleop"]
         }
       ]
     }
