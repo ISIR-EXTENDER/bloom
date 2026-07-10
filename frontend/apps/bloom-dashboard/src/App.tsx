@@ -18,6 +18,7 @@ import { useConfigurations } from "./configurations/use-configurations";
 import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
+import { applyRuntimeModeIntent, createDefaultRuntimeModeState } from "./runtime/runtimeModeState";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { AppErrorBoundary } from "./ui/AppErrorBoundary";
 import {
@@ -54,6 +55,7 @@ export function App({
   const [activeView, setActiveView] = useState<ProductView>(initialRoute.activeView);
   const [builderMode, setBuilderMode] = useState<BuilderMode>(initialRoute.builderMode);
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(initialRoute.runtimeMode);
+  const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
   const [recentRuntimeSelections, setRecentRuntimeSelections] = useState<readonly WorkspaceSelection[]>([]);
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}`;
@@ -101,6 +103,7 @@ export function App({
       return;
     }
 
+    setRuntimeModeState((currentModeState) => applyRuntimeModeIntent(currentModeState, intent));
     runtimeActions.dispatch(intent, {
       actionPresets: applicationRuntime?.action_presets,
       runtimePolicy: applicationRuntime?.runtime_policy,
@@ -302,6 +305,7 @@ export function App({
                 recentRuntimeSelections={recentRuntimeSelections}
                 runtimeActionClient={runtimeActionClient}
                 runtimeMode={runtimeMode}
+                runtimeModeState={runtimeModeState}
                 selection={selection}
                 state={configurationState}
               />

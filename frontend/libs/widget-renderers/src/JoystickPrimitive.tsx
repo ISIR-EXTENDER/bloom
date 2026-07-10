@@ -46,6 +46,9 @@ export function JoystickPrimitive({
   const onVectorChangeRef = useRef(onVectorChange);
   const pointerIdRef = useRef<number | null>(null);
   const [vector, setVector] = useState<JoystickVector>({ x: 0, y: 0 });
+  const knobDiameter = Math.max(34, Math.round(size * 0.24));
+  const interactionDiameter = Math.max(1, size - 32);
+  const visualTravelRadius = Math.max(1, (interactionDiameter - knobDiameter) / 2);
 
   useEffect(() => {
     onInteractionEndRef.current = onInteractionEnd;
@@ -102,7 +105,12 @@ export function JoystickPrimitive({
       aria-label={title}
       className="bloom-joystick"
       role="application"
-      style={{ ["--bloom-joystick-size" as string]: `${size}px` }}
+      style={{
+        ["--bloom-joystick-knob-size" as string]: `${knobDiameter}px`,
+        ["--bloom-joystick-knob-x" as string]: `${vector.x * visualTravelRadius}px`,
+        ["--bloom-joystick-knob-y" as string]: `${-vector.y * visualTravelRadius}px`,
+        ["--bloom-joystick-size" as string]: `${size}px`,
+      }}
     >
       <span className="bloom-joystick-label bloom-joystick-label-top" style={{ color: labelColors.top }}>
         {labels.top}
@@ -138,8 +146,6 @@ export function JoystickPrimitive({
         aria-hidden="true"
         className="bloom-joystick-knob"
         style={{
-          ["--bloom-joystick-knob-x" as string]: `${vector.x * 42}%`,
-          ["--bloom-joystick-knob-y" as string]: `${-vector.y * 42}%`,
           background: color,
         }}
       />

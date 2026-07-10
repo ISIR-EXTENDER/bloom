@@ -7,6 +7,7 @@ import type { useConfigurations } from "../configurations/use-configurations";
 import { RuntimeHome } from "../runtime/RuntimeHome";
 import { RuntimeWorkspace } from "../runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
+import type { RuntimeModeState } from "../runtime/runtimeModeState";
 import type { useRuntimeActionDispatcher } from "../runtime/use-runtime-action-dispatcher";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import type { ProductView } from "../ui/ProductNavigation";
@@ -41,6 +42,7 @@ type ProductWorkspaceProps = {
   recentRuntimeSelections: readonly WorkspaceSelection[];
   runtimeActionClient: RuntimeActionClient;
   runtimeMode: RuntimeMode;
+  runtimeModeState: RuntimeModeState;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
 };
@@ -69,6 +71,7 @@ export function ProductWorkspace({
   recentRuntimeSelections,
   runtimeActionClient,
   runtimeMode,
+  runtimeModeState,
   selection,
   state,
 }: ProductWorkspaceProps) {
@@ -129,6 +132,7 @@ export function ProductWorkspace({
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
       runtimeActionClient={runtimeActionClient}
+      runtimeModeState={runtimeModeState}
       screen={selectedWorkspace.screen}
       selection={selection}
     />

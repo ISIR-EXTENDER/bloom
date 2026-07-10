@@ -87,13 +87,13 @@
                 },
                 "axis_hints": {
                   "x": {
-                    "color": "#ff4d67",
+                    "color": "#2563eb",
                     "negative_label": "RX-",
                     "positive_label": "RX+",
                     "semantic": "rotation"
                   },
                   "y": {
-                    "color": "#c8a3cf",
+                    "color": "#0ea5e9",
                     "negative_label": "RY-",
                     "positive_label": "RY+",
                     "semantic": "rotation"
@@ -135,13 +135,13 @@
                 },
                 "axis_hints": {
                   "x": {
-                    "color": "#4a9eff",
+                    "color": "#2563eb",
                     "negative_label": "X-",
                     "positive_label": "X+",
                     "semantic": "translation"
                   },
                   "y": {
-                    "color": "#d89f5d",
+                    "color": "#0ea5e9",
                     "negative_label": "Y-",
                     "positive_label": "Y+",
                     "semantic": "translation"
@@ -793,9 +793,9 @@
               "title": "Control Panel",
               "layout": {
                 "x": 20,
-                "y": 20,
+                "y": 16,
                 "width": 300,
-                "height": 56
+                "height": 48
               },
               "kind": "label",
               "settings": {
@@ -810,9 +810,9 @@
               "title": "Camera",
               "layout": {
                 "x": 20,
-                "y": 90,
-                "width": 560,
-                "height": 400
+                "y": 78,
+                "width": 540,
+                "height": 350
               },
               "kind": "camera",
               "settings": {
@@ -831,9 +831,9 @@
               "title": "Gripper",
               "layout": {
                 "x": 20,
-                "y": 510,
+                "y": 442,
                 "width": 260,
-                "height": 86
+                "height": 74
               },
               "kind": "toggle",
               "settings": {
@@ -853,9 +853,9 @@
               "title": "Visual Servoing",
               "layout": {
                 "x": 300,
-                "y": 510,
-                "width": 280,
-                "height": 86
+                "y": 442,
+                "width": 260,
+                "height": 74
               },
               "kind": "toggle",
               "settings": {
@@ -875,9 +875,9 @@
               "title": "Save Tag",
               "layout": {
                 "x": 20,
-                "y": 629,
+                "y": 606,
                 "width": 260,
-                "height": 58
+                "height": 72
               },
               "kind": "command-button",
               "settings": {
@@ -900,9 +900,9 @@
               "title": "Monitor",
               "layout": {
                 "x": 300,
-                "y": 629,
-                "width": 280,
-                "height": 58
+                "y": 606,
+                "width": 260,
+                "height": 72
               },
               "kind": "command-button",
               "settings": {
@@ -925,10 +925,10 @@
               "id": "control-panel-max-velocity",
               "title": "Teleop Gain",
               "layout": {
-                "x": 610,
+                "x": 590,
                 "y": 20,
-                "width": 640,
-                "height": 145
+                "width": 660,
+                "height": 120
               },
               "kind": "slider",
               "settings": {
@@ -958,10 +958,10 @@
               "id": "control-panel-z",
               "title": "Z",
               "layout": {
-                "x": 589,
-                "y": 174,
-                "width": 162,
-                "height": 413
+                "x": 590,
+                "y": 154,
+                "width": 150,
+                "height": 390
               },
               "kind": "slider",
               "settings": {
@@ -991,10 +991,10 @@
               "id": "control-panel-translation",
               "title": "X Y",
               "layout": {
-                "x": 765,
-                "y": 185,
-                "width": 240,
-                "height": 240
+                "x": 758,
+                "y": 154,
+                "width": 236,
+                "height": 236
               },
               "kind": "joystick",
               "settings": {
@@ -1011,13 +1011,13 @@
                 },
                 "axis_hints": {
                   "x": {
-                    "color": "#4a9eff",
+                    "color": "#2563eb",
                     "negative_label": "X-",
                     "positive_label": "X+",
                     "semantic": "translation"
                   },
                   "y": {
-                    "color": "#d89f5d",
+                    "color": "#0ea5e9",
                     "negative_label": "Y-",
                     "positive_label": "Y+",
                     "semantic": "translation"
@@ -1039,10 +1039,10 @@
               "id": "control-panel-rotation",
               "title": "RX RY",
               "layout": {
-                "x": 1015,
-                "y": 185,
-                "width": 240,
-                "height": 240
+                "x": 1014,
+                "y": 154,
+                "width": 236,
+                "height": 236
               },
               "kind": "joystick",
               "settings": {
@@ -1059,13 +1059,13 @@
                 },
                 "axis_hints": {
                   "x": {
-                    "color": "#ff4d67",
+                    "color": "#2563eb",
                     "negative_label": "RX-",
                     "positive_label": "RX+",
                     "semantic": "rotation"
                   },
                   "y": {
-                    "color": "#c8a3cf",
+                    "color": "#0ea5e9",
                     "negative_label": "RY-",
                     "positive_label": "RY+",
                     "semantic": "rotation"
@@ -1087,10 +1087,10 @@
               "id": "control-panel-rz",
               "title": "RZ",
               "layout": {
-                "x": 765,
-                "y": 432,
+                "x": 758,
+                "y": 410,
                 "width": 490,
-                "height": 157
+                "height": 124
               },
               "kind": "slider",
               "settings": {
@@ -1120,10 +1120,10 @@
               "id": "control-panel-mode",
               "title": "Mode B1/B2",
               "layout": {
-                "x": 600,
-                "y": 616,
-                "width": 141,
-                "height": 71
+                "x": 590,
+                "y": 560,
+                "width": 150,
+                "height": 78
               },
               "kind": "toggle",
               "settings": {
@@ -1147,10 +1147,10 @@
               "kind": "topic-echo",
               "title": "Tags",
               "layout": {
-                "x": 763,
-                "y": 606,
-                "width": 492,
-                "height": 80
+                "x": 758,
+                "y": 560,
+                "width": 158,
+                "height": 78
               },
               "settings": {
                 "topic": "/tag_detections",
@@ -1168,10 +1168,10 @@
               "kind": "topic-echo",
               "title": "Cmd",
               "layout": {
-                "x": 763,
-                "y": 686,
-                "width": 492,
-                "height": 80
+                "x": 924,
+                "y": 560,
+                "width": 158,
+                "height": 78
               },
               "settings": {
                 "topic": "/visual_servoing/velocity_command",
@@ -1189,10 +1189,10 @@
               "kind": "topic-echo",
               "title": "Err",
               "layout": {
-                "x": 763,
-                "y": 766,
-                "width": 492,
-                "height": 80
+                "x": 1090,
+                "y": 560,
+                "width": 158,
+                "height": 78
               },
               "settings": {
                 "topic": "/visual_servoing/error_TAGtoTAGd",
@@ -1219,16 +1219,17 @@
               "id": "snake-title",
               "title": "Snake Control",
               "layout": {
-                "x": 20,
-                "y": 20,
-                "width": 420,
-                "height": 58
+                "x": 80,
+                "y": 24,
+                "width": 360,
+                "height": 70
               },
               "kind": "label",
               "settings": {
                 "text": "Snake Control",
                 "fontSize": 28,
                 "align": "left",
+                "variant": "screen-title",
                 "legacyKind": "text"
               }
             },
@@ -1236,9 +1237,9 @@
               "id": "snake-mode-toggle",
               "title": "Mode B1/B2",
               "layout": {
-                "x": 210,
-                "y": 116,
-                "width": 210,
+                "x": 180,
+                "y": 126,
+                "width": 280,
                 "height": 96
               },
               "kind": "toggle",
@@ -1255,6 +1256,7 @@
                   "data": 0
                 },
                 "show_details": false,
+                "variant": "mode-segmented",
                 "legacyKind": "mode-button"
               }
             },
@@ -1262,9 +1264,9 @@
               "id": "snake-hold",
               "title": "Hold Snake",
               "layout": {
-                "x": 860,
-                "y": 116,
-                "width": 220,
+                "x": 820,
+                "y": 126,
+                "width": 280,
                 "height": 96
               },
               "kind": "command-button",
@@ -1280,6 +1282,9 @@
                 "payload": "{data: true}",
                 "releasedPayload": "{data: false}",
                 "momentary": true,
+                "pressed_label": "Snake ON",
+                "released_label": "Snake OFF",
+                "variant": "snake-hold",
                 "legacyKind": "momentary-ros-message"
               }
             },
@@ -1287,10 +1292,10 @@
               "id": "snake-joystick",
               "title": "Joystick",
               "layout": {
-                "x": 430,
-                "y": 271,
-                "width": 420,
-                "height": 420
+                "x": 420,
+                "y": 244,
+                "width": 440,
+                "height": 440
               },
               "kind": "joystick",
               "settings": {
@@ -1307,13 +1312,13 @@
                 },
                 "axis_hints": {
                   "x": {
-                    "color": "#4a9eff",
+                    "color": "#2563eb",
                     "negative_label": "X-",
                     "positive_label": "X+",
                     "semantic": "translation"
                   },
                   "y": {
-                    "color": "#d89f5d",
+                    "color": "#0ea5e9",
                     "negative_label": "Y-",
                     "positive_label": "Y+",
                     "semantic": "translation"

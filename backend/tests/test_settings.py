@@ -10,11 +10,12 @@ def test_default_settings_are_local() -> None:
     assert settings.service_name == "bloom-api"
 
 
-def test_default_runtime_allowlists_cover_petanque_publish_topics() -> None:
+def test_default_runtime_allowlists_cover_extender_publish_topics() -> None:
     settings = Settings()
 
     assert {
         "/cmd/gripper",
+        "/cmd/mode",
         "/cmd/joystick_rxry",
         "/cmd/joystick_rz",
         "/cmd/joystick_xy",
@@ -26,11 +27,35 @@ def test_default_runtime_allowlists_cover_petanque_publish_topics() -> None:
         "/petanque/throw/alpha",
         "/petanque/throw/gesture",
         "/petanque_state_machine/change_state",
+        "/sandbox/digital_output",
+        "/snake_control/enable",
         "/teleop_cmd",
+        "/teleop_config/angular_scale_x",
+        "/teleop_config/angular_scale_y",
+        "/teleop_config/angular_scale_z",
+        "/teleop_config/invert_angular_x",
+        "/teleop_config/invert_angular_y",
+        "/teleop_config/invert_angular_z",
+        "/teleop_config/invert_linear_x",
+        "/teleop_config/invert_linear_y",
+        "/teleop_config/invert_linear_z",
+        "/teleop_config/linear_scale_x",
+        "/teleop_config/linear_scale_y",
+        "/teleop_config/linear_scale_z",
+        "/teleop_config/reset_defaults",
+        "/teleop_config/rotation_gain",
+        "/teleop_config/save_profile",
+        "/teleop_config/swap_xy",
+        "/teleop_config/translation_gain",
         "/ui/load_pose",
         "/ui/navigation",
+        "/ui/navigation/visual_servoing",
+        "/ui/navigation/visual_servoing_monitor",
+        "/ui/robot_action",
         "/ui/ros_toggle",
         "/ui/save_pose",
+        "/ui/visual_servoing/on",
+        "/ui/visual_servoing/save",
         "/visual_servoing/enabled",
     }.issubset(settings.allowed_ros_publish_topics)
     assert "geometry_msgs/msg/Vector3" in settings.allowed_ros_message_types

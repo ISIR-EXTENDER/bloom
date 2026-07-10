@@ -167,6 +167,47 @@ async function mockConfigurationApi(page) {
       });
     });
   }
+
+  await page.route("**/api/v1/ros/topics/status", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        topics: [
+          {
+            name: "/teleop_cmd",
+            message_type: "extender_msgs/msg/TeleopCommand",
+            publisher_count: 1,
+            subscription_count: 1,
+          },
+          {
+            name: "/cmd/mode",
+            message_type: "std_msgs/msg/Int32",
+            publisher_count: 1,
+            subscription_count: 1,
+          },
+          {
+            name: "/joint_states",
+            message_type: "sensor_msgs/msg/JointState",
+            publisher_count: 1,
+            subscription_count: 0,
+          },
+          {
+            name: "/sandbox_controller/velocity_command",
+            message_type: "geometry_msgs/msg/Twist",
+            publisher_count: 1,
+            subscription_count: 0,
+          },
+          {
+            name: "/visual_servoing/velocity_command",
+            message_type: "geometry_msgs/msg/TwistStamped",
+            publisher_count: 1,
+            subscription_count: 0,
+          },
+        ],
+      },
+      status: 200,
+    });
+  });
 }
 
 async function mockRuntimeDebugApi(page) {

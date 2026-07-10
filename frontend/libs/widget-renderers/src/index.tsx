@@ -19,6 +19,7 @@ export type {
   UnknownWidgetRenderer,
   UnknownWidgetRendererProps,
   WidgetActionIntentHandler,
+  WidgetControlState,
   WidgetDataSnapshot,
   WidgetRenderer,
   WidgetRendererProps,
@@ -68,6 +69,7 @@ export function renderWidgetDescriptor(
   const Renderer = renderer;
   return (
     <Renderer
+      controlState={options.controlStateByWidgetId?.[descriptor.widget.id]}
       data={options.dataByWidgetId?.[descriptor.widget.id]}
       descriptor={descriptor}
       onActionIntent={options.onActionIntent}

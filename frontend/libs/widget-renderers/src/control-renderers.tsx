@@ -61,7 +61,9 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
           {formatSliderValue(min, step, unit)} → {formatSliderValue(max, step, unit)}
         </span>
       </header>
-      {intentLabel ? <p className="bloom-control-intent">{intentLabel}</p> : null}
+      {intentLabel ? (
+        <p className={showDetails ? "bloom-control-intent" : "bloom-control-intent sr-only"}>{intentLabel}</p>
+      ) : null}
       <SliderPrimitive.Root
         className={`bloom-slider bloom-slider-${direction === "horizontal" ? "horizontal" : "vertical"}`}
         data-orientation={direction === "horizontal" ? "horizontal" : "vertical"}

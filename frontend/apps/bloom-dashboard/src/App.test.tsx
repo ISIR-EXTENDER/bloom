@@ -1347,6 +1347,8 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox V0.0" })).toBeVisible();
+    expect(await screen.findByLabelText("Runtime robot status")).toBeVisible();
+    await waitFor(() => expect(runtimeActionClient.listRosTopicStatus).toHaveBeenCalled());
     expect(screen.getByText("Translation")).toBeVisible();
     expect(screen.getByText("Max Velocity")).toBeVisible();
 
@@ -1426,19 +1428,19 @@ describe("App", () => {
 
     selectRuntimeScreen("Snake Control");
     expect(document.querySelector(".runtime-active-screen-label")).toHaveTextContent("Snake Control");
-    const snakeModeToggle = screen.getByRole("button", { name: "Mode B1/B2: B1" });
+    const snakeModeToggle = screen.getByRole("button", { name: "Mode B1/B2: B2" });
     fireEvent.click(snakeModeToggle);
     await waitFor(() =>
       expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
         expect.objectContaining({
           message_type: "std_msgs/msg/Int32",
-          payload: { data: 3 },
+          payload: { data: 0 },
           topic: "/cmd/mode",
         }),
       ),
     );
 
-    const holdSnakeButton = screen.getByRole("button", { name: "Hold Snake" });
+    const holdSnakeButton = screen.getByRole("button", { name: "Snake OFF" });
     fireEvent.pointerDown(holdSnakeButton, { pointerId: 1 });
     fireEvent.pointerUp(holdSnakeButton, { pointerId: 1 });
     await waitFor(() =>

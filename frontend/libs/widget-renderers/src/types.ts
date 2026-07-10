@@ -34,7 +34,12 @@ export type WidgetDataSnapshot =
 
 export type WidgetActionIntentHandler = (intent: WidgetActionIntent) => void;
 
+export type WidgetControlState = {
+  toggleState?: "off" | "on";
+};
+
 export type WidgetRendererProps = {
+  controlState?: WidgetControlState;
   data?: WidgetDataSnapshot;
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
   onActionIntent?: WidgetActionIntentHandler;
@@ -56,6 +61,7 @@ export type WidgetRendererRegistration = {
 export type WidgetRendererRegistry = ReadonlyMap<WidgetKind, WidgetRenderer>;
 
 export type ScreenRendererOptions = {
+  controlStateByWidgetId?: Readonly<Record<string, WidgetControlState>>;
   dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
   onActionIntent?: WidgetActionIntentHandler;
   renderUnknown?: UnknownWidgetRenderer;

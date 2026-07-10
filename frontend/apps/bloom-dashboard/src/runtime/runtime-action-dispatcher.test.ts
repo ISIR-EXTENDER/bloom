@@ -237,13 +237,28 @@ describe("runtime action dispatcher", () => {
           target_topic: "/custom_teleop",
         },
       },
-      value: { x: 1, y: 2 },
+      value: { x: 0.4, y: 0.8 },
     });
 
     expect(createTeleopCommandRequest(intent)).toMatchObject({
-      linear: { x: 1, y: 2, z: 0 },
+      linear: { x: 0.4, y: 0.8, z: 0 },
       mode: 3,
       target: "/custom_teleop",
+    });
+  });
+
+  it("keeps teleop joystick vectors normalized to the legacy unit disk contract", () => {
+    const intent = createTeleopValueIntent({
+      modeId: "translation",
+      runtimeBinding: {
+        adapter: "teleop",
+      },
+      value: { x: 3, y: 4 },
+    });
+
+    expect(createTeleopCommandRequest(intent)).toMatchObject({
+      linear: { x: 0.6, y: 0.8, z: 0 },
+      mode: 2,
     });
   });
 

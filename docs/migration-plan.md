@@ -113,6 +113,11 @@ Already merged:
 - Value-change widgets can publish scalar and object ROS payloads when configured with explicit topic/message metadata.
 - Extender validation preflight and Sandbox V0.0 visual smoke coverage are available for browser-only and lab-session
   checks.
+- Runtime apps now expose a compact robot status strip for API/session/mode and critical topic diagnostics, so Sandbox
+  tests can see `/teleop_cmd`, `/cmd/mode`, `/joint_states`, controller feedback, and visual-servoing readiness without
+  opening Bloom Debug.
+- Sandbox B1/B2 mode controls now share dashboard runtime state across screens while keeping the `/cmd/mode` publish
+  contract unchanged. This is operator/runtime state, not confirmed robot feedback yet.
 
 ## Roadmap
 
@@ -361,6 +366,8 @@ Completed in this phase so far:
   `/snake_control/enable`.
 - Sandbox B1/B2 mode controls are now runtime toggles that publish `0` for B1 and `3` for B2 on `/cmd/mode`, keeping the
   operator-facing state visible.
+- Compatible B1/B2 controls now share runtime mode state across Sandbox screens, so switching mode from one screen updates
+  the other mode controls without changing the ROS command payloads.
 - Legacy screen navigation buttons now switch Bloom runtime screens locally instead of publishing fake navigation topics.
 - Visual-servoing monitor topics are expanded into individual Bloom topic subscriptions for:
   `/tag_detections`, `/visual_servoing/velocity_command`, and `/visual_servoing/error_TAGtoTAGd`.
@@ -468,9 +475,8 @@ Status: idea captured, intentionally low priority.
    visual-servoing monitor topics.
 3. Validate Robin's visual-servoing path:
    webcam preview, AprilTag detections, velocity command topic, error topic, and the expected camera/ROS processing split.
-4. Polish remaining Sandbox V0.0 tablet layout details:
-   tighter native-tablet spacing for `snake_control` and clearer control-panel grouping without changing the working
-   topic contracts.
+4. Revalidate Sandbox V0.0 tablet layout details on hardware after the runtime status strip, enlarged `snake_control`
+   controls, and HD-bounded `control_panel` grouping changes.
 5. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
 6. Add remaining concrete robot action adapters:
    deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.

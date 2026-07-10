@@ -25,6 +25,13 @@ Add a persistent runtime WebSocket client for teleop commands in the dashboard.
 The frontend maps joystick `value-change` intents to `teleop_cmd` messages only
 when the widget declares `runtime_binding.adapter = "teleop"`.
 
+Before a joystick intent becomes a teleop command, the dashboard applies the
+same signed unit-disk guard as `extender_ui`: `x` and `y` are finite signed axes,
+the vector magnitude is at most `1`, and oversized vectors are normalized rather
+than forwarded. This keeps `/teleop_cmd` semantics stable for controllers even
+when the value-change intent comes from a preset, replay, imported screen, or
+future non-pointer source.
+
 Add a backend teleop command gateway protocol and an rclpy adapter that converts
 Bloom runtime teleop commands into `extender_msgs/msg/TeleopCommand` messages.
 The adapter lives in `backend/libs/ros_adapters`, not in generic session models.
@@ -44,6 +51,9 @@ workflow. The ROS compatibility modes remain available in app configuration.
 
 - Petanque and imported legacy joysticks can move toward the same backend
   teleop path as `tablet_interface`.
+- Controllers downstream of `/teleop_cmd` continue to receive the same
+  normalized joystick domain they received from `extender_ui`: signed axes,
+  unit-disk magnitude, then robot-side gains/scales.
 - ROS message dependencies such as `numpy`, required by generated ROS Python
   messages, belong in the backend runtime environment.
 - Vite development proxy must support WebSocket traffic so local dashboard

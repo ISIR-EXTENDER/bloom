@@ -432,7 +432,7 @@ function mapJoystickValueToTeleopVectors(
   modeId: string | undefined,
 ): Pick<RuntimeTeleopCommandRequest, "angular" | "linear"> {
   const zero = { x: 0, y: 0, z: 0 };
-  const joystickVector = { x: clampTeleopAxis(value.x), y: clampTeleopAxis(value.y), z: 0 };
+  const joystickVector = normalizeTeleopJoystickVector(value);
 
   if (isRotationMode(modeId)) {
     return {
@@ -525,8 +525,28 @@ function normalizeModeId(modeId: string | undefined): string {
   return (modeId ?? "both").trim().toLowerCase().replaceAll("-", "_").replaceAll(" ", "_");
 }
 
-function clampTeleopAxis(value: number): number {
-  return Math.max(-20, Math.min(20, value));
+function normalizeTeleopJoystickVector(value: Vector2Value): RuntimeVector3 {
+  const x = toFiniteTeleopAxis(value.x);
+  const y = toFiniteTeleopAxis(value.y);
+  const magnitude = Math.hypot(x, y);
+
+  if (magnitude <= 1) {
+    return { x: clampSignedUnit(x), y: clampSignedUnit(y), z: 0 };
+  }
+
+  return {
+    x: clampSignedUnit(x / magnitude),
+    y: clampSignedUnit(y / magnitude),
+    z: 0,
+  };
+}
+
+function toFiniteTeleopAxis(value: number): number {
+  return Number.isFinite(value) ? value : 0;
+}
+
+function clampSignedUnit(value: number): number {
+  return Math.max(-1, Math.min(1, value));
 }
 
 function isVector2Value(value: unknown): value is Vector2Value {
