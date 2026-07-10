@@ -140,14 +140,14 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("0.00 m/s")).toBeVisible();
   });
 
-  it("shows slider unit and operator intent without exposing runtime details", () => {
+  it("keeps compact slider intent accessible without taking layout space", () => {
     const descriptor = renderScreenDescriptors(sliderScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing slider descriptor.");
 
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
     expect(screen.getByText("m/s")).toBeVisible();
-    expect(screen.getByText("Teleoperation gain")).toBeVisible();
+    expect(screen.getByText("Teleoperation gain")).toHaveClass("sr-only");
     expect(screen.getByText("0.00 m/s")).toHaveClass("sr-only");
     expect(screen.getByText("0.00 m/s → 2.00 m/s")).toHaveClass("bloom-control-detail-hidden");
   });
@@ -357,6 +357,23 @@ describe("widget renderer registry", () => {
         value: { x: 0, y: 0 },
       }),
     );
+  });
+
+  it("moves the joystick knob across the usable circular travel", () => {
+    const descriptor = renderScreenDescriptors(joystickScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing joystick descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    const joystickZone = getJoystickZone();
+    fireEvent.pointerDown(joystickZone, { clientX: 200, clientY: 150, pointerId: 1 });
+
+    const joystick = document.querySelector<HTMLElement>(".bloom-joystick");
+    expect(joystick).toHaveStyle({
+      "--bloom-joystick-knob-size": "39px",
+      "--bloom-joystick-knob-x": "46.5px",
+      "--bloom-joystick-knob-y": "0px",
+    });
   });
 
   it("keeps joystick controls inside compact and large widget frames", () => {

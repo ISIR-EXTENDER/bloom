@@ -7,8 +7,17 @@ Bloom runtime widgets must stay reliable in scaled WYSIWYG screens, tablet brows
 We now use a small pointer-events joystick primitive owned by Bloom:
 
 - `pointerdown`, `pointermove`, and `pointerup` are read from the actual widget zone;
-- vectors are computed from `getBoundingClientRect()`, clamped, and deadzoned;
+- vectors are computed from `getBoundingClientRect()`, deadzoned, and normalized
+  to the same signed unit disk as `extender_ui`;
 - the joystick publishes while held and emits zero on release and unmount;
 - the runtime artboard scales widget layouts numerically instead of using CSS `transform: scale(...)`, so interactive widgets receive real browser coordinates.
 
-This removes one dependency from the widget renderer layer and keeps the teleop interaction testable without mocking a third-party joystick manager. Visual styling remains part of the Bloom design system, while robot-specific axis semantics stay in widget settings and runtime bindings.
+The primitive preserves joystick direction through signed `x/y` axes in
+`[-1, 1]`; it does not convert axes to positive `0..1` values. Pointer positions
+outside the circular travel are projected back onto the unit circle before being
+emitted.
+
+This removes one dependency from the widget renderer layer and keeps the teleop
+interaction testable without mocking a third-party joystick manager. Visual
+styling remains part of the Bloom design system, while robot-specific axis
+semantics stay in widget settings and runtime bindings.

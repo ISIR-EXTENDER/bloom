@@ -5,14 +5,18 @@ import type { WidgetRendererProps } from "./types";
 
 export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
   const buttonLabel = getStringSetting(descriptor.widget.settings, "button_label", "") || descriptor.widget.title;
+  const pressedLabel = getStringSetting(descriptor.widget.settings, "pressed_label", buttonLabel);
+  const releasedLabel = getStringSetting(descriptor.widget.settings, "released_label", buttonLabel);
   const actionLabel = getStringSetting(descriptor.widget.settings, "action_label", "");
   const command = getStringSetting(descriptor.widget.settings, "command", "");
   const momentary = getBooleanSetting(descriptor.widget.settings, "momentary", false);
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const messageType = getStringSetting(descriptor.widget.settings, "messageType", "");
+  const variant = getStringSetting(descriptor.widget.settings, "variant", "");
   const isMomentaryPressedRef = useRef(false);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
+  const visibleButtonLabel = momentary ? (isMomentaryPressed ? pressedLabel : releasedLabel) : buttonLabel;
 
   const handlePress = () => {
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
@@ -62,10 +66,12 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
       className="bloom-action-widget"
       data-momentary={momentary ? "true" : "false"}
       data-show-details={showDetails ? "true" : "false"}
+      data-variant={variant || undefined}
     >
       <strong>{descriptor.widget.title}</strong>
       <button
-        aria-label={buttonLabel}
+        aria-label={visibleButtonLabel}
+        aria-pressed={momentary ? isMomentaryPressed : undefined}
         className="bloom-command-button"
         data-momentary={momentary ? "true" : "false"}
         data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
@@ -76,7 +82,7 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
         onPointerUp={momentary ? handleMomentaryRelease : undefined}
         type="button"
       >
-        {buttonLabel}
+        {visibleButtonLabel}
       </button>
       {showDetails && (actionLabel || command) ? <span>{actionLabel || command}</span> : null}
     </div>
@@ -87,30 +93,36 @@ export function LabelWidget({ descriptor }: WidgetRendererProps) {
   const text = getStringSetting(descriptor.widget.settings, "text", descriptor.widget.title);
   const fontSize = getNumberSetting(descriptor.widget.settings, "fontSize", 20);
   const align = getLabelAlignment(getStringSetting(descriptor.widget.settings, "align", "left"));
+  const variant = getStringSetting(descriptor.widget.settings, "variant", "");
 
   return (
-    <div className="bloom-label-widget" data-align={align} style={{ fontSize }}>
+    <div className="bloom-label-widget" data-align={align} data-variant={variant || undefined} style={{ fontSize }}>
       <span>{text}</span>
     </div>
   );
 }
 
-export function ToggleWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+export function ToggleWidget({ controlState, descriptor, onActionIntent }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const offLabel = getStringSetting(descriptor.widget.settings, "offLabel", "Inactive");
   const onLabel = getStringSetting(descriptor.widget.settings, "onLabel", "Active");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
-  const [isOn, setIsOn] = useState(getBooleanSetting(descriptor.widget.settings, "initialValue", false));
+  const variant = getStringSetting(descriptor.widget.settings, "variant", "");
+  const [localIsOn, setLocalIsOn] = useState(getBooleanSetting(descriptor.widget.settings, "initialValue", false));
+  const controlledToggleState = controlState?.toggleState;
+  const isOn = controlledToggleState ? controlledToggleState === "on" : localIsOn;
   const stateLabel = isOn ? onLabel : offLabel;
 
   const handleToggle = () => {
     const nextState = isOn ? "off" : "on";
-    setIsOn(nextState === "on");
+    if (!controlledToggleState) {
+      setLocalIsOn(nextState === "on");
+    }
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
   };
 
   return (
-    <div className="bloom-toggle-widget" data-state={isOn ? "active" : "inactive"}>
+    <div className="bloom-toggle-widget" data-state={isOn ? "active" : "inactive"} data-variant={variant || undefined}>
       <strong>{descriptor.widget.title}</strong>
       <button
         aria-pressed={isOn}
@@ -119,7 +131,18 @@ export function ToggleWidget({ descriptor, onActionIntent }: WidgetRendererProps
         onClick={handleToggle}
         type="button"
       >
-        {stateLabel}
+        {variant === "mode-segmented" ? (
+          <>
+            <span className="bloom-toggle-segment" data-active={!isOn ? "true" : "false"}>
+              {offLabel}
+            </span>
+            <span className="bloom-toggle-segment" data-active={isOn ? "true" : "false"}>
+              {onLabel}
+            </span>
+          </>
+        ) : (
+          stateLabel
+        )}
       </button>
       {showDetails && topic ? <span>{topic}</span> : null}
     </div>

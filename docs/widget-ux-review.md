@@ -64,11 +64,14 @@ and recover confidence quickly when something is not configured.
   `1920x1080`.
 - Visual smoke now also covers Bloom Debug runtime with mocked topic catalog, runtime WebSocket subscription ACKs, and
   live topic samples so debug regressions are visible in screenshot review.
+- Runtime operator apps now show a compact robot status strip and share B1/B2 mode state across compatible Sandbox
+  toggles, avoiding per-screen local mode drift.
 
 ## Remaining UX Risks
 
 - Some migrated legacy screens still contain dense layouts that were designed before Bloom's runtime card chrome.
-- `snake_control` is operational but still visually sparse on the native tablet height and can use a tighter layout pass.
+- `snake_control` is operational and less sparse after the B1/B2 and Snake Hold controls were enlarged, but still needs
+  physical tablet review for pressed-state comfort.
 - Debug widgets are useful but can make an operator screen feel like a console if used without intention.
 - The widget inspector should make "operator clean mode" versus "debug details mode" obvious for every widget.
 - Joysticks still need app-level mode presets so Explorer/Petanque/Sandbox can present mode labels that match the
@@ -78,7 +81,8 @@ and recover confidence quickly when something is not configured.
 
 ## Next Recommended Fixes
 
-1. Polish remaining imported Sandbox V0.0 tablet layouts, starting with `snake_control` and `control_panel` spacing.
+1. Re-run Sandbox V0.0 visual and physical tablet checks after the runtime status strip and compact `control_panel`
+   layout changes.
 2. Add clearer camera permission guidance with one recovery action for operator screens.
 3. Add pause, clear, and copy controls to topic plot widgets if live debugging requires freezing plotted samples.
 4. Evaluate a richer chart dependency only when real runtime requirements need multi-series plots, zoom, cursor

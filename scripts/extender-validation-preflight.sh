@@ -48,12 +48,44 @@ if (!screen) {
   echo "ok: ${config_id} includes ${expected_app_id}/${expected_screen_id}"
 }
 
+assert_widget_setting() {
+  local config_id="$1"
+  local expected_app_id="$2"
+  local expected_screen_id="$3"
+  local expected_widget_id="$4"
+  local expected_setting_path="$5"
+  local expected_json_value="$6"
+  local config_path="${BLOOM_CONFIGURATION_DIR}/${config_id}.json"
+
+  node -e '
+const { readFileSync } = require("node:fs");
+const [path, expectedAppId, expectedScreenId, expectedWidgetId, expectedSettingPath, expectedJsonValue] =
+  process.argv.slice(1);
+const bundle = JSON.parse(readFileSync(path, "utf8"));
+const expected = JSON.parse(expectedJsonValue);
+const app = bundle.applications?.find((candidate) => candidate.id === expectedAppId);
+const screen = app?.screens?.find((candidate) => candidate.id === expectedScreenId);
+const widget = screen?.widgets?.find((candidate) => candidate.id === expectedWidgetId);
+if (!widget) {
+  throw new Error(`${path} does not include widget ${expectedAppId}/${expectedScreenId}/${expectedWidgetId}`);
+}
+const actual = expectedSettingPath.split(".").reduce((value, key) => value?.[key], widget.settings);
+if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+  throw new Error(
+    `${path} expected ${expectedWidgetId}.settings.${expectedSettingPath}=${expectedJsonValue}, got ${JSON.stringify(actual)}`,
+  );
+}
+' "${config_path}" "${expected_app_id}" "${expected_screen_id}" "${expected_widget_id}" "${expected_setting_path}" "${expected_json_value}"
+  echo "ok: ${config_id} ${expected_widget_id}.settings.${expected_setting_path}=${expected_json_value}"
+}
+
 copy_fixture "sandbox" "${BLOOM_ROOT}/tests/fixtures/sandbox-v0-configuration-bundle.json"
 copy_fixture "bloom-debug" "${BLOOM_ROOT}/tests/fixtures/bloom-debug-configuration.json"
 copy_fixture "petanque-admin" "${BLOOM_ROOT}/tests/fixtures/petanque-admin-configuration-bundle.json"
 
 assert_configuration "sandbox" "sandbox" "sandbox_control"
 assert_configuration "sandbox" "sandbox" "visual_servoing_monitor"
+assert_widget_setting "sandbox" "sandbox" "snake_control" "snake-mode-toggle" "initialValue" "false"
 assert_configuration "bloom-debug" "bloom-debug" "runtime-topic-monitor"
 assert_configuration "petanque-admin" "app-petanque-admin" "default_live_teleop"
 

@@ -7,11 +7,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
+import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
 import type {
   RuntimeActionClient,
   RuntimeTopicSampleMessage,
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
+import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
 
 const FIT_OVERFLOW_GUARD = 0.99;
@@ -39,6 +41,7 @@ type RuntimeWorkspaceProps = {
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
   runtimeActionClient: RuntimeActionClient;
+  runtimeModeState: RuntimeModeState;
   screen: ScreenConfig;
   selection: WorkspaceSelection;
 };
@@ -56,6 +59,7 @@ export function RuntimeWorkspace({
   onTopicSample,
   onTopicSubscriptionRequest,
   runtimeActionClient,
+  runtimeModeState,
   screen,
   selection,
 }: RuntimeWorkspaceProps) {
@@ -75,6 +79,10 @@ export function RuntimeWorkspace({
     [artboardScale, artboardSize],
   );
   const runtimeProfile = useMemo(() => resolveRuntimeProfile(application, viewportSize), [application, viewportSize]);
+  const controlStateByWidgetId = useMemo(
+    () => createRuntimeControlStateByWidgetId(screen, runtimeModeState),
+    [runtimeModeState, screen],
+  );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
@@ -198,6 +206,8 @@ export function RuntimeWorkspace({
         </details>
       </header>
 
+      <RuntimeRobotStatusPanel application={application} client={runtimeActionClient} modeState={runtimeModeState} />
+
       {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
 
       <div className="runtime-app-canvas-shell">
@@ -216,7 +226,7 @@ export function RuntimeWorkspace({
             <ScreenArtboard
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
-              rendererOptions={{ dataByWidgetId, onActionIntent: handleRuntimeActionIntent }}
+              rendererOptions={{ controlStateByWidgetId, dataByWidgetId, onActionIntent: handleRuntimeActionIntent }}
               screen={screen}
               style={{
                 height: `${artboardSize.height}px`,

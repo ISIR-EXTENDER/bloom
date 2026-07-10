@@ -261,7 +261,10 @@
                 "action_id": "explorer-deploy",
                 "action_label": "Deploy robot",
                 "action_feedback": "progress",
-                "cancellable": true
+                "cancellable": true,
+                "topic": "/ui/robot_action",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'deploy'}"
               }
             },
             {
@@ -275,12 +278,15 @@
                 "height": 150
               },
               "settings": {
-                "command": "explorer.retract",
-                "button_label": "Retract",
+                "command": "explorer.repli",
+                "button_label": "Repli",
                 "action_id": "explorer-retract",
-                "action_label": "Retract robot",
+                "action_label": "Repli robot",
                 "action_feedback": "progress",
-                "cancellable": true
+                "cancellable": true,
+                "topic": "/ui/robot_action",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'repli'}"
               }
             },
             {
@@ -299,7 +305,10 @@
                 "action_id": "explorer-safe-zone",
                 "action_label": "Enable safety zone",
                 "action_feedback": "result",
-                "cancellable": false
+                "cancellable": false,
+                "topic": "/ui/robot_action",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'safe_zone_enable'}"
               }
             },
             {
@@ -369,7 +378,10 @@
                 "action_id": "explorer-pose-save-current",
                 "action_label": "Save current position",
                 "action_feedback": "result",
-                "cancellable": false
+                "cancellable": false,
+                "topic": "/ui/save_pose",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'current'}"
               }
             },
             {
@@ -388,7 +400,10 @@
                 "action_id": "explorer-pose-load-home",
                 "action_label": "Load home position",
                 "action_feedback": "progress",
-                "cancellable": true
+                "cancellable": true,
+                "topic": "/ui/load_pose",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'home'}"
               }
             },
             {
@@ -407,7 +422,10 @@
                 "action_id": "explorer-pose-load-meal",
                 "action_label": "Load meal position",
                 "action_feedback": "progress",
-                "cancellable": true
+                "cancellable": true,
+                "topic": "/ui/load_pose",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'meal'}"
               }
             },
             {
@@ -426,7 +444,10 @@
                 "action_id": "explorer-pose-cancel",
                 "action_label": "Cancel position motion",
                 "action_feedback": "result",
-                "cancellable": false
+                "cancellable": false,
+                "topic": "/ui/robot_action",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'cancel_pose'}"
               }
             },
             {
@@ -777,7 +798,10 @@
                 "action_id": "explorer-favorite-mode-both",
                 "action_label": "Apply BOTH control mode favorite",
                 "action_feedback": "result",
-                "cancellable": false
+                "cancellable": false,
+                "topic": "/cmd/mode",
+                "messageType": "std_msgs/msg/Int32",
+                "payload": { "data": 3 }
               }
             },
             {
@@ -796,7 +820,10 @@
                 "action_id": "explorer-favorite-layout-tablet",
                 "action_label": "Apply tablet display favorite",
                 "action_feedback": "result",
-                "cancellable": false
+                "cancellable": false,
+                "topic": "/ui/robot_action",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'tablet_layout'}"
               }
             },
             {
@@ -815,7 +842,10 @@
                 "action_id": "explorer-favorite-position-work",
                 "action_label": "Apply work position favorite",
                 "action_feedback": "progress",
-                "cancellable": true
+                "cancellable": true,
+                "topic": "/ui/load_pose",
+                "messageType": "std_msgs/msg/String",
+                "payload": "{data: 'work'}"
               }
             },
             {
@@ -1087,9 +1117,18 @@
           "std_msgs/msg/Bool",
           "std_msgs/msg/Float64",
           "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/Int32",
           "std_msgs/msg/String"
         ],
-        "allowed_publish_topics": ["/cmd/max_velocity", "/explorer/emergency_stop", "/gripper_controller/commands"],
+        "allowed_publish_topics": [
+          "/cmd/max_velocity",
+          "/cmd/mode",
+          "/explorer/emergency_stop",
+          "/gripper_controller/commands",
+          "/ui/load_pose",
+          "/ui/robot_action",
+          "/ui/save_pose"
+        ],
         "allowed_recording_topics": ["/joint_states", "/teleop_cmd"],
         "allowed_teleop_targets": ["/teleop_cmd"]
       },

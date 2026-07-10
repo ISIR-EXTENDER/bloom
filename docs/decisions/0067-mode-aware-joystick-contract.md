@@ -12,6 +12,12 @@ and zero commands on release.
 Bloom needs to preserve those behaviors without hard-coding Explorer or ROS
 topic names into generic widget components.
 
+The legacy `extender_ui` normalization contract is a signed unit-disk vector:
+each joystick emits `{ x, y }` axes in `[-1, 1]`, with `Math.hypot(x, y) <= 1`.
+This is not a positive `0..1` value per axis. The sign carries direction, and
+robot controllers expect the downstream teleop path to preserve that convention
+before gains, scales, inversion flags, and mode gating are applied.
+
 ## Decision
 
 Extend the generic joystick settings contract with:
@@ -24,8 +30,9 @@ Extend the generic joystick settings contract with:
 - `runtime_binding`.
 
 The joystick renderer remains a generic tactile input primitive. It displays
-mode and axis hints, emits normalized vector intents continuously while held, and
-sends zero on release/unmount when configured.
+mode and axis hints, emits signed unit-disk vector intents continuously while
+held, and sends zero on release/unmount when configured. Values inside the
+configured deadzone are emitted as `{ x: 0, y: 0 }`.
 
 Explorer-specific mode names, topic names, ROS message mappings, and service
 bindings must live in application configuration or in an Explorer extension.
@@ -34,6 +41,9 @@ bindings must live in application configuration or in an Explorer extension.
 
 - Runtime adapters can map joystick intents to ROS, WebSocket, or non-ROS
   systems without changing the widget renderer.
+- Runtime adapters must keep the same signed unit-disk guard when translating
+  joystick intents so alternative intent sources cannot publish larger vectors
+  than `extender_ui` would have produced.
 - Legacy `binding: "joy" | "rot"` settings remain compatible during migration.
 - Future app builders can expose presets for robot modes while keeping the
   stored model generic.
