@@ -66,7 +66,7 @@ function TopicEchoWidget({
   };
 
   return (
-    <div className="bloom-topic-debug-widget">
+    <div className="bloom-topic-debug-widget" data-show-details={showDetails ? "true" : "false"}>
       <header className="bloom-topic-debug-header">
         <div>
           <strong>{descriptor.widget.title}</strong>

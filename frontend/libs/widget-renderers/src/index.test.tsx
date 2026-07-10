@@ -114,6 +114,7 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
     const slider = screen.getByRole("slider", { name: "Teleop X" });
+    expect(slider.closest(".bloom-slider")).toHaveAttribute("data-return-to-center", "true");
     slider.focus();
     await user.keyboard("{ArrowRight}");
     fireEvent.blur(slider);

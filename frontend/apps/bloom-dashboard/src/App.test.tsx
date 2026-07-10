@@ -268,6 +268,8 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Launch Sandbox runtime" }));
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("navigation", { name: "Switch runtime screen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Diagnostics" })).toBeVisible();
     openRuntimeMenu();
     expect(screen.getByRole("button", { name: "App library" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit app" })).toBeVisible();
@@ -2222,7 +2224,6 @@ function openRuntimeMenu() {
 }
 
 function selectRuntimeScreen(screenTitle: string) {
-  openRuntimeMenu();
   fireEvent.click(screen.getByRole("button", { name: screenTitle }));
 }
 

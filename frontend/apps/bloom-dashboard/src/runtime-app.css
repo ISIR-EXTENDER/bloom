@@ -328,7 +328,7 @@
   position: relative;
   z-index: 10;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   justify-content: space-between;
@@ -442,22 +442,30 @@
 
 .runtime-screen-tabs {
   display: flex;
-  max-width: min(720px, 64vw);
-  gap: 8px;
+  justify-self: center;
+  width: 100%;
+  max-width: min(880px, 66vw);
+  gap: 6px;
   overflow-x: auto;
   padding: 2px;
+  scrollbar-width: thin;
 }
 
 .runtime-screen-tab {
-  display: grid;
-  min-width: 136px;
-  gap: 2px;
-  padding: 7px 12px;
+  flex: 0 0 auto;
+  min-width: 112px;
+  min-height: 32px;
+  padding: 6px 11px;
+  overflow: hidden;
   border: 1px solid var(--bloom-border);
-  border-radius: 18px;
-  background: var(--bloom-surface-container-low);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 88%, white);
   color: var(--bloom-ink);
-  text-align: left;
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .runtime-app-workspace[data-display-preset="high-visibility"] .runtime-screen-tab {
@@ -468,6 +476,7 @@
 .runtime-screen-tab[aria-current="page"] {
   border-color: color-mix(in srgb, var(--bloom-primary) 48%, transparent);
   background: var(--bloom-primary-container);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bloom-primary) 18%, transparent);
 }
 
 .runtime-screen-tab span {
