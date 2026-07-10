@@ -9,7 +9,7 @@ const repoRoot = resolve(__dirname, "..");
 const dashboardRoot = resolve(repoRoot, "frontend/apps/bloom-dashboard");
 const configurationFixturePaths = {
   "bloom-debug": resolve(repoRoot, "tests/fixtures/bloom-debug-configuration.json"),
-  sandbox: resolve(repoRoot, "tests/fixtures/sandbox-teleop-lab-configuration.json"),
+  sandbox: resolve(repoRoot, "tests/fixtures/sandbox-v0-configuration-bundle.json"),
 };
 const outputDir = process.env.BLOOM_VISUAL_OUTPUT_DIR ?? resolve("/tmp", "bloom-visual-smoke");
 const port = Number(process.env.BLOOM_VISUAL_PORT ?? "5178");
@@ -26,6 +26,14 @@ const routes = [
   { name: "builder", setup: showBuilder },
   { name: "app-config", setup: showAppConfig },
   { name: "runtime", setup: showRuntime },
+  { name: "runtime-sandbox-teleop-config", setup: (page) => showSandboxRuntimeScreen(page, "sandbox_teleop_config") },
+  { name: "runtime-control-panel", setup: (page) => showSandboxRuntimeScreen(page, "control_panel") },
+  { name: "runtime-snake-control", setup: (page) => showSandboxRuntimeScreen(page, "snake_control") },
+  { name: "runtime-visual-servoing", setup: (page) => showSandboxRuntimeScreen(page, "visual_servoing") },
+  {
+    name: "runtime-visual-servoing-monitor",
+    setup: (page) => showSandboxRuntimeScreen(page, "visual_servoing_monitor"),
+  },
   { name: "debug-runtime", setup: showDebugRuntime },
 ];
 
@@ -342,15 +350,24 @@ async function showAppConfig(page) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Builder: Compose screens" }).click();
   await page.getByRole("button", { exact: true, name: "Apps" }).click();
-  await page.getByRole("button", { name: "Open Sandbox app" }).click();
-  await page.getByRole("heading", { name: "Sandbox" }).waitFor();
+  await page.getByRole("button", { name: "Open Sandbox V0.0 app" }).click();
+  await page.getByRole("heading", { name: "Sandbox V0.0" }).waitFor();
 }
 
 async function showRuntime(page) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("button", { name: "Launch Sandbox runtime" }).click();
+  await page.getByRole("button", { name: "Launch Sandbox V0.0 runtime" }).click();
   await page.getByRole("region", { name: "Runtime application" }).waitFor();
+}
+
+async function showSandboxRuntimeScreen(page, screenName) {
+  await mockRuntimeWebSocket(page);
+  await showRuntime(page);
+  await page.getByLabel("Open runtime menu").click();
+  await page.getByRole("button", { exact: true, name: screenName }).click();
+  await page.locator(".runtime-active-screen-label", { hasText: screenName }).waitFor();
+  await page.getByLabel("Open runtime menu").click();
 }
 
 async function showDebugRuntime(page) {
@@ -362,7 +379,8 @@ async function showDebugRuntime(page) {
   await page.getByRole("heading", { name: "Bloom Debug" }).waitFor();
   await page.getByRole("heading", { name: "Inspect, record, and audit runtime topics." }).waitFor();
   await page.getByRole("button", { name: "Refresh topics" }).click();
-  await page.locator(".bloom-debug-panel").getByText("/teleop_cmd").waitFor();
+  await page.getByLabel("Topic catalog").getByText("/teleop_cmd").waitFor();
+  await page.getByLabel("Robot preflight").getByText("Ready").first().waitFor();
   await page.getByRole("button", { name: "Refresh audit" }).click();
   await page.getByRole("article", { name: /Teleop command echo/i }).waitFor();
   await page.getByRole("article", { name: /Velocity command X/i }).waitFor();
