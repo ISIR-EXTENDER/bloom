@@ -18,8 +18,11 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   const direction = getStringSetting(descriptor.widget.settings, "direction", "vertical");
   const returnToCenter = getBooleanSetting(descriptor.widget.settings, "returnToCenter", false);
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
+  const intentLabel = getStringSetting(descriptor.widget.settings, "intent_label", "");
+  const unit = getStringSetting(descriptor.widget.settings, "unit", "");
   const defaultValue = clamp(0, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
+  const formattedValue = formatSliderValue(currentValue, step, unit);
 
   const emitValueChange = (value: number) => {
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
@@ -50,11 +53,15 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
       data-show-details={showDetails ? "true" : "false"}
     >
       <header className="bloom-control-header">
-        <strong>{descriptor.widget.title}</strong>
+        <strong>
+          {descriptor.widget.title}
+          {unit ? <small className="bloom-control-unit">{unit}</small> : null}
+        </strong>
         <span className={showDetails ? undefined : "bloom-control-detail-hidden"}>
-          {min} → {max}
+          {formatSliderValue(min, step, unit)} → {formatSliderValue(max, step, unit)}
         </span>
       </header>
+      {intentLabel ? <p className="bloom-control-intent">{intentLabel}</p> : null}
       <SliderPrimitive.Root
         className={`bloom-slider bloom-slider-${direction === "horizontal" ? "horizontal" : "vertical"}`}
         data-orientation={direction === "horizontal" ? "horizontal" : "vertical"}
@@ -73,7 +80,7 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
         <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-slider-thumb" />
       </SliderPrimitive.Root>
       <output aria-live="polite" className={showDetails ? "bloom-control-readout" : "bloom-control-readout sr-only"}>
-        {currentValue.toFixed(resolveDecimalPlaces(step))}
+        {formattedValue}
       </output>
     </div>
   );
@@ -295,4 +302,9 @@ export function resolveDecimalPlaces(step: number): number {
   }
 
   return Math.min(4, stepText.split(".")[1]?.length ?? 2);
+}
+
+function formatSliderValue(value: number, step: number, unit: string): string {
+  const formatted = value.toFixed(resolveDecimalPlaces(step));
+  return unit ? `${formatted} ${unit}` : formatted;
 }

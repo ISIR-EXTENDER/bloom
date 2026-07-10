@@ -225,11 +225,13 @@ describe("widget capability metadata", () => {
       },
       settings: {
         direction: "vertical",
+        intent_label: "",
         max: 3,
         min: 0,
         returnToCenter: false,
         show_details: false,
         step: 0.01,
+        unit: "",
       },
     });
   });
@@ -336,11 +338,40 @@ describe("widget settings contracts", () => {
       success: true,
       settings: {
         direction: "vertical",
+        intent_label: "",
         max: 3,
         min: 0,
         returnToCenter: false,
         show_details: false,
         step: 0.01,
+        unit: "",
+      },
+    });
+  });
+
+  it("keeps slider unit and operator intent settings optional but valid", () => {
+    expect(
+      validateWidgetSettings("slider", {
+        direction: "horizontal",
+        intent_label: "Vertical velocity",
+        max: 1,
+        min: -1,
+        returnToCenter: true,
+        show_details: false,
+        step: 0.01,
+        unit: "m/s",
+      }),
+    ).toEqual({
+      success: true,
+      settings: {
+        direction: "horizontal",
+        intent_label: "Vertical velocity",
+        max: 1,
+        min: -1,
+        returnToCenter: true,
+        show_details: false,
+        step: 0.01,
+        unit: "m/s",
       },
     });
   });
