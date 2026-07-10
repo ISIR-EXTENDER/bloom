@@ -36,20 +36,20 @@ Bloom should let ISIR users create robot web apps without writing web code:
 
 ## Current Status
 
-Last full review: 2026-06-05.
+Last full review: 2026-07-10.
 
 Current migration estimate:
 
-- Web product foundation: about 78%.
-- Live ROS/runtime parity with `tablet_interface`: about 70%.
-- Full legacy app parity with `extender_ui` and Petanque screens: about 42%.
-- Safety/security readiness for real configurable robot commands: about 62%.
+- Web product foundation: about 84%.
+- Live ROS/runtime parity with `tablet_interface`: about 78%.
+- Full legacy app parity with `extender_ui` and Petanque screens: about 58%.
+- Safety/security readiness for real configurable robot commands: about 72%.
 
 The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
 shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions,
-migrated useful fixture apps, and a recognizable tablet-first design system. The next phase should focus less on new
-surface area and more on deployment/security hardening, normalized storage reconstruction, concrete robot action
-adapters, and full Extender/Petanque validation before legacy retirement.
+migrated useful fixture apps, the six-screen Extender Sandbox V0.0 runtime fixture, and a recognizable tablet-first
+design system. The next phase should focus less on new surface area and more on live ROS validation, screen polish,
+concrete robot action adapters, and full Extender/Petanque acceptance before legacy retirement.
 
 Already merged:
 
@@ -101,6 +101,18 @@ Already merged:
   space when the debug panel is not mounted.
 - Product route changes now reset scroll/focus to the main content region, so app configuration and runtime pages open
   with their title and primary actions visible.
+- Extender Sandbox V0.0 now has a tracked six-screen Bloom runtime fixture covering:
+  `sandbox_control`, `sandbox_teleop_config`, `control_panel`, `snake_control`, `visual_servoing`, and
+  `visual_servoing_monitor`.
+- Legacy `momentary-ros-message` and multi-topic `topic-monitor` widgets now have migration paths into Bloom runtime
+  widgets.
+- Operator runtime now has a compact menu that exposes home/app-library/builder/help/edit actions and screen switching
+  without consuming the full tablet topbar.
+- Generic runtime display widgets (`gauge`, `plot`, `event-log`, `robot-3d`) can subscribe to configured topics, not
+  only debug-specific `topic-echo` and `topic-plot`.
+- Value-change widgets can publish scalar and object ROS payloads when configured with explicit topic/message metadata.
+- Extender validation preflight and Sandbox V0.0 visual smoke coverage are available for browser-only and lab-session
+  checks.
 
 ## Roadmap
 
@@ -191,7 +203,7 @@ Phase 2 follow-ups that should not block Phase 3:
 
 ### Phase 3 - Runtime ROS Integration
 
-Status: complete for the runtime safety/debug foundation.
+Status: complete for the runtime safety/debug foundation and browser-verified Extender runtime flows.
 
 - Keep generic runtime widgets producing command intents.
 - Route ROS behavior through backend adapters.
@@ -226,6 +238,13 @@ Completed in this phase:
 - Topic inspector and recording gateway foundations for selecting topics and starting/stopping rosbag-style captures
   safely.
 - Live streaming for subscribed debug topics through runtime WebSocket sessions and shared renderer data snapshots.
+- Operator runtime menu navigation for multi-screen apps, including screen switching without leaving runtime mode.
+- Generic display widgets can now consume live runtime topic samples:
+  `gauge` for scalar state, `plot` for lightweight telemetry, `event-log` for ROS-style events, and `robot-3d` for
+  joint-state readiness.
+- Generic value-change topic publishing now covers finite scalar values and JSON-like object values. This keeps
+  `gesture-pad` usable as a real ROS command input while keeping Petanque-specific serialization out of widget
+  components.
 
 Validated runtime checks:
 
@@ -248,16 +267,25 @@ Validated runtime checks:
 - ROS topic status diagnostics expose publisher/subscriber counts through `/api/v1/ros/topics/status`, which should be
   used before robot tests to confirm that `/teleop_cmd`, `/joint_states`, and controller feedback topics are actually
   connected.
+- Sandbox V0.0 browser runtime opens the six imported Extender screens without blank placeholders.
+- Browser visual smoke captures Sandbox V0.0 runtime screens at the configured tablet/HD viewports.
+- Extender validation preflight seeds local runtime configurations from tracked fixtures and verifies the expected
+  Sandbox V0.0, Bloom Debug, and Petanque admin app/screen entries.
 
 Pending live robot/simulation validation:
 
 - `/teleop_cmd` -> `sandbox_controller` -> `/sandbox_controller/velocity_command` in the sandbox simulation. The last
   manual isolation test confirmed that Bloom published `/teleop_cmd`, but controller feedback stayed at zero even for a
   direct `ros2 topic pub`; this must be rechecked from the ROS/controller side before real robot tests.
+- Full Sandbox V0.0 runtime against the sourced Extender workspace:
+  joystick teleop, max velocity, Z/RZ sliders, mode publish, gripper toggle, snake hold button, visual-servoing controls,
+  and visual-servoing topic monitor subscriptions.
+- Camera/webcam behavior on the target tablet and Robin's visual-servoing workflow, especially the split between direct
+  browser webcam preview and ROS image/topic processing.
 
 ### Phase 4 - Legacy App Migration
 
-Status: complete for the legacy app/widget foundation.
+Status: complete for the legacy app/widget foundation and Sandbox V0.0 browser runtime readiness.
 
 - Migrate screens one by one from real legacy JSON.
 - Convert reusable Petanque widgets into generic Bloom widgets whenever topic names, labels, payloads, and adapters can
@@ -326,6 +354,15 @@ Completed in this phase so far:
   mode-aware `/teleop_cmd` runtime binding for robot motion.
 - Backend runtime allowlists now cover the migrated Petanque publish topics declared by app policy, keeping standard
   Petanque commands usable without opening a wildcard ROS publish policy.
+- The six current Extender Sandbox V0.0 screens are tracked as
+  `tests/fixtures/sandbox-v0-configuration-bundle.json` and can be seeded into local runtime storage through
+  `npm run validation:extender`.
+- `snake_control` uses a momentary command button that publishes `true` while pressed and `false` on release to
+  `/snake_control/enable`.
+- Visual-servoing monitor topics are expanded into individual Bloom topic subscriptions for:
+  `/tag_detections`, `/visual_servoing/velocity_command`, and `/visual_servoing/error_TAGtoTAGd`.
+- The imported `control_panel` gives Robin-style one-screen access to camera preview, gripper, visual-servoing commands,
+  max velocity, joystick controls, and monitor shortcuts.
 - Bloom Debug `topic-plot` widgets now share the first-party SVG plot helpers with generic `plot`, supporting `area`,
   `sparkline`, and `bars` variants while keeping the latest value prominent for live robot telemetry.
 - Petanque, Sandbox teleop lab, Bloom Debug, Explorer User Tests, and Webcam demo fixtures are smoke-tested in runtime
@@ -335,9 +372,12 @@ Completed in this phase so far:
 
 Phase 4 closure notes:
 
-- Bloom now has enough migrated fixture coverage to proceed to Phase 5 without moving unfinished Phase 4 work forward.
+- Bloom now has enough migrated fixture coverage to proceed with live Extender validation without moving unfinished
+  Phase 4 work forward.
 - Deeper app-specific behavior still belongs to later concrete adapters, especially deploy/repli actions, final Explorer
-  user-test mode mappings, and real rosbag recording.
+  user-test mode mappings, shared mode-store semantics, and final visual-servoing integration.
+- Imported Sandbox V0.0 screen titles and layouts are intentionally preserved for traceability, but should be polished
+  before broader operator handover.
 
 Explorer user-test app candidate:
 
@@ -383,12 +423,21 @@ Completed in this phase so far:
   from viewport size while keeping the WYSIWYG screen layout canonical.
 - SQLite schema now includes non-breaking workspace/project hooks on normalized bundle/app/screen/widget rows so Phase 6
   can add multi-project APIs without rebuilding the storage layer.
+- Extender validation preflight can seed/check local runtime configs with:
+  `npm run validation:extender`.
+- Extender tablet touch mapping now has a documented helper for the current tested `1280x720` physical mode with
+  `1820x720` logical workspace.
+- CI security is currently green after updating vulnerable frontend/backend dependencies found by audit:
+  frontend `undici`, backend `msgpack`, and backend `starlette`.
 
 Remaining work in this phase:
 
 - Validate and refine the Extender workspace launcher with the full sandbox/Petanque pipeline, including the opt-in
   rosbag recording gateway.
 - Execute and record the full Extender + Petanque end-to-end validation.
+- Polish Sandbox V0.0 screen titles/layouts and decide whether Bloom should implement the legacy shared mode-store
+  semantics or keep mode changes as explicit ROS publishes.
+- Add a live validation record for Robin's visual-servoing camera/tag pipeline once the ROS-side packages settle.
 - Mark only accepted legacy workflows as legacy, without deleting them during transition.
 
 ### Phase 6 - Multi-Project And Non-ROS Integrations
@@ -404,13 +453,22 @@ Status: idea captured, intentionally low priority.
 
 ## Ordered Next Steps
 
-1. Validate the full Extender/Petanque robot pipeline:
-   run Bloom runtime against sandbox simulation, Petanque screens, tablet hardware, and legacy parity scenarios before
-   retiring any old workflow.
-2. Add remaining concrete robot action adapters:
+1. Run the Extender lab preflight:
+   `npm run validation:extender`, source/build `extender_workspace`, launch Bloom with the Extender workspace launcher,
+   then open Sandbox V0.0 from the runtime app library.
+2. Validate the full Sandbox V0.0 runtime against the sandbox simulation:
+   teleop joystick, max velocity, Z/RZ sliders, gripper, mode publish, snake hold button, camera preview, and
+   visual-servoing monitor topics.
+3. Validate Robin's visual-servoing path:
+   webcam preview, AprilTag detections, velocity command topic, error topic, and the expected camera/ROS processing split.
+4. Polish imported Sandbox V0.0 screens:
+   human screen titles, tighter tablet layout for `snake_control`, and clearer control-panel grouping without changing
+   the working topic contracts.
+5. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
+6. Add remaining concrete robot action adapters:
    deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.
-3. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
-4. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+7. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
+8. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
 
 See also:
 
