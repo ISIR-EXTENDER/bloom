@@ -281,14 +281,17 @@ Completed in this phase so far:
 - Generic display primitives are now real renderers instead of placeholders:
   `label`, `gauge`, `plot`, and `robot-3d`.
 - `label` respects configured text, alignment, and font size so instructions/status blocks can be reused across apps.
-- `gauge` provides an accessible meter for state-like values such as battery, progress, or score.
+- `gauge` provides an accessible meter for state-like values such as battery, progress, or score, and can now subscribe
+  to a configured runtime topic/field path for live scalar values.
 - `plot` provides a lightweight first-party sparkline for previews and simple telemetry without adding a heavier chart
-  dependency yet.
-- `robot-3d` is kept as an explicit extension placeholder so robot-model visualization can evolve behind an adapter.
+  dependency yet, and can now subscribe to configured runtime topic samples outside of debug-only screens.
+- `robot-3d` is kept as an explicit extension placeholder so robot-model visualization can evolve behind an adapter;
+  it now listens to `jointStateTopic` to confirm live joint-state flow during robot tests.
 - Seeded app configuration fixtures are tested to avoid shipping empty runtime screens in the app library.
 - Legacy camera source aliases such as `camera` and `rviz` normalize toward Bloom's stream configuration model.
-- Generic `event-log` widget is now a real display primitive with severity filtering, optional timestamps/details, and
-  quiet operator-facing defaults instead of raw console noise.
+- Generic `event-log` widget is now a real display primitive with severity filtering, optional timestamps/details,
+  optional runtime topic binding for `/rosout` or app-specific events, and quiet operator-facing defaults instead of raw
+  console noise.
 - Legacy `logs` widgets now map to Bloom's generic `event-log` direction in the widget migration registry.
 - A first `Explorer User Tests` candidate app fixture exists with useful non-empty screens for control modes, robot
   actions, supervision, debug console, and display/profile presets.
@@ -317,7 +320,12 @@ Completed in this phase so far:
 - The Explorer candidate now includes a favorites screen that models fast operator shortcuts as configured commands
   without introducing a premature favorites subsystem.
 - The Petanque `throw-draw` idea now maps to a generic `gesture-pad` widget foundation that emits angle/power value
-  intents and keeps Petanque topics/commands in configuration.
+  intents, publishes configured ROS topic payloads through the runtime dispatcher, and keeps Petanque topics/commands in
+  configuration.
+- Petanque `default_control` and `default_live_teleop` joysticks now keep legacy topic metadata but use Bloom's
+  mode-aware `/teleop_cmd` runtime binding for robot motion.
+- Backend runtime allowlists now cover the migrated Petanque publish topics declared by app policy, keeping standard
+  Petanque commands usable without opening a wildcard ROS publish policy.
 - Bloom Debug `topic-plot` widgets now share the first-party SVG plot helpers with generic `plot`, supporting `area`,
   `sparkline`, and `bars` variants while keeping the latest value prominent for live robot telemetry.
 - Petanque, Sandbox teleop lab, Bloom Debug, Explorer User Tests, and Webcam demo fixtures are smoke-tested in runtime

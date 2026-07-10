@@ -24,6 +24,7 @@ The widget:
 - captures an angle in degrees and a normalized power value;
 - emits a generic `value-change` intent with `{ angleDegrees, power }`;
 - supports optional command/topic/message metadata for runtime adapters;
+- publishes configured ROS topic payloads through the runtime dispatcher when a topic/message type is configured;
 - hides technical details by default for operator-facing runtime screens;
 - maps legacy `throw-draw` to `gesture-pad` in frontend and backend legacy import paths.
 
@@ -32,3 +33,6 @@ The widget:
 Petanque can now reuse Bloom core for trajectory-like inputs without hard-coding Petanque semantics into the renderer.
 Future app-specific adapters can decide how to serialize the gesture toward ROS or another runtime protocol.
 
+The first generic runtime path sends finite scalar/object values as ROS topic payloads. For `std_msgs/msg/String`, object
+gestures are serialized as JSON text in `data`, which keeps simple subscribers usable while richer schemas remain
+available through app-specific adapters.

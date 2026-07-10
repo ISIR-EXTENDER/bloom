@@ -39,14 +39,20 @@ Add a `Sandbox teleop lab` screen to the sandbox configuration with:
 
 ## Validation
 
-Validated locally with the sandbox ROS simulation running:
+Validated locally with the Bloom ROS runtime transport:
 
 - browser joystick drag emits non-zero WebSocket `teleop_cmd` messages;
 - `/teleop_cmd` receives non-zero `extender_msgs/msg/TeleopCommand` values;
-- `/sandbox_controller/velocity_command --field twist.linear.x` moves from
-  `0.0` to non-zero values and returns to zero on release;
 - `/cmd/max_velocity` receives `std_msgs/msg/Float64` values from the runtime
   slider.
+
+Pending controller-side validation:
+
+- `/teleop_cmd` -> `sandbox_controller` -> `/sandbox_controller/velocity_command`
+  must be revalidated before real robot tests. A later isolation pass showed
+  `/teleop_cmd` publishing correctly while controller feedback stayed at zero
+  even for a direct `ros2 topic pub`, so this is tracked as a ROS/controller
+  integration check rather than a Bloom transport check.
 
 ## Consequences
 

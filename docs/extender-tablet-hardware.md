@@ -21,11 +21,15 @@ tablet, Linux display configuration, or touch mapping workflow.
 
 ## Current Linux Display Setup
 
-Although the physical panel is documented as `1024x600`, the current Linux display configuration applies `1920x1080`.
-Bloom must therefore be tested on both:
+Although the physical panel is documented as `1024x600`, the current GNOME display configuration exposes the tablet as
+`1280x720`. For Bloom operator testing, the most comfortable lab setup found so far keeps the physical HDMI mode at
+`1280x720` and uses an XRandR logical scale of `1820x720`.
+
+Bloom must therefore be tested on:
 
 - `1024x600`: native panel constraint and worst-case UI density.
-- `1920x1080`: current configured output used during Extender tests.
+- `1280x720`: mode shown by GNOME settings for the HMTECH display.
+- `1820x720`: current logical tablet workspace used during Extender tests.
 
 Useful inspection commands:
 
@@ -39,6 +43,19 @@ Current touch mapping command:
 ```bash
 xinput map-to-output "HID 27c0:0818" HDMI-1
 ```
+
+In practice, the current dual-monitor lab setup is more reliable when the laptop stays on the left, the tablet stays on
+the right, and the touch matrix is calculated from the active `xrandr` geometry:
+
+```bash
+DISPLAY_MODE=1280x720 LOGICAL_DISPLAY_SIZE=1820x720 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_RIGHT_OF=eDP-1 ./scripts/extender-tablet-touch-map.sh
+```
+
+Verified target state:
+
+- `eDP-1`: `1920x1080+0+0`
+- `HDMI-1`: `1820x720+1920+0` using physical `1280x720` plus `--scale-from 1820x720`
+- Touch matrix for `HID 27c0:0818`: approximately `0.4866 0 0.5134 / 0 0.6667 0 / 0 0 1`
 
 ## Symptoms To Watch
 
@@ -74,11 +91,37 @@ copy it to `~/bin/extender-tablet-touch-map.sh` on the tablet:
 ./scripts/extender-tablet-touch-map.sh
 ```
 
+Preview the command without changing the current session:
+
+```bash
+./scripts/extender-tablet-touch-map.sh --dry-run
+```
+
 Override names if Linux reports a different device or output:
 
 ```bash
 TOUCH_DEVICE="HID 27c0:0818" DISPLAY_OUTPUT="HDMI-1" ./scripts/extender-tablet-touch-map.sh
 ```
+
+If the HDMI output comes back with the wrong resolution, the same helper can apply the display mode before remapping the
+touchscreen:
+
+```bash
+DISPLAY_MODE=1280x720 APPLY_DISPLAY_MODE=1 ./scripts/extender-tablet-touch-map.sh
+```
+
+If the tablet screen should stay to the right of the laptop and use the current comfortable logical workspace, include
+the laptop output and logical size:
+
+```bash
+DISPLAY_MODE=1280x720 LOGICAL_DISPLAY_SIZE=1820x720 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_RIGHT_OF=eDP-1 ./scripts/extender-tablet-touch-map.sh
+```
+
+Use the resolution command intentionally: it can move windows between monitors during an active desktop session.
+
+By default the helper calculates and applies the exact `Coordinate Transformation Matrix` from `xrandr` geometry. This is
+more reliable than raw `xinput map-to-output` in overlapping or recently resized multi-monitor layouts. Set
+`USE_EXACT_TOUCH_MATRIX=0` only if you explicitly want the native `xinput map-to-output` behavior.
 
 ### Option B - Desktop Autostart
 
@@ -91,6 +134,20 @@ Name=Extender tablet touch mapping
 Exec=/home/susana/workspace/extender/bloom/scripts/extender-tablet-touch-map.sh
 X-GNOME-Autostart-enabled=true
 ```
+
+The helper can install this entry automatically:
+
+```bash
+./scripts/extender-tablet-touch-map.sh --install-autostart
+```
+
+Install it with the current Extender tablet layout:
+
+```bash
+DISPLAY_MODE=1280x720 LOGICAL_DISPLAY_SIZE=1820x720 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_RIGHT_OF=eDP-1 ./scripts/extender-tablet-touch-map.sh --install-autostart
+```
+
+This is the preferred low-maintenance option when the only recurring issue is touch mapping after reconnect or reboot.
 
 ### Option C - User systemd Service
 
@@ -123,7 +180,7 @@ If `xinput` cannot connect to the display from systemd, prefer the desktop autos
 For every production-level builder/runtime change, validate at least:
 
 - `1024x600`: no essential button is unreachable; controls remain touchable.
-- `1920x1080`: layout uses space well and does not become sparse or visually disconnected.
+- `1820x720`: layout uses the current lab tablet workspace well without becoming sparse or visually disconnected.
 - Runtime teleop: joystick and slider touch positions match visible controls.
 - Builder app config: cards, screen lists, and inspectors remain readable without horizontal scrolling.
 
