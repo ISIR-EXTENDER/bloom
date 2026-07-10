@@ -152,6 +152,27 @@ export function RuntimeWorkspace({
           <p className="runtime-active-screen-label">{screen.title}</p>
         </div>
 
+        {application.screens.length > 1 ? (
+          <nav className="runtime-screen-tabs" aria-label="Switch runtime screen">
+            {application.screens.map((availableScreen) => (
+              <button
+                aria-current={screen.id === availableScreen.id ? "page" : undefined}
+                className="runtime-screen-tab"
+                key={availableScreen.id}
+                onClick={() =>
+                  onSelectionChange({
+                    ...selection,
+                    screenId: availableScreen.id,
+                  })
+                }
+                type="button"
+              >
+                {availableScreen.title}
+              </button>
+            ))}
+          </nav>
+        ) : null}
+
         <details className="runtime-app-menu">
           <summary aria-label="Open runtime menu">Menu</summary>
           <nav className="runtime-app-actions" aria-label="Runtime shortcuts">
@@ -173,27 +194,6 @@ export function RuntimeWorkspace({
             <button className="runtime-app-action" onClick={onEditScreen} type="button">
               Edit screen
             </button>
-            {application.screens.length > 1 ? (
-              <span className="runtime-app-menu-group" role="presentation">
-                <span>Switch screen</span>
-                {application.screens.map((availableScreen) => (
-                  <button
-                    aria-current={screen.id === availableScreen.id ? "page" : undefined}
-                    className="runtime-app-action"
-                    key={availableScreen.id}
-                    onClick={() =>
-                      onSelectionChange({
-                        ...selection,
-                        screenId: availableScreen.id,
-                      })
-                    }
-                    type="button"
-                  >
-                    {availableScreen.title}
-                  </button>
-                ))}
-              </span>
-            ) : null}
           </nav>
         </details>
       </header>

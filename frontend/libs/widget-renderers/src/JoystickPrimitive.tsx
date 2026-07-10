@@ -94,6 +94,8 @@ export function JoystickPrimitive({
       emitVector({ x: 0, y: 0 });
     }
   };
+  const isXGuideActive = Math.abs(vector.x) > 0.08 && Math.abs(vector.y) < 0.12;
+  const isYGuideActive = Math.abs(vector.y) > 0.08 && Math.abs(vector.x) < 0.12;
 
   return (
     <div
@@ -119,6 +121,18 @@ export function JoystickPrimitive({
         style={{
           ["--bloom-joystick-deadzone" as string]: `${Math.max(0, Math.min(1, deadzone))}`,
         }}
+      />
+      <span
+        aria-hidden="true"
+        className={`bloom-joystick-axis-guide bloom-joystick-axis-guide-x${
+          isXGuideActive ? " bloom-joystick-axis-guide-active" : ""
+        }`}
+      />
+      <span
+        aria-hidden="true"
+        className={`bloom-joystick-axis-guide bloom-joystick-axis-guide-y${
+          isYGuideActive ? " bloom-joystick-axis-guide-active" : ""
+        }`}
       />
       <div
         aria-hidden="true"

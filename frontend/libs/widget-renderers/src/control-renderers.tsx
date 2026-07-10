@@ -65,6 +65,7 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
       <SliderPrimitive.Root
         className={`bloom-slider bloom-slider-${direction === "horizontal" ? "horizontal" : "vertical"}`}
         data-orientation={direction === "horizontal" ? "horizontal" : "vertical"}
+        data-return-to-center={returnToCenter ? "true" : "false"}
         max={max}
         min={min}
         onBlur={handleReleaseToCenter}

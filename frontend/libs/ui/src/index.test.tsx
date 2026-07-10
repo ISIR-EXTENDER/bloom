@@ -82,6 +82,19 @@ describe("BloomNavBar", () => {
     expect(BLOOM_THEME_PRESETS["petanque-play"].description).toContain("playful");
   });
 
+  it("uses the Extender UI palette as the default theme", () => {
+    render(
+      <BloomThemeProvider>
+        <div data-testid="themed-app">Extender</div>
+      </BloomThemeProvider>,
+    );
+
+    const root = screen.getByTestId("themed-app").parentElement;
+
+    expect(root).toHaveStyle({ "--bloom-color-primary": "#1d4ed8" });
+    expect(root).toHaveStyle({ "--bloom-color-secondary": "#0ea5e9" });
+  });
+
   it("keeps every theme preset above minimum readable contrast for semantic text pairs", () => {
     const contrastPairs = [
       ["primary", "onPrimary"],

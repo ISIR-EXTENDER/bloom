@@ -7,7 +7,7 @@ export type BloomThemeProviderProps = {
   theme?: BloomThemePreset | BloomThemeTokens;
 };
 
-export function BloomThemeProvider({ children, theme = BLOOM_THEME_PRESETS.bloom }: BloomThemeProviderProps) {
+export function BloomThemeProvider({ children, theme = BLOOM_THEME_PRESETS["extender-ui"] }: BloomThemeProviderProps) {
   return (
     <div className="bloom-theme-root" style={createBloomThemeStyle(theme)}>
       {children}

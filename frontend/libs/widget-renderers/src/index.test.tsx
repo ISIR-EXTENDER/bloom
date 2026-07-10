@@ -114,6 +114,7 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
     const slider = screen.getByRole("slider", { name: "Teleop X" });
+    expect(slider.closest(".bloom-slider")).toHaveAttribute("data-return-to-center", "true");
     slider.focus();
     await user.keyboard("{ArrowRight}");
     fireEvent.blur(slider);
@@ -177,6 +178,8 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
     const button = screen.getByRole("button", { name: "Hold Snake" });
+    expect(button).toHaveAttribute("data-momentary", "true");
+    expect(screen.queryByText("momentary_ros_message")).not.toBeInTheDocument();
     fireEvent.pointerDown(button, { pointerId: 1 });
     fireEvent.pointerLeave(button, { pointerId: 1 });
     fireEvent.pointerUp(button, { pointerId: 1 });
@@ -334,6 +337,8 @@ describe("widget renderer registry", () => {
 
     const joystickZone = getJoystickZone();
     fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(joystickZone, { clientX: 150, clientY: 125, pointerId: 1 });
+    expect(document.querySelector(".bloom-joystick-axis-guide-y")).toHaveClass("bloom-joystick-axis-guide-active");
     fireEvent.pointerMove(joystickZone, { clientX: 162.5, clientY: 125, pointerId: 1 });
 
     await waitFor(() => expect(onActionIntent.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 250 });

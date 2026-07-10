@@ -206,12 +206,12 @@ describe("normalizeConfigurationBundle", () => {
         moodboard_image_uri: "/theme-assets/demo.png",
         reference_url: "https://example.com/reference",
       },
-      preset_id: "bloom-default",
+      preset_id: "extender-ui",
       palette: {
-        accent: "#d9a441",
-        background: "#f7f1e6",
+        accent: "#0ea5e9",
+        background: "#f8fafc",
         primary: "#5f7f63",
-        surface: "#fffdf7",
+        surface: "#ffffff",
       },
     });
     expect(bundle.applications[0]?.profiles).toEqual([]);

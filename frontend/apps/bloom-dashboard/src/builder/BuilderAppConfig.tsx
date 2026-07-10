@@ -1,4 +1,5 @@
 import type { ApplicationConfig, RuntimeActionPreset, RuntimeAdapterPolicy, ScreenConfig } from "@bloom/api-client";
+import { BLOOM_THEME_PRESETS, type BloomThemePresetId } from "@bloom/ui";
 import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
@@ -58,6 +59,35 @@ const DEFAULT_THEME_INSPIRATION: ApplicationConfig["theme"]["inspiration"] = {
   reference_url: "",
 };
 const COMMAND_PRESET_GROUPS = Array.from(getRosMessageCommandPresetsByCategory());
+const APP_THEME_PRESETS: ReadonlyArray<{
+  id: "bloom-default" | Extract<BloomThemePresetId, "extender-ui">;
+  label: string;
+  description: string;
+  palette: ApplicationConfig["theme"]["palette"];
+}> = [
+  {
+    id: "extender-ui",
+    label: "Extender UI",
+    description: BLOOM_THEME_PRESETS["extender-ui"].description,
+    palette: {
+      accent: "#0ea5e9",
+      background: "#f8fafc",
+      primary: "#1d4ed8",
+      surface: "#ffffff",
+    },
+  },
+  {
+    id: "bloom-default",
+    label: "Bloom Garden",
+    description: BLOOM_THEME_PRESETS.bloom.description,
+    palette: {
+      accent: "#d9a441",
+      background: "#f7f1e6",
+      primary: "#7f967e",
+      surface: "#fffdf7",
+    },
+  },
+];
 
 export function BuilderAppConfig({
   configurations,
@@ -498,6 +528,28 @@ export function BuilderAppConfig({
               Each app can carry its own coherent palette. Bloom keeps this simple for now, then future templates can
               generate richer design systems from moodboards or presets.
             </p>
+            <div className="builder-theme-presets">
+              {APP_THEME_PRESETS.map((preset) => (
+                <button
+                  aria-pressed={draftApplication.theme.preset_id === preset.id}
+                  key={preset.id}
+                  onClick={() =>
+                    setDraftApplication({
+                      ...draftApplication,
+                      theme: {
+                        ...draftApplication.theme,
+                        palette: preset.palette,
+                        preset_id: preset.id,
+                      },
+                    })
+                  }
+                  type="button"
+                >
+                  <span>{preset.label}</span>
+                  <small>{preset.description}</small>
+                </button>
+              ))}
+            </div>
             <div className="builder-theme-inspiration">
               <div>
                 <h3>Theme inspiration</h3>

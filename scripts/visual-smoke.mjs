@@ -364,10 +364,11 @@ async function showRuntime(page) {
 async function showSandboxRuntimeScreen(page, screenName) {
   await mockRuntimeWebSocket(page);
   await showRuntime(page);
-  await page.getByLabel("Open runtime menu").click();
-  await page.getByRole("button", { exact: true, name: screenName }).click();
+  await page
+    .getByRole("navigation", { name: "Switch runtime screen" })
+    .getByRole("button", { exact: true, name: screenName })
+    .click();
   await page.locator(".runtime-active-screen-label", { hasText: screenName }).waitFor();
-  await page.getByLabel("Open runtime menu").click();
 }
 
 async function showDebugRuntime(page) {
