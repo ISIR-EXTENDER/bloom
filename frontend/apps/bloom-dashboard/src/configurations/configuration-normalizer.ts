@@ -44,8 +44,15 @@ type PartialWidgetConfig = Partial<Omit<WidgetConfig, "layout">> & {
   layout?: Partial<WidgetLayout>;
 };
 
-const CANVAS_PRESET_IDS = new Set<CanvasPresetId>(["native-1024x600", "hd", "tablet", "full-hd", "local-screen"]);
-const RUNTIME_CANVAS_MODES = new Set<RuntimeCanvasMode>(["left", "center", "fit"]);
+const CANVAS_PRESET_IDS = new Set<CanvasPresetId>([
+  "native-1024x600",
+  "hd",
+  "tablet",
+  "wide-tablet",
+  "full-hd",
+  "local-screen",
+]);
+const RUNTIME_CANVAS_MODES = new Set<RuntimeCanvasMode>(["left", "center", "fit", "operator-fit"]);
 const WIDGET_KINDS = new Set<WidgetKind>([
   "button",
   "camera",

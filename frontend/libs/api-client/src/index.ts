@@ -33,9 +33,9 @@ export type WidgetLayout = {
   height: number;
 };
 
-export type CanvasPresetId = "native-1024x600" | "hd" | "tablet" | "full-hd" | "local-screen";
+export type CanvasPresetId = "native-1024x600" | "hd" | "tablet" | "wide-tablet" | "full-hd" | "local-screen";
 
-export type RuntimeCanvasMode = "left" | "center" | "fit";
+export type RuntimeCanvasMode = "left" | "center" | "fit" | "operator-fit";
 
 export type CanvasSettings = {
   preset_id: CanvasPresetId;

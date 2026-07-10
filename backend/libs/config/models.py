@@ -28,6 +28,7 @@ class CanvasPresetId(str, Enum):
     NATIVE_1024X600 = "native-1024x600"
     HD = "hd"
     TABLET = "tablet"
+    WIDE_TABLET = "wide-tablet"
     FULL_HD = "full-hd"
     LOCAL_SCREEN = "local-screen"
 
@@ -36,6 +37,7 @@ class RuntimeCanvasMode(str, Enum):
     LEFT = "left"
     CENTER = "center"
     FIT = "fit"
+    OPERATOR_FIT = "operator-fit"
 
 
 class DisplayPreset(str, Enum):
