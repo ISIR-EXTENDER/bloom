@@ -244,30 +244,30 @@ async function dispatchTeleopValueIntent(
     }
   }
 
-  const scalarRequest = createScalarTopicPublishRequest(intent);
-  if (scalarRequest) {
-    const policyError = validateTopicPublishRequest(scalarRequest, options.runtimePolicy);
+  const topicRequest = createValueTopicPublishRequest(intent);
+  if (topicRequest) {
+    const policyError = validateTopicPublishRequest(topicRequest, options.runtimePolicy);
     if (policyError) {
       return {
         intent,
-        request: scalarRequest,
+        request: topicRequest,
         status: "blocked",
         detail: policyError,
       };
     }
 
     try {
-      const response = await client.publishRosTopic(scalarRequest);
+      const response = await client.publishRosTopic(topicRequest);
       return {
         intent,
-        request: scalarRequest,
+        request: topicRequest,
         status: response.status,
         detail: response.detail,
       };
     } catch (error: unknown) {
       return {
         intent,
-        request: scalarRequest,
+        request: topicRequest,
         status: "failed",
         detail: getErrorMessage(error),
       };
@@ -352,10 +352,20 @@ export function createScalarTopicPublishRequest(
     return null;
   }
 
+  return createValueTopicPublishRequest(intent);
+}
+
+export function createValueTopicPublishRequest(
+  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
+): RosTopicPublishRequest | null {
+  if (!isPublishableValue(intent.value)) {
+    return null;
+  }
+
   const runtimeBinding = getRecord(intent.runtimeBinding);
   const valueMapping = getRecord(runtimeBinding.value_mapping);
   const adapter = getOptionalString(runtimeBinding, "adapter");
-  const topic = resolveScalarTopic(intent, runtimeBinding, valueMapping);
+  const topic = resolveValueTopic(intent, runtimeBinding, valueMapping);
   if (!topic || (adapter && adapter !== "topic")) {
     return null;
   }
@@ -364,13 +374,16 @@ export function createScalarTopicPublishRequest(
     getOptionalString(valueMapping, "message_type") ??
     getOptionalString(valueMapping, "messageType") ??
     intent.messageType ??
-    "std_msgs/msg/Float64";
+    (typeof intent.value === "number" ? "std_msgs/msg/Float64" : undefined);
+  if (!messageType) {
+    return null;
+  }
   const fieldPath = getOptionalString(valueMapping, "field_path") ?? getOptionalString(valueMapping, "field") ?? "data";
 
   return {
     topic,
     message_type: messageType,
-    payload: createScalarPayload(fieldPath, intent.value),
+    payload: createValuePayload(fieldPath, intent.value, messageType),
   };
 }
 
@@ -456,7 +469,7 @@ function resolveTeleopTarget(valueMapping: Record<string, unknown>): string {
   return "/teleop_cmd";
 }
 
-function resolveScalarTopic(
+function resolveValueTopic(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
   runtimeBinding: Record<string, unknown>,
   valueMapping: Record<string, unknown>,
@@ -469,21 +482,39 @@ function resolveScalarTopic(
   return topic?.startsWith("/") ? topic : null;
 }
 
-function createScalarPayload(fieldPath: string, value: number): Record<string, unknown> {
+function createValuePayload(
+  fieldPath: string,
+  value: number | Record<string, unknown>,
+  messageType: string,
+): Record<string, unknown> {
   const normalizedFieldPath = fieldPath.trim();
   if (!normalizedFieldPath || normalizedFieldPath === "data") {
-    return { data: value };
+    return createDefaultValuePayload(value, messageType);
   }
 
   const keys = normalizedFieldPath.split(".").filter(Boolean);
   if (keys.length === 0) {
-    return { data: value };
+    return createDefaultValuePayload(value, messageType);
   }
 
-  return keys.reduceRight<Record<string, unknown> | number>((payload, key) => ({ [key]: payload }), value) as Record<
-    string,
-    unknown
-  >;
+  return keys.reduceRight<Record<string, unknown> | number | Record<string, unknown>>(
+    (payload, key) => ({ [key]: payload }),
+    value,
+  ) as Record<string, unknown>;
+}
+
+function createDefaultValuePayload(
+  value: number | Record<string, unknown>,
+  messageType: string,
+): Record<string, unknown> {
+  const normalizedMessageType = normalizeMessageType(messageType);
+  if (normalizedMessageType === "std_msgs/msg/string" && typeof value !== "number") {
+    return { data: JSON.stringify(value) };
+  }
+  if (normalizedMessageType === "geometry_msgs/msg/vector3" && isVector2Value(value)) {
+    return { x: value.x, y: value.y, z: 0 };
+  }
+  return { data: value };
 }
 
 function isRotationMode(modeId: string | undefined): boolean {
@@ -506,6 +537,14 @@ function isVector2Value(value: unknown): value is Vector2Value {
     typeof value.y === "number" &&
     Number.isFinite(value.y)
   );
+}
+
+function isPublishableValue(value: unknown): value is number | Record<string, unknown> {
+  return (typeof value === "number" && Number.isFinite(value)) || isRecord(value);
+}
+
+function normalizeMessageType(messageType: string): string {
+  return messageType.trim().toLowerCase();
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

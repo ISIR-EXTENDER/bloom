@@ -29,7 +29,7 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
       const nextTopics = await loadDebugTopics(client);
       setTopics(nextTopics);
       setSelectedTopics((currentTopics) =>
-        currentTopics.length > 0 ? currentTopics : nextTopics.slice(0, 3).map((topic) => topic.name),
+        currentTopics.length > 0 ? currentTopics : getDefaultSelectedTopics(nextTopics),
       );
       setStatus(nextTopics.length > 0 ? `${nextTopics.length} topics available.` : "No live topics discovered yet.");
     } catch (error) {
@@ -121,6 +121,25 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
       </div>
 
       <div className="bloom-debug-panel-grid">
+        <section aria-labelledby="bloom-debug-robot-preflight">
+          <h4 id="bloom-debug-robot-preflight">Robot preflight</h4>
+          {topics.length === 0 ? (
+            <p>Refresh topics before robot tests.</p>
+          ) : (
+            <ul className="bloom-debug-preflight-list">
+              {buildRobotPreflightRows(topics).map((row) => (
+                <li key={row.topic}>
+                  <span>
+                    <strong className="bloom-debug-preflight-title">{row.label}</strong>
+                    <small>{row.topic}</small>
+                  </span>
+                  <strong data-status={row.status}>{row.status_label}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <section aria-labelledby="bloom-debug-topic-catalog">
           <h4 id="bloom-debug-topic-catalog">Topic catalog</h4>
           {topics.length === 0 ? (
@@ -174,6 +193,27 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
 
 type DebugTopic = RosTopicInfo & Partial<Pick<RosTopicStatus, "publisher_count" | "subscription_count">>;
 
+type RobotPreflightRequirement = "publisher" | "subscriber";
+
+type RobotPreflightTopic = {
+  label: string;
+  requirement: RobotPreflightRequirement;
+  topic: string;
+};
+
+type RobotPreflightRow = RobotPreflightTopic & {
+  status: "missing" | "ready" | "unknown" | "waiting";
+  status_label: string;
+};
+
+const ROBOT_PREFLIGHT_TOPICS: RobotPreflightTopic[] = [
+  { label: "Teleop command", requirement: "subscriber", topic: "/teleop_cmd" },
+  { label: "Joint states", requirement: "publisher", topic: "/joint_states" },
+  { label: "Controller feedback", requirement: "publisher", topic: "/sandbox_controller/velocity_command" },
+];
+
+const DEFAULT_RECORDING_TOPIC_NAMES = ["/teleop_cmd", "/sandbox_controller/velocity_command", "/joint_states"];
+
 async function loadDebugTopics(client: RuntimeActionClient): Promise<DebugTopic[]> {
   if (client.listRosTopicStatus) {
     try {
@@ -190,6 +230,40 @@ async function loadDebugTopics(client: RuntimeActionClient): Promise<DebugTopic[
   }
 
   return [];
+}
+
+function getDefaultSelectedTopics(topics: readonly DebugTopic[]): string[] {
+  const topicNames = new Set(topics.map((topic) => topic.name));
+  const robotDebugTopics = DEFAULT_RECORDING_TOPIC_NAMES.filter((topicName) => topicNames.has(topicName));
+  return robotDebugTopics.length > 0 ? robotDebugTopics : topics.slice(0, 3).map((topic) => topic.name);
+}
+
+function buildRobotPreflightRows(topics: readonly DebugTopic[]): RobotPreflightRow[] {
+  return ROBOT_PREFLIGHT_TOPICS.map((preflightTopic) => {
+    const topic = topics.find((candidate) => candidate.name === preflightTopic.topic);
+    if (!topic) {
+      return {
+        ...preflightTopic,
+        status: "missing",
+        status_label: "Missing",
+      };
+    }
+
+    const count = preflightTopic.requirement === "publisher" ? topic.publisher_count : topic.subscription_count;
+    if (count === undefined) {
+      return {
+        ...preflightTopic,
+        status: "unknown",
+        status_label: "Visible",
+      };
+    }
+
+    return {
+      ...preflightTopic,
+      status: count > 0 ? "ready" : "waiting",
+      status_label: count > 0 ? "Ready" : preflightTopic.requirement === "publisher" ? "No publisher" : "No subscriber",
+    };
+  });
 }
 
 function toggleTopic(currentTopics: readonly string[], topic: string): string[] {

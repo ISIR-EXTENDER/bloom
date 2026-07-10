@@ -31,6 +31,21 @@ The script:
 | `BLOOM_FRONTEND_HOST` | `127.0.0.1` | Dashboard dev-server host. |
 | `BLOOM_FRONTEND_PORT` | `5173` | Dashboard dev-server port. |
 | `BLOOM_APPLY_TABLET_TOUCH_MAP` | `0` | Set to `1` to run `scripts/extender-tablet-touch-map.sh` before launch. |
+| `DISPLAY_MODE` | empty | Optional tablet display mode passed to the touch-map helper, for example `1280x720`. |
+| `LOGICAL_DISPLAY_SIZE` | empty | Optional scaled tablet workspace, for example `1820x720`. |
+| `APPLY_DISPLAY_MODE` | `0` | Set to `1` to apply `DISPLAY_MODE` before remapping touch. |
+| `PLACE_OUTPUT_RIGHT_OF` | empty | Optional laptop output to place to the left of the tablet, for example `eDP-1`. |
+
+Current Extender tablet setup:
+
+```bash
+BLOOM_APPLY_TABLET_TOUCH_MAP=1 \
+DISPLAY_MODE=1280x720 \
+LOGICAL_DISPLAY_SIZE=1820x720 \
+APPLY_DISPLAY_MODE=1 \
+PLACE_OUTPUT_RIGHT_OF=eDP-1 \
+scripts/extender-workspace-dev.sh
+```
 
 ## Recording Variables
 
@@ -47,6 +62,21 @@ export BLOOM_RUNTIME_RECORDING_EXECUTABLE=ros2
 
 Recording remains constrained by both topic and folder allowlists. Keep folders relative and approved so a dashboard
 operator cannot write bags outside the intended Bloom data area.
+
+## Runtime ROS Policy Variables
+
+The app configuration should remain the first guardrail, but lab sessions can also tune the backend runtime policy
+without editing code:
+
+```bash
+export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/teleop_cmd,/petanque_state_machine/change_state,/visual_servoing/enabled'
+export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='extender_msgs/msg/TeleopCommand,std_msgs/msg/String,std_msgs/msg/Bool'
+export BLOOM_ALLOWED_TELEOP_TARGETS='/teleop_cmd'
+export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
+```
+
+Avoid `*` for robot-facing sessions unless you are deliberately running a temporary diagnostic setup. Prefer adding the
+smallest topic/message set needed by the app under test.
 
 ## Security Variables
 

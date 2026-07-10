@@ -1,0 +1,1653 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-07-10T16:30:00Z",
+    "source": "extender_ui:sandbox-v0.0-six-screens"
+  },
+  "applications": [
+    {
+      "id": "sandbox",
+      "name": "Sandbox V0.0",
+      "description": "Bloom runtime port of the six-screen Extender Sandbox V0.0 app.",
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [],
+      "screens": [
+        {
+          "id": "sandbox_control",
+          "title": "sandbox_control",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "sandbox-max-velocity",
+              "title": "Max Velocity",
+              "layout": {
+                "x": 279,
+                "y": 95,
+                "width": 382,
+                "height": 159
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/cmd/max_velocity",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/max_velocity",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-rotation",
+              "title": "Rotation",
+              "layout": {
+                "x": 802,
+                "y": 268,
+                "width": 435,
+                "height": 441
+              },
+              "kind": "joystick",
+              "settings": {
+                "binding": "rot",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "rotation",
+                "labels": {
+                  "top": "RY+",
+                  "right": "RX+",
+                  "bottom": "RY-",
+                  "left": "RX-"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#ff4d67",
+                    "negative_label": "RX-",
+                    "positive_label": "RX+",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#c8a3cf",
+                    "negative_label": "RY-",
+                    "positive_label": "RY+",
+                    "semantic": "rotation"
+                  }
+                },
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 1,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
+                "legacyKind": "joystick"
+              }
+            },
+            {
+              "id": "sandbox-translation",
+              "title": "Translation",
+              "layout": {
+                "x": 255,
+                "y": 268,
+                "width": 429,
+                "height": 441
+              },
+              "kind": "joystick",
+              "settings": {
+                "binding": "joy",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "both",
+                "labels": {
+                  "top": "Y+",
+                  "right": "X+",
+                  "bottom": "Y-",
+                  "left": "X-"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#4a9eff",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#d89f5d",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "both",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
+                "legacyKind": "joystick"
+              }
+            },
+            {
+              "id": "sandbox-mode",
+              "title": "Mode",
+              "layout": {
+                "x": 20,
+                "y": 109,
+                "width": 173,
+                "height": 108
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "set_mode_b2",
+                "button_label": "Mode",
+                "cancellable": false,
+                "command": "set_mode_b2",
+                "topic": "/cmd/mode",
+                "messageType": "std_msgs/msg/Int32",
+                "payload": {
+                  "data": 3
+                },
+                "legacyKind": "mode-button"
+              }
+            },
+            {
+              "id": "sandbox-rz",
+              "title": "RZ",
+              "layout": {
+                "x": 802,
+                "y": 124,
+                "width": 435,
+                "height": 130
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "rz",
+                "direction": "horizontal",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": true,
+                "show_details": false,
+                "topic": "/cmd/joystick_rz",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/joystick_rz",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "slider"
+              }
+            },
+            {
+              "id": "sandbox-z",
+              "title": "Z",
+              "layout": {
+                "x": 75,
+                "y": 268,
+                "width": 162,
+                "height": 422
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "z",
+                "direction": "vertical",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": true,
+                "show_details": false,
+                "topic": "/cmd/joystick_z",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/joystick_z",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "slider"
+              }
+            },
+            {
+              "id": "sandbox-gripper",
+              "title": "Gripper",
+              "layout": {
+                "x": 848,
+                "y": 17,
+                "width": 188,
+                "height": 92
+              },
+              "kind": "toggle",
+              "settings": {
+                "initialValue": false,
+                "offLabel": "Closed",
+                "onLabel": "Open",
+                "topic": "/cmd/gripper",
+                "messageType": "std_msgs/msg/Bool",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "show_details": false,
+                "legacyKind": "gripper-control"
+              }
+            },
+            {
+              "id": "sandbox-toggle-output",
+              "title": "Digital Output",
+              "layout": {
+                "x": 1048,
+                "y": 17,
+                "width": 188,
+                "height": 92
+              },
+              "kind": "toggle",
+              "settings": {
+                "initialValue": false,
+                "offLabel": "Off",
+                "onLabel": "On",
+                "topic": "/sandbox/digital_output",
+                "messageType": "std_msgs/msg/Float64",
+                "onPayload": "{data: 1.0}",
+                "offPayload": "{data: 0.0}",
+                "show_details": false,
+                "legacyKind": "ros-message-toggle"
+              }
+            }
+          ]
+        },
+        {
+          "id": "sandbox_teleop_config",
+          "title": "sandbox_teleop_config",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "sandbox-cfg-lin-gain",
+              "title": "Translation Gain",
+              "layout": {
+                "x": 20,
+                "y": 94,
+                "width": 530,
+                "height": 157
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/translation_gain",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/translation_gain",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-ang-gain",
+              "title": "Rotation Gain",
+              "layout": {
+                "x": 650,
+                "y": 94,
+                "width": 610,
+                "height": 152
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/rotation_gain",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/rotation_gain",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-lin-scale-x",
+              "title": "Linear X",
+              "layout": {
+                "x": 20,
+                "y": 255,
+                "width": 530,
+                "height": 152
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/linear_scale_x",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/linear_scale_x",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-ang-scale-x",
+              "title": "Angular X",
+              "layout": {
+                "x": 650,
+                "y": 255,
+                "width": 529,
+                "height": 152
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/angular_scale_x",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/angular_scale_x",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-lin-scale-y",
+              "title": "Linear Y",
+              "layout": {
+                "x": 20,
+                "y": 407,
+                "width": 530,
+                "height": 152
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/linear_scale_y",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/linear_scale_y",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-ang-scale-y",
+              "title": "Angular Y",
+              "layout": {
+                "x": 650,
+                "y": 417,
+                "width": 530,
+                "height": 141
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/angular_scale_y",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/angular_scale_y",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-lin-scale-z",
+              "title": "Linear Z",
+              "layout": {
+                "x": 20,
+                "y": 560,
+                "width": 530,
+                "height": 144
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/linear_scale_z",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/linear_scale_z",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-ang-scale-z",
+              "title": "Angular Z",
+              "layout": {
+                "x": 650,
+                "y": 567,
+                "width": 531,
+                "height": 145
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0.1,
+                "max": 2,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/teleop_config/angular_scale_z",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/teleop_config/angular_scale_z",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "sandbox-cfg-swap-xy",
+              "title": "Swap XY",
+              "layout": {
+                "x": 650,
+                "y": 20,
+                "width": 170,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "toggle",
+                "button_label": "Swap XY",
+                "cancellable": false,
+                "command": "toggle",
+                "topic": "/teleop_config/swap_xy",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "toggle"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-save-explorer",
+              "title": "Save Explorer",
+              "layout": {
+                "x": 840,
+                "y": 20,
+                "width": 190,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "save",
+                "button_label": "Save Explorer",
+                "cancellable": false,
+                "command": "save",
+                "topic": "/teleop_config/save_profile",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "save"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-reset",
+              "title": "Reset",
+              "layout": {
+                "x": 1050,
+                "y": 20,
+                "width": 170,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "reset",
+                "button_label": "Reset",
+                "cancellable": false,
+                "command": "reset",
+                "topic": "/teleop_config/reset_defaults",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "reset"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-lin-x",
+              "title": "Invert Linear X",
+              "layout": {
+                "x": 560,
+                "y": 302,
+                "width": 70,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "toggle",
+                "button_label": "Invert Linear X",
+                "cancellable": false,
+                "command": "toggle",
+                "topic": "/teleop_config/invert_linear_x",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "toggle"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-lin-y",
+              "title": "Invert Linear Y",
+              "layout": {
+                "x": 560,
+                "y": 459,
+                "width": 70,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "toggle",
+                "button_label": "Invert Linear Y",
+                "cancellable": false,
+                "command": "toggle",
+                "topic": "/teleop_config/invert_linear_y",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "toggle"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-lin-z",
+              "title": "Invert Linear Z",
+              "layout": {
+                "x": 560,
+                "y": 603,
+                "width": 70,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "toggle",
+                "button_label": "Invert Linear Z",
+                "cancellable": false,
+                "command": "toggle",
+                "topic": "/teleop_config/invert_linear_z",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "toggle"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-ang-x",
+              "title": "Invert Angular X",
+              "layout": {
+                "x": 1190,
+                "y": 321,
+                "width": 70,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "toggle",
+                "button_label": "Invert Angular X",
+                "cancellable": false,
+                "command": "toggle",
+                "topic": "/teleop_config/invert_angular_x",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "toggle"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-ang-y",
+              "title": "Invert Angular Y",
+              "layout": {
+                "x": 1190,
+                "y": 459,
+                "width": 70,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "toggle",
+                "button_label": "Invert Angular Y",
+                "cancellable": false,
+                "command": "toggle",
+                "topic": "/teleop_config/invert_angular_y",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "toggle"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "sandbox-cfg-ang-z",
+              "title": "Invert Angular Z",
+              "layout": {
+                "x": 1190,
+                "y": 611,
+                "width": 70,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "toggle",
+                "button_label": "Invert Angular Z",
+                "cancellable": false,
+                "command": "toggle",
+                "topic": "/teleop_config/invert_angular_z",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "toggle"
+                },
+                "legacyKind": "button"
+              }
+            }
+          ]
+        },
+        {
+          "id": "control_panel",
+          "title": "control_panel",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "control-panel-title",
+              "title": "Text",
+              "layout": {
+                "x": 20,
+                "y": 20,
+                "width": 300,
+                "height": 56
+              },
+              "kind": "label",
+              "settings": {
+                "text": "Text",
+                "fontSize": 28,
+                "align": "left",
+                "legacyKind": "text"
+              }
+            },
+            {
+              "id": "control-panel-camera",
+              "title": "Camera",
+              "layout": {
+                "x": 20,
+                "y": 90,
+                "width": 560,
+                "height": 400
+              },
+              "kind": "camera",
+              "settings": {
+                "source": "webcam",
+                "streamUrl": "",
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": true,
+                "topic": "/camera/play_petanque",
+                "legacyKind": "stream-display"
+              }
+            },
+            {
+              "id": "control-panel-gripper",
+              "title": "Gripper",
+              "layout": {
+                "x": 20,
+                "y": 510,
+                "width": 260,
+                "height": 86
+              },
+              "kind": "toggle",
+              "settings": {
+                "initialValue": false,
+                "offLabel": "Closed",
+                "onLabel": "Open",
+                "topic": "/cmd/gripper",
+                "messageType": "std_msgs/msg/Bool",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "show_details": false,
+                "legacyKind": "gripper-control"
+              }
+            },
+            {
+              "id": "control-panel-servo-enable",
+              "title": "Visual Servoing",
+              "layout": {
+                "x": 300,
+                "y": 510,
+                "width": 280,
+                "height": 86
+              },
+              "kind": "toggle",
+              "settings": {
+                "initialValue": false,
+                "offLabel": "Off",
+                "onLabel": "On",
+                "topic": "/ui/visual_servoing/on",
+                "messageType": "std_msgs/msg/Bool",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "show_details": false,
+                "legacyKind": "ros-message-toggle"
+              }
+            },
+            {
+              "id": "control-panel-servo-save",
+              "title": "Save Tag",
+              "layout": {
+                "x": 20,
+                "y": 629,
+                "width": 260,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "save",
+                "button_label": "Save Tag",
+                "cancellable": false,
+                "command": "save",
+                "topic": "/ui/visual_servoing/save",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "save"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "control-panel-open-monitor",
+              "title": "Monitor",
+              "layout": {
+                "x": 300,
+                "y": 629,
+                "width": 280,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "navigate_screen",
+                "button_label": "Monitor",
+                "cancellable": false,
+                "command": "navigate_screen",
+                "topic": "/ui/navigation/visual_servoing_monitor",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "visual_servoing_monitor"
+                },
+                "legacyKind": "navigation-button",
+                "targetScreenId": "visual_servoing_monitor"
+              }
+            },
+            {
+              "id": "control-panel-max-velocity",
+              "title": "Teleop Gain",
+              "layout": {
+                "x": 610,
+                "y": 20,
+                "width": 640,
+                "height": 145
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "max_velocity",
+                "direction": "horizontal",
+                "min": 0,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": false,
+                "show_details": false,
+                "topic": "/cmd/max_velocity",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/max_velocity",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "max-velocity"
+              }
+            },
+            {
+              "id": "control-panel-z",
+              "title": "Z",
+              "layout": {
+                "x": 589,
+                "y": 174,
+                "width": 162,
+                "height": 413
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "z",
+                "direction": "vertical",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": true,
+                "show_details": false,
+                "topic": "/cmd/joystick_z",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/joystick_z",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "slider"
+              }
+            },
+            {
+              "id": "control-panel-translation",
+              "title": "X Y",
+              "layout": {
+                "x": 765,
+                "y": 185,
+                "width": 240,
+                "height": 240
+              },
+              "kind": "joystick",
+              "settings": {
+                "binding": "joy",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "both",
+                "labels": {
+                  "top": "Y+",
+                  "right": "X+",
+                  "bottom": "Y-",
+                  "left": "X-"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#4a9eff",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#d89f5d",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "both",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
+                "legacyKind": "joystick"
+              }
+            },
+            {
+              "id": "control-panel-rotation",
+              "title": "RX RY",
+              "layout": {
+                "x": 1015,
+                "y": 185,
+                "width": 240,
+                "height": 240
+              },
+              "kind": "joystick",
+              "settings": {
+                "binding": "rot",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "rotation",
+                "labels": {
+                  "top": "RY+",
+                  "right": "RX+",
+                  "bottom": "RY-",
+                  "left": "RX-"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#ff4d67",
+                    "negative_label": "RX-",
+                    "positive_label": "RX+",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#c8a3cf",
+                    "negative_label": "RY-",
+                    "positive_label": "RY+",
+                    "semantic": "rotation"
+                  }
+                },
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 1,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
+                "legacyKind": "joystick"
+              }
+            },
+            {
+              "id": "control-panel-rz",
+              "title": "RZ",
+              "layout": {
+                "x": 765,
+                "y": 432,
+                "width": 490,
+                "height": 157
+              },
+              "kind": "slider",
+              "settings": {
+                "binding": "rz",
+                "direction": "horizontal",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": true,
+                "show_details": false,
+                "topic": "/cmd/joystick_rz",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/joystick_rz",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                },
+                "legacyKind": "slider"
+              }
+            },
+            {
+              "id": "control-panel-mode",
+              "title": "Mode",
+              "layout": {
+                "x": 600,
+                "y": 616,
+                "width": 141,
+                "height": 71
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "set_mode_b2",
+                "button_label": "Mode",
+                "cancellable": false,
+                "command": "set_mode_b2",
+                "topic": "/cmd/mode",
+                "messageType": "std_msgs/msg/Int32",
+                "payload": {
+                  "data": 3
+                },
+                "legacyKind": "mode-button"
+              }
+            },
+            {
+              "id": "control-panel-servo-telemetry-1",
+              "kind": "topic-echo",
+              "title": "Tags",
+              "layout": {
+                "x": 763,
+                "y": 606,
+                "width": 492,
+                "height": 80
+              },
+              "settings": {
+                "topic": "/tag_detections",
+                "messageType": "extender_msgs/msg/SharedControlGoalArray",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "control-panel-servo-telemetry"
+              }
+            },
+            {
+              "id": "control-panel-servo-telemetry-2",
+              "kind": "topic-echo",
+              "title": "Cmd",
+              "layout": {
+                "x": 763,
+                "y": 686,
+                "width": 492,
+                "height": 80
+              },
+              "settings": {
+                "topic": "/visual_servoing/velocity_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "control-panel-servo-telemetry"
+              }
+            },
+            {
+              "id": "control-panel-servo-telemetry-3",
+              "kind": "topic-echo",
+              "title": "Err",
+              "layout": {
+                "x": 763,
+                "y": 766,
+                "width": 492,
+                "height": 80
+              },
+              "settings": {
+                "topic": "/visual_servoing/error_TAGtoTAGd",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "control-panel-servo-telemetry"
+              }
+            }
+          ]
+        },
+        {
+          "id": "snake_control",
+          "title": "snake_control",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "snake-title",
+              "title": "Snake Control",
+              "layout": {
+                "x": 20,
+                "y": 20,
+                "width": 420,
+                "height": 58
+              },
+              "kind": "label",
+              "settings": {
+                "text": "Snake Control",
+                "fontSize": 28,
+                "align": "left",
+                "legacyKind": "text"
+              }
+            },
+            {
+              "id": "snake-mode-toggle",
+              "title": "B1 / B2",
+              "layout": {
+                "x": 210,
+                "y": 116,
+                "width": 210,
+                "height": 76
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "set_mode_b2",
+                "button_label": "B1 / B2",
+                "cancellable": false,
+                "command": "set_mode_b2",
+                "topic": "/cmd/mode",
+                "messageType": "std_msgs/msg/Int32",
+                "payload": {
+                  "data": 3
+                },
+                "legacyKind": "mode-button"
+              }
+            },
+            {
+              "id": "snake-hold",
+              "title": "Hold Snake",
+              "layout": {
+                "x": 860,
+                "y": 116,
+                "width": 220,
+                "height": 76
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "press/release",
+                "button_label": "Hold Snake",
+                "cancellable": false,
+                "command": "momentary_ros_message",
+                "topic": "/snake_control/enable",
+                "messageType": "std_msgs/msg/Bool",
+                "payload": "{data: true}",
+                "releasedPayload": "{data: false}",
+                "momentary": true,
+                "legacyKind": "momentary-ros-message"
+              }
+            },
+            {
+              "id": "snake-joystick",
+              "title": "Joystick",
+              "layout": {
+                "x": 430,
+                "y": 271,
+                "width": 420,
+                "height": 420
+              },
+              "kind": "joystick",
+              "settings": {
+                "binding": "joy",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "both",
+                "labels": {
+                  "top": "Haut",
+                  "right": "Droite",
+                  "bottom": "Bas",
+                  "left": "Gauche"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#4a9eff",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#d89f5d",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "both",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
+                "legacyKind": "joystick"
+              }
+            }
+          ]
+        },
+        {
+          "id": "visual_servoing",
+          "title": "visual_servoing",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "servo-title",
+              "title": "Text",
+              "layout": {
+                "x": 20,
+                "y": 20,
+                "width": 320,
+                "height": 56
+              },
+              "kind": "label",
+              "settings": {
+                "text": "Text",
+                "fontSize": 28,
+                "align": "left",
+                "legacyKind": "text"
+              }
+            },
+            {
+              "id": "servo-rviz",
+              "title": "AprilTag RViz",
+              "layout": {
+                "x": 20,
+                "y": 90,
+                "width": 760,
+                "height": 510
+              },
+              "kind": "camera",
+              "settings": {
+                "source": "placeholder",
+                "streamUrl": "",
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": false,
+                "topic": "/tag_detections",
+                "legacyKind": "stream-display"
+              }
+            },
+            {
+              "id": "servo-camera",
+              "title": "Camera Preview",
+              "layout": {
+                "x": 800,
+                "y": 90,
+                "width": 460,
+                "height": 260
+              },
+              "kind": "camera",
+              "settings": {
+                "source": "webcam",
+                "streamUrl": "",
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "webcamPicker": true,
+                "topic": "/image_raw",
+                "legacyKind": "stream-display"
+              }
+            },
+            {
+              "id": "servo-enable",
+              "title": "Visual Servoing",
+              "layout": {
+                "x": 800,
+                "y": 370,
+                "width": 220,
+                "height": 110
+              },
+              "kind": "toggle",
+              "settings": {
+                "initialValue": false,
+                "offLabel": "Off",
+                "onLabel": "On",
+                "topic": "/ui/visual_servoing/on",
+                "messageType": "std_msgs/msg/Bool",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "show_details": false,
+                "legacyKind": "ros-message-toggle"
+              }
+            },
+            {
+              "id": "servo-save",
+              "title": "Save Tag",
+              "layout": {
+                "x": 1040,
+                "y": 370,
+                "width": 220,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "save",
+                "button_label": "Save Tag",
+                "cancellable": false,
+                "command": "save",
+                "topic": "/ui/visual_servoing/save",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "save"
+                },
+                "legacyKind": "button"
+              }
+            },
+            {
+              "id": "servo-open-monitor",
+              "title": "Monitor",
+              "layout": {
+                "x": 1040,
+                "y": 445,
+                "width": 220,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "navigate_screen",
+                "button_label": "Monitor",
+                "cancellable": false,
+                "command": "navigate_screen",
+                "topic": "/ui/navigation/visual_servoing_monitor",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "visual_servoing_monitor"
+                },
+                "legacyKind": "navigation-button",
+                "targetScreenId": "visual_servoing_monitor"
+              }
+            }
+          ]
+        },
+        {
+          "id": "visual_servoing_monitor",
+          "title": "visual_servoing_monitor",
+          "canvas": {
+            "preset_id": "hd",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "servo-monitor-title",
+              "title": "Text",
+              "layout": {
+                "x": 20,
+                "y": 20,
+                "width": 420,
+                "height": 56
+              },
+              "kind": "label",
+              "settings": {
+                "text": "Text",
+                "fontSize": 28,
+                "align": "left",
+                "legacyKind": "text"
+              }
+            },
+            {
+              "id": "servo-monitor-back",
+              "title": "Control",
+              "layout": {
+                "x": 1080,
+                "y": 20,
+                "width": 180,
+                "height": 58
+              },
+              "kind": "command-button",
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "navigate_screen",
+                "button_label": "Control",
+                "cancellable": false,
+                "command": "navigate_screen",
+                "topic": "/ui/navigation/visual_servoing",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "visual_servoing"
+                },
+                "legacyKind": "navigation-button",
+                "targetScreenId": "visual_servoing"
+              }
+            },
+            {
+              "id": "servo-topic-monitor-1",
+              "kind": "topic-echo",
+              "title": "AprilTag detections",
+              "layout": {
+                "x": 20,
+                "y": 100,
+                "width": 1240,
+                "height": 200
+              },
+              "settings": {
+                "topic": "/tag_detections",
+                "messageType": "extender_msgs/msg/SharedControlGoalArray",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "servo-topic-monitor"
+              }
+            },
+            {
+              "id": "servo-topic-monitor-2",
+              "kind": "topic-echo",
+              "title": "Velocity command",
+              "layout": {
+                "x": 20,
+                "y": 300,
+                "width": 1240,
+                "height": 200
+              },
+              "settings": {
+                "topic": "/visual_servoing/velocity_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "servo-topic-monitor"
+              }
+            },
+            {
+              "id": "servo-topic-monitor-3",
+              "kind": "topic-echo",
+              "title": "Servo error",
+              "layout": {
+                "x": 20,
+                "y": 500,
+                "width": 1240,
+                "height": 200
+              },
+              "settings": {
+                "topic": "/visual_servoing/error_TAGtoTAGd",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false,
+                "legacyKind": "topic-monitor",
+                "sourceTopicMonitorId": "servo-topic-monitor"
+              }
+            }
+          ]
+        }
+      ],
+      "runtime_policy": {
+        "allowed_message_types": [
+          "extender_msgs/msg/SharedControlGoalArray",
+          "geometry_msgs/msg/TwistStamped",
+          "std_msgs/msg/Bool",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Int32",
+          "std_msgs/msg/Int32MultiArray",
+          "std_msgs/msg/String",
+          "std_msgs/msg/UInt8MultiArray"
+        ],
+        "allowed_publish_topics": [
+          "/cmd/gripper",
+          "/cmd/joystick_rz",
+          "/cmd/joystick_z",
+          "/cmd/max_velocity",
+          "/cmd/mode",
+          "/sandbox/digital_output",
+          "/snake_control/enable",
+          "/teleop_config/angular_scale_x",
+          "/teleop_config/angular_scale_y",
+          "/teleop_config/angular_scale_z",
+          "/teleop_config/invert_angular_x",
+          "/teleop_config/invert_angular_y",
+          "/teleop_config/invert_angular_z",
+          "/teleop_config/invert_linear_x",
+          "/teleop_config/invert_linear_y",
+          "/teleop_config/invert_linear_z",
+          "/teleop_config/linear_scale_x",
+          "/teleop_config/linear_scale_y",
+          "/teleop_config/linear_scale_z",
+          "/teleop_config/reset_defaults",
+          "/teleop_config/rotation_gain",
+          "/teleop_config/save_profile",
+          "/teleop_config/swap_xy",
+          "/teleop_config/translation_gain",
+          "/ui/navigation/visual_servoing",
+          "/ui/navigation/visual_servoing_monitor",
+          "/ui/visual_servoing/on",
+          "/ui/visual_servoing/save"
+        ],
+        "allowed_recording_topics": [
+          "/joint_states",
+          "/sandbox_controller/ee_pose",
+          "/sandbox_controller/joint_pose",
+          "/sandbox_controller/velocity_command",
+          "/tag_detections",
+          "/teleop_cmd",
+          "/visual_servoing/error_TAGtoTAGd",
+          "/visual_servoing/velocity_command"
+        ],
+        "allowed_teleop_targets": ["/teleop_cmd"]
+      },
+      "action_presets": [
+        {
+          "id": "sandbox-max-velocity-safe",
+          "name": "Safe max velocity",
+          "kind": "topic-publish",
+          "description": "Set a conservative max velocity in the sandbox app.",
+          "command": "set_safe_max_velocity",
+          "topic": "/cmd/max_velocity",
+          "message_type": "std_msgs/msg/Float64",
+          "payload": {
+            "data": 0.5
+          },
+          "payload_text": "",
+          "tags": ["sandbox", "teleop"]
+        }
+      ]
+    }
+  ]
+}

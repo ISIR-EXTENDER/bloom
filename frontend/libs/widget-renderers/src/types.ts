@@ -5,6 +5,26 @@ import type { ReactNode } from "react";
 export type WidgetDataSnapshot =
   | {
       messages: readonly TopicMessage[];
+      type: "event-log";
+    }
+  | {
+      receivedAt: string;
+      topic: string;
+      type: "gauge";
+      value: number;
+    }
+  | {
+      receivedAt: string;
+      topic: string;
+      type: "robot-3d";
+      value: unknown;
+    }
+  | {
+      samples: readonly TopicPlotSample[];
+      type: "plot";
+    }
+  | {
+      messages: readonly TopicMessage[];
       type: "topic-echo";
     }
   | {

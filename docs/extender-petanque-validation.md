@@ -14,10 +14,46 @@ legacy yet. The remaining decision needs a real operator pass on the target tabl
 
 - Extender ROS workspace builds and sources cleanly.
 - Bloom `main` is up to date.
+- Validation configurations are present for `sandbox`, `bloom-debug`, and `petanque-admin`. Run
+  `npm run validation:extender` to seed/check the local backend configuration directory from tracked fixtures.
 - Phase 5 security checks pass:
   `npm run audit:security` and `npm run security:dynamic`.
 - The target tablet mapping is documented and, if needed, applied through `scripts/extender-tablet-touch-map.sh`.
 - Legacy `extender_ui` and `tablet_interface` remain available as rollback paths.
+
+## Pending Acceptance Checks
+
+These checks are still pending before any legacy retirement notice:
+
+- Sandbox teleop lab: real operator pass on the target tablet against the sandbox simulation.
+- Sandbox motion path: confirm `/teleop_cmd` reaches `/sandbox_controller/velocity_command` and visible robot motion.
+- Sandbox scalar controls: confirm slider publishes are stable and audited during the same live session.
+- Bloom Debug: confirm topic catalog, preflight statuses, topic echo/plot subscriptions, recording controls, and audit
+  refresh against live ROS topics.
+- Petanque candidate: confirm runtime app launch, teleop, camera/stream behavior, state-machine commands, gesture
+  controls, and backend/app policy allowlists against the Petanque stack.
+- Security/deployment: rerun dependency and dynamic security checks with the staging/shared-lab environment variables.
+- Tablet UX: confirm `1024x600` and configured HD operation on the target tablet hardware or accepted equivalent.
+
+The browser-only smoke checks below can support the PR, but they do not replace the live operator pass.
+
+## Validation Helpers
+
+Run the local preflight before a lab session:
+
+```bash
+npm run validation:extender
+```
+
+The helper seeds `backend/data/configurations` from tracked fixtures when needed, verifies the expected validation
+apps/screens are present, and prints the exact runtime URL plus ROS commands to monitor during the session. Set
+`BLOOM_REFRESH_VALIDATION_CONFIGS=1` to overwrite local validation copies from fixtures.
+
+Run the browser-only visual smoke to catch layout and Bloom Debug regressions without ROS:
+
+```bash
+npm run visual:smoke
+```
 
 ## Local Smoke Sequence
 
@@ -69,8 +105,10 @@ ROS/simulation controller path rather than Bloom's runtime transport.
 Validate against the legacy Petanque flow before marking the Petanque UI path as covered:
 
 - Petanque app opens from Bloom runtime library.
+- Petanque teleop joysticks publish `/teleop_cmd` through the Bloom runtime adapter.
 - Camera/stream widgets show the expected feed or a clear connection state.
 - State-machine command buttons publish the configured command payloads.
+- Petanque command topics pass both app-level runtime policy and backend runtime allowlists.
 - Petanque gesture/trajectory controls emit the configured generic intents.
 - Bloom Debug can inspect Petanque topics while the app runs.
 - Legacy PlayPetanque behavior remains available until the Bloom flow is accepted.
@@ -99,6 +137,7 @@ Use this table during validation sessions.
 
 | Date | Environment | App | Result | Notes | Validator |
 | --- | --- | --- | --- | --- | --- |
+| 2026-06-29 | Local repo preflight | Sandbox teleop lab, Bloom Debug, Petanque admin | Pending live validation | Added `npm run validation:extender` fixture/config preflight; does not prove ROS motion or operator acceptance. | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
 | _pending_ | Petanque stack | Petanque candidate | Pending | Needs legacy parity pass. | _pending_ |

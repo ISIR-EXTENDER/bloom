@@ -36,7 +36,7 @@ Bloom should migrate reusable primitives from both generations, but the canvas g
 | `rosbag-control` | Generic recording/session command widget | Could control rosbag or other recording/session backends from selected topics and approved folders. |
 | `mode-button` | Generic state/mode command widget | Runtime mode switching is not Extender-only if modeled as state-machine action. |
 | `save-pose-button` / `load-pose-button` | Generic command-button presets | First Explorer saved-position candidate is covered by generic command buttons; reusable preset libraries still need a richer builder UX. |
-| `throw-draw` | Generic `gesture-pad` widget | The Petanque use case is specific, but drawing an angle/power/gesture command is reusable and now emits generic value-change intents. |
+| `throw-draw` | Generic `gesture-pad` widget | The Petanque use case is specific, but drawing an angle/power/gesture command is reusable and now emits generic value-change intents that can publish configured ROS topic payloads. |
 | `drink` | Generic media/action overlay candidate | It is playful, but technically a media overlay/action button pattern. |
 
 ## Likely True App-Specific Behavior
@@ -71,13 +71,14 @@ These priorities explain why a widget family matters. The current implementation
 3. **Display primitives**
    - Stream viewer for camera/RViz/visualization/webcam/image result.
    - Text/textarea/status block.
-   - Accessible gauge/status meters.
-   - Lightweight first-party plot/timeseries preview.
+   - Accessible gauge/status meters with optional runtime topic/field bindings.
+   - Lightweight first-party plot/timeseries preview with optional runtime topic/field bindings.
    - Rich plot/timeseries viewer using a chart dependency only after real runtime requirements justify it.
    - Minimal topic visualization for velocities, torques, positions, and scalar/vector telemetry.
    - Console-style topic echo viewer for in-app ROS/debug monitoring.
+   - Joint-state readiness display through the `robot-3d` extension point until a full 3D renderer is selected.
    - Topic inspector for browsing available topics, message types, frequencies, and recording eligibility.
-   - Log/event viewer.
+   - Log/event viewer with optional runtime topic binding for `/rosout` and app-specific event streams.
 
 4. **Builder primitives**
    - Navigation button/bar.

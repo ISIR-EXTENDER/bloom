@@ -54,5 +54,5 @@ def validate_minimum_payload_shape(message_type: str, payload: dict[str, Any]) -
         raise RuntimePayloadShapeError("std_msgs/msg/Int32 payload field 'data' must be an integer.")
     if message_type == "std_msgs/msg/String" and not isinstance(data, str):
         raise RuntimePayloadShapeError("std_msgs/msg/String payload field 'data' must be a string.")
-    if message_type == "std_msgs/msg/Int32MultiArray" and not isinstance(data, list):
-        raise RuntimePayloadShapeError("std_msgs/msg/Int32MultiArray payload field 'data' must be a list.")
+    if message_type in {"std_msgs/msg/Int32MultiArray", "std_msgs/msg/UInt8MultiArray"} and not isinstance(data, list):
+        raise RuntimePayloadShapeError(f"{message_type} payload field 'data' must be a list.")

@@ -30,6 +30,7 @@ APP_CONFIGURATION_FIXTURE_PATHS = (
     FIXTURE_DIR / "webcam-visualizer-configuration-bundle.json",
     FIXTURE_DIR / "bloom-debug-configuration.json",
     FIXTURE_DIR / "sandbox-teleop-lab-configuration.json",
+    FIXTURE_DIR / "sandbox-v0-configuration-bundle.json",
     FIXTURE_DIR / "explorer-user-tests-configuration-bundle.json",
 )
 
@@ -50,6 +51,48 @@ def test_app_configuration_fixtures_do_not_ship_empty_runtime_screens() -> None:
                     f"{configuration_path.name}:{application.id}/{screen.id} should contain at least one widget "
                     "or stay out of the seeded app library."
                 )
+
+
+def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
+    bundle = ConfigurationBundle.model_validate_json(
+        (FIXTURE_DIR / "sandbox-v0-configuration-bundle.json").read_text(encoding="utf-8")
+    )
+    application = bundle.applications[0]
+
+    assert application.id == "sandbox"
+    assert application.name == "Sandbox V0.0"
+    assert [screen.id for screen in application.screens] == [
+        "sandbox_control",
+        "sandbox_teleop_config",
+        "control_panel",
+        "snake_control",
+        "visual_servoing",
+        "visual_servoing_monitor",
+    ]
+    assert application.runtime_policy.allowed_teleop_targets == ("/teleop_cmd",)
+    assert "/snake_control/enable" in application.runtime_policy.allowed_publish_topics
+    assert "/visual_servoing/velocity_command" in application.runtime_policy.allowed_recording_topics
+
+    snake_screen = next(screen for screen in application.screens if screen.id == "snake_control")
+    snake_hold = next(widget for widget in snake_screen.widgets if widget.id == "snake-hold")
+    assert snake_hold.kind == WidgetKind.COMMAND_BUTTON
+    assert snake_hold.settings["momentary"] is True
+    assert snake_hold.settings["topic"] == "/snake_control/enable"
+    assert snake_hold.settings["messageType"] == "std_msgs/msg/Bool"
+    assert snake_hold.settings["payload"] == "{data: true}"
+    assert snake_hold.settings["releasedPayload"] == "{data: false}"
+
+    monitor_screen = next(screen for screen in application.screens if screen.id == "visual_servoing_monitor")
+    monitor_topics = {
+        widget.settings["topic"]
+        for widget in monitor_screen.widgets
+        if widget.kind == WidgetKind.TOPIC_ECHO
+    }
+    assert monitor_topics == {
+        "/tag_detections",
+        "/visual_servoing/velocity_command",
+        "/visual_servoing/error_TAGtoTAGd",
+    }
 
 
 def test_configuration_bundle_serializes_to_json() -> None:

@@ -24,6 +24,9 @@ type ProductWorkspaceProps = {
   onDuplicateApplication: (configId: string, applicationId: string) => Promise<void>;
   onEditRuntimeApplication: () => void;
   onEditRuntimeScreen: () => void;
+  onOpenBuilderHome: () => void;
+  onOpenHelp: () => void;
+  onOpenLanding: () => void;
   onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
   onRuntimeIntent: (
     intent: WidgetActionIntent,
@@ -52,6 +55,9 @@ export function ProductWorkspace({
   onDuplicateApplication,
   onEditRuntimeApplication,
   onEditRuntimeScreen,
+  onOpenBuilderHome,
+  onOpenHelp,
+  onOpenLanding,
   onOpenRuntimeApp,
   onRuntimeIntent,
   onSaveApplication,
@@ -116,6 +122,9 @@ export function ProductWorkspace({
       onActionIntent={onRuntimeIntent}
       onEditApplication={onEditRuntimeApplication}
       onEditScreen={onEditRuntimeScreen}
+      onOpenBuilderHome={onOpenBuilderHome}
+      onOpenHelp={onOpenHelp}
+      onOpenLanding={onOpenLanding}
       onSelectionChange={onSelectionChange}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}

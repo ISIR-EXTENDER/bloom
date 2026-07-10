@@ -86,6 +86,16 @@
               },
               "settings": {
                 "binding": "joy",
+                "mode_id": "both",
+                "publish_rate_hz": 20,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
                 "topic": "/cmd/joystick_xy",
                 "color": "#4a9eff",
                 "deadzone": 0.1,
@@ -111,6 +121,16 @@
               },
               "settings": {
                 "binding": "rot",
+                "mode_id": "rotation",
+                "publish_rate_hz": 20,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "value_mapping": {
+                    "mode": 1,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
                 "topic": "/cmd/joystick_rxry",
                 "color": "#f97316",
                 "deadzone": 0.1,
@@ -267,6 +287,16 @@
               },
               "settings": {
                 "binding": "joy",
+                "mode_id": "both",
+                "publish_rate_hz": 20,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
                 "topic": "/cmd/joystick_xy",
                 "color": "#4a9eff",
                 "deadzone": 0.1,
@@ -291,6 +321,16 @@
               },
               "settings": {
                 "binding": "rot",
+                "mode_id": "rotation",
+                "publish_rate_hz": 20,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "value_mapping": {
+                    "mode": 1,
+                    "target_topic": "/teleop_cmd"
+                  }
+                },
                 "topic": "/cmd/joystick_rxry",
                 "color": "#f97316",
                 "deadzone": 0.1,

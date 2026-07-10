@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { appendTopicEchoMessage, appendTopicPlotSample, resolveCanvasFitScale } from "@bloom/widgets";
 import type { CSSProperties } from "react";
@@ -32,6 +32,9 @@ type RuntimeWorkspaceProps = {
   ) => void;
   onEditApplication: () => void;
   onEditScreen: () => void;
+  onOpenBuilderHome: () => void;
+  onOpenHelp: () => void;
+  onOpenLanding: () => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
@@ -46,6 +49,9 @@ export function RuntimeWorkspace({
   onActionIntent,
   onEditApplication,
   onEditScreen,
+  onOpenBuilderHome,
+  onOpenHelp,
+  onOpenLanding,
   onSelectionChange,
   onTopicSample,
   onTopicSubscriptionRequest,
@@ -135,6 +141,7 @@ export function RuntimeWorkspace({
       data-display-preset={runtimeProfile.displayPreset}
       data-has-debug={application.id === "bloom-debug" ? "true" : "false"}
       data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
+      data-runtime-layout="operator"
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
     >
       <header className="runtime-app-topbar">
@@ -142,43 +149,53 @@ export function RuntimeWorkspace({
           <p className="eyebrow">Runtime app</p>
           <h2>{application.name}</h2>
           <p className="runtime-profile-label">{runtimeProfile.name}</p>
+          <p className="runtime-active-screen-label">{screen.title}</p>
         </div>
 
-        <nav className="runtime-app-actions" aria-label="Runtime shortcuts">
-          <button className="runtime-app-action" onClick={onBackToRuntimeHome} type="button">
-            App library
-          </button>
-          <button className="runtime-app-action" onClick={onEditApplication} type="button">
-            Edit app
-          </button>
-          <button className="runtime-app-action" onClick={onEditScreen} type="button">
-            Edit screen
-          </button>
-        </nav>
-
-        {application.screens.length > 1 ? (
-          <div aria-label="Runtime screens" className="runtime-screen-tabs" role="tablist">
-            {application.screens.map((availableScreen) => (
-              <button
-                aria-current={screen.id === availableScreen.id ? "page" : undefined}
-                aria-selected={screen.id === availableScreen.id}
-                className="runtime-screen-tab"
-                key={availableScreen.id}
-                onClick={() =>
-                  onSelectionChange({
-                    ...selection,
-                    screenId: availableScreen.id,
-                  })
-                }
-                role="tab"
-                type="button"
-              >
-                <strong>{availableScreen.title}</strong>
-                <span>{availableScreen.widgets.length} widgets</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
+        <details className="runtime-app-menu">
+          <summary aria-label="Open runtime menu">Menu</summary>
+          <nav className="runtime-app-actions" aria-label="Runtime shortcuts">
+            <button className="runtime-app-action" onClick={onOpenLanding} type="button">
+              Home
+            </button>
+            <button className="runtime-app-action" onClick={onBackToRuntimeHome} type="button">
+              App library
+            </button>
+            <button className="runtime-app-action" onClick={onOpenBuilderHome} type="button">
+              Builder
+            </button>
+            <button className="runtime-app-action" onClick={onOpenHelp} type="button">
+              Help
+            </button>
+            <button className="runtime-app-action" onClick={onEditApplication} type="button">
+              Edit app
+            </button>
+            <button className="runtime-app-action" onClick={onEditScreen} type="button">
+              Edit screen
+            </button>
+            {application.screens.length > 1 ? (
+              <span className="runtime-app-menu-group" role="presentation">
+                <span>Switch screen</span>
+                {application.screens.map((availableScreen) => (
+                  <button
+                    aria-current={screen.id === availableScreen.id ? "page" : undefined}
+                    className="runtime-app-action"
+                    key={availableScreen.id}
+                    onClick={() =>
+                      onSelectionChange({
+                        ...selection,
+                        screenId: availableScreen.id,
+                      })
+                    }
+                    type="button"
+                  >
+                    {availableScreen.title}
+                  </button>
+                ))}
+              </span>
+            ) : null}
+          </nav>
+        </details>
       </header>
 
       {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
@@ -217,11 +234,7 @@ export function RuntimeWorkspace({
 
 function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTopicSubscriptionRequest[] {
   return screen.widgets.flatMap((widget) => {
-    if (widget.kind !== "topic-echo" && widget.kind !== "topic-plot") {
-      return [];
-    }
-
-    const topic = readStringSetting(widget.settings, "topic");
+    const topic = resolveWidgetRuntimeTopic(widget);
     if (!topic?.startsWith("/")) {
       return [];
     }
@@ -230,8 +243,8 @@ function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTo
       {
         type: "subscribe_topic",
         topic,
-        message_type: readStringSetting(widget.settings, "messageType") ?? "",
-        field_path: readStringSetting(widget.settings, "fieldPath") ?? "",
+        message_type: resolveWidgetRuntimeMessageType(widget),
+        field_path: resolveWidgetRuntimeFieldPath(widget),
         widget_id: widget.id,
       },
     ];
@@ -251,7 +264,7 @@ function appendRuntimeTopicSample(
   };
 
   for (const widget of screen.widgets) {
-    if (readStringSetting(widget.settings, "topic") !== sample.payload.topic) {
+    if (resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {
       continue;
     }
 
@@ -264,6 +277,19 @@ function appendRuntimeTopicSample(
         messages: appendTopicEchoMessage(currentMessages, topicMessage, {
           fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "",
           maxMessages: readNumberSetting(widget.settings, "maxMessages", 100),
+        }),
+      };
+    }
+
+    if (widget.kind === "event-log") {
+      nextData = nextData ?? { ...currentData };
+      const currentWidgetData = currentData[widget.id];
+      const currentMessages = currentWidgetData?.type === "event-log" ? currentWidgetData.messages : [];
+      nextData[widget.id] = {
+        type: "event-log",
+        messages: appendTopicEchoMessage(currentMessages, topicMessage, {
+          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "",
+          maxMessages: readNumberSetting(widget.settings, "maxEntries", 20),
         }),
       };
     }
@@ -281,9 +307,83 @@ function appendRuntimeTopicSample(
         }),
       };
     }
+
+    if (widget.kind === "gauge") {
+      const samples = appendTopicPlotSample([], topicMessage, {
+        fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "data",
+        historySeconds: 1,
+        maxSamples: 1,
+      });
+      const latestSample = samples.at(-1);
+      if (!latestSample) {
+        continue;
+      }
+
+      nextData = nextData ?? { ...currentData };
+      nextData[widget.id] = {
+        receivedAt: topicMessage.receivedAt,
+        topic: topicMessage.topic,
+        type: "gauge",
+        value: latestSample.value,
+      };
+    }
+
+    if (widget.kind === "plot") {
+      nextData = nextData ?? { ...currentData };
+      const currentWidgetData = currentData[widget.id];
+      const currentSamples = currentWidgetData?.type === "plot" ? currentWidgetData.samples : [];
+      nextData[widget.id] = {
+        type: "plot",
+        samples: appendTopicPlotSample(currentSamples, topicMessage, {
+          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "data",
+          historySeconds: readNumberSetting(widget.settings, "historySeconds", 30),
+          maxSamples: readNumberSetting(widget.settings, "maxSamples", 500),
+        }),
+      };
+    }
+
+    if (widget.kind === "robot-3d") {
+      nextData = nextData ?? { ...currentData };
+      nextData[widget.id] = {
+        receivedAt: topicMessage.receivedAt,
+        topic: topicMessage.topic,
+        type: "robot-3d",
+        value: topicMessage.value,
+      };
+    }
   }
 
   return nextData ?? { ...currentData };
+}
+
+function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefined {
+  if (widget.kind === "robot-3d") {
+    return readStringSetting(widget.settings, "jointStateTopic") ?? "/joint_states";
+  }
+  if (
+    widget.kind === "gauge" ||
+    widget.kind === "event-log" ||
+    widget.kind === "plot" ||
+    widget.kind === "topic-echo" ||
+    widget.kind === "topic-plot"
+  ) {
+    return readStringSetting(widget.settings, "topic");
+  }
+  return undefined;
+}
+
+function resolveWidgetRuntimeMessageType(widget: WidgetConfig): string {
+  if (widget.kind === "robot-3d") {
+    return "sensor_msgs/msg/JointState";
+  }
+  return readStringSetting(widget.settings, "messageType") ?? "";
+}
+
+function resolveWidgetRuntimeFieldPath(widget: WidgetConfig): string {
+  if (widget.kind === "gauge" || widget.kind === "plot" || widget.kind === "topic-plot") {
+    return readStringSetting(widget.settings, "fieldPath") ?? "data";
+  }
+  return readStringSetting(widget.settings, "fieldPath") ?? "";
 }
 
 function readStringSetting(settings: Record<string, unknown>, key: string): string | undefined {

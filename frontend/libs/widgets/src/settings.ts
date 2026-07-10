@@ -60,15 +60,22 @@ export type CommandButtonSettings = {
 
 export type EventLogSettings = {
   entries: unknown[];
+  fieldPath: string;
   maxEntries: number;
+  messageType: string;
   severityFilter: string[];
   show_details: boolean;
   showTimestamps: boolean;
+  topic: string;
 };
 
 export type GaugeSettings = {
+  fieldPath: string;
   max: number;
+  messageType: string;
   min: number;
+  show_details: boolean;
+  topic: string;
   unit: string;
   value: number;
 };
@@ -124,9 +131,14 @@ export type LabelSettings = {
 };
 
 export type PlotSettings = {
+  fieldPath: string;
   historySeconds: number;
+  maxSamples: number;
+  messageType: string;
   samples: number[];
+  show_details: boolean;
   showLegend: boolean;
+  topic: string;
   unit: string;
   variant: "area" | "bars" | "sparkline";
   yMax?: number;
@@ -222,15 +234,22 @@ const EVENT_LOG_DEFAULT_SETTINGS: EventLogSettings = {
       detail: "Connect a runtime log source or configure static events for this screen.",
     },
   ],
+  fieldPath: "",
   maxEntries: 20,
+  messageType: "",
   severityFilter: ["info", "warning", "error", "success"],
   show_details: false,
   showTimestamps: true,
+  topic: "",
 };
 
 const GAUGE_DEFAULT_SETTINGS: GaugeSettings = {
+  fieldPath: "data",
   max: 1,
+  messageType: "",
   min: 0,
+  show_details: false,
+  topic: "",
   unit: "",
   value: 0,
 };
@@ -283,9 +302,14 @@ const LABEL_DEFAULT_SETTINGS: LabelSettings = {
 };
 
 const PLOT_DEFAULT_SETTINGS: PlotSettings = {
+  fieldPath: "data",
   historySeconds: 10,
+  maxSamples: 500,
+  messageType: "",
   samples: [0.18, 0.34, 0.28, 0.52, 0.47, 0.68, 0.61, 0.79, 0.73, 0.88],
+  show_details: false,
   showLegend: true,
+  topic: "",
   unit: "",
   variant: "area",
 };
@@ -386,6 +410,9 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     "event-log",
     [
       { key: "entries", label: "Entries", type: "json", required: true },
+      { key: "topic", label: "Input topic", type: "text", required: false },
+      { key: "messageType", label: "Message type", type: "text", required: false },
+      { key: "fieldPath", label: "Field path", type: "text", required: false },
       { key: "maxEntries", label: "Maximum entries", type: "number", required: true },
       { key: "severityFilter", label: "Severity filter", type: "json", required: true },
       { key: "showTimestamps", label: "Show timestamps", type: "boolean", required: true },
@@ -400,6 +427,10 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "min", label: "Minimum", type: "number", required: true },
       { key: "max", label: "Maximum", type: "number", required: true },
       { key: "value", label: "Value", type: "number", required: true },
+      { key: "topic", label: "Input topic", type: "text", required: false },
+      { key: "messageType", label: "Message type", type: "text", required: false },
+      { key: "fieldPath", label: "Field path", type: "text", required: false },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "unit", label: "Unit", type: "text", required: false },
     ],
     GAUGE_DEFAULT_SETTINGS,
@@ -447,8 +478,13 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   plot: createContract(
     "plot",
     [
+      { key: "topic", label: "Input topic", type: "text", required: false },
+      { key: "messageType", label: "Message type", type: "text", required: false },
+      { key: "fieldPath", label: "Field path", type: "text", required: false },
       { key: "historySeconds", label: "History duration", type: "number", required: true },
+      { key: "maxSamples", label: "Maximum samples", type: "number", required: true },
       { key: "showLegend", label: "Show legend", type: "boolean", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "samples", label: "Preview samples", type: "json", required: true },
       { key: "variant", label: "Variant", type: "select", required: true, options: ["area", "bars", "sparkline"] },
       { key: "unit", label: "Unit", type: "text", required: false },
@@ -897,6 +933,9 @@ function validateCommandButtonSettings(
 function validateEventLogSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<EventLogSettings> {
   const errors = [
     ...(Array.isArray(settings.entries) ? [] : [{ field: "entries", message: "entries must be an array" }]),
+    ...validateString(settings, "topic", { allowEmpty: true }),
+    ...validateString(settings, "messageType", { allowEmpty: true }),
+    ...validateString(settings, "fieldPath", { allowEmpty: true }),
     ...validateNumber(settings, "maxEntries", { min: 1 }),
     ...validateBoolean(settings, "showTimestamps"),
     ...validateBoolean(settings, "show_details"),
@@ -916,6 +955,10 @@ function validateGaugeSettings(settings: Record<string, unknown>): WidgetSetting
     ...validateNumber(settings, "min"),
     ...validateNumber(settings, "max"),
     ...validateNumber(settings, "value"),
+    ...validateString(settings, "topic", { allowEmpty: true }),
+    ...validateString(settings, "messageType", { allowEmpty: true }),
+    ...validateString(settings, "fieldPath", { allowEmpty: true }),
+    ...validateBoolean(settings, "show_details"),
     ...validateString(settings, "unit", { allowEmpty: true }),
   ];
   if (isNumber(settings.min) && isNumber(settings.max) && settings.min >= settings.max) {
@@ -1040,7 +1083,12 @@ function validateLabelSettings(settings: Record<string, unknown>): WidgetSetting
 
 function validatePlotSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<PlotSettings> {
   const errors = [
+    ...validateString(settings, "topic", { allowEmpty: true }),
+    ...validateString(settings, "messageType", { allowEmpty: true }),
+    ...validateString(settings, "fieldPath", { allowEmpty: true }),
     ...validateNumber(settings, "historySeconds", { min: 1 }),
+    ...validateNumber(settings, "maxSamples", { min: 1 }),
+    ...validateBoolean(settings, "show_details"),
     ...validateBoolean(settings, "showLegend"),
     ...validateNumberArray(settings.samples, "samples"),
     ...validateOneOf(settings, "variant", ["area", "bars", "sparkline"]),

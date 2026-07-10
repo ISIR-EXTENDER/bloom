@@ -28,8 +28,8 @@
           "id": "sandbox-teleop-lab",
           "title": "Sandbox teleop lab",
           "canvas": {
-            "preset_id": "hd",
-            "runtime_mode": "fit"
+            "preset_id": "wide-tablet",
+            "runtime_mode": "operator-fit"
           },
           "widgets": [
             {
@@ -37,8 +37,8 @@
               "kind": "joystick",
               "title": "Translation joystick",
               "layout": {
-                "x": 120,
-                "y": 112,
+                "x": 330,
+                "y": 174,
                 "width": 420,
                 "height": 420
               },
@@ -83,8 +83,8 @@
               "kind": "joystick",
               "title": "Rotation joystick",
               "layout": {
-                "x": 760,
-                "y": 112,
+                "x": 1110,
+                "y": 174,
                 "width": 420,
                 "height": 420
               },
@@ -129,10 +129,10 @@
               "kind": "slider",
               "title": "Max velocity",
               "layout": {
-                "x": 286,
-                "y": 612,
+                "x": 630,
+                "y": 600,
                 "width": 560,
-                "height": 96
+                "height": 84
               },
               "settings": {
                 "binding": "max_velocity",
@@ -158,9 +158,9 @@
               "kind": "slider",
               "title": "Z axis",
               "layout": {
-                "x": 46,
-                "y": 160,
-                "width": 80,
+                "x": 140,
+                "y": 174,
+                "width": 136,
                 "height": 420
               },
               "settings": {
@@ -181,13 +181,42 @@
                   }
                 }
               }
+            },
+            {
+              "id": "sandbox-rz-slider",
+              "kind": "slider",
+              "title": "RZ axis",
+              "layout": {
+                "x": 1110,
+                "y": 74,
+                "width": 420,
+                "height": 84
+              },
+              "settings": {
+                "binding": "rz",
+                "direction": "horizontal",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "returnToCenter": true,
+                "topic": "/cmd/joystick_rz",
+                "messageType": "std_msgs/msg/Float64",
+                "runtime_binding": {
+                  "adapter": "topic",
+                  "target": "/cmd/joystick_rz",
+                  "value_mapping": {
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64"
+                  }
+                }
+              }
             }
           ]
         }
       ],
       "runtime_policy": {
         "allowed_message_types": ["std_msgs/msg/Float64"],
-        "allowed_publish_topics": ["/cmd/joystick_z", "/cmd/max_velocity"],
+        "allowed_publish_topics": ["/cmd/joystick_rz", "/cmd/joystick_z", "/cmd/max_velocity"],
         "allowed_recording_topics": ["/joint_states", "/sandbox_controller/velocity_command", "/teleop_cmd"],
         "allowed_teleop_targets": ["/teleop_cmd"]
       },

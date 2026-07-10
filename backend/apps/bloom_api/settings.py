@@ -31,12 +31,15 @@ class Settings(BaseModel):
         "extender_msgs/msg/TeleopCommand",
         "geometry_msgs/msg/Twist",
         "geometry_msgs/msg/TwistStamped",
+        "geometry_msgs/msg/Vector3",
         "sensor_msgs/msg/JointState",
         "std_msgs/msg/Bool",
         "std_msgs/msg/Float64",
+        "std_msgs/msg/Float64MultiArray",
         "std_msgs/msg/Int32",
         "std_msgs/msg/Int32MultiArray",
         "std_msgs/msg/String",
+        "std_msgs/msg/UInt8MultiArray",
     )
     allowed_ros_publish_topics: tuple[str, ...] = (
         "/cmd/gripper",
@@ -46,11 +49,17 @@ class Settings(BaseModel):
         "/cmd/joystick_z",
         "/cmd/max_velocity",
         "/cmd/petanque/round",
+        "/petanque/measure/request_image",
+        "/petanque/teleop/enabled",
+        "/petanque/throw/alpha",
+        "/petanque/throw/gesture",
         "/petanque_state_machine/change_state",
         "/teleop_cmd",
         "/ui/load_pose",
         "/ui/navigation",
         "/ui/ros_toggle",
+        "/ui/save_pose",
+        "/visual_servoing/enabled",
     )
     allowed_teleop_targets: tuple[str, ...] = ("/teleop_cmd",)
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
@@ -107,6 +116,18 @@ class Settings(BaseModel):
                 cls.model_fields["http_rate_limit_per_minute"].default,
             ),
             operator_api_key=os.getenv("BLOOM_OPERATOR_API_KEY", ""),
+            allowed_ros_message_types=_read_tuple_env(
+                "BLOOM_ALLOWED_ROS_MESSAGE_TYPES",
+                cls.model_fields["allowed_ros_message_types"].default,
+            ),
+            allowed_ros_publish_topics=_read_tuple_env(
+                "BLOOM_ALLOWED_ROS_PUBLISH_TOPICS",
+                cls.model_fields["allowed_ros_publish_topics"].default,
+            ),
+            allowed_teleop_targets=_read_tuple_env(
+                "BLOOM_ALLOWED_TELEOP_TARGETS",
+                cls.model_fields["allowed_teleop_targets"].default,
+            ),
             allowed_recording_topics=_read_tuple_env(
                 "BLOOM_ALLOWED_RECORDING_TOPICS",
                 cls.model_fields["allowed_recording_topics"].default,
@@ -129,6 +150,10 @@ class Settings(BaseModel):
                 "BLOOM_RUNTIME_RECORDING_GATEWAY",
                 ("noop", "rosbag"),
                 cls.model_fields["runtime_recording_gateway"].default,
+            ),
+            runtime_command_rate_limit_per_second=_read_int_env(
+                "BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND",
+                cls.model_fields["runtime_command_rate_limit_per_second"].default,
             ),
             service_name=os.getenv("BLOOM_SERVICE_NAME", cls.model_fields["service_name"].default),
             theme_asset_dir=Path(os.getenv("BLOOM_THEME_ASSET_DIR", str(cls.model_fields["theme_asset_dir"].default))),

@@ -2,6 +2,7 @@ import type { ConfigurationBundle } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
 import compactSandboxConfiguration from "../../../../../tests/fixtures/compact-sandbox-configuration.json";
+import sandboxV0Configuration from "../../../../../tests/fixtures/sandbox-v0-configuration-bundle.json";
 import { normalizeConfigurationBundle } from "./configuration-normalizer";
 
 describe("normalizeConfigurationBundle", () => {
@@ -19,6 +20,50 @@ describe("normalizeConfigurationBundle", () => {
       payloadOff: { data: [13, 0] },
       topic: "/ui/ros_toggle",
     });
+  });
+
+  it("keeps the Sandbox V0.0 six-screen runtime configuration intact", () => {
+    const normalizedBundle = normalizeConfigurationBundle(sandboxV0Configuration as unknown as ConfigurationBundle);
+    const application = normalizedBundle.applications[0];
+
+    expect(application?.name).toBe("Sandbox V0.0");
+    expect(application?.screens.map((screen) => screen.id)).toEqual([
+      "sandbox_control",
+      "sandbox_teleop_config",
+      "control_panel",
+      "snake_control",
+      "visual_servoing",
+      "visual_servoing_monitor",
+    ]);
+
+    const controlPanel = application?.screens.find((screen) => screen.id === "control_panel");
+    expect(controlPanel?.canvas).toEqual({ preset_id: "hd", runtime_mode: "fit" });
+    expect(controlPanel?.widgets.some((widget) => widget.kind === "unknown")).toBe(false);
+
+    const snakeHold = application?.screens
+      .find((screen) => screen.id === "snake_control")
+      ?.widgets.find((widget) => widget.id === "snake-hold");
+    expect(snakeHold).toMatchObject({
+      kind: "command-button",
+      settings: {
+        momentary: true,
+        topic: "/snake_control/enable",
+        messageType: "std_msgs/msg/Bool",
+        payload: "{data: true}",
+        releasedPayload: "{data: false}",
+      },
+    });
+
+    const monitorTopics = application?.screens
+      .find((screen) => screen.id === "visual_servoing_monitor")
+      ?.widgets.filter((widget) => widget.kind === "topic-echo")
+      .map((widget) => widget.settings.topic)
+      .sort();
+    expect(monitorTopics).toEqual([
+      "/tag_detections",
+      "/visual_servoing/error_TAGtoTAGd",
+      "/visual_servoing/velocity_command",
+    ]);
   });
 
   it("keeps unsupported widget kinds renderable as unknown widgets", () => {
