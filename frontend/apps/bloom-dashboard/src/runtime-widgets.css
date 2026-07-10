@@ -323,7 +323,7 @@
 .bloom-joystick-zone {
   position: absolute;
   z-index: 4;
-  inset: max(16px, calc(var(--bloom-joystick-size, 360px) * 0.12));
+  inset: 16px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--bloom-primary) 5%, transparent);
   box-shadow:
@@ -339,10 +339,9 @@
 
 .bloom-joystick::before {
   position: absolute;
-  width: 74%;
+  inset: 16px;
   border: 2px solid color-mix(in srgb, var(--bloom-primary) 18%, transparent);
   border-radius: 999px;
-  aspect-ratio: 1;
   background:
     radial-gradient(circle at center, color-mix(in srgb, var(--bloom-accent) 20%, transparent), transparent 30%),
     color-mix(in srgb, var(--bloom-surface) 68%, transparent);
@@ -352,7 +351,7 @@
 .bloom-joystick-deadzone {
   position: absolute;
   z-index: 1;
-  width: calc(68% * var(--bloom-joystick-deadzone, 0.1));
+  width: calc((100% - 32px) * var(--bloom-joystick-deadzone, 0.1));
   border: 1px solid color-mix(in srgb, var(--bloom-error) 38%, transparent);
   border-radius: 999px;
   opacity: 0.72;
@@ -382,14 +381,14 @@
 }
 
 .bloom-joystick-axis-guide-x {
-  width: 72%;
+  width: calc(100% - 32px);
   height: 2px;
   transform: translate(-50%, -50%);
 }
 
 .bloom-joystick-axis-guide-y {
   width: 2px;
-  height: 72%;
+  height: calc(100% - 32px);
   transform: translate(-50%, -50%);
 }
 
