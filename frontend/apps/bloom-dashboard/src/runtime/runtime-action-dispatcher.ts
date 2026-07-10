@@ -66,6 +66,7 @@ export type RuntimeTopicSampleMessage = {
 
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;
+  dispatchRuntimeAction?: BloomApiClient["dispatchRuntimeAction"];
   listRosTopicStatus?: BloomApiClient["listRosTopicStatus"];
   listRosTopics?: BloomApiClient["listRosTopics"];
   listRuntimeAuditRecords?: BloomApiClient["listRuntimeAuditRecords"];
@@ -76,7 +77,17 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
 };
 
 export type RuntimeActionDispatchStatus = "accepted" | "blocked" | "failed" | "published" | "simulated" | "unsupported";
-export type RuntimeActionRequest = RosTopicPublishRequest | RuntimeTeleopCommandRequest;
+export type RuntimeConfiguredActionRequest = {
+  app_id: string;
+  command?: string;
+  config_id: string;
+  preset_id?: string;
+  type: "runtime_action";
+};
+export type RuntimeActionRequest =
+  | RosTopicPublishRequest
+  | RuntimeConfiguredActionRequest
+  | RuntimeTeleopCommandRequest;
 
 export type RuntimeActionDispatchResult = {
   detail: string;
@@ -87,6 +98,8 @@ export type RuntimeActionDispatchResult = {
 
 export type RuntimeActionDispatchOptions = {
   actionPresets?: readonly RuntimeActionPreset[];
+  appId?: string;
+  configId?: string;
   runtimePolicy?: RuntimeAdapterPolicy;
   teleopSequence?: number;
 };
@@ -122,6 +135,43 @@ async function dispatchCommandIntent(
 ): Promise<RuntimeActionDispatchResult> {
   const preset = findActionPreset(intent, options.actionPresets ?? []);
   const request = preset ? createPresetTopicPublishRequest(preset) : null;
+  const configuredActionRequest = createConfiguredActionRequest(intent, options, preset);
+  if (configuredActionRequest && client.dispatchRuntimeAction) {
+    if (request) {
+      const policyError = validateTopicPublishRequest(request, options.runtimePolicy);
+      if (policyError) {
+        return {
+          intent,
+          request,
+          status: "blocked",
+          detail: policyError,
+        };
+      }
+    }
+
+    try {
+      const response = await client.dispatchRuntimeAction({
+        app_id: configuredActionRequest.app_id,
+        command: configuredActionRequest.command,
+        config_id: configuredActionRequest.config_id,
+        preset_id: configuredActionRequest.preset_id,
+      });
+      return {
+        intent,
+        request: configuredActionRequest,
+        status: response.status,
+        detail: response.detail,
+      };
+    } catch (error: unknown) {
+      return {
+        intent,
+        request: configuredActionRequest,
+        status: "failed",
+        detail: getErrorMessage(error),
+      };
+    }
+  }
+
   if (!request) {
     return {
       intent,
@@ -278,6 +328,24 @@ async function dispatchTeleopValueIntent(
     intent,
     status: "unsupported",
     detail: "Value-change intents need a teleop or topic runtime binding before they can be sent.",
+  };
+}
+
+function createConfiguredActionRequest(
+  intent: Extract<WidgetActionIntent, { type: "command" }>,
+  options: RuntimeActionDispatchOptions,
+  preset: RuntimeActionPreset | null,
+): RuntimeConfiguredActionRequest | null {
+  if (!options.configId || !options.appId || (!preset?.id && !intent.command)) {
+    return null;
+  }
+
+  return {
+    type: "runtime_action",
+    app_id: options.appId,
+    command: preset?.command || intent.command,
+    config_id: options.configId,
+    preset_id: preset?.id ?? intent.presetId,
   };
 }
 

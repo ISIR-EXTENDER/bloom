@@ -40,10 +40,10 @@ Last full review: 2026-07-10.
 
 Current migration estimate:
 
-- Web product foundation: about 84%.
-- Live ROS/runtime parity with `tablet_interface`: about 79%.
-- Full legacy app parity with `extender_ui` and Petanque screens: about 62%.
-- Safety/security readiness for real configurable robot commands: about 74%.
+- Web product foundation: about 85%.
+- Live ROS/runtime parity with `tablet_interface`: about 82%.
+- Full legacy app parity with `extender_ui` and Petanque screens: about 65%.
+- Safety/security readiness for real configurable robot commands: about 80%.
 
 The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
 shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions,
@@ -250,6 +250,9 @@ Completed in this phase:
 - Generic value-change topic publishing now covers finite scalar values and JSON-like object values. This keeps
   `gesture-pad` usable as a real ROS command input while keeping Petanque-specific serialization out of widget
   components.
+- Saved command actions can now go through a backend app-scoped runtime endpoint. The frontend sends `config_id`,
+  `app_id`, and a saved preset or command id; the backend reloads the saved app, enforces app policy, then enforces the
+  global ROS publish policy before touching the ROS gateway.
 
 Validated runtime checks:
 
@@ -352,6 +355,8 @@ Completed in this phase so far:
   command, and event widgets instead of a task-specific core widget.
 - The Explorer candidate now includes a favorites screen that models fast operator shortcuts as configured commands
   without introducing a premature favorites subsystem.
+- The Explorer candidate now has concrete runtime action presets for deploy/repli, safe-zone enable, saved pose
+  save/replay/cancel, favorite mode/layout/position, emergency stop, and gripper close.
 - The Petanque `throw-draw` idea now maps to a generic `gesture-pad` widget foundation that emits angle/power value
   intents, publishes configured ROS topic payloads through the runtime dispatcher, and keeps Petanque topics/commands in
   configuration.
@@ -447,6 +452,12 @@ Completed in this phase so far:
   `1820x720` logical workspace.
 - CI security is currently green after updating vulnerable frontend/backend dependencies found by audit:
   frontend `undici`, backend `msgpack`, and backend `starlette`.
+- Runtime action dispatch now has a backend-scoped command endpoint that prevents concrete robot actions from accepting
+  ad hoc browser-supplied topic/message/payload triples.
+- SQLite save/load tests now cover creating new apps and new screens through API endpoints, then reloading them from a
+  fresh backend instance.
+- The Bloom runtime/configuration flow is documented against `extender_ui` in
+  `docs/runtime-flow-vs-extender-ui.md`, including the opt-in rosbag operating procedure.
 
 Remaining work in this phase:
 
@@ -480,10 +491,11 @@ Status: idea captured, intentionally low priority.
    controls, and HD-bounded `control_panel` grouping changes.
 4. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
    The fixture/runtime contract is accepted; the live Petanque stack/operator pass remains pending.
-5. Add remaining concrete robot action adapters:
-   deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.
-6. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
-7. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+5. Validate the concrete Explorer user-test action presets against the target robot stack:
+   deploy/repli, saved pose replay, favorite mode/layout/position, emergency stop, and gripper close. The saved-preset
+   backend contract is accepted; live robot behavior remains pending.
+6. Run a live opt-in rosbag capture in a sourced ROS workspace using the documented operating procedure.
+7. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each live slice.
    `npm run validation:frontend-backend` now covers the static fixture/backend-policy part of this gate before live
    dashboard passes.
 
@@ -506,6 +518,9 @@ Completed validation records:
 - [2026-07-10 Frontend/backend coherence review](validation/2026-07-10-frontend-backend-coherence.md): accepted for
   tracked fixture/backend contract after `npm run validation:frontend-backend` caught and fixed stale Explorer seeded
   config plus missing backend publish/recording allowlist entries.
+- [2026-07-10 ROS backend and DB finish flow](validation/2026-07-10-ros-backend-db-finish-flow.md): accepted for
+  saved runtime action dispatch, Explorer concrete action presets, SQLite app/screen save-load tests, and the documented
+  Bloom-vs-`extender_ui` runtime flow.
 
 See also:
 

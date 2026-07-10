@@ -1,8 +1,11 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
-from libs.config import InMemoryConfigurationRepository
+from libs.config import ConfigurationBundle, InMemoryConfigurationRepository, RuntimeActionPreset, load_configuration_file
+from libs.ros_adapters import RosPublishReceipt, RosPublishRequest
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
     RuntimeCommandRateLimiter,
@@ -17,6 +20,22 @@ from libs.sessions import (
     TeleopPublishReceipt,
     TeleopVector3,
 )
+
+EXPLORER_FIXTURE_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "explorer-user-tests-configuration-bundle.json"
+
+
+class RecordingRosPublisherGateway:
+    def __init__(self) -> None:
+        self.requests: list[RosPublishRequest] = []
+
+    def publish(self, request: RosPublishRequest) -> RosPublishReceipt:
+        self.requests.append(request)
+        return RosPublishReceipt(
+            detail=f"Published {request.topic}.",
+            message_type=request.message_type,
+            status="published",
+            topic=request.topic,
+        )
 
 
 class RecordingTeleopGateway:
@@ -421,6 +440,157 @@ def test_runtime_audit_endpoint_lists_recent_records() -> None:
         "target": "/teleop_cmd",
         "topic": "",
     }
+
+
+def test_runtime_action_dispatches_saved_explorer_adapters_through_ros_policy() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    gateway = RecordingRosPublisherGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository({"explorer-user-tests": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
+            ros_publisher_gateway=gateway,
+            runtime_audit_log=audit_log,
+        )
+    )
+
+    expected_requests = [
+        ("explorer.deploy", "/ui/robot_action", "std_msgs/msg/String", {"data": "deploy"}),
+        ("explorer.repli", "/ui/robot_action", "std_msgs/msg/String", {"data": "repli"}),
+        ("explorer.pose.load.home", "/ui/load_pose", "std_msgs/msg/String", {"data": "home"}),
+        ("explorer.favorite.mode.both", "/cmd/mode", "std_msgs/msg/Int32", {"data": 3}),
+        ("close_gripper", "/gripper_controller/commands", "std_msgs/msg/Float64MultiArray", {"data": [0.8]}),
+    ]
+
+    responses = [
+        client.post(
+            "/api/v1/runtime/actions",
+            json={
+                "app_id": "explorer-user-tests",
+                "command": command,
+                "config_id": "explorer-user-tests",
+            },
+        )
+        for command, _, _, _ in expected_requests
+    ]
+
+    assert [response.status_code for response in responses] == [200, 200, 200, 200, 200]
+    assert [
+        (request.topic, request.message_type, request.payload)
+        for request in gateway.requests
+    ] == [(topic, message_type, payload) for _, topic, message_type, payload in expected_requests]
+    assert responses[0].json() | {"detail": ""} == {
+        "app_id": "explorer-user-tests",
+        "command": "explorer.deploy",
+        "config_id": "explorer-user-tests",
+        "detail": "",
+        "message_type": "std_msgs/msg/String",
+        "preset_id": "explorer-deploy",
+        "status": "published",
+        "topic": "/ui/robot_action",
+    }
+    assert all(record.channel == "http_ros_publish" for record in audit_log.list_records())
+
+
+def test_runtime_action_dispatch_can_resolve_by_preset_id() -> None:
+    gateway = RecordingRosPublisherGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository({"explorer-user-tests": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
+            ros_publisher_gateway=gateway,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/runtime/actions",
+        json={
+            "app_id": "explorer-user-tests",
+            "config_id": "explorer-user-tests",
+            "preset_id": "explorer-pose-load-meal",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["command"] == "explorer.pose.load.meal"
+    assert gateway.requests == [
+        RosPublishRequest(
+            message_type="std_msgs/msg/String",
+            payload={"data": "meal"},
+            topic="/ui/load_pose",
+        )
+    ]
+
+
+def test_runtime_action_dispatch_rejects_commands_not_backed_by_saved_presets() -> None:
+    gateway = RecordingRosPublisherGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository({"explorer-user-tests": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
+            ros_publisher_gateway=gateway,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/runtime/actions",
+        json={
+            "app_id": "explorer-user-tests",
+            "command": "explorer.unsaved.command",
+            "config_id": "explorer-user-tests",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "runtime action preset not found"}
+    assert gateway.requests == []
+
+
+def test_runtime_action_dispatch_rejects_app_policy_before_ros_publish() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    gateway = RecordingRosPublisherGateway()
+    bundle = load_configuration_file(EXPLORER_FIXTURE_PATH)
+    application = bundle.applications[0].model_copy(
+        update={
+            "action_presets": bundle.applications[0].action_presets
+            + (
+                RuntimeActionPreset(
+                    command="explorer.policy.escape",
+                    id="explorer-policy-escape",
+                    message_type="std_msgs/msg/String",
+                    name="Policy escape",
+                    payload_text="{data: 'escape'}",
+                    topic="/dangerous/topic",
+                ),
+            )
+        }
+    )
+    blocked_bundle = ConfigurationBundle(metadata=bundle.metadata, applications=(application,))
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository({"explorer-user-tests": blocked_bundle}),
+            ros_publisher_gateway=gateway,
+            runtime_audit_log=audit_log,
+        )
+    )
+
+    response = client.post(
+        "/api/v1/runtime/actions",
+        json={
+            "app_id": "explorer-user-tests",
+            "command": "explorer.policy.escape",
+            "config_id": "explorer-user-tests",
+        },
+    )
+
+    assert response.status_code == 403
+    assert "ROS topic '/dangerous/topic' is not allowed" in response.json()["detail"]
+    assert gateway.requests == []
+    record = audit_log.list_records()[0]
+    assert record.channel == "runtime_action"
+    assert record.status == "rejected"
+    assert record.target == "explorer.policy.escape"
 
 
 def test_runtime_websocket_reports_invalid_messages_without_closing() -> None:

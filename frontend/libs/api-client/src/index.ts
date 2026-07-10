@@ -188,6 +188,24 @@ export type RosTopicPublishResponse = {
   detail: string;
 };
 
+export type RuntimeActionDispatchRequest = {
+  app_id: string;
+  command?: string;
+  config_id: string;
+  preset_id?: string;
+};
+
+export type RuntimeActionDispatchResponse = {
+  app_id: string;
+  command: string;
+  config_id: string;
+  detail: string;
+  message_type: string;
+  preset_id: string;
+  status: RosTopicPublishStatus;
+  topic: string;
+};
+
 export type RosTopicInfo = {
   name: string;
   message_type: string;
@@ -351,6 +369,14 @@ export class BloomApiClient {
 
   publishRosTopic(request: RosTopicPublishRequest): Promise<RosTopicPublishResponse> {
     return this.request<RosTopicPublishResponse>("/api/v1/ros/topics/publish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+  }
+
+  dispatchRuntimeAction(request: RuntimeActionDispatchRequest): Promise<RuntimeActionDispatchResponse> {
+    return this.request<RuntimeActionDispatchResponse>("/api/v1/runtime/actions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),

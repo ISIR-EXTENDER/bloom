@@ -141,6 +141,66 @@ describe("runtime action dispatcher", () => {
     expect(client.publishRosTopic).toHaveBeenCalledOnce();
   });
 
+  it("dispatches configured command presets through the app-scoped backend action endpoint", async () => {
+    const client: RuntimeActionClient = {
+      dispatchRuntimeAction: vi.fn(async (request) => ({
+        app_id: request.app_id,
+        command: request.command ?? "",
+        config_id: request.config_id,
+        detail: "Published /ui/robot_action.",
+        message_type: "std_msgs/msg/String",
+        preset_id: request.preset_id ?? "",
+        status: "published" as const,
+        topic: "/ui/robot_action",
+      })),
+      publishRosTopic: vi.fn(),
+    };
+
+    await expect(
+      dispatchRuntimeActionIntent(client, createCommandIntent("explorer.deploy"), {
+        actionPresets: [
+          {
+            id: "explorer-deploy",
+            name: "Deploy robot",
+            kind: "topic-publish",
+            description: "",
+            command: "explorer.deploy",
+            topic: "/ui/robot_action",
+            message_type: "std_msgs/msg/String",
+            payload: null,
+            payload_text: "{data: 'deploy'}",
+            tags: ["explorer"],
+          },
+        ],
+        appId: "explorer-user-tests",
+        configId: "explorer-user-tests",
+        runtimePolicy: {
+          allowed_message_types: ["std_msgs/msg/String"],
+          allowed_publish_topics: ["/ui/robot_action"],
+          allowed_recording_topics: [],
+          allowed_teleop_targets: [],
+        },
+      }),
+    ).resolves.toMatchObject({
+      status: "published",
+      detail: "Published /ui/robot_action.",
+      request: {
+        app_id: "explorer-user-tests",
+        command: "explorer.deploy",
+        config_id: "explorer-user-tests",
+        preset_id: "explorer-deploy",
+        type: "runtime_action",
+      },
+    });
+    expect(client.dispatchRuntimeAction).toHaveBeenCalledWith({
+      app_id: "explorer-user-tests",
+      command: "explorer.deploy",
+      config_id: "explorer-user-tests",
+      preset_id: "explorer-deploy",
+    });
+    expect(client.publishRosTopic).not.toHaveBeenCalled();
+  });
+
   it("dispatches saved-position command presets through the same generic publish contract", async () => {
     const client: RuntimeActionClient = {
       publishRosTopic: vi.fn(

@@ -56,7 +56,7 @@ Bloom is now a usable foundation for the Extender/Petanque migration and robot-i
 - Backend configuration API with JSON storage, SQLite storage, normalized mirror tables, import/export, and legacy JSON
   conversion helpers.
 - Runtime API with WebSocket sessions, topic subscriptions, topic samples, teleop acknowledgements, audit records,
-  command rate limits, recording hooks, and HTTP ROS topic publishing.
+  command rate limits, recording hooks, HTTP ROS topic publishing, and saved app-scoped runtime actions.
 - ROS mode can publish Extender `TeleopCommand` messages on `/teleop_cmd`, publish generic ROS messages, and discover
   live ROS topics through the `rclpy` catalog adapter.
 - CI covers backend tests, frontend tests, build, security audit smoke, CodeQL, and visual smoke checks.
@@ -194,6 +194,8 @@ uv run python -m apps.bloom_cli.main config list --storage sqlite --database-pat
 
 SQLite currently stores the full configuration bundle plus normalized mirror rows for applications, screens, widgets,
 and theme assets. JSON import/export remains the lossless migration bridge while the normalized schema stabilizes.
+The app/screen API save-load flow and its differences from `extender_ui` are documented in
+[docs/runtime-flow-vs-extender-ui.md](docs/runtime-flow-vs-extender-ui.md).
 
 Legacy JSON helpers:
 

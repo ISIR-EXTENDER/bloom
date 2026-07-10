@@ -97,7 +97,10 @@ export function App({
 
   const handleRuntimeIntent = (
     intent: WidgetActionIntent,
-    applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy">,
+    applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
+      appId: string;
+      configId: string;
+    },
   ) => {
     if (intent.type === "screen-navigation" && tryNavigateRuntimeScreen(intent.targetScreenId)) {
       return;
@@ -106,6 +109,8 @@ export function App({
     setRuntimeModeState((currentModeState) => applyRuntimeModeIntent(currentModeState, intent));
     runtimeActions.dispatch(intent, {
       actionPresets: applicationRuntime?.action_presets,
+      appId: applicationRuntime?.appId,
+      configId: applicationRuntime?.configId,
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
   };
