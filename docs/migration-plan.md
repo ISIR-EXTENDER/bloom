@@ -446,8 +446,8 @@ Completed in this phase so far:
 
 Remaining work in this phase:
 
-- Validate and refine the Extender workspace launcher with the full sandbox/Petanque pipeline, including the opt-in
-  rosbag recording gateway.
+- Validate and refine the Extender workspace launcher with the full sandbox/Petanque pipeline beyond the accepted
+  lab-entry preflight, including the opt-in rosbag recording gateway.
 - Execute and record the full Extender + Petanque end-to-end validation.
 - Polish Sandbox V0.0 screen titles/layouts and decide whether Bloom should implement the legacy shared mode-store
   semantics or keep mode changes as explicit ROS publishes.
@@ -467,21 +467,23 @@ Status: idea captured, intentionally low priority.
 
 ## Ordered Next Steps
 
-1. Run the Extender lab preflight:
-   `npm run validation:extender`, source/build `extender_workspace`, launch Bloom with the Extender workspace launcher,
-   then open Sandbox V0.0 from the runtime app library.
-2. Validate the full Sandbox V0.0 runtime against the sandbox simulation:
+1. Validate the full Sandbox V0.0 runtime against the sandbox simulation:
    teleop joystick, max velocity, Z/RZ sliders, gripper, mode publish, snake hold button, camera preview, and
    visual-servoing monitor topics.
-3. Validate Robin's visual-servoing path:
+2. Validate Robin's visual-servoing path:
    webcam preview, AprilTag detections, velocity command topic, error topic, and the expected camera/ROS processing split.
-4. Revalidate Sandbox V0.0 tablet layout details on hardware after the runtime status strip, enlarged `snake_control`
+3. Revalidate Sandbox V0.0 tablet layout details on hardware after the runtime status strip, enlarged `snake_control`
    controls, and HD-bounded `control_panel` grouping changes.
-5. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
-6. Add remaining concrete robot action adapters:
+4. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
+5. Add remaining concrete robot action adapters:
    deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.
-7. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
-8. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+6. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
+7. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+
+Completed validation records:
+
+- [2026-07-10 Extender lab preflight](validation/2026-07-10-extender-lab-preflight.md): accepted for lab entry after
+  `npm run validation:extender`, Extender setup discovery, and ROS package discovery.
 
 See also:
 

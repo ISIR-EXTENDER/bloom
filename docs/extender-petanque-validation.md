@@ -10,6 +10,9 @@ Status: in progress.
 Current result: Bloom is ready for structured Extender/Petanque validation, but the legacy repos should not be marked
 legacy yet. The remaining decision needs a real operator pass on the target tablet and robot/simulation stack.
 
+Latest lab-entry record:
+[2026-07-10 Extender lab preflight](validation/2026-07-10-extender-lab-preflight.md).
+
 ## Preconditions
 
 - Extender ROS workspace builds and sources cleanly.
@@ -138,6 +141,7 @@ Use this table during validation sessions.
 | Date | Environment | App | Result | Notes | Validator |
 | --- | --- | --- | --- | --- | --- |
 | 2026-06-29 | Local repo preflight | Sandbox teleop lab, Bloom Debug, Petanque admin | Pending live validation | Added `npm run validation:extender` fixture/config preflight; does not prove ROS motion or operator acceptance. | Codex |
+| 2026-07-10 | Local Extender lab preflight | Sandbox V0.0, Bloom Debug, Petanque admin | Accepted for lab entry | Preflight passed, setup file found, validation configs present, and required ROS packages discovered. See [record](validation/2026-07-10-extender-lab-preflight.md). | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
 | _pending_ | Petanque stack | Petanque candidate | Pending | Needs legacy parity pass. | _pending_ |
