@@ -22,6 +22,9 @@ Latest Robin visual-servoing contract record:
 Latest Sandbox tablet-layout record:
 [2026-07-10 Sandbox V0.0 tablet layout](validation/2026-07-10-sandbox-tablet-layout.md).
 
+Latest Petanque legacy parity record:
+[2026-07-10 Petanque legacy parity contract](validation/2026-07-10-petanque-legacy-parity-contract.md).
+
 ## Preconditions
 
 - Extender ROS workspace builds and sources cleanly.
@@ -85,6 +88,12 @@ Run the visual-servoing contract check before Robin's live camera/tag pass:
 npm run validation:visual-servoing
 ```
 
+Run the Petanque legacy parity contract check before the live Petanque stack pass:
+
+```bash
+npm run validation:petanque-parity
+```
+
 ## Local Smoke Sequence
 
 1. Source/build Extender workspace:
@@ -134,6 +143,7 @@ ROS/simulation controller path rather than Bloom's runtime transport.
 
 Validate against the legacy Petanque flow before marking the Petanque UI path as covered:
 
+- `npm run validation:petanque-parity` passes against the tracked migrated fixture.
 - Petanque app opens from Bloom runtime library.
 - Petanque teleop joysticks publish `/teleop_cmd` through the Bloom runtime adapter.
 - Camera/stream widgets show the expected feed or a clear connection state.
@@ -172,9 +182,10 @@ Use this table during validation sessions.
 | 2026-07-10 | Fixture/runtime contract | Sandbox V0.0 | Accepted for fixture/runtime contract | Added `npm run validation:sandbox-runtime` for controls, topics, message types, monitor topics, and app policy. See [record](validation/2026-07-10-sandbox-runtime-contract.md). | Codex |
 | 2026-07-10 | Fixture/runtime contract | Robin visual-servoing | Accepted for UI/ROS split contract | Added `npm run validation:visual-servoing` for webcam preview, AprilTag detection topics, visual-servoing velocity/error topics, and raw image exclusion from UI monitors. See [record](validation/2026-07-10-robin-visual-servoing-contract.md). | Codex |
 | 2026-07-10 | Browser tablet layout | Sandbox V0.0 | Accepted for `1024x600` browser layout | Added `npm run validation:sandbox-tablet`; it caught and fixed undersized Snake hold and B1/B2 controls after HD scaling. See [record](validation/2026-07-10-sandbox-tablet-layout.md). | Codex |
+| 2026-07-10 | Fixture/runtime contract | Petanque admin | Accepted for legacy parity contract | Added `npm run validation:petanque-parity` for migrated screens, teleop bindings, publish widgets, monitor topics, app policy, backend defaults, and action presets. See [record](validation/2026-07-10-petanque-legacy-parity-contract.md). | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
-| _pending_ | Petanque stack | Petanque candidate | Pending | Needs legacy parity pass. | _pending_ |
+| _pending_ | Petanque stack | Petanque candidate | Pending | Needs live stack/operator pass after the accepted fixture contract. | _pending_ |
 
 ## Exit Criteria
 

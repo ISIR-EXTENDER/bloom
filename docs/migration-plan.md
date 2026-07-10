@@ -42,7 +42,7 @@ Current migration estimate:
 
 - Web product foundation: about 84%.
 - Live ROS/runtime parity with `tablet_interface`: about 78%.
-- Full legacy app parity with `extender_ui` and Petanque screens: about 58%.
+- Full legacy app parity with `extender_ui` and Petanque screens: about 61%.
 - Safety/security readiness for real configurable robot commands: about 72%.
 
 The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
@@ -359,6 +359,8 @@ Completed in this phase so far:
   mode-aware `/teleop_cmd` runtime binding for robot motion.
 - Backend runtime allowlists now cover the migrated Petanque publish topics declared by app policy, keeping standard
   Petanque commands usable without opening a wildcard ROS publish policy.
+- Petanque admin legacy parity now has a fixture/runtime contract check covering the 12 migrated screens, teleop
+  bindings, publishing widgets, monitor topics, app policy, backend default allowlists, and action presets.
 - The six current Extender Sandbox V0.0 screens are tracked as
   `tests/fixtures/sandbox-v0-configuration-bundle.json` and can be seeded into local runtime storage through
   `npm run validation:extender`.
@@ -475,6 +477,7 @@ Status: idea captured, intentionally low priority.
 3. Revalidate Sandbox V0.0 tablet layout details on hardware after the runtime status strip, enlarged `snake_control`
    controls, and HD-bounded `control_panel` grouping changes.
 4. Validate Petanque screens and legacy parity scenarios before retiring any old workflow.
+   The fixture/runtime contract is accepted; the live Petanque stack/operator pass remains pending.
 5. Add remaining concrete robot action adapters:
    deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.
 6. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
@@ -493,6 +496,9 @@ Completed validation records:
 - [2026-07-10 Sandbox V0.0 tablet layout](validation/2026-07-10-sandbox-tablet-layout.md): accepted for `1024x600`
   browser layout after `npm run validation:sandbox-tablet` caught and fixed undersized Snake hold and B1/B2 controls
   under HD canvas scaling.
+- [2026-07-10 Petanque legacy parity contract](validation/2026-07-10-petanque-legacy-parity-contract.md): accepted
+  for fixture/runtime contract after `npm run validation:petanque-parity` verified migrated screens, teleop bindings,
+  publish widgets, monitor topics, app policy, backend default allowlists, and action presets.
 
 See also:
 

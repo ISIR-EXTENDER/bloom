@@ -158,6 +158,16 @@ curl http://127.0.0.1:8000/api/v1/runtime/audit
 The full Extender/Petanque validation protocol is in
 [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md).
 
+Useful migration validation helpers:
+
+```bash
+npm run validation:extender
+npm run validation:sandbox-runtime
+npm run validation:sandbox-tablet
+npm run validation:visual-servoing
+npm run validation:petanque-parity
+```
+
 ## Architecture
 
 Core rules:
