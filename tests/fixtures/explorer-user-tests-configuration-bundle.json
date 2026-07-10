@@ -1134,6 +1134,128 @@
       },
       "action_presets": [
         {
+          "id": "explorer-deploy",
+          "name": "Deploy robot",
+          "kind": "topic-publish",
+          "description": "Deploy Explorer through the legacy UI robot action command.",
+          "command": "explorer.deploy",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'deploy'}",
+          "tags": ["explorer", "robot-action"]
+        },
+        {
+          "id": "explorer-repli",
+          "name": "Repli robot",
+          "kind": "topic-publish",
+          "description": "Retract Explorer through the legacy UI robot action command.",
+          "command": "explorer.repli",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'repli'}",
+          "tags": ["explorer", "robot-action"]
+        },
+        {
+          "id": "explorer-safe-zone-enable",
+          "name": "Enable safe zone",
+          "kind": "topic-publish",
+          "description": "Enable the Explorer safety zone through the legacy UI robot action command.",
+          "command": "explorer.safe_zone.enable",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'safe_zone_enable'}",
+          "tags": ["explorer", "safety-zone"]
+        },
+        {
+          "id": "explorer-pose-save-current",
+          "name": "Save current pose",
+          "kind": "topic-publish",
+          "description": "Save the current Explorer pose through the legacy pose command topic.",
+          "command": "explorer.pose.save_current",
+          "topic": "/ui/save_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'current'}",
+          "tags": ["explorer", "pose"]
+        },
+        {
+          "id": "explorer-pose-load-home",
+          "name": "Load home pose",
+          "kind": "topic-publish",
+          "description": "Replay the saved home pose through the legacy pose command topic.",
+          "command": "explorer.pose.load.home",
+          "topic": "/ui/load_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'home'}",
+          "tags": ["explorer", "pose"]
+        },
+        {
+          "id": "explorer-pose-load-meal",
+          "name": "Load meal pose",
+          "kind": "topic-publish",
+          "description": "Replay the saved meal pose through the legacy pose command topic.",
+          "command": "explorer.pose.load.meal",
+          "topic": "/ui/load_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'meal'}",
+          "tags": ["explorer", "pose"]
+        },
+        {
+          "id": "explorer-pose-cancel",
+          "name": "Cancel pose motion",
+          "kind": "topic-publish",
+          "description": "Cancel the current pose motion through the legacy UI robot action command.",
+          "command": "explorer.pose.cancel",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'cancel_pose'}",
+          "tags": ["explorer", "pose"]
+        },
+        {
+          "id": "explorer-favorite-mode-both",
+          "name": "Favorite BOTH mode",
+          "kind": "topic-publish",
+          "description": "Apply the Explorer BOTH control mode favorite.",
+          "command": "explorer.favorite.mode.both",
+          "topic": "/cmd/mode",
+          "message_type": "std_msgs/msg/Int32",
+          "payload": {
+            "data": 3
+          },
+          "payload_text": "",
+          "tags": ["explorer", "favorite"]
+        },
+        {
+          "id": "explorer-favorite-layout-tablet",
+          "name": "Favorite tablet layout",
+          "kind": "topic-publish",
+          "description": "Apply the Explorer tablet layout favorite through the legacy UI robot action command.",
+          "command": "explorer.favorite.layout.tablet",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'tablet_layout'}",
+          "tags": ["explorer", "favorite"]
+        },
+        {
+          "id": "explorer-favorite-position-work",
+          "name": "Favorite work pose",
+          "kind": "topic-publish",
+          "description": "Replay the saved work pose through the legacy pose command topic.",
+          "command": "explorer.favorite.position.work",
+          "topic": "/ui/load_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'work'}",
+          "tags": ["explorer", "favorite", "pose"]
+        },
+        {
           "id": "explorer-emergency-stop",
           "name": "Emergency stop",
           "kind": "topic-publish",

@@ -23,7 +23,10 @@ type RuntimeViewportSize = {
   width: number;
 };
 
-type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "runtime_policy">;
+type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
+  appId: string;
+  configId: string;
+};
 
 type RuntimeWorkspaceProps = {
   application: ApplicationConfig;
@@ -88,6 +91,8 @@ export function RuntimeWorkspace({
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
     onActionIntent(intent, {
       action_presets: application.action_presets,
+      appId: selection.appId,
+      configId: selection.configId,
       runtime_policy: application.runtime_policy,
     });
   };

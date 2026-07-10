@@ -201,6 +201,33 @@ describe("Bloom API client", () => {
     });
   });
 
+  it("dispatches saved runtime action presets through the backend", async () => {
+    const responsePayload = {
+      app_id: "explorer-user-tests",
+      command: "explorer.deploy",
+      config_id: "explorer-user-tests",
+      detail: "Published /ui/robot_action.",
+      message_type: "std_msgs/msg/String",
+      preset_id: "explorer-deploy",
+      status: "published",
+      topic: "/ui/robot_action",
+    };
+    const requestPayload = {
+      app_id: "explorer-user-tests",
+      command: "explorer.deploy",
+      config_id: "explorer-user-tests",
+    };
+    const fetcher = createJsonFetcher(responsePayload);
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(client.dispatchRuntimeAction(requestPayload)).resolves.toEqual(responsePayload);
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/runtime/actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestPayload),
+    });
+  });
+
   it("lists ROS topics through the backend", async () => {
     const responsePayload = {
       topics: [

@@ -2,13 +2,22 @@ import asyncio
 from contextlib import suppress
 from dataclasses import asdict
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
 from apps.bloom_api.security import BloomPrincipal, require_operator, require_runtime_websocket_operator
-from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
+from libs.config import (
+    ApplicationConfig,
+    ConfigurationNotFoundError,
+    ConfigurationRepository,
+    RuntimeActionPreset,
+    RuntimeAdapterPolicy,
+)
+from libs.ros_adapters import RosPublishRequest, RosPublisherGateway, SafeRosPublishError, publish_with_runtime_policy
+from libs.ros_adapters.payloads import parse_ros_payload_text
+from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, RuntimePayloadShapeError
 from libs.sessions import (
     RuntimeClientMessage,
     RuntimeAuditLog,
@@ -28,6 +37,7 @@ from libs.sessions import (
     TeleopCommandGateway,
     parse_runtime_client_message,
 )
+from libs.sessions.audit import summarize_payload
 from libs.sessions.teleop_runtime import build_teleop_ack
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
@@ -59,6 +69,14 @@ def get_runtime_command_rate_limiter(connection: Request | WebSocket) -> Runtime
 
 def get_runtime_recording_gateway(request: Request) -> RuntimeRecordingGateway:
     return request.app.state.runtime_recording_gateway
+
+
+def get_ros_publisher_gateway(request: Request) -> RosPublisherGateway:
+    return request.app.state.ros_publisher_gateway
+
+
+def get_configuration_repository(request: Request) -> ConfigurationRepository:
+    return request.app.state.configuration_repository
 
 
 def get_allowed_recording_output_folders(request: Request) -> tuple[str, ...]:
@@ -117,6 +135,30 @@ class RuntimeRecordingResponse(BaseModel):
     topics: tuple[str, ...]
 
 
+class RuntimeActionDispatchRequest(BaseModel):
+    app_id: str = Field(min_length=1)
+    command: str = ""
+    config_id: str = Field(min_length=1)
+    preset_id: str = ""
+
+    @model_validator(mode="after")
+    def preset_or_command_is_required(self) -> "RuntimeActionDispatchRequest":
+        if not self.preset_id and not self.command:
+            raise ValueError("preset_id or command is required")
+        return self
+
+
+class RuntimeActionDispatchResponse(BaseModel):
+    app_id: str
+    command: str
+    config_id: str
+    detail: str
+    message_type: str
+    preset_id: str
+    status: str
+    topic: str
+
+
 @router.get("/audit", response_model=RuntimeAuditListResponse)
 def list_runtime_audit_records(
     request: Request,
@@ -126,6 +168,120 @@ def list_runtime_audit_records(
     audit_log = get_runtime_audit_log(request)
     return RuntimeAuditListResponse(
         records=tuple(RuntimeAuditRecordResponse(**asdict(record)) for record in audit_log.list_records(limit))
+    )
+
+
+@router.post("/actions", response_model=RuntimeActionDispatchResponse)
+def dispatch_runtime_action(
+    request: Request,
+    action_request: RuntimeActionDispatchRequest,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RuntimeActionDispatchResponse:
+    repository = get_configuration_repository(request)
+    try:
+        configuration = repository.get(action_request.config_id)
+    except ConfigurationNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="configuration not found") from exc
+
+    application = next((app for app in configuration.applications if app.id == action_request.app_id), None)
+    if application is None:
+        raise HTTPException(status_code=404, detail="application not found")
+
+    preset = resolve_runtime_action_preset(application, action_request)
+    if preset is None:
+        raise HTTPException(status_code=404, detail="runtime action preset not found")
+    if preset.kind != "topic-publish" or not preset.topic or not preset.message_type:
+        raise HTTPException(status_code=422, detail="runtime action preset is not a ROS topic publish adapter")
+
+    try:
+        payload = resolve_runtime_action_payload(preset)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    ros_publish_request = RosPublishRequest(topic=preset.topic, message_type=preset.message_type, payload=payload)
+    audit_log = get_runtime_audit_log(request)
+    try:
+        ensure_application_policy_allows(application.runtime_policy, ros_publish_request)
+    except RuntimeCommandPolicyError as exc:
+        record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except RuntimePayloadShapeError as exc:
+        record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    try:
+        receipt = publish_with_runtime_policy(
+            get_ros_publisher_gateway(request),
+            get_runtime_command_policy(request),
+            audit_log,
+            ros_publish_request,
+            get_runtime_command_rate_limiter(request),
+        )
+    except SafeRosPublishError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+
+    return RuntimeActionDispatchResponse(
+        app_id=action_request.app_id,
+        command=preset.command,
+        config_id=action_request.config_id,
+        detail=receipt.detail,
+        message_type=receipt.message_type,
+        preset_id=preset.id,
+        status=receipt.status,
+        topic=receipt.topic,
+    )
+
+
+def resolve_runtime_action_preset(
+    application: ApplicationConfig,
+    action_request: RuntimeActionDispatchRequest,
+) -> RuntimeActionPreset | None:
+    if action_request.preset_id:
+        return next((preset for preset in application.action_presets if preset.id == action_request.preset_id), None)
+    return next((preset for preset in application.action_presets if preset.command == action_request.command), None)
+
+
+def resolve_runtime_action_payload(preset: RuntimeActionPreset) -> dict[str, Any]:
+    if preset.payload_text:
+        return parse_ros_payload_text(preset.payload_text)
+    if isinstance(preset.payload, dict):
+        return dict(preset.payload)
+    if preset.payload is None:
+        return {}
+    return {"data": preset.payload}
+
+
+def ensure_application_policy_allows(policy: RuntimeAdapterPolicy, publish_request: RosPublishRequest) -> None:
+    RuntimeCommandPolicy(
+        allowed_message_types=policy.allowed_message_types or ("*",),
+        allowed_publish_topics=policy.allowed_publish_topics or ("*",),
+        allowed_recording_topics=policy.allowed_recording_topics,
+        allowed_teleop_targets=policy.allowed_teleop_targets,
+    ).ensure_publish_allowed(publish_request.topic, publish_request.message_type, publish_request.payload)
+
+
+def record_runtime_action_rejection(
+    audit_log: RuntimeAuditLog,
+    action_request: RuntimeActionDispatchRequest,
+    preset: RuntimeActionPreset,
+    payload: dict[str, Any],
+    detail: str,
+) -> None:
+    audit_log.record(
+        RuntimeAuditRecord(
+            channel="runtime_action",
+            detail=detail,
+            message_type=preset.message_type,
+            payload_summary={
+                **summarize_payload(payload),
+                "app_id": action_request.app_id,
+                "config_id": action_request.config_id,
+                "preset_id": preset.id,
+            },
+            status="rejected",
+            target=preset.command,
+            topic=preset.topic,
+        )
     )
 
 

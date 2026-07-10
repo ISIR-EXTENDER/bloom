@@ -20,6 +20,8 @@ export type RuntimeActionRecord = {
 
 export type RuntimeDispatchOptions = {
   actionPresets?: readonly RuntimeActionPreset[];
+  appId?: string;
+  configId?: string;
   runtimePolicy?: RuntimeAdapterPolicy;
 };
 
@@ -48,6 +50,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
       void dispatchRuntimeActionIntent(client, intent, {
         actionPresets: options.actionPresets,
+        appId: options.appId,
+        configId: options.configId,
         runtimePolicy: options.runtimePolicy,
         teleopSequence,
       }).then((result) => {

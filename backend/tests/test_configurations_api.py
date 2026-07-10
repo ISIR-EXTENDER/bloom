@@ -314,7 +314,41 @@ def test_application_endpoint_persists_with_sqlite_between_app_instances(
 
     assert put_response.status_code == 200
     assert get_response.status_code == 200
-    assert [app["id"] for app in get_response.json()["applications"]] == ["sandbox", "diagnostics"]
+    applications = get_response.json()["applications"]
+    assert [app["id"] for app in applications] == ["sandbox", "diagnostics"]
+    assert applications[1]["screens"][0]["id"] == "debug"
+
+
+def test_screen_endpoint_persists_with_sqlite_between_app_instances(
+    tmp_path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    database_path = tmp_path / "bloom.db"
+    settings = Settings(
+        environment="test",
+        configuration_database_path=database_path,
+        configuration_storage="sqlite",
+    )
+    first_client = TestClient(create_app(settings))
+    first_client.put("/api/v1/configurations/sandbox", json=sample_configuration_bundle.model_dump(mode="json"))
+    screen = ScreenConfig(
+        id="runtime-check",
+        title="Runtime Check",
+        canvas=CanvasSettings(preset_id="tablet"),
+    )
+
+    put_response = first_client.put(
+        "/api/v1/configurations/sandbox/applications/sandbox/screens/runtime-check",
+        json=screen.model_dump(mode="json"),
+    )
+    second_client = TestClient(create_app(settings))
+    get_response = second_client.get("/api/v1/configurations/sandbox")
+
+    assert put_response.status_code == 200
+    assert get_response.status_code == 200
+    screens = get_response.json()["applications"][0]["screens"]
+    assert [screen_payload["id"] for screen_payload in screens] == ["main", "runtime-check"]
+    assert screens[1]["canvas"] == {"preset_id": "tablet", "runtime_mode": "fit"}
 
 
 def test_configuration_api_round_trips_real_legacy_screen_fixture(tmp_path) -> None:

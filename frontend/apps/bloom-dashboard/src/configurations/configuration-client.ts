@@ -26,6 +26,7 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
     listRosTopicStatus: apiClient.listRosTopicStatus.bind(apiClient),
     listRosTopics: apiClient.listRosTopics.bind(apiClient),
     listRuntimeAuditRecords: apiClient.listRuntimeAuditRecords.bind(apiClient),
+    dispatchRuntimeAction: apiClient.dispatchRuntimeAction.bind(apiClient),
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),
     sendTeleopCommand: runtimeWebSocketClient.sendTeleopCommand,
     startRuntimeRecording: apiClient.startRuntimeRecording.bind(apiClient),
