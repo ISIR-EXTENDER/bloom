@@ -226,6 +226,8 @@ make test
 Additional checks:
 
 ```bash
+npm run validation:extender
+npm run validation:sandbox-runtime
 npm run visual:smoke
 npm run audit:security
 npm run security:dynamic

@@ -19,6 +19,7 @@
     "test": "npm run test --workspaces --if-present",
     "security:dynamic": "node scripts/dynamic-security-smoke.mjs",
     "validation:extender": "bash scripts/extender-validation-preflight.sh",
+    "validation:sandbox-runtime": "node scripts/sandbox-runtime-contract.mjs",
     "visual:smoke": "node scripts/visual-smoke.mjs"
   },
   "engines": {

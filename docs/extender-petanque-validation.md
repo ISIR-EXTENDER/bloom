@@ -13,6 +13,9 @@ legacy yet. The remaining decision needs a real operator pass on the target tabl
 Latest lab-entry record:
 [2026-07-10 Extender lab preflight](validation/2026-07-10-extender-lab-preflight.md).
 
+Latest Sandbox contract record:
+[2026-07-10 Sandbox V0.0 runtime contract](validation/2026-07-10-sandbox-runtime-contract.md).
+
 ## Preconditions
 
 - Extender ROS workspace builds and sources cleanly.
@@ -56,6 +59,12 @@ Run the browser-only visual smoke to catch layout and Bloom Debug regressions wi
 
 ```bash
 npm run visual:smoke
+```
+
+Run the Sandbox runtime contract check before the live sandbox simulation pass:
+
+```bash
+npm run validation:sandbox-runtime
 ```
 
 ## Local Smoke Sequence
@@ -142,6 +151,7 @@ Use this table during validation sessions.
 | --- | --- | --- | --- | --- | --- |
 | 2026-06-29 | Local repo preflight | Sandbox teleop lab, Bloom Debug, Petanque admin | Pending live validation | Added `npm run validation:extender` fixture/config preflight; does not prove ROS motion or operator acceptance. | Codex |
 | 2026-07-10 | Local Extender lab preflight | Sandbox V0.0, Bloom Debug, Petanque admin | Accepted for lab entry | Preflight passed, setup file found, validation configs present, and required ROS packages discovered. See [record](validation/2026-07-10-extender-lab-preflight.md). | Codex |
+| 2026-07-10 | Fixture/runtime contract | Sandbox V0.0 | Accepted for fixture/runtime contract | Added `npm run validation:sandbox-runtime` for controls, topics, message types, monitor topics, and app policy. See [record](validation/2026-07-10-sandbox-runtime-contract.md). | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
 | _pending_ | Petanque stack | Petanque candidate | Pending | Needs legacy parity pass. | _pending_ |
