@@ -487,6 +487,9 @@ Completed validation records:
 - [2026-07-10 Sandbox V0.0 runtime contract](validation/2026-07-10-sandbox-runtime-contract.md): accepted for
   fixture/runtime contract after `npm run validation:sandbox-runtime` verified controls, topics, monitor widgets, and
   app policy.
+- [2026-07-10 Robin visual-servoing contract](validation/2026-07-10-robin-visual-servoing-contract.md): accepted for
+  UI/ROS split contract after `npm run validation:visual-servoing` verified browser webcam previews, AprilTag monitor
+  topics, velocity/error plot topics, and raw image exclusion from UI monitors.
 
 See also:
 
