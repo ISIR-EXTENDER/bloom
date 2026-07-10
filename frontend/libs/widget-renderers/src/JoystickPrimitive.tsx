@@ -160,15 +160,20 @@ export function readPointerVector(
 }
 
 export function normalizeJoystickVector(vector: JoystickVector, deadzone: number): JoystickVector {
-  const x = clamp(vector.x);
-  const y = clamp(vector.y);
-  const magnitude = Math.hypot(x, y);
+  const rawMagnitude = Math.hypot(vector.x, vector.y);
 
-  if (magnitude <= deadzone) {
+  if (rawMagnitude <= deadzone) {
     return { x: 0, y: 0 };
   }
 
-  return { x, y };
+  if (rawMagnitude <= 1) {
+    return { x: clamp(vector.x), y: clamp(vector.y) };
+  }
+
+  return {
+    x: clamp(vector.x / rawMagnitude),
+    y: clamp(vector.y / rawMagnitude),
+  };
 }
 
 function clamp(value: number): number {

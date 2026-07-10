@@ -4,6 +4,7 @@ import {
   createRosTopicPublishRequest,
   createScalarTopicPublishRequest,
   createTeleopCommandRequest,
+  createValueTopicPublishRequest,
   dispatchRuntimeActionIntent,
   type RuntimeActionClient,
 } from "./runtime-action-dispatcher";
@@ -405,6 +406,63 @@ describe("runtime action dispatcher", () => {
     expect(client.publishRosTopic).toHaveBeenCalledOnce();
   });
 
+  it("dispatches gesture topic bindings through the runtime client", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(
+        async (request) =>
+          ({
+            topic: request.topic,
+            message_type: request.message_type,
+            status: "published",
+            detail: "Published.",
+          }) as const,
+      ),
+    };
+
+    await expect(
+      dispatchRuntimeActionIntent(
+        client,
+        createGestureValueIntent({
+          messageType: "std_msgs/msg/String",
+          topic: "/petanque/throw/gesture",
+          value: { angleDegrees: 42, power: 0.7 },
+        }),
+        {
+          runtimePolicy: {
+            allowed_message_types: ["std_msgs/msg/String"],
+            allowed_publish_topics: ["/petanque/throw/gesture"],
+            allowed_recording_topics: [],
+            allowed_teleop_targets: [],
+          },
+        },
+      ),
+    ).resolves.toMatchObject({
+      status: "published",
+      request: {
+        topic: "/petanque/throw/gesture",
+        message_type: "std_msgs/msg/String",
+        payload: { data: '{"angleDegrees":42,"power":0.7}' },
+      },
+    });
+    expect(client.publishRosTopic).toHaveBeenCalledOnce();
+  });
+
+  it("maps vector topic bindings to Vector3 payloads when configured", () => {
+    expect(
+      createValueTopicPublishRequest(
+        createVectorValueIntent({
+          messageType: "geometry_msgs/msg/Vector3",
+          topic: "/debug/vector",
+          value: { x: 0.3, y: -0.2 },
+        }),
+      ),
+    ).toEqual({
+      topic: "/debug/vector",
+      message_type: "geometry_msgs/msg/Vector3",
+      payload: { x: 0.3, y: -0.2, z: 0 },
+    });
+  });
+
   it("keeps non-teleop value-change intents unsupported", async () => {
     const client: RuntimeActionClient = {
       publishRosTopic: vi.fn(),
@@ -479,6 +537,37 @@ function createScalarValueIntent(options: {
     widgetKind: "slider",
     messageType: options.messageType,
     runtimeBinding: options.runtimeBinding,
+    topic: options.topic,
+    value: options.value,
+  };
+}
+
+function createGestureValueIntent(options: {
+  messageType?: string;
+  topic?: string;
+  value: { angleDegrees: number; power: number };
+}): Extract<WidgetActionIntent, { type: "value-change" }> {
+  return {
+    type: "value-change",
+    widgetId: "gesture",
+    widgetKind: "gesture-pad",
+    binding: "petanque.throw.preview",
+    messageType: options.messageType,
+    topic: options.topic,
+    value: options.value,
+  };
+}
+
+function createVectorValueIntent(options: {
+  messageType?: string;
+  topic?: string;
+  value: { x: number; y: number };
+}): Extract<WidgetActionIntent, { type: "value-change" }> {
+  return {
+    type: "value-change",
+    widgetId: "vector",
+    widgetKind: "gesture-pad",
+    messageType: options.messageType,
     topic: options.topic,
     value: options.value,
   };

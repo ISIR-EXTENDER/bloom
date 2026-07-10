@@ -311,8 +311,9 @@ describe("widget renderer registry", () => {
 
   it("keeps joystick controls inside compact and large widget frames", () => {
     expect(resolveJoystickControlSize(80, 80)).toBe(96);
-    expect(resolveJoystickControlSize(220, 220)).toBe(102);
-    expect(resolveJoystickControlSize(720, 720)).toBe(260);
+    expect(resolveJoystickControlSize(220, 220)).toBe(164);
+    expect(resolveJoystickControlSize(220, 220, { showDetails: true })).toBe(102);
+    expect(resolveJoystickControlSize(720, 720)).toBe(400);
   });
 
   it("renders topic debug widgets with topic and field context", () => {
@@ -539,6 +540,28 @@ describe("widget renderer registry", () => {
     expect(screen.getAllByText("68")).toHaveLength(2);
   });
 
+  it("renders live gauge values from widget data snapshots", () => {
+    const descriptor = renderScreenDescriptors(gaugeScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing gauge descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            battery: {
+              receivedAt: "2026-06-08T10:00:00.000Z",
+              topic: "/battery/state",
+              type: "gauge",
+              value: 91,
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByRole("meter", { name: "Battery: 91 %" })).toBeVisible();
+  });
+
   it("renders generic plot widgets with a readable sparkline", () => {
     const descriptor = renderScreenDescriptors(plotScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing plot descriptor.");
@@ -548,6 +571,30 @@ describe("widget renderer registry", () => {
     expect(screen.getByLabelText("Velocity trend plot")).toBeVisible();
     expect(screen.getByText("20s history")).toBeVisible();
     expect(screen.getByText("latest 0.9")).toBeVisible();
+  });
+
+  it("renders live generic plot values from widget data snapshots", () => {
+    const descriptor = renderScreenDescriptors(plotScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing plot descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "velocity-trend": {
+              samples: [
+                { timestamp: "2026-06-08T10:00:00.000Z", value: 0.2 },
+                { timestamp: "2026-06-08T10:00:01.000Z", value: 0.7 },
+              ],
+              type: "plot",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText("2 samples")).toBeVisible();
+    expect(screen.getByText("latest 0.7")).toBeVisible();
   });
 
   it("renders generic plot bar variants with units", () => {
@@ -572,6 +619,28 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("URDF adapter coming next.")).toBeVisible();
   });
 
+  it("renders robot 3d joint-state readiness from widget data snapshots", () => {
+    const descriptor = renderScreenDescriptors(robot3dScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing robot 3d descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "explorer-model": {
+              receivedAt: "2026-06-08T10:00:00.000Z",
+              topic: "/joint_states",
+              type: "robot-3d",
+              value: { name: ["joint_1", "joint_2", "joint_3"], position: [0, 0.1, 0.2] },
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText("3 live joints")).toBeVisible();
+  });
+
   it("renders event logs as concise operator feedback by default", () => {
     const descriptor = renderScreenDescriptors(eventLogScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing event log descriptor.");
@@ -582,6 +651,33 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("Controller ready")).toBeVisible();
     expect(screen.queryByText("Hidden debug entry")).not.toBeInTheDocument();
     expect(screen.queryByText("Safety adapter accepted the configured boundary.")).not.toBeInTheDocument();
+  });
+
+  it("renders live ROS-style event log messages from widget data snapshots", () => {
+    const descriptor = renderScreenDescriptors(eventLogScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing event log descriptor.");
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            "operator-events": {
+              messages: [
+                {
+                  receivedAt: "2026-06-08T10:00:00.000Z",
+                  topic: "/rosout",
+                  value: { level: 30, msg: "Velocity limit active" },
+                },
+              ],
+              type: "event-log",
+            },
+          },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText("Velocity limit active")).toBeVisible();
+    expect(screen.getByText("3 events")).toBeVisible();
   });
 
   it("can reveal event log details for debug-focused screens", () => {
@@ -1131,7 +1227,7 @@ const eventLogScreen: ScreenConfig = {
           },
         ],
         maxEntries: 5,
-        severityFilter: ["success", "info"],
+        severityFilter: ["success", "info", "warning"],
         showTimestamps: false,
         show_details: false,
       },

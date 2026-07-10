@@ -13,6 +13,7 @@ import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sand
 import explorerUserTestsConfiguration from "../../../../tests/fixtures/explorer-user-tests-configuration-bundle.json";
 import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
 import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-teleop-lab-configuration.json";
+import sandboxV0Configuration from "../../../../tests/fixtures/sandbox-v0-configuration-bundle.json";
 import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-visualizer-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
@@ -178,7 +179,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
-    expect(screen.getByRole("tab", { name: /Diagnostics/i })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Diagnostics" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
     await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
     expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith({
@@ -267,6 +268,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Launch Sandbox runtime" }));
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    openRuntimeMenu();
     expect(screen.getByRole("button", { name: "App library" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit app" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit screen" })).toBeVisible();
@@ -275,6 +277,73 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Resume Sandbox on Main" })).toBeVisible();
+  });
+
+  it("streams robot topic samples into operator display widgets", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "robot-monitor": createRobotMonitorBundle(),
+          },
+          ids: ["robot-monitor"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Launch Robot monitor runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(4));
+    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        field_path: "data",
+        topic: "/battery/state",
+        widget_id: "battery",
+      }),
+    );
+    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        field_path: "linear.x",
+        topic: "/sandbox_controller/velocity_command",
+        widget_id: "velocity-trend",
+      }),
+    );
+    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        field_path: "",
+        message_type: "sensor_msgs/msg/JointState",
+        topic: "/joint_states",
+        widget_id: "robot-model",
+      }),
+    );
+    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        field_path: "",
+        message_type: "rcl_interfaces/msg/Log",
+        topic: "/rosout",
+        widget_id: "runtime-events",
+      }),
+    );
+
+    runtimeActionClient.emitRuntimeTopicSample(createRuntimeTopicSample("/battery/state", { data: 82.5 }));
+    runtimeActionClient.emitRuntimeTopicSample(
+      createRuntimeTopicSample("/sandbox_controller/velocity_command", { linear: { x: 0.42 } }),
+    );
+    runtimeActionClient.emitRuntimeTopicSample(
+      createRuntimeTopicSample("/joint_states", { name: ["joint_1", "joint_2"], position: [0.1, 0.2] }),
+    );
+    runtimeActionClient.emitRuntimeTopicSample(
+      createRuntimeTopicSample("/rosout", { level: 30, msg: "Controller warning: velocity limit active" }),
+    );
+
+    expect(await screen.findByRole("meter", { name: "Battery: 82.5 %" })).toBeVisible();
+    expect(await screen.findByText("latest 0.42 m/s")).toBeVisible();
+    expect(await screen.findByText("2 live joints")).toBeVisible();
+    expect(await screen.findByText("Controller warning: velocity limit active")).toBeVisible();
   });
 
   it("launches the Explorer user-test candidate app from runtime", async () => {
@@ -298,16 +367,16 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Explorer User Tests" })).toBeVisible();
     expect(screen.getByText("Mode-aware joystick")).toBeVisible();
     expect(screen.getByText("Control feedback")).toBeVisible();
-    fireEvent.click(screen.getByRole("tab", { name: /Explorer saved positions/i }));
+    selectRuntimeScreen("Explorer saved positions");
     expect(screen.getByText("Save current pose")).toBeVisible();
     expect(screen.getByText("Saved position status")).toBeVisible();
-    fireEvent.click(screen.getByRole("tab", { name: /Explorer safety zones/i }));
+    selectRuntimeScreen("Explorer safety zones");
     expect(screen.getByRole("button", { name: "Enable" })).toBeVisible();
     expect(screen.getByText("Constraint confidence")).toBeVisible();
-    fireEvent.click(screen.getByRole("tab", { name: /Explorer drink mode/i }));
+    selectRuntimeScreen("Explorer drink mode");
     expect(screen.getByRole("button", { name: "Start" })).toBeVisible();
     expect(screen.getByText("Task feedback")).toBeVisible();
-    fireEvent.click(screen.getByRole("tab", { name: /Explorer favorites/i }));
+    selectRuntimeScreen("Explorer favorites");
     expect(screen.getByRole("button", { name: "BOTH mode" })).toBeVisible();
     expect(screen.getByText("Favorite feedback")).toBeVisible();
     expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
@@ -346,12 +415,14 @@ describe("App", () => {
 
     await openSandboxRuntimeFromNavigation();
 
+    openRuntimeMenu();
     fireEvent.click(screen.getByRole("button", { name: "Edit app" }));
     expect(await screen.findByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "App theme" })).toBeVisible();
 
     await openSandboxRuntimeFromNavigation();
 
+    openRuntimeMenu();
     fireEvent.click(screen.getByRole("button", { name: "Edit screen" }));
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
@@ -1052,7 +1123,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     await openSandboxRuntimeFromNavigation();
-    fireEvent.click(await screen.findByRole("tab", { name: /Placeholder/i }));
+    selectRuntimeScreen("Placeholder");
 
     expect(screen.getByRole("region", { name: "Runtime screen coming soon" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 3, name: "Placeholder" })).toBeVisible();
@@ -1142,6 +1213,76 @@ describe("App", () => {
     ).toEqual(expect.arrayContaining([1, 2]));
   });
 
+  it("dispatches rotation teleop vectors from migrated petanque rotation joysticks", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "petanque-admin": migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["petanque-admin"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Petanque admin runtime" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+
+    const rotationJoystickZone = getRuntimeJoystickZone(1);
+    fireEvent.pointerDown(rotationJoystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(rotationJoystickZone, { clientX: 190, clientY: 150, pointerId: 1 });
+
+    await waitFor(() =>
+      expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          angular: { x: expect.any(Number), y: 0, z: 0 },
+          linear: { x: 0, y: 0, z: 0 },
+          mode: 1,
+          target: "/teleop_cmd",
+        }),
+      ),
+    );
+  });
+
+  it("dispatches migrated petanque gesture pads as ROS topic publishes", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "petanque-admin": migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["petanque-admin"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Petanque admin runtime" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+    selectRuntimeScreen("Teleop settings");
+
+    const gesturePad = await screen.findByRole("button", { name: "Throw gesture: choose trajectory gesture" });
+    fireEvent.pointerDown(gesturePad, { clientX: 120, clientY: 120, pointerId: 1 });
+
+    await waitFor(() => expect(runtimeActionClient.publishRosTopic).toHaveBeenCalled());
+    expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message_type: "std_msgs/msg/String",
+        payload: expect.objectContaining({
+          data: expect.stringContaining("angleDegrees"),
+        }),
+        topic: "/petanque/throw/gesture",
+      }),
+    );
+  });
+
   it("opens the sandbox teleop lab runtime screen with joystick and slider bindings", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     render(
@@ -1177,6 +1318,48 @@ describe("App", () => {
       expect.objectContaining({
         mode: 3,
         target: "/teleop_cmd",
+      }),
+    );
+  });
+
+  it("opens the Sandbox V0.0 runtime screens imported from Extender UI", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            sandbox: sandboxV0Configuration as unknown as ConfigurationBundle,
+          },
+          ids: ["sandbox"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox V0.0 runtime" }));
+
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Sandbox V0.0" })).toBeVisible();
+    expect(screen.getByText("Translation")).toBeVisible();
+    expect(screen.getByText("Max Velocity")).toBeVisible();
+
+    selectRuntimeScreen("control_panel");
+    expect(await screen.findByText("Visual Servoing")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Save Tag" })).toBeVisible();
+
+    selectRuntimeScreen("snake_control");
+    expect(await screen.findByText("Snake Control")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Hold Snake" })).toBeVisible();
+
+    selectRuntimeScreen("visual_servoing_monitor");
+    expect(await screen.findByText("AprilTag detections")).toBeVisible();
+    expect(screen.getByText("Velocity command")).toBeVisible();
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
+    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        topic: "/tag_detections",
+        widget_id: "servo-topic-monitor-1",
       }),
     );
   });
@@ -1232,7 +1415,11 @@ describe("App", () => {
 
     expect(await screen.findByLabelText(/\/teleop_cmd/)).toBeChecked();
     expect(screen.getByLabelText(/\/joint_states/)).toBeChecked();
+    expect(screen.getByText("Robot preflight")).toBeVisible();
+    expect(screen.getByText("Teleop command")).toBeVisible();
+    expect(screen.getByText("Controller feedback")).toBeVisible();
     expect(screen.getAllByText("1 pub · 1 sub").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ready").length).toBeGreaterThanOrEqual(3);
 
     fireEvent.click(screen.getByRole("button", { name: "Start recording" }));
 
@@ -1540,11 +1727,18 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         }) as const,
     ),
     listRosTopics: vi.fn(async () => [
+      { name: "/camera/image_raw", message_type: "sensor_msgs/msg/Image" },
       { name: "/teleop_cmd", message_type: "extender_msgs/msg/TeleopCommand" },
       { name: "/sandbox_controller/velocity_command", message_type: "geometry_msgs/msg/Twist" },
       { name: "/joint_states", message_type: "sensor_msgs/msg/JointState" },
     ]),
     listRosTopicStatus: vi.fn(async () => [
+      {
+        name: "/camera/image_raw",
+        message_type: "sensor_msgs/msg/Image",
+        publisher_count: 1,
+        subscription_count: 0,
+      },
       {
         name: "/teleop_cmd",
         message_type: "extender_msgs/msg/TeleopCommand",
@@ -1699,6 +1893,133 @@ function createConfigurationBundle(id: string): ConfigurationBundle {
   };
 }
 
+function createRobotMonitorBundle(): ConfigurationBundle {
+  const bundle = createConfigurationBundle("robot-monitor");
+  const application = bundle.applications[0];
+  if (!application) {
+    throw new Error("Missing generated application.");
+  }
+
+  return {
+    ...bundle,
+    applications: [
+      {
+        ...application,
+        id: "robot-monitor",
+        name: "Robot monitor",
+        screens: [
+          {
+            id: "live-monitor",
+            title: "Live monitor",
+            canvas: {
+              preset_id: "tablet",
+              runtime_mode: "fit",
+            },
+            widgets: [
+              {
+                id: "battery",
+                kind: "gauge",
+                title: "Battery",
+                layout: {
+                  x: 40,
+                  y: 40,
+                  width: 240,
+                  height: 160,
+                },
+                settings: {
+                  fieldPath: "data",
+                  max: 100,
+                  messageType: "std_msgs/msg/Float64",
+                  min: 0,
+                  show_details: false,
+                  topic: "/battery/state",
+                  unit: "%",
+                  value: 0,
+                },
+              },
+              {
+                id: "velocity-trend",
+                kind: "plot",
+                title: "Velocity trend",
+                layout: {
+                  x: 320,
+                  y: 40,
+                  width: 360,
+                  height: 220,
+                },
+                settings: {
+                  fieldPath: "linear.x",
+                  historySeconds: 10,
+                  maxSamples: 100,
+                  messageType: "geometry_msgs/msg/Twist",
+                  samples: [0],
+                  show_details: false,
+                  showLegend: true,
+                  topic: "/sandbox_controller/velocity_command",
+                  unit: "m/s",
+                  variant: "area",
+                },
+              },
+              {
+                id: "robot-model",
+                kind: "robot-3d",
+                title: "Robot joints",
+                layout: {
+                  x: 40,
+                  y: 260,
+                  width: 360,
+                  height: 240,
+                },
+                settings: {
+                  description: "Joint-state adapter readiness.",
+                  jointStateTopic: "/joint_states",
+                  modelSource: "extension",
+                  robotModelUrl: "",
+                  showAxes: true,
+                },
+              },
+              {
+                id: "runtime-events",
+                kind: "event-log",
+                title: "Runtime events",
+                layout: {
+                  x: 440,
+                  y: 260,
+                  width: 420,
+                  height: 240,
+                },
+                settings: {
+                  entries: [],
+                  fieldPath: "",
+                  maxEntries: 5,
+                  messageType: "rcl_interfaces/msg/Log",
+                  severityFilter: ["info", "warning", "error", "success"],
+                  showTimestamps: false,
+                  show_details: false,
+                  topic: "/rosout",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function createRuntimeTopicSample(topic: string, value: unknown): RuntimeTopicSampleMessage {
+  return {
+    detail: `Received ${topic}.`,
+    payload: {
+      message_type: "",
+      received_at: "2026-06-08T10:00:00+00:00",
+      topic,
+      value,
+    },
+    type: "topic_sample",
+  };
+}
+
 function createBundleWithReusableScreen(): ConfigurationBundle {
   const bundle = createConfigurationBundle("sandbox");
 
@@ -1780,6 +2101,19 @@ async function openBloomDebugRuntimeFromNavigation() {
   fireEvent.click(await screen.findByRole("button", { name: "Launch Bloom Debug runtime" }));
 }
 
+function openRuntimeMenu() {
+  const menu = screen.getByLabelText("Open runtime menu").closest("details");
+  if (!menu) {
+    throw new Error("Missing runtime menu.");
+  }
+  menu.setAttribute("open", "");
+}
+
+function selectRuntimeScreen(screenTitle: string) {
+  openRuntimeMenu();
+  fireEvent.click(screen.getByRole("button", { name: screenTitle }));
+}
+
 async function openPetanqueAppConfig() {
   fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
   fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
@@ -1807,8 +2141,8 @@ async function moveWidget(widgetTitle: string) {
   window.dispatchEvent(new MouseEvent("pointerup"));
 }
 
-function getRuntimeJoystickZone(): HTMLElement {
-  const joystickZone = document.querySelector<HTMLElement>(".bloom-joystick-zone");
+function getRuntimeJoystickZone(index = 0): HTMLElement {
+  const joystickZone = document.querySelectorAll<HTMLElement>(".bloom-joystick-zone")[index];
   if (!joystickZone) {
     throw new Error("Missing runtime joystick zone.");
   }

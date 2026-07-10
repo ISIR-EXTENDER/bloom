@@ -1,19 +1,22 @@
 .runtime-app-workspace {
   --runtime-font-scale: 1;
   --runtime-control-touch-target: var(--bloom-touch-target);
-  --runtime-shell-padding: 20px;
+  --runtime-shell-padding: 6px;
+  --runtime-operator-bar-height: 44px;
 
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   width: 100%;
-  height: calc(100vh - 112px);
-  min-height: 620px;
+  height: calc(100svh - 12px);
+  min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--bloom-border);
-  border-radius: 28px;
-  background: color-mix(in srgb, var(--bloom-surface-container-low) 92%, white);
-  box-shadow: var(--bloom-shadow);
+  border: 1px solid color-mix(in srgb, var(--bloom-border) 70%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 96%, white);
+  box-shadow: none;
   font-size: calc(1rem * var(--runtime-font-scale));
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .runtime-app-workspace[data-has-debug="true"] {
@@ -22,14 +25,14 @@
 
 .runtime-app-workspace[data-display-preset="comfort"] {
   --runtime-control-touch-target: var(--bloom-touch-target-comfortable);
-  --runtime-shell-padding: 18px;
+  --runtime-shell-padding: 8px;
 }
 
 .runtime-app-workspace[data-display-preset="high-visibility"],
 .runtime-app-workspace[data-motor-accessibility-preset="large-targets"],
 .runtime-app-workspace[data-motor-accessibility-preset="assisted-touch"] {
   --runtime-control-touch-target: var(--bloom-touch-target-high-visibility);
-  --runtime-shell-padding: 16px;
+  --runtime-shell-padding: 8px;
 }
 
 .bloom-debug-panel {
@@ -102,6 +105,7 @@
   font-size: 0.95rem;
 }
 
+.bloom-debug-preflight-list,
 .bloom-debug-topic-list,
 .bloom-debug-audit-list {
   display: grid;
@@ -113,6 +117,7 @@
   list-style: none;
 }
 
+.bloom-debug-preflight-list li,
 .bloom-debug-topic-list label,
 .bloom-debug-audit-list li {
   display: grid;
@@ -126,6 +131,37 @@
   background: var(--bloom-surface-container-low);
 }
 
+.bloom-debug-preflight-list li {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.bloom-debug-preflight-list strong[data-status] {
+  min-width: 96px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-secondary-container) 70%, white);
+  color: var(--bloom-ink);
+  font-size: 0.68rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.bloom-debug-preflight-list strong[data-status="ready"] {
+  background: color-mix(in srgb, var(--bloom-primary-container) 82%, white);
+  color: var(--bloom-primary);
+}
+
+.bloom-debug-preflight-list strong[data-status="missing"] {
+  background: var(--bloom-error-container);
+  color: var(--bloom-error);
+}
+
+.bloom-debug-preflight-list strong[data-status="unknown"] {
+  background: var(--bloom-primary-container);
+  color: var(--bloom-ink);
+}
+
 .bloom-debug-topic-list input {
   width: 18px;
   height: 18px;
@@ -134,10 +170,12 @@
 }
 
 .bloom-debug-topic-list span,
+.bloom-debug-preflight-list span,
 .bloom-debug-audit-list li {
   min-width: 0;
 }
 
+.bloom-debug-preflight-title,
 .bloom-debug-topic-list strong,
 .bloom-debug-audit-list span {
   display: block;
@@ -148,6 +186,7 @@
   white-space: nowrap;
 }
 
+.bloom-debug-preflight-list small,
 .bloom-debug-topic-list small,
 .bloom-debug-audit-list small {
   display: block;
@@ -286,22 +325,31 @@
 }
 
 .runtime-app-topbar {
-  display: flex;
-  gap: 18px;
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  padding: 18px;
+  min-height: var(--runtime-operator-bar-height);
+  padding: 5px 12px;
   border-bottom: 1px solid var(--bloom-border);
   background:
-    radial-gradient(circle at 12% 12%, rgba(255, 216, 155, 0.18), transparent 34%),
-    color-mix(in srgb, var(--bloom-panel) 86%, white);
+    radial-gradient(circle at 12% 12%, rgba(255, 216, 155, 0.1), transparent 34%),
+    color-mix(in srgb, var(--bloom-panel) 92%, white);
 }
 
 .runtime-app-topbar h2 {
   margin: 0;
   color: var(--bloom-ink);
-  font-size: 1.5rem;
+  font-size: clamp(1rem, 1.4vw, 1.18rem);
+  line-height: 1;
+}
+
+.runtime-app-topbar .eyebrow,
+.runtime-profile-label {
+  display: none;
 }
 
 .runtime-profile-label {
@@ -311,20 +359,60 @@
   font-weight: 850;
 }
 
+.runtime-active-screen-label {
+  margin: 2px 0 0;
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.runtime-app-menu {
+  position: relative;
+  justify-self: end;
+}
+
+.runtime-app-menu summary {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  padding: 5px 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 28%, var(--bloom-border));
+  border-radius: 999px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  list-style: none;
+  text-transform: uppercase;
+}
+
+.runtime-app-menu summary::-webkit-details-marker {
+  display: none;
+}
+
 .runtime-app-actions {
-  display: flex;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  width: min(320px, 86vw);
   gap: 8px;
-  flex-wrap: wrap;
+  padding: 10px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 96%, white);
+  box-shadow: var(--bloom-shadow);
 }
 
 .runtime-app-action {
-  min-height: max(42px, var(--runtime-control-touch-target));
-  padding: 9px 14px;
+  min-height: 42px;
+  padding: 8px 14px;
   border: 1px solid var(--bloom-border);
   border-radius: 999px;
   background: color-mix(in srgb, var(--bloom-surface-container-low) 88%, white);
   color: var(--bloom-ink);
   font-weight: 850;
+  text-align: left;
 }
 
 .runtime-app-workspace[data-display-preset="high-visibility"] .runtime-app-action,
@@ -337,19 +425,34 @@
   background: var(--bloom-primary-container);
 }
 
+.runtime-app-menu-group {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bloom-border);
+}
+
+.runtime-app-menu-group > span {
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .runtime-screen-tabs {
   display: flex;
   max-width: min(720px, 64vw);
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 4px;
+  padding: 2px;
 }
 
 .runtime-screen-tab {
   display: grid;
-  min-width: 148px;
+  min-width: 136px;
   gap: 2px;
-  padding: 10px 14px;
+  padding: 7px 12px;
   border: 1px solid var(--bloom-border);
   border-radius: 18px;
   background: var(--bloom-surface-container-low);
@@ -377,13 +480,13 @@
   min-height: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 20% 16%, rgba(127, 150, 126, 0.14), transparent 26%),
-    radial-gradient(circle at 88% 78%, rgba(199, 189, 220, 0.14), transparent 28%), var(--bloom-surface-container);
+    radial-gradient(circle at 20% 16%, rgba(127, 150, 126, 0.08), transparent 26%),
+    radial-gradient(circle at 88% 78%, rgba(199, 189, 220, 0.08), transparent 28%), var(--bloom-surface-container);
 }
 
 .runtime-app-canvas-viewport {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
   height: 100%;
   overflow: auto;
@@ -391,8 +494,13 @@
 }
 
 .runtime-app-canvas-viewport[data-runtime-mode="center"],
-.runtime-app-canvas-viewport[data-runtime-mode="fit"] {
+.runtime-app-canvas-viewport[data-runtime-mode="fit"],
+.runtime-app-canvas-viewport[data-runtime-mode="operator-fit"] {
   justify-content: center;
+}
+
+.runtime-app-workspace[data-runtime-layout="operator"] .runtime-app-canvas-viewport {
+  overflow: hidden;
 }
 
 .runtime-app-artboard-frame {
@@ -406,12 +514,19 @@
   min-width: 720px;
   min-height: 520px;
   overflow: hidden;
-  border: 1px solid rgba(63, 78, 70, 0.18);
-  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--bloom-border) 70%, transparent);
+  border-radius: 18px;
   background:
-    radial-gradient(circle at top right, rgba(127, 150, 126, 0.12), transparent 30%), var(--bloom-surface-container-low);
-  box-shadow: inset 0 0 0 1px rgba(255, 253, 247, 0.7);
+    radial-gradient(circle at top right, rgba(127, 150, 126, 0.08), transparent 30%), var(--bloom-surface-container-low);
+  box-shadow: inset 0 0 0 1px rgba(255, 253, 247, 0.82);
   transform-origin: top left;
+}
+
+.runtime-app-workspace[data-runtime-layout="operator"] .runtime-app-artboard {
+  border-color: color-mix(in srgb, var(--bloom-border) 44%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 72%, transparent);
+  box-shadow: none;
 }
 
 .runtime-coming-soon {

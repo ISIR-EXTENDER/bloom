@@ -45,6 +45,7 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   return (
     <div
       className="bloom-slider-widget"
+      data-binding={getStringSetting(descriptor.widget.settings, "binding", "value")}
       data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
       data-show-details={showDetails ? "true" : "false"}
     >
@@ -85,7 +86,9 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
   const binding = resolveJoystickBinding(joystickSettings);
   const color = getStringSetting(descriptor.widget.settings, "accentColor", "#7fa95f");
   const showDetails = getBooleanSetting(joystickSettings, "show_details", false);
-  const size = resolveJoystickControlSize(descriptor.widget.layout.width, descriptor.widget.layout.height);
+  const size = resolveJoystickControlSize(descriptor.widget.layout.width, descriptor.widget.layout.height, {
+    showDetails,
+  });
   const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
   const isHeldRef = useRef(false);
   const latestVectorRef = useRef<JoystickVector>({ x: 0, y: 0 });
@@ -266,10 +269,19 @@ function emitJoystickVectorChange(
   onActionIntent?.(createWidgetActionIntent(widget, { type: "set-vector", value }));
 }
 
-export function resolveJoystickControlSize(width: number, height: number): number {
-  const horizontalRoom = Math.max(96, width - 56);
-  const verticalRoom = Math.max(96, height - 118);
-  return Math.round(clamp(Math.min(horizontalRoom, verticalRoom), 96, 260));
+type JoystickControlSizeOptions = {
+  showDetails?: boolean;
+};
+
+export function resolveJoystickControlSize(
+  width: number,
+  height: number,
+  options: JoystickControlSizeOptions = {},
+): number {
+  const controlChromeHeight = options.showDetails ? 118 : 56;
+  const horizontalRoom = Math.max(96, width - 40);
+  const verticalRoom = Math.max(96, height - controlChromeHeight);
+  return Math.round(clamp(Math.min(horizontalRoom, verticalRoom), 96, 400));
 }
 
 export function resolveDecimalPlaces(step: number): number {

@@ -57,6 +57,7 @@ export function App({
   const [recentRuntimeSelections, setRecentRuntimeSelections] = useState<readonly WorkspaceSelection[]>([]);
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}`;
+  const isRuntimeAppView = activeView === "runtime" && runtimeMode === "app";
 
   useEffect(() => {
     const syncRouteFromBrowserHistory = () => {
@@ -239,8 +240,11 @@ export function App({
 
   return (
     <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
-      <main className={`app-shell app-shell-${activeView}`} id="bloom-main">
-        <ProductNavigation activeView={activeView} onChangeView={handleProductViewChange} />
+      <main
+        className={`app-shell app-shell-${activeView}${isRuntimeAppView ? " app-shell-runtime-app" : ""}`}
+        id="bloom-main"
+      >
+        {isRuntimeAppView ? null : <ProductNavigation activeView={activeView} onChangeView={handleProductViewChange} />}
 
         <div id="bloom-main-content" tabIndex={-1}>
           <AppErrorBoundary resetKey={activeView}>
@@ -259,6 +263,9 @@ export function App({
                 onDuplicateApplication={handleDuplicateApplication}
                 onEditRuntimeApplication={editRuntimeApplication}
                 onEditRuntimeScreen={editRuntimeScreen}
+                onOpenBuilderHome={() => navigateToRoute(builderModeRoute("home"))}
+                onOpenHelp={() => handleProductViewChange("help")}
+                onOpenLanding={() => handleProductViewChange("landing")}
                 onOpenRuntimeApp={openRuntimeApp}
                 onRuntimeIntent={handleRuntimeIntent}
                 onSaveApplication={handleSaveApplication}
