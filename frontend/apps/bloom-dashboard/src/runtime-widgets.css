@@ -575,6 +575,10 @@
   gap: 6px;
 }
 
+.bloom-action-widget[data-show-details="false"] > strong {
+  display: none;
+}
+
 .bloom-action-widget[data-momentary="true"] {
   --bloom-action-color: #ea7b2a;
   --bloom-action-color-strong: #b94e13;
