@@ -81,6 +81,11 @@ def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
     assert snake_hold.settings["messageType"] == "std_msgs/msg/Bool"
     assert snake_hold.settings["payload"] == "{data: true}"
     assert snake_hold.settings["releasedPayload"] == "{data: false}"
+    snake_mode = next(widget for widget in snake_screen.widgets if widget.id == "snake-mode-toggle")
+    assert snake_mode.kind == WidgetKind.TOGGLE
+    assert snake_mode.settings["offPayload"] == {"data": 0}
+    assert snake_mode.settings["onPayload"] == {"data": 3}
+    assert snake_mode.settings["topic"] == "/cmd/mode"
 
     monitor_screen = next(screen for screen in application.screens if screen.id == "visual_servoing_monitor")
     monitor_topics = {
@@ -88,10 +93,19 @@ def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
         for widget in monitor_screen.widgets
         if widget.kind == WidgetKind.TOPIC_ECHO
     }
-    assert monitor_topics == {
-        "/tag_detections",
-        "/visual_servoing/velocity_command",
-        "/visual_servoing/error_TAGtoTAGd",
+    assert monitor_topics == {"/tag_detections"}
+    monitor_plot_fields = {
+        f"{widget.settings['topic']}:{widget.settings['fieldPath']}"
+        for widget in monitor_screen.widgets
+        if widget.kind == WidgetKind.TOPIC_PLOT
+    }
+    assert monitor_plot_fields == {
+        "/visual_servoing/error_TAGtoTAGd:twist.linear.x",
+        "/visual_servoing/error_TAGtoTAGd:twist.linear.y",
+        "/visual_servoing/error_TAGtoTAGd:twist.linear.z",
+        "/visual_servoing/velocity_command:twist.linear.x",
+        "/visual_servoing/velocity_command:twist.linear.y",
+        "/visual_servoing/velocity_command:twist.linear.z",
     }
 
 

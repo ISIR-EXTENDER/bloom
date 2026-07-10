@@ -103,6 +103,12 @@ export type WidgetActionIntent =
       widgetKind: WidgetKind;
     }
   | {
+      targetScreenId: string;
+      type: "screen-navigation";
+      widgetId: string;
+      widgetKind: WidgetKind;
+    }
+  | {
       binding?: string;
       messageType?: string;
       modeId?: string;
@@ -160,6 +166,17 @@ function createCommandLikeIntent(
     return createUnsupportedIntent(widget, event, `Widget kind "${widget.kind}" only supports press actions.`);
   }
 
+  const targetScreenId = getOptionalString(settings, "targetScreenId");
+  const command = getOptionalString(settings, "command");
+  if (targetScreenId && command === "navigate_screen") {
+    return {
+      type: "screen-navigation",
+      widgetId: widget.id,
+      widgetKind: widget.kind,
+      targetScreenId,
+    };
+  }
+
   const topic = getOptionalString(settings, "topic");
   const presetId = getOptionalString(settings, "presetId");
   if (topic) {
@@ -169,7 +186,6 @@ function createCommandLikeIntent(
     });
   }
 
-  const command = getOptionalString(settings, "command");
   if (!command && !presetId) {
     return createUnsupportedIntent(widget, event, `Widget "${widget.id}" has no command or topic configured.`);
   }

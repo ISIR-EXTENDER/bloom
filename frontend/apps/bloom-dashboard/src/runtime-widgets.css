@@ -29,6 +29,10 @@
   padding: 14px;
 }
 
+.widget-preview-card[data-widget-kind="topic-plot"] {
+  align-content: stretch;
+}
+
 .widget-preview-card strong {
   font-size: 0.95rem;
 }

@@ -1327,6 +1327,32 @@ describe("widget runtime action intents", () => {
     });
   });
 
+  it("creates screen navigation intents for legacy navigation command buttons", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("command-button") as WidgetDefinition,
+          "open-monitor",
+          {
+            settings: {
+              command: "navigate_screen",
+              messageType: "std_msgs/msg/String",
+              payload: { data: "visual_servoing_monitor" },
+              targetScreenId: "visual_servoing_monitor",
+              topic: "/ui/navigation/visual_servoing_monitor",
+            },
+          },
+        ),
+        { type: "press" },
+      ),
+    ).toEqual({
+      type: "screen-navigation",
+      widgetId: "open-monitor",
+      widgetKind: "command-button",
+      targetScreenId: "visual_servoing_monitor",
+    });
+  });
+
   it("creates topic publish intents for one-shot ROS message command buttons", () => {
     expect(
       createWidgetActionIntent(

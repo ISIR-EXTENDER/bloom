@@ -157,6 +157,39 @@ describe("widget renderer registry", () => {
     });
   });
 
+  it("emits one press and one release for momentary command buttons", () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const button = screen.getByRole("button", { name: "Hold Snake" });
+    fireEvent.pointerDown(button, { pointerId: 1 });
+    fireEvent.pointerLeave(button, { pointerId: 1 });
+    fireEvent.pointerUp(button, { pointerId: 1 });
+
+    expect(onActionIntent).toHaveBeenCalledTimes(2);
+    expect(onActionIntent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        messageType: "std_msgs/msg/Bool",
+        payload: "{data: true}",
+        topic: "/snake_control/enable",
+        type: "topic-publish",
+      }),
+    );
+    expect(onActionIntent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        messageType: "std_msgs/msg/Bool",
+        payload: "{data: false}",
+        topic: "/snake_control/enable",
+        type: "topic-publish",
+      }),
+    );
+  });
+
   it("emits topic publish intents from toggles", async () => {
     const descriptor = renderScreenDescriptors(toggleScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing toggle descriptor.");
@@ -852,6 +885,37 @@ const commandButtonScreen: ScreenConfig = {
       },
       settings: {
         command: "activate_throw",
+      },
+    },
+  ],
+};
+
+const momentaryButtonScreen: ScreenConfig = {
+  id: "snake",
+  title: "Snake",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "snake-hold",
+      kind: "command-button",
+      title: "Hold Snake",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 180,
+        height: 72,
+      },
+      settings: {
+        button_label: "Hold Snake",
+        command: "momentary_ros_message",
+        messageType: "std_msgs/msg/Bool",
+        momentary: true,
+        payload: "{data: true}",
+        releasedPayload: "{data: false}",
+        topic: "/snake_control/enable",
       },
     },
   ],
