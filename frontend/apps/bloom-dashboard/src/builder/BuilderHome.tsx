@@ -33,10 +33,53 @@ type BuilderHomeProps = {
 };
 
 type CreateState = { status: "idle" } | { status: "creating" } | { status: "error"; message: string };
+type CreateWizardState = {
+  includeOnboardingSpots: boolean;
+  name: string;
+  starterId: StarterScreenId;
+  themePresetId: CreateThemePresetId;
+};
 type AppActionState =
   | { status: "idle" }
   | { applicationId: string; status: "deleting" | "duplicating" }
   | { message: string; status: "error" };
+type PlaygroundActionState =
+  | { status: "idle" }
+  | { screenId: string; status: "promoting" }
+  | { message: string; status: "error" };
+
+type StarterScreenId = "blank" | "operator-control" | "debug-monitor";
+type CreateThemePresetId = "bloom-default" | "extender-ui" | "high-visibility";
+
+const CREATE_THEME_PRESETS: Record<CreateThemePresetId, ApplicationConfig["theme"]> = {
+  "bloom-default": {
+    ...DEFAULT_APPLICATION_THEME,
+    preset_id: "bloom-default",
+    palette: {
+      accent: "#d9a441",
+      background: "#f7f1e6",
+      primary: "#7f967e",
+      surface: "#fffdf7",
+    },
+  },
+  "extender-ui": DEFAULT_APPLICATION_THEME,
+  "high-visibility": {
+    ...DEFAULT_APPLICATION_THEME,
+    preset_id: "extender-ui",
+    palette: {
+      accent: "#f59e0b",
+      background: "#f8fafc",
+      primary: "#1d4ed8",
+      surface: "#ffffff",
+    },
+  },
+};
+
+const STARTER_SCREEN_LABELS: Record<StarterScreenId, string> = {
+  blank: "Blank canvas",
+  "operator-control": "Operator controls",
+  "debug-monitor": "Debug monitor",
+};
 
 export function BuilderHome({
   configurations,
@@ -52,12 +95,16 @@ export function BuilderHome({
   const [appActionState, setAppActionState] = useState<AppActionState>({ status: "idle" });
   const [activeSection, setActiveSection] = useState<BuilderHomeSection>("overview");
   const [pendingDeleteApplicationId, setPendingDeleteApplicationId] = useState<string | null>(null);
+  const [playgroundActionState, setPlaygroundActionState] = useState<PlaygroundActionState>({ status: "idle" });
   const [screenSearch, setScreenSearch] = useState("");
   const isCreating = createState.status === "creating";
   const applications = createBuilderApplicationItems(configurations);
   const screens = createScreenLibraryItems(applications);
   const filteredScreens = filterScreens(screens, screenSearch);
   const screenGroups = groupScreensByType(filteredScreens);
+  const [createWizard, setCreateWizard] = useState<CreateWizardState>(() =>
+    createDefaultWizardState(firstConfiguration?.bundle.applications ?? []),
+  );
 
   return (
     <section className="builder-home" aria-labelledby="builder-home-title">
@@ -260,39 +307,62 @@ export function BuilderHome({
           <section className="builder-create-card" aria-labelledby="builder-create-title">
             <div>
               <p className="eyebrow">Create</p>
-              <h2 id="builder-create-title">Create an app</h2>
+              <h2 id="builder-create-title">Create guided app</h2>
             </div>
-            <p>
-              Start with a named app, a first main screen, and the Bloom default design system. The next wizard steps
-              will add starter screens, presets, and onboarding attention spots.
-            </p>
+            <label>
+              <span>App name</span>
+              <input
+                aria-label="New app name"
+                onChange={(event) => setCreateWizard({ ...createWizard, name: event.target.value })}
+                value={createWizard.name}
+              />
+            </label>
+            <label>
+              <span>Starter screen</span>
+              <select
+                aria-label="Starter screen"
+                onChange={(event) =>
+                  setCreateWizard({ ...createWizard, starterId: event.target.value as StarterScreenId })
+                }
+                value={createWizard.starterId}
+              >
+                <option value="blank">{STARTER_SCREEN_LABELS.blank}</option>
+                <option value="operator-control">{STARTER_SCREEN_LABELS["operator-control"]}</option>
+                <option value="debug-monitor">{STARTER_SCREEN_LABELS["debug-monitor"]}</option>
+              </select>
+            </label>
+            <label>
+              <span>Design preset</span>
+              <select
+                aria-label="Design preset"
+                onChange={(event) =>
+                  setCreateWizard({ ...createWizard, themePresetId: event.target.value as CreateThemePresetId })
+                }
+                value={createWizard.themePresetId}
+              >
+                <option value="extender-ui">Extender light</option>
+                <option value="bloom-default">Bloom garden</option>
+                <option value="high-visibility">High visibility</option>
+              </select>
+            </label>
+            <label className="builder-create-checkbox">
+              <input
+                checked={createWizard.includeOnboardingSpots}
+                onChange={(event) => setCreateWizard({ ...createWizard, includeOnboardingSpots: event.target.checked })}
+                type="checkbox"
+              />
+              <span>Include onboarding spots</span>
+            </label>
             <button
               disabled={!firstConfiguration || isCreating}
               onClick={async () => {
                 if (!firstConfiguration) {
                   return;
                 }
-                const name = createNewApplicationName(firstConfiguration.bundle.applications);
-                const id = slugify(name);
+                const application = createGuidedApplication(createWizard, firstConfiguration.bundle.applications);
                 setCreateState({ status: "creating" });
                 try {
-                  await onCreateApplication(firstConfiguration.id, {
-                    id,
-                    name,
-                    description: "New Bloom app",
-                    action_presets: DEFAULT_ACTION_PRESETS,
-                    runtime_policy: DEFAULT_RUNTIME_POLICY,
-                    theme: DEFAULT_APPLICATION_THEME,
-                    profiles: [],
-                    screens: [
-                      {
-                        id: "main",
-                        title: "Main",
-                        canvas: { preset_id: "tablet", runtime_mode: "fit" },
-                        widgets: [],
-                      },
-                    ],
-                  });
+                  await onCreateApplication(firstConfiguration.id, application);
                   setCreateState({ status: "idle" });
                 } catch (error) {
                   setCreateState({ status: "error", message: getErrorMessage(error) });
@@ -300,7 +370,7 @@ export function BuilderHome({
               }}
               type="button"
             >
-              {isCreating ? "Creating..." : "Create starter app"}
+              {isCreating ? "Creating..." : "Create guided app"}
             </button>
             {createState.status === "error" ? (
               <p className="builder-save-status builder-save-status-error" role="alert">
@@ -458,14 +528,194 @@ export function BuilderHome({
                   >
                     Edit screen
                   </button>
+                  <button
+                    aria-label={`Save ${displayTitle} as app`}
+                    disabled={playgroundActionState.status === "promoting"}
+                    onClick={async () => {
+                      setPlaygroundActionState({ screenId: screen.id, status: "promoting" });
+                      try {
+                        await onCreateApplication(
+                          configuration.id,
+                          createApplicationFromPlaygroundScreen(screen, application, configuration.bundle.applications),
+                        );
+                        setPlaygroundActionState({ status: "idle" });
+                      } catch (error) {
+                        setPlaygroundActionState({ status: "error", message: getErrorMessage(error) });
+                      }
+                    }}
+                    type="button"
+                  >
+                    {playgroundActionState.status === "promoting" && playgroundActionState.screenId === screen.id
+                      ? "Saving..."
+                      : "Save as app"}
+                  </button>
                 </div>
               </article>
             ))}
           </div>
+          {playgroundActionState.status === "error" ? (
+            <p className="builder-save-status builder-save-status-error" role="alert">
+              {playgroundActionState.message}
+            </p>
+          ) : null}
         </section>
       ) : null}
     </section>
   );
+}
+
+function createDefaultWizardState(applications: readonly ApplicationConfig[]): CreateWizardState {
+  return {
+    includeOnboardingSpots: true,
+    name: createNewApplicationName(applications),
+    starterId: "operator-control",
+    themePresetId: "extender-ui",
+  };
+}
+
+function createGuidedApplication(
+  wizard: CreateWizardState,
+  existingApplications: readonly ApplicationConfig[],
+): ApplicationConfig {
+  const name = wizard.name.trim() || createNewApplicationName(existingApplications);
+  const id = createUniqueApplicationId(slugify(name), existingApplications);
+  const screen = createStarterScreen(wizard.starterId, wizard.includeOnboardingSpots);
+
+  return {
+    id,
+    name,
+    description: `${STARTER_SCREEN_LABELS[wizard.starterId]} starter app`,
+    action_presets: DEFAULT_ACTION_PRESETS,
+    runtime_policy: DEFAULT_RUNTIME_POLICY,
+    theme: CREATE_THEME_PRESETS[wizard.themePresetId],
+    profiles: [],
+    screens: [screen],
+  };
+}
+
+function createApplicationFromPlaygroundScreen(
+  screen: ScreenConfig,
+  sourceApplication: ApplicationConfig,
+  existingApplications: readonly ApplicationConfig[],
+): ApplicationConfig {
+  const name = `${screen.title || "Playground"} Draft`;
+  const id = createUniqueApplicationId(slugify(name), existingApplications);
+
+  return {
+    id,
+    name,
+    description: `Promoted from ${sourceApplication.name}`,
+    action_presets: sourceApplication.action_presets,
+    runtime_policy: sourceApplication.runtime_policy,
+    theme: sourceApplication.theme,
+    profiles: sourceApplication.profiles,
+    screens: [
+      {
+        ...screen,
+        id: "main",
+        title: screen.title || "Main",
+      },
+    ],
+  };
+}
+
+function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots: boolean): ScreenConfig {
+  const onboardingWidgets = includeOnboardingSpots
+    ? [
+        {
+          id: "onboarding-title",
+          kind: "label" as const,
+          title: "Onboarding title",
+          layout: { x: 48, y: 36, width: 560, height: 86 },
+          settings: {
+            align: "left",
+            fontSize: 28,
+            text: "Name the operator task and replace this starter guidance.",
+          },
+        },
+      ]
+    : [];
+
+  if (starterId === "debug-monitor") {
+    return {
+      id: "main",
+      title: "Debug Monitor",
+      canvas: { preset_id: "tablet", runtime_mode: "fit" },
+      widgets: [
+        ...onboardingWidgets,
+        {
+          id: "topic-echo",
+          kind: "topic-echo",
+          title: "Topic echo",
+          layout: { x: 48, y: 152, width: 520, height: 240 },
+          settings: { fieldPath: "", maxMessages: 40, messageType: "", prettyPrint: true, topic: "/teleop_cmd" },
+        },
+        {
+          id: "runtime-events",
+          kind: "event-log",
+          title: "Runtime events",
+          layout: { x: 608, y: 152, width: 540, height: 240 },
+          settings: { entries: [], maxEntries: 6, severityFilter: ["success", "info", "warning", "error"] },
+        },
+      ],
+    };
+  }
+
+  if (starterId === "operator-control") {
+    return {
+      id: "main",
+      title: "Operator Controls",
+      canvas: { preset_id: "tablet", runtime_mode: "fit" },
+      widgets: [
+        ...onboardingWidgets,
+        {
+          id: "teleop-joystick",
+          kind: "joystick",
+          title: "Teleop",
+          layout: { x: 72, y: 160, width: 300, height: 300 },
+          settings: {
+            modeId: "both",
+            runtimeBinding: { adapter: "teleop", value_mapping: { mode: 3, target_topic: "/teleop_cmd" } },
+            zeroOnRelease: true,
+          },
+        },
+        {
+          id: "max-velocity",
+          kind: "slider",
+          title: "Max velocity",
+          layout: { x: 440, y: 190, width: 440, height: 96 },
+          settings: {
+            max: 1,
+            messageType: "std_msgs/msg/Float64",
+            min: 0,
+            step: 0.05,
+            topic: "/cmd/max_velocity",
+            value: 0.3,
+          },
+        },
+      ],
+    };
+  }
+
+  return {
+    id: "main",
+    title: "Main",
+    canvas: { preset_id: "tablet", runtime_mode: "fit" },
+    widgets: onboardingWidgets,
+  };
+}
+
+function createUniqueApplicationId(baseId: string, applications: readonly ApplicationConfig[]): string {
+  const existingIds = new Set(applications.map((application) => application.id));
+  if (!existingIds.has(baseId)) {
+    return baseId;
+  }
+
+  let suffix = 2;
+  while (existingIds.has(`${baseId}-${suffix}`)) {
+    suffix += 1;
+  }
+  return `${baseId}-${suffix}`;
 }
 
 function ScreenLibraryPreview({ screen, type }: { screen: ScreenConfig; type: ScreenLibraryType }) {

@@ -6,10 +6,18 @@ import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 type RuntimeHomeProps = {
   configurations: readonly LoadedConfiguration[];
   onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
+  onProfilePreferenceChange: (selection: Pick<WorkspaceSelection, "appId" | "configId">, profileId: string) => void;
+  profilePreferences: Record<string, string>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
 };
 
-export function RuntimeHome({ configurations, onOpenRuntimeApp, recentRuntimeSelections }: RuntimeHomeProps) {
+export function RuntimeHome({
+  configurations,
+  onOpenRuntimeApp,
+  onProfilePreferenceChange,
+  profilePreferences,
+  recentRuntimeSelections,
+}: RuntimeHomeProps) {
   const runtimeApps = collectRuntimeApps(configurations);
   const recentRuntimeApps = collectRecentRuntimeApps(configurations, recentRuntimeSelections);
 
@@ -60,6 +68,28 @@ export function RuntimeHome({ configurations, onOpenRuntimeApp, recentRuntimeSel
                 <h2>{application.name}</h2>
                 {application.description ? <p>{application.description}</p> : <p>Ready to launch in operator mode.</p>}
               </div>
+              {application.profiles.length > 0 ? (
+                <label className="runtime-profile-select">
+                  <span>Display profile</span>
+                  <select
+                    aria-label={`${application.name} display profile`}
+                    onChange={(event) =>
+                      onProfilePreferenceChange(
+                        { appId: application.id, configId: configuration.id },
+                        event.target.value,
+                      )
+                    }
+                    value={profilePreferences[createRuntimePreferenceKey(configuration.id, application.id)] ?? ""}
+                  >
+                    <option value="">Auto</option>
+                    {application.profiles.map((profile) => (
+                      <option key={profile.id} value={profile.id}>
+                        {profile.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <BloomButton
                 ariaLabel={`Launch ${application.name} runtime`}
                 className="runtime-app-card-action"
@@ -80,6 +110,10 @@ export function RuntimeHome({ configurations, onOpenRuntimeApp, recentRuntimeSel
       </ul>
     </section>
   );
+}
+
+function createRuntimePreferenceKey(configId: string, appId: string): string {
+  return `${configId}:${appId}`;
 }
 
 export function collectRuntimeApps(configurations: readonly LoadedConfiguration[]) {

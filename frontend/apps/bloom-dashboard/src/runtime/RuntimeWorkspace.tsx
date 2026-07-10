@@ -43,6 +43,7 @@ type RuntimeWorkspaceProps = {
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
+  preferredProfileId?: string;
   runtimeActionClient: RuntimeActionClient;
   runtimeModeState: RuntimeModeState;
   screen: ScreenConfig;
@@ -61,6 +62,7 @@ export function RuntimeWorkspace({
   onSelectionChange,
   onTopicSample,
   onTopicSubscriptionRequest,
+  preferredProfileId = "",
   runtimeActionClient,
   runtimeModeState,
   screen,
@@ -81,7 +83,10 @@ export function RuntimeWorkspace({
     }),
     [artboardScale, artboardSize],
   );
-  const runtimeProfile = useMemo(() => resolveRuntimeProfile(application, viewportSize), [application, viewportSize]);
+  const runtimeProfile = useMemo(
+    () => resolveRuntimeProfile(application, viewportSize, preferredProfileId),
+    [application, preferredProfileId, viewportSize],
+  );
   const controlStateByWidgetId = useMemo(
     () => createRuntimeControlStateByWidgetId(screen, runtimeModeState),
     [runtimeModeState, screen],

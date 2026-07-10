@@ -24,9 +24,15 @@ const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
 export function resolveRuntimeProfile(
   application: Pick<ApplicationConfig, "profiles">,
   viewport: RuntimeProfileViewport,
+  preferredProfileId = "",
 ): ResolvedRuntimeProfile {
   if (application.profiles.length === 0) {
     return DEFAULT_RUNTIME_PROFILE;
+  }
+
+  const preferredProfile = application.profiles.find((profile) => profile.id === preferredProfileId);
+  if (preferredProfile) {
+    return normalizeRuntimeProfile(preferredProfile);
   }
 
   const preferredDisplayPreset = resolvePreferredDisplayPreset(viewport);

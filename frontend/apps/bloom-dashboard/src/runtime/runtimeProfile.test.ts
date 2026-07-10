@@ -41,6 +41,13 @@ describe("resolveRuntimeProfile", () => {
     });
   });
 
+  it("uses the preferred profile before viewport heuristics", () => {
+    expect(resolveRuntimeProfile({ profiles: [...profiles] }, { height: 600, width: 1024 }, "operator")).toMatchObject({
+      displayPreset: "comfort",
+      id: "operator",
+    });
+  });
+
   it("falls back to a safe default profile when an app has no profiles", () => {
     expect(resolveRuntimeProfile({ profiles: [] }, { height: 1080, width: 1920 })).toEqual({
       displayPreset: "default",

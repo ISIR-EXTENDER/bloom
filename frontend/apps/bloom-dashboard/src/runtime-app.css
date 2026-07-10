@@ -454,6 +454,24 @@
   padding: 24px;
 }
 
+.runtime-profile-select {
+  display: grid;
+  gap: 7px;
+  color: var(--bloom-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.runtime-profile-select select {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 12px;
+  background: var(--bloom-surface-container-low);
+  color: var(--bloom-ink);
+  font: inherit;
+}
+
 .runtime-app-card h2 {
   margin: 16px 0 10px;
   color: var(--bloom-ink);

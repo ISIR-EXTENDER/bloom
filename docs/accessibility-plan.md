@@ -64,6 +64,11 @@ security-sensitive.
   names, screen names, widget labels, typed payloads, notes, and annotations.
   A custom virtual keyboard remains a future option, but only after validating
   that native OS/browser keyboards do not solve the target-device workflow.
+- Current virtual-keyboard exploration decision: keep using native input
+  controls with clear labels, touch-sized fields, and browser keyboard hints.
+  Before building a custom keyboard, run a Raspberry/tablet hardware pass over
+  app creation, app configuration, screen naming, widget labels, and ROS payload
+  editing. Only add a Bloom keyboard if native input blocks those workflows.
 
 ## Documentation And Community Rules
 
@@ -99,5 +104,5 @@ Next tests to add:
   placement.
 - Add onboarding hints that can be dismissed and are reachable by keyboard.
 - Keep README screenshots updated with meaningful alt text and captions.
-- Explore an optional virtual keyboard or touch editing assistant for hardware
-  demos where the native keyboard is not practical.
+- Validate the optional virtual keyboard or touch editing assistant on hardware
+  demos where the native keyboard may not be practical.

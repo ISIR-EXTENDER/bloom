@@ -1170,7 +1170,37 @@
 }
 
 .builder-create-card {
+  display: grid;
+  gap: 14px;
   align-self: start;
+}
+
+.builder-create-card label {
+  display: grid;
+  gap: 7px;
+  color: var(--bloom-ink);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.builder-create-card input,
+.builder-create-card select {
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 12px;
+  background: var(--bloom-surface-container-low);
+  color: var(--bloom-ink);
+  font: inherit;
+}
+
+.builder-create-card .builder-create-checkbox {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.builder-create-card .builder-create-checkbox input {
+  min-height: auto;
 }
 
 .builder-create-card button,
