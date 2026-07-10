@@ -484,6 +484,9 @@ Completed validation records:
 
 - [2026-07-10 Extender lab preflight](validation/2026-07-10-extender-lab-preflight.md): accepted for lab entry after
   `npm run validation:extender`, Extender setup discovery, and ROS package discovery.
+- [2026-07-10 Sandbox V0.0 runtime contract](validation/2026-07-10-sandbox-runtime-contract.md): accepted for
+  fixture/runtime contract after `npm run validation:sandbox-runtime` verified controls, topics, monitor widgets, and
+  app policy.
 
 See also:
 
