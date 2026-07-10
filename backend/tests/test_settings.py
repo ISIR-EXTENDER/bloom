@@ -22,6 +22,8 @@ def test_default_runtime_allowlists_cover_extender_publish_topics() -> None:
         "/cmd/joystick_z",
         "/cmd/max_velocity",
         "/cmd/petanque/round",
+        "/explorer/emergency_stop",
+        "/gripper_controller/commands",
         "/petanque/measure/request_image",
         "/petanque/teleop/enabled",
         "/petanque/throw/alpha",
@@ -61,6 +63,23 @@ def test_default_runtime_allowlists_cover_extender_publish_topics() -> None:
     assert "geometry_msgs/msg/Vector3" in settings.allowed_ros_message_types
     assert "std_msgs/msg/Float64MultiArray" in settings.allowed_ros_message_types
     assert "std_msgs/msg/UInt8MultiArray" in settings.allowed_ros_message_types
+
+
+def test_default_runtime_recording_allowlist_covers_seeded_runtime_apps() -> None:
+    settings = Settings()
+
+    assert {
+        "/joint_states",
+        "/petanque_state_machine/change_state",
+        "/rosout",
+        "/sandbox_controller/ee_pose",
+        "/sandbox_controller/joint_pose",
+        "/sandbox_controller/velocity_command",
+        "/tag_detections",
+        "/teleop_cmd",
+        "/visual_servoing/error_TAGtoTAGd",
+        "/visual_servoing/velocity_command",
+    }.issubset(settings.allowed_recording_topics)
 
 
 def test_get_settings_is_cached() -> None:

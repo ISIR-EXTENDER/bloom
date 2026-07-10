@@ -50,6 +50,8 @@ class Settings(BaseModel):
         "/cmd/joystick_z",
         "/cmd/max_velocity",
         "/cmd/petanque/round",
+        "/explorer/emergency_stop",
+        "/gripper_controller/commands",
         "/petanque/measure/request_image",
         "/petanque/teleop/enabled",
         "/petanque/throw/alpha",
@@ -90,8 +92,15 @@ class Settings(BaseModel):
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
         "/joint_states",
+        "/petanque_state_machine/change_state",
+        "/rosout",
+        "/sandbox_controller/ee_pose",
+        "/sandbox_controller/joint_pose",
         "/sandbox_controller/velocity_command",
+        "/tag_detections",
         "/teleop_cmd",
+        "/visual_servoing/error_TAGtoTAGd",
+        "/visual_servoing/velocity_command",
     )
     allowed_recording_output_folders: tuple[str, ...] = ("data/recordings",)
     runtime_recording_gateway: Literal["noop", "rosbag"] = Field(default="noop")

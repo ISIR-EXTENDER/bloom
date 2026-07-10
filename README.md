@@ -162,6 +162,7 @@ Useful migration validation helpers:
 
 ```bash
 npm run validation:extender
+npm run validation:frontend-backend
 npm run validation:sandbox-runtime
 npm run validation:sandbox-tablet
 npm run validation:visual-servoing

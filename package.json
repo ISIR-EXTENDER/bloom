@@ -19,6 +19,7 @@
     "test": "npm run test --workspaces --if-present",
     "security:dynamic": "node scripts/dynamic-security-smoke.mjs",
     "validation:extender": "bash scripts/extender-validation-preflight.sh",
+    "validation:frontend-backend": "node scripts/frontend-backend-coherence-check.mjs",
     "validation:petanque-parity": "node scripts/petanque-parity-contract.mjs",
     "validation:sandbox-tablet": "node scripts/sandbox-tablet-layout-check.mjs",
     "validation:sandbox-runtime": "node scripts/sandbox-runtime-contract.mjs",
