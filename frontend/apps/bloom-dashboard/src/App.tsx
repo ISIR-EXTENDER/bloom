@@ -58,6 +58,12 @@ export function App({
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}`;
   const isRuntimeAppView = activeView === "runtime" && runtimeMode === "app";
+  const activeTheme =
+    configurationState.status === "ready" && selection
+      ? resolveThemePreset(
+          resolveSelectedWorkspace(configurationState.configurations, selection).application.theme.preset_id,
+        )
+      : BLOOM_THEME_PRESETS["extender-ui"];
 
   useEffect(() => {
     const syncRouteFromBrowserHistory = () => {
@@ -258,7 +264,7 @@ export function App({
   }
 
   return (
-    <BloomThemeProvider theme={BLOOM_THEME_PRESETS.bloom}>
+    <BloomThemeProvider theme={activeTheme}>
       <main
         className={`app-shell app-shell-${activeView}${isRuntimeAppView ? " app-shell-runtime-app" : ""}`}
         id="bloom-main"
@@ -305,6 +311,14 @@ export function App({
       </main>
     </BloomThemeProvider>
   );
+}
+
+function resolveThemePreset(presetId: string) {
+  if (presetId === "bloom-default" || presetId === "bloom") {
+    return BLOOM_THEME_PRESETS.bloom;
+  }
+
+  return BLOOM_THEME_PRESETS[presetId as keyof typeof BLOOM_THEME_PRESETS] ?? BLOOM_THEME_PRESETS["extender-ui"];
 }
 
 function getInitialBloomRoute(): BloomRoute {

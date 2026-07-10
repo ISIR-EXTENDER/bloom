@@ -47,7 +47,7 @@ export type BloomSemanticColorTokens = Readonly<Record<BloomSemanticColorTokenNa
 
 export type BloomThemeTokens = BloomPaletteTokens & BloomSemanticColorTokens;
 
-export type BloomThemePresetId = "bloom" | "clinical" | "petanque-play";
+export type BloomThemePresetId = "bloom" | "clinical" | "extender-ui" | "petanque-play";
 
 export type BloomThemePreset = {
   description: string;
@@ -95,6 +95,46 @@ function createThemePreset({ description, id, name, palette, roles = {} }: Bloom
 }
 
 export const BLOOM_THEME_PRESETS: Readonly<Record<BloomThemePresetId, BloomThemePreset>> = {
+  "extender-ui": createThemePreset({
+    id: "extender-ui",
+    name: "Extender UI",
+    description: "Blue operator palette aligned with the current Extender UI tablet interface.",
+    palette: {
+      accent: "#1d4ed8",
+      accentHover: "#1e40af",
+      accentSoft: "#dbeafe",
+      border: "#e2e8f0",
+      cream: "#f1f5f9",
+      forest: "#1e3a5f",
+      ink: "#0f172a",
+      inkSoft: "#475569",
+      lilac: "#cbd5e1",
+      mist: "#dbeafe",
+      muted: "#64748b",
+      paper: "#f8fafc",
+      petal: "#bfdbfe",
+      pollen: "#38bdf8",
+      sage: "#0ea5e9",
+      surfaceSoft: "#ffffff",
+    },
+    roles: {
+      error: "#dc2626",
+      errorContainer: "#fee2e2",
+      onError: "#ffffff",
+      onErrorContainer: "#7f1d1d",
+      onPrimary: "#f8fafc",
+      onPrimaryContainer: "#0f172a",
+      onSecondary: "#0b1220",
+      primary: "#1d4ed8",
+      primaryContainer: "#dbeafe",
+      secondary: "#0ea5e9",
+      secondaryContainer: "#e0f2fe",
+      surface: "#f8fafc",
+      surfaceContainer: "#f1f5f9",
+      surfaceContainerHigh: "#ffffff",
+      surfaceContainerLow: "#ffffff",
+    },
+  }),
   bloom: createThemePreset({
     id: "bloom",
     name: "Bloom Garden",

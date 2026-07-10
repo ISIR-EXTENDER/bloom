@@ -111,12 +111,12 @@ export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
     moodboard_image_uri: "",
     reference_url: "",
   },
-  preset_id: "bloom-default",
+  preset_id: "extender-ui",
   palette: {
-    accent: "#d9a441",
-    background: "#f7f1e6",
-    primary: "#7f967e",
-    surface: "#fffdf7",
+    accent: "#0ea5e9",
+    background: "#f8fafc",
+    primary: "#1d4ed8",
+    surface: "#ffffff",
   },
 };
 

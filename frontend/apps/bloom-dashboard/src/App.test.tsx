@@ -541,6 +541,8 @@ describe("App", () => {
     render(<App configurationClient={configurationClient} />);
 
     await openAppConfig();
+    expect(screen.getByRole("button", { name: /Extender UI/ })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: /Bloom Garden/ }));
     fireEvent.change(screen.getByLabelText("primary color"), { target: { value: "#ff8800" } });
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
@@ -550,6 +552,8 @@ describe("App", () => {
 
     const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
+    expect(savedApplication?.theme.preset_id).toBe("bloom-default");
+    expect(savedApplication?.theme.palette.accent).toBe("#d9a441");
     expect(savedApplication?.theme.palette.primary).toBe("#ff8800");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
   });
