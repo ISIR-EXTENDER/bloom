@@ -25,6 +25,9 @@ Latest Sandbox tablet-layout record:
 Latest Petanque legacy parity record:
 [2026-07-10 Petanque legacy parity contract](validation/2026-07-10-petanque-legacy-parity-contract.md).
 
+Latest frontend/backend coherence record:
+[2026-07-10 Frontend/backend coherence review](validation/2026-07-10-frontend-backend-coherence.md).
+
 ## Preconditions
 
 - Extender ROS workspace builds and sources cleanly.
@@ -63,6 +66,17 @@ npm run validation:extender
 The helper seeds `backend/data/configurations` from tracked fixtures when needed, verifies the expected validation
 apps/screens are present, and prints the exact runtime URL plus ROS commands to monitor during the session. Set
 `BLOOM_REFRESH_VALIDATION_CONFIGS=1` to overwrite local validation copies from fixtures.
+
+Run the frontend/backend coherence check before launching local runtime apps:
+
+```bash
+npm run validation:frontend-backend
+```
+
+The helper verifies that tracked runtime fixtures match seeded backend configs and that app runtime policies agree with
+backend default publish, teleop, and recording allowlists. Use
+`BLOOM_REQUIRE_SEEDED_CONFIGS=1 npm run validation:frontend-backend` before a local runtime session when the ignored
+`backend/data/configurations` files must be present and refreshed.
 
 Run the browser-only visual smoke to catch layout and Bloom Debug regressions without ROS:
 
@@ -183,6 +197,7 @@ Use this table during validation sessions.
 | 2026-07-10 | Fixture/runtime contract | Robin visual-servoing | Accepted for UI/ROS split contract | Added `npm run validation:visual-servoing` for webcam preview, AprilTag detection topics, visual-servoing velocity/error topics, and raw image exclusion from UI monitors. See [record](validation/2026-07-10-robin-visual-servoing-contract.md). | Codex |
 | 2026-07-10 | Browser tablet layout | Sandbox V0.0 | Accepted for `1024x600` browser layout | Added `npm run validation:sandbox-tablet`; it caught and fixed undersized Snake hold and B1/B2 controls after HD scaling. See [record](validation/2026-07-10-sandbox-tablet-layout.md). | Codex |
 | 2026-07-10 | Fixture/runtime contract | Petanque admin | Accepted for legacy parity contract | Added `npm run validation:petanque-parity` for migrated screens, teleop bindings, publish widgets, monitor topics, app policy, backend defaults, and action presets. See [record](validation/2026-07-10-petanque-legacy-parity-contract.md). | Codex |
+| 2026-07-10 | Repo contract | Runtime fixtures and backend policy | Accepted for tracked fixture/backend contract | Added `npm run validation:frontend-backend`; it caught and fixed stale Explorer seeded config plus missing backend publish/recording allowlist entries. See [record](validation/2026-07-10-frontend-backend-coherence.md). | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
 | _pending_ | Petanque stack | Petanque candidate | Pending | Needs live stack/operator pass after the accepted fixture contract. | _pending_ |

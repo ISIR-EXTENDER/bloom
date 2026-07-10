@@ -41,9 +41,9 @@ Last full review: 2026-07-10.
 Current migration estimate:
 
 - Web product foundation: about 84%.
-- Live ROS/runtime parity with `tablet_interface`: about 78%.
-- Full legacy app parity with `extender_ui` and Petanque screens: about 61%.
-- Safety/security readiness for real configurable robot commands: about 72%.
+- Live ROS/runtime parity with `tablet_interface`: about 79%.
+- Full legacy app parity with `extender_ui` and Petanque screens: about 62%.
+- Safety/security readiness for real configurable robot commands: about 74%.
 
 The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
 shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions,
@@ -361,6 +361,8 @@ Completed in this phase so far:
   Petanque commands usable without opening a wildcard ROS publish policy.
 - Petanque admin legacy parity now has a fixture/runtime contract check covering the 12 migrated screens, teleop
   bindings, publishing widgets, monitor topics, app policy, backend default allowlists, and action presets.
+- Frontend/backend runtime coherence now has a tracked validation check that keeps fixture JSON, seeded backend configs,
+  app runtime policies, and backend default safety allowlists aligned.
 - The six current Extender Sandbox V0.0 screens are tracked as
   `tests/fixtures/sandbox-v0-configuration-bundle.json` and can be seeded into local runtime storage through
   `npm run validation:extender`.
@@ -482,6 +484,8 @@ Status: idea captured, intentionally low priority.
    deploy/repli actions, saved pose replay, speed/gripper counters, and final Explorer user-test mode mappings.
 6. Validate the opt-in rosbag gateway in a sourced ROS workspace and record the accepted operating procedure.
 7. Run end-to-end checks with real legacy JSON, visual smoke screenshots, and the live dashboard after each slice.
+   `npm run validation:frontend-backend` now covers the static fixture/backend-policy part of this gate before live
+   dashboard passes.
 
 Completed validation records:
 
@@ -499,6 +503,9 @@ Completed validation records:
 - [2026-07-10 Petanque legacy parity contract](validation/2026-07-10-petanque-legacy-parity-contract.md): accepted
   for fixture/runtime contract after `npm run validation:petanque-parity` verified migrated screens, teleop bindings,
   publish widgets, monitor topics, app policy, backend default allowlists, and action presets.
+- [2026-07-10 Frontend/backend coherence review](validation/2026-07-10-frontend-backend-coherence.md): accepted for
+  tracked fixture/backend contract after `npm run validation:frontend-backend` caught and fixed stale Explorer seeded
+  config plus missing backend publish/recording allowlist entries.
 
 See also:
 
