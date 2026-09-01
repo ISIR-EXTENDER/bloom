@@ -18,6 +18,12 @@ from libs.config import (
 from libs.ros_adapters import RosPublishRequest, RosPublisherGateway, SafeRosPublishError, publish_with_runtime_policy
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, RuntimePayloadShapeError
+from libs.sessions.positions import (
+    JointPose,
+    PositionLibrary,
+    PositionLibraryError,
+    render_joint_targets_yaml,
+)
 from libs.sessions import (
     RuntimeClientMessage,
     RuntimeAuditLog,
@@ -97,6 +103,31 @@ class RuntimeAuditRecordResponse(BaseModel):
 
 class RuntimeAuditListResponse(BaseModel):
     records: tuple[RuntimeAuditRecordResponse, ...]
+
+
+class SavedPositionRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=64)
+    joint_names: tuple[str, ...] = Field(min_length=1)
+    positions: tuple[float, ...] = Field(min_length=1)
+    description: str = Field(default="", max_length=280)
+
+
+class SavedPositionResponse(BaseModel):
+    name: str
+    joint_names: tuple[str, ...]
+    positions: tuple[float, ...]
+    description: str
+
+
+class SavedPositionListResponse(BaseModel):
+    positions: tuple[SavedPositionResponse, ...]
+
+
+class SavedPositionExportResponse(BaseModel):
+    """The block to paste into cartesian_manager's explorer_params.yaml."""
+
+    yaml: str
+    target_names: tuple[str, ...]
 
 
 class RuntimeRecordingStartRequest(BaseModel):
@@ -283,6 +314,85 @@ def record_runtime_action_rejection(
             topic=preset.topic,
         )
     )
+
+
+def get_position_library(request: Request) -> PositionLibrary:
+    library = getattr(request.app.state, "position_library", None)
+    if library is None:
+        library = PositionLibrary()
+        request.app.state.position_library = library
+    return library
+
+
+def to_position_response(pose: JointPose) -> SavedPositionResponse:
+    return SavedPositionResponse(
+        name=pose.name,
+        joint_names=pose.joint_names,
+        positions=pose.positions,
+        description=pose.description,
+    )
+
+
+@router.get("/positions", response_model=SavedPositionListResponse)
+def list_saved_positions(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> SavedPositionListResponse:
+    library = get_position_library(request)
+    return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in library.list()))
+
+
+@router.post("/positions", response_model=SavedPositionResponse)
+def save_position(
+    payload: SavedPositionRequest,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> SavedPositionResponse:
+    library = get_position_library(request)
+    try:
+        pose = JointPose(
+            name=payload.name,
+            joint_names=tuple(payload.joint_names),
+            positions=tuple(payload.positions),
+            description=payload.description,
+        )
+        return to_position_response(library.save(pose))
+    except PositionLibraryError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.delete("/positions/{name}", response_model=SavedPositionListResponse)
+def delete_position(
+    name: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> SavedPositionListResponse:
+    library = get_position_library(request)
+    if not library.remove(name):
+        raise HTTPException(status_code=404, detail=f"no saved position named '{name}'")
+    return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in library.list()))
+
+
+@router.get("/positions/export", response_model=SavedPositionExportResponse)
+def export_positions(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> SavedPositionExportResponse:
+    """Render the joint_targets block for cartesian_manager.
+
+    Bloom cannot register a target on the manager at runtime, so the bridge
+    between the two storage layers is an export the operator pastes into
+    explorer_params.yaml and restarts the node to pick up.
+    """
+    library = get_position_library(request)
+    poses = library.list()
+    try:
+        return SavedPositionExportResponse(
+            yaml=render_joint_targets_yaml(poses),
+            target_names=tuple(pose.name for pose in poses),
+        )
+    except PositionLibraryError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/recordings", response_model=RuntimeRecordingResponse)
