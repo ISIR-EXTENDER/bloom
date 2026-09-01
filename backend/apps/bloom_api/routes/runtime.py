@@ -16,6 +16,11 @@ from libs.config import (
     RuntimeAdapterPolicy,
 )
 from libs.ros_adapters import RosPublishRequest, RosPublisherGateway, SafeRosPublishError, publish_with_runtime_policy
+from libs.ros_adapters.camera_frames import (
+    CameraFrameError,
+    NoopCameraFrameGateway,
+    decode_image_data_url,
+)
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, RuntimePayloadShapeError
 from libs.sessions.positions import (
@@ -63,6 +68,11 @@ def get_runtime_topic_subscription_gateway(websocket: WebSocket) -> RuntimeTopic
 
 def get_runtime_audit_log(connection: Request | WebSocket) -> RuntimeAuditLog:
     return connection.app.state.runtime_audit_log
+
+
+def get_camera_frame_gateway(connection: Request | WebSocket):
+    gateway = getattr(connection.app.state, "camera_frame_gateway", None)
+    return gateway if gateway is not None else NoopCameraFrameGateway()
 
 
 def get_runtime_command_policy(connection: Request | WebSocket) -> RuntimeCommandPolicy:
@@ -128,6 +138,20 @@ class SavedPositionExportResponse(BaseModel):
 
     yaml: str
     target_names: tuple[str, ...]
+
+
+class CameraFramePublishRequest(BaseModel):
+    topic: str = Field(min_length=1, max_length=256)
+    image_data_url: str = Field(min_length=32)
+    frame_id: str = Field(default="", max_length=64)
+
+
+class CameraFramePublishResponse(BaseModel):
+    topic: str
+    image_format: str
+    byte_count: int
+    status: str
+    detail: str
 
 
 class RuntimeRecordingStartRequest(BaseModel):
@@ -393,6 +417,75 @@ def export_positions(
         )
     except PositionLibraryError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.post("/camera-frames", response_model=CameraFramePublishResponse)
+def publish_camera_frame(
+    payload: CameraFramePublishRequest,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> CameraFramePublishResponse:
+    """Publish a browser-captured frame as sensor_msgs/msg/CompressedImage.
+
+    The topic goes through the same publish allowlist as every other robot-facing
+    command, so a camera widget cannot reach a topic the app was not configured
+    for.
+    """
+    policy = get_runtime_command_policy(request)
+    audit_log = get_runtime_audit_log(request)
+    gateway = get_camera_frame_gateway(request)
+
+    try:
+        policy.ensure_publish_allowed(payload.topic, "sensor_msgs/msg/CompressedImage", {})
+    except RuntimeCommandPolicyError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_camera_frame",
+                detail=str(exc),
+                message_type="sensor_msgs/msg/CompressedImage",
+                status="rejected",
+                topic=payload.topic,
+            )
+        )
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    try:
+        frame = decode_image_data_url(payload.image_data_url)
+    except CameraFrameError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_camera_frame",
+                detail=str(exc),
+                message_type="sensor_msgs/msg/CompressedImage",
+                status="rejected",
+                topic=payload.topic,
+            )
+        )
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    try:
+        gateway.publish(payload.topic, frame, payload.frame_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    audit_log.record(
+        RuntimeAuditRecord(
+            channel="http_camera_frame",
+            detail=f"Published {frame.image_format} frame of {len(frame.image_bytes)} bytes.",
+            message_type="sensor_msgs/msg/CompressedImage",
+            payload_summary={"byte_count": len(frame.image_bytes), "format": frame.image_format},
+            status="accepted",
+            topic=payload.topic,
+        )
+    )
+
+    return CameraFramePublishResponse(
+        topic=payload.topic,
+        image_format=frame.image_format,
+        byte_count=len(frame.image_bytes),
+        status="published",
+        detail="Camera frame published.",
+    )
 
 
 @router.post("/recordings", response_model=RuntimeRecordingResponse)

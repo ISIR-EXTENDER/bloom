@@ -96,6 +96,13 @@ def create_app_configuration_repository(settings: Settings) -> ConfigurationRepo
     )
 
 
+def create_camera_frame_gateway(node: object):
+    """Publish browser camera frames to ROS. Optional, like every ROS adapter."""
+    from libs.ros_adapters.camera_frames import RclpyCameraFrameGateway
+
+    return RclpyCameraFrameGateway(node, flush_after_publish=False)
+
+
 def create_teleop_command_gateway(settings: Settings, node: object) -> TeleopCommandGateway:
     """Pick the robot command adapter for the configured control stack.
 

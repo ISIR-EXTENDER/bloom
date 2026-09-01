@@ -32,6 +32,7 @@ class Settings(BaseModel):
         "geometry_msgs/msg/Twist",
         "geometry_msgs/msg/TwistStamped",
         "geometry_msgs/msg/Vector3",
+        "sensor_msgs/msg/CompressedImage",
         "sensor_msgs/msg/JointState",
         "std_msgs/msg/Bool",
         "std_msgs/msg/Float64",
