@@ -18,6 +18,10 @@ dependencies = [
 [dependency-groups]
 dev = [
   "httpx2>=2.3.0",
+  # pip-audit pulls pip in transitively, and the audit gate then reports pip's
+  # own advisories. Constrain it to a patched release instead of suppressing
+  # the finding.
+  "pip>=26.2",
   "pip-audit>=2.10.0",
   "pytest>=9.0.3,<10",
 ]
