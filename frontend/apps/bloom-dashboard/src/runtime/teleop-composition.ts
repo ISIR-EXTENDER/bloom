@@ -76,8 +76,24 @@ function readAxisBinding(raw: unknown): AxisBinding | undefined {
  *
  * Returns `undefined` when the binding does not declare one, so the caller can
  * fall back to the legacy translation/rotation behaviour.
+ *
+ * A binding may declare per-local-mode maps under `modes`, which is how
+ * `joystick_mapper`'s local B1/B2 button works: it swaps the entire `AxisMap`
+ * without publishing a mode request, so one physical stick drives translation in
+ * B1 and orientation in B2. A Bloom app can do the same with one joystick
+ * instead of needing two.
+ *
+ * ```json
+ * "axis_mapping": {
+ *   "x": { "component": "linear_x" },
+ *   "y": { "component": "linear_y" },
+ *   "modes": {
+ *     "b2": { "x": { "component": "angular_x" }, "y": { "component": "angular_y" } }
+ *   }
+ * }
+ * ```
  */
-export function readWidgetAxisMap(runtimeBinding: unknown): WidgetAxisMap | undefined {
+export function readWidgetAxisMap(runtimeBinding: unknown, modeId?: string): WidgetAxisMap | undefined {
   if (!runtimeBinding || typeof runtimeBinding !== "object") {
     return undefined;
   }
@@ -86,7 +102,38 @@ export function readWidgetAxisMap(runtimeBinding: unknown): WidgetAxisMap | unde
     return undefined;
   }
 
+  const modeOverride = readModeAxisMap(mapping as Record<string, unknown>, modeId);
+  if (modeOverride) {
+    return modeOverride;
+  }
+
   const record = mapping as Record<string, unknown>;
+  const axisMap: WidgetAxisMap = {};
+  const value = readAxisBinding(record.value);
+  const x = readAxisBinding(record.x);
+  const y = readAxisBinding(record.y);
+  if (value) axisMap.value = value;
+  if (x) axisMap.x = x;
+  if (y) axisMap.y = y;
+
+  return axisMap.value || axisMap.x || axisMap.y ? axisMap : undefined;
+}
+
+function readModeAxisMap(mapping: Record<string, unknown>, modeId?: string): WidgetAxisMap | undefined {
+  if (!modeId) {
+    return undefined;
+  }
+  const modes = mapping.modes;
+  if (!modes || typeof modes !== "object") {
+    return undefined;
+  }
+  const normalized = modeId.trim().toLowerCase();
+  const candidate = (modes as Record<string, unknown>)[normalized];
+  if (!candidate || typeof candidate !== "object") {
+    return undefined;
+  }
+
+  const record = candidate as Record<string, unknown>;
   const axisMap: WidgetAxisMap = {};
   const value = readAxisBinding(record.value);
   const x = readAxisBinding(record.x);

@@ -452,7 +452,7 @@ export function teleopContributionFromIntent(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
   runtimeBinding: Record<string, unknown>,
 ): ComponentContribution | null {
-  const declared = readWidgetAxisMap(runtimeBinding);
+  const declared = readWidgetAxisMap(runtimeBinding, intent.modeId);
   // Opt-in per-axis dead zone matching joystick_mapper. Without it the previous
   // behaviour is preserved exactly.
   const deadZone = readAxisDeadZone(runtimeBinding);
