@@ -49,7 +49,7 @@
                     "semantic": "translation"
                   }
                 },
-                "deadzone": 0.1,
+                "deadzone": 0,
                 "labels": {
                   "bottom": "Y-",
                   "left": "X-",
@@ -66,7 +66,16 @@
                   "value_mapping": {
                     "mode": 0,
                     "target_topic": "/joystick_cartesian_command"
-                  }
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
                 }
               }
             },
@@ -95,7 +104,7 @@
                     "semantic": "rotation"
                   }
                 },
-                "deadzone": 0.1,
+                "deadzone": 0,
                 "labels": {
                   "bottom": "RY-",
                   "left": "RX-",
@@ -112,7 +121,16 @@
                   "value_mapping": {
                     "mode": 0,
                     "target_topic": "/joystick_cartesian_command"
-                  }
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_x"
+                    },
+                    "y": {
+                      "component": "angular_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
                 }
               }
             },
@@ -238,9 +256,9 @@
               }
             },
             {
-              "id": "drive-dof-note",
-              "title": "Axis coverage",
-              "kind": "label",
+              "id": "drive-z",
+              "title": "Z",
+              "kind": "slider",
               "layout": {
                 "x": 90,
                 "y": 250,
@@ -248,9 +266,59 @@
                 "height": 440
               },
               "settings": {
-                "text": "Z and RZ are not yet drivable: the teleop adapter maps one joystick to either linear or angular, so linear.z and angular.z have no path into the twist.",
-                "fontSize": 14,
-                "align": "left"
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "orientation": "vertical",
+                "show_details": true,
+                "return_to_center": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "linear_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-rz",
+              "title": "RZ",
+              "kind": "slider",
+              "layout": {
+                "x": 1260,
+                "y": 250,
+                "width": 130,
+                "height": 440
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "orientation": "vertical",
+                "show_details": true,
+                "return_to_center": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "angular_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
               }
             }
           ]

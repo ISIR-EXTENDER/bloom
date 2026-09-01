@@ -123,11 +123,26 @@ function getPublishMessageType(widget) {
   );
 }
 
+function isTeleopWidget(widget) {
+  return getString(getRuntimeBinding(widget).adapter) === "teleop";
+}
+
 function isPublishingWidget(widget) {
   if (widget.kind === "command-button" && getString(getSetting(widget, "targetScreenId"))) {
     return false;
   }
+  // A teleop-adapter widget contributes to a composed twist and is published
+  // through the teleop path, so its target is a teleop target rather than a
+  // publish topic. Sliders can be teleop widgets now that a full 6-DoF twist is
+  // composed from several controls.
+  if (isTeleopWidget(widget)) {
+    return false;
+  }
   return ["command-button", "gesture-pad", "slider", "toggle"].includes(widget.kind);
+}
+
+function getTeleopTarget(widget) {
+  return getString(getValueMapping(widget).target_topic);
 }
 
 function assertPolicyIncludes(policy, key, value, label) {
@@ -225,6 +240,26 @@ for (const { pair, bundle } of fixtureBundles) {
             `${pair.id}/${app.id}/${screen.id}/${widget.id} backend allows teleop target`,
           );
         }
+      }
+
+      if (isTeleopWidget(widget)) {
+        // A teleop widget contributes to a composed twist. Its destination is a
+        // teleop target, so validate it there rather than as a publish topic.
+        const teleopTarget = getTeleopTarget(widget);
+        if (teleopTarget) {
+          assertPolicyIncludes(
+            appPolicy,
+            "allowed_teleop_targets",
+            teleopTarget,
+            `${pair.id}/${app.id}/${screen.id}/${widget.id} app policy allows teleop target`,
+          );
+          assertBackendIncludes(
+            "allowed_teleop_targets",
+            teleopTarget,
+            `${pair.id}/${app.id}/${screen.id}/${widget.id} backend allows teleop target`,
+          );
+        }
+        continue;
       }
 
       if (!isPublishingWidget(widget)) {

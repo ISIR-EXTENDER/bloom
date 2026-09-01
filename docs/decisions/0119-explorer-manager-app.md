@@ -57,24 +57,13 @@ measured velocity makes a controller problem distinguishable from a UI problem.
 - `confirm_press`, `confirm_label` and `confirm_timeout_seconds` are available to
   every command button, defaulting to off so existing apps are unchanged.
 
-## Known gap: Z and RZ are not drivable
+## Z and RZ, and per-axis composition
 
-The teleop adapter maps **one joystick to either linear or angular**, chosen by
-`mode_id`. There is no way for a second widget to contribute `linear.z` or
-`angular.z`, so a 6-DoF twist cannot be composed from separate controls.
-
-The Sandbox app appears to have Z and RZ sliders, but they publish scalars to
-`/cmd/joystick_z` and `/cmd/joystick_rz`, which nothing in the manager stack
-subscribes to. In `extender_ui` those fed a teleop store that assembled the full
-twist; in Bloom they reach nothing.
-
-Rather than ship the same dead controls, the Drive screen documents the gap.
-Fixing it means letting the teleop adapter accumulate per-axis contributions from
-multiple widgets, which is its own piece of work.
+The Drive screen carries working Z and RZ controls because the teleop adapter now
+composes a full 6-DoF twist. See decision 0120.
 
 ## Follow-up
 
-- Per-axis teleop composition, so Z and RZ work.
 - A saved-position library in Bloom itself, rather than only in
   `explorer_params.yaml`. Bloom can persist poses live; the manager can only
   reach names it was configured with, so the two need bridging.

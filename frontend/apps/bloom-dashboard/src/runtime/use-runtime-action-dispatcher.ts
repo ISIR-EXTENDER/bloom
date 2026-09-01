@@ -7,6 +7,7 @@ import {
   type RuntimeActionDispatchResult,
   type RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
+import { TeleopTwistComposer } from "./teleop-composition";
 
 export type RuntimeActionRecordStatus = RuntimeActionDispatchResult["status"] | "pending";
 
@@ -28,6 +29,9 @@ export type RuntimeDispatchOptions = {
 export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const nextRecordIndex = useRef(0);
   const nextTeleopSequence = useRef(0);
+  // Composition is stateful: the twist sent when the Z slider moves must still
+  // carry whatever the translation joystick is currently holding.
+  const teleopComposer = useRef(new TeleopTwistComposer());
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
 
   const dispatch = useCallback(
@@ -53,6 +57,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         appId: options.appId,
         configId: options.configId,
         runtimePolicy: options.runtimePolicy,
+        teleopComposer: teleopComposer.current,
         teleopSequence,
       }).then((result) => {
         setRecords((currentRecords) =>
