@@ -1406,7 +1406,7 @@ describe("App", () => {
     expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 3,
-        target: "/teleop_cmd",
+        target: "/joystick_cartesian_command",
       }),
     );
   });
@@ -1550,7 +1550,7 @@ describe("App", () => {
       expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 3,
-          target: "/teleop_cmd",
+          target: "/joystick_cartesian_command",
         }),
       ),
     );

@@ -246,7 +246,7 @@ describe("widget renderer registry", () => {
         target: "both",
         value_mapping: {
           mode: 3,
-          target_topic: "/teleop_cmd",
+          target_topic: "/joystick_cartesian_command",
         },
       },
       type: "value-change",
