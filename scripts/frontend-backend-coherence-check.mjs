@@ -26,6 +26,11 @@ const configurationPairs = [
     seeded: "backend/data/configurations/explorer-user-tests.json",
   },
   {
+    id: "explorer-manager",
+    fixture: "tests/fixtures/explorer-manager-configuration-bundle.json",
+    seeded: "backend/data/configurations/explorer-manager.json",
+  },
+  {
     id: "webcam-visualizer",
     fixture: "tests/fixtures/webcam-visualizer-configuration-bundle.json",
     seeded: "backend/data/configurations/webcam-visualizer.json",

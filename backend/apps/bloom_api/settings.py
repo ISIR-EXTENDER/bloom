@@ -112,6 +112,7 @@ class Settings(BaseModel):
         # Remove when Petanque migrates off /teleop_cmd.
         "/sandbox_controller/velocity_command",
         "/tag_detections",
+        "/visual_servoing_cartesian_command",
         "/teleop_cmd",
         "/visual_servoing/error_TAGtoTAGd",
         "/visual_servoing/velocity_command",
