@@ -10,9 +10,10 @@ Status: do not retire yet.
 | Legacy area | Current role | Retirement status |
 | --- | --- | --- |
 | `extender_ui` | Proven canvas builder/runtime behavior and legacy widget UX reference. | Keep active until Bloom covers required app flows. |
-| `input_interfaces/tablet_interface` | Proven ROS backend bridge and runtime behavior reference. | Keep active until Bloom ROS adapters cover required runtime flows. |
+| `input_interfaces/tablet_interface` | Proven ROS backend bridge and runtime behavior reference. Also migrated to `cartesian_manager`, so both clients now speak the same contract. | Keep active until Bloom ROS adapters are accepted on hardware. |
 | Petanque app packages | Real Petanque runtime behavior, messages, state machine, and camera flow. | Keep active; Bloom candidate screens still need parity validation. |
 | Extender low-level ROS packages | Controllers, robot interfaces, simulation, hardware and messages. | Not legacy for Bloom; Bloom consumes them through adapters. |
+| `sandbox_controller` and `/teleop_cmd` | Superseded by `cartesian_manager` and dropped from `extender.repos`. Still the Petanque path. | Rollback only, reachable through `BLOOM_ROS_COMMAND_BACKEND=teleop_command`. Retire once Petanque migrates or is retired. |
 
 ## Retirement Gates
 

@@ -108,8 +108,8 @@ class Settings(BaseModel):
         "/mode_request",
         "/petanque_state_machine/change_state",
         "/rosout",
-        "/sandbox_controller/ee_pose",
-        "/sandbox_controller/joint_pose",
+        # Legacy sandbox_controller feedback, still used by the Petanque app.
+        # Remove when Petanque migrates off /teleop_cmd.
         "/sandbox_controller/velocity_command",
         "/tag_detections",
         "/teleop_cmd",

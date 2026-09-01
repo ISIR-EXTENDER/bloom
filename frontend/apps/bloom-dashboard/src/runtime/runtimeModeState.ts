@@ -33,10 +33,10 @@ const DEFAULT_MODE_STATE: RuntimeModeState = {
 };
 
 const RUNTIME_TOPIC_REQUIREMENTS: RuntimeTopicRequirement[] = [
-  { label: "Teleop", requirement: "subscriber", topic: "/teleop_cmd" },
-  { label: "Mode", requirement: "subscriber", topic: "/cmd/mode" },
+  { label: "Teleop", requirement: "subscriber", topic: "/joystick_cartesian_command" },
+  { label: "Mode", requirement: "subscriber", topic: "/mode_request" },
   { label: "Joints", requirement: "publisher", topic: "/joint_states" },
-  { label: "Controller", requirement: "publisher", topic: "/sandbox_controller/velocity_command" },
+  { label: "Controller", requirement: "publisher", topic: "/cartesian_command" },
   { label: "Servo velocity", requirement: "publisher", topic: "/visual_servoing/velocity_command" },
 ];
 
@@ -104,7 +104,7 @@ export function createRuntimeTopicStatusSummaries(
       configuredTopics.has(requirement.topic) ||
       configuredTeleopTargets.has(requirement.topic) ||
       requirement.topic === "/joint_states" ||
-      requirement.topic === "/sandbox_controller/velocity_command" ||
+      requirement.topic === "/cartesian_command" ||
       requirement.topic === "/visual_servoing/velocity_command",
   );
 

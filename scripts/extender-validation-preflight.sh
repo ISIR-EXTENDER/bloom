@@ -119,12 +119,12 @@ Validate from the runtime library:
   - Launch Petanque admin runtime when the Petanque stack is available
 
 Useful ROS checks:
-  ros2 topic echo /teleop_cmd
+  ros2 topic echo /joystick_cartesian_command
   ros2 topic echo /cmd/mode
   ros2 topic echo /snake_control/enable
   ros2 topic echo /ui/visual_servoing/on
   ros2 topic echo /visual_servoing/velocity_command
   ros2 topic echo /visual_servoing/error_TAGtoTAGd
-  ros2 topic echo /sandbox_controller/velocity_command
+  ros2 topic echo /cartesian_command
   curl http://${BLOOM_API_HOST}:${BLOOM_API_PORT}/api/v1/ros/topics/status
 EOF

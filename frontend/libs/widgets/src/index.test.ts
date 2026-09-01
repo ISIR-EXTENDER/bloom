@@ -503,7 +503,7 @@ describe("widget settings contracts", () => {
       normalizeWidgetSettings("topic-plot", {
         fieldPath: "velocity.x",
         messageType: "geometry_msgs/msg/Twist",
-        topic: "/sandbox_controller/velocity_command",
+        topic: "/cartesian_command",
         unit: "m/s",
       }),
     ).toEqual({
@@ -514,7 +514,7 @@ describe("widget settings contracts", () => {
         maxSamples: 500,
         messageType: "geometry_msgs/msg/Twist",
         show_details: true,
-        topic: "/sandbox_controller/velocity_command",
+        topic: "/cartesian_command",
         unit: "m/s",
         variant: "area",
       },

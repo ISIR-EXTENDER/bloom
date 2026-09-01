@@ -54,7 +54,7 @@ real rosbag process management explicitly:
 
 ```bash
 export BLOOM_RUNTIME_RECORDING_GATEWAY=rosbag
-export BLOOM_ALLOWED_RECORDING_TOPICS='/teleop_cmd,/joint_states,/sandbox_controller/velocity_command,/tag_detections,/visual_servoing/velocity_command,/visual_servoing/error_TAGtoTAGd'
+export BLOOM_ALLOWED_RECORDING_TOPICS='/cartesian_command,/joystick_cartesian_command,/mode_request,/joint_states,/ee_pose,/ee_velocity,/tag_detections,/visual_servoing/velocity_command'
 export BLOOM_ALLOWED_RECORDING_OUTPUT_FOLDERS='data/recordings'
 export BLOOM_RUNTIME_RECORDING_BASE_DIRECTORY="$PWD/backend"
 export BLOOM_RUNTIME_RECORDING_EXECUTABLE=ros2
@@ -71,7 +71,7 @@ without editing code:
 ```bash
 export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/cmd/mode,/cmd/gripper,/cmd/max_velocity,/cmd/joystick_z,/cmd/joystick_rz,/snake_control/enable,/ui/visual_servoing/on,/ui/visual_servoing/save,/petanque_state_machine/change_state'
 export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='std_msgs/msg/Bool,std_msgs/msg/Float64,std_msgs/msg/Int32,std_msgs/msg/String'
-export BLOOM_ALLOWED_TELEOP_TARGETS='/teleop_cmd'
+export BLOOM_ALLOWED_TELEOP_TARGETS='/joystick_cartesian_command'
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
 ```
 
@@ -97,12 +97,13 @@ then, keep authentication disabled only on trusted local machines, and enable it
 Before replacing a legacy workflow with Bloom:
 
 - build and source the Extender workspace;
-- launch the sandbox simulation with the existing `sandbox_controller` launch file;
+- launch `cartesian_manager` with its Explorer bringup, or the legacy `sandbox_controller` launch file when
+  running the rollback path;
 - start Bloom with `scripts/extender-workspace-dev.sh`;
-- verify ROS graph diagnostics in Bloom Debug or with `GET /api/v1/ros/topics/status` for `/teleop_cmd`,
-  `/joint_states`, and `/sandbox_controller/velocity_command`;
+- verify ROS graph diagnostics in Bloom Debug or with `GET /api/v1/ros/topics/status` for
+  `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`;
 - open the Sandbox teleop lab app in runtime;
-- move the translation/rotation joysticks and verify `/teleop_cmd` plus robot motion in RViz/Gazebo;
+- move the translation/rotation joysticks and verify `/cartesian_command` plus robot motion in RViz/Gazebo;
 - open Bloom Debug and verify topic catalog, topic echo, plot, audit, and recording controls;
 - open Petanque candidate screens and validate camera/debug/state-machine interactions against the legacy behavior.
 

@@ -391,7 +391,7 @@ describe("App", () => {
     expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
       expect.objectContaining({
         field_path: "linear.x",
-        topic: "/sandbox_controller/velocity_command",
+        topic: "/cartesian_command",
         widget_id: "velocity-trend",
       }),
     );
@@ -413,9 +413,7 @@ describe("App", () => {
     );
 
     runtimeActionClient.emitRuntimeTopicSample(createRuntimeTopicSample("/battery/state", { data: 82.5 }));
-    runtimeActionClient.emitRuntimeTopicSample(
-      createRuntimeTopicSample("/sandbox_controller/velocity_command", { linear: { x: 0.42 } }),
-    );
+    runtimeActionClient.emitRuntimeTopicSample(createRuntimeTopicSample("/cartesian_command", { linear: { x: 0.42 } }));
     runtimeActionClient.emitRuntimeTopicSample(
       createRuntimeTopicSample("/joint_states", { name: ["joint_1", "joint_2"], position: [0.1, 0.2] }),
     );
@@ -1593,7 +1591,7 @@ describe("App", () => {
     await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(3));
     expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
       expect.objectContaining({
-        topic: "/sandbox_controller/velocity_command",
+        topic: "/cartesian_command",
         field_path: "twist.linear.x",
         widget_id: "velocity-plot",
       }),
@@ -1618,7 +1616,7 @@ describe("App", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Refresh topics" }));
 
-    expect(await screen.findByLabelText(/\/teleop_cmd/)).toBeChecked();
+    expect(await screen.findByLabelText(/\/joystick_cartesian_command/)).toBeChecked();
     expect(screen.getByLabelText(/\/joint_states/)).toBeChecked();
     expect(screen.getByText("Robot preflight")).toBeVisible();
     expect(screen.getByText("Teleop command")).toBeVisible();
@@ -1632,7 +1630,7 @@ describe("App", () => {
     expect(runtimeActionClient.startRuntimeRecording).toHaveBeenCalledWith({
       label: "Bloom Debug recording",
       output_folder: "data/recordings",
-      topics: ["/teleop_cmd", "/sandbox_controller/velocity_command", "/joint_states"],
+      topics: ["/joystick_cartesian_command", "/cartesian_command", "/joint_states"],
     });
     expect(await screen.findByRole("button", { name: "Stop recording" })).toBeVisible();
 
@@ -1933,8 +1931,8 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
     ),
     listRosTopics: vi.fn(async () => [
       { name: "/camera/image_raw", message_type: "sensor_msgs/msg/Image" },
-      { name: "/teleop_cmd", message_type: "extender_msgs/msg/TeleopCommand" },
-      { name: "/sandbox_controller/velocity_command", message_type: "geometry_msgs/msg/Twist" },
+      { name: "/joystick_cartesian_command", message_type: "geometry_msgs/msg/TwistStamped" },
+      { name: "/cartesian_command", message_type: "geometry_msgs/msg/TwistStamped" },
       { name: "/joint_states", message_type: "sensor_msgs/msg/JointState" },
     ]),
     listRosTopicStatus: vi.fn(async () => [
@@ -1945,14 +1943,14 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         subscription_count: 0,
       },
       {
-        name: "/teleop_cmd",
-        message_type: "extender_msgs/msg/TeleopCommand",
+        name: "/joystick_cartesian_command",
+        message_type: "geometry_msgs/msg/TwistStamped",
         publisher_count: 1,
         subscription_count: 1,
       },
       {
-        name: "/sandbox_controller/velocity_command",
-        message_type: "geometry_msgs/msg/Twist",
+        name: "/cartesian_command",
+        message_type: "geometry_msgs/msg/TwistStamped",
         publisher_count: 1,
         subscription_count: 1,
       },
@@ -2000,7 +1998,7 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
       output_folder: "data/recordings",
       recording_id: recordingId,
       status: "stopped" as const,
-      topics: ["/teleop_cmd", "/sandbox_controller/velocity_command", "/joint_states"],
+      topics: ["/joystick_cartesian_command", "/cartesian_command", "/joint_states"],
     })),
     subscribeRuntimeTopic: vi.fn(async (request) => ({
       detail: `Subscribed to ${request.topic}.`,
@@ -2160,7 +2158,7 @@ function createRobotMonitorBundle(): ConfigurationBundle {
                   samples: [0],
                   show_details: false,
                   showLegend: true,
-                  topic: "/sandbox_controller/velocity_command",
+                  topic: "/cartesian_command",
                   unit: "m/s",
                   variant: "area",
                 },

@@ -36,14 +36,26 @@ Bloom should let ISIR users create robot web apps without writing web code:
 
 ## Current Status
 
-Last full review: 2026-07-10.
+Last full review: 2026-09-01.
 
 Current migration estimate:
 
 - Web product foundation: about 85%.
-- Live ROS/runtime parity with `tablet_interface`: about 82%.
+- Live ROS/runtime parity with `tablet_interface`: about 88%.
 - Full legacy app parity with `extender_ui` and Petanque screens: about 65%.
-- Safety/security readiness for real configurable robot commands: about 80%.
+- Safety/security readiness for real configurable robot commands: about 85%.
+
+The control stack changed under the migration. `cartesian_manager` replaced
+`sandbox_controller` between Bloom and `qontrol_controller`, and the workspace
+moved to Ubuntu 24.04 with ROS 2 Jazzy. Bloom's runtime now targets the manager
+contract: `geometry_msgs/TwistStamped` on `/joystick_cartesian_command` and
+validated `std_msgs/String` mode requests on `/mode_request`. The legacy
+`TeleopCommand` path stays one setting away, and Petanque still uses it.
+
+Bench validation against a live `cartesian_manager` now passes: teleop reaches
+`/cartesian_command` unchanged, valid mode requests arrive normalized, invalid
+ones are rejected with HTTP 422 and audited. **No robot has been attached yet**,
+so every Extender item below remains fixture, contract or bench validated.
 
 The key architectural base is now solid: Bloom has a separated product shell, app/screen builder, runtime app library,
 shared screen/widget renderer pipeline, SQLite-backed configuration foundation, ROS adapters, live runtime sessions,
@@ -52,6 +64,11 @@ design system. The next phase should focus less on new surface area and more on 
 concrete robot action adapters, and full Extender/Petanque acceptance before legacy retirement.
 
 Already merged:
+
+- Runtime adapter for `cartesian_manager`, mode-request validation at the publish
+  choke point, and the `ros_command_backend` rollback switch.
+- Release hygiene: changelog, release checklist, and dependency advisories
+  cleared to the moderate gate.
 
 - Monorepo skeleton, docs, MIT license, contribution rules, and commit conventions.
 - Backend FastAPI foundation, Typer CLI, file-backed configuration API, JSON import/export, and SQLite configuration storage.
@@ -285,7 +302,7 @@ Validated runtime checks:
 
 Pending live robot/simulation validation:
 
-- `/teleop_cmd` -> `sandbox_controller` -> `/sandbox_controller/velocity_command` in the sandbox simulation. The last
+- `/joystick_cartesian_command` -> `cartesian_manager` -> `/cartesian_command` in the Explorer simulation. The last
   manual isolation test confirmed that Bloom published `/teleop_cmd`, but controller feedback stayed at zero even for a
   direct `ros2 topic pub`; this must be rechecked from the ROS/controller side before real robot tests.
 - Full Sandbox V0.0 runtime against the sourced Extender workspace:
@@ -485,9 +502,10 @@ Status: idea captured, intentionally low priority.
 
 ## Ordered Next Steps
 
-1. Validate the full Sandbox V0.0 runtime against the sandbox simulation:
-   teleop joystick, max velocity, Z/RZ sliders, gripper, mode publish, snake hold button, camera preview, and
-   visual-servoing monitor topics.
+1. Validate the full Sandbox V0.0 runtime against the Explorer simulation through
+   `cartesian_manager`: teleop joystick, max velocity, Z/RZ sliders, gripper,
+   mode requests, snake hold button, camera preview, and visual-servoing monitor
+   topics. The command and mode paths are bench validated; the robot side is not.
 2. Validate Robin's visual-servoing path:
    webcam preview, AprilTag detections, velocity command topic, error topic, and the expected camera/ROS processing split.
 3. Revalidate Sandbox V0.0 tablet layout details on hardware after the runtime status strip, enlarged `snake_control`
@@ -503,6 +521,10 @@ Status: idea captured, intentionally low priority.
    dashboard passes.
 
 Completed validation records:
+
+- [2026-09-01 Cartesian manager runtime and release readiness](validation/2026-09-01-cartesian-manager-release-readiness.md):
+  accepted for contract, bench and release-hygiene level after the runtime moved to the `cartesian_manager` contract.
+  Live robot behaviour remains unvalidated.
 
 - [2026-07-10 Extender lab preflight](validation/2026-07-10-extender-lab-preflight.md): accepted for lab entry after
   `npm run validation:extender`, Extender setup discovery, and ROS package discovery.
