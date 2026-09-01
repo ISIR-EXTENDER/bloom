@@ -57,8 +57,9 @@ Bloom is now a usable foundation for the Extender/Petanque migration and robot-i
   conversion helpers.
 - Runtime API with WebSocket sessions, topic subscriptions, topic samples, teleop acknowledgements, audit records,
   command rate limits, recording hooks, HTTP ROS topic publishing, and saved app-scoped runtime actions.
-- ROS mode can publish Extender `TeleopCommand` messages on `/teleop_cmd`, publish generic ROS messages, and discover
-  live ROS topics through the `rclpy` catalog adapter.
+- ROS mode publishes `geometry_msgs/TwistStamped` Cartesian commands and validated `std_msgs/String` mode requests for
+  `cartesian_manager`, publishes generic ROS messages, and discovers live ROS topics through the `rclpy` catalog adapter.
+  The legacy Extender `TeleopCommand` path on `/teleop_cmd` remains available behind `BLOOM_ROS_COMMAND_BACKEND`.
 - CI covers backend tests, frontend tests, build, security audit smoke, CodeQL, and visual smoke checks.
 
 Legacy `extender_ui`, `tablet_interface`, and Petanque packages remain rollback paths until the full robot workflows are
@@ -141,7 +142,7 @@ It sources the Extender ROS workspace, starts the Bloom API with ROS adapters, a
 Manual ROS mode:
 
 ```bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source /path/to/extender_workspace/install/setup.bash
 cd backend
 make ros-run
@@ -215,6 +216,19 @@ export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
 export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
 export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.local:5173'
 ```
+
+### ROS Command Backend
+
+```bash
+# cartesian_manager (default) or teleop_command for the legacy rollback path
+export BLOOM_ROS_COMMAND_BACKEND=cartesian_manager
+# Must match the manager's default_input_frame_id, or every command is dropped
+export BLOOM_ROS_COMMAND_FRAME_ID=base_link
+```
+
+`cartesian_manager` performs no TF conversion. A command stamped with any other
+frame is discarded and the robot silently stops, so this value is worth checking
+before a lab session.
 
 Use `X-Bloom-API-Key` for API calls. Admin keys can mutate configuration; operator keys can read configuration and use
 runtime/ROS endpoints. Production settings intentionally fail to start without authentication and an admin key.

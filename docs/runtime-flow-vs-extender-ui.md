@@ -81,7 +81,7 @@ Bloom preserves the details that robot controllers observe:
 
 - joystick values stay normalized to the legacy unit-disk contract;
 - teleop commands use the runtime WebSocket `teleop_cmd` contract and publish to
-  configured targets such as `/teleop_cmd`;
+  configured targets such as `/joystick_cartesian_command`;
 - sliders and toggles publish explicit app-configured ROS message types and
   payload fields;
 - Explorer deploy/repli, saved pose replay, favorite mode/layout/position,
@@ -105,7 +105,7 @@ source /home/susana/workspace/extender/extender_workspace/install/setup.bash
 cd /home/susana/workspace/extender/bloom
 export BLOOM_RUNTIME_RECORDING_GATEWAY=rosbag
 export BLOOM_RUNTIME_RECORDING_BASE_DIRECTORY="$PWD/backend/data/recordings"
-export BLOOM_ALLOWED_RECORDING_TOPICS="/teleop_cmd,/joint_states"
+export BLOOM_ALLOWED_RECORDING_TOPICS="/cartesian_command,/joint_states"
 cd backend
 uv run python -m apps.bloom_cli.main api run --host 127.0.0.1 --port 8000
 ```
@@ -115,7 +115,7 @@ Then start a recording from Bloom Debug or with:
 ```bash
 curl -X POST http://localhost:8000/api/v1/runtime/recordings \
   -H 'Content-Type: application/json' \
-  -d '{"topics":["/teleop_cmd"],"output_folder":"data/recordings","label":"sandbox"}'
+  -d '{"topics":["/cartesian_command"],"output_folder":"data/recordings","label":"sandbox"}'
 ```
 
 Stop with:

@@ -44,7 +44,7 @@ Latest frontend/backend coherence record:
 These checks are still pending before any legacy retirement notice:
 
 - Sandbox teleop lab: real operator pass on the target tablet against the sandbox simulation.
-- Sandbox motion path: confirm `/teleop_cmd` reaches `/sandbox_controller/velocity_command` and visible robot motion.
+- Sandbox motion path: confirm `/joystick_cartesian_command` reaches `/cartesian_command` and visible robot motion.
 - Sandbox scalar controls: confirm slider publishes are stable and audited during the same live session.
 - Bloom Debug: confirm topic catalog, preflight statuses, topic echo/plot subscriptions, recording controls, and audit
   refresh against live ROS topics.
@@ -120,7 +120,7 @@ npm run validation:petanque-parity
 2. Start sandbox simulation:
 
    ```bash
-   ros2 launch sandbox_controller explorer.launch.py use_simulation:=true
+   ros2 launch cartesian_manager explorer.launch.py use_simulation:=true
    ```
 
 3. Start Bloom next to the workspace:
@@ -133,25 +133,53 @@ npm run validation:petanque-parity
 4. Open the Bloom runtime app library and validate:
 
    - `Sandbox teleop lab` opens without builder chrome.
-   - Translation and rotation joystick gestures publish `/teleop_cmd`.
-   - Bloom Debug or `GET /api/v1/ros/topics/status` shows publishers/subscribers for `/teleop_cmd`, `/joint_states`,
-     and `/sandbox_controller/velocity_command`.
+   - Translation and rotation joystick gestures publish `/joystick_cartesian_command`.
+   - Bloom Debug or `GET /api/v1/ros/topics/status` shows publishers/subscribers for
+     `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`.
    - Robot motion is visible in RViz/Gazebo.
    - Scalar sliders publish expected values and do not jump unexpectedly.
    - Bloom Debug topic catalog loads.
    - Topic echo and plot widgets can subscribe to live topics.
    - Runtime audit records accepted and rejected commands.
 
-If Bloom publishes `/teleop_cmd` but the robot does not move, isolate the issue with a direct ROS command before
+If Bloom publishes `/joystick_cartesian_command` but the robot does not move, isolate the issue with a direct ROS command before
 debugging the web stack:
 
 ```bash
-ros2 topic pub --times 12 --rate 10 /teleop_cmd extender_msgs/msg/TeleopCommand \
-  "{twist: {linear: {x: 0.2, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}, mode: 3}"
+ros2 topic pub --times 12 --rate 10 /joystick_cartesian_command geometry_msgs/msg/TwistStamped \
+  "{header: {frame_id: 'base_link'}, twist: {linear: {x: 0.2, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}}"
 ```
 
-Then monitor `/sandbox_controller/velocity_command`. If it also stays at zero, the current blocker is in the
+Then monitor `/cartesian_command`. If it also stays at zero, the current blocker is in the
 ROS/simulation controller path rather than Bloom's runtime transport.
+
+### Check the frame first
+
+`cartesian_manager` performs no TF conversion. A command whose `header.frame_id` is neither empty nor the manager's
+`default_input_frame_id` is discarded, and the robot simply stops with only a warning in the manager log. This looks
+exactly like a broken web stack and is the fastest thing to rule out:
+
+```bash
+# what the manager expects
+ros2 param get /cartesian_manager default_input_frame_id
+
+# what Bloom is stamping
+echo $BLOOM_ROS_COMMAND_FRAME_ID
+
+# the warning, if the frame is wrong
+ros2 topic echo /rosout | grep -i "Ignoring joystick command in frame"
+```
+
+### Check the mode is understood
+
+An unparseable mode string is dropped by the manager without feedback. Bloom validates before publishing, so an invalid
+mode returns HTTP 422 rather than reaching ROS:
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/api/v1/ros/topics/publish \
+  -H 'Content-Type: application/json' \
+  -d '{"topic":"/mode_request","message_type":"std_msgs/msg/String","payload":{"data":"geometric/snake"}}'
+```
 
 ## Petanque Validation
 
@@ -159,7 +187,8 @@ Validate against the legacy Petanque flow before marking the Petanque UI path as
 
 - `npm run validation:petanque-parity` passes against the tracked migrated fixture.
 - Petanque app opens from Bloom runtime library.
-- Petanque teleop joysticks publish `/teleop_cmd` through the Bloom runtime adapter.
+- Petanque teleop joysticks publish `/teleop_cmd` through the Bloom runtime adapter. Petanque intentionally stays on
+  the legacy path; only Sandbox and Explorer moved to `cartesian_manager`.
 - Camera/stream widgets show the expected feed or a clear connection state.
 - State-machine command buttons publish the configured command payloads.
 - Petanque command topics pass both app-level runtime policy and backend runtime allowlists.

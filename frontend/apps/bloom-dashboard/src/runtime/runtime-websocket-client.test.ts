@@ -101,7 +101,7 @@ describe("runtime WebSocket client", () => {
     } satisfies RuntimeWebSocketClientOptions);
     const request = {
       type: "subscribe_topic" as const,
-      topic: "/sandbox_controller/velocity_command",
+      topic: "/cartesian_command",
       message_type: "geometry_msgs/msg/TwistStamped",
       field_path: "twist.linear.x",
       widget_id: "velocity-plot",
@@ -114,7 +114,7 @@ describe("runtime WebSocket client", () => {
     socket.message({
       type: "subscription_ack",
       session_id: "runtime-session",
-      detail: "Subscribed to /sandbox_controller/velocity_command.",
+      detail: "Subscribed to /cartesian_command.",
       payload: {
         topic: request.topic,
         message_type: request.message_type,
@@ -124,9 +124,9 @@ describe("runtime WebSocket client", () => {
 
     await expect(responsePromise).resolves.toMatchObject({
       type: "subscription_ack",
-      detail: "Subscribed to /sandbox_controller/velocity_command.",
+      detail: "Subscribed to /cartesian_command.",
       payload: {
-        topic: "/sandbox_controller/velocity_command",
+        topic: "/cartesian_command",
         field_path: "twist.linear.x",
       },
     });

@@ -43,7 +43,7 @@
                 "height": 300
               },
               "settings": {
-                "topic": "/teleop_cmd",
+                "topic": "/joystick_cartesian_command",
                 "messageType": "extender_msgs/msg/TeleopCommand",
                 "fieldPath": "",
                 "maxMessages": 100,
@@ -61,7 +61,7 @@
                 "height": 300
               },
               "settings": {
-                "topic": "/sandbox_controller/velocity_command",
+                "topic": "/cartesian_command",
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "fieldPath": "twist.linear.x",
                 "historySeconds": 30,
@@ -95,10 +95,13 @@
         "allowed_message_types": [],
         "allowed_publish_topics": [],
         "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_velocity",
           "/joint_states",
+          "/joystick_cartesian_command",
+          "/mode_request",
           "/petanque_state_machine/change_state",
           "/rosout",
-          "/sandbox_controller/velocity_command",
           "/teleop_cmd"
         ],
         "allowed_teleop_targets": []

@@ -390,7 +390,7 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
     expect(screen.getByText("Velocity X")).toBeVisible();
-    expect(screen.getByText("/sandbox_controller/velocity_command")).toBeVisible();
+    expect(screen.getByText("/cartesian_command")).toBeVisible();
     expect(screen.getByText("field: velocity.x")).toBeVisible();
   });
 
@@ -437,7 +437,7 @@ describe("widget renderer registry", () => {
     );
 
     expect(screen.getByText("Velocity X")).toBeVisible();
-    expect(screen.queryByText("/sandbox_controller/velocity_command")).not.toBeInTheDocument();
+    expect(screen.queryByText("/cartesian_command")).not.toBeInTheDocument();
     expect(screen.queryByText("field: velocity.x")).not.toBeInTheDocument();
     expect(screen.getByText("1 samples")).toBeVisible();
   });
@@ -1080,7 +1080,7 @@ const topicPlotScreen: ScreenConfig = {
         historySeconds: 30,
         maxSamples: 500,
         messageType: "geometry_msgs/msg/Twist",
-        topic: "/sandbox_controller/velocity_command",
+        topic: "/cartesian_command",
         unit: "m/s",
       },
     },

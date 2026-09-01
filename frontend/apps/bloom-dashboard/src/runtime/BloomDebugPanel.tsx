@@ -207,12 +207,12 @@ type RobotPreflightRow = RobotPreflightTopic & {
 };
 
 const ROBOT_PREFLIGHT_TOPICS: RobotPreflightTopic[] = [
-  { label: "Teleop command", requirement: "subscriber", topic: "/teleop_cmd" },
+  { label: "Teleop command", requirement: "subscriber", topic: "/joystick_cartesian_command" },
   { label: "Joint states", requirement: "publisher", topic: "/joint_states" },
-  { label: "Controller feedback", requirement: "publisher", topic: "/sandbox_controller/velocity_command" },
+  { label: "Controller feedback", requirement: "publisher", topic: "/cartesian_command" },
 ];
 
-const DEFAULT_RECORDING_TOPIC_NAMES = ["/teleop_cmd", "/sandbox_controller/velocity_command", "/joint_states"];
+const DEFAULT_RECORDING_TOPIC_NAMES = ["/joystick_cartesian_command", "/cartesian_command", "/joint_states"];
 
 async function loadDebugTopics(client: RuntimeActionClient): Promise<DebugTopic[]> {
   if (client.listRosTopicStatus) {

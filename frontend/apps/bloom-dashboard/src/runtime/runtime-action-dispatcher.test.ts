@@ -271,7 +271,7 @@ describe("runtime action dispatcher", () => {
       runtimeBinding: {
         adapter: "teleop",
         value_mapping: {
-          target_topic: "/teleop_cmd",
+          target_topic: "/joystick_cartesian_command",
         },
       },
       value: { x: 0.25, y: -0.5 },
@@ -283,7 +283,7 @@ describe("runtime action dispatcher", () => {
       linear: { x: 0.25, y: -0.5, z: 0 },
       mode: 2,
       seq: 7,
-      target: "/teleop_cmd",
+      target: "/joystick_cartesian_command",
     });
   });
 
@@ -370,7 +370,7 @@ describe("runtime action dispatcher", () => {
         linear: { x: 0.2, y: 0.3, z: 0 },
         mode: 2,
         seq: 42,
-        target: "/teleop_cmd",
+        target: "/joystick_cartesian_command",
       },
     });
     expect(client.sendTeleopCommand).toHaveBeenCalledOnce();
@@ -402,9 +402,9 @@ describe("runtime action dispatcher", () => {
       }),
     ).resolves.toMatchObject({
       status: "blocked",
-      detail: 'Teleop target "/teleop_cmd" is not allowed by this app runtime policy.',
+      detail: 'Teleop target "/joystick_cartesian_command" is not allowed by this app runtime policy.',
       request: {
-        target: "/teleop_cmd",
+        target: "/joystick_cartesian_command",
         type: "teleop_cmd",
       },
     });

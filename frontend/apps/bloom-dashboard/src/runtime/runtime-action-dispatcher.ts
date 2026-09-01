@@ -534,7 +534,9 @@ function resolveTeleopTarget(valueMapping: Record<string, unknown>): string {
   if (topic?.startsWith("/")) {
     return topic;
   }
-  return "/teleop_cmd";
+  // cartesian_manager input. The legacy /teleop_cmd path is reachable by
+  // configuring target_topic explicitly on the widget binding.
+  return "/joystick_cartesian_command";
 }
 
 function resolveValueTopic(

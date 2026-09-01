@@ -225,7 +225,6 @@
           "/joint_target_command",
           "/joystick_cartesian_command",
           "/mode_request",
-          "/sandbox_controller/velocity_command",
           "/teleop_cmd"
         ],
         "allowed_teleop_targets": ["/joystick_cartesian_command", "/teleop_cmd"]

@@ -147,7 +147,7 @@ def test_runtime_websocket_accepts_topic_subscriptions() -> None:
                 "type": "subscribe_topic",
                 "field_path": "data",
                 "message_type": "std_msgs/msg/Float64",
-                "topic": "/sandbox_controller/velocity_command",
+                "topic": "/cartesian_command",
                 "widget_id": "velocity-plot",
             }
         )
@@ -156,11 +156,11 @@ def test_runtime_websocket_accepts_topic_subscriptions() -> None:
     assert response == {
         "type": "subscription_ack",
         "active_sessions": None,
-        "detail": "Subscribed to /sandbox_controller/velocity_command.",
+        "detail": "Subscribed to /cartesian_command.",
         "payload": {
             "field_path": "data",
             "message_type": "std_msgs/msg/Float64",
-            "topic": "/sandbox_controller/velocity_command",
+            "topic": "/cartesian_command",
             "widget_id": "velocity-plot",
         },
         "session_id": connected["session_id"],

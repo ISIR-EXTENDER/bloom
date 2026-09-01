@@ -49,13 +49,13 @@ describe("runtime mode state", () => {
     expect(
       createRuntimeTopicStatusSummaries(createSandboxApp(), [
         {
-          name: "/cmd/mode",
+          name: "/mode_request",
           message_type: "std_msgs/msg/Int32",
           publisher_count: 0,
           subscription_count: 1,
         },
         {
-          name: "/teleop_cmd",
+          name: "/joystick_cartesian_command",
           message_type: "extender_msgs/msg/TeleopCommand",
           publisher_count: 1,
           subscription_count: 0,
@@ -63,8 +63,12 @@ describe("runtime mode state", () => {
       ]),
     ).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ topic: "/cmd/mode", status: "ready", statusLabel: "Ready" }),
-        expect.objectContaining({ topic: "/teleop_cmd", status: "waiting", statusLabel: "No subscriber" }),
+        expect.objectContaining({ topic: "/mode_request", status: "ready", statusLabel: "Ready" }),
+        expect.objectContaining({
+          topic: "/joystick_cartesian_command",
+          status: "waiting",
+          statusLabel: "No subscriber",
+        }),
       ]),
     );
   });
@@ -117,9 +121,9 @@ function createSandboxApp(): ApplicationConfig {
     action_presets: [],
     runtime_policy: {
       allowed_message_types: ["std_msgs/msg/Int32", "extender_msgs/msg/TeleopCommand"],
-      allowed_publish_topics: ["/cmd/mode"],
+      allowed_publish_topics: ["/mode_request"],
       allowed_recording_topics: [],
-      allowed_teleop_targets: ["/teleop_cmd"],
+      allowed_teleop_targets: ["/joystick_cartesian_command"],
     },
     theme: {
       inspiration: { moodboard_image_uri: "", reference_url: "" },

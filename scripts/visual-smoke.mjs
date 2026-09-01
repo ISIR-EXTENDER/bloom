@@ -174,14 +174,14 @@ async function mockConfigurationApi(page) {
       json: {
         topics: [
           {
-            name: "/teleop_cmd",
-            message_type: "extender_msgs/msg/TeleopCommand",
+            name: "/joystick_cartesian_command",
+            message_type: "geometry_msgs/msg/TwistStamped",
             publisher_count: 1,
             subscription_count: 1,
           },
           {
-            name: "/cmd/mode",
-            message_type: "std_msgs/msg/Int32",
+            name: "/mode_request",
+            message_type: "std_msgs/msg/String",
             publisher_count: 1,
             subscription_count: 1,
           },
@@ -192,8 +192,8 @@ async function mockConfigurationApi(page) {
             subscription_count: 0,
           },
           {
-            name: "/sandbox_controller/velocity_command",
-            message_type: "geometry_msgs/msg/Twist",
+            name: "/cartesian_command",
+            message_type: "geometry_msgs/msg/TwistStamped",
             publisher_count: 1,
             subscription_count: 0,
           },
@@ -217,8 +217,8 @@ async function mockRuntimeDebugApi(page) {
       json: {
         topics: [
           {
-            name: "/teleop_cmd",
-            message_type: "extender_msgs/msg/TeleopCommand",
+            name: "/joystick_cartesian_command",
+            message_type: "geometry_msgs/msg/TwistStamped",
             publisher_count: 1,
             subscription_count: 1,
           },
@@ -239,7 +239,7 @@ async function mockRuntimeDebugApi(page) {
       contentType: "application/json",
       json: {
         topics: [
-          { name: "/teleop_cmd", message_type: "extender_msgs/msg/TeleopCommand" },
+          { name: "/joystick_cartesian_command", message_type: "geometry_msgs/msg/TwistStamped" },
           { name: "/cmd/max_velocity", message_type: "std_msgs/msg/Float64" },
         ],
       },
@@ -421,7 +421,7 @@ async function showDebugRuntime(page) {
   await page.getByRole("heading", { name: "Bloom Debug" }).waitFor();
   await page.getByRole("heading", { name: "Inspect, record, and audit runtime topics." }).waitFor();
   await page.getByRole("button", { name: "Refresh topics" }).click();
-  await page.getByLabel("Topic catalog").getByText("/teleop_cmd").waitFor();
+  await page.getByLabel("Topic catalog").getByText("/joystick_cartesian_command").waitFor();
   await page.getByLabel("Robot preflight").getByText("Ready").first().waitFor();
   await page.getByRole("button", { name: "Refresh audit" }).click();
   await page.getByRole("article", { name: /Teleop command echo/i }).waitFor();

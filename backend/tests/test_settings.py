@@ -72,8 +72,6 @@ def test_default_runtime_recording_allowlist_covers_seeded_runtime_apps() -> Non
         "/joint_states",
         "/petanque_state_machine/change_state",
         "/rosout",
-        "/sandbox_controller/ee_pose",
-        "/sandbox_controller/joint_pose",
         "/sandbox_controller/velocity_command",
         "/tag_detections",
         "/teleop_cmd",
