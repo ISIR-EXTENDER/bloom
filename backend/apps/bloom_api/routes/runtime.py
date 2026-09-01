@@ -38,6 +38,7 @@ from libs.sessions import (
     RuntimeRecordingGateway,
     RuntimeRecordingRequest,
     RuntimeServerMessage,
+    RuntimeRateLimitError,
     RuntimeSessionManager,
     RuntimeTopicSample,
     RuntimeTopicSubscription,
@@ -434,6 +435,23 @@ def publish_camera_frame(
     policy = get_runtime_command_policy(request)
     audit_log = get_runtime_audit_log(request)
     gateway = get_camera_frame_gateway(request)
+
+    # Frames are megabytes each. Without a limit a camera widget stuck in a
+    # retry loop would saturate the backend and the ROS graph, so this is rate
+    # limited like every other robot-facing command.
+    try:
+        get_runtime_command_rate_limiter(request).ensure_allowed(f"http_camera_frame:{payload.topic}")
+    except RuntimeRateLimitError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_camera_frame",
+                detail=str(exc),
+                message_type="sensor_msgs/msg/CompressedImage",
+                status="rejected",
+                topic=payload.topic,
+            )
+        )
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
 
     try:
         policy.ensure_publish_allowed(payload.topic, "sensor_msgs/msg/CompressedImage", {})
