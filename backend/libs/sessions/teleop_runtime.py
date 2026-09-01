@@ -19,7 +19,7 @@ def build_teleop_ack(
     policy = command_policy or RuntimeCommandPolicy(
         allowed_message_types=("*",),
         allowed_publish_topics=("*",),
-        allowed_teleop_targets=("/teleop_cmd",),
+        allowed_teleop_targets=("/joystick_cartesian_command", "/teleop_cmd"),
     )
 
     try:

@@ -281,7 +281,7 @@ def test_runtime_websocket_keeps_legacy_axes_alias_for_teleop_commands() -> None
 
     assert response["payload"]["linear"] == {"x": 0.1, "y": -0.2, "z": 0.0}
     assert response["payload"]["status"] == "simulated"
-    assert response["payload"]["target"] == "/teleop_cmd"
+    assert response["payload"]["target"] == "/joystick_cartesian_command"
 
 
 def test_runtime_websocket_rejects_out_of_range_teleop_modes() -> None:

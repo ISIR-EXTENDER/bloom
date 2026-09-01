@@ -157,7 +157,7 @@ for (const [id, mode, legacyTopic] of [
   requireTeleopJoystick(id, mode, legacyTopic);
 }
 requirePolicyAllows("/teleop_cmd", "teleop");
-requireBackendDefault("/teleop_cmd", "teleop target");
+requireBackendDefault("/teleop_cmd", "teleop target"); // Petanque stays on the legacy sandbox_controller path
 
 for (const [id, topic] of [
   ["control-rz", "/cmd/joystick_rz"],

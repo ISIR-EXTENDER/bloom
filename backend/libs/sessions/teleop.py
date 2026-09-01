@@ -19,7 +19,7 @@ class TeleopCommand:
     linear: TeleopVector3
     mode: int
     seq: int
-    target: str = "/teleop_cmd"
+    target: str = "/joystick_cartesian_command"
 
 
 @dataclass(frozen=True)

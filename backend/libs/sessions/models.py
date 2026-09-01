@@ -47,7 +47,7 @@ class RuntimeTeleopCommandMessage(RuntimeModel):
     angular: RuntimeVector3Message = Field(default_factory=RuntimeVector3Message)
     linear: RuntimeVector3Message = Field(default_factory=RuntimeVector3Message)
     seq: int = Field(default=0, ge=0)
-    target: str = Field(default="/teleop_cmd", min_length=1)
+    target: str = Field(default="/joystick_cartesian_command", min_length=1)
 
     @model_validator(mode="before")
     @classmethod

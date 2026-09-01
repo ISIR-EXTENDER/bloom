@@ -73,7 +73,7 @@
                   "target": "both",
                   "value_mapping": {
                     "mode": 3,
-                    "target_topic": "/teleop_cmd"
+                    "target_topic": "/joystick_cartesian_command"
                   }
                 }
               }
@@ -119,7 +119,7 @@
                   "target": "rotation",
                   "value_mapping": {
                     "mode": 1,
-                    "target_topic": "/teleop_cmd"
+                    "target_topic": "/joystick_cartesian_command"
                   }
                 }
               }
@@ -216,9 +216,19 @@
       ],
       "runtime_policy": {
         "allowed_message_types": ["std_msgs/msg/Float64"],
-        "allowed_publish_topics": ["/cmd/joystick_rz", "/cmd/joystick_z", "/cmd/max_velocity"],
-        "allowed_recording_topics": ["/joint_states", "/sandbox_controller/velocity_command", "/teleop_cmd"],
-        "allowed_teleop_targets": ["/teleop_cmd"]
+        "allowed_publish_topics": ["/cmd/joystick_rz", "/cmd/joystick_z", "/cmd/max_velocity", "/mode_request"],
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/sandbox_controller/velocity_command",
+          "/teleop_cmd"
+        ],
+        "allowed_teleop_targets": ["/joystick_cartesian_command", "/teleop_cmd"]
       },
       "action_presets": [
         {

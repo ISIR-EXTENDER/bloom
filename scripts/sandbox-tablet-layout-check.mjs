@@ -178,7 +178,7 @@ async function mockApi(page) {
         topics: [
           {
             message_type: "extender_msgs/msg/TeleopCommand",
-            name: "/teleop_cmd",
+            name: "/joystick_cartesian_command",
             publisher_count: 1,
             subscription_count: 1,
           },

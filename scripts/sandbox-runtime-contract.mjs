@@ -83,8 +83,8 @@ function requireTeleopJoystick(id, mode) {
   assert(`${id} teleop adapter`, binding?.adapter === "teleop", `expected teleop adapter, got ${binding?.adapter}`);
   assert(
     `${id} teleop target`,
-    binding?.value_mapping?.target_topic === "/teleop_cmd",
-    `expected /teleop_cmd, got ${binding?.value_mapping?.target_topic}`,
+    binding?.value_mapping?.target_topic === "/joystick_cartesian_command",
+    `expected /joystick_cartesian_command, got ${binding?.value_mapping?.target_topic}`,
   );
   assert(`${id} teleop mode`, binding?.value_mapping?.mode === mode, `expected mode ${mode}`);
 }
@@ -220,7 +220,8 @@ for (const topic of [
 ]) {
   requirePolicyAllows(topic);
 }
-requirePolicyAllows("/teleop_cmd", "teleop");
+requirePolicyAllows("/joystick_cartesian_command", "teleop");
+requirePolicyAllows("/mode_request", "publish");
 
 if (failures.length > 0) {
   console.error("Sandbox runtime contract failed:");
