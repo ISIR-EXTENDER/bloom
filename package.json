@@ -24,7 +24,8 @@
     "validation:sandbox-tablet": "node scripts/sandbox-tablet-layout-check.mjs",
     "validation:sandbox-runtime": "node scripts/sandbox-runtime-contract.mjs",
     "validation:visual-servoing": "node scripts/visual-servoing-contract.mjs",
-    "visual:smoke": "node scripts/visual-smoke.mjs"
+    "visual:smoke": "node scripts/visual-smoke.mjs",
+    "check:version": "node scripts/version-consistency-check.mjs"
   },
   "engines": {
     "node": ">=20"

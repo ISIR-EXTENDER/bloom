@@ -38,12 +38,31 @@ Bloom should let ISIR users create robot web apps without writing web code:
 
 Last full review: 2026-09-01.
 
-Current migration estimate:
+Current migration estimate, **for code completeness**:
 
-- Web product foundation: about 85%.
-- Live ROS/runtime parity with `tablet_interface`: about 88%.
-- Full legacy app parity with `extender_ui` and Petanque screens: about 65%.
-- Safety/security readiness for real configurable robot commands: about 85%.
+- Web product foundation: about 95%.
+- ROS/runtime parity with `tablet_interface`: about 97%.
+- Full legacy app parity with `extender_ui` and Petanque screens: about 70%.
+- Safety/security readiness for real configurable robot commands: about 90%.
+
+These four percentages describe what this repository controls. They do **not**
+describe readiness to use Bloom on a robot, and the difference is not a detail.
+
+Every item under Ordered Next Steps below needs an arm, a session, and an
+operator. None of them can be closed by writing code, so they are a checklist
+rather than a percentage: a checklist cannot be reported as 87% done, which is
+exactly the property needed here. See `docs/production-readiness-review.md`
+under "What 100% can mean".
+
+What closed the gap since the last review: a full 6-DoF teleop composition
+matching `joystick_mapper` including its per-axis dead zone, local B1/B2 axis map
+swapping, camera frames published to ROS, gripper and digital-output semantics
+taken from `tablet_interface`, manipulability from `/ee_jac`, a saved-position
+library with export to the manager config, plot freeze, rate limits on every
+robot-facing command, and a version consistency check.
+
+What is left on the code axis is mostly Petanque, which is legacy and stays on
+`/teleop_cmd` deliberately.
 
 The control stack changed under the migration. `cartesian_manager` replaced
 `sandbox_controller` between Bloom and `qontrol_controller`, and the workspace

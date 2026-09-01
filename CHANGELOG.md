@@ -13,6 +13,20 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Saved position library** with export of the `joint_targets` block for
+  `cartesian_manager`, since Bloom cannot register a target on the manager at
+  runtime.
+- **Camera frames published to ROS** as `sensor_msgs/msg/CompressedImage`, with
+  size, format and allowlist checks, rate limiting, and audit.
+- **Gripper and digital-output semantics** matching `tablet_interface`, so a
+  calibration lives in one place instead of in every screen.
+- **Manipulability** from `/ee_jac`, which was published and entirely unused.
+- **Per-axis teleop composition**: a full 6-DoF twist assembled from several
+  widgets, matching `joystick_mapper` including its per-axis scaled dead zone,
+  and local B1/B2 axis map swapping.
+- **Plot freeze**, so a transient can be read instead of scrolling away.
+- **`npm run check:version`**, because three files carried the version
+  independently with nothing enforcing that they agree.
 - **Explorer Manager app**, with screens following the manager's own branches:
   Drive, Positions, Robot feedback, and Command sources.
 - `confirm_press` on command buttons: armed first press, dispatching second

@@ -102,10 +102,10 @@ ros2 param get /cartesian_manager default_input_frame_id
 Three files carry the version and must agree:
 
 ```bash
-grep -m1 '"version"' package.json
-grep -m1 '^version' backend/pyproject.toml
-grep -m1 'app_version' backend/apps/bloom_api/settings.py
+npm run check:version
 ```
+
+It fails when the three disagree, so this is a gate rather than a reading.
 
 ## 8. Honest release notes
 

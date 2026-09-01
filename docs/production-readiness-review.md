@@ -7,7 +7,12 @@ Bloom with cleaner boundaries, tests, and a more durable product architecture.
 
 ## Current Migration Estimate
 
-Last reviewed: 2026-06-04.
+Last reviewed: 2026-09-01.
+
+> The table below was written on 2026-06-04, before the `cartesian_manager`
+> migration and before most of the runtime work. Its numbers were stale and
+> contradicted `docs/migration-plan.md`. They are refreshed here, and the
+> distinction that matters is spelled out under **What "100%" can mean**.
 
 | Area | Legacy baseline | Bloom state | Migration estimate |
 | --- | --- | --- | --- |
@@ -17,15 +22,35 @@ Last reviewed: 2026-06-04.
 | Runtime app view | Worked well, app-like, no builder chrome | Runtime app library, recent apps, clean artboard, edit shortcuts, shared renderer pipeline | 75% |
 | Widgets foundation | Many working widgets, uneven settings contracts | Registry, settings contracts, renderer registry, action intents, runtime data snapshots, cleaner runtime labels | 68% |
 | Slider and joystick controls | User-tested tactile design, large handles, axis labels, readouts | Pointer-native joystick, Radix sliders, teleop/topic bindings, good HD layout, small-tablet comfort still pending | 70% |
-| Camera/stream widgets | Working camera and stream flows | Browser webcam demo works, stream preview exists, ROS stream adapter pending | 58% |
-| Topic debug and plots | Basic logs/plots through app-specific code | Topic echo/plot contracts receive live WebSocket samples, copy action exists, pause/clear/catalog pending | 58% |
-| ROS runtime bridge | `tablet_interface` works with ROS topics, typed messages, teleop, camera, measure bridges | ROS publish API, WebSocket teleop, live topic streaming, sandbox smoke tests, safety allowlists pending | 50% |
-| Petanque app migration | Working app-specific runtime | Fixtures and initial migration inventory | 25% |
-| Security | Mostly implicit/local trusted stack | Baseline documented, headers tested, command allowlists/audit logs pending | 30% |
+| Camera/stream widgets | Working camera and stream flows | Browser webcam preview, stream widgets, and frames published to ROS as CompressedImage with size, format and allowlist checks | 90% |
+| Topic debug and plots | Basic logs/plots through app-specific code | Topic echo with pause and clear, plots with freeze, topic catalog, live WebSocket samples | 90% |
+| ROS runtime bridge | `tablet_interface` works with ROS topics, typed messages, teleop, camera, measure bridges | cartesian_manager adapter, 6-DoF composition, validated mode requests, camera frames, gripper and digital output semantics, manipulability, allowlists and audit | 97% |
+| Petanque app migration | Working app-specific runtime | Fixtures, migrated screens, parity contract check; stays on the legacy `/teleop_cmd` path deliberately | 60% |
+| Security | Mostly implicit/local trusted stack | API keys, CORS allowlist, publish/teleop/recording allowlists, rate limits on every robot-facing command, audit log, production refuses to start without auth | 90% |
 
-Overall migration state: about 70% for the web product foundations, about 50%
-for live ROS parity with `tablet_interface`, and about 30% for full legacy app
-parity.
+## What "100%" can mean
+
+Two different things gate these numbers, and conflating them produces a plan
+nobody can finish.
+
+**Code completeness** is what this repository controls. It can reach 100%, and
+for the ROS bridge it now effectively has: teleop with 6-DoF composition, mode
+requests, camera frames, gripper and digital-output semantics, topic streaming,
+recording, and manipulability. Every remaining item on that axis is a choice not
+to build something, not a gap.
+
+**Live robot acceptance** cannot be reached by writing code. Every one of the
+seven items in the migration plan's Ordered Next Steps needs an arm, a session,
+and an operator. No amount of work in this repository moves them, and a plan that
+reports them as a percentage invites someone to think they can be finished at a
+desk.
+
+The percentages below therefore describe code completeness. Hardware acceptance
+is tracked separately as a checklist, because a checklist cannot be 87% done.
+
+Overall code state: about 95% for the web product foundations, about 97% for ROS
+parity with `tablet_interface`, and about 70% for full legacy app parity, which
+is dominated by Petanque.
 
 See also `docs/partner-interface-review.md` for the Inria/AUCTUS
 `extender-interface` review. That repo is useful as Explorer-specific UX
