@@ -23,7 +23,7 @@ function renderPlot(samples: number[], settings: Record<string, unknown> = {}) {
 
   const data = {
     type: "plot" as const,
-    samples: samples.map((value, index) => ({ value, timestamp: index })),
+    samples: samples.map((value, index) => ({ value, timestamp: `t${index}` })),
   };
 
   const view = render(<PlotWidget data={data} descriptor={descriptor} />);
@@ -53,7 +53,7 @@ describe("plot freeze", () => {
     // New samples arrive while frozen.
     view.rerender(
       <PlotWidget
-        data={{ type: "plot", samples: [9, 9, 9].map((value, index) => ({ value, timestamp: index })) }}
+        data={{ type: "plot", samples: [9, 9, 9].map((value, index) => ({ value, timestamp: `t${index}` })) }}
         descriptor={descriptor}
       />,
     );
@@ -69,7 +69,7 @@ describe("plot freeze", () => {
     fireEvent.click(screen.getByRole("button", { name: "Freeze" }));
     view.rerender(
       <PlotWidget
-        data={{ type: "plot", samples: [9, 9, 9].map((value, index) => ({ value, timestamp: index })) }}
+        data={{ type: "plot", samples: [9, 9, 9].map((value, index) => ({ value, timestamp: `t${index}` })) }}
         descriptor={descriptor}
       />,
     );
