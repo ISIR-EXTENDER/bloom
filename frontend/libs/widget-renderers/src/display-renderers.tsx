@@ -1,5 +1,5 @@
 import { normalizeWidgetSettings } from "@bloom/widgets";
-import type { CSSProperties } from "react";
+import { type CSSProperties, useState } from "react";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
@@ -116,11 +116,23 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
 export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
   const showLegend = getBooleanSetting(descriptor.widget.settings, "showLegend", true);
   const historySeconds = getNumberSetting(descriptor.widget.settings, "historySeconds", 10);
+  const allowFreeze = getBooleanSetting(descriptor.widget.settings, "allow_freeze", true);
   const liveSamples = data?.type === "plot" ? data.samples : [];
-  const values =
+  const liveValues =
     liveSamples.length > 0
       ? liveSamples.map((sample) => sample.value)
       : (readNumberArraySetting(descriptor.widget.settings.samples) ?? DEFAULT_PLOT_VALUES);
+
+  // A transient is unreadable on a live trace: by the time an operator has seen
+  // a spike it has scrolled away. Freezing keeps the samples that were on
+  // screen at the moment the button was pressed.
+  const [frozenValues, setFrozenValues] = useState<number[] | null>(null);
+  const isFrozen = frozenValues !== null;
+  const values = frozenValues ?? liveValues;
+
+  const handleFreezeToggle = () => {
+    setFrozenValues(isFrozen ? null : [...liveValues]);
+  };
   const variant = readPlotVariant(descriptor.widget.settings.variant);
   const unit = getStringSetting(descriptor.widget.settings, "unit", "");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
@@ -140,6 +152,17 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
         {showLegend ? (
           <span>{liveSamples.length > 0 ? `${liveSamples.length} samples` : `${historySeconds}s history`}</span>
         ) : null}
+        {allowFreeze ? (
+          <button
+            aria-pressed={isFrozen}
+            className="bloom-plot-freeze"
+            data-frozen={isFrozen ? "true" : undefined}
+            onClick={handleFreezeToggle}
+            type="button"
+          >
+            {isFrozen ? "Live" : "Freeze"}
+          </button>
+        ) : null}
       </header>
       <svg aria-label={`${descriptor.widget.title} plot`} className="bloom-plot-sparkline" viewBox="0 0 220 82">
         <title>{descriptor.widget.title}</title>
@@ -149,7 +172,8 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
         {variant !== "bars" ? <path className="bloom-plot-line" d={path} /> : null}
       </svg>
       <output className="bloom-plot-readout" aria-live="polite">
-        latest {formatNumber(latestValue)}
+        {isFrozen ? "frozen " : "latest "}
+        {formatNumber(latestValue)}
         {unit ? ` ${unit}` : ""}
       </output>
       {showDetails && data?.type === "plot" ? (
