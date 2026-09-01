@@ -74,6 +74,7 @@ def test_default_runtime_recording_allowlist_covers_seeded_runtime_apps() -> Non
         "/rosout",
         "/sandbox_controller/velocity_command",
         "/tag_detections",
+        "/visual_servoing_cartesian_command",
         "/teleop_cmd",
         "/visual_servoing/error_TAGtoTAGd",
         "/visual_servoing/velocity_command",

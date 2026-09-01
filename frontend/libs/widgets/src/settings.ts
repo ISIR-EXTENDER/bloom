@@ -52,6 +52,18 @@ export type CommandButtonSettings = {
   button_label: string;
   cancellable: boolean;
   command: string;
+  /**
+   * Require a second press before the action is dispatched.
+   *
+   * Meant for commands that move the robot with no way to interrupt them, such
+   * as a `cartesian_manager` named joint target: the manager dispatches the
+   * pose once and reports no progress, so an accidental press is a moving arm.
+   */
+  confirm_press?: boolean;
+  /** Label shown while the button is armed and waiting for the second press. */
+  confirm_label?: string;
+  /** Seconds before an armed button disarms itself. 0 keeps it armed. */
+  confirm_timeout_seconds?: number;
   messageType?: string;
   payload?: unknown;
   presetId?: string;
@@ -222,6 +234,9 @@ const COMMAND_BUTTON_DEFAULT_SETTINGS: CommandButtonSettings = {
   button_label: "",
   cancellable: false,
   command: "",
+  confirm_label: "Confirm?",
+  confirm_press: false,
+  confirm_timeout_seconds: 5,
   messageType: "",
   payload: "",
   presetId: "",

@@ -1,5 +1,5 @@
 import { createWidgetActionIntent, type WidgetActionIntent } from "@bloom/widgets";
-import { type PointerEvent, useRef, useState } from "react";
+import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
@@ -14,11 +14,36 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const messageType = getStringSetting(descriptor.widget.settings, "messageType", "");
   const variant = getStringSetting(descriptor.widget.settings, "variant", "");
+  const confirmPress = getBooleanSetting(descriptor.widget.settings, "confirm_press", false);
+  const confirmLabel = getStringSetting(descriptor.widget.settings, "confirm_label", "Confirm?");
+  const confirmTimeoutSeconds = getNumberSetting(descriptor.widget.settings, "confirm_timeout_seconds", 5);
   const isMomentaryPressedRef = useRef(false);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
-  const visibleButtonLabel = momentary ? (isMomentaryPressed ? pressedLabel : releasedLabel) : buttonLabel;
+  const [isArmed, setIsArmed] = useState(false);
+  const visibleButtonLabel = momentary
+    ? isMomentaryPressed
+      ? pressedLabel
+      : releasedLabel
+    : isArmed
+      ? confirmLabel
+      : buttonLabel;
+
+  // An armed button disarms itself, so a half-finished press cannot be
+  // completed minutes later by someone who did not arm it.
+  useEffect(() => {
+    if (!isArmed || confirmTimeoutSeconds <= 0) {
+      return;
+    }
+    const timer = setTimeout(() => setIsArmed(false), confirmTimeoutSeconds * 1000);
+    return () => clearTimeout(timer);
+  }, [confirmTimeoutSeconds, isArmed]);
 
   const handlePress = () => {
+    if (confirmPress && !isArmed) {
+      setIsArmed(true);
+      return;
+    }
+    setIsArmed(false);
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
   };
   const handleMomentaryPress = (event: PointerEvent<HTMLButtonElement>) => {
@@ -73,6 +98,8 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
         aria-label={visibleButtonLabel}
         aria-pressed={momentary ? isMomentaryPressed : undefined}
         className="bloom-command-button"
+        data-armed={isArmed ? "true" : undefined}
+        data-confirm-press={confirmPress ? "true" : undefined}
         data-momentary={momentary ? "true" : "false"}
         data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
         onClick={momentary ? undefined : handlePress}

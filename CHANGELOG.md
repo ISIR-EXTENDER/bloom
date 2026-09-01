@@ -13,6 +13,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Explorer Manager app**, with screens following the manager's own branches:
+  Drive, Positions, Robot feedback, and Command sources.
+- `confirm_press` on command buttons: armed first press, dispatching second
+  press, and a timeout that disarms. Defaults to off.
+- `scripts/capture_joint_target.py` in `extender_workspace`, which captures a
+  named pose from the live robot and emits a valid `joint_targets` block.
 - `RclpyCartesianManagerGateway`, publishing `geometry_msgs/TwistStamped`
   Cartesian commands for the `cartesian_manager` control stack.
 - `BLOOM_ROS_COMMAND_BACKEND` (`cartesian_manager` by default, `teleop_command`
