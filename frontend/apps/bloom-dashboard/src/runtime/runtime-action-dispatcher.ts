@@ -5,6 +5,15 @@ import type {
   RuntimeAdapterPolicy,
 } from "@bloom/api-client";
 import type { Vector2Value, WidgetActionIntent } from "@bloom/widgets";
+import {
+  type ComponentContribution,
+  composeTwist,
+  contributionFromAxisMap,
+  defaultJoystickAxisMap,
+  readAxisDeadZone,
+  readWidgetAxisMap,
+  type TeleopTwistComposer,
+} from "./teleop-composition";
 
 export type RuntimeVector3 = {
   x: number;
@@ -101,6 +110,11 @@ export type RuntimeActionDispatchOptions = {
   appId?: string;
   configId?: string;
   runtimePolicy?: RuntimeAdapterPolicy;
+  /**
+   * Accumulates per-widget twist contributions so a full 6-DoF command can be
+   * composed. Omitted keeps the historical single-widget behaviour.
+   */
+  teleopComposer?: TeleopTwistComposer;
   teleopSequence?: number;
 };
 
@@ -255,7 +269,7 @@ async function dispatchTeleopValueIntent(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
   options: RuntimeActionDispatchOptions,
 ): Promise<RuntimeActionDispatchResult> {
-  const request = createTeleopCommandRequest(intent, options.teleopSequence ?? 0);
+  const request = createTeleopCommandRequest(intent, options.teleopSequence ?? 0, options.teleopComposer);
   if (request) {
     const policyError = validateTeleopCommandRequest(request, options.runtimePolicy);
     if (policyError) {
@@ -388,11 +402,8 @@ export function createRosTopicPublishRequest(intent: Extract<WidgetActionIntent,
 export function createTeleopCommandRequest(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
   sequence = 0,
+  composer?: TeleopTwistComposer,
 ): RuntimeTeleopCommandRequest | null {
-  if (!isVector2Value(intent.value)) {
-    return null;
-  }
-
   const runtimeBinding = getRecord(intent.runtimeBinding);
   if (getOptionalString(runtimeBinding, "adapter") !== "teleop") {
     return null;
@@ -401,16 +412,67 @@ export function createTeleopCommandRequest(
   const valueMapping = getRecord(runtimeBinding.value_mapping);
   const mode = getOptionalNumber(valueMapping, "mode") ?? resolveTeleopMode(intent.modeId);
   const target = resolveTeleopTarget(valueMapping);
-  const vectors = mapJoystickValueToTeleopVectors(intent.value, intent.modeId);
+
+  const contribution = teleopContributionFromIntent(intent, runtimeBinding);
+  if (!contribution) {
+    return null;
+  }
+
+  // Without a composer, keep the historical single-widget behaviour so an app
+  // that has not opted into axis mapping publishes exactly what it did before.
+  if (!composer) {
+    const twist = composeTwist([contribution]);
+    return {
+      type: "teleop_cmd",
+      angular: twist.angular,
+      linear: twist.linear,
+      mode,
+      seq: sequence,
+      target,
+    };
+  }
+
+  // cartesian_manager replaces the latest command per source rather than
+  // accumulating it, so every publish has to carry the whole twist.
+  composer.contribute(intent.widgetId, contribution);
+  const twist = composer.compose();
 
   return {
     type: "teleop_cmd",
-    angular: vectors.angular,
-    linear: vectors.linear,
+    angular: twist.angular,
+    linear: twist.linear,
     mode,
     seq: sequence,
     target,
   };
+}
+
+/** Map one widget intent onto twist components, honouring `axis_mapping`. */
+export function teleopContributionFromIntent(
+  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
+  runtimeBinding: Record<string, unknown>,
+): ComponentContribution | null {
+  const declared = readWidgetAxisMap(runtimeBinding);
+  // Opt-in per-axis dead zone matching joystick_mapper. Without it the previous
+  // behaviour is preserved exactly.
+  const deadZone = readAxisDeadZone(runtimeBinding);
+
+  if (isVector2Value(intent.value)) {
+    const axisMap = declared ?? defaultJoystickAxisMap(isRotationMode(intent.modeId));
+    // Clamp to the unit disk before mapping, so a diagonal push cannot exceed
+    // magnitude 1. This is a property of the touch surface rather than of the
+    // mapping, and it is the long-standing joystick contract.
+    const normalized = normalizeTeleopJoystickVector(intent.value);
+    return contributionFromAxisMap(axisMap, { x: normalized.x, y: normalized.y }, deadZone);
+  }
+
+  // A scalar widget only reaches the twist when it says which component it
+  // drives. Guessing would silently move an axis the operator did not choose.
+  if (typeof intent.value === "number" && Number.isFinite(intent.value) && declared?.value) {
+    return contributionFromAxisMap(declared, { value: intent.value }, deadZone);
+  }
+
+  return null;
 }
 
 export function createScalarTopicPublishRequest(
@@ -493,26 +555,6 @@ function toPayloadBody(payload: unknown): Pick<RosTopicPublishRequest, "payload"
     return { payload };
   }
   return { payload: { data: payload } };
-}
-
-function mapJoystickValueToTeleopVectors(
-  value: Vector2Value,
-  modeId: string | undefined,
-): Pick<RuntimeTeleopCommandRequest, "angular" | "linear"> {
-  const zero = { x: 0, y: 0, z: 0 };
-  const joystickVector = normalizeTeleopJoystickVector(value);
-
-  if (isRotationMode(modeId)) {
-    return {
-      angular: joystickVector,
-      linear: zero,
-    };
-  }
-
-  return {
-    angular: zero,
-    linear: joystickVector,
-  };
 }
 
 function resolveTeleopMode(modeId: string | undefined): number {
