@@ -290,7 +290,7 @@ const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
     target: "both",
     value_mapping: {
       mode: 3,
-      target_topic: "/teleop_cmd",
+      target_topic: "/joystick_cartesian_command",
     },
   },
   show_details: false,
