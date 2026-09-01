@@ -77,6 +77,7 @@ class Settings(BaseModel):
         "/teleop_config/save_profile",
         "/teleop_config/swap_xy",
         "/teleop_config/translation_gain",
+        "/mode_request",
         "/ui/load_pose",
         "/ui/navigation",
         "/ui/navigation/visual_servoing",
@@ -88,10 +89,23 @@ class Settings(BaseModel):
         "/ui/visual_servoing/save",
         "/visual_servoing/enabled",
     )
-    allowed_teleop_targets: tuple[str, ...] = ("/teleop_cmd",)
+    ros_command_backend: Literal["cartesian_manager", "teleop_command"] = Field(default="cartesian_manager")
+    # cartesian_manager does no TF conversion: a command stamped with any
+    # other frame is dropped and the robot silently stops.
+    ros_command_frame_id: str = "base_link"
+    allowed_teleop_targets: tuple[str, ...] = (
+        "/joystick_cartesian_command",
+        "/teleop_cmd",
+    )
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
+        "/cartesian_command",
+        "/ee_pose",
+        "/ee_velocity",
         "/joint_states",
+        "/joint_target_command",
+        "/joystick_cartesian_command",
+        "/mode_request",
         "/petanque_state_machine/change_state",
         "/rosout",
         "/sandbox_controller/ee_pose",

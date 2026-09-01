@@ -109,7 +109,7 @@
                   "target": "both",
                   "value_mapping": {
                     "mode": 3,
-                    "target_topic": "/teleop_cmd"
+                    "target_topic": "/joystick_cartesian_command"
                   }
                 }
               }
@@ -801,7 +801,9 @@
                 "cancellable": false,
                 "topic": "/cmd/mode",
                 "messageType": "std_msgs/msg/Int32",
-                "payload": { "data": 3 }
+                "payload": {
+                  "data": 3
+                }
               }
             },
             {
@@ -1125,12 +1127,22 @@
           "/cmd/mode",
           "/explorer/emergency_stop",
           "/gripper_controller/commands",
+          "/mode_request",
           "/ui/load_pose",
           "/ui/robot_action",
           "/ui/save_pose"
         ],
-        "allowed_recording_topics": ["/joint_states", "/teleop_cmd"],
-        "allowed_teleop_targets": ["/teleop_cmd"]
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/teleop_cmd"
+        ],
+        "allowed_teleop_targets": ["/joystick_cartesian_command", "/teleop_cmd"]
       },
       "action_presets": [
         {

@@ -96,6 +96,27 @@ def create_app_configuration_repository(settings: Settings) -> ConfigurationRepo
     )
 
 
+def create_teleop_command_gateway(settings: Settings, node: object) -> TeleopCommandGateway:
+    """Pick the robot command adapter for the configured control stack.
+
+    ``cartesian_manager`` is the current Extender stack. ``teleop_command`` is
+    the legacy ``sandbox_controller`` path, kept as a rollback while the manager
+    stack is validated on hardware.
+    """
+    if settings.ros_command_backend == "teleop_command":
+        from libs.ros_adapters.rclpy_teleop import RclpyTeleopCommandGateway
+
+        return RclpyTeleopCommandGateway(node, flush_after_publish=False)
+
+    from libs.ros_adapters.rclpy_cartesian_manager import RclpyCartesianManagerGateway
+
+    return RclpyCartesianManagerGateway(
+        node,
+        flush_after_publish=False,
+        command_frame_id=settings.ros_command_frame_id,
+    )
+
+
 def create_runtime_recording_gateway(settings: Settings) -> RuntimeRecordingGateway:
     if settings.runtime_recording_gateway == "rosbag":
         return RosbagRuntimeRecordingGateway(

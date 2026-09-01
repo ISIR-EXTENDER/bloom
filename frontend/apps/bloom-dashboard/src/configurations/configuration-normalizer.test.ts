@@ -102,6 +102,7 @@ describe("normalizeConfigurationBundle", () => {
       "/cmd/joystick_z",
       "/cmd/max_velocity",
       "/cmd/mode",
+      "/mode_request",
       "/sandbox/digital_output",
       "/snake_control/enable",
       "/teleop_config/angular_scale_x",
@@ -125,7 +126,13 @@ describe("normalizeConfigurationBundle", () => {
       "/ui/visual_servoing/save",
     ]);
     expect(application?.runtime_policy.allowed_recording_topics).toEqual([
+      "/cartesian_command",
+      "/ee_pose",
+      "/ee_velocity",
       "/joint_states",
+      "/joint_target_command",
+      "/joystick_cartesian_command",
+      "/mode_request",
       "/sandbox_controller/ee_pose",
       "/sandbox_controller/joint_pose",
       "/sandbox_controller/velocity_command",

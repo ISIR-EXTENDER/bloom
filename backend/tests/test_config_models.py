@@ -69,7 +69,10 @@ def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
         "visual_servoing",
         "visual_servoing_monitor",
     ]
-    assert application.runtime_policy.allowed_teleop_targets == ("/teleop_cmd",)
+    assert application.runtime_policy.allowed_teleop_targets == (
+        "/joystick_cartesian_command",
+        "/teleop_cmd",
+    )
     assert "/snake_control/enable" in application.runtime_policy.allowed_publish_topics
     assert "/visual_servoing/velocity_command" in application.runtime_policy.allowed_recording_topics
 
