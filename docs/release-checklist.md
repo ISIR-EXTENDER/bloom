@@ -34,10 +34,18 @@ npm run validation:visual-servoing
 npm run validation:petanque-parity
 ```
 
-`validation:frontend-backend` is the one that catches seeded configurations
-drifting from their fixtures. If it fails after a fixture edit, refresh the
-seeded copies in `backend/data/configurations/` rather than editing them by
-hand.
+`validation:frontend-backend` is the one that catches an app's runtime policy
+disagreeing with the backend allowlists.
+
+Before releasing, check that nothing you meant to share is still sitting only on
+your machine:
+
+```bash
+cd backend && uv run python -m apps.bloom_cli.main config status
+```
+
+Anything marked `edited` or `local` is unpublished. Share it with
+`config publish <app-id>` and commit the file, or leave it deliberately.
 
 ## 3. Visual checks
 
