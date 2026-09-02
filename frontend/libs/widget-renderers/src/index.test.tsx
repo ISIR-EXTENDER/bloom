@@ -265,9 +265,12 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
-    expect(screen.getAllByText("both")).toHaveLength(2);
+    // "both" is the mode, and appears once, in the header. It used to appear a
+    // second time in the strip's target slot, where a topic belongs.
+    expect(screen.getAllByText("both")).toHaveLength(1);
     expect(screen.getByText("translation / translation")).toBeVisible();
     expect(screen.getByText("30 Hz")).toBeVisible();
+    expect(screen.getByText("/joystick_cartesian_command")).toBeVisible();
     expect(screen.getByText("x 0.00")).toBeVisible();
     expect(screen.getByText("y 0.00")).toBeVisible();
   });

@@ -1,4 +1,4 @@
-import { createWidgetActionIntent, normalizeWidgetSettings } from "@bloom/widgets";
+import { createWidgetActionIntent, normalizeWidgetSettings, resolveWidgetDestination } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 import { JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
@@ -94,6 +94,10 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
   const joystickSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
   const deadzone = getNumberSetting(joystickSettings, "deadzone", 0.1);
   const binding = resolveJoystickBinding(joystickSettings);
+  // The legacy fallback resolves to a semantic name like "translation", or to
+  // the literal "input", neither of which is a topic. Show where the joystick
+  // actually publishes instead.
+  const destination = resolveWidgetDestination(descriptor.widget.kind, joystickSettings);
   const color = getStringSetting(descriptor.widget.settings, "accentColor", "#7fa95f");
   const showDetails = getBooleanSetting(joystickSettings, "show_details", false);
   const size = resolveJoystickControlSize(descriptor.widget.layout.width, descriptor.widget.layout.height, {
@@ -145,7 +149,7 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
         <div className="bloom-joystick-mode-strip" aria-label={`Joystick mode ${binding.modeId}`} role="note">
           <span>{binding.axisSummary}</span>
           <span>{binding.publishRateHz} Hz</span>
-          <span>{binding.runtimeTarget}</span>
+          <span>{destination?.topic ?? binding.runtimeTarget}</span>
         </div>
       ) : null}
       <JoystickPrimitive

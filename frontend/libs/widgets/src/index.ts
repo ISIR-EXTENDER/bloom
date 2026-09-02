@@ -15,6 +15,7 @@ export * from "./legacy";
 export * from "./runtime";
 export * from "./settings";
 export * from "./telemetry";
+export * from "./widget-destination";
 
 export type LegacyWidgetCompatibility = "direct" | "renamed" | "adapter-required" | "app-specific" | "unsupported";
 

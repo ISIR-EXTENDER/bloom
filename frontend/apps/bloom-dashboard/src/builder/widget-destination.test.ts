@@ -1,8 +1,8 @@
 import type { WidgetConfig } from "@bloom/api-client";
+import { findInertSetting, resolveWidgetDestination } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 import { resolveWidgetRuntimeTopic } from "../runtime/RuntimeWorkspace";
 import { createTeleopCommandRequest, createValueTopicPublishRequest } from "../runtime/runtime-action-dispatcher";
-import { findInertSetting, resolveWidgetDestination } from "./widget-destination";
 
 /**
  * The inspector's explanation is only worth showing if it matches what the
@@ -199,5 +199,44 @@ describe("malformed settings", () => {
     expect(resolveWidgetDestination("slider", { runtime_binding: "nonsense" })?.source).toBe("unset");
     expect(resolveWidgetDestination("slider", { runtime_binding: { value_mapping: 42 } })?.source).toBe("unset");
     expect(resolveWidgetDestination("topic-echo", { topic: 42 })?.topic).toBeNull();
+  });
+});
+
+/**
+ * The legacy `binding` setting predates runtime bindings. It still does real
+ * work on a joystick, where it is a fallback for the mode, the displayed
+ * target and the default axis hints. On a slider nothing reads it: the
+ * renderer ignores it, and the dispatcher ignores the copy it puts on the
+ * intent. Offering it as an editable field beside the runtime binding that
+ * does the work is what made this confusing.
+ */
+describe("the legacy binding setting", () => {
+  it("is inert on a slider whatever else is configured", () => {
+    for (const settings of [
+      {},
+      { binding: "input", topic: "/cmd/max_velocity" },
+      { binding: "input", runtime_binding: { adapter: "topic", value_mapping: { target_topic: "/x" } } },
+      { binding: "input", runtime_binding: { adapter: "teleop" } },
+    ]) {
+      const destination = resolveWidgetDestination("slider", settings);
+      expect(findInertSetting(destination, "binding")?.reason).toMatch(/Nothing reads this on a slider/);
+    }
+  });
+
+  it("is left alone on a joystick, where it still feeds the mode and axis hints", () => {
+    const destination = resolveWidgetDestination("joystick", {
+      binding: "rot",
+      runtime_binding: { adapter: "teleop" },
+    });
+
+    expect(findInertSetting(destination, "binding")).toBeUndefined();
+  });
+
+  it("does not claim a slider's other settings are inert without cause", () => {
+    const destination = resolveWidgetDestination("slider", { binding: "input", topic: "/cmd/max_velocity" });
+
+    expect(findInertSetting(destination, "topic")).toBeUndefined();
+    expect(findInertSetting(destination, "unit")).toBeUndefined();
+    expect(findInertSetting(destination, "intent_label")).toBeUndefined();
   });
 });

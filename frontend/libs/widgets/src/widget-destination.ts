@@ -57,6 +57,21 @@ export type WidgetDestination = {
  */
 const TELEOP_DEFAULT_TARGET = "/joystick_cartesian_command";
 
+/**
+ * What the legacy `binding` setting still does, per kind.
+ *
+ * On a joystick it is a fallback that `resolveJoystickBinding` consults only
+ * where a newer setting is missing: for the mode when `mode_id` is unset, for
+ * the displayed target when the runtime binding has no `target`, and for the
+ * default axis labels and colours when `axis_hints` is unset.
+ *
+ * On a slider it does nothing at all. The renderer never reads it and the
+ * dispatcher never reads the `binding` it copies onto the intent, so the field
+ * is pure decoration sitting next to the runtime binding that does the work.
+ */
+const LEGACY_BINDING_INERT_ON_SLIDER =
+  "Nothing reads this on a slider. The runtime binding below is what routes the value.";
+
 /** Mirrors `resolveWidgetRuntimeTopic` in `RuntimeWorkspace`. */
 const READING_KINDS = new Set(["event-log", "gauge", "plot", "topic-echo", "topic-plot"]);
 const PUBLISHING_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
@@ -108,21 +123,19 @@ function resolveReadSource(kind: string, settings: Record<string, unknown>): Wid
       };
 }
 
-function resolvePublishDestination(settings: Record<string, unknown>): WidgetDestination {
+function resolvePublishDestination(kind: string, settings: Record<string, unknown>): WidgetDestination {
   const runtimeBinding = asRecord(settings.runtime_binding);
   const valueMapping = asRecord(runtimeBinding.value_mapping);
   const adapter = typeof runtimeBinding.adapter === "string" ? runtimeBinding.adapter : "";
   const bindingTopic = asTopic(valueMapping.target_topic) ?? asTopic(valueMapping.topic);
+  const legacy: InertSetting[] = kind === "slider" ? [{ key: "binding", reason: LEGACY_BINDING_INERT_ON_SLIDER }] : [];
 
   if (adapter === "teleop") {
     // A teleop widget contributes an axis to a twist that several widgets
     // compose together. There is one destination for the whole composed twist,
     // so a per-widget output topic has nothing to address.
     const reason = "Teleop widgets contribute to a shared twist, so this is not used.";
-    const inertSettings: InertSetting[] = [
-      { key: "topic", reason },
-      { key: "messageType", reason },
-    ];
+    const inertSettings: InertSetting[] = [...legacy, { key: "topic", reason }, { key: "messageType", reason }];
 
     if (bindingTopic) {
       return {
@@ -154,8 +167,8 @@ function resolvePublishDestination(settings: Record<string, unknown>): WidgetDes
       source: "runtime-binding",
       detail: "Set by the runtime binding, which takes precedence over Output topic.",
       inertSettings: outputTopic
-        ? [{ key: "topic", reason: "The runtime binding sets the destination, so this is not used." }]
-        : [],
+        ? [...legacy, { key: "topic", reason: "The runtime binding sets the destination, so this is not used." }]
+        : legacy,
     };
   }
 
@@ -165,7 +178,7 @@ function resolvePublishDestination(settings: Record<string, unknown>): WidgetDes
       topic: outputTopic,
       source: "output-topic",
       detail: null,
-      inertSettings: [],
+      inertSettings: legacy,
     };
   }
 
@@ -174,7 +187,7 @@ function resolvePublishDestination(settings: Record<string, unknown>): WidgetDes
     topic: null,
     source: "unset",
     detail: "This widget publishes nothing until you set a destination.",
-    inertSettings: [],
+    inertSettings: legacy,
   };
 }
 
@@ -197,7 +210,7 @@ export function resolveWidgetDestination(
     return resolveReadSource(kind, widgetSettings);
   }
   if (PUBLISHING_KINDS.has(kind)) {
-    return resolvePublishDestination(widgetSettings);
+    return resolvePublishDestination(kind, widgetSettings);
   }
   return null;
 }

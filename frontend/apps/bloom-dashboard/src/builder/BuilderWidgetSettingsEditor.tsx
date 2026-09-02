@@ -1,13 +1,15 @@
 import type { WidgetConfig } from "@bloom/api-client";
 import {
+  findInertSetting,
   getWidgetSettingsContract,
   normalizeWidgetSettings,
+  resolveWidgetDestination,
   type WidgetDefinition,
+  type WidgetDestination,
   type WidgetSettingField,
 } from "@bloom/widgets";
 import { useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
-import { findInertSetting, resolveWidgetDestination, type WidgetDestination } from "./widget-destination";
 
 type BuilderWidgetSettingsEditorProps = {
   definition: WidgetDefinition | null;
