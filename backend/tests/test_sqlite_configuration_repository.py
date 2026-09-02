@@ -278,3 +278,43 @@ def test_sqlite_repository_round_trips_real_legacy_screen_fixture(tmp_path: Path
     assert len(loaded_screen.widgets) == 12
     assert ros_toggle.settings["topic"] == "/ui/ros_toggle"
     assert ros_toggle.settings["messageType"] == "std_msgs/msg/Int32MultiArray"
+
+
+def test_every_shipped_bundle_survives_a_round_trip(tmp_path) -> None:
+    """The normalized tables must not quietly lose a field.
+
+    SQLite keeps the canonical bundle JSON *and* a mirror in normalized rows,
+    and reads rebuild from the rows. So a field added to the model but not to
+    the mirror is dropped on the way back out, with no error anywhere. That is
+    what happened to `lifecycle`: an archived application came back active, and
+    the archive state would have undone itself the first time anyone saved.
+
+    Checking every shipped bundle catches the next one without anybody having
+    to remember this.
+    """
+    from libs.config.json_io import configuration_to_dict, load_configuration_file
+    from libs.config.seed import DEFAULT_SEED_DIR
+
+    repository = SQLiteConfigurationRepository(tmp_path / "parity.db")
+
+    lost: list[str] = []
+    for path in sorted(DEFAULT_SEED_DIR.glob("*.json")):
+        original = load_configuration_file(path)
+        repository.upsert(path.stem, original)
+        if configuration_to_dict(original) != configuration_to_dict(repository.get(path.stem)):
+            lost.append(path.stem)
+
+    assert lost == []
+
+
+def test_an_archived_application_stays_archived(tmp_path) -> None:
+    from libs.config.json_io import load_configuration_file
+    from libs.config.seed import DEFAULT_SEED_DIR
+
+    repository = SQLiteConfigurationRepository(tmp_path / "lifecycle.db")
+    bundle = load_configuration_file(DEFAULT_SEED_DIR / "petanque-admin.json")
+    assert bundle.applications[0].lifecycle == "archived", "fixture no longer covers the archived case"
+
+    repository.upsert("petanque-admin", bundle)
+
+    assert repository.get("petanque-admin").applications[0].lifecycle == "archived"

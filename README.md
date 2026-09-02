@@ -154,9 +154,14 @@ uv run python -m apps.bloom_cli.main config publish explorer-manager
 git add ../backend/seed/applications/explorer-manager.json
 ```
 
-`npm run validation:frontend-backend` prints a note for any application whose
-local copy has drifted from the committed one, so you can see what you have not
-shared yet.
+To see what you have not shared yet:
+
+```bash
+uv run python -m apps.bloom_cli.main config status
+```
+
+It reads whichever store is configured and marks each application `shared`,
+`edited`, `local`, or `missing`.
 
 ## Extender / ROS Development
 
@@ -223,10 +228,12 @@ uv run python -m apps.bloom_cli.main config list --storage file
 uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db
 ```
 
-File storage is the default: one JSON file per configuration under `backend/data/configurations/`. SQLite is opt-in
-via `BLOOM_CONFIGURATION_STORAGE=sqlite`; it stores the full configuration bundle plus normalized mirror rows for
-applications, screens, widgets, and theme assets. JSON import/export remains the lossless migration bridge while the
-normalized schema stabilizes. Seeding works the same for both.
+SQLite is the default store, at `backend/data/bloom.db`. It keeps the full configuration bundle plus normalized rows
+for applications, screens, widgets, and theme assets. A machine that still has a file-backed
+`backend/data/configurations/` is carried across into it the first time the API starts, so nothing is left behind.
+
+File storage remains available with `BLOOM_CONFIGURATION_STORAGE=file`, and JSON stays the interchange format: the
+shared bundles, `config import` / `config export`, and `config publish` all speak it whichever store is configured.
 The app/screen API save-load flow and its differences from `extender_ui` are documented in
 [docs/runtime-flow-vs-extender-ui.md](docs/runtime-flow-vs-extender-ui.md).
 

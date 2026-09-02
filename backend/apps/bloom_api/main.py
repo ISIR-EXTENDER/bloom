@@ -5,7 +5,7 @@ from apps.bloom_api.routes import api_router
 from apps.bloom_api.security import install_http_rate_limit, install_security_headers
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import ConfigurationRepository, create_configuration_repository
-from libs.config.seed import seed_configurations
+from libs.config.seed import adopt_file_configurations, seed_configurations
 from libs.ros_adapters import (
     NoopRosPublisherGateway,
     NoopRosTopicCatalogGateway,
@@ -95,6 +95,11 @@ def create_app_configuration_repository(settings: Settings) -> ConfigurationRepo
         configuration_dir=settings.configuration_dir,
         database_path=settings.configuration_database_path,
     )
+    if settings.configuration_storage == "sqlite":
+        # Machines that ran on file storage keep their work in
+        # backend/data/configurations. Bring it across before seeding, so
+        # local edits win over the shipped versions.
+        adopt_file_configurations(repository, configuration_dir=settings.configuration_dir)
     if settings.seed_shared_applications:
         # A fresh clone starts with an empty store, so without this the app
         # library is empty and the team's apps are nowhere. Existing ids are

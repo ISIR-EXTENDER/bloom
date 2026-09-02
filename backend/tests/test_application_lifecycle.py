@@ -33,7 +33,7 @@ def test_the_petanque_fixture_is_archived() -> None:
     import json
     from pathlib import Path
 
-    bundle = json.loads(Path("../backend/seed/applications/petanque-admin.json").read_text())
+    bundle = json.loads((Path(__file__).parents[1] / "seed" / "applications" / "petanque-admin.json").read_text())
     applications = [ApplicationConfig.model_validate(app) for app in bundle["applications"]]
 
     assert applications

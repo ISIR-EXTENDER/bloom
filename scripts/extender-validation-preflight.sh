@@ -19,8 +19,10 @@ seed_shared_applications() {
     done < <(find "${BLOOM_ROOT}/backend/seed/applications" -name '*.json')
   fi
 
+  # This runner asserts against the JSON files themselves, so it pins file
+  # storage rather than following the API default.
   (cd "${BLOOM_ROOT}/backend" && uv run python -m apps.bloom_cli.main config seed \
-    --configuration-dir "${BLOOM_CONFIGURATION_DIR}" "${force_args[@]}")
+    --storage file --configuration-dir "${BLOOM_CONFIGURATION_DIR}" "${force_args[@]}")
 }
 
 assert_configuration() {

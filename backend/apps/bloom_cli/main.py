@@ -23,6 +23,7 @@ from libs.config import (
     load_legacy_screen_file,
     save_configuration_file,
 )
+from libs.config.json_io import configuration_to_dict
 from libs.config.seed import DEFAULT_SEED_DIR, available_seed_ids, seed_configurations
 
 cli = typer.Typer(
@@ -118,13 +119,19 @@ def run_ros_api(
 
 
 def open_configuration_repository(
-    storage: ConfigurationStorageKind,
+    storage: ConfigurationStorageKind | None,
     configuration_dir: Path | None,
     database_path: Path | None,
 ) -> ConfigurationRepository:
+    """Open the store the API would use, unless told otherwise.
+
+    These commands used to default to file storage no matter how the server was
+    configured, so running one against a SQLite-backed server read a different
+    store than the running app and reported stale content without saying so.
+    """
     settings = get_settings()
     return create_configuration_repository(
-        storage,
+        storage or settings.configuration_storage,
         configuration_dir=configuration_dir or settings.configuration_dir,
         database_path=database_path or settings.configuration_database_path,
     )
@@ -132,7 +139,7 @@ def open_configuration_repository(
 
 @config_cli.command("list")
 def list_configurations(
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to inspect."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to inspect."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
 ) -> None:
@@ -149,7 +156,7 @@ def seed_shared_applications(
         "--force",
         help="Reset these application IDs to the committed version, discarding local edits.",
     ),
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to write to."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
     seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
@@ -170,10 +177,35 @@ def seed_shared_applications(
         typer.echo("Nothing to import.")
 
 
+@config_cli.command("status")
+def configuration_status(
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to inspect."),
+    configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
+    database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
+    seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
+) -> None:
+    """Show which applications differ from the version committed to the repo."""
+    repository = open_configuration_repository(storage, configuration_dir, database_path)
+    stored = set(repository.list_ids())
+    shipped = set(available_seed_ids(seed_dir))
+
+    for config_id in sorted(stored | shipped):
+        if config_id not in stored:
+            typer.echo(f"missing   {config_id} (run: bloom config seed)")
+        elif config_id not in shipped:
+            typer.echo(f"local     {config_id} (run: bloom config publish {config_id} to share it)")
+        elif configuration_to_dict(repository.get(config_id)) == configuration_to_dict(
+            load_configuration_file(Path(seed_dir) / f"{config_id}.json")
+        ):
+            typer.echo(f"shared    {config_id}")
+        else:
+            typer.echo(f"edited    {config_id} (run: bloom config publish {config_id} to share your changes)")
+
+
 @config_cli.command("publish")
 def publish_configuration(
     config_id: str = typer.Argument(..., help="Configuration ID to publish to the repository."),
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to read from."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to read from."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
     seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
@@ -201,7 +233,7 @@ def publish_configuration(
 def import_configuration(
     config_id: str = typer.Argument(..., help="Configuration ID to store."),
     source_path: Path = typer.Argument(..., help="Configuration bundle JSON file to import."),
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to write to."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
 ) -> None:
@@ -217,7 +249,7 @@ def import_legacy_screen(
     source_path: Path = typer.Argument(..., help="Legacy screen JSON file to import."),
     application_id: str = typer.Option("legacy-application", "--application-id", help="Application ID to wrap the screen."),
     application_name: str = typer.Option("Legacy Application", "--application-name", help="Application name to wrap the screen."),
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to write to."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
 ) -> None:
@@ -242,7 +274,7 @@ def import_legacy_screen(
 def import_legacy_application(
     config_id: str = typer.Argument(..., help="Configuration ID to store."),
     source_path: Path = typer.Argument(..., help="Legacy application JSON file to import."),
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to write to."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
 ) -> None:
@@ -262,7 +294,7 @@ def import_legacy_application_screens(
     config_id: str = typer.Argument(..., help="Configuration ID to store."),
     application_path: Path = typer.Argument(..., help="Legacy application JSON file to import."),
     screen_paths: list[Path] = typer.Argument(..., help="Legacy screen JSON files to attach to the application."),
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to write to."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
 ) -> None:
@@ -281,7 +313,7 @@ def import_legacy_application_screens(
 def export_configuration(
     config_id: str = typer.Argument(..., help="Configuration ID to export."),
     destination_path: Path = typer.Argument(..., help="Destination JSON file."),
-    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to read from."),
+    storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to read from."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
 ) -> None:

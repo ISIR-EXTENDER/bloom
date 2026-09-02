@@ -215,8 +215,10 @@ def test_configuration_api_persists_with_sqlite_between_app_instances(
         configuration_database_path=database_path,
         configuration_storage="sqlite",
         # This is about persistence between app instances, so the store holds
-        # only what the test puts there.
+        # only what the test puts there: no shipped apps, and nothing adopted
+        # from a file-backed directory.
         seed_shared_applications=False,
+        configuration_dir=tmp_path / "no-file-store",
     )
     first_client = TestClient(create_app(settings))
 

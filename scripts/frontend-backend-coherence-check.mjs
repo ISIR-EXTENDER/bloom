@@ -1,61 +1,50 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { isDeepStrictEqual } from "node:util";
 
 const configurationPairs = [
   {
     id: "sandbox",
     fixture: "backend/seed/applications/sandbox.json",
-    local: "backend/data/configurations/sandbox.json",
   },
   {
     id: "bloom-debug",
     fixture: "backend/seed/applications/bloom-debug.json",
-    local: "backend/data/configurations/bloom-debug.json",
   },
   {
     id: "petanque-admin",
     fixture: "backend/seed/applications/petanque-admin.json",
-    local: "backend/data/configurations/petanque-admin.json",
   },
   {
     id: "explorer-user-tests",
     fixture: "backend/seed/applications/explorer-user-tests.json",
-    local: "backend/data/configurations/explorer-user-tests.json",
   },
   {
     id: "explorer-manager",
     fixture: "backend/seed/applications/explorer-manager.json",
-    local: "backend/data/configurations/explorer-manager.json",
   },
   {
     // Test-only fixtures: not shipped to anyone, but their runtime policy is
     // still gated so they cannot drift from the backend unnoticed.
     id: "shared-contract",
     fixture: "tests/fixtures/configuration-bundle.json",
-    local: "tests/fixtures/configuration-bundle.json",
   },
   {
     id: "compact-sandbox",
     fixture: "tests/fixtures/compact-sandbox-configuration.json",
-    local: "tests/fixtures/compact-sandbox-configuration.json",
   },
   {
     id: "sandbox-teleop-lab",
     fixture: "tests/fixtures/sandbox-teleop-lab-configuration.json",
-    local: "tests/fixtures/sandbox-teleop-lab-configuration.json",
   },
   {
     id: "webcam-visualizer",
     fixture: "backend/seed/applications/webcam-visualizer.json",
-    local: "backend/data/configurations/webcam-visualizer.json",
   },
 ];
 
 const backendSettings = readFileSync(resolve("backend/apps/bloom_api/settings.py"), "utf8");
-const requireSeededConfigs = process.env.BLOOM_REQUIRE_SEEDED_CONFIGS === "1";
 const backendPolicy = {
   allowed_message_types: readSettingsTuple("allowed_ros_message_types"),
   allowed_publish_topics: readSettingsTuple("allowed_ros_publish_topics"),
@@ -178,31 +167,9 @@ for (const pair of configurationPairs) {
   const fixture = readJson(pair.fixture);
   fixtureBundles.push({ pair, bundle: fixture });
 
-  // The shared bundle is the committed one; backend/data holds whatever this
-  // machine has since done with it. Editing a screen in the builder is normal
-  // work, so divergence here is reported, never failed -- this check used to
-  // go red the moment anyone moved a widget, which taught everyone to ignore
-  // it. Set BLOOM_REQUIRE_SEEDED_CONFIGS=1 to demand they match.
-  if (!existsSync(resolve(pair.local))) {
-    continue;
-  }
-
-  const local = readJson(pair.local);
-  if (isDeepStrictEqual(fixture, local)) {
-    continue;
-  }
-
-  if (requireSeededConfigs) {
-    assert(
-      `${pair.id} local config matches the shared bundle`,
-      false,
-      `${pair.local} differs from ${pair.fixture}; run bloom config seed --force ${pair.id} to reset it, or bloom config publish ${pair.id} to share your version`,
-    );
-  } else {
-    console.log(
-      `note: ${pair.id} has local edits (${pair.local} differs from ${pair.fixture}); publish them with bloom config publish ${pair.id}`,
-    );
-  }
+  // Comparing against a machine's own store belongs in a command that can read
+  // it. The store is SQLite now, and this is a static JSON check, so
+  // `bloom config status` answers "what have I not published yet" instead.
 }
 
 for (const { pair, bundle } of fixtureBundles) {

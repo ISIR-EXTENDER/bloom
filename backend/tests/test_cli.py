@@ -109,9 +109,9 @@ def test_config_cli_keeps_file_storage_available(
 
     import_result = runner.invoke(
         cli,
-        ["config", "import", "sandbox", str(source_path), "--configuration-dir", str(configuration_dir)],
+        ["config", "import", "sandbox", str(source_path), "--storage", "file", "--configuration-dir", str(configuration_dir)],
     )
-    list_result = runner.invoke(cli, ["config", "list", "--configuration-dir", str(configuration_dir)])
+    list_result = runner.invoke(cli, ["config", "list", "--storage", "file", "--configuration-dir", str(configuration_dir)])
 
     assert import_result.exit_code == 0
     assert (configuration_dir / "sandbox.json").exists()
@@ -176,6 +176,8 @@ def test_config_cli_imports_legacy_application_to_file_storage(tmp_path) -> None
             "import-legacy-application",
             "play-petanque",
             str(LEGACY_FIXTURE_DIR / "application-play-petanque.json"),
+            "--storage",
+            "file",
             "--configuration-dir",
             str(configuration_dir),
         ],
@@ -203,6 +205,8 @@ def test_config_cli_imports_legacy_application_with_real_screens(tmp_path) -> No
             str(LEGACY_FIXTURE_DIR / "default_control.json"),
             str(LEGACY_FIXTURE_DIR / "default_live_teleop.json"),
             str(LEGACY_FIXTURE_DIR / "default_petanque.json"),
+            "--storage",
+            "file",
             "--configuration-dir",
             str(configuration_dir),
         ],

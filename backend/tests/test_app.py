@@ -36,8 +36,19 @@ def test_create_app_adds_minimal_security_headers(client: TestClient) -> None:
     assert response.headers["referrer-policy"] == "no-referrer"
 
 
-def test_create_app_uses_file_repository_by_default(test_settings: Settings, tmp_path) -> None:
-    settings = test_settings.model_copy(update={"configuration_dir": tmp_path})
+def test_create_app_uses_sqlite_by_default(test_settings: Settings, tmp_path) -> None:
+    settings = test_settings.model_copy(
+        update={"configuration_dir": tmp_path, "configuration_database_path": tmp_path / "bloom.db"}
+    )
+    app = create_app(settings)
+
+    assert isinstance(app.state.configuration_repository, SQLiteConfigurationRepository)
+
+
+def test_create_app_can_still_use_file_storage(test_settings: Settings, tmp_path) -> None:
+    settings = test_settings.model_copy(
+        update={"configuration_dir": tmp_path, "configuration_storage": "file"}
+    )
     app = create_app(settings)
 
     assert isinstance(app.state.configuration_repository, FileConfigurationRepository)

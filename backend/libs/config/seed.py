@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from libs.config.json_io import load_configuration_file
-from libs.config.repository import ConfigurationRepository
+from libs.config.repository import ConfigurationRepository, FileConfigurationRepository
 
 DEFAULT_SEED_DIR = Path(__file__).resolve().parents[2] / "seed" / "applications"
 
@@ -71,3 +71,34 @@ def seed_configurations(
         imported.append(config_id)
 
     return SeedOutcome(imported=tuple(imported), skipped=tuple(skipped))
+
+
+def adopt_file_configurations(
+    repository: ConfigurationRepository,
+    *,
+    configuration_dir: Path | str,
+) -> tuple[str, ...]:
+    """Carry an existing JSON store into an empty one, once.
+
+    File storage was the default for a long time, so most machines have real
+    work sitting in `backend/data/configurations`: screens people rearranged,
+    apps they built. Switching the default to SQLite without this would leave
+    all of it behind on disk, present but invisible, and the builder would look
+    like it had been reset.
+
+    Only an empty target is adopted into. Once the store has anything in it,
+    it is the source of truth and the JSON files are history.
+    """
+
+    if repository.list_ids():
+        return ()
+
+    source_dir = Path(configuration_dir)
+    if not source_dir.is_dir():
+        return ()
+
+    adopted: list[str] = []
+    for path in sorted(source_dir.glob("*.json")):
+        repository.upsert(path.stem, load_configuration_file(path))
+        adopted.append(path.stem)
+    return tuple(adopted)

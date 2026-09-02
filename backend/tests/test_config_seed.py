@@ -6,6 +6,7 @@ from libs.config.models import ConfigurationBundle
 from libs.config.repository import InMemoryConfigurationRepository
 from libs.config.seed import (
     DEFAULT_SEED_DIR,
+    adopt_file_configurations,
     available_seed_ids,
     seed_configurations,
 )
@@ -114,3 +115,55 @@ def test_a_missing_seed_directory_is_not_a_crash(tmp_path: Path) -> None:
 
     assert outcome.imported == ()
     assert available_seed_ids(tmp_path / "absent") == []
+
+
+def test_an_existing_file_store_is_carried_into_sqlite(tmp_path: Path) -> None:
+    """Switching the default must not strand work people already have."""
+    file_dir = tmp_path / "configurations"
+    file_repository = create_configuration_repository(
+        "file", configuration_dir=file_dir, database_path=tmp_path / "unused.db"
+    )
+    seed_configurations(file_repository)
+    file_repository.upsert(
+        "explorer-manager",
+        rename_first_screen(file_repository.get("explorer-manager"), "Drive (my layout)"),
+    )
+
+    sqlite_repository = create_configuration_repository(
+        "sqlite", configuration_dir=file_dir, database_path=tmp_path / "bloom.db"
+    )
+    adopted = adopt_file_configurations(sqlite_repository, configuration_dir=file_dir)
+
+    assert "explorer-manager" in adopted
+    assert sqlite_repository.get("explorer-manager").applications[0].screens[0].title == "Drive (my layout)"
+
+
+def test_adoption_only_happens_into_an_empty_store(tmp_path: Path) -> None:
+    """Once SQLite holds anything it is the source of truth, not the JSON files."""
+    file_dir = tmp_path / "configurations"
+    file_repository = create_configuration_repository(
+        "file", configuration_dir=file_dir, database_path=tmp_path / "unused.db"
+    )
+    seed_configurations(file_repository)
+
+    sqlite_repository = create_configuration_repository(
+        "sqlite", configuration_dir=file_dir, database_path=tmp_path / "bloom.db"
+    )
+    adopt_file_configurations(sqlite_repository, configuration_dir=file_dir)
+    sqlite_repository.upsert(
+        "explorer-manager",
+        rename_first_screen(sqlite_repository.get("explorer-manager"), "Drive (edited in sqlite)"),
+    )
+
+    adopted_again = adopt_file_configurations(sqlite_repository, configuration_dir=file_dir)
+
+    assert adopted_again == ()
+    assert sqlite_repository.get("explorer-manager").applications[0].screens[0].title == "Drive (edited in sqlite)"
+
+
+def test_adoption_survives_having_no_file_store_at_all(tmp_path: Path) -> None:
+    repository = create_configuration_repository(
+        "sqlite", configuration_dir=tmp_path / "absent", database_path=tmp_path / "bloom.db"
+    )
+
+    assert adopt_file_configurations(repository, configuration_dir=tmp_path / "absent") == ()

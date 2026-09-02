@@ -117,6 +117,15 @@ def apply_sqlite_migrations(connection: sqlite3.Connection) -> None:
         "action_presets_json",
         "TEXT NOT NULL DEFAULT '[]'",
     )
+    # Added when applications gained an archived state. Without it a bundle
+    # round-tripped through SQLite came back with every application active,
+    # which quietly un-archives the ones that are deliberately parked.
+    ensure_column(
+        connection,
+        "configuration_applications",
+        "lifecycle",
+        "TEXT NOT NULL DEFAULT 'active'",
+    )
     ensure_column(
         connection,
         "configuration_bundles",

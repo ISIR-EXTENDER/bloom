@@ -102,9 +102,10 @@ def sync_normalized_configuration_rows(
                 profiles_json,
                 runtime_policy_json,
                 action_presets_json,
+                lifecycle,
                 position
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 config_id,
@@ -115,6 +116,7 @@ def sync_normalized_configuration_rows(
                 json.dumps([profile.model_dump(mode="json") for profile in application.profiles], sort_keys=True),
                 json.dumps(application.runtime_policy.model_dump(mode="json"), sort_keys=True),
                 json.dumps([preset.model_dump(mode="json") for preset in application.action_presets], sort_keys=True),
+                application.lifecycle,
                 application_position,
             ),
         )
@@ -186,7 +188,8 @@ def load_normalized_configuration_bundle(
             theme_json,
             profiles_json,
             runtime_policy_json,
-            action_presets_json
+            action_presets_json,
+            lifecycle
         FROM configuration_applications
         WHERE config_id = ?
         ORDER BY position, app_id
@@ -230,6 +233,7 @@ def load_normalized_application(
             RuntimeActionPreset.model_validate(preset)
             for preset in json.loads(str(application_row["action_presets_json"]))
         ),
+        lifecycle=str(application_row["lifecycle"]),
         runtime_policy=RuntimeAdapterPolicy.model_validate(json.loads(str(application_row["runtime_policy_json"]))),
         theme=ApplicationTheme.model_validate(json.loads(str(application_row["theme_json"]))),
         profiles=tuple(UserProfile.model_validate(profile) for profile in json.loads(str(application_row["profiles_json"]))),

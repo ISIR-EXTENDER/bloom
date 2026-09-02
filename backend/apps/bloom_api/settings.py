@@ -23,7 +23,7 @@ class Settings(BaseModel):
         "http://localhost:5173",
     )
     http_rate_limit_per_minute: int = Field(default=600, ge=0)
-    configuration_storage: Literal["file", "sqlite"] = Field(default="file")
+    configuration_storage: Literal["file", "sqlite"] = Field(default="sqlite")
     configuration_dir: Path = Field(default=Path("data/configurations"))
     configuration_database_path: Path = Field(default=Path("data/bloom.db"))
     theme_asset_dir: Path = Field(default=Path("data/theme-assets"))
