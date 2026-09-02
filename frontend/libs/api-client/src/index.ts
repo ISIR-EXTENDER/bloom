@@ -120,10 +120,19 @@ export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
   },
 };
 
+/**
+ * Whether an application is being carried forward.
+ *
+ * `archived` means kept and still runnable, but not maintained against the
+ * current robot architecture and not a release gate.
+ */
+export type ApplicationLifecycle = "active" | "archived";
+
 export type ApplicationConfig = {
   id: string;
   name: string;
   description: string;
+  lifecycle?: ApplicationLifecycle;
   action_presets: RuntimeActionPreset[];
   runtime_policy: RuntimeAdapterPolicy;
   theme: ApplicationTheme;

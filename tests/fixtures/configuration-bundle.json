@@ -9,6 +9,7 @@
       "id": "sandbox",
       "name": "Sandbox",
       "description": "Sandbox operator interface",
+      "lifecycle": "active",
       "runtime_policy": {
         "allowed_message_types": [],
         "allowed_publish_topics": [],

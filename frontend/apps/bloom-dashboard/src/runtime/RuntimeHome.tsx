@@ -2,6 +2,7 @@ import type { ApplicationConfig } from "@bloom/api-client";
 import { BloomButton, BloomCard, BloomTag } from "@bloom/ui";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
 
 type RuntimeHomeProps = {
   configurations: readonly LoadedConfiguration[];
@@ -65,6 +66,7 @@ export function RuntimeHome({
             <BloomCard className="runtime-app-card" tone="default">
               <div>
                 <BloomTag tone="primary">{application.screens.length} screens</BloomTag>
+                {application.lifecycle === "archived" ? <BloomTag tone="muted">Archived</BloomTag> : null}
                 <h2>{application.name}</h2>
                 {application.description ? <p>{application.description}</p> : <p>Ready to launch in operator mode.</p>}
               </div>
@@ -79,7 +81,10 @@ export function RuntimeHome({
                         event.target.value,
                       )
                     }
-                    value={profilePreferences[createRuntimePreferenceKey(configuration.id, application.id)] ?? ""}
+                    value={
+                      profilePreferences[runtimePreferenceKey({ appId: application.id, configId: configuration.id })] ??
+                      ""
+                    }
                   >
                     <option value="">Auto</option>
                     {application.profiles.map((profile) => (
@@ -110,10 +115,6 @@ export function RuntimeHome({
       </ul>
     </section>
   );
-}
-
-function createRuntimePreferenceKey(configId: string, appId: string): string {
-  return `${configId}:${appId}`;
 }
 
 export function collectRuntimeApps(configurations: readonly LoadedConfiguration[]) {

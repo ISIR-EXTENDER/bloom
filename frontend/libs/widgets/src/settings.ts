@@ -645,16 +645,6 @@ export type RosMessageCommandPreset = {
   topic: string;
 };
 
-export const COMMON_ROS_MESSAGE_TYPES = [
-  "std_msgs/msg/Bool",
-  "std_msgs/msg/Float64",
-  "std_msgs/msg/Int32",
-  "std_msgs/msg/String",
-  "std_msgs/msg/Int32MultiArray",
-  "std_msgs/msg/UInt8MultiArray",
-  "geometry_msgs/msg/Vector3",
-] as const;
-
 export const ROS_MESSAGE_TOGGLE_PRESETS: readonly RosMessageTogglePreset[] = [
   {
     id: "bool",

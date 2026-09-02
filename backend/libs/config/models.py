@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -159,10 +159,21 @@ class ScreenConfig(BloomModel):
         return self
 
 
+ApplicationLifecycle = Literal["active", "archived"]
+
+
 class ApplicationConfig(BloomModel):
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
     description: str = ""
+    #: Whether this application is being carried forward.
+    #:
+    #: ``archived`` means kept and still runnable, but not being finished: its
+    #: screens are not maintained against the current robot architecture and it
+    #: is not a release gate. Deleting it would lose a working reference for a
+    #: workflow nobody has replaced yet, so archiving is the honest middle
+    #: state between finished and gone.
+    lifecycle: ApplicationLifecycle = "active"
     action_presets: tuple[RuntimeActionPreset, ...] = Field(default_factory=tuple)
     runtime_policy: RuntimeAdapterPolicy = Field(default_factory=RuntimeAdapterPolicy)
     theme: ApplicationTheme = Field(default_factory=ApplicationTheme)

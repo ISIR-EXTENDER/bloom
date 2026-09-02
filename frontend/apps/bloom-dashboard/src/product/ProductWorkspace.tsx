@@ -11,6 +11,7 @@ import type { RuntimeModeState } from "../runtime/runtimeModeState";
 import type { useRuntimeActionDispatcher } from "../runtime/use-runtime-action-dispatcher";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import type { ProductView } from "../ui/ProductNavigation";
+import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
 
 export type BuilderMode = "app-config" | "home" | "screen-builder";
 export type RuntimeMode = "app" | "home";
@@ -143,7 +144,7 @@ export function ProductWorkspace({
       onSelectionChange={onSelectionChange}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
-      preferredProfileId={profilePreferences[`${selection.configId}:${selection.appId}`] ?? ""}
+      preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
       runtimeActionClient={runtimeActionClient}
       runtimeModeState={runtimeModeState}
       screen={selectedWorkspace.screen}

@@ -25,7 +25,8 @@
     "validation:sandbox-runtime": "node scripts/sandbox-runtime-contract.mjs",
     "validation:visual-servoing": "node scripts/visual-servoing-contract.mjs",
     "visual:smoke": "node scripts/visual-smoke.mjs",
-    "check:version": "node scripts/version-consistency-check.mjs"
+    "check:version": "node scripts/version-consistency-check.mjs",
+    "qa:review": "node scripts/qa-review.mjs"
   },
   "engines": {
     "node": ">=20"

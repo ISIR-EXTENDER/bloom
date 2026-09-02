@@ -13,6 +13,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Application lifecycle** (`active` / `archived`). Petanque is archived: kept
+  and runnable, but not maintained against the current architecture and not a
+  release gate. See decision 0121.
+- **`npm run qa:review`**, a sweep for gaps the test suites cannot see: dead
+  exports, ungated fixtures, duplicated storage keys, misplaced shebangs, and
+  committed build caches.
 - **Saved position library** with export of the `joint_targets` block for
   `cartesian_manager`, since Bloom cannot register a target on the manager at
   runtime.

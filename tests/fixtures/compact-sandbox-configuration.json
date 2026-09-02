@@ -48,12 +48,17 @@
                 },
                 "payloadOff": {
                   "data": [13, 0]
-                }
+                },
+                "messageType": "std_msgs/msg/Float64MultiArray"
               }
             }
           ]
         }
-      ]
+      ],
+      "runtime_policy": {
+        "allowed_publish_topics": ["/ui/ros_toggle"],
+        "allowed_message_types": ["std_msgs/msg/Float64MultiArray"]
+      }
     }
   ]
 }

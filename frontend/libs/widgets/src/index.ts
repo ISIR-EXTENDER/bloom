@@ -8,6 +8,7 @@ import type {
 } from "@bloom/api-client";
 import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
+export * from "./canvas-defaults";
 export * from "./editor";
 export * from "./extensions";
 export * from "./legacy";
@@ -114,11 +115,6 @@ export const CANVAS_PRESETS: readonly CanvasPreset[] = [
   { id: "full-hd", label: "Full HD (1920x1080)", width: 1920, height: 1080 },
   { id: "local-screen", label: "Local Screen (1920x1080)", width: 1920, height: 1080 },
 ];
-
-export const DEFAULT_CANVAS_SETTINGS: CanvasSettings = {
-  preset_id: "hd",
-  runtime_mode: "fit",
-};
 
 export const DEFAULT_WIDGET_LAYOUT: WidgetLayout = {
   x: 0,

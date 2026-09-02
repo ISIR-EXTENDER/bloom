@@ -1,4 +1,15 @@
 #!/usr/bin/env node
+/**
+ * Petanque parity contract.
+ *
+ * Petanque is **archived**: kept and runnable as the reference for a workflow
+ * nobody has replaced, but not maintained against the cartesian_manager
+ * architecture. This check therefore asserts that it still matches the *legacy*
+ * contract it was built for, including /teleop_cmd, rather than the current one.
+ *
+ * Failures here mean the archived app has drifted or been broken by a change
+ * elsewhere, which is worth knowing. They do not mean Bloom is unready to ship.
+ */
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

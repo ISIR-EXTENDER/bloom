@@ -63,14 +63,7 @@ export function setRuntimeProfilePreference(
   return { ...preferences, profilePreferences };
 }
 
-export function getRuntimeProfilePreference(
-  preferences: RuntimeUserPreferences,
-  selection: Pick<WorkspaceSelection, "appId" | "configId">,
-): string {
-  return preferences.profilePreferences[runtimePreferenceKey(selection)] ?? "";
-}
-
-function runtimePreferenceKey(selection: Pick<WorkspaceSelection, "appId" | "configId">): string {
+export function runtimePreferenceKey(selection: Pick<WorkspaceSelection, "appId" | "configId">): string {
   return `${selection.configId}:${selection.appId}`;
 }
 

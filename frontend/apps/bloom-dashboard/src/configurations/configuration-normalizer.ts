@@ -108,6 +108,10 @@ function normalizeApplication(application: PartialApplicationConfig, index: numb
     id,
     name: asString(application.name, id),
     description: asString(application.description, ""),
+    // An unknown or missing value normalizes to "active": a configuration
+    // written before archiving existed describes an app still being carried
+    // forward, and mislabelling one as archived would hide it from its operator.
+    lifecycle: application.lifecycle === "archived" ? "archived" : "active",
     action_presets: normalizeActionPresets(application.action_presets),
     runtime_policy: normalizeRuntimePolicy(application.runtime_policy),
     theme: normalizeApplicationTheme(application.theme),

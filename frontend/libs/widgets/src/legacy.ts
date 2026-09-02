@@ -9,6 +9,7 @@ import type {
   WidgetLayout,
 } from "@bloom/api-client";
 import { DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
+import { DEFAULT_CANVAS_SETTINGS } from "./canvas-defaults";
 
 export type LegacyCanvasScreen = {
   id?: string;
@@ -43,10 +44,10 @@ export type LegacyConfigurationBundleOptions = {
 };
 
 const WIDGET_CONFIG_KEYS = new Set(["id", "kind", "label", "rect", "title"]);
-const DEFAULT_LEGACY_CANVAS_SETTINGS: CanvasSettings = {
-  preset_id: "hd",
-  runtime_mode: "fit",
-};
+// The legacy importer and the widget library must agree on what an unspecified
+// canvas means, so this is the shared constant rather than a second copy of the
+// same two values.
+const DEFAULT_LEGACY_CANVAS_SETTINGS: CanvasSettings = DEFAULT_CANVAS_SETTINGS;
 const DEFAULT_LEGACY_WIDGET_LAYOUT: WidgetLayout = {
   x: 0,
   y: 0,

@@ -31,6 +31,18 @@ const configurationPairs = [
     seeded: "backend/data/configurations/explorer-manager.json",
   },
   {
+    // Test-only fixtures: no seeded counterpart, but their runtime policy is
+    // still gated so they cannot drift from the backend unnoticed.
+    id: "compact-sandbox",
+    fixture: "tests/fixtures/compact-sandbox-configuration.json",
+    seeded: "tests/fixtures/compact-sandbox-configuration.json",
+  },
+  {
+    id: "sandbox-teleop-lab",
+    fixture: "tests/fixtures/sandbox-teleop-lab-configuration.json",
+    seeded: "tests/fixtures/sandbox-teleop-lab-configuration.json",
+  },
+  {
     id: "webcam-visualizer",
     fixture: "tests/fixtures/webcam-visualizer-configuration-bundle.json",
     seeded: "backend/data/configurations/webcam-visualizer.json",
@@ -180,6 +192,13 @@ for (const pair of configurationPairs) {
 
 for (const { pair, bundle } of fixtureBundles) {
   for (const app of bundle.applications ?? []) {
+    // An archived app is kept and runnable but not maintained against the
+    // current architecture. Its policy still has to be internally coherent,
+    // which is what the assertions below check, so it is not skipped: the point
+    // of archiving is that it keeps working, not that it stops being checked.
+    if (app.lifecycle === "archived") {
+      console.log(`note: ${pair.id}/${app.id} is archived; checked against its own declared policy`);
+    }
     const appPolicy = app.runtime_policy ?? {};
 
     for (const target of appPolicy.allowed_teleop_targets ?? []) {

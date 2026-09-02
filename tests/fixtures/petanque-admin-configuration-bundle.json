@@ -8,7 +8,7 @@
     {
       "id": "app-petanque-admin",
       "name": "Petanque admin",
-      "description": "Legacy home screen: default_control",
+      "description": "Legacy home screen: default_control. Archived: kept and runnable as the reference for the Petanque workflow, but not maintained against the cartesian_manager architecture and not a release gate.",
       "theme": {
         "inspiration": {
           "moodboard_image_uri": "",
@@ -1178,7 +1178,8 @@
           "payload_text": "",
           "tags": ["petanque", "device"]
         }
-      ]
+      ],
+      "lifecycle": "archived"
     }
   ]
 }
