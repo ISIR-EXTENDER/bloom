@@ -85,17 +85,39 @@ export function JoystickPrimitive({
     emitVector(readPointerVector(event, event.currentTarget, deadzone));
   };
 
-  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (pointerIdRef.current !== event.pointerId) {
-      return;
-    }
-
+  const endInteraction = (target: HTMLDivElement, pointerId: number, releaseCapture: boolean) => {
     pointerIdRef.current = null;
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    // Releasing a capture the element no longer holds throws, which would take
+    // the rest of this handler with it and leave the interaction hanging.
+    if (releaseCapture && target.hasPointerCapture?.(pointerId)) {
+      target.releasePointerCapture(pointerId);
+    }
     onInteractionEndRef.current?.();
     if (zeroOnRelease) {
       emitVector({ x: 0, y: 0 });
     }
+  };
+
+  const handlePointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+    endInteraction(event.currentTarget, event.pointerId, true);
+  };
+
+  /**
+   * The browser can take the capture away without sending pointerup, which it
+   * does when a captured element is moved or re-rendered mid-gesture. That is
+   * routine in the builder, where selecting a widget re-renders it.
+   *
+   * Without this the pad keeps a stale pointer id, never ends the interaction,
+   * and on a real robot never sends the zero that stops motion.
+   */
+  const handleLostPointerCapture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+    endInteraction(event.currentTarget, event.pointerId, false);
   };
   const isXGuideActive = Math.abs(vector.x) > 0.08 && Math.abs(vector.y) < 0.12;
   const isYGuideActive = Math.abs(vector.y) > 0.08 && Math.abs(vector.x) < 0.12;
@@ -151,6 +173,7 @@ export function JoystickPrimitive({
       />
       <div
         className="bloom-joystick-zone"
+        onLostPointerCapture={handleLostPointerCapture}
         onPointerCancel={handlePointerEnd}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
