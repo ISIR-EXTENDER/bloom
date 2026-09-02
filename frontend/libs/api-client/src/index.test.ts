@@ -69,6 +69,7 @@ describe("Bloom API client", () => {
     });
     expect(configuration.applications[0]?.screens[0]?.widgets[0]?.settings).toEqual({
       topic: "/ui/ros_toggle",
+      messageType: "std_msgs/msg/Int32MultiArray",
       payloadOn: { data: [13, 1] },
       payloadOff: { data: [13, 0] },
     });

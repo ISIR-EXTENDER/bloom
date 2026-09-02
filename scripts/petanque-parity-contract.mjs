@@ -14,7 +14,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const fixturePath = resolve(process.argv[2] ?? "tests/fixtures/petanque-admin-configuration-bundle.json");
+const fixturePath = resolve(process.argv[2] ?? "backend/seed/applications/petanque-admin.json");
 const backendSettingsPath = resolve("backend/apps/bloom_api/settings.py");
 const bundle = JSON.parse(readFileSync(fixturePath, "utf8"));
 const backendSettings = readFileSync(backendSettingsPath, "utf8");

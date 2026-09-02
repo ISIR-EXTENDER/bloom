@@ -82,17 +82,21 @@ describe("BloomNavBar", () => {
     expect(BLOOM_THEME_PRESETS["petanque-play"].description).toContain("playful");
   });
 
-  it("uses the Extender UI palette as the default theme", () => {
+  it("uses the Bloom palette as the default theme", () => {
+    // The default is what someone sees before any application loads, and
+    // whenever the backend is unreachable. It used to be the blue Extender UI
+    // preset, so a fresh clone looked like a different product than the one
+    // everybody here works in.
     render(
       <BloomThemeProvider>
-        <div data-testid="themed-app">Extender</div>
+        <div data-testid="themed-app">Bloom</div>
       </BloomThemeProvider>,
     );
 
     const root = screen.getByTestId("themed-app").parentElement;
 
-    expect(root).toHaveStyle({ "--bloom-color-primary": "#1d4ed8" });
-    expect(root).toHaveStyle({ "--bloom-color-secondary": "#0ea5e9" });
+    expect(root).toHaveStyle({ "--bloom-color-primary": BLOOM_THEME_PRESETS.bloom.tokens.primary });
+    expect(root).toHaveStyle({ "--bloom-color-secondary": BLOOM_THEME_PRESETS.bloom.tokens.secondary });
   });
 
   it("keeps every theme preset above minimum readable contrast for semantic text pairs", () => {

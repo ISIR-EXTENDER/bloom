@@ -128,6 +128,36 @@ http://127.0.0.1:5173
 
 During local development, Vite proxies `/api` and `/api/v1/runtime/ws` to the backend at `http://127.0.0.1:8000`.
 
+### Shared applications
+
+The first time the backend starts it imports the applications committed under
+`backend/seed/applications/` — Explorer Manager, Sandbox V0.0, Explorer User
+Tests, Petanque Admin, Bloom Debug, and the webcam demo. A fresh clone comes up
+with the same app library everyone else has.
+
+Your own store lives in `backend/data/`, which is not tracked. Seeding never
+overwrites an application you already have, so screens you rearrange in the
+builder stay yours. To reset one back to the committed version, or to import
+anything that is missing:
+
+```bash
+cd backend
+uv run python -m apps.bloom_cli.main config seed
+uv run python -m apps.bloom_cli.main config seed --force explorer-manager
+```
+
+To share an app you have built or changed, publish it and commit the file it
+writes:
+
+```bash
+uv run python -m apps.bloom_cli.main config publish explorer-manager
+git add ../backend/seed/applications/explorer-manager.json
+```
+
+`npm run validation:frontend-backend` prints a note for any application whose
+local copy has drifted from the committed one, so you can see what you have not
+shared yet.
+
 ## Extender / ROS Development
 
 For the Extender workspace, use the transition launcher:
@@ -193,8 +223,10 @@ uv run python -m apps.bloom_cli.main config list --storage file
 uv run python -m apps.bloom_cli.main config list --storage sqlite --database-path data/bloom.db
 ```
 
-SQLite currently stores the full configuration bundle plus normalized mirror rows for applications, screens, widgets,
-and theme assets. JSON import/export remains the lossless migration bridge while the normalized schema stabilizes.
+File storage is the default: one JSON file per configuration under `backend/data/configurations/`. SQLite is opt-in
+via `BLOOM_CONFIGURATION_STORAGE=sqlite`; it stores the full configuration bundle plus normalized mirror rows for
+applications, screens, widgets, and theme assets. JSON import/export remains the lossless migration bridge while the
+normalized schema stabilizes. Seeding works the same for both.
 The app/screen API save-load flow and its differences from `extender_ui` are documented in
 [docs/runtime-flow-vs-extender-ui.md](docs/runtime-flow-vs-extender-ui.md).
 

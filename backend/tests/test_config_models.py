@@ -23,15 +23,16 @@ from libs.config import (
 )
 
 FIXTURE_DIR = Path(__file__).parents[2] / "tests" / "fixtures"
+SEED_DIR = Path(__file__).parents[1] / "seed" / "applications"
 WIDGET_KIND_CONTRACT_PATH = FIXTURE_DIR / "widget-kinds-contract.json"
 APP_CONFIGURATION_FIXTURE_PATHS = (
     FIXTURE_DIR / "configuration-bundle.json",
-    FIXTURE_DIR / "petanque-admin-configuration-bundle.json",
-    FIXTURE_DIR / "webcam-visualizer-configuration-bundle.json",
-    FIXTURE_DIR / "bloom-debug-configuration.json",
+    SEED_DIR / "petanque-admin.json",
+    SEED_DIR / "webcam-visualizer.json",
+    SEED_DIR / "bloom-debug.json",
     FIXTURE_DIR / "sandbox-teleop-lab-configuration.json",
-    FIXTURE_DIR / "sandbox-v0-configuration-bundle.json",
-    FIXTURE_DIR / "explorer-user-tests-configuration-bundle.json",
+    SEED_DIR / "sandbox.json",
+    SEED_DIR / "explorer-user-tests.json",
 )
 
 
@@ -55,7 +56,7 @@ def test_app_configuration_fixtures_do_not_ship_empty_runtime_screens() -> None:
 
 def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
     bundle = ConfigurationBundle.model_validate_json(
-        (FIXTURE_DIR / "sandbox-v0-configuration-bundle.json").read_text(encoding="utf-8")
+        (SEED_DIR / "sandbox.json").read_text(encoding="utf-8")
     )
     application = bundle.applications[0]
 

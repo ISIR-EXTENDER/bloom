@@ -8,8 +8,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 const dashboardRoot = resolve(repoRoot, "frontend/apps/bloom-dashboard");
 const configurationFixturePaths = {
-  "bloom-debug": resolve(repoRoot, "tests/fixtures/bloom-debug-configuration.json"),
-  sandbox: resolve(repoRoot, "tests/fixtures/sandbox-v0-configuration-bundle.json"),
+  "bloom-debug": resolve(repoRoot, "backend/seed/applications/bloom-debug.json"),
+  sandbox: resolve(repoRoot, "backend/seed/applications/sandbox.json"),
 };
 const outputDir = process.env.BLOOM_VISUAL_OUTPUT_DIR ?? resolve("/tmp", "bloom-visual-smoke");
 const port = Number(process.env.BLOOM_VISUAL_PORT ?? "5178");

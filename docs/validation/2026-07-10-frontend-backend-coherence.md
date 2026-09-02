@@ -29,7 +29,7 @@ must exist and match the tracked fixtures.
 ## Findings Fixed
 
 - `backend/data/configurations/explorer-user-tests.json` had fallen behind
-  `tests/fixtures/explorer-user-tests-configuration-bundle.json`, so the local
+  `backend/seed/applications/explorer-user-tests.json`, so the local
   runtime app could miss the latest concrete Explorer action topics and payloads.
 - Backend default publish allowlists missed Explorer command topics declared by
   the tracked runtime fixture:

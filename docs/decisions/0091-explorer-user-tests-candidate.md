@@ -19,7 +19,7 @@ severity, short summaries, optional details, and no unnecessary technical noise.
 
 Add a generic `event-log` widget foundation and map legacy `logs` toward it.
 
-Add `tests/fixtures/explorer-user-tests-configuration-bundle.json` as a first
+Add `backend/seed/applications/explorer-user-tests.json` as a first
 non-ROS candidate app for global Extender/Explorer user tests. The fixture uses
 existing Bloom widget contracts:
 

@@ -5,6 +5,7 @@ from apps.bloom_api.routes import api_router
 from apps.bloom_api.security import install_http_rate_limit, install_security_headers
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import ConfigurationRepository, create_configuration_repository
+from libs.config.seed import seed_configurations
 from libs.ros_adapters import (
     NoopRosPublisherGateway,
     NoopRosTopicCatalogGateway,
@@ -89,11 +90,17 @@ def install_cors(app: FastAPI, settings: Settings) -> None:
 
 
 def create_app_configuration_repository(settings: Settings) -> ConfigurationRepository:
-    return create_configuration_repository(
+    repository = create_configuration_repository(
         settings.configuration_storage,
         configuration_dir=settings.configuration_dir,
         database_path=settings.configuration_database_path,
     )
+    if settings.seed_shared_applications:
+        # A fresh clone starts with an empty store, so without this the app
+        # library is empty and the team's apps are nowhere. Existing ids are
+        # left alone: they are this machine's own work.
+        seed_configurations(repository)
+    return repository
 
 
 def create_camera_frame_gateway(node: object):

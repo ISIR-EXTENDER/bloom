@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const fixturePath = resolve(process.argv[2] ?? "tests/fixtures/sandbox-v0-configuration-bundle.json");
+const fixturePath = resolve(process.argv[2] ?? "backend/seed/applications/sandbox.json");
 const bundle = JSON.parse(readFileSync(fixturePath, "utf8"));
 const app = bundle.applications?.find((candidate) => candidate.id === "sandbox");
 const failures = [];

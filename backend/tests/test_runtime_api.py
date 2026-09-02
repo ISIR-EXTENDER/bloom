@@ -21,7 +21,7 @@ from libs.sessions import (
     TeleopVector3,
 )
 
-EXPLORER_FIXTURE_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "explorer-user-tests-configuration-bundle.json"
+EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
 
 
 class RecordingRosPublisherGateway:

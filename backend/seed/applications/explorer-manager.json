@@ -9,10 +9,83 @@
       "id": "explorer-manager",
       "name": "Explorer Manager",
       "description": "Operator app shaped around the cartesian_manager branches: velocity drive, named positions, robot feedback, and command-source visibility.",
+      "lifecycle": "active",
+      "action_presets": [
+        {
+          "id": "manager-release",
+          "name": "Release joint target",
+          "kind": "topic-publish",
+          "description": "Cancel a running named position and return the manager to passthrough.",
+          "command": "behaviour/passthrough",
+          "topic": "/mode_request",
+          "message_type": "std_msgs/msg/String",
+          "payload": {
+            "data": "behaviour/passthrough"
+          },
+          "payload_text": "",
+          "tags": [
+            "explorer",
+            "safety"
+          ]
+        },
+        {
+          "id": "manager-neutral",
+          "name": "Neutral shaping",
+          "kind": "topic-publish",
+          "description": "Return the manager to geometric/both.",
+          "command": "geometric/both",
+          "topic": "/mode_request",
+          "message_type": "std_msgs/msg/String",
+          "payload": {
+            "data": "geometric/both"
+          },
+          "payload_text": "",
+          "tags": [
+            "explorer",
+            "mode"
+          ]
+        }
+      ],
+      "runtime_policy": {
+        "allowed_message_types": [
+          "geometry_msgs/msg/PoseStamped",
+          "geometry_msgs/msg/TwistStamped",
+          "sensor_msgs/msg/JointState",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": [
+          "/cmd/max_velocity",
+          "/gripper_controller/commands",
+          "/mode_request"
+        ],
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/visual_servoing_cartesian_command"
+        ],
+        "allowed_teleop_targets": [
+          "/joystick_cartesian_command"
+        ]
+      },
       "theme": {
-        "inspiration": {},
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
         "preset_id": "bloom-default",
-        "palette": {}
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
       },
       "profiles": [],
       "screens": [
@@ -26,8 +99,8 @@
           "widgets": [
             {
               "id": "drive-translation",
-              "title": "Translation",
               "kind": "joystick",
+              "title": "Translation",
               "layout": {
                 "x": 250,
                 "y": 250,
@@ -81,8 +154,8 @@
             },
             {
               "id": "drive-rotation",
-              "title": "Rotation",
               "kind": "joystick",
+              "title": "Rotation",
               "layout": {
                 "x": 800,
                 "y": 250,
@@ -136,8 +209,8 @@
             },
             {
               "id": "drive-max-velocity",
-              "title": "Max velocity",
               "kind": "slider",
+              "title": "Max velocity",
               "layout": {
                 "x": 250,
                 "y": 90,
@@ -157,8 +230,8 @@
             },
             {
               "id": "drive-mode-both",
-              "title": "Neutral",
               "kind": "command-button",
+              "title": "Neutral",
               "layout": {
                 "x": 800,
                 "y": 90,
@@ -182,8 +255,8 @@
             },
             {
               "id": "drive-mode-jaco",
-              "title": "Jaco",
               "kind": "command-button",
+              "title": "Jaco",
               "layout": {
                 "x": 1020,
                 "y": 90,
@@ -207,8 +280,8 @@
             },
             {
               "id": "drive-snake-hold",
-              "title": "Snake",
               "kind": "command-button",
+              "title": "Snake",
               "layout": {
                 "x": 1240,
                 "y": 90,
@@ -238,8 +311,8 @@
             },
             {
               "id": "drive-gripper",
-              "title": "Gripper",
               "kind": "toggle",
+              "title": "Gripper",
               "layout": {
                 "x": 90,
                 "y": 90,
@@ -257,8 +330,8 @@
             },
             {
               "id": "drive-z",
-              "title": "Z",
               "kind": "slider",
+              "title": "Z",
               "layout": {
                 "x": 90,
                 "y": 250,
@@ -290,8 +363,8 @@
             },
             {
               "id": "drive-rz",
-              "title": "RZ",
               "kind": "slider",
+              "title": "RZ",
               "layout": {
                 "x": 1260,
                 "y": 250,
@@ -333,8 +406,8 @@
           "widgets": [
             {
               "id": "positions-note",
-              "title": "About",
               "kind": "label",
+              "title": "About",
               "layout": {
                 "x": 90,
                 "y": 80,
@@ -349,8 +422,8 @@
             },
             {
               "id": "positions-home",
-              "title": "Home",
               "kind": "command-button",
+              "title": "Home",
               "layout": {
                 "x": 90,
                 "y": 230,
@@ -377,8 +450,8 @@
             },
             {
               "id": "positions-release",
-              "title": "Release",
               "kind": "command-button",
+              "title": "Release",
               "layout": {
                 "x": 480,
                 "y": 230,
@@ -403,8 +476,8 @@
             },
             {
               "id": "positions-target-echo",
-              "title": "Joint target",
               "kind": "topic-echo",
+              "title": "Joint target",
               "layout": {
                 "x": 90,
                 "y": 470,
@@ -422,8 +495,8 @@
             },
             {
               "id": "positions-joints",
-              "title": "Joint states",
               "kind": "topic-echo",
+              "title": "Joint states",
               "layout": {
                 "x": 850,
                 "y": 230,
@@ -451,8 +524,8 @@
           "widgets": [
             {
               "id": "feedback-speed",
-              "title": "End effector speed",
               "kind": "gauge",
+              "title": "End effector speed",
               "layout": {
                 "x": 90,
                 "y": 90,
@@ -472,8 +545,8 @@
             },
             {
               "id": "feedback-cmd-x",
-              "title": "Commanded X",
               "kind": "topic-plot",
+              "title": "Commanded X",
               "layout": {
                 "x": 500,
                 "y": 90,
@@ -493,8 +566,8 @@
             },
             {
               "id": "feedback-cmd-z",
-              "title": "Commanded RZ",
               "kind": "topic-plot",
+              "title": "Commanded RZ",
               "layout": {
                 "x": 990,
                 "y": 90,
@@ -514,8 +587,8 @@
             },
             {
               "id": "feedback-pose",
-              "title": "End effector pose",
               "kind": "topic-echo",
+              "title": "End effector pose",
               "layout": {
                 "x": 90,
                 "y": 370,
@@ -533,8 +606,8 @@
             },
             {
               "id": "feedback-joints",
-              "title": "Joint states",
               "kind": "topic-echo",
+              "title": "Joint states",
               "layout": {
                 "x": 780,
                 "y": 370,
@@ -562,8 +635,8 @@
           "widgets": [
             {
               "id": "sources-note",
-              "title": "About",
               "kind": "label",
+              "title": "About",
               "layout": {
                 "x": 90,
                 "y": 80,
@@ -578,8 +651,8 @@
             },
             {
               "id": "sources-tablet",
-              "title": "This tablet",
               "kind": "topic-plot",
+              "title": "This tablet",
               "layout": {
                 "x": 90,
                 "y": 230,
@@ -599,8 +672,8 @@
             },
             {
               "id": "sources-visual-servoing",
-              "title": "Visual servoing",
               "kind": "topic-plot",
+              "title": "Visual servoing",
               "layout": {
                 "x": 555,
                 "y": 230,
@@ -620,8 +693,8 @@
             },
             {
               "id": "sources-sum",
-              "title": "Manager output (sum)",
               "kind": "topic-plot",
+              "title": "Manager output (sum)",
               "layout": {
                 "x": 1020,
                 "y": 230,
@@ -641,8 +714,8 @@
             },
             {
               "id": "sources-mode-log",
-              "title": "Mode requests",
               "kind": "topic-echo",
+              "title": "Mode requests",
               "layout": {
                 "x": 90,
                 "y": 520,
@@ -660,8 +733,8 @@
             },
             {
               "id": "sources-events",
-              "title": "Runtime events",
               "kind": "event-log",
+              "title": "Runtime events",
               "layout": {
                 "x": 780,
                 "y": 520,
@@ -676,58 +749,6 @@
               }
             }
           ]
-        }
-      ],
-      "runtime_policy": {
-        "allowed_message_types": [
-          "geometry_msgs/msg/PoseStamped",
-          "geometry_msgs/msg/TwistStamped",
-          "sensor_msgs/msg/JointState",
-          "std_msgs/msg/Float64",
-          "std_msgs/msg/Float64MultiArray",
-          "std_msgs/msg/String"
-        ],
-        "allowed_publish_topics": ["/cmd/max_velocity", "/gripper_controller/commands", "/mode_request"],
-        "allowed_recording_topics": [
-          "/cartesian_command",
-          "/ee_pose",
-          "/ee_velocity",
-          "/joint_states",
-          "/joint_target_command",
-          "/joystick_cartesian_command",
-          "/mode_request",
-          "/visual_servoing_cartesian_command"
-        ],
-        "allowed_teleop_targets": ["/joystick_cartesian_command"]
-      },
-      "action_presets": [
-        {
-          "id": "manager-release",
-          "name": "Release joint target",
-          "kind": "topic-publish",
-          "description": "Cancel a running named position and return the manager to passthrough.",
-          "command": "behaviour/passthrough",
-          "topic": "/mode_request",
-          "message_type": "std_msgs/msg/String",
-          "payload": {
-            "data": "behaviour/passthrough"
-          },
-          "payload_text": "",
-          "tags": ["explorer", "safety"]
-        },
-        {
-          "id": "manager-neutral",
-          "name": "Neutral shaping",
-          "kind": "topic-publish",
-          "description": "Return the manager to geometric/both.",
-          "command": "geometric/both",
-          "topic": "/mode_request",
-          "message_type": "std_msgs/msg/String",
-          "payload": {
-            "data": "geometric/both"
-          },
-          "payload_text": "",
-          "tags": ["explorer", "mode"]
         }
       ]
     }

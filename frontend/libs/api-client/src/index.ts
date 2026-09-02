@@ -111,12 +111,15 @@ export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
     moodboard_image_uri: "",
     reference_url: "",
   },
-  preset_id: "extender-ui",
+  // Kept in step with the backend model default in
+  // backend/libs/config/models.py. The two used to disagree, so an app created
+  // through the API and one created in the builder started life different.
+  preset_id: "bloom-default",
   palette: {
-    accent: "#0ea5e9",
-    background: "#f8fafc",
-    primary: "#1d4ed8",
-    surface: "#ffffff",
+    accent: "#d9a441",
+    background: "#f7f1e6",
+    primary: "#7f967e",
+    surface: "#fffdf7",
   },
 };
 

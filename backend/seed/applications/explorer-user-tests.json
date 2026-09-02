@@ -9,6 +9,229 @@
       "id": "explorer-user-tests",
       "name": "Explorer User Tests",
       "description": "Candidate Bloom app for Extender/Explorer user-test flows: control modes, robot actions, supervision, debug, and profile-ready layouts.",
+      "lifecycle": "active",
+      "action_presets": [
+        {
+          "id": "explorer-deploy",
+          "name": "Deploy robot",
+          "kind": "topic-publish",
+          "description": "Deploy Explorer through the legacy UI robot action command.",
+          "command": "explorer.deploy",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'deploy'}",
+          "tags": [
+            "explorer",
+            "robot-action"
+          ]
+        },
+        {
+          "id": "explorer-repli",
+          "name": "Repli robot",
+          "kind": "topic-publish",
+          "description": "Retract Explorer through the legacy UI robot action command.",
+          "command": "explorer.repli",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'repli'}",
+          "tags": [
+            "explorer",
+            "robot-action"
+          ]
+        },
+        {
+          "id": "explorer-safe-zone-enable",
+          "name": "Enable safe zone",
+          "kind": "topic-publish",
+          "description": "Enable the Explorer safety zone through the legacy UI robot action command.",
+          "command": "explorer.safe_zone.enable",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'safe_zone_enable'}",
+          "tags": [
+            "explorer",
+            "safety-zone"
+          ]
+        },
+        {
+          "id": "explorer-pose-save-current",
+          "name": "Save current pose",
+          "kind": "topic-publish",
+          "description": "Save the current Explorer pose through the legacy pose command topic.",
+          "command": "explorer.pose.save_current",
+          "topic": "/ui/save_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'current'}",
+          "tags": [
+            "explorer",
+            "pose"
+          ]
+        },
+        {
+          "id": "explorer-pose-load-home",
+          "name": "Load home pose",
+          "kind": "topic-publish",
+          "description": "Replay the saved home pose through the legacy pose command topic.",
+          "command": "explorer.pose.load.home",
+          "topic": "/ui/load_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'home'}",
+          "tags": [
+            "explorer",
+            "pose"
+          ]
+        },
+        {
+          "id": "explorer-pose-load-meal",
+          "name": "Load meal pose",
+          "kind": "topic-publish",
+          "description": "Replay the saved meal pose through the legacy pose command topic.",
+          "command": "explorer.pose.load.meal",
+          "topic": "/ui/load_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'meal'}",
+          "tags": [
+            "explorer",
+            "pose"
+          ]
+        },
+        {
+          "id": "explorer-pose-cancel",
+          "name": "Cancel pose motion",
+          "kind": "topic-publish",
+          "description": "Cancel the current pose motion through the legacy UI robot action command.",
+          "command": "explorer.pose.cancel",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'cancel_pose'}",
+          "tags": [
+            "explorer",
+            "pose"
+          ]
+        },
+        {
+          "id": "explorer-favorite-mode-both",
+          "name": "Favorite BOTH mode",
+          "kind": "topic-publish",
+          "description": "Apply the Explorer BOTH control mode favorite.",
+          "command": "explorer.favorite.mode.both",
+          "topic": "/cmd/mode",
+          "message_type": "std_msgs/msg/Int32",
+          "payload": {
+            "data": 3
+          },
+          "payload_text": "",
+          "tags": [
+            "explorer",
+            "favorite"
+          ]
+        },
+        {
+          "id": "explorer-favorite-layout-tablet",
+          "name": "Favorite tablet layout",
+          "kind": "topic-publish",
+          "description": "Apply the Explorer tablet layout favorite through the legacy UI robot action command.",
+          "command": "explorer.favorite.layout.tablet",
+          "topic": "/ui/robot_action",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'tablet_layout'}",
+          "tags": [
+            "explorer",
+            "favorite"
+          ]
+        },
+        {
+          "id": "explorer-favorite-position-work",
+          "name": "Favorite work pose",
+          "kind": "topic-publish",
+          "description": "Replay the saved work pose through the legacy pose command topic.",
+          "command": "explorer.favorite.position.work",
+          "topic": "/ui/load_pose",
+          "message_type": "std_msgs/msg/String",
+          "payload": null,
+          "payload_text": "{data: 'work'}",
+          "tags": [
+            "explorer",
+            "favorite",
+            "pose"
+          ]
+        },
+        {
+          "id": "explorer-emergency-stop",
+          "name": "Emergency stop",
+          "kind": "topic-publish",
+          "description": "Send an immediate stop request for Explorer user tests.",
+          "command": "emergency_stop",
+          "topic": "/explorer/emergency_stop",
+          "message_type": "std_msgs/msg/Bool",
+          "payload": null,
+          "payload_text": "{data: true}",
+          "tags": [
+            "explorer",
+            "safety"
+          ]
+        },
+        {
+          "id": "explorer-gripper-close",
+          "name": "Close gripper",
+          "kind": "topic-publish",
+          "description": "Close the gripper through the Explorer fixture command topic.",
+          "command": "close_gripper",
+          "topic": "/gripper_controller/commands",
+          "message_type": "std_msgs/msg/Float64MultiArray",
+          "payload": {
+            "data": [
+              0.8
+            ]
+          },
+          "payload_text": "",
+          "tags": [
+            "explorer",
+            "device"
+          ]
+        }
+      ],
+      "runtime_policy": {
+        "allowed_message_types": [
+          "std_msgs/msg/Bool",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/Int32",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": [
+          "/cmd/max_velocity",
+          "/cmd/mode",
+          "/explorer/emergency_stop",
+          "/gripper_controller/commands",
+          "/mode_request",
+          "/ui/load_pose",
+          "/ui/robot_action",
+          "/ui/save_pose"
+        ],
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/teleop_cmd"
+        ],
+        "allowed_teleop_targets": [
+          "/joystick_cartesian_command",
+          "/teleop_cmd"
+        ]
+      },
       "theme": {
         "inspiration": {
           "moodboard_image_uri": "/theme-assets/bloom-mood-board.png",
@@ -27,7 +250,7 @@
           "id": "operator-comfort",
           "name": "Operator comfort",
           "display_preset": "comfort",
-          "font_scale": 1,
+          "font_scale": 1.0,
           "app_theme_preset_id": "bloom-default",
           "preferred_control_layout_id": "explorer-control-modes",
           "motor_accessibility_preset": "default"
@@ -214,7 +437,12 @@
                   }
                 ],
                 "maxEntries": 5,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": false,
                 "show_details": false
               }
@@ -331,7 +559,12 @@
                   }
                 ],
                 "maxEntries": 8,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": true,
                 "show_details": true
               }
@@ -476,7 +709,12 @@
                   }
                 ],
                 "maxEntries": 8,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": true,
                 "show_details": false
               }
@@ -607,7 +845,12 @@
                   }
                 ],
                 "maxEntries": 8,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": false,
                 "show_details": false
               }
@@ -751,7 +994,12 @@
                   }
                 ],
                 "maxEntries": 5,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": false,
                 "show_details": false
               }
@@ -870,7 +1118,12 @@
                   }
                 ],
                 "maxEntries": 6,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": false,
                 "show_details": false
               }
@@ -952,7 +1205,16 @@
               "settings": {
                 "historySeconds": 20,
                 "showLegend": true,
-                "samples": [0.1, 0.2, 0.18, 0.3, 0.28, 0.36, 0.32, 0.42]
+                "samples": [
+                  0.1,
+                  0.2,
+                  0.18,
+                  0.3,
+                  0.28,
+                  0.36,
+                  0.32,
+                  0.42
+                ]
               }
             },
             {
@@ -975,7 +1237,12 @@
                   }
                 ],
                 "maxEntries": 5,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": false,
                 "show_details": false
               }
@@ -1049,7 +1316,12 @@
                   }
                 ],
                 "maxEntries": 12,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": true,
                 "show_details": true
               }
@@ -1106,192 +1378,17 @@
                   }
                 ],
                 "maxEntries": 6,
-                "severityFilter": ["success", "info", "warning", "error"],
+                "severityFilter": [
+                  "success",
+                  "info",
+                  "warning",
+                  "error"
+                ],
                 "showTimestamps": false,
                 "show_details": true
               }
             }
           ]
-        }
-      ],
-      "runtime_policy": {
-        "allowed_message_types": [
-          "std_msgs/msg/Bool",
-          "std_msgs/msg/Float64",
-          "std_msgs/msg/Float64MultiArray",
-          "std_msgs/msg/Int32",
-          "std_msgs/msg/String"
-        ],
-        "allowed_publish_topics": [
-          "/cmd/max_velocity",
-          "/cmd/mode",
-          "/explorer/emergency_stop",
-          "/gripper_controller/commands",
-          "/mode_request",
-          "/ui/load_pose",
-          "/ui/robot_action",
-          "/ui/save_pose"
-        ],
-        "allowed_recording_topics": [
-          "/cartesian_command",
-          "/ee_pose",
-          "/ee_velocity",
-          "/joint_states",
-          "/joint_target_command",
-          "/joystick_cartesian_command",
-          "/mode_request",
-          "/teleop_cmd"
-        ],
-        "allowed_teleop_targets": ["/joystick_cartesian_command", "/teleop_cmd"]
-      },
-      "action_presets": [
-        {
-          "id": "explorer-deploy",
-          "name": "Deploy robot",
-          "kind": "topic-publish",
-          "description": "Deploy Explorer through the legacy UI robot action command.",
-          "command": "explorer.deploy",
-          "topic": "/ui/robot_action",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'deploy'}",
-          "tags": ["explorer", "robot-action"]
-        },
-        {
-          "id": "explorer-repli",
-          "name": "Repli robot",
-          "kind": "topic-publish",
-          "description": "Retract Explorer through the legacy UI robot action command.",
-          "command": "explorer.repli",
-          "topic": "/ui/robot_action",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'repli'}",
-          "tags": ["explorer", "robot-action"]
-        },
-        {
-          "id": "explorer-safe-zone-enable",
-          "name": "Enable safe zone",
-          "kind": "topic-publish",
-          "description": "Enable the Explorer safety zone through the legacy UI robot action command.",
-          "command": "explorer.safe_zone.enable",
-          "topic": "/ui/robot_action",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'safe_zone_enable'}",
-          "tags": ["explorer", "safety-zone"]
-        },
-        {
-          "id": "explorer-pose-save-current",
-          "name": "Save current pose",
-          "kind": "topic-publish",
-          "description": "Save the current Explorer pose through the legacy pose command topic.",
-          "command": "explorer.pose.save_current",
-          "topic": "/ui/save_pose",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'current'}",
-          "tags": ["explorer", "pose"]
-        },
-        {
-          "id": "explorer-pose-load-home",
-          "name": "Load home pose",
-          "kind": "topic-publish",
-          "description": "Replay the saved home pose through the legacy pose command topic.",
-          "command": "explorer.pose.load.home",
-          "topic": "/ui/load_pose",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'home'}",
-          "tags": ["explorer", "pose"]
-        },
-        {
-          "id": "explorer-pose-load-meal",
-          "name": "Load meal pose",
-          "kind": "topic-publish",
-          "description": "Replay the saved meal pose through the legacy pose command topic.",
-          "command": "explorer.pose.load.meal",
-          "topic": "/ui/load_pose",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'meal'}",
-          "tags": ["explorer", "pose"]
-        },
-        {
-          "id": "explorer-pose-cancel",
-          "name": "Cancel pose motion",
-          "kind": "topic-publish",
-          "description": "Cancel the current pose motion through the legacy UI robot action command.",
-          "command": "explorer.pose.cancel",
-          "topic": "/ui/robot_action",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'cancel_pose'}",
-          "tags": ["explorer", "pose"]
-        },
-        {
-          "id": "explorer-favorite-mode-both",
-          "name": "Favorite BOTH mode",
-          "kind": "topic-publish",
-          "description": "Apply the Explorer BOTH control mode favorite.",
-          "command": "explorer.favorite.mode.both",
-          "topic": "/cmd/mode",
-          "message_type": "std_msgs/msg/Int32",
-          "payload": {
-            "data": 3
-          },
-          "payload_text": "",
-          "tags": ["explorer", "favorite"]
-        },
-        {
-          "id": "explorer-favorite-layout-tablet",
-          "name": "Favorite tablet layout",
-          "kind": "topic-publish",
-          "description": "Apply the Explorer tablet layout favorite through the legacy UI robot action command.",
-          "command": "explorer.favorite.layout.tablet",
-          "topic": "/ui/robot_action",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'tablet_layout'}",
-          "tags": ["explorer", "favorite"]
-        },
-        {
-          "id": "explorer-favorite-position-work",
-          "name": "Favorite work pose",
-          "kind": "topic-publish",
-          "description": "Replay the saved work pose through the legacy pose command topic.",
-          "command": "explorer.favorite.position.work",
-          "topic": "/ui/load_pose",
-          "message_type": "std_msgs/msg/String",
-          "payload": null,
-          "payload_text": "{data: 'work'}",
-          "tags": ["explorer", "favorite", "pose"]
-        },
-        {
-          "id": "explorer-emergency-stop",
-          "name": "Emergency stop",
-          "kind": "topic-publish",
-          "description": "Send an immediate stop request for Explorer user tests.",
-          "command": "emergency_stop",
-          "topic": "/explorer/emergency_stop",
-          "message_type": "std_msgs/msg/Bool",
-          "payload": null,
-          "payload_text": "{data: true}",
-          "tags": ["explorer", "safety"]
-        },
-        {
-          "id": "explorer-gripper-close",
-          "name": "Close gripper",
-          "kind": "topic-publish",
-          "description": "Close the gripper through the Explorer fixture command topic.",
-          "command": "close_gripper",
-          "topic": "/gripper_controller/commands",
-          "message_type": "std_msgs/msg/Float64MultiArray",
-          "payload": {
-            "data": [0.8]
-          },
-          "payload_text": "",
-          "tags": ["explorer", "device"]
         }
       ]
     }

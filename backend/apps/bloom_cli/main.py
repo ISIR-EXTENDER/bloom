@@ -23,6 +23,7 @@ from libs.config import (
     load_legacy_screen_file,
     save_configuration_file,
 )
+from libs.config.seed import DEFAULT_SEED_DIR, available_seed_ids, seed_configurations
 
 cli = typer.Typer(
     name="bloom",
@@ -139,6 +140,61 @@ def list_configurations(
     repository = open_configuration_repository(storage, configuration_dir, database_path)
     for config_id in repository.list_ids():
         typer.echo(config_id)
+
+
+@config_cli.command("seed")
+def seed_shared_applications(
+    force: list[str] = typer.Option(
+        [],
+        "--force",
+        help="Reset these application IDs to the committed version, discarding local edits.",
+    ),
+    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to write to."),
+    configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
+    database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
+    seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
+) -> None:
+    """Import the shared applications this store is missing.
+
+    Existing IDs are left untouched, because they hold this machine's own
+    screen layouts and edits. Use --force to reset one deliberately.
+    """
+    repository = open_configuration_repository(storage, configuration_dir, database_path)
+    outcome = seed_configurations(repository, seed_dir=seed_dir, force_ids=frozenset(force))
+
+    for config_id in outcome.imported:
+        typer.echo(f"Imported {config_id}")
+    for config_id in outcome.skipped:
+        typer.echo(f"Kept local {config_id}")
+    if not outcome.changed:
+        typer.echo("Nothing to import.")
+
+
+@config_cli.command("publish")
+def publish_configuration(
+    config_id: str = typer.Argument(..., help="Configuration ID to publish to the repository."),
+    storage: ConfigurationStorageKind = typer.Option("file", "--storage", help="Storage backend to read from."),
+    configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
+    database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
+    seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
+) -> None:
+    """Write a local configuration back out as a shared application.
+
+    This is how an app built in the builder becomes one the team gets on
+    clone: publish it, then commit the file it writes.
+    """
+    repository = open_configuration_repository(storage, configuration_dir, database_path)
+    try:
+        bundle = repository.get(config_id)
+    except ConfigurationNotFoundError:
+        known = ", ".join(repository.list_ids()) or "none"
+        raise typer.BadParameter(f"No configuration {config_id!r} in this store. Available: {known}") from None
+
+    destination = Path(seed_dir) / f"{config_id}.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    save_configuration_file(bundle, destination)
+    typer.echo(f"Published {config_id} to {destination}")
+    typer.echo("Commit that file to share it with the team.")
 
 
 @config_cli.command("import")

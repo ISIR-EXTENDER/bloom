@@ -189,7 +189,7 @@ The partner repo is useful, but several choices should not become Bloom defaults
 ### Explorer User Tests App Proposal
 
 The app now starts as a Bloom demo/configuration fixture:
-`tests/fixtures/explorer-user-tests-configuration-bundle.json`. This keeps the
+`backend/seed/applications/explorer-user-tests.json`. This keeps the
 Explorer scenario testable without hard-coding Explorer behavior into Bloom core.
 Live adapters can be attached screen by screen later.
 

@@ -6,7 +6,12 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": false
+    "ignoreUnknown": false,
+    // Shared application bundles are written by the backend CLI
+    // (`bloom config publish`) using Python's JSON writer. Letting Biome
+    // reformat them would mean every publish produced a diff against the file
+    // it just wrote.
+    "includes": ["**", "!backend/seed/applications"]
   },
   "formatter": {
     "enabled": true,

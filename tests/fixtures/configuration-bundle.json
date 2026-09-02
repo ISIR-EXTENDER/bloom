@@ -11,8 +11,12 @@
       "description": "Sandbox operator interface",
       "lifecycle": "active",
       "runtime_policy": {
-        "allowed_message_types": [],
-        "allowed_publish_topics": [],
+        "allowed_message_types": [
+          "std_msgs/msg/Int32MultiArray"
+        ],
+        "allowed_publish_topics": [
+          "/ui/ros_toggle"
+        ],
         "allowed_recording_topics": [],
         "allowed_teleop_targets": []
       },
@@ -52,11 +56,18 @@
               "settings": {
                 "topic": "/ui/ros_toggle",
                 "payloadOn": {
-                  "data": [13, 1]
+                  "data": [
+                    13,
+                    1
+                  ]
                 },
                 "payloadOff": {
-                  "data": [13, 0]
-                }
+                  "data": [
+                    13,
+                    0
+                  ]
+                },
+                "messageType": "std_msgs/msg/Int32MultiArray"
               }
             }
           ]

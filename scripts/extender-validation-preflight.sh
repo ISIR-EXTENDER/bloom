@@ -11,19 +11,16 @@ BLOOM_FRONTEND_HOST=${BLOOM_FRONTEND_HOST:-"127.0.0.1"}
 BLOOM_FRONTEND_PORT=${BLOOM_FRONTEND_PORT:-"5173"}
 BLOOM_REFRESH_VALIDATION_CONFIGS=${BLOOM_REFRESH_VALIDATION_CONFIGS:-"0"}
 
-copy_fixture() {
-  local config_id="$1"
-  local fixture_path="$2"
-  local destination_path="${BLOOM_CONFIGURATION_DIR}/${config_id}.json"
-
-  if [[ -f "${destination_path}" && "${BLOOM_REFRESH_VALIDATION_CONFIGS}" != "1" ]]; then
-    echo "ok: ${config_id} already exists at ${destination_path}"
-    return
+seed_shared_applications() {
+  local force_args=()
+  if [[ "${BLOOM_REFRESH_VALIDATION_CONFIGS}" == "1" ]]; then
+    while IFS= read -r seed_file; do
+      force_args+=(--force "$(basename "${seed_file}" .json)")
+    done < <(find "${BLOOM_ROOT}/backend/seed/applications" -name '*.json')
   fi
 
-  mkdir -p "${BLOOM_CONFIGURATION_DIR}"
-  cp "${fixture_path}" "${destination_path}"
-  echo "seeded: ${config_id} -> ${destination_path}"
+  (cd "${BLOOM_ROOT}/backend" && uv run python -m apps.bloom_cli.main config seed \
+    --configuration-dir "${BLOOM_CONFIGURATION_DIR}" "${force_args[@]}")
 }
 
 assert_configuration() {
@@ -79,9 +76,10 @@ if (JSON.stringify(actual) !== JSON.stringify(expected)) {
   echo "ok: ${config_id} ${expected_widget_id}.settings.${expected_setting_path}=${expected_json_value}"
 }
 
-copy_fixture "sandbox" "${BLOOM_ROOT}/tests/fixtures/sandbox-v0-configuration-bundle.json"
-copy_fixture "bloom-debug" "${BLOOM_ROOT}/tests/fixtures/bloom-debug-configuration.json"
-copy_fixture "petanque-admin" "${BLOOM_ROOT}/tests/fixtures/petanque-admin-configuration-bundle.json"
+# The API seeds these itself on startup. This keeps the runner usable against a
+# configuration directory that has never had a backend pointed at it, and it
+# covers every shipped app rather than the three this script used to copy.
+seed_shared_applications
 
 assert_configuration "sandbox" "sandbox" "sandbox_control"
 assert_configuration "sandbox" "sandbox" "visual_servoing_monitor"

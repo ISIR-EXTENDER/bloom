@@ -27,6 +27,9 @@ class Settings(BaseModel):
     configuration_dir: Path = Field(default=Path("data/configurations"))
     configuration_database_path: Path = Field(default=Path("data/bloom.db"))
     theme_asset_dir: Path = Field(default=Path("data/theme-assets"))
+    # Import the bundles in backend/seed/applications that this store is
+    # missing. Off for tests that assert on an empty store.
+    seed_shared_applications: bool = Field(default=True)
     allowed_ros_message_types: tuple[str, ...] = (
         "extender_msgs/msg/TeleopCommand",
         "geometry_msgs/msg/Twist",
@@ -138,6 +141,7 @@ class Settings(BaseModel):
             app_name=os.getenv("BLOOM_APP_NAME", cls.model_fields["app_name"].default),
             app_version=os.getenv("BLOOM_APP_VERSION", cls.model_fields["app_version"].default),
             auth_enabled=_read_bool_env("BLOOM_AUTH_ENABLED", default=False),
+            seed_shared_applications=_read_bool_env("BLOOM_SEED_SHARED_APPLICATIONS", default=True),
             configuration_database_path=Path(
                 os.getenv(
                     "BLOOM_CONFIGURATION_DATABASE_PATH",

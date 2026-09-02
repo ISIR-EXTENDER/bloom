@@ -5,7 +5,7 @@ import type { ConfigurationBundle } from "@bloom/api-client";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import explorerManagerConfiguration from "../../../../../tests/fixtures/explorer-manager-configuration-bundle.json";
+import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
 
 /**

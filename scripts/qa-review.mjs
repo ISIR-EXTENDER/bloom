@@ -91,7 +91,9 @@ function checkFixtureCoverage() {
     }
     // Only app bundles carry runtime policy worth gating.
     if (!parsed?.applications?.length) continue;
-    if (!check.includes(fixture)) {
+    // Match the whole filename. A substring test passed `configuration-bundle.json`
+    // for years because `sandbox-v0-configuration-bundle.json` contains it.
+    if (!new RegExp(`/${fixture.replaceAll(".", "\\.")}"`).test(check)) {
       finding(
         "fixture-ungated",
         `tests/fixtures/${fixture} declares applications but is not registered in the coherence check`,

@@ -8,13 +8,13 @@ import {
 } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import bloomDebugConfiguration from "../../../../tests/fixtures/bloom-debug-configuration.json";
+import bloomDebugConfiguration from "../../../../backend/seed/applications/bloom-debug.json";
+import explorerUserTestsConfiguration from "../../../../backend/seed/applications/explorer-user-tests.json";
+import migratedPetanqueAdminConfiguration from "../../../../backend/seed/applications/petanque-admin.json";
+import sandboxV0Configuration from "../../../../backend/seed/applications/sandbox.json";
+import webcamVisualizerConfiguration from "../../../../backend/seed/applications/webcam-visualizer.json";
 import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sandbox-configuration.json";
-import explorerUserTestsConfiguration from "../../../../tests/fixtures/explorer-user-tests-configuration-bundle.json";
-import migratedPetanqueAdminConfiguration from "../../../../tests/fixtures/petanque-admin-configuration-bundle.json";
 import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-teleop-lab-configuration.json";
-import sandboxV0Configuration from "../../../../tests/fixtures/sandbox-v0-configuration-bundle.json";
-import webcamVisualizerConfiguration from "../../../../tests/fixtures/webcam-visualizer-configuration-bundle.json";
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient, RuntimeTopicSampleMessage } from "./runtime/runtime-action-dispatcher";
@@ -625,8 +625,10 @@ describe("App", () => {
     render(<App configurationClient={configurationClient} />);
 
     await openAppConfig();
-    expect(screen.getByRole("button", { name: /Extender UI/ })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: /Bloom Garden/ }));
+    // A new app starts on Bloom Garden, the shared default; switching away
+    // from it is the change worth saving.
+    expect(screen.getByRole("button", { name: /Bloom Garden/ })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: /Extender UI/ }));
     fireEvent.change(screen.getByLabelText("primary color"), { target: { value: "#ff8800" } });
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
@@ -636,8 +638,8 @@ describe("App", () => {
 
     const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
-    expect(savedApplication?.theme.preset_id).toBe("bloom-default");
-    expect(savedApplication?.theme.palette.accent).toBe("#d9a441");
+    expect(savedApplication?.theme.preset_id).toBe("extender-ui");
+    expect(savedApplication?.theme.palette.accent).toBe("#0ea5e9");
     expect(savedApplication?.theme.palette.primary).toBe("#ff8800");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
   });

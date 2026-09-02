@@ -7,45 +7,50 @@ import { isDeepStrictEqual } from "node:util";
 const configurationPairs = [
   {
     id: "sandbox",
-    fixture: "tests/fixtures/sandbox-v0-configuration-bundle.json",
-    seeded: "backend/data/configurations/sandbox.json",
+    fixture: "backend/seed/applications/sandbox.json",
+    local: "backend/data/configurations/sandbox.json",
   },
   {
     id: "bloom-debug",
-    fixture: "tests/fixtures/bloom-debug-configuration.json",
-    seeded: "backend/data/configurations/bloom-debug.json",
+    fixture: "backend/seed/applications/bloom-debug.json",
+    local: "backend/data/configurations/bloom-debug.json",
   },
   {
     id: "petanque-admin",
-    fixture: "tests/fixtures/petanque-admin-configuration-bundle.json",
-    seeded: "backend/data/configurations/petanque-admin.json",
+    fixture: "backend/seed/applications/petanque-admin.json",
+    local: "backend/data/configurations/petanque-admin.json",
   },
   {
     id: "explorer-user-tests",
-    fixture: "tests/fixtures/explorer-user-tests-configuration-bundle.json",
-    seeded: "backend/data/configurations/explorer-user-tests.json",
+    fixture: "backend/seed/applications/explorer-user-tests.json",
+    local: "backend/data/configurations/explorer-user-tests.json",
   },
   {
     id: "explorer-manager",
-    fixture: "tests/fixtures/explorer-manager-configuration-bundle.json",
-    seeded: "backend/data/configurations/explorer-manager.json",
+    fixture: "backend/seed/applications/explorer-manager.json",
+    local: "backend/data/configurations/explorer-manager.json",
   },
   {
-    // Test-only fixtures: no seeded counterpart, but their runtime policy is
+    // Test-only fixtures: not shipped to anyone, but their runtime policy is
     // still gated so they cannot drift from the backend unnoticed.
+    id: "shared-contract",
+    fixture: "tests/fixtures/configuration-bundle.json",
+    local: "tests/fixtures/configuration-bundle.json",
+  },
+  {
     id: "compact-sandbox",
     fixture: "tests/fixtures/compact-sandbox-configuration.json",
-    seeded: "tests/fixtures/compact-sandbox-configuration.json",
+    local: "tests/fixtures/compact-sandbox-configuration.json",
   },
   {
     id: "sandbox-teleop-lab",
     fixture: "tests/fixtures/sandbox-teleop-lab-configuration.json",
-    seeded: "tests/fixtures/sandbox-teleop-lab-configuration.json",
+    local: "tests/fixtures/sandbox-teleop-lab-configuration.json",
   },
   {
     id: "webcam-visualizer",
-    fixture: "tests/fixtures/webcam-visualizer-configuration-bundle.json",
-    seeded: "backend/data/configurations/webcam-visualizer.json",
+    fixture: "backend/seed/applications/webcam-visualizer.json",
+    local: "backend/data/configurations/webcam-visualizer.json",
   },
 ];
 
@@ -173,21 +178,31 @@ for (const pair of configurationPairs) {
   const fixture = readJson(pair.fixture);
   fixtureBundles.push({ pair, bundle: fixture });
 
-  if (!existsSync(resolve(pair.seeded))) {
-    assert(
-      `${pair.id} seeded config is optional in clean checkouts`,
-      !requireSeededConfigs,
-      `${pair.seeded} is missing; run npm run validation:extender or refresh local configs`,
-    );
+  // The shared bundle is the committed one; backend/data holds whatever this
+  // machine has since done with it. Editing a screen in the builder is normal
+  // work, so divergence here is reported, never failed -- this check used to
+  // go red the moment anyone moved a widget, which taught everyone to ignore
+  // it. Set BLOOM_REQUIRE_SEEDED_CONFIGS=1 to demand they match.
+  if (!existsSync(resolve(pair.local))) {
     continue;
   }
 
-  const seeded = readJson(pair.seeded);
-  assert(
-    `${pair.id} seeded config matches fixture`,
-    isDeepStrictEqual(fixture, seeded),
-    `${pair.seeded} must be refreshed from ${pair.fixture}`,
-  );
+  const local = readJson(pair.local);
+  if (isDeepStrictEqual(fixture, local)) {
+    continue;
+  }
+
+  if (requireSeededConfigs) {
+    assert(
+      `${pair.id} local config matches the shared bundle`,
+      false,
+      `${pair.local} differs from ${pair.fixture}; run bloom config seed --force ${pair.id} to reset it, or bloom config publish ${pair.id} to share your version`,
+    );
+  } else {
+    console.log(
+      `note: ${pair.id} has local edits (${pair.local} differs from ${pair.fixture}); publish them with bloom config publish ${pair.id}`,
+    );
+  }
 }
 
 for (const { pair, bundle } of fixtureBundles) {

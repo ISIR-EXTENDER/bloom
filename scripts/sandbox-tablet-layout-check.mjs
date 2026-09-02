@@ -13,7 +13,7 @@ const outputDir = process.env.BLOOM_TABLET_LAYOUT_OUTPUT_DIR ?? resolve("/tmp", 
 const port = Number(process.env.BLOOM_TABLET_LAYOUT_PORT ?? "5179");
 const baseUrl = `http://127.0.0.1:${port}`;
 const sandboxConfiguration = JSON.parse(
-  await readFile(resolve(repoRoot, "tests/fixtures/sandbox-v0-configuration-bundle.json"), "utf8"),
+  await readFile(resolve(repoRoot, "backend/seed/applications/sandbox.json"), "utf8"),
 );
 
 const checks = [

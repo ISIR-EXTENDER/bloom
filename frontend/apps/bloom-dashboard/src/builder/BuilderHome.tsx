@@ -569,7 +569,7 @@ function createDefaultWizardState(applications: readonly ApplicationConfig[]): C
     includeOnboardingSpots: true,
     name: createNewApplicationName(applications),
     starterId: "operator-control",
-    themePresetId: "extender-ui",
+    themePresetId: "bloom-default",
   };
 }
 

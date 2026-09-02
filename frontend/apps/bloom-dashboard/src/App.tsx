@@ -71,7 +71,7 @@ export function App({
       ? resolveThemePreset(
           resolveSelectedWorkspace(configurationState.configurations, selection).application.theme.preset_id,
         )
-      : BLOOM_THEME_PRESETS["extender-ui"];
+      : BLOOM_THEME_PRESETS.bloom;
 
   useEffect(() => {
     const syncRouteFromBrowserHistory = () => {
@@ -341,7 +341,7 @@ function resolveThemePreset(presetId: string) {
     return BLOOM_THEME_PRESETS.bloom;
   }
 
-  return BLOOM_THEME_PRESETS[presetId as keyof typeof BLOOM_THEME_PRESETS] ?? BLOOM_THEME_PRESETS["extender-ui"];
+  return BLOOM_THEME_PRESETS[presetId as keyof typeof BLOOM_THEME_PRESETS] ?? BLOOM_THEME_PRESETS.bloom;
 }
 
 function getInitialBloomRoute(): BloomRoute {

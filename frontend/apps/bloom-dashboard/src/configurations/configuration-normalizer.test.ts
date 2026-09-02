@@ -1,8 +1,7 @@
-import type { ConfigurationBundle } from "@bloom/api-client";
+import { type ConfigurationBundle, DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
-
+import sandboxV0Configuration from "../../../../../backend/seed/applications/sandbox.json";
 import compactSandboxConfiguration from "../../../../../tests/fixtures/compact-sandbox-configuration.json";
-import sandboxV0Configuration from "../../../../../tests/fixtures/sandbox-v0-configuration-bundle.json";
 import { normalizeConfigurationBundle } from "./configuration-normalizer";
 
 describe("normalizeConfigurationBundle", () => {
@@ -210,12 +209,14 @@ describe("normalizeConfigurationBundle", () => {
         moodboard_image_uri: "/theme-assets/demo.png",
         reference_url: "https://example.com/reference",
       },
-      preset_id: "extender-ui",
+      // Only `primary` was supplied above; the rest come from the shared
+      // default, so this asserts against it rather than a copy that drifts.
+      preset_id: DEFAULT_APPLICATION_THEME.preset_id,
       palette: {
-        accent: "#0ea5e9",
-        background: "#f8fafc",
+        accent: DEFAULT_APPLICATION_THEME.palette.accent,
+        background: DEFAULT_APPLICATION_THEME.palette.background,
         primary: "#5f7f63",
-        surface: "#ffffff",
+        surface: DEFAULT_APPLICATION_THEME.palette.surface,
       },
     });
     expect(bundle.applications[0]?.profiles).toEqual([]);

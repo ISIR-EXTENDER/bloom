@@ -9,6 +9,84 @@
       "id": "sandbox",
       "name": "Sandbox V0.0",
       "description": "Bloom runtime port of the six-screen Extender Sandbox V0.0 app.",
+      "lifecycle": "active",
+      "action_presets": [
+        {
+          "id": "sandbox-max-velocity-safe",
+          "name": "Safe max velocity",
+          "kind": "topic-publish",
+          "description": "Set a conservative max velocity in the sandbox app.",
+          "command": "set_safe_max_velocity",
+          "topic": "/cmd/max_velocity",
+          "message_type": "std_msgs/msg/Float64",
+          "payload": {
+            "data": 0.5
+          },
+          "payload_text": "",
+          "tags": [
+            "sandbox",
+            "teleop"
+          ]
+        }
+      ],
+      "runtime_policy": {
+        "allowed_message_types": [
+          "extender_msgs/msg/SharedControlGoalArray",
+          "geometry_msgs/msg/TwistStamped",
+          "std_msgs/msg/Bool",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Int32",
+          "std_msgs/msg/Int32MultiArray",
+          "std_msgs/msg/String",
+          "std_msgs/msg/UInt8MultiArray"
+        ],
+        "allowed_publish_topics": [
+          "/cmd/gripper",
+          "/cmd/joystick_rz",
+          "/cmd/joystick_z",
+          "/cmd/max_velocity",
+          "/cmd/mode",
+          "/mode_request",
+          "/sandbox/digital_output",
+          "/snake_control/enable",
+          "/teleop_config/angular_scale_x",
+          "/teleop_config/angular_scale_y",
+          "/teleop_config/angular_scale_z",
+          "/teleop_config/invert_angular_x",
+          "/teleop_config/invert_angular_y",
+          "/teleop_config/invert_angular_z",
+          "/teleop_config/invert_linear_x",
+          "/teleop_config/invert_linear_y",
+          "/teleop_config/invert_linear_z",
+          "/teleop_config/linear_scale_x",
+          "/teleop_config/linear_scale_y",
+          "/teleop_config/linear_scale_z",
+          "/teleop_config/reset_defaults",
+          "/teleop_config/rotation_gain",
+          "/teleop_config/save_profile",
+          "/teleop_config/swap_xy",
+          "/teleop_config/translation_gain",
+          "/ui/visual_servoing/on",
+          "/ui/visual_servoing/save"
+        ],
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/tag_detections",
+          "/teleop_cmd",
+          "/visual_servoing/error_TAGtoTAGd",
+          "/visual_servoing/velocity_command"
+        ],
+        "allowed_teleop_targets": [
+          "/joystick_cartesian_command",
+          "/teleop_cmd"
+        ]
+      },
       "theme": {
         "inspiration": {
           "moodboard_image_uri": "",
@@ -34,6 +112,7 @@
           "widgets": [
             {
               "id": "sandbox-max-velocity",
+              "kind": "slider",
               "title": "Max Velocity",
               "layout": {
                 "x": 279,
@@ -41,7 +120,6 @@
                 "width": 382,
                 "height": 159
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -65,6 +143,7 @@
             },
             {
               "id": "sandbox-rotation",
+              "kind": "joystick",
               "title": "Rotation",
               "layout": {
                 "x": 802,
@@ -72,7 +151,6 @@
                 "width": 435,
                 "height": 441
               },
-              "kind": "joystick",
               "settings": {
                 "binding": "rot",
                 "deadzone": 0.1,
@@ -113,6 +191,7 @@
             },
             {
               "id": "sandbox-translation",
+              "kind": "joystick",
               "title": "Translation",
               "layout": {
                 "x": 255,
@@ -120,7 +199,6 @@
                 "width": 429,
                 "height": 441
               },
-              "kind": "joystick",
               "settings": {
                 "binding": "joy",
                 "deadzone": 0.1,
@@ -161,6 +239,7 @@
             },
             {
               "id": "sandbox-mode",
+              "kind": "toggle",
               "title": "Mode B1/B2",
               "layout": {
                 "x": 20,
@@ -168,7 +247,6 @@
                 "width": 173,
                 "height": 108
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "B1",
@@ -187,6 +265,7 @@
             },
             {
               "id": "sandbox-rz",
+              "kind": "slider",
               "title": "RZ",
               "layout": {
                 "x": 802,
@@ -194,7 +273,6 @@
                 "width": 435,
                 "height": 130
               },
-              "kind": "slider",
               "settings": {
                 "binding": "rz",
                 "direction": "horizontal",
@@ -220,6 +298,7 @@
             },
             {
               "id": "sandbox-z",
+              "kind": "slider",
               "title": "Z",
               "layout": {
                 "x": 75,
@@ -227,7 +306,6 @@
                 "width": 162,
                 "height": 422
               },
-              "kind": "slider",
               "settings": {
                 "binding": "z",
                 "direction": "vertical",
@@ -253,6 +331,7 @@
             },
             {
               "id": "sandbox-gripper",
+              "kind": "toggle",
               "title": "Gripper",
               "layout": {
                 "x": 848,
@@ -260,7 +339,6 @@
                 "width": 188,
                 "height": 92
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "Closed",
@@ -275,6 +353,7 @@
             },
             {
               "id": "sandbox-toggle-output",
+              "kind": "toggle",
               "title": "Digital Output",
               "layout": {
                 "x": 1048,
@@ -282,7 +361,6 @@
                 "width": 188,
                 "height": 92
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "Off",
@@ -307,6 +385,7 @@
           "widgets": [
             {
               "id": "sandbox-cfg-lin-gain",
+              "kind": "slider",
               "title": "Translation Gain",
               "layout": {
                 "x": 20,
@@ -314,7 +393,6 @@
                 "width": 530,
                 "height": 157
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -338,6 +416,7 @@
             },
             {
               "id": "sandbox-cfg-ang-gain",
+              "kind": "slider",
               "title": "Rotation Gain",
               "layout": {
                 "x": 650,
@@ -345,7 +424,6 @@
                 "width": 610,
                 "height": 152
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -369,6 +447,7 @@
             },
             {
               "id": "sandbox-cfg-lin-scale-x",
+              "kind": "slider",
               "title": "Linear X",
               "layout": {
                 "x": 20,
@@ -376,7 +455,6 @@
                 "width": 530,
                 "height": 152
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -400,6 +478,7 @@
             },
             {
               "id": "sandbox-cfg-ang-scale-x",
+              "kind": "slider",
               "title": "Angular X",
               "layout": {
                 "x": 650,
@@ -407,7 +486,6 @@
                 "width": 529,
                 "height": 152
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -431,6 +509,7 @@
             },
             {
               "id": "sandbox-cfg-lin-scale-y",
+              "kind": "slider",
               "title": "Linear Y",
               "layout": {
                 "x": 20,
@@ -438,7 +517,6 @@
                 "width": 530,
                 "height": 152
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -462,6 +540,7 @@
             },
             {
               "id": "sandbox-cfg-ang-scale-y",
+              "kind": "slider",
               "title": "Angular Y",
               "layout": {
                 "x": 650,
@@ -469,7 +548,6 @@
                 "width": 530,
                 "height": 141
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -493,6 +571,7 @@
             },
             {
               "id": "sandbox-cfg-lin-scale-z",
+              "kind": "slider",
               "title": "Linear Z",
               "layout": {
                 "x": 20,
@@ -500,7 +579,6 @@
                 "width": 530,
                 "height": 144
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -524,6 +602,7 @@
             },
             {
               "id": "sandbox-cfg-ang-scale-z",
+              "kind": "slider",
               "title": "Angular Z",
               "layout": {
                 "x": 650,
@@ -531,7 +610,6 @@
                 "width": 531,
                 "height": 145
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -555,6 +633,7 @@
             },
             {
               "id": "sandbox-cfg-swap-xy",
+              "kind": "command-button",
               "title": "Swap XY",
               "layout": {
                 "x": 650,
@@ -562,7 +641,6 @@
                 "width": 170,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -580,6 +658,7 @@
             },
             {
               "id": "sandbox-cfg-save-explorer",
+              "kind": "command-button",
               "title": "Save Explorer",
               "layout": {
                 "x": 840,
@@ -587,7 +666,6 @@
                 "width": 190,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -605,6 +683,7 @@
             },
             {
               "id": "sandbox-cfg-reset",
+              "kind": "command-button",
               "title": "Reset",
               "layout": {
                 "x": 1050,
@@ -612,7 +691,6 @@
                 "width": 170,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -630,6 +708,7 @@
             },
             {
               "id": "sandbox-cfg-lin-x",
+              "kind": "command-button",
               "title": "Invert Linear X",
               "layout": {
                 "x": 560,
@@ -637,7 +716,6 @@
                 "width": 70,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -655,6 +733,7 @@
             },
             {
               "id": "sandbox-cfg-lin-y",
+              "kind": "command-button",
               "title": "Invert Linear Y",
               "layout": {
                 "x": 560,
@@ -662,7 +741,6 @@
                 "width": 70,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -680,6 +758,7 @@
             },
             {
               "id": "sandbox-cfg-lin-z",
+              "kind": "command-button",
               "title": "Invert Linear Z",
               "layout": {
                 "x": 560,
@@ -687,7 +766,6 @@
                 "width": 70,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -705,6 +783,7 @@
             },
             {
               "id": "sandbox-cfg-ang-x",
+              "kind": "command-button",
               "title": "Invert Angular X",
               "layout": {
                 "x": 1190,
@@ -712,7 +791,6 @@
                 "width": 70,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -730,6 +808,7 @@
             },
             {
               "id": "sandbox-cfg-ang-y",
+              "kind": "command-button",
               "title": "Invert Angular Y",
               "layout": {
                 "x": 1190,
@@ -737,7 +816,6 @@
                 "width": 70,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -755,6 +833,7 @@
             },
             {
               "id": "sandbox-cfg-ang-z",
+              "kind": "command-button",
               "title": "Invert Angular Z",
               "layout": {
                 "x": 1190,
@@ -762,7 +841,6 @@
                 "width": 70,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -790,6 +868,7 @@
           "widgets": [
             {
               "id": "control-panel-title",
+              "kind": "label",
               "title": "Control Panel",
               "layout": {
                 "x": 20,
@@ -797,7 +876,6 @@
                 "width": 300,
                 "height": 48
               },
-              "kind": "label",
               "settings": {
                 "text": "Control Panel",
                 "fontSize": 28,
@@ -807,6 +885,7 @@
             },
             {
               "id": "control-panel-camera",
+              "kind": "camera",
               "title": "Camera",
               "layout": {
                 "x": 20,
@@ -814,7 +893,6 @@
                 "width": 540,
                 "height": 350
               },
-              "kind": "camera",
               "settings": {
                 "source": "webcam",
                 "streamUrl": "",
@@ -828,6 +906,7 @@
             },
             {
               "id": "control-panel-gripper",
+              "kind": "toggle",
               "title": "Gripper",
               "layout": {
                 "x": 20,
@@ -835,7 +914,6 @@
                 "width": 260,
                 "height": 74
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "Closed",
@@ -850,6 +928,7 @@
             },
             {
               "id": "control-panel-servo-enable",
+              "kind": "toggle",
               "title": "Visual Servoing",
               "layout": {
                 "x": 300,
@@ -857,7 +936,6 @@
                 "width": 260,
                 "height": 74
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "Off",
@@ -872,6 +950,7 @@
             },
             {
               "id": "control-panel-servo-save",
+              "kind": "command-button",
               "title": "Save Tag",
               "layout": {
                 "x": 20,
@@ -879,7 +958,6 @@
                 "width": 260,
                 "height": 72
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -897,6 +975,7 @@
             },
             {
               "id": "control-panel-open-monitor",
+              "kind": "command-button",
               "title": "Monitor",
               "layout": {
                 "x": 300,
@@ -904,7 +983,6 @@
                 "width": 260,
                 "height": 72
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -923,6 +1001,7 @@
             },
             {
               "id": "control-panel-max-velocity",
+              "kind": "slider",
               "title": "Teleop Gain",
               "layout": {
                 "x": 590,
@@ -930,7 +1009,6 @@
                 "width": 660,
                 "height": 120
               },
-              "kind": "slider",
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
@@ -956,6 +1034,7 @@
             },
             {
               "id": "control-panel-z",
+              "kind": "slider",
               "title": "Z",
               "layout": {
                 "x": 590,
@@ -963,7 +1042,6 @@
                 "width": 150,
                 "height": 390
               },
-              "kind": "slider",
               "settings": {
                 "binding": "z",
                 "direction": "vertical",
@@ -989,6 +1067,7 @@
             },
             {
               "id": "control-panel-translation",
+              "kind": "joystick",
               "title": "X Y",
               "layout": {
                 "x": 758,
@@ -996,7 +1075,6 @@
                 "width": 236,
                 "height": 236
               },
-              "kind": "joystick",
               "settings": {
                 "binding": "joy",
                 "deadzone": 0.1,
@@ -1037,6 +1115,7 @@
             },
             {
               "id": "control-panel-rotation",
+              "kind": "joystick",
               "title": "RX RY",
               "layout": {
                 "x": 1014,
@@ -1044,7 +1123,6 @@
                 "width": 236,
                 "height": 236
               },
-              "kind": "joystick",
               "settings": {
                 "binding": "rot",
                 "deadzone": 0.1,
@@ -1085,6 +1163,7 @@
             },
             {
               "id": "control-panel-rz",
+              "kind": "slider",
               "title": "RZ",
               "layout": {
                 "x": 758,
@@ -1092,7 +1171,6 @@
                 "width": 490,
                 "height": 124
               },
-              "kind": "slider",
               "settings": {
                 "binding": "rz",
                 "direction": "horizontal",
@@ -1118,6 +1196,7 @@
             },
             {
               "id": "control-panel-mode",
+              "kind": "toggle",
               "title": "Mode B1/B2",
               "layout": {
                 "x": 590,
@@ -1125,7 +1204,6 @@
                 "width": 150,
                 "height": 78
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "B1",
@@ -1217,6 +1295,7 @@
           "widgets": [
             {
               "id": "snake-title",
+              "kind": "label",
               "title": "Snake Control",
               "layout": {
                 "x": 80,
@@ -1224,7 +1303,6 @@
                 "width": 360,
                 "height": 70
               },
-              "kind": "label",
               "settings": {
                 "text": "Snake Control",
                 "fontSize": 28,
@@ -1235,6 +1313,7 @@
             },
             {
               "id": "snake-mode-toggle",
+              "kind": "toggle",
               "title": "Mode B1/B2",
               "layout": {
                 "x": 180,
@@ -1242,7 +1321,6 @@
                 "width": 280,
                 "height": 96
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "B1",
@@ -1262,6 +1340,7 @@
             },
             {
               "id": "snake-hold",
+              "kind": "command-button",
               "title": "Hold Snake",
               "layout": {
                 "x": 820,
@@ -1269,7 +1348,6 @@
                 "width": 280,
                 "height": 96
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -1290,6 +1368,7 @@
             },
             {
               "id": "snake-joystick",
+              "kind": "joystick",
               "title": "Joystick",
               "layout": {
                 "x": 420,
@@ -1297,7 +1376,6 @@
                 "width": 440,
                 "height": 440
               },
-              "kind": "joystick",
               "settings": {
                 "binding": "joy",
                 "deadzone": 0.1,
@@ -1348,6 +1426,7 @@
           "widgets": [
             {
               "id": "servo-title",
+              "kind": "label",
               "title": "Visual Servoing",
               "layout": {
                 "x": 20,
@@ -1355,7 +1434,6 @@
                 "width": 320,
                 "height": 56
               },
-              "kind": "label",
               "settings": {
                 "text": "Visual Servoing",
                 "fontSize": 28,
@@ -1365,6 +1443,7 @@
             },
             {
               "id": "servo-rviz",
+              "kind": "camera",
               "title": "AprilTag RViz",
               "layout": {
                 "x": 20,
@@ -1372,7 +1451,6 @@
                 "width": 760,
                 "height": 510
               },
-              "kind": "camera",
               "settings": {
                 "source": "placeholder",
                 "streamUrl": "",
@@ -1386,6 +1464,7 @@
             },
             {
               "id": "servo-camera",
+              "kind": "camera",
               "title": "Camera Preview",
               "layout": {
                 "x": 800,
@@ -1393,7 +1472,6 @@
                 "width": 460,
                 "height": 260
               },
-              "kind": "camera",
               "settings": {
                 "source": "webcam",
                 "streamUrl": "",
@@ -1407,6 +1485,7 @@
             },
             {
               "id": "servo-enable",
+              "kind": "toggle",
               "title": "Visual Servoing",
               "layout": {
                 "x": 800,
@@ -1414,7 +1493,6 @@
                 "width": 220,
                 "height": 110
               },
-              "kind": "toggle",
               "settings": {
                 "initialValue": false,
                 "offLabel": "Off",
@@ -1429,6 +1507,7 @@
             },
             {
               "id": "servo-save",
+              "kind": "command-button",
               "title": "Save Tag",
               "layout": {
                 "x": 1040,
@@ -1436,7 +1515,6 @@
                 "width": 220,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -1454,6 +1532,7 @@
             },
             {
               "id": "servo-open-monitor",
+              "kind": "command-button",
               "title": "Monitor",
               "layout": {
                 "x": 1040,
@@ -1461,7 +1540,6 @@
                 "width": 220,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -1490,6 +1568,7 @@
           "widgets": [
             {
               "id": "servo-monitor-title",
+              "kind": "label",
               "title": "Visual Servoing Monitor",
               "layout": {
                 "x": 20,
@@ -1497,7 +1576,6 @@
                 "width": 420,
                 "height": 56
               },
-              "kind": "label",
               "settings": {
                 "text": "Visual Servoing Monitor",
                 "fontSize": 28,
@@ -1507,6 +1585,7 @@
             },
             {
               "id": "servo-monitor-back",
+              "kind": "command-button",
               "title": "Control",
               "layout": {
                 "x": 1080,
@@ -1514,7 +1593,6 @@
                 "width": 180,
                 "height": 58
               },
-              "kind": "command-button",
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
@@ -1691,77 +1769,6 @@
               }
             }
           ]
-        }
-      ],
-      "runtime_policy": {
-        "allowed_message_types": [
-          "extender_msgs/msg/SharedControlGoalArray",
-          "geometry_msgs/msg/TwistStamped",
-          "std_msgs/msg/Bool",
-          "std_msgs/msg/Float64",
-          "std_msgs/msg/Int32",
-          "std_msgs/msg/Int32MultiArray",
-          "std_msgs/msg/String",
-          "std_msgs/msg/UInt8MultiArray"
-        ],
-        "allowed_publish_topics": [
-          "/cmd/gripper",
-          "/cmd/joystick_rz",
-          "/cmd/joystick_z",
-          "/cmd/max_velocity",
-          "/cmd/mode",
-          "/mode_request",
-          "/sandbox/digital_output",
-          "/snake_control/enable",
-          "/teleop_config/angular_scale_x",
-          "/teleop_config/angular_scale_y",
-          "/teleop_config/angular_scale_z",
-          "/teleop_config/invert_angular_x",
-          "/teleop_config/invert_angular_y",
-          "/teleop_config/invert_angular_z",
-          "/teleop_config/invert_linear_x",
-          "/teleop_config/invert_linear_y",
-          "/teleop_config/invert_linear_z",
-          "/teleop_config/linear_scale_x",
-          "/teleop_config/linear_scale_y",
-          "/teleop_config/linear_scale_z",
-          "/teleop_config/reset_defaults",
-          "/teleop_config/rotation_gain",
-          "/teleop_config/save_profile",
-          "/teleop_config/swap_xy",
-          "/teleop_config/translation_gain",
-          "/ui/visual_servoing/on",
-          "/ui/visual_servoing/save"
-        ],
-        "allowed_recording_topics": [
-          "/cartesian_command",
-          "/ee_pose",
-          "/ee_velocity",
-          "/joint_states",
-          "/joint_target_command",
-          "/joystick_cartesian_command",
-          "/mode_request",
-          "/tag_detections",
-          "/teleop_cmd",
-          "/visual_servoing/error_TAGtoTAGd",
-          "/visual_servoing/velocity_command"
-        ],
-        "allowed_teleop_targets": ["/joystick_cartesian_command", "/teleop_cmd"]
-      },
-      "action_presets": [
-        {
-          "id": "sandbox-max-velocity-safe",
-          "name": "Safe max velocity",
-          "kind": "topic-publish",
-          "description": "Set a conservative max velocity in the sandbox app.",
-          "command": "set_safe_max_velocity",
-          "topic": "/cmd/max_velocity",
-          "message_type": "std_msgs/msg/Float64",
-          "payload": {
-            "data": 0.5
-          },
-          "payload_text": "",
-          "tags": ["sandbox", "teleop"]
         }
       ]
     }

@@ -408,7 +408,7 @@ Completed in this phase so far:
 - Frontend/backend runtime coherence now has a tracked validation check that keeps fixture JSON, seeded backend configs,
   app runtime policies, and backend default safety allowlists aligned.
 - The six current Extender Sandbox V0.0 screens are tracked as
-  `tests/fixtures/sandbox-v0-configuration-bundle.json` and can be seeded into local runtime storage through
+  `backend/seed/applications/sandbox.json` and can be seeded into local runtime storage through
   `npm run validation:extender`.
 - `snake_control` uses a momentary command button that publishes `true` while pressed and `false` on release to
   `/snake_control/enable`.
@@ -443,7 +443,7 @@ Phase 4 closure notes:
 
 Explorer user-test app candidate:
 
-- First candidate is tracked as `tests/fixtures/explorer-user-tests-configuration-bundle.json`.
+- First candidate is tracked as `backend/seed/applications/explorer-user-tests.json`.
 - Current candidate screens: control modes, robot actions, saved positions, safety zones, drink mode, favorites, robot
   supervision, debug console, and display/accessibility profile.
 - Next candidate work: final user-test mode mappings, richer adapter policies, and app-specific assets.

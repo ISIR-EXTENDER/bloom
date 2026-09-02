@@ -9,6 +9,14 @@
       "id": "webcam-visualizer",
       "name": "Webcam visualizer",
       "description": "Demo app for validating local browser webcam screens before ROS camera adapters.",
+      "lifecycle": "active",
+      "action_presets": [],
+      "runtime_policy": {
+        "allowed_message_types": [],
+        "allowed_publish_topics": [],
+        "allowed_recording_topics": [],
+        "allowed_teleop_targets": []
+      },
       "theme": {
         "inspiration": {
           "moodboard_image_uri": "",
@@ -22,6 +30,7 @@
           "surface": "#fffdf7"
         }
       },
+      "profiles": [],
       "screens": [
         {
           "id": "camera-viewer",
@@ -52,8 +61,7 @@
             }
           ]
         }
-      ],
-      "action_presets": []
+      ]
     }
   ]
 }

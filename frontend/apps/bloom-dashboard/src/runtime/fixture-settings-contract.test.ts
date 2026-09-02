@@ -12,14 +12,18 @@ import { describe, expect, it } from "vitest";
  * never one of the allowed values.
  *
  * A button that looks live and does nothing is the worst failure mode this app
- * has, so it is worth a test that reads the real shipped configs.
+ * has, so it is worth a test that reads the real shipped configs -- both the
+ * bundles that ship to teammates and the test-only fixtures.
  */
 type AppBundle = {
   applications?: { id: string; screens?: { id: string; widgets?: unknown[] }[] }[];
 };
 
 const bundles = Object.entries(
-  import.meta.glob<AppBundle>("../../../../../tests/fixtures/*.json", { eager: true, import: "default" }),
+  import.meta.glob<AppBundle>(
+    ["../../../../../backend/seed/applications/*.json", "../../../../../tests/fixtures/*.json"],
+    { eager: true, import: "default" },
+  ),
 ).filter(([, bundle]) => Array.isArray(bundle.applications) && bundle.applications.length > 0);
 
 function widgetsOf(bundle: AppBundle) {
