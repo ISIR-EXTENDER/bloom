@@ -376,7 +376,11 @@ function appendRuntimeTopicSample(
   return nextData ?? { ...currentData };
 }
 
-function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefined {
+/**
+ * Exported so the builder's destination panel can be tested against the real
+ * subscription rule instead of a copy of it. See `widget-destination.ts`.
+ */
+export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefined {
   if (widget.kind === "robot-3d") {
     return readStringSetting(widget.settings, "jointStateTopic") ?? "/joint_states";
   }

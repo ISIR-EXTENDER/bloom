@@ -7,6 +7,7 @@ import {
 } from "@bloom/widgets";
 import { useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
+import { findInertSetting, resolveWidgetDestination, type WidgetDestination } from "./widget-destination";
 
 type BuilderWidgetSettingsEditorProps = {
   definition: WidgetDefinition | null;
@@ -25,6 +26,7 @@ export function BuilderWidgetSettingsEditor({
   const contract = getWidgetSettingsContract(widget.kind);
   const normalizedSettings = normalizeWidgetSettings(widget.kind, widget.settings);
   const effectiveSettings = normalizedSettings.success ? normalizedSettings.settings : widget.settings;
+  const destination = resolveWidgetDestination(widget.kind, effectiveSettings);
 
   const updateSetting = (field: WidgetSettingField, rawValue: string | boolean) => {
     const nextSettings = {
@@ -51,6 +53,8 @@ export function BuilderWidgetSettingsEditor({
         />
       </label>
 
+      <WidgetDestinationSummary destination={destination} />
+
       {contract.fields.length === 0 ? (
         <p className="builder-inspector-copy">This widget does not expose configurable settings yet.</p>
       ) : (
@@ -59,6 +63,8 @@ export function BuilderWidgetSettingsEditor({
             field={field}
             key={field.key}
             onChange={(rawValue) => updateSetting(field, rawValue)}
+            inert={findInertSetting(destination, field.key)}
+            onClear={() => updateSetting(field, "")}
             value={effectiveSettings[field.key]}
           />
         ))
@@ -80,15 +86,79 @@ export function BuilderWidgetSettingsEditor({
   );
 }
 
+/**
+ * States where the widget's output actually goes.
+ *
+ * The inspector previously showed an editable "Output topic" beside a runtime
+ * binding that overrode it, with nothing saying which one won. A researcher
+ * setting a topic and seeing no change has no way to tell whether the field is
+ * ignored, the robot is disconnected, or they made a typo.
+ */
+function WidgetDestinationSummary({ destination }: { destination: WidgetDestination | null }) {
+  // Kinds whose data flow is not modelled get no panel at all. A guess here is
+  // worse than silence: it is what made the inspector misleading to begin with.
+  if (!destination) {
+    return null;
+  }
+
+  const label = destination.direction === "reads" ? "Reads from" : "Publishes to";
+  const emptyLabel = destination.direction === "reads" ? "No topic set" : "Not configured";
+
+  return (
+    <div
+      className="builder-settings-destination"
+      data-direction={destination.direction}
+      data-source={destination.source}
+    >
+      <span className="builder-settings-destination-label">{label}</span>
+      {destination.topic ? (
+        <code className="builder-settings-destination-topic">{destination.topic}</code>
+      ) : (
+        <span className="builder-settings-destination-topic builder-settings-destination-none">{emptyLabel}</span>
+      )}
+      {destination.detail ? <p className="builder-settings-destination-summary">{destination.detail}</p> : null}
+    </div>
+  );
+}
+
 function BuilderSettingsField({
   field,
+  inert,
   onChange,
+  onClear,
   value,
 }: {
   field: WidgetSettingField;
+  inert?: { key: string; reason: string };
   onChange: (value: string | boolean) => void;
+  onClear: () => void;
   value: unknown;
 }) {
+  // A setting the runtime ignores is not worth an editable control. When it is
+  // empty there is nothing to say, so it is hidden as pure noise. When it holds
+  // a value it stays visible and disabled, because a stale value that quietly
+  // does nothing is exactly what would mislead the next person to open this
+  // widget, and they need a way to clear it.
+  if (inert) {
+    const hasValue = typeof value === "string" ? value.trim().length > 0 : value != null && value !== "";
+    if (!hasValue) {
+      return null;
+    }
+
+    return (
+      <div className="builder-settings-field builder-settings-field-inert">
+        <span>{field.label}</span>
+        <input disabled readOnly type="text" value={String(value)} />
+        <p className="builder-settings-field-note">
+          {inert.reason}{" "}
+          <button className="builder-settings-field-clear" onClick={onClear} type="button">
+            Clear it
+          </button>
+        </p>
+      </div>
+    );
+  }
+
   if (field.type === "boolean") {
     return (
       <label className="builder-settings-field builder-settings-checkbox">

@@ -1898,3 +1898,91 @@
 .builder-save-status-error {
   color: #a23825;
 }
+
+/*
+ * Widget destination.
+ *
+ * Stated first in the inspector because "where does this go" is the question a
+ * researcher is actually asking when they open a widget's settings, and it was
+ * previously answerable only by reading a JSON blob and knowing the runtime's
+ * precedence rules.
+ */
+.builder-settings-destination {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 24%, var(--bloom-border));
+  background: color-mix(in srgb, var(--bloom-primary) 6%, transparent);
+}
+
+.builder-settings-destination-label {
+  color: var(--bloom-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.builder-settings-destination-topic {
+  font-family: ui-monospace, "SFMono-Regular", "JetBrains Mono", monospace;
+  font-size: 0.86rem;
+  color: var(--bloom-ink);
+  overflow-wrap: anywhere;
+}
+
+/* An unconfigured widget is a state to notice, not a neutral one. */
+.builder-settings-destination-none {
+  color: var(--bloom-error);
+  font-family: inherit;
+  font-weight: 700;
+}
+
+.builder-settings-destination[data-source="unset"] {
+  border-color: color-mix(in srgb, var(--bloom-error) 40%, var(--bloom-border));
+  background: color-mix(in srgb, var(--bloom-error) 6%, transparent);
+}
+
+.builder-settings-destination-summary {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+/*
+ * A setting the runtime ignores. Kept visible only while it holds a value, so a
+ * stale entry can be seen and cleared rather than silently doing nothing.
+ */
+.builder-settings-field-inert {
+  opacity: 0.72;
+}
+
+.builder-settings-field-inert input {
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.builder-settings-field-note {
+  margin: 4px 0 0;
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.builder-settings-field-clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bloom-primary);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.builder-settings-field-clear:focus-visible {
+  outline: 2px solid var(--bloom-primary);
+  outline-offset: 2px;
+  border-radius: 3px;
+}

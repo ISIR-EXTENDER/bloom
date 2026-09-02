@@ -6,7 +6,7 @@ import {
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
 } from "@bloom/api-client";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import bloomDebugConfiguration from "../../../../tests/fixtures/bloom-debug-configuration.json";
 import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sandbox-configuration.json";
@@ -221,7 +221,8 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
-    expect(screen.getByText("/teleop_cmd")).toBeVisible();
+    // Scoped to the canvas: the inspector also names the topic now.
+    expect(within(screen.getByRole("region", { name: "Diagnostics" })).getByText("/teleop_cmd")).toBeVisible();
   });
 
   it("previews a screen runtime directly from the builder screen library", async () => {
@@ -934,7 +935,8 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Open Diagnostics screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
-    expect(screen.getByText("/teleop_cmd")).toBeVisible();
+    // Scoped to the canvas: the inspector also names the topic now.
+    expect(within(screen.getByRole("region", { name: "Diagnostics" })).getByText("/teleop_cmd")).toBeVisible();
     expect(screen.getByText("Waiting for messages...")).toBeVisible();
   });
 
