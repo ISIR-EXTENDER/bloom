@@ -22,9 +22,12 @@ npm run validation:frontend-backend
 
 Result: passed.
 
-Use `BLOOM_REQUIRE_SEEDED_CONFIGS=1 npm run validation:frontend-backend`
-before a local runtime session when seeded configs in `backend/data/configurations`
-must exist and match the tracked fixtures.
+> **Superseded on 2026-09-02.** The local-file comparison described below, and
+> the `BLOOM_REQUIRE_SEEDED_CONFIGS` switch, were removed with `0123`:
+> `backend/data/configurations` is no longer the store, and comparing against it
+> failed the moment anyone moved a widget in the builder. `bloom config status`
+> answers "what have I not shared yet" against the real store. Everything else in
+> this report still holds.
 
 ## Findings Fixed
 

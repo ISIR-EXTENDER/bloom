@@ -66,9 +66,15 @@ The builder has two product levels:
   preview.
 - Playground: opens selected runtime screens quickly for smoke tests before users commit to a saved app workflow.
 
-During Phase 2, the app configuration page derives available screens from the selected configuration bundle while SQLite
-also writes normalized app, screen, widget, and asset mirror rows. The bundle stays the lossless migration bridge until
-the normalized schema is stable enough to reconstruct configurations directly from tables.
+Configurations are stored in SQLite by default (`0123`), which keeps the lossless bundle alongside normalized app,
+screen, widget, and asset rows. Reads rebuild from the normalized rows, so a field added to `ApplicationConfig` must be
+added to the mirror as well or it is silently dropped on the way out. File storage stays available with
+`BLOOM_CONFIGURATION_STORAGE=file`.
+
+Applications the team shares are committed as JSON under `backend/seed/applications/` and imported into whichever store
+is configured when it is missing them (`0122`). That is the split: JSON is the interchange format, the store is runtime
+state. Seeding never overwrites, so a machine's own screen layouts survive; `bloom config publish` is how local work
+becomes shared.
 
 The app configuration page is also the screen lifecycle hub: users can create blank screens, duplicate existing screens,
 add reusable screens from other apps, reorder screens, remove screens from the current app, then save/discard the draft

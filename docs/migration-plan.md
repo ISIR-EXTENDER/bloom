@@ -36,7 +36,14 @@ Bloom should let ISIR users create robot web apps without writing web code:
 
 ## Current Status
 
-Last full review: 2026-09-01.
+Last full review: 2026-09-02.
+
+**2026-09-02 — configuration sharing and storage.** A colleague cloning the
+repository got almost no applications, because the shared apps lived only in a
+gitignored directory and nothing seeded them. Shared bundles now ship in
+`backend/seed/applications/` and are imported on first start (`0122`), and SQLite
+became the default store with adoption from an existing file store (`0123`).
+Report: `docs/validation/2026-09-02-configuration-sharing-and-storage.md`.
 
 Current migration estimate, **for code completeness**:
 

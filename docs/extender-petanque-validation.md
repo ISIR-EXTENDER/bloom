@@ -73,10 +73,9 @@ Run the frontend/backend coherence check before launching local runtime apps:
 npm run validation:frontend-backend
 ```
 
-The helper verifies that tracked runtime fixtures match seeded backend configs and that app runtime policies agree with
-backend default publish, teleop, and recording allowlists. Use
-`BLOOM_REQUIRE_SEEDED_CONFIGS=1 npm run validation:frontend-backend` before a local runtime session when the ignored
-`backend/data/configurations` files must be present and refreshed.
+The helper verifies that app runtime policies agree with backend default publish, teleop, and recording allowlists.
+To see which applications in your own store differ from the versions committed to the repository, run
+`uv run python -m apps.bloom_cli.main config status` from `backend/`.
 
 Run the browser-only visual smoke to catch layout and Bloom Debug regressions without ROS:
 
