@@ -35,6 +35,15 @@ export type WidgetDataSnapshot =
 export type WidgetActionIntentHandler = (intent: WidgetActionIntent) => void;
 
 export type WidgetControlState = {
+  /**
+   * Whether this control is the one currently selected among a mutually
+   * exclusive set, such as the manager's mode.
+   *
+   * The manager publishes no mode feedback, so this only ever reflects what
+   * this session last requested. Renderers must not present it as confirmation
+   * that the robot is in that mode.
+   */
+  selection?: "selected" | "unselected";
   toggleState?: "off" | "on";
 };
 

@@ -6,6 +6,16 @@ export type RuntimeRobotMode = "b1" | "b2";
 
 export type RuntimeModeState = {
   mode: RuntimeRobotMode;
+  /**
+   * The last mode this session asked `cartesian_manager` for, normalised the
+   * way the manager normalises it.
+   *
+   * The manager publishes only `/cartesian_command` and
+   * `/joint_target_command`; it never reports which mode it is in. So this is
+   * a record of what was requested, never a confirmation of what the arm is
+   * doing, and the UI has to say so.
+   */
+  requestedMode: string | null;
   source: "configuration-default" | "operator-command";
   updatedAt: string;
 };
@@ -26,8 +36,11 @@ export type RuntimeTopicStatusSummary = {
 
 type RuntimeTopicRequirement = Pick<RuntimeTopicStatusSummary, "label" | "requirement" | "topic">;
 
+const MODE_REQUEST_TOPIC = "/mode_request";
+
 const DEFAULT_MODE_STATE: RuntimeModeState = {
   mode: "b1",
+  requestedMode: null,
   source: "configuration-default",
   updatedAt: "",
 };
@@ -49,16 +62,73 @@ export function applyRuntimeModeIntent(
   intent: WidgetActionIntent,
   now = new Date(),
 ): RuntimeModeState {
+  const requestedMode = resolveModeRequestFromIntent(intent);
+  if (requestedMode) {
+    return {
+      ...currentState,
+      requestedMode,
+      source: "operator-command",
+      updatedAt: now.toISOString(),
+    };
+  }
+
   const mode = resolveModeFromIntent(intent);
   if (!mode) {
     return currentState;
   }
 
   return {
+    ...currentState,
     mode,
     source: "operator-command",
     updatedAt: now.toISOString(),
   };
+}
+
+/**
+ * `cartesian_manager` normalises a mode request before matching it, so two
+ * spellings of the same mode are the same mode. Comparing raw strings here
+ * would leave a button unlit after a request that worked.
+ *
+ * Mirrors `parameter_parsing.cpp` and the backend's
+ * `normalize_mode_request_payload`.
+ */
+export function normalizeModeRequest(value: string): string {
+  return value.trim().toLowerCase().replaceAll("-", "_");
+}
+
+/**
+ * Whether a string is a mode request rather than some other command.
+ *
+ * Only the manager's two branches count. Without this, any unrelated command
+ * intent would be taken for a mode change and would silently unlight whichever
+ * mode button was showing as requested.
+ */
+function isModeRequest(value: string): boolean {
+  return /^(behaviour|geometric)\//.test(value);
+}
+
+function resolveModeRequestFromIntent(intent: WidgetActionIntent): string | null {
+  if (intent.type === "topic-publish") {
+    if (intent.topic !== MODE_REQUEST_TOPIC) {
+      return null;
+    }
+    const data = readPayloadData(intent.payload);
+    if (typeof data !== "string") {
+      return null;
+    }
+    const normalized = normalizeModeRequest(data);
+    return isModeRequest(normalized) ? normalized : null;
+  }
+
+  if (intent.type === "command" && intent.command) {
+    // A command intent does not carry its topic; it is routed by preset. The
+    // command string is the mode string, so the grammar is what identifies it.
+    const normalized = normalizeModeRequest(intent.command);
+    return isModeRequest(normalized) ? normalized : null;
+  }
+
+  return null;
 }
 
 export function createRuntimeControlStateByWidgetId(
@@ -68,16 +138,49 @@ export function createRuntimeControlStateByWidgetId(
   const controlStateByWidgetId: Record<string, WidgetControlState> = {};
 
   for (const widget of screen.widgets) {
-    if (!isModeToggleWidget(widget)) {
+    if (isModeToggleWidget(widget)) {
+      controlStateByWidgetId[widget.id] = {
+        toggleState: modeState.mode === "b2" ? "on" : "off",
+      };
+      continue;
+    }
+
+    const widgetMode = resolveWidgetModeRequest(widget);
+    if (!widgetMode) {
       continue;
     }
 
     controlStateByWidgetId[widget.id] = {
-      toggleState: modeState.mode === "b2" ? "on" : "off",
+      selection: widgetMode === modeState.requestedMode ? "selected" : "unselected",
     };
   }
 
   return controlStateByWidgetId;
+}
+
+/**
+ * The mode a widget asks for, or null if it is not a latching mode control.
+ *
+ * A momentary button is excluded on purpose. It already shows a held state
+ * while pressed, and it restores a different mode on release, so giving it a
+ * latching highlight as well would say two contradictory things at once.
+ */
+function resolveWidgetModeRequest(widget: WidgetConfig): string | null {
+  if (widget.kind !== "command-button" || widget.settings.momentary === true) {
+    return null;
+  }
+  if (widget.settings.topic !== MODE_REQUEST_TOPIC) {
+    return null;
+  }
+
+  const payloadData = readPayloadData(widget.settings.payload);
+  const raw = typeof payloadData === "string" ? payloadData : widget.settings.command;
+  if (typeof raw !== "string" || !raw) {
+    return null;
+  }
+
+  const normalized = normalizeModeRequest(raw);
+  return isModeRequest(normalized) ? normalized : null;
 }
 
 export function createRuntimeRobotStatus(

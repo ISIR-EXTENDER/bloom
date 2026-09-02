@@ -1373,3 +1373,54 @@
 .widget-preview-unknown {
   border-color: rgba(155, 61, 46, 0.32);
 }
+
+/*
+ * A latching mode button reuses the toggle's language for "this one is the
+ * active choice": the accent fill, and the same accent rule down the widget's
+ * left edge. Two controls that mean the same thing should not look different.
+ *
+ * The manager reports no mode, so the label says "Last requested" rather than
+ * anything that would read as confirmation from the robot.
+ */
+.bloom-command-button[data-selected="true"] {
+  background: var(--bloom-accent);
+  color: var(--bloom-ink);
+  border-color: color-mix(in srgb, var(--bloom-accent) 62%, var(--bloom-ink));
+}
+
+.bloom-command-button[data-selected="true"]:hover,
+.bloom-command-button[data-selected="true"]:focus-visible {
+  background: color-mix(in srgb, var(--bloom-accent) 86%, var(--bloom-ink));
+}
+
+.bloom-action-widget[data-selection="selected"] {
+  border-left: 4px solid color-mix(in srgb, var(--bloom-accent) 72%, var(--bloom-primary));
+  padding-left: 10px;
+}
+
+/*
+ * A non-colour cue for the selected mode. Colour alone would leave the state
+ * invisible to anyone who cannot separate the accent fill from the quiet fill,
+ * and a whole extra line of text overflows the heights screen authors set.
+ */
+.bloom-command-button[data-selected="true"]::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+}
+
+/* An unselected member of the set is quiet, not disabled-looking. */
+.bloom-action-widget[data-selection="unselected"] .bloom-command-button {
+  background: rgba(63, 78, 70, 0.12);
+  color: var(--bloom-ink);
+}
+
+.bloom-action-widget[data-selection="unselected"] .bloom-command-button:hover,
+.bloom-action-widget[data-selection="unselected"] .bloom-command-button:focus-visible {
+  background: rgba(63, 78, 70, 0.2);
+}

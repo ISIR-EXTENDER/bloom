@@ -3,7 +3,7 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
-export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+export function CommandLikeWidget({ controlState, descriptor, onActionIntent }: WidgetRendererProps) {
   const buttonLabel = getStringSetting(descriptor.widget.settings, "button_label", "") || descriptor.widget.title;
   const pressedLabel = getStringSetting(descriptor.widget.settings, "pressed_label", buttonLabel);
   const releasedLabel = getStringSetting(descriptor.widget.settings, "released_label", buttonLabel);
@@ -17,6 +17,10 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
   const confirmPress = getBooleanSetting(descriptor.widget.settings, "confirm_press", false);
   const confirmLabel = getStringSetting(descriptor.widget.settings, "confirm_label", "Confirm?");
   const confirmTimeoutSeconds = getNumberSetting(descriptor.widget.settings, "confirm_timeout_seconds", 5);
+  // Only set for latching mode buttons. The manager never reports its mode, so
+  // this says "this is what we last asked for", never "the arm is in this mode".
+  const selection = controlState?.selection;
+  const isSelected = selection === "selected";
   const isMomentaryPressedRef = useRef(false);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
   const [isArmed, setIsArmed] = useState(false);
@@ -90,15 +94,19 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
     <div
       className="bloom-action-widget"
       data-momentary={momentary ? "true" : "false"}
+      data-selection={selection}
       data-show-details={showDetails ? "true" : "false"}
       data-variant={variant || undefined}
     >
       <strong>{descriptor.widget.title}</strong>
       <button
-        aria-label={visibleButtonLabel}
-        aria-pressed={momentary ? isMomentaryPressed : undefined}
+        aria-label={
+          selection ? `${visibleButtonLabel}: ${isSelected ? "requested" : "not requested"}` : visibleButtonLabel
+        }
+        aria-pressed={momentary ? isMomentaryPressed : selection ? isSelected : undefined}
         className="bloom-command-button"
         data-armed={isArmed ? "true" : undefined}
+        data-selected={isSelected ? "true" : undefined}
         data-confirm-press={confirmPress ? "true" : undefined}
         data-momentary={momentary ? "true" : "false"}
         data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
@@ -111,7 +119,9 @@ export function CommandLikeWidget({ descriptor, onActionIntent }: WidgetRenderer
       >
         {visibleButtonLabel}
       </button>
-      {showDetails && (actionLabel || command) ? <span>{actionLabel || command}</span> : null}
+      {showDetails && (actionLabel || command) ? (
+        <span>{isSelected ? `Last requested \u00b7 ${actionLabel || command}` : actionLabel || command}</span>
+      ) : null}
     </div>
   );
 }
