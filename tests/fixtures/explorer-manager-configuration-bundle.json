@@ -166,7 +166,7 @@
                 "height": 110
               },
               "settings": {
-                "action_feedback": "toast",
+                "action_feedback": "none",
                 "action_id": "drive-mode-both",
                 "action_label": "Request geometric/both",
                 "button_label": "Both",
@@ -191,7 +191,7 @@
                 "height": 110
               },
               "settings": {
-                "action_feedback": "toast",
+                "action_feedback": "none",
                 "action_id": "drive-mode-jaco",
                 "action_label": "Request geometric/jaco",
                 "button_label": "Jaco",
@@ -358,7 +358,7 @@
                 "height": 200
               },
               "settings": {
-                "action_feedback": "toast",
+                "action_feedback": "none",
                 "action_id": "positions-home",
                 "action_label": "Request behaviour/joint_target/home",
                 "button_label": "Go home",
@@ -386,7 +386,7 @@
                 "height": 200
               },
               "settings": {
-                "action_feedback": "toast",
+                "action_feedback": "none",
                 "action_id": "positions-release",
                 "action_label": "Cancel the joint target",
                 "button_label": "Release",
@@ -594,7 +594,7 @@
                 "show_details": true,
                 "topic": "/joystick_cartesian_command",
                 "unit": "m/s",
-                "variant": "line"
+                "variant": "sparkline"
               }
             },
             {
@@ -615,7 +615,7 @@
                 "show_details": true,
                 "topic": "/visual_servoing_cartesian_command",
                 "unit": "m/s",
-                "variant": "line"
+                "variant": "sparkline"
               }
             },
             {
