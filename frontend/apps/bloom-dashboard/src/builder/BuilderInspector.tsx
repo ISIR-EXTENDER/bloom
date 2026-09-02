@@ -12,7 +12,6 @@ type BuilderInspectorProps = {
   onUpdateWidgetSettings: (settings: Record<string, unknown>) => string | null;
   onUpdateWidgetTitle: (title: string) => void;
   selectedWidget: WidgetConfig | null;
-  selectedWidgetDefinition: WidgetDefinition | null;
   widgets: readonly WidgetConfig[];
   widgetCount: number;
 };
@@ -26,7 +25,6 @@ export function BuilderInspector({
   onUpdateWidgetSettings,
   onUpdateWidgetTitle,
   selectedWidget,
-  selectedWidgetDefinition,
   widgets,
   widgetCount,
 }: BuilderInspectorProps) {
@@ -81,7 +79,6 @@ export function BuilderInspector({
         Use duplicate or remove for quick layout iteration. Settings are rendered from the widget contract.
       </p>
       <BuilderWidgetSettingsEditor
-        definition={selectedWidgetDefinition}
         key={selectedWidget.id}
         onUpdateSettings={onUpdateWidgetSettings}
         onUpdateTitle={onUpdateWidgetTitle}

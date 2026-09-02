@@ -57,7 +57,6 @@ export function BuilderWorkspace({
     undo,
   } = useBuilderScreenDraft(selectedWorkspace.screen);
   const { selectedWidget, selectedWidgetId, setSelectedWidgetId } = useSelectedBuilderWidget(draftScreen);
-  const selectedWidgetDefinition = selectedWidget ? (widgetRegistry.get(selectedWidget.kind) ?? null) : null;
   const [saveState, setSaveState] = useState<DraftSaveState>({ status: "idle" });
   const isSaving = saveState.status === "saving";
 
@@ -208,7 +207,6 @@ export function BuilderWorkspace({
         onUpdateWidgetSettings={updateSelectedWidgetSettings}
         onUpdateWidgetTitle={updateSelectedWidgetTitle}
         selectedWidget={selectedWidget}
-        selectedWidgetDefinition={selectedWidgetDefinition}
         widgets={draftScreen.widgets}
         widgetCount={draftScreen.widgets.length}
       />

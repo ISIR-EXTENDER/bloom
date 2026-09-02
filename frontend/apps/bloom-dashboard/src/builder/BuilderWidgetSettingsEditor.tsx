@@ -4,7 +4,6 @@ import {
   getWidgetSettingsContract,
   normalizeWidgetSettings,
   resolveWidgetDestination,
-  type WidgetDefinition,
   type WidgetDestination,
   type WidgetSettingField,
 } from "@bloom/widgets";
@@ -12,14 +11,12 @@ import { useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 
 type BuilderWidgetSettingsEditorProps = {
-  definition: WidgetDefinition | null;
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   onUpdateTitle: (title: string) => void;
   widget: WidgetConfig;
 };
 
 export function BuilderWidgetSettingsEditor({
-  definition,
   onUpdateSettings,
   onUpdateTitle,
   widget,
@@ -71,13 +68,6 @@ export function BuilderWidgetSettingsEditor({
           />
         ))
       )}
-
-      {definition?.editor.styleFields.length ? (
-        <div className="builder-settings-style-capabilities">
-          <span>Style capabilities</span>
-          <p>{definition.editor.styleFields.join(", ")}</p>
-        </div>
-      ) : null}
 
       {validationMessage ? (
         <p className="builder-settings-error" role="alert">

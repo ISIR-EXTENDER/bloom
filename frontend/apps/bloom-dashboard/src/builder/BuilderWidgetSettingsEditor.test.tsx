@@ -23,14 +23,7 @@ function renderEditor(settings: Record<string, unknown>, kind = "slider") {
     settings,
   } as unknown as WidgetConfig;
 
-  render(
-    <BuilderWidgetSettingsEditor
-      definition={null}
-      onUpdateSettings={onUpdateSettings}
-      onUpdateTitle={vi.fn()}
-      widget={widget}
-    />,
-  );
+  render(<BuilderWidgetSettingsEditor onUpdateSettings={onUpdateSettings} onUpdateTitle={vi.fn()} widget={widget} />);
   return onUpdateSettings;
 }
 
