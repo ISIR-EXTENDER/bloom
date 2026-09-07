@@ -38,6 +38,15 @@ Bloom should let ISIR users create robot web apps without writing web code:
 
 Last full review: 2026-09-02.
 
+**2026-09-02 — widget capability gating.** The builder offered every widget
+whatever the backend could do, so with no ROS a joystick placed happily and moved
+nothing while a plot waited forever on a sample that could not come. The backend
+now reports its wired seams at `GET /api/v1/capabilities`, widget requirements
+were corrected to capabilities that exist, and the palette marks what cannot work
+here rather than hiding it (`0124`). The deeper question behind it — robot
+abstraction, mode feedback, the controller boundary, and what a non-ROS Bloom
+means — is written up in `docs/architecture-robot-agnostic.md`.
+
 **2026-09-02 — configuration sharing and storage.** A colleague cloning the
 repository got almost no applications, because the shared apps lived only in a
 gitignored directory and nothing seeded them. Shared bundles now ship in
@@ -69,7 +78,12 @@ library with export to the manager config, plot freeze, rate limits on every
 robot-facing command, and a version consistency check.
 
 What is left on the code axis is mostly Petanque, which is legacy and stays on
-`/teleop_cmd` deliberately.
+`/teleop_cmd` deliberately, plus the robot-agnostic work in
+`docs/architecture-robot-agnostic.md`. That note's finding is worth repeating
+here: the backend is already ROS-optional and runs that way by default, the
+frontend was not and is now at least honest about it, and what is actually
+missing is a robot profile to hold the topic constants currently written out in
+four separate places.
 
 The control stack changed under the migration. `cartesian_manager` replaced
 `sandbox_controller` between Bloom and `qontrol_controller`, and the workspace
@@ -577,6 +591,8 @@ Completed validation records:
 
 See also:
 
+- [Robot-agnostic Bloom](./architecture-robot-agnostic.md) for where Bloom is coupled to the Extender, what a robot
+  profile would hold, why mode synchronisation cannot be solved on this side alone, and what a non-ROS Bloom would take.
 - [Production readiness review](./production-readiness-review.md) for the current comparison against `extender_ui` and
   `tablet_interface`, migration estimates, and prioritized refactoring plans.
 - [Partner interface review](./partner-interface-review.md) for the Inria/AUCTUS Explorer user-test UX review and Bloom
