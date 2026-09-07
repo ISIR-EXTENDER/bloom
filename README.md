@@ -31,19 +31,48 @@ builder, runtime, screens, widgets, themes, and storage model.
 
 ## Preview
 
-| Landing | Builder | App configuration |
-| --- | --- | --- |
-| ![Bloom landing page](docs/assets/screenshots/landing-page.png) | ![Bloom builder home](docs/assets/screenshots/builder-home.png) | ![Bloom app configuration](docs/assets/screenshots/app-configuration.png) |
+### Product
 
-| Live teleop | Camera runtime | Bloom Debug |
+| Landing | Builder home | Screen library |
 | --- | --- | --- |
-| ![Bloom live teleop runtime](docs/assets/screenshots/runtime-live-teleop.png) | ![Bloom camera runtime](docs/assets/screenshots/runtime-camera.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) |
+| ![Bloom landing page](docs/assets/screenshots/landing-page.png) | ![Builder home](docs/assets/screenshots/builder-home.png) | ![Screen library](docs/assets/screenshots/builder-screen-library.png) |
 
-Refresh the screenshots from a running dashboard:
+### Building a screen
+
+| Screen builder | App configuration | Runtime library |
+| --- | --- | --- |
+| ![Screen builder canvas and inspector](docs/assets/screenshots/builder-screen-canvas.png) | ![App configuration](docs/assets/screenshots/app-configuration.png) | ![Runtime app library](docs/assets/screenshots/runtime-library.png) |
+
+### Explorer Manager
+
+The app built for the `cartesian_manager` architecture: velocity drive, named
+positions, robot feedback, and where each command actually comes from.
+
+| Drive | Positions |
+| --- | --- |
+| ![Explorer Manager drive screen](docs/assets/screenshots/runtime-explorer-drive.png) | ![Explorer Manager positions screen](docs/assets/screenshots/runtime-explorer-positions.png) |
+
+| Robot feedback | Command sources |
+| --- | --- |
+| ![Explorer Manager robot feedback screen](docs/assets/screenshots/runtime-explorer-feedback.png) | ![Explorer Manager command sources screen](docs/assets/screenshots/runtime-explorer-command-sources.png) |
+
+### Other runtimes
+
+| Sandbox V0.0 teleop | Camera | Bloom Debug | Help |
+| --- | --- | --- | --- |
+| ![Sandbox live teleop runtime](docs/assets/screenshots/runtime-live-teleop.png) | ![Camera runtime](docs/assets/screenshots/runtime-camera.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) | ![Help](docs/assets/screenshots/help.png) |
+
+The topic diagnostics read `MISSING` in these captures because they were taken
+with no ROS attached, which is what a fresh clone looks like.
+
+Refresh them from a running dashboard and backend:
 
 ```bash
 BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run capture:readme
 ```
+
+The script reports every screen it captured and exits non-zero if any were
+skipped, so a stale image cannot quietly stay in the table.
 
 ## Current State
 
