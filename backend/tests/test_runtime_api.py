@@ -153,12 +153,16 @@ def test_runtime_websocket_accepts_topic_subscriptions() -> None:
         )
         response = websocket.receive_json()
 
+    # No ROS here, so the subscription is accepted but can never deliver. Saying
+    # "Subscribed" would leave the widget on "Waiting for messages..." forever,
+    # looking exactly like a robot that has not started publishing yet.
     assert response == {
         "type": "subscription_ack",
         "active_sessions": None,
-        "detail": "Subscribed to /cartesian_command.",
+        "detail": "Accepted /cartesian_command, but no ROS subscriber is connected, so no samples will arrive.",
         "payload": {
             "field_path": "data",
+            "live": False,
             "message_type": "std_msgs/msg/Float64",
             "topic": "/cartesian_command",
             "widget_id": "velocity-plot",
@@ -730,3 +734,31 @@ class ControlledClock:
 
     def __call__(self) -> float:
         return self.now
+
+
+def test_a_live_subscription_says_it_is_live() -> None:
+    """The counterpart: with a real gateway the ack must not warn."""
+    gateway = RecordingTopicSubscriptionGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_topic_subscription_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "subscribe_topic",
+                "field_path": "data",
+                "message_type": "std_msgs/msg/Float64",
+                "topic": "/cartesian_command",
+                "widget_id": "velocity-plot",
+            }
+        )
+        response = websocket.receive_json()
+
+    assert response["payload"]["live"] is True
+    assert response["detail"] == "Subscribed to /cartesian_command."

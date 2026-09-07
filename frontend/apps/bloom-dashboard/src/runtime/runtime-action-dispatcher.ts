@@ -79,6 +79,7 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   listRosTopicStatus?: BloomApiClient["listRosTopicStatus"];
   listRosTopics?: BloomApiClient["listRosTopics"];
   listRuntimeAuditRecords?: BloomApiClient["listRuntimeAuditRecords"];
+  listRuntimeCapabilities?: BloomApiClient["listRuntimeCapabilities"];
   sendTeleopCommand?: (request: RuntimeTeleopCommandRequest) => Promise<RuntimeTeleopCommandResponse>;
   startRuntimeRecording?: BloomApiClient["startRuntimeRecording"];
   stopRuntimeRecording?: BloomApiClient["stopRuntimeRecording"];

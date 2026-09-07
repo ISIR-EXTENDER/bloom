@@ -182,7 +182,11 @@ describe("widget capability metadata", () => {
         showAxes: true,
       },
       displayName: "3D robot view",
-      runtimeRequirements: ["robot-model-source", "data-source"],
+      // `robot-model-source` was dropped: nothing implemented it, and the
+      // widget draws a joint-state summary rather than loading a model, which
+      // is what `preview` now says out loud.
+      maturity: "preview",
+      runtimeRequirements: ["data-source"],
     });
   });
 
@@ -1553,6 +1557,7 @@ function createTestWidgetDefinition(kind: WidgetDefinition["kind"], displayName:
   return {
     kind,
     displayName,
+    maturity: "ready",
     availability: {
       editor: true,
       runtime: true,

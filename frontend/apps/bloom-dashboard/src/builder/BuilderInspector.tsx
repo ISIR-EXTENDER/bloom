@@ -1,10 +1,11 @@
 import type { WidgetConfig } from "@bloom/api-client";
-import type { WidgetDefinition } from "@bloom/widgets";
+import { type RuntimeCapability, resolveWidgetReadiness, type WidgetDefinition } from "@bloom/widgets";
 import type { ReactNode } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
 
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
+  runtimeCapabilities: readonly RuntimeCapability[] | null;
   onAddWidget: (definition: WidgetDefinition) => void;
   onDuplicateWidget: () => void;
   onRemoveWidget: () => void;
@@ -18,6 +19,7 @@ type BuilderInspectorProps = {
 
 export function BuilderInspector({
   availableWidgetDefinitions,
+  runtimeCapabilities,
   onAddWidget,
   onDuplicateWidget,
   onRemoveWidget,
@@ -35,7 +37,11 @@ export function BuilderInspector({
           This screen is registered but does not have migrated widgets yet. The builder will keep showing this safe
           empty state until content is available.
         </p>
-        <WidgetPalette definitions={availableWidgetDefinitions} onAddWidget={onAddWidget} />
+        <WidgetPalette
+          capabilities={runtimeCapabilities}
+          definitions={availableWidgetDefinitions}
+          onAddWidget={onAddWidget}
+        />
       </BuilderInspectorPanel>
     );
   }
@@ -45,7 +51,11 @@ export function BuilderInspector({
       <BuilderInspectorPanel title="Select a widget">
         <p className="builder-inspector-copy">Choose a widget on the canvas or in the screen list to inspect it.</p>
         <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={null} widgets={widgets} />
-        <WidgetPalette definitions={availableWidgetDefinitions} onAddWidget={onAddWidget} />
+        <WidgetPalette
+          capabilities={runtimeCapabilities}
+          definitions={availableWidgetDefinitions}
+          onAddWidget={onAddWidget}
+        />
       </BuilderInspectorPanel>
     );
   }
@@ -92,7 +102,11 @@ export function BuilderInspector({
           Remove widget
         </button>
       </div>
-      <WidgetPalette definitions={availableWidgetDefinitions} onAddWidget={onAddWidget} />
+      <WidgetPalette
+        capabilities={runtimeCapabilities}
+        definitions={availableWidgetDefinitions}
+        onAddWidget={onAddWidget}
+      />
     </BuilderInspectorPanel>
   );
 }
@@ -136,9 +150,11 @@ function WidgetList({
 }
 
 function WidgetPalette({
+  capabilities,
   definitions,
   onAddWidget,
 }: {
+  capabilities: readonly RuntimeCapability[] | null;
   definitions: readonly WidgetDefinition[];
   onAddWidget: (definition: WidgetDefinition) => void;
 }) {
@@ -149,17 +165,32 @@ function WidgetPalette({
         <h3 id="builder-widget-palette-title">Add widgets</h3>
       </div>
       <div className="builder-widget-palette-grid">
-        {definitions.map((definition) => (
-          <button
-            aria-label={`Add ${definition.displayName} widget`}
-            key={definition.kind}
-            onClick={() => onAddWidget(definition)}
-            type="button"
-          >
-            <strong>{definition.displayName}</strong>
-            <span>{definition.category}</span>
-          </button>
-        ))}
+        {definitions.map((definition) => {
+          const readiness = resolveWidgetReadiness(definition, capabilities);
+          // A widget that cannot work here stays in the palette, marked. Hiding
+          // it would leave someone hunting for a widget that used to be there.
+          return (
+            <button
+              aria-label={
+                readiness.note
+                  ? `Add ${definition.displayName} widget. ${readiness.note}`
+                  : `Add ${definition.displayName} widget`
+              }
+              data-readiness={readiness.state === "ready" ? undefined : readiness.state}
+              key={definition.kind}
+              onClick={() => onAddWidget(definition)}
+              type="button"
+            >
+              <strong>{definition.displayName}</strong>
+              <span>{definition.category}</span>
+              {readiness.state === "unavailable" ? (
+                <em className="builder-widget-palette-flag">Not connected</em>
+              ) : null}
+              {readiness.state === "preview" ? <em className="builder-widget-palette-flag">Preview</em> : null}
+              {readiness.note ? <small className="builder-widget-palette-note">{readiness.note}</small> : null}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

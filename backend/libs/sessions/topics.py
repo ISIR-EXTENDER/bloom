@@ -51,3 +51,16 @@ class NoopRuntimeTopicSubscriptionGateway:
         on_sample: RuntimeTopicSampleCallback,
     ) -> RuntimeTopicSubscriptionHandle:
         return NoopRuntimeTopicSubscriptionHandle()
+
+
+def is_live_subscription_gateway(gateway: RuntimeTopicSubscriptionGateway | None) -> bool:
+    """Whether a subscription through this gateway can ever deliver a sample.
+
+    The Noop accepts a subscription and returns a working handle, so the
+    acknowledgement used to read "Subscribed to /joint_states" when nothing was
+    ever going to arrive. A widget then sat on "Waiting for messages..."
+    indefinitely, which looks exactly like a robot that has not started
+    publishing yet.
+    """
+
+    return gateway is not None and not isinstance(gateway, NoopRuntimeTopicSubscriptionGateway)

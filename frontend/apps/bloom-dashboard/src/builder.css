@@ -1986,3 +1986,42 @@
   outline-offset: 2px;
   border-radius: 3px;
 }
+
+/*
+ * A widget the backend cannot serve stays in the palette and says so. Removing
+ * it would leave someone hunting for a widget that used to be there, and a
+ * screen is often laid out before the robot is switched on, so placing one
+ * early is legitimate.
+ */
+.builder-widget-palette-grid button[data-readiness="unavailable"] {
+  border-style: dashed;
+  opacity: 0.82;
+}
+
+.builder-widget-palette-grid button[data-readiness="preview"] {
+  border-style: dashed;
+}
+
+.builder-widget-palette-flag {
+  align-self: flex-start;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-muted, #64748b) 16%, transparent);
+  color: var(--bloom-on-surface-muted);
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.builder-widget-palette-note {
+  margin-top: 4px;
+  color: var(--bloom-on-surface-muted);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}

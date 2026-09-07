@@ -20,6 +20,7 @@ import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import { applyRuntimeModeIntent, createDefaultRuntimeModeState } from "./runtime/runtimeModeState";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
+import { useRuntimeCapabilities } from "./runtime/use-runtime-capabilities";
 import { AppErrorBoundary } from "./ui/AppErrorBoundary";
 import {
   getInitialWorkspaceSelection,
@@ -57,6 +58,7 @@ export function App({
 }: AppProps) {
   const configurationState = useConfigurations(configurationClient);
   const runtimeActions = useRuntimeActionDispatcher(runtimeActionClient);
+  const runtimeCapabilities = useRuntimeCapabilities(runtimeActionClient);
   const initialRoute = getInitialBloomRoute();
   const [activeView, setActiveView] = useState<ProductView>(initialRoute.activeView);
   const [builderMode, setBuilderMode] = useState<BuilderMode>(initialRoute.builderMode);
@@ -299,6 +301,7 @@ export function App({
               <HelpPage onOpenView={handleProductViewChange} />
             ) : (
               <ProductWorkspace
+                runtimeCapabilities={runtimeCapabilities}
                 activeView={activeView}
                 builderMode={builderMode}
                 onBackToRuntimeHome={() => handleRuntimeModeChange("home")}

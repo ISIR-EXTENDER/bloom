@@ -232,6 +232,16 @@ export type RosTopicListResponse = {
   topics: RosTopicInfo[];
 };
 
+export type RuntimeCapability = {
+  id: string;
+  available: boolean;
+  detail: string;
+};
+
+export type RuntimeCapabilitiesResponse = {
+  capabilities: RuntimeCapability[];
+};
+
 export type RosTopicStatusListResponse = {
   topics: RosTopicStatus[];
 };
@@ -393,6 +403,17 @@ export class BloomApiClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
+  }
+
+  /**
+   * The backend seams that are really wired.
+   *
+   * Used by the builder to say what a widget can and cannot do here, instead of
+   * offering everything and letting the ROS-dependent ones fail in silence.
+   */
+  async listRuntimeCapabilities(): Promise<RuntimeCapability[]> {
+    const response = await this.request<RuntimeCapabilitiesResponse>("/api/v1/capabilities");
+    return response.capabilities;
   }
 
   async listRosTopics(): Promise<RosTopicInfo[]> {

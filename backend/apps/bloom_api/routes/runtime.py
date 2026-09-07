@@ -50,6 +50,7 @@ from libs.sessions import (
     parse_runtime_client_message,
 )
 from libs.sessions.audit import summarize_payload
+from libs.sessions.topics import is_live_subscription_gateway
 from libs.sessions.teleop_runtime import build_teleop_ack
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
@@ -728,11 +729,17 @@ def build_runtime_ack(
                     session_id=session_id,
                 )
 
+        live = is_live_subscription_gateway(topic_subscription_gateway)
         return RuntimeServerMessage(
             type="subscription_ack",
-            detail=f"Subscribed to {message.topic}.",
+            detail=(
+                f"Subscribed to {message.topic}."
+                if live
+                else f"Accepted {message.topic}, but no ROS subscriber is connected, so no samples will arrive."
+            ),
             payload={
                 "field_path": message.field_path,
+                "live": live,
                 "message_type": message.message_type,
                 "topic": message.topic,
                 "widget_id": message.widget_id,

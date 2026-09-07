@@ -16,6 +16,7 @@ export * from "./runtime";
 export * from "./settings";
 export * from "./telemetry";
 export * from "./widget-destination";
+export * from "./widget-readiness";
 
 export type LegacyWidgetCompatibility = "direct" | "renamed" | "adapter-required" | "app-specific" | "unsupported";
 
@@ -54,14 +55,27 @@ export type LegacyWidgetKindMapping = {
 
 export type WidgetCategory = "command" | "device" | "display" | "feedback" | "input" | "unknown";
 
-export type WidgetRuntimeRequirement =
-  | "none"
-  | "command-dispatcher"
-  | "data-source"
-  | "device-adapter"
-  | "robot-model-source"
-  | "stream-source"
-  | "teleop-adapter";
+/**
+ * A backend seam a widget needs before it can do anything.
+ *
+ * These are the seams the backend actually reports at
+ * `GET /api/v1/capabilities`, and nothing else. The list used to include
+ * `device-adapter`, `robot-model-source` and `stream-source`, which no code
+ * implemented and nothing consumed, so widgets declared needs that could never
+ * be met or checked. A requirement that cannot be resolved is worse than none:
+ * it reads like a promise.
+ */
+export type WidgetRuntimeRequirement = "none" | "command-dispatcher" | "data-source" | "teleop-adapter";
+
+/**
+ * How finished a widget is, independent of whether the backend can serve it.
+ *
+ * `ready` does what its description says. `preview` renders and is safe to
+ * place, but does less than the name suggests -- the 3D robot view draws a
+ * joint summary rather than a model. Saying so in the builder is cheaper than
+ * a researcher discovering it mid-session.
+ */
+export type WidgetMaturity = "preview" | "ready";
 
 export type WidgetAvailability = {
   editor: boolean;
@@ -151,6 +165,9 @@ export type WidgetDefinition = {
   defaultSettings: Record<string, unknown>;
   defaultLayout: WidgetDefaultLayout;
   runtimeRequirements: WidgetRuntimeRequirement[];
+  maturity: WidgetMaturity;
+  /** Set when maturity is `preview`: what it does not do yet. */
+  maturityNote?: string;
   availability: WidgetAvailability;
   editor: WidgetEditorCapabilities;
 };
@@ -176,6 +193,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("button"),
     defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
     runtimeRequirements: ["none"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
   },
@@ -183,11 +201,13 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     kind: "camera",
     displayName: "Camera",
     category: "display",
-    description: "Displays a camera, RViz, or visualization stream.",
+    description:
+      "Shows a browser webcam or a stream URL. Runs entirely in the page; it does not read a ROS image topic.",
     defaultTitle: "Camera",
     defaultSettings: getDefaultWidgetSettings("camera"),
     defaultLayout: { width: 360, height: 260, minWidth: 240, minHeight: 160 },
-    runtimeRequirements: ["stream-source"],
+    runtimeRequirements: ["none"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["borderColor"]),
   },
@@ -200,6 +220,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("command-button"),
     defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
     runtimeRequirements: ["command-dispatcher"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
   },
@@ -212,6 +233,8 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("event-log"),
     defaultLayout: { width: 520, height: 280, minWidth: 300, minHeight: 180 },
     runtimeRequirements: ["data-source"],
+    maturity: "preview",
+    maturityNote: "Shows raw messages from one topic; it does not group or filter by severity yet.",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
   },
@@ -224,6 +247,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("gauge"),
     defaultLayout: { width: 180, height: 180, minWidth: 140, minHeight: 140 },
     runtimeRequirements: ["data-source"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
   },
@@ -236,6 +260,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("gesture-pad"),
     defaultLayout: { width: 360, height: 280, minWidth: 260, minHeight: 220 },
     runtimeRequirements: ["command-dispatcher"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "borderColor"]),
   },
@@ -248,6 +273,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("joystick"),
     defaultLayout: { width: 220, height: 220, minWidth: 160, minHeight: 160 },
     runtimeRequirements: ["teleop-adapter"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor"]),
   },
@@ -260,6 +286,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("label"),
     defaultLayout: { width: 280, height: 64, minWidth: 120, minHeight: 40 },
     runtimeRequirements: ["none"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
   },
@@ -272,6 +299,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("plot"),
     defaultLayout: { width: 420, height: 240, minWidth: 240, minHeight: 160 },
     runtimeRequirements: ["data-source"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
   },
@@ -283,7 +311,9 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultTitle: "3D robot",
     defaultSettings: getDefaultWidgetSettings("robot-3d"),
     defaultLayout: { width: 460, height: 320, minWidth: 280, minHeight: 220 },
-    runtimeRequirements: ["robot-model-source", "data-source"],
+    runtimeRequirements: ["data-source"],
+    maturity: "preview",
+    maturityNote: "Shows a joint-state summary, not a 3D model. The model URL is not loaded yet.",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor"]),
   },
@@ -296,6 +326,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("slider"),
     defaultLayout: { width: 120, height: 220, minWidth: 80, minHeight: 120 },
     runtimeRequirements: ["teleop-adapter"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor"]),
   },
@@ -307,7 +338,8 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultTitle: "Toggle",
     defaultSettings: getDefaultWidgetSettings("toggle"),
     defaultLayout: { width: 220, height: 120, minWidth: 160, minHeight: 80 },
-    runtimeRequirements: ["device-adapter"],
+    runtimeRequirements: ["command-dispatcher"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "borderColor"]),
   },
@@ -320,6 +352,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("topic-echo"),
     defaultLayout: { width: 460, height: 260, minWidth: 280, minHeight: 160 },
     runtimeRequirements: ["data-source"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
   },
@@ -332,6 +365,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("topic-plot"),
     defaultLayout: { width: 480, height: 260, minWidth: 280, minHeight: 180 },
     runtimeRequirements: ["data-source"],
+    maturity: "ready",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "textColor"]),
   },
@@ -344,6 +378,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultSettings: getDefaultWidgetSettings("unknown"),
     defaultLayout: { width: 220, height: 120, minWidth: 120, minHeight: 80 },
     runtimeRequirements: ["none"],
+    maturity: "ready",
     availability: { editor: false, runtime: true },
     editor: {
       movable: false,

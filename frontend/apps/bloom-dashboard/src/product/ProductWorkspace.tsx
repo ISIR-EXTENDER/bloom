@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeCapability, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
 import { BuilderHome } from "../builder/BuilderHome";
@@ -49,6 +49,7 @@ type ProductWorkspaceProps = {
   onUploadThemeAsset: (file: File) => Promise<string>;
   profilePreferences: Record<string, string>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
+  runtimeCapabilities: readonly RuntimeCapability[] | null;
   runtimeActionClient: RuntimeActionClient;
   runtimeMode: RuntimeMode;
   runtimeModeState: RuntimeModeState;
@@ -80,6 +81,7 @@ export function ProductWorkspace({
   onUploadThemeAsset,
   profilePreferences,
   recentRuntimeSelections,
+  runtimeCapabilities,
   runtimeActionClient,
   runtimeMode,
   runtimeModeState,
@@ -103,6 +105,7 @@ export function ProductWorkspace({
   if (activeView === "builder") {
     return (
       <BuilderProductWorkspace
+        runtimeCapabilities={runtimeCapabilities}
         builderMode={builderMode}
         onChangeBuilderMode={onChangeBuilderMode}
         onCreateApplication={onCreateApplication}
@@ -154,6 +157,7 @@ export function ProductWorkspace({
 }
 
 type BuilderProductWorkspaceProps = {
+  runtimeCapabilities: readonly RuntimeCapability[] | null;
   builderMode: BuilderMode;
   onChangeBuilderMode: (mode: BuilderMode) => void;
   onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
@@ -169,6 +173,7 @@ type BuilderProductWorkspaceProps = {
 };
 
 function BuilderProductWorkspace({
+  runtimeCapabilities,
   builderMode,
   onChangeBuilderMode,
   onCreateApplication,
@@ -222,6 +227,7 @@ function BuilderProductWorkspace({
 
   return (
     <BuilderWorkspace
+      runtimeCapabilities={runtimeCapabilities}
       configurations={state.configurations}
       onBackToAppConfig={() => onChangeBuilderMode("app-config")}
       onBackToBuilderHome={() => onChangeBuilderMode("home")}

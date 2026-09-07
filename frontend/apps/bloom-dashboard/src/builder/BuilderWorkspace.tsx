@@ -1,4 +1,4 @@
-import type { ScreenConfig } from "@bloom/api-client";
+import type { RuntimeCapability, ScreenConfig } from "@bloom/api-client";
 import {
   addWidgetToScreen,
   createDefaultWidgetRegistry,
@@ -19,6 +19,7 @@ import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 
 type BuilderWorkspaceProps = {
   configurations: readonly LoadedConfiguration[];
+  runtimeCapabilities: readonly RuntimeCapability[] | null;
   onBackToAppConfig: () => void;
   onBackToBuilderHome: () => void;
   onSaveScreenDraft: (screen: ScreenConfig) => Promise<void>;
@@ -38,6 +39,7 @@ const availableWidgetDefinitions = Array.from(widgetRegistry.values()).filter(
 
 export function BuilderWorkspace({
   configurations,
+  runtimeCapabilities,
   onBackToAppConfig,
   onBackToBuilderHome,
   onSaveScreenDraft,
@@ -200,6 +202,7 @@ export function BuilderWorkspace({
 
       <BuilderInspector
         availableWidgetDefinitions={availableWidgetDefinitions}
+        runtimeCapabilities={runtimeCapabilities}
         onAddWidget={addWidget}
         onDuplicateWidget={duplicateSelectedWidget}
         onRemoveWidget={removeSelectedWidget}
