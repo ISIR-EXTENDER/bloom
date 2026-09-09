@@ -68,7 +68,7 @@ export function RuntimeKioskBar({
 
   return (
     <>
-      <header className="runtime-kiosk-bar" aria-label="Runtime status">
+      <header className="runtime-kiosk-bar">
         {/* Stays a heading, at level 2: level 1 belongs to the app
             configuration page, and the runtime must not claim it. */}
         <h2 className="runtime-kiosk-app">{application.name}</h2>
@@ -132,7 +132,14 @@ function useHoldToOpen(onComplete: () => void) {
     }
   };
 
-  useEffect(() => stop, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+      }
+    },
+    [],
+  );
 
   return {
     value,

@@ -405,11 +405,27 @@ async function showRuntime(page) {
 async function showSandboxRuntimeScreen(page, screenName) {
   await mockRuntimeWebSocket(page);
   await showRuntime(page);
+
+  // Screen switching moved behind the maintenance hold when the runtime became
+  // a kiosk: a stray tap on a tab used to swap every control under a moving
+  // arm. The smoke run has to hold too, and there is no active-screen label in
+  // the bar any more, so arrival is confirmed by the overlay closing.
+  await holdForMaintenance(page);
   await page
     .getByRole("navigation", { name: "Switch runtime screen" })
     .getByRole("button", { exact: true, name: screenName })
     .click();
-  await page.locator(".runtime-active-screen-label", { hasText: screenName }).waitFor();
+  await page.getByRole("dialog", { name: "Maintenance" }).waitFor({ state: "detached" });
+}
+
+async function holdForMaintenance(page) {
+  const button = page.getByRole("button", { name: "Hold to open maintenance" });
+  const box = await button.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(1700);
+  await page.mouse.up();
+  await page.getByRole("dialog", { name: "Maintenance" }).waitFor();
 }
 
 async function showDebugRuntime(page) {

@@ -59,7 +59,6 @@ export function RuntimeWorkspace({
   onActionIntent,
   onEditApplication,
   onEditScreen,
-  onOpenBuilderHome,
   onOpenHelp,
   onOpenLanding,
   onSelectionChange,
