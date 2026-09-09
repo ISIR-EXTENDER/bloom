@@ -26,6 +26,10 @@ class WidgetKind(str, Enum):
 
 class CanvasPresetId(str, Enum):
     NATIVE_1024X600 = "native-1024x600"
+    # Same geometry as HD, named for the operator panel's native mode so an
+    # operator app says which display it targets rather than borrowing a
+    # generic desktop size.
+    NATIVE_1280X720 = "native-1280x720"
     HD = "hd"
     TABLET = "tablet"
     WIDE_TABLET = "wide-tablet"

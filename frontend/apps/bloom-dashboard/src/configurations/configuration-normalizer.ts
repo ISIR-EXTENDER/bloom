@@ -46,6 +46,7 @@ type PartialWidgetConfig = Partial<Omit<WidgetConfig, "layout">> & {
 
 const CANVAS_PRESET_IDS = new Set<CanvasPresetId>([
   "native-1024x600",
+  "native-1280x720",
   "hd",
   "tablet",
   "wide-tablet",

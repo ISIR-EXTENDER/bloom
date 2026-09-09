@@ -33,7 +33,14 @@ export type WidgetLayout = {
   height: number;
 };
 
-export type CanvasPresetId = "native-1024x600" | "hd" | "tablet" | "wide-tablet" | "full-hd" | "local-screen";
+export type CanvasPresetId =
+  | "native-1024x600"
+  | "native-1280x720"
+  | "hd"
+  | "tablet"
+  | "wide-tablet"
+  | "full-hd"
+  | "local-screen";
 
 export type RuntimeCanvasMode = "left" | "center" | "fit" | "operator-fit";
 
@@ -240,7 +247,11 @@ export type RuntimeCapability = {
 
 export type RuntimeCapabilitiesResponse = {
   capabilities: RuntimeCapability[];
+  command_frame_id: string;
 };
+
+/** Capabilities plus the frame operator commands are stamped with. */
+export type RuntimeCapabilityReport = RuntimeCapabilitiesResponse;
 
 export type RosTopicStatusListResponse = {
   topics: RosTopicStatus[];
@@ -411,9 +422,8 @@ export class BloomApiClient {
    * Used by the builder to say what a widget can and cannot do here, instead of
    * offering everything and letting the ROS-dependent ones fail in silence.
    */
-  async listRuntimeCapabilities(): Promise<RuntimeCapability[]> {
-    const response = await this.request<RuntimeCapabilitiesResponse>("/api/v1/capabilities");
-    return response.capabilities;
+  async listRuntimeCapabilities(): Promise<RuntimeCapabilityReport> {
+    return this.request<RuntimeCapabilitiesResponse>("/api/v1/capabilities");
   }
 
   async listRosTopics(): Promise<RosTopicInfo[]> {

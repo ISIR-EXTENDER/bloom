@@ -231,6 +231,7 @@ function copyLegacyWidgetSettings(widget: LegacyCanvasWidget): Record<string, un
 function isCanvasPresetId(value: unknown): value is CanvasSettings["preset_id"] {
   return (
     value === "native-1024x600" ||
+    value === "native-1280x720" ||
     value === "hd" ||
     value === "tablet" ||
     value === "wide-tablet" ||

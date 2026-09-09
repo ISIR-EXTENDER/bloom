@@ -1,4 +1,4 @@
-import type { RuntimeCapability } from "@bloom/api-client";
+import type { RuntimeCapabilityReport } from "@bloom/api-client";
 import { useEffect, useState } from "react";
 
 /**
@@ -10,13 +10,13 @@ import { useEffect, useState } from "react";
  * moment before the answer arrives.
  */
 export type RuntimeCapabilityClient = {
-  listRuntimeCapabilities?: () => Promise<RuntimeCapability[]>;
+  listRuntimeCapabilities?: () => Promise<RuntimeCapabilityReport>;
 };
 
-export function useRuntimeCapabilities(
+export function useRuntimeCapabilityReport(
   client: RuntimeCapabilityClient | null | undefined,
-): readonly RuntimeCapability[] | null {
-  const [capabilities, setCapabilities] = useState<readonly RuntimeCapability[] | null>(null);
+): RuntimeCapabilityReport | null {
+  const [report, setReport] = useState<RuntimeCapabilityReport | null>(null);
 
   useEffect(() => {
     if (!client?.listRuntimeCapabilities) {
@@ -28,7 +28,7 @@ export function useRuntimeCapabilities(
       .listRuntimeCapabilities()
       .then((next) => {
         if (!cancelled) {
-          setCapabilities(next);
+          setReport(next);
         }
       })
       .catch(() => {
@@ -36,7 +36,7 @@ export function useRuntimeCapabilities(
         // "unavailable" would put a warning on every ROS widget purely because
         // the request failed.
         if (!cancelled) {
-          setCapabilities(null);
+          setReport(null);
         }
       });
 
@@ -45,5 +45,5 @@ export function useRuntimeCapabilities(
     };
   }, [client]);
 
-  return capabilities;
+  return report;
 }

@@ -258,11 +258,26 @@ async function showSandboxRuntimeScreen(page, screenName) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { name: "Launch Sandbox V0.0 runtime" }).click();
+
+  // Screen switching lives behind the maintenance hold now, so the check has
+  // to hold too. That is the point of the gate: it cannot be done by brushing
+  // the glass while the arm is moving.
+  await holdForMaintenance(page);
   await page
     .getByRole("navigation", { name: "Switch runtime screen" })
     .getByRole("button", { exact: true, name: screenName })
     .click();
-  await page.locator(".runtime-active-screen-label", { hasText: screenName }).waitFor();
+  await page.getByRole("dialog", { name: "Maintenance" }).waitFor({ state: "detached" });
+}
+
+async function holdForMaintenance(page) {
+  const button = page.getByRole("button", { name: "Hold to open maintenance" });
+  const box = await button.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(1700);
+  await page.mouse.up();
+  await page.getByRole("dialog", { name: "Maintenance" }).waitFor();
 }
 
 async function assertNoHorizontalOverflow(page, label) {

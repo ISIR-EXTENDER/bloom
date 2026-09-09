@@ -13,7 +13,8 @@
   }
 
   .app-shell-runtime-app {
-    padding: 6px;
+    /* Kiosk keeps the panel edge-to-edge at every width; see App.css. */
+    padding: 0;
   }
 
   .app-shell-builder .bloom-nav-shell,

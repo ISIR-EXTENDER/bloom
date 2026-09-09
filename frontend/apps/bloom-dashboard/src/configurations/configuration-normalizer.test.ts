@@ -37,7 +37,9 @@ describe("normalizeConfigurationBundle", () => {
 
     const controlPanel = application?.screens.find((screen) => screen.id === "control_panel");
     expect(controlPanel?.title).toBe("Control Panel");
-    expect(controlPanel?.canvas).toEqual({ preset_id: "hd", runtime_mode: "fit" });
+    // Operator apps target the panel's native mode rather than a generic
+    // desktop size, so the artboard names the display it is composed for.
+    expect(controlPanel?.canvas).toEqual({ preset_id: "native-1280x720", runtime_mode: "fit" });
     expect(controlPanel?.widgets.some((widget) => widget.kind === "unknown")).toBe(false);
     expect(controlPanel?.widgets.find((widget) => widget.id === "control-panel-mode")).toMatchObject({
       kind: "toggle",

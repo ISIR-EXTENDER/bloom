@@ -124,6 +124,7 @@ export const CANVAS_WIDGET_EDGE_PADDING = 24;
 
 export const CANVAS_PRESETS: readonly CanvasPreset[] = [
   { id: "native-1024x600", label: "Native Tablet (1024x600)", width: 1024, height: 600 },
+  { id: "native-1280x720", label: "Native Operator Panel (1280x720)", width: 1280, height: 720 },
   { id: "hd", label: "HD (1280x720)", width: 1280, height: 720 },
   { id: "tablet", label: "Tablet (1280x800)", width: 1280, height: 800 },
   { id: "wide-tablet", label: "Wide Tablet Runtime (1820x720)", width: 1820, height: 720 },

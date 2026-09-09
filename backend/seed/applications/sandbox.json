@@ -106,7 +106,7 @@
           "id": "sandbox_control",
           "title": "Sandbox Control",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -379,7 +379,7 @@
           "id": "sandbox_teleop_config",
           "title": "Teleop Configuration",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -862,7 +862,7 @@
           "id": "control_panel",
           "title": "Control Panel",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -1289,7 +1289,7 @@
           "id": "snake_control",
           "title": "Snake Control",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -1420,7 +1420,7 @@
           "id": "visual_servoing",
           "title": "Visual Servoing",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -1562,7 +1562,7 @@
           "id": "visual_servoing_monitor",
           "title": "Visual Servoing Monitor",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [

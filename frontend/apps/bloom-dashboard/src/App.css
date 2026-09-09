@@ -107,8 +107,22 @@ textarea {
 }
 
 .app-shell-runtime-app {
-  padding: 6px;
+  /* Kiosk: the panel is the frame. 6px of shell padding cost 12px of the 600
+     available and pushed the status bar off the top edge, where a bar that is
+     meant to be the only chrome should sit. */
+  padding: 0;
   overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell-runtime-app > * {
+  min-height: 0;
+}
+
+.app-shell-runtime-app > *:last-child {
+  flex: 1;
 }
 
 .screen-list-item {

@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ScreenConfig, WidgetConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { appendTopicEchoMessage, appendTopicPlotSample, resolveCanvasFitScale } from "@bloom/widgets";
 import type { CSSProperties } from "react";
@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
+import { RuntimeKioskBar } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
 import type {
   RuntimeActionClient,
@@ -29,6 +30,7 @@ type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "run
 };
 
 type RuntimeWorkspaceProps = {
+  runtimeCapabilityReport: RuntimeCapabilityReport | null;
   application: ApplicationConfig;
   onBackToRuntimeHome: () => void;
   onActionIntent: (
@@ -51,6 +53,7 @@ type RuntimeWorkspaceProps = {
 };
 
 export function RuntimeWorkspace({
+  runtimeCapabilityReport,
   application,
   onBackToRuntimeHome,
   onActionIntent,
@@ -162,61 +165,25 @@ export function RuntimeWorkspace({
       data-runtime-layout="operator"
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
     >
-      <header className="runtime-app-topbar">
-        <div>
-          <p className="eyebrow">Runtime app</p>
-          <h2>{application.name}</h2>
-          <p className="runtime-profile-label">{runtimeProfile.name}</p>
-          <p className="runtime-active-screen-label">{screen.title}</p>
-        </div>
-
-        {application.screens.length > 1 ? (
-          <nav className="runtime-screen-tabs" aria-label="Switch runtime screen">
-            {application.screens.map((availableScreen) => (
-              <button
-                aria-current={screen.id === availableScreen.id ? "page" : undefined}
-                className="runtime-screen-tab"
-                key={availableScreen.id}
-                onClick={() =>
-                  onSelectionChange({
-                    ...selection,
-                    screenId: availableScreen.id,
-                  })
-                }
-                type="button"
-              >
-                {availableScreen.title}
-              </button>
-            ))}
-          </nav>
-        ) : null}
-
-        <details className="runtime-app-menu">
-          <summary aria-label="Open runtime menu">Menu</summary>
-          <nav className="runtime-app-actions" aria-label="Runtime shortcuts">
-            <button className="runtime-app-action" onClick={onOpenLanding} type="button">
-              Home
-            </button>
-            <button className="runtime-app-action" onClick={onBackToRuntimeHome} type="button">
-              App library
-            </button>
-            <button className="runtime-app-action" onClick={onOpenBuilderHome} type="button">
-              Builder
-            </button>
-            <button className="runtime-app-action" onClick={onOpenHelp} type="button">
-              Help
-            </button>
-            <button className="runtime-app-action" onClick={onEditApplication} type="button">
-              Edit app
-            </button>
-            <button className="runtime-app-action" onClick={onEditScreen} type="button">
-              Edit screen
-            </button>
-          </nav>
-        </details>
-      </header>
-
-      <RuntimeRobotStatusPanel application={application} client={runtimeActionClient} modeState={runtimeModeState} />
+      <RuntimeKioskBar
+        application={application}
+        commandFrameId={runtimeCapabilityReport?.command_frame_id ?? null}
+        diagnostics={
+          <RuntimeRobotStatusPanel
+            application={application}
+            client={runtimeActionClient}
+            modeState={runtimeModeState}
+          />
+        }
+        onEditApplication={onEditApplication}
+        onEditScreen={onEditScreen}
+        onOpenAppLibrary={onBackToRuntimeHome}
+        onOpenHelp={onOpenHelp}
+        onOpenLanding={onOpenLanding}
+        onSelectScreen={(screenId) => onSelectionChange({ ...selection, screenId })}
+        profileName={runtimeProfile.name}
+        screen={screen}
+      />
 
       {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
 

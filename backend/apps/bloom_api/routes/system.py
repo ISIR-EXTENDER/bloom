@@ -21,6 +21,11 @@ class RuntimeCapabilityResponse(BaseModel):
 
 class RuntimeCapabilitiesResponse(BaseModel):
     capabilities: list[RuntimeCapabilityResponse]
+    # The frame every operator command is stamped with. cartesian_manager does
+    # no TF conversion, so a command in any other frame is dropped and the arm
+    # simply stops -- which is why the runtime names the frame on screen rather
+    # than leaving it in a config file (finding 11).
+    command_frame_id: str
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -40,10 +45,12 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
     The builder uses this to say what a widget can and cannot do here, instead
     of offering everything and letting the ones that need ROS fail quietly.
     """
+    settings: Settings = request.app.state.settings
     return RuntimeCapabilitiesResponse(
         capabilities=[
             RuntimeCapabilityResponse(id=capability.id, available=capability.available, detail=capability.detail)
             for capability in describe_runtime_capabilities(request.app.state)
-        ]
+        ],
+        command_frame_id=settings.ros_command_frame_id,
     )
 

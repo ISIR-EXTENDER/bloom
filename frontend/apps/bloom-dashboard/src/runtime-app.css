@@ -726,3 +726,174 @@
   color: var(--bloom-ink-soft);
   line-height: 1.55;
 }
+
+/*
+ * Kiosk chrome.
+ *
+ * One 44px bar, and nothing else above the controls. The runtime used to spend
+ * 121px of a 600px panel on an eyebrow, an app name, a profile name, a screen
+ * name, a tab row and a diagnostics strip, with six exits a stray tap away
+ * while an arm attached to someone's chair was moving.
+ *
+ * Sizes here are fixed on purpose: they were chosen against the vertical budget
+ * of the 1024x600 panel, where 1px is about 0.22mm and 44px is the ISO 9241-411
+ * touch floor rather than a comfortable margin.
+ */
+.runtime-app-workspace {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/*
+ * The body takes everything the bar does not. Without min-height:0 a flex item
+ * refuses to shrink below its content, so the artboard pushes the column past
+ * the panel and the page scrolls -- which on a kiosk means controls that exist
+ * but cannot be reached.
+ */
+.runtime-app-workspace > .runtime-app-canvas-shell {
+  flex: 1;
+  min-height: 0;
+}
+
+.runtime-kiosk-bar {
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  background: var(--bloom-surface-soft);
+  border-bottom: 1px solid var(--bloom-outline);
+}
+
+.runtime-kiosk-app {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bloom-on-surface);
+  white-space: nowrap;
+}
+
+.runtime-kiosk-frame {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--bloom-on-surface-muted);
+  white-space: nowrap;
+}
+
+.runtime-kiosk-spacer {
+  flex: 1;
+}
+
+.runtime-kiosk-profile {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--bloom-on-surface-muted);
+  white-space: nowrap;
+}
+
+.runtime-kiosk-maintenance {
+  position: relative;
+  overflow: hidden;
+  min-width: 48px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 1px solid var(--bloom-outline);
+  border-radius: 9px;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* Fills over the hold. Transform rather than width so it cannot reflow the bar. */
+.runtime-kiosk-hold {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--bloom-primary);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.runtime-maintenance-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: color-mix(in srgb, var(--bloom-primary) 55%, transparent);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.runtime-maintenance-panel {
+  width: 340px;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 56px 14px 14px;
+  border-radius: 18px;
+  background: var(--bloom-surface);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--bloom-primary) 30%, transparent);
+}
+
+.runtime-maintenance-panel h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.runtime-maintenance-panel header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--bloom-on-surface-muted);
+}
+
+.runtime-maintenance-screens,
+.runtime-maintenance-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.runtime-maintenance-screens button,
+.runtime-maintenance-actions button,
+.runtime-maintenance-return {
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--bloom-outline);
+  border-radius: 14px;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.runtime-maintenance-screens button[aria-current="page"] {
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  border-color: var(--bloom-primary);
+}
+
+.runtime-maintenance-return {
+  margin-top: 4px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  border-color: var(--bloom-primary);
+  text-align: center;
+}
+
+.runtime-maintenance-diagnostics {
+  border-top: 1px solid var(--bloom-outline);
+  padding-top: 10px;
+}

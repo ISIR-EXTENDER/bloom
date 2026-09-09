@@ -270,7 +270,7 @@
           "id": "explorer-control-modes",
           "title": "Explorer control modes",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -453,7 +453,7 @@
           "id": "explorer-robot-actions",
           "title": "Explorer robot actions",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -575,7 +575,7 @@
           "id": "explorer-saved-positions",
           "title": "Explorer saved positions",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -725,7 +725,7 @@
           "id": "explorer-safety-zones",
           "title": "Explorer safety zones",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -861,7 +861,7 @@
           "id": "explorer-drink-mode",
           "title": "Explorer drink mode",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -1010,7 +1010,7 @@
           "id": "explorer-favorites",
           "title": "Explorer favorites",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -1134,7 +1134,7 @@
           "id": "explorer-supervision",
           "title": "Explorer supervision",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -1253,7 +1253,7 @@
           "id": "explorer-debug-console",
           "title": "Explorer debug console",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -1332,7 +1332,7 @@
           "id": "explorer-profile-presets",
           "title": "Explorer profile presets",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [

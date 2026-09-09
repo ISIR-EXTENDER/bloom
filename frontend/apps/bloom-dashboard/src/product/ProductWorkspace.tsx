@@ -1,4 +1,4 @@
-import type { ApplicationConfig, RuntimeCapability, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeCapability, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
 import { BuilderHome } from "../builder/BuilderHome";
@@ -50,6 +50,7 @@ type ProductWorkspaceProps = {
   profilePreferences: Record<string, string>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
   runtimeCapabilities: readonly RuntimeCapability[] | null;
+  runtimeCapabilityReport: RuntimeCapabilityReport | null;
   runtimeActionClient: RuntimeActionClient;
   runtimeMode: RuntimeMode;
   runtimeModeState: RuntimeModeState;
@@ -82,6 +83,7 @@ export function ProductWorkspace({
   profilePreferences,
   recentRuntimeSelections,
   runtimeCapabilities,
+  runtimeCapabilityReport,
   runtimeActionClient,
   runtimeMode,
   runtimeModeState,
@@ -136,6 +138,7 @@ export function ProductWorkspace({
 
   return (
     <RuntimeWorkspace
+      runtimeCapabilityReport={runtimeCapabilityReport}
       application={selectedWorkspace.application}
       onBackToRuntimeHome={onBackToRuntimeHome}
       onActionIntent={onRuntimeIntent}

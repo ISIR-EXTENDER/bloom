@@ -6,7 +6,7 @@ import {
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
 } from "@bloom/api-client";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import bloomDebugConfiguration from "../../../../backend/seed/applications/bloom-debug.json";
 import explorerUserTestsConfiguration from "../../../../backend/seed/applications/explorer-user-tests.json";
@@ -235,6 +235,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
+    openRuntimeMenu();
     expect(screen.getByRole("button", { name: "Diagnostics" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByRole("region", { name: "Bloom builder workspace" })).not.toBeInTheDocument();
     await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
@@ -324,12 +325,15 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Launch Sandbox runtime" }));
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+    // Screen switching and every gateway now sit behind the maintenance hold,
+    // so none of them are reachable from the operating surface.
+    expect(screen.queryByRole("navigation", { name: "Switch runtime screen" })).not.toBeInTheDocument();
+    openRuntimeMenu();
     expect(screen.getByRole("navigation", { name: "Switch runtime screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Diagnostics" })).toBeVisible();
-    openRuntimeMenu();
     expect(screen.getByRole("button", { name: "App library" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit app" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit screen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Edit this screen in the builder" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "App library" }));
 
@@ -505,7 +509,7 @@ describe("App", () => {
     await openSandboxRuntimeFromNavigation();
 
     openRuntimeMenu();
-    fireEvent.click(screen.getByRole("button", { name: "Edit screen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit this screen in the builder" }));
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
   });
@@ -1434,6 +1438,9 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox V0.0" })).toBeVisible();
+    // Topic diagnostics are maintenance, not chrome over the controls.
+    expect(screen.queryByLabelText("Runtime robot status")).not.toBeInTheDocument();
+    openRuntimeMenu();
     expect(await screen.findByLabelText("Runtime robot status")).toBeVisible();
     await waitFor(() => expect(runtimeActionClient.listRosTopicStatus).toHaveBeenCalled());
     expect(screen.getByText("Translation")).toBeVisible();
@@ -1477,7 +1484,8 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Monitor" }));
-    expect(document.querySelector(".runtime-active-screen-label")).toHaveTextContent("Visual Servoing Monitor");
+    // The kiosk bar carries no screen name, so arriving is proven by what the
+    // destination screen renders rather than by a label about it.
     expect(screen.getByText("Velocity X")).toBeVisible();
     expect(screen.getByText("Error Z")).toBeVisible();
     expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalledWith(
@@ -1514,7 +1522,6 @@ describe("App", () => {
     expect(await screen.findByText("Camera Preview")).toBeVisible();
 
     selectRuntimeScreen("Snake Control");
-    expect(document.querySelector(".runtime-active-screen-label")).toHaveTextContent("Snake Control");
     const snakeModeToggle = screen.getByRole("button", { name: "Mode B1/B2: B2" });
     fireEvent.click(snakeModeToggle);
     await waitFor(() =>
@@ -2308,15 +2315,29 @@ async function openBloomDebugRuntimeFromNavigation() {
   fireEvent.click(await screen.findByRole("button", { name: "Launch Bloom Debug runtime" }));
 }
 
+/**
+ * Open the runtime's maintenance overlay.
+ *
+ * Everything that leaves an operating session now sits behind a deliberate 1.5s
+ * hold, so tests have to hold too. Fake timers only span the hold itself: the
+ * rest of the suite is asynchronous against real ones.
+ */
 function openRuntimeMenu() {
-  const menu = screen.getByLabelText("Open runtime menu").closest("details");
-  if (!menu) {
-    throw new Error("Missing runtime menu.");
+  vi.useFakeTimers();
+  try {
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Hold to open maintenance" }));
+    act(() => {
+      vi.advanceTimersByTime(1600);
+    });
+  } finally {
+    vi.useRealTimers();
   }
-  menu.setAttribute("open", "");
 }
 
 function selectRuntimeScreen(screenTitle: string) {
+  // Screen switching moved into maintenance: a stray tap on a tab used to swap
+  // the controls under a moving arm.
+  openRuntimeMenu();
   fireEvent.click(screen.getByRole("button", { name: screenTitle }));
 }
 

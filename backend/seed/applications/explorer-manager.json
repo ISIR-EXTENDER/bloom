@@ -93,7 +93,7 @@
           "id": "manager_drive",
           "title": "Drive",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -400,7 +400,7 @@
           "id": "manager_positions",
           "title": "Positions",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -518,7 +518,7 @@
           "id": "manager_feedback",
           "title": "Robot feedback",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
@@ -629,7 +629,7 @@
           "id": "manager_sources",
           "title": "Command sources",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "native-1280x720",
             "runtime_mode": "fit"
           },
           "widgets": [
