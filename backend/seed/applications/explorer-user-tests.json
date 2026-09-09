@@ -165,21 +165,6 @@
           ]
         },
         {
-          "id": "explorer-emergency-stop",
-          "name": "Emergency stop",
-          "kind": "topic-publish",
-          "description": "Send an immediate stop request for Explorer user tests.",
-          "command": "emergency_stop",
-          "topic": "/explorer/emergency_stop",
-          "message_type": "std_msgs/msg/Bool",
-          "payload": null,
-          "payload_text": "{data: true}",
-          "tags": [
-            "explorer",
-            "safety"
-          ]
-        },
-        {
           "id": "explorer-gripper-close",
           "name": "Close gripper",
           "kind": "topic-publish",
@@ -210,7 +195,6 @@
         "allowed_publish_topics": [
           "/cmd/max_velocity",
           "/cmd/mode",
-          "/explorer/emergency_stop",
           "/gripper_controller/commands",
           "/mode_request",
           "/ui/load_pose",
@@ -365,29 +349,6 @@
                     "message_type": "std_msgs/msg/Float64"
                   }
                 }
-              }
-            },
-            {
-              "id": "explorer-emergency-stop",
-              "kind": "command-button",
-              "title": "Emergency stop",
-              "layout": {
-                "x": 680,
-                "y": 410,
-                "width": 250,
-                "height": 120
-              },
-              "settings": {
-                "command": "emergency_stop",
-                "button_label": "Stop",
-                "action_id": "explorer-emergency-stop",
-                "action_label": "Emergency stop",
-                "action_feedback": "result",
-                "cancellable": false,
-                "presetId": "emergency-stop-bool",
-                "topic": "/explorer/emergency_stop",
-                "messageType": "std_msgs/msg/Bool",
-                "payload": "{data: true}"
               }
             },
             {

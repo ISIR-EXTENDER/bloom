@@ -54,7 +54,6 @@ class Settings(BaseModel):
         "/cmd/joystick_z",
         "/cmd/max_velocity",
         "/cmd/petanque/round",
-        "/explorer/emergency_stop",
         "/gripper_controller/commands",
         "/petanque/measure/request_image",
         "/petanque/teleop/enabled",

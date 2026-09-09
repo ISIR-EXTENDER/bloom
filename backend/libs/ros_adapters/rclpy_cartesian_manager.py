@@ -77,7 +77,14 @@ class RclpyCartesianManagerGateway:
     def _to_ros_message(self, command: TeleopCommand) -> Any:
         message_cls = self._get_twist_stamped_message_class()
         message = message_cls()
-        message.header.stamp = self._now_msg()
+        # Left at zero on purpose. cartesian_manager treats a zero stamp as
+        # "use my own clock" (stampSec, ros/cartesian_manager.cpp), and its
+        # freshness test is `now - stamp <= timeout` with a 0.2s joystick
+        # timeout. Stamping with Bloom's clock means that difference goes
+        # negative whenever this process runs ahead of the robot's clock, so the
+        # command never expires and the manager's fail-to-zero -- the one
+        # safety property this chain actually has -- is silently defeated.
+        # Staleness belongs to the node that owns the timeout.
         message.header.frame_id = self._command_frame_id
         message.twist.linear.x = float(command.linear.x)
         message.twist.linear.y = float(command.linear.y)
@@ -87,12 +94,6 @@ class RclpyCartesianManagerGateway:
         message.twist.angular.z = float(command.angular.z)
         return message
 
-    def _now_msg(self) -> Any:
-        get_clock = getattr(self._node, "get_clock", None)
-        if get_clock is None:
-            return self._get_time_message_class()()
-        return get_clock().now().to_msg()
-
     @staticmethod
     def _get_twist_stamped_message_class() -> type:
         try:
@@ -100,14 +101,6 @@ class RclpyCartesianManagerGateway:
         except ModuleNotFoundError as exc:
             raise RuntimeError("geometry_msgs is required to publish Cartesian commands") from exc
         return TwistStamped
-
-    @staticmethod
-    def _get_time_message_class() -> type:
-        try:
-            from builtin_interfaces.msg import Time
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("builtin_interfaces is required to stamp Cartesian commands") from exc
-        return Time
 
 
 __all__ = ["DEFAULT_COMMAND_FRAME_ID", "RclpyCartesianManagerGateway"]

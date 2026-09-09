@@ -22,7 +22,6 @@ def test_default_runtime_allowlists_cover_extender_publish_topics() -> None:
         "/cmd/joystick_z",
         "/cmd/max_velocity",
         "/cmd/petanque/round",
-        "/explorer/emergency_stop",
         "/gripper_controller/commands",
         "/petanque/measure/request_image",
         "/petanque/teleop/enabled",
