@@ -7,6 +7,7 @@ import {
   type RuntimeActionDispatchResult,
   type RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
+import type { ComponentContribution } from "./teleop-composition";
 import { TeleopTwistComposer } from "./teleop-composition";
 import { TeleopStreamPump } from "./teleop-stream";
 
@@ -112,7 +113,26 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     [client],
   );
 
-  return { dispatch, records, subscribeTopic };
+  /**
+   * Feed a non-widget input source (a gamepad) into the same composed twist.
+   *
+   * It carries no widget intent, so it publishes through the pump rather than
+   * the dispatcher: the pump already owns the streaming contract, and the
+   * dispatch record list is for operator actions, not a stick at 20Hz.
+   */
+  const contributeTeleop = useCallback((sourceId: string, contribution: ComponentContribution | null) => {
+    if (contribution === null) {
+      teleopComposer.current.release(sourceId);
+    } else {
+      teleopComposer.current.contribute(sourceId, contribution);
+    }
+    teleopPump.current?.noteExternalContribution({
+      target: "/joystick_cartesian_command",
+      mode: 0,
+    });
+  }, []);
+
+  return { contributeTeleop, dispatch, records, subscribeTopic };
 }
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {

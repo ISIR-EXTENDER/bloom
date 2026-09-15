@@ -1012,3 +1012,14 @@
   outline: 3px solid var(--bloom-on-surface);
   outline-offset: 2px;
 }
+
+.runtime-kiosk-gamepad {
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: var(--bloom-primary-container);
+  color: var(--bloom-on-primary-container);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}

@@ -44,6 +44,7 @@ type ProductWorkspaceProps = {
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onTeleopContribution: ReturnType<typeof useRuntimeActionDispatcher>["contributeTeleop"];
   onTopicSample: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onUploadThemeAsset: (file: File) => Promise<string>;
@@ -77,6 +78,7 @@ export function ProductWorkspace({
   onSaveApplication,
   onSaveBuilderScreen,
   onSelectionChange,
+  onTeleopContribution,
   onTopicSample,
   onTopicSubscriptionRequest,
   onUploadThemeAsset,
@@ -148,6 +150,7 @@ export function ProductWorkspace({
       onOpenHelp={onOpenHelp}
       onOpenLanding={onOpenLanding}
       onSelectionChange={onSelectionChange}
+      onTeleopContribution={onTeleopContribution}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
       preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}

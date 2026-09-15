@@ -18,7 +18,9 @@ import type {
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
+import type { ComponentContribution } from "./teleop-composition";
 import { useAudioCues } from "./use-audio-cues";
+import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
@@ -36,6 +38,8 @@ type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "run
 };
 
 type RuntimeWorkspaceProps = {
+  /** Feeds a non-widget input source into the composed twist. */
+  onTeleopContribution?: (sourceId: string, contribution: ComponentContribution | null) => void;
   runtimeCapabilityReport: RuntimeCapabilityReport | null;
   application: ApplicationConfig;
   onBackToRuntimeHome: () => void;
@@ -68,6 +72,7 @@ export function RuntimeWorkspace({
   onOpenHelp,
   onOpenLanding,
   onSelectionChange,
+  onTeleopContribution,
   onTopicSample,
   onTopicSubscriptionRequest,
   preferredProfileId = "",
@@ -130,6 +135,11 @@ export function RuntimeWorkspace({
   }, [dataByWidgetId, positionLibrary.state, screen.widgets, screenHasPositionLibrary]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
+  const gamepad = useGamepadInput({
+    deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
+    enabled: onTeleopContribution !== undefined,
+    onContribution: (contribution) => onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution),
+  });
   const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink);
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const stopped = runtimeStop.state?.stopped === true;
@@ -211,6 +221,7 @@ export function RuntimeWorkspace({
       <RuntimeKioskBar
         application={application}
         commandFrameId={runtimeCapabilityReport?.command_frame_id ?? null}
+        gamepadName={gamepad.connected ? gamepad.id : null}
         robotName={runtimeCapabilityReport?.robot_name ?? null}
         diagnostics={
           <RuntimeRobotStatusPanel

@@ -147,3 +147,54 @@ describe("the teleop stream pump", () => {
     expect(sent).toHaveLength(0);
   });
 });
+
+describe("a non-widget source", () => {
+  let composer: TeleopTwistComposer;
+  let sent: RuntimeTeleopCommandRequest[];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    composer = new TeleopTwistComposer();
+    sent = [];
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("streams through the pump without a dispatched request of its own", async () => {
+    // A gamepad carries no widget intent; the pump adopts the default target.
+    composer.contribute("gamepad", { linear_x: 0.6 });
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => 1,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+
+    pump.noteExternalContribution({ mode: 0, target: "/joystick_cartesian_command" });
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent[0]).toMatchObject({ linear: { x: 0.6, y: 0, z: 0 }, target: "/joystick_cartesian_command" });
+    pump.stop();
+  });
+
+  it("keeps the target a widget already established", async () => {
+    composer.contribute("gamepad", { linear_x: 0.6 });
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => 1,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+
+    pump.noteDispatched(widgetRequest({ target: "/custom_teleop", mode: 3 }), "sent");
+    pump.noteExternalContribution({ mode: 0, target: "/joystick_cartesian_command" });
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(sent.at(-1)).toMatchObject({ mode: 3, target: "/custom_teleop" });
+    pump.stop();
+  });
+});

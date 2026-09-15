@@ -47,6 +47,19 @@ export class TeleopStreamPump {
     }
   }
 
+  /**
+   * A non-widget source contributed. It has no dispatched request of its own,
+   * so the pump adopts a default target the first time and otherwise keeps
+   * streaming whatever the widgets established.
+   */
+  noteExternalContribution(fallback: Pick<RuntimeTeleopCommandRequest, "mode" | "target">): void {
+    this.lastRequest = this.lastRequest ?? fallback;
+    this.zeroFramesLeft = this.zeroTailFrames;
+    if (this.timer === null) {
+      this.timer = setInterval(() => this.tick(), this.intervalMs);
+    }
+  }
+
   stop(): void {
     if (this.timer !== null) {
       clearInterval(this.timer);

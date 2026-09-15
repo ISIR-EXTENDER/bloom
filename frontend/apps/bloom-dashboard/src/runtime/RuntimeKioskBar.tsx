@@ -49,6 +49,8 @@ export type RuntimeKioskBarProps = {
    * measured is worse than an empty slot.
    */
   commandFrameId: string | null;
+  /** A connected physical input, named so the operator knows it is live. */
+  gamepadName?: string | null;
   /** Which arm this backend drives; null while unknown or unconfigured. */
   robotName?: string | null;
   /** Omitted only where no runtime session exists (previews, tests). */
@@ -68,6 +70,7 @@ export function RuntimeKioskBar({
   screen,
   profileName,
   commandFrameId,
+  gamepadName,
   robotName,
   statusChip,
   diagnostics,
@@ -101,6 +104,11 @@ export function RuntimeKioskBar({
         {commandFrameId ? (
           <span className="runtime-kiosk-frame" title="Reference frame for operator commands">
             {commandFrameId}
+          </span>
+        ) : null}
+        {gamepadName ? (
+          <span className="runtime-kiosk-gamepad" title={gamepadName}>
+            gamepad
           </span>
         ) : null}
         <span className="runtime-kiosk-spacer" />

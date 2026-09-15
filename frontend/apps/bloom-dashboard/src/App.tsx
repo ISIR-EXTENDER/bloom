@@ -322,6 +322,7 @@ export function App({
                 onSaveApplication={handleSaveApplication}
                 onSaveBuilderScreen={handleSaveBuilderScreen}
                 onSelectionChange={setSelection}
+                onTeleopContribution={runtimeActions.contributeTeleop}
                 onTopicSample={runtimeActionClient.addRuntimeTopicSampleListener}
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onUploadThemeAsset={handleUploadThemeAsset}
