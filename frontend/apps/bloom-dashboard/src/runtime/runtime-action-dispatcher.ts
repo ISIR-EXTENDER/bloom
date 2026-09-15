@@ -1,8 +1,9 @@
-import type {
-  BloomApiClient,
-  RosTopicPublishRequest,
-  RuntimeActionPreset,
-  RuntimeAdapterPolicy,
+import {
+  type BloomApiClient,
+  BloomApiError,
+  type RosTopicPublishRequest,
+  type RuntimeActionPreset,
+  type RuntimeAdapterPolicy,
 } from "@bloom/api-client";
 import type { Vector2Value, WidgetActionIntent } from "@bloom/widgets";
 import {
@@ -713,8 +714,38 @@ function getOptionalString(source: Record<string, unknown>, key: string): string
 }
 
 function getErrorMessage(error: unknown): string {
+  if (error instanceof BloomApiError) {
+    // "Request failed with status 422" hides the part that matters. The
+    // response body carries the backend's actual reason -- a message-shape
+    // rejection reads as a recipient-side ROS failure without it.
+    const detail = readBloomApiErrorDetail(error.responseText);
+    return detail ? `${error.message} ${detail}` : error.message;
+  }
   if (error instanceof Error) {
     return error.message;
   }
   return "Runtime action failed.";
+}
+
+function readBloomApiErrorDetail(responseText: string): string {
+  if (!responseText) {
+    return "";
+  }
+  try {
+    const parsed = JSON.parse(responseText) as { detail?: unknown };
+    if (typeof parsed.detail === "string") {
+      return parsed.detail;
+    }
+    if (Array.isArray(parsed.detail)) {
+      // FastAPI validation errors arrive as a list of {loc, msg, type}.
+      return parsed.detail
+        .map((entry) => (isRecord(entry) && typeof entry.msg === "string" ? entry.msg : ""))
+        .filter(Boolean)
+        .join("; ");
+    }
+  } catch {
+    // Not JSON: the raw text is better than nothing, but keep it short.
+    return responseText.slice(0, 200);
+  }
+  return "";
 }

@@ -167,3 +167,47 @@ def test_adoption_survives_having_no_file_store_at_all(tmp_path: Path) -> None:
     )
 
     assert adopt_file_configurations(repository, configuration_dir=tmp_path / "absent") == ()
+
+
+def test_every_shipped_toggle_can_actually_publish() -> None:
+    """A toggle without payloads for its declared type 422s at runtime.
+
+    The explorer-manager gripper shipped as a Float64MultiArray toggle with no
+    onPayload/offPayload. The widget layer's generic defaults (true/false) do
+    not fit that type, so every tap answered '422 Unprocessable Entity' -- and
+    the operator on the robot read it as a ROS-side failure. Validate each
+    shipped toggle's payloads with the same shape rules the publish route
+    enforces, so a seed like that can never ship again.
+    """
+    from libs.ros_adapters.payloads import parse_ros_payload_text
+    from libs.ros_adapters.safety import validate_minimum_payload_shape
+
+    def resolve_payload(raw: object) -> dict:
+        if isinstance(raw, str):
+            return parse_ros_payload_text(raw)
+        if isinstance(raw, dict):
+            return raw
+        return {"data": raw}
+
+    checked = 0
+    for config_id in available_seed_ids():
+        path = DEFAULT_SEED_DIR / f"{config_id}.json"
+        bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
+        for application in bundle.applications:
+            for screen in application.screens:
+                for widget in screen.widgets:
+                    if widget.kind.value != "toggle" or not widget.settings.get("topic"):
+                        continue
+                    message_type = widget.settings.get("messageType", "")
+                    for field in ("onPayload", "offPayload"):
+                        assert field in widget.settings, (
+                            f"{config_id}/{application.id}/{widget.id}: toggle publishes"
+                            f" {message_type or 'an unknown type'} but ships no {field}"
+                        )
+                        payload = resolve_payload(widget.settings[field])
+                        # Raises RuntimePayloadShapeError on a payload the
+                        # publish route would refuse.
+                        validate_minimum_payload_shape(message_type, payload)
+                        checked += 1
+
+    assert checked > 0, "no shipped toggles were checked; the walk is broken"

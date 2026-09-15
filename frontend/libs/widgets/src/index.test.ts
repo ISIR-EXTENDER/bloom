@@ -1,4 +1,10 @@
-import { type ConfigurationBundle, createBloomApiClient, type ScreenConfig, WIDGET_KINDS } from "@bloom/api-client";
+import {
+  type ConfigurationBundle,
+  createBloomApiClient,
+  type ScreenConfig,
+  WIDGET_KINDS,
+  type WidgetConfig,
+} from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 import legacyPetanqueApplication from "../../../../backend/tests/fixtures/legacy/application-play-petanque.json";
 import legacyConfigurationsScreen from "../../../../backend/tests/fixtures/legacy/configurations.json";
@@ -1445,6 +1451,58 @@ describe("widget runtime action intents", () => {
       nextState: "on",
       payload: "{data: [13, 1]}",
       payloadText: "{data: [13, 1]}",
+    });
+  });
+
+  it("refuses to publish a toggle whose declared type has no authored payload", () => {
+    // The settings contract fills a missing payload with the generic booleans
+    // true/false. A Float64MultiArray gripper toggle shipped without payloads,
+    // so every tap POSTed {data: true} and the backend answered with a bare
+    // 422 that read as a ROS-side failure on the robot.
+    const seededGripper = {
+      id: "drive-gripper",
+      kind: "toggle",
+      title: "Gripper",
+      layout: { x: 0, y: 0, width: 130, height: 130 },
+      settings: {
+        initialValue: false,
+        messageType: "std_msgs/msg/Float64MultiArray",
+        offLabel: "Open",
+        onLabel: "Closed",
+        topic: "/gripper_controller/commands",
+      },
+    } as WidgetConfig;
+
+    expect(createWidgetActionIntent(seededGripper, { type: "toggle", nextState: "on" })).toEqual({
+      type: "unsupported",
+      widgetId: "drive-gripper",
+      widgetKind: "toggle",
+      eventType: "toggle",
+      reason:
+        'Toggle "drive-gripper" has no onPayload configured for std_msgs/msg/Float64MultiArray on /gripper_controller/commands, so there is nothing to publish.',
+    });
+  });
+
+  it("still publishes contract-default booleans for a Bool toggle without authored payloads", () => {
+    // For std_msgs/Bool the invented true/false defaults are exactly right,
+    // and builder previews rely on them.
+    const boolToggle = {
+      id: "servo-enable",
+      kind: "toggle",
+      title: "Servoing",
+      layout: { x: 0, y: 0, width: 130, height: 130 },
+      settings: {
+        initialValue: false,
+        messageType: "std_msgs/msg/Bool",
+        topic: "/ui/visual_servoing/on",
+      },
+    } as WidgetConfig;
+
+    expect(createWidgetActionIntent(boolToggle, { type: "toggle", nextState: "on" })).toMatchObject({
+      type: "topic-publish",
+      topic: "/ui/visual_servoing/on",
+      messageType: "std_msgs/msg/Bool",
+      payload: true,
     });
   });
 
