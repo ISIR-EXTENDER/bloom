@@ -89,6 +89,8 @@ export type UserProfile = {
   app_theme_preset_id: string;
   preferred_control_layout_id: string;
   motor_accessibility_preset: MotorAccessibilityPreset;
+  /** Tones for stop, link loss, and recovery; the operator watches the gripper. */
+  audio_cues?: boolean;
 };
 
 export type RuntimeAdapterPolicy = {

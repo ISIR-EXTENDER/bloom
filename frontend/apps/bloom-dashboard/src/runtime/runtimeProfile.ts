@@ -6,6 +6,7 @@ export type RuntimeProfileViewport = {
 };
 
 export type ResolvedRuntimeProfile = {
+  audioCues: boolean;
   displayPreset: DisplayPreset;
   fontScale: number;
   id: string;
@@ -14,6 +15,7 @@ export type ResolvedRuntimeProfile = {
 };
 
 const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
+  audioCues: false,
   displayPreset: "default",
   fontScale: 1,
   id: "default",
@@ -60,6 +62,7 @@ function resolvePreferredDisplayPreset(viewport: RuntimeProfileViewport): Displa
 function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile): ResolvedRuntimeProfile {
   if ("display_preset" in profile) {
     return {
+      audioCues: profile.audio_cues === true,
       displayPreset: profile.display_preset,
       fontScale: clampFontScale(profile.font_scale),
       id: profile.id,
@@ -69,6 +72,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
   }
 
   return {
+    audioCues: profile.audioCues,
     displayPreset: profile.displayPreset,
     fontScale: clampFontScale(profile.fontScale),
     id: profile.id,

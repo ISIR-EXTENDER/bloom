@@ -18,6 +18,7 @@ import type {
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
+import { useAudioCues } from "./use-audio-cues";
 import { usePositionLibrary } from "./use-position-library";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
@@ -130,6 +131,7 @@ export function RuntimeWorkspace({
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
   const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink);
+  useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const stopped = runtimeStop.state?.stopped === true;
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {

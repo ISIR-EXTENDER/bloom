@@ -105,6 +105,8 @@ class UserProfile(BloomModel):
     app_theme_preset_id: str = Field(default="bloom-default", min_length=1)
     preferred_control_layout_id: str = ""
     motor_accessibility_preset: MotorAccessibilityPreset = MotorAccessibilityPreset.DEFAULT
+    #: Tones for stop, link loss, and recovery.
+    audio_cues: bool = False
 
 
 class RuntimeAdapterPolicy(BloomModel):
