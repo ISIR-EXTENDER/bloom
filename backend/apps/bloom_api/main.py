@@ -12,8 +12,10 @@ from libs.ros_adapters import (
     RosPublisherGateway,
     RosTopicCatalogGateway,
 )
+from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
 from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import RuntimeSessionManager
+from libs.sessions.topics import is_live_subscription_gateway
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
     NoopRuntimeRecordingGateway,
@@ -53,9 +55,12 @@ def create_app(
     app.state.configuration_repository = configuration_repository or create_app_configuration_repository(app_settings)
     app.state.ros_publisher_gateway = ros_publisher_gateway or NoopRosPublisherGateway()
     app.state.ros_topic_catalog_gateway = ros_topic_catalog_gateway or NoopRosTopicCatalogGateway()
-    app.state.runtime_topic_subscription_gateway = (
-        runtime_topic_subscription_gateway or NoopRuntimeTopicSubscriptionGateway()
-    )
+    subscription_gateway = runtime_topic_subscription_gateway or NoopRuntimeTopicSubscriptionGateway()
+    if is_live_subscription_gateway(subscription_gateway):
+        # Only around a live gateway, so the Noop stays recognisable and the
+        # subscription ack keeps saying no samples will arrive.
+        subscription_gateway = ManipulabilityDerivingGateway(subscription_gateway)
+    app.state.runtime_topic_subscription_gateway = subscription_gateway
     app.state.runtime_audit_log = runtime_audit_log or InMemoryRuntimeAuditLog()
     app.state.runtime_command_policy = runtime_command_policy or RuntimeCommandPolicy(
         allowed_message_types=app_settings.allowed_ros_message_types,

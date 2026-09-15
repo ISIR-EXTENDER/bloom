@@ -648,6 +648,27 @@
                 "show_details": true,
                 "topic": "/joint_states"
               }
+            },
+            {
+              "id": "feedback-manipulability",
+              "kind": "topic-plot",
+              "title": "Manipulability",
+              "layout": {
+                "x": 860,
+                "y": 290,
+                "width": 400,
+                "height": 380
+              },
+              "settings": {
+                "topic": "/ee_jac",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "fieldPath": "manipulability",
+                "historySeconds": 30,
+                "maxSamples": 500,
+                "show_details": true,
+                "unit": "",
+                "variant": "area"
+              }
             }
           ]
         },

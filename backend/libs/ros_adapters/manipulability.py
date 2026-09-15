@@ -19,8 +19,17 @@ a single number would waste the WebSocket on data no widget displays.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Any, Sequence
+
+from libs.sessions import (
+    RuntimeTopicSample,
+    RuntimeTopicSampleCallback,
+    RuntimeTopicSubscription,
+    RuntimeTopicSubscriptionGateway,
+    RuntimeTopicSubscriptionHandle,
+)
 
 
 class ManipulabilityError(ValueError):
@@ -142,10 +151,70 @@ class ManipulabilityScale:
         return "ok"
 
 
+MANIPULABILITY_FIELD_PATH = "manipulability"
+
+
+class ManipulabilityDerivingGateway:
+    """Subscriptions with field_path "manipulability" stream Yoshikawa w
+    instead of the raw Jacobian; everything else passes through."""
+
+    def __init__(self, inner: RuntimeTopicSubscriptionGateway) -> None:
+        self._inner = inner
+
+    def subscribe(
+        self,
+        subscription: RuntimeTopicSubscription,
+        on_sample: RuntimeTopicSampleCallback,
+    ) -> RuntimeTopicSubscriptionHandle:
+        if subscription.field_path != MANIPULABILITY_FIELD_PATH:
+            return self._inner.subscribe(subscription, on_sample)
+
+        def on_jacobian_sample(sample: RuntimeTopicSample) -> None:
+            measure = measure_from_sample_value(sample.value)
+            if measure is None:
+                return
+            on_sample(
+                RuntimeTopicSample(
+                    message_type=sample.message_type,
+                    received_at=sample.received_at,
+                    topic=sample.topic,
+                    value={MANIPULABILITY_FIELD_PATH: measure},
+                )
+            )
+
+        return self._inner.subscribe(subscription, on_jacobian_sample)
+
+
+def measure_from_sample_value(value: Any) -> float | None:
+    """Yoshikawa w from a jsonable Float64MultiArray, or None to skip."""
+    if not isinstance(value, Mapping):
+        return None
+    data = value.get("data")
+    if not isinstance(data, Sequence) or isinstance(data, (str, bytes)):
+        return None
+    try:
+        return yoshikawa_manipulability(jacobian_from_float_array(data, rows=_rows_from_layout(value.get("layout"))))
+    except (ManipulabilityError, TypeError, ValueError):
+        return None
+
+
+def _rows_from_layout(layout: Any) -> int:
+    if isinstance(layout, Mapping):
+        dims = layout.get("dim")
+        if isinstance(dims, Sequence) and dims and isinstance(dims[0], Mapping):
+            size = dims[0].get("size")
+            if isinstance(size, int) and size > 0:
+                return size
+    return 6
+
+
 __all__ = [
+    "MANIPULABILITY_FIELD_PATH",
     "JacobianMatrix",
+    "ManipulabilityDerivingGateway",
     "ManipulabilityError",
     "ManipulabilityScale",
     "jacobian_from_float_array",
+    "measure_from_sample_value",
     "yoshikawa_manipulability",
 ]
