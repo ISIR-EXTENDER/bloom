@@ -631,6 +631,35 @@ export function normalizeWidgetSettings(
 }
 
 /**
+ * How many increments a slider should offer across its full travel.
+ *
+ * Robin's rule from driving the arm: about 20 stops over the slider's length.
+ * Finer than that and the on-glass thumb cannot be placed reliably; coarser
+ * and the velocity axes lose the low end.
+ */
+export const SLIDER_TARGET_INCREMENTS = 20;
+
+/**
+ * A step that gives roughly {@link SLIDER_TARGET_INCREMENTS} increments over
+ * `min..max`, snapped to a round number (1 / 2 / 2.5 / 5 × 10ⁿ) so readouts
+ * stay legible. Falls back to the contract default for a degenerate range.
+ */
+export function deriveSliderStep(min: number, max: number): number {
+  const range = Math.abs(max - min);
+  if (!Number.isFinite(range) || range <= 0) {
+    return SLIDER_DEFAULT_SETTINGS.step;
+  }
+
+  const rawStep = range / SLIDER_TARGET_INCREMENTS;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const roundStep = [1, 2, 2.5, 5, 10]
+    .map((multiplier) => multiplier * magnitude)
+    .reduce((best, candidate) => (Math.abs(candidate - rawStep) < Math.abs(best - rawStep) ? candidate : best));
+  // 2.5 × 10ⁿ accumulates float noise (0.025000000000000001); trim it.
+  return Number.parseFloat(roundStep.toPrecision(3));
+}
+
+/**
  * Accept the snake_case slider keys that configs in the wild actually carry.
  *
  * The contract names these `direction` and `returnToCenter`, but seeds and

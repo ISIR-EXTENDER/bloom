@@ -120,3 +120,45 @@ describe("reading widgets in the inspector", () => {
     expect(screen.queryByText("Publishes to")).toBeNull();
   });
 });
+
+describe("slider step follows the range", () => {
+  afterEach(cleanup);
+
+  // Feedback from driving the arm: a slider should keep about 20 increments
+  // across its travel. Editing the range used to leave step untouched, so
+  // raising "maximum" quietly changed how the slider feels under a finger.
+
+  it("retunes step to ~20 increments when maximum changes", () => {
+    const onUpdateSettings = renderEditor({ direction: "vertical", max: 1, min: -1, step: 0.01 });
+
+    fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "9" } });
+
+    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 9, min: -1, step: 0.5 }));
+  });
+
+  it("retunes step when minimum changes too", () => {
+    const onUpdateSettings = renderEditor({ direction: "vertical", max: 1, min: -1, step: 0.1 });
+
+    fireEvent.change(screen.getByLabelText("Minimum"), { target: { value: "0" } });
+
+    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 1, min: 0, step: 0.05 }));
+  });
+
+  it("leaves a hand-tuned step alone when only the step field is edited", () => {
+    const onUpdateSettings = renderEditor({ direction: "vertical", max: 1, min: -1, step: 0.05 });
+
+    fireEvent.change(screen.getByLabelText("Step"), { target: { value: "0.25" } });
+
+    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 1, min: -1, step: 0.25 }));
+  });
+
+  it("keeps retuning while the author types through intermediate ranges", () => {
+    // An emptied number field coerces to 0, which is a real range: the step
+    // follows it, and follows again when the final value lands.
+    const onUpdateSettings = renderEditor({ direction: "vertical", max: 1, min: -1, step: 0.1 });
+
+    fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "" } });
+
+    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 0, min: -1, step: 0.05 }));
+  });
+});

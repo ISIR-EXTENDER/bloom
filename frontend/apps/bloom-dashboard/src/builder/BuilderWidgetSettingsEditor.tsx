@@ -1,5 +1,6 @@
 import type { WidgetConfig } from "@bloom/api-client";
 import {
+  deriveSliderStep,
   findInertSetting,
   getWidgetSettingsContract,
   normalizeWidgetSettings,
@@ -28,10 +29,22 @@ export function BuilderWidgetSettingsEditor({
   const destination = resolveWidgetDestination(widget.kind, effectiveSettings);
 
   const updateSetting = (field: WidgetSettingField, rawValue: string | boolean) => {
-    const nextSettings = {
+    const nextSettings: Record<string, unknown> = {
       ...widget.settings,
       [field.key]: coerceFieldValue(field, rawValue),
     };
+    // Feedback from driving the arm: a slider should keep about 20 increments
+    // across its travel. Editing the range used to leave step where it was,
+    // so raising "maximum" quietly turned a 20-stop slider into a 200-stop
+    // one unless the author remembered to retune step by hand. Step follows
+    // the range now; editing the step field directly still overrides it.
+    if (widget.kind === "slider" && (field.key === "min" || field.key === "max")) {
+      const min = readFiniteNumber(nextSettings.min ?? effectiveSettings.min);
+      const max = readFiniteNumber(nextSettings.max ?? effectiveSettings.max);
+      if (min !== undefined && max !== undefined && max !== min) {
+        nextSettings.step = deriveSliderStep(min, max);
+      }
+    }
     setValidationMessage(onUpdateSettings(nextSettings));
   };
 
@@ -201,6 +214,10 @@ function BuilderSettingsField({
       />
     </label>
   );
+}
+
+function readFiniteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function coerceFieldValue(field: WidgetSettingField, rawValue: string | boolean): unknown {

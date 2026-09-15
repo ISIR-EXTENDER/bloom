@@ -24,6 +24,7 @@ import {
   createWidgetConfigFromDefinition,
   createWidgetRegistry,
   DEFAULT_WIDGET_DEFINITIONS,
+  deriveSliderStep,
   duplicateWidgetInScreen,
   findMatchingRosMessageCommandPreset,
   findMatchingRosMessageTogglePreset,
@@ -357,6 +358,21 @@ describe("widget settings contracts", () => {
         unit: "",
       },
     });
+  });
+
+  it("derives a slider step of about twenty round increments from the range", () => {
+    // Feedback from driving the arm: ~20 stops across the slider's travel,
+    // snapped to round numbers so the readout stays legible.
+    expect(deriveSliderStep(-1, 1)).toBe(0.1);
+    expect(deriveSliderStep(0, 1)).toBe(0.05);
+    expect(deriveSliderStep(0, 0.5)).toBe(0.025);
+    expect(deriveSliderStep(-1, 9)).toBe(0.5);
+    expect(deriveSliderStep(0, 100)).toBe(5);
+  });
+
+  it("falls back to the contract default step for a degenerate range", () => {
+    expect(deriveSliderStep(1, 1)).toBe(0.01);
+    expect(deriveSliderStep(0, Number.POSITIVE_INFINITY)).toBe(0.01);
   });
 
   it("accepts the snake_case slider keys configs in the wild carry", () => {
