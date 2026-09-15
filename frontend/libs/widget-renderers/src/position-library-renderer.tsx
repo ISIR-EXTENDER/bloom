@@ -132,9 +132,9 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
       </div>
 
       {snapshot?.exportYaml ? (
-        <pre aria-label="Manager joint-target parameters" className="bloom-position-yaml">
-          {snapshot.exportYaml}
-        </pre>
+        <section aria-label="Manager joint-target parameters" className="bloom-position-yaml">
+          <pre>{snapshot.exportYaml}</pre>
+        </section>
       ) : null}
 
       <p aria-live="polite" className="bloom-position-notice" role="status">

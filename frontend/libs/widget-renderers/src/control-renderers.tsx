@@ -83,7 +83,7 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
           </strong>
           <span>step</span>
         </header>
-        <div aria-label={`${descriptor.widget.title} step controls`} className="bloom-slider-stepper" role="group">
+        <fieldset aria-label={`${descriptor.widget.title} step controls`} className="bloom-slider-stepper">
           <button
             aria-label={`Increase ${descriptor.widget.title} by ${step}`}
             className="bloom-slider-step-button"
@@ -116,7 +116,7 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
           >
             &minus;
           </button>
-        </div>
+        </fieldset>
       </div>
     );
   }
@@ -324,7 +324,7 @@ function StepZoneJoystick({
         <strong>{descriptor.widget.title}</strong>
         <span>step</span>
       </header>
-      <div aria-label={`${descriptor.widget.title} step targets`} className="bloom-step-zones" role="group">
+      <fieldset aria-label={`${descriptor.widget.title} step targets`} className="bloom-step-zones">
         <button
           aria-label={`${labels.top}, one step`}
           className="bloom-step-zone"
@@ -370,7 +370,7 @@ function StepZoneJoystick({
         >
           {labels.bottom}
         </button>
-      </div>
+      </fieldset>
       <output aria-live="polite" className="bloom-control-vector-readout">
         <span>x {currentVector.x.toFixed(2)}</span>
         <span>y {currentVector.y.toFixed(2)}</span>

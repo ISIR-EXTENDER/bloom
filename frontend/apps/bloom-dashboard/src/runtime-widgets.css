@@ -1538,6 +1538,10 @@
   border: 1px solid var(--bloom-outline);
   border-radius: 10px;
   background: var(--bloom-surface-soft);
+}
+
+.bloom-position-yaml pre {
+  margin: 0;
   font-size: 12px;
 }
 
@@ -1652,4 +1656,12 @@
   font-size: 15px;
   font-weight: 700;
   color: var(--bloom-on-surface);
+}
+
+fieldset.bloom-step-zones,
+fieldset.bloom-slider-stepper {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-inline-size: 0;
 }
