@@ -1,4 +1,11 @@
-import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export type JoystickVector = {
   x: number;
@@ -28,6 +35,14 @@ export type JoystickPrimitiveProps = {
 };
 
 const DEFAULT_COLOR = "#7fa95f";
+
+const KEYBOARD_STEP = 0.1;
+const KEY_VECTORS: Record<string, JoystickVector> = {
+  ArrowDown: { x: 0, y: -1 },
+  ArrowLeft: { x: -1, y: 0 },
+  ArrowRight: { x: 1, y: 0 },
+  ArrowUp: { x: 0, y: 1 },
+};
 
 export function JoystickPrimitive({
   color = DEFAULT_COLOR,
@@ -70,6 +85,62 @@ export function JoystickPrimitive({
     },
     [emitVector, zeroOnRelease],
   );
+
+  // A keyboard is also a switch interface: arrows nudge the vector, holding
+  // one repeats, releasing every arrow is the release, Escape zeroes.
+  const pressedKeysRef = useRef(new Set<string>());
+  const vectorRef = useRef(vector);
+  vectorRef.current = vector;
+
+  const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape" || event.key === "Home") {
+      event.preventDefault();
+      pressedKeysRef.current.clear();
+      emitVector({ x: 0, y: 0 });
+      onInteractionEndRef.current?.();
+      return;
+    }
+    const direction = KEY_VECTORS[event.key];
+    if (!direction) {
+      return;
+    }
+    event.preventDefault();
+    if (pressedKeysRef.current.size === 0) {
+      onInteractionStartRef.current?.();
+    }
+    pressedKeysRef.current.add(event.key);
+    const current = vectorRef.current;
+    emitVector(
+      clampToUnitDisk({
+        x: Number((current.x + direction.x * KEYBOARD_STEP).toFixed(2)),
+        y: Number((current.y + direction.y * KEYBOARD_STEP).toFixed(2)),
+      }),
+    );
+  };
+
+  const handleKeyUp = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!KEY_VECTORS[event.key]) {
+      return;
+    }
+    pressedKeysRef.current.delete(event.key);
+    if (pressedKeysRef.current.size === 0) {
+      onInteractionEndRef.current?.();
+      if (zeroOnRelease) {
+        emitVector({ x: 0, y: 0 });
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    if (pressedKeysRef.current.size === 0) {
+      return;
+    }
+    pressedKeysRef.current.clear();
+    onInteractionEndRef.current?.();
+    if (zeroOnRelease) {
+      emitVector({ x: 0, y: 0 });
+    }
+  };
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     pointerIdRef.current = event.pointerId;
@@ -126,7 +197,11 @@ export function JoystickPrimitive({
     <div
       aria-label={title}
       className="bloom-joystick"
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      onKeyUp={handleKeyUp}
       role="application"
+      tabIndex={0}
       style={{
         ["--bloom-joystick-knob-size" as string]: `${knobDiameter}px`,
         ["--bloom-joystick-knob-x" as string]: `${vector.x * visualTravelRadius}px`,
@@ -183,7 +258,15 @@ export function JoystickPrimitive({
   );
 }
 
-export function readPointerVector(
+export function clampToUnitDisk(vector: JoystickVector): JoystickVector {
+  const magnitude = Math.hypot(vector.x, vector.y);
+  if (magnitude <= 1) {
+    return vector;
+  }
+  return { x: Number((vector.x / magnitude).toFixed(2)), y: Number((vector.y / magnitude).toFixed(2)) };
+}
+
+function readPointerVector(
   event: Pick<PointerEvent, "clientX" | "clientY"> | Pick<ReactPointerEvent, "clientX" | "clientY">,
   zone: HTMLElement,
   deadzone: number,

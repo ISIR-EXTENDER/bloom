@@ -171,3 +171,56 @@ describe("the latch preset", () => {
     expect(screen.getByRole("button", { name: "Zero Translation" })).toBeTruthy();
   });
 });
+
+describe("driving the joystick from a keyboard", () => {
+  afterEach(cleanup);
+
+  it("nudges with arrows while held and zeroes on release", () => {
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={descriptors().joystick} onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+
+    fireEvent.keyDown(pad, { key: "ArrowUp" });
+    fireEvent.keyDown(pad, { key: "ArrowUp" });
+    fireEvent.keyUp(pad, { key: "ArrowUp" });
+
+    const values = onActionIntent.mock.calls.map(([intent]) => intent.value);
+    expect(values[0]).toEqual({ x: 0, y: 0.1 });
+    expect(values[1]).toEqual({ x: 0, y: 0.2 });
+    expect(values.at(-1)).toEqual({ x: 0, y: 0 });
+  });
+
+  it("keeps the vector on release under the latch preset", () => {
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="latch" onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+
+    fireEvent.keyDown(pad, { key: "ArrowRight" });
+    fireEvent.keyUp(pad, { key: "ArrowRight" });
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0.1, y: 0 });
+  });
+
+  it("zeroes immediately on Escape", () => {
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="latch" onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+
+    fireEvent.keyDown(pad, { key: "ArrowRight" });
+    fireEvent.keyUp(pad, { key: "ArrowRight" });
+    fireEvent.keyDown(pad, { key: "Escape" });
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0 });
+  });
+
+  it("treats losing focus as a release, never as a held command", () => {
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={descriptors().joystick} onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+
+    fireEvent.keyDown(pad, { key: "ArrowUp" });
+    fireEvent.blur(pad);
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0 });
+  });
+});

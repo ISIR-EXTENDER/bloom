@@ -108,6 +108,12 @@ export function RuntimeKioskBar({
         <button
           aria-label="Hold to open maintenance"
           className="runtime-kiosk-maintenance"
+          onKeyDown={(event) => {
+            if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
+              holdProgress.start();
+            }
+          }}
+          onKeyUp={holdProgress.cancel}
           onPointerCancel={holdProgress.cancel}
           onPointerDown={holdProgress.start}
           onPointerLeave={holdProgress.cancel}
