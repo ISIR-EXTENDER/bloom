@@ -69,7 +69,7 @@ def test_outgoing_commands_carry_no_timestamp(monkeypatch) -> None:
 
 
 def test_outgoing_commands_still_carry_the_frame(monkeypatch) -> None:
-    """A command in the wrong frame is dropped silently; that must not regress."""
+    """The manager needs a known rotation frame on every command."""
     message = build_message(monkeypatch)
 
     assert message.header.frame_id == "base_link"

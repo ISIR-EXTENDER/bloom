@@ -292,7 +292,12 @@ async function dispatchTeleopValueIntent(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
   options: RuntimeActionDispatchOptions,
 ): Promise<RuntimeActionDispatchResult> {
-  const request = createTeleopCommandRequest(intent, options.teleopSequence ?? 0, options.teleopComposer);
+  const request = createTeleopCommandRequest(
+    intent,
+    options.teleopSequence ?? 0,
+    options.teleopComposer,
+    options.runtimePolicy?.command_frame_id,
+  );
   if (request) {
     const policyError = validateTeleopCommandRequest(request, options.runtimePolicy);
     if (policyError) {
@@ -426,6 +431,7 @@ export function createTeleopCommandRequest(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
   sequence = 0,
   composer?: TeleopTwistComposer,
+  commandFrameId = "",
 ): RuntimeTeleopCommandRequest | null {
   const runtimeBinding = getRecord(intent.runtimeBinding);
   if (getOptionalString(runtimeBinding, "adapter") !== "teleop") {
@@ -435,7 +441,9 @@ export function createTeleopCommandRequest(
   const valueMapping = getRecord(runtimeBinding.value_mapping);
   const mode = getOptionalNumber(valueMapping, "mode") ?? resolveTeleopMode(intent.modeId);
   const target = resolveTeleopTarget(valueMapping);
-  const frameId = getOptionalString(valueMapping, "frame_id");
+  // The app-level frame wins so every axis on the virtual IHM shares one
+  // reference. Per-widget values remain a backwards-compatible fallback.
+  const frameId = commandFrameId.trim() || getOptionalString(valueMapping, "frame_id");
 
   const contribution = teleopContributionFromIntent(intent, runtimeBinding);
   if (!contribution) {

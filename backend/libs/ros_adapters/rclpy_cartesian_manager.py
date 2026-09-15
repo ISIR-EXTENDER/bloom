@@ -5,10 +5,11 @@ layer. It expects ``geometry_msgs/msg/TwistStamped`` on an input topic, by
 default ``/joystick_cartesian_command``, rather than the Extender-specific
 ``extender_msgs/msg/TeleopCommand`` on ``/teleop_cmd``.
 
-The frame matters more than anything else here. ``cartesian_manager`` performs
-no TF conversion: a command whose ``header.frame_id`` is neither empty nor the
-manager's configured ``default_input_frame_id`` is dropped, and the robot
-silently stops. Every command is therefore stamped with a configured frame.
+The frame matters more than anything else here. ``cartesian_manager`` accepts
+its configured base, end-effector, and hybrid frames and rotates angular
+commands into base coordinates from its live robot context; it does not perform
+a general TF lookup. Unknown frames are skipped, so Bloom validates the
+deployment allowlist and stamps every command explicitly.
 
 The manager also *sums* all activated inputs rather than arbitrating between
 them, so a Bloom twist adds to whatever a joystick or visual servoing is doing.

@@ -110,6 +110,7 @@ export function ProductWorkspace({
     return (
       <BuilderProductWorkspace
         runtimeCapabilities={runtimeCapabilities}
+        runtimeCapabilityReport={runtimeCapabilityReport}
         builderMode={builderMode}
         onChangeBuilderMode={onChangeBuilderMode}
         onCreateApplication={onCreateApplication}
@@ -164,6 +165,7 @@ export function ProductWorkspace({
 
 type BuilderProductWorkspaceProps = {
   runtimeCapabilities: readonly RuntimeCapability[] | null;
+  runtimeCapabilityReport: RuntimeCapabilityReport | null;
   builderMode: BuilderMode;
   onChangeBuilderMode: (mode: BuilderMode) => void;
   onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
@@ -180,6 +182,7 @@ type BuilderProductWorkspaceProps = {
 
 function BuilderProductWorkspace({
   runtimeCapabilities,
+  runtimeCapabilityReport,
   builderMode,
   onChangeBuilderMode,
   onCreateApplication,
@@ -226,6 +229,7 @@ function BuilderProductWorkspace({
         }}
         onSaveApplication={onSaveApplication}
         onUploadThemeAsset={onUploadThemeAsset}
+        runtimeCapabilityReport={runtimeCapabilityReport}
         selection={selection}
       />
     );

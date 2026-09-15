@@ -140,6 +140,7 @@ function normalizeActionPresets(presets: PartialRuntimeActionPreset[] | undefine
 
 function normalizeRuntimePolicy(policy: PartialRuntimeAdapterPolicy | undefined): RuntimeAdapterPolicy {
   return {
+    command_frame_id: asString(policy?.command_frame_id, DEFAULT_RUNTIME_POLICY.command_frame_id ?? ""),
     allowed_message_types: asStringArray(policy?.allowed_message_types, DEFAULT_RUNTIME_POLICY.allowed_message_types),
     allowed_publish_topics: asStringArray(
       policy?.allowed_publish_topics,

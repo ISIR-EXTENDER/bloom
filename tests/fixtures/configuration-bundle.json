@@ -11,6 +11,7 @@
       "description": "Sandbox operator interface",
       "lifecycle": "active",
       "runtime_policy": {
+        "command_frame_id": "",
         "allowed_message_types": ["std_msgs/msg/Int32MultiArray"],
         "allowed_publish_topics": ["/ui/ros_toggle"],
         "allowed_recording_topics": [],

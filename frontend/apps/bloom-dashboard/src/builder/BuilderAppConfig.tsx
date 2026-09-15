@@ -1,4 +1,10 @@
-import type { ApplicationConfig, RuntimeActionPreset, RuntimeAdapterPolicy, ScreenConfig } from "@bloom/api-client";
+import type {
+  ApplicationConfig,
+  RuntimeActionPreset,
+  RuntimeAdapterPolicy,
+  RuntimeCapabilityReport,
+  ScreenConfig,
+} from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, type BloomThemePresetId } from "@bloom/ui";
 import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
@@ -28,6 +34,7 @@ type BuilderAppConfigProps = {
   onOpenScreenBuilder: (selection: WorkspaceSelection) => void;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onUploadThemeAsset: (file: File) => Promise<string>;
+  runtimeCapabilityReport: RuntimeCapabilityReport | null;
   selection: WorkspaceSelection;
 };
 
@@ -95,6 +102,7 @@ export function BuilderAppConfig({
   onOpenScreenBuilder,
   onSaveApplication,
   onUploadThemeAsset,
+  runtimeCapabilityReport,
   selection,
 }: BuilderAppConfigProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
@@ -112,6 +120,12 @@ export function BuilderAppConfig({
   const isSaving = saveState.status === "saving";
   const themeInspiration = draftApplication.theme.inspiration ?? DEFAULT_THEME_INSPIRATION;
   const palettePreview = Object.entries(draftApplication.theme.palette);
+  const commandFrameIds = Array.from(
+    new Set([
+      ...(runtimeCapabilityReport?.command_frame_ids ?? []),
+      ...(draftApplication.runtime_policy.command_frame_id ? [draftApplication.runtime_policy.command_frame_id] : []),
+    ]),
+  );
 
   useEffect(() => {
     setDraftApplication(application);
@@ -382,6 +396,33 @@ export function BuilderAppConfig({
               These lists help the runtime block accidental commands before they reach backend safety policies. Leave a
               list empty only for unrestricted local demos.
             </p>
+            <label className="builder-settings-field">
+              <span>Cartesian command frame</span>
+              <select
+                onChange={(event) => {
+                  setDraftApplication((currentApplication) => ({
+                    ...currentApplication,
+                    runtime_policy: {
+                      ...currentApplication.runtime_policy,
+                      command_frame_id: event.target.value,
+                    },
+                  }));
+                  setSaveState({ status: "idle" });
+                }}
+                value={draftApplication.runtime_policy.command_frame_id ?? ""}
+              >
+                <option value="">
+                  {runtimeCapabilityReport?.command_frame_id
+                    ? `Backend default (${runtimeCapabilityReport.command_frame_id})`
+                    : "Backend default"}
+                </option>
+                {commandFrameIds.map((frameId) => (
+                  <option key={frameId} value={frameId}>
+                    {frameId}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button className="builder-secondary-action" onClick={syncRuntimePolicyFromActionPresets} type="button">
               Sync publish guardrails from presets
             </button>

@@ -280,6 +280,7 @@ def test_application_accepts_runtime_adapter_policy_for_app_specific_safety() ->
             "id": "petanque",
             "name": "Petanque",
             "runtime_policy": {
+                "command_frame_id": "  hybrid_frame  ",
                 "allowed_message_types": ["std_msgs/msg/String"],
                 "allowed_publish_topics": ["/petanque_state_machine/change_state"],
                 "allowed_recording_topics": ["/rosout"],
@@ -288,6 +289,7 @@ def test_application_accepts_runtime_adapter_policy_for_app_specific_safety() ->
         }
     )
 
+    assert application.runtime_policy.command_frame_id == "hybrid_frame"
     assert application.runtime_policy.allowed_message_types == ("std_msgs/msg/String",)
     assert application.runtime_policy.allowed_publish_topics == ("/petanque_state_machine/change_state",)
     assert application.runtime_policy.allowed_recording_topics == ("/rosout",)

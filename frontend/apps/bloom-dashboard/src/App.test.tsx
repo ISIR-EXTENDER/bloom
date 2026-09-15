@@ -648,6 +648,32 @@ describe("App", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
   });
 
+  it("selects one supported Cartesian command frame for the whole app", async () => {
+    const configurationClient = createConfigurationClient();
+    const runtimeActionClient = createRuntimeActionClient();
+    runtimeActionClient.listRuntimeCapabilities = vi.fn(async () => ({
+      capabilities: [],
+      command_frame_id: "base_link",
+      command_frame_ids: ["base_link", "ft_frame", "hybrid_frame"],
+      robot_name: "Explorer",
+    }));
+
+    render(<App configurationClient={configurationClient} runtimeActionClient={runtimeActionClient} />);
+
+    await openAppConfig();
+    const frameSelect = await screen.findByLabelText("Cartesian command frame");
+    expect(within(frameSelect).getByRole("option", { name: "Backend default (base_link)" })).toBeVisible();
+    fireEvent.change(frameSelect, { target: { value: "hybrid_frame" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save app" }));
+
+    await waitFor(() => {
+      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+    });
+    expect(configurationClient.upsertApplication.mock.calls[0]?.[1]?.runtime_policy.command_frame_id).toBe(
+      "hybrid_frame",
+    );
+  });
+
   it("saves runtime guardrails and reusable command presets from app configuration", async () => {
     const configurationClient = createConfigurationClient();
 

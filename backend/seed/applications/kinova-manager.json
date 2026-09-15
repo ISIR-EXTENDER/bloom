@@ -62,6 +62,7 @@
         }
       ],
       "runtime_policy": {
+        "command_frame_id": "base_link",
         "allowed_message_types": [
           "geometry_msgs/msg/PoseStamped",
           "geometry_msgs/msg/TwistStamped",

@@ -154,19 +154,22 @@ ROS/simulation controller path rather than Bloom's runtime transport.
 
 ### Check the frame first
 
-`cartesian_manager` performs no TF conversion. A command whose `header.frame_id` is neither empty nor the manager's
-`default_input_frame_id` is discarded, and the robot simply stops with only a warning in the manager log. This looks
-exactly like a broken web stack and is the fastest thing to rule out:
+`cartesian_manager` accepts its configured base, end-effector, and hybrid frames and rotates angular commands from
+the latter two using live robot poses. It performs no general TF lookup. An unknown `header.frame_id` is skipped, which
+looks exactly like a broken web stack and is the fastest thing to rule out:
 
 ```bash
-# what the manager expects
-ros2 param get /cartesian_manager default_input_frame_id
+# the manager default and known frames
+ros2 param get /cartesian_manager frames.default_input_frame_id
+ros2 param get /cartesian_manager frames.base_frame
+ros2 param get /cartesian_manager frames.ee_frame
+ros2 param get /cartesian_manager frames.hybrid_frame
 
 # what Bloom is stamping
 echo $BLOOM_ROS_COMMAND_FRAME_ID
 
-# the warning, if the frame is wrong
-ros2 topic echo /rosout | grep -i "Ignoring joystick command in frame"
+# Bloom's accepted set must match the deployment
+echo $BLOOM_ALLOWED_COMMAND_FRAME_IDS
 ```
 
 ### Check the mode is understood

@@ -225,6 +225,29 @@ def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
     assert "/cmd/max_velocity" not in topics
 
 
+@pytest.mark.parametrize("config_id", ["explorer-manager", "kinova-manager"])
+def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> None:
+    """The experiment UI replaces every physical joystick input on one screen."""
+    path = DEFAULT_SEED_DIR / f"{config_id}.json"
+    bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
+    application = bundle.applications[0]
+    drive = next(screen for screen in application.screens if screen.id == "manager_drive")
+    widgets = {widget.id: widget for widget in drive.widgets}
+
+    assert application.runtime_policy.command_frame_id == "base_link"
+    assert {widgets[widget_id].kind.value for widget_id in ("drive-translation", "drive-rotation")} == {"joystick"}
+    assert {widgets[widget_id].kind.value for widget_id in ("drive-z", "drive-rz")} == {"slider"}
+    assert {
+        widget_id
+        for widget_id in ("drive-gripper", "drive-mode-both", "drive-mode-jaco", "drive-snake-hold")
+        if widget_id in widgets
+    } == {"drive-gripper", "drive-mode-both", "drive-mode-jaco", "drive-snake-hold"}
+
+    for widget_id in ("drive-translation", "drive-rotation", "drive-z", "drive-rz"):
+        value_mapping = widgets[widget_id].settings["runtime_binding"].get("value_mapping", {})
+        assert value_mapping["target_topic"] == "/joystick_cartesian_command"
+
+
 # Sizes of the canvas presets operator apps target, from CANVAS_PRESETS in
 # frontend/libs/widgets/src/index.ts.
 OPERATOR_CANVAS_SIZES = {

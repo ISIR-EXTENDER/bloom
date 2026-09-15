@@ -82,12 +82,16 @@ Only when the release changes robot-facing behaviour.
 
 - [ ] `BLOOM_ROS_COMMAND_BACKEND` matches the control stack actually running
       (`cartesian_manager`, or `teleop_command` for the legacy path).
-- [ ] `BLOOM_ROS_COMMAND_FRAME_ID` matches the manager's
-      `default_input_frame_id`. A mismatch is discarded silently and looks
+- [ ] `BLOOM_ROS_COMMAND_FRAME_ID`, `BLOOM_ALLOWED_COMMAND_FRAME_IDS`, and any
+      app-level Cartesian command frame match the manager's configured base,
+      end-effector, or hybrid frames. An unknown frame is skipped and looks
       exactly like a broken web stack:
 
 ```bash
-ros2 param get /cartesian_manager default_input_frame_id
+ros2 param get /cartesian_manager frames.default_input_frame_id
+ros2 param get /cartesian_manager frames.base_frame
+ros2 param get /cartesian_manager frames.ee_frame
+ros2 param get /cartesian_manager frames.hybrid_frame
 ```
 
 - [ ] Bench check against a live manager: teleop reaches `/cartesian_command`,

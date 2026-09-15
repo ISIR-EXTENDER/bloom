@@ -120,17 +120,21 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
    * the dispatcher: the pump already owns the streaming contract, and the
    * dispatch record list is for operator actions, not a stick at 20Hz.
    */
-  const contributeTeleop = useCallback((sourceId: string, contribution: ComponentContribution | null) => {
-    if (contribution === null) {
-      teleopComposer.current.release(sourceId);
-    } else {
-      teleopComposer.current.contribute(sourceId, contribution);
-    }
-    teleopPump.current?.noteExternalContribution({
-      target: "/joystick_cartesian_command",
-      mode: 0,
-    });
-  }, []);
+  const contributeTeleop = useCallback(
+    (sourceId: string, contribution: ComponentContribution | null, commandFrameId = "") => {
+      if (contribution === null) {
+        teleopComposer.current.release(sourceId);
+      } else {
+        teleopComposer.current.contribute(sourceId, contribution);
+      }
+      teleopPump.current?.noteExternalContribution({
+        ...(commandFrameId ? { frame_id: commandFrameId } : {}),
+        target: "/joystick_cartesian_command",
+        mode: 0,
+      });
+    },
+    [],
+  );
 
   return { contributeTeleop, dispatch, records, subscribeTopic };
 }

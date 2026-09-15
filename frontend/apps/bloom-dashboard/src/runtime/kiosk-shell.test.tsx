@@ -72,8 +72,8 @@ describe("the kiosk bar", () => {
   });
 
   it("names the frame commands are stamped with", () => {
-    // cartesian_manager does no TF conversion: a command in another frame is
-    // dropped and the arm stops, which looks exactly like a broken UI.
+    // The frame decides whether rotation follows the base, end effector, or
+    // hybrid operator mapping, so it cannot remain invisible.
     renderBar();
 
     expect(screen.getByText("base_link")).toBeTruthy();

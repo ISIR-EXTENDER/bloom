@@ -19,6 +19,7 @@ describe("normalizeConfigurationBundle", () => {
       payloadOff: { data: [13, 0] },
       topic: "/ui/ros_toggle",
     });
+    expect(normalizedBundle.applications[0]?.runtime_policy.command_frame_id).toBe("");
   });
 
   it("keeps the Sandbox V0.0 six-screen runtime configuration intact", () => {
