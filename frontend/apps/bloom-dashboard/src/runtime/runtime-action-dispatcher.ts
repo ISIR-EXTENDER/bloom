@@ -24,6 +24,8 @@ export type RuntimeVector3 = {
 
 export type RuntimeTeleopCommandRequest = {
   angular: RuntimeVector3;
+  /** Rotation frame for cartesian_manager; omitted uses the backend default. */
+  frame_id?: string;
   linear: RuntimeVector3;
   mode: number;
   seq: number;
@@ -422,6 +424,7 @@ export function createTeleopCommandRequest(
   const valueMapping = getRecord(runtimeBinding.value_mapping);
   const mode = getOptionalNumber(valueMapping, "mode") ?? resolveTeleopMode(intent.modeId);
   const target = resolveTeleopTarget(valueMapping);
+  const frameId = getOptionalString(valueMapping, "frame_id");
 
   const contribution = teleopContributionFromIntent(intent, runtimeBinding);
   if (!contribution) {
@@ -435,6 +438,7 @@ export function createTeleopCommandRequest(
     return {
       type: "teleop_cmd",
       angular: twist.angular,
+      ...(frameId ? { frame_id: frameId } : {}),
       linear: twist.linear,
       mode,
       seq: sequence,
@@ -450,6 +454,7 @@ export function createTeleopCommandRequest(
   return {
     type: "teleop_cmd",
     angular: twist.angular,
+    ...(frameId ? { frame_id: frameId } : {}),
     linear: twist.linear,
     mode,
     seq: sequence,

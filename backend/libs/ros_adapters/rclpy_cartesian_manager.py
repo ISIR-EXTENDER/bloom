@@ -49,8 +49,9 @@ class RclpyCartesianManagerGateway:
         publisher.publish(self._to_ros_message(command))
         if self._flush_after_publish:
             self._flush_once()
+        frame_id = command.frame_id or self._command_frame_id
         return TeleopPublishReceipt(
-            detail=f"Cartesian command published in frame '{self._command_frame_id or '<manager default>'}'.",
+            detail=f"Cartesian command published in frame '{frame_id or '<manager default>'}'.",
             status="accepted",
             target=command.target,
         )
@@ -85,7 +86,7 @@ class RclpyCartesianManagerGateway:
         # command never expires and the manager's fail-to-zero -- the one
         # safety property this chain actually has -- is silently defeated.
         # Staleness belongs to the node that owns the timeout.
-        message.header.frame_id = self._command_frame_id
+        message.header.frame_id = command.frame_id or self._command_frame_id
         message.twist.linear.x = float(command.linear.x)
         message.twist.linear.y = float(command.linear.y)
         message.twist.linear.z = float(command.linear.z)

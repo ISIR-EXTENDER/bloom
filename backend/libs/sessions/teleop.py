@@ -20,6 +20,8 @@ class TeleopCommand:
     mode: int
     seq: int
     target: str = "/joystick_cartesian_command"
+    #: Rotation frame for cartesian_manager; empty uses the configured default.
+    frame_id: str = ""
 
 
 @dataclass(frozen=True)

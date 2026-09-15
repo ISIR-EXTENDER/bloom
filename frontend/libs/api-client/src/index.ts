@@ -248,6 +248,8 @@ export type RuntimeCapability = {
 export type RuntimeCapabilitiesResponse = {
   capabilities: RuntimeCapability[];
   command_frame_id: string;
+  /** Frames cartesian_manager accepts as rotation references. */
+  command_frame_ids?: string[];
 };
 
 /** Capabilities plus the frame operator commands are stamped with. */

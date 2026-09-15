@@ -287,6 +287,39 @@ describe("runtime action dispatcher", () => {
     });
   });
 
+  it("carries a bound rotation frame into the teleop command", () => {
+    const intent = createTeleopValueIntent({
+      modeId: "rotation",
+      runtimeBinding: {
+        adapter: "teleop",
+        value_mapping: {
+          frame_id: "ft_frame",
+          target_topic: "/joystick_cartesian_command",
+        },
+      },
+      value: { x: 0.25, y: 0 },
+    });
+
+    expect(createTeleopCommandRequest(intent, 3)).toMatchObject({
+      type: "teleop_cmd",
+      frame_id: "ft_frame",
+      target: "/joystick_cartesian_command",
+    });
+  });
+
+  it("omits frame_id entirely when no frame is bound, keeping the backend default", () => {
+    const intent = createTeleopValueIntent({
+      modeId: "translation",
+      runtimeBinding: {
+        adapter: "teleop",
+        value_mapping: { target_topic: "/joystick_cartesian_command" },
+      },
+      value: { x: 0.25, y: 0 },
+    });
+
+    expect(createTeleopCommandRequest(intent, 3)).not.toHaveProperty("frame_id");
+  });
+
   it("keeps Explorer teleop mode overrides in app configuration", () => {
     const intent = createTeleopValueIntent({
       modeId: "both",

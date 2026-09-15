@@ -21,11 +21,10 @@ class RuntimeCapabilityResponse(BaseModel):
 
 class RuntimeCapabilitiesResponse(BaseModel):
     capabilities: list[RuntimeCapabilityResponse]
-    # The frame every operator command is stamped with. cartesian_manager does
-    # no TF conversion, so a command in any other frame is dropped and the arm
-    # simply stops -- which is why the runtime names the frame on screen rather
-    # than leaving it in a config file (finding 11).
+    # Default stamp for operator commands, named on screen (finding 11).
     command_frame_id: str
+    # Frames cartesian_manager accepts as rotation references.
+    command_frame_ids: list[str]
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -52,5 +51,6 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
             for capability in describe_runtime_capabilities(request.app.state)
         ],
         command_frame_id=settings.ros_command_frame_id,
+        command_frame_ids=list(settings.allowed_command_frame_ids),
     )
 

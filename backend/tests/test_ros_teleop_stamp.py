@@ -33,7 +33,7 @@ class FakeTwistStamped:
         self.twist = FakeTwist()
 
 
-def build_message(monkeypatch) -> FakeTwistStamped:
+def build_message(monkeypatch, frame_id: str = "") -> FakeTwistStamped:
     gateway = RclpyCartesianManagerGateway.__new__(RclpyCartesianManagerGateway)
     gateway._command_frame_id = "base_link"
     monkeypatch.setattr(
@@ -43,6 +43,7 @@ def build_message(monkeypatch) -> FakeTwistStamped:
     )
     command = TeleopCommand(
         angular=TeleopVector3(),
+        frame_id=frame_id,
         linear=TeleopVector3(x=0.1),
         mode=0,
         seq=1,
@@ -73,3 +74,10 @@ def test_outgoing_commands_still_carry_the_frame(monkeypatch) -> None:
 
     assert message.header.frame_id == "base_link"
     assert message.twist.linear.x == 0.1
+
+
+def test_a_command_frame_overrides_the_configured_default(monkeypatch) -> None:
+    """frame_id selects the manager's rotation frame per command."""
+    message = build_message(monkeypatch, frame_id="ft_frame")
+
+    assert message.header.frame_id == "ft_frame"

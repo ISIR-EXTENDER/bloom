@@ -15,7 +15,7 @@ export class TeleopStreamPump {
   private readonly zeroTailFrames: number;
 
   private timer: ReturnType<typeof setInterval> | null = null;
-  private lastRequest: Pick<RuntimeTeleopCommandRequest, "mode" | "target"> | null = null;
+  private lastRequest: Pick<RuntimeTeleopCommandRequest, "frame_id" | "mode" | "target"> | null = null;
   private lastSentAt = 0;
   private zeroFramesLeft = 0;
 
@@ -39,7 +39,7 @@ export class TeleopStreamPump {
       return;
     }
 
-    this.lastRequest = { mode: request.mode, target: request.target };
+    this.lastRequest = { frame_id: request.frame_id, mode: request.mode, target: request.target };
     this.lastSentAt = Date.now();
     this.zeroFramesLeft = this.zeroTailFrames;
     if (this.timer === null) {
@@ -79,6 +79,7 @@ export class TeleopStreamPump {
     this.send({
       type: "teleop_cmd",
       angular: twist.angular,
+      ...(this.lastRequest.frame_id ? { frame_id: this.lastRequest.frame_id } : {}),
       linear: twist.linear,
       mode: this.lastRequest.mode,
       seq: this.nextSequence(),

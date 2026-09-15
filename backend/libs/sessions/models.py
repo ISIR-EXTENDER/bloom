@@ -42,6 +42,8 @@ class RuntimeVector3Message(RuntimeModel):
 
 class RuntimeTeleopCommandMessage(RuntimeModel):
     type: Literal["teleop_cmd"]
+    # Rotation frame selector for cartesian_manager; empty uses the default.
+    frame_id: str = ""
     mode: int = Field(default=0, ge=0, le=4)
     axes: dict[str, float] = Field(default_factory=dict)
     angular: RuntimeVector3Message = Field(default_factory=RuntimeVector3Message)
@@ -59,6 +61,14 @@ class RuntimeTeleopCommandMessage(RuntimeModel):
         if axes and "linear" not in payload:
             return {**payload, "linear": axes}
         return payload
+
+    @field_validator("frame_id")
+    @classmethod
+    def frame_id_must_be_plain(cls, value: str) -> str:
+        normalized_frame_id = value.strip()
+        if any(character.isspace() for character in normalized_frame_id):
+            raise ValueError("frame_id must not contain whitespace")
+        return normalized_frame_id
 
     @field_validator("target")
     @classmethod

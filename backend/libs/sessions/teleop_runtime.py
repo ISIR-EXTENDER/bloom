@@ -16,6 +16,7 @@ def build_teleop_ack(
     command_policy: RuntimeCommandPolicy | None = None,
     rate_limiter: RuntimeCommandRateLimiter | None = None,
     stop_controller: RuntimeStopController | None = None,
+    allowed_frame_ids: tuple[str, ...] | None = None,
 ) -> RuntimeServerMessage:
     # The stop latch outranks everything, including release zeros.
     stop_reason = stop_controller.rejection_reason() if stop_controller is not None else None
@@ -31,6 +32,27 @@ def build_teleop_ack(
             type="runtime_error",
             detail="Teleop command was rejected: runtime stop is engaged.",
             payload={"code": "runtime_stopped", "message": stop_reason, "target": message.target},
+            session_id=session_id,
+        )
+
+    # cartesian_manager skips a command in a frame it does not know, silently;
+    # Bloom refuses it loudly instead.
+    if message.frame_id and allowed_frame_ids is not None and message.frame_id not in allowed_frame_ids:
+        detail = (
+            f"Frame '{message.frame_id}' is not a command frame the manager knows"
+            f" ({', '.join(allowed_frame_ids) or 'none configured'})."
+        )
+        record_teleop_audit(
+            audit_log,
+            detail=detail,
+            session_id=session_id,
+            status="rejected",
+            target=message.target,
+        )
+        return RuntimeServerMessage(
+            type="runtime_error",
+            detail="Teleop command was rejected: unknown command frame.",
+            payload={"code": "unknown_frame", "message": detail, "target": message.target},
             session_id=session_id,
         )
 
@@ -118,6 +140,7 @@ def build_teleop_ack(
 def to_teleop_command(message: RuntimeTeleopCommandMessage) -> TeleopCommand:
     return TeleopCommand(
         angular=TeleopVector3(**message.angular.model_dump()),
+        frame_id=message.frame_id,
         linear=TeleopVector3(**message.linear.model_dump()),
         mode=message.mode,
         seq=message.seq,

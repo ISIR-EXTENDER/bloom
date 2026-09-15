@@ -96,9 +96,12 @@ class Settings(BaseModel):
         "/visual_servoing/enabled",
     )
     ros_command_backend: Literal["cartesian_manager", "teleop_command"] = Field(default="cartesian_manager")
-    # cartesian_manager does no TF conversion: a command stamped with any
-    # other frame is dropped and the robot silently stops.
+    # Default stamp; must be one of the manager's command frames.
     ros_command_frame_id: str = "base_link"
+    # The frames cartesian_manager accepts as rotation references (its
+    # frames.base_frame / ee_frame / hybrid_frame parameters). frame_id
+    # selects among them; an unknown frame is skipped silently by the manager.
+    allowed_command_frame_ids: tuple[str, ...] = ("base_link", "ft_frame", "hybrid_frame")
     allowed_teleop_targets: tuple[str, ...] = (
         "/joystick_cartesian_command",
         "/teleop_cmd",
@@ -183,6 +186,20 @@ class Settings(BaseModel):
             allowed_teleop_targets=_read_tuple_env(
                 "BLOOM_ALLOWED_TELEOP_TARGETS",
                 cls.model_fields["allowed_teleop_targets"].default,
+            ),
+            allowed_command_frame_ids=_read_tuple_env(
+                "BLOOM_ALLOWED_COMMAND_FRAME_IDS",
+                cls.model_fields["allowed_command_frame_ids"].default,
+            ),
+            # Documented in the README but never read until now.
+            ros_command_backend=_read_literal_env(
+                "BLOOM_ROS_COMMAND_BACKEND",
+                ("cartesian_manager", "teleop_command"),
+                cls.model_fields["ros_command_backend"].default,
+            ),
+            ros_command_frame_id=os.getenv(
+                "BLOOM_ROS_COMMAND_FRAME_ID",
+                cls.model_fields["ros_command_frame_id"].default,
             ),
             allowed_recording_topics=_read_tuple_env(
                 "BLOOM_ALLOWED_RECORDING_TOPICS",

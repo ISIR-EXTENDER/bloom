@@ -73,6 +73,10 @@ def get_runtime_stop_controller(connection: Request | WebSocket) -> RuntimeStopC
     return connection.app.state.runtime_stop_controller
 
 
+def get_allowed_command_frame_ids(connection: Request | WebSocket) -> tuple[str, ...]:
+    return connection.app.state.settings.allowed_command_frame_ids
+
+
 def get_runtime_audit_log(connection: Request | WebSocket) -> RuntimeAuditLog:
     return connection.app.state.runtime_audit_log
 
@@ -744,6 +748,7 @@ async def handle_runtime_client_payload(
             lambda sample: event_loop.call_soon_threadsafe(enqueue_topic_sample, topic_samples, sample),
             topic_subscription_handles,
             get_runtime_stop_controller(websocket),
+            get_allowed_command_frame_ids(websocket),
         ).model_dump()
     )
 
@@ -759,6 +764,7 @@ def build_runtime_ack(
     on_topic_sample: Callable[[RuntimeTopicSample], None] | None = None,
     topic_subscription_handles: list[RuntimeTopicSubscriptionHandle] | None = None,
     stop_controller: RuntimeStopController | None = None,
+    allowed_frame_ids: tuple[str, ...] | None = None,
 ) -> RuntimeServerMessage:
     if isinstance(message, RuntimePingMessage):
         return RuntimeServerMessage(type="pong", detail="Runtime session is alive.", session_id=session_id)
@@ -811,6 +817,7 @@ def build_runtime_ack(
             command_policy=command_policy,
             rate_limiter=rate_limiter,
             stop_controller=stop_controller,
+            allowed_frame_ids=allowed_frame_ids,
         )
 
     return RuntimeServerMessage(type="runtime_error", detail="Unsupported runtime message.", session_id=session_id)

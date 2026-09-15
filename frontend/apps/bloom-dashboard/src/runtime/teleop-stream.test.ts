@@ -126,6 +126,17 @@ describe("the teleop stream pump", () => {
     pump.stop();
   });
 
+  it("keeps the dispatched rotation frame in every heartbeat", async () => {
+    composer.contribute("drive-rz", { angular_z: 0.4 });
+    const pump = createPump();
+
+    pump.noteDispatched(widgetRequest({ frame_id: "ft_frame" }), "sent");
+    await vi.advanceTimersByTimeAsync(60);
+
+    expect(sent.at(-1)).toMatchObject({ frame_id: "ft_frame" });
+    pump.stop();
+  });
+
   it("never starts for a dispatch that already failed", async () => {
     composer.contribute("drive-z", { linear_z: 0.5 });
     const pump = createPump();
