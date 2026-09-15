@@ -1033,6 +1033,34 @@
   box-shadow: 0 0 0 8px color-mix(in srgb, var(--bloom-primary) 22%, transparent);
 }
 
+/* Dwell progress is an external ring, so the control's own fill and state stay
+   readable while a head pointer or eye tracker rests on it. */
+[data-dwell-active] {
+  position: relative;
+}
+
+[data-dwell-active]::after {
+  position: absolute;
+  z-index: 40;
+  inset: -8px;
+  padding: 4px;
+  border-radius: inherit;
+  background: conic-gradient(
+    var(--bloom-primary) calc(var(--bloom-dwell-progress, 0) * 1turn),
+    color-mix(in srgb, var(--bloom-primary) 16%, transparent) 0
+  );
+  content: "";
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
 .runtime-scan-status {
   position: absolute;
   left: 12px;
@@ -1049,6 +1077,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   [data-scan-lit] {
+    transition: none;
+  }
+
+  [data-dwell-active]::after {
     transition: none;
   }
 }

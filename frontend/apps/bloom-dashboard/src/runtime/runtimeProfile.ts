@@ -8,6 +8,7 @@ export type RuntimeProfileViewport = {
 export type ResolvedRuntimeProfile = {
   audioCues: boolean;
   deadzone: number;
+  dwellMs: number;
   repeatGuardMs: number;
   scanPeriodMs: number;
   displayPreset: DisplayPreset;
@@ -20,6 +21,7 @@ export type ResolvedRuntimeProfile = {
 const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
   audioCues: false,
   deadzone: 0,
+  dwellMs: 1000,
   repeatGuardMs: 0,
   scanPeriodMs: 1400,
   displayPreset: "default",
@@ -70,6 +72,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
     return {
       audioCues: profile.audio_cues === true,
       deadzone: clampRange(profile.deadzone, 0, 0.5),
+      dwellMs: clampRange(profile.dwell_ms ?? 1000, 400, 4000),
       repeatGuardMs: clampRange(profile.repeat_guard_ms, 0, 600),
       scanPeriodMs: clampRange(profile.scan_period_ms ?? 1400, 600, 3000),
       displayPreset: profile.display_preset,
@@ -83,6 +86,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
   return {
     audioCues: profile.audioCues,
     deadzone: profile.deadzone,
+    dwellMs: profile.dwellMs,
     repeatGuardMs: profile.repeatGuardMs,
     scanPeriodMs: profile.scanPeriodMs,
     displayPreset: profile.displayPreset,

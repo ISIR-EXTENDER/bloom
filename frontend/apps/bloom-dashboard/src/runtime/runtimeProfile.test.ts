@@ -28,6 +28,7 @@ describe("resolveRuntimeProfile", () => {
     expect(resolveRuntimeProfile({ profiles: [...profiles] }, { height: 600, width: 1024 })).toEqual({
       audioCues: false,
       deadzone: 0,
+      dwellMs: 1000,
       repeatGuardMs: 0,
       scanPeriodMs: 1400,
       displayPreset: "high-visibility",
@@ -56,6 +57,7 @@ describe("resolveRuntimeProfile", () => {
     expect(resolveRuntimeProfile({ profiles: [] }, { height: 1080, width: 1920 })).toEqual({
       audioCues: false,
       deadzone: 0,
+      dwellMs: 1000,
       repeatGuardMs: 0,
       scanPeriodMs: 1400,
       displayPreset: "default",
@@ -63,6 +65,19 @@ describe("resolveRuntimeProfile", () => {
       id: "default",
       motorAccessibilityPreset: "default",
       name: "Default",
+    });
+  });
+
+  it("clamps the dwell duration to the supported operator range", () => {
+    const profile = {
+      ...profiles[0],
+      dwell_ms: 9000,
+      motor_accessibility_preset: "dwell" as const,
+    };
+
+    expect(resolveRuntimeProfile({ profiles: [profile] }, { height: 800, width: 1280 }, "operator")).toMatchObject({
+      dwellMs: 4000,
+      motorAccessibilityPreset: "dwell",
     });
   });
 });

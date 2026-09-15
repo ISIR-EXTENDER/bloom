@@ -22,6 +22,8 @@ export function RuntimeStopControl({ stopped, requestError, onEngage, onResume }
       <button
         aria-label="Hold for one second to resume"
         className="runtime-stop-control"
+        data-dwell-action="resume"
+        data-dwell-min-ms={RESUME_HOLD_MS}
         data-stopped="true"
         onKeyDown={(event) => {
           if (!event.repeat && (event.key === "Enter" || event.key === " ")) {

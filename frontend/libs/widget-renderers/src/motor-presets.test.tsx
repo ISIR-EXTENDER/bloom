@@ -98,6 +98,22 @@ describe("step zones", () => {
     const values = onActionIntent.mock.calls.map(([intent]) => intent.value);
     expect(values).toEqual([0.25, 0.5, 0]);
   });
+
+  it("uses the same discrete targets for dwell, with no drag-only controls", () => {
+    const onActionIntent = vi.fn();
+    const { joystick, slider } = descriptors();
+    const { container } = render(
+      <>
+        <JoystickWidget descriptor={joystick} motorPreset="dwell" onActionIntent={onActionIntent} />
+        <SliderWidget descriptor={slider} motorPreset="dwell" onActionIntent={onActionIntent} />
+      </>,
+    );
+
+    expect(container.querySelectorAll('[data-motor-preset="dwell"]')).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Forward, one step" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Increase Z by 0.25" })).toBeTruthy();
+    expect(screen.queryByRole("slider")).toBeNull();
+  });
 });
 
 describe("the latch expiry", () => {

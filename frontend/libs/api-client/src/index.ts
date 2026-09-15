@@ -76,6 +76,7 @@ export type DisplayPreset = "compact" | "comfort" | "default" | "high-visibility
 export type MotorAccessibilityPreset =
   | "assisted-touch"
   | "default"
+  | "dwell"
   | "large-targets"
   | "latch"
   | "reduced-motion"
@@ -98,6 +99,8 @@ export type UserProfile = {
   repeat_guard_ms?: number;
   /** How long the scan highlight rests on each control. */
   scan_period_ms?: number;
+  /** How long a pointer must rest on a control before it activates. */
+  dwell_ms?: number;
 };
 
 export type RuntimeAdapterPolicy = {
