@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { ScreenConfig } from "@bloom/api-client";
-import { createDefaultWidgetRegistry, renderScreenDescriptors, type WidgetDefinition } from "@bloom/widgets";
+import { createDefaultWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -30,7 +30,7 @@ const liveJoints = {
 
 function renderLibrary(data?: Partial<Extract<WidgetDataSnapshot, { type: "position-library" }>>) {
   const descriptor = renderScreenDescriptors(positionScreen, createDefaultWidgetRegistry())[0];
-  if (!descriptor || descriptor.status !== "resolved") throw new Error("Missing descriptor.");
+  if (descriptor?.status !== "resolved") throw new Error("Missing descriptor.");
   const onActionIntent = vi.fn();
   render(
     <PositionLibraryWidget

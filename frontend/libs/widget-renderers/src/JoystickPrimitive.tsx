@@ -201,6 +201,7 @@ export function JoystickPrimitive({
       onKeyDown={handleKeyDown}
       onKeyUp={handleKeyUp}
       role="application"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: role=application is the interactive pad; focus is how the keyboard drives it.
       tabIndex={0}
       style={{
         ["--bloom-joystick-knob-size" as string]: `${knobDiameter}px`,
