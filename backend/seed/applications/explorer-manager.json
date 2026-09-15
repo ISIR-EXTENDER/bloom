@@ -125,10 +125,10 @@
                 },
                 "deadzone": 0,
                 "labels": {
-                  "bottom": "Y-",
-                  "left": "X-",
-                  "right": "X+",
-                  "top": "Y+"
+                  "top": "\u25b2 Forward",
+                  "bottom": "\u25bc Back",
+                  "left": "\u25c0 Left",
+                  "right": "\u25b6 Right"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -180,10 +180,10 @@
                 },
                 "deadzone": 0,
                 "labels": {
-                  "bottom": "RY-",
-                  "left": "RX-",
-                  "right": "RX+",
-                  "top": "RY+"
+                  "top": "\u25b2 Tilt up",
+                  "bottom": "\u25bc Tilt down",
+                  "left": "\u25c0 Roll left",
+                  "right": "\u25b6 Roll right"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -357,7 +357,7 @@
             {
               "id": "drive-z",
               "kind": "slider",
-              "title": "Z",
+              "title": "Height",
               "layout": {
                 "x": 20,
                 "y": 250,
@@ -390,7 +390,7 @@
             {
               "id": "drive-rz",
               "kind": "slider",
-              "title": "RZ",
+              "title": "Pivot",
               "layout": {
                 "x": 1110,
                 "y": 250,
