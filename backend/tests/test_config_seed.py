@@ -222,3 +222,58 @@ def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
     assert "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed" in topics
     assert "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed" in topics
     assert "/cmd/max_velocity" not in topics
+
+
+# Sizes of the canvas presets operator apps target, from CANVAS_PRESETS in
+# frontend/libs/widgets/src/index.ts.
+OPERATOR_CANVAS_SIZES = {
+    "native-1024x600": (1024, 600),
+    "native-1280x720": (1280, 720),
+    "hd": (1280, 720),
+}
+
+INTERACTIVE_WIDGET_KINDS = {"button", "command-button", "gesture-pad", "joystick", "slider", "toggle"}
+
+
+def test_operator_screens_fit_their_canvas_and_controls_do_not_overlap() -> None:
+    """A control off the artboard or under another control cannot be tapped.
+
+    Both shipped: the explorer feedback screen ran to x=1450 on a 1280-wide
+    canvas, and the review's finding 5 documents a slider buried under a
+    joystick card. Enforced for the operator canvases; decorative overlap
+    stays legal.
+    """
+    checked = 0
+    for config_id in available_seed_ids():
+        path = DEFAULT_SEED_DIR / f"{config_id}.json"
+        bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
+        for application in bundle.applications:
+            for screen in application.screens:
+                size = OPERATOR_CANVAS_SIZES.get(screen.canvas.preset_id)
+                if size is None or screen.canvas.preset_id == "hd":
+                    # hd predates the operator panel work; legacy apps on it
+                    # are not held to the panel rules.
+                    continue
+                width, height = size
+                for widget in screen.widgets:
+                    layout = widget.layout
+                    assert layout.x >= 0 and layout.y >= 0, f"{config_id}/{screen.id}/{widget.id} off-canvas"
+                    assert layout.x + layout.width <= width and layout.y + layout.height <= height, (
+                        f"{config_id}/{screen.id}/{widget.id} overflows the {screen.canvas.preset_id} canvas"
+                    )
+                    checked += 1
+                interactive = [w for w in screen.widgets if w.kind.value in INTERACTIVE_WIDGET_KINDS]
+                for index, first in enumerate(interactive):
+                    for second in interactive[index + 1 :]:
+                        a, b = first.layout, second.layout
+                        overlaps = (
+                            a.x < b.x + b.width
+                            and b.x < a.x + a.width
+                            and a.y < b.y + b.height
+                            and b.y < a.y + a.height
+                        )
+                        assert not overlaps, (
+                            f"{config_id}/{screen.id}: controls {first.id} and {second.id} overlap"
+                        )
+
+    assert checked > 0, "no operator screens were checked; the walk is broken"
