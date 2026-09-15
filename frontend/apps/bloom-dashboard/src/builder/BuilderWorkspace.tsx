@@ -202,6 +202,7 @@ export function BuilderWorkspace({
 
       <BuilderInspector
         availableWidgetDefinitions={availableWidgetDefinitions}
+        canvas={draftScreen.canvas}
         runtimeCapabilities={runtimeCapabilities}
         onAddWidget={addWidget}
         onDuplicateWidget={duplicateSelectedWidget}

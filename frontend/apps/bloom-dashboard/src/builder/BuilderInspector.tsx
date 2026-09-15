@@ -1,10 +1,11 @@
-import type { WidgetConfig } from "@bloom/api-client";
+import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import { type RuntimeCapability, resolveWidgetReadiness, type WidgetDefinition } from "@bloom/widgets";
 import type { ReactNode } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
 
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
+  canvas?: CanvasSettings;
   runtimeCapabilities: readonly RuntimeCapability[] | null;
   onAddWidget: (definition: WidgetDefinition) => void;
   onDuplicateWidget: () => void;
@@ -19,6 +20,7 @@ type BuilderInspectorProps = {
 
 export function BuilderInspector({
   availableWidgetDefinitions,
+  canvas,
   runtimeCapabilities,
   onAddWidget,
   onDuplicateWidget,
@@ -89,6 +91,7 @@ export function BuilderInspector({
         Use duplicate or remove for quick layout iteration. Settings are rendered from the widget contract.
       </p>
       <BuilderWidgetSettingsEditor
+        canvas={canvas}
         key={selectedWidget.id}
         onUpdateSettings={onUpdateWidgetSettings}
         onUpdateTitle={onUpdateWidgetTitle}

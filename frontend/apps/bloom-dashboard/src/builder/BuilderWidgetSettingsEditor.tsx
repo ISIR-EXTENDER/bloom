@@ -1,9 +1,11 @@
-import type { WidgetConfig } from "@bloom/api-client";
+import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import {
   deriveSliderStep,
   findInertSetting,
   getWidgetSettingsContract,
   normalizeWidgetSettings,
+  resolveCanvasFitScale,
+  resolveCanvasPresetSize,
   resolveWidgetDestination,
   type WidgetDestination,
   type WidgetSettingField,
@@ -12,12 +14,47 @@ import { useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 
 type BuilderWidgetSettingsEditorProps = {
+  canvas?: CanvasSettings;
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   onUpdateTitle: (title: string) => void;
   widget: WidgetConfig;
 };
 
+// The HMTECH operator panel; touch targets live or die at this geometry.
+const OPERATOR_PANEL = { width: 1024, height: 600 };
+const TOUCH_FLOOR_PX = 44;
+const FIT_OVERFLOW_GUARD = 0.99;
+const TOUCH_CHECK_KINDS = new Set(["button", "command-button", "gesture-pad", "joystick", "slider", "toggle"]);
+
+function WidgetGlassSizeSummary({ canvas, widget }: { canvas?: CanvasSettings; widget: WidgetConfig }) {
+  if (!canvas) {
+    return null;
+  }
+  const artboard = resolveCanvasPresetSize(canvas);
+  const scale =
+    canvas.runtime_mode === "fit" ? resolveCanvasFitScale(canvas, artboard, OPERATOR_PANEL) * FIT_OVERFLOW_GUARD : 1;
+  const glassWidth = Math.round(widget.layout.width * scale);
+  const glassHeight = Math.round(widget.layout.height * scale);
+  const belowFloor = TOUCH_CHECK_KINDS.has(widget.kind) && Math.min(glassWidth, glassHeight) < TOUCH_FLOOR_PX;
+
+  return (
+    <div className="builder-glass-size" data-below-floor={belowFloor ? "true" : "false"}>
+      <p className="builder-inspector-copy">
+        On the 1024×600 panel: <strong>{`${glassWidth} × ${glassHeight} px`}</strong> of glass (scale {scale.toFixed(2)}
+        ).
+      </p>
+      {belowFloor ? (
+        <p className="builder-glass-size-warning" role="alert">
+          Below the {TOUCH_FLOOR_PX}px touch floor (≈9.6 mm). The size tokens are honest; the fit scale discounts them —
+          make the control larger instead of trusting the authored size.
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function BuilderWidgetSettingsEditor({
+  canvas,
   onUpdateSettings,
   onUpdateTitle,
   widget,
@@ -62,6 +99,7 @@ export function BuilderWidgetSettingsEditor({
       </label>
 
       <WidgetDestinationSummary destination={destination} />
+      <WidgetGlassSizeSummary canvas={canvas} widget={widget} />
 
       {contract.fields.length === 0 ? (
         <p className="builder-inspector-copy">This widget does not expose configurable settings yet.</p>

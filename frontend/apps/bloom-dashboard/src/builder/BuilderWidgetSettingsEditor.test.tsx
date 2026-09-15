@@ -157,3 +157,44 @@ describe("slider step follows the range", () => {
     expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 0, min: -1, step: 0.05 }));
   });
 });
+
+describe("the on-glass size summary", () => {
+  afterEach(cleanup);
+
+  function renderWithCanvas(kind: string, layout: { width: number; height: number }) {
+    const widget = {
+      id: "probe",
+      kind,
+      title: "Probe",
+      layout: { x: 0, y: 0, ...layout },
+      settings: {},
+    } as unknown as WidgetConfig;
+    render(
+      <BuilderWidgetSettingsEditor
+        canvas={{ preset_id: "native-1280x720", runtime_mode: "fit" }}
+        onUpdateSettings={vi.fn(() => null)}
+        onUpdateTitle={vi.fn()}
+        widget={widget}
+      />,
+    );
+  }
+
+  it("states what the authored size becomes on the panel", () => {
+    // 1280x720 fits 1024x600 at 0.8, times the 0.99 overflow guard.
+    renderWithCanvas("toggle", { width: 130, height: 130 });
+
+    expect(screen.getByText("103 × 103 px")).toBeTruthy();
+  });
+
+  it("flags an interactive control that lands under the 44px touch floor", () => {
+    renderWithCanvas("toggle", { width: 50, height: 50 });
+
+    expect(screen.getByRole("alert").textContent).toContain("44px touch floor");
+  });
+
+  it("does not flag display widgets, which nobody has to hit", () => {
+    renderWithCanvas("label", { width: 30, height: 20 });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});

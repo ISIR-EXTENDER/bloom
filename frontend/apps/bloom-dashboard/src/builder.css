@@ -2025,3 +2025,22 @@
   letter-spacing: normal;
   white-space: normal;
 }
+
+.builder-glass-size {
+  padding: 8px 10px;
+  border: 1px solid var(--bloom-outline);
+  border-radius: 10px;
+  background: var(--bloom-surface-soft);
+}
+
+.builder-glass-size[data-below-floor="true"] {
+  border-color: var(--bloom-error);
+  background: var(--bloom-error-container);
+}
+
+.builder-glass-size-warning {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--bloom-on-error-container);
+}
