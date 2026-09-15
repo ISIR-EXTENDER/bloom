@@ -586,7 +586,7 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "show_details": true,
                 "topic": "/cartesian_command",
-                "unit": "m/s",
+                "unit": "norm",
                 "variant": "area"
               }
             },
@@ -607,7 +607,7 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "show_details": true,
                 "topic": "/cartesian_command",
-                "unit": "rad/s",
+                "unit": "norm",
                 "variant": "area"
               }
             },
@@ -692,7 +692,7 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "show_details": true,
                 "topic": "/joystick_cartesian_command",
-                "unit": "m/s",
+                "unit": "norm",
                 "variant": "sparkline"
               }
             },
@@ -713,14 +713,14 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "show_details": true,
                 "topic": "/visual_servoing_cartesian_command",
-                "unit": "m/s",
+                "unit": "norm",
                 "variant": "sparkline"
               }
             },
             {
               "id": "sources-sum",
               "kind": "topic-plot",
-              "title": "Manager output (sum)",
+              "title": "Manager output",
               "layout": {
                 "x": 1020,
                 "y": 230,
@@ -734,7 +734,7 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "show_details": true,
                 "topic": "/cartesian_command",
-                "unit": "m/s",
+                "unit": "norm",
                 "variant": "area"
               }
             },
