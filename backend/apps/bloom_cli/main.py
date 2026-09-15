@@ -6,7 +6,7 @@ import uvicorn
 
 from apps.bloom_api.main import create_app, create_camera_frame_gateway, create_teleop_command_gateway
 from apps.bloom_api.settings import get_settings
-from libs.ros_adapters import RclpyRosTopicCatalogGateway
+from libs.ros_adapters import RclpyRosServiceGateway, RclpyRosTopicCatalogGateway
 from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
 from libs.ros_adapters.rclpy_topic_streams import RclpyRuntimeTopicSubscriptionGateway
 from libs.config import (
@@ -105,6 +105,7 @@ def run_ros_api(
     try:
         app = create_app(
             ros_publisher_gateway=RclpyRosPublisherGateway(node),
+            ros_service_gateway=RclpyRosServiceGateway(node),
             ros_topic_catalog_gateway=RclpyRosTopicCatalogGateway(node),
             runtime_topic_subscription_gateway=RclpyRuntimeTopicSubscriptionGateway(node),
             teleop_command_gateway=create_teleop_command_gateway(get_settings(), node),
