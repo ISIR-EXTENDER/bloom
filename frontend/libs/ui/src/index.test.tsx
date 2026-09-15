@@ -111,6 +111,13 @@ describe("BloomNavBar", () => {
       ["surfaceContainerLow", "onSurface"],
       ["error", "onError"],
       ["errorContainer", "onErrorContainer"],
+      // Finding 8: muted text was used on every surface and tested on none.
+      ["surface", "muted"],
+      ["surfaceContainer", "muted"],
+      ["surfaceContainerHigh", "muted"],
+      ["surfaceContainerLow", "muted"],
+      ["surface", "onSurfaceMuted"],
+      ["surfaceContainerHigh", "onSurfaceMuted"],
     ] as const;
 
     for (const preset of Object.values(BLOOM_THEME_PRESETS)) {

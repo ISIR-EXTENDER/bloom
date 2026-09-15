@@ -43,7 +43,7 @@
 
 .widget-preview-card span {
   color: var(--bloom-muted);
-  font-size: 0.8rem;
+  font-size: 13px;
 }
 
 .bloom-control-header {
@@ -68,7 +68,7 @@
 .bloom-control-header span {
   flex: 0 0 auto;
   color: var(--bloom-ink-soft);
-  font-size: 0.72rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -76,7 +76,7 @@
 
 .bloom-control-unit {
   color: var(--bloom-ink-soft);
-  font-size: 0.68rem;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: none;
@@ -86,7 +86,7 @@
   margin: -2px 0 0;
   overflow: hidden;
   color: var(--bloom-ink-soft);
-  font-size: 0.76rem;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -110,7 +110,7 @@
   background: color-mix(in srgb, var(--bloom-surface-container-high) 82%, white);
   color: var(--bloom-ink-soft);
   font-family: var(--bloom-font-mono);
-  font-size: 0.78rem;
+  font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -152,7 +152,7 @@
   align-items: center;
   margin-top: -4px;
   color: var(--bloom-ink-soft);
-  font-size: 0.68rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -444,7 +444,7 @@
   }
 
   .bloom-control-intent {
-    font-size: 0.68rem;
+    font-size: 13px;
   }
 
   .bloom-slider-widget,
@@ -557,7 +557,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--bloom-surface) 76%, transparent);
   color: var(--bloom-ink-soft);
-  font-size: 0.78rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -673,7 +673,7 @@
 .bloom-display-header span {
   flex: 0 0 auto;
   color: var(--bloom-ink-soft);
-  font-size: 0.72rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -681,7 +681,7 @@
 
 .bloom-display-source {
   color: var(--bloom-ink-muted);
-  font-size: 0.76rem;
+  font-size: 13px;
   font-weight: 720;
   letter-spacing: 0.02em;
 }
@@ -744,13 +744,13 @@
   margin-top: 2px;
   color: var(--bloom-muted);
   font-family: var(--bloom-font-mono);
-  font-size: 0.68rem;
+  font-size: 13px;
 }
 
 .bloom-event-log-entry p {
   margin: 6px 0 0;
   color: var(--bloom-ink-soft);
-  font-size: 0.78rem;
+  font-size: 13px;
   line-height: 1.35;
 }
 
@@ -784,7 +784,7 @@
 
 .bloom-gauge-meter small {
   color: var(--bloom-ink-soft);
-  font-size: 0.78rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -794,7 +794,7 @@
   display: flex;
   justify-content: space-between;
   color: var(--bloom-ink-soft);
-  font-size: 0.72rem;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -843,7 +843,7 @@
   background: color-mix(in srgb, var(--bloom-primary-container) 72%, white);
   color: var(--bloom-ink-soft);
   font-family: var(--bloom-font-mono);
-  font-size: 0.72rem;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -881,7 +881,7 @@
   place-items: center;
   border-radius: 999px;
   color: var(--bloom-surface);
-  font-size: 0.64rem;
+  font-size: 13px;
   font-weight: 900;
 }
 
@@ -937,7 +937,7 @@
 .bloom-robot-3d-widget p {
   margin: 0;
   color: var(--bloom-ink-soft);
-  font-size: 0.78rem;
+  font-size: 13px;
 }
 
 .bloom-command-button,
@@ -951,7 +951,7 @@
   background: var(--bloom-ink);
   color: var(--bloom-surface-container-low);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1095,7 +1095,7 @@
 
 .bloom-topic-debug-summary {
   color: var(--bloom-ink-soft);
-  font-size: 0.72rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1139,14 +1139,14 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--bloom-primary-container) 82%, white);
   color: var(--bloom-primary);
-  font-size: 0.72rem;
+  font-size: 13px;
   font-weight: 900;
 }
 
 .bloom-topic-debug-widget[data-show-details="false"] .bloom-topic-debug-action {
   min-height: 28px;
   padding: 4px 8px;
-  font-size: 0.64rem;
+  font-size: 13px;
 }
 
 .bloom-topic-debug-action:disabled {
@@ -1157,7 +1157,7 @@
 .bloom-topic-debug-status {
   min-height: 1em;
   color: var(--bloom-ink-soft);
-  font-size: 0.7rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
 }
@@ -1176,14 +1176,14 @@
   border-radius: 10px;
   background: rgba(63, 78, 70, 0.08);
   color: var(--bloom-ink);
-  font-size: 0.72rem;
+  font-size: 13px;
   white-space: pre-wrap;
 }
 
 .bloom-topic-debug-widget[data-show-details="false"] .bloom-topic-echo {
   min-height: 0;
   padding: 6px 8px;
-  font-size: 0.66rem;
+  font-size: 13px;
 }
 
 .bloom-topic-plot {
@@ -1235,7 +1235,7 @@
 .bloom-topic-plot-range {
   color: var(--bloom-ink-soft);
   font-family: var(--bloom-font-mono);
-  font-size: 0.68rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.04em;
 }
@@ -1269,7 +1269,7 @@
   gap: 6px 10px;
   align-items: center;
   color: var(--bloom-ink-soft);
-  font-size: 0.78rem;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -1289,7 +1289,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--bloom-ink-soft);
-  font-size: 0.68rem;
+  font-size: 13px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1362,7 +1362,7 @@
 
 .bloom-camera-status {
   color: var(--bloom-ink-soft);
-  font-size: 0.74rem;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
