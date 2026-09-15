@@ -13,10 +13,10 @@ import type {
   WidgetLayout,
 } from "@bloom/api-client";
 import {
+  WIDGET_KINDS as CANONICAL_WIDGET_KINDS,
   DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
-  WIDGET_KINDS as CANONICAL_WIDGET_KINDS,
 } from "@bloom/api-client";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
