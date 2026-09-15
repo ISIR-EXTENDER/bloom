@@ -28,6 +28,7 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
   const defaultValue = clamp(0, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
   const formattedValue = formatSliderValue(currentValue, step, unit);
+  const usesStepTargets = motorPreset === "step" || motorPreset === "dwell";
 
   const emitValueChange = (value: number) => {
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
@@ -57,8 +58,7 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
   };
 
   // A latched command must never outlive the operator's attention.
-  const valueIsHeld =
-    (motorPreset === "latch" || motorPreset === "step") && returnToCenter && currentValue !== defaultValue;
+  const valueIsHeld = (motorPreset === "latch" || usesStepTargets) && returnToCenter && currentValue !== defaultValue;
   useEffect(() => {
     if (!valueIsHeld) {
       return;
@@ -67,13 +67,13 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
     return () => window.clearTimeout(expiry);
   });
 
-  if (motorPreset === "step") {
+  if (usesStepTargets) {
     const stepBy = (delta: number) => setAndEmit(Number(clamp(currentValue + delta, min, max).toFixed(4)));
     return (
       <div
         className="bloom-slider-widget"
         data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
-        data-motor-preset="step"
+        data-motor-preset={motorPreset}
         data-show-details={showDetails ? "true" : "false"}
       >
         <header className="bloom-control-header">
@@ -81,7 +81,7 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
             {descriptor.widget.title}
             {unit ? <small className="bloom-control-unit">{unit}</small> : null}
           </strong>
-          <span>step</span>
+          <span>{motorPreset === "dwell" ? "rest to move" : "step"}</span>
         </header>
         <fieldset aria-label={`${descriptor.widget.title} step controls`} className="bloom-slider-stepper">
           <button
@@ -228,7 +228,8 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
   };
 
   // A latched command must never outlive the operator's attention.
-  const isLatched = motorPreset === "latch" || motorPreset === "step";
+  const usesStepTargets = motorPreset === "step" || motorPreset === "dwell";
+  const isLatched = motorPreset === "latch" || usesStepTargets;
   const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
   useEffect(() => {
     if (!vectorIsHeld) {
@@ -238,12 +239,13 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
     return () => window.clearTimeout(expiry);
   });
 
-  if (motorPreset === "step") {
+  if (usesStepTargets) {
     return (
       <StepZoneJoystick
         currentVector={currentVector}
         descriptor={descriptor}
         labels={binding.labels}
+        motorPreset={motorPreset}
         onVector={emitHeldVector}
         showDetails={showDetails}
       />
@@ -306,12 +308,14 @@ function StepZoneJoystick({
   currentVector,
   descriptor,
   labels,
+  motorPreset,
   onVector,
   showDetails,
 }: {
   currentVector: JoystickVector;
   descriptor: WidgetRendererProps["descriptor"];
   labels: { bottom: string; left: string; right: string; top: string };
+  motorPreset: "dwell" | "step";
   onVector: (vector: JoystickVector) => void;
   showDetails: boolean;
 }) {
@@ -322,10 +326,14 @@ function StepZoneJoystick({
     });
 
   return (
-    <div className="bloom-joystick-widget" data-motor-preset="step" data-show-details={showDetails ? "true" : "false"}>
+    <div
+      className="bloom-joystick-widget"
+      data-motor-preset={motorPreset}
+      data-show-details={showDetails ? "true" : "false"}
+    >
       <header className="bloom-control-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>step</span>
+        <span>{motorPreset === "dwell" ? "rest to move" : "step"}</span>
       </header>
       <fieldset aria-label={`${descriptor.widget.title} step targets`} className="bloom-step-zones">
         <button

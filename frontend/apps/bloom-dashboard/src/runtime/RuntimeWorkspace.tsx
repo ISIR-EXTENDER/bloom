@@ -20,6 +20,7 @@ import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./ru
 import { resolveRuntimeProfile } from "./runtimeProfile";
 import type { ComponentContribution } from "./teleop-composition";
 import { useAudioCues } from "./use-audio-cues";
+import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
@@ -83,6 +84,7 @@ export function RuntimeWorkspace({
   selection,
 }: RuntimeWorkspaceProps) {
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
+  const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const { artboardSize } = resolveScreenArtboardLayout(screen);
   const artboardScale = useMemo(() => {
@@ -147,8 +149,21 @@ export function RuntimeWorkspace({
   const scanning = useSwitchScanning({
     enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !stopped,
     periodMs: runtimeProfile.scanPeriodMs,
-    rootRef: canvasViewportRef,
+    rootRef: runtimeControlsRef,
     revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}`,
+  });
+  useDwellActivation({
+    activateTarget: (target) => {
+      if (target.dataset.dwellAction === "resume") {
+        runtimeStop.resume();
+        return;
+      }
+      target.click();
+    },
+    dwellMs: runtimeProfile.dwellMs,
+    enabled: runtimeProfile.motorAccessibilityPreset === "dwell",
+    isTargetEnabled: (target) => !stopped || target.dataset.dwellAction === "resume",
+    rootRef: runtimeControlsRef,
   });
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
@@ -251,7 +266,7 @@ export function RuntimeWorkspace({
 
       {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
 
-      <div className="runtime-app-canvas-shell">
+      <div className="runtime-app-canvas-shell" ref={runtimeControlsRef}>
         <div
           className="runtime-app-canvas-viewport"
           data-runtime-mode={screen.canvas.runtime_mode}

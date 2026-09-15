@@ -262,6 +262,18 @@ def test_application_accepts_user_profiles_for_future_personalization() -> None:
     assert profile.motor_accessibility_preset == MotorAccessibilityPreset.LARGE_TARGETS
 
 
+def test_user_profile_accepts_dwell_activation_timing() -> None:
+    profile = UserProfile(
+        id="dwell-operator",
+        name="Dwell operator",
+        motor_accessibility_preset=MotorAccessibilityPreset.DWELL,
+        dwell_ms=850,
+    )
+
+    assert profile.motor_accessibility_preset == MotorAccessibilityPreset.DWELL
+    assert profile.dwell_ms == 850
+
+
 def test_application_accepts_runtime_adapter_policy_for_app_specific_safety() -> None:
     application = ApplicationConfig.model_validate(
         {
