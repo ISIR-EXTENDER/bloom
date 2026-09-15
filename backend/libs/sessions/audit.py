@@ -7,6 +7,7 @@ from typing import Any, Literal
 RuntimeAuditStatus = Literal["accepted", "rejected"]
 RuntimeAuditChannel = Literal[
     "http_ros_publish",
+    "http_ros_service",
     "runtime_action",
     "runtime_recording",
     "runtime_stop",

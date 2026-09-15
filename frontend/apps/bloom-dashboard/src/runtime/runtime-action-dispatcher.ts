@@ -97,7 +97,14 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   subscribeRuntimeTopic?: (request: RuntimeTopicSubscriptionRequest) => Promise<RuntimeTopicSubscriptionResponse>;
 };
 
-export type RuntimeActionDispatchStatus = "accepted" | "blocked" | "failed" | "published" | "simulated" | "unsupported";
+export type RuntimeActionDispatchStatus =
+  | "accepted"
+  | "blocked"
+  | "called"
+  | "failed"
+  | "published"
+  | "simulated"
+  | "unsupported";
 export type RuntimeConfiguredActionRequest = {
   app_id: string;
   command?: string;

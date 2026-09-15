@@ -18,6 +18,7 @@ own rather than collapsed into one "ROS: yes/no".
 from dataclasses import dataclass
 
 from libs.ros_adapters.publishers import NoopRosPublisherGateway
+from libs.ros_adapters.services import NoopRosServiceGateway
 from libs.sessions.recording import NoopRuntimeRecordingGateway
 from libs.sessions.teleop import NoopTeleopCommandGateway
 from libs.sessions.topics import NoopRuntimeTopicSubscriptionGateway
@@ -51,6 +52,13 @@ def describe_runtime_capabilities(state: object) -> list[RuntimeCapability]:
             NoopRosPublisherGateway,
             "Commands are published to ROS.",
             "No ROS publisher is connected, so commands are accepted and audited but go nowhere.",
+        ),
+        _capability(
+            "service-dispatcher",
+            getattr(state, "ros_service_gateway", None),
+            NoopRosServiceGateway,
+            "ROS services can be called.",
+            "No ROS service gateway is connected, so service calls are simulated.",
         ),
         _capability(
             "data-source",

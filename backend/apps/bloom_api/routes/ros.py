@@ -10,6 +10,8 @@ from libs.ros_adapters import (
     RosPublishReceipt,
     RosPublishRequest,
     RosPublisherGateway,
+    RosServiceGateway,
+    RosServiceRequest,
     RosTopicCatalogGateway,
     RosTopicInfo,
     RosTopicStatus,
@@ -17,8 +19,8 @@ from libs.ros_adapters import (
     publish_with_runtime_policy,
 )
 from libs.ros_adapters.payloads import parse_ros_payload_text
-from libs.ros_adapters.safety import RuntimeCommandPolicy
-from libs.sessions import RuntimeAuditLog, RuntimeAuditRecord, RuntimeCommandRateLimiter
+from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
+from libs.sessions import RuntimeAuditLog, RuntimeAuditRecord, RuntimeCommandRateLimiter, RuntimeRateLimitError
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -61,6 +63,39 @@ class RosTopicPublishRequest(BaseModel):
         if any(character.isspace() for character in normalized_message_type):
             raise ValueError("ROS message type must not contain whitespace")
         return normalized_message_type
+
+
+class RosServiceCallRequest(BaseModel):
+    service: str = Field(min_length=1)
+    service_type: str = Field(min_length=1)
+
+    @field_validator("service")
+    @classmethod
+    def _validate_service(cls, service: str) -> str:
+        normalized = service.strip()
+        if not normalized.startswith("/"):
+            raise ValueError("ROS service must start with '/'")
+        if any(character.isspace() for character in normalized):
+            raise ValueError("ROS service must not contain whitespace")
+        return normalized
+
+    @field_validator("service_type")
+    @classmethod
+    def _validate_service_type(cls, service_type: str) -> str:
+        normalized = service_type.strip()
+        if "/srv/" not in normalized:
+            raise ValueError("ROS service type must use package/srv/Type notation")
+        if any(character.isspace() for character in normalized):
+            raise ValueError("ROS service type must not contain whitespace")
+        return normalized
+
+
+class RosServiceCallResponse(BaseModel):
+    service: str
+    service_type: str
+    status: str
+    success: bool | None
+    detail: str
 
 
 class RosTopicPublishResponse(BaseModel):
@@ -170,6 +205,67 @@ def publish_ros_topic(
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     return _to_response(receipt)
+
+
+def get_ros_service_gateway(request: Request) -> RosServiceGateway:
+    return request.app.state.ros_service_gateway
+
+
+@router.post("/services/call", response_model=RosServiceCallResponse)
+def call_ros_service(
+    request: Request,
+    call_request: RosServiceCallRequest,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RosServiceCallResponse:
+    audit_log = get_runtime_audit_log(request)
+
+    def record(status: str, detail: str) -> None:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_service",
+                detail=detail,
+                message_type=call_request.service_type,
+                status="accepted" if status == "accepted" else "rejected",
+                target=call_request.service,
+            )
+        )
+
+    stop_reason = request.app.state.runtime_stop_controller.rejection_reason()
+    if stop_reason is not None:
+        record("rejected", stop_reason)
+        raise HTTPException(status_code=409, detail=stop_reason)
+
+    try:
+        get_runtime_command_policy(request).ensure_service_allowed(call_request.service, call_request.service_type)
+    except RuntimeCommandPolicyError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
+    try:
+        get_runtime_command_rate_limiter(request).ensure_allowed(f"http_ros_service:{call_request.service}")
+    except RuntimeRateLimitError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+
+    try:
+        receipt = get_ros_service_gateway(request).call(
+            RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
+        )
+    except ValueError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    record("accepted", receipt.detail)
+    return RosServiceCallResponse(
+        service=receipt.service,
+        service_type=receipt.service_type,
+        status=receipt.status,
+        success=receipt.success,
+        detail=receipt.detail,
+    )
 
 
 def _to_topic_response(topic: RosTopicInfo) -> RosTopicInfoResponse:

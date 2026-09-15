@@ -106,6 +106,7 @@ class RuntimeAdapterPolicy(BloomModel):
     allowed_message_types: tuple[str, ...] = Field(default_factory=tuple)
     allowed_publish_topics: tuple[str, ...] = Field(default_factory=tuple)
     allowed_recording_topics: tuple[str, ...] = Field(default_factory=tuple)
+    allowed_service_calls: tuple[str, ...] = Field(default_factory=tuple)
     allowed_teleop_targets: tuple[str, ...] = Field(default_factory=tuple)
 
 

@@ -16,6 +16,13 @@ from libs.ros_adapters.rclpy_cartesian_manager import (
     RclpyCartesianManagerGateway,
 )
 from libs.ros_adapters.safe_publish import SafeRosPublishError, publish_with_runtime_policy
+from libs.ros_adapters.services import (
+    NoopRosServiceGateway,
+    RclpyRosServiceGateway,
+    RosServiceGateway,
+    RosServiceReceipt,
+    RosServiceRequest,
+)
 from libs.ros_adapters.topics import (
     NoopRosTopicCatalogGateway,
     RclpyRosTopicCatalogGateway,
@@ -26,6 +33,11 @@ from libs.ros_adapters.topics import (
 
 __all__ = [
     "DEFAULT_COMMAND_FRAME_ID",
+    "NoopRosServiceGateway",
+    "RclpyRosServiceGateway",
+    "RosServiceGateway",
+    "RosServiceReceipt",
+    "RosServiceRequest",
     "MODE_REQUEST_MESSAGE_TYPE",
     "MODE_REQUEST_TOPIC",
     "ModeRequest",

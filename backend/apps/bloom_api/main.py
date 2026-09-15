@@ -8,8 +8,10 @@ from libs.config import ConfigurationRepository, create_configuration_repository
 from libs.config.seed import adopt_file_configurations, seed_configurations
 from libs.ros_adapters import (
     NoopRosPublisherGateway,
+    NoopRosServiceGateway,
     NoopRosTopicCatalogGateway,
     RosPublisherGateway,
+    RosServiceGateway,
     RosTopicCatalogGateway,
 )
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
@@ -35,6 +37,7 @@ def create_app(
     settings: Settings | None = None,
     configuration_repository: ConfigurationRepository | None = None,
     ros_publisher_gateway: RosPublisherGateway | None = None,
+    ros_service_gateway: RosServiceGateway | None = None,
     ros_topic_catalog_gateway: RosTopicCatalogGateway | None = None,
     runtime_topic_subscription_gateway: RuntimeTopicSubscriptionGateway | None = None,
     runtime_audit_log: RuntimeAuditLog | None = None,
@@ -54,6 +57,7 @@ def create_app(
     app.state.settings = app_settings
     app.state.configuration_repository = configuration_repository or create_app_configuration_repository(app_settings)
     app.state.ros_publisher_gateway = ros_publisher_gateway or NoopRosPublisherGateway()
+    app.state.ros_service_gateway = ros_service_gateway or NoopRosServiceGateway()
     app.state.ros_topic_catalog_gateway = ros_topic_catalog_gateway or NoopRosTopicCatalogGateway()
     subscription_gateway = runtime_topic_subscription_gateway or NoopRuntimeTopicSubscriptionGateway()
     if is_live_subscription_gateway(subscription_gateway):
@@ -66,6 +70,8 @@ def create_app(
         allowed_message_types=app_settings.allowed_ros_message_types,
         allowed_publish_topics=app_settings.allowed_ros_publish_topics,
         allowed_recording_topics=app_settings.allowed_recording_topics,
+        allowed_service_calls=app_settings.allowed_ros_service_calls,
+        allowed_service_types=app_settings.allowed_ros_service_types,
         allowed_teleop_targets=app_settings.allowed_teleop_targets,
     )
     app.state.runtime_command_rate_limiter = runtime_command_rate_limiter or RuntimeCommandRateLimiter(

@@ -44,6 +44,21 @@
             "explorer",
             "mode"
           ]
+        },
+        {
+          "id": "fault-reset",
+          "name": "Reset fault",
+          "kind": "service-call",
+          "description": "Clear the gen3 fault state through the fault controller.",
+          "command": "kinova.reset_fault",
+          "topic": "/fault_controller/reset_fault",
+          "message_type": "example_interfaces/srv/Trigger",
+          "payload": null,
+          "payload_text": "",
+          "tags": [
+            "kinova",
+            "safety"
+          ]
         }
       ],
       "runtime_policy": {
@@ -73,6 +88,9 @@
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
+        ],
+        "allowed_service_calls": [
+          "/fault_controller/reset_fault"
         ]
       },
       "theme": {
@@ -428,7 +446,7 @@
                 "x": 1140,
                 "y": 90,
                 "width": 120,
-                "height": 130
+                "height": 60
               },
               "settings": {
                 "topic": "/fault_controller/internal_fault",
@@ -436,6 +454,23 @@
                 "fieldPath": "data",
                 "maxMessages": 1,
                 "prettyPrint": false,
+                "show_details": false
+              }
+            },
+            {
+              "id": "drive-fault-reset",
+              "kind": "command-button",
+              "title": "Reset fault",
+              "layout": {
+                "x": 1140,
+                "y": 160,
+                "width": 120,
+                "height": 60
+              },
+              "settings": {
+                "action_label": "Reset the fault controller",
+                "button_label": "Reset fault",
+                "command": "kinova.reset_fault",
                 "show_details": false
               }
             }

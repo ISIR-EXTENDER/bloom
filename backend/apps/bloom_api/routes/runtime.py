@@ -15,14 +15,26 @@ from libs.config import (
     RuntimeActionPreset,
     RuntimeAdapterPolicy,
 )
-from libs.ros_adapters import RosPublishRequest, RosPublisherGateway, SafeRosPublishError, publish_with_runtime_policy
+from libs.ros_adapters import (
+    RosPublishRequest,
+    RosPublisherGateway,
+    RosServiceGateway,
+    RosServiceRequest,
+    SafeRosPublishError,
+    publish_with_runtime_policy,
+)
 from libs.ros_adapters.camera_frames import (
     CameraFrameError,
     NoopCameraFrameGateway,
     decode_image_data_url,
 )
 from libs.ros_adapters.payloads import parse_ros_payload_text
-from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, RuntimePayloadShapeError
+from libs.ros_adapters.safety import (
+    RuntimeCommandPolicy,
+    RuntimeCommandPolicyError,
+    RuntimePayloadShapeError,
+    ensure_allowed,
+)
 from libs.sessions.positions import (
     JointPose,
     PositionLibrary,
@@ -304,6 +316,10 @@ def dispatch_runtime_action(
     preset = resolve_runtime_action_preset(application, action_request)
     if preset is None:
         raise HTTPException(status_code=404, detail="runtime action preset not found")
+    if preset.kind == "service-call":
+        # Preset schema reuse: `topic` holds the service name, `message_type`
+        # the service type.
+        return dispatch_service_call_preset(request, action_request, application, preset)
     if preset.kind != "topic-publish" or not preset.topic or not preset.message_type:
         raise HTTPException(status_code=422, detail="runtime action preset is not a ROS topic publish adapter")
 
@@ -343,6 +359,76 @@ def dispatch_runtime_action(
         preset_id=preset.id,
         status=receipt.status,
         topic=receipt.topic,
+    )
+
+
+def dispatch_service_call_preset(
+    request: Request,
+    action_request: RuntimeActionDispatchRequest,
+    application: ApplicationConfig,
+    preset: RuntimeActionPreset,
+) -> RuntimeActionDispatchResponse:
+    audit_log = get_runtime_audit_log(request)
+
+    def reject(status_code: int, detail: str) -> HTTPException:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="runtime_action",
+                detail=detail,
+                message_type=preset.message_type,
+                status="rejected",
+                target=preset.command or preset.id,
+                topic=preset.topic,
+            )
+        )
+        return HTTPException(status_code=status_code, detail=detail)
+
+    if not preset.topic or not preset.message_type:
+        raise reject(422, "service-call preset needs a service name in `topic` and a type in `message_type`")
+
+    stop_reason = get_runtime_stop_controller(request).rejection_reason()
+    if stop_reason is not None:
+        raise reject(409, stop_reason)
+
+    try:
+        ensure_allowed(preset.topic, application.runtime_policy.allowed_service_calls, "ROS service")
+        get_runtime_command_policy(request).ensure_service_allowed(preset.topic, preset.message_type)
+    except RuntimeCommandPolicyError as exc:
+        raise reject(403, str(exc)) from exc
+
+    try:
+        get_runtime_command_rate_limiter(request).ensure_allowed(f"runtime_action_service:{preset.topic}")
+    except RuntimeRateLimitError as exc:
+        raise reject(429, str(exc)) from exc
+
+    ros_service_gateway: RosServiceGateway = request.app.state.ros_service_gateway
+    try:
+        receipt = ros_service_gateway.call(RosServiceRequest(service=preset.topic, service_type=preset.message_type))
+    except ValueError as exc:
+        raise reject(422, str(exc)) from exc
+    except RuntimeError as exc:
+        raise reject(502, str(exc)) from exc
+
+    detail = receipt.detail if receipt.success is None or receipt.success else f"Service refused: {receipt.detail}"
+    audit_log.record(
+        RuntimeAuditRecord(
+            channel="runtime_action",
+            detail=detail,
+            message_type=preset.message_type,
+            status="accepted",
+            target=preset.command or preset.id,
+            topic=preset.topic,
+        )
+    )
+    return RuntimeActionDispatchResponse(
+        app_id=action_request.app_id,
+        command=preset.command,
+        config_id=action_request.config_id,
+        detail=detail,
+        message_type=preset.message_type,
+        preset_id=preset.id,
+        status=receipt.status,
+        topic=preset.topic,
     )
 
 

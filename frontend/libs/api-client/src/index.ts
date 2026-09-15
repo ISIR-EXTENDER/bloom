@@ -88,6 +88,8 @@ export type RuntimeAdapterPolicy = {
   allowed_message_types: string[];
   allowed_publish_topics: string[];
   allowed_recording_topics: string[];
+  /** Trigger-style ROS services this app may call. */
+  allowed_service_calls?: string[];
   allowed_teleop_targets: string[];
 };
 
@@ -221,7 +223,7 @@ export type RuntimeActionDispatchResponse = {
   detail: string;
   message_type: string;
   preset_id: string;
-  status: RosTopicPublishStatus;
+  status: RosTopicPublishStatus | "called";
   topic: string;
 };
 
@@ -292,6 +294,19 @@ export type RuntimeRecordingResponse = {
 };
 
 /** The runtime stop latch as the backend holds it; engaged_at empty while running. */
+export type RosServiceCallRequest = {
+  service: string;
+  service_type: string;
+};
+
+export type RosServiceCallResponse = {
+  service: string;
+  service_type: string;
+  status: "called" | "simulated";
+  success: boolean | null;
+  detail: string;
+};
+
 export type RuntimeStopState = {
   stopped: boolean;
   engaged_at: string;
@@ -455,6 +470,14 @@ export class BloomApiClient {
 
   startRuntimeRecording(request: RuntimeRecordingStartRequest): Promise<RuntimeRecordingResponse> {
     return this.request<RuntimeRecordingResponse>("/api/v1/runtime/recordings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+  }
+
+  callRosService(request: RosServiceCallRequest): Promise<RosServiceCallResponse> {
+    return this.request<RosServiceCallResponse>("/api/v1/ros/services/call", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),

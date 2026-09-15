@@ -110,6 +110,13 @@ class Settings(BaseModel):
         "/joystick_cartesian_command",
         "/teleop_cmd",
     )
+    # Trigger-style services the runtime may call. The fault reset is the
+    # Kinova gen3's recovery path.
+    allowed_ros_service_calls: tuple[str, ...] = ("/fault_controller/reset_fault",)
+    allowed_ros_service_types: tuple[str, ...] = (
+        "example_interfaces/srv/Trigger",
+        "std_srvs/srv/Trigger",
+    )
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
         "/cartesian_command",
@@ -194,6 +201,14 @@ class Settings(BaseModel):
             allowed_command_frame_ids=_read_tuple_env(
                 "BLOOM_ALLOWED_COMMAND_FRAME_IDS",
                 cls.model_fields["allowed_command_frame_ids"].default,
+            ),
+            allowed_ros_service_calls=_read_tuple_env(
+                "BLOOM_ALLOWED_ROS_SERVICE_CALLS",
+                cls.model_fields["allowed_ros_service_calls"].default,
+            ),
+            allowed_ros_service_types=_read_tuple_env(
+                "BLOOM_ALLOWED_ROS_SERVICE_TYPES",
+                cls.model_fields["allowed_ros_service_types"].default,
             ),
             robot_name=os.getenv("BLOOM_ROBOT_NAME", ""),
             # Documented in the README but never read until now.

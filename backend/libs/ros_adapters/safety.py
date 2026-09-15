@@ -18,6 +18,8 @@ class RuntimeCommandPolicy:
     allowed_publish_topics: tuple[str, ...]
     allowed_teleop_targets: tuple[str, ...]
     allowed_recording_topics: tuple[str, ...] = ()
+    allowed_service_calls: tuple[str, ...] = ()
+    allowed_service_types: tuple[str, ...] = ()
 
     def ensure_publish_allowed(self, topic: str, message_type: str, payload: dict[str, Any]) -> None:
         ensure_allowed(topic, self.allowed_publish_topics, "ROS topic")
@@ -26,6 +28,10 @@ class RuntimeCommandPolicy:
 
     def ensure_teleop_allowed(self, target: str) -> None:
         ensure_allowed(target, self.allowed_teleop_targets, "teleop target")
+
+    def ensure_service_allowed(self, service: str, service_type: str) -> None:
+        ensure_allowed(service, self.allowed_service_calls, "ROS service")
+        ensure_allowed(service_type, self.allowed_service_types, "ROS service type")
 
     def ensure_recording_topics_allowed(self, topics: tuple[str, ...]) -> None:
         for topic in topics:
