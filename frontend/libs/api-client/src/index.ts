@@ -79,6 +79,7 @@ export type MotorAccessibilityPreset =
   | "large-targets"
   | "latch"
   | "reduced-motion"
+  | "scan"
   | "step";
 
 export type UserProfile = {
@@ -95,6 +96,8 @@ export type UserProfile = {
   deadzone?: number;
   /** Ignore a repeated activation of the same control within this window. */
   repeat_guard_ms?: number;
+  /** How long the scan highlight rests on each control. */
+  scan_period_ms?: number;
 };
 
 export type RuntimeAdapterPolicy = {

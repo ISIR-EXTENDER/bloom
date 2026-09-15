@@ -1023,3 +1023,32 @@
   letter-spacing: 0.04em;
   white-space: nowrap;
 }
+
+/* The scan highlight: a ring the operator can see from across a lit room,
+   not a subtle tint. Shape carries it too, so colour alone never does. */
+[data-scan-lit] {
+  outline: 4px solid var(--bloom-primary) !important;
+  outline-offset: 3px;
+  border-radius: 12px;
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--bloom-primary) 22%, transparent);
+}
+
+.runtime-scan-status {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 30;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--bloom-surface-soft);
+  color: var(--bloom-on-surface);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-scan-lit] {
+    transition: none;
+  }
+}

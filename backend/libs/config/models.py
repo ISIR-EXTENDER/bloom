@@ -58,6 +58,8 @@ class MotorAccessibilityPreset(str, Enum):
     #: Pads keep their value on release; an explicit zero control releases.
     LATCH = "latch"
     REDUCED_MOTION = "reduced-motion"
+    #: A highlight walks the controls; any switch fires the lit one.
+    SCAN = "scan"
     #: Tap-to-increment targets instead of sustained dragging.
     STEP = "step"
     ASSISTED_TOUCH = "assisted-touch"
@@ -111,6 +113,8 @@ class UserProfile(BloomModel):
     deadzone: float = Field(default=0.0, ge=0.0, le=0.5)
     #: Ignore a repeated activation of the same control within this window.
     repeat_guard_ms: int = Field(default=0, ge=0, le=600)
+    #: How long the scan highlight rests on each control.
+    scan_period_ms: int = Field(default=1400, ge=600, le=3000)
 
 
 class RuntimeAdapterPolicy(BloomModel):

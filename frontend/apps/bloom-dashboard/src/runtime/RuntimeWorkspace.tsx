@@ -24,6 +24,7 @@ import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
+import { useSwitchScanning } from "./use-switch-scanning";
 
 const FIT_OVERFLOW_GUARD = 0.99;
 
@@ -143,6 +144,12 @@ export function RuntimeWorkspace({
   const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink);
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const stopped = runtimeStop.state?.stopped === true;
+  const scanning = useSwitchScanning({
+    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !stopped,
+    periodMs: runtimeProfile.scanPeriodMs,
+    rootRef: canvasViewportRef,
+    revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}`,
+  });
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
     // Position ops are runtime-shell HTTP work, not robot commands.
@@ -215,6 +222,7 @@ export function RuntimeWorkspace({
       data-has-debug={application.id === "bloom-debug" ? "true" : "false"}
       data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
       data-runtime-layout="operator"
+      data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       data-runtime-stopped={stopped ? "true" : "false"}
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
     >
@@ -279,6 +287,12 @@ export function RuntimeWorkspace({
             />
           </div>
         </div>
+
+        {scanning.index >= 0 ? (
+          <p aria-live="polite" className="runtime-scan-status" role="status">
+            {`Scanning ${scanning.index + 1} of ${scanning.targetCount}. Press a switch, Space, or tap the screen.`}
+          </p>
+        ) : null}
 
         {runtimeActionClient.engageRuntimeStop ? (
           <RuntimeStopControl
