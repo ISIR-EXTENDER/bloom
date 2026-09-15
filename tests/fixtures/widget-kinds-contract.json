@@ -9,6 +9,7 @@
     "joystick",
     "label",
     "plot",
+    "position-library",
     "robot-3d",
     "slider",
     "toggle",

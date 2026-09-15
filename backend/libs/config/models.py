@@ -16,6 +16,7 @@ class WidgetKind(str, Enum):
     JOYSTICK = "joystick"
     LABEL = "label"
     PLOT = "plot"
+    POSITION_LIBRARY = "position-library"
     ROBOT_3D = "robot-3d"
     SLIDER = "slider"
     TOGGLE = "toggle"

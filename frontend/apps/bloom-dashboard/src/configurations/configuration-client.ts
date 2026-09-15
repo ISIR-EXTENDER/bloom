@@ -23,6 +23,10 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   const runtimeWebSocketClient = createRuntimeWebSocketClient({ url: resolveRuntimeWebSocketUrl(baseUrl) });
   return {
     addRuntimeLinkStateListener: runtimeWebSocketClient.addRuntimeLinkStateListener,
+    deleteSavedPosition: apiClient.deleteSavedPosition.bind(apiClient),
+    exportSavedPositions: apiClient.exportSavedPositions.bind(apiClient),
+    listSavedPositions: apiClient.listSavedPositions.bind(apiClient),
+    saveSavedPosition: apiClient.saveSavedPosition.bind(apiClient),
     addRuntimeTopicSampleListener: runtimeWebSocketClient.addRuntimeTopicSampleListener,
     engageRuntimeStop: apiClient.engageRuntimeStop.bind(apiClient),
     ensureRuntimeConnected: runtimeWebSocketClient.ensureRuntimeConnected,

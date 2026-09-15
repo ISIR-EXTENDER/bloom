@@ -122,6 +122,16 @@ export type WidgetActionIntent =
       zeroOnRelease?: boolean;
     }
   | {
+      /** Position-library operations, handled by the runtime shell over HTTP. */
+      type: "position-op";
+      op: "capture" | "delete" | "export";
+      widgetId: string;
+      widgetKind: WidgetKind;
+      name?: string;
+      jointNames?: string[];
+      positions?: number[];
+    }
+  | {
       eventType: WidgetActionEvent["type"];
       reason: string;
       type: "unsupported";

@@ -206,6 +206,13 @@ export type TopicPlotSettings = {
   yMin?: number;
 };
 
+export type PositionLibrarySettings = {
+  /** Capture filter and order; empty captures every joint in the sample. */
+  jointNames: string[];
+  jointStateTopic: string;
+  show_details: boolean;
+};
+
 export type Robot3dSettings = {
   description: string;
   jointStateTopic: string;
@@ -369,6 +376,12 @@ const TOPIC_PLOT_DEFAULT_SETTINGS: TopicPlotSettings = {
   topic: "",
   unit: "",
   variant: "area",
+};
+
+const POSITION_LIBRARY_DEFAULT_SETTINGS: PositionLibrarySettings = {
+  jointNames: [],
+  jointStateTopic: "/joint_states",
+  show_details: false,
 };
 
 const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
@@ -576,6 +589,16 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     ],
     TOPIC_PLOT_DEFAULT_SETTINGS,
     validateTopicPlotSettings,
+  ),
+  "position-library": createContract(
+    "position-library",
+    [
+      { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
+      { key: "jointNames", label: "Joint names (capture order)", type: "json", required: false },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
+    ],
+    POSITION_LIBRARY_DEFAULT_SETTINGS,
+    validatePositionLibrarySettings,
   ),
   "robot-3d": createContract(
     "robot-3d",
@@ -1268,6 +1291,22 @@ function validateTopicPlotSettings(
   }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as TopicPlotSettings);
+}
+
+function validatePositionLibrarySettings(
+  settings: Record<string, unknown>,
+): WidgetSettingsValidationResult<PositionLibrarySettings> {
+  const errors = [...validateString(settings, "jointStateTopic"), ...validateBoolean(settings, "show_details")];
+  const jointNames = settings.jointNames;
+  if (jointNames !== undefined) {
+    if (!Array.isArray(jointNames) || jointNames.some((name) => typeof name !== "string" || !name.trim())) {
+      errors.push({ field: "jointNames", message: "must be a list of joint names" });
+    }
+  }
+  if (errors.length > 0) {
+    return { success: false, errors };
+  }
+  return { success: true, settings: settings as PositionLibrarySettings };
 }
 
 function validateRobot3dSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<Robot3dSettings> {

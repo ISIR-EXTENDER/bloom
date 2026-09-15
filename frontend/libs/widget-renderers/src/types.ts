@@ -2,10 +2,25 @@ import type { WidgetKind } from "@bloom/api-client";
 import type { TopicMessage, TopicPlotSample, WidgetActionIntent, WidgetRenderDescriptor } from "@bloom/widgets";
 import type { ReactNode } from "react";
 
+export type SavedPositionEntry = {
+  name: string;
+  jointNames: readonly string[];
+  positions: readonly number[];
+  description?: string;
+};
+
 export type WidgetDataSnapshot =
   | {
       messages: readonly TopicMessage[];
       type: "event-log";
+    }
+  | {
+      type: "position-library";
+      joints?: { names: readonly string[]; positions: readonly number[]; receivedAt: string };
+      saved: readonly SavedPositionEntry[];
+      exportYaml?: string;
+      notice?: string;
+      busy?: boolean;
     }
   | {
       receivedAt: string;

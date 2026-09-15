@@ -8,6 +8,7 @@ export const WIDGET_KINDS = [
   "joystick",
   "label",
   "plot",
+  "position-library",
   "robot-3d",
   "slider",
   "toggle",
@@ -294,6 +295,23 @@ export type RuntimeRecordingResponse = {
 };
 
 /** The runtime stop latch as the backend holds it; engaged_at empty while running. */
+export type SavedPosition = {
+  name: string;
+  joint_names: string[];
+  positions: number[];
+  description: string;
+};
+
+export type SavedPositionListResponse = {
+  positions: SavedPosition[];
+};
+
+export type SavedPositionExportResponse = {
+  /** The joint_targets block to paste into the manager's parameters. */
+  yaml: string;
+  target_names: string[];
+};
+
 export type RosServiceCallRequest = {
   service: string;
   service_type: string;
@@ -474,6 +492,31 @@ export class BloomApiClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
+  }
+
+  async listSavedPositions(): Promise<SavedPosition[]> {
+    const response = await this.request<SavedPositionListResponse>("/api/v1/runtime/positions");
+    return response.positions;
+  }
+
+  saveSavedPosition(request: SavedPosition): Promise<SavedPosition> {
+    return this.request<SavedPosition>("/api/v1/runtime/positions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteSavedPosition(name: string): Promise<SavedPosition[]> {
+    const response = await this.request<SavedPositionListResponse>(
+      `/api/v1/runtime/positions/${encodeURIComponent(name)}`,
+      { method: "DELETE" },
+    );
+    return response.positions;
+  }
+
+  exportSavedPositions(): Promise<SavedPositionExportResponse> {
+    return this.request<SavedPositionExportResponse>("/api/v1/runtime/positions/export");
   }
 
   callRosService(request: RosServiceCallRequest): Promise<RosServiceCallResponse> {

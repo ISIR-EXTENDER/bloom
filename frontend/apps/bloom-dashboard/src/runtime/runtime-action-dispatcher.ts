@@ -82,7 +82,11 @@ export type RuntimeLinkState = "connecting" | "connected" | "disconnected";
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   addRuntimeLinkStateListener?: (listener: (state: RuntimeLinkState) => void) => () => void;
   addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;
+  deleteSavedPosition?: BloomApiClient["deleteSavedPosition"];
   dispatchRuntimeAction?: BloomApiClient["dispatchRuntimeAction"];
+  exportSavedPositions?: BloomApiClient["exportSavedPositions"];
+  listSavedPositions?: BloomApiClient["listSavedPositions"];
+  saveSavedPosition?: BloomApiClient["saveSavedPosition"];
   engageRuntimeStop?: BloomApiClient["engageRuntimeStop"];
   ensureRuntimeConnected?: () => Promise<void>;
   getRuntimeStopState?: BloomApiClient["getRuntimeStopState"];

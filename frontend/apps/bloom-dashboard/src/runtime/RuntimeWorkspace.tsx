@@ -18,6 +18,7 @@ import type {
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
+import { usePositionLibrary } from "./use-position-library";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
 
@@ -98,12 +99,44 @@ export function RuntimeWorkspace({
     [runtimeModeState, screen],
   );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
+  const screenHasPositionLibrary = screen.widgets.some((widget) => widget.kind === "position-library");
+  const positionLibrary = usePositionLibrary(runtimeActionClient, screenHasPositionLibrary);
+  const effectiveDataByWidgetId = useMemo(() => {
+    if (!screenHasPositionLibrary) {
+      return dataByWidgetId;
+    }
+    const merged: Record<string, WidgetDataSnapshot> = { ...dataByWidgetId };
+    for (const widget of screen.widgets) {
+      if (widget.kind !== "position-library") {
+        continue;
+      }
+      const existing = merged[widget.id];
+      merged[widget.id] = {
+        type: "position-library",
+        joints: existing?.type === "position-library" ? existing.joints : undefined,
+        saved: positionLibrary.state.saved.map((pose) => ({
+          name: pose.name,
+          jointNames: pose.joint_names,
+          positions: pose.positions,
+          description: pose.description,
+        })),
+        exportYaml: positionLibrary.state.exportYaml || undefined,
+        notice: positionLibrary.state.notice || undefined,
+        busy: positionLibrary.state.busy,
+      };
+    }
+    return merged;
+  }, [dataByWidgetId, positionLibrary.state, screen.widgets, screenHasPositionLibrary]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
   const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink);
   const stopped = runtimeStop.state?.stopped === true;
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
+    // Position ops are runtime-shell HTTP work, not robot commands.
+    if (positionLibrary.handleIntent(intent)) {
+      return;
+    }
     onActionIntent(intent, {
       action_presets: application.action_presets,
       appId: selection.appId,
@@ -213,7 +246,11 @@ export function RuntimeWorkspace({
             <ScreenArtboard
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
-              rendererOptions={{ controlStateByWidgetId, dataByWidgetId, onActionIntent: handleRuntimeActionIntent }}
+              rendererOptions={{
+                controlStateByWidgetId,
+                dataByWidgetId: effectiveDataByWidgetId,
+                onActionIntent: handleRuntimeActionIntent,
+              }}
               screen={screen}
               style={{
                 height: `${artboardSize.height}px`,
@@ -357,6 +394,19 @@ function appendRuntimeTopicSample(
         value: topicMessage.value,
       };
     }
+
+    if (widget.kind === "position-library") {
+      const joints = readJointStateSample(topicMessage.value, readJointNamesSetting(widget.settings));
+      if (joints) {
+        nextData = nextData ?? { ...currentData };
+        const existing = currentData[widget.id];
+        nextData[widget.id] = {
+          ...(existing?.type === "position-library" ? existing : { type: "position-library", saved: [] }),
+          type: "position-library",
+          joints: { ...joints, receivedAt: topicMessage.receivedAt },
+        };
+      }
+    }
   }
 
   return nextData ?? { ...currentData };
@@ -367,7 +417,7 @@ function appendRuntimeTopicSample(
  * subscription rule instead of a copy of it. See `widget-destination.ts`.
  */
 export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefined {
-  if (widget.kind === "robot-3d") {
+  if (widget.kind === "robot-3d" || widget.kind === "position-library") {
     return readStringSetting(widget.settings, "jointStateTopic") ?? "/joint_states";
   }
   if (
@@ -383,7 +433,7 @@ export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefi
 }
 
 function resolveWidgetRuntimeMessageType(widget: WidgetConfig): string {
-  if (widget.kind === "robot-3d") {
+  if (widget.kind === "robot-3d" || widget.kind === "position-library") {
     return "sensor_msgs/msg/JointState";
   }
   return readStringSetting(widget.settings, "messageType") ?? "";
@@ -394,6 +444,41 @@ function resolveWidgetRuntimeFieldPath(widget: WidgetConfig): string {
     return readStringSetting(widget.settings, "fieldPath") ?? "data";
   }
   return readStringSetting(widget.settings, "fieldPath") ?? "";
+}
+
+function readJointNamesSetting(settings: Record<string, unknown>): string[] {
+  const raw = settings.jointNames;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.filter((name): name is string => typeof name === "string" && name.trim().length > 0);
+}
+
+function readJointStateSample(value: unknown, orderedNames: string[]): { names: string[]; positions: number[] } | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  const record = value as Record<string, unknown>;
+  const names = Array.isArray(record.name) ? record.name.map(String) : [];
+  const positions = Array.isArray(record.position) ? record.position.map(Number) : [];
+  if (names.length === 0 || names.length !== positions.length) {
+    return null;
+  }
+  if (orderedNames.length === 0) {
+    return { names, positions };
+  }
+  // Filter and order to the configured joints; a sample missing one is
+  // incomplete and must not be capturable.
+  const lookup = new Map(names.map((name, index) => [name, positions[index] as number]));
+  const ordered: number[] = [];
+  for (const name of orderedNames) {
+    const position = lookup.get(name);
+    if (position === undefined || !Number.isFinite(position)) {
+      return null;
+    }
+    ordered.push(position);
+  }
+  return { names: orderedNames, positions: ordered };
 }
 
 function readStringSetting(settings: Record<string, unknown>, key: string): string | undefined {

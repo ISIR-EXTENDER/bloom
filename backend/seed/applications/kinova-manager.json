@@ -574,9 +574,9 @@
               }
             },
             {
-              "id": "positions-joints",
-              "kind": "topic-echo",
-              "title": "Joint states",
+              "id": "positions-library",
+              "kind": "position-library",
+              "title": "Saved poses",
               "layout": {
                 "x": 650,
                 "y": 270,
@@ -584,12 +584,17 @@
                 "height": 420
               },
               "settings": {
-                "fieldPath": "position",
-                "maxMessages": 20,
-                "messageType": "sensor_msgs/msg/JointState",
-                "prettyPrint": true,
-                "show_details": true,
-                "topic": "/joint_states"
+                "jointStateTopic": "/joint_states",
+                "jointNames": [
+                  "joint_1",
+                  "joint_2",
+                  "joint_3",
+                  "joint_4",
+                  "joint_5",
+                  "joint_6",
+                  "joint_7"
+                ],
+                "show_details": false
               }
             }
           ]

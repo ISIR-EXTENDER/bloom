@@ -86,7 +86,7 @@ function asTopic(value: unknown): string | null {
 }
 
 function resolveReadSource(kind: string, settings: Record<string, unknown>): WidgetDestination {
-  if (kind === "robot-3d") {
+  if (kind === "robot-3d" || kind === "position-library") {
     const configured = asTopic(settings.jointStateTopic);
     return configured
       ? {
@@ -206,7 +206,7 @@ export function resolveWidgetDestination(
 ): WidgetDestination | null {
   const widgetSettings = asRecord(settings);
 
-  if (kind === "robot-3d" || READING_KINDS.has(kind)) {
+  if (kind === "robot-3d" || kind === "position-library" || READING_KINDS.has(kind)) {
     return resolveReadSource(kind, widgetSettings);
   }
   if (PUBLISHING_KINDS.has(kind)) {

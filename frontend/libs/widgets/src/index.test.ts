@@ -213,7 +213,11 @@ describe("widget capability metadata", () => {
   it("groups widget definitions by category", () => {
     const commandWidgets = listWidgetDefinitionsByCategory(createDefaultWidgetRegistry(), "command");
 
-    expect(commandWidgets.map((definition) => definition.kind).sort()).toEqual(["button", "command-button"]);
+    expect(commandWidgets.map((definition) => definition.kind).sort()).toEqual([
+      "button",
+      "command-button",
+      "position-library",
+    ]);
   });
 
   it("creates widget configs from capability defaults", () => {
@@ -331,6 +335,7 @@ describe("widget settings contracts", () => {
       "joystick",
       "label",
       "plot",
+      "position-library",
       "robot-3d",
       "slider",
       "toggle",
