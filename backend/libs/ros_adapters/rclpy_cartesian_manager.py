@@ -87,12 +87,15 @@ class RclpyCartesianManagerGateway:
         # safety property this chain actually has -- is silently defeated.
         # Staleness belongs to the node that owns the timeout.
         message.header.frame_id = command.frame_id or self._command_frame_id
-        message.twist.linear.x = float(command.linear.x)
-        message.twist.linear.y = float(command.linear.y)
-        message.twist.linear.z = float(command.linear.z)
-        message.twist.angular.x = float(command.angular.x)
-        message.twist.angular.y = float(command.angular.y)
-        message.twist.angular.z = float(command.angular.z)
+        # Unit scale, like joystick_mapper's axes: the manager sums inputs and
+        # normalizes the total, so an oversized Bloom axis would not go faster,
+        # it would drown the other sources in the sum.
+        message.twist.linear.x = _unit(command.linear.x)
+        message.twist.linear.y = _unit(command.linear.y)
+        message.twist.linear.z = _unit(command.linear.z)
+        message.twist.angular.x = _unit(command.angular.x)
+        message.twist.angular.y = _unit(command.angular.y)
+        message.twist.angular.z = _unit(command.angular.z)
         return message
 
     @staticmethod
@@ -102,6 +105,10 @@ class RclpyCartesianManagerGateway:
         except ModuleNotFoundError as exc:
             raise RuntimeError("geometry_msgs is required to publish Cartesian commands") from exc
         return TwistStamped
+
+
+def _unit(value: float) -> float:
+    return max(-1.0, min(1.0, float(value)))
 
 
 __all__ = ["DEFAULT_COMMAND_FRAME_ID", "RclpyCartesianManagerGateway"]

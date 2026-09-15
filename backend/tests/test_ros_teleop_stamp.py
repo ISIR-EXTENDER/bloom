@@ -33,7 +33,7 @@ class FakeTwistStamped:
         self.twist = FakeTwist()
 
 
-def build_message(monkeypatch, frame_id: str = "") -> FakeTwistStamped:
+def build_message(monkeypatch, frame_id: str = "", linear_x: float = 0.1, angular_z: float = 0.0) -> FakeTwistStamped:
     gateway = RclpyCartesianManagerGateway.__new__(RclpyCartesianManagerGateway)
     gateway._command_frame_id = "base_link"
     monkeypatch.setattr(
@@ -42,9 +42,9 @@ def build_message(monkeypatch, frame_id: str = "") -> FakeTwistStamped:
         staticmethod(lambda: FakeTwistStamped),
     )
     command = TeleopCommand(
-        angular=TeleopVector3(),
+        angular=TeleopVector3(z=angular_z),
         frame_id=frame_id,
-        linear=TeleopVector3(x=0.1),
+        linear=TeleopVector3(x=linear_x),
         mode=0,
         seq=1,
         target="/joystick_cartesian_command",
@@ -81,3 +81,13 @@ def test_a_command_frame_overrides_the_configured_default(monkeypatch) -> None:
     message = build_message(monkeypatch, frame_id="ft_frame")
 
     assert message.header.frame_id == "ft_frame"
+
+
+def test_axes_are_clamped_to_unit_scale(monkeypatch) -> None:
+    """joystick_mapper bounds each axis to [-1, 1]; Bloom matches it. An
+    oversized axis would not go faster, it would drown the other summed
+    sources."""
+    message = build_message(monkeypatch, linear_x=5.0, angular_z=-3.0)
+
+    assert message.twist.linear.x == 1.0
+    assert message.twist.angular.z == -1.0
