@@ -15,6 +15,7 @@ from libs.config.storage import create_configuration_repository
 SHARED_APP_IDS = {
     "bloom-debug",
     "explorer-manager",
+    "kinova-manager",
     "explorer-user-tests",
     "petanque-admin",
     "sandbox",
