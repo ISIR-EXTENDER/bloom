@@ -105,7 +105,7 @@
               "layout": {
                 "x": 170,
                 "y": 250,
-                "width": 430,
+                "width": 400,
                 "height": 440
               },
               "settings": {
@@ -158,9 +158,9 @@
               "kind": "joystick",
               "title": "Rotation",
               "layout": {
-                "x": 660,
+                "x": 610,
                 "y": 250,
-                "width": 430,
+                "width": 400,
                 "height": 440
               },
               "settings": {
@@ -395,7 +395,7 @@
                 "x": 1110,
                 "y": 250,
                 "width": 130,
-                "height": 440
+                "height": 260
               },
               "settings": {
                 "max": 1,
@@ -505,7 +505,7 @@
               "kind": "topic-echo",
               "title": "Joint target",
               "layout": {
-                "x": 20,
+                "x": 650,
                 "y": 270,
                 "width": 610,
                 "height": 420
@@ -524,7 +524,7 @@
               "kind": "position-library",
               "title": "Saved poses",
               "layout": {
-                "x": 650,
+                "x": 20,
                 "y": 270,
                 "width": 610,
                 "height": 420

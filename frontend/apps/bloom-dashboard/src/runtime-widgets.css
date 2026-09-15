@@ -54,7 +54,16 @@
   min-width: 0;
 }
 
+/* The title is the operator's word for the control; it never truncates.
+   The detail line is the one that gives way. */
+.bloom-control-header > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .bloom-control-header strong {
+  flex-shrink: 0;
   display: inline-flex;
   gap: 8px;
   align-items: baseline;
@@ -1426,6 +1435,7 @@
 .bloom-position-library {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 10px;
   height: 100%;
   min-height: 0;

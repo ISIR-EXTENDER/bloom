@@ -12,7 +12,12 @@ import type {
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
-import { DEFAULT_ACTION_PRESETS, DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
+import {
+  DEFAULT_ACTION_PRESETS,
+  DEFAULT_APPLICATION_THEME,
+  DEFAULT_RUNTIME_POLICY,
+  WIDGET_KINDS as CANONICAL_WIDGET_KINDS,
+} from "@bloom/api-client";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
   applications?: PartialApplicationConfig[];
@@ -54,23 +59,9 @@ const CANVAS_PRESET_IDS = new Set<CanvasPresetId>([
   "local-screen",
 ]);
 const RUNTIME_CANVAS_MODES = new Set<RuntimeCanvasMode>(["left", "center", "fit", "operator-fit"]);
-const WIDGET_KINDS = new Set<WidgetKind>([
-  "button",
-  "camera",
-  "command-button",
-  "event-log",
-  "gauge",
-  "gesture-pad",
-  "joystick",
-  "label",
-  "plot",
-  "robot-3d",
-  "slider",
-  "toggle",
-  "topic-echo",
-  "topic-plot",
-  "unknown",
-]);
+// The canonical list, not a copy: a private copy silently downgraded any
+// newer kind to "unknown" at load time.
+const WIDGET_KINDS = new Set<WidgetKind>(CANONICAL_WIDGET_KINDS);
 
 const DEFAULT_CANVAS: CanvasSettings = {
   preset_id: "tablet",

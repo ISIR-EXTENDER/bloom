@@ -278,3 +278,34 @@ def test_operator_screens_fit_their_canvas_and_controls_do_not_overlap() -> None
                         )
 
     assert checked > 0, "no operator screens were checked; the walk is broken"
+
+
+def test_no_interactive_control_shares_glass_with_the_stop_chrome() -> None:
+    """STOP is fixed chrome above the widgets; a control under it is untappable."""
+    panel_width, panel_height = 1024, 600
+    stop_width, stop_height, margin = 176, 132, 24
+
+    checked = 0
+    for config_id in available_seed_ids():
+        path = DEFAULT_SEED_DIR / f"{config_id}.json"
+        bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
+        for application in bundle.applications:
+            for screen in application.screens:
+                size = OPERATOR_CANVAS_SIZES.get(screen.canvas.preset_id)
+                if size is None or screen.canvas.preset_id == "hd":
+                    continue
+                width, height = size
+                scale = min(panel_width / width, panel_height / height) * 0.99
+                reserve_x = width - (stop_width + margin) / scale
+                reserve_y = height - (stop_height + margin) / scale
+                for widget in screen.widgets:
+                    if widget.kind.value not in INTERACTIVE_WIDGET_KINDS:
+                        continue
+                    layout = widget.layout
+                    in_reserve = layout.x + layout.width > reserve_x and layout.y + layout.height > reserve_y
+                    assert not in_reserve, (
+                        f"{config_id}/{screen.id}/{widget.id} reaches under the STOP chrome"
+                    )
+                    checked += 1
+
+    assert checked > 0, "no interactive widgets were checked; the walk is broken"

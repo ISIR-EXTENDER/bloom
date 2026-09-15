@@ -117,7 +117,7 @@
               "layout": {
                 "x": 279,
                 "y": 95,
-                "width": 382,
+                "width": 340,
                 "height": 159
               },
               "settings": {
@@ -146,9 +146,9 @@
               "kind": "joystick",
               "title": "Rotation",
               "layout": {
-                "x": 802,
+                "x": 630,
                 "y": 268,
-                "width": 435,
+                "width": 390,
                 "height": 441
               },
               "settings": {
@@ -194,9 +194,9 @@
               "kind": "joystick",
               "title": "Translation",
               "layout": {
-                "x": 255,
+                "x": 250,
                 "y": 268,
-                "width": 429,
+                "width": 370,
                 "height": 441
               },
               "settings": {
@@ -268,9 +268,9 @@
               "kind": "slider",
               "title": "RZ",
               "layout": {
-                "x": 802,
+                "x": 630,
                 "y": 124,
-                "width": 435,
+                "width": 390,
                 "height": 130
               },
               "settings": {
@@ -545,7 +545,7 @@
               "layout": {
                 "x": 650,
                 "y": 417,
-                "width": 530,
+                "width": 290,
                 "height": 141
               },
               "settings": {
@@ -607,7 +607,7 @@
               "layout": {
                 "x": 650,
                 "y": 567,
-                "width": 531,
+                "width": 290,
                 "height": 145
               },
               "settings": {
@@ -811,7 +811,7 @@
               "kind": "command-button",
               "title": "Invert Angular Y",
               "layout": {
-                "x": 1190,
+                "x": 950,
                 "y": 459,
                 "width": 70,
                 "height": 58
@@ -836,7 +836,7 @@
               "kind": "command-button",
               "title": "Invert Angular Z",
               "layout": {
-                "x": 1190,
+                "x": 950,
                 "y": 611,
                 "width": 70,
                 "height": 58
@@ -1167,7 +1167,7 @@
               "title": "RZ",
               "layout": {
                 "x": 758,
-                "y": 410,
+                "y": 396,
                 "width": 490,
                 "height": 124
               },

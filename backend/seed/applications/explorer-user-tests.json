@@ -359,7 +359,7 @@
                 "x": 950,
                 "y": 410,
                 "width": 250,
-                "height": 120
+                "height": 110
               },
               "settings": {
                 "initialValue": false,
@@ -884,7 +884,7 @@
               "title": "Start drink assistance",
               "layout": {
                 "x": 948,
-                "y": 190,
+                "y": 172,
                 "width": 230,
                 "height": 120
               },
@@ -903,7 +903,7 @@
               "title": "Pause assistance",
               "layout": {
                 "x": 948,
-                "y": 334,
+                "y": 292,
                 "width": 230,
                 "height": 120
               },
@@ -922,9 +922,9 @@
               "title": "Complete task",
               "layout": {
                 "x": 948,
-                "y": 478,
+                "y": 418,
                 "width": 230,
-                "height": 120
+                "height": 100
               },
               "settings": {
                 "command": "explorer.task.drink.complete",

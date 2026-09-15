@@ -9,6 +9,7 @@ const repoRoot = resolve(__dirname, "..");
 const dashboardRoot = resolve(repoRoot, "frontend/apps/bloom-dashboard");
 const configurationFixturePaths = {
   "bloom-debug": resolve(repoRoot, "backend/seed/applications/bloom-debug.json"),
+  "explorer-manager": resolve(repoRoot, "backend/seed/applications/explorer-manager.json"),
   sandbox: resolve(repoRoot, "backend/seed/applications/sandbox.json"),
 };
 const outputDir = process.env.BLOOM_VISUAL_OUTPUT_DIR ?? resolve("/tmp", "bloom-visual-smoke");
@@ -35,6 +36,10 @@ const routes = [
     setup: (page) => showSandboxRuntimeScreen(page, "Visual Servoing Monitor"),
   },
   { name: "debug-runtime", setup: showDebugRuntime },
+  { name: "explorer-drive", setup: (page) => showExplorerRuntimeScreen(page, null) },
+  { name: "explorer-positions", setup: (page) => showExplorerRuntimeScreen(page, "Positions") },
+  { name: "explorer-feedback", setup: (page) => showExplorerRuntimeScreen(page, "Robot feedback") },
+  { name: "explorer-sources", setup: (page) => showExplorerRuntimeScreen(page, "Command sources") },
 ];
 
 const configurations = Object.fromEntries(
@@ -416,6 +421,34 @@ async function showSandboxRuntimeScreen(page, screenName) {
     .getByRole("button", { exact: true, name: screenName })
     .click();
   await page.getByRole("dialog", { name: "Maintenance" }).waitFor({ state: "detached" });
+}
+
+async function showExplorerRuntimeScreen(page, screenName) {
+  await mockRuntimeWebSocket(page);
+  await mockSavedPositions(page);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
+  await page.getByRole("button", { name: "Launch Explorer Manager runtime" }).click();
+  await page.getByRole("region", { name: "Runtime application" }).waitFor();
+  if (screenName === null) {
+    return;
+  }
+  await holdForMaintenance(page);
+  await page
+    .getByRole("navigation", { name: "Switch runtime screen" })
+    .getByRole("button", { exact: true, name: screenName })
+    .click();
+  await page.getByRole("dialog", { name: "Maintenance" }).waitFor({ state: "detached" });
+}
+
+async function mockSavedPositions(page) {
+  const positions = [
+    { name: "home", joint_names: ["joint_1", "joint_2"], positions: [2.5, 0.3], description: "" },
+    { name: "table-reach", joint_names: ["joint_1", "joint_2"], positions: [1.2, -0.4], description: "" },
+  ];
+  await page.route("**/api/v1/runtime/positions", async (route) => {
+    await route.fulfill({ json: { positions }, status: 200 });
+  });
 }
 
 async function holdForMaintenance(page) {
