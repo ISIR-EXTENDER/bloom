@@ -46,6 +46,9 @@ class Settings(BaseModel):
         "std_msgs/msg/UInt8MultiArray",
     )
     allowed_ros_publish_topics: tuple[str, ...] = (
+        # qontrol runtime speed limits, from cartesian_manager's explorer bringup.
+        "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+        "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
         "/cmd/gripper",
         "/cmd/mode",
         "/cmd/joystick_rxry",

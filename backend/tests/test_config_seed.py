@@ -203,3 +203,22 @@ def test_every_shipped_toggle_can_actually_publish() -> None:
                         checked += 1
 
     assert checked > 0, "no shipped toggles were checked; the walk is broken"
+
+
+def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
+    """/cmd/max_velocity died with sandbox_controller; qontrol reads these."""
+    path = DEFAULT_SEED_DIR / "explorer-manager.json"
+    bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
+    topics = {
+        widget.settings.get("topic")
+        for application in bundle.applications
+        for screen in application.screens
+        for widget in screen.widgets
+        if widget.kind.value == "slider"
+    }
+
+    # Values of topic_max_linear_velocity / topic_max_angular_velocity in
+    # cartesian_manager bringup/config/explorer_params.yaml.
+    assert "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed" in topics
+    assert "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed" in topics
+    assert "/cmd/max_velocity" not in topics

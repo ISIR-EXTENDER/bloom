@@ -56,7 +56,8 @@
           "std_msgs/msg/String"
         ],
         "allowed_publish_topics": [
-          "/cmd/max_velocity",
+          "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+          "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
           "/gripper_controller/commands",
           "/mode_request"
         ],
@@ -208,23 +209,46 @@
               }
             },
             {
-              "id": "drive-max-velocity",
+              "id": "drive-max-linear-speed",
               "kind": "slider",
-              "title": "Max velocity",
+              "title": "Max linear speed",
               "layout": {
                 "x": 250,
                 "y": 90,
-                "width": 430,
+                "width": 210,
                 "height": 130
               },
               "settings": {
-                "max": 1,
+                "max": 0.3,
                 "min": 0,
-                "step": 0.05,
-                "value": 0.5,
+                "step": 0.015,
+                "value": 0.15,
                 "direction": "horizontal",
                 "show_details": true,
-                "topic": "/cmd/max_velocity",
+                "unit": "m/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64"
+              }
+            },
+            {
+              "id": "drive-max-angular-speed",
+              "kind": "slider",
+              "title": "Max angular speed",
+              "layout": {
+                "x": 470,
+                "y": 90,
+                "width": 210,
+                "height": 130
+              },
+              "settings": {
+                "max": 0.8,
+                "min": 0,
+                "step": 0.04,
+                "value": 0.4,
+                "direction": "horizontal",
+                "show_details": true,
+                "unit": "rad/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
                 "messageType": "std_msgs/msg/Float64"
               }
             },
