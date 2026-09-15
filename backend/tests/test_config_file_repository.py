@@ -84,7 +84,11 @@ def test_file_repository_round_trips_real_legacy_screen_fixture(tmp_path) -> Non
 
 
 def test_shipped_webcam_visualizer_demo_configuration_is_loadable() -> None:
-    repository = FileConfigurationRepository(DATA_CONFIGURATION_DIR)
+    # The shipped copy lives in the seed directory; backend/data is gitignored
+    # local state, so reading it here fails on every clean checkout (and CI).
+    from libs.config.seed import DEFAULT_SEED_DIR
+
+    repository = FileConfigurationRepository(DEFAULT_SEED_DIR)
 
     bundle = repository.get("webcam-visualizer")
     application = bundle.applications[0]
