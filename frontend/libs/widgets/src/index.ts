@@ -65,7 +65,12 @@ export type WidgetCategory = "command" | "device" | "display" | "feedback" | "in
  * be met or checked. A requirement that cannot be resolved is worse than none:
  * it reads like a promise.
  */
-export type WidgetRuntimeRequirement = "none" | "command-dispatcher" | "data-source" | "teleop-adapter";
+export type WidgetRuntimeRequirement =
+  | "none"
+  | "command-dispatcher"
+  | "data-source"
+  | "service-dispatcher"
+  | "teleop-adapter";
 
 /**
  * How finished a widget is, independent of whether the backend can serve it.

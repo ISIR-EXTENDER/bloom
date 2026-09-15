@@ -39,6 +39,7 @@ const REQUIREMENT_LABELS: Record<WidgetRuntimeRequirement, string> = {
   none: "no backend connection",
   "command-dispatcher": "a ROS connection to publish commands",
   "data-source": "a ROS connection to read topics",
+  "service-dispatcher": "a ROS connection to call services",
   "teleop-adapter": "a teleop connection to the manager",
 };
 
