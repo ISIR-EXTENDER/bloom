@@ -12,14 +12,20 @@ import {
 import type { WidgetRendererProps } from "./types";
 
 export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
-  const min = getNumberSetting(descriptor.widget.settings, "min", -1);
-  const max = getNumberSetting(descriptor.widget.settings, "max", 1);
-  const step = getNumberSetting(descriptor.widget.settings, "step", 0.01);
-  const direction = getStringSetting(descriptor.widget.settings, "direction", "vertical");
-  const returnToCenter = getBooleanSetting(descriptor.widget.settings, "returnToCenter", false);
-  const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
-  const intentLabel = getStringSetting(descriptor.widget.settings, "intent_label", "");
-  const unit = getStringSetting(descriptor.widget.settings, "unit", "");
+  // Read through normalization, like the joystick does: configs in the wild
+  // carry `orientation`/`return_to_center`, and reading the raw settings here
+  // silently dropped both -- including return-to-center on sliders that
+  // command a velocity axis.
+  const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
+  const sliderSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
+  const min = getNumberSetting(sliderSettings, "min", -1);
+  const max = getNumberSetting(sliderSettings, "max", 1);
+  const step = getNumberSetting(sliderSettings, "step", 0.01);
+  const direction = getStringSetting(sliderSettings, "direction", "vertical");
+  const returnToCenter = getBooleanSetting(sliderSettings, "returnToCenter", false);
+  const showDetails = getBooleanSetting(sliderSettings, "show_details", false);
+  const intentLabel = getStringSetting(sliderSettings, "intent_label", "");
+  const unit = getStringSetting(sliderSettings, "unit", "");
   const defaultValue = clamp(0, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
   const formattedValue = formatSliderValue(currentValue, step, unit);
@@ -48,7 +54,7 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   return (
     <div
       className="bloom-slider-widget"
-      data-binding={getStringSetting(descriptor.widget.settings, "binding", "value")}
+      data-binding={getStringSetting(sliderSettings, "binding", "value")}
       data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
       data-show-details={showDetails ? "true" : "false"}
     >

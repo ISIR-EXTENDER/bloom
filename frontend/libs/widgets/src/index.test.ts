@@ -359,6 +359,41 @@ describe("widget settings contracts", () => {
     });
   });
 
+  it("accepts the snake_case slider keys configs in the wild carry", () => {
+    // Seeds and hand-written configs used `orientation`/`return_to_center`,
+    // consistent with every neighbouring snake_case key, and both were
+    // silently dropped. The dangerous half was return-to-center not returning
+    // to center on a slider that commands a velocity axis.
+    expect(
+      normalizeWidgetSettings("slider", { max: 1, min: -1, orientation: "horizontal", return_to_center: true }),
+    ).toMatchObject({
+      success: true,
+      settings: {
+        direction: "horizontal",
+        returnToCenter: true,
+      },
+    });
+  });
+
+  it("lets canonical slider keys win over their legacy aliases", () => {
+    expect(
+      normalizeWidgetSettings("slider", {
+        direction: "vertical",
+        max: 1,
+        min: -1,
+        orientation: "horizontal",
+        return_to_center: true,
+        returnToCenter: false,
+      }),
+    ).toMatchObject({
+      success: true,
+      settings: {
+        direction: "vertical",
+        returnToCenter: false,
+      },
+    });
+  });
+
   it("keeps slider unit and operator intent settings optional but valid", () => {
     expect(
       validateWidgetSettings("slider", {

@@ -130,6 +130,34 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("0.00")).toHaveClass("sr-only");
   });
 
+  it("honours the snake_case slider keys configs in the wild carry", async () => {
+    // `orientation` and `return_to_center` were read as their camelCase
+    // spellings only, so both silently fell back to defaults: a horizontal
+    // slider rendered vertical, and a velocity-axis slider kept its last
+    // value on release instead of returning to zero.
+    const descriptor = renderScreenDescriptors(legacyKeysSliderScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+    const onActionIntent = vi.fn();
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const slider = screen.getByRole("slider", { name: "Z" });
+    expect(slider.closest(".bloom-slider")).toHaveAttribute("data-return-to-center", "true");
+    expect(slider.closest(".bloom-slider")).toHaveAttribute("data-orientation", "horizontal");
+    slider.focus();
+    await user.keyboard("{ArrowRight}");
+    fireEvent.blur(slider);
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: "value-change",
+        value: 0,
+        widgetId: "drive-z",
+      }),
+    );
+  });
+
   it("shows slider runtime details only when requested", () => {
     const descriptor = renderScreenDescriptors(sliderDebugScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing slider descriptor.");
@@ -898,6 +926,36 @@ const returnToCenterSliderScreen: ScreenConfig = {
         max: 1,
         min: -1,
         returnToCenter: true,
+        step: 0.01,
+      },
+    },
+  ],
+};
+
+const legacyKeysSliderScreen: ScreenConfig = {
+  id: "controls",
+  title: "Controls",
+  canvas: {
+    preset_id: "hd",
+    runtime_mode: "fit",
+  },
+  widgets: [
+    {
+      id: "drive-z",
+      kind: "slider",
+      title: "Z",
+      layout: {
+        x: 16,
+        y: 24,
+        width: 220,
+        height: 80,
+      },
+      // The snake_case spelling seeds and hand-written configs actually carry.
+      settings: {
+        max: 1,
+        min: -1,
+        orientation: "horizontal",
+        return_to_center: true,
         step: 0.01,
       },
     },

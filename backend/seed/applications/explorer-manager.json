@@ -222,7 +222,7 @@
                 "min": 0,
                 "step": 0.05,
                 "value": 0.5,
-                "orientation": "horizontal",
+                "direction": "horizontal",
                 "show_details": true,
                 "topic": "/cmd/max_velocity",
                 "messageType": "std_msgs/msg/Float64"
@@ -345,9 +345,9 @@
                 "min": -1,
                 "step": 0.01,
                 "value": 0,
-                "orientation": "vertical",
+                "direction": "vertical",
                 "show_details": true,
-                "return_to_center": true,
+                "returnToCenter": true,
                 "runtime_binding": {
                   "adapter": "teleop",
                   "target": "linear_z",
@@ -378,9 +378,9 @@
                 "min": -1,
                 "step": 0.01,
                 "value": 0,
-                "orientation": "vertical",
+                "direction": "vertical",
                 "show_details": true,
-                "return_to_center": true,
+                "returnToCenter": true,
                 "runtime_binding": {
                   "adapter": "teleop",
                   "target": "angular_z",

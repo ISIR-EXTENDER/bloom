@@ -621,7 +621,40 @@ export function normalizeWidgetSettings(
   if (kind === "camera") {
     return validateWidgetSettings(kind, normalizeCameraCompatibility(mergedSettings));
   }
+  if (kind === "slider") {
+    return validateWidgetSettings(kind, {
+      ...getDefaultWidgetSettings(kind),
+      ...normalizeSliderCompatibility(settings),
+    });
+  }
   return validateWidgetSettings(kind, mergedSettings);
+}
+
+/**
+ * Accept the snake_case slider keys that configs in the wild actually carry.
+ *
+ * The contract names these `direction` and `returnToCenter`, but seeds and
+ * hand-written configs used `orientation` and `return_to_center` -- consistent
+ * with the snake_case of every neighbouring key -- and nothing complained:
+ * the unknown keys passed through and the canonical ones fell back to their
+ * defaults. The visible half of that failure was a horizontal slider rendering
+ * vertical. The dangerous half was `return_to_center: true` silently not
+ * returning to center on a slider that commands a velocity axis: the arm kept
+ * the last value as its command until the manager's timeout expired it.
+ *
+ * Runs on the raw authored settings, before defaults merge in, so "the author
+ * never wrote the canonical key" is a real test. Canonical keys win when both
+ * are present.
+ */
+function normalizeSliderCompatibility(settings: Record<string, unknown>): Record<string, unknown> {
+  const normalized = { ...settings };
+  if (!("direction" in settings) && (settings.orientation === "horizontal" || settings.orientation === "vertical")) {
+    normalized.direction = settings.orientation;
+  }
+  if (!("returnToCenter" in settings) && typeof settings.return_to_center === "boolean") {
+    normalized.returnToCenter = settings.return_to_center;
+  }
+  return normalized;
 }
 
 export type RosMessageTogglePreset = {
