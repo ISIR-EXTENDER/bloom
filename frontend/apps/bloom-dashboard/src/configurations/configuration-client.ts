@@ -22,13 +22,18 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   const apiClient = createBloomApiClient({ baseUrl });
   const runtimeWebSocketClient = createRuntimeWebSocketClient({ url: resolveRuntimeWebSocketUrl(baseUrl) });
   return {
+    addRuntimeLinkStateListener: runtimeWebSocketClient.addRuntimeLinkStateListener,
     addRuntimeTopicSampleListener: runtimeWebSocketClient.addRuntimeTopicSampleListener,
+    engageRuntimeStop: apiClient.engageRuntimeStop.bind(apiClient),
+    ensureRuntimeConnected: runtimeWebSocketClient.ensureRuntimeConnected,
+    getRuntimeStopState: apiClient.getRuntimeStopState.bind(apiClient),
     listRosTopicStatus: apiClient.listRosTopicStatus.bind(apiClient),
     listRosTopics: apiClient.listRosTopics.bind(apiClient),
     listRuntimeAuditRecords: apiClient.listRuntimeAuditRecords.bind(apiClient),
     listRuntimeCapabilities: apiClient.listRuntimeCapabilities.bind(apiClient),
     dispatchRuntimeAction: apiClient.dispatchRuntimeAction.bind(apiClient),
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),
+    resumeRuntimeStop: apiClient.resumeRuntimeStop.bind(apiClient),
     sendTeleopCommand: runtimeWebSocketClient.sendTeleopCommand,
     startRuntimeRecording: apiClient.startRuntimeRecording.bind(apiClient),
     stopRuntimeRecording: apiClient.stopRuntimeRecording.bind(apiClient),

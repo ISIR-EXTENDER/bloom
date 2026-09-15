@@ -44,6 +44,7 @@ from libs.sessions import (
     RuntimeTopicSubscription,
     RuntimeTopicSubscriptionGateway,
     RuntimeTopicSubscriptionHandle,
+    RuntimeStopController,
     RuntimeSubscribeTopicMessage,
     RuntimeTeleopCommandMessage,
     TeleopCommandGateway,
@@ -66,6 +67,10 @@ def get_teleop_command_gateway(websocket: WebSocket) -> TeleopCommandGateway:
 
 def get_runtime_topic_subscription_gateway(websocket: WebSocket) -> RuntimeTopicSubscriptionGateway:
     return websocket.app.state.runtime_topic_subscription_gateway
+
+
+def get_runtime_stop_controller(connection: Request | WebSocket) -> RuntimeStopController:
+    return connection.app.state.runtime_stop_controller
 
 
 def get_runtime_audit_log(connection: Request | WebSocket) -> RuntimeAuditLog:
@@ -216,6 +221,41 @@ class RuntimeActionDispatchResponse(BaseModel):
     topic: str
 
 
+class RuntimeStopStateResponse(BaseModel):
+    stopped: bool
+    engaged_at: str
+    detail: str
+
+
+@router.get("/stop", response_model=RuntimeStopStateResponse)
+def get_runtime_stop_state(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RuntimeStopStateResponse:
+    return RuntimeStopStateResponse(**asdict(get_runtime_stop_controller(request).state))
+
+
+@router.post("/stop", response_model=RuntimeStopStateResponse)
+def engage_runtime_stop(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RuntimeStopStateResponse:
+    """Latch the runtime stopped and assert it toward the robot.
+
+    Deliberately HTTP rather than a WebSocket message: the moment STOP matters
+    most is when the teleop WebSocket is the thing that died.
+    """
+    return RuntimeStopStateResponse(**asdict(get_runtime_stop_controller(request).engage()))
+
+
+@router.post("/stop/resume", response_model=RuntimeStopStateResponse)
+def resume_runtime_stop(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_operator),
+) -> RuntimeStopStateResponse:
+    return RuntimeStopStateResponse(**asdict(get_runtime_stop_controller(request).resume()))
+
+
 @router.get("/audit", response_model=RuntimeAuditListResponse)
 def list_runtime_audit_records(
     request: Request,
@@ -234,6 +274,23 @@ def dispatch_runtime_action(
     action_request: RuntimeActionDispatchRequest,
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> RuntimeActionDispatchResponse:
+    stop_reason = get_runtime_stop_controller(request).rejection_reason()
+    if stop_reason is not None:
+        get_runtime_audit_log(request).record(
+            RuntimeAuditRecord(
+                channel="runtime_action",
+                detail=stop_reason,
+                payload_summary={
+                    "app_id": action_request.app_id,
+                    "config_id": action_request.config_id,
+                    "preset_id": action_request.preset_id,
+                },
+                status="rejected",
+                target=action_request.command or action_request.preset_id,
+            )
+        )
+        raise HTTPException(status_code=409, detail=stop_reason)
+
     repository = get_configuration_repository(request)
     try:
         configuration = repository.get(action_request.config_id)
@@ -690,6 +747,7 @@ async def handle_runtime_client_payload(
             get_runtime_command_rate_limiter(websocket),
             lambda sample: event_loop.call_soon_threadsafe(enqueue_topic_sample, topic_samples, sample),
             topic_subscription_handles,
+            get_runtime_stop_controller(websocket),
         ).model_dump()
     )
 
@@ -704,6 +762,7 @@ def build_runtime_ack(
     rate_limiter: RuntimeCommandRateLimiter | None = None,
     on_topic_sample: Callable[[RuntimeTopicSample], None] | None = None,
     topic_subscription_handles: list[RuntimeTopicSubscriptionHandle] | None = None,
+    stop_controller: RuntimeStopController | None = None,
 ) -> RuntimeServerMessage:
     if isinstance(message, RuntimePingMessage):
         return RuntimeServerMessage(type="pong", detail="Runtime session is alive.", session_id=session_id)
@@ -755,6 +814,7 @@ def build_runtime_ack(
             audit_log=audit_log,
             command_policy=command_policy,
             rate_limiter=rate_limiter,
+            stop_controller=stop_controller,
         )
 
     return RuntimeServerMessage(type="runtime_error", detail="Unsupported runtime message.", session_id=session_id)

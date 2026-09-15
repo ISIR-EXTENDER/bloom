@@ -754,6 +754,21 @@
 .runtime-app-workspace > .runtime-app-canvas-shell {
   flex: 1;
   min-height: 0;
+  /* Anchors the STOP chrome, which lives outside the artboard on purpose:
+     the builder cannot move it, remove it, or cover it. */
+  position: relative;
+}
+
+/*
+ * Stopped: every configured control refuses input and says so visually, while
+ * the STOP chrome (a sibling of the viewport) stays live for the resume hold.
+ * The filter is the generic version of the spec's disabled treatment -- widgets
+ * are arbitrary, so they are muted as a surface rather than restyled one by
+ * one.
+ */
+.runtime-app-workspace[data-runtime-stopped="true"] .runtime-app-canvas-viewport {
+  pointer-events: none;
+  filter: grayscale(0.45) opacity(0.75);
 }
 
 .runtime-kiosk-bar {
@@ -772,6 +787,47 @@
   font-weight: 700;
   color: var(--bloom-on-surface);
   white-space: nowrap;
+}
+
+/*
+ * The status chip: word + color + dot shape, never color alone (finding 3).
+ * The dot is round while running and square while anything is wrong, so the
+ * states stay distinguishable without color vision.
+ */
+.runtime-kiosk-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface-muted);
+}
+
+.runtime-kiosk-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: currentcolor;
+}
+
+.runtime-kiosk-status[data-tone="ready"] {
+  background: var(--bloom-primary-container);
+  color: var(--bloom-on-primary-container);
+}
+
+.runtime-kiosk-status[data-tone="ready"] .runtime-kiosk-status-dot {
+  border-radius: 50%;
+}
+
+.runtime-kiosk-status[data-tone="stopped"],
+.runtime-kiosk-status[data-tone="link-down"] {
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
 }
 
 .runtime-kiosk-frame {
@@ -819,6 +875,67 @@
   width: 100%;
   height: 3px;
   background: var(--bloom-primary);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+/*
+ * STOP, as runtime chrome (finding 3). 176x132 is 38x29mm on the 116ppi
+ * panel: found by hand without looking (finding 12), sized against the
+ * ISO 9241-411 touch floor with margin to spare.
+ */
+.runtime-stop-control {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 30;
+  width: 176px;
+  height: 132px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  padding: 10px;
+  border: none;
+  border-radius: 18px;
+  background: var(--bloom-surface);
+  color: var(--bloom-error);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--bloom-error) 30%, transparent);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.runtime-stop-control[data-stopped="true"] {
+  background: var(--bloom-error);
+  color: var(--bloom-error-container);
+  font-size: 16px;
+}
+
+.runtime-stop-label {
+  text-align: center;
+}
+
+/* A stop request that failed must say so where the finger just was. */
+.runtime-stop-error {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+/* Fills over the 1s resume hold. Transform, so it cannot reflow the control. */
+.runtime-stop-hold {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 6px;
+  background: var(--bloom-on-error);
   transform-origin: left center;
   transform: scaleX(0);
 }

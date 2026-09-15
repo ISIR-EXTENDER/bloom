@@ -23,6 +23,7 @@ from libs.sessions import (
     RuntimeCommandRateLimiter,
     RuntimeAuditLog,
     RuntimeRecordingGateway,
+    RuntimeStopController,
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
@@ -38,6 +39,7 @@ def create_app(
     runtime_command_policy: RuntimeCommandPolicy | None = None,
     runtime_command_rate_limiter: RuntimeCommandRateLimiter | None = None,
     runtime_recording_gateway: RuntimeRecordingGateway | None = None,
+    runtime_stop_controller: RuntimeStopController | None = None,
     teleop_command_gateway: TeleopCommandGateway | None = None,
 ) -> FastAPI:
     app_settings = settings or get_settings()
@@ -66,6 +68,13 @@ def create_app(
     )
     app.state.runtime_recording_gateway = runtime_recording_gateway or create_runtime_recording_gateway(app_settings)
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
+    # After the gateways: the stop asserts itself through whatever is really
+    # wired, and still latches when both are Noops.
+    app.state.runtime_stop_controller = runtime_stop_controller or RuntimeStopController(
+        teleop_gateway=app.state.teleop_command_gateway,
+        ros_publisher_gateway=app.state.ros_publisher_gateway,
+        audit_log=app.state.runtime_audit_log,
+    )
     app.state.runtime_session_manager = RuntimeSessionManager()
     app.state.http_rate_limit_buckets = {}
     install_cors(app, app_settings)

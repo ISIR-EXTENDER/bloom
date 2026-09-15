@@ -84,6 +84,20 @@ describe("the kiosk bar", () => {
 
     expect(screen.queryByText("base_link")).toBeNull();
   });
+
+  it("carries the status chip as a live status region", () => {
+    renderBar({ statusChip: { label: "READY", tone: "ready" } });
+
+    expect(screen.getByRole("status").textContent).toBe("READY");
+  });
+
+  it("shows no status chip where there is no session to describe", () => {
+    // A status word on a builder preview would be a guess, and the chip's one
+    // job is to never guess.
+    renderBar();
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
 });
 
 describe("the maintenance hold", () => {

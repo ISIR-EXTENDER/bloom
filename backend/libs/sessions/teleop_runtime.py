@@ -4,6 +4,7 @@ from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyE
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
 from libs.sessions.models import RuntimeServerMessage, RuntimeTeleopCommandMessage
 from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
+from libs.sessions.stop import RuntimeStopController
 from libs.sessions.teleop import NoopTeleopCommandGateway, TeleopCommand, TeleopCommandGateway, TeleopVector3
 
 
@@ -14,7 +15,27 @@ def build_teleop_ack(
     audit_log: RuntimeAuditLog | None = None,
     command_policy: RuntimeCommandPolicy | None = None,
     rate_limiter: RuntimeCommandRateLimiter | None = None,
+    stop_controller: RuntimeStopController | None = None,
 ) -> RuntimeServerMessage:
+    # The stop latch outranks everything, including the zero a joystick sends
+    # on release: the controller already published its own zero on engage, and
+    # a rejected release costs nothing.
+    stop_reason = stop_controller.rejection_reason() if stop_controller is not None else None
+    if stop_reason is not None:
+        record_teleop_audit(
+            audit_log,
+            detail=stop_reason,
+            session_id=session_id,
+            status="rejected",
+            target=message.target,
+        )
+        return RuntimeServerMessage(
+            type="runtime_error",
+            detail="Teleop command was rejected: runtime stop is engaged.",
+            payload={"code": "runtime_stopped", "message": stop_reason, "target": message.target},
+            session_id=session_id,
+        )
+
     gateway = teleop_gateway or NoopTeleopCommandGateway()
     policy = command_policy or RuntimeCommandPolicy(
         allowed_message_types=("*",),

@@ -1,5 +1,6 @@
 import type {
   RuntimeActionClient,
+  RuntimeLinkState,
   RuntimeTeleopCommandRequest,
   RuntimeTeleopCommandResponse,
   RuntimeTopicSampleMessage,
@@ -46,14 +47,33 @@ export type RuntimeWebSocketClientOptions = {
 export function createRuntimeWebSocketClient(
   options: RuntimeWebSocketClientOptions,
 ): Required<
-  Pick<RuntimeActionClient, "addRuntimeTopicSampleListener" | "sendTeleopCommand" | "subscribeRuntimeTopic">
+  Pick<
+    RuntimeActionClient,
+    | "addRuntimeLinkStateListener"
+    | "addRuntimeTopicSampleListener"
+    | "ensureRuntimeConnected"
+    | "sendTeleopCommand"
+    | "subscribeRuntimeTopic"
+  >
 > {
   const WebSocketCtor = options.WebSocketCtor ?? getDefaultWebSocketConstructor();
   let socket: WebSocketLike | null = null;
   let connectPromise: Promise<WebSocketLike> | null = null;
+  let linkState: RuntimeLinkState = "connecting";
   const pendingTeleopAcks: PendingTeleopAck[] = [];
   const pendingTopicSubscriptionAcks: PendingTopicSubscriptionAck[] = [];
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
+  const linkStateListeners = new Set<(state: RuntimeLinkState) => void>();
+
+  function setLinkState(nextState: RuntimeLinkState) {
+    if (linkState === nextState) {
+      return;
+    }
+    linkState = nextState;
+    for (const listener of linkStateListeners) {
+      listener(nextState);
+    }
+  }
 
   async function ensureConnected(): Promise<WebSocketLike> {
     if (socket?.readyState === WebSocketCtor.OPEN) {
@@ -64,14 +84,17 @@ export function createRuntimeWebSocketClient(
     }
 
     socket = new WebSocketCtor(options.url);
+    setLinkState("connecting");
     connectPromise = new Promise((resolve, reject) => {
       const handleOpen = () => {
         removeConnectionListeners();
         bindRuntimeListeners(socket as WebSocketLike);
+        setLinkState("connected");
         resolve(socket as WebSocketLike);
       };
       const handleFailure = () => {
         removeConnectionListeners();
+        setLinkState("disconnected");
         reject(new Error("Bloom runtime WebSocket could not connect."));
       };
       const removeConnectionListeners = () => {
@@ -126,6 +149,7 @@ export function createRuntimeWebSocketClient(
       );
       socket = null;
       connectPromise = null;
+      setLinkState("disconnected");
     });
 
     runtimeSocket.addEventListener("error", () => {
@@ -156,11 +180,24 @@ export function createRuntimeWebSocketClient(
   }
 
   return {
+    addRuntimeLinkStateListener(listener: (state: RuntimeLinkState) => void) {
+      linkStateListeners.add(listener);
+      // Deliver the current state immediately: a chip that subscribes after
+      // the socket already died must not show "connected" until the next
+      // transition.
+      listener(linkState);
+      return () => {
+        linkStateListeners.delete(listener);
+      };
+    },
     addRuntimeTopicSampleListener(listener: (sample: RuntimeTopicSampleMessage) => void) {
       topicSampleListeners.add(listener);
       return () => {
         topicSampleListeners.delete(listener);
       };
+    },
+    async ensureRuntimeConnected() {
+      await ensureConnected();
     },
     async sendTeleopCommand(request: RuntimeTeleopCommandRequest): Promise<RuntimeTeleopCommandResponse> {
       const runtimeSocket = await ensureConnected();

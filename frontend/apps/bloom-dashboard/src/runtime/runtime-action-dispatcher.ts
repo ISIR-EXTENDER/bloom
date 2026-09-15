@@ -73,13 +73,27 @@ export type RuntimeTopicSampleMessage = {
   type: "topic_sample";
 };
 
+/**
+ * Whether the teleop link is really open.
+ *
+ * This exists for the status chip (finding 3): nothing on the operator screen
+ * distinguished "connected and armed" from "websocket down". The socket is
+ * created lazily on first send, so "connecting" also covers "never asked yet".
+ */
+export type RuntimeLinkState = "connecting" | "connected" | "disconnected";
+
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
+  addRuntimeLinkStateListener?: (listener: (state: RuntimeLinkState) => void) => () => void;
   addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;
   dispatchRuntimeAction?: BloomApiClient["dispatchRuntimeAction"];
+  engageRuntimeStop?: BloomApiClient["engageRuntimeStop"];
+  ensureRuntimeConnected?: () => Promise<void>;
+  getRuntimeStopState?: BloomApiClient["getRuntimeStopState"];
   listRosTopicStatus?: BloomApiClient["listRosTopicStatus"];
   listRosTopics?: BloomApiClient["listRosTopics"];
   listRuntimeAuditRecords?: BloomApiClient["listRuntimeAuditRecords"];
   listRuntimeCapabilities?: BloomApiClient["listRuntimeCapabilities"];
+  resumeRuntimeStop?: BloomApiClient["resumeRuntimeStop"];
   sendTeleopCommand?: (request: RuntimeTeleopCommandRequest) => Promise<RuntimeTeleopCommandResponse>;
   startRuntimeRecording?: BloomApiClient["startRuntimeRecording"];
   stopRuntimeRecording?: BloomApiClient["stopRuntimeRecording"];

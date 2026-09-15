@@ -1,5 +1,7 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+
+import { useHoldGesture } from "./use-hold-gesture";
 
 /**
  * The runtime's only chrome.
@@ -22,7 +24,22 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
  */
 
 const MAINTENANCE_HOLD_MS = 1500;
-const HOLD_TICK_MS = 40;
+
+/**
+ * The one status word on the operator screen, with color and dot shape
+ * carrying the same message -- never color alone (finding 3).
+ *
+ * "stopped" outranks "link-down": the stop latch lives on the backend and
+ * holds whether or not this browser's socket is alive. "link-down" is the
+ * state the chip exists for -- before it, nothing distinguished "connected
+ * and armed" from "websocket down".
+ */
+export type RuntimeStatusChipTone = "connecting" | "link-down" | "ready" | "stopped";
+
+export type RuntimeStatusChip = {
+  label: string;
+  tone: RuntimeStatusChipTone;
+};
 
 export type RuntimeKioskBarProps = {
   application: ApplicationConfig;
@@ -40,6 +57,8 @@ export type RuntimeKioskBarProps = {
    * measured is worse than an empty slot.
    */
   commandFrameId: string | null;
+  /** Omitted only where no runtime session exists (previews, tests). */
+  statusChip?: RuntimeStatusChip;
   /** Topic diagnostics, shown inside maintenance rather than over the controls. */
   diagnostics?: ReactNode;
   onSelectScreen: (screenId: string) => void;
@@ -55,6 +74,7 @@ export function RuntimeKioskBar({
   screen,
   profileName,
   commandFrameId,
+  statusChip,
   diagnostics,
   onSelectScreen,
   onOpenAppLibrary,
@@ -64,7 +84,7 @@ export function RuntimeKioskBar({
   onOpenHelp,
 }: RuntimeKioskBarProps) {
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
-  const holdProgress = useHoldToOpen(() => setMaintenanceOpen(true));
+  const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, () => setMaintenanceOpen(true));
 
   return (
     <>
@@ -72,6 +92,12 @@ export function RuntimeKioskBar({
         {/* Stays a heading, at level 2: level 1 belongs to the app
             configuration page, and the runtime must not claim it. */}
         <h2 className="runtime-kiosk-app">{application.name}</h2>
+        {statusChip ? (
+          <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
+            <span aria-hidden="true" className="runtime-kiosk-status-dot" />
+            {statusChip.label}
+          </span>
+        ) : null}
         {commandFrameId ? (
           <span className="runtime-kiosk-frame" title="Reference frame for operator commands">
             {commandFrameId}
@@ -110,57 +136,6 @@ export function RuntimeKioskBar({
       ) : null}
     </>
   );
-}
-
-/**
- * Progress of a press toward opening maintenance, 0..1.
- *
- * Any release or leave cancels and resets to zero, so a half-finished press
- * cannot be completed later by someone who did not start it. The timer is
- * cleared on unmount because it outlives the component otherwise.
- */
-function useHoldToOpen(onComplete: () => void) {
-  const [value, setValue] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
-
-  const stop = () => {
-    if (timerRef.current !== null) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  useEffect(
-    () => () => {
-      if (timerRef.current !== null) {
-        clearInterval(timerRef.current);
-      }
-    },
-    [],
-  );
-
-  return {
-    value,
-    start: () => {
-      stop();
-      const startedAt = Date.now();
-      timerRef.current = setInterval(() => {
-        const progress = Math.min(1, (Date.now() - startedAt) / MAINTENANCE_HOLD_MS);
-        setValue(progress);
-        if (progress >= 1) {
-          stop();
-          setValue(0);
-          onCompleteRef.current();
-        }
-      }, HOLD_TICK_MS);
-    },
-    cancel: () => {
-      stop();
-      setValue(0);
-    },
-  };
 }
 
 /**

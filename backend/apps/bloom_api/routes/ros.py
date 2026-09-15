@@ -18,7 +18,7 @@ from libs.ros_adapters import (
 )
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import RuntimeCommandPolicy
-from libs.sessions import RuntimeAuditLog, RuntimeCommandRateLimiter
+from libs.sessions import RuntimeAuditLog, RuntimeAuditRecord, RuntimeCommandRateLimiter
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -136,8 +136,25 @@ def publish_ros_topic(
     publish_request: RosTopicPublishRequest,
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> RosTopicPublishResponse:
-    gateway = get_ros_publisher_gateway(request)
     audit_log = get_runtime_audit_log(request)
+    # One robot, one latch: while the runtime stop is engaged, the generic
+    # publish path is refused too, or a builder test-publish could move the
+    # arm that an operator just stopped. The stop controller publishes through
+    # the gateway directly, so resume never depends on this route.
+    stop_reason = request.app.state.runtime_stop_controller.rejection_reason()
+    if stop_reason is not None:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=stop_reason,
+                message_type=publish_request.message_type,
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
+        raise HTTPException(status_code=409, detail=stop_reason)
+
+    gateway = get_ros_publisher_gateway(request)
     policy = get_runtime_command_policy(request)
     rate_limiter = get_runtime_command_rate_limiter(request)
     ros_publish_request = RosPublishRequest(

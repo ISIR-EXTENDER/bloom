@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { RuntimeLinkState } from "./runtime-action-dispatcher";
 import {
   createRuntimeWebSocketClient,
   type RuntimeWebSocketClientOptions,
@@ -189,6 +190,68 @@ describe("runtime WebSocket client", () => {
         },
       },
     ]);
+  });
+});
+
+describe("the runtime link state", () => {
+  // Finding 3: nothing on the operator screen distinguished "connected and
+  // armed" from "websocket down". The chip needs the truth, so the client has
+  // to tell it.
+
+  it("reports the connection settling open", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const states: RuntimeLinkState[] = [];
+    client.addRuntimeLinkStateListener((state) => states.push(state));
+
+    const connected = client.ensureRuntimeConnected();
+    WebSocketCtor.instances[0].open();
+    await connected;
+
+    expect(states).toEqual(["connecting", "connected"]);
+  });
+
+  it("reports a dead link the moment the socket closes", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const states: RuntimeLinkState[] = [];
+    client.addRuntimeLinkStateListener((state) => states.push(state));
+    const connected = client.ensureRuntimeConnected();
+    WebSocketCtor.instances[0].open();
+    await connected;
+
+    WebSocketCtor.instances[0].close();
+
+    expect(states).toEqual(["connecting", "connected", "disconnected"]);
+  });
+
+  it("hands a late subscriber the current state instead of silence", async () => {
+    // A chip that subscribes after the socket already died must not show
+    // "connected" until the next transition.
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const connected = client.ensureRuntimeConnected();
+    WebSocketCtor.instances[0].open();
+    await connected;
+    WebSocketCtor.instances[0].close();
+
+    const states: RuntimeLinkState[] = [];
+    client.addRuntimeLinkStateListener((state) => states.push(state));
+
+    expect(states).toEqual(["disconnected"]);
+  });
+
+  it("reports a connection that never opened as disconnected", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const states: RuntimeLinkState[] = [];
+    client.addRuntimeLinkStateListener((state) => states.push(state));
+
+    const connected = client.ensureRuntimeConnected();
+    WebSocketCtor.instances[0].close();
+
+    await expect(connected).rejects.toThrow("Bloom runtime WebSocket could not connect.");
+    expect(states).toEqual(["connecting", "disconnected"]);
   });
 });
 

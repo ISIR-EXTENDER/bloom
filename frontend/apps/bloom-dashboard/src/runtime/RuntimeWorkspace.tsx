@@ -9,13 +9,17 @@ import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
 import { RuntimeKioskBar } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
+import { RuntimeStopControl } from "./RuntimeStopControl";
 import type {
   RuntimeActionClient,
   RuntimeTopicSampleMessage,
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
+import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
+import { useRuntimeLinkState } from "./use-runtime-link-state";
+import { useRuntimeStop } from "./use-runtime-stop";
 
 const FIT_OVERFLOW_GUARD = 0.99;
 
@@ -94,6 +98,10 @@ export function RuntimeWorkspace({
     [runtimeModeState, screen],
   );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
+  const runtimeStop = useRuntimeStop(runtimeActionClient);
+  const runtimeLink = useRuntimeLinkState(runtimeActionClient);
+  const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink);
+  const stopped = runtimeStop.state?.stopped === true;
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
     onActionIntent(intent, {
@@ -162,6 +170,7 @@ export function RuntimeWorkspace({
       data-has-debug={application.id === "bloom-debug" ? "true" : "false"}
       data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
       data-runtime-layout="operator"
+      data-runtime-stopped={stopped ? "true" : "false"}
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
     >
       <RuntimeKioskBar
@@ -182,6 +191,7 @@ export function RuntimeWorkspace({
         onSelectScreen={(screenId) => onSelectionChange({ ...selection, screenId })}
         profileName={runtimeProfile.name}
         screen={screen}
+        statusChip={statusChip}
       />
 
       {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
@@ -213,6 +223,15 @@ export function RuntimeWorkspace({
             />
           </div>
         </div>
+
+        {runtimeActionClient.engageRuntimeStop ? (
+          <RuntimeStopControl
+            onEngage={runtimeStop.engage}
+            onResume={runtimeStop.resume}
+            requestError={runtimeStop.requestError}
+            stopped={runtimeStop.state?.stopped ?? null}
+          />
+        ) : null}
       </div>
     </section>
   );
