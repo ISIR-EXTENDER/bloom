@@ -1,4 +1,4 @@
-import type { WidgetKind } from "@bloom/api-client";
+import type { MotorAccessibilityPreset, WidgetKind } from "@bloom/api-client";
 import type { TopicMessage, TopicPlotSample, WidgetActionIntent, WidgetRenderDescriptor } from "@bloom/widgets";
 import type { ReactNode } from "react";
 
@@ -66,6 +66,8 @@ export type WidgetRendererProps = {
   controlState?: WidgetControlState;
   data?: WidgetDataSnapshot;
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
+  /** The operator profile's motor preset; renderers adapt their input model. */
+  motorPreset?: MotorAccessibilityPreset;
   onActionIntent?: WidgetActionIntentHandler;
 };
 
@@ -87,6 +89,7 @@ export type WidgetRendererRegistry = ReadonlyMap<WidgetKind, WidgetRenderer>;
 export type ScreenRendererOptions = {
   controlStateByWidgetId?: Readonly<Record<string, WidgetControlState>>;
   dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
+  motorPreset?: MotorAccessibilityPreset;
   onActionIntent?: WidgetActionIntentHandler;
   renderUnknown?: UnknownWidgetRenderer;
   registry?: WidgetRendererRegistry;

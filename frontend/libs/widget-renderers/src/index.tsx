@@ -72,6 +72,7 @@ export function renderWidgetDescriptor(
       controlState={options.controlStateByWidgetId?.[descriptor.widget.id]}
       data={options.dataByWidgetId?.[descriptor.widget.id]}
       descriptor={descriptor}
+      motorPreset={options.motorPreset}
       onActionIntent={options.onActionIntent}
     />
   );

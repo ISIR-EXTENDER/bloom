@@ -1550,3 +1550,108 @@
   font-weight: 600;
   color: var(--bloom-on-surface);
 }
+
+/* Step zones: tap targets instead of sustained dragging (motor preset). */
+.bloom-step-zones {
+  display: grid;
+  grid-template-areas:
+    ". top ."
+    "left stop right"
+    ". bottom .";
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.bloom-step-zone {
+  min-width: 64px;
+  min-height: 64px;
+  border: 2px solid var(--bloom-outline);
+  border-radius: 16px;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bloom-step-zone[data-zone="top"] {
+  grid-area: top;
+}
+.bloom-step-zone[data-zone="left"] {
+  grid-area: left;
+}
+.bloom-step-zone[data-zone="right"] {
+  grid-area: right;
+}
+.bloom-step-zone[data-zone="bottom"] {
+  grid-area: bottom;
+}
+
+.bloom-step-zone[data-zone="stop"] {
+  grid-area: stop;
+  border-color: var(--bloom-error);
+  color: var(--bloom-error);
+  border-radius: 50%;
+}
+
+.bloom-latch-zero {
+  min-height: 44px;
+  border: 2px solid var(--bloom-error);
+  border-radius: 12px;
+  background: var(--bloom-surface);
+  color: var(--bloom-error);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bloom-latch-zero:disabled {
+  border-color: var(--bloom-outline);
+  color: var(--bloom-on-surface-muted);
+  cursor: not-allowed;
+}
+
+.bloom-slider-stepper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.bloom-slider-widget[data-direction="horizontal"] .bloom-slider-stepper {
+  flex-direction: row-reverse;
+  align-items: center;
+}
+
+.bloom-slider-step-button {
+  min-height: 56px;
+  min-width: 56px;
+  flex: 1;
+  border: 2px solid var(--bloom-outline);
+  border-radius: 14px;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.bloom-slider-step-button:disabled {
+  color: var(--bloom-on-surface-muted);
+  cursor: not-allowed;
+}
+
+.bloom-slider-step-readout {
+  text-align: center;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--bloom-on-surface);
+}

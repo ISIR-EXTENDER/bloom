@@ -11,7 +11,9 @@ import {
 } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
-export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+const SLIDER_LATCH_EXPIRY_MS = 15000;
+
+export function SliderWidget({ descriptor, motorPreset, onActionIntent }: WidgetRendererProps) {
   // Normalize first: configs carry snake_case aliases for these keys.
   const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
   const sliderSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
@@ -41,12 +43,83 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   };
 
   const handleReleaseToCenter = () => {
-    if (!returnToCenter || currentValue === defaultValue) {
+    // Latch keeps the released value; the zero control releases it.
+    if (motorPreset === "latch" || !returnToCenter || currentValue === defaultValue) {
       return;
     }
     setCurrentValue(defaultValue);
     emitValueChange(defaultValue);
   };
+
+  const setAndEmit = (value: number) => {
+    setCurrentValue(value);
+    emitValueChange(value);
+  };
+
+  // A latched command must never outlive the operator's attention.
+  const valueIsHeld =
+    (motorPreset === "latch" || motorPreset === "step") && returnToCenter && currentValue !== defaultValue;
+  useEffect(() => {
+    if (!valueIsHeld) {
+      return;
+    }
+    const expiry = window.setTimeout(() => setAndEmit(defaultValue), SLIDER_LATCH_EXPIRY_MS);
+    return () => window.clearTimeout(expiry);
+  });
+
+  if (motorPreset === "step") {
+    const stepBy = (delta: number) => setAndEmit(Number(clamp(currentValue + delta, min, max).toFixed(4)));
+    return (
+      <div
+        className="bloom-slider-widget"
+        data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
+        data-motor-preset="step"
+        data-show-details={showDetails ? "true" : "false"}
+      >
+        <header className="bloom-control-header">
+          <strong>
+            {descriptor.widget.title}
+            {unit ? <small className="bloom-control-unit">{unit}</small> : null}
+          </strong>
+          <span>step</span>
+        </header>
+        <div aria-label={`${descriptor.widget.title} step controls`} className="bloom-slider-stepper" role="group">
+          <button
+            aria-label={`Increase ${descriptor.widget.title} by ${step}`}
+            className="bloom-slider-step-button"
+            disabled={currentValue >= max}
+            onClick={() => stepBy(step)}
+            type="button"
+          >
+            +
+          </button>
+          <output aria-live="polite" className="bloom-slider-step-readout">
+            {formattedValue}
+          </output>
+          {returnToCenter ? (
+            <button
+              aria-label={`Zero ${descriptor.widget.title}`}
+              className="bloom-slider-step-button"
+              disabled={currentValue === defaultValue}
+              onClick={() => setAndEmit(defaultValue)}
+              type="button"
+            >
+              0
+            </button>
+          ) : null}
+          <button
+            aria-label={`Decrease ${descriptor.widget.title} by ${step}`}
+            className="bloom-slider-step-button"
+            disabled={currentValue <= min}
+            onClick={() => stepBy(-step)}
+            type="button"
+          >
+            &minus;
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -92,7 +165,10 @@ export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps
   );
 }
 
-export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
+const STEP_ZONE_INCREMENT = 0.25;
+const LATCH_EXPIRY_MS = 15000;
+
+export function JoystickWidget({ descriptor, motorPreset, onActionIntent }: WidgetRendererProps) {
   const normalizedSettings = normalizeWidgetSettings("joystick", descriptor.widget.settings);
   const joystickSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
   const deadzone = getNumberSetting(joystickSettings, "deadzone", 0.1);
@@ -142,6 +218,35 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
     return () => window.clearInterval(interval);
   }, [binding.publishRateHz]);
 
+  const emitHeldVector = (vector: JoystickVector) => {
+    latestVectorRef.current = vector;
+    setCurrentVector(vector);
+    emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, vector);
+  };
+
+  // A latched command must never outlive the operator's attention.
+  const isLatched = motorPreset === "latch" || motorPreset === "step";
+  const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
+  useEffect(() => {
+    if (!vectorIsHeld) {
+      return;
+    }
+    const expiry = window.setTimeout(() => emitHeldVector({ x: 0, y: 0 }), LATCH_EXPIRY_MS);
+    return () => window.clearTimeout(expiry);
+  });
+
+  if (motorPreset === "step") {
+    return (
+      <StepZoneJoystick
+        currentVector={currentVector}
+        descriptor={descriptor}
+        labels={binding.labels}
+        onVector={emitHeldVector}
+        showDetails={showDetails}
+      />
+    );
+  }
+
   return (
     <div className="bloom-joystick-widget" data-show-details={showDetails ? "true" : "false"}>
       <header className="bloom-control-header">
@@ -165,12 +270,108 @@ export function JoystickWidget({ descriptor, onActionIntent }: WidgetRendererPro
         onVectorChange={handleVectorChange}
         size={size}
         title={descriptor.widget.title}
-        zeroOnRelease={binding.zeroOnRelease}
+        zeroOnRelease={motorPreset === "latch" ? false : binding.zeroOnRelease}
       />
+      {motorPreset === "latch" ? (
+        <button
+          aria-label={`Zero ${descriptor.widget.title}`}
+          className="bloom-latch-zero"
+          disabled={!vectorIsHeld}
+          onClick={() => emitHeldVector({ x: 0, y: 0 })}
+          type="button"
+        >
+          Zero
+        </button>
+      ) : null}
       <output
         aria-live="polite"
         className={showDetails ? "bloom-control-vector-readout" : "bloom-control-vector-readout sr-only"}
       >
+        <span>x {currentVector.x.toFixed(2)}</span>
+        <span>y {currentVector.y.toFixed(2)}</span>
+      </output>
+    </div>
+  );
+}
+
+/**
+ * The joystick as four tap-to-increment targets plus a stop: no sustained
+ * dragging, no held pressure. Each tap moves the held vector one step; the
+ * teleop stream keeps it alive between taps.
+ */
+function StepZoneJoystick({
+  currentVector,
+  descriptor,
+  labels,
+  onVector,
+  showDetails,
+}: {
+  currentVector: JoystickVector;
+  descriptor: WidgetRendererProps["descriptor"];
+  labels: { bottom: string; left: string; right: string; top: string };
+  onVector: (vector: JoystickVector) => void;
+  showDetails: boolean;
+}) {
+  const stepBy = (dx: number, dy: number) =>
+    onVector({
+      x: Number(clamp(currentVector.x + dx, -1, 1).toFixed(2)),
+      y: Number(clamp(currentVector.y + dy, -1, 1).toFixed(2)),
+    });
+
+  return (
+    <div className="bloom-joystick-widget" data-motor-preset="step" data-show-details={showDetails ? "true" : "false"}>
+      <header className="bloom-control-header">
+        <strong>{descriptor.widget.title}</strong>
+        <span>step</span>
+      </header>
+      <div aria-label={`${descriptor.widget.title} step targets`} className="bloom-step-zones" role="group">
+        <button
+          aria-label={`${labels.top}, one step`}
+          className="bloom-step-zone"
+          data-zone="top"
+          onClick={() => stepBy(0, STEP_ZONE_INCREMENT)}
+          type="button"
+        >
+          {labels.top}
+        </button>
+        <button
+          aria-label={`${labels.left}, one step`}
+          className="bloom-step-zone"
+          data-zone="left"
+          onClick={() => stepBy(-STEP_ZONE_INCREMENT, 0)}
+          type="button"
+        >
+          {labels.left}
+        </button>
+        <button
+          aria-label={`Stop ${descriptor.widget.title}`}
+          className="bloom-step-zone"
+          data-zone="stop"
+          onClick={() => onVector({ x: 0, y: 0 })}
+          type="button"
+        >
+          0
+        </button>
+        <button
+          aria-label={`${labels.right}, one step`}
+          className="bloom-step-zone"
+          data-zone="right"
+          onClick={() => stepBy(STEP_ZONE_INCREMENT, 0)}
+          type="button"
+        >
+          {labels.right}
+        </button>
+        <button
+          aria-label={`${labels.bottom}, one step`}
+          className="bloom-step-zone"
+          data-zone="bottom"
+          onClick={() => stepBy(0, -STEP_ZONE_INCREMENT)}
+          type="button"
+        >
+          {labels.bottom}
+        </button>
+      </div>
+      <output aria-live="polite" className="bloom-control-vector-readout">
         <span>x {currentVector.x.toFixed(2)}</span>
         <span>y {currentVector.y.toFixed(2)}</span>
       </output>

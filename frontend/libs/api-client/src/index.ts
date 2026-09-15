@@ -73,7 +73,13 @@ export type ApplicationTheme = {
 
 export type DisplayPreset = "compact" | "comfort" | "default" | "high-visibility";
 
-export type MotorAccessibilityPreset = "assisted-touch" | "default" | "large-targets" | "reduced-motion";
+export type MotorAccessibilityPreset =
+  | "assisted-touch"
+  | "default"
+  | "large-targets"
+  | "latch"
+  | "reduced-motion"
+  | "step";
 
 export type UserProfile = {
   id: string;

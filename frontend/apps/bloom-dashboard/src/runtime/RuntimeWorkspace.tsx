@@ -249,6 +249,7 @@ export function RuntimeWorkspace({
               rendererOptions={{
                 controlStateByWidgetId,
                 dataByWidgetId: effectiveDataByWidgetId,
+                motorPreset: runtimeProfile.motorAccessibilityPreset,
                 onActionIntent: handleRuntimeActionIntent,
               }}
               screen={screen}

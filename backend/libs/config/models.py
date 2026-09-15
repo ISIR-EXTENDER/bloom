@@ -55,7 +55,11 @@ class DisplayPreset(str, Enum):
 class MotorAccessibilityPreset(str, Enum):
     DEFAULT = "default"
     LARGE_TARGETS = "large-targets"
+    #: Pads keep their value on release; an explicit zero control releases.
+    LATCH = "latch"
     REDUCED_MOTION = "reduced-motion"
+    #: Tap-to-increment targets instead of sustained dragging.
+    STEP = "step"
     ASSISTED_TOUCH = "assisted-touch"
 
 
