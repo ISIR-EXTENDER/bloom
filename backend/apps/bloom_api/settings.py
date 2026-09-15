@@ -95,13 +95,17 @@ class Settings(BaseModel):
         "/ui/visual_servoing/save",
         "/visual_servoing/enabled",
     )
+    # Which arm this deployment drives, shown on the operator screen. One
+    # backend instance serves one robot.
+    robot_name: str = ""
     ros_command_backend: Literal["cartesian_manager", "teleop_command"] = Field(default="cartesian_manager")
     # Default stamp; must be one of the manager's command frames.
     ros_command_frame_id: str = "base_link"
     # The frames cartesian_manager accepts as rotation references (its
-    # frames.base_frame / ee_frame / hybrid_frame parameters). frame_id
-    # selects among them; an unknown frame is skipped silently by the manager.
-    allowed_command_frame_ids: tuple[str, ...] = ("base_link", "ft_frame", "hybrid_frame")
+    # frames.base_frame / ee_frame / hybrid_frame parameters). The default is
+    # the union of the Explorer (ft_frame) and Kinova (effector_frame)
+    # bringups; narrow it per robot with BLOOM_ALLOWED_COMMAND_FRAME_IDS.
+    allowed_command_frame_ids: tuple[str, ...] = ("base_link", "effector_frame", "ft_frame", "hybrid_frame")
     allowed_teleop_targets: tuple[str, ...] = (
         "/joystick_cartesian_command",
         "/teleop_cmd",
@@ -191,6 +195,7 @@ class Settings(BaseModel):
                 "BLOOM_ALLOWED_COMMAND_FRAME_IDS",
                 cls.model_fields["allowed_command_frame_ids"].default,
             ),
+            robot_name=os.getenv("BLOOM_ROBOT_NAME", ""),
             # Documented in the README but never read until now.
             ros_command_backend=_read_literal_env(
                 "BLOOM_ROS_COMMAND_BACKEND",

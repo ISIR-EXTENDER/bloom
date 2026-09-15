@@ -82,10 +82,23 @@ def test_an_unknown_frame_is_refused_loudly() -> None:
     assert gateway.commands == []
 
 
-def test_capabilities_report_the_command_frames() -> None:
+def test_capabilities_report_the_command_frames_and_robot() -> None:
     client = create_frames_client(RecordingTeleopGateway())
 
     body = client.get("/api/v1/capabilities").json()
 
     assert body["command_frame_id"] == "base_link"
-    assert body["command_frame_ids"] == ["base_link", "ft_frame", "hybrid_frame"]
+    # Union of the Explorer and Kinova bringups; deployments narrow via env.
+    assert body["command_frame_ids"] == ["base_link", "effector_frame", "ft_frame", "hybrid_frame"]
+    assert body["robot_name"] == ""
+
+
+def test_capabilities_name_the_configured_robot() -> None:
+    client = TestClient(
+        create_app(
+            Settings(environment="test", robot_name="Explorer"),
+            InMemoryConfigurationRepository(),
+        )
+    )
+
+    assert client.get("/api/v1/capabilities").json()["robot_name"] == "Explorer"

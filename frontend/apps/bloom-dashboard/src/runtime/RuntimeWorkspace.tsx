@@ -176,6 +176,7 @@ export function RuntimeWorkspace({
       <RuntimeKioskBar
         application={application}
         commandFrameId={runtimeCapabilityReport?.command_frame_id ?? null}
+        robotName={runtimeCapabilityReport?.robot_name ?? null}
         diagnostics={
           <RuntimeRobotStatusPanel
             application={application}

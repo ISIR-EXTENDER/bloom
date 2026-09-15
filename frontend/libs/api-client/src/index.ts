@@ -250,6 +250,8 @@ export type RuntimeCapabilitiesResponse = {
   command_frame_id: string;
   /** Frames cartesian_manager accepts as rotation references. */
   command_frame_ids?: string[];
+  /** Which arm this backend drives; empty when the deployment has not said. */
+  robot_name?: string;
 };
 
 /** Capabilities plus the frame operator commands are stamped with. */

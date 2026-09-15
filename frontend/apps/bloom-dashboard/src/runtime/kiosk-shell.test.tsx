@@ -79,6 +79,15 @@ describe("the kiosk bar", () => {
     expect(screen.getByText("base_link")).toBeTruthy();
   });
 
+  it("names the robot this backend drives, and stays silent when unconfigured", () => {
+    renderBar({ robotName: "Kinova gen3" });
+    expect(screen.getByText("Kinova gen3")).toBeTruthy();
+    cleanup();
+
+    renderBar();
+    expect(screen.queryByTitle("Robot this backend drives")).toBeNull();
+  });
+
   it("shows no frame at all rather than guessing one", () => {
     renderBar({ commandFrameId: null });
 

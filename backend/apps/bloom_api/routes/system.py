@@ -21,6 +21,8 @@ class RuntimeCapabilityResponse(BaseModel):
 
 class RuntimeCapabilitiesResponse(BaseModel):
     capabilities: list[RuntimeCapabilityResponse]
+    # Which arm this backend drives; empty when the deployment has not said.
+    robot_name: str
     # Default stamp for operator commands, named on screen (finding 11).
     command_frame_id: str
     # Frames cartesian_manager accepts as rotation references.
@@ -52,5 +54,6 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
         ],
         command_frame_id=settings.ros_command_frame_id,
         command_frame_ids=list(settings.allowed_command_frame_ids),
+        robot_name=settings.robot_name,
     )
 

@@ -819,6 +819,13 @@
   color: var(--bloom-on-error-container);
 }
 
+.runtime-kiosk-robot {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--bloom-on-surface);
+  white-space: nowrap;
+}
+
 .runtime-kiosk-frame {
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 13px;

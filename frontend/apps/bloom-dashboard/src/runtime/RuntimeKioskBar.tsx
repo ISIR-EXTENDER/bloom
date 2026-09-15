@@ -49,6 +49,8 @@ export type RuntimeKioskBarProps = {
    * measured is worse than an empty slot.
    */
   commandFrameId: string | null;
+  /** Which arm this backend drives; null while unknown or unconfigured. */
+  robotName?: string | null;
   /** Omitted only where no runtime session exists (previews, tests). */
   statusChip?: RuntimeStatusChip;
   /** Topic diagnostics, shown inside maintenance rather than over the controls. */
@@ -66,6 +68,7 @@ export function RuntimeKioskBar({
   screen,
   profileName,
   commandFrameId,
+  robotName,
   statusChip,
   diagnostics,
   onSelectScreen,
@@ -88,6 +91,11 @@ export function RuntimeKioskBar({
           <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
             <span aria-hidden="true" className="runtime-kiosk-status-dot" />
             {statusChip.label}
+          </span>
+        ) : null}
+        {robotName ? (
+          <span className="runtime-kiosk-robot" title="Robot this backend drives">
+            {robotName}
           </span>
         ) : null}
         {commandFrameId ? (
