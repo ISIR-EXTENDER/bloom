@@ -290,13 +290,15 @@ export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.loc
 ```bash
 # cartesian_manager (default) or teleop_command for the legacy rollback path
 export BLOOM_ROS_COMMAND_BACKEND=cartesian_manager
-# Must match the manager's default_input_frame_id, or every command is dropped
+# A frame the manager knows: base_link, ft_frame, or hybrid_frame
 export BLOOM_ROS_COMMAND_FRAME_ID=base_link
 ```
 
-`cartesian_manager` performs no TF conversion. A command stamped with any other
-frame is discarded and the robot silently stops, so this value is worth checking
-before a lab session.
+Since `cartesian_manager` PR #6, `frame_id` selects the frame the rotation part
+is interpreted in: `base_link` is summed directly, `ft_frame` is rotated into
+base with the live `/ee_pose`, `hybrid_frame` uses the manager's hybrid pose.
+An unknown frame is skipped silently and the robot stops, so this value is
+still worth checking before a lab session. There is no TF lookup.
 
 Use `X-Bloom-API-Key` for API calls. Admin keys can mutate configuration; operator keys can read configuration and use
 runtime/ROS endpoints. Production settings intentionally fail to start without authentication and an admin key.
