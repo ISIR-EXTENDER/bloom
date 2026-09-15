@@ -168,10 +168,13 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
 const STEP_ZONE_INCREMENT = 0.25;
 const LATCH_EXPIRY_MS = 15000;
 
-export function JoystickWidget({ descriptor, motorPreset, onActionIntent }: WidgetRendererProps) {
+export function JoystickWidget({ conditioning, descriptor, motorPreset, onActionIntent }: WidgetRendererProps) {
   const normalizedSettings = normalizeWidgetSettings("joystick", descriptor.widget.settings);
   const joystickSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
-  const deadzone = getNumberSetting(joystickSettings, "deadzone", 0.1);
+  // The profile's dead zone belongs to the person, not the app: a widget's
+  // hard-coded value cannot know whose hand is on the glass.
+  const profileDeadzone = conditioning?.deadzone ?? 0;
+  const deadzone = profileDeadzone > 0 ? profileDeadzone : getNumberSetting(joystickSettings, "deadzone", 0.1);
   const binding = resolveJoystickBinding(joystickSettings);
   // The legacy fallback resolves to a semantic name like "translation", or to
   // the literal "input", neither of which is a topic. Show where the joystick

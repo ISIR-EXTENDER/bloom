@@ -62,7 +62,16 @@ export type WidgetControlState = {
   toggleState?: "off" | "on";
 };
 
+/** Per-profile input conditioning, applied before a widget's own settings. */
+export type SignalConditioning = {
+  /** Overrides the widget's dead zone when above zero. */
+  deadzone?: number;
+  /** Ignores a repeat activation of the same control inside this window. */
+  repeatGuardMs?: number;
+};
+
 export type WidgetRendererProps = {
+  conditioning?: SignalConditioning;
   controlState?: WidgetControlState;
   data?: WidgetDataSnapshot;
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
@@ -87,6 +96,7 @@ export type WidgetRendererRegistration = {
 export type WidgetRendererRegistry = ReadonlyMap<WidgetKind, WidgetRenderer>;
 
 export type ScreenRendererOptions = {
+  conditioning?: SignalConditioning;
   controlStateByWidgetId?: Readonly<Record<string, WidgetControlState>>;
   dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
   motorPreset?: MotorAccessibilityPreset;

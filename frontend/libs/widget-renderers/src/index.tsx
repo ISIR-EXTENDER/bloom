@@ -69,6 +69,7 @@ export function renderWidgetDescriptor(
   const Renderer = renderer;
   return (
     <Renderer
+      conditioning={options.conditioning}
       controlState={options.controlStateByWidgetId?.[descriptor.widget.id]}
       data={options.dataByWidgetId?.[descriptor.widget.id]}
       descriptor={descriptor}

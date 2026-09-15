@@ -7,6 +7,8 @@ export type RuntimeProfileViewport = {
 
 export type ResolvedRuntimeProfile = {
   audioCues: boolean;
+  deadzone: number;
+  repeatGuardMs: number;
   displayPreset: DisplayPreset;
   fontScale: number;
   id: string;
@@ -16,6 +18,8 @@ export type ResolvedRuntimeProfile = {
 
 const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
   audioCues: false,
+  deadzone: 0,
+  repeatGuardMs: 0,
   displayPreset: "default",
   fontScale: 1,
   id: "default",
@@ -63,6 +67,8 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
   if ("display_preset" in profile) {
     return {
       audioCues: profile.audio_cues === true,
+      deadzone: clampRange(profile.deadzone, 0, 0.5),
+      repeatGuardMs: clampRange(profile.repeat_guard_ms, 0, 600),
       displayPreset: profile.display_preset,
       fontScale: clampFontScale(profile.font_scale),
       id: profile.id,
@@ -73,12 +79,18 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
 
   return {
     audioCues: profile.audioCues,
+    deadzone: profile.deadzone,
+    repeatGuardMs: profile.repeatGuardMs,
     displayPreset: profile.displayPreset,
     fontScale: clampFontScale(profile.fontScale),
     id: profile.id,
     motorAccessibilityPreset: profile.motorAccessibilityPreset,
     name: profile.name,
   };
+}
+
+function clampRange(value: number | undefined, min: number, max: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min;
 }
 
 function clampFontScale(value: number): number {

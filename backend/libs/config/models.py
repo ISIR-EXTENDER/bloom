@@ -107,6 +107,10 @@ class UserProfile(BloomModel):
     motor_accessibility_preset: MotorAccessibilityPreset = MotorAccessibilityPreset.DEFAULT
     #: Tones for stop, link loss, and recovery.
     audio_cues: bool = False
+    #: Per-axis dead zone; overrides the widget's own when set above zero.
+    deadzone: float = Field(default=0.0, ge=0.0, le=0.5)
+    #: Ignore a repeated activation of the same control within this window.
+    repeat_guard_ms: int = Field(default=0, ge=0, le=600)
 
 
 class RuntimeAdapterPolicy(BloomModel):

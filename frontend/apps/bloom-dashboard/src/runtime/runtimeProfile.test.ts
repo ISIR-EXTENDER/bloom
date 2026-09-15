@@ -27,6 +27,8 @@ describe("resolveRuntimeProfile", () => {
   it("uses the high visibility profile on small tablet viewports", () => {
     expect(resolveRuntimeProfile({ profiles: [...profiles] }, { height: 600, width: 1024 })).toEqual({
       audioCues: false,
+      deadzone: 0,
+      repeatGuardMs: 0,
       displayPreset: "high-visibility",
       fontScale: 1.25,
       id: "tablet",
@@ -52,6 +54,8 @@ describe("resolveRuntimeProfile", () => {
   it("falls back to a safe default profile when an app has no profiles", () => {
     expect(resolveRuntimeProfile({ profiles: [] }, { height: 1080, width: 1920 })).toEqual({
       audioCues: false,
+      deadzone: 0,
+      repeatGuardMs: 0,
       displayPreset: "default",
       fontScale: 1,
       id: "default",

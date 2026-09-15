@@ -249,6 +249,10 @@ export function RuntimeWorkspace({
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
               rendererOptions={{
+                conditioning: {
+                  deadzone: runtimeProfile.deadzone,
+                  repeatGuardMs: runtimeProfile.repeatGuardMs,
+                },
                 controlStateByWidgetId,
                 dataByWidgetId: effectiveDataByWidgetId,
                 motorPreset: runtimeProfile.motorAccessibilityPreset,

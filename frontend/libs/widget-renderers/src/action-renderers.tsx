@@ -3,7 +3,8 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
-export function CommandLikeWidget({ controlState, descriptor, onActionIntent }: WidgetRendererProps) {
+export function CommandLikeWidget({ conditioning, controlState, descriptor, onActionIntent }: WidgetRendererProps) {
+  const allowActivation = useRepeatGuard(conditioning?.repeatGuardMs);
   const buttonLabel = getStringSetting(descriptor.widget.settings, "button_label", "") || descriptor.widget.title;
   const pressedLabel = getStringSetting(descriptor.widget.settings, "pressed_label", buttonLabel);
   const releasedLabel = getStringSetting(descriptor.widget.settings, "released_label", buttonLabel);
@@ -43,6 +44,9 @@ export function CommandLikeWidget({ controlState, descriptor, onActionIntent }: 
   }, [confirmTimeoutSeconds, isArmed]);
 
   const handlePress = () => {
+    if (!allowActivation()) {
+      return;
+    }
     if (confirmPress && !isArmed) {
       setIsArmed(true);
       return;
@@ -139,18 +143,38 @@ export function LabelWidget({ descriptor }: WidgetRendererProps) {
   );
 }
 
-export function ToggleWidget({ controlState, descriptor, onActionIntent }: WidgetRendererProps) {
+/** Drops a repeat activation of the same control inside the guard window. */
+export function useRepeatGuard(repeatGuardMs: number | undefined) {
+  const lastFiredRef = useRef(0);
+  return () => {
+    if (!repeatGuardMs) {
+      return true;
+    }
+    const now = Date.now();
+    if (now - lastFiredRef.current < repeatGuardMs) {
+      return false;
+    }
+    lastFiredRef.current = now;
+    return true;
+  };
+}
+
+export function ToggleWidget({ conditioning, controlState, descriptor, onActionIntent }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const offLabel = getStringSetting(descriptor.widget.settings, "offLabel", "Inactive");
   const onLabel = getStringSetting(descriptor.widget.settings, "onLabel", "Active");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const variant = getStringSetting(descriptor.widget.settings, "variant", "");
   const [localIsOn, setLocalIsOn] = useState(getBooleanSetting(descriptor.widget.settings, "initialValue", false));
+  const allowToggle = useRepeatGuard(conditioning?.repeatGuardMs);
   const controlledToggleState = controlState?.toggleState;
   const isOn = controlledToggleState ? controlledToggleState === "on" : localIsOn;
   const stateLabel = isOn ? onLabel : offLabel;
 
   const handleToggle = () => {
+    if (!allowToggle()) {
+      return;
+    }
     const nextState = isOn ? "off" : "on";
     if (!controlledToggleState) {
       setLocalIsOn(nextState === "on");

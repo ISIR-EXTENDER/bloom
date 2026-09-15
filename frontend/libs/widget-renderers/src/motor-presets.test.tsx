@@ -6,6 +6,7 @@ import { createDefaultWidgetRegistry, renderScreenDescriptors } from "@bloom/wid
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { CommandLikeWidget } from "./action-renderers";
 import { JoystickWidget, SliderWidget } from "./control-renderers";
 
 class ResizeObserverMock {
@@ -222,5 +223,86 @@ describe("driving the joystick from a keyboard", () => {
     fireEvent.blur(pad);
 
     expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe("per-profile signal conditioning", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    cleanup();
+  });
+
+  const commandScreen: ScreenConfig = {
+    id: "actions",
+    title: "Actions",
+    canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+    widgets: [
+      {
+        id: "go-home",
+        kind: "command-button",
+        title: "Home",
+        layout: { x: 0, y: 0, width: 200, height: 110 },
+        settings: { button_label: "Go home", command: "behaviour/joint_target/home" },
+      },
+    ],
+  };
+
+  function renderCommand(repeatGuardMs?: number) {
+    const [descriptor] = renderScreenDescriptors(commandScreen, createDefaultWidgetRegistry());
+    if (descriptor?.status !== "resolved") throw new Error("Missing descriptor.");
+    const onActionIntent = vi.fn();
+    render(
+      <CommandLikeWidget conditioning={{ repeatGuardMs }} descriptor={descriptor} onActionIntent={onActionIntent} />,
+    );
+    return onActionIntent;
+  }
+
+  it("drops a second activation inside the guard window", () => {
+    const onActionIntent = renderCommand(400);
+    const button = screen.getByRole("button", { name: "Go home" });
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(onActionIntent).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows the same control again once the window passes", () => {
+    const onActionIntent = renderCommand(400);
+    const button = screen.getByRole("button", { name: "Go home" });
+
+    fireEvent.click(button);
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+    fireEvent.click(button);
+
+    expect(onActionIntent).toHaveBeenCalledTimes(2);
+  });
+
+  it("leaves activation untouched when no guard is configured", () => {
+    const onActionIntent = renderCommand();
+    const button = screen.getByRole("button", { name: "Go home" });
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(onActionIntent).toHaveBeenCalledTimes(2);
+  });
+
+  it("lets the profile dead zone override the widget's own", () => {
+    const onActionIntent = vi.fn();
+    render(
+      <JoystickWidget
+        conditioning={{ deadzone: 0.4 }}
+        descriptor={descriptors().joystick}
+        onActionIntent={onActionIntent}
+      />,
+    );
+
+    // The pad renders the profile's dead zone, not the widget default of 0.1.
+    const pad = screen.getByRole("application", { name: "Translation" });
+    expect(pad.querySelector(".bloom-joystick-deadzone")?.getAttribute("style")).toContain("0.4");
   });
 });

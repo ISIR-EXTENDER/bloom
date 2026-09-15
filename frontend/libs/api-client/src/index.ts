@@ -91,6 +91,10 @@ export type UserProfile = {
   motor_accessibility_preset: MotorAccessibilityPreset;
   /** Tones for stop, link loss, and recovery; the operator watches the gripper. */
   audio_cues?: boolean;
+  /** Per-axis dead zone; overrides the widget's own when above zero. */
+  deadzone?: number;
+  /** Ignore a repeated activation of the same control within this window. */
+  repeat_guard_ms?: number;
 };
 
 export type RuntimeAdapterPolicy = {
