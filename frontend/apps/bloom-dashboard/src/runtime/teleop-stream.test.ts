@@ -4,13 +4,6 @@ import type { RuntimeTeleopCommandRequest } from "./runtime-action-dispatcher";
 import { TeleopTwistComposer } from "./teleop-composition";
 import { TeleopStreamPump } from "./teleop-stream";
 
-/**
- * cartesian_manager expires an input after 0.2s and fails to zero. A slider
- * publishes on value change only, so holding Z at full deflection moved the
- * arm for 0.2s and stopped -- Robin's report from the robot. The pump is the
- * piece that keeps the composed twist alive between widget events.
- */
-
 function widgetRequest(overrides: Partial<RuntimeTeleopCommandRequest> = {}): RuntimeTeleopCommandRequest {
   return {
     type: "teleop_cmd",
@@ -58,15 +51,12 @@ describe("the teleop stream pump", () => {
     pump.noteDispatched(widgetRequest(), "sent");
     await vi.advanceTimersByTimeAsync(210);
 
-    // One widget publish plus a 20Hz heartbeat: within any 0.2s window the
-    // manager saw several fresh commands instead of one stale one.
     expect(sent.length).toBeGreaterThanOrEqual(3);
     expect(sent[0]).toMatchObject({
       linear: { x: 0, y: 0, z: 0.5 },
       mode: 0,
       target: "/joystick_cartesian_command",
     });
-    // The heartbeat draws fresh sequence numbers rather than replaying one.
     expect(new Set(sent.map((request) => request.seq)).size).toBe(sent.length);
     pump.stop();
   });
@@ -87,8 +77,6 @@ describe("the teleop stream pump", () => {
   });
 
   it("defers to a widget that is already streaming", async () => {
-    // The joystick re-emits at 30Hz while held; the pump publishing on top
-    // would double the rate for nothing.
     composer.contribute("stick", { linear_x: 0.4 });
     const pump = createPump();
 
@@ -108,7 +96,6 @@ describe("the teleop stream pump", () => {
     await vi.advanceTimersByTimeAsync(110);
     const movingSends = sent.length;
 
-    // The slider returned to center: its contribution is now zero.
     composer.contribute("drive-z", { linear_z: 0 });
     await vi.advanceTimersByTimeAsync(2000);
 
@@ -122,8 +109,6 @@ describe("the teleop stream pump", () => {
   });
 
   it("stops the moment a send is refused, and restarts on the next dispatch", async () => {
-    // While the runtime stop latch refuses teleop, re-trying at 20Hz would be
-    // fighting the latch; the manager fails to zero on its own.
     composer.contribute("drive-z", { linear_z: 0.5 });
     let attempts = 0;
     const pump = createPump(() => {

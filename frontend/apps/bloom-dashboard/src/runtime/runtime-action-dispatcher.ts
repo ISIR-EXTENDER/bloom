@@ -74,13 +74,7 @@ export type RuntimeTopicSampleMessage = {
   type: "topic_sample";
 };
 
-/**
- * Whether the teleop link is really open.
- *
- * This exists for the status chip (finding 3): nothing on the operator screen
- * distinguished "connected and armed" from "websocket down". The socket is
- * created lazily on first send, so "connecting" also covers "never asked yet".
- */
+/** Teleop link state; "connecting" also covers "never asked yet". */
 export type RuntimeLinkState = "connecting" | "connected" | "disconnected";
 
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
@@ -715,9 +709,7 @@ function getOptionalString(source: Record<string, unknown>, key: string): string
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof BloomApiError) {
-    // "Request failed with status 422" hides the part that matters. The
-    // response body carries the backend's actual reason -- a message-shape
-    // rejection reads as a recipient-side ROS failure without it.
+    // Surface the response body's reason, not just the status code.
     const detail = readBloomApiErrorDetail(error.responseText);
     return detail ? `${error.message} ${detail}` : error.message;
   }
@@ -737,14 +729,12 @@ function readBloomApiErrorDetail(responseText: string): string {
       return parsed.detail;
     }
     if (Array.isArray(parsed.detail)) {
-      // FastAPI validation errors arrive as a list of {loc, msg, type}.
       return parsed.detail
         .map((entry) => (isRecord(entry) && typeof entry.msg === "string" ? entry.msg : ""))
         .filter(Boolean)
         .join("; ");
     }
   } catch {
-    // Not JSON: the raw text is better than nothing, but keep it short.
     return responseText.slice(0, 200);
   }
   return "";

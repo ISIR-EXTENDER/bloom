@@ -1,19 +1,4 @@
-"""The runtime STOP latch: engage, assert toward the robot, outrank every path.
-
-Finding 3 of the UX review. The previous "Emergency stop" published on a topic
-nothing subscribed to and reported success; this suite exists so its
-replacement can never quietly degrade the same way. The contract under test:
-
-- Engaging publishes a zero twist on the teleop target and a
-  ``behaviour/passthrough`` mode request on ``/mode_request`` -- the message on
-  which ``cartesian_manager`` publishes its empty-``JointState`` joint-target
-  cancel downstream.
-- The latch is set even when the publishes fail: a STOP that cannot reach ROS
-  must still stop Bloom from commanding.
-- While stopped, WebSocket teleop, runtime action dispatch, and the generic
-  ROS publish route all reject.
-- Resume clears the latch and publishes nothing.
-"""
+"""The runtime STOP latch: engage, assert toward the robot, outrank every path."""
 
 from pathlib import Path
 
@@ -113,9 +98,7 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
     assert (zero_command.linear.x, zero_command.linear.y, zero_command.linear.z) == (0.0, 0.0, 0.0)
     assert (zero_command.angular.x, zero_command.angular.y, zero_command.angular.z) == (0.0, 0.0, 0.0)
 
-    # The manager answers behaviour/passthrough by publishing an empty
-    # JointState on /joint_target_command -- its own cancel signal. Bloom must
-    # request the cancel rather than fake one.
+    # behaviour/passthrough is the manager's own joint-target cancel.
     [cancel_request] = ros_gateway.requests
     assert cancel_request.topic == "/mode_request"
     assert cancel_request.message_type == "std_msgs/msg/String"
@@ -133,7 +116,6 @@ def test_stop_latches_even_when_every_publish_fails() -> None:
     assert "Zero velocity could not be published" in body["detail"]
     assert "Joint-target cancel could not be published" in body["detail"]
 
-    # The latch, not the publish, is what gates Bloom's own command paths.
     assert client.get("/api/v1/runtime/stop").json()["stopped"] is True
 
 
@@ -244,8 +226,6 @@ def test_resume_clears_the_latch_and_publishes_nothing() -> None:
         "engaged_at": "",
         "detail": "Runtime stop is not engaged.",
     }
-    # Motion restarts only when the operator commands it, never as a side
-    # effect of resuming.
     assert len(teleop_gateway.commands) == commands_after_engage
     assert len(ros_gateway.requests) == requests_after_engage
 

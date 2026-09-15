@@ -170,15 +170,7 @@ def test_adoption_survives_having_no_file_store_at_all(tmp_path: Path) -> None:
 
 
 def test_every_shipped_toggle_can_actually_publish() -> None:
-    """A toggle without payloads for its declared type 422s at runtime.
-
-    The explorer-manager gripper shipped as a Float64MultiArray toggle with no
-    onPayload/offPayload. The widget layer's generic defaults (true/false) do
-    not fit that type, so every tap answered '422 Unprocessable Entity' -- and
-    the operator on the robot read it as a ROS-side failure. Validate each
-    shipped toggle's payloads with the same shape rules the publish route
-    enforces, so a seed like that can never ship again.
-    """
+    """A toggle without payloads for its declared type 422s at runtime."""
     from libs.ros_adapters.payloads import parse_ros_payload_text
     from libs.ros_adapters.safety import validate_minimum_payload_shape
 

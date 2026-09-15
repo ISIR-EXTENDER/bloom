@@ -17,9 +17,7 @@ def build_teleop_ack(
     rate_limiter: RuntimeCommandRateLimiter | None = None,
     stop_controller: RuntimeStopController | None = None,
 ) -> RuntimeServerMessage:
-    # The stop latch outranks everything, including the zero a joystick sends
-    # on release: the controller already published its own zero on engage, and
-    # a rejected release costs nothing.
+    # The stop latch outranks everything, including release zeros.
     stop_reason = stop_controller.rejection_reason() if stop_controller is not None else None
     if stop_reason is not None:
         record_teleop_audit(

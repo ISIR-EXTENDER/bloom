@@ -9,15 +9,6 @@ import { RuntimeStopControl } from "./RuntimeStopControl";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { type RuntimeStopClient, useRuntimeStop } from "./use-runtime-stop";
 
-/**
- * Finding 3: the teleop screen had no stop and no sign of life. The previous
- * "Emergency stop" published on a topic nothing subscribed to and reported
- * success; these tests pin the behaviours that keep its replacement honest --
- * the tap/hold asymmetry, the chip's ranking of what the operator must know
- * first, and a stopped look that follows the backend's latch rather than the
- * browser's optimism.
- */
-
 const running: RuntimeStopState = { stopped: false, engaged_at: "", detail: "Runtime stop is not engaged." };
 const stoppedState: RuntimeStopState = {
   stopped: true,
@@ -59,9 +50,6 @@ describe("the STOP control", () => {
   });
 
   it("treats an early release as nothing, with progress reset to zero", () => {
-    // The asymmetry is the point: stopping is instant, resuming cannot happen
-    // from a brush of the glass, and a half-finished hold cannot be completed
-    // by someone who never started it.
     const handlers = renderControl({ stopped: true });
     const button = screen.getByRole("button", { name: "Hold for one second to resume" });
 
@@ -90,9 +78,6 @@ describe("the status chip", () => {
   const settledLink = (state: "connected" | "connecting" | "disconnected") => ({ state, settled: true }) as const;
 
   it("puts STOPPED above everything, including a dead link", () => {
-    // The latch lives on the backend and holds whether or not this browser's
-    // socket is alive; an operator who just stopped the arm must not watch
-    // the chip change the subject.
     expect(resolveRuntimeStatusChip(stoppedState, settledLink("disconnected"))).toEqual({
       label: "STOPPED",
       tone: "stopped",
@@ -111,8 +96,6 @@ describe("the status chip", () => {
   });
 
   it("keeps reading LINK DOWN through reconnect attempts", () => {
-    // Retries pass through "connecting" every couple of seconds; flickering
-    // CONNECTING/LINK DOWN would bury the one thing the chip exists to say.
     expect(resolveRuntimeStatusChip(running, settledLink("connecting"))).toEqual({
       label: "LINK DOWN",
       tone: "link-down",
@@ -154,8 +137,6 @@ describe("the stop mirror", () => {
   });
 
   it("never flips to stopped before the backend confirms the latch", async () => {
-    // The stopped look is a safety claim: it must mean "the backend latched",
-    // not "a request left the browser".
     let confirmLatch: (state: RuntimeStopState) => void = () => {};
     const client: RuntimeStopClient = {
       getRuntimeStopState: () => Promise.resolve(running),

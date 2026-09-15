@@ -630,20 +630,10 @@ export function normalizeWidgetSettings(
   return validateWidgetSettings(kind, mergedSettings);
 }
 
-/**
- * How many increments a slider should offer across its full travel.
- *
- * Robin's rule from driving the arm: about 20 stops over the slider's length.
- * Finer than that and the on-glass thumb cannot be placed reliably; coarser
- * and the velocity axes lose the low end.
- */
+/** About 20 stops across a slider's travel, per operator feedback. */
 export const SLIDER_TARGET_INCREMENTS = 20;
 
-/**
- * A step that gives roughly {@link SLIDER_TARGET_INCREMENTS} increments over
- * `min..max`, snapped to a round number (1 / 2 / 2.5 / 5 × 10ⁿ) so readouts
- * stay legible. Falls back to the contract default for a degenerate range.
- */
+/** Step ≈ range/20, snapped to 1/2/2.5/5 × 10ⁿ. */
 export function deriveSliderStep(min: number, max: number): number {
   const range = Math.abs(max - min);
   if (!Number.isFinite(range) || range <= 0) {
@@ -655,25 +645,13 @@ export function deriveSliderStep(min: number, max: number): number {
   const roundStep = [1, 2, 2.5, 5, 10]
     .map((multiplier) => multiplier * magnitude)
     .reduce((best, candidate) => (Math.abs(candidate - rawStep) < Math.abs(best - rawStep) ? candidate : best));
-  // 2.5 × 10ⁿ accumulates float noise (0.025000000000000001); trim it.
+  // Trim float noise from the 2.5 multiplier.
   return Number.parseFloat(roundStep.toPrecision(3));
 }
 
 /**
- * Accept the snake_case slider keys that configs in the wild actually carry.
- *
- * The contract names these `direction` and `returnToCenter`, but seeds and
- * hand-written configs used `orientation` and `return_to_center` -- consistent
- * with the snake_case of every neighbouring key -- and nothing complained:
- * the unknown keys passed through and the canonical ones fell back to their
- * defaults. The visible half of that failure was a horizontal slider rendering
- * vertical. The dangerous half was `return_to_center: true` silently not
- * returning to center on a slider that commands a velocity axis: the arm kept
- * the last value as its command until the manager's timeout expired it.
- *
- * Runs on the raw authored settings, before defaults merge in, so "the author
- * never wrote the canonical key" is a real test. Canonical keys win when both
- * are present.
+ * Alias the snake_case keys configs in the wild carry (orientation,
+ * return_to_center). Runs on raw settings so canonical keys win.
  */
 function normalizeSliderCompatibility(settings: Record<string, unknown>): Record<string, unknown> {
   const normalized = { ...settings };

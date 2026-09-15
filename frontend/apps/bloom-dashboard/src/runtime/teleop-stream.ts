@@ -2,29 +2,10 @@ import type { RuntimeTeleopCommandRequest } from "./runtime-action-dispatcher";
 import type { TeleopTwist, TeleopTwistComposer } from "./teleop-composition";
 
 /**
- * Keeps the composed teleop twist alive between widget events.
- *
- * `cartesian_manager` drops an input source whose latest command is older than
- * its `timeout_sec` -- 0.2s in the Explorer bringup -- and then streams zeros.
- * That fail-to-zero is the chain's one safety property, and it means any
- * source that wants sustained motion must keep publishing. The joystick
- * renderer does: it re-emits at its publish rate while held. Sliders do not:
- * they emit on value change only, so holding the Z slider at full deflection
- * moved the arm for 0.2s and stopped. The composition layer's contract note
- * always said the runtime "must keep publishing the composed twist"; this is
- * the piece that actually does it.
- *
- * The pump defers to widget-driven sends -- a tick inside one interval of the
- * last real send is skipped, so a held joystick does not publish at double
- * rate -- and it re-sends the *composed* twist, so the heartbeat carries every
- * engaged widget's contribution, not just the last one that moved.
- *
- * When the twist returns to zero the pump sends a short explicit-zero tail and
- * goes quiet: the manager's own timeout owns "stopped" from there, and an
- * idle screen must not stream forever into the rate limiter or, worse, into
- * an engaged STOP latch. Any rejected send stops the pump for the same
- * reason -- while the runtime stop refuses teleop, retrying at 20Hz would be
- * fighting the latch. The next widget event starts it again.
+ * Re-sends the composed twist between widget events: cartesian_manager drops
+ * an input older than timeout_sec (0.2s on Explorer), so a slider that only
+ * publishes on change cannot hold a velocity. Defers to widgets that already
+ * stream, sends a short zero tail on release, stops on any refused send.
  */
 export class TeleopStreamPump {
   private readonly composer: TeleopTwistComposer;
@@ -52,7 +33,6 @@ export class TeleopStreamPump {
     this.zeroTailFrames = options.zeroTailFrames ?? 6;
   }
 
-  /** A widget-driven teleop send happened; keep its twist alive from here. */
   noteDispatched(request: RuntimeTeleopCommandRequest, outcome: "failed" | "sent"): void {
     if (outcome === "failed") {
       this.stop();
@@ -75,8 +55,7 @@ export class TeleopStreamPump {
   }
 
   private tick(): void {
-    // A widget stream (the held joystick at 30Hz) is already keeping the
-    // command fresh; publishing on top of it would double the rate.
+    // A widget stream is already keeping the command fresh.
     if (Date.now() - this.lastSentAt < this.intervalMs) {
       return;
     }
@@ -105,9 +84,7 @@ export class TeleopStreamPump {
       seq: this.nextSequence(),
       target: this.lastRequest.target,
     }).catch(() => {
-      // Rejected -- the stop latch, a dead socket, a policy change. The
-      // manager fails to zero on its own; hammering the same refusal at
-      // 20Hz helps nobody. The next widget event starts the pump again.
+      // Refused (stop latch, dead socket): the next widget event restarts us.
       this.stop();
     });
   }

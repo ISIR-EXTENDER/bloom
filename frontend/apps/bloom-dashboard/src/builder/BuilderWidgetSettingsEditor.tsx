@@ -33,11 +33,7 @@ export function BuilderWidgetSettingsEditor({
       ...widget.settings,
       [field.key]: coerceFieldValue(field, rawValue),
     };
-    // Feedback from driving the arm: a slider should keep about 20 increments
-    // across its travel. Editing the range used to leave step where it was,
-    // so raising "maximum" quietly turned a 20-stop slider into a 200-stop
-    // one unless the author remembered to retune step by hand. Step follows
-    // the range now; editing the step field directly still overrides it.
+    // Step follows the range (~20 increments); a direct step edit overrides.
     if (widget.kind === "slider" && (field.key === "min" || field.key === "max")) {
       const min = readFiniteNumber(nextSettings.min ?? effectiveSettings.min);
       const max = readFiniteNumber(nextSettings.max ?? effectiveSettings.max);

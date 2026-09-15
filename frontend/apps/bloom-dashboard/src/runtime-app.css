@@ -754,18 +754,11 @@
 .runtime-app-workspace > .runtime-app-canvas-shell {
   flex: 1;
   min-height: 0;
-  /* Anchors the STOP chrome, which lives outside the artboard on purpose:
-     the builder cannot move it, remove it, or cover it. */
+  /* Anchors the STOP chrome, which the builder cannot move or cover. */
   position: relative;
 }
 
-/*
- * Stopped: every configured control refuses input and says so visually, while
- * the STOP chrome (a sibling of the viewport) stays live for the resume hold.
- * The filter is the generic version of the spec's disabled treatment -- widgets
- * are arbitrary, so they are muted as a surface rather than restyled one by
- * one.
- */
+/* Stopped: widgets refuse input and mute; the STOP chrome stays live. */
 .runtime-app-workspace[data-runtime-stopped="true"] .runtime-app-canvas-viewport {
   pointer-events: none;
   filter: grayscale(0.45) opacity(0.75);
@@ -789,11 +782,7 @@
   white-space: nowrap;
 }
 
-/*
- * The status chip: word + color + dot shape, never color alone (finding 3).
- * The dot is round while running and square while anything is wrong, so the
- * states stay distinguishable without color vision.
- */
+/* Round dot while running, square when anything is wrong. */
 .runtime-kiosk-status {
   display: inline-flex;
   align-items: center;
@@ -879,11 +868,7 @@
   transform: scaleX(0);
 }
 
-/*
- * STOP, as runtime chrome (finding 3). 176x132 is 38x29mm on the 116ppi
- * panel: found by hand without looking (finding 12), sized against the
- * ISO 9241-411 touch floor with margin to spare.
- */
+/* 176x132 is 38x29mm on the 116ppi panel: found by hand without looking. */
 .runtime-stop-control {
   position: absolute;
   right: 12px;
@@ -920,7 +905,6 @@
   text-align: center;
 }
 
-/* A stop request that failed must say so where the finger just was. */
 .runtime-stop-error {
   font-size: 13px;
   font-weight: 700;

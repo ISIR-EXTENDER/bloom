@@ -12,23 +12,13 @@ export type RuntimeLinkClient = {
 export type RuntimeLinkSnapshot = {
   /** null while the client exposes no link at all (previews, tests). */
   state: RuntimeLinkState | null;
-  /**
-   * Whether the link has ever left its initial "connecting". Reconnect
-   * attempts pass through "connecting" every couple of seconds; a chip that
-   * flickered CONNECTING/LINK DOWN in that loop would hide the one thing it
-   * exists to say, so "connecting" after a settled link still reads as down.
-   */
+  /** Sticky once the link leaves its initial "connecting". */
   settled: boolean;
 };
 
 /**
- * The teleop link, watched rather than inferred.
- *
- * The socket is created lazily on first send, so without the eager connect
- * here the chip would read "connecting" forever on a screen with no teleop
- * widget touched yet. And since a dropped link only reconnected on the next
- * send -- an operator staring at a dead screen would wait indefinitely -- this
- * hook also retries while the link is down.
+ * Watches the teleop link: connects eagerly (the socket is otherwise lazy)
+ * and retries while down, so the chip tells the truth on an idle screen.
  */
 export function useRuntimeLinkState(client: RuntimeLinkClient | null | undefined): RuntimeLinkSnapshot {
   const [snapshot, setSnapshot] = useState<RuntimeLinkSnapshot>({ state: null, settled: false });
@@ -43,8 +33,7 @@ export function useRuntimeLinkState(client: RuntimeLinkClient | null | undefined
       setSnapshot((current) => ({ state, settled: current.settled || state !== "connecting" }));
     });
     client?.ensureRuntimeConnected?.().catch(() => {
-      // The listener already reported "disconnected"; the retry below owns
-      // what happens next.
+      // The retry effect below owns what happens next.
     });
 
     return removeListener;
@@ -58,8 +47,7 @@ export function useRuntimeLinkState(client: RuntimeLinkClient | null | undefined
 
     const timer = setInterval(() => {
       ensureConnected().catch(() => {
-        // Still down. The interval fires again; the listener flips the state
-        // the moment a connect succeeds, which clears this effect.
+        // Still down; the interval fires again.
       });
     }, RECONNECT_INTERVAL_MS);
     return () => clearInterval(timer);

@@ -137,10 +137,7 @@ def publish_ros_topic(
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> RosTopicPublishResponse:
     audit_log = get_runtime_audit_log(request)
-    # One robot, one latch: while the runtime stop is engaged, the generic
-    # publish path is refused too, or a builder test-publish could move the
-    # arm that an operator just stopped. The stop controller publishes through
-    # the gateway directly, so resume never depends on this route.
+    # One robot, one latch: the generic publish path is refused too.
     stop_reason = request.app.state.runtime_stop_controller.rejection_reason()
     if stop_reason is not None:
         audit_log.record(

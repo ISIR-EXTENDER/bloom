@@ -194,10 +194,6 @@ describe("runtime WebSocket client", () => {
 });
 
 describe("the runtime link state", () => {
-  // Finding 3: nothing on the operator screen distinguished "connected and
-  // armed" from "websocket down". The chip needs the truth, so the client has
-  // to tell it.
-
   it("reports the connection settling open", async () => {
     const WebSocketCtor = createFakeWebSocketConstructor();
     const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
@@ -226,8 +222,6 @@ describe("the runtime link state", () => {
   });
 
   it("hands a late subscriber the current state instead of silence", async () => {
-    // A chip that subscribes after the socket already died must not show
-    // "connected" until the next transition.
     const WebSocketCtor = createFakeWebSocketConstructor();
     const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
     const connected = client.ensureRuntimeConnected();

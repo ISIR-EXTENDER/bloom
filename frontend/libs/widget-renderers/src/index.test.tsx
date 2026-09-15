@@ -131,10 +131,6 @@ describe("widget renderer registry", () => {
   });
 
   it("honours the snake_case slider keys configs in the wild carry", async () => {
-    // `orientation` and `return_to_center` were read as their camelCase
-    // spellings only, so both silently fell back to defaults: a horizontal
-    // slider rendered vertical, and a velocity-axis slider kept its last
-    // value on release instead of returning to zero.
     const descriptor = renderScreenDescriptors(legacyKeysSliderScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing slider descriptor.");
     const onActionIntent = vi.fn();
@@ -950,7 +946,6 @@ const legacyKeysSliderScreen: ScreenConfig = {
         width: 220,
         height: 80,
       },
-      // The snake_case spelling seeds and hand-written configs actually carry.
       settings: {
         max: 1,
         min: -1,

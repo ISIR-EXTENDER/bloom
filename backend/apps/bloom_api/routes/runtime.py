@@ -240,11 +240,7 @@ def engage_runtime_stop(
     request: Request,
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> RuntimeStopStateResponse:
-    """Latch the runtime stopped and assert it toward the robot.
-
-    Deliberately HTTP rather than a WebSocket message: the moment STOP matters
-    most is when the teleop WebSocket is the thing that died.
-    """
+    """HTTP on purpose: STOP matters most when the WebSocket is what died."""
     return RuntimeStopStateResponse(**asdict(get_runtime_stop_controller(request).engage()))
 
 

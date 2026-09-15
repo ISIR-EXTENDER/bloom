@@ -68,8 +68,7 @@ def create_app(
     )
     app.state.runtime_recording_gateway = runtime_recording_gateway or create_runtime_recording_gateway(app_settings)
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
-    # After the gateways: the stop asserts itself through whatever is really
-    # wired, and still latches when both are Noops.
+    # After the gateways; still latches when both are Noops.
     app.state.runtime_stop_controller = runtime_stop_controller or RuntimeStopController(
         teleop_gateway=app.state.teleop_command_gateway,
         ros_publisher_gateway=app.state.ros_publisher_gateway,

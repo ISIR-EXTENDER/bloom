@@ -3,31 +3,16 @@ import { useHoldGesture } from "./use-hold-gesture";
 const RESUME_HOLD_MS = 1000;
 
 export type RuntimeStopControlProps = {
-  /** null while the backend has not answered yet; rendered as running so the
-   * control is pressable from the first frame. */
+  /** null while unknown; rendered as running so STOP is always pressable. */
   stopped: boolean | null;
-  /** Why the last stop or resume request failed, or empty. Shown inside the
-   * control: a STOP that failed silently is worse than no STOP. */
   requestError: string;
   onEngage: () => void;
   onResume: () => void;
 };
 
 /**
- * The stop target, as runtime chrome (finding 3).
- *
- * Not a widget: the builder cannot move it, remove it, or cover it, so an
- * operator's hand finds it in the same corner of the glass in every app
- * (finding 12 -- their eyes are on the gripper, not the screen).
- *
- * The asymmetry is deliberate. Stopping is a tap and immediate, on
- * `pointerdown` rather than click so it fires the moment the finger lands.
- * Resuming takes a 1s hold, cancelled by release or leave with progress reset
- * to zero, so motion cannot restart from a brush of the glass -- and a
- * half-finished hold cannot be completed by someone who never started it.
- *
- * The look never flips to "stopped" optimistically: it follows the backend's
- * latch, because this control's appearance is a safety claim.
+ * STOP as runtime chrome (finding 3): tap stops on pointerdown, resuming
+ * takes a 1s hold, and the stopped look follows the backend's latch only.
  */
 export function RuntimeStopControl({ stopped, requestError, onEngage, onResume }: RuntimeStopControlProps) {
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, onResume);
@@ -62,8 +47,7 @@ export function RuntimeStopControl({ stopped, requestError, onEngage, onResume }
       aria-label="Stop the robot"
       className="runtime-stop-control"
       onClick={(event) => {
-        // Keyboard activation only: a pointer tap already engaged on
-        // pointerdown, the moment the finger landed.
+        // Keyboard only; a pointer tap already engaged on pointerdown.
         if (event.detail === 0) {
           onEngage();
         }

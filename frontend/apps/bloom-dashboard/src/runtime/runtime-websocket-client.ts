@@ -182,9 +182,7 @@ export function createRuntimeWebSocketClient(
   return {
     addRuntimeLinkStateListener(listener: (state: RuntimeLinkState) => void) {
       linkStateListeners.add(listener);
-      // Deliver the current state immediately: a chip that subscribes after
-      // the socket already died must not show "connected" until the next
-      // transition.
+      // Deliver the current state immediately for late subscribers.
       listener(linkState);
       return () => {
         linkStateListeners.delete(listener);

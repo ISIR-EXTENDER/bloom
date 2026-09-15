@@ -92,8 +92,6 @@ describe("the kiosk bar", () => {
   });
 
   it("shows no status chip where there is no session to describe", () => {
-    // A status word on a builder preview would be a guess, and the chip's one
-    // job is to never guess.
     renderBar();
 
     expect(screen.queryByRole("status")).toBeNull();

@@ -361,8 +361,6 @@ describe("widget settings contracts", () => {
   });
 
   it("derives a slider step of about twenty round increments from the range", () => {
-    // Feedback from driving the arm: ~20 stops across the slider's travel,
-    // snapped to round numbers so the readout stays legible.
     expect(deriveSliderStep(-1, 1)).toBe(0.1);
     expect(deriveSliderStep(0, 1)).toBe(0.05);
     expect(deriveSliderStep(0, 0.5)).toBe(0.025);
@@ -376,10 +374,6 @@ describe("widget settings contracts", () => {
   });
 
   it("accepts the snake_case slider keys configs in the wild carry", () => {
-    // Seeds and hand-written configs used `orientation`/`return_to_center`,
-    // consistent with every neighbouring snake_case key, and both were
-    // silently dropped. The dangerous half was return-to-center not returning
-    // to center on a slider that commands a velocity axis.
     expect(
       normalizeWidgetSettings("slider", { max: 1, min: -1, orientation: "horizontal", return_to_center: true }),
     ).toMatchObject({
@@ -1506,10 +1500,6 @@ describe("widget runtime action intents", () => {
   });
 
   it("refuses to publish a toggle whose declared type has no authored payload", () => {
-    // The settings contract fills a missing payload with the generic booleans
-    // true/false. A Float64MultiArray gripper toggle shipped without payloads,
-    // so every tap POSTed {data: true} and the backend answered with a bare
-    // 422 that read as a ROS-side failure on the robot.
     const seededGripper = {
       id: "drive-gripper",
       kind: "toggle",
@@ -1535,8 +1525,6 @@ describe("widget runtime action intents", () => {
   });
 
   it("still publishes contract-default booleans for a Bool toggle without authored payloads", () => {
-    // For std_msgs/Bool the invented true/false defaults are exactly right,
-    // and builder previews rely on them.
     const boolToggle = {
       id: "servo-enable",
       kind: "toggle",

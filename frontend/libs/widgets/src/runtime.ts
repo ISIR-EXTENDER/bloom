@@ -214,13 +214,8 @@ function createToggleIntent(
   const topic = getOptionalString(settings, "topic");
   if (topic) {
     const messageType = getOptionalString(settings, "messageType");
-    // The settings contract fills a missing payload with the generic booleans
-    // `true`/`false`. For std_msgs/Bool that invention happens to be right;
-    // for every other declared type it produced a payload of the wrong shape,
-    // the backend's message guard answered with a bare 422, and the person
-    // tapping the toggle read it as a ROS-side failure (a Float64MultiArray
-    // gripper toggle shipped exactly this way). Refuse to publish an invented
-    // payload and say which field is actually missing.
+    // Refuse the contract's invented true/false defaults for non-Bool types:
+    // they are the wrong shape and would 422 at the publish route.
     const payloadField = event.nextState === "on" ? "onPayload" : "offPayload";
     const authorWrotePayload = payloadField in (widget.settings ?? {});
     const inventedPayloadIsWrong =

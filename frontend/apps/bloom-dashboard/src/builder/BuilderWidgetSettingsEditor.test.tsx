@@ -124,10 +124,6 @@ describe("reading widgets in the inspector", () => {
 describe("slider step follows the range", () => {
   afterEach(cleanup);
 
-  // Feedback from driving the arm: a slider should keep about 20 increments
-  // across its travel. Editing the range used to leave step untouched, so
-  // raising "maximum" quietly changed how the slider feels under a finger.
-
   it("retunes step to ~20 increments when maximum changes", () => {
     const onUpdateSettings = renderEditor({ direction: "vertical", max: 1, min: -1, step: 0.01 });
 
@@ -153,8 +149,7 @@ describe("slider step follows the range", () => {
   });
 
   it("keeps retuning while the author types through intermediate ranges", () => {
-    // An emptied number field coerces to 0, which is a real range: the step
-    // follows it, and follows again when the final value lands.
+    // An emptied number field coerces to 0, which is a real range.
     const onUpdateSettings = renderEditor({ direction: "vertical", max: 1, min: -1, step: 0.1 });
 
     fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "" } });

@@ -287,12 +287,7 @@ export type RuntimeRecordingResponse = {
   topics: string[];
 };
 
-/**
- * The runtime stop latch, as the backend holds it.
- *
- * `engaged_at` is empty while running. `detail` says what the engage actually
- * published -- including when a publish failed, which the UI must not hide.
- */
+/** The runtime stop latch as the backend holds it; engaged_at empty while running. */
 export type RuntimeStopState = {
   stopped: boolean;
   engaged_at: string;
@@ -466,12 +461,7 @@ export class BloomApiClient {
     return this.request<RuntimeStopState>("/api/v1/runtime/stop");
   }
 
-  /**
-   * Latch the runtime stopped: the backend publishes a zero twist and the
-   * manager's joint-target cancel, then refuses every command path until
-   * resumed. HTTP on purpose -- STOP matters most when the teleop WebSocket
-   * is the thing that died.
-   */
+  /** HTTP on purpose: STOP matters most when the WebSocket is what died. */
   engageRuntimeStop(): Promise<RuntimeStopState> {
     return this.request<RuntimeStopState>("/api/v1/runtime/stop", { method: "POST" });
   }

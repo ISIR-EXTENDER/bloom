@@ -25,15 +25,7 @@ import { useHoldGesture } from "./use-hold-gesture";
 
 const MAINTENANCE_HOLD_MS = 1500;
 
-/**
- * The one status word on the operator screen, with color and dot shape
- * carrying the same message -- never color alone (finding 3).
- *
- * "stopped" outranks "link-down": the stop latch lives on the backend and
- * holds whether or not this browser's socket is alive. "link-down" is the
- * state the chip exists for -- before it, nothing distinguished "connected
- * and armed" from "websocket down".
- */
+/** Word + color + dot shape carry the same message; never color alone. */
 export type RuntimeStatusChipTone = "connecting" | "link-down" | "ready" | "stopped";
 
 export type RuntimeStatusChip = {

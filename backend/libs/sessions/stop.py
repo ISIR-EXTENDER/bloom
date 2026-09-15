@@ -1,28 +1,7 @@
-"""The runtime STOP: one latch that outranks every command path.
+"""The runtime STOP latch: outranks every command path while engaged.
 
-Finding 3 of the UX review: the teleop screen had no stop control and no sign
-of life. The first attempt at one -- an "Emergency stop" button publishing on a
-topic nothing subscribed to -- was removed for reporting success while doing
-nothing. This is its replacement, built from what the stack actually does:
-
-- Bloom's Cartesian contribution stops the moment Bloom stops asserting it:
-  ``cartesian_manager`` expires a stale joystick command after 0.2s and then
-  streams explicit zero twists. Publishing one zero twist makes that immediate
-  instead of 200ms later.
-- A joint target is different: the manager publishes it once toward the
-  controller and the arm keeps moving on its own. The manager's own cancel
-  affordance is a ``behaviour/passthrough`` mode request, on which it publishes
-  an empty ``JointState`` downstream (``modeRequestCallback``,
-  cartesian_manager ros/cartesian_manager.cpp). That is what we request.
-
-The latch is set before anything is published and survives publish failures:
-a STOP that cannot reach ROS must still stop Bloom from commanding. While
-engaged, the WebSocket teleop path, runtime action dispatch, and the generic
-ROS publish route all reject. Resume clears the latch and publishes nothing --
-motion only restarts when the operator commands it again.
-
-This is not an emergency stop in the IEC sense. It is a software stop above a
-research stack, and the UI must never dress it up as more than that.
+Engaging publishes a zero twist plus a ``behaviour/passthrough`` mode request,
+the manager's own joint-target cancel. Not an IEC emergency stop.
 """
 
 from __future__ import annotations
@@ -81,19 +60,12 @@ class RuntimeStopController:
             return "Runtime stop is engaged. Hold the stop control to resume before commanding the robot."
 
     def engage(self) -> RuntimeStopState:
-        """Latch stopped, then assert it toward the robot.
-
-        The latch comes first and is unconditional: if ROS is unreachable the
-        publishes below fail, but Bloom still refuses to command the arm. A
-        second engage while already stopped re-publishes both messages -- a
-        repeated press is a re-assertion, never an error.
-        """
+        """Latch first, unconditionally; a repeated engage re-asserts."""
         with self._lock:
             self._stopped = True
             self._engaged_at = datetime.now(timezone.utc).isoformat()
 
-        # Straight through the gateways, not the policy/rate-limit wrappers:
-        # the stop must not be blockable by the machinery it exists to outrank.
+        # Straight through the gateways: not blockable by policy or rate limit.
         zero_detail = self._publish_zero_twist()
         cancel_detail = self._publish_joint_target_cancel()
         detail = f"Runtime stop engaged. {zero_detail} {cancel_detail}"
@@ -106,8 +78,7 @@ class RuntimeStopController:
         return state
 
     def resume(self) -> RuntimeStopState:
-        """Clear the latch. Publishes nothing: motion restarts only when the
-        operator commands it, not as a side effect of resuming."""
+        """Clear the latch; publishes nothing."""
         with self._lock:
             self._stopped = False
             self._engaged_at = ""

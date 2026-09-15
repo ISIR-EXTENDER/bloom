@@ -12,10 +12,7 @@ import {
 import type { WidgetRendererProps } from "./types";
 
 export function SliderWidget({ descriptor, onActionIntent }: WidgetRendererProps) {
-  // Read through normalization, like the joystick does: configs in the wild
-  // carry `orientation`/`return_to_center`, and reading the raw settings here
-  // silently dropped both -- including return-to-center on sliders that
-  // command a velocity axis.
+  // Normalize first: configs carry snake_case aliases for these keys.
   const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
   const sliderSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
   const min = getNumberSetting(sliderSettings, "min", -1);

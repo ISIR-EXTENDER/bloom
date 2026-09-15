@@ -35,9 +35,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const teleopComposer = useRef(new TeleopTwistComposer());
   const clientRef = useRef(client);
   clientRef.current = client;
-  // Keeps the composed twist alive between widget events: cartesian_manager
-  // expires an input after 0.2s, and a slider only emits on value change, so
-  // without this a held Z slider moved the arm for 0.2s and stopped.
+  // Keeps the composed twist alive past the manager's 0.2s input timeout.
   const teleopPump = useRef<TeleopStreamPump | null>(null);
   if (teleopPump.current === null) {
     teleopPump.current = new TeleopStreamPump({
