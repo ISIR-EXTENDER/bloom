@@ -122,11 +122,19 @@ class UserProfile(BloomModel):
 
 
 class RuntimeAdapterPolicy(BloomModel):
+    #: Shared rotation frame for every Cartesian command in this application.
+    #: Empty delegates to the backend deployment default.
+    command_frame_id: str = Field(default="", max_length=64)
     allowed_message_types: tuple[str, ...] = Field(default_factory=tuple)
     allowed_publish_topics: tuple[str, ...] = Field(default_factory=tuple)
     allowed_recording_topics: tuple[str, ...] = Field(default_factory=tuple)
     allowed_service_calls: tuple[str, ...] = Field(default_factory=tuple)
     allowed_teleop_targets: tuple[str, ...] = Field(default_factory=tuple)
+
+    @field_validator("command_frame_id")
+    @classmethod
+    def command_frame_id_is_normalized(cls, value: str) -> str:
+        return value.strip()
 
 
 class RuntimeActionPreset(BloomModel):

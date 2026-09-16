@@ -46,11 +46,11 @@ grammar in Bloom turns that into a runtime error the UI can show. The same check
 exists in `tablet_interface`, deliberately duplicated: both are clients of the
 same contract, and neither should depend on the other.
 
-**Stamp the frame explicitly.** The manager performs no TF conversion. A command
-whose `header.frame_id` is neither empty nor the manager's
-`default_input_frame_id` is dropped, and the robot silently stops. `base_link` is
-therefore configuration (`ros_command_frame_id`), not a hard-coded constant, and
-the gateway stamps every message.
+**Stamp the frame explicitly.** The manager accepts its configured base,
+end-effector, and hybrid frames and rotates angular commands from live robot
+poses; it performs no general TF lookup. Unknown frames are skipped. The frame
+is therefore configuration, not a hard-coded constant, and the gateway stamps
+every message.
 
 **Keep the legacy gateway.** Bloom's migration rules say not to replace working
 legacy functionality until the replacement is tested end to end. The manager

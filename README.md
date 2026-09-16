@@ -300,6 +300,10 @@ base with the live `/ee_pose`, `hybrid_frame` uses the manager's hybrid pose.
 An unknown frame is skipped silently and the robot stops, so this value is
 still worth checking before a lab session. There is no TF lookup.
 
+The deployment value is the fallback. In **Builder -> App configuration ->
+Adapter guardrails**, set **Cartesian command frame** to stamp every virtual
+control and physical gamepad contribution in one shared frame for that app.
+
 Use `X-Bloom-API-Key` for API calls. Admin keys can mutate configuration; operator keys can read configuration and use
 runtime/ROS endpoints. Production settings intentionally fail to start without authentication and an admin key.
 

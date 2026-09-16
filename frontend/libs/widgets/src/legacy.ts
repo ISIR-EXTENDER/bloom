@@ -90,6 +90,7 @@ export function legacyCanvasScreensToApplicationConfig(
 
 function cloneRuntimePolicy(policy: RuntimeAdapterPolicy): RuntimeAdapterPolicy {
   return {
+    command_frame_id: policy.command_frame_id ?? "",
     allowed_message_types: [...policy.allowed_message_types],
     allowed_publish_topics: [...policy.allowed_publish_topics],
     allowed_recording_topics: [...policy.allowed_recording_topics],

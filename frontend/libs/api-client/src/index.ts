@@ -104,6 +104,8 @@ export type UserProfile = {
 };
 
 export type RuntimeAdapterPolicy = {
+  /** Shared rotation frame for every Cartesian command; empty uses the backend default. */
+  command_frame_id?: string;
   allowed_message_types: string[];
   allowed_publish_topics: string[];
   allowed_recording_topics: string[];
@@ -126,6 +128,7 @@ export type RuntimeActionPreset = {
 };
 
 export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
+  command_frame_id: "",
   allowed_message_types: [],
   allowed_publish_topics: [],
   allowed_recording_topics: [],

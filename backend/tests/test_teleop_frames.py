@@ -67,8 +67,8 @@ def test_an_empty_frame_means_the_configured_default() -> None:
 
 
 def test_an_unknown_frame_is_refused_loudly() -> None:
-    # The manager skips a command in a frame it does not know without a word;
-    # the arm stopping silently must not be the first sign of a typo.
+    # The manager skips a command in a frame it does not know; the arm stopping
+    # must not be the first sign of a typo.
     gateway = RecordingTeleopGateway()
     client = create_frames_client(gateway)
 

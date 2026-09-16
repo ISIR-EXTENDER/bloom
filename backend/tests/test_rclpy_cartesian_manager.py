@@ -81,9 +81,8 @@ def test_gateway_publishes_stamped_twist(monkeypatch) -> None:
 
 
 def test_gateway_stamps_the_configured_frame(monkeypatch) -> None:
-    # cartesian_manager drops any command whose frame is neither empty nor its
-    # default_input_frame_id, and the robot silently stops. This is the single
-    # most important field on the message.
+    # cartesian_manager uses this to select base, end-effector, or hybrid
+    # rotation semantics. Unknown frames are skipped, so it must be explicit.
     install_fake_ros_messages(monkeypatch)
     node = RecordingNode()
     gateway = RclpyCartesianManagerGateway(node, command_frame_id="base_link")

@@ -171,11 +171,33 @@ describe("a non-widget source", () => {
       },
     });
 
-    pump.noteExternalContribution({ mode: 0, target: "/joystick_cartesian_command" });
+    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target: "/joystick_cartesian_command" });
     await vi.advanceTimersByTimeAsync(120);
 
     expect(sent.length).toBeGreaterThan(0);
     expect(sent[0]).toMatchObject({ linear: { x: 0.6, y: 0, z: 0 }, target: "/joystick_cartesian_command" });
+    pump.stop();
+  });
+
+  it("stamps a physical gamepad with the app's command frame", async () => {
+    composer.contribute("gamepad", { angular_z: 0.4 });
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => 1,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+
+    pump.noteExternalContribution({
+      frame_id: "hybrid_frame",
+      mode: 0,
+      target: "/joystick_cartesian_command",
+    });
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(sent[0]).toMatchObject({ frame_id: "hybrid_frame" });
     pump.stop();
   });
 
@@ -191,10 +213,29 @@ describe("a non-widget source", () => {
     });
 
     pump.noteDispatched(widgetRequest({ target: "/custom_teleop", mode: 3 }), "sent");
+    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target: "/joystick_cartesian_command" });
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(sent.at(-1)).toMatchObject({ frame_id: "hybrid_frame", mode: 3, target: "/custom_teleop" });
+    pump.stop();
+  });
+
+  it("keeps a widget frame until the external source resolves its own", async () => {
+    composer.contribute("gamepad", { linear_x: 0.6 });
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => 1,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+
+    pump.noteDispatched(widgetRequest({ frame_id: "ft_frame" }), "sent");
     pump.noteExternalContribution({ mode: 0, target: "/joystick_cartesian_command" });
     await vi.advanceTimersByTimeAsync(120);
 
-    expect(sent.at(-1)).toMatchObject({ mode: 3, target: "/custom_teleop" });
+    expect(sent.at(-1)).toMatchObject({ frame_id: "ft_frame" });
     pump.stop();
   });
 });

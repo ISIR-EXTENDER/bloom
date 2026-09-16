@@ -40,9 +40,8 @@ export type RuntimeKioskBarProps = {
   /**
    * The frame operator commands are stamped with, or null while unknown.
    *
-   * Named on screen because `cartesian_manager` does no TF conversion: a
-   * command in any other frame is dropped and the arm stops, which looks
-   * exactly like a broken UI (finding 11).
+   * Named on screen because it decides whether rotation follows the robot base,
+   * end effector, or hybrid operator mapping (finding 11).
    *
    * There is deliberately no latency readout here yet. The spec asks for one,
    * but nothing in the stack measures round-trip time, and a number that is not

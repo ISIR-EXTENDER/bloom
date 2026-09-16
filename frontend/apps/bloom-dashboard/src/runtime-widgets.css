@@ -150,6 +150,14 @@
   justify-items: center;
 }
 
+/* Narrow axis controls need two honest lines; a one-line header pushes the
+   title outside its card when the range is also visible. */
+.bloom-slider-widget[data-direction="vertical"] .bloom-control-header {
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
 .bloom-slider-widget[data-direction="vertical"][data-show-details="true"] {
   grid-template-rows: auto minmax(0, 1fr) auto;
 }

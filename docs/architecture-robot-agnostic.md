@@ -74,7 +74,7 @@ robot_profile:
   teleop:
     target: /joystick_cartesian_command
     message_type: geometry_msgs/msg/TwistStamped
-    frame_id: base_link      # the manager does no TF; a wrong frame is dropped
+    frame_id: base_link      # known base, end-effector, or hybrid rotation frame
   mode:
     topic: /mode_request
     grammar: [geometric/*, behaviour/*]
@@ -128,10 +128,10 @@ satisfy it. Two things stop it being a clean one today:
 
 - The mode grammar is the manager's, so a controller with different modes needs
   the grammar to become profile data rather than a hardcoded regex.
-- The frame requirement (`base_link`, no TF conversion) is a manager property
-  that Bloom encodes as a global default.
+- The known frame set and its rotation semantics are manager properties. Bloom
+  exposes one app-level selection and keeps a deployment-wide fallback.
 
-Both move into the profile. Neither requires a new abstraction layer — which is
+Both move into configuration. Neither requires a new abstraction layer — which is
 the useful finding: **the controller boundary is already in about the right
 place; it is just not parameterised.**
 

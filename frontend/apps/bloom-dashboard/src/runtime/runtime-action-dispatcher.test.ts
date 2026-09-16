@@ -307,6 +307,24 @@ describe("runtime action dispatcher", () => {
     });
   });
 
+  it("uses one app frame for every axis even when a widget carries an older frame", () => {
+    const intent = createTeleopValueIntent({
+      modeId: "rotation",
+      runtimeBinding: {
+        adapter: "teleop",
+        value_mapping: {
+          frame_id: "ft_frame",
+          target_topic: "/joystick_cartesian_command",
+        },
+      },
+      value: { x: 0.25, y: 0 },
+    });
+
+    expect(createTeleopCommandRequest(intent, 3, undefined, "hybrid_frame")).toMatchObject({
+      frame_id: "hybrid_frame",
+    });
+  });
+
   it("omits frame_id entirely when no frame is bound, keeping the backend default", () => {
     const intent = createTeleopValueIntent({
       modeId: "translation",
