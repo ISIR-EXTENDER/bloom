@@ -110,7 +110,7 @@ The latest handoff proposes this order. It is a backlog, not evidence that the w
 
 | Lot | Priority | Scope |
 | --- | --- | --- |
-| 0 | P1/P2 | Fix directional scanning, define scan/dwell composition, keep the 44 px bar decision consistent, surface unsafe fit, and gate unavailable runtime capabilities. |
+| 0 | P1/P2 | Fix directional scanning, define scan/dwell composition, record the 44 px bar decision, surface unsafe fit, and gate unavailable runtime capabilities. |
 | 1 | P1 | Add operator-usable runtime profile settings and a non-commanding live preview, with defensive local preference persistence. |
 | 2 | P1 | Add EN/ES/FR profile language, runtime string catalogs, authored-label locale data, pseudo-locale tests, and locale captures. |
 | 3 | P2 | Add action-based operator and builder tours after the disconnected-practice safety question is resolved. |
@@ -133,9 +133,10 @@ they appeared in the handoff:
 - how a disconnected practice tour can guarantee that no robot command is sent rather than merely claiming it is safe;
 - the final French and Spanish safety wording, which requires native-speaker and operator review.
 
-The refreshed packet is internally inconsistent about kiosk height: its code-fix note says the specification requested
-56 px, while the bundled kiosk specification, merged runtime, and this documentation use 44 px. Bloom's current decision
-is 44 px. Change it only through an explicit design/architecture update, not by copying one prototype measurement.
+The refreshed packet retains historical notes saying the kiosk specification requested 56 px, while its current kiosk
+specification and the merged runtime use 44 px. ADR 0127 records 44 px as the shared bar and budgets 556 px of body at
+`1024x600` or 676 px at `1280x720`. The settings proposal's 56 px header is local content inside that body, not another
+kiosk height. Change the shared value only through an explicit design/architecture update.
 
 ## Engineering Work Outside The Design Review
 

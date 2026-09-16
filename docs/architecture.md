@@ -89,7 +89,8 @@ gamepads continue to share one effective frame.
 
 Runtime uses the same screen model, widget layout model, and renderer pipeline as the builder. The difference is chrome
 and input orchestration: builder tools surround the renderer, while runtime provides a 44 px kiosk bar, backend-latched
-STOP, profile behavior, and input composition around the canonical artboard.
+STOP, profile behavior, and input composition around the canonical artboard. ADR 0127 fixes that shared bar at 44 px;
+screen-local headers consume the remaining body rather than changing the kiosk budget.
 
 The runtime entry point is an app library, not the last selected builder app. This keeps the user flow explicit:
 

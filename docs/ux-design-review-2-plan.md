@@ -14,7 +14,7 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | 0.1 | Scanning cannot drive a joystick | **Done** — `b1bd774` |
 | J | Joystick lab: virtual physical-joystick workflow and runtime frame selection | **Done** |
 | 0.2 | Dwell and scanning are exclusive | **Done** |
-| 0.3 | 44 px versus 56 px kiosk bar, recorded in an ADR | Not started |
+| 0.3 | 44 px versus 56 px kiosk bar, recorded in an ADR | **Done** |
 | 0.4 | Runtime says nothing when the fit drops below 1.0 | Not started |
 | 0.5 | Capability gating extended to the runtime | Not started |
 | 1 | Runtime settings panel | Not started |
@@ -85,28 +85,35 @@ Explorer and Kinova **One switch** profiles opt into the combined mode. The app-
 a movement intent. The live ROS session produced a nonzero conditioned scan step without a press; capture comparison
 and evidence are in `docs/validation/2026-09-16-scan-dwell-end-to-end.md`.
 
+## Lot 0.3, as delivered
+
+ADR 0127 keeps the shared runtime kiosk bar at 44 px and separates it from the settings prototype's 56 px internal
+header. Runtime, lot 1 settings, and lot 3 tours budget from the shared bar once: 556 px remain at `1024x600`, and 676
+px remain at `1280x720`. A local header consumes that remaining body instead of redefining or stacking kiosk chrome.
+
+The tracked handoff summary now resolves the historical narrative notes against the handoff's current 44 px kiosk
+specification. Architecture points to the decision, and the live reference comparison is recorded in
+`docs/validation/2026-09-16-kiosk-height-decision.md`.
+
 ## Next steps, in order
 
-1. **Lot 0.3.** Write `docs/decisions/0127-*.md` recording that the kiosk bar stays 44 px and
-   that the lot 1 and lot 3 vertical budgets are drawn against 44, not the 56 in
-   `kiosk-runtime-spec.md`. One source of truth; correct the spec reference in the trace.
-2. **Lot 0.4.** When `resolveCanvasFitScale` returns below 1.0, say so in the maintenance
+1. **Lot 0.4.** When `resolveCanvasFitScale` returns below 1.0, say so in the maintenance
    overlay, never on the controls: "composed for 1820x720, shown at 70%, targets are below
    the touch floor."
-3. **Lot 0.5.** If `runtimeCapabilityReport` does not cover a widget's target, the widget
+2. **Lot 0.5.** If `runtimeCapabilityReport` does not cover a widget's target, the widget
    renders inoperable and says why. It must not disappear.
-4. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
+3. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
    `runtime-settings.test.tsx`. Overrides persist in the existing localStorage key through
    `ui/runtime-user-preferences.ts`, under `profileOverrides[configId:appId:profileId]`, and
    `resolveRuntimeProfile` applies them after normalization, reusing `clampRange` as the
    -/+ bounds. No slider anywhere on this screen; -/+ pairs at 88x72. The try-it strip obeys
    the current values and sends nothing to the robot.
-5. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
+4. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
    `useRuntimeStrings`. Start with `runtime-status-chip.ts`, `RuntimeStopControl.tsx`,
    `RuntimeKioskBar.tsx`, and the scan announcement in `RuntimeWorkspace.tsx`, which are the
    files that still hold literals. Widget labels stay config data, one field per locale; do
    not translate them in code.
-6. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
+5. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
    an adapter is safe, so the practice steps cannot command the arm.
 
 ## How the work is run
@@ -179,6 +186,8 @@ Round-trip a file before editing it so the diff stays to the lines that changed.
   44 px is the floor the handoff sets; nothing renders below it.
 - **The switch bar is a button that is not a target.** Anything else either makes the bar
   scan itself or forces the hook to special-case the DOM.
+- **The shared kiosk bar is 44 px.** A screen-local 56 px header, including Settings, spends
+  the remaining body budget and does not change or duplicate the shared bar; see ADR 0127.
 
 ## Open questions
 
@@ -187,7 +196,6 @@ Round-trip a file before editing it so the diff stays to the lines that changed.
   depends on the answer: edit one profile, or select and duplicate.
 - Is a runtime session without an adapter safe, so lot 3 can offer a practice mode that
   commands nothing? Open with the backend team since 7 September.
-- 44 px against the spec's 56 px, to be settled by ADR 0127.
 
 ## Carried over from the architecture review
 
