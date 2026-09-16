@@ -228,6 +228,8 @@ def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
 @pytest.mark.parametrize("config_id", ["explorer-manager", "kinova-manager"])
 def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> None:
     """The experiment UI replaces every physical joystick input on one screen."""
+    from libs.ros_adapters.payloads import parse_ros_payload_text
+
     path = DEFAULT_SEED_DIR / f"{config_id}.json"
     bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
     application = bundle.applications[0]
@@ -242,6 +244,27 @@ def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> 
         for widget_id in ("drive-gripper", "drive-mode-both", "drive-mode-jaco", "drive-snake-hold")
         if widget_id in widgets
     } == {"drive-gripper", "drive-mode-both", "drive-mode-jaco", "drive-snake-hold"}
+
+    both = widgets["drive-mode-both"].settings
+    jaco = widgets["drive-mode-jaco"].settings
+    snake = widgets["drive-snake-hold"].settings
+    gripper = widgets["drive-gripper"].settings
+    assert (both["topic"], both["payload"]) == ("/mode_request", {"data": "geometric/both"})
+    assert (jaco["topic"], jaco["payload"]) == ("/mode_request", {"data": "geometric/jaco"})
+    assert (snake["topic"], snake["payload"], snake["releasedPayload"], snake["momentary"]) == (
+        "/mode_request",
+        {"data": "geometric/snake"},
+        {"data": "geometric/both"},
+        True,
+    )
+    assert (gripper["topic"], gripper["messageType"]) == (
+        "/gripper_controller/commands",
+        "std_msgs/msg/Float64MultiArray",
+    )
+    assert (
+        parse_ros_payload_text(gripper["onPayload"]),
+        parse_ros_payload_text(gripper["offPayload"]),
+    ) == ({"data": [1.1]}, {"data": [0.2]})
 
     for widget_id in ("drive-translation", "drive-rotation", "drive-z", "drive-rz"):
         value_mapping = widgets[widget_id].settings["runtime_binding"].get("value_mapping", {})

@@ -351,8 +351,8 @@
                 "show_details": true,
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [0.0]}",
-                "offPayload": "{data: [0.8]}"
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}"
               }
             },
             {
