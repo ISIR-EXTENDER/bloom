@@ -50,7 +50,7 @@ supervisor roles.
 | 4. Target size is discounted by fit | Partial | Builder reports selected-widget size at `1024x600` and warns below 44 px. | Runtime can still scale below 1.0; no whole-screen prevention/reflow. |
 | 5. Silent overlap | Partial | Maintained operator seeds and Sandbox validation reject overlapping interactive controls. | Generic immediate collision feedback in the builder. |
 | 6. Adapter-language axis labels | Delivered | Pads use operator direction words; technical axes remain in details. | Validate vocabulary per app with operators. |
-| 7. Motor preset was a no-op | Partial | Step, latch, dwell, large targets, assisted touch, per-axis dead zone, repeat guard, scanner focus, and a 15-second held-value timeout exist. | Scanning a focused joystick emits no direction; scan/dwell cannot be combined; `reduced-motion`, edge layout, settings, and user validation remain. |
+| 7. Motor preset was a no-op | Partial | Step, latch, dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Under `scan`, joysticks and sliders render step targets, so a single switch drives every axis. | Scan and dwell still cannot be combined; `reduced-motion`, edge layout, settings, and validation with the intended device remain. |
 | 8. Muted contrast failed | Delivered | Token corrected and semantic contrast tests expanded. | Review in real lab lighting. |
 | 9. Contributor-oriented onboarding | Open | Builder and Runtime are distinct; starter apps can include onboarding spots. | Remembered role choice and per-app operator tour. |
 | 10. Builder cannot see tablet | Partial | `native-1280x720` and selected-widget `1024x600` glass-size feedback. | Three device frames and a whole-screen touch-check mode. |
@@ -63,7 +63,7 @@ supervisor roles.
 
 ### P1 - safe operation and physical accessibility
 
-- **Fix directional switch scanning.** The scanner includes a joystick's `role="application"` target and calls
+- ~~**Fix directional switch scanning.**~~ Delivered 2026-09-16; see `docs/validation/2026-09-16-switch-scanning-end-to-end.md`. The scanner included a joystick's `role="application"` target and called
   `click()`, but the pad emits movement only from pointer or keyboard direction input. Render the four step directions
   while scanning and test the emitted movement intent, not only focus movement.
 - **Define scan plus dwell.** They are mutually exclusive enum values today, while the review expects dwell confirmation
@@ -173,6 +173,13 @@ configuration or Petanque behavior remains there.
 
 Low-level Extender ROS packages remain active. Bloom is the IHM above the controllers, robot interfaces, simulation,
 hardware, and message contracts; it does not replace them.
+
+## Second Design Review
+
+A second handoff folder, `Bloom UX design review 2/handoff/`, was delivered on 2026-09-16 with
+five code fixes and four work packages. Its implementation plan, working notes, and open
+questions live in `docs/ux-design-review-2-plan.md`, which is the file to read before
+continuing that work.
 
 ## Updating This Trace
 
