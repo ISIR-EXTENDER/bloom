@@ -1,4 +1,10 @@
-import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig, WidgetConfig } from "@bloom/api-client";
+import type {
+  ApplicationConfig,
+  RosTopicStatus,
+  RuntimeCapabilityReport,
+  ScreenConfig,
+  WidgetConfig,
+} from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { appendTopicEchoMessage, appendTopicPlotSample } from "@bloom/widgets";
 import type { CSSProperties } from "react";
@@ -140,6 +146,9 @@ export function RuntimeWorkspace({
     runtimeCapabilityReport?.command_frame_ids ?? null,
   );
   const [commandFrameId, setCommandFrameId] = useState<string | null>(defaultCommandFrameId);
+  const [topicStatuses, setTopicStatuses] = useState<readonly RosTopicStatus[] | null | undefined>(() =>
+    runtimeActionClient.listRosTopicStatus ? null : undefined,
+  );
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new app starts a new frame-selection session.
   useEffect(() => {
     setCommandFrameId(defaultCommandFrameId);
@@ -151,6 +160,7 @@ export function RuntimeWorkspace({
         allowedCommandFrameIds: runtimeCapabilityReport?.command_frame_ids ?? null,
         runtimeCapabilities: runtimeCapabilityReport?.capabilities ?? null,
         teleopActive,
+        topicStatuses,
       }),
     [
       commandFrameId,
@@ -159,6 +169,7 @@ export function RuntimeWorkspace({
       runtimeModeState,
       screen,
       teleopActive,
+      topicStatuses,
     ],
   );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
@@ -266,6 +277,37 @@ export function RuntimeWorkspace({
       window.removeEventListener("resize", updateViewportSize);
     };
   }, [settingsOpen, tourOpen]);
+
+  useEffect(() => {
+    const listRosTopicStatus = runtimeActionClient.listRosTopicStatus;
+    if (!listRosTopicStatus) {
+      setTopicStatuses(undefined);
+      return;
+    }
+
+    let cancelled = false;
+    setTopicStatuses(null);
+    const refresh = () => {
+      listRosTopicStatus()
+        .then((nextStatuses) => {
+          if (!cancelled) {
+            setTopicStatuses(nextStatuses);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setTopicStatuses(null);
+          }
+        });
+    };
+
+    refresh();
+    const timer = window.setInterval(refresh, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [runtimeActionClient.listRosTopicStatus]);
 
   useEffect(() => {
     if (!onTopicSubscriptionRequest) {

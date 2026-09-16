@@ -45,6 +45,7 @@ type RuntimeTopicRequirement = Pick<RuntimeTopicStatusSummary, "label" | "requir
 
 const MODE_REQUEST_TOPIC = "/mode_request";
 const WIDGET_REGISTRY = createDefaultWidgetRegistry();
+const TOPIC_COMMAND_WIDGET_KINDS = new Set(["button", "command-button", "gesture-pad", "slider", "toggle"]);
 
 const DEFAULT_MODE_STATE: RuntimeModeState = {
   mode: "b1",
@@ -147,6 +148,7 @@ export function createRuntimeControlStateByWidgetId(
     allowedCommandFrameIds?: readonly string[] | null;
     runtimeCapabilities?: readonly RuntimeCapability[] | null;
     teleopActive?: boolean;
+    topicStatuses?: readonly RosTopicStatus[] | null;
   } = {},
 ): Record<string, WidgetControlState> {
   const controlStateByWidgetId: Record<string, WidgetControlState> = {};
@@ -184,6 +186,26 @@ export function createRuntimeControlStateByWidgetId(
       const disabledReason = describeUnavailableWidgetRuntime(readiness, options.runtimeCapabilities);
       if (disabledReason) {
         controlState = { ...controlState, disabled: true, disabledReason, unavailable: true };
+      }
+    }
+
+    const commandTopic = resolveWidgetCommandTopic(widget);
+    if (commandTopic && options.topicStatuses !== undefined) {
+      const topicStatus = options.topicStatuses?.find((candidate) => candidate.name === commandTopic);
+      if (options.topicStatuses === null) {
+        controlState = {
+          ...controlState,
+          disabled: true,
+          disabledReason: `ROS subscriber readiness is unavailable for ${commandTopic}. Wait for the robot connection before using this control.`,
+          unavailable: true,
+        };
+      } else if (!topicStatus || topicStatus.subscription_count === 0) {
+        controlState = {
+          ...controlState,
+          disabled: true,
+          disabledReason: `No ROS node subscribes to ${commandTopic}. Start the robot controller before using this control.`,
+          unavailable: true,
+        };
       }
     }
 
@@ -239,7 +261,7 @@ export function createRuntimeTopicStatusSummaries(
 ): RuntimeTopicStatusSummary[] {
   const configuredTopics = new Set(application.runtime_policy.allowed_publish_topics);
   const configuredTeleopTargets = new Set(application.runtime_policy.allowed_teleop_targets);
-  const requirements = RUNTIME_TOPIC_REQUIREMENTS.filter(
+  const baseRequirements = RUNTIME_TOPIC_REQUIREMENTS.filter(
     (requirement) =>
       configuredTopics.has(requirement.topic) ||
       configuredTeleopTargets.has(requirement.topic) ||
@@ -247,6 +269,18 @@ export function createRuntimeTopicStatusSummaries(
       requirement.topic === "/cartesian_command" ||
       requirement.topic === "/visual_servoing/velocity_command",
   );
+  const requirements = [...baseRequirements];
+  const knownTopics = new Set(requirements.map((requirement) => requirement.topic));
+  for (const screen of application.screens) {
+    for (const widget of screen.widgets) {
+      const topic = resolveWidgetCommandTopic(widget);
+      if (!topic || !configuredTopics.has(topic) || knownTopics.has(topic)) {
+        continue;
+      }
+      requirements.push({ label: widget.title, requirement: "subscriber", topic });
+      knownTopics.add(topic);
+    }
+  }
 
   return requirements.map((requirement) => {
     if (!topicStatuses) {
@@ -274,6 +308,14 @@ export function createRuntimeTopicStatusSummaries(
       statusLabel: count > 0 ? "Ready" : requirement.requirement === "publisher" ? "No publisher" : "No subscriber",
     };
   });
+}
+
+function resolveWidgetCommandTopic(widget: WidgetConfig): string | null {
+  if (!TOPIC_COMMAND_WIDGET_KINDS.has(widget.kind)) {
+    return null;
+  }
+  const topic = widget.settings.topic;
+  return typeof topic === "string" && topic.startsWith("/") ? topic : null;
 }
 
 function resolveModeFromIntent(intent: WidgetActionIntent): RuntimeRobotMode | null {

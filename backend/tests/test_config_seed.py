@@ -224,6 +224,16 @@ def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
     assert "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed" in topics
     assert "/cmd/max_velocity" not in topics
 
+    drive = next(screen for screen in bundle.applications[0].screens if screen.id == "manager_drive")
+    speed_settings = {
+        widget.id: widget.settings
+        for widget in drive.widgets
+        if widget.id in {"drive-max-linear-speed", "drive-max-angular-speed"}
+    }
+    assert speed_settings["drive-max-linear-speed"]["value"] == 0.15
+    assert speed_settings["drive-max-angular-speed"]["value"] == 0.4
+    assert all(settings["messageType"] == "std_msgs/msg/Float64" for settings in speed_settings.values())
+
 
 def test_cartesian_manager_monitors_use_its_twist_stamped_command_type() -> None:
     """A wrong type leaves an apparently healthy topic widget permanently empty."""

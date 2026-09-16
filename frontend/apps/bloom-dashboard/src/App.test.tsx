@@ -592,7 +592,10 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Start" })).toBeVisible();
     expect(screen.getByText("Task feedback")).toBeVisible();
     selectRuntimeScreen("Explorer favorites");
-    expect(screen.getByRole("button", { name: "BOTH mode" })).toBeVisible();
+    expect(screen.getByRole("article", { name: "Favorite mode Command button" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
     expect(screen.getByText("Favorite feedback")).toBeVisible();
     expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
   });
@@ -1640,7 +1643,7 @@ describe("App", () => {
     expect(await screen.findByLabelText("Runtime robot status")).toBeVisible();
     await waitFor(() => expect(runtimeActionClient.listRosTopicStatus).toHaveBeenCalled());
     expect(screen.getByText("Translation")).toBeVisible();
-    expect(screen.getByText("Max Velocity")).toBeVisible();
+    expect(within(screen.getByTestId("runtime-artboard")).getByText("Max Velocity")).toBeVisible();
 
     const modeToggle = screen.getByRole("button", { name: "Mode B1/B2: B1" });
     fireEvent.click(modeToggle);
@@ -2114,6 +2117,54 @@ type TestRuntimeActionClient = RuntimeActionClient & {
   emitRuntimeTopicSample: (sample: RuntimeTopicSampleMessage) => void;
 };
 
+const TEST_READY_COMMAND_TOPICS = [
+  "/cmd/gripper",
+  "/cmd/joystick_rxry",
+  "/cmd/joystick_rz",
+  "/cmd/joystick_xy",
+  "/cmd/joystick_z",
+  "/cmd/max_velocity",
+  "/cmd/mode",
+  "/cmd/petanque/round",
+  "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+  "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+  "/gripper_controller/commands",
+  "/mode_request",
+  "/petanque/measure/request_image",
+  "/petanque/teleop/enabled",
+  "/petanque/throw/alpha",
+  "/petanque/throw/gesture",
+  "/sandbox/digital_output",
+  "/snake_control/enable",
+  "/teleop_config/angular_scale_x",
+  "/teleop_config/angular_scale_y",
+  "/teleop_config/angular_scale_z",
+  "/teleop_config/invert_angular_x",
+  "/teleop_config/invert_angular_y",
+  "/teleop_config/invert_angular_z",
+  "/teleop_config/invert_linear_x",
+  "/teleop_config/invert_linear_y",
+  "/teleop_config/invert_linear_z",
+  "/teleop_config/linear_scale_x",
+  "/teleop_config/linear_scale_y",
+  "/teleop_config/linear_scale_z",
+  "/teleop_config/reset_defaults",
+  "/teleop_config/rotation_gain",
+  "/teleop_config/save_profile",
+  "/teleop_config/swap_xy",
+  "/teleop_config/translation_gain",
+  "/ui/load_pose",
+  "/ui/navigation",
+  "/ui/navigation/visual_servoing",
+  "/ui/navigation/visual_servoing_monitor",
+  "/ui/robot_action",
+  "/ui/ros_toggle",
+  "/ui/save_pose",
+  "/ui/visual_servoing/on",
+  "/ui/visual_servoing/save",
+  "/visual_servoing/enabled",
+] as const;
+
 function createRuntimeActionClient(): TestRuntimeActionClient {
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
 
@@ -2167,6 +2218,12 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         publisher_count: 1,
         subscription_count: 0,
       },
+      ...TEST_READY_COMMAND_TOPICS.map((name) => ({
+        name,
+        message_type: "test_msgs/msg/Command",
+        publisher_count: 1,
+        subscription_count: 1,
+      })),
     ]),
     listRuntimeAuditRecords: vi.fn(async () => [
       {

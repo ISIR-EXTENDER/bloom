@@ -176,6 +176,7 @@ export type SliderSettings = {
   step: number;
   topic?: string;
   unit: string;
+  value?: number;
 };
 
 export type ToggleSettings = {
@@ -353,6 +354,7 @@ const SLIDER_DEFAULT_SETTINGS: SliderSettings = {
   show_details: false,
   step: 0.01,
   unit: "",
+  value: 0,
 };
 
 const TOGGLE_DEFAULT_SETTINGS: ToggleSettings = {
@@ -543,6 +545,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "direction", label: "Direction", type: "select", required: true, options: ["horizontal", "vertical"] },
       { key: "intent_label", label: "Operator intent", type: "text", required: false },
       { key: "unit", label: "Unit", type: "text", required: false },
+      { key: "value", label: "Initial value", type: "number", required: false },
       { key: "returnToCenter", label: "Return to center", type: "boolean", required: true },
       { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
       { key: "topic", label: "Output topic", type: "text", required: false },
@@ -1225,6 +1228,7 @@ function validateSliderSettings(settings: Record<string, unknown>): WidgetSettin
     ...validateNumber(settings, "min"),
     ...validateNumber(settings, "max"),
     ...validateNumber(settings, "step", { min: 0 }),
+    ...("value" in settings && settings.value !== undefined ? validateNumber(settings, "value") : []),
     ...validateOneOf(settings, "direction", ["horizontal", "vertical"]),
     ...("intent_label" in settings && settings.intent_label !== undefined
       ? validateString(settings, "intent_label", { allowEmpty: true })

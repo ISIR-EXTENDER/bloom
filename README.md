@@ -176,8 +176,9 @@ database operations.
 4. Open **Joystick lab** from Maintenance for the physical-joystick-equivalent workflow: choose a supported command
    frame, then use translation, height, rotation, pivot, modes, and gripper on one screen. Frame buttons stay disabled
    until every motion control is back at zero.
-5. Use **Drive** for the regular operating layout and speed limits. Hold the maintenance button for 1.5 seconds to
-   reach **Positions**, **Robot feedback**, **Command sources**, and **Settings**.
+5. Use **Drive** for the regular operating layout and speed limits. The speed controls show their configured initial
+   limits and remain unavailable if the ROS graph has no `qontrol_controller` subscriber. Hold the maintenance button
+   for 1.5 seconds to reach **Positions**, **Robot feedback**, **Command sources**, and **Settings**.
 6. Open **Settings** to adjust the selected profile's movement style, scan/dwell timing, dead zone, repeat guard,
    status sounds, command frame, and language. Changes apply immediately and survive a reload. **Undo changes**
    restores the state from when the screen opened; the bottom try strip is local and never enters the robot command

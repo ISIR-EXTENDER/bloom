@@ -126,7 +126,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    expect(screen.getByText("0.00 m/s")).toHaveClass("sr-only");
+    expect(screen.getByText("0.80 m/s")).toHaveClass("sr-only");
     screen.getByRole("slider", { name: "Speed" }).focus();
     await user.keyboard("{ArrowRight}");
 
@@ -194,7 +194,7 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
     expect(screen.getByText("0.00 m/s → 2.00 m/s")).toBeVisible();
-    expect(screen.getByText("0.00 m/s")).toBeVisible();
+    expect(screen.getByText("0.80 m/s")).toBeVisible();
   });
 
   it("keeps compact slider intent accessible without taking layout space", () => {
@@ -205,7 +205,7 @@ describe("widget renderer registry", () => {
 
     expect(screen.getByText("m/s")).toBeVisible();
     expect(screen.getByText("Teleoperation gain")).toHaveClass("sr-only");
-    expect(screen.getByText("0.00 m/s")).toHaveClass("sr-only");
+    expect(screen.getByText("0.80 m/s")).toHaveClass("sr-only");
     expect(screen.getByText("0.00 m/s → 2.00 m/s")).toHaveClass("bloom-control-detail-hidden");
   });
 
@@ -914,6 +914,7 @@ const sliderScreen: ScreenConfig = {
         min: 0,
         step: 0.01,
         unit: "m/s",
+        value: 0.8,
       },
     },
   ],

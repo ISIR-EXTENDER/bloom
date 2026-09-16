@@ -37,7 +37,8 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
   const showDetails = getBooleanSetting(sliderSettings, "show_details", false);
   const intentLabel = getStringSetting(sliderSettings, "intent_label", "");
   const unit = getStringSetting(sliderSettings, "unit", "");
-  const defaultValue = clamp(0, min, max);
+  const configuredValue = getNumberSetting(sliderSettings, "value", 0);
+  const defaultValue = clamp(returnToCenter ? 0 : configuredValue, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
   const formattedValue = formatSliderValue(currentValue, step, unit);
   const stepPreset = resolveStepTargetPreset(motorPreset);

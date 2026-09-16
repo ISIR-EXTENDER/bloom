@@ -247,6 +247,7 @@ describe("widget capability metadata", () => {
         show_details: false,
         step: 0.01,
         unit: "",
+        value: 0,
       },
     });
   });
@@ -361,6 +362,7 @@ describe("widget settings contracts", () => {
         show_details: false,
         step: 0.01,
         unit: "",
+        value: 0,
       },
     });
   });

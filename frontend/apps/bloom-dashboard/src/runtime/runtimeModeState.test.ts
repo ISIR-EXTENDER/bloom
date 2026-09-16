@@ -71,6 +71,11 @@ describe("runtime mode state", () => {
           status: "waiting",
           statusLabel: "No subscriber",
         }),
+        expect.objectContaining({
+          label: "Max linear speed",
+          topic: "/robot/max_linear_speed",
+          status: "missing",
+        }),
       ]),
     );
   });
@@ -123,7 +128,7 @@ function createSandboxApp(): ApplicationConfig {
     action_presets: [],
     runtime_policy: {
       allowed_message_types: ["std_msgs/msg/Int32", "extender_msgs/msg/TeleopCommand"],
-      allowed_publish_topics: ["/mode_request"],
+      allowed_publish_topics: ["/mode_request", "/robot/max_linear_speed"],
       allowed_recording_topics: [],
       allowed_teleop_targets: ["/joystick_cartesian_command"],
     },
@@ -138,7 +143,22 @@ function createSandboxApp(): ApplicationConfig {
       preset_id: "extender-ui",
     },
     profiles: [],
-    screens: [],
+    screens: [
+      {
+        id: "drive",
+        title: "Drive",
+        canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+        widgets: [
+          {
+            id: "max-linear-speed",
+            kind: "slider",
+            title: "Max linear speed",
+            layout: { x: 0, y: 0, width: 200, height: 100 },
+            settings: { topic: "/robot/max_linear_speed" },
+          },
+        ],
+      },
+    ],
   };
 }
 
@@ -391,5 +411,50 @@ describe("runtime capability gating", () => {
         runtimeCapabilities: null,
       }),
     ).toEqual({});
+  });
+});
+
+describe("runtime ROS subscriber gating", () => {
+  const speedScreen = createSandboxApp().screens[0] as ScreenConfig;
+
+  it("keeps a topic control inert while subscriber readiness is unknown", () => {
+    const state = createRuntimeControlStateByWidgetId(speedScreen, createDefaultRuntimeModeState(), {
+      topicStatuses: null,
+    });
+
+    expect(state["max-linear-speed"]).toEqual({
+      disabled: true,
+      disabledReason:
+        "ROS subscriber readiness is unavailable for /robot/max_linear_speed. Wait for the robot connection before using this control.",
+      unavailable: true,
+    });
+  });
+
+  it("disables a topic control when publishing would have no consumer", () => {
+    const state = createRuntimeControlStateByWidgetId(speedScreen, createDefaultRuntimeModeState(), {
+      topicStatuses: [],
+    });
+
+    expect(state["max-linear-speed"]).toEqual({
+      disabled: true,
+      disabledReason:
+        "No ROS node subscribes to /robot/max_linear_speed. Start the robot controller before using this control.",
+      unavailable: true,
+    });
+  });
+
+  it("enables the topic control when its controller is subscribed", () => {
+    const state = createRuntimeControlStateByWidgetId(speedScreen, createDefaultRuntimeModeState(), {
+      topicStatuses: [
+        {
+          name: "/robot/max_linear_speed",
+          message_type: "std_msgs/msg/Float64",
+          publisher_count: 1,
+          subscription_count: 1,
+        },
+      ],
+    });
+
+    expect(state["max-linear-speed"]).toBeUndefined();
   });
 });

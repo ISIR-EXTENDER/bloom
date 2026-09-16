@@ -83,11 +83,13 @@ The shipped **Explorer Manager** and **Kinova Manager** Drive screens expose the
 | Jaco | Requests `geometric/jaco`. |
 | Hold snake | Requests `geometric/snake` while pressed and `geometric/both` on release. |
 | Gripper | Publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. |
-| Speed sliders | Publish the configured linear and angular speed limits. |
+| Speed sliders | Start at the configured controller limits and publish linear/angular limits to `qontrol_controller`. They are disabled when the ROS graph has no subscriber. |
 
 The four Cartesian widgets are composed into one complete 6-DoF twist. Releasing one source clears only its
 contribution. The runtime continues publishing the composed value so `cartesian_manager` can enforce its source timeout.
 Bloom sends normalized values and does not add a hidden linear or angular scale.
+The speed slider readouts are therefore downstream limits, not a second scale in Bloom. Maintenance diagnostics list
+their topics explicitly; **No subscriber** means the controller is not ready and the corresponding slider stays inert.
 
 The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, replay,
 rename/delete, and export of a `joint_targets` configuration block. Robot Feedback and Command Sources expose measured
