@@ -5,6 +5,8 @@ export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switc
 
 export type SwitchScanningOptions = {
   enabled: boolean;
+  /** Restricts scanning further when only a safe subset may be operated. */
+  isTargetEnabled?: (target: HTMLElement) => boolean;
   /** Milliseconds the highlight rests on each target. */
   periodMs: number;
   /** The container whose controls are scanned. */
@@ -31,10 +33,12 @@ export type SwitchScanningState = {
  * preset, because a click on a pad moves nothing.
  */
 export function useSwitchScanning(options: SwitchScanningOptions): SwitchScanningState {
-  const { enabled, periodMs, rootRef, revision } = options;
+  const { enabled, isTargetEnabled, periodMs, rootRef, revision } = options;
   const [index, setIndex] = useState(-1);
   const [targetCount, setTargetCount] = useState(0);
   const targetsRef = useRef<HTMLElement[]>([]);
+  const isTargetEnabledRef = useRef(isTargetEnabled);
+  isTargetEnabledRef.current = isTargetEnabled;
   // The ref is the source of truth inside the loop; state only informs the UI,
   // and a deferred render must never make the highlight skip a target.
   const indexRef = useRef(-1);
@@ -57,7 +61,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
 
     const readTargets = () => {
       const targets = [...root.querySelectorAll<HTMLElement>(SCAN_TARGET_SELECTOR)].filter(
-        (element) => element.offsetParent !== null,
+        (element) => element.offsetParent !== null && (isTargetEnabledRef.current?.(element) ?? true),
       );
       targetsRef.current = targets;
       setTargetCount(targets.length);

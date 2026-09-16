@@ -5,7 +5,12 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from apps.bloom_api.security import BloomPrincipal, require_operator
+from apps.bloom_api.security import (
+    BloomPrincipal,
+    execute_as_runtime_owner,
+    require_operator,
+    require_runtime_owner,
+)
 from libs.ros_adapters import (
     RosPublishReceipt,
     RosPublishRequest,
@@ -175,7 +180,7 @@ def list_ros_topic_status(
 def publish_ros_topic(
     request: Request,
     publish_request: RosTopicPublishRequest,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RosTopicPublishResponse:
     audit_log = get_runtime_audit_log(request)
     # One robot, one latch: the generic publish path is refused too.
@@ -202,13 +207,16 @@ def publish_ros_topic(
         payload=publish_request.to_payload(),
     )
     try:
-        receipt = stop_controller.execute_if_running(
-            lambda: publish_with_runtime_policy(
-                gateway,
-                policy,
-                audit_log,
-                ros_publish_request,
-                rate_limiter,
+        receipt = execute_as_runtime_owner(
+            request,
+            lambda: stop_controller.execute_if_running(
+                lambda: publish_with_runtime_policy(
+                    gateway,
+                    policy,
+                    audit_log,
+                    ros_publish_request,
+                    rate_limiter,
+                )
             )
         )
     except RuntimeStoppedError as exc:
@@ -235,7 +243,7 @@ def get_ros_service_gateway(request: Request) -> RosServiceGateway:
 def call_ros_service(
     request: Request,
     call_request: RosServiceCallRequest,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RosServiceCallResponse:
     audit_log = get_runtime_audit_log(request)
 
@@ -269,9 +277,12 @@ def call_ros_service(
         raise HTTPException(status_code=429, detail=str(exc)) from exc
 
     try:
-        receipt = stop_controller.execute_if_running(
-            lambda: get_ros_service_gateway(request).call(
-                RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
+        receipt = execute_as_runtime_owner(
+            request,
+            lambda: stop_controller.execute_if_running(
+                lambda: get_ros_service_gateway(request).call(
+                    RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
+                )
             )
         )
     except RuntimeStoppedError as exc:

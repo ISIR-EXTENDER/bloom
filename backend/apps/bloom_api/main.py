@@ -102,7 +102,7 @@ def install_cors(app: FastAPI, settings: Settings) -> None:
     app.add_middleware(
         CORSMiddleware,
         allow_credentials=False,
-        allow_headers=["Content-Type", "X-Bloom-API-Key"],
+        allow_headers=["Content-Type", "X-Bloom-API-Key", "X-Bloom-Runtime-Session"],
         allow_methods=["DELETE", "GET", "OPTIONS", "POST", "PUT"],
         allow_origins=list(settings.cors_allowed_origins),
     )

@@ -41,6 +41,7 @@ export type RuntimeKioskBarProps = {
     detail: string;
     status: "blocked" | "failed" | "simulated" | "unsupported";
   } | null;
+  controlOwnerLabel?: string | null;
   screen: ScreenConfig;
   profileName: string;
   /**
@@ -82,6 +83,7 @@ export type RuntimeKioskBarProps = {
 export function RuntimeKioskBar({
   application,
   commandFeedback,
+  controlOwnerLabel,
   screen,
   profileName,
   commandFrameId,
@@ -129,6 +131,7 @@ export function RuntimeKioskBar({
             {statusChip.label}
           </span>
         ) : null}
+        {controlOwnerLabel ? <span className="runtime-kiosk-control-owner">{controlOwnerLabel}</span> : null}
         {commandFeedback ? (
           <span
             aria-label={`${

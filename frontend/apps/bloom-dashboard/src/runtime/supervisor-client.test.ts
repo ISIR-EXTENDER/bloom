@@ -10,6 +10,7 @@ describe("createSupervisorRuntimeClient", () => {
       dispatchRuntimeAction: vi.fn(),
       engageRuntimeStop: vi.fn(),
       ensureRuntimeConnected: vi.fn(),
+      getRuntimeControlState: vi.fn(),
       getRuntimeStopState: vi.fn(),
       listRosTopicStatus: vi.fn(),
       publishRosTopic: vi.fn(),
@@ -22,6 +23,7 @@ describe("createSupervisorRuntimeClient", () => {
     expect(Object.keys(supervisor).sort()).toEqual([
       "addRuntimeLinkStateListener",
       "ensureRuntimeConnected",
+      "getRuntimeControlState",
       "getRuntimeStopState",
       "listRosTopicStatus",
     ]);

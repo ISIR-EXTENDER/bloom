@@ -1,4 +1,4 @@
-import type { ApplicationConfig, RuntimeStopState } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeControlState, RuntimeStopState } from "@bloom/api-client";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -52,6 +52,7 @@ export function SupervisorWorkspace({
   const strings = useRuntimeStrings(profile.language);
   const link = useRuntimeLinkState(client);
   const stopState = useSupervisorStopState(client);
+  const controlState = useSupervisorControlState(client);
   const statusChip = resolveRuntimeStatusChip(stopState, link, strings);
   const requestedMode = modeState.requestedMode;
 
@@ -78,7 +79,13 @@ export function SupervisorWorkspace({
       </header>
 
       <div className="supervisor-ownership" role="note">
-        <strong>{strings.supervisor.operatorOwnsControl}</strong>
+        <strong>
+          {controlState
+            ? controlState.owner_present
+              ? strings.supervisor.operatorOwnsControl
+              : strings.supervisor.noOperatorOwnsControl
+            : strings.supervisor.controlOwnerUnknown}
+        </strong>
         <p>{strings.supervisor.ownershipDetail}</p>
       </div>
 
@@ -123,6 +130,35 @@ export function SupervisorWorkspace({
       />
     </section>
   );
+}
+
+function useSupervisorControlState(client: SupervisorRuntimeClient): RuntimeControlState | null {
+  const [state, setState] = useState<RuntimeControlState | null>(null);
+
+  useEffect(() => {
+    if (!client.getRuntimeControlState) {
+      return;
+    }
+    let cancelled = false;
+    const refresh = () => {
+      client
+        .getRuntimeControlState?.()
+        .then((nextState) => {
+          if (!cancelled) {
+            setState(nextState);
+          }
+        })
+        .catch(() => undefined);
+    };
+    refresh();
+    const interval = window.setInterval(refresh, SUPERVISOR_REFRESH_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [client]);
+
+  return state;
 }
 
 function useSupervisorStopState(client: SupervisorRuntimeClient): RuntimeStopState | null {

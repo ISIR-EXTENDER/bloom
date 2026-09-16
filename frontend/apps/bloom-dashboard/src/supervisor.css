@@ -51,7 +51,7 @@
 
 .supervisor-facts {
   display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
   margin: 0;
   border-bottom: 1px solid var(--bloom-outline);
 }
@@ -64,8 +64,7 @@
 }
 
 .supervisor-facts > div:nth-child(5) {
-  grid-column: span 2;
-  border-top: 1px solid var(--bloom-outline);
+  grid-column: auto;
 }
 
 .supervisor-facts dt {
@@ -101,7 +100,7 @@
 .supervisor-workspace .runtime-robot-status {
   grid-template-columns: minmax(0, 1fr) auto;
   min-height: 128px;
-  padding: 18px 28px;
+  padding: 14px 28px;
   border-bottom: 1px solid var(--bloom-outline);
 }
 
@@ -169,6 +168,7 @@
 
   .supervisor-facts > div:nth-child(5) {
     grid-column: 1 / -1;
+    border-top: 1px solid var(--bloom-outline);
   }
 
   .supervisor-workspace .runtime-robot-status {

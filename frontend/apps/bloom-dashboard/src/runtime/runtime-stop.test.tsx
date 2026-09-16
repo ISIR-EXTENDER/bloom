@@ -61,6 +61,24 @@ describe("the STOP control", () => {
     expect(handlers.onResume).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps resume inert when this session does not own control", () => {
+    const handlers = renderControl({
+      resumeDisabled: true,
+      resumeDisabledReason: "Take control before resuming the robot.",
+      stopped: true,
+    });
+    const button = screen.getByRole("button", { name: /Hold for one second to resume/ });
+
+    expect(button).toBeDisabled();
+    expect(screen.getByText("Take control before resuming the robot.")).toBeVisible();
+    fireEvent.pointerDown(button);
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+
+    expect(handlers.onResume).not.toHaveBeenCalled();
+  });
+
   it("treats an early release as nothing, with progress reset to zero", () => {
     const handlers = renderControl({ stopped: true });
     const button = screen.getByRole("button", { name: "Hold for one second to resume" });

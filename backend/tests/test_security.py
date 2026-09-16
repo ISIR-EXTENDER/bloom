@@ -1,8 +1,10 @@
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
-from starlette.websockets import WebSocketDisconnect
 from pydantic import ValidationError
+from starlette.websockets import WebSocketDisconnect
 
 from apps.bloom_api.main import create_app
+from apps.bloom_api.security import require_runtime_owner
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import InMemoryConfigurationRepository
 
@@ -88,15 +90,17 @@ def test_cors_preflight_uses_configured_origins() -> None:
     )
 
     response = client.options(
-        "/api/v1/health",
+        "/api/v1/runtime/actions",
         headers={
-            "Access-Control-Request-Method": "GET",
+            "Access-Control-Request-Headers": "X-Bloom-Runtime-Session",
+            "Access-Control-Request-Method": "POST",
             "Origin": "http://tablet.local:5173",
         },
     )
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://tablet.local:5173"
+    assert "x-bloom-runtime-session" in response.headers["access-control-allow-headers"].lower()
 
 
 def test_global_http_rate_limit_rejects_excess_requests() -> None:
@@ -121,6 +125,51 @@ def test_production_settings_require_authentication() -> None:
         assert "production Bloom API requires auth_enabled=true and an admin_api_key" in str(exc)
     else:
         raise AssertionError("production settings should require authentication")
+
+
+def test_production_settings_require_runtime_control_ownership() -> None:
+    try:
+        Settings(
+            admin_api_key="admin-secret",
+            auth_enabled=True,
+            environment="production",
+            runtime_control_required=False,
+        )
+    except ValidationError as exc:
+        assert "production Bloom API requires runtime_control_required=true" in str(exc)
+    else:
+        raise AssertionError("production settings should require runtime control ownership")
+
+
+def test_every_robot_facing_http_route_requires_runtime_ownership() -> None:
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+    )
+    protected_routes = {
+        ("POST", "/api/v1/ros/services/call"),
+        ("POST", "/api/v1/ros/topics/publish"),
+        ("POST", "/api/v1/runtime/actions"),
+        ("POST", "/api/v1/runtime/camera-frames"),
+        ("POST", "/api/v1/runtime/recordings"),
+        ("POST", "/api/v1/runtime/recordings/{recording_id}/stop"),
+        ("POST", "/api/v1/runtime/stop/resume"),
+    }
+    checked_routes: set[tuple[str, str]] = set()
+
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        for method in route.methods:
+            key = (method, route.path)
+            dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
+            if key in protected_routes:
+                assert require_runtime_owner in dependency_calls, key
+                checked_routes.add(key)
+            if key == ("POST", "/api/v1/runtime/stop"):
+                assert require_runtime_owner not in dependency_calls
+
+    assert checked_routes == protected_routes
 
 
 def test_settings_can_be_loaded_from_environment(monkeypatch) -> None:

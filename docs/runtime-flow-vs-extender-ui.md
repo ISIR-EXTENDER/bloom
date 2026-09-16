@@ -37,8 +37,10 @@ In Bloom:
 7. Runtime presents the app as a kiosk. Editing, screen switching, diagnostics,
    and product navigation require the maintenance hold rather than sharing the
    primary operating surface.
-8. A stable per-app supervisor route may observe the same backend STOP latch and topic status on a second display. Its
-   projected frontend client contains no command methods, so observation does not transfer control ownership.
+8. The backend grants one Runtime WebSocket session the robot-command lease. Other Runtime tabs remain inert until the
+   owner releases or disconnects and a waiting operator explicitly retries.
+9. A stable per-app supervisor route may observe the same backend ownership state, STOP latch, and topic status on a
+   second display. Its projected frontend client contains no command or lease-mutation methods.
 
 In `extender_ui`, the comparable flow is closer to direct JSON/layout sync.
 That is useful for rollback and migration fixtures, but Bloom avoids making the
@@ -62,6 +64,10 @@ POST /api/v1/runtime/actions
 ```
 
 with `config_id`, `app_id`, and either `preset_id` or `command`.
+
+Robot-facing HTTP requests carry the opaque WebSocket session ID in `X-Bloom-Runtime-Session`. The backend checks that
+lease both at request authorization and at the final adapter operation. Teleop checks the same lease on the WebSocket.
+STOP is deliberately exempt; resume is not.
 
 The backend then:
 

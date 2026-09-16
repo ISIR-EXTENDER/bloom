@@ -358,9 +358,18 @@ export type RuntimeStopState = {
   detail: string;
 };
 
+export type RuntimeControlState = {
+  active_sessions: number;
+  detail: string;
+  is_owner: boolean;
+  owner_present: boolean;
+  session_id: string;
+};
+
 export type BloomApiClientOptions = {
   baseUrl?: string;
   fetcher?: typeof fetch;
+  getRequestHeaders?: () => HeadersInit;
 };
 
 export class BloomApiError extends Error {
@@ -377,10 +386,12 @@ export class BloomApiError extends Error {
 export class BloomApiClient {
   private readonly baseUrl: string;
   private readonly fetcher: typeof fetch;
+  private readonly getRequestHeaders?: () => HeadersInit;
 
   constructor(options: BloomApiClientOptions = {}) {
     this.baseUrl = normalizeBaseUrl(options.baseUrl ?? "");
     this.fetcher = options.fetcher ?? getDefaultFetcher();
+    this.getRequestHeaders = options.getRequestHeaders;
   }
 
   async listConfigurations(): Promise<string[]> {
@@ -558,6 +569,10 @@ export class BloomApiClient {
     return this.request<RuntimeStopState>("/api/v1/runtime/stop");
   }
 
+  getRuntimeControlState(): Promise<RuntimeControlState> {
+    return this.request<RuntimeControlState>("/api/v1/runtime/control");
+  }
+
   /** HTTP on purpose: STOP matters most when the WebSocket is what died. */
   engageRuntimeStop(): Promise<RuntimeStopState> {
     return this.request<RuntimeStopState>("/api/v1/runtime/stop", { method: "POST" });
@@ -575,7 +590,7 @@ export class BloomApiClient {
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
-    const response = await this.fetcher(`${this.baseUrl}${path}`, init);
+    const response = await this.fetcher(`${this.baseUrl}${path}`, this.withRequestHeaders(init));
     if (!response.ok) {
       const responseText = await response.text();
       throw new BloomApiError(`Bloom API request failed with status ${response.status}`, response.status, responseText);
@@ -584,6 +599,18 @@ export class BloomApiClient {
       return undefined as T;
     }
     return (await response.json()) as T;
+  }
+
+  private withRequestHeaders(init: RequestInit): RequestInit {
+    if (!this.getRequestHeaders) {
+      return init;
+    }
+
+    const headers = new Headers(this.getRequestHeaders());
+    new Headers(init.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+    return { ...init, headers };
   }
 }
 

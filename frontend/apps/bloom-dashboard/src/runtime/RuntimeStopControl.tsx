@@ -12,6 +12,8 @@ export type RuntimeStopControlProps = {
   onEngage: () => void;
   onResume: () => void;
   language?: RuntimeLanguage;
+  resumeDisabled?: boolean;
+  resumeDisabledReason?: string;
 };
 
 /**
@@ -24,32 +26,47 @@ export function RuntimeStopControl({
   onEngage,
   onResume,
   language = "en",
+  resumeDisabled = false,
+  resumeDisabledReason = "",
 }: RuntimeStopControlProps) {
   const strings = useRuntimeStrings(language);
-  const resumeHold = useHoldGesture(RESUME_HOLD_MS, onResume);
+  const resumeHold = useHoldGesture(RESUME_HOLD_MS, () => {
+    if (!resumeDisabled) {
+      onResume();
+    }
+  });
+  const startResumeHold = () => {
+    if (!resumeDisabled) {
+      resumeHold.start();
+    }
+  };
 
   if (stopped) {
     return (
       <button
-        aria-label={strings.stop.resumeAria}
+        aria-label={`${strings.stop.resumeAria}${resumeDisabledReason ? `. ${resumeDisabledReason}` : ""}`}
         className="runtime-stop-control"
         data-dwell-action="resume"
         data-dwell-min-ms={RESUME_HOLD_MS}
+        data-runtime-control-independent=""
         data-stopped="true"
+        disabled={resumeDisabled}
         onKeyDown={(event) => {
           if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
-            resumeHold.start();
+            startResumeHold();
           }
         }}
         onKeyUp={resumeHold.cancel}
         onPointerCancel={resumeHold.cancel}
-        onPointerDown={resumeHold.start}
+        onPointerDown={startResumeHold}
         onPointerLeave={resumeHold.cancel}
         onPointerUp={resumeHold.cancel}
         type="button"
       >
         <span className="runtime-stop-label">{strings.stop.resume}</span>
-        {requestError ? <span className="runtime-stop-error">{requestError}</span> : null}
+        {requestError || resumeDisabledReason ? (
+          <span className="runtime-stop-error">{requestError || resumeDisabledReason}</span>
+        ) : null}
         <span aria-hidden="true" className="runtime-stop-hold" style={{ transform: `scaleX(${resumeHold.value})` }} />
       </button>
     );
@@ -59,6 +76,7 @@ export function RuntimeStopControl({
     <button
       aria-label={strings.stop.engageAria}
       className="runtime-stop-control"
+      data-runtime-control-independent=""
       onClick={(event) => {
         // Keyboard only; a pointer tap already engaged on pointerdown.
         if (event.detail === 0) {

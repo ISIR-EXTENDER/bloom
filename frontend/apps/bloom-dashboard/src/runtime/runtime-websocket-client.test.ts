@@ -1,3 +1,4 @@
+import type { RuntimeControlState } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 import type { RuntimeLinkState } from "./runtime-action-dispatcher";
 import {
@@ -10,6 +11,99 @@ describe("runtime WebSocket client", () => {
   it("resolves runtime WebSocket URLs from API base URLs", () => {
     expect(resolveRuntimeWebSocketUrl("http://127.0.0.1:8000")).toBe("ws://127.0.0.1:8000/api/v1/runtime/ws");
     expect(resolveRuntimeWebSocketUrl("https://bloom.example.test")).toBe("wss://bloom.example.test/api/v1/runtime/ws");
+  });
+
+  it("claims and releases explicit robot control for its server session", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const states: Array<RuntimeControlState | null> = [];
+    client.addRuntimeControlStateListener((state) => states.push(state));
+
+    const claim = client.claimRuntimeControl();
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message({
+      active_sessions: 1,
+      payload: {
+        active_sessions: 1,
+        is_owner: false,
+        owner_present: false,
+        session_id: "runtime-session",
+      },
+      session_id: "runtime-session",
+      type: "session_connected",
+    });
+    expect(client.getRuntimeSessionId()).toBe("runtime-session");
+    expect(socket.sentMessages).toEqual([JSON.stringify({ type: "claim_control" })]);
+
+    const owned = {
+      active_sessions: 1,
+      detail: "This runtime session owns robot control.",
+      is_owner: true,
+      owner_present: true,
+      session_id: "runtime-session",
+    };
+    socket.message({ type: "control_state", detail: owned.detail, payload: owned, session_id: "runtime-session" });
+    await expect(claim).resolves.toEqual(owned);
+
+    const release = client.releaseRuntimeControl();
+    await flushPromises();
+    expect(socket.sentMessages.at(-1)).toBe(JSON.stringify({ type: "release_control" }));
+    const released = {
+      ...owned,
+      detail: "No runtime session owns robot control.",
+      is_owner: false,
+      owner_present: false,
+    };
+    socket.message({
+      type: "control_state",
+      detail: released.detail,
+      payload: released,
+      session_id: "runtime-session",
+    });
+    await expect(release).resolves.toEqual(released);
+    expect(states).toEqual([null, expect.objectContaining({ is_owner: false }), owned, released]);
+  });
+
+  it("clears local ownership when release fails after the server latches STOP", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const states: Array<RuntimeControlState | null> = [];
+    client.addRuntimeControlStateListener((state) => states.push(state));
+
+    const release = client.releaseRuntimeControl();
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    socket.message({
+      active_sessions: 1,
+      payload: {
+        active_sessions: 1,
+        is_owner: true,
+        owner_present: true,
+        session_id: "runtime-session",
+      },
+      session_id: "runtime-session",
+      type: "session_connected",
+    });
+    await flushPromises();
+
+    socket.message({
+      detail: "Robot control could not be released safely.",
+      payload: {
+        active_sessions: 1,
+        code: "control_release_failed",
+        is_owner: false,
+        message: "neutral command could not reach ROS",
+        owner_present: false,
+        session_id: "runtime-session",
+      },
+      session_id: "runtime-session",
+      type: "runtime_error",
+    });
+
+    await expect(release).rejects.toThrow("Robot control could not be released safely.");
+    expect(states.at(-1)).toMatchObject({ is_owner: false, owner_present: false });
   });
 
   it("sends teleop commands and resolves teleop ACKs", async () => {
@@ -219,6 +313,7 @@ describe("the runtime link state", () => {
     WebSocketCtor.instances[0].close();
 
     expect(states).toEqual(["connecting", "connected", "disconnected"]);
+    expect(client.getRuntimeSessionId()).toBe("");
   });
 
   it("hands a late subscriber the current state instead of silence", async () => {

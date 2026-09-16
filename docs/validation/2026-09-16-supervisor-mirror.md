@@ -7,10 +7,10 @@ ownership, second-tab entry, and the guarantee that the mirror cannot receive ro
 
 ## Safety Boundary
 
-`createSupervisorRuntimeClient` projects the runtime client to connection observation, `getRuntimeStopState`, and
-`listRosTopicStatus`. `SupervisorWorkspace` receives only that projected type. It renders no runtime artboard, movement
-control, STOP, resume, topic publisher, or configured action. Its ownership notice states that the operator retains
-control.
+`createSupervisorRuntimeClient` projects the runtime client to connection observation, `getRuntimeControlState`,
+`getRuntimeStopState`, and `listRosTopicStatus`. `SupervisorWorkspace` receives only that projected type. It renders no
+runtime artboard, movement control, STOP, resume, topic publisher, configured action, claim, or release method. Its
+ownership notice reports whether an operator owns control without revealing the owner session.
 
 The mirror reports the shared backend STOP latch but cannot change it. Because `cartesian_manager` has no authoritative
 mode feedback, a fresh tab reports mode as **Not checked** and says no mode request was observed in that browser session.
@@ -42,5 +42,7 @@ command control. The existing API and dashboard processes were not restarted or 
 ## Not Proven
 
 This session did not command physical Explorer or Kinova hardware. It does not establish readability on the intended
-second display, supervisor/operator comprehension, network-loss behavior in the lab, or any control handover. Bloom has
-no supervisor command or handover feature; adding one requires a separate safety design and validation record.
+second display, supervisor/operator comprehension, network-loss behavior in the lab, or Runtime-to-Runtime handover.
+The supervisor still has no command or handover feature; adding one requires a separate safety design and validation
+record. Runtime ownership was subsequently implemented and is validated in
+`docs/validation/2026-09-16-runtime-control-ownership.md`.

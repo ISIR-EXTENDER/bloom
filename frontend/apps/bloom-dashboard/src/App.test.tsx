@@ -103,6 +103,13 @@ describe("App", () => {
       engaged_at: "",
       stopped: false,
     }));
+    runtimeActionClient.getRuntimeControlState = vi.fn(async () => ({
+      active_sessions: 2,
+      detail: "Another runtime session owns robot control.",
+      is_owner: false,
+      owner_present: true,
+      session_id: "supervisor-session",
+    }));
 
     render(
       <App
@@ -116,7 +123,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("region", { name: "Supervisor mirror" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 1, name: "Robot monitor" })).toBeVisible();
-    expect(screen.getByText("Operator retains control")).toBeVisible();
+    expect(await screen.findByText("Operator retains control")).toBeVisible();
     expect(screen.getByText(/has no movement, STOP, resume, publish, or action controls/i)).toBeVisible();
     expect(screen.getAllByText("Not checked").length).toBeGreaterThan(0);
     expect(screen.queryByTestId("runtime-artboard")).not.toBeInTheDocument();
@@ -1351,6 +1358,51 @@ describe("App", () => {
       payload_text: "{data: [13, 1]}",
     });
     expect(await screen.findByRole("button", { name: "Digital output: Active" })).toBeVisible();
+  });
+
+  it("keeps a second operator inert until control is explicitly available", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    const blockedControl = {
+      active_sessions: 2,
+      detail: "Another runtime session owns robot control.",
+      is_owner: false,
+      owner_present: true,
+      session_id: "waiting-session",
+    } as const;
+    runtimeActionClient.addRuntimeControlStateListener = vi.fn((listener) => {
+      listener(blockedControl);
+      return vi.fn();
+    });
+    runtimeActionClient.claimRuntimeControl = vi.fn(async () => blockedControl);
+    runtimeActionClient.disconnectRuntime = vi.fn();
+    runtimeActionClient.ensureRuntimeConnected = vi.fn(async () => undefined);
+    runtimeActionClient.releaseRuntimeControl = vi.fn(async () => blockedControl);
+    runtimeActionClient.engageRuntimeStop = vi.fn(async () => ({
+      asserted: true,
+      detail: "Runtime stop engaged.",
+      engaged_at: "2026-09-16T12:00:00Z",
+      stopped: true,
+    }));
+    runtimeActionClient.getRuntimeStopState = vi.fn(async () => ({
+      asserted: false,
+      detail: "Runtime stop is not engaged.",
+      engaged_at: "",
+      stopped: false,
+    }));
+
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
+
+    await openSandboxRuntimeFromNavigation();
+
+    expect(await screen.findByText("Another operator controls this robot")).toBeVisible();
+    expect(screen.getByTestId("runtime-artboard").parentElement?.parentElement).toHaveAttribute("inert");
+    expect(screen.getByRole("button", { name: "Take control" })).toHaveAttribute("data-runtime-control-independent");
+    expect(screen.getByRole("button", { name: "Take control" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Stop the robot" })).toHaveAttribute("data-runtime-control-independent");
+    expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalled();
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Stop the robot" }));
+    await waitFor(() => expect(runtimeActionClient.engageRuntimeStop).toHaveBeenCalledOnce());
   });
 
   it("keeps the acknowledged control state and alerts when a command is not sent", async () => {

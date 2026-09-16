@@ -33,6 +33,25 @@ backend reports `accepted`, `called`, or `published`. A blocked, failed, unsuppo
 last acknowledged state in place and raises **Command failed** or **Not sent** in the kiosk bar with the backend detail.
 Treat either message as an incomplete operation; a simulated response is useful in development but is not robot work.
 
+## Control Ownership And Handover
+
+Each Runtime tab receives an opaque backend session ID and automatically asks to control the robot. Only one connected
+session can own robot commands at a time. The owner sees **YOU CONTROL** in the kiosk bar. A second Runtime tab keeps its
+artboard inert and shows **Another operator controls this robot**; it cannot publish teleop, topic, service, camera, or
+recording operations.
+
+**Take control** is an explicit retry, not a forced takeover. It succeeds only after the current owner releases control
+or disconnects; waiting sessions are never promoted silently. STOP remains available from a blocked Runtime because
+stopping must not depend on lease ownership. Scan and dwell profiles restrict themselves to **Take control** and STOP
+while blocked rather than disappearing or reaching robot controls. Resume and every other robot-facing command require
+the lease.
+
+When the owner leaves Runtime, the frontend clears composed input and asks the backend to release. The backend first
+blocks new commands and handover, waits for any in-flight command, publishes zero for every teleop target that still has
+a nonzero command, and only then releases the lease. A lost connection follows the same sequence. If that final
+neutralization cannot reach the adapter, Bloom latches the shared runtime STOP before relinquishing ownership. Treat an
+unasserted STOP as a software-path failure and use the hardware emergency stop and lab procedure.
+
 ## Supervisor Mirror
 
 Open **Supervisor mirror** beside an app in the Runtime library. From a running app, hold **Maintenance** and choose the
@@ -40,15 +59,15 @@ same action to open that app's mirror in a separate browser tab or display. The 
 application IDs, so a bookmarked mirror resolves the intended app instead of whichever app Builder last selected.
 
 The mirror shows the application, configured robot, effective default command frame, shared backend STOP latch,
-frontend/backend session state, and relevant ROS topic readiness. It refreshes STOP and topic status every two seconds
-and also offers a manual status refresh. `cartesian_manager` does not publish authoritative active-mode feedback, so a
-fresh mirror says **Not checked** and **No mode request observed in this browser session** rather than presenting the
-configured fallback as live robot state.
+whether an operator currently owns control, frontend/backend session state, and relevant ROS topic readiness. It
+refreshes ownership, STOP, and topic status every two seconds and also offers a manual status refresh.
+`cartesian_manager` does not publish authoritative active-mode feedback, so a fresh mirror says **Not checked** and
+**No mode request observed in this browser session** rather than presenting the configured fallback as live robot state.
 
 This surface is read-only by construction. It receives a projected client with connection observation and status-read
-methods only. It has no movement, STOP, resume, topic-publish, or configured-action controls. The ownership notice says
-that the operator retains control; opening or closing a mirror never hands command authority to another browser.
-Deliberate handover remains a future product and safety decision if supervisory controls are ever introduced.
+methods only. It has no movement, STOP, resume, topic-publish, or configured-action controls. Its ownership notice comes
+from the backend lease state; opening or closing a mirror never hands command authority to another browser. Deliberate
+supervisor takeover remains a future product and safety decision if supervisory controls are ever introduced.
 
 ## Guided Practice
 

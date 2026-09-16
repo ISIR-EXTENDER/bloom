@@ -229,6 +229,21 @@ async function mockConfigurationApi(page) {
       status: 200,
     });
   });
+
+  await page.route("**/api/v1/runtime/control", async (route) => {
+    const sessionId = route.request().headers()["x-bloom-runtime-session"] ?? "";
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        active_sessions: 1,
+        detail: sessionId ? "This runtime session owns robot control." : "Another runtime session owns robot control.",
+        is_owner: sessionId !== "",
+        owner_present: true,
+        session_id: sessionId,
+      },
+      status: 200,
+    });
+  });
 }
 
 async function mockRuntimeDebugApi(page) {
@@ -290,9 +305,27 @@ async function mockRuntimeWebSocket(page) {
       constructor(url) {
         super();
         this.url = url;
+        this.sessionId = `visual-smoke-${Date.now()}-${Math.random()}`;
         window.setTimeout(() => {
           this.readyState = BloomVisualSmokeWebSocket.OPEN;
           this.dispatchEvent(new Event("open"));
+          window.setTimeout(() => {
+            this.dispatchEvent(
+              new MessageEvent("message", {
+                data: JSON.stringify({
+                  active_sessions: 1,
+                  payload: {
+                    active_sessions: 1,
+                    is_owner: false,
+                    owner_present: false,
+                    session_id: this.sessionId,
+                  },
+                  session_id: this.sessionId,
+                  type: "session_connected",
+                }),
+              }),
+            );
+          }, 0);
         }, 0);
       }
 
@@ -307,6 +340,16 @@ async function mockRuntimeWebSocket(page) {
           return;
         }
 
+        if (message.type === "claim_control") {
+          this.acknowledgeControl(true);
+          return;
+        }
+
+        if (message.type === "release_control") {
+          this.acknowledgeControl(false);
+          return;
+        }
+
         if (message.type === "subscribe_topic") {
           this.acknowledgeSubscription(message);
           return;
@@ -315,6 +358,27 @@ async function mockRuntimeWebSocket(page) {
         if (message.type === "teleop_cmd") {
           this.acknowledgeTeleopCommand(message);
         }
+      }
+
+      acknowledgeControl(isOwner) {
+        const detail = isOwner ? "This runtime session owns robot control." : "No runtime session owns robot control.";
+        window.setTimeout(() => {
+          this.dispatchEvent(
+            new MessageEvent("message", {
+              data: JSON.stringify({
+                detail,
+                payload: {
+                  active_sessions: 1,
+                  is_owner: isOwner,
+                  owner_present: isOwner,
+                  session_id: this.sessionId,
+                },
+                session_id: this.sessionId,
+                type: "control_state",
+              }),
+            }),
+          );
+        }, 0);
       }
 
       acknowledgeSubscription(message) {
@@ -558,17 +622,34 @@ async function assertPreviewControlsFit(page, label) {
 }
 
 async function assertSupervisorTopicsFit(page, label) {
-  const result = await page.locator(".supervisor-workspace .runtime-robot-topic-list").evaluate((list) => {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const result = await page.evaluate(() => {
+    const list = document.querySelector(".supervisor-workspace .runtime-robot-topic-list");
+    if (!list) return { missingList: true };
     const bounds = list.getBoundingClientRect();
     const clipped = [...list.children]
       .map((element) => ({ label: element.textContent?.trim(), rect: element.getBoundingClientRect() }))
       .filter(({ rect }) => rect.left < bounds.left - 2 || rect.right > bounds.right + 2)
       .map(({ label: topicLabel, rect }) => ({ left: rect.left, right: rect.right, topicLabel }));
     const panel = list.closest(".runtime-robot-status")?.getBoundingClientRect();
-    return { clipped, panelBottom: panel?.bottom ?? 0, viewportHeight: document.documentElement.clientHeight };
+    const workspace = list.closest(".supervisor-workspace")?.getBoundingClientRect();
+    return {
+      clipped,
+      panelBottom: panel?.bottom ?? 0,
+      panelHeight: panel?.height ?? 0,
+      panelTop: panel?.top ?? 0,
+      scrollY: window.scrollY,
+      viewportHeight: document.documentElement.clientHeight,
+      workspaceBottom: workspace?.bottom ?? 0,
+    };
   });
 
-  if (result.clipped.length > 0 || result.panelBottom > result.viewportHeight + 2) {
+  if (
+    result.missingList ||
+    result.clipped.length > 0 ||
+    result.panelBottom > result.viewportHeight + 2 ||
+    result.workspaceBottom > result.viewportHeight + 2
+  ) {
     throw new Error(`${label} has clipped supervisor status: ${JSON.stringify(result)}`);
   }
 }

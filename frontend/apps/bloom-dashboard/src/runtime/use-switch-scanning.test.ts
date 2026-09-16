@@ -90,6 +90,25 @@ describe("switch scanning", () => {
     expect(root.querySelectorAll("[data-scan-lit]")).toHaveLength(0);
   });
 
+  it("limits scanning to the controls allowed by the current safety state", () => {
+    const { clicks, root, rootRef } = buildScreen(3);
+    root.querySelectorAll("button")[1]?.setAttribute("data-control-independent", "");
+    const { result } = renderHook(() =>
+      useSwitchScanning({
+        enabled: true,
+        isTargetEnabled: (target) => target.hasAttribute("data-control-independent"),
+        periodMs: 1000,
+        rootRef,
+        revision: "blocked",
+      }),
+    );
+
+    expect(result.current.targetCount).toBe(1);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-1");
+    result.current.activateCurrent();
+    expect(clicks).toEqual(["target-1"]);
+  });
+
   it("reports how far along the scan is, for the live status line", () => {
     const { rootRef } = buildScreen(4);
     const { result } = renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));

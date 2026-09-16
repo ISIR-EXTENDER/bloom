@@ -180,9 +180,10 @@ same mirror in a new tab from Maintenance. Direct routes resolve the encoded app
 selection. The mirror shows app, configured robot, command frame, shared backend STOP latch, connection/session state,
 and relevant ROS topic readiness with automatic two-second refresh.
 
-Command ownership remains with the operator. `createSupervisorRuntimeClient` strips the full runtime client to four
-optional read/connection methods before the mirror receives it; the rendered surface has no artboard, movement, STOP,
-resume, topic-publish, or configured-action controls. It explicitly says that the operator retains control. Since the
+Command ownership remains with the operator. `createSupervisorRuntimeClient` strips the full runtime client to status
+and connection reads, including the backend ownership snapshot; the rendered surface has no artboard, movement, STOP,
+resume, topic-publish, configured-action, claim, or release controls. It truthfully reports whether an operator owns
+control. Since the
 manager publishes no active-mode state, a fresh mirror reports mode as not checked and distinguishes browser-session
 requests from controller confirmation.
 
@@ -193,9 +194,9 @@ Live capture `12-supervisor-mirror` passed at `1280x720` against the running ROS
 
 ## Next steps, in order
 
-The refreshed implementation packet is complete. Continue with the remaining physical-device/operator acceptance and
-the open design items in `docs/ux-design-handoff.md`; add a handover protocol only if a future supervisor role receives
-command authority.
+The refreshed implementation packet is complete. Runtime tabs now use an explicit non-forcing backend lease; this does
+not grant the supervisor role authority. Continue with the remaining physical-device/operator acceptance and the open
+design items in `docs/ux-design-handoff.md`; add a supervisor takeover protocol only if that role receives commands.
 
 ## How the work is run
 

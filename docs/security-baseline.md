@@ -38,6 +38,8 @@ The first things to protect are:
 - Add HTTP security headers on every backend response.
 - Keep API-key authentication available for staging/production deployments, with admin/operator roles.
 - Require authentication for production settings so Bloom does not start an open production API by accident.
+- Require one runtime control owner in production. Gate teleop and robot-facing HTTP operations with the same opaque
+  WebSocket session lease, while keeping STOP callable without ownership.
 - Restrict CORS to configured dashboard origins.
 - Apply a global HTTP rate limit, plus runtime command-specific rate limits for robot commands.
 - Enforce deployment allowlists for publish topics, message types, teleop targets, command frames, service calls,
@@ -70,11 +72,17 @@ export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
 export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
 export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.local:5173'
 export BLOOM_HTTP_RATE_LIMIT_PER_MINUTE=600
+export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
 
 Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the same header, or the `api_key` query
 parameter when the WebSocket client cannot set headers. Treat query-string keys as a compatibility fallback because they
 are easier to leak in logs.
+
+After connecting, the dashboard receives an opaque runtime session ID and sends it as `X-Bloom-Runtime-Session` on
+robot-facing HTTP calls. This is a short-lived control lease, not authentication and not a replacement for the API key.
+The backend never exposes the owner's session ID to observers. Release enters a command-blocking state before final
+neutralization, preventing a request that passed an earlier check from racing past handover.
 
 ## Minimum Security Tests
 
@@ -83,6 +91,8 @@ are easier to leak in logs.
 - App/screen membership cannot mutate another app unexpectedly.
 - ROS publish, teleop, service, frame, and recording endpoints reject requests outside configured policy.
 - WebSocket sessions reject unknown actions and handle disconnects cleanly.
+- Two runtime sessions cannot command concurrently; release blocks new work until tracked motion is neutralized, and a
+  failed neutralization latches STOP before the lease disappears.
 - HTTP responses include minimal security headers.
 - Dependency checks run regularly in CI or before releases.
 - Basic dynamic smoke verifies security headers, OpenAPI reachability, and configured CORS behavior against a real

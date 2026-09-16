@@ -5,8 +5,8 @@ Current documentation map, reviewed 2026-09-16.
 ## Start Here
 
 - [Project README](../README.md): setup, repository shape, shared applications, and common commands.
-- [Operator runtime guide](operator-runtime.md): current kiosk behavior, controls, profiles, command frames, read-only
-  supervisor mirror, and lab use.
+- [Operator runtime guide](operator-runtime.md): current kiosk behavior, single-session command ownership, controls,
+  profiles, command frames, read-only supervisor mirror, and lab use.
 - [Architecture](architecture.md): code boundaries, configuration ownership, and runtime composition.
 - [Runtime flow compared with `extender_ui`](runtime-flow-vs-extender-ui.md): persistence, command dispatch, and ROS ownership.
 - [Extender/Petanque validation](extender-petanque-validation.md): live acceptance procedure and what remains unvalidated.

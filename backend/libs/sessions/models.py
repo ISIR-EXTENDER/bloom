@@ -11,6 +11,14 @@ class RuntimePingMessage(RuntimeModel):
     type: Literal["ping"]
 
 
+class RuntimeClaimControlMessage(RuntimeModel):
+    type: Literal["claim_control"]
+
+
+class RuntimeReleaseControlMessage(RuntimeModel):
+    type: Literal["release_control"]
+
+
 class RuntimeSubscribeTopicMessage(RuntimeModel):
     type: Literal["subscribe_topic"]
     topic: str = Field(min_length=1)
@@ -82,7 +90,11 @@ class RuntimeTeleopCommandMessage(RuntimeModel):
 
 
 RuntimeClientMessage = Annotated[
-    RuntimePingMessage | RuntimeSubscribeTopicMessage | RuntimeTeleopCommandMessage,
+    RuntimeClaimControlMessage
+    | RuntimePingMessage
+    | RuntimeReleaseControlMessage
+    | RuntimeSubscribeTopicMessage
+    | RuntimeTeleopCommandMessage,
     Field(discriminator="type"),
 ]
 
@@ -90,7 +102,15 @@ runtime_client_message_adapter = TypeAdapter(RuntimeClientMessage)
 
 
 class RuntimeServerMessage(RuntimeModel):
-    type: Literal["session_connected", "pong", "subscription_ack", "teleop_ack", "topic_sample", "runtime_error"]
+    type: Literal[
+        "control_state",
+        "session_connected",
+        "pong",
+        "subscription_ack",
+        "teleop_ack",
+        "topic_sample",
+        "runtime_error",
+    ]
     active_sessions: int | None = None
     detail: str = ""
     payload: dict[str, Any] = Field(default_factory=dict)

@@ -11,10 +11,10 @@ browser transfers command authority. The manager also publishes no authoritative
 ## Decision
 
 Add a separate per-app supervisor route that receives a projected runtime client with only connection observation,
-`getRuntimeStopState`, and `listRosTopicStatus`.
+`getRuntimeControlState`, `getRuntimeStopState`, and `listRosTopicStatus`.
 
 - The mirror renders no app artboard or robot command controls.
-- It states that the operator retains control and names the actions it cannot perform.
+- It reports whether a Runtime operator currently owns control and names the actions it cannot perform.
 - The Runtime library opens the mirror in the current tab; Maintenance opens the current app in a separate tab.
 - STOP and topic status refresh automatically, while a manual topic refresh remains available.
 - A fresh mirror reports mode as not checked. It may show only a request observed in that browser session and never
@@ -23,7 +23,8 @@ Add a separate per-app supervisor route that receives a projected runtime client
 ## Consequences
 
 Observation can be deployed on a second display without enlarging the robot-command surface. Shared backend STOP state
-is visible but cannot be changed from the mirror. Any future supervisor command or handover feature requires a new
+and aggregate ownership state are visible but cannot be changed from the mirror. Runtime-to-Runtime ownership is now
+defined by ADR 0129. Any future supervisor command or forced-takeover feature requires a new
 decision covering identity, ownership, acknowledgement, timeout, failure, and hardware-safety behavior.
 
 ## Validation

@@ -20,6 +20,13 @@ The script:
 - optionally applies the HMTECH touchscreen mapping;
 - stops both processes when the terminal exits.
 
+### One API process
+
+Run exactly one Bloom API process and one replica for a robot-facing deployment. Runtime command ownership is held in
+that process; `uvicorn --workers 2`, two containers, or load balancing across replicas would create independent owners
+and defeat the one-operator guarantee. The maintained `bloom api run`, `bloom api run-ros`, and workspace script all
+start one process. A shared lease coordinator is required before scaling the command API horizontally.
+
 ## Useful Environment Variables
 
 | Variable | Default | Purpose |
@@ -32,6 +39,7 @@ The script:
 | `BLOOM_FRONTEND_PORT` | `5173` | Dashboard dev-server port. |
 | `BLOOM_API_PROXY_TARGET` | `http://127.0.0.1:$BLOOM_API_PORT` | Server-side Vite target for HTTP and WebSocket API traffic. |
 | `BLOOM_PUBLIC_HOST` | first address from `hostname -I` | Address printed for another device when the frontend uses a wildcard bind. |
+| `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
 | `BLOOM_APPLY_TABLET_TOUCH_MAP` | `0` | Set to `1` to run `scripts/extender-tablet-touch-map.sh` before launch. |
 | `DISPLAY_MODE` | empty | Optional tablet display mode passed to the touch-map helper, for example `1280x720`. |
 | `LOGICAL_DISPLAY_SIZE` | empty | Optional scaled tablet workspace, for example `1820x720`. |
@@ -141,6 +149,7 @@ export BLOOM_ALLOWED_COMMAND_FRAME_IDS='base_link,ft_frame,hybrid_frame'
 export BLOOM_ALLOWED_ROS_SERVICE_CALLS='/fault_controller/reset_fault'
 export BLOOM_ALLOWED_ROS_SERVICE_TYPES='example_interfaces/srv/Trigger,std_srvs/srv/Trigger'
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
+export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
 
 Keep the backend command ceiling at or above `60` for the shipped runtime. Bloom coalesces all composed teleop inputs
@@ -175,6 +184,7 @@ then, keep authentication disabled only on trusted local machines, and enable it
 Before a robot-facing Bloom session or release:
 
 - build and source the Extender workspace;
+- verify the Bloom API is one process and one replica, with no multi-worker or load-balanced command path;
 - launch `cartesian_manager` with its Explorer bringup, or the legacy `sandbox_controller` launch file when
   running the rollback path;
 - start Bloom with `scripts/extender-workspace-dev.sh`;
@@ -182,11 +192,15 @@ Before a robot-facing Bloom session or release:
   `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`;
 - open the Sandbox teleop lab app in runtime;
 - confirm the kiosk bar names the expected robot, frame, profile, and link state;
+- confirm the operator kiosk says **YOU CONTROL**; open the same app in a second Runtime tab and verify its artboard is
+  inert, its **Take control** action cannot force handover, and its STOP remains available;
+- close the owner tab, claim from the waiting tab, and verify release-to-zero precedes the first command from the new
+  owner; repeat with an abrupt owner disconnect;
 - move the translation/rotation joysticks and Z/RZ controls, then verify `/cartesian_command`, release-to-zero, and robot
   motion in RViz/Gazebo;
 - validate Neutral, Jaco, momentary Snake, gripper, speed limits, and the fixed STOP/backend resume latch;
-- open the current app's Supervisor mirror on a second display, verify the shared STOP/topic state, and confirm that no
-  movement, STOP, resume, publish, or action controls are present there;
+- open the current app's Supervisor mirror on a second display, verify ownership plus shared STOP/topic state, and
+  confirm that no movement, STOP, resume, publish, action, or takeover controls are present there;
 - connect any intended gamepad or assistive input and verify its real mapping and disconnect behavior;
 - open Bloom Debug and verify topic catalog, topic echo, plot, audit, and recording controls;
 - if archived Petanque is still required, open its screens and validate camera/debug/state-machine interactions against

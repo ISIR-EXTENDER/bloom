@@ -2,9 +2,12 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from hmac import compare_digest
 from time import monotonic
+from typing import TypeVar
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, status
 from starlette.responses import JSONResponse, Response
+
+from libs.sessions import RuntimeControlNotOwnedError
 
 
 SECURITY_HEADERS = {
@@ -15,6 +18,8 @@ SECURITY_HEADERS = {
 }
 
 API_KEY_HEADER = "x-bloom-api-key"
+RUNTIME_SESSION_HEADER = "x-bloom-runtime-session"
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -91,6 +96,32 @@ def require_operator(request: Request) -> BloomPrincipal:
     if not principal.is_operator:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operator role required.")
     return principal
+
+
+def require_runtime_owner(request: Request) -> BloomPrincipal:
+    principal = require_operator(request)
+    if not request.app.state.settings.runtime_control_required:
+        return principal
+
+    session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+    if not request.app.state.runtime_session_manager.is_control_owner(session_id):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This runtime session does not own robot control.",
+        )
+    return principal
+
+
+def execute_as_runtime_owner(request: Request, operation: Callable[[], T]) -> T:
+    """Run the final robot operation inside the lease handover gate."""
+    if not request.app.state.settings.runtime_control_required:
+        return operation()
+
+    session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+    try:
+        return request.app.state.runtime_session_manager.execute_if_control_owner(session_id, operation)
+    except RuntimeControlNotOwnedError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 def require_admin(request: Request) -> BloomPrincipal:

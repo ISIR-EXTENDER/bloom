@@ -4,6 +4,7 @@ import {
   type RosTopicPublishRequest,
   type RuntimeActionPreset,
   type RuntimeAdapterPolicy,
+  type RuntimeControlState,
 } from "@bloom/api-client";
 import { resolveTeleopFrameId, type Vector2Value, type WidgetActionIntent } from "@bloom/widgets";
 import {
@@ -81,9 +82,11 @@ export type RuntimeTopicSampleMessage = {
 export type RuntimeLinkState = "connecting" | "connected" | "disconnected";
 
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
+  addRuntimeControlStateListener?: (listener: (state: RuntimeControlState | null) => void) => () => void;
   addRuntimeLinkStateListener?: (listener: (state: RuntimeLinkState) => void) => () => void;
   addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;
   deleteSavedPosition?: BloomApiClient["deleteSavedPosition"];
+  disconnectRuntime?: () => void;
   dispatchRuntimeAction?: BloomApiClient["dispatchRuntimeAction"];
   exportSavedPositions?: BloomApiClient["exportSavedPositions"];
   listSavedPositions?: BloomApiClient["listSavedPositions"];
@@ -91,11 +94,15 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   engageRuntimeStop?: BloomApiClient["engageRuntimeStop"];
   ensureRuntimeConnected?: () => Promise<void>;
   getRuntimeStopState?: BloomApiClient["getRuntimeStopState"];
+  getRuntimeControlState?: BloomApiClient["getRuntimeControlState"];
+  getRuntimeSessionId?: () => string;
   listRosTopicStatus?: BloomApiClient["listRosTopicStatus"];
   listRosTopics?: BloomApiClient["listRosTopics"];
   listRuntimeAuditRecords?: BloomApiClient["listRuntimeAuditRecords"];
   listRuntimeCapabilities?: BloomApiClient["listRuntimeCapabilities"];
   resumeRuntimeStop?: BloomApiClient["resumeRuntimeStop"];
+  claimRuntimeControl?: () => Promise<RuntimeControlState>;
+  releaseRuntimeControl?: () => Promise<RuntimeControlState>;
   sendTeleopCommand?: (request: RuntimeTeleopCommandRequest) => Promise<RuntimeTeleopCommandResponse>;
   startRuntimeRecording?: BloomApiClient["startRuntimeRecording"];
   stopRuntimeRecording?: BloomApiClient["stopRuntimeRecording"];

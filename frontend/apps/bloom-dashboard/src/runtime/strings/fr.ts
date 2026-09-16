@@ -9,6 +9,14 @@ export const frRuntimeStrings: RuntimeStrings = {
     resume: "MAINTENIR POUR REPRENDRE",
     resumeAria: "Maintenir une seconde pour reprendre",
   },
+  control: {
+    anotherOwner: "Un autre opérateur commande ce robot",
+    claim: "Prendre le contrôle",
+    claiming: "Prise de contrôle...",
+    noOwner: "Aucun opérateur ne commande ce robot",
+    resumeRequiresOwner: "Prenez le contrôle avant de reprendre le robot.",
+    youOwn: "VOUS COMMANDEZ",
+  },
   scan: {
     button: "CONTACTEUR - appuyez Espace ou touchez ici",
     progress: (current, total) => `Balayage ${current} sur ${total}.`,
@@ -94,8 +102,10 @@ export const frRuntimeStrings: RuntimeStrings = {
     application: "Application",
     backToLibrary: "Retour à la bibliothèque d'apps",
     commandFrame: "Repère configuré",
+    controlOwnerUnknown: "Propriétaire du contrôle non indiqué",
     lastRequest: "Dernier mode demandé",
     neverRequested: "Aucune demande de mode observée dans cette session du navigateur",
+    noOperatorOwnsControl: "Aucun opérateur ne détient le contrôle",
     notReported: "Non indiqué",
     operatorOwnsControl: "L'opérateur garde le contrôle",
     ownershipDetail:

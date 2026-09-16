@@ -29,7 +29,8 @@ Extender's older interfaces coupled screen layout, input devices, ROS transport,
 pattern with one configurable interface system:
 
 - **Build** reusable robot screens, controls, themes, profiles, and safety policies in the visual Builder.
-- **Operate** the saved application in a focused Runtime with guarded maintenance, diagnostics, and a latched STOP.
+- **Operate** the saved application in a focused Runtime with one explicit control owner, guarded maintenance,
+  diagnostics, and a latched STOP.
 - **Connect** it through FastAPI and WebSockets to ROS 2 or another machine adapter without putting transport code in
   the frontend.
 
@@ -172,7 +173,8 @@ database operations.
 1. Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and choose **Runtime**.
 2. Launch **Explorer Manager** or **Kinova Manager** to match the robot process you started.
 3. Before moving a control, confirm the kiosk bar shows the expected app, robot, profile, `base_link` frame, and link
-   state. `READY` describes the frontend-to-backend link; use the diagnostics below to verify the ROS path.
+   state, plus **YOU CONTROL**. `READY` describes the frontend-to-backend link; use the diagnostics below to verify the
+   ROS path. A second Runtime tab stays inert until the first leaves and the second operator chooses **Take control**.
 4. Open **Joystick lab** from Maintenance for the physical-joystick-equivalent workflow: choose a supported command
    frame, then use translation, height, rotation, pivot, modes, and gripper on one screen. Frame buttons stay disabled
    until every motion control is back at zero.
@@ -187,7 +189,7 @@ database operations.
    Maintenance hold. This replacement surface has no robot command interface; leave it to restore live controls.
 8. Open **Supervisor mirror** from the Runtime library, or from Maintenance to launch the current app on a second
    screen. The mirror can read live status and the shared STOP latch, but it has no movement, STOP, resume, publish, or
-   configured-action controls. The operator runtime keeps command ownership.
+   configured-action controls. It reports whether an operator session currently owns control without transferring it.
 9. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
 
 Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova permits `effector_frame` and adds the
@@ -444,6 +446,7 @@ Core rules:
 - ROS-specific code belongs in `backend/libs/ros_adapters`.
 - Widgets describe intent and settings; adapters decide how those intents reach a robot or machine.
 - Runtime safety is enforced in the backend through allowlists, rate limits, validation, and audit logs.
+- One backend runtime session owns robot commands at a time; STOP remains available to every authenticated operator.
 - The builder and runtime must render the same screen model; runtime only removes editor affordances.
 - App-specific visual identity belongs in app theme tokens, not hard-coded widget styles.
 
@@ -485,6 +488,7 @@ export BLOOM_AUTH_ENABLED=true
 export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
 export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
 export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.local:5173'
+export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
 
 ### ROS Command Backend
@@ -511,7 +515,9 @@ twist is zero. Every virtual control and physical gamepad contribution still
 shares the one effective session frame shown in the kiosk bar.
 
 Use `X-Bloom-API-Key` for API calls. Admin keys can mutate configuration; operator keys can read configuration and use
-runtime/ROS endpoints. Production settings intentionally fail to start without authentication and an admin key.
+runtime/ROS endpoints. Robot-facing HTTP calls also carry the browser's opaque `X-Bloom-Runtime-Session` lease. Bloom
+sets that header itself; it is not an operator credential. Production settings intentionally fail to start without
+authentication, an admin key, and runtime ownership enforcement.
 
 Security docs:
 

@@ -18,6 +18,8 @@ class Settings(BaseModel):
     auth_enabled: bool = False
     admin_api_key: str = ""
     operator_api_key: str = ""
+    # Robot-facing deployments allow one connected runtime to command at once.
+    runtime_control_required: bool = True
     cors_allowed_origins: tuple[str, ...] = (
         "http://127.0.0.1:5173",
         "http://localhost:5173",
@@ -146,8 +148,12 @@ class Settings(BaseModel):
 
     @model_validator(mode="after")
     def production_requires_authentication(self) -> "Settings":
+        if self.environment == "test" and "runtime_control_required" not in self.model_fields_set:
+            self.runtime_control_required = False
         if self.environment == "production" and (not self.auth_enabled or not self.admin_api_key):
             raise ValueError("production Bloom API requires auth_enabled=true and an admin_api_key")
+        if self.environment == "production" and not self.runtime_control_required:
+            raise ValueError("production Bloom API requires runtime_control_required=true")
         return self
 
     @classmethod
@@ -188,6 +194,7 @@ class Settings(BaseModel):
                 cls.model_fields["http_rate_limit_per_minute"].default,
             ),
             operator_api_key=os.getenv("BLOOM_OPERATOR_API_KEY", ""),
+            runtime_control_required=_read_bool_env("BLOOM_RUNTIME_CONTROL_REQUIRED", default=True),
             allowed_ros_message_types=_read_tuple_env(
                 "BLOOM_ALLOWED_ROS_MESSAGE_TYPES",
                 cls.model_fields["allowed_ros_message_types"].default,

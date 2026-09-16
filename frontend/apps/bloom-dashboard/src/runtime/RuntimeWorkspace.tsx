@@ -35,6 +35,7 @@ import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
 import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
+import { useRuntimeControl } from "./use-runtime-control";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
 import { useSwitchScanning } from "./use-switch-scanning";
@@ -206,20 +207,40 @@ export function RuntimeWorkspace({
   }, [dataByWidgetId, positionLibrary.state, screen.widgets, screenHasPositionLibrary]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
+  const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
+  const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
+  const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
   const stopped = runtimeStop.state?.stopped === true;
+  const isAssistiveRuntimeTargetEnabled = (target: HTMLElement) => {
+    if (runtimeControlBlocked) {
+      return target.hasAttribute("data-runtime-control-independent");
+    }
+    return !stopped || target.dataset.dwellAction === "resume";
+  };
   const gamepad = useGamepadInput({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
-    enabled: onTeleopContribution !== undefined && !maintenanceOpen && !settingsOpen && !tourOpen && !stopped,
+    enabled:
+      onTeleopContribution !== undefined &&
+      ownsRuntimeControl &&
+      !maintenanceOpen &&
+      !settingsOpen &&
+      !tourOpen &&
+      !stopped,
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
   const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings);
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const scanning = useSwitchScanning({
-    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !settingsOpen && !tourOpen && !stopped,
+    enabled:
+      runtimeProfile.motorAccessibilityPreset === "scan" &&
+      !settingsOpen &&
+      !tourOpen &&
+      (!stopped || runtimeControlBlocked),
+    isTargetEnabled: isAssistiveRuntimeTargetEnabled,
     periodMs: runtimeProfile.scanPeriodMs,
     rootRef: runtimeControlsRef,
-    revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}`,
+    revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}:${runtimeControlBlocked}:${stopped}`,
   });
   useDwellActivation({
     activateTarget: (target) => {
@@ -231,11 +252,17 @@ export function RuntimeWorkspace({
     },
     dwellMs: runtimeProfile.dwellMs,
     enabled: runtimeProfile.dwellEnabled && !settingsOpen && !tourOpen,
-    isTargetEnabled: (target) => !stopped || target.dataset.dwellAction === "resume",
+    isTargetEnabled: isAssistiveRuntimeTargetEnabled,
     rootRef: runtimeControlsRef,
   });
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
+    if (!ownsRuntimeControl) {
+      return {
+        accepted: false,
+        detail: runtimeControl.state?.owner_present ? strings.control.anotherOwner : strings.control.noOwner,
+      };
+    }
     if (controlStateByWidgetId[intent.widgetId]?.unavailable) {
       return { accepted: false, detail: controlStateByWidgetId[intent.widgetId]?.disabledReason };
     }
@@ -416,6 +443,7 @@ export function RuntimeWorkspace({
       data-has-debug={application.id === "bloom-debug" ? "true" : "false"}
       data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
       data-runtime-layout="operator"
+      data-runtime-control={ownsRuntimeControl ? "owned" : "blocked"}
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       data-runtime-stopped={stopped ? "true" : "false"}
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
@@ -424,6 +452,7 @@ export function RuntimeWorkspace({
         application={application}
         commandFeedback={runtimeActionFeedback?.appId === application.id ? runtimeActionFeedback : null}
         commandFrameId={commandFrameId}
+        controlOwnerLabel={runtimeControl.supported && ownsRuntimeControl ? strings.control.youOwn : null}
         gamepadName={gamepad.connected ? gamepad.id : null}
         robotName={runtimeCapabilityReport?.robot_name ?? null}
         diagnostics={
@@ -468,9 +497,30 @@ export function RuntimeWorkspace({
       {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
 
       <div className="runtime-app-canvas-shell" ref={runtimeControlsRef}>
+        {runtimeControlBlocked ? (
+          <div aria-live="polite" className="runtime-control-gate" role="status">
+            <strong>
+              {runtimeControl.claiming
+                ? strings.control.claiming
+                : runtimeControl.state?.owner_present
+                  ? strings.control.anotherOwner
+                  : strings.control.noOwner}
+            </strong>
+            {runtimeControl.error ? <span>{runtimeControl.error}</span> : null}
+            <button
+              data-runtime-control-independent=""
+              disabled={runtimeControl.claiming}
+              onClick={() => void runtimeControl.claim()}
+              type="button"
+            >
+              {runtimeControl.claiming ? strings.control.claiming : strings.control.claim}
+            </button>
+          </div>
+        ) : null}
         <div
           className="runtime-app-canvas-viewport"
           data-runtime-mode={screen.canvas.runtime_mode}
+          inert={runtimeControlBlocked || undefined}
           ref={canvasViewportRef}
         >
           <div
@@ -525,6 +575,8 @@ export function RuntimeWorkspace({
             onEngage={runtimeStop.engage}
             onResume={runtimeStop.resume}
             requestError={runtimeStop.requestError}
+            resumeDisabled={runtimeControlBlocked}
+            resumeDisabledReason={runtimeControlBlocked ? strings.control.resumeRequiresOwner : ""}
             stopped={runtimeStop.state?.stopped ?? null}
             language={runtimeProfile.language}
           />

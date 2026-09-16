@@ -193,6 +193,20 @@ async function mockApi(page) {
       status: 200,
     });
   });
+  await page.route("**/api/v1/runtime/control", async (route) => {
+    const sessionId = route.request().headers()["x-bloom-runtime-session"] ?? "";
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        active_sessions: 1,
+        detail: "This runtime session owns robot control.",
+        is_owner: true,
+        owner_present: true,
+        session_id: sessionId,
+      },
+      status: 200,
+    });
+  });
 }
 
 async function mockRuntimeWebSocket(page) {
@@ -208,9 +222,27 @@ async function mockRuntimeWebSocket(page) {
       constructor(url) {
         super();
         this.url = url;
+        this.sessionId = `tablet-layout-${Date.now()}-${Math.random()}`;
         window.setTimeout(() => {
           this.readyState = BloomTabletLayoutWebSocket.OPEN;
           this.dispatchEvent(new Event("open"));
+          window.setTimeout(() => {
+            this.dispatchEvent(
+              new MessageEvent("message", {
+                data: JSON.stringify({
+                  active_sessions: 1,
+                  payload: {
+                    active_sessions: 1,
+                    is_owner: false,
+                    owner_present: false,
+                    session_id: this.sessionId,
+                  },
+                  session_id: this.sessionId,
+                  type: "session_connected",
+                }),
+              }),
+            );
+          }, 0);
         }, 0);
       }
 
@@ -221,6 +253,29 @@ async function mockRuntimeWebSocket(page) {
 
       send(data) {
         const message = parseRuntimeCommand(data);
+        if (message?.type === "claim_control" || message?.type === "release_control") {
+          const isOwner = message.type === "claim_control";
+          window.setTimeout(() => {
+            this.dispatchEvent(
+              new MessageEvent("message", {
+                data: JSON.stringify({
+                  detail: isOwner
+                    ? "This runtime session owns robot control."
+                    : "No runtime session owns robot control.",
+                  payload: {
+                    active_sessions: 1,
+                    is_owner: isOwner,
+                    owner_present: isOwner,
+                    session_id: this.sessionId,
+                  },
+                  session_id: this.sessionId,
+                  type: "control_state",
+                }),
+              }),
+            );
+          }, 0);
+          return;
+        }
         if (message?.type !== "subscribe_topic") return;
         window.setTimeout(() => {
           this.dispatchEvent(

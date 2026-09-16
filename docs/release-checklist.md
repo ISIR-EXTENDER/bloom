@@ -67,20 +67,32 @@ acceptance.
 - [ ] `npm run audit:security` passes, or every remaining advisory is recorded
       in the changelog with a reason.
 - [ ] Production settings refuse to start without `BLOOM_AUTH_ENABLED=true` and
-      an admin key. Verify, do not assume:
+      an admin key, or with runtime ownership disabled. Verify, do not assume:
 
 ```bash
 BLOOM_ENVIRONMENT=production uv run python -c "
 from apps.bloom_api.settings import Settings
-try:
-    Settings(environment='production')
-    print('FAIL: started without auth')
-except Exception as exc:
-    print('ok, refused:', exc)
+checks = (
+    ('without auth', dict(environment='production')),
+    ('with ownership disabled', dict(
+        environment='production', auth_enabled=True, admin_api_key='check-only',
+        runtime_control_required=False,
+    )),
+)
+for label, values in checks:
+    try:
+        Settings(**values)
+        print('FAIL: started', label)
+    except Exception as exc:
+        print('ok, refused', label + ':', exc)
 "
 ```
 
 - [ ] `BLOOM_CORS_ALLOWED_ORIGINS` is set to real origins, not `*`.
+- [ ] `BLOOM_RUNTIME_CONTROL_REQUIRED=true`; every robot-facing HTTP route and teleop uses the same session lease,
+      while STOP remains callable without it.
+- [ ] The robot-facing API runs as one process and one replica. Do not use multiple Uvicorn workers or load-balance
+      command traffic until ownership has a shared coordinator.
 - [ ] Publish, teleop and recording allowlists contain only topics this
       deployment should be able to reach.
 
@@ -113,8 +125,12 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       speed controls publish the expected topics and payloads.
 - [ ] STOP latches in the backend, is reflected by a second client or reload, and cannot resume without the one-second
       hold. This supplements rather than replaces the hardware emergency-stop check.
-- [ ] A second-display supervisor mirror reflects the same STOP latch and relevant topic state, states that the
-      operator retains control, and exposes no STOP, resume, movement, publish, or configured-action control.
+- [ ] Two operator Runtime tabs cannot command together. A waiting tab stays inert, cannot force takeover, and can claim
+      only after owner release/disconnect; the old owner's moving targets reach zero before the new owner can command.
+- [ ] If owner disconnect neutralization is made to fail, the backend latch reads stopped before ownership becomes
+      available again. Confirm the hardware emergency-stop procedure for the corresponding assertion-failed state.
+- [ ] A second-display supervisor mirror reflects the same STOP latch, relevant topic state, and current ownership, and
+      exposes no STOP, resume, movement, publish, configured-action, claim, or release control.
 - [ ] Any profile claimed by the release is exercised with its intended input: keyboard, step, latch, scan, dwell,
       gamepad, or direct touch. Implemented support is not the same as hardware/user acceptance.
 - [ ] When same-Wi-Fi access is used, only the intended frontend port is reachable from the lab subnet, the frontend

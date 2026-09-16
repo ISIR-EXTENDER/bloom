@@ -7,6 +7,7 @@ def test_default_settings_are_local() -> None:
     assert settings.api_prefix == "/api/v1"
     assert settings.configuration_dir.name == "configurations"
     assert settings.environment == "local"
+    assert settings.runtime_control_required is True
     assert settings.runtime_command_rate_limit_per_second == 60
     assert settings.service_name == "bloom-api"
 
@@ -88,6 +89,11 @@ def test_get_settings_is_cached() -> None:
     second = get_settings()
 
     assert first is second
+
+
+def test_test_settings_disable_runtime_ownership_only_when_unspecified() -> None:
+    assert Settings(environment="test").runtime_control_required is False
+    assert Settings(environment="test", runtime_control_required=True).runtime_control_required is True
 
 
 def test_recording_settings_can_be_loaded_from_environment(monkeypatch) -> None:

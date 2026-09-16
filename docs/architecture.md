@@ -112,14 +112,21 @@ boundary. They are designed to produce normalized contributions for the same run
 adapters receive a composed command rather than knowledge of the device. Scanning renders directional step targets,
 and dwell can activate either a direct target or the highlighted target through SWITCH without changing the adapter.
 
+`RuntimeSessionManager` owns the command lease. The WebSocket session claims and releases it explicitly; the API client
+adds that session ID to robot-facing HTTP requests. A final server-side execution gate serializes those operations with
+lease release, so a command that passed initial authorization cannot run after the owner's final zero. Release blocks
+new claims, neutralizes tracked teleop targets, and then permits deliberate handover. STOP is outside the lease; resume
+is inside it. Production cannot disable this boundary. See ADR 0129.
+
 Guided runtime practice sits above the same accessibility layer but outside the action path. It receives app labels and
 profile behavior, but no runtime action client, intent callback, or teleop contribution callback. Leaving the practice
 replacement surface is what restores the live artboard and its command interfaces.
 
 The supervisor mirror is another intentionally separate boundary. `createSupervisorRuntimeClient` projects the full
-runtime client down to connection observation plus `getRuntimeStopState` and `listRosTopicStatus`. The mirror component
-cannot receive publish, teleop, configured-action, STOP, or resume methods. Its `#/runtime/supervisor/:config/:app`
-route can open on a second display without transferring ownership from the operator session. Because
+runtime client down to connection observation plus `getRuntimeControlState`, `getRuntimeStopState`, and
+`listRosTopicStatus`. The mirror component cannot receive claim, release, publish, teleop, configured-action, STOP, or
+resume methods. Its `#/runtime/supervisor/:config/:app` route can open on a second display without transferring
+ownership from the operator session. Because
 `cartesian_manager` publishes no authoritative mode, a fresh mirror says that mode is not checked and reports only a
 request observed in its own browser session.
 

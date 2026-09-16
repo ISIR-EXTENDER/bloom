@@ -4,6 +4,14 @@ export type RuntimeStrings = {
   language: RuntimeLanguage;
   status: { connecting: string; linkDown: string; ready: string; stopped: string };
   stop: { engage: string; engageAria: string; resume: string; resumeAria: string };
+  control: {
+    anotherOwner: string;
+    claim: string;
+    claiming: string;
+    noOwner: string;
+    resumeRequiresOwner: string;
+    youOwn: string;
+  };
   scan: { button: string; progress: (current: number, total: number) => string };
   tour: {
     close: string;
@@ -54,9 +62,11 @@ export type RuntimeStrings = {
     application: string;
     backToLibrary: string;
     commandFrame: string;
+    controlOwnerUnknown: string;
     lastRequest: string;
     neverRequested: string;
     notReported: string;
+    noOperatorOwnsControl: string;
     operatorOwnsControl: string;
     ownershipDetail: string;
     readOnly: string;

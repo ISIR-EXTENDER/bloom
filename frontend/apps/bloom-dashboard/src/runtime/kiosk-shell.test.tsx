@@ -105,6 +105,12 @@ describe("the kiosk bar", () => {
     expect(screen.getByRole("status").textContent).toBe("READY");
   });
 
+  it("names when this session owns robot control", () => {
+    renderBar({ controlOwnerLabel: "YOU CONTROL" });
+
+    expect(screen.getByText("YOU CONTROL")).toBeVisible();
+  });
+
   it("shows no status chip where there is no session to describe", () => {
     renderBar();
 

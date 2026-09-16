@@ -9,6 +9,14 @@ export const esRuntimeStrings: RuntimeStrings = {
     resume: "MANTENER PARA REANUDAR",
     resumeAria: "Mantener un segundo para reanudar",
   },
+  control: {
+    anotherOwner: "Otro operador controla este robot",
+    claim: "Tomar el control",
+    claiming: "Tomando el control...",
+    noOwner: "Ningún operador controla este robot",
+    resumeRequiresOwner: "Toma el control antes de reanudar el robot.",
+    youOwn: "TIENES EL CONTROL",
+  },
   scan: {
     button: "PULSADOR - pulsa Espacio o toca aquí",
     progress: (current, total) => `Barrido ${current} de ${total}.`,
@@ -94,8 +102,10 @@ export const esRuntimeStrings: RuntimeStrings = {
     application: "Aplicación",
     backToLibrary: "Volver a la biblioteca de apps",
     commandFrame: "Marco configurado",
+    controlOwnerUnknown: "Propietario del control no indicado",
     lastRequest: "Último modo solicitado",
     neverRequested: "No se ha observado ninguna solicitud de modo en esta sesión del navegador",
+    noOperatorOwnsControl: "Ningún operador tiene el control",
     notReported: "No indicado",
     operatorOwnsControl: "El operador conserva el control",
     ownershipDetail:

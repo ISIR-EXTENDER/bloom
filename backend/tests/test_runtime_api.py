@@ -52,6 +52,13 @@ class FailingTeleopGateway:
         raise RuntimeError("extender_msgs is required to publish teleop commands")
 
 
+class FailingNeutralTeleopGateway(RecordingTeleopGateway):
+    def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
+        if command.linear == TeleopVector3() and command.angular == TeleopVector3():
+            raise RuntimeError("neutral command could not reach ROS")
+        return super().publish(command)
+
+
 class RecordingRuntimeRecordingGateway:
     def __init__(self) -> None:
         self.started_requests: list[RuntimeRecordingRequest] = []
@@ -135,6 +142,205 @@ def test_runtime_websocket_accepts_ping_messages() -> None:
         "session_id": connected["session_id"],
     }
     assert app.state.runtime_session_manager.active_session_count == 0
+
+
+def test_runtime_control_is_exclusive_and_requires_explicit_handover() -> None:
+    gateway = RecordingTeleopGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        teleop_command_gateway=gateway,
+    )
+    client = TestClient(app)
+    command = {
+        "type": "teleop_cmd",
+        "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+        "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+        "mode": 3,
+        "seq": 1,
+        "target": "/joystick_cartesian_command",
+    }
+
+    with client.websocket_connect("/api/v1/runtime/ws") as owner:
+        owner_connected = owner.receive_json()
+        owner.send_json({"type": "claim_control"})
+        assert owner.receive_json()["payload"]["is_owner"] is True
+
+        with client.websocket_connect("/api/v1/runtime/ws") as waiting:
+            waiting_connected = waiting.receive_json()
+            waiting.send_json({"type": "claim_control"})
+            blocked = waiting.receive_json()
+            assert blocked["type"] == "control_state"
+            assert blocked["payload"]["is_owner"] is False
+            assert blocked["payload"]["owner_present"] is True
+
+            waiting.send_json(command)
+            rejected = waiting.receive_json()
+            assert rejected["payload"]["code"] == "control_not_owned"
+            assert gateway.commands == []
+
+            owner.send_json(command)
+            assert owner.receive_json()["type"] == "teleop_ack"
+            owner.send_json({"type": "release_control"})
+            released = owner.receive_json()
+            assert released["payload"]["owner_present"] is False
+            assert gateway.commands[-1].linear == TeleopVector3()
+
+            waiting.send_json({"type": "claim_control"})
+            claimed = waiting.receive_json()
+            assert claimed["payload"]["is_owner"] is True
+            assert claimed["session_id"] == waiting_connected["session_id"]
+
+        assert owner_connected["session_id"] != waiting_connected["session_id"]
+
+
+def test_robot_facing_http_commands_require_the_control_owner_session() -> None:
+    gateway = RecordingRosPublisherGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        ros_publisher_gateway=gateway,
+    )
+    client = TestClient(app)
+    request = {
+        "message_type": "std_msgs/msg/Int32",
+        "payload": {"data": 3},
+        "topic": "/cmd/mode",
+    }
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        connected = websocket.receive_json()
+        websocket.send_json({"type": "claim_control"})
+        websocket.receive_json()
+
+        assert client.post("/api/v1/ros/topics/publish", json=request).status_code == 409
+        response = client.post(
+            "/api/v1/ros/topics/publish",
+            headers={"X-Bloom-Runtime-Session": connected["session_id"]},
+            json=request,
+        )
+        assert response.status_code == 200
+
+        observer = client.get("/api/v1/runtime/control").json()
+        owner = client.get(
+            "/api/v1/runtime/control",
+            headers={"X-Bloom-Runtime-Session": connected["session_id"]},
+        ).json()
+        assert observer["active_sessions"] == 1
+        assert observer["is_owner"] is False
+        assert observer["owner_present"] is True
+        assert observer["session_id"] == ""
+        assert owner["is_owner"] is True
+
+        # STOP stays available without the lease; only resume is owner-only.
+        assert client.post("/api/v1/runtime/stop").status_code == 200
+        assert client.post("/api/v1/runtime/stop/resume").status_code == 409
+        assert (
+            client.post(
+                "/api/v1/runtime/stop/resume",
+                headers={"X-Bloom-Runtime-Session": connected["session_id"]},
+            ).status_code
+            == 200
+        )
+
+
+def test_disconnect_latches_stop_when_the_owner_cannot_be_neutralized() -> None:
+    gateway = FailingNeutralTeleopGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        teleop_command_gateway=gateway,
+    )
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "claim_control"})
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+                "mode": 3,
+                "seq": 1,
+                "target": "/joystick_cartesian_command",
+            }
+        )
+        assert websocket.receive_json()["type"] == "teleop_ack"
+
+    state = client.get("/api/v1/runtime/stop").json()
+    assert state["stopped"] is True
+    assert state["asserted"] is False
+    assert app.state.runtime_session_manager.control_snapshot().owner_present is False
+
+
+def test_failed_explicit_release_latches_stop_and_relinquishes_control() -> None:
+    gateway = FailingNeutralTeleopGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        teleop_command_gateway=gateway,
+    )
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "claim_control"})
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+                "mode": 3,
+                "seq": 1,
+                "target": "/joystick_cartesian_command",
+            }
+        )
+        websocket.receive_json()
+        websocket.send_json({"type": "release_control"})
+        error = websocket.receive_json()
+
+        assert error["payload"]["code"] == "control_release_failed"
+        assert error["payload"]["is_owner"] is False
+        assert error["payload"]["owner_present"] is False
+        assert error["payload"]["session_id"] == error["session_id"]
+        assert app.state.runtime_stop_controller.state.stopped is True
+        assert app.state.runtime_session_manager.control_snapshot().owner_present is False
+
+
+def test_release_zeros_a_nondefault_target_even_when_stop_is_already_latched() -> None:
+    gateway = RecordingTeleopGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        teleop_command_gateway=gateway,
+    )
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "claim_control"})
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+                "mode": 3,
+                "seq": 1,
+                "target": "/teleop_cmd",
+            }
+        )
+        websocket.receive_json()
+        client.post("/api/v1/runtime/stop")
+        websocket.send_json({"type": "release_control"})
+        assert websocket.receive_json()["type"] == "control_state"
+
+    assert gateway.commands[-1].target == "/teleop_cmd"
+    assert gateway.commands[-1].linear == TeleopVector3()
+    assert gateway.commands[-1].angular == TeleopVector3()
 
 
 def test_runtime_websocket_accepts_topic_subscriptions() -> None:
@@ -303,6 +509,7 @@ def test_runtime_websocket_rejects_out_of_range_teleop_modes() -> None:
 def test_runtime_websocket_returns_errors_when_teleop_gateway_fails() -> None:
     client = TestClient(
         create_app(
+            Settings(environment="test"),
             configuration_repository=InMemoryConfigurationRepository(),
             teleop_command_gateway=FailingTeleopGateway(),
         )

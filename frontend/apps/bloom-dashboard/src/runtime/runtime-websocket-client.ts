@@ -1,3 +1,4 @@
+import type { RuntimeControlState } from "@bloom/api-client";
 import type {
   RuntimeActionClient,
   RuntimeLinkState,
@@ -39,6 +40,11 @@ type PendingTopicSubscriptionAck = {
   resolve: (response: RuntimeTopicSubscriptionResponse) => void;
 };
 
+type PendingControlAck = {
+  reject: (error: Error) => void;
+  resolve: (response: RuntimeControlState) => void;
+};
+
 export type RuntimeWebSocketClientOptions = {
   url: string;
   WebSocketCtor?: WebSocketConstructorLike;
@@ -49,9 +55,14 @@ export function createRuntimeWebSocketClient(
 ): Required<
   Pick<
     RuntimeActionClient,
+    | "addRuntimeControlStateListener"
     | "addRuntimeLinkStateListener"
     | "addRuntimeTopicSampleListener"
+    | "claimRuntimeControl"
+    | "disconnectRuntime"
     | "ensureRuntimeConnected"
+    | "getRuntimeSessionId"
+    | "releaseRuntimeControl"
     | "sendTeleopCommand"
     | "subscribeRuntimeTopic"
   >
@@ -60,10 +71,14 @@ export function createRuntimeWebSocketClient(
   let socket: WebSocketLike | null = null;
   let connectPromise: Promise<WebSocketLike> | null = null;
   let linkState: RuntimeLinkState = "connecting";
+  let controlState: RuntimeControlState | null = null;
+  let sessionId = "";
+  const pendingControlAcks: PendingControlAck[] = [];
   const pendingTeleopAcks: PendingTeleopAck[] = [];
   const pendingTopicSubscriptionAcks: PendingTopicSubscriptionAck[] = [];
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
   const linkStateListeners = new Set<(state: RuntimeLinkState) => void>();
+  const controlStateListeners = new Set<(state: RuntimeControlState | null) => void>();
 
   function setLinkState(nextState: RuntimeLinkState) {
     if (linkState === nextState) {
@@ -71,6 +86,13 @@ export function createRuntimeWebSocketClient(
     }
     linkState = nextState;
     for (const listener of linkStateListeners) {
+      listener(nextState);
+    }
+  }
+
+  function setControlState(nextState: RuntimeControlState | null) {
+    controlState = nextState;
+    for (const listener of controlStateListeners) {
       listener(nextState);
     }
   }
@@ -116,9 +138,28 @@ export function createRuntimeWebSocketClient(
         return;
       }
 
+      const connectedState = parseRuntimeSessionConnected(event.data);
+      if (connectedState) {
+        sessionId = connectedState.session_id;
+        setControlState(connectedState);
+        return;
+      }
+
       const error = parseRuntimeError(event.data);
       if (error) {
-        rejectNextPendingAck(error);
+        if (error.controlState) {
+          sessionId = error.controlState.session_id;
+          setControlState(error.controlState);
+        }
+        rejectNextPendingAck(error.error, error.code);
+        return;
+      }
+
+      const nextControlState = parseRuntimeControlState(event.data);
+      if (nextControlState) {
+        sessionId = nextControlState.session_id;
+        setControlState(nextControlState);
+        pendingControlAcks.shift()?.resolve(nextControlState);
         return;
       }
 
@@ -147,24 +188,37 @@ export function createRuntimeWebSocketClient(
       rejectPendingTopicSubscriptionAcks(
         "Bloom runtime WebSocket closed before a topic subscription ACK was received.",
       );
+      rejectPendingControlAcks("Bloom runtime WebSocket closed before control ownership was acknowledged.");
       socket = null;
       connectPromise = null;
+      sessionId = "";
+      setControlState(null);
       setLinkState("disconnected");
     });
 
     runtimeSocket.addEventListener("error", () => {
       rejectPendingTeleopAcks("Bloom runtime WebSocket failed while waiting for a teleop ACK.");
       rejectPendingTopicSubscriptionAcks("Bloom runtime WebSocket failed while waiting for a topic subscription ACK.");
+      rejectPendingControlAcks("Bloom runtime WebSocket failed while changing control ownership.");
     });
   }
 
-  function rejectNextPendingAck(error: Error) {
+  function rejectNextPendingAck(error: Error, code = "") {
+    if (code === "control_release_failed") {
+      pendingControlAcks.shift()?.reject(error);
+      return;
+    }
     const pendingTeleopAck = pendingTeleopAcks.shift();
     if (pendingTeleopAck) {
       pendingTeleopAck.reject(error);
       return;
     }
-    pendingTopicSubscriptionAcks.shift()?.reject(error);
+    const pendingTopicSubscriptionAck = pendingTopicSubscriptionAcks.shift();
+    if (pendingTopicSubscriptionAck) {
+      pendingTopicSubscriptionAck.reject(error);
+      return;
+    }
+    pendingControlAcks.shift()?.reject(error);
   }
 
   function rejectPendingTeleopAcks(message: string) {
@@ -179,7 +233,20 @@ export function createRuntimeWebSocketClient(
     }
   }
 
+  function rejectPendingControlAcks(message: string) {
+    while (pendingControlAcks.length > 0) {
+      pendingControlAcks.shift()?.reject(new Error(message));
+    }
+  }
+
   return {
+    addRuntimeControlStateListener(listener: (state: RuntimeControlState | null) => void) {
+      controlStateListeners.add(listener);
+      listener(controlState);
+      return () => {
+        controlStateListeners.delete(listener);
+      };
+    },
     addRuntimeLinkStateListener(listener: (state: RuntimeLinkState) => void) {
       linkStateListeners.add(listener);
       // Deliver the current state immediately for late subscribers.
@@ -194,8 +261,28 @@ export function createRuntimeWebSocketClient(
         topicSampleListeners.delete(listener);
       };
     },
+    async claimRuntimeControl() {
+      const runtimeSocket = await ensureConnected();
+      return new Promise((resolve, reject) => {
+        pendingControlAcks.push({ resolve, reject });
+        runtimeSocket.send(JSON.stringify({ type: "claim_control" }));
+      });
+    },
+    disconnectRuntime() {
+      socket?.close();
+    },
     async ensureRuntimeConnected() {
       await ensureConnected();
+    },
+    getRuntimeSessionId() {
+      return sessionId;
+    },
+    async releaseRuntimeControl() {
+      const runtimeSocket = await ensureConnected();
+      return new Promise((resolve, reject) => {
+        pendingControlAcks.push({ resolve, reject });
+        runtimeSocket.send(JSON.stringify({ type: "release_control" }));
+      });
     },
     async sendTeleopCommand(request: RuntimeTeleopCommandRequest): Promise<RuntimeTeleopCommandResponse> {
       const runtimeSocket = await ensureConnected();
@@ -212,6 +299,71 @@ export function createRuntimeWebSocketClient(
       });
     },
   };
+}
+
+function parseRuntimeSessionConnected(data: unknown): RuntimeControlState | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(data) as {
+      active_sessions?: unknown;
+      payload?: Partial<RuntimeControlState>;
+      session_id?: unknown;
+      type?: unknown;
+    };
+    if (parsed.type !== "session_connected" || typeof parsed.session_id !== "string") {
+      return null;
+    }
+    return {
+      active_sessions:
+        typeof parsed.payload?.active_sessions === "number"
+          ? parsed.payload.active_sessions
+          : typeof parsed.active_sessions === "number"
+            ? parsed.active_sessions
+            : 1,
+      detail: typeof parsed.payload?.detail === "string" ? parsed.payload.detail : "Runtime session connected.",
+      is_owner: parsed.payload?.is_owner === true,
+      owner_present: parsed.payload?.owner_present === true,
+      session_id: parsed.session_id,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function parseRuntimeControlState(data: unknown): RuntimeControlState | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(data) as {
+      detail?: unknown;
+      payload?: Partial<RuntimeControlState>;
+      session_id?: unknown;
+      type?: unknown;
+    };
+    if (
+      parsed.type !== "control_state" ||
+      typeof parsed.session_id !== "string" ||
+      typeof parsed.payload?.active_sessions !== "number" ||
+      typeof parsed.payload?.is_owner !== "boolean" ||
+      typeof parsed.payload?.owner_present !== "boolean"
+    ) {
+      return null;
+    }
+    return {
+      active_sessions: parsed.payload.active_sessions,
+      detail: typeof parsed.detail === "string" ? parsed.detail : "Runtime control state updated.",
+      is_owner: parsed.payload.is_owner,
+      owner_present: parsed.payload.owner_present,
+      session_id: parsed.session_id,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function resolveRuntimeWebSocketUrl(apiBaseUrl: string, origin = globalThis.location?.origin ?? ""): string {
@@ -271,19 +423,53 @@ function parseTopicSample(data: unknown): RuntimeTopicSampleMessage | null {
   }
 }
 
-function parseRuntimeError(data: unknown): Error | null {
+function parseRuntimeError(
+  data: unknown,
+): { code: string; controlState: RuntimeControlState | null; error: Error } | null {
   if (typeof data !== "string") {
     return null;
   }
 
   try {
-    const parsed = JSON.parse(data) as { detail?: unknown; payload?: { message?: unknown }; type?: unknown };
+    const parsed = JSON.parse(data) as {
+      detail?: unknown;
+      payload?: {
+        active_sessions?: unknown;
+        code?: unknown;
+        is_owner?: unknown;
+        message?: unknown;
+        owner_present?: unknown;
+        session_id?: unknown;
+      };
+      session_id?: unknown;
+      type?: unknown;
+    };
     if (parsed.type !== "runtime_error") {
       return null;
     }
     const payloadMessage = typeof parsed.payload?.message === "string" ? parsed.payload.message : undefined;
     const detail = typeof parsed.detail === "string" ? parsed.detail : "Runtime command failed.";
-    return new Error(payloadMessage ? `${detail} ${payloadMessage}` : detail);
+    const payloadSessionId = parsed.payload?.session_id;
+    const responseSessionId = parsed.session_id;
+    const controlState =
+      typeof parsed.payload?.active_sessions === "number" &&
+      typeof parsed.payload?.is_owner === "boolean" &&
+      typeof parsed.payload?.owner_present === "boolean" &&
+      typeof payloadSessionId === "string" &&
+      payloadSessionId === responseSessionId
+        ? {
+            active_sessions: parsed.payload.active_sessions,
+            detail,
+            is_owner: parsed.payload.is_owner,
+            owner_present: parsed.payload.owner_present,
+            session_id: payloadSessionId,
+          }
+        : null;
+    return {
+      code: typeof parsed.payload?.code === "string" ? parsed.payload.code : "",
+      controlState,
+      error: new Error(payloadMessage ? `${detail} ${payloadMessage}` : detail),
+    };
   } catch {
     return null;
   }

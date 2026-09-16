@@ -777,6 +777,55 @@
   filter: grayscale(0.45) opacity(0.75);
 }
 
+.runtime-app-workspace[data-runtime-control="blocked"] .runtime-app-canvas-viewport {
+  filter: grayscale(0.35) opacity(0.55);
+}
+
+.runtime-control-gate {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 220px 24px 24px;
+  background: color-mix(in srgb, var(--bloom-surface) 88%, transparent);
+  color: var(--bloom-on-surface);
+  text-align: center;
+}
+
+.runtime-control-gate strong {
+  max-width: 520px;
+  font-size: 22px;
+}
+
+.runtime-control-gate > span {
+  max-width: 620px;
+  color: var(--bloom-error);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.runtime-control-gate > button {
+  min-width: 176px;
+  min-height: 52px;
+  padding: 10px 18px;
+  border: 1px solid var(--bloom-primary);
+  border-radius: 6px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.runtime-control-gate > button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .runtime-kiosk-bar {
   flex: 0 0 44px;
   display: flex;
@@ -808,6 +857,18 @@
   white-space: nowrap;
   background: var(--bloom-surface);
   color: var(--bloom-on-surface-muted);
+}
+
+.runtime-kiosk-control-owner {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 45%, var(--bloom-outline));
+  border-radius: 6px;
+  background: var(--bloom-primary-container);
+  color: var(--bloom-on-primary-container);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .runtime-kiosk-command-feedback {
@@ -1175,6 +1236,16 @@
 
 .runtime-app-workspace[data-runtime-scanning="true"] .runtime-stop-control {
   bottom: 112px;
+}
+
+@media (max-width: 520px) {
+  .runtime-control-gate {
+    padding: 20px 16px 160px;
+  }
+
+  .runtime-control-gate strong {
+    font-size: 18px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

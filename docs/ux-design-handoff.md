@@ -99,9 +99,11 @@ supervisor roles.
   from saved app state, profile preview, and export. See `docs/validation/2026-09-16-guided-tours.md`.
 - **Design camera recovery.** Permission denial, missing devices, and stream loss need one clear operator action, then
   validation with Robin's visual-servoing setup.
-- ~~**Add the supervisor mirror.**~~ Delivered 2026-09-16 as a read-only per-app status route with explicit operator
-  ownership and no command client surface. Second-display acceptance remains; deliberate handover is needed only if a
-  future supervisor role can command. See `docs/validation/2026-09-16-supervisor-mirror.md`.
+- ~~**Add the supervisor mirror.**~~ Delivered 2026-09-16 as a read-only per-app status route with live backend
+  ownership state and no command or lease-mutation client surface. Runtime-to-Runtime handover is explicit and
+  non-forcing; second-display acceptance remains, and supervisor takeover still needs a separate design if that role
+  ever commands. See `docs/validation/2026-09-16-supervisor-mirror.md` and
+  `docs/validation/2026-09-16-runtime-control-ownership.md`.
 - **Expose profile coverage.** App authors need to see which profiles were designed and tested for an app instead of
   assuming every enum value is supported by every layout.
 

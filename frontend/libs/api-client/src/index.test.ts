@@ -284,6 +284,34 @@ describe("Bloom API client", () => {
     expect(fetcher).toHaveBeenCalledWith("/api/v1/runtime/audit?limit=25", {});
   });
 
+  it("adds the current runtime session header without replacing request headers", async () => {
+    const responsePayload = {
+      active_sessions: 1,
+      detail: "This runtime session owns robot control.",
+      is_owner: true,
+      owner_present: true,
+      session_id: "runtime-session",
+    };
+    const fetcher = createJsonFetcher(responsePayload);
+    const client = createBloomApiClient({
+      fetcher,
+      getRequestHeaders: () => ({ "X-Bloom-Runtime-Session": "runtime-session" }),
+    });
+
+    await expect(client.getRuntimeControlState()).resolves.toEqual(responsePayload);
+    await client.dispatchRuntimeAction({
+      app_id: "explorer-manager",
+      command: "manager.neutral",
+      config_id: "explorer-manager",
+    });
+
+    const getHeaders = new Headers(vi.mocked(fetcher).mock.calls[0]?.[1]?.headers);
+    const postHeaders = new Headers(vi.mocked(fetcher).mock.calls[1]?.[1]?.headers);
+    expect(getHeaders.get("X-Bloom-Runtime-Session")).toBe("runtime-session");
+    expect(postHeaders.get("X-Bloom-Runtime-Session")).toBe("runtime-session");
+    expect(postHeaders.get("Content-Type")).toBe("application/json");
+  });
+
   it("starts and stops runtime recordings through the backend", async () => {
     const startPayload = {
       detail: "Recording started.",
@@ -355,10 +383,11 @@ describe("Bloom API client", () => {
 });
 
 function createJsonFetcher(payload: unknown): typeof fetch {
-  return vi.fn<typeof fetch>().mockResolvedValue(
-    new Response(JSON.stringify(payload), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }),
+  return vi.fn<typeof fetch>().mockImplementation(
+    async () =>
+      new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
   );
 }
