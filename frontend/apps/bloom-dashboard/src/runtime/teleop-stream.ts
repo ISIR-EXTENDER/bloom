@@ -53,7 +53,11 @@ export class TeleopStreamPump {
    * streaming whatever the widgets established.
    */
   noteExternalContribution(fallback: Pick<RuntimeTeleopCommandRequest, "frame_id" | "mode" | "target">): void {
-    this.lastRequest = this.lastRequest ? { ...this.lastRequest, frame_id: fallback.frame_id } : fallback;
+    if (!this.lastRequest) {
+      this.lastRequest = fallback;
+    } else if (fallback.frame_id !== undefined) {
+      this.lastRequest = { ...this.lastRequest, frame_id: fallback.frame_id };
+    }
     this.zeroFramesLeft = this.zeroTailFrames;
     if (this.timer === null) {
       this.timer = setInterval(() => this.tick(), this.intervalMs);
