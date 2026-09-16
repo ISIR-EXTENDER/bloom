@@ -80,7 +80,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     home: "Home",
     maintenance: "Maintenance",
     maintenanceAria: "Hold to open maintenance",
-    maintenanceHelp: "Held for 1.5s. The robot keeps its last commanded state while this is open.",
+    maintenanceHelp: "Motion is stopped while maintenance is open. Return controls to neutral before resuming.",
     referenceFrameTitle: "Reference frame for operator commands",
     robotTitle: "Robot this backend drives",
     settings: "Settings",

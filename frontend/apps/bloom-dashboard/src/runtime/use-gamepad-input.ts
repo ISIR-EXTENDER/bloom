@@ -54,27 +54,58 @@ export function useGamepadInput(options: GamepadInputOptions): GamepadState {
   const optionsRef = useRef(options);
   optionsRef.current = options;
   const wasActiveRef = useRef(false);
+  const awaitingNeutralRef = useRef(true);
 
   useEffect(() => {
     if (!options.enabled || typeof navigator === "undefined" || !navigator.getGamepads) {
+      awaitingNeutralRef.current = true;
       return;
     }
 
+    let surfaceActive = document.visibilityState !== "hidden";
+
     const readPads = () => (navigator.getGamepads?.() ?? []).filter((pad): pad is Gamepad => pad !== null);
+
+    const releaseContribution = () => {
+      if (wasActiveRef.current) {
+        wasActiveRef.current = false;
+        optionsRef.current.onContribution(null);
+      }
+    };
 
     const syncConnection = () => {
       const [pad] = readPads();
       setState({ connected: pad !== undefined, id: pad?.id ?? "" });
     };
 
+    const suspendInput = () => {
+      surfaceActive = false;
+      awaitingNeutralRef.current = true;
+      releaseContribution();
+    };
+
+    const resumeInput = () => {
+      surfaceActive = document.visibilityState !== "hidden";
+      awaitingNeutralRef.current = true;
+    };
+
+    const syncVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        suspendInput();
+      } else {
+        resumeInput();
+      }
+    };
+
     const poll = () => {
       const current = optionsRef.current;
       const [pad] = readPads();
       if (!pad) {
-        if (wasActiveRef.current) {
-          wasActiveRef.current = false;
-          current.onContribution(null);
-        }
+        awaitingNeutralRef.current = true;
+        releaseContribution();
+        return;
+      }
+      if (!surfaceActive) {
         return;
       }
 
@@ -94,6 +125,13 @@ export function useGamepadInput(options: GamepadInputOptions): GamepadState {
         contribution[binding.component] = (contribution[binding.component] ?? 0) + conditioned;
       }
 
+      if (awaitingNeutralRef.current) {
+        if (!engaged) {
+          awaitingNeutralRef.current = false;
+        }
+        return;
+      }
+
       // Release sends one explicit zero, then goes quiet.
       if (!engaged && !wasActiveRef.current) {
         return;
@@ -105,16 +143,20 @@ export function useGamepadInput(options: GamepadInputOptions): GamepadState {
     syncConnection();
     window.addEventListener("gamepadconnected", syncConnection);
     window.addEventListener("gamepaddisconnected", syncConnection);
+    window.addEventListener("blur", suspendInput);
+    window.addEventListener("focus", resumeInput);
+    document.addEventListener("visibilitychange", syncVisibility);
     const timer = window.setInterval(poll, POLL_MS);
 
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("gamepadconnected", syncConnection);
       window.removeEventListener("gamepaddisconnected", syncConnection);
-      if (wasActiveRef.current) {
-        wasActiveRef.current = false;
-        optionsRef.current.onContribution(null);
-      }
+      window.removeEventListener("blur", suspendInput);
+      window.removeEventListener("focus", resumeInput);
+      document.removeEventListener("visibilitychange", syncVisibility);
+      awaitingNeutralRef.current = true;
+      releaseContribution();
     };
   }, [options.enabled]);
 

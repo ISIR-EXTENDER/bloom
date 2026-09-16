@@ -71,12 +71,27 @@ export class TeleopStreamPump {
     }
   }
 
-  /** End a runtime surface and forget the target that surface established. */
-  reset(): void {
+  /** End a runtime surface with one explicit zero, then forget its target. */
+  suspend(): Promise<void> {
     this.stop();
+    const lastRequest = this.lastRequest;
     this.lastRequest = null;
     this.lastSentAt = 0;
     this.zeroFramesLeft = 0;
+
+    if (lastRequest === null) {
+      return Promise.resolve();
+    }
+
+    return this.send({
+      type: "teleop_cmd",
+      angular: { x: 0, y: 0, z: 0 },
+      ...(lastRequest.frame_id ? { frame_id: lastRequest.frame_id } : {}),
+      linear: { x: 0, y: 0, z: 0 },
+      mode: lastRequest.mode,
+      seq: this.nextSequence(),
+      target: lastRequest.target,
+    }).then(() => undefined);
   }
 
   private tick(): void {

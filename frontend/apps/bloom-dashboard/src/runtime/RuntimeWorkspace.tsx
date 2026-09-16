@@ -106,6 +106,7 @@ export function RuntimeWorkspace({
   const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const { artboardSize } = resolveScreenArtboardLayout(screen);
   const canvasFit = useMemo(
@@ -191,15 +192,15 @@ export function RuntimeWorkspace({
   }, [dataByWidgetId, positionLibrary.state, screen.widgets, screenHasPositionLibrary]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
+  const stopped = runtimeStop.state?.stopped === true;
   const gamepad = useGamepadInput({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
-    enabled: onTeleopContribution !== undefined && !settingsOpen && !tourOpen,
+    enabled: onTeleopContribution !== undefined && !maintenanceOpen && !settingsOpen && !tourOpen && !stopped,
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
   const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings);
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
-  const stopped = runtimeStop.state?.stopped === true;
   const scanning = useSwitchScanning({
     enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !settingsOpen && !tourOpen && !stopped,
     periodMs: runtimeProfile.scanPeriodMs,
@@ -281,14 +282,21 @@ export function RuntimeWorkspace({
       return;
     }
     previousScreenIdRef.current = screen.id;
+    onSuspendTeleop();
     setDataByWidgetId({});
-  }, [screen.id]);
+  }, [onSuspendTeleop, screen.id]);
 
   useEffect(() => {
     if (settingsOpen || tourOpen) {
       onSuspendTeleop();
     }
   }, [onSuspendTeleop, settingsOpen, tourOpen]);
+
+  useEffect(() => {
+    if (stopped) {
+      onSuspendTeleop();
+    }
+  }, [onSuspendTeleop, stopped]);
 
   useEffect(() => {
     if (!onTopicSample) {
@@ -387,6 +395,7 @@ export function RuntimeWorkspace({
         onOpenAppLibrary={onBackToRuntimeHome}
         onOpenHelp={onOpenHelp}
         onOpenLanding={onOpenLanding}
+        onMaintenanceOpenChange={setMaintenanceOpen}
         onOpenSupervisor={onOpenSupervisor}
         language={runtimeProfile.language}
         onLanguageChange={(language) =>
@@ -400,7 +409,11 @@ export function RuntimeWorkspace({
           onSuspendTeleop();
           setTourOpen(true);
         }}
-        onSelectScreen={(screenId) => onSelectionChange({ ...selection, screenId })}
+        onSelectScreen={(screenId) => {
+          onSuspendTeleop();
+          onSelectionChange({ ...selection, screenId });
+        }}
+        onSuspendTeleop={onSuspendTeleop}
         profileName={runtimeProfile.name}
         screen={screen}
         statusChip={statusChip}

@@ -68,7 +68,7 @@ def build_teleop_ack(
             session_id=session_id,
         )
 
-    if rate_limiter is not None:
+    if rate_limiter is not None and not is_zero_teleop_message(message):
         try:
             rate_limiter.ensure_allowed(f"websocket_teleop:{message.target}")
         except RuntimeRateLimitError as exc:
@@ -160,6 +160,20 @@ def to_teleop_command(message: RuntimeTeleopCommandMessage) -> TeleopCommand:
         mode=message.mode,
         seq=message.seq,
         target=message.target,
+    )
+
+
+def is_zero_teleop_message(message: RuntimeTeleopCommandMessage) -> bool:
+    return all(
+        component == 0
+        for component in (
+            message.angular.x,
+            message.angular.y,
+            message.angular.z,
+            message.linear.x,
+            message.linear.y,
+            message.linear.z,
+        )
     )
 
 

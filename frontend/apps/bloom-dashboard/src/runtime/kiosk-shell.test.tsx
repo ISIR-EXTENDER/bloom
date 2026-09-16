@@ -37,6 +37,7 @@ function renderBar(overrides: Partial<Parameters<typeof RuntimeKioskBar>[0]> = {
     onOpenSupervisor: vi.fn(),
     onOpenTour: vi.fn(),
     onLanguageChange: vi.fn(),
+    onSuspendTeleop: vi.fn(),
   };
   render(
     <RuntimeKioskBar
@@ -137,11 +138,12 @@ describe("the maintenance hold", () => {
   });
 
   it("opens after a full 1.5s hold", () => {
-    renderBar();
+    const handlers = renderBar();
 
     hold(1600);
 
     expect(isOpen()).toBe(true);
+    expect(handlers.onSuspendTeleop).toHaveBeenCalledOnce();
   });
 
   it("forgets a cancelled hold instead of resuming it", () => {

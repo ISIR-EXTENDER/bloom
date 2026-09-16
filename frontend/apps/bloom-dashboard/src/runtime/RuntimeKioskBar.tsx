@@ -69,6 +69,8 @@ export type RuntimeKioskBarProps = {
   onOpenSettings: () => void;
   onOpenSupervisor: () => void;
   onOpenTour: () => void;
+  onSuspendTeleop: () => void;
+  onMaintenanceOpenChange?: (open: boolean) => void;
   language?: RuntimeLanguage;
   onLanguageChange: (language: RuntimeLanguage) => void;
 };
@@ -92,12 +94,23 @@ export function RuntimeKioskBar({
   onOpenSettings,
   onOpenSupervisor,
   onOpenTour,
+  onSuspendTeleop,
+  onMaintenanceOpenChange,
   language = "en",
   onLanguageChange,
 }: RuntimeKioskBarProps) {
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
-  const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, () => setMaintenanceOpen(true));
+  const openMaintenance = () => {
+    onSuspendTeleop();
+    setMaintenanceOpen(true);
+    onMaintenanceOpenChange?.(true);
+  };
+  const closeMaintenance = () => {
+    setMaintenanceOpen(false);
+    onMaintenanceOpenChange?.(false);
+  };
+  const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, openMaintenance);
 
   return (
     <>
@@ -153,23 +166,23 @@ export function RuntimeKioskBar({
           application={application}
           fitWarning={fitWarning}
           language={language}
-          onClose={() => setMaintenanceOpen(false)}
+          onClose={closeMaintenance}
           onEditApplication={onEditApplication}
           onEditScreen={onEditScreen}
           onOpenAppLibrary={onOpenAppLibrary}
           onOpenHelp={onOpenHelp}
           onOpenLanding={onOpenLanding}
           onOpenSupervisor={() => {
-            setMaintenanceOpen(false);
+            closeMaintenance();
             onOpenSupervisor();
           }}
           onLanguageChange={onLanguageChange}
           onOpenTour={() => {
-            setMaintenanceOpen(false);
+            closeMaintenance();
             onOpenTour();
           }}
           onOpenSettings={() => {
-            setMaintenanceOpen(false);
+            closeMaintenance();
             onOpenSettings();
           }}
           onSelectScreen={onSelectScreen}

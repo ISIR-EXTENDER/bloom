@@ -411,6 +411,44 @@ def test_runtime_websocket_rejects_rate_limited_teleop_commands() -> None:
     assert record.target == "/teleop_cmd"
 
 
+def test_runtime_websocket_never_rate_limits_an_explicit_zero() -> None:
+    clock = ControlledClock()
+    gateway = RecordingTeleopGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_command_rate_limiter=RuntimeCommandRateLimiter(max_commands_per_second=1, clock=clock),
+            teleop_command_gateway=gateway,
+        )
+    )
+    moving_command = {
+        "type": "teleop_cmd",
+        "mode": 4,
+        "seq": 1,
+        "target": "/teleop_cmd",
+        "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
+        "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+    }
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(moving_command)
+        assert websocket.receive_json()["type"] == "teleop_ack"
+        websocket.send_json(
+            {
+                **moving_command,
+                "seq": 2,
+                "linear": {"x": 0.0, "y": 0.0, "z": 0.0},
+            }
+        )
+        zero_ack = websocket.receive_json()
+
+    assert zero_ack["type"] == "teleop_ack"
+    assert len(gateway.commands) == 2
+    assert gateway.commands[-1].linear.x == 0
+
+
 def test_runtime_audit_endpoint_lists_recent_records() -> None:
     audit_log = InMemoryRuntimeAuditLog()
     audit_log.record(

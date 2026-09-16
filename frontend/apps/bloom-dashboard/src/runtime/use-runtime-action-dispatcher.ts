@@ -35,6 +35,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   // Composition is stateful: the twist sent when the Z slider moves must still
   // carry whatever the translation joystick is currently holding.
   const teleopComposer = useRef(new TeleopTwistComposer());
+  const externalSources = useRef(new Set<string>());
+  const externalSourcesAwaitingNeutral = useRef(new Set<string>());
   const clientRef = useRef(client);
   clientRef.current = client;
   // Keeps the composed twist alive past the manager's 0.2s input timeout.
@@ -52,10 +54,6 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       },
     });
   }
-  useEffect(() => {
-    const pump = teleopPump.current;
-    return () => pump?.stop();
-  }, []);
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
   const [teleopActive, setTeleopActive] = useState(false);
   const syncTeleopActive = useCallback(() => {
@@ -135,6 +133,16 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
    */
   const contributeTeleop = useCallback(
     (sourceId: string, contribution: ComponentContribution | null, commandFrameId = "") => {
+      externalSources.current.add(sourceId);
+      if (externalSourcesAwaitingNeutral.current.has(sourceId)) {
+        if (contribution === null) {
+          externalSourcesAwaitingNeutral.current.delete(sourceId);
+          teleopComposer.current.release(sourceId);
+          syncTeleopActive();
+        }
+        return;
+      }
+
       if (contribution === null) {
         teleopComposer.current.release(sourceId);
       } else {
@@ -151,10 +159,31 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   );
 
   const suspendTeleop = useCallback(() => {
+    for (const sourceId of externalSources.current) {
+      externalSourcesAwaitingNeutral.current.add(sourceId);
+    }
     teleopComposer.current.clear();
-    teleopPump.current?.reset();
+    void teleopPump.current?.suspend().catch(() => undefined);
     syncTeleopActive();
   }, [syncTeleopActive]);
+
+  useEffect(() => {
+    const suspendWhenHidden = () => {
+      if (document.visibilityState === "hidden") {
+        suspendTeleop();
+      }
+    };
+
+    window.addEventListener("blur", suspendTeleop);
+    window.addEventListener("pagehide", suspendTeleop);
+    document.addEventListener("visibilitychange", suspendWhenHidden);
+    return () => {
+      window.removeEventListener("blur", suspendTeleop);
+      window.removeEventListener("pagehide", suspendTeleop);
+      document.removeEventListener("visibilitychange", suspendWhenHidden);
+      suspendTeleop();
+    };
+  }, [suspendTeleop]);
 
   return { contributeTeleop, dispatch, records, subscribeTopic, suspendTeleop, teleopActive };
 }

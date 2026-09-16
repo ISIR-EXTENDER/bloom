@@ -1,0 +1,72 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { act, cleanup, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { RuntimeActionClient, RuntimeTeleopCommandRequest } from "./runtime-action-dispatcher";
+import { useRuntimeActionDispatcher } from "./use-runtime-action-dispatcher";
+
+describe("runtime teleop suspension", () => {
+  let sent: RuntimeTeleopCommandRequest[];
+  let client: RuntimeActionClient;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    sent = [];
+    client = {
+      publishRosTopic: vi.fn(),
+      sendTeleopCommand: vi.fn(async (request) => {
+        sent.push(request);
+        return {
+          type: "teleop_ack" as const,
+          detail: "Accepted.",
+          payload: { ...request, status: "accepted" as const },
+        };
+      }),
+    };
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  it("sends a final zero and requires an external source to return neutral", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+
+    act(() => result.current.contributeTeleop("gamepad", { linear_x: 0.7 }, "base_link"));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(sent.at(-1)?.linear.x).toBe(0.7);
+
+    act(() => result.current.suspendTeleop());
+    expect(sent.at(-1)).toMatchObject({
+      angular: { x: 0, y: 0, z: 0 },
+      frame_id: "base_link",
+      linear: { x: 0, y: 0, z: 0 },
+    });
+    const countAfterSuspend = sent.length;
+
+    act(() => result.current.contributeTeleop("gamepad", { linear_x: 0.7 }, "base_link"));
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    expect(sent).toHaveLength(countAfterSuspend);
+
+    act(() => result.current.contributeTeleop("gamepad", null, "base_link"));
+    act(() => result.current.contributeTeleop("gamepad", { linear_x: 0.7 }, "base_link"));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(sent.at(-1)?.linear.x).toBe(0.7);
+  });
+
+  it("suspends immediately when the operating window loses focus", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    act(() => result.current.contributeTeleop("gamepad", { angular_z: 0.5 }));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+
+    act(() => window.dispatchEvent(new Event("blur")));
+
+    expect(sent.at(-1)).toMatchObject({
+      angular: { x: 0, y: 0, z: 0 },
+      linear: { x: 0, y: 0, z: 0 },
+    });
+  });
+});

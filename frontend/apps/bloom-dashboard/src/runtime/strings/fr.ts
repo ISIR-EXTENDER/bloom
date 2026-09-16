@@ -80,7 +80,8 @@ export const frRuntimeStrings: RuntimeStrings = {
     home: "Accueil",
     maintenance: "Maintenance",
     maintenanceAria: "Maintenir pour ouvrir la maintenance",
-    maintenanceHelp: "Maintenu 1,5 s. Le robot conserve le dernier état commandé pendant l'ouverture.",
+    maintenanceHelp:
+      "Le mouvement est arrêté pendant l'ouverture de la maintenance. Remettez les commandes au neutre avant de reprendre.",
     referenceFrameTitle: "Repère des commandes opérateur",
     robotTitle: "Robot piloté par ce serveur",
     settings: "Réglages",

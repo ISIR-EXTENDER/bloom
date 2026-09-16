@@ -81,6 +81,7 @@ export function App({
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}:${supervisorTarget?.configId ?? ""}:${supervisorTarget?.appId ?? ""}`;
   const isRuntimeSessionView = activeView === "runtime" && runtimeMode !== "home";
+  const isRuntimeOperationView = activeView === "runtime" && runtimeMode === "app";
   const activeTheme =
     configurationState.status === "ready" && selection
       ? resolveThemePreset(
@@ -136,6 +137,12 @@ export function App({
     saveRuntimeUserPreferences(runtimeUserPreferences);
   }, [runtimeUserPreferences]);
 
+  useEffect(() => {
+    if (!isRuntimeOperationView) {
+      runtimeActions.suspendTeleop();
+    }
+  }, [isRuntimeOperationView, runtimeActions.suspendTeleop]);
+
   const handleRuntimeIntent = (
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
@@ -171,6 +178,7 @@ export function App({
       return false;
     }
 
+    runtimeActions.suspendTeleop();
     setSelection({ ...selection, screenId: targetScreen.id });
     return true;
   };
@@ -331,6 +339,9 @@ export function App({
   }
 
   function navigateToRoute(route: BloomRoute) {
+    if (isRuntimeOperationView && !(route.activeView === "runtime" && route.runtimeMode === "app")) {
+      runtimeActions.suspendTeleop();
+    }
     applyRoute(route);
 
     if (typeof window === "undefined") {

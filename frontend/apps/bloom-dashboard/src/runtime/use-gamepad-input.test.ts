@@ -1,6 +1,10 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyScaledDeadZone, contributionFromAxisMap } from "./teleop-composition";
-import { DEFAULT_GAMEPAD_AXIS_MAP } from "./use-gamepad-input";
+import { DEFAULT_GAMEPAD_AXIS_MAP, useGamepadInput } from "./use-gamepad-input";
 
 /**
  * The mapping itself, tested without a DOM: the hook is a poll loop around it.
@@ -53,5 +57,65 @@ describe("the default gamepad mapping", () => {
     );
 
     expect(contribution).toEqual({ linear_x: 0.5, linear_y: -0.5 });
+  });
+});
+
+describe("gamepad neutral re-arm", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+    Reflect.deleteProperty(navigator, "getGamepads");
+  });
+
+  it("ignores a held stick until it has returned to neutral", async () => {
+    const axes = [0.8, 0, 0, 0];
+    const pad = { axes, id: "Adaptive controller" } as unknown as Gamepad;
+    Object.defineProperty(navigator, "getGamepads", {
+      configurable: true,
+      value: vi.fn(() => [pad]),
+    });
+    const onContribution = vi.fn();
+
+    renderHook(() => useGamepadInput({ deadzone: 0, enabled: true, onContribution }));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(onContribution).not.toHaveBeenCalled();
+
+    axes[0] = 0;
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(onContribution).not.toHaveBeenCalled();
+
+    axes[0] = 0.8;
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(onContribution).toHaveBeenLastCalledWith(expect.objectContaining({ linear_x: 0.8 }));
+  });
+
+  it("requires neutral again after input is suspended", async () => {
+    const axes = [0, 0, 0, 0];
+    const pad = { axes, id: "Adaptive controller" } as unknown as Gamepad;
+    Object.defineProperty(navigator, "getGamepads", {
+      configurable: true,
+      value: vi.fn(() => [pad]),
+    });
+    const onContribution = vi.fn();
+    const { rerender } = renderHook(({ enabled }) => useGamepadInput({ deadzone: 0, enabled, onContribution }), {
+      initialProps: { enabled: true },
+    });
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    axes[0] = 0.8;
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(onContribution).toHaveBeenCalled();
+
+    rerender({ enabled: false });
+    onContribution.mockClear();
+    rerender({ enabled: true });
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(onContribution).not.toHaveBeenCalled();
+
+    axes[0] = 0;
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    axes[0] = 0.8;
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(onContribution).toHaveBeenLastCalledWith(expect.objectContaining({ linear_x: 0.8 }));
   });
 });

@@ -1574,6 +1574,47 @@ describe("App", () => {
     );
   });
 
+  it("sends a final zero before maintenance covers a held motion control", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            sandbox: sandboxTeleopLabConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["sandbox"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox runtime" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+
+    const joystickZone = getRuntimeJoystickZone();
+    fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(joystickZone, { clientX: 190, clientY: 150, pointerId: 1 });
+    await waitFor(() =>
+      expect(
+        (runtimeActionClient.sendTeleopCommand as ReturnType<typeof vi.fn>).mock.calls.some(
+          ([request]) => request.linear.x !== 0,
+        ),
+      ).toBe(true),
+    );
+
+    openRuntimeMenu();
+
+    expect(screen.getByRole("dialog", { name: "Maintenance" })).toBeVisible();
+    expect(runtimeActionClient.sendTeleopCommand).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        angular: { x: 0, y: 0, z: 0 },
+        linear: { x: 0, y: 0, z: 0 },
+      }),
+    );
+  });
+
   it("opens the Sandbox V0.0 runtime screens imported from Extender UI", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     render(

@@ -147,18 +147,25 @@ describe("the teleop stream pump", () => {
     expect(sent).toHaveLength(0);
   });
 
-  it("resets without a zero tail when the operating surface is suspended", async () => {
+  it("sends a final zero before the operating surface is suspended", async () => {
     composer.contribute("drive-z", { linear_z: 0.5 });
     const pump = createPump();
-    pump.noteDispatched(widgetRequest(), "sent");
+    pump.noteDispatched(widgetRequest({ frame_id: "base_link", mode: 2 }), "sent");
     await vi.advanceTimersByTimeAsync(60);
     const sentBeforeReset = sent.length;
 
     composer.clear();
-    pump.reset();
+    await pump.suspend();
     await vi.advanceTimersByTimeAsync(1000);
 
-    expect(sent).toHaveLength(sentBeforeReset);
+    expect(sent).toHaveLength(sentBeforeReset + 1);
+    expect(sent.at(-1)).toMatchObject({
+      angular: { x: 0, y: 0, z: 0 },
+      frame_id: "base_link",
+      linear: { x: 0, y: 0, z: 0 },
+      mode: 2,
+      target: "/joystick_cartesian_command",
+    });
   });
 });
 

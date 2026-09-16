@@ -80,7 +80,8 @@ export const esRuntimeStrings: RuntimeStrings = {
     home: "Inicio",
     maintenance: "Mantenimiento",
     maintenanceAria: "Mantener para abrir mantenimiento",
-    maintenanceHelp: "Pulsado 1,5 s. El robot conserva el último estado ordenado mientras está abierto.",
+    maintenanceHelp:
+      "El movimiento se detiene mientras el mantenimiento está abierto. Devuelve los controles a posición neutra antes de reanudar.",
     referenceFrameTitle: "Marco de referencia de los comandos",
     robotTitle: "Robot controlado por este servidor",
     settings: "Ajustes",
