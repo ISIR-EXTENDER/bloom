@@ -214,8 +214,9 @@ Current review finding:
 - App configuration is included in visual smoke coverage because it is a primary workflow, not an internal admin page.
 - `1024x600` is still a constrained interaction target: controls are visible, but truly comfortable robot operation
   should prefer app display profiles or adapted screens.
-- Bloom should keep WYSIWYG geometry as the source of truth, but add app/display presets so runtime can choose
-  tablet, comfortable, or high-visibility layouts without pretending one layout fits every deployment context.
+- Bloom keeps WYSIWYG geometry as the source of truth and applies app display profiles for compact, comfort, or
+  high-visibility presentation. The builder reports a selected widget's effective size on the `1024x600` panel; live
+  hardware review is still required because a fit canvas can reduce authored geometry.
 
 Design implication:
 
@@ -278,14 +279,19 @@ Rules:
 
 - Runtime apps should be full-view operator apps.
 - No builder chrome, inspector controls, or edit metadata should appear in runtime.
-- Runtime navigation should first let users choose an app, then keep small edit shortcuts for the current app/screen.
+- Runtime navigation should first let users choose an app. Once operating, app/screen editing, screen switching,
+  diagnostics, Help, and exit actions stay behind the 1.5 second maintenance hold.
 - Recently used runtime apps may be shown as shortcuts, but should not hide the full app library.
 - Widgets should hide debug details by default when a clean operator interaction is preferable.
 - Debug/detail visibility should be configurable per widget.
 - Joysticks and sliders should preserve the interaction design validated in legacy Extender UI, while adopting Bloom
   colors and accessibility states.
-- Regular runtime apps should use a two-row workspace layout: topbar plus artboard. Bloom Debug can opt into an
-  additional debug row, but that row must not be reserved for normal operator apps.
+- Regular runtime apps use one 44 px kiosk bar plus the artboard and fixed STOP. The bar contains only app, truthful
+  state, configured robot/frame/gamepad context, active profile, and maintenance entry.
+- STOP is runtime chrome, not a movable widget. Press stops immediately; resuming requires a one-second hold.
+- Bloom Debug may opt into an additional debug row, but that row must not be reserved for normal operator apps.
+- Direction labels use operator words on the control. Axis names, topics, and frame identifiers remain configuration or
+  diagnostics except for the single effective frame shown in the kiosk bar.
 
 ## Status Surfaces
 
@@ -332,7 +338,7 @@ It documents current reusable primitives and the rule for promotion:
 
 ## Current Critique
 
-Things that are good enough for Phase 2:
+Current strengths:
 
 - token architecture is in place;
 - app-level theme presets exist;
@@ -344,7 +350,7 @@ Things that are good enough for Phase 2:
 - visible UI is coherent with the Bloom mood board;
 - touch target defaults are documented;
 - app configuration and screen library now use color for grouping and comprehension.
-- runtime now has an app library, recent shortcuts, and small edit bridges back to builder.
+- runtime has an app library, recent shortcuts, and a kiosk surface with editing/navigation behind maintenance.
 
 Things to improve before a public release:
 
@@ -353,6 +359,7 @@ Things to improve before a public release:
 - Add app-theme authoring guardrails so user palettes keep contrast.
 - Continue promoting repeated dashboard card/action styles into reusable `@bloom/ui` primitives.
 - Add more component examples as the primitive set grows.
+- Add whole-screen physical target checks for fit-scaled operator canvases and all maintained tablet geometries.
 
 ## Contribution Rules
 

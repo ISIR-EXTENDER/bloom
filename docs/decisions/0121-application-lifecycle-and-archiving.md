@@ -31,8 +31,8 @@ Archiving changes four things:
 - The coherence check reports it as archived and still validates it against its
   own declared policy. Archiving means it keeps working, not that it stops being
   checked.
-- Release notes and the migration plan can stop treating its completion
-  percentage as a gap to close.
+- Release notes and the current UX handoff can stop treating its completion as a
+  percentage gap to close.
 
 ## Rationale
 
@@ -58,5 +58,5 @@ way would hide a live app from its operator.
 ## What archiving does not mean
 
 It is not a retirement gate. `docs/legacy-retirement-gates.md` still governs when
-something may be removed, and Petanque's gate is unchanged: live operator
-validation of the replacement first.
+something may be removed. Petanque still needs an explicit maintain, validate,
+or retire decision before its legacy command path can disappear.

@@ -1,5 +1,10 @@
 # Partner Interface Review
 
+Status: historical source review, updated with a current disposition on 2026-09-16. Bloom is the active Extender IHM;
+`extender_ui` is legacy. The comparison table preserves the state that motivated the review and is not a current feature
+matrix. Current behavior is in [operator-runtime.md](operator-runtime.md), and open work is in
+[ux-design-handoff.md](ux-design-handoff.md).
+
 This review compares the Inria/AUCTUS `extender-interface` prototype with Bloom,
 `extender_ui`, and `tablet_interface`.
 
@@ -179,7 +184,7 @@ The partner repo is useful, but several choices should not become Bloom defaults
 - Mode-aware joystick contract: implemented in the widget foundation.
 - Runtime action progress/cancel contracts: implemented as generic command
   action metadata and lifecycle event types; live adapters remain future work.
-- Explorer user-test app plan: captured in the migration roadmap.
+- Explorer user-test follow-up: captured in the current [UX design handoff](ux-design-handoff.md).
 - Display/profile/accessibility track: implemented as profile-ready app model;
   UI profile selection remains future work.
 - 3D robot visualization: reserved as optional `robot-3d` widget family or app
@@ -216,17 +221,18 @@ This should be an app-level integration, not a generic Bloom rewrite.
 
 ## Relationship With Existing ISIR Work
 
-`extender_ui` remains the source of truth for user-tested slider and joystick
-ergonomics. `tablet_interface` remains the source of truth for backend ROS
-runtime patterns, typed message publishing, and WebSocket state.
+`extender_ui` remains historical evidence for user-tested slider and joystick
+ergonomics, not the current IHM or source of product truth. `tablet_interface`
+remains a parity reference for backend ROS runtime patterns, typed message
+publishing, and WebSocket state.
 
 `extender-interface` adds an Explorer-specific UX scenario that we can use to
 build a more complete Extender test app in Bloom.
 
-The migration priority becomes:
+The resulting product direction is:
 
 1. Keep Bloom's generic app/screen/widget/backend foundations.
-2. Preserve user-tested controls from `extender_ui`.
+2. Preserve proven control behavior from legacy `extender_ui` without adding new product work there.
 3. Preserve backend ROS safety boundaries from `tablet_interface`.
 4. Add Explorer-specific flows from `extender-interface` as an app/extension.
 
@@ -236,15 +242,15 @@ The migration priority becomes:
   bridge as separate runtime adapters?
 - Should Explorer user tests live in the same Extender project as Petanque and
   Sandbox, or in its own project once Bloom has project/workspace support?
-- Should user profiles be part of Phase 2 storage normalization, or a Phase 6
-  multi-project extension?
+- Which additional user profiles should ship in shared app seeds after live testing?
 - Which control mode mapping is final for B1-B4, especially B2?
 
 ## Recommendation
 
-Keep evolving the `Explorer User Tests` fixture into a real Bloom app/extension.
-Start with non-ROS fixture/demo validation, then connect runtime behavior through
-backend adapters.
+Use the shipped Explorer/Kinova Manager apps for current operator experiments and
+keep `Explorer User Tests` as the broader task/profile fixture. Connect or extend
+Explorer-specific behavior through app configuration and backend adapters, not a
+generic-core rewrite.
 
 That gives us the best of both worlds: their good Explorer UX work becomes a
 real Bloom app, while Bloom stays generic, tested, and reusable for ISIR projects

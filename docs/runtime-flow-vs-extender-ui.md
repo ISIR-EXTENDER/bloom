@@ -1,10 +1,11 @@
 # Bloom Runtime Flow Compared To `extender_ui`
 
-Last updated: 2026-07-10.
+Last updated: 2026-09-16.
 
 ## Summary
 
-Bloom now keeps the `extender_ui` operator contract where it matters for robots:
+Bloom is the active Extender IHM; `extender_ui` is legacy reference/rollback software. Bloom keeps the proven legacy
+operator contract where it matters for robots:
 stable command names, normalized joystick vectors, explicit ROS topics, and JSON
 migration fixtures. The implementation flow is different on purpose:
 
@@ -14,8 +15,8 @@ migration fixtures. The implementation flow is different on purpose:
   them in SQLite or JSON storage, and routes robot commands through backend
   runtime adapters.
 
-The goal is to let migrated screens keep their robot behavior while moving
-security, persistence, and ROS compatibility into testable backend boundaries.
+The resulting product keeps imported screens compatible while moving security, persistence, input composition, and ROS
+compatibility into testable boundaries owned by Bloom.
 
 ## Save And Load Flow
 
@@ -33,6 +34,9 @@ In Bloom:
    when available, with the bundle JSON as the migration/export fallback.
 6. The runtime app library opens the saved app and screen from the same backend
    API contract.
+7. Runtime presents the app as a kiosk. Editing, screen switching, diagnostics,
+   and product navigation require the maintenance hold rather than sharing the
+   primary operating surface.
 
 In `extender_ui`, the comparable flow is closer to direct JSON/layout sync.
 That is useful for rollback and migration fixtures, but Bloom avoids making the
@@ -82,6 +86,10 @@ Bloom preserves the details that robot controllers observe:
 - joystick values stay normalized to the legacy unit-disk contract;
 - teleop commands use the runtime WebSocket `teleop_cmd` contract and publish to
   configured targets such as `/joystick_cartesian_command`;
+- several widgets and a physical gamepad compose one complete 6-DoF twist, with
+  per-axis scaled dead zones and release-to-zero behavior;
+- one app-level Cartesian command frame stamps every virtual/gamepad
+  contribution and is checked against the backend deployment allowlist;
 - sliders and toggles publish explicit app-configured ROS message types and
   payload fields;
 - Explorer deploy/repli, saved pose replay, favorite mode/layout/position,
@@ -92,6 +100,9 @@ Bloom preserves the details that robot controllers observe:
 The split from `extender_ui` is that ROS transport lives behind backend adapters.
 The frontend owns operator interaction, widget rendering, and saved command
 identity; the backend owns ROS process access, policy, rate limiting, and audit.
+
+The current operating behavior, including STOP, profiles, the known scan/dwell
+limitations, gamepad, and frame selection, is in [operator-runtime.md](operator-runtime.md).
 
 ## Rosbag Gateway Operating Procedure
 

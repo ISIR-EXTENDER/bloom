@@ -1,14 +1,19 @@
 # Extender And Petanque End-To-End Validation
 
-Bloom can only replace legacy workflows after the complete operator pipeline is validated with real configurations,
-runtime adapters, and user-facing behavior. This document is the Phase 5 validation protocol.
+Bloom is the active Extender IHM. This document validates its complete operator pipeline with real configurations,
+runtime adapters, target devices, and robot behavior. `extender_ui` remains a legacy reference/rollback while this live
+evidence is completed.
 
 ## Validation Status
 
-Status: in progress.
+Status: in progress for live hardware/operator acceptance.
 
-Current result: Bloom is ready for structured Extender/Petanque validation, but the legacy repos should not be marked
-legacy yet. The remaining decision needs a real operator pass on the target tablet and robot/simulation stack.
+Current result: repository, browser, contract, and manager bench gates pass. Bloom is the current IHM, but the remaining
+claims in this document still need operator passes on the target tablet and robot/simulation stack. No unrun live check
+is implied by the product designation.
+
+Latest kiosk/input/frame record:
+[2026-09-16 kiosk, accessible input, and command frame](validation/2026-09-16-kiosk-accessible-input-and-command-frame.md).
 
 Latest lab-entry record:
 [2026-07-10 Extender lab preflight](validation/2026-07-10-extender-lab-preflight.md).
@@ -34,24 +39,30 @@ Latest frontend/backend coherence record:
 - Bloom `main` is up to date.
 - Validation configurations are present for `sandbox`, `bloom-debug`, and `petanque-admin`. Run
   `npm run validation:extender` to seed/check the local backend configuration directory from tracked fixtures.
-- Phase 5 security checks pass:
+- Security checks pass:
   `npm run audit:security` and `npm run security:dynamic`.
 - The target tablet mapping is documented and, if needed, applied through `scripts/extender-tablet-touch-map.sh`.
-- Legacy `extender_ui` and `tablet_interface` remain available as rollback paths.
+- Legacy `extender_ui` and the relevant `tablet_interface` path remain available for comparison/emergency rollback during
+  the acceptance window.
 
-## Pending Acceptance Checks
+## Pending Live Acceptance Checks
 
-These checks are still pending before any legacy retirement notice:
+These checks are pending before Bloom's current robot-facing claims can be called live accepted and before legacy
+fallbacks can be made unavailable:
 
 - Sandbox teleop lab: real operator pass on the target tablet against the sandbox simulation.
 - Sandbox motion path: confirm `/joystick_cartesian_command` reaches `/cartesian_command` and visible robot motion.
 - Sandbox scalar controls: confirm slider publishes are stable and audited during the same live session.
 - Bloom Debug: confirm topic catalog, preflight statuses, topic echo/plot subscriptions, recording controls, and audit
   refresh against live ROS topics.
-- Petanque candidate: confirm runtime app launch, teleop, camera/stream behavior, state-machine commands, gesture
-  controls, and backend/app policy allowlists against the Petanque stack.
+- Archived Petanque app, only if the workflow remains required: confirm runtime launch, teleop, camera/stream behavior,
+  state-machine commands, gesture controls, and backend/app policy allowlists against the Petanque stack.
 - Security/deployment: rerun dependency and dynamic security checks with the staging/shared-lab environment variables.
-- Tablet UX: confirm `1024x600` and configured HD operation on the target tablet hardware or accepted equivalent.
+- Tablet UX: confirm `1024x600`, `1280x720`, and the `1820x720` logical workspace on target hardware.
+- Kiosk and STOP: confirm status/frame/profile readability, the 1.5 second maintenance hold, backend stop latching across
+  clients, and the one-second resume hold against the real controller chain.
+- Accessible input: validate each intended touch, keyboard, step, latch, scan, dwell, gamepad, and audio profile with
+  the actual device and operator.
 
 The browser-only smoke checks below can support the PR, but they do not replace the live operator pass.
 
@@ -131,8 +142,12 @@ npm run validation:petanque-parity
 
 4. Open the Bloom runtime app library and validate:
 
-   - `Sandbox teleop lab` opens without builder chrome.
-   - Translation and rotation joystick gestures publish `/joystick_cartesian_command`.
+   - Explorer Manager or Kinova Manager opens as a kiosk without product or builder chrome.
+   - The bar names the expected app, robot, effective command frame, profile, and link state.
+   - Translation/rotation joysticks and Height/Pivot sliders compose all six axes on
+     `/joystick_cartesian_command` and return to zero on release.
+   - Neutral, Jaco, momentary Snake, gripper open/close, and speed limits publish their configured values.
+   - STOP latches in the backend and resume requires a one-second hold.
    - Bloom Debug or `GET /api/v1/ros/topics/status` shows publishers/subscribers for
      `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`.
    - Robot motion is visible in RViz/Gazebo.
@@ -172,6 +187,10 @@ echo $BLOOM_ROS_COMMAND_FRAME_ID
 echo $BLOOM_ALLOWED_COMMAND_FRAME_IDS
 ```
 
+Also confirm the selected app's **Builder > App configuration > Adapter guardrails > Cartesian command frame** and the
+value shown in the kiosk bar. The app value takes precedence over `BLOOM_ROS_COMMAND_FRAME_ID` for every virtual and
+gamepad contribution. Bloom rejects a non-empty frame outside the deployment allowlist.
+
 ### Check the mode is understood
 
 An unparseable mode string is dropped by the manager without feedback. Bloom validates before publishing, so an invalid
@@ -202,9 +221,11 @@ Validate against the legacy Petanque flow before marking the Petanque UI path as
 
 On the HMTECH tablet or equivalent target viewport:
 
-- Main runtime controls remain visible at `1024x600` and configured `1920x1080`.
-- Touch targets are large enough for joystick, slider, command, runtime navigation, and debug controls.
-- Runtime is operator-clean by default; debug details stay hidden unless explicitly needed.
+- Main runtime controls remain visible at `1024x600`, `1280x720`, `1820x720`, and maintained desktop smoke viewports.
+- Touch targets are large enough on glass for joystick, slider, command, STOP, and maintenance controls.
+- Runtime is a kiosk by default; debug and editing actions stay behind the maintenance hold.
+- The fixed STOP does not overlap app controls, and app controls do not overlap each other.
+- The effective robot/frame/profile state remains readable without stealing the control area.
 - Browser back/forward affordances do not create blank pages.
 - Backend/robot status indicators are readable without becoming alarm-noisy.
 
@@ -222,6 +243,7 @@ Use this table during validation sessions.
 
 | Date | Environment | App | Result | Notes | Validator |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-16 | Repository/CI contracts | Bloom kiosk, Manager virtual IHM, accessible inputs, app command frame | Accepted at repository level | Kiosk, STOP, 6-DoF composition, input modes, seed bounds, frame persistence/policy, full suites, and visual smoke passed; target hardware/operator acceptance remains pending. See [record](validation/2026-09-16-kiosk-accessible-input-and-command-frame.md). | Codex |
 | 2026-06-29 | Local repo preflight | Sandbox teleop lab, Bloom Debug, Petanque admin | Pending live validation | Added `npm run validation:extender` fixture/config preflight; does not prove ROS motion or operator acceptance. | Codex |
 | 2026-07-10 | Local Extender lab preflight | Sandbox V0.0, Bloom Debug, Petanque admin | Accepted for lab entry | Preflight passed, setup file found, validation configs present, and required ROS packages discovered. See [record](validation/2026-07-10-extender-lab-preflight.md). | Codex |
 | 2026-07-10 | Fixture/runtime contract | Sandbox V0.0 | Accepted for fixture/runtime contract | Added `npm run validation:sandbox-runtime` for controls, topics, message types, monitor topics, and app policy. See [record](validation/2026-07-10-sandbox-runtime-contract.md). | Codex |
@@ -231,14 +253,14 @@ Use this table during validation sessions.
 | 2026-07-10 | Repo contract | Runtime fixtures and backend policy | Accepted for tracked fixture/backend contract | Added `npm run validation:frontend-backend`; it caught and fixed stale Explorer seeded config plus missing backend publish/recording allowlist entries. See [record](validation/2026-07-10-frontend-backend-coherence.md). | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
-| _pending_ | Petanque stack | Petanque candidate | Pending | Needs live stack/operator pass after the accepted fixture contract. | _pending_ |
+| _pending_ | Petanque stack | Archived Petanque app, if retained | Pending | Needs a live stack/operator pass only if the workflow remains supported. | _pending_ |
 
-## Exit Criteria
+## Exit Criteria For Removing Legacy Fallbacks
 
-Bloom can move toward legacy retirement only when:
+Bloom is already the active IHM and `extender_ui` is legacy. A fallback can be archived or made unavailable only when:
 
 - all required app workflows are accepted by the relevant users;
 - rollback to legacy paths is documented;
 - deployment/security settings are documented for the target environment;
 - no high-severity UX issue blocks tablet operation;
-- the team agrees which legacy packages are only legacy and which still own low-level behavior.
+- the team agrees which legacy repositories may be archived and which packages still own active low-level behavior.

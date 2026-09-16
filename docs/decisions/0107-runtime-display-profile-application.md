@@ -25,3 +25,15 @@ Runtime now resolves an active display profile from the app profile list and vie
   layouts.
 - A later explicit user/profile selector can reuse the same resolver and CSS hooks.
 - Visual smoke checks remain important because profile effects are intentionally presentation-level.
+
+## 2026-09-16 Amendment
+
+Runtime now prefers the locally saved profile id before viewport matching. A
+profile also drives motor/input behavior (`step`, `latch`, `scan`, `dwell`,
+large/assisted targets), audio cues, per-axis dead zone, repeat guard, scan
+period, and dwell duration. Browser `prefers-reduced-motion` is honored, but the
+matching profile value is not wired independently yet. Shared seeds demonstrate
+only part of that matrix; an app still needs explicit layout and hardware
+validation for each profile it claims. The current scanner advances focus and
+clicks targets, but clicking a joystick pad emits no direction; single-switch
+teleop remains open, and scan/dwell are mutually exclusive presets today.

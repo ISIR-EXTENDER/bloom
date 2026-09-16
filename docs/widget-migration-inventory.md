@@ -1,8 +1,8 @@
 # Widget Migration Inventory
 
-This inventory reviews reusable UI ideas from `extender_ui` before migrating more Bloom widget foundations.
+Status: historical classification reference. Bloom is now the active IHM and `extender_ui` is legacy.
 
-Roadmap ownership lives in `docs/migration-plan.md`.
+Current open work lives in [the UX design handoff](ux-design-handoff.md).
 
 Use this file as an inventory and classification reference only. Do not maintain ordered next steps here.
 
@@ -52,8 +52,8 @@ The widget UI can still be generic while the runtime adapter is app-specific.
 
 ## Foundation Priorities
 
-These priorities explain why a widget family matters. The current implementation order is tracked in
-`docs/migration-plan.md#ordered-next-steps`.
+These priorities explain why a widget family mattered during foundation work. They are not the current implementation
+order; use [the UX design handoff](ux-design-handoff.md) for remaining work.
 
 1. **Control primitives**
    - Interactive slider using `@radix-ui/react-slider`.
@@ -93,7 +93,8 @@ These priorities explain why a widget family matters. The current implementation
 ## Dependency Notes From `extender_ui`
 
 - `@radix-ui/react-slider` worked well for slider primitives.
-- `nipplejs` worked well for tactile joystick control.
+- `nipplejs` was a useful legacy reference, but Bloom replaced it with pointer-native controls after scaled-runtime
+  tests exposed drift and zero-vector failure risks.
 - `recharts` worked well for legacy plots, but Bloom starts with a first-party SVG sparkline to keep the foundation small.
 - Streams should stay first-party React/browser components around `<video>`, `<img>`, `<iframe>`, and `getUserMedia`.
 - `zustand` worked for local UI state, but Bloom should introduce global state only when the builder/runtime needs it.

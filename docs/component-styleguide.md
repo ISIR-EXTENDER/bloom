@@ -37,7 +37,8 @@ Use for:
 - main dashboard navigation;
 - top-level product sections.
 
-Avoid using it inside a runtime app screen. Runtime screens should stay app-specific and chrome-free.
+Avoid using it inside a runtime app screen. Runtime uses its dedicated kiosk bar; product navigation stays outside the
+operating surface.
 
 ### `BloomButton`
 
@@ -95,7 +96,7 @@ Do not use tags as the only state signal for safety-critical information.
 - Compact: dense builder lists and inspectors.
 - Tablet: default app configuration and screen library.
 - Comfortable: runtime controls, joystick/slider screens.
-- High-visibility: future sunlight/gloves/accessibility mode.
+- High-visibility: available sunlight/gloves/motor-accessibility presentation; each app still needs layout validation.
 
 ## Visual QA
 
@@ -111,5 +112,6 @@ This validates landing, builder, and runtime at:
 - `1280x800`;
 - `1920x1080`.
 
-The smoke test detects page-level horizontal overflow and captures screenshots in `/tmp/bloom-visual-smoke`.
-
+The smoke test detects page-level horizontal overflow and captures the current route matrix in
+`/tmp/bloom-visual-smoke`. Physical target size, touch mapping, and assistive-device behavior still require hardware
+checks.

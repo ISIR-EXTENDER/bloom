@@ -1,5 +1,5 @@
-export const BLOOM_HELP_LAST_UPDATED = "2026-06-04";
-export const BLOOM_CODE_REFERENCE_DATE = "2026-06-04";
+export const BLOOM_HELP_LAST_UPDATED = "2026-09-16";
+export const BLOOM_CODE_REFERENCE_DATE = "2026-09-16";
 
 export const bloomCapabilities = [
   {
@@ -12,9 +12,9 @@ export const bloomCapabilities = [
       "Open the WYSIWYG screen builder to place, resize, inspect, and configure widgets on a tablet-sized canvas.",
   },
   {
-    title: "Run the same screen model",
+    title: "Operate through a kiosk",
     description:
-      "Runtime uses the same screen and widget layout as the builder, but without editor chrome or configuration tools.",
+      "Runtime uses the builder's screen model with a fixed STOP and truthful status; navigation and editing stay behind the Maintenance hold.",
   },
   {
     title: "Reuse screens across apps",
@@ -25,6 +25,11 @@ export const bloomCapabilities = [
     title: "Keep robot protocols behind adapters",
     description:
       "Widgets emit generic runtime intents. ROS topics, teleop commands, debug streams, and future non-ROS systems live behind backend adapters.",
+  },
+  {
+    title: "Choose how controls are operated",
+    description:
+      "Profiles can adapt target size, keyboard/touch behavior, step, latch, dwell, gamepad input, dead-zone conditioning, repeat guards, and audio cues.",
   },
 ];
 
@@ -37,7 +42,7 @@ export const getStartedSteps = [
   {
     title: "2. Configure an app",
     description:
-      "Open an app card to edit name, description, theme palette, moodboard/reference, and the screens that belong to the app.",
+      "Open an app card to edit identity, theme, profiles, runtime guardrails, the shared Cartesian command frame, and the screens that belong to the app.",
   },
   {
     title: "3. Compose the app flow",
@@ -50,12 +55,17 @@ export const getStartedSteps = [
       "Open the full-page builder. Add widgets from the palette, move or resize them, and use the inspector for widget-specific settings.",
   },
   {
-    title: "5. Preview runtime",
+    title: "5. Launch runtime",
     description:
-      "Open runtime from an app, a screen library card, or the playground. Runtime hides builder controls so it behaves like the real operator app.",
+      "Open Runtime, choose the app, and verify its app, robot, link, command frame, and profile in the kiosk bar before moving a control.",
   },
   {
-    title: "6. Debug before deployment",
+    title: "6. Check operation",
+    description:
+      "Confirm STOP and held resume, zero on release, the Maintenance hold, and every touch, keyboard, gamepad, or accessibility profile the session will use.",
+  },
+  {
+    title: "7. Debug before deployment",
     description:
       "Use Bloom Debug and playground screens to inspect topics, validate widget behavior, and check robot-facing bindings before a real user test.",
   },

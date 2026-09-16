@@ -19,9 +19,10 @@ uv sync
 make test              # backend suite
 ```
 
-Expected at the time of writing: backend 186 tests, frontend 279 across five
-workspaces, Biome clean, audits clean apart from one low `esbuild` advisory that
-affects the Windows dev server only.
+Do not pin suite totals here; they change whenever coverage improves. The gate is
+that the complete current backend and frontend suites run without skipped release
+work, Biome is clean, the production build succeeds, and dependency audits meet
+the configured severity threshold.
 
 ## 2. Contract validation
 
@@ -53,6 +54,9 @@ Anything marked `edited` or `local` is unpublished. Share it with
 npm run visual:smoke
 npm run capture:readme   # only when the README previews should change
 ```
+
+For runtime changes, inspect the kiosk bar, fixed STOP, maintenance overlay, effective command frame, and control bounds
+at every maintained viewport. A browser capture is layout evidence, not target-tablet acceptance.
 
 ## 4. Security posture
 
@@ -98,6 +102,14 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       a valid mode request is accepted, an invalid one returns 422 and is
       audited. The procedure is in
       [extender-petanque-validation.md](extender-petanque-validation.md).
+- [ ] The active manager app has exactly one effective command frame for both virtual controls and a connected gamepad,
+      and the kiosk bar shows it before motion.
+- [ ] Two joysticks plus Z/RZ release to a zero composed twist; Neutral, Jaco, momentary Snake, gripper open/close, and
+      speed controls publish the expected topics and payloads.
+- [ ] STOP latches in the backend, is reflected by a second client or reload, and cannot resume without the one-second
+      hold. This supplements rather than replaces the hardware emergency-stop check.
+- [ ] Any profile claimed by the release is exercised with its intended input: keyboard, step, latch, scan, dwell,
+      gamepad, or direct touch. Implemented support is not the same as hardware/user acceptance.
 
 ## 6. Documentation
 
@@ -107,7 +119,8 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       choice that would be hard to infer from the code.
 - [ ] A validation record in `docs/validation/` covers what was actually
       verified, and says plainly what was not.
-- [ ] `docs/migration-plan.md` status reflects reality rather than intent.
+- [ ] The [UX design handoff](ux-design-handoff.md) reflects open
+      product/design work, and the operator guide reflects shipped behavior.
 
 ## 7. Version
 
@@ -121,7 +134,8 @@ It fails when the three disagree, so this is a gate rather than a reading.
 
 ## 8. Honest release notes
 
-State what is validated and what is not. Bloom's Extender work is currently
-validated at fixture, contract and bench level; live robot acceptance is still
-pending. A release note that implies otherwise is the one mistake in this list
-that cannot be fixed by a patch release.
+State what is validated and what is not. Bloom is the active Extender IHM, while
+its current robot-facing work is validated at fixture, contract and bench level;
+live robot acceptance is still pending. `extender_ui` being legacy does not turn
+that pending evidence into a pass. A release note that implies otherwise is the
+one mistake in this list that cannot be fixed by a patch release.

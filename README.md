@@ -25,6 +25,9 @@
 Bloom is a product-style monorepo for building robot and machine-operation web apps. It combines a React dashboard,
 a FastAPI backend, reusable widget contracts, runtime safety policies, and optional ROS 2 adapters.
 
+Bloom is the active Extender IHM. The former `extender_ui` product is legacy and retained only as a behavior reference
+and emergency rollback during live acceptance.
+
 Bloom started from the Extender tablet interface migration, but it is intentionally not an Extender-only project. A lab
 workspace can use Bloom with ROS, HTTP, WebSocket, MQTT, C++ gateways, or future adapter layers while keeping the same
 builder, runtime, screens, widgets, themes, and storage model.
@@ -72,16 +75,19 @@ BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run capture:readme
 ```
 
 The script reports every screen it captured and exits non-zero if any were
-skipped, so a stale image cannot quietly stay in the table.
+skipped. It also refuses to capture when the backend store differs from the
+committed shared applications; use an isolated seeded database instead of
+overwriting local app work. A stale image cannot quietly stay in the table.
 
 ## Current State
 
-Bloom is now a usable foundation for the Extender/Petanque migration and robot-interface experiments:
+Bloom is now the active Extender IHM and a reusable foundation for Petanque decisions and robot-interface experiments:
 
 - Visual builder for apps, reusable screens, WYSIWYG canvas layouts, widget palettes, app themes, and runtime policies.
-- Runtime app library with clean operator views, recent app shortcuts, edit shortcuts, and tablet-friendly canvas fitting.
+- Runtime app library with recent app shortcuts and a kiosk operating surface: one status bar, a backend-latched STOP,
+  and a deliberate hold before maintenance, screen switching, or editing actions appear.
 - Reusable widgets for teleop joysticks, sliders, commands, camera/webcam, labels, gauges, plots, event logs, gestures,
-  robot-3D placeholders, topic echo, and Bloom Debug tools.
+  saved positions, robot-3D placeholders, topic echo, and Bloom Debug tools.
 - Backend configuration API with JSON storage, SQLite storage, normalized mirror tables, import/export, and legacy JSON
   conversion helpers.
 - Runtime API with WebSocket sessions, topic subscriptions, topic samples, teleop acknowledgements, audit records,
@@ -89,23 +95,32 @@ Bloom is now a usable foundation for the Extender/Petanque migration and robot-i
 - ROS mode publishes `geometry_msgs/TwistStamped` Cartesian commands and validated `std_msgs/String` mode requests for
   `cartesian_manager`, publishes generic ROS messages, and discovers live ROS topics through the `rclpy` catalog adapter.
   The legacy Extender `TeleopCommand` path on `/teleop_cmd` remains available behind `BLOOM_ROS_COMMAND_BACKEND`.
+- Cartesian input composes two touch/keyboard joysticks, Z/RZ sliders, and a browser gamepad into one 6-DoF command,
+  stamped in one application-scoped frame. Step, latch, dwell, large-target, assisted-touch, signal-conditioning, and
+  audio-cue profile behavior is implemented and covered by focused tests. Switch-scanning focus exists, but directional
+  joystick activation through scanning is a known P1 gap. Browser-level reduced-motion preferences are honored, while
+  the matching profile value still needs wiring.
+- Explorer Manager and Kinova Manager ship as concrete `cartesian_manager` operator apps with Drive, Positions, Robot
+  feedback, and Command sources workflows.
 - CI covers backend tests, frontend tests, build, security audit smoke, CodeQL, and visual smoke checks.
 
-Legacy `extender_ui`, `tablet_interface`, and Petanque packages remain rollback paths until the full robot workflows are
-accepted by users. Bloom is not deleting or replacing legacy repos during the transition.
+Bloom is the active Extender IHM. `extender_ui` is legacy: keep it available as a behavior reference and emergency
+rollback while live acceptance is completed, but do not treat it as the current operator product. Low-level Extender ROS
+packages remain active dependencies, and the archived Petanque path keeps its explicit legacy adapter until its future is
+decided.
 
-## Migration In One Minute
+## Product Status
 
-The migration strategy is intentionally incremental:
+Bloom's product migration is complete in the sense that matters for ownership: new IHM work belongs here. The remaining
+work is explicit rather than hidden behind a completion percentage:
 
-1. Keep one canonical app/screen/widget model.
-2. Render the same model in the builder and runtime.
-3. Keep generic web logic independent from ROS.
-4. Move robot-specific behavior into explicit adapters and app configuration.
-5. Validate every migrated slice with real legacy JSON, tests, screenshots, and robot/runtime checks.
-6. Mark legacy workflows as legacy only after the matching Bloom workflow is accepted.
+1. Complete the open design work around physical sizing, profile settings, supervisor handover, onboarding, and i18n.
+2. Validate the Bloom IHM on the target tablets, assistive inputs, simulations, and robots.
+3. Keep `extender_ui` rollback artifacts until the relevant live sessions are accepted.
+4. Retain generic web/ROS boundaries so Bloom can serve robots beyond Extender.
 
-The living roadmap is in [docs/migration-plan.md](docs/migration-plan.md).
+The current backlog is in
+[the tracked UX design handoff](docs/ux-design-handoff.md).
 
 ## Repository Shape
 
@@ -160,8 +175,8 @@ During local development, Vite proxies `/api` and `/api/v1/runtime/ws` to the ba
 ### Shared applications
 
 The first time the backend starts it imports the applications committed under
-`backend/seed/applications/` — Explorer Manager, Sandbox V0.0, Explorer User
-Tests, Petanque Admin, Bloom Debug, and the webcam demo. A fresh clone comes up
+`backend/seed/applications/` — Explorer Manager, Kinova Manager, Sandbox V0.0,
+Explorer User Tests, Petanque Admin, Bloom Debug, and the webcam demo. A fresh clone comes up
 with the same app library everyone else has.
 
 Your own store lives in `backend/data/`, which is not tracked. Seeding never
@@ -222,6 +237,8 @@ curl http://127.0.0.1:8000/api/v1/runtime/audit
 
 The full Extender/Petanque validation protocol is in
 [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md).
+The current kiosk, controls, profiles, gamepad, and command-frame behavior is in
+[docs/operator-runtime.md](docs/operator-runtime.md).
 
 Useful migration validation helpers:
 
@@ -290,15 +307,17 @@ export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.loc
 ```bash
 # cartesian_manager (default) or teleop_command for the legacy rollback path
 export BLOOM_ROS_COMMAND_BACKEND=cartesian_manager
-# A frame the manager knows: base_link, ft_frame, or hybrid_frame
+# A frame the manager knows: base_link, ft_frame/effector_frame, or hybrid_frame
 export BLOOM_ROS_COMMAND_FRAME_ID=base_link
 ```
 
 Since `cartesian_manager` PR #6, `frame_id` selects the frame the rotation part
-is interpreted in: `base_link` is summed directly, `ft_frame` is rotated into
-base with the live `/ee_pose`, `hybrid_frame` uses the manager's hybrid pose.
-An unknown frame is skipped silently and the robot stops, so this value is
-still worth checking before a lab session. There is no TF lookup.
+is interpreted in: `base_link` is summed directly, `ft_frame` or
+`effector_frame` is rotated into base with the live pose, and `hybrid_frame`
+uses the manager's hybrid pose. The linear component follows the manager's base
+convention. An unknown frame is rejected by Bloom when outside its deployment
+allowlist and skipped by the manager if it reaches it. There is no general TF
+lookup.
 
 The deployment value is the fallback. In **Builder -> App configuration ->
 Adapter guardrails**, set **Cartesian command frame** to stamp every virtual
@@ -355,11 +374,14 @@ Local frontend work supports Node.js 20+, while GitHub CI currently runs Node.js
 
 High-signal project docs:
 
+- [docs/README.md](docs/README.md)
+- [docs/operator-runtime.md](docs/operator-runtime.md)
 - [docs/design-system.md](docs/design-system.md)
 - [docs/component-styleguide.md](docs/component-styleguide.md)
 - [docs/widget-ux-review.md](docs/widget-ux-review.md)
 - [docs/production-readiness-review.md](docs/production-readiness-review.md)
 - [docs/accessibility-plan.md](docs/accessibility-plan.md)
+- [docs/ux-design-handoff.md](docs/ux-design-handoff.md)
 - [docs/extender-tablet-hardware.md](docs/extender-tablet-hardware.md)
 - [docs/extender-workspace-deployment.md](docs/extender-workspace-deployment.md)
 - [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md)

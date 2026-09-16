@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded on 2026-09-16
 
 ## Context
 
@@ -11,7 +11,7 @@ widgets, inventories, and README notes.
 
 ## Decision
 
-`docs/migration-plan.md` is the single source of truth for roadmap status and ordered next steps.
+`docs/migration-plan.md` was the single source of truth for roadmap status and ordered next steps during the migration.
 
 Supporting documents keep their specialized role:
 
@@ -23,4 +23,11 @@ Supporting documents keep their specialized role:
 
 - Roadmap updates happen in one place.
 - Supporting docs can preserve context without becoming competing TODO lists.
-- Recaps should reference `docs/migration-plan.md` first, then link to inventories when details are needed.
+- Recaps should reference the roadmap first, then link to inventories when details are needed.
+
+## 2026-09-16 Amendment
+
+Bloom is now the active Extender IHM and `extender_ui` is legacy. The phase-based migration roadmap was deleted because
+it made completed product ownership look undecided and mixed design work with live validation. Current behavior is in
+`docs/operator-runtime.md`; open design, engineering, validation, and legacy-cleanup work is in
+`docs/ux-design-handoff.md`.
