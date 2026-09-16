@@ -81,8 +81,9 @@ becomes shared.
 
 The app configuration page is also the screen lifecycle hub: users can create blank screens, duplicate existing screens,
 add reusable screens from other apps, reorder screens, remove screens from the current app, then save/discard the draft
-composition. It owns application-wide runtime guardrails, including the one Cartesian command frame shared by virtual
-controls and physical gamepads.
+composition. It owns application-wide runtime guardrails, including the default Cartesian command frame. Runtime may
+select another supported frame for the current session only while motion is zero; virtual controls and physical
+gamepads continue to share one effective frame.
 
 ## Runtime Composition
 

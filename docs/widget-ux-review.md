@@ -81,7 +81,8 @@ and recover confidence quickly when something is not configured.
   physical tablet review for pressed-state comfort.
 - Debug widgets are useful but can make an operator screen feel like a console if used without intention.
 - The widget inspector should make "operator clean mode" versus "debug details mode" obvious for every widget.
-- Apps now own one Cartesian command frame, but frame and mode names still need operator-language review per robot.
+- Apps now own the default Cartesian command frame, and Joystick Lab can safely select one supported session frame at
+  zero motion. Frame and mode names still need operator-language review per robot.
 - Camera/webcam behavior still needs live validation against Robin's visual-servoing pipeline and the ROS-side image
   processing split.
 

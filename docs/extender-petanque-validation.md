@@ -146,6 +146,8 @@ npm run validation:petanque-parity
    - The bar names the expected app, robot, effective command frame, profile, and link state.
    - Translation/rotation joysticks and Height/Pivot sliders compose all six axes on
      `/joystick_cartesian_command` and return to zero on release.
+   - Joystick Lab changes to every supported command frame only at zero motion, keeps unsupported frames visible and
+     disabled, updates the kiosk bar, and stamps the next virtual/gamepad command with the selected frame.
    - Neutral, Jaco, momentary Snake, gripper open/close, and speed limits publish their configured values.
    - STOP latches in the backend and resume requires a one-second hold.
    - Bloom Debug or `GET /api/v1/ros/topics/status` shows publishers/subscribers for
@@ -188,8 +190,9 @@ echo $BLOOM_ALLOWED_COMMAND_FRAME_IDS
 ```
 
 Also confirm the selected app's **Builder > App configuration > Adapter guardrails > Cartesian command frame** and the
-value shown in the kiosk bar. The app value takes precedence over `BLOOM_ROS_COMMAND_FRAME_ID` for every virtual and
-gamepad contribution. Bloom rejects a non-empty frame outside the deployment allowlist.
+value shown in the kiosk bar. The app value takes precedence over `BLOOM_ROS_COMMAND_FRAME_ID` as the session default.
+Joystick Lab can select another reported frame while motion is zero; the new effective value applies to every virtual
+and gamepad contribution. Bloom rejects a non-empty frame outside the deployment allowlist.
 
 ### Check the mode is understood
 

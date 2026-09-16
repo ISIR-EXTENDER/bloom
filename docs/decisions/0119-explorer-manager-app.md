@@ -73,5 +73,5 @@ Both original follow-ups are delivered:
 The Drive virtual IHM now contains two composed joysticks, return-to-center Z/RZ
 sliders, Neutral, Jaco, momentary Snake with neutral release, and gripper
 open/close values matching `tablet_interface` (`0.2`/`1.1`). Kinova Manager uses
-the same screen contract and adds fault reset. One app-level command frame applies
-to every virtual and gamepad Cartesian contribution.
+the same screen contract and adds fault reset. One effective command frame applies
+to every virtual and gamepad Cartesian contribution; app policy supplies its session default.

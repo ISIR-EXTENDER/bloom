@@ -1386,6 +1386,29 @@ describe("widget runtime action intents", () => {
     });
   });
 
+  it("creates local frame-selection intents without inventing a backend command", () => {
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("command-button") as WidgetDefinition,
+          "frame-tool",
+          {
+            settings: {
+              runtime_binding: { adapter: "teleop-frame", frame_id: "effector_frame" },
+            },
+          },
+        ),
+        { type: "press" },
+      ),
+    ).toEqual({
+      type: "command",
+      widgetId: "frame-tool",
+      widgetKind: "command-button",
+      command: "set-teleop-frame",
+      runtimeBinding: { adapter: "teleop-frame", frame_id: "effector_frame" },
+    });
+  });
+
   it("adds progress and cancellation metadata to long-running command intents", () => {
     expect(
       createWidgetActionIntent(

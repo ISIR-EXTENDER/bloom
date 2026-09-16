@@ -50,6 +50,8 @@ export type WidgetDataSnapshot =
 export type WidgetActionIntentHandler = (intent: WidgetActionIntent) => void;
 
 export type WidgetControlState = {
+  disabled?: boolean;
+  disabledReason?: string;
   /**
    * Whether this control is the one currently selected among a mutually
    * exclusive set, such as the manager's mode.

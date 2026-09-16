@@ -33,7 +33,9 @@ The source material contains:
 - design rationale emphasizing operator language, truthful status, stable control placement, and explicit command
   frames;
 - a short product manifesto centered on restoring a person's gesture rather than exposing robotics implementation;
-- a refreshed five-lot implementation packet, five code corrections, and ten `1280x720` prototype reference captures.
+- a refreshed five-lot implementation packet, five code corrections, and ten `1280x720` prototype reference captures;
+- a later Joystick Lab handoff, delivered as an interactive HTML reference and screen JSON, for a virtual equivalent of
+  the physical joystick workflow.
 
 The strongest requirements are: remove builder chrome during operation, reclaim panel space, provide a truthful status
 and real STOP, protect physical target size after canvas fitting, prevent overlaps, use human direction words, make motor
@@ -54,8 +56,8 @@ supervisor roles.
 | 8. Muted contrast failed | Delivered | Token corrected and semantic contrast tests expanded. | Review in real lab lighting. |
 | 9. Contributor-oriented onboarding | Open | Builder and Runtime are distinct; starter apps can include onboarding spots. | Remembered role choice and per-app operator tour. |
 | 10. Builder cannot see tablet | Partial | `native-1280x720` and selected-widget `1024x600` glass-size feedback. | Three device frames and a whole-screen touch-check mode. |
-| 11. Forward must mean operator forward | Delivered for configuration | One app frame from backend capabilities, shared by widgets/gamepad and shown in kiosk. | Installation-specific egocentric mapping and operator-facing frame name. |
-| 12. Operator looks at the gripper | Partial | Keyboard, gamepad, dwell, and sounds for stop/link loss/recovery. | Functional directional scanning, cross-screen spatial consistency, possible latch cue, and real eyes-off tests. |
+| 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab can select one supported session frame at zero motion, shared by widgets/gamepad and shown in kiosk. | Installation-specific egocentric mapping and final operator-facing frame names. |
+| 12. Operator looks at the gripper | Partial | Keyboard, gamepad, directional scanning, dwell, and sounds for stop/link loss/recovery. | Cross-screen spatial consistency, possible latch cue, and real eyes-off tests. |
 | 13. Operator and supervisor surfaces | Open | STOP state is shared across clients. | Mirror role, explicit control ownership, and deliberate handover. |
 | 14. Language belongs to the person | Open | No profile language field or runtime string catalog. | EN/ES/FR model, translations, authored-label strategy, overflow tests. |
 
@@ -77,9 +79,8 @@ supervisor roles.
   EN/ES/FR, keep authored widget labels as localized configuration data, and test a lengthened pseudo-locale.
 - **Add device-frame review.** Provide `1024x600`, `1280x720`, and `1820x720` builder frames plus a whole-screen touch
   check. The current inspector check covers one widget at one target.
-- **Validate all input modes.** Step, latch, dwell, keyboard, gamepad, large targets, audio, and conditioning are
-  implemented; scanning is incomplete. Suitability for a person's device, reach, hearing, and fatigue is not established
-  by unit tests.
+- **Validate all input modes.** Step, latch, scan, dwell, keyboard, gamepad, large targets, audio, and conditioning are
+  implemented. Suitability for a person's device, reach, hearing, and fatigue is not established by unit tests.
 - **Resolve reduced motion.** Browser `prefers-reduced-motion` works, but selecting the profile value itself has no
   independent effect.
 - **Finish eyes-off operation.** Review fixed control placement between screens, decide on a latch-state cue, and test
@@ -179,7 +180,10 @@ hardware, and message contracts; it does not replace them.
 A second handoff folder, `Bloom UX design review 2/handoff/`, was delivered on 2026-09-16 with
 five code fixes and four work packages. Its implementation plan, working notes, and open
 questions live in `docs/ux-design-review-2-plan.md`, which is the file to read before
-continuing that work.
+continuing that work. The later `joystick_lab_design/handoff/` adds the Joystick Lab screen,
+session frame selector, zero-motion frame interlock, capability-disabled choices, and command
+echo. Its source folder remains external; this paragraph and the implementation plan preserve
+that contract in Git.
 
 ## Updating This Trace
 

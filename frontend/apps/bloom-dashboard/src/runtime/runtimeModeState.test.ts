@@ -264,3 +264,54 @@ describe("cartesian_manager mode requests", () => {
     expect(createRuntimeControlStateByWidgetId(screen, createDefaultRuntimeModeState())).toEqual({});
   });
 });
+
+describe("runtime command-frame controls", () => {
+  const frameScreen = {
+    id: "joystick-lab",
+    title: "Joystick lab",
+    canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+    widgets: [
+      {
+        id: "frame-base",
+        kind: "command-button",
+        title: "Base",
+        layout: { x: 0, y: 0, width: 120, height: 82 },
+        settings: { runtime_binding: { adapter: "teleop-frame", frame_id: "base_link" } },
+      },
+      {
+        id: "frame-tool",
+        kind: "command-button",
+        title: "Tool",
+        layout: { x: 120, y: 0, width: 120, height: 82 },
+        settings: { runtime_binding: { adapter: "teleop-frame", frame_id: "effector_frame" } },
+      },
+    ],
+  } as ScreenConfig;
+
+  it("selects the active frame and disables frames this robot does not support", () => {
+    expect(
+      createRuntimeControlStateByWidgetId(frameScreen, createDefaultRuntimeModeState(), {
+        activeCommandFrameId: "base_link",
+        allowedCommandFrameIds: ["base_link"],
+      }),
+    ).toEqual({
+      "frame-base": { selection: "selected" },
+      "frame-tool": {
+        disabled: true,
+        disabledReason: "Unavailable on this robot.",
+        selection: "unselected",
+      },
+    });
+  });
+
+  it("disables every frame change while the composed twist is moving", () => {
+    const state = createRuntimeControlStateByWidgetId(frameScreen, createDefaultRuntimeModeState(), {
+      activeCommandFrameId: "base_link",
+      allowedCommandFrameIds: ["base_link", "effector_frame"],
+      teleopActive: true,
+    });
+
+    expect(state["frame-base"]).toMatchObject({ disabled: true, disabledReason: "Release controls." });
+    expect(state["frame-tool"]).toMatchObject({ disabled: true, disabledReason: "Release controls." });
+  });
+});

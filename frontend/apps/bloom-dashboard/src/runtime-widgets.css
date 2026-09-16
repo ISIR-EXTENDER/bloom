@@ -976,6 +976,20 @@
   touch-action: manipulation;
 }
 
+.bloom-command-button > span,
+.bloom-command-button-disabled-reason {
+  display: block;
+}
+
+.bloom-command-button-disabled-reason {
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: none;
+}
+
 .bloom-command-button[data-momentary="true"] {
   border-color: color-mix(in srgb, var(--bloom-action-color, #ea7b2a) 48%, var(--bloom-border));
   background: var(--bloom-action-color, #ea7b2a);
@@ -1438,6 +1452,14 @@
 .bloom-action-widget[data-selection="unselected"] .bloom-command-button:hover,
 .bloom-action-widget[data-selection="unselected"] .bloom-command-button:focus-visible {
   background: rgba(63, 78, 70, 0.2);
+}
+
+.bloom-action-widget .bloom-command-button:disabled {
+  border-color: color-mix(in srgb, var(--bloom-ink-soft) 32%, transparent);
+  background: color-mix(in srgb, var(--bloom-surface-container-high) 82%, var(--bloom-ink-soft));
+  color: var(--bloom-ink-soft);
+  cursor: not-allowed;
+  opacity: 0.78;
 }
 
 .bloom-position-library {

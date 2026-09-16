@@ -2,9 +2,10 @@
 
 Status: **design note, not a decision.** Written to be argued with.
 
-Update 2026-09-16: Bloom is now the active Extender IHM. Application-scoped command frames, kiosk operation, and
-device-independent input composition have landed, but they do not remove the Extender topic/mode constants catalogued
-below. The robot-profile proposal remains open and is tracked in the [UX design handoff](ux-design-handoff.md).
+Update 2026-09-16: Bloom is now the active Extender IHM. Application-default and safely session-selectable command
+frames, kiosk operation, and device-independent input composition have landed, but they do not remove the Extender
+topic/mode constants catalogued below. The robot-profile proposal remains open and is tracked in the
+[UX design handoff](ux-design-handoff.md).
 
 ## Why this exists
 

@@ -290,8 +290,9 @@ Rules:
   state, configured robot/frame/gamepad context, active profile, and maintenance entry.
 - STOP is runtime chrome, not a movable widget. Press stops immediately; resuming requires a one-second hold.
 - Bloom Debug may opt into an additional debug row, but that row must not be reserved for normal operator apps.
-- Direction labels use operator words on the control. Axis names, topics, and frame identifiers remain configuration or
-  diagnostics except for the single effective frame shown in the kiosk bar.
+- Direction labels use operator words on the control. Axis names and topics remain configuration or diagnostics. The
+  single effective frame stays visible in the kiosk bar; a dedicated operator workflow may also expose supported frame
+  choices when changing them is the task.
 
 ## Status Surfaces
 

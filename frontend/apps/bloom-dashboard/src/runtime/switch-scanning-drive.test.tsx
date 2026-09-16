@@ -7,6 +7,7 @@ import { cleanup, render } from "@testing-library/react";
 import { act, useRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { ScreenArtboard } from "../screen/ScreenArtboard";
 import { useSwitchScanning } from "./use-switch-scanning";
 
@@ -40,15 +41,25 @@ const driveScreen: ScreenConfig = {
   ],
 };
 
-function ScannedScreen({ onActionIntent }: { onActionIntent: WidgetActionIntentHandler }) {
+const joystickLabScreen = explorerManagerConfiguration.applications[0]?.screens.find(
+  (screen) => screen.id === "manager_joystick_lab",
+) as ScreenConfig | undefined;
+
+function ScannedScreen({
+  onActionIntent,
+  screen = driveScreen,
+}: {
+  onActionIntent: WidgetActionIntentHandler;
+  screen?: ScreenConfig;
+}) {
   const rootRef = useRef(document.body);
-  useSwitchScanning({ enabled: true, periodMs: 500, rootRef, revision: "drive" });
+  useSwitchScanning({ enabled: true, periodMs: 500, rootRef, revision: screen.id });
   return (
     <ScreenArtboard
       className="artboard"
       renderEmptyState={() => null}
       rendererOptions={{ motorPreset: "scan", onActionIntent }}
-      screen={driveScreen}
+      screen={screen}
     />
   );
 }
@@ -87,5 +98,34 @@ describe("switch scanning on a drive screen", () => {
     expect(document.querySelector("[data-scan-lit]")?.getAttribute("aria-label")).toBe("Increase Height by 0.25");
     act(() => window.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
     expect(onActionIntent.mock.calls.at(-1)?.[0]).toMatchObject({ value: 0.25 });
+  });
+
+  it("makes every Joystick lab action reachable by switch scanning", () => {
+    if (!joystickLabScreen) {
+      throw new Error("Explorer Manager seed is missing the Joystick lab screen.");
+    }
+    render(<ScannedScreen onActionIntent={vi.fn()} screen={joystickLabScreen} />);
+
+    const targets = [...document.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
+    // The screen has 24 operator controls plus the topic echo's three local
+    // inspection controls. Center-reset buttons start disabled at zero and
+    // join the scan automatically after either slider moves.
+    expect(targets).toHaveLength(27);
+    expect(targets).toEqual(
+      expect.arrayContaining([
+        "Base",
+        "Tool",
+        "Hybrid",
+        "Force sensor",
+        "Both",
+        "Jaco",
+        "Hold snake",
+        "Gripper: Close gripper",
+        "Stop Translation",
+        "Stop Rotation",
+        "Increase Height by 0.01",
+        "Decrease Pivot by 0.01",
+      ]),
+    );
   });
 });

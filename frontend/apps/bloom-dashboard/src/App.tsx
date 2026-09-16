@@ -111,8 +111,10 @@ export function App({
   const handleRuntimeIntent = (
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
+      allowedCommandFrameIds?: readonly string[];
       appId: string;
       configId: string;
+      onCommandFrameChange?: (frameId: string) => void;
     },
   ) => {
     if (intent.type === "screen-navigation" && tryNavigateRuntimeScreen(intent.targetScreenId)) {
@@ -122,8 +124,10 @@ export function App({
     setRuntimeModeState((currentModeState) => applyRuntimeModeIntent(currentModeState, intent));
     runtimeActions.dispatch(intent, {
       actionPresets: applicationRuntime?.action_presets,
+      allowedCommandFrameIds: applicationRuntime?.allowedCommandFrameIds,
       appId: applicationRuntime?.appId,
       configId: applicationRuntime?.configId,
+      onCommandFrameChange: applicationRuntime?.onCommandFrameChange,
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
   };
@@ -331,6 +335,7 @@ export function App({
                 runtimeActionClient={runtimeActionClient}
                 runtimeMode={runtimeMode}
                 runtimeModeState={runtimeModeState}
+                teleopActive={runtimeActions.teleopActive}
                 selection={selection}
                 state={configurationState}
               />

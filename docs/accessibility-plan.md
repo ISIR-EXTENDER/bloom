@@ -66,14 +66,15 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
 - Robot command widgets need a human label, state/release behavior, and readable failure feedback.
 - Native OS/browser keyboards remain the text-entry baseline. A custom virtual keyboard requires evidence that native
   input blocks the target workflow.
-- Technical topic, message, axis, and frame details belong in configuration or maintenance diagnostics. The one
-  effective command frame remains visible because it changes movement meaning.
+- Technical topic, message, and axis details belong in configuration or maintenance diagnostics. The one effective
+  command frame remains visible because it changes movement meaning; a dedicated frame-selection workflow must use
+  operator labels, capability gating, and a zero-motion interlock.
 
 ## Current Test Evidence
 
-- Component tests cover labels, roles, focus, keyboard joystick operation, hold gestures, STOP, scanner focus/click
-  activation, dwell, step, latch, gamepad conditioning, audio state transitions, and profile resolution. They do not
-  currently prove that scanning a joystick emits a direction.
+- Component and app-wiring tests cover labels, roles, focus, keyboard joystick operation, hold gestures, STOP,
+  directional switch scanning, dwell, step, latch, gamepad conditioning, audio state transitions, profile resolution,
+  and Joystick Lab frame safety.
 - `@bloom/ui` tests enforce contrast for semantic theme pairs.
 - Seed/config tests reject out-of-canvas and overlapping interactive controls on maintained operator apps.
 - Visual smoke covers maintained runtime and builder routes across tablet and desktop viewports.
@@ -84,8 +85,6 @@ or interaction pattern works for a particular person.
 
 ## Open Accessibility Work
 
-- Fix the P1 switch-scanning path: render joystick directions as independently scannable step targets and test the
-  emitted movement intent, not only highlight movement.
 - Decide how dwell combines with scanning. They are mutually exclusive presets today; the review asks for composition,
   but `dwell_ms` already has a nonzero default and cannot by itself serve as a safe enable flag without a migration.
 - Validate every intended profile with operators and the actual HMTECH tablet, gamepad, and switch hardware.

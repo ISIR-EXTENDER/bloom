@@ -113,3 +113,6 @@ legacy per-widget frame metadata remains only as a compatibility fallback.
 The backend capability report exposes the accepted frame set and robot name,
 and the teleop session rejects any non-empty frame outside
 `BLOOM_ALLOWED_COMMAND_FRAME_IDS`. See decision 0125.
+
+Joystick Lab may replace the app default for the current runtime session, but only with a reported frame and while the
+composed twist is zero. The kiosk, virtual controls, and gamepad all follow that one effective selection.

@@ -205,7 +205,7 @@ describe("widget renderer registry", () => {
     expect(button).toHaveAttribute("data-momentary", "true");
     expect(screen.queryByText("momentary_ros_message")).not.toBeInTheDocument();
     fireEvent.pointerDown(button, { pointerId: 1 });
-    fireEvent.pointerLeave(button, { pointerId: 1 });
+    fireEvent.pointerCancel(button, { pointerId: 1 });
     fireEvent.pointerUp(button, { pointerId: 1 });
 
     expect(onActionIntent).toHaveBeenCalledTimes(2);

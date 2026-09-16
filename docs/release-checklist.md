@@ -87,7 +87,7 @@ Only when the release changes robot-facing behaviour.
 - [ ] `BLOOM_ROS_COMMAND_BACKEND` matches the control stack actually running
       (`cartesian_manager`, or `teleop_command` for the legacy path).
 - [ ] `BLOOM_ROS_COMMAND_FRAME_ID`, `BLOOM_ALLOWED_COMMAND_FRAME_IDS`, and any
-      app-level Cartesian command frame match the manager's configured base,
+      app-default or session-selected Cartesian command frame match the manager's configured base,
       end-effector, or hybrid frames. An unknown frame is skipped and looks
       exactly like a broken web stack:
 
@@ -102,8 +102,9 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       a valid mode request is accepted, an invalid one returns 422 and is
       audited. The procedure is in
       [extender-petanque-validation.md](extender-petanque-validation.md).
-- [ ] The active manager app has exactly one effective command frame for both virtual controls and a connected gamepad,
-      and the kiosk bar shows it before motion.
+- [ ] The active manager session has exactly one effective command frame for both virtual controls and a connected
+      gamepad, and the kiosk bar shows it before motion. Joystick Lab rejects a frame change until the composed twist
+      returns to zero and disables frames absent from backend capabilities.
 - [ ] Two joysticks plus Z/RZ release to a zero composed twist; Neutral, Jaco, momentary Snake, gripper open/close, and
       speed controls publish the expected topics and payloads.
 - [ ] STOP latches in the backend, is reflected by a second client or reload, and cannot resume without the one-second

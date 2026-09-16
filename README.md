@@ -156,12 +156,16 @@ port `5173`. `Ctrl+C` stops both Bloom processes.
 2. Launch **Explorer Manager** or **Kinova Manager** to match the robot process you started.
 3. Before moving a control, confirm the kiosk bar shows the expected app, robot, profile, `base_link` frame, and link
    state. `READY` describes the frontend-to-backend link; use the diagnostics below to verify the ROS path.
-4. Use **Drive** for the two joysticks, height/pivot sliders, modes, gripper, and speed limits.
-5. Hold the maintenance button for 1.5 seconds to reach **Positions**, **Robot feedback**, and **Command sources**.
+4. Open **Joystick lab** from Maintenance for the physical-joystick-equivalent workflow: choose a supported command
+   frame, then use translation, height, rotation, pivot, modes, and gripper on one screen. Frame buttons stay disabled
+   until every motion control is back at zero.
+5. Use **Drive** for the regular operating layout and speed limits. Hold the maintenance button for 1.5 seconds to
+   reach **Positions**, **Robot feedback**, and **Command sources**.
 6. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
 
 Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova permits `effector_frame` and adds the
-reviewed fault-reset action.
+reviewed fault-reset action. Joystick Lab keeps every frame choice visible and explains when the connected robot does
+not support one.
 
 ### 5. Verify the command path
 
@@ -171,11 +175,13 @@ In another sourced ROS terminal:
 source /opt/ros/jazzy/setup.bash
 source /path/to/extender_workspace/install/setup.bash
 ros2 topic info /joystick_cartesian_command
+ros2 topic echo /joystick_cartesian_command
 ros2 topic echo /cartesian_command
 ```
 
 Move one Drive control and release it. The manager output should become non-zero while commanded and return to zero on
-release. Bloom follows this path:
+release. In Joystick Lab, select a frame while the controls are at zero and confirm the next
+`/joystick_cartesian_command` message carries that `header.frame_id`. Bloom follows this path:
 
 ```text
 browser control -> Bloom WebSocket -> ROS adapter -> /joystick_cartesian_command
@@ -250,7 +256,7 @@ applications, so it cannot silently leave a stale image in this README.
 
 - Builder and kiosk runtime for shared application, screen, widget, theme, profile, and guardrail models.
 - Touch, keyboard, and gamepad Cartesian input composed into one application-scoped 6-DoF command.
-- Explorer and Kinova Manager workflows for Drive, Positions, Robot feedback, and Command sources.
+- Explorer and Kinova Manager workflows for Joystick Lab, Drive, Positions, Robot feedback, and Command sources.
 - JSON and SQLite configuration storage, tracked seed applications, import/export, audit, and recording hooks.
 - ROS 2 integration for `cartesian_manager`, generic topic publishing, service calls, and topic discovery.
 - Frontend, backend, security, contract, and visual checks in CI.
@@ -436,8 +442,10 @@ allowlist and skipped by the manager if it reaches it. There is no general TF
 lookup.
 
 The deployment value is the fallback. In **Builder -> App configuration ->
-Adapter guardrails**, set **Cartesian command frame** to stamp every virtual
-control and physical gamepad contribution in one shared frame for that app.
+Adapter guardrails**, set **Cartesian command frame** as the runtime-session
+default. Joystick Lab may switch to another supported frame while the composed
+twist is zero. Every virtual control and physical gamepad contribution still
+shares the one effective session frame shown in the kiosk bar.
 
 Use `X-Bloom-API-Key` for API calls. Admin keys can mutate configuration; operator keys can read configuration and use
 runtime/ROS endpoints. Production settings intentionally fail to start without authentication and an admin key.

@@ -85,5 +85,5 @@ more than a full-deflection one.
 
 Bloom now supports the local B1/B2 axis-map swap and verifies parity against the
 physical mapper. A browser gamepad can also contribute to the same composer; its
-release clears only that source. Every contribution uses the application's
-effective command frame, so composition cannot mix frame interpretations.
+release clears only that source. Every contribution uses the runtime session's
+effective command frame, initialized from app policy, so composition cannot mix frame interpretations.

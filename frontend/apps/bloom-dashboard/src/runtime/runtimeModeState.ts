@@ -1,6 +1,6 @@
 import type { ApplicationConfig, RosTopicStatus, ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { WidgetControlState } from "@bloom/widget-renderers";
-import type { WidgetActionIntent } from "@bloom/widgets";
+import { resolveTeleopFrameId, type WidgetActionIntent } from "@bloom/widgets";
 
 export type RuntimeRobotMode = "b1" | "b2";
 
@@ -134,10 +134,30 @@ function resolveModeRequestFromIntent(intent: WidgetActionIntent): string | null
 export function createRuntimeControlStateByWidgetId(
   screen: ScreenConfig,
   modeState: RuntimeModeState,
+  options: {
+    activeCommandFrameId?: string | null;
+    allowedCommandFrameIds?: readonly string[] | null;
+    teleopActive?: boolean;
+  } = {},
 ): Record<string, WidgetControlState> {
   const controlStateByWidgetId: Record<string, WidgetControlState> = {};
 
   for (const widget of screen.widgets) {
+    const frameId = resolveTeleopFrameId(widget.settings.runtime_binding);
+    if (frameId) {
+      const unavailable = options.allowedCommandFrameIds ? !options.allowedCommandFrameIds.includes(frameId) : false;
+      const disabledReason = options.teleopActive
+        ? "Release controls."
+        : unavailable
+          ? "Unavailable on this robot."
+          : undefined;
+      controlStateByWidgetId[widget.id] = {
+        selection: frameId === options.activeCommandFrameId ? "selected" : "unselected",
+        ...(disabledReason ? { disabled: true, disabledReason } : {}),
+      };
+      continue;
+    }
+
     if (isModeToggleWidget(widget)) {
       controlStateByWidgetId[widget.id] = {
         toggleState: modeState.mode === "b2" ? "on" : "off",

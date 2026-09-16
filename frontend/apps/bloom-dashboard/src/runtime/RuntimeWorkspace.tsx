@@ -35,8 +35,10 @@ type RuntimeViewportSize = {
 };
 
 type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
+  allowedCommandFrameIds?: readonly string[];
   appId: string;
   configId: string;
+  onCommandFrameChange?: (frameId: string) => void;
 };
 
 type RuntimeWorkspaceProps = {
@@ -47,6 +49,7 @@ type RuntimeWorkspaceProps = {
     commandFrameId?: string,
   ) => void;
   runtimeCapabilityReport: RuntimeCapabilityReport | null;
+  teleopActive: boolean;
   application: ApplicationConfig;
   onBackToRuntimeHome: () => void;
   onActionIntent: (
@@ -70,6 +73,7 @@ type RuntimeWorkspaceProps = {
 
 export function RuntimeWorkspace({
   runtimeCapabilityReport,
+  teleopActive,
   application,
   onBackToRuntimeHome,
   onActionIntent,
@@ -107,9 +111,21 @@ export function RuntimeWorkspace({
     () => resolveRuntimeProfile(application, viewportSize, preferredProfileId),
     [application, preferredProfileId, viewportSize],
   );
+  const defaultCommandFrameId =
+    application.runtime_policy.command_frame_id || runtimeCapabilityReport?.command_frame_id || null;
+  const [commandFrameId, setCommandFrameId] = useState<string | null>(defaultCommandFrameId);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new app starts a new frame-selection session.
+  useEffect(() => {
+    setCommandFrameId(defaultCommandFrameId);
+  }, [application.id, defaultCommandFrameId]);
   const controlStateByWidgetId = useMemo(
-    () => createRuntimeControlStateByWidgetId(screen, runtimeModeState),
-    [runtimeModeState, screen],
+    () =>
+      createRuntimeControlStateByWidgetId(screen, runtimeModeState, {
+        activeCommandFrameId: commandFrameId,
+        allowedCommandFrameIds: runtimeCapabilityReport?.command_frame_ids ?? null,
+        teleopActive,
+      }),
+    [commandFrameId, runtimeCapabilityReport?.command_frame_ids, runtimeModeState, screen, teleopActive],
   );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const screenHasPositionLibrary = screen.widgets.some((widget) => widget.kind === "position-library");
@@ -142,8 +158,6 @@ export function RuntimeWorkspace({
   }, [dataByWidgetId, positionLibrary.state, screen.widgets, screenHasPositionLibrary]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
-  const commandFrameId =
-    application.runtime_policy.command_frame_id || runtimeCapabilityReport?.command_frame_id || null;
   const gamepad = useGamepadInput({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
     enabled: onTeleopContribution !== undefined,
@@ -180,9 +194,14 @@ export function RuntimeWorkspace({
     }
     onActionIntent(intent, {
       action_presets: application.action_presets,
+      allowedCommandFrameIds: runtimeCapabilityReport?.command_frame_ids,
       appId: selection.appId,
       configId: selection.configId,
-      runtime_policy: application.runtime_policy,
+      onCommandFrameChange: setCommandFrameId,
+      runtime_policy: {
+        ...application.runtime_policy,
+        command_frame_id: commandFrameId ?? "",
+      },
     });
   };
 

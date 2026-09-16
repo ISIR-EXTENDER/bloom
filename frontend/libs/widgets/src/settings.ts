@@ -45,6 +45,11 @@ export type CameraSettings = {
 
 export type CommandActionFeedbackMode = "none" | "progress" | "result";
 
+export type TeleopFrameRuntimeBinding = {
+  adapter: "teleop-frame";
+  frame_id: string;
+};
+
 export type CommandButtonSettings = {
   action_feedback: CommandActionFeedbackMode;
   action_id: string;
@@ -67,6 +72,7 @@ export type CommandButtonSettings = {
   messageType?: string;
   payload?: unknown;
   presetId?: string;
+  runtime_binding?: TeleopFrameRuntimeBinding;
   topic?: string;
 };
 
@@ -434,6 +440,7 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "messageType", label: "ROS message type", type: "text", required: false },
       { key: "payload", label: "Payload", type: "json", required: false },
       { key: "presetId", label: "Preset id", type: "text", required: false },
+      { key: "runtime_binding", label: "Runtime binding", type: "json", required: false },
     ],
     COMMAND_BUTTON_DEFAULT_SETTINGS,
     validateCommandButtonSettings,
@@ -997,11 +1004,29 @@ function validateCommandButtonSettings(
     ...validateString(settings, "messageType", { allowEmpty: true }),
     ...validateString(settings, "presetId", { allowEmpty: true }),
   ];
+  if ("runtime_binding" in settings && settings.runtime_binding !== undefined) {
+    errors.push(...validateTeleopFrameRuntimeBinding(settings.runtime_binding));
+  }
   if (!isJsonSerializable(settings.payload)) {
     errors.push({ field: "payload", message: "payload must be JSON serializable" });
   }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as CommandButtonSettings);
+}
+
+function validateTeleopFrameRuntimeBinding(value: unknown): WidgetSettingsValidationError[] {
+  if (!isRecord(value)) {
+    return [{ field: "runtime_binding", message: "runtime_binding must be an object" }];
+  }
+
+  const errors: WidgetSettingsValidationError[] = [];
+  if (value.adapter !== "teleop-frame") {
+    errors.push({ field: "runtime_binding.adapter", message: "adapter must be teleop-frame" });
+  }
+  if (typeof value.frame_id !== "string" || value.frame_id.trim().length === 0) {
+    errors.push({ field: "runtime_binding.frame_id", message: "frame_id is required" });
+  }
+  return errors;
 }
 
 function validateEventLogSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<EventLogSettings> {

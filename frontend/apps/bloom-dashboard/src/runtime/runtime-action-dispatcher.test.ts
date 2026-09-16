@@ -8,8 +8,75 @@ import {
   dispatchRuntimeActionIntent,
   type RuntimeActionClient,
 } from "./runtime-action-dispatcher";
+import { TeleopTwistComposer } from "./teleop-composition";
 
 describe("runtime action dispatcher", () => {
+  it("changes the session frame only at zero and stamps the next twist with it", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(),
+      sendTeleopCommand: vi.fn(async (request) => ({
+        type: "teleop_ack" as const,
+        detail: "Accepted.",
+        payload: { ...request, status: "accepted" as const },
+      })),
+    };
+    const composer = new TeleopTwistComposer();
+    let activeFrame = "base_link";
+    const frameIntent = createTeleopFrameIntent("effector_frame");
+    const frameOptions = {
+      allowedCommandFrameIds: ["base_link", "effector_frame"],
+      onCommandFrameChange: (frameId: string) => {
+        activeFrame = frameId;
+      },
+      teleopComposer: composer,
+    };
+
+    composer.contribute("translation", { linear_x: 0.5 });
+    await expect(dispatchRuntimeActionIntent(client, frameIntent, frameOptions)).resolves.toMatchObject({
+      status: "blocked",
+      detail: "Release every motion control before changing the command frame.",
+    });
+    expect(activeFrame).toBe("base_link");
+
+    composer.contribute("translation", { linear_x: 0 });
+    await expect(dispatchRuntimeActionIntent(client, frameIntent, frameOptions)).resolves.toMatchObject({
+      status: "accepted",
+    });
+    expect(activeFrame).toBe("effector_frame");
+
+    const movement = createTeleopValueIntent({
+      runtimeBinding: {
+        adapter: "teleop",
+        value_mapping: { target_topic: "/joystick_cartesian_command" },
+      },
+      value: { x: 0.25, y: 0 },
+    });
+    await expect(
+      dispatchRuntimeActionIntent(client, movement, {
+        teleopComposer: composer,
+        runtimePolicy: {
+          command_frame_id: activeFrame,
+          allowed_message_types: [],
+          allowed_publish_topics: [],
+          allowed_recording_topics: [],
+          allowed_teleop_targets: ["/joystick_cartesian_command"],
+        },
+      }),
+    ).resolves.toMatchObject({ request: { frame_id: "effector_frame" }, status: "accepted" });
+  });
+
+  it("blocks a frame absent from the backend capability report", async () => {
+    const onCommandFrameChange = vi.fn();
+    await expect(
+      dispatchRuntimeActionIntent({ publishRosTopic: vi.fn() }, createTeleopFrameIntent("ft_frame"), {
+        allowedCommandFrameIds: ["base_link", "effector_frame"],
+        onCommandFrameChange,
+        teleopComposer: new TeleopTwistComposer(),
+      }),
+    ).resolves.toMatchObject({ status: "blocked", detail: 'Command frame "ft_frame" is not available on this robot.' });
+    expect(onCommandFrameChange).not.toHaveBeenCalled();
+  });
+
   it("converts CLI-style topic payloads to backend payload_text requests", () => {
     const intent = createTopicPublishIntent("{data: [13, 1]}");
 
@@ -630,6 +697,16 @@ function createCommandIntent(command: string, presetId?: string): Extract<Widget
     widgetKind: "command-button",
     command,
     presetId,
+  };
+}
+
+function createTeleopFrameIntent(frameId: string): Extract<WidgetActionIntent, { type: "command" }> {
+  return {
+    type: "command",
+    widgetId: `frame-${frameId}`,
+    widgetKind: "command-button",
+    command: "set-teleop-frame",
+    runtimeBinding: { adapter: "teleop-frame", frame_id: frameId },
   };
 }
 

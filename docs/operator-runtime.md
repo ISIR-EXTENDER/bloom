@@ -56,6 +56,21 @@ The Positions screen supports confirmed named targets, explicit release/cancel, 
 rename/delete, and export of a `joint_targets` configuration block. Robot Feedback and Command Sources expose measured
 state and the manager's summed inputs without placing debug detail on the Drive screen.
 
+## Joystick Lab
+
+Both Manager applications include **Joystick lab**, a virtual version of the physical joystick workflow used for
+Robin. It puts translation, height, rotation, pivot, mode requests, momentary Snake, gripper, and the command echo on
+one screen. The same screen works with direct touch, keyboard, gamepad, and the `scan` profile.
+
+The Base, Tool, Hybrid, and Force sensor buttons select the current runtime session's command frame. Bloom keeps a
+frame visible when the connected robot does not report it, disables it, and says that it is unavailable. While any
+composed twist is non-zero, all frame buttons are disabled with **Release controls**. A frame change therefore cannot
+reinterpret motion already in progress. The kiosk bar updates immediately, and the next widget or gamepad command uses
+the selected frame.
+
+The **Sent to manager** echo subscribes to `/joystick_cartesian_command` and shows its `twist`. It helps verify the
+command leaving Bloom; it is not controller feedback or proof of robot motion.
+
 ## Physical Gamepad
 
 When the browser exposes a standard gamepad, Bloom treats it as another contribution to the same composed twist. The
@@ -109,13 +124,16 @@ and verify the intended profile before relying on it in a session.
 
 ## Cartesian Command Frame
 
-Every virtual Cartesian control and physical gamepad contribution in one application uses one effective command frame:
+Every virtual Cartesian control and physical gamepad contribution in one runtime session uses one effective command
+frame. Its initial value is:
 
 1. `application.runtime_policy.command_frame_id`, when set;
 2. otherwise the backend `BLOOM_ROS_COMMAND_FRAME_ID` deployment default.
 
 Set it in **Builder > App configuration > Adapter guardrails > Cartesian command frame**. The selector is populated
-from `GET /api/v1/capabilities`, and the effective frame is visible in the kiosk bar.
+from `GET /api/v1/capabilities`, and the effective frame is visible in the kiosk bar. A screen may offer a
+`teleop-frame` selector such as Joystick Lab. It can choose only a reported frame and only while the composed twist is
+zero; the selection lasts for the current app runtime session and does not rewrite the application.
 
 Bloom accepts only `BLOOM_ALLOWED_COMMAND_FRAME_IDS`. `cartesian_manager` recognizes its configured base,
 end-effector, and hybrid frames; it does not perform a general TF lookup. The linear component follows the manager's

@@ -12,6 +12,7 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | Lot | Scope | State |
 | --- | --- | --- |
 | 0.1 | Scanning cannot drive a joystick | **Done** — `b1bd774` |
+| J | Joystick lab: virtual physical-joystick workflow and runtime frame selection | **Done** |
 | 0.2 | Dwell and scanning are exclusive | Next |
 | 0.3 | 44 px versus 56 px kiosk bar, recorded in an ADR | Not started |
 | 0.4 | Runtime says nothing when the fit drops below 1.0 | Not started |
@@ -36,6 +37,42 @@ that selects `scan`, the fix is unreachable from the interface.
 Tests: `switch-scanning-drive.test.tsx` renders a real screen through `ScreenArtboard`, scans
 to a direction, fires, and asserts a movement intent leaves. That is the test the handoff
 asked for: the old one only checked that the highlight moved.
+
+## Lot J, inserted by the product owner
+
+Source: `Bloom UX design review 2/joystick_lab_design/handoff/`. Robin needs a complete IHM
+equivalent of the physical joystick before the remaining review work continues. It reuses the
+existing joystick, slider, mode, gripper, topic-echo, kiosk, and STOP contracts. The only new
+runtime action is `teleop-frame`.
+
+Deliverables:
+
+1. Add the supplied `Joystick lab` screen to Explorer Manager and Kinova Manager.
+2. Carry a command button's `runtime_binding` into its intent. A `teleop-frame` intent changes
+   the session's active command frame without calling the backend.
+3. Enforce the safety invariant in the dispatcher: reject a frame change while the composed
+   twist is non-zero. The frame controls must also render disabled and explain why while moving.
+4. Disable and explain a frame that is absent from `runtimeCapabilityReport.command_frame_ids`;
+   an unknown capability report remains unknown, not unavailable.
+5. Keep the selected frame visible in the kiosk bar and stamp the next widget and gamepad
+   command with it. Mark the selected frame with the existing requested-selection treatment.
+6. Cover every Joystick Lab control under the `scan` profile and retain the momentary Snake
+   release on `pointercancel`.
+7. Add `11-joystick-lab` to `scripts/ros-e2e-capture.mjs`, capture it against the live ROS
+   stack at 1280x720, and compare it with the interactive
+   `joystick_lab_design/Bloom Joystick Lab.dc.html` reference. The handoff names an image file,
+   but the delivered folder currently contains the HTML reference and no `images/11-*.png`.
+
+The implementation stays frontend-only apart from the tracked seed JSON, as the handoff
+requires. The app-level `runtime_policy.command_frame_id` remains the session default and
+deployment fallback; Joystick Lab changes the one effective frame for the current runtime
+session, never one widget independently.
+
+Delivered in Explorer Manager and Kinova Manager with app-level wiring, scan coverage, runtime capability gating,
+zero-motion frame interlock, kiosk/gamepad propagation, and the `11-joystick-lab` ROS capture. The dated evidence is in
+`docs/validation/2026-09-16-joystick-lab-end-to-end.md`. During live comparison, the handoff's `axes` fields were mapped
+to canonical `axis_hints`, and Rotation/Pivot were narrowed by one pixel to preserve the maintained STOP reserve at
+`1024x600`.
 
 ## Next steps, in order
 

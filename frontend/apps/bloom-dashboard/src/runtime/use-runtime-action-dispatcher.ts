@@ -7,8 +7,7 @@ import {
   type RuntimeActionDispatchResult,
   type RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
-import type { ComponentContribution } from "./teleop-composition";
-import { TeleopTwistComposer } from "./teleop-composition";
+import { type ComponentContribution, isZeroTwist, TeleopTwistComposer } from "./teleop-composition";
 import { TeleopStreamPump } from "./teleop-stream";
 
 export type RuntimeActionRecordStatus = RuntimeActionDispatchResult["status"] | "pending";
@@ -23,8 +22,10 @@ export type RuntimeActionRecord = {
 
 export type RuntimeDispatchOptions = {
   actionPresets?: readonly RuntimeActionPreset[];
+  allowedCommandFrameIds?: readonly string[];
   appId?: string;
   configId?: string;
+  onCommandFrameChange?: (frameId: string) => void;
   runtimePolicy?: RuntimeAdapterPolicy;
 };
 
@@ -56,6 +57,10 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     return () => pump?.stop();
   }, []);
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
+  const [teleopActive, setTeleopActive] = useState(false);
+  const syncTeleopActive = useCallback(() => {
+    setTeleopActive(!isZeroTwist(teleopComposer.current.compose()));
+  }, []);
 
   const dispatch = useCallback(
     (intent: WidgetActionIntent, options: RuntimeDispatchOptions = {}) => {
@@ -75,19 +80,27 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
       const teleopSequence = intent.type === "value-change" ? ++nextTeleopSequence.current : undefined;
 
-      void dispatchRuntimeActionIntent(client, intent, {
+      const pendingResult = dispatchRuntimeActionIntent(client, intent, {
         actionPresets: options.actionPresets,
+        allowedCommandFrameIds: options.allowedCommandFrameIds,
         appId: options.appId,
         configId: options.configId,
+        onCommandFrameChange: options.onCommandFrameChange,
         runtimePolicy: options.runtimePolicy,
         teleopComposer: teleopComposer.current,
         teleopSequence,
-      }).then((result) => {
+      });
+      if (intent.type === "value-change") {
+        syncTeleopActive();
+      }
+
+      void pendingResult.then((result) => {
         if (result.request && "type" in result.request && result.request.type === "teleop_cmd") {
           teleopPump.current?.noteDispatched(
             result.request,
             result.status === "failed" || result.status === "blocked" ? "failed" : "sent",
           );
+          syncTeleopActive();
         }
         setRecords((currentRecords) =>
           currentRecords.map((record) =>
@@ -103,7 +116,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         );
       });
     },
-    [client],
+    [client, syncTeleopActive],
   );
 
   const subscribeTopic = useCallback(
@@ -127,16 +140,17 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       } else {
         teleopComposer.current.contribute(sourceId, contribution);
       }
+      syncTeleopActive();
       teleopPump.current?.noteExternalContribution({
         ...(commandFrameId ? { frame_id: commandFrameId } : {}),
         target: "/joystick_cartesian_command",
         mode: 0,
       });
     },
-    [],
+    [syncTeleopActive],
   );
 
-  return { contributeTeleop, dispatch, records, subscribeTopic };
+  return { contributeTeleop, dispatch, records, subscribeTopic, teleopActive };
 }
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {

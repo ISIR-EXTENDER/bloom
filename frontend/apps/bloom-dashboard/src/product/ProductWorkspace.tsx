@@ -37,8 +37,10 @@ type ProductWorkspaceProps = {
   onRuntimeIntent: (
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
+      allowedCommandFrameIds?: readonly string[];
       appId: string;
       configId: string;
+      onCommandFrameChange?: (frameId: string) => void;
     },
   ) => void;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
@@ -55,6 +57,7 @@ type ProductWorkspaceProps = {
   runtimeActionClient: RuntimeActionClient;
   runtimeMode: RuntimeMode;
   runtimeModeState: RuntimeModeState;
+  teleopActive: boolean;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
 };
@@ -89,6 +92,7 @@ export function ProductWorkspace({
   runtimeActionClient,
   runtimeMode,
   runtimeModeState,
+  teleopActive,
   selection,
   state,
 }: ProductWorkspaceProps) {
@@ -159,6 +163,7 @@ export function ProductWorkspace({
       runtimeModeState={runtimeModeState}
       screen={selectedWorkspace.screen}
       selection={selection}
+      teleopActive={teleopActive}
     />
   );
 }

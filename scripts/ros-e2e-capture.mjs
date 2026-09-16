@@ -82,6 +82,15 @@ const captures = [
       await page.waitForTimeout(400);
     },
   },
+  {
+    name: "11-joystick-lab",
+    setup: async (page) => {
+      await openRuntime(page);
+      await selectRuntimeScreen(page, "Joystick lab");
+      await page.getByRole("application", { name: "Translation" }).waitFor();
+      await page.waitForTimeout(400);
+    },
+  },
 ];
 
 await mkdir(outputDir, { recursive: true });
@@ -156,6 +165,12 @@ async function holdForMaintenance(page) {
   await page.mouse.up();
   await page.getByRole("dialog", { name: "Maintenance" }).waitFor();
   await page.waitForTimeout(200);
+}
+
+async function selectRuntimeScreen(page, title) {
+  await holdForMaintenance(page);
+  await page.getByRole("navigation", { name: "Switch runtime screen" }).getByRole("button", { name: title }).click();
+  await page.getByRole("dialog", { name: "Maintenance" }).waitFor({ state: "hidden" });
 }
 
 async function holdResume(page) {

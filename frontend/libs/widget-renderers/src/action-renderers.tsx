@@ -22,6 +22,9 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
   // this says "this is what we last asked for", never "the arm is in this mode".
   const selection = controlState?.selection;
   const isSelected = selection === "selected";
+  const disabled = controlState?.disabled === true;
+  const disabledReason = controlState?.disabledReason;
+  const disabledReasonId = disabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
   const isMomentaryPressedRef = useRef(false);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
   const [isArmed, setIsArmed] = useState(false);
@@ -44,6 +47,9 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
   }, [confirmTimeoutSeconds, isArmed]);
 
   const handlePress = () => {
+    if (disabled) {
+      return;
+    }
     if (!allowActivation()) {
       return;
     }
@@ -55,7 +61,7 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
   };
   const handleMomentaryPress = (event: PointerEvent<HTMLButtonElement>) => {
-    if (isMomentaryPressedRef.current) {
+    if (disabled || isMomentaryPressedRef.current) {
       return;
     }
     if (typeof event.currentTarget.setPointerCapture === "function") {
@@ -104,9 +110,10 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     >
       <strong>{descriptor.widget.title}</strong>
       <button
-        aria-label={
+        aria-describedby={disabledReasonId}
+        aria-label={`${
           selection ? `${visibleButtonLabel}: ${isSelected ? "requested" : "not requested"}` : visibleButtonLabel
-        }
+        }${disabledReason ? `. ${disabledReason}` : ""}`}
         aria-pressed={momentary ? isMomentaryPressed : selection ? isSelected : undefined}
         className="bloom-command-button"
         data-armed={isArmed ? "true" : undefined}
@@ -114,14 +121,21 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
         data-confirm-press={confirmPress ? "true" : undefined}
         data-momentary={momentary ? "true" : "false"}
         data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
+        disabled={disabled}
         onClick={momentary ? undefined : handlePress}
         onPointerCancel={momentary ? handleMomentaryRelease : undefined}
         onPointerDown={momentary ? handleMomentaryPress : undefined}
         onPointerLeave={momentary ? handleMomentaryRelease : undefined}
         onPointerUp={momentary ? handleMomentaryRelease : undefined}
+        title={disabledReason}
         type="button"
       >
-        {visibleButtonLabel}
+        <span>{visibleButtonLabel}</span>
+        {disabledReason ? (
+          <small className="bloom-command-button-disabled-reason" id={disabledReasonId}>
+            {disabledReason}
+          </small>
+        ) : null}
       </button>
       {showDetails && (actionLabel || command) ? (
         <span>{isSelected ? `Last requested \u00b7 ${actionLabel || command}` : actionLabel || command}</span>

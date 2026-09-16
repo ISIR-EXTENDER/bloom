@@ -51,6 +51,17 @@ export function createZeroTwist(): TeleopTwist {
   return { angular: { ...ZERO }, linear: { ...ZERO } };
 }
 
+export function isZeroTwist(twist: TeleopTwist): boolean {
+  return (
+    twist.linear.x === 0 &&
+    twist.linear.y === 0 &&
+    twist.linear.z === 0 &&
+    twist.angular.x === 0 &&
+    twist.angular.y === 0 &&
+    twist.angular.z === 0
+  );
+}
+
 function isTwistComponent(value: unknown): value is TwistComponent {
   return typeof value === "string" && (TWIST_COMPONENTS as readonly string[]).includes(value);
 }

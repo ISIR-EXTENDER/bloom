@@ -5,12 +5,13 @@ import {
   type RuntimeActionPreset,
   type RuntimeAdapterPolicy,
 } from "@bloom/api-client";
-import type { Vector2Value, WidgetActionIntent } from "@bloom/widgets";
+import { resolveTeleopFrameId, type Vector2Value, type WidgetActionIntent } from "@bloom/widgets";
 import {
   type ComponentContribution,
   composeTwist,
   contributionFromAxisMap,
   defaultJoystickAxisMap,
+  isZeroTwist,
   readAxisDeadZone,
   readWidgetAxisMap,
   type TeleopTwistComposer,
@@ -130,8 +131,10 @@ export type RuntimeActionDispatchResult = {
 
 export type RuntimeActionDispatchOptions = {
   actionPresets?: readonly RuntimeActionPreset[];
+  allowedCommandFrameIds?: readonly string[];
   appId?: string;
   configId?: string;
+  onCommandFrameChange?: (frameId: string) => void;
   runtimePolicy?: RuntimeAdapterPolicy;
   /**
    * Accumulates per-widget twist contributions so a full 6-DoF command can be
@@ -170,6 +173,11 @@ async function dispatchCommandIntent(
   intent: Extract<WidgetActionIntent, { type: "command" }>,
   options: RuntimeActionDispatchOptions,
 ): Promise<RuntimeActionDispatchResult> {
+  const teleopFrameId = resolveTeleopFrameId(intent.runtimeBinding);
+  if (teleopFrameId) {
+    return dispatchTeleopFrameIntent(intent, teleopFrameId, options);
+  }
+
   const preset = findActionPreset(intent, options.actionPresets ?? []);
   const request = preset ? createPresetTopicPublishRequest(preset) : null;
   const configuredActionRequest = createConfiguredActionRequest(intent, options, preset);
@@ -243,6 +251,48 @@ async function dispatchCommandIntent(
       detail: getErrorMessage(error),
     };
   }
+}
+
+function dispatchTeleopFrameIntent(
+  intent: Extract<WidgetActionIntent, { type: "command" }>,
+  frameId: string,
+  options: RuntimeActionDispatchOptions,
+): RuntimeActionDispatchResult {
+  if (options.allowedCommandFrameIds && !options.allowedCommandFrameIds.includes(frameId)) {
+    return {
+      intent,
+      status: "blocked",
+      detail: `Command frame "${frameId}" is not available on this robot.`,
+    };
+  }
+  if (!options.teleopComposer) {
+    return {
+      intent,
+      status: "unsupported",
+      detail: "Runtime frame selection needs the composed teleop state.",
+    };
+  }
+  if (!isZeroTwist(options.teleopComposer.compose())) {
+    return {
+      intent,
+      status: "blocked",
+      detail: "Release every motion control before changing the command frame.",
+    };
+  }
+  if (!options.onCommandFrameChange) {
+    return {
+      intent,
+      status: "unsupported",
+      detail: "Runtime frame selection is not connected to this operator session.",
+    };
+  }
+
+  options.onCommandFrameChange(frameId);
+  return {
+    intent,
+    status: "accepted",
+    detail: `Command frame changed to "${frameId}" for this operator session.`,
+  };
 }
 
 async function dispatchTopicPublishIntent(

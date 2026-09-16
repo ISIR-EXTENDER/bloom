@@ -88,8 +88,9 @@ Bloom preserves the details that robot controllers observe:
   configured targets such as `/joystick_cartesian_command`;
 - several widgets and a physical gamepad compose one complete 6-DoF twist, with
   per-axis scaled dead zones and release-to-zero behavior;
-- one app-level Cartesian command frame stamps every virtual/gamepad
-  contribution and is checked against the backend deployment allowlist;
+- one effective Cartesian command frame stamps every virtual/gamepad
+  contribution and is checked against the backend deployment allowlist; app policy supplies the default, and a
+  runtime selector may change the session frame only at zero motion;
 - sliders and toggles publish explicit app-configured ROS message types and
   payload fields;
 - Explorer deploy/repli, saved pose replay, favorite mode/layout/position,

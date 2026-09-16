@@ -88,4 +88,15 @@ describe("a latching mode button", () => {
     expect(button.getAttribute("aria-pressed")).toBe("false");
     expect(button.getAttribute("data-momentary")).toBe("true");
   });
+
+  it("keeps an unavailable frame visible and explains why it cannot be selected", () => {
+    const button = renderButton(
+      { runtime_binding: { adapter: "teleop-frame", frame_id: "effector_frame" } },
+      { disabled: true, disabledReason: "Unavailable on this robot.", selection: "unselected" },
+    );
+
+    expect(button.hasAttribute("disabled")).toBe(true);
+    expect(button.getAttribute("aria-label")).toContain("Unavailable on this robot.");
+    expect(screen.getByText("Unavailable on this robot.")).toBeTruthy();
+  });
 });

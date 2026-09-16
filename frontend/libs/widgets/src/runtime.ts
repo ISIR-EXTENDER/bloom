@@ -79,6 +79,7 @@ export type WidgetActionIntent =
       action?: RuntimeActionContract;
       command: string;
       presetId?: string;
+      runtimeBinding?: unknown;
       type: "command";
       widgetId: string;
       widgetKind: WidgetKind;
@@ -196,19 +197,34 @@ function createCommandLikeIntent(
     });
   }
 
-  if (!command && !presetId) {
+  const runtimeBinding = settings.runtime_binding;
+  const teleopFrameId = resolveTeleopFrameId(runtimeBinding);
+  const resolvedCommand = command ?? presetId ?? (teleopFrameId ? "set-teleop-frame" : undefined);
+  if (!resolvedCommand) {
     return createUnsupportedIntent(widget, event, `Widget "${widget.id}" has no command or topic configured.`);
   }
 
-  const action = createRuntimeActionContract(widget, settings, command ?? presetId ?? widget.id);
+  const action = createRuntimeActionContract(widget, settings, resolvedCommand);
   return {
     type: "command",
     widgetId: widget.id,
     widgetKind: widget.kind,
-    command: command ?? presetId ?? widget.id,
+    command: resolvedCommand,
     ...withOptional("presetId", presetId),
+    ...withOptional("runtimeBinding", runtimeBinding),
     ...(action ? { action } : {}),
   };
+}
+
+export function resolveTeleopFrameId(runtimeBinding: unknown): string | null {
+  if (!runtimeBinding || typeof runtimeBinding !== "object" || Array.isArray(runtimeBinding)) {
+    return null;
+  }
+  const binding = runtimeBinding as Record<string, unknown>;
+  if (binding.adapter !== "teleop-frame" || typeof binding.frame_id !== "string") {
+    return null;
+  }
+  return binding.frame_id.trim() || null;
 }
 
 function createToggleIntent(

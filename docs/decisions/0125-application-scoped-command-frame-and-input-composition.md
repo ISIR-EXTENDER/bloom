@@ -29,6 +29,15 @@ normalized contributions for the same `TeleopTwistComposer`; the ROS adapter doe
 Directional switch scanning is not complete at this decision date because activating the focused joystick pad produces
 no vector. That correction remains on the frontend side of this boundary.
 
+## 2026-09-16 Amendment — runtime session selection
+
+Directional scanning now renders joystick and slider step targets and emits real movement intents. An application may
+also expose `teleop-frame` command buttons, as the Explorer and Kinova Joystick Lab screens do. They replace the
+effective frame for the current runtime session without rewriting app configuration or calling a backend action. The
+dispatcher accepts the change only when the composed twist is zero and the frame appears in the backend capability
+report. Unsupported frames remain visible and disabled. The kiosk bar, widgets, and gamepad all consume the same
+selected value, so this amendment preserves the decision's no-mixed-frames invariant.
+
 ## Rationale
 
 `cartesian_manager` interprets angular velocity according to a known base, end-effector, or hybrid frame and does not do

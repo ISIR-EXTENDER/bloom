@@ -14,7 +14,7 @@ validates Bloom rather than deciding which product owns the IHM.
 | App/screen configuration | API-backed flows, shared seeds, SQLite normalized reconstruction, screen library, drag/drop with button fallbacks. | Generic collision feedback and multi-device touch review. |
 | WYSIWYG builder | Save/discard, undo/redo, palette, inspector, previews, target-size warning. | Whole-screen device frames and a policy for fit below physical target size. |
 | Operator controls | Two joysticks, Z/RZ, per-axis composition/dead zone, mode/gripper/speed commands, saved positions, service calls. | Live Explorer/Kinova acceptance in every offered frame. |
-| Accessible input | Keyboard, large/assisted targets, step, latch, scanner focus, dwell, gamepad, audio, conditioning, and browser reduced-motion handling. | Fix directional joystick scanning and decide scan/dwell composition; wire the reduced-motion profile; complete settings and operator/device validation. |
+| Accessible input | Keyboard, large/assisted targets, directional scanning, step, latch, dwell, gamepad, audio, conditioning, and browser reduced-motion handling. | Decide scan/dwell composition; wire the reduced-motion profile; complete settings and operator/device validation. |
 | Feedback/debug | Topic catalog, echo, plots/freeze, command sources, manipulability, audit, simulated or opt-in rosbag recording. | Live recording and visual-servoing sessions. |
 | Camera | Browser webcam/stream and validated `CompressedImage` publishing. | Permission/recovery UX and live camera/tag validation. |
 | ROS boundary | `cartesian_manager` default, legacy gateway fallback, allowlists, frame policy, mode validation, rate limits, audit. | Robot profile, authoritative mode feedback, live robot sign-off. |
@@ -53,7 +53,7 @@ The durable boundaries are in place:
 - runtime widgets emit intents and normalized input contributions;
 - app policy is an early guardrail and backend deployment policy is final;
 - JSON is the interchange/shared-seed format and SQLite is runtime state;
-- one application frame applies to every composed Cartesian input;
+- one effective session frame applies to every composed Cartesian input, with application policy as its default;
 - input devices stay above the robot adapter boundary.
 
 The main architecture gap is a robot profile. Extender topics, mode grammar, actuators, feedback topics, and frame sets
@@ -66,7 +66,7 @@ Split them when a concrete feature makes ownership unclear; they are not blocker
 ## UX Status
 
 The runtime now follows the strongest design-review requirements: no builder chrome under the operator's hand, a small
-truthful bar, a real stop, direction words, one visible command frame, tested contrast, multiple input modes, and control
+truthful bar, a real stop, direction words, one visible effective command frame, tested contrast, multiple input modes, and control
 bounds in maintained seeds.
 
 The next UX work is not another broad redesign. It is the unresolved physical and social layer:

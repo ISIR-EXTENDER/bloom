@@ -1,5 +1,5 @@
 import type { RuntimeTeleopCommandRequest } from "./runtime-action-dispatcher";
-import type { TeleopTwist, TeleopTwistComposer } from "./teleop-composition";
+import { isZeroTwist, type TeleopTwistComposer } from "./teleop-composition";
 
 /**
  * Re-sends the composed twist between widget events: cartesian_manager drops
@@ -106,15 +106,4 @@ export class TeleopStreamPump {
       this.stop();
     });
   }
-}
-
-function isZeroTwist(twist: TeleopTwist): boolean {
-  return (
-    twist.linear.x === 0 &&
-    twist.linear.y === 0 &&
-    twist.linear.z === 0 &&
-    twist.angular.x === 0 &&
-    twist.angular.y === 0 &&
-    twist.angular.z === 0
-  );
 }

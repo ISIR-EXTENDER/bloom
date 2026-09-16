@@ -828,6 +828,453 @@
               }
             }
           ]
+        },
+        {
+          "id": "manager_joystick_lab",
+          "title": "Joystick lab",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "lab-frame-label",
+              "kind": "label",
+              "title": "COMMAND FRAME \u2014 stamped on every twist",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 504,
+                "height": 20
+              },
+              "settings": {
+                "text": "COMMAND FRAME \u2014 stamped on every twist",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "lab-frame-base",
+              "kind": "command-button",
+              "title": "Base",
+              "layout": {
+                "x": 14,
+                "y": 36,
+                "width": 120,
+                "height": 82
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-base",
+                "action_label": "Stamp commands in base_link",
+                "button_label": "Base",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "base_link"
+                }
+              }
+            },
+            {
+              "id": "lab-frame-tool",
+              "kind": "command-button",
+              "title": "Tool",
+              "layout": {
+                "x": 142,
+                "y": 36,
+                "width": 120,
+                "height": 82
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-tool",
+                "action_label": "Stamp commands in effector_frame",
+                "button_label": "Tool",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "effector_frame"
+                }
+              }
+            },
+            {
+              "id": "lab-frame-hybrid",
+              "kind": "command-button",
+              "title": "Hybrid",
+              "layout": {
+                "x": 270,
+                "y": 36,
+                "width": 120,
+                "height": 82
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-hybrid",
+                "action_label": "Stamp commands in hybrid_frame",
+                "button_label": "Hybrid",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "hybrid_frame"
+                }
+              }
+            },
+            {
+              "id": "lab-frame-ft",
+              "kind": "command-button",
+              "title": "Force sensor",
+              "layout": {
+                "x": 398,
+                "y": 36,
+                "width": 120,
+                "height": 82
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-ft",
+                "action_label": "Stamp commands in ft_frame",
+                "button_label": "Force sensor",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "ft_frame"
+                }
+              }
+            },
+            {
+              "id": "lab-mode-label",
+              "kind": "label",
+              "title": "SHAPING MODE \u2014 requested, the manager never confirms",
+              "layout": {
+                "x": 540,
+                "y": 14,
+                "width": 406,
+                "height": 20
+              },
+              "settings": {
+                "text": "SHAPING MODE \u2014 requested, the manager never confirms",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "lab-mode-both",
+              "kind": "command-button",
+              "title": "Both",
+              "layout": {
+                "x": 540,
+                "y": 36,
+                "width": 130,
+                "height": 82
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-mode-both",
+                "action_label": "Request geometric/both",
+                "button_label": "Both",
+                "cancellable": false,
+                "command": "geometric/both",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/both"
+                },
+                "show_details": false
+              }
+            },
+            {
+              "id": "lab-mode-jaco",
+              "kind": "command-button",
+              "title": "Jaco",
+              "layout": {
+                "x": 678,
+                "y": 36,
+                "width": 130,
+                "height": 82
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-mode-jaco",
+                "action_label": "Request geometric/jaco",
+                "button_label": "Jaco",
+                "cancellable": false,
+                "command": "geometric/jaco",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/jaco"
+                },
+                "show_details": false
+              }
+            },
+            {
+              "id": "lab-snake-hold",
+              "kind": "command-button",
+              "title": "Hold snake",
+              "layout": {
+                "x": 816,
+                "y": 36,
+                "width": 130,
+                "height": 82
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-snake-hold",
+                "action_label": "Hold for snake",
+                "button_label": "Hold snake",
+                "cancellable": false,
+                "command": "geometric/snake",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/snake"
+                },
+                "show_details": false,
+                "momentary": true,
+                "pressed_label": "SNAKE ON",
+                "released_label": "Hold snake",
+                "releasedPayload": {
+                  "data": "geometric/both"
+                }
+              }
+            },
+            {
+              "id": "lab-gripper-label",
+              "kind": "label",
+              "title": "GRIPPER",
+              "layout": {
+                "x": 968,
+                "y": 14,
+                "width": 298,
+                "height": 20
+              },
+              "settings": {
+                "text": "GRIPPER",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "lab-gripper",
+              "kind": "toggle",
+              "title": "Gripper",
+              "layout": {
+                "x": 968,
+                "y": 36,
+                "width": 298,
+                "height": 82
+              },
+              "settings": {
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "initialValue": false,
+                "show_details": false,
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}"
+              }
+            },
+            {
+              "id": "lab-z",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 14,
+                "y": 130,
+                "width": 110,
+                "height": 516
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "vertical",
+                "show_details": true,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "linear_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+          {
+            "id": "lab-translation",
+            "kind": "joystick",
+            "title": "Translation",
+              "layout": {
+                "x": 136,
+                "y": 130,
+                "width": 440,
+                "height": 516
+              },
+              "settings": {
+              "axis_hints": {
+                  "x": {
+                    "color": "#4a9eff",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#4a9eff",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "\u25b2 Forward",
+                  "bottom": "\u25bc Back",
+                  "left": "\u25c0 Left",
+                  "right": "Right \u25b6"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": true,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+          {
+            "id": "lab-rotation",
+            "kind": "joystick",
+            "title": "Rotation",
+            "layout": {
+              "x": 588,
+              "y": 130,
+              "width": 439,
+              "height": 416
+            },
+              "settings": {
+              "axis_hints": {
+                  "x": {
+                    "color": "#e0685f",
+                    "negative_label": "RX-",
+                    "positive_label": "RX+",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#e0685f",
+                    "negative_label": "RY-",
+                    "positive_label": "RY+",
+                    "semantic": "rotation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "\u25b2 Tilt up",
+                  "bottom": "\u25bc Tilt down",
+                  "left": "\u25c0 Roll left",
+                  "right": "Roll right \u25b6"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": true,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_x"
+                    },
+                    "y": {
+                      "component": "angular_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "lab-rz",
+              "kind": "slider",
+              "title": "Pivot",
+            "layout": {
+              "x": 588,
+              "y": 558,
+              "width": 439,
+              "height": 88
+            },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "horizontal",
+                "show_details": true,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "angular_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "lab-sent",
+              "kind": "topic-echo",
+              "title": "Sent to manager",
+              "layout": {
+                "x": 1040,
+                "y": 130,
+                "width": 226,
+                "height": 330
+              },
+              "settings": {
+                "fieldPath": "twist",
+                "maxMessages": 1,
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "prettyPrint": true,
+                "show_details": true,
+                "topic": "/joystick_cartesian_command"
+              }
+            }
+          ]
         }
       ]
     }
