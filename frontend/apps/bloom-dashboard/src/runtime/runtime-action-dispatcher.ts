@@ -130,6 +130,21 @@ export type RuntimeActionDispatchResult = {
   status: RuntimeActionDispatchStatus;
 };
 
+export function isRuntimeActionConfirmed(result: RuntimeActionDispatchResult): boolean {
+  return result.status === "accepted" || result.status === "called" || result.status === "published";
+}
+
+export function isRuntimeActionProblem(
+  result: RuntimeActionDispatchResult,
+): result is RuntimeActionDispatchResult & { status: "blocked" | "failed" | "simulated" | "unsupported" } {
+  return (
+    result.status === "blocked" ||
+    result.status === "failed" ||
+    result.status === "simulated" ||
+    result.status === "unsupported"
+  );
+}
+
 export type RuntimeActionDispatchOptions = {
   actionPresets?: readonly RuntimeActionPreset[];
   allowedCommandFrameIds?: readonly string[];

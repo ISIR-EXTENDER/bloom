@@ -1350,6 +1350,29 @@ describe("App", () => {
       message_type: "std_msgs/msg/Int32MultiArray",
       payload_text: "{data: [13, 1]}",
     });
+    expect(await screen.findByRole("button", { name: "Digital output: Active" })).toBeVisible();
+  });
+
+  it("keeps the acknowledged control state and alerts when a command is not sent", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    runtimeActionClient.publishRosTopic = vi.fn(async (request) => ({
+      detail: "ROS publisher gateway is not configured.",
+      message_type: request.message_type,
+      status: "simulated" as const,
+      topic: request.topic,
+    }));
+
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
+
+    await openSandboxRuntimeFromNavigation();
+    fireEvent.click(await screen.findByRole("button", { name: "Digital output: Inactive" }));
+
+    expect(
+      await screen.findByRole("alert", {
+        name: "Not sent: ROS publisher gateway is not configured.",
+      }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("fits the runtime canvas into the available application viewport", async () => {
@@ -2118,6 +2141,9 @@ type TestRuntimeActionClient = RuntimeActionClient & {
 };
 
 const TEST_READY_COMMAND_TOPICS = [
+  "/cmd/joystick_rz",
+  "/cmd/joystick_z",
+  "/cmd/max_velocity",
   "/cmd/gripper",
   "/cmd/joystick_rxry",
   "/cmd/joystick_rz",
@@ -2183,8 +2209,8 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         ({
           topic: request.topic,
           message_type: request.message_type,
-          status: "simulated",
-          detail: "ROS publisher gateway is not configured.",
+          status: "published",
+          detail: "Published.",
         }) as const,
     ),
     listRosTopics: vi.fn(async () => [

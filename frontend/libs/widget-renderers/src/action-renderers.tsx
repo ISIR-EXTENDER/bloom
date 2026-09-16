@@ -184,16 +184,30 @@ export function ToggleWidget({ conditioning, controlState, descriptor, onActionI
   const controlledToggleState = controlState?.toggleState;
   const isOn = controlledToggleState ? controlledToggleState === "on" : localIsOn;
   const stateLabel = isOn ? onLabel : offLabel;
+  const [isPending, setIsPending] = useState(false);
 
-  const handleToggle = () => {
-    if (!allowToggle()) {
+  const handleToggle = async () => {
+    if (isPending || !allowToggle()) {
       return;
     }
     const nextState = isOn ? "off" : "on";
-    if (!controlledToggleState) {
+    if (!onActionIntent) {
       setLocalIsOn(nextState === "on");
+      return;
     }
-    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
+
+    setIsPending(true);
+    try {
+      const outcome = await onActionIntent(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
+      if (!controlledToggleState && (outcome === undefined || outcome.accepted)) {
+        setLocalIsOn(nextState === "on");
+      }
+    } catch {
+      // The runtime shell owns visible error reporting. Keep the last
+      // acknowledged state when an embedding handler rejects unexpectedly.
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
@@ -202,7 +216,9 @@ export function ToggleWidget({ conditioning, controlState, descriptor, onActionI
       <button
         aria-pressed={isOn}
         aria-label={`${descriptor.widget.title}: ${stateLabel}`}
+        aria-busy={isPending}
         className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
+        disabled={isPending}
         onClick={handleToggle}
         type="button"
       >

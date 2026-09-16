@@ -93,4 +93,34 @@ describe("runtime teleop suspension", () => {
     expect(sent).toHaveLength(2);
     expect(sent.at(-1)?.linear.x).toBe(1);
   });
+
+  it("returns transport failures and exposes them as operator feedback", async () => {
+    client.publishRosTopic = vi.fn(async () => {
+      throw new Error("ROS bridge disconnected.");
+    });
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    let dispatchResult: Awaited<ReturnType<typeof result.current.dispatch>> | undefined;
+
+    await act(async () => {
+      dispatchResult = await result.current.dispatch(
+        {
+          messageType: "std_msgs/msg/Bool",
+          payload: { data: true },
+          topic: "/ui/visual_servoing/on",
+          type: "topic-publish",
+          widgetId: "visual-servoing",
+          widgetKind: "toggle",
+        },
+        { appId: "sandbox" },
+      );
+    });
+
+    expect(dispatchResult).toMatchObject({ status: "failed", detail: "ROS bridge disconnected." });
+    expect(result.current.feedback).toEqual({
+      appId: "sandbox",
+      detail: "ROS bridge disconnected.",
+      status: "failed",
+      widgetId: "visual-servoing",
+    });
+  });
 });

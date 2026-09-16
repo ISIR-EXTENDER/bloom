@@ -70,6 +70,8 @@ export const frRuntimeStrings: RuntimeStrings = {
   kiosk: {
     appLibrary: "Bibliothèque d'apps",
     backToOperation: "Retour au pilotage",
+    commandFailed: "Commande échouée",
+    commandNotSent: "Non envoyée",
     editApp: "Modifier l'app",
     editScreen: "Modifier cet écran",
     fitDescription: (width, height, percent) =>

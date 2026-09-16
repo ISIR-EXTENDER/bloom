@@ -19,6 +19,7 @@ export type {
   UnknownWidgetRenderer,
   UnknownWidgetRendererProps,
   WidgetActionIntentHandler,
+  WidgetActionOutcome,
   WidgetControlState,
   WidgetDataSnapshot,
   WidgetRenderer,

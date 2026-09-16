@@ -28,6 +28,11 @@ explicitly reports a required publisher, subscriber, service, or teleop seam una
 authored position but becomes inert and shows the backend's reason. A missing or failed capability report remains
 unknown and does not disable the screen by guesswork.
 
+Command controls show acknowledged state, not an optimistic guess. A mode selection or toggle changes only after the
+backend reports `accepted`, `called`, or `published`. A blocked, failed, unsupported, or simulated action leaves the
+last acknowledged state in place and raises **Command failed** or **Not sent** in the kiosk bar with the backend detail.
+Treat either message as an incomplete operation; a simulated response is useful in development but is not robot work.
+
 ## Supervisor Mirror
 
 Open **Supervisor mirror** beside an app in the Runtime library. From a running app, hold **Maintenance** and choose the

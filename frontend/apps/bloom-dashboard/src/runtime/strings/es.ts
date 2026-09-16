@@ -70,6 +70,8 @@ export const esRuntimeStrings: RuntimeStrings = {
   kiosk: {
     appLibrary: "Biblioteca de apps",
     backToOperation: "Volver al control",
+    commandFailed: "Comando fallido",
+    commandNotSent: "No enviado",
     editApp: "Editar app",
     editScreen: "Editar esta pantalla",
     fitDescription: (width, height, percent) =>

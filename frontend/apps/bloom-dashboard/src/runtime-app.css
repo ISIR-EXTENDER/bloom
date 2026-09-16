@@ -810,6 +810,41 @@
   color: var(--bloom-on-surface-muted);
 }
 
+.runtime-kiosk-command-feedback {
+  display: flex;
+  min-width: 0;
+  max-width: min(320px, 32vw);
+  min-height: 32px;
+  gap: 7px;
+  align-items: center;
+  padding: 4px 9px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--bloom-error) 55%, var(--bloom-outline));
+  border-radius: 8px;
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.runtime-kiosk-command-feedback[data-status="simulated"] {
+  border-color: color-mix(in srgb, var(--bloom-color-pollen) 74%, var(--bloom-outline));
+  background: color-mix(in srgb, var(--bloom-color-pollen) 32%, var(--bloom-surface));
+  color: var(--bloom-on-surface);
+}
+
+.runtime-kiosk-command-feedback strong {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.runtime-kiosk-command-feedback > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .runtime-kiosk-status-dot {
   width: 10px;
   height: 10px;

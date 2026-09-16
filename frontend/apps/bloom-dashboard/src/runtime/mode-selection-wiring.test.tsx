@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { ConfigurationBundle } from "@bloom/api-client";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
@@ -62,12 +62,16 @@ describe("pressing a mode button", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^Jaco/ }));
 
-    expect(pressedState(/^Jaco/)).toBe("true");
-    expect(pressedState(/^Both/)).toBe("false");
+    await waitFor(() => {
+      expect(pressedState(/^Jaco/)).toBe("true");
+      expect(pressedState(/^Both/)).toBe("false");
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /^Both/ }));
 
-    expect(pressedState(/^Both/)).toBe("true");
-    expect(pressedState(/^Jaco/)).toBe("false");
+    await waitFor(() => {
+      expect(pressedState(/^Both/)).toBe("true");
+      expect(pressedState(/^Jaco/)).toBe("false");
+    });
   });
 });

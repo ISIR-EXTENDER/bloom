@@ -47,7 +47,14 @@ export type WidgetDataSnapshot =
       type: "topic-plot";
     };
 
-export type WidgetActionIntentHandler = (intent: WidgetActionIntent) => void;
+export type WidgetActionOutcome = {
+  accepted: boolean;
+  detail?: string;
+};
+
+export type WidgetActionIntentHandler = (
+  intent: WidgetActionIntent,
+) => WidgetActionOutcome | undefined | Promise<WidgetActionOutcome | undefined>;
 
 export type WidgetControlState = {
   disabled?: boolean;

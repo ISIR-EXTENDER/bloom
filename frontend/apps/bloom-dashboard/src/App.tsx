@@ -1,5 +1,6 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
+import type { WidgetActionOutcome } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
@@ -21,7 +22,7 @@ import { duplicateApplicationInConfigurationBundle } from "./configurations/conf
 import { useConfigurations } from "./configurations/use-configurations";
 import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
-import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
+import { isRuntimeActionConfirmed, type RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
 import { applyRuntimeModeIntent, createDefaultRuntimeModeState } from "./runtime/runtimeModeState";
 import { createSupervisorRuntimeClient } from "./runtime/supervisor-client";
@@ -143,7 +144,7 @@ export function App({
     }
   }, [isRuntimeOperationView, runtimeActions.suspendTeleop]);
 
-  const handleRuntimeIntent = (
+  const handleRuntimeIntent = async (
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
       allowedCommandFrameIds?: readonly string[];
@@ -151,13 +152,12 @@ export function App({
       configId: string;
       onCommandFrameChange?: (frameId: string) => void;
     },
-  ) => {
+  ): Promise<WidgetActionOutcome> => {
     if (intent.type === "screen-navigation" && tryNavigateRuntimeScreen(intent.targetScreenId)) {
-      return;
+      return { accepted: true };
     }
 
-    setRuntimeModeState((currentModeState) => applyRuntimeModeIntent(currentModeState, intent));
-    runtimeActions.dispatch(intent, {
+    const result = await runtimeActions.dispatch(intent, {
       actionPresets: applicationRuntime?.action_presets,
       allowedCommandFrameIds: applicationRuntime?.allowedCommandFrameIds,
       appId: applicationRuntime?.appId,
@@ -165,6 +165,10 @@ export function App({
       onCommandFrameChange: applicationRuntime?.onCommandFrameChange,
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
+    if (isRuntimeActionConfirmed(result)) {
+      setRuntimeModeState((currentModeState) => applyRuntimeModeIntent(currentModeState, intent));
+    }
+    return { accepted: isRuntimeActionConfirmed(result), detail: result.detail };
   };
 
   const tryNavigateRuntimeScreen = (targetScreenId: string): boolean => {
@@ -243,6 +247,7 @@ export function App({
   };
 
   const openRuntimeApp = (nextSelection: WorkspaceSelection) => {
+    runtimeActions.clearFeedback();
     setSelection(nextSelection);
     setRuntimeUserPreferences((currentPreferences) => addRecentRuntimeSelection(currentPreferences, nextSelection));
     navigateToRoute(runtimeModeRoute("app"));
@@ -406,6 +411,7 @@ export function App({
                 profileOverrides={runtimeUserPreferences.profileOverrides}
                 recentRuntimeSelections={runtimeUserPreferences.recentRuntimeSelections}
                 runtimeActionClient={runtimeActionClient}
+                runtimeActionFeedback={runtimeActions.feedback}
                 runtimeMode={runtimeMode}
                 runtimeModeState={runtimeModeState}
                 supervisorRuntimeClient={supervisorRuntimeClient}

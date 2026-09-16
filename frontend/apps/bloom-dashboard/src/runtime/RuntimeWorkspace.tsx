@@ -34,6 +34,7 @@ import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
+import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
 import { useSwitchScanning } from "./use-switch-scanning";
@@ -64,7 +65,7 @@ type RuntimeWorkspaceProps = {
   onActionIntent: (
     intent: Parameters<WidgetActionIntentHandler>[0],
     runtimeContext?: ApplicationRuntimeContext,
-  ) => void;
+  ) => ReturnType<WidgetActionIntentHandler>;
   onEditApplication: () => void;
   onEditScreen: () => void;
   onOpenBuilderHome: () => void;
@@ -79,6 +80,7 @@ type RuntimeWorkspaceProps = {
   preferredProfileId?: string;
   profileOverrides: Readonly<Record<string, RuntimeProfileOverrides>>;
   runtimeActionClient: RuntimeActionClient;
+  runtimeActionFeedback: RuntimeActionFeedback | null;
   runtimeModeState: RuntimeModeState;
   screen: ScreenConfig;
   selection: WorkspaceSelection;
@@ -104,6 +106,7 @@ export function RuntimeWorkspace({
   preferredProfileId = "",
   profileOverrides,
   runtimeActionClient,
+  runtimeActionFeedback,
   runtimeModeState,
   screen,
   selection,
@@ -234,13 +237,13 @@ export function RuntimeWorkspace({
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
     if (controlStateByWidgetId[intent.widgetId]?.unavailable) {
-      return;
+      return { accepted: false, detail: controlStateByWidgetId[intent.widgetId]?.disabledReason };
     }
     // Position ops are runtime-shell HTTP work, not robot commands.
     if (positionLibrary.handleIntent(intent)) {
-      return;
+      return { accepted: true };
     }
-    onActionIntent(intent, {
+    return onActionIntent(intent, {
       action_presets: application.action_presets,
       allowedCommandFrameIds: runtimeCapabilityReport?.command_frame_ids,
       appId: selection.appId,
@@ -419,6 +422,7 @@ export function RuntimeWorkspace({
     >
       <RuntimeKioskBar
         application={application}
+        commandFeedback={runtimeActionFeedback?.appId === application.id ? runtimeActionFeedback : null}
         commandFrameId={commandFrameId}
         gamepadName={gamepad.connected ? gamepad.id : null}
         robotName={runtimeCapabilityReport?.robot_name ?? null}

@@ -281,6 +281,51 @@ describe("widget renderer registry", () => {
       widgetId: "ros-toggle",
       widgetKind: "toggle",
     });
+    expect(await screen.findByRole("button", { name: "Digital output: Active" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("keeps toggles pending until the action is acknowledged", async () => {
+    const descriptor = renderScreenDescriptors(toggleScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing toggle descriptor.");
+    let acknowledge: ((outcome: { accepted: boolean }) => void) | undefined;
+    const onActionIntent = vi.fn(
+      () =>
+        new Promise<{ accepted: boolean }>((resolve) => {
+          acknowledge = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    await user.click(screen.getByRole("button", { name: "Digital output: Inactive" }));
+
+    const pendingToggle = screen.getByRole("button", { name: "Digital output: Inactive" });
+    expect(pendingToggle).toBeDisabled();
+    expect(pendingToggle).toHaveAttribute("aria-busy", "true");
+
+    acknowledge?.({ accepted: true });
+
+    expect(await screen.findByRole("button", { name: "Digital output: Active" })).toBeEnabled();
+  });
+
+  it("keeps the previous toggle state when the action is rejected", async () => {
+    const descriptor = renderScreenDescriptors(toggleScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing toggle descriptor.");
+    const onActionIntent = vi.fn(async () => ({ accepted: false, detail: "Not sent." }));
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    await user.click(screen.getByRole("button", { name: "Digital output: Inactive" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute("aria-busy", "false"),
+    );
+    expect(screen.getByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("emits vector value-change intents from interactive joysticks", async () => {

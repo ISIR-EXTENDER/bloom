@@ -421,6 +421,10 @@ The kiosk, controls, profiles, gamepad, and command-frame contract is in the
 [operator runtime guide](docs/operator-runtime.md). Deployment settings and tablet startup are in the
 [Extender workspace deployment guide](docs/extender-workspace-deployment.md).
 
+Bloom changes a mode or toggle only after the runtime acknowledges the command. **Not sent** means the configured
+gateway simulated the request; **Command failed** means it was blocked, unsupported, or failed. In both cases the
+control keeps its previous state, so never read a visual toggle change as proof of robot motion.
+
 Useful contract checks:
 
 ```bash

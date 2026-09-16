@@ -70,6 +70,8 @@ export const enRuntimeStrings: RuntimeStrings = {
   kiosk: {
     appLibrary: "App library",
     backToOperation: "Back to operation",
+    commandFailed: "Command failed",
+    commandNotSent: "Not sent",
     editApp: "Edit app",
     editScreen: "Edit this screen in the builder",
     fitDescription: (width, height, percent) =>

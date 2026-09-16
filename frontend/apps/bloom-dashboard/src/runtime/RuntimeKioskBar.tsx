@@ -37,6 +37,10 @@ export type RuntimeStatusChip = {
 
 export type RuntimeKioskBarProps = {
   application: ApplicationConfig;
+  commandFeedback?: {
+    detail: string;
+    status: "blocked" | "failed" | "simulated" | "unsupported";
+  } | null;
   screen: ScreenConfig;
   profileName: string;
   /**
@@ -77,6 +81,7 @@ export type RuntimeKioskBarProps = {
 
 export function RuntimeKioskBar({
   application,
+  commandFeedback,
   screen,
   profileName,
   commandFrameId,
@@ -122,6 +127,22 @@ export function RuntimeKioskBar({
           <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
             <span aria-hidden="true" className="runtime-kiosk-status-dot" />
             {statusChip.label}
+          </span>
+        ) : null}
+        {commandFeedback ? (
+          <span
+            aria-label={`${
+              commandFeedback.status === "simulated" ? strings.kiosk.commandNotSent : strings.kiosk.commandFailed
+            }: ${commandFeedback.detail}`}
+            className="runtime-kiosk-command-feedback"
+            data-status={commandFeedback.status}
+            role="alert"
+            title={commandFeedback.detail}
+          >
+            <strong>
+              {commandFeedback.status === "simulated" ? strings.kiosk.commandNotSent : strings.kiosk.commandFailed}
+            </strong>
+            <span>{commandFeedback.detail}</span>
           </span>
         ) : null}
         {robotName ? (

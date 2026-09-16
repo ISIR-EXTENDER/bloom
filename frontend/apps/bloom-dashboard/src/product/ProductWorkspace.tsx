@@ -1,4 +1,5 @@
 import type { ApplicationConfig, RuntimeCapability, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
+import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
 import { BuilderHome } from "../builder/BuilderHome";
@@ -11,7 +12,7 @@ import type { RuntimeProfileOverrides } from "../runtime/runtime-profile-overrid
 import type { RuntimeModeState } from "../runtime/runtimeModeState";
 import { SupervisorWorkspace } from "../runtime/SupervisorWorkspace";
 import type { SupervisorRuntimeClient } from "../runtime/supervisor-client";
-import type { useRuntimeActionDispatcher } from "../runtime/use-runtime-action-dispatcher";
+import type { RuntimeActionFeedback, useRuntimeActionDispatcher } from "../runtime/use-runtime-action-dispatcher";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import type { ProductView } from "../ui/ProductNavigation";
 import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
@@ -52,7 +53,7 @@ type ProductWorkspaceProps = {
       configId: string;
       onCommandFrameChange?: (frameId: string) => void;
     },
-  ) => void;
+  ) => ReturnType<WidgetActionIntentHandler>;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
@@ -67,6 +68,7 @@ type ProductWorkspaceProps = {
   runtimeCapabilities: readonly RuntimeCapability[] | null;
   runtimeCapabilityReport: RuntimeCapabilityReport | null;
   runtimeActionClient: RuntimeActionClient;
+  runtimeActionFeedback: RuntimeActionFeedback | null;
   runtimeMode: RuntimeMode;
   runtimeModeState: RuntimeModeState;
   supervisorRuntimeClient: SupervisorRuntimeClient;
@@ -108,6 +110,7 @@ export function ProductWorkspace({
   runtimeCapabilities,
   runtimeCapabilityReport,
   runtimeActionClient,
+  runtimeActionFeedback,
   runtimeMode,
   runtimeModeState,
   supervisorRuntimeClient,
@@ -215,6 +218,7 @@ export function ProductWorkspace({
       preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
       profileOverrides={profileOverrides}
       runtimeActionClient={runtimeActionClient}
+      runtimeActionFeedback={runtimeActionFeedback}
       runtimeModeState={runtimeModeState}
       screen={selectedWorkspace.screen}
       selection={selection}

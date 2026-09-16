@@ -3,6 +3,8 @@ import type { WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dispatchRuntimeActionIntent,
+  isRuntimeActionConfirmed,
+  isRuntimeActionProblem,
   type RuntimeActionClient,
   type RuntimeActionDispatchResult,
   type RuntimeTopicSubscriptionRequest,
@@ -19,6 +21,13 @@ export type RuntimeActionRecord = {
   intent: WidgetActionIntent;
   request?: RuntimeActionDispatchResult["request"];
   status: RuntimeActionRecordStatus;
+};
+
+export type RuntimeActionFeedback = {
+  appId?: string;
+  detail: string;
+  status: Extract<RuntimeActionRecordStatus, "blocked" | "failed" | "simulated" | "unsupported">;
+  widgetId: string;
 };
 
 export type RuntimeDispatchOptions = {
@@ -62,6 +71,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     });
   }
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
+  const [feedback, setFeedback] = useState<RuntimeActionFeedback | null>(null);
   const [teleopActive, setTeleopActive] = useState(false);
   const syncTeleopActive = useCallback(() => {
     setTeleopActive(!isZeroTwist(teleopComposer.current.compose()));
@@ -102,12 +112,9 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         syncTeleopActive();
       }
 
-      void pendingResult.then((result) => {
+      return pendingResult.then((result) => {
         if (result.request && "type" in result.request && result.request.type === "teleop_cmd") {
-          teleopPump.current?.noteDispatched(
-            result.request,
-            result.status === "failed" || result.status === "blocked" ? "failed" : "sent",
-          );
+          teleopPump.current?.noteDispatched(result.request, isRuntimeActionProblem(result) ? "failed" : "sent");
           syncTeleopActive();
         }
         setRecords((currentRecords) =>
@@ -122,6 +129,17 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
               : record,
           ),
         );
+        if (isRuntimeActionProblem(result)) {
+          setFeedback({
+            appId: options.appId,
+            detail: result.detail,
+            status: result.status,
+            widgetId: intent.widgetId,
+          });
+        } else if (isRuntimeActionConfirmed(result)) {
+          setFeedback((current) => (current?.widgetId === intent.widgetId ? null : current));
+        }
+        return result;
       });
     },
     [client, syncTeleopActive],
@@ -133,6 +151,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     },
     [client],
   );
+
+  const clearFeedback = useCallback(() => setFeedback(null), []);
 
   /**
    * Feed a non-widget input source (a gamepad) into the same composed twist.
@@ -196,7 +216,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     };
   }, [suspendTeleop]);
 
-  return { contributeTeleop, dispatch, records, subscribeTopic, suspendTeleop, teleopActive };
+  return { clearFeedback, contributeTeleop, dispatch, feedback, records, subscribeTopic, suspendTeleop, teleopActive };
 }
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {

@@ -32,6 +32,8 @@ export type RuntimeStrings = {
   kiosk: {
     appLibrary: string;
     backToOperation: string;
+    commandFailed: string;
+    commandNotSent: string;
     editApp: string;
     editScreen: string;
     fitDescription: (width: number, height: number, percent: number) => string;
