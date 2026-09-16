@@ -9,17 +9,18 @@ import { chromium } from "@playwright/test";
  *
  * The set is meant to be exhaustive across the surfaces someone evaluating
  * Bloom would want to see, not just the entry points: the screen builder and
- * the Explorer Manager screens are what the tool is actually for, and neither
- * used to appear at all.
+ * the Explorer and Kinova Manager apps are what the tool is actually for.
  *
  * Run against a dashboard with a seeded backend:
  *   BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run capture:readme
+ * Set BLOOM_README_API_URL when the dashboard uses a separate API origin.
  */
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 const outputDir = resolve(repoRoot, "docs/assets/screenshots");
 const dashboardUrl = process.env.BLOOM_DASHBOARD_URL ?? "http://127.0.0.1:5174";
+const apiUrl = (process.env.BLOOM_README_API_URL ?? dashboardUrl).replace(/\/$/, "");
 const capturedApplicationIds = [
   "bloom-debug",
   "explorer-manager",
@@ -54,7 +55,7 @@ try {
   const page = await context.newPage();
 
   await page.goto(dashboardUrl, { waitUntil: "networkidle" });
-  await assertTrackedApplications(page);
+  await assertTrackedApplications(page, apiUrl);
 
   // ---------------------------------------------------------------- product
   await step("landing-page", async () => {
@@ -114,6 +115,13 @@ try {
     });
   }
 
+  await step("runtime-kinova-drive", async () => {
+    await openRuntimeLibrary(page);
+    await page.getByRole("button", { name: "Launch Kinova Manager runtime" }).click();
+    await page.getByRole("region", { name: "Runtime application" }).waitFor();
+    await page.waitForTimeout(800);
+  });
+
   await step("runtime-live-teleop", async () => {
     await openRuntimeLibrary(page);
     await page.getByRole("button", { name: "Launch Sandbox V0.0 runtime" }).click();
@@ -172,15 +180,18 @@ async function openRuntimeLibrary(page) {
   await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
 }
 
-async function assertTrackedApplications(page) {
+async function assertTrackedApplications(page, apiBaseUrl) {
   for (const id of capturedApplicationIds) {
-    const bundle = await page.evaluate(async (applicationId) => {
-      const response = await fetch(`/api/v1/configurations/${applicationId}`);
-      if (!response.ok) {
-        throw new Error(`Configuration ${applicationId} returned HTTP ${response.status}`);
-      }
-      return response.json();
-    }, id);
+    const bundle = await page.evaluate(
+      async ({ applicationId, baseUrl }) => {
+        const response = await fetch(`${baseUrl}/api/v1/configurations/${applicationId}`);
+        if (!response.ok) {
+          throw new Error(`Configuration ${applicationId} returned HTTP ${response.status}`);
+        }
+        return response.json();
+      },
+      { applicationId: id, baseUrl: apiBaseUrl },
+    );
     const actual = bundle.applications?.[0];
     if (!isDeepStrictEqual(actual, trackedApplications[id])) {
       throw new Error(

@@ -1,126 +1,275 @@
 <p align="center">
-  <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom logo" width="220" />
+  <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom logo" width="160" />
+</p>
+
+<h1 align="center">Bloom</h1>
+
+<p align="center">
+  <strong>Build and operate accessible web interfaces for robots.</strong>
 </p>
 
 <p align="center">
-  Configurable web interfaces for robot teleoperation, supervision, debugging, and device control.
-</p>
-
-<p align="center">
-  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-7f987f?style=for-the-badge" /></a>
-  <img alt="React" src="https://img.shields.io/badge/React-19-f4efe4?style=for-the-badge&logo=react&logoColor=1d3a31" />
-  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-Backend-7f987f?style=for-the-badge&logo=fastapi&logoColor=white" />
-  <img alt="ROS ready" src="https://img.shields.io/badge/ROS-adapters-dfa83b?style=for-the-badge" />
-</p>
-
-<p align="center">
+  <a href="#why-bloom">Why Bloom</a> ·
+  <a href="#quickstart">Quickstart</a> ·
+  <a href="#extender-tutorial">Extender tutorial</a> ·
   <a href="#preview">Preview</a> ·
-  <a href="#current-state">State</a> ·
-  <a href="#getting-started">Getting Started</a> ·
-  <a href="#architecture">Architecture</a> ·
-  <a href="#testing">Testing</a> ·
-  <a href="#documentation">Docs</a>
+  <a href="#documentation">Documentation</a>
 </p>
 
-Bloom is a product-style monorepo for building robot and machine-operation web apps. It combines a React dashboard,
-a FastAPI backend, reusable widget contracts, runtime safety policies, and optional ROS 2 adapters.
+Bloom turns reusable screens and controls into operator applications, then connects them to robots through a
+policy-checked backend. Build an interface visually, run that same configuration in a focused kiosk, and keep
+robot-specific integration at the adapter boundary.
 
-Bloom is the active Extender IHM. The former `extender_ui` product is legacy and retained only as a behavior reference
-and emergency rollback during live acceptance.
+**Bloom is the active Extender operator interface (IHM).** `extender_ui` is legacy and remains only as a behavior
+reference and emergency rollback during live acceptance.
 
-Bloom started from the Extender tablet interface migration, but it is intentionally not an Extender-only project. A lab
-workspace can use Bloom with ROS, HTTP, WebSocket, MQTT, C++ gateways, or future adapter layers while keeping the same
-builder, runtime, screens, widgets, themes, and storage model.
+## Why Bloom
+
+Robot interfaces often bind screen layout, input devices, transport code, and one robot into a single application.
+Bloom separates those concerns so a team can improve an operator workflow without rebuilding the command path, or add
+a robot adapter without forking the interface.
+
+Bloom provides:
+
+- a visual **Builder** for applications, screens, widgets, themes, and runtime policies;
+- a distraction-free **Runtime** with connection state, guarded maintenance access, and a backend-latched STOP;
+- reusable inputs and diagnostics for touch, keyboard, gamepad, camera, plots, topics, and saved positions;
+- a FastAPI boundary for storage, WebSocket sessions, policy checks, audit records, and optional ROS 2 adapters;
+- ready-to-run **Explorer Manager** and **Kinova Manager** applications for Extender.
+
+The UI model is generic. ROS 2 is one adapter, not a frontend dependency, so the same builder and runtime can support
+other robots and machine gateways later.
+
+## Quickstart
+
+This starts Bloom without ROS or robot hardware. You need Node.js 20+, npm 10+, Python 3.10-3.12, and
+[`uv`](https://docs.astral.sh/uv/).
+
+### 1. Install
+
+```bash
+git clone https://github.com/ISIR-EXTENDER/bloom.git
+cd bloom
+npm install
+cd backend
+uv sync
+cd ..
+```
+
+### 2. Run
+
+From the repository root, start the API in one terminal:
+
+```bash
+cd backend
+make run
+```
+
+Start the dashboard from the repository root in a second terminal:
+
+```bash
+npm run dev
+```
+
+### 3. Open
+
+Visit [http://127.0.0.1:5173](http://127.0.0.1:5173). Choose **Builder** to compose an interface, or **Runtime** to
+launch one of the shared applications.
+
+The backend imports the tracked applications on first start. ROS diagnostics show `MISSING` when no ROS graph is
+attached; that is expected in this quickstart and still lets you inspect the full UI safely.
+
+## Extender Tutorial
+
+This walkthrough connects Bloom to `cartesian_manager` and runs either Explorer in simulation or Kinova with fake
+hardware. Complete the [Quickstart](#quickstart) installation first.
+
+> [!CAUTION]
+> Start with simulation or fake hardware. Bloom's STOP latches the software command path, but it does not replace the
+> robot's hardware emergency stop, controller limits, or lab safety procedure. Single-switch directional teleoperation
+> is still awaiting validation with the intended device; see the
+> [operator runtime guide](docs/operator-runtime.md#accessibility-profiles).
+
+### 1. Build the Extender workspace
+
+```bash
+cd /path/to/extender_workspace
+source /opt/ros/jazzy/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+```
+
+### 2. Start one robot
+
+For **Explorer simulation**:
+
+```bash
+cd /path/to/extender_workspace
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+ros2 launch cartesian_manager explorer.launch.py use_simulation:=true
+```
+
+Or, for **Kinova fake hardware**:
+
+```bash
+cd /path/to/extender_workspace
+source /opt/ros/jazzy/setup.bash
+source install/setup.bash
+ros2 launch cartesian_manager kinova.launch.py use_simulation:=true
+```
+
+Keep that terminal running.
+
+### 3. Start Bloom for that robot
+
+In a new terminal, start the API with ROS adapters and the dashboard together.
+
+For **Explorer**:
+
+```bash
+cd /path/to/bloom
+EXTENDER_WORKSPACE=/path/to/extender_workspace \
+BLOOM_ROBOT_NAME=Explorer \
+BLOOM_ROS_COMMAND_FRAME_ID=base_link \
+BLOOM_ALLOWED_COMMAND_FRAME_IDS=base_link,ft_frame,hybrid_frame \
+scripts/extender-workspace-dev.sh
+```
+
+For **Kinova**:
+
+```bash
+cd /path/to/bloom
+EXTENDER_WORKSPACE=/path/to/extender_workspace \
+BLOOM_ROBOT_NAME=Kinova \
+BLOOM_ROS_COMMAND_FRAME_ID=base_link \
+BLOOM_ALLOWED_COMMAND_FRAME_IDS=base_link,effector_frame,hybrid_frame \
+scripts/extender-workspace-dev.sh
+```
+
+The launcher sources the selected workspace, starts the ROS-enabled API on port `8000`, and starts the dashboard on
+port `5173`. `Ctrl+C` stops both Bloom processes.
+
+### 4. Operate the Manager app
+
+1. Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and choose **Runtime**.
+2. Launch **Explorer Manager** or **Kinova Manager** to match the robot process you started.
+3. Before moving a control, confirm the kiosk bar shows the expected app, robot, profile, `base_link` frame, and link
+   state. `READY` describes the frontend-to-backend link; use the diagnostics below to verify the ROS path.
+4. Use **Drive** for the two joysticks, height/pivot sliders, modes, gripper, and speed limits.
+5. Hold the maintenance button for 1.5 seconds to reach **Positions**, **Robot feedback**, and **Command sources**.
+6. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
+
+Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova permits `effector_frame` and adds the
+reviewed fault-reset action.
+
+### 5. Verify the command path
+
+In another sourced ROS terminal:
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /path/to/extender_workspace/install/setup.bash
+ros2 topic info /joystick_cartesian_command
+ros2 topic echo /cartesian_command
+```
+
+Move one Drive control and release it. The manager output should become non-zero while commanded and return to zero on
+release. Bloom follows this path:
+
+```text
+browser control -> Bloom WebSocket -> ROS adapter -> /joystick_cartesian_command
+                -> cartesian_manager -> /cartesian_command
+```
+
+Check Bloom itself from another terminal:
+
+```bash
+curl -fsS http://127.0.0.1:8000/api/v1/health
+curl -fsS http://127.0.0.1:8000/api/v1/ros/topics/status
+```
+
+The full pre-session checklist, including modes, gripper, gamepad, tablet, and STOP validation, is in
+[Extender and Petanque end-to-end validation](docs/extender-petanque-validation.md).
+
+<details>
+<summary>Run on real hardware</summary>
+
+Use the normal lab authorization and safety procedure first. Then replace the simulation launch with the matching
+hardware command.
+
+Explorer:
+
+```bash
+ros2 launch cartesian_manager explorer.launch.py use_simulation:=false
+```
+
+Kinova, replacing the address when needed:
+
+```bash
+ros2 launch cartesian_manager kinova.launch.py use_simulation:=false robot_ip:=192.168.1.10
+```
+
+</details>
 
 ## Preview
 
-### Product
-
-| Landing | Builder home | Screen library |
+| Builder | Explorer Manager | Kinova Manager |
 | --- | --- | --- |
-| ![Bloom landing page](docs/assets/screenshots/landing-page.png) | ![Builder home](docs/assets/screenshots/builder-home.png) | ![Screen library](docs/assets/screenshots/builder-screen-library.png) |
+| ![Bloom screen builder](docs/assets/screenshots/builder-screen-canvas.png) | ![Explorer Manager Drive screen](docs/assets/screenshots/runtime-explorer-drive.png) | ![Kinova Manager Drive screen](docs/assets/screenshots/runtime-kinova-drive.png) |
 
-### Building a screen
+<details>
+<summary>More product and runtime screens</summary>
 
-| Screen builder | App configuration | Runtime library |
+| Home | Screen library | Runtime library |
 | --- | --- | --- |
-| ![Screen builder canvas and inspector](docs/assets/screenshots/builder-screen-canvas.png) | ![App configuration](docs/assets/screenshots/app-configuration.png) | ![Runtime app library](docs/assets/screenshots/runtime-library.png) |
+| ![Bloom landing page](docs/assets/screenshots/landing-page.png) | ![Bloom screen library](docs/assets/screenshots/builder-screen-library.png) | ![Bloom runtime app library](docs/assets/screenshots/runtime-library.png) |
 
-### Explorer Manager
+| App configuration | Positions | Robot feedback |
+| --- | --- | --- |
+| ![Bloom app configuration](docs/assets/screenshots/app-configuration.png) | ![Explorer Manager positions](docs/assets/screenshots/runtime-explorer-positions.png) | ![Explorer Manager robot feedback](docs/assets/screenshots/runtime-explorer-feedback.png) |
 
-The app built for the `cartesian_manager` architecture: velocity drive, named
-positions, robot feedback, and where each command actually comes from.
+| Command sources | Camera | Bloom Debug |
+| --- | --- | --- |
+| ![Explorer Manager command sources](docs/assets/screenshots/runtime-explorer-command-sources.png) | ![Camera runtime](docs/assets/screenshots/runtime-camera.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) |
 
-| Drive | Positions |
-| --- | --- |
-| ![Explorer Manager drive screen](docs/assets/screenshots/runtime-explorer-drive.png) | ![Explorer Manager positions screen](docs/assets/screenshots/runtime-explorer-positions.png) |
+</details>
 
-| Robot feedback | Command sources |
-| --- | --- |
-| ![Explorer Manager robot feedback screen](docs/assets/screenshots/runtime-explorer-feedback.png) | ![Explorer Manager command sources screen](docs/assets/screenshots/runtime-explorer-command-sources.png) |
-
-### Other runtimes
-
-| Sandbox V0.0 teleop | Camera | Bloom Debug | Help |
-| --- | --- | --- | --- |
-| ![Sandbox live teleop runtime](docs/assets/screenshots/runtime-live-teleop.png) | ![Camera runtime](docs/assets/screenshots/runtime-camera.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) | ![Help](docs/assets/screenshots/help.png) |
-
-The topic diagnostics read `MISSING` in these captures because they were taken
-with no ROS attached, which is what a fresh clone looks like.
-
-Refresh them from a running dashboard and backend:
+The captures intentionally run without ROS, so topic diagnostics read `MISSING`. Refresh every tracked image from a
+running dashboard and isolated seeded backend with:
 
 ```bash
+npx playwright install chromium
 BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run capture:readme
 ```
 
-The script reports every screen it captured and exits non-zero if any were
-skipped. It also refuses to capture when the backend store differs from the
-committed shared applications; use an isolated seeded database instead of
-overwriting local app work. A stale image cannot quietly stay in the table.
+The capture script exits non-zero for skipped screens or when the backend store differs from the committed shared
+applications, so it cannot silently leave a stale image in this README.
 
-## Current State
+## What Ships Today
 
-Bloom is now the active Extender IHM and a reusable foundation for Petanque decisions and robot-interface experiments:
+- Builder and kiosk runtime for shared application, screen, widget, theme, profile, and guardrail models.
+- Touch, keyboard, and gamepad Cartesian input composed into one application-scoped 6-DoF command.
+- Explorer and Kinova Manager workflows for Drive, Positions, Robot feedback, and Command sources.
+- JSON and SQLite configuration storage, tracked seed applications, import/export, audit, and recording hooks.
+- ROS 2 integration for `cartesian_manager`, generic topic publishing, service calls, and topic discovery.
+- Frontend, backend, security, contract, and visual checks in CI.
 
-- Visual builder for apps, reusable screens, WYSIWYG canvas layouts, widget palettes, app themes, and runtime policies.
-- Runtime app library with recent app shortcuts and a kiosk operating surface: one status bar, a backend-latched STOP,
-  and a deliberate hold before maintenance, screen switching, or editing actions appear.
-- Reusable widgets for teleop joysticks, sliders, commands, camera/webcam, labels, gauges, plots, event logs, gestures,
-  saved positions, robot-3D placeholders, topic echo, and Bloom Debug tools.
-- Backend configuration API with JSON storage, SQLite storage, normalized mirror tables, import/export, and legacy JSON
-  conversion helpers.
-- Runtime API with WebSocket sessions, topic subscriptions, topic samples, teleop acknowledgements, audit records,
-  command rate limits, recording hooks, HTTP ROS topic publishing, and saved app-scoped runtime actions.
-- ROS mode publishes `geometry_msgs/TwistStamped` Cartesian commands and validated `std_msgs/String` mode requests for
-  `cartesian_manager`, publishes generic ROS messages, and discovers live ROS topics through the `rclpy` catalog adapter.
-  The legacy Extender `TeleopCommand` path on `/teleop_cmd` remains available behind `BLOOM_ROS_COMMAND_BACKEND`.
-- Cartesian input composes two touch/keyboard joysticks, Z/RZ sliders, and a browser gamepad into one 6-DoF command,
-  stamped in one application-scoped frame. Step, latch, dwell, large-target, assisted-touch, signal-conditioning, and
-  audio-cue profile behavior is implemented and covered by focused tests. Switch-scanning focus exists, but directional
-  joystick activation through scanning is a known P1 gap. Browser-level reduced-motion preferences are honored, while
-  the matching profile value still needs wiring.
-- Explorer Manager and Kinova Manager ship as concrete `cartesian_manager` operator apps with Drive, Positions, Robot
-  feedback, and Command sources workflows.
-- CI covers backend tests, frontend tests, build, security audit smoke, CodeQL, and visual smoke checks.
-
-Bloom is the active Extender IHM. `extender_ui` is legacy: keep it available as a behavior reference and emergency
-rollback while live acceptance is completed, but do not treat it as the current operator product. Low-level Extender ROS
-packages remain active dependencies, and the archived Petanque path keeps its explicit legacy adapter until its future is
-decided.
+Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs
+validation with the intended device. Browser reduced-motion preferences work; the equivalent saved profile setting
+still needs wiring. Track these and the current design review in [the UX design handoff](docs/ux-design-handoff.md).
 
 ## Product Status
 
-Bloom's product migration is complete in the sense that matters for ownership: new IHM work belongs here. The remaining
-work is explicit rather than hidden behind a completion percentage:
+New Extender IHM work belongs in Bloom. The remaining work is explicit:
 
 1. Complete the open design work around physical sizing, profile settings, supervisor handover, onboarding, and i18n.
 2. Validate the Bloom IHM on the target tablets, assistive inputs, simulations, and robots.
 3. Keep `extender_ui` rollback artifacts until the relevant live sessions are accepted.
 4. Retain generic web/ROS boundaries so Bloom can serve robots beyond Extender.
 
-The current backlog is in
-[the tracked UX design handoff](docs/ux-design-handoff.md).
+Low-level Extender ROS packages remain active dependencies. The archived Petanque path keeps its explicit legacy
+adapter until its future is decided.
 
 ## Repository Shape
 
@@ -141,41 +290,10 @@ bloom/
   docs/
 ```
 
-## Getting Started
-
-Install JavaScript dependencies and Playwright Chromium:
-
-```bash
-npm install
-npx playwright install chromium
-```
-
-Run the backend:
-
-```bash
-cd backend
-uv sync
-make run
-```
-
-Run the dashboard:
-
-```bash
-npm run dev
-```
-
-Open:
-
-```text
-http://127.0.0.1:5173
-```
-
-During local development, Vite proxies `/api` and `/api/v1/runtime/ws` to the backend at `http://127.0.0.1:8000`.
-
-### Shared applications
+## Shared Applications
 
 The first time the backend starts it imports the applications committed under
-`backend/seed/applications/` — Explorer Manager, Kinova Manager, Sandbox V0.0,
+`backend/seed/applications/`: Explorer Manager, Kinova Manager, Sandbox V0.0,
 Explorer User Tests, Petanque Admin, Bloom Debug, and the webcam demo. A fresh clone comes up
 with the same app library everyone else has.
 
@@ -204,43 +322,41 @@ To see what you have not shared yet:
 uv run python -m apps.bloom_cli.main config status
 ```
 
-It reads whichever store is configured and marks each application `shared`,
-`edited`, `local`, or `missing`.
+It reads whichever store is configured and marks each application `shared`, `edited`, `local`, or `missing`.
 
-## Extender / ROS Development
+## Extender Reference
 
-For the Extender workspace, use the transition launcher:
+The [Extender tutorial](#extender-tutorial) is the normal development path. Its launcher accepts these useful
+overrides:
 
-```bash
-cd /home/susana/workspace/extender/bloom
-scripts/extender-workspace-dev.sh
-```
+- `EXTENDER_WORKSPACE` or `EXTENDER_SETUP_FILE` selects the ROS workspace to source.
+- `BLOOM_API_HOST` / `BLOOM_API_PORT` and `BLOOM_FRONTEND_HOST` / `BLOOM_FRONTEND_PORT` change the listening addresses.
+- `BLOOM_APPLY_TABLET_TOUCH_MAP=1` applies the target tablet's touch mapping before startup.
 
-It sources the Extender ROS workspace, starts the Bloom API with ROS adapters, and starts the dashboard.
-
-Manual ROS mode:
+To run only the ROS-enabled API:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 source /path/to/extender_workspace/install/setup.bash
-cd backend
+cd /path/to/bloom/backend
 make ros-run
 ```
 
 Useful validation endpoints:
 
 ```bash
-curl http://127.0.0.1:8000/api/v1/health
-curl http://127.0.0.1:8000/api/v1/ros/topics
-curl http://127.0.0.1:8000/api/v1/runtime/audit
+curl -fsS http://127.0.0.1:8000/api/v1/health
+curl -fsS http://127.0.0.1:8000/api/v1/ros/topics
+curl -fsS http://127.0.0.1:8000/api/v1/runtime/audit
 ```
 
 The full Extender/Petanque validation protocol is in
 [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md).
-The current kiosk, controls, profiles, gamepad, and command-frame behavior is in
-[docs/operator-runtime.md](docs/operator-runtime.md).
+The kiosk, controls, profiles, gamepad, and command-frame contract is in the
+[operator runtime guide](docs/operator-runtime.md). Deployment settings and tablet startup are in the
+[Extender workspace deployment guide](docs/extender-workspace-deployment.md).
 
-Useful migration validation helpers:
+Useful contract checks:
 
 ```bash
 npm run validation:extender
