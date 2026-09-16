@@ -28,6 +28,18 @@ explicitly reports a required publisher, subscriber, service, or teleop seam una
 authored position but becomes inert and shows the backend's reason. A missing or failed capability report remains
 unknown and does not disable the screen by guesswork.
 
+## Guided Practice
+
+Hold **Maintenance** and choose **Practice tour**, or open the same tour from Runtime Settings. Practice replaces the
+live artboard and suspends composed teleop. Its five checks introduce the current screen, use the app's own movement
+label twice, rehearse STOP and held resume, rehearse the Maintenance hold, and return to operation.
+
+The practice surface has no runtime action client, robot-intent callback, or teleop callback. Its movement, STOP, and
+Maintenance controls change local component state only. The banner therefore says the practice controls are
+disconnected from robot commands; it does not make a claim about physical robot power or the live backend session.
+Practice uses the selected language, font scale, scan period, and dwell behavior. Completed checks persist locally per
+configuration and app, but the tour remains available for repetition.
+
 ## Stop And Resume
 
 - A pointer press on **STOP** engages the backend runtime stop immediately. Keyboard activation is also supported.
@@ -144,6 +156,7 @@ Spanish, and French.
 
 Settings uses the active scan period and dwell duration itself. Its header, category rail, controls, safe preview, and
 Done action therefore remain reachable when the current profile uses scanning and/or dwell.
+**Practice tour** opens the guided local-only path without returning through the live controls first.
 
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
 because a click on it moves nothing. Under scan, dwelling on the full-width SWITCH bar activates the highlighted target

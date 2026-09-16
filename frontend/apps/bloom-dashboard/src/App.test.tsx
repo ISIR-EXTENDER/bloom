@@ -397,6 +397,28 @@ describe("App", () => {
     expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
   });
 
+  it("keeps guided runtime practice disconnected from robot command gateways", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox runtime" }));
+    expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
+
+    openRuntimeMenu();
+    fireEvent.click(screen.getByRole("button", { name: "Practice tour" }));
+    expect(screen.getByRole("region", { name: "Practice this app" })).toBeVisible();
+
+    vi.mocked(runtimeActionClient.sendTeleopCommand!).mockClear();
+    vi.mocked(runtimeActionClient.publishRosTopic).mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "I've seen it" }));
+    fireEvent.click(screen.getByRole("button", { name: "Forward" }));
+    fireEvent.click(screen.getByRole("button", { name: "Forward" }));
+
+    expect(runtimeActionClient.sendTeleopCommand).not.toHaveBeenCalled();
+    expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalled();
+  });
+
   it("streams robot topic samples into operator display widgets", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     render(

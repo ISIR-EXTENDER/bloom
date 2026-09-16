@@ -244,6 +244,7 @@ function BuilderProductWorkspace({
       <BuilderAppConfig
         configurations={state.configurations}
         onBackToHome={() => onChangeBuilderMode("home")}
+        onOpenRuntimeApp={onOpenRuntimeApp}
         onOpenScreenBuilder={(nextSelection) => {
           onSelectionChange(nextSelection);
           onChangeBuilderMode("screen-builder");

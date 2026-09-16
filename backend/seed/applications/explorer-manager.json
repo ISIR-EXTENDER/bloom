@@ -824,9 +824,11 @@
               },
               "settings": {
                 "entries": [],
-                "fieldPath": "",
+                "fieldPath": "data",
                 "maxEntries": 50,
-                "show_details": true
+                "messageType": "std_msgs/msg/String",
+                "show_details": true,
+                "topic": "/mode_request"
               }
             }
           ]

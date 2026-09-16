@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
+import { RuntimeGuidedTour } from "./RuntimeGuidedTour";
 import { RuntimeKioskBar } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
 import { RuntimeSettingsPanel } from "./RuntimeSettingsPanel";
@@ -102,6 +103,7 @@ export function RuntimeWorkspace({
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const { artboardSize } = resolveScreenArtboardLayout(screen);
   const canvasFit = useMemo(
@@ -189,7 +191,7 @@ export function RuntimeWorkspace({
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
   const gamepad = useGamepadInput({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
-    enabled: onTeleopContribution !== undefined && !settingsOpen,
+    enabled: onTeleopContribution !== undefined && !settingsOpen && !tourOpen,
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
@@ -197,7 +199,7 @@ export function RuntimeWorkspace({
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const stopped = runtimeStop.state?.stopped === true;
   const scanning = useSwitchScanning({
-    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !settingsOpen && !stopped,
+    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !settingsOpen && !tourOpen && !stopped,
     periodMs: runtimeProfile.scanPeriodMs,
     rootRef: runtimeControlsRef,
     revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}`,
@@ -211,7 +213,7 @@ export function RuntimeWorkspace({
       target.click();
     },
     dwellMs: runtimeProfile.dwellMs,
-    enabled: runtimeProfile.dwellEnabled && !settingsOpen,
+    enabled: runtimeProfile.dwellEnabled && !settingsOpen && !tourOpen,
     isTargetEnabled: (target) => !stopped || target.dataset.dwellAction === "resume",
     rootRef: runtimeControlsRef,
   });
@@ -238,7 +240,7 @@ export function RuntimeWorkspace({
   };
 
   useEffect(() => {
-    if (settingsOpen) {
+    if (settingsOpen || tourOpen) {
       return;
     }
     const viewport = canvasViewportRef.current;
@@ -260,7 +262,7 @@ export function RuntimeWorkspace({
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateViewportSize);
     };
-  }, [settingsOpen]);
+  }, [settingsOpen, tourOpen]);
 
   useEffect(() => {
     if (!onTopicSubscriptionRequest) {
@@ -281,10 +283,10 @@ export function RuntimeWorkspace({
   }, [screen.id]);
 
   useEffect(() => {
-    if (settingsOpen) {
+    if (settingsOpen || tourOpen) {
       onSuspendTeleop();
     }
-  }, [onSuspendTeleop, settingsOpen]);
+  }, [onSuspendTeleop, settingsOpen, tourOpen]);
 
   useEffect(() => {
     if (!onTopicSample) {
@@ -316,8 +318,36 @@ export function RuntimeWorkspace({
           key={profileOverrideKey}
           onChange={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}
           onDone={() => setSettingsOpen(false)}
+          onOpenTour={() => {
+            setSettingsOpen(false);
+            setTourOpen(true);
+          }}
           overrides={activeProfileOverrides}
           teleopActive={teleopActive}
+        />
+      </section>
+    );
+  }
+
+  if (tourOpen) {
+    return (
+      <section
+        aria-label={strings.workspace.application}
+        className="runtime-app-workspace"
+        data-display-preset={runtimeProfile.displayPreset}
+        data-has-debug="false"
+        data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
+        data-runtime-layout="operator"
+        data-runtime-scanning="false"
+        data-runtime-stopped="false"
+        style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
+      >
+        <RuntimeGuidedTour
+          application={application}
+          onDone={() => setTourOpen(false)}
+          profile={runtimeProfile}
+          screen={screen}
+          selection={selection}
         />
       </section>
     );
@@ -360,6 +390,10 @@ export function RuntimeWorkspace({
         onOpenSettings={() => {
           onSuspendTeleop();
           setSettingsOpen(true);
+        }}
+        onOpenTour={() => {
+          onSuspendTeleop();
+          setTourOpen(true);
         }}
         onSelectScreen={(screenId) => onSelectionChange({ ...selection, screenId })}
         profileName={runtimeProfile.name}

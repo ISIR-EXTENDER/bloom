@@ -73,6 +73,14 @@ describe("teleop widgets", () => {
 });
 
 describe("plain publishing widgets", () => {
+  it("does not invent a topic destination for local teleop frame controls", () => {
+    expect(
+      resolveWidgetDestination("command-button", {
+        runtime_binding: { adapter: "teleop-frame", frame_id: "base_link" },
+      }),
+    ).toBeNull();
+  });
+
   it("prefers the runtime binding, and the dispatcher agrees", () => {
     const settings = {
       topic: "/operator/typed/this",

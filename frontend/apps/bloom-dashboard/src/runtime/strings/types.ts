@@ -5,6 +5,24 @@ export type RuntimeStrings = {
   status: { connecting: string; linkDown: string; ready: string; stopped: string };
   stop: { engage: string; engageAria: string; resume: string; resumeAria: string };
   scan: { button: string; progress: (current: number, total: number) => string };
+  tour: {
+    close: string;
+    complete: string;
+    disconnected: string;
+    localOnly: string;
+    movementFallback: string;
+    moveBody: (controlName: string, directionLabel: string, count: number) => string;
+    practice: string;
+    progress: (complete: number, total: number) => string;
+    screenBody: (applicationName: string, screenTitle: string) => string;
+    steps: Record<
+      "move" | "ready" | "screen" | "settings" | "stop",
+      { action: string; body: string; title: string; why: string }
+    >;
+    stepsLabel: string;
+    title: string;
+    whyTitle: string;
+  };
   workspace: {
     application: string;
     comingSoon: string;
@@ -54,6 +72,7 @@ export type RuntimeStrings = {
     movementFallback: string;
     movementHeading: string;
     profileName: (name: string) => string;
+    practiceTour: string;
     repeatGuard: string;
     restToSelect: string;
     safePreview: string;

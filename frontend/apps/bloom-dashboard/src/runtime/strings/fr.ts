@@ -13,6 +13,54 @@ export const frRuntimeStrings: RuntimeStrings = {
     button: "CONTACTEUR - appuyez Espace ou touchez ici",
     progress: (current, total) => `Balayage ${current} sur ${total}.`,
   },
+  tour: {
+    close: "Fermer l'entraînement",
+    complete: "Terminé",
+    disconnected: "Commandes d'entraînement déconnectées des commandes du robot",
+    localOnly: "Entraînement local - rien ici ne peut commander le robot",
+    movementFallback: "commande de mouvement",
+    moveBody: (controlName, directionLabel, count) =>
+      `Utilisez ${directionLabel} sur ${controlName} deux fois. Mouvement ${Math.min(count, 2)} sur 2.`,
+    practice: "Entraînement guidé",
+    progress: (complete, total) => `${complete} étapes terminées sur ${total}`,
+    screenBody: (applicationName, screenTitle) =>
+      `${applicationName} est ouverte sur ${screenTitle}. Le bandeau indique la session ; la commande rouge fixe l'arrête.`,
+    steps: {
+      screen: {
+        title: "Voici votre écran",
+        body: "Le bandeau indique la session et la commande rouge fixe l'arrête.",
+        why: "Le pilotage éloigne les sorties et les outils d'édition des commandes sous votre main.",
+        action: "Je l'ai vu",
+      },
+      move: {
+        title: "Déplacer le bras",
+        body: "Utilisez deux fois la commande de mouvement indiquée.",
+        why: "Cette commande reprend le libellé de l'app, mais n'est reliée à aucune commande du robot.",
+        action: "Avancer",
+      },
+      stop: {
+        title: "Arrêter, et repartir",
+        body: "Arrêtez l'entraînement, puis maintenez pour le reprendre.",
+        why: "L'arrêt est immédiat. La reprise exige un maintien pour qu'un second contact ne relance pas le mouvement.",
+        action: "Arrêter l'entraînement",
+      },
+      settings: {
+        title: "L'adapter à votre main",
+        body: "Maintenez Maintenance pour trouver les réglages de mouvement, temps, direction, langue et affichage.",
+        why: "Les réglages utilisent votre balayage et votre repos actuels, et l'essai n'envoie rien au robot.",
+        action: "Maintenir Maintenance",
+      },
+      ready: {
+        title: "Vous êtes prêt",
+        body: "Quittez l'entraînement local et revenez à l'écran opérateur réel.",
+        why: "Les vraies commandes reviennent seulement après avoir quitté cet entraînement déconnecté.",
+        action: "Commencer pour de vrai",
+      },
+    },
+    stepsLabel: "Étapes d'entraînement",
+    title: "S'entraîner avec cette app",
+    whyTitle: "Pourquoi c'est important",
+  },
   workspace: {
     application: "Application opérateur",
     comingSoon: "Bientôt disponible",
@@ -41,6 +89,7 @@ export const frRuntimeStrings: RuntimeStrings = {
   settings: {
     title: "Réglages",
     profileName: (name) => `Profil de ${name}`,
+    practiceTour: "Entraînement guidé",
     undo: "Annuler les changements",
     done: "Terminé",
     categories: {

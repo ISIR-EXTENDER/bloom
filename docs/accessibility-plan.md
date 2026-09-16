@@ -28,6 +28,10 @@ signals, and test accessibility continuously.
   backend reason; unknown capability state does not disable it.
 - Semantic theme pairs are tested at a minimum 4.5:1 contrast ratio, including the corrected muted-text surface pairs.
 - Forms use visible labels and touch-friendly input hints; drag/drop workflows retain button alternatives.
+- Guided runtime practice uses the current profile's language, font scale, scanning, and dwell behavior, and exposes no
+  robot command interface. Its movement and hold checks can be repeated from Maintenance or Settings.
+- Builder review derives geometry, touch-size, overlap, command-frame, and topic-policy checks from the saved app, then
+  requires an actual profile preview and export for the final checks.
 
 ## Motor And Input Profiles
 
@@ -90,6 +94,8 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
 - Runtime Settings tests cover scanning, dwell, reversible per-profile changes, and a local-only safe preview.
 - Runtime language tests cover complete EN/ES/FR catalogs, English fallback, immediate switching, translated STOP and
   status states, and a 40%-expanded visual-smoke pass.
+- Guided-tour tests cover real-action completion, persisted checks, scanning, policy diagnosis, and the absence of
+  teleop or ROS publish calls from practice. Visual and live `1280x720` captures cover both tour surfaces.
 
 These are repository-level checks. They do not prove that a real switch, gamepad, tablet mounting position, sound level,
 or interaction pattern works for a particular person.
@@ -104,7 +110,8 @@ or interaction pattern works for a particular person.
   minimum-contact filtering, or other proposed signal conditioning beyond today's dead zone and repeat guard.
 - Add generic live collision feedback in the builder.
 - Decide whether fixed control positions and additional non-visual cues are needed for eyes-off use.
-- Add role-aware onboarding; review the delivered EN/ES/FR safety language with native speakers and operators.
+- Add remembered role-aware first entry and decide whether to offer the reusable practice tour automatically; review
+  the delivered EN/ES/FR safety language with native speakers and operators.
 - Wire the `reduced-motion` profile value explicitly or remove it; today only the browser/OS media preference changes
   motion.
 - Design supervisor mirroring and explicit control ownership/handover.

@@ -55,8 +55,9 @@ npm run visual:smoke
 npm run capture:readme   # only when the README previews should change
 ```
 
-For runtime changes, inspect the kiosk bar, fixed STOP, maintenance overlay, effective command frame, and control bounds
-at every maintained viewport. A browser capture is layout evidence, not target-tablet acceptance.
+For runtime changes, inspect the kiosk bar, fixed STOP, maintenance overlay, effective command frame, control bounds,
+and local practice surface at every maintained viewport. For Builder changes, inspect the app review at the same
+viewports. A browser capture is layout evidence, not target-tablet acceptance.
 
 ## 4. Security posture
 

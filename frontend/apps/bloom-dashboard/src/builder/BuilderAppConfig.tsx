@@ -27,10 +27,12 @@ import {
   writeBloomDragPayload,
 } from "../ui/dragDrop";
 import { getTouchEditingProps } from "../ui/touchEditing";
+import { BuilderGuidedTour } from "./BuilderGuidedTour";
 
 type BuilderAppConfigProps = {
   configurations: readonly LoadedConfiguration[];
   onBackToHome: () => void;
+  onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
   onOpenScreenBuilder: (selection: WorkspaceSelection) => void;
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onUploadThemeAsset: (file: File) => Promise<string>;
@@ -99,6 +101,7 @@ const APP_THEME_PRESETS: ReadonlyArray<{
 export function BuilderAppConfig({
   configurations,
   onBackToHome,
+  onOpenRuntimeApp,
   onOpenScreenBuilder,
   onSaveApplication,
   onUploadThemeAsset,
@@ -112,6 +115,7 @@ export function BuilderAppConfig({
   const [newScreenName, setNewScreenName] = useState("New screen");
   const [saveState, setSaveState] = useState<AppSaveState>({ status: "idle" });
   const [themeInspirationError, setThemeInspirationError] = useState("");
+  const [tourOpen, setTourOpen] = useState(false);
   const availableScreens = collectAvailableScreens(selectedWorkspace.bundle.applications);
   const assignedScreenIds = new Set(draftApplication.screens.map((screen) => screen.id));
   const unassignedScreens = availableScreens.filter(({ screen }) => !assignedScreenIds.has(screen.id));
@@ -132,6 +136,7 @@ export function BuilderAppConfig({
     setNewPreset(createEmptyActionPresetDraft());
     setSaveState({ status: "idle" });
     setThemeInspirationError("");
+    setTourOpen(false);
   }, [application]);
 
   const saveDraft = async () => {
@@ -315,6 +320,19 @@ export function BuilderAppConfig({
     }
   };
 
+  if (tourOpen) {
+    return (
+      <BuilderGuidedTour
+        application={draftApplication}
+        onClose={() => setTourOpen(false)}
+        onOpenConfiguration={() => setTourOpen(false)}
+        onOpenScreenBuilder={onOpenScreenBuilder}
+        onPreviewRuntime={onOpenRuntimeApp}
+        selection={selection}
+      />
+    );
+  }
+
   return (
     <section className="builder-app-config" aria-labelledby="builder-app-config-title">
       <header className="builder-app-config-header">
@@ -332,6 +350,9 @@ export function BuilderAppConfig({
           </div>
         </div>
         <div className="builder-app-config-actions">
+          <button disabled={isDirty || isSaving} onClick={() => setTourOpen(true)} type="button">
+            Review checklist
+          </button>
           <button className="builder-back-button" onClick={onBackToHome} type="button">
             Back to apps
           </button>

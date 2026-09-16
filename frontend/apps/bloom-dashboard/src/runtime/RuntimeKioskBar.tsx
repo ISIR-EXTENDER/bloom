@@ -67,6 +67,7 @@ export type RuntimeKioskBarProps = {
   onOpenLanding: () => void;
   onOpenHelp: () => void;
   onOpenSettings: () => void;
+  onOpenTour: () => void;
   language?: RuntimeLanguage;
   onLanguageChange: (language: RuntimeLanguage) => void;
 };
@@ -88,6 +89,7 @@ export function RuntimeKioskBar({
   onOpenLanding,
   onOpenHelp,
   onOpenSettings,
+  onOpenTour,
   language = "en",
   onLanguageChange,
 }: RuntimeKioskBarProps) {
@@ -156,6 +158,10 @@ export function RuntimeKioskBar({
           onOpenHelp={onOpenHelp}
           onOpenLanding={onOpenLanding}
           onLanguageChange={onLanguageChange}
+          onOpenTour={() => {
+            setMaintenanceOpen(false);
+            onOpenTour();
+          }}
           onOpenSettings={() => {
             setMaintenanceOpen(false);
             onOpenSettings();
@@ -190,6 +196,7 @@ function RuntimeMaintenanceOverlay({
   onOpenLanding,
   onOpenHelp,
   onOpenSettings,
+  onOpenTour,
   onClose,
   language,
   onLanguageChange,
@@ -206,6 +213,7 @@ function RuntimeMaintenanceOverlay({
   onOpenLanding: () => void;
   onOpenHelp: () => void;
   onOpenSettings: () => void;
+  onOpenTour: () => void;
   onClose: () => void;
   language: RuntimeLanguage;
   onLanguageChange: (language: RuntimeLanguage) => void;
@@ -280,6 +288,9 @@ function RuntimeMaintenanceOverlay({
         ) : null}
 
         <div className="runtime-maintenance-actions">
+          <button onClick={onOpenTour} type="button">
+            {strings.settings.practiceTour}
+          </button>
           <button onClick={onOpenSettings} type="button">
             {strings.kiosk.settings}
           </button>

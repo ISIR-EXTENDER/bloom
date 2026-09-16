@@ -83,6 +83,23 @@ const captures = [
     },
   },
   {
+    name: "09-runtime-tour",
+    setup: async (page) => {
+      await openRuntime(page);
+      await holdForMaintenance(page);
+      await page.getByRole("button", { name: "Practice tour" }).click();
+      await page.getByRole("region", { name: "Practice this app" }).waitFor();
+      await page.waitForTimeout(300);
+    },
+  },
+  {
+    name: "10-builder-review",
+    setup: async (page) => {
+      await openBuilderReview(page);
+      await page.waitForTimeout(300);
+    },
+  },
+  {
     name: "11-joystick-lab",
     setup: async (page) => {
       await openRuntime(page);
@@ -156,6 +173,15 @@ async function openRuntime(page, options = {}) {
     .first()
     .waitFor({ timeout: 15000 });
   await page.waitForTimeout(600);
+}
+
+async function openBuilderReview(page) {
+  await page.goto(dashboardUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Builder: Compose screens" }).click();
+  await page.getByRole("button", { exact: true, name: "Apps" }).click();
+  await page.getByRole("button", { name: `Open ${appName} app` }).click();
+  await page.getByRole("button", { name: "Review checklist" }).click();
+  await page.getByRole("region", { name: "Builder review checklist" }).waitFor();
 }
 
 async function holdForMaintenance(page) {

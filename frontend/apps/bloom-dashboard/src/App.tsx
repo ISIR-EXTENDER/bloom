@@ -4,8 +4,10 @@ import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import "./App.css";
 import "./builder.css";
+import "./builder-tour.css";
 import "./runtime-app.css";
 import "./runtime-settings.css";
+import "./runtime-tour.css";
 import "./runtime-widgets.css";
 import "./responsive.css";
 

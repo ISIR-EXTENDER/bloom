@@ -13,6 +13,54 @@ export const esRuntimeStrings: RuntimeStrings = {
     button: "PULSADOR - pulsa Espacio o toca aquí",
     progress: (current, total) => `Barrido ${current} de ${total}.`,
   },
+  tour: {
+    close: "Cerrar práctica",
+    complete: "Completado",
+    disconnected: "Controles de práctica desconectados de los comandos del robot",
+    localOnly: "Práctica local - nada aquí puede controlar el robot",
+    movementFallback: "control de movimiento",
+    moveBody: (controlName, directionLabel, count) =>
+      `Usa ${directionLabel} en ${controlName} dos veces. Movimiento ${Math.min(count, 2)} de 2.`,
+    practice: "Práctica guiada",
+    progress: (complete, total) => `${complete} de ${total} pasos completados`,
+    screenBody: (applicationName, screenTitle) =>
+      `${applicationName} está abierta en ${screenTitle}. La barra superior muestra la sesión; el control rojo fijo la detiene.`,
+    steps: {
+      screen: {
+        title: "Esta es tu pantalla",
+        body: "La barra superior muestra la sesión y el control rojo fijo la detiene.",
+        why: "La operación mantiene las salidas y la edición lejos de los controles bajo tu mano.",
+        action: "Ya la he visto",
+      },
+      move: {
+        title: "Mover el brazo",
+        body: "Usa dos veces el control de movimiento indicado.",
+        why: "Este control usa el nombre de la app, pero no tiene conexión con los comandos del robot.",
+        action: "Avanzar",
+      },
+      stop: {
+        title: "Parar y volver a empezar",
+        body: "Detén la práctica y mantén pulsado para reanudarla.",
+        why: "La parada es inmediata. Reanudar exige mantener para evitar que otro toque reinicie el movimiento.",
+        action: "Parar práctica",
+      },
+      settings: {
+        title: "Adaptarla a tu mano",
+        body: "Mantén mantenimiento para encontrar los ajustes de movimiento, tiempo, dirección, idioma y pantalla.",
+        why: "Los ajustes usan tu barrido y reposo actuales y la prueba nunca envía movimiento al robot.",
+        action: "Mantener mantenimiento",
+      },
+      ready: {
+        title: "Todo listo",
+        body: "Sal de la práctica local y vuelve a la pantalla de operación real.",
+        why: "Los controles reales solo vuelven al salir de esta práctica desconectada.",
+        action: "Empezar de verdad",
+      },
+    },
+    stepsLabel: "Pasos de práctica",
+    title: "Practicar esta app",
+    whyTitle: "Por qué importa",
+  },
   workspace: {
     application: "Aplicación de operación",
     comingSoon: "Próximamente",
@@ -41,6 +89,7 @@ export const esRuntimeStrings: RuntimeStrings = {
   settings: {
     title: "Ajustes",
     profileName: (name) => `Perfil de ${name}`,
+    practiceTour: "Práctica guiada",
     undo: "Deshacer cambios",
     done: "Terminar",
     categories: {

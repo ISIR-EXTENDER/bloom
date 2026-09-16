@@ -21,6 +21,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **Accessible input paths** for keyboard joysticks, step controls, latch, switch-scanning focus, dwell activation,
   browser gamepads, profile-level dead zone/repeat guard, large targets, and optional audio state cues. Browser
   `prefers-reduced-motion` is honored; the profile enum is not yet an independent motion switch.
+- **Operator-owned runtime settings and language** with persistent per-profile overrides, local-only movement preview,
+  scanning/dwell support, and complete English, Spanish, and French runtime-shell catalogs.
+- **Action-based guided review** with a structurally local-only five-step runtime practice path and a six-check Builder
+  review derived from saved app geometry, touch bounds, frame, topic policy, profile preview, and JSON export.
 - **One Cartesian command frame per application**, selected from backend capabilities, shown in the kiosk bar, applied
   to virtual controls and gamepads, persisted through JSON/SQLite, and checked against the deployment allowlist.
 - **Kinova Manager app** alongside Explorer Manager, including manager drive, saved positions, feedback, command-source
@@ -85,6 +89,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   suppressed.
 - Operator seed layouts are checked for canvas bounds and overlapping interactive controls; the Explorer/Kinova
   gripper payloads and speed topics now match their live client contracts.
+- Explorer and Kinova command-source event logs now read `/mode_request` instead of rendering permanently empty, and
+  local `teleop-frame` controls are no longer misreported as missing ROS topic destinations.
 
 ### Known limitations
 
@@ -93,8 +99,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   `cartesian_manager` without a robot attached.
 - Bloom applies no scaling to commands, by design. See decision 0118.
 - `cartesian_manager` still does not publish authoritative active-mode feedback; Bloom labels the mode as last requested.
-- Switch scanning can focus a joystick but cannot yet turn that activation into a directional step command. Do not claim
-  single-switch teleop until the P1 correction in the UX handoff lands and is validated.
+- Directional switch scanning and combined scan-plus-dwell are covered by component, app, and bench-browser evidence,
+  but still require validation with the intended physical switch and operators before participant use.
 
 ## [0.1.0]
 

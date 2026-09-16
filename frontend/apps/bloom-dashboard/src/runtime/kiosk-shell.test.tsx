@@ -34,6 +34,7 @@ function renderBar(overrides: Partial<Parameters<typeof RuntimeKioskBar>[0]> = {
     onOpenLanding: vi.fn(),
     onOpenHelp: vi.fn(),
     onOpenSettings: vi.fn(),
+    onOpenTour: vi.fn(),
     onLanguageChange: vi.fn(),
   };
   render(

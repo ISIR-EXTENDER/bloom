@@ -20,6 +20,7 @@ type RuntimeSettingsPanelProps = {
   baseProfile: ResolvedRuntimeProfile;
   onChange: (overrides: RuntimeProfileOverrides) => void;
   onDone: () => void;
+  onOpenTour: () => void;
   overrides: RuntimeProfileOverrides;
   teleopActive: boolean;
 };
@@ -48,6 +49,7 @@ export function RuntimeSettingsPanel({
   baseProfile,
   onChange,
   onDone,
+  onOpenTour,
   overrides,
   teleopActive,
 }: RuntimeSettingsPanelProps) {
@@ -140,6 +142,9 @@ export function RuntimeSettingsPanel({
         <h2>{strings.settings.title}</h2>
         <span>{strings.settings.profileName(baseProfile.name)}</span>
         <div className="runtime-settings-header-actions">
+          <button onClick={onOpenTour} type="button">
+            {strings.settings.practiceTour}
+          </button>
           {dirty ? (
             <button
               className="runtime-settings-undo"

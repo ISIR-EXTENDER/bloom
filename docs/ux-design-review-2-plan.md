@@ -19,7 +19,7 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | 0.5 | Capability gating extended to the runtime | **Done** |
 | 1 | Runtime settings panel | **Done** — `1e2e2ee` |
 | 2 | `language` on `UserProfile` plus string catalogs | **Done** |
-| 3 | Guided tours | Not started, blocked on a backend answer |
+| 3 | Guided tours | **Done** |
 | 4 | Read-only supervisor mirror | Not started |
 
 ## Lot 0.1, as delivered
@@ -149,11 +149,32 @@ captures at `1280x720`, including an element-bound check for the Settings previe
 Maintenance, language Settings, and a French runtime. Evidence is in
 `docs/validation/2026-09-16-runtime-language.md`.
 
+## Lot 3, as delivered
+
+The runtime practice path is a replacement surface with no action client, robot-intent callback, or teleop callback.
+Its movement action uses the current application's joystick title and direction label but changes only local counters.
+STOP/resume and Maintenance practice use the production hold durations; scanning and dwell use the selected profile.
+The five action checks persist per configuration and application, and the tour remains available from Maintenance and
+Settings.
+
+The no-adapter question is resolved without relying on deployment state: the no-ROS backend uses the no-op teleop
+gateway and reports teleop unavailable, while this practice component has no command interface at all. The copy says
+that the practice controls are disconnected from robot commands; it does not claim that the physical robot or the live
+runtime session is disconnected.
+
+Builder App Configuration now offers a six-step review of native geometry, touch bounds and overlap, command frame,
+topic policy, profile preview, and JSON export. Configuration-derived checks cannot be advanced by a generic button;
+profile and export complete only through the actual preview and download actions. The topic check opens the first
+offending screen. It exposed blank Explorer and Kinova `Runtime events` widgets, now bound to `/mode_request`, and a
+false warning for local `teleop-frame` controls, now correctly modeled as having no ROS topic destination.
+
+Focused tests cover real actions, persistence, scanning, policy diagnosis, and the command-gateway boundary. Visual
+smoke includes both review surfaces across maintained viewports; live `1280x720` captures are `09-runtime-tour` and
+`10-builder-review`. Evidence is in `docs/validation/2026-09-16-guided-tours.md`.
+
 ## Next steps, in order
 
-1. **Lot 3.** Resolve whether a session without an adapter is safe before adding action-based
-   practice tours. Practice steps must not command the arm.
-2. **Lot 4.** Add the read-only supervisor mirror without granting command ownership.
+1. **Lot 4.** Add the read-only supervisor mirror without granting command ownership.
 
 ## How the work is run
 
@@ -177,7 +198,7 @@ the repository root and echo the exit code.
 ### End-to-end captures
 
 `scripts/ros-e2e-capture.mjs` drives the real stack with Playwright at 1280x720 and writes
-the ten reference names. Nothing is mocked, unlike `npm run visual:smoke`.
+the eleven review capture names. Nothing is mocked, unlike `npm run visual:smoke`.
 
 ```bash
 # 1. cartesian_manager plus the feedback a robot would publish
@@ -207,6 +228,7 @@ the store already holds. Then open each capture next to its reference in
 `Bloom UX design review 2/handoff/images/` and compare in this order: reading order,
 hierarchy, target sizes, density. A hue difference is expected, a target-size difference is a
 defect. Captures 04, 05, 06, and 08 now cover the delivered Settings and language lots.
+Captures 09 and 10 cover the guided runtime practice and Builder review.
 
 Record every session under `docs/validation/` with what was and was not verified. A bench
 result is never a hardware claim.
@@ -227,14 +249,16 @@ Round-trip a file before editing it so the diff stays to the lines that changed.
   scan itself or forces the hook to special-case the DOM.
 - **The shared kiosk bar is 44 px.** A screen-local 56 px header, including Settings, spends
   the remaining body budget and does not change or duplicate the shared bar; see ADR 0127.
+- **Practice safety is structural.** The tour receives no runtime action client or teleop callback. Its generated labels
+  can match the live app without giving its controls a path to the robot.
+- **Builder checks describe real state.** Geometry, touch bounds, overlap, frame, and topic policy derive from the saved
+  app. Profile preview and export complete only when those actions are actually used.
 
 ## Open questions
 
 - Can one user hold several named profiles, chair and bed and tired day? `profilePreferences`
   stores one profile per app, which assumes yes, but nothing creates one. Lot 1's shape
   depends on the answer: edit one profile, or select and duplicate.
-- Is a runtime session without an adapter safe, so lot 3 can offer a practice mode that
-  commands nothing? Open with the backend team since 7 September.
 
 ## Carried over from the architecture review
 

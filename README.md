@@ -165,7 +165,9 @@ port `5173`. `Ctrl+C` stops both Bloom processes.
    status sounds, command frame, and language. Changes apply immediately and survive a reload. **Undo changes**
    restores the state from when the screen opened; the bottom try strip is local and never enters the robot command
    path.
-7. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
+7. Open **Practice tour** from Maintenance or Settings to rehearse the app's own movement label, STOP/resume, and the
+   Maintenance hold. This replacement surface has no robot command interface; leave it to restore live controls.
+8. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
 
 Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova permits `effector_frame` and adds the
 reviewed fault-reset action. Joystick Lab keeps every frame choice visible and explains when the connected robot does
@@ -174,6 +176,10 @@ not support one.
 The operator shell is available in English, Spanish, and French. Change it from Maintenance or **Settings >
 Language**; the choice belongs to the selected profile. App names, screen names, and widget labels are authored
 configuration data and remain as written, while topic names, frame IDs, axes, and numeric values are never translated.
+
+Before publishing an edited app, open **Builder > Apps > Open app > Review checklist**. Bloom derives geometry, touch
+bounds and overlap, command frame, and topic-policy checks from the saved application. The last checks complete only
+when you preview the operator profile and export the reviewed JSON.
 
 ### 5. Verify the command path
 
@@ -265,6 +271,7 @@ applications, so it cannot silently leave a stale image in this README.
 - Builder and kiosk runtime for shared application, screen, widget, theme, profile, and guardrail models.
 - Touch, keyboard, and gamepad Cartesian input composed into one application-scoped 6-DoF command.
 - Per-profile English, Spanish, and French runtime shells with an English fallback.
+- Local-only guided operator practice and an action-based Builder review checklist.
 - Explorer and Kinova Manager workflows for Joystick Lab, Drive, Positions, Robot feedback, and Command sources.
 - JSON and SQLite configuration storage, tracked seed applications, import/export, audit, and recording hooks.
 - ROS 2 integration for `cartesian_manager`, generic topic publishing, service calls, and topic discovery.
@@ -278,7 +285,8 @@ still needs wiring. Track these and the current design review in [the UX design 
 
 New Extender IHM work belongs in Bloom. The remaining work is explicit:
 
-1. Complete the open design work around physical sizing, profile semantics, supervisor handover, and onboarding.
+1. Complete the open design work around physical sizing, profile semantics, supervisor handover, and remembered role
+   entry.
 2. Validate the Bloom IHM on the target tablets, assistive inputs, simulations, and robots.
 3. Keep `extender_ui` rollback artifacts until the relevant live sessions are accepted.
 4. Retain generic web/ROS boundaries so Bloom can serve robots beyond Extender.

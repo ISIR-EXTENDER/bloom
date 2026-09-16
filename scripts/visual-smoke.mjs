@@ -26,7 +26,9 @@ const routes = [
   { name: "landing", setup: showLanding },
   { name: "builder", setup: showBuilder },
   { name: "app-config", setup: showAppConfig },
+  { name: "builder-review", setup: showBuilderReview },
   { name: "runtime", setup: showRuntime },
+  { name: "runtime-tour", setup: showRuntimeTour },
   { name: "runtime-sandbox-teleop-config", setup: (page) => showSandboxRuntimeScreen(page, "Teleop Configuration") },
   { name: "runtime-control-panel", setup: (page) => showSandboxRuntimeScreen(page, "Control Panel") },
   { name: "runtime-snake-control", setup: (page) => showSandboxRuntimeScreen(page, "Snake Control") },
@@ -402,11 +404,27 @@ async function showAppConfig(page) {
   await page.getByRole("heading", { name: "Sandbox V0.0" }).waitFor();
 }
 
+async function showBuilderReview(page) {
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Builder: Compose screens" }).click();
+  await page.getByRole("button", { exact: true, name: "Apps" }).click();
+  await page.getByRole("button", { name: "Open Explorer Manager app" }).click();
+  await page.getByRole("button", { name: "Review checklist" }).click();
+  await page.getByRole("region", { name: "Builder review checklist" }).waitFor();
+}
+
 async function showRuntime(page) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { name: "Launch Sandbox V0.0 runtime" }).click();
   await page.getByRole("region", { name: "Runtime application" }).waitFor();
+}
+
+async function showRuntimeTour(page) {
+  await showExplorerRuntimeScreen(page, null);
+  await holdForMaintenance(page);
+  await page.getByRole("button", { name: "Practice tour" }).click();
+  await page.getByRole("region", { name: "Practice this app" }).waitFor();
 }
 
 async function showSandboxRuntimeScreen(page, screenName) {

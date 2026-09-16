@@ -64,6 +64,7 @@ function renderSettings(
       baseProfile={defaultProfile}
       onChange={onChange}
       onDone={vi.fn()}
+      onOpenTour={vi.fn()}
       overrides={overrides}
       teleopActive={false}
     />,

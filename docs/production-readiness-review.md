@@ -9,10 +9,10 @@ validates Bloom rather than deciding which product owns the IHM.
 
 | Area | Current Bloom state | Remaining evidence or work |
 | --- | --- | --- |
-| Product shell | Builder, app library, Help, history-aware routes, and kiosk runtime. | Role-aware first entry and operator onboarding. |
+| Product shell | Builder, app library, Help, history-aware routes, kiosk runtime, reusable local-only operator practice, and Builder review. | Remembered role-aware first entry and automatic first-launch offer. |
 | Runtime safety surface | Truthful kiosk status, fixed backend-latched STOP, held resume, held maintenance entry. | Full controller/hardware STOP acceptance. |
 | App/screen configuration | API-backed flows, shared seeds, SQLite normalized reconstruction, screen library, drag/drop with button fallbacks. | Generic collision feedback and multi-device touch review. |
-| WYSIWYG builder | Save/discard, undo/redo, palette, inspector, previews, selected-target warning, and runtime Maintenance disclosure when a whole artboard shrinks. | Whole-screen device frames and a prevention/reflow policy for fit below physical target size. |
+| WYSIWYG builder | Save/discard, undo/redo, palette, inspector, previews, selected-target warning, runtime shrink disclosure, and an action-based app review checklist. | Whole-screen device frames and a prevention/reflow policy for fit below physical target size. |
 | Operator controls | Two joysticks, Z/RZ, per-axis composition/dead zone, mode/gripper/speed commands, saved positions, service calls, and visible runtime gating for unavailable backend seams. | Live Explorer/Kinova acceptance in every offered frame. |
 | Accessible input | Keyboard, large/assisted targets, directional scanning with optional dwell confirmation, step, latch, gamepad, audio, conditioning, and browser reduced-motion handling. | Wire the reduced-motion profile; complete settings and operator/device validation. |
 | Feedback/debug | Topic catalog, echo, plots/freeze, command sources, manipulability, audit, simulated or opt-in rosbag recording. | Live recording and visual-servoing sessions. |
@@ -68,6 +68,8 @@ Split them when a concrete feature makes ownership unclear; they are not blocker
 The runtime now follows the strongest design-review requirements: no builder chrome under the operator's hand, a small
 truthful bar, a real stop, direction words, one visible effective command frame, tested contrast, multiple input modes,
 per-profile Settings and EN/ES/FR language, and control bounds in maintained seeds.
+The runtime practice path is disconnected from command interfaces in code, while the Builder review turns late lab
+checks into saved-app checks and actual preview/export actions.
 
 The next UX work is not another broad redesign. It is the unresolved physical and social layer:
 
@@ -75,7 +77,8 @@ The next UX work is not another broad redesign. It is the unresolved physical an
 - switch/gamepad/dwell validation with intended users;
 - stable eyes-off control placement and non-visual cues;
 - supervisor mirroring and explicit control ownership;
-- role-aware onboarding and native-speaker review of delivered EN/ES/FR safety wording;
+- remembered role-aware first entry, first-launch practice policy, and native-speaker review of delivered EN/ES/FR
+  safety wording;
 - camera and fault recovery language.
 
 The tracked implementation matrix and backlog are in [the UX design handoff](ux-design-handoff.md).

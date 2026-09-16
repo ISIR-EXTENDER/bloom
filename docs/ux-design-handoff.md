@@ -54,7 +54,7 @@ supervisor roles.
 | 6. Adapter-language axis labels | Delivered | Pads use operator direction words; technical axes remain in details. | Validate vocabulary per app with operators. |
 | 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Runtime Settings now changes and safely previews the supported interaction values; under `scan`, both operation and Settings are scannable. | `reduced-motion`, edge layout, and validation with the intended devices remain. |
 | 8. Muted contrast failed | Delivered | Token corrected and semantic contrast tests expanded. | Review in real lab lighting. |
-| 9. Contributor-oriented onboarding | Open | Builder and Runtime are distinct; starter apps can include onboarding spots. | Remembered role choice and per-app operator tour. |
+| 9. Contributor-oriented onboarding | Partial | Builder and Runtime are distinct; each runtime app has a persistent, action-based local practice tour, and Builder has a six-check review. | Remembered role choice and automatic first-launch offer. |
 | 10. Builder cannot see tablet | Partial | `native-1280x720` and selected-widget `1024x600` glass-size feedback. | Three device frames and a whole-screen touch-check mode. |
 | 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab selects a supported session frame and Runtime Settings persists a per-profile frame override, both at zero motion and shared by widgets/gamepad. | Installation-specific egocentric mapping and final operator-facing frame names. |
 | 12. Operator looks at the gripper | Partial | Keyboard, gamepad, directional scanning, dwell, and sounds for stop/link loss/recovery. | Cross-screen spatial consistency, possible latch cue, and real eyes-off tests. |
@@ -94,8 +94,9 @@ supervisor roles.
 - ~~**Gate unavailable runtime capabilities.**~~ Delivered 2026-09-16; runtime keeps each explicitly unsupported widget
   visible, makes its content inert, and displays the backend reason. Unknown reports do not create false failures.
 - **Make collision feedback generic.** Flag overlap while authoring instead of relying only on seed and browser checks.
-- **Build action-based guided tours.** Add the five-step operator and six-step builder paths only after the disconnected
-  practice mode is proven unable to command a robot. A step completes from its real action, not a Next button.
+- ~~**Build action-based guided tours.**~~ Delivered 2026-09-16. Runtime practice is structurally local-only, uses the
+  selected app labels and accessibility profile, and completes from movement and hold actions. Builder checks derive
+  from saved app state, profile preview, and export. See `docs/validation/2026-09-16-guided-tours.md`.
 - **Design camera recovery.** Permission denial, missing devices, and stream loss need one clear operator action, then
   validation with Robin's visual-servoing setup.
 - **Add the supervisor mirror.** Start with a read-only robot status surface without robot commands. Explicit ownership
@@ -105,7 +106,8 @@ supervisor roles.
 
 ### P3 - entry and language review
 
-- After the guided tours exist, remember whether a person normally operates or builds and route them accordingly.
+- Remember whether a person normally operates or builds and route them accordingly; the tours are now reusable from
+  their respective workspaces but are not an automatic first-entry fork.
 - Review frame, fault, recovery, and maintenance vocabulary with operators and supervisors.
 
 ## Refreshed Implementation Order
@@ -117,7 +119,7 @@ The latest handoff proposed this order. The state column records what now exists
 | 0 | P1/P2 | Delivered | Fix directional scanning, define scan/dwell composition, record the 44 px bar decision, surface unsafe fit, and gate unavailable runtime capabilities. |
 | 1 | P1 | Delivered | Add operator-usable runtime profile settings and a non-commanding live preview, with defensive local preference persistence. |
 | 2 | P1 | Delivered | Add EN/ES/FR profile language, runtime string catalogs, pseudo-locale tests, and locale captures while keeping authored labels as configuration data. |
-| 3 | P2 | Blocked on safety answer | Add action-based operator and builder tours after the disconnected-practice safety question is resolved. |
+| 3 | P2 | Delivered | Add action-based operator and builder tours with persistent real-action checks and a structurally local-only practice surface. |
 | 4 | P2 | Not started | Add a read-only supervisor status mirror; do not grant robot commands implicitly. |
 
 The settings design also depends on a product answer: whether a person has one editable profile or several named,
@@ -134,7 +136,7 @@ they appeared in the handoff:
 - whether continuous speed sliders should become large slow/medium/fast segments;
 - whether an application needs a supervisor code; Maintenance now contains language and profile Settings;
 - whether profiles can be named, exported, and reused across a lab session and daily setup;
-- how a disconnected practice tour can guarantee that no robot command is sent rather than merely claiming it is safe;
+- whether the current reusable practice entry should also appear automatically on first app launch;
 - the final French and Spanish safety wording, which requires native-speaker and operator review.
 
 The refreshed packet retains historical notes saying the kiosk specification requested 56 px, while its current kiosk
@@ -162,6 +164,7 @@ kiosk height. Change the shared value only through an explicit design/architectu
 - Physical gamepad mapping, center release, disconnect, and contention with touch or visual servoing.
 - Real switch scanning with optional dwell confirmation, plus keyboard, latch, step, audio, and repeat guard with
   intended users.
+- Guided practice comprehension, hold timing, and the handoff from practice to live controls with intended users.
 - Robin visual-servoing camera/tag behavior and an opt-in rosbag capture from Bloom Debug.
 - Petanque only if the archived workflow is still expected to run.
 

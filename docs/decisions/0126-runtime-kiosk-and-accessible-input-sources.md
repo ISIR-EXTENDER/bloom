@@ -60,3 +60,8 @@ default cannot safely imply enablement.
 Runtime localization is also delivered for the operator shell. `UserProfile.language` selects complete EN/ES/FR
 catalogs for status, STOP, Maintenance, scanning, Settings, and empty states; authored app and widget labels remain
 configuration data. See `docs/validation/2026-09-16-runtime-language.md`.
+
+Guided practice now reuses the selected profile's language, scan period, dwell behavior, and app-authored labels while
+remaining structurally outside the robot action path: the component receives no action client, intent callback, or
+teleop callback. It replaces the live controls and suspends composition until the operator leaves practice. See
+`docs/validation/2026-09-16-guided-tours.md`.

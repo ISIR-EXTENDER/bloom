@@ -85,6 +85,10 @@ composition. It owns application-wide runtime guardrails, including the default 
 select another supported frame for the current session only while motion is zero; virtual controls and physical
 gamepads continue to share one effective frame.
 
+Its Builder review is a derived validation surface, not another configuration model. Geometry, interactive bounds,
+overlap, command frame, and widget destinations are read from the saved application; profile preview and JSON export
+are recorded only when those real actions occur.
+
 ## Runtime Composition
 
 Runtime uses the same screen model, widget layout model, and renderer pipeline as the builder. The difference is chrome
@@ -104,6 +108,10 @@ Touch, keyboard, step/latch/dwell behavior, composable switch scanning, and brow
 boundary. They are designed to produce normalized contributions for the same runtime intent and teleop composer, so ROS
 adapters receive a composed command rather than knowledge of the device. Scanning renders directional step targets,
 and dwell can activate either a direct target or the highlighted target through SWITCH without changing the adapter.
+
+Guided runtime practice sits above the same accessibility layer but outside the action path. It receives app labels and
+profile behavior, but no runtime action client, intent callback, or teleop contribution callback. Leaving the practice
+replacement surface is what restores the live artboard and its command interfaces.
 
 The current operator contract is maintained in `docs/operator-runtime.md`.
 

@@ -13,6 +13,54 @@ export const enRuntimeStrings: RuntimeStrings = {
     button: "SWITCH - press Space or tap here",
     progress: (current, total) => `Scanning ${current} of ${total}.`,
   },
+  tour: {
+    close: "Close practice",
+    complete: "Complete",
+    disconnected: "Practice controls disconnected from robot commands",
+    localOnly: "Local practice - nothing here can command the robot",
+    movementFallback: "movement control",
+    moveBody: (controlName, directionLabel, count) =>
+      `Use ${directionLabel} on ${controlName} twice. Practice movement ${Math.min(count, 2)} of 2.`,
+    practice: "Guided practice",
+    progress: (complete, total) => `${complete} of ${total} practice steps complete`,
+    screenBody: (applicationName, screenTitle) =>
+      `${applicationName} is open on ${screenTitle}. The top strip reports the session; the fixed red control stops it.`,
+    steps: {
+      screen: {
+        title: "This is your screen",
+        body: "The top strip reports the session and the fixed red control stops it.",
+        why: "Operation keeps exits and editing tools away from the controls under your hand.",
+        action: "I've seen it",
+      },
+      move: {
+        title: "Move the arm",
+        body: "Use the named movement control twice.",
+        why: "This practice control uses the app's own label but has no robot command connection.",
+        action: "Move forward",
+      },
+      stop: {
+        title: "Stop, and start again",
+        body: "Stop the practice session, then hold to resume it.",
+        why: "Stopping is immediate. Resuming takes a deliberate hold so a second stray tap cannot restart movement.",
+        action: "Stop practice",
+      },
+      settings: {
+        title: "Make it fit your hand",
+        body: "Hold the maintenance control to find your movement, timing, direction, language, and display settings.",
+        why: "The settings use your current scanning and dwell behavior and never send preview movement to the robot.",
+        action: "Hold maintenance",
+      },
+      ready: {
+        title: "You're ready",
+        body: "Leave local practice and return to the live operator screen.",
+        why: "Only leaving this disconnected practice surface restores the application's real command controls.",
+        action: "Start for real",
+      },
+    },
+    stepsLabel: "Practice steps",
+    title: "Practice this app",
+    whyTitle: "Why this matters",
+  },
   workspace: {
     application: "Runtime application",
     comingSoon: "Coming soon",
@@ -41,6 +89,7 @@ export const enRuntimeStrings: RuntimeStrings = {
   settings: {
     title: "Settings",
     profileName: (name) => `${name}'s profile`,
+    practiceTour: "Practice tour",
     undo: "Undo changes",
     done: "Done",
     categories: {

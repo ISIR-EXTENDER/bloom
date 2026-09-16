@@ -123,12 +123,18 @@ function resolveReadSource(kind: string, settings: Record<string, unknown>): Wid
       };
 }
 
-function resolvePublishDestination(kind: string, settings: Record<string, unknown>): WidgetDestination {
+function resolvePublishDestination(kind: string, settings: Record<string, unknown>): WidgetDestination | null {
   const runtimeBinding = asRecord(settings.runtime_binding);
   const valueMapping = asRecord(runtimeBinding.value_mapping);
   const adapter = typeof runtimeBinding.adapter === "string" ? runtimeBinding.adapter : "";
   const bindingTopic = asTopic(valueMapping.target_topic) ?? asTopic(valueMapping.topic);
   const legacy: InertSetting[] = kind === "slider" ? [{ key: "binding", reason: LEGACY_BINDING_INERT_ON_SLIDER }] : [];
+
+  // Frame controls change the local composition context. They do not publish
+  // a ROS message of their own, so reporting a missing topic is misleading.
+  if (adapter === "teleop-frame") {
+    return null;
+  }
 
   if (adapter === "teleop") {
     // A teleop widget contributes an axis to a twist that several widgets
