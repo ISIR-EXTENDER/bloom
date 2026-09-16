@@ -1,3 +1,5 @@
+import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -10,12 +12,231 @@ from libs.config import (
     RuntimeActionPreset,
     RuntimeAdapterPolicy,
     SQLiteConfigurationRepository,
+    dump_configuration_json,
     load_legacy_screen_file,
 )
-from libs.db.sqlite import apply_sqlite_migrations, get_applied_schema_versions, sqlite_connection
+from libs.db.sqlite import (
+    SCHEMA_VERSION,
+    SQLiteMigrationError,
+    apply_sqlite_migrations,
+    get_applied_schema_versions,
+    sqlite_connection,
+)
 
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
+
+
+def make_schema_upgrade_bundle() -> ConfigurationBundle:
+    return ConfigurationBundle(
+        metadata=ConfigurationMetadata(source="schema-upgrade-snapshot"),
+        applications=(
+            ApplicationConfig(
+                id="archived-manager",
+                name="Archived Manager",
+                description="Stored before lifecycle had its own column.",
+                lifecycle="archived",
+                action_presets=(
+                    RuntimeActionPreset(
+                        id="reset-fault",
+                        name="Reset fault",
+                        kind="service-call",
+                        topic="/fault_controller/reset_fault",
+                        message_type="example_interfaces/srv/Trigger",
+                    ),
+                ),
+                runtime_policy=RuntimeAdapterPolicy(
+                    allowed_service_calls=("/fault_controller/reset_fault",),
+                ),
+            ),
+        ),
+    )
+
+
+def create_schema_snapshot(
+    connection: sqlite3.Connection,
+    version: int,
+    bundle: ConfigurationBundle,
+    *,
+    include_unversioned_lifecycle_column: bool = False,
+) -> None:
+    connection.executescript(
+        """
+        CREATE TABLE schema_migrations (
+            version INTEGER PRIMARY KEY,
+            applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE configuration_bundles (
+            config_id TEXT PRIMARY KEY,
+            bundle_json TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+    )
+    if version >= 2:
+        connection.executescript(
+            """
+            CREATE TABLE configuration_applications (
+                config_id TEXT NOT NULL,
+                app_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                description TEXT NOT NULL,
+                theme_json TEXT NOT NULL,
+                profiles_json TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (config_id, app_id),
+                FOREIGN KEY (config_id)
+                    REFERENCES configuration_bundles(config_id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE TABLE configuration_screens (
+                config_id TEXT NOT NULL,
+                app_id TEXT NOT NULL,
+                screen_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                canvas_json TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (config_id, app_id, screen_id),
+                FOREIGN KEY (config_id, app_id)
+                    REFERENCES configuration_applications(config_id, app_id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE TABLE configuration_widgets (
+                config_id TEXT NOT NULL,
+                app_id TEXT NOT NULL,
+                screen_id TEXT NOT NULL,
+                widget_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                layout_json TEXT NOT NULL,
+                settings_json TEXT NOT NULL,
+                position INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (config_id, app_id, screen_id, widget_id),
+                FOREIGN KEY (config_id, app_id, screen_id)
+                    REFERENCES configuration_screens(config_id, app_id, screen_id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE TABLE theme_assets (
+                asset_id TEXT PRIMARY KEY,
+                uri TEXT NOT NULL UNIQUE,
+                filename TEXT NOT NULL,
+                content_type TEXT NOT NULL,
+                byte_size INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
+    if version >= 3:
+        connection.executescript(
+            """
+            ALTER TABLE configuration_bundles
+                ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}';
+            ALTER TABLE configuration_applications
+                ADD COLUMN runtime_policy_json TEXT NOT NULL DEFAULT '{}';
+            ALTER TABLE configuration_applications
+                ADD COLUMN action_presets_json TEXT NOT NULL DEFAULT '[]';
+            """
+        )
+    if version >= 4:
+        connection.executescript(
+            """
+            ALTER TABLE configuration_bundles
+                ADD COLUMN workspace_id TEXT NOT NULL DEFAULT 'default';
+            ALTER TABLE configuration_applications
+                ADD COLUMN workspace_id TEXT NOT NULL DEFAULT 'default';
+            ALTER TABLE configuration_applications
+                ADD COLUMN project_id TEXT NOT NULL DEFAULT '';
+            ALTER TABLE configuration_screens
+                ADD COLUMN workspace_id TEXT NOT NULL DEFAULT 'default';
+            ALTER TABLE configuration_screens
+                ADD COLUMN project_id TEXT NOT NULL DEFAULT '';
+            ALTER TABLE configuration_widgets
+                ADD COLUMN workspace_id TEXT NOT NULL DEFAULT 'default';
+            ALTER TABLE configuration_widgets
+                ADD COLUMN project_id TEXT NOT NULL DEFAULT '';
+
+            CREATE INDEX idx_configuration_bundles_workspace
+                ON configuration_bundles(workspace_id, config_id);
+            CREATE INDEX idx_configuration_applications_workspace_project
+                ON configuration_applications(workspace_id, project_id, config_id, app_id);
+            CREATE INDEX idx_configuration_screens_workspace_project
+                ON configuration_screens(workspace_id, project_id, config_id, app_id, screen_id);
+            """
+        )
+    if include_unversioned_lifecycle_column:
+        connection.execute(
+            """
+            ALTER TABLE configuration_applications
+                ADD COLUMN lifecycle TEXT NOT NULL DEFAULT 'active'
+            """
+        )
+
+    connection.executemany(
+        "INSERT INTO schema_migrations (version) VALUES (?)",
+        [(applied_version,) for applied_version in range(1, version + 1)],
+    )
+    application = bundle.applications[0]
+    bundle_columns = ["config_id", "bundle_json"]
+    bundle_values: list[object] = ["upgrade", dump_configuration_json(bundle)]
+    if version >= 3:
+        bundle_columns.append("metadata_json")
+        bundle_values.append(json.dumps(bundle.metadata.model_dump(mode="json"), sort_keys=True))
+    connection.execute(
+        f"INSERT INTO configuration_bundles ({', '.join(bundle_columns)}) "
+        f"VALUES ({', '.join('?' for _ in bundle_columns)})",
+        bundle_values,
+    )
+
+    if version >= 2:
+        app_columns = [
+            "config_id",
+            "app_id",
+            "name",
+            "description",
+            "theme_json",
+            "profiles_json",
+            "position",
+        ]
+        app_values: list[object] = [
+            "upgrade",
+            application.id,
+            application.name,
+            application.description,
+            json.dumps(application.theme.model_dump(mode="json"), sort_keys=True),
+            json.dumps([profile.model_dump(mode="json") for profile in application.profiles], sort_keys=True),
+            0,
+        ]
+        if version >= 3:
+            app_columns.extend(("runtime_policy_json", "action_presets_json"))
+            app_values.extend(
+                (
+                    json.dumps(application.runtime_policy.model_dump(mode="json"), sort_keys=True),
+                    json.dumps(
+                        [preset.model_dump(mode="json") for preset in application.action_presets],
+                        sort_keys=True,
+                    ),
+                )
+            )
+        if include_unversioned_lifecycle_column:
+            app_columns.append("lifecycle")
+            app_values.append("active")
+        connection.execute(
+            f"INSERT INTO configuration_applications ({', '.join(app_columns)}) "
+            f"VALUES ({', '.join('?' for _ in app_columns)})",
+            app_values,
+        )
+    connection.commit()
 
 
 def test_sqlite_migrations_are_idempotent(tmp_path: Path) -> None:
@@ -26,7 +247,93 @@ def test_sqlite_migrations_are_idempotent(tmp_path: Path) -> None:
         apply_sqlite_migrations(connection)
         versions = get_applied_schema_versions(connection)
 
-    assert versions == [1, 2, 3, 4]
+    assert versions == list(range(1, SCHEMA_VERSION + 1))
+
+
+@pytest.mark.parametrize("snapshot_version", [1, 2, 3, 4])
+def test_sqlite_migrations_upgrade_historical_snapshots_without_data_loss(
+    tmp_path: Path,
+    snapshot_version: int,
+) -> None:
+    database_path = tmp_path / f"bloom-v{snapshot_version}.db"
+    bundle = make_schema_upgrade_bundle()
+    with sqlite_connection(database_path) as connection:
+        create_schema_snapshot(connection, snapshot_version, bundle)
+
+    repository = SQLiteConfigurationRepository(database_path)
+
+    assert repository.get("upgrade") == bundle
+    with sqlite_connection(database_path) as connection:
+        assert get_applied_schema_versions(connection) == list(range(1, SCHEMA_VERSION + 1))
+
+
+def test_v5_migration_repairs_lifecycle_added_without_a_version_bump(tmp_path: Path) -> None:
+    database_path = tmp_path / "bloom-v4-with-lifecycle.db"
+    bundle = make_schema_upgrade_bundle()
+    with sqlite_connection(database_path) as connection:
+        create_schema_snapshot(
+            connection,
+            4,
+            bundle,
+            include_unversioned_lifecycle_column=True,
+        )
+        row = connection.execute(
+            "SELECT lifecycle FROM configuration_applications WHERE config_id = 'upgrade'"
+        ).fetchone()
+        assert row["lifecycle"] == "active"
+
+    repository = SQLiteConfigurationRepository(database_path)
+
+    assert repository.get("upgrade").applications[0].lifecycle == "archived"
+
+
+def test_sqlite_migrations_reject_a_database_from_a_newer_bloom(tmp_path: Path) -> None:
+    database_path = tmp_path / "future.db"
+    with sqlite_connection(database_path) as connection:
+        connection.execute(
+            """
+            CREATE TABLE schema_migrations (
+                version INTEGER PRIMARY KEY,
+                applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        connection.execute("INSERT INTO schema_migrations (version) VALUES (?)", (SCHEMA_VERSION + 1,))
+        connection.commit()
+
+        with pytest.raises(SQLiteMigrationError, match="not supported by this Bloom build"):
+            apply_sqlite_migrations(connection)
+
+        versions = [row["version"] for row in connection.execute("SELECT version FROM schema_migrations").fetchall()]
+        assert versions == [SCHEMA_VERSION + 1]
+
+
+def test_failed_sqlite_migration_rolls_back_schema_and_version(tmp_path: Path) -> None:
+    database_path = tmp_path / "invalid-v2.db"
+    bundle = make_schema_upgrade_bundle()
+    with sqlite_connection(database_path) as connection:
+        create_schema_snapshot(connection, 2, bundle)
+        payload = json.loads(dump_configuration_json(bundle))
+        payload["metadata"] = []
+        connection.execute(
+            "UPDATE configuration_bundles SET bundle_json = ? WHERE config_id = 'upgrade'",
+            (json.dumps(payload),),
+        )
+        connection.commit()
+
+        with pytest.raises(SQLiteMigrationError, match="invalid metadata JSON"):
+            apply_sqlite_migrations(connection)
+
+        versions = [row["version"] for row in connection.execute("SELECT version FROM schema_migrations").fetchall()]
+        bundle_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(configuration_bundles)").fetchall()
+        }
+        application_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(configuration_applications)").fetchall()
+        }
+        assert versions == [1, 2]
+        assert "metadata_json" not in bundle_columns
+        assert "runtime_policy_json" not in application_columns
 
 
 def test_sqlite_repository_lists_ids_sorted(tmp_path: Path, sample_configuration_bundle: ConfigurationBundle) -> None:

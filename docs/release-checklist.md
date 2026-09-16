@@ -137,6 +137,8 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       health URL works from a second device, Vite proxies to the selected API port, and no router port-forward exists.
 - [ ] Multi-device Builder tests use one shared SQLite store; collaborators avoid simultaneous stale drafts, and the
       stopped database has a current local backup before a lab session that changes shared apps.
+- [ ] A copy of the oldest supported SQLite store opens on the release build, reaches the current migration version,
+      and preserves app lifecycle plus runtime publish, teleop, recording, and service allowlists after export.
 
 ## 6. Documentation
 

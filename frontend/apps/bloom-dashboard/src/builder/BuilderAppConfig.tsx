@@ -458,6 +458,11 @@ export function BuilderAppConfig({
               value={draftApplication.runtime_policy.allowed_message_types}
             />
             <RuntimePolicyField
+              label="Allowed service calls"
+              onChange={(value) => updateRuntimePolicyList("allowed_service_calls", value)}
+              value={draftApplication.runtime_policy.allowed_service_calls}
+            />
+            <RuntimePolicyField
               label="Allowed teleop targets"
               onChange={(value) => updateRuntimePolicyList("allowed_teleop_targets", value)}
               value={draftApplication.runtime_policy.allowed_teleop_targets}

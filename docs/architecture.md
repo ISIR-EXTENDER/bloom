@@ -77,6 +77,11 @@ screen, widget, and asset rows. Reads rebuild from the normalized rows, so a fie
 added to the mirror as well or it is silently dropped on the way out. File storage stays available with
 `BLOOM_CONFIGURATION_STORAGE=file`.
 
+SQLite upgrades are ordered and transactional (`0130`). The canonical bundle backfills document fields introduced
+after an older normalized schema, and Bloom refuses a database or configuration document written by a newer schema.
+Every normalized field addition therefore needs a numbered migration and an old-schema snapshot test; rerunning the
+latest table builder is not a migration.
+
 Applications the team shares are committed as JSON under `backend/seed/applications/` and imported into whichever store
 is configured when it is missing them (`0122`). That is the split: JSON is the interchange format, the store is runtime
 state. Seeding never overwrites, so a machine's own screen layouts survive; `bloom config publish` is how local work
@@ -84,7 +89,8 @@ becomes shared.
 
 The app configuration page is also the screen lifecycle hub: users can create blank screens, duplicate existing screens,
 add reusable screens from other apps, reorder screens, remove screens from the current app, then save/discard the draft
-composition. It owns application-wide runtime guardrails, including the default Cartesian command frame. Runtime may
+composition. It owns application-wide runtime guardrails, including the default Cartesian command frame and allowed
+publish, recording, teleop, and service targets. Runtime may
 select another supported frame for the current session only while motion is zero; virtual controls and physical
 gamepads continue to share one effective frame.
 

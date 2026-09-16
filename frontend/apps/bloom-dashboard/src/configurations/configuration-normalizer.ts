@@ -14,6 +14,7 @@ import type {
 } from "@bloom/api-client";
 import {
   WIDGET_KINDS as CANONICAL_WIDGET_KINDS,
+  CURRENT_CONFIGURATION_SCHEMA_VERSION,
   DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
@@ -85,7 +86,7 @@ export function normalizeConfigurationBundle(bundle: ConfigurationBundle): Confi
 
   return {
     metadata: {
-      schema_version: asNumber(partialBundle.metadata?.schema_version, 1),
+      schema_version: normalizeSchemaVersion(partialBundle.metadata?.schema_version),
       exported_at: asString(partialBundle.metadata?.exported_at, new Date(0).toISOString()),
       source: asString(partialBundle.metadata?.source, "unknown"),
     },
@@ -150,11 +151,28 @@ function normalizeRuntimePolicy(policy: PartialRuntimeAdapterPolicy | undefined)
       policy?.allowed_recording_topics,
       DEFAULT_RUNTIME_POLICY.allowed_recording_topics,
     ),
+    allowed_service_calls: asStringArray(policy?.allowed_service_calls, DEFAULT_RUNTIME_POLICY.allowed_service_calls),
     allowed_teleop_targets: asStringArray(
       policy?.allowed_teleop_targets,
       DEFAULT_RUNTIME_POLICY.allowed_teleop_targets,
     ),
   };
+}
+
+function normalizeSchemaVersion(value: unknown): number {
+  if (value === undefined) {
+    return CURRENT_CONFIGURATION_SCHEMA_VERSION;
+  }
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    throw new Error("Configuration schema version must be a positive integer.");
+  }
+  if (value > CURRENT_CONFIGURATION_SCHEMA_VERSION) {
+    throw new Error(
+      `Configuration schema version ${value} is newer than this Bloom build ` +
+        `(latest supported version: ${CURRENT_CONFIGURATION_SCHEMA_VERSION}).`,
+    );
+  }
+  return value;
 }
 
 function createUniquePresetId(id: string, usedIds: ReadonlySet<string>): string {

@@ -71,6 +71,14 @@ def test_load_configuration_json_rejects_invalid_payload() -> None:
         load_configuration_json(payload)
 
 
+def test_load_configuration_json_rejects_a_newer_schema_version() -> None:
+    payload = json.loads(dump_configuration_json(make_bundle()))
+    payload["metadata"]["schema_version"] = 2
+
+    with pytest.raises(ValidationError, match="newer than this Bloom build"):
+        load_configuration_json(json.dumps(payload))
+
+
 def test_save_and_load_configuration_file(tmp_path) -> None:
     path = tmp_path / "nested" / "sandbox.json"
     bundle = make_bundle()
@@ -92,4 +100,3 @@ def test_configuration_to_dict_uses_json_safe_values() -> None:
         "topic": "/ui/ros_toggle",
         "payloadOn": {"data": [13, 1]},
     }
-

@@ -20,6 +20,7 @@ const application = {
     allowed_message_types: [],
     allowed_publish_topics: [],
     allowed_recording_topics: [],
+    allowed_service_calls: [],
     allowed_teleop_targets: ["/joystick_cartesian_command"],
   },
   theme: {

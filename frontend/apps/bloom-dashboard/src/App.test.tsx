@@ -825,6 +825,9 @@ describe("App", () => {
     fireEvent.change(screen.getByLabelText("Allowed message types"), {
       target: { value: "std_msgs/msg/Bool\nstd_msgs/msg/String" },
     });
+    fireEvent.change(screen.getByLabelText("Allowed service calls"), {
+      target: { value: "/fault_controller/reset_fault" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "Add Emergency stop preset from library" }));
     fireEvent.change(screen.getByLabelText("Preset name"), { target: { value: "Emergency stop" } });
     fireEvent.change(screen.getByLabelText("Command"), { target: { value: "emergency_stop" } });
@@ -849,6 +852,7 @@ describe("App", () => {
       "std_msgs/msg/Bool",
       "std_msgs/msg/String",
     ]);
+    expect(savedApplication?.runtime_policy.allowed_service_calls).toEqual(["/fault_controller/reset_fault"]);
     expect(savedApplication?.action_presets).toEqual([
       expect.objectContaining({
         id: "emergency-stop-bool",

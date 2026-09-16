@@ -1,5 +1,6 @@
 import { type ConfigurationBundle, DEFAULT_APPLICATION_THEME } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
+import kinovaManagerConfiguration from "../../../../../backend/seed/applications/kinova-manager.json";
 import sandboxV0Configuration from "../../../../../backend/seed/applications/sandbox.json";
 import compactSandboxConfiguration from "../../../../../tests/fixtures/compact-sandbox-configuration.json";
 import { normalizeConfigurationBundle } from "./configuration-normalizer";
@@ -20,6 +21,28 @@ describe("normalizeConfigurationBundle", () => {
       topic: "/ui/ros_toggle",
     });
     expect(normalizedBundle.applications[0]?.runtime_policy.command_frame_id).toBe("");
+    expect(normalizedBundle.applications[0]?.runtime_policy.allowed_service_calls).toEqual([]);
+  });
+
+  it("keeps Kinova service-call guardrails when a stored app is loaded for editing", () => {
+    const normalizedBundle = normalizeConfigurationBundle(kinovaManagerConfiguration as unknown as ConfigurationBundle);
+
+    expect(normalizedBundle.applications[0]?.runtime_policy.allowed_service_calls).toEqual([
+      "/fault_controller/reset_fault",
+    ]);
+  });
+
+  it("refuses configurations written by a newer Bloom schema", () => {
+    expect(() =>
+      normalizeConfigurationBundle({
+        metadata: {
+          schema_version: 2,
+          exported_at: "2026-09-16T00:00:00Z",
+          source: "future-bloom",
+        },
+        applications: [],
+      }),
+    ).toThrow("newer than this Bloom build");
   });
 
   it("keeps the Sandbox V0.0 six-screen runtime configuration intact", () => {

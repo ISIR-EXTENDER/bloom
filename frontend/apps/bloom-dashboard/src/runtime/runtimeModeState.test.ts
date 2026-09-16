@@ -130,6 +130,7 @@ function createSandboxApp(): ApplicationConfig {
       allowed_message_types: ["std_msgs/msg/Int32", "extender_msgs/msg/TeleopCommand"],
       allowed_publish_topics: ["/mode_request", "/robot/max_linear_speed"],
       allowed_recording_topics: [],
+      allowed_service_calls: [],
       allowed_teleop_targets: ["/joystick_cartesian_command"],
     },
     theme: {

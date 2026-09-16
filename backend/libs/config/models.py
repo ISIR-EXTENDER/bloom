@@ -6,6 +6,9 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
+CURRENT_CONFIGURATION_SCHEMA_VERSION = 1
+
+
 class WidgetKind(str, Enum):
     BUTTON = "button"
     CAMERA = "camera"
@@ -247,9 +250,19 @@ class ApplicationConfig(BloomModel):
 
 
 class ConfigurationMetadata(BloomModel):
-    schema_version: int = Field(default=1, ge=1)
+    schema_version: int = Field(default=CURRENT_CONFIGURATION_SCHEMA_VERSION, ge=1)
     exported_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = "bloom"
+
+    @field_validator("schema_version")
+    @classmethod
+    def schema_version_is_supported(cls, value: int) -> int:
+        if value > CURRENT_CONFIGURATION_SCHEMA_VERSION:
+            raise ValueError(
+                f"configuration schema version {value} is newer than this Bloom build "
+                f"(latest supported version: {CURRENT_CONFIGURATION_SCHEMA_VERSION})"
+            )
+        return value
 
 
 class ConfigurationBundle(BloomModel):

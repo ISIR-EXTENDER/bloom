@@ -114,7 +114,7 @@ export type RuntimeAdapterPolicy = {
   allowed_publish_topics: string[];
   allowed_recording_topics: string[];
   /** Trigger-style ROS services this app may call. */
-  allowed_service_calls?: string[];
+  allowed_service_calls: string[];
   allowed_teleop_targets: string[];
 };
 
@@ -136,6 +136,7 @@ export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
   allowed_message_types: [],
   allowed_publish_topics: [],
   allowed_recording_topics: [],
+  allowed_service_calls: [],
   allowed_teleop_targets: [],
 };
 
@@ -183,6 +184,8 @@ export type ConfigurationMetadata = {
   exported_at: string;
   source: string;
 };
+
+export const CURRENT_CONFIGURATION_SCHEMA_VERSION = 1;
 
 export type ConfigurationBundle = {
   metadata: ConfigurationMetadata;

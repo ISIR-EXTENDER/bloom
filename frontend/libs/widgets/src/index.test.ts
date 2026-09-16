@@ -1157,6 +1157,7 @@ describe("legacy canvas configuration adapter", () => {
       ],
     });
     expect(bundle.applications[0]?.screens.map((screen) => screen.id)).toEqual(["configurations", "sandbox_control"]);
+    expect(bundle.applications[0]?.runtime_policy.allowed_service_calls).toEqual([]);
     expect(bundle.applications[0]?.screens.flatMap((screen) => screen.widgets)).toHaveLength(
       legacyConfigurationsScreen.widgets.length + legacySandboxScreen.widgets.length,
     );
