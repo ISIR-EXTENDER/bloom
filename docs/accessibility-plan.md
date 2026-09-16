@@ -20,8 +20,8 @@ signals, and test accessibility continuously.
 - Status uses words, color, and shape together. Audio cues can announce stop, link loss, and recovery.
 - Joysticks use pointer events and are keyboard operable. Direction words are visible inside the pad.
 - A browser gamepad contributes through the same conditioned 6-DoF command as touch and keyboard controls.
-- App profiles control display density, font scale, motor behavior, audio, dead zone, repeat guard, scan timing, and dwell
-  timing.
+- App profiles control display density, font scale, motor behavior, audio, dead zone, repeat guard, scan timing, and
+  independently enabled dwell timing.
 - The builder reports a selected interactive widget's effective size on the `1024x600` target and warns below 44 px.
 - Semantic theme pairs are tested at a minimum 4.5:1 contrast ratio, including the corrected muted-text surface pairs.
 - Forms use visible labels and touch-friendly input hints; drag/drop workflows retain button alternatives.
@@ -38,8 +38,8 @@ The supported `motor_accessibility_preset` values have concrete runtime behavior
 | `reduced-motion` | Reserved profile value; browser `prefers-reduced-motion` is honored, but profile-specific wiring remains open. |
 | `step` | Compatible joysticks and sliders expose discrete targets instead of requiring a drag; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls retain a value until explicit zero/release or the 15-second attention timeout. |
-| `scan` | Highlight advances through visible controls and activates click-responsive targets. The current joystick pad is one click target and emits no directional vector from that click, so single-switch teleop is not complete. |
-| `dwell` | Resting on an eligible runtime control activates it after the configured dwell time. |
+| `scan` | Joysticks/sliders render step targets and the highlight advances through every enabled button; SWITCH activates the highlighted target. |
+| `dwell` | Legacy step-and-dwell preset retained for existing profiles. New profiles use `dwell_enabled`. |
 
 Related profile fields are bounded by the configuration model:
 
@@ -47,10 +47,12 @@ Related profile fields are bounded by the configuration model:
 - `deadzone`: `0..0.5`, applied per axis and rescaled above the threshold;
 - `repeat_guard_ms`: `0..600`;
 - `scan_period_ms`: `600..3000`;
+- `dwell_enabled`: explicit boolean, independent of the motor preset;
 - `dwell_ms`: `400..4000`;
 - `audio_cues`: enabled or disabled per profile.
 
-Dwell cannot shorten the one-second STOP resume hold. Scan is disabled while stopped. A released pointer, stick, or
+Dwell can run alongside scanning, and resting on SWITCH activates the highlighted target. It cannot shorten the
+one-second STOP resume hold. Scan is disabled while stopped. A released pointer, stick, or
 latched zero action must clear its contribution rather than leave a standing robot command.
 Stepped or latched return-to-center values also publish zero after 15 seconds without renewed input.
 
@@ -85,8 +87,6 @@ or interaction pattern works for a particular person.
 
 ## Open Accessibility Work
 
-- Decide how dwell combines with scanning. They are mutually exclusive presets today; the review asks for composition,
-  but `dwell_ms` already has a nonzero default and cannot by itself serve as a safe enable flag without a migration.
 - Validate every intended profile with operators and the actual HMTECH tablet, gamepad, and switch hardware.
 - Prevent or explicitly resolve runtime fit scales that reduce an interactive target below its accepted physical size.
 - Add whole-screen device-frame and touch-check views for all lab geometries, not only a selected-widget calculation.

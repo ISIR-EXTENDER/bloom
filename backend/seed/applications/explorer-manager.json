@@ -114,7 +114,9 @@
           "audio_cues": true,
           "deadzone": 0.0,
           "repeat_guard_ms": 0,
-          "scan_period_ms": 1400
+          "scan_period_ms": 1400,
+          "dwell_enabled": true,
+          "dwell_ms": 1000
         }
       ],
       "screens": [

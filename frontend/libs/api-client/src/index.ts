@@ -99,6 +99,8 @@ export type UserProfile = {
   repeat_guard_ms?: number;
   /** How long the scan highlight rests on each control. */
   scan_period_ms?: number;
+  /** Allow pointer dwell alongside any motor preset, including scanning. */
+  dwell_enabled?: boolean;
   /** How long a pointer must rest on a control before it activates. */
   dwell_ms?: number;
 };

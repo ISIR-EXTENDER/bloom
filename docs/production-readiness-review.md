@@ -14,7 +14,7 @@ validates Bloom rather than deciding which product owns the IHM.
 | App/screen configuration | API-backed flows, shared seeds, SQLite normalized reconstruction, screen library, drag/drop with button fallbacks. | Generic collision feedback and multi-device touch review. |
 | WYSIWYG builder | Save/discard, undo/redo, palette, inspector, previews, target-size warning. | Whole-screen device frames and a policy for fit below physical target size. |
 | Operator controls | Two joysticks, Z/RZ, per-axis composition/dead zone, mode/gripper/speed commands, saved positions, service calls. | Live Explorer/Kinova acceptance in every offered frame. |
-| Accessible input | Keyboard, large/assisted targets, directional scanning, step, latch, dwell, gamepad, audio, conditioning, and browser reduced-motion handling. | Decide scan/dwell composition; wire the reduced-motion profile; complete settings and operator/device validation. |
+| Accessible input | Keyboard, large/assisted targets, directional scanning with optional dwell confirmation, step, latch, gamepad, audio, conditioning, and browser reduced-motion handling. | Wire the reduced-motion profile; complete settings and operator/device validation. |
 | Feedback/debug | Topic catalog, echo, plots/freeze, command sources, manipulability, audit, simulated or opt-in rosbag recording. | Live recording and visual-servoing sessions. |
 | Camera | Browser webcam/stream and validated `CompressedImage` publishing. | Permission/recovery UX and live camera/tag validation. |
 | ROS boundary | `cartesian_manager` default, legacy gateway fallback, allowlists, frame policy, mode validation, rate limits, audit. | Robot profile, authoritative mode feedback, live robot sign-off. |

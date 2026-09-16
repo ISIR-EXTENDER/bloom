@@ -49,3 +49,10 @@ lets touch, keyboard, gamepad, scan, or dwell use the same policies, frame, rate
 - Fit scaling can still shrink authored geometry. The Builder warning makes the risk visible but does not yet prevent it.
 - Supervisor mirroring, role onboarding, edge-layout behavior, and runtime localization remain separate design work in
   `docs/ux-design-handoff.md`.
+
+## 2026-09-16 Amendment
+
+Both scanning follow-ups are delivered. Scan renders directional step targets, and `dwell_enabled` is independent of
+the motor preset. Existing `dwell` profiles retain their behavior, while a scan profile can use dwell on a direct
+target or on the SWITCH bar to activate the highlighted target. `dwell_ms` remains duration-only because its nonzero
+default cannot safely imply enablement.

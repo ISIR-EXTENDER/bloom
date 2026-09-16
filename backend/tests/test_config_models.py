@@ -274,6 +274,20 @@ def test_user_profile_accepts_dwell_activation_timing() -> None:
     assert profile.dwell_ms == 850
 
 
+def test_user_profile_allows_dwell_alongside_scanning() -> None:
+    profile = UserProfile(
+        id="scan-dwell-operator",
+        name="Scan and dwell operator",
+        motor_accessibility_preset=MotorAccessibilityPreset.SCAN,
+        dwell_enabled=True,
+        dwell_ms=850,
+    )
+
+    assert profile.motor_accessibility_preset == MotorAccessibilityPreset.SCAN
+    assert profile.dwell_enabled is True
+    assert profile.dwell_ms == 850
+
+
 def test_application_accepts_runtime_adapter_policy_for_app_specific_safety() -> None:
     application = ApplicationConfig.model_validate(
         {

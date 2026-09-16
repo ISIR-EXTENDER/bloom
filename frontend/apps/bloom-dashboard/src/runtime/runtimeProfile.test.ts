@@ -28,6 +28,7 @@ describe("resolveRuntimeProfile", () => {
     expect(resolveRuntimeProfile({ profiles: [...profiles] }, { height: 600, width: 1024 })).toEqual({
       audioCues: false,
       deadzone: 0,
+      dwellEnabled: false,
       dwellMs: 1000,
       repeatGuardMs: 0,
       scanPeriodMs: 1400,
@@ -57,6 +58,7 @@ describe("resolveRuntimeProfile", () => {
     expect(resolveRuntimeProfile({ profiles: [] }, { height: 1080, width: 1920 })).toEqual({
       audioCues: false,
       deadzone: 0,
+      dwellEnabled: false,
       dwellMs: 1000,
       repeatGuardMs: 0,
       scanPeriodMs: 1400,
@@ -76,8 +78,24 @@ describe("resolveRuntimeProfile", () => {
     };
 
     expect(resolveRuntimeProfile({ profiles: [profile] }, { height: 800, width: 1280 }, "operator")).toMatchObject({
+      dwellEnabled: true,
       dwellMs: 4000,
       motorAccessibilityPreset: "dwell",
+    });
+  });
+
+  it("enables dwell independently of the scanning motor preset", () => {
+    const profile = {
+      ...profiles[0],
+      dwell_enabled: true,
+      dwell_ms: 850,
+      motor_accessibility_preset: "scan" as const,
+    };
+
+    expect(resolveRuntimeProfile({ profiles: [profile] }, { height: 800, width: 1280 }, "operator")).toMatchObject({
+      dwellEnabled: true,
+      dwellMs: 850,
+      motorAccessibilityPreset: "scan",
     });
   });
 });

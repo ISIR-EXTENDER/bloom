@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { ScreenArtboard } from "../screen/ScreenArtboard";
+import { useDwellActivation } from "./use-dwell-activation";
 import { useSwitchScanning } from "./use-switch-scanning";
 
 class ResizeObserverMock {
@@ -46,21 +47,31 @@ const joystickLabScreen = explorerManagerConfiguration.applications[0]?.screens.
 ) as ScreenConfig | undefined;
 
 function ScannedScreen({
+  dwellEnabled = false,
   onActionIntent,
   screen = driveScreen,
 }: {
+  dwellEnabled?: boolean;
   onActionIntent: WidgetActionIntentHandler;
   screen?: ScreenConfig;
 }) {
   const rootRef = useRef(document.body);
-  useSwitchScanning({ enabled: true, periodMs: 500, rootRef, revision: screen.id });
+  const scanning = useSwitchScanning({ enabled: true, periodMs: 500, rootRef, revision: screen.id });
+  useDwellActivation({ dwellMs: 400, enabled: dwellEnabled, rootRef });
   return (
-    <ScreenArtboard
-      className="artboard"
-      renderEmptyState={() => null}
-      rendererOptions={{ motorPreset: "scan", onActionIntent }}
-      screen={screen}
-    />
+    <>
+      <ScreenArtboard
+        className="artboard"
+        renderEmptyState={() => null}
+        rendererOptions={{ motorPreset: "scan", onActionIntent }}
+        screen={screen}
+      />
+      {dwellEnabled ? (
+        <button data-scan-switch="" onClick={scanning.activateCurrent} type="button">
+          SWITCH
+        </button>
+      ) : null}
+    </>
   );
 }
 
@@ -127,5 +138,22 @@ describe("switch scanning on a drive screen", () => {
         "Decrease Pivot by 0.01",
       ]),
     );
+  });
+
+  it("lets dwell on the switch bar activate the highlighted scan direction", () => {
+    const onActionIntent = vi.fn<WidgetActionIntentHandler>();
+    render(<ScannedScreen dwellEnabled onActionIntent={onActionIntent} />);
+
+    expect(document.querySelector("[data-scan-lit]")?.getAttribute("aria-label")).toBe("Forward, one step");
+    const switchBar = document.querySelector<HTMLElement>("[data-scan-switch]");
+    if (!switchBar) {
+      throw new Error("Missing scan switch bar.");
+    }
+
+    act(() => switchBar.dispatchEvent(new PointerEvent("pointermove", { bubbles: true })));
+    act(() => vi.advanceTimersByTime(400));
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(expect.objectContaining({ value: { x: 0, y: 0.25 } }));
+    expect(switchBar).toHaveFocus();
   });
 });

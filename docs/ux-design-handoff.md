@@ -52,7 +52,7 @@ supervisor roles.
 | 4. Target size is discounted by fit | Partial | Builder reports selected-widget size at `1024x600` and warns below 44 px. | Runtime can still scale below 1.0; no whole-screen prevention/reflow. |
 | 5. Silent overlap | Partial | Maintained operator seeds and Sandbox validation reject overlapping interactive controls. | Generic immediate collision feedback in the builder. |
 | 6. Adapter-language axis labels | Delivered | Pads use operator direction words; technical axes remain in details. | Validate vocabulary per app with operators. |
-| 7. Motor preset was a no-op | Partial | Step, latch, dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Under `scan`, joysticks and sliders render step targets, so a single switch drives every axis. | Scan and dwell still cannot be combined; `reduced-motion`, edge layout, settings, and validation with the intended device remain. |
+| 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Under `scan`, joysticks and sliders render step targets, and dwell on SWITCH can activate the highlighted direction. | `reduced-motion`, edge layout, settings, and validation with the intended devices remain. |
 | 8. Muted contrast failed | Delivered | Token corrected and semantic contrast tests expanded. | Review in real lab lighting. |
 | 9. Contributor-oriented onboarding | Open | Builder and Runtime are distinct; starter apps can include onboarding spots. | Remembered role choice and per-app operator tour. |
 | 10. Builder cannot see tablet | Partial | `native-1280x720` and selected-widget `1024x600` glass-size feedback. | Three device frames and a whole-screen touch-check mode. |
@@ -68,9 +68,6 @@ supervisor roles.
 - ~~**Fix directional switch scanning.**~~ Delivered 2026-09-16; see `docs/validation/2026-09-16-switch-scanning-end-to-end.md`. The scanner included a joystick's `role="application"` target and called
   `click()`, but the pad emits movement only from pointer or keyboard direction input. Render the four step directions
   while scanning and test the emitted movement intent, not only focus movement.
-- **Define scan plus dwell.** They are mutually exclusive enum values today, while the review expects dwell confirmation
-  to work with scanning. Use an explicit enable contract: `dwell_ms` already defaults to a nonzero duration and cannot
-  safely become the enable flag by itself without migration behavior.
 - **Prevent unsafe fit scaling.** Decide whether each target uses reflow, panning, a dedicated screen/profile, or a hard
   launch warning when fit scaling would put a control below the accepted physical size.
 - **Create accessible runtime settings.** Let the operator adjust the current profile from Maintenance with large
@@ -158,7 +155,7 @@ is 44 px. Change it only through an explicit design/architecture update, not by 
 - Neutral, Jaco, momentary Snake, gripper `[1.1]`/`[0.2]`, speed limits, positions, fault reset, and STOP against the
   actual robot/controller chain.
 - Physical gamepad mapping, center release, disconnect, and contention with touch or visual servoing.
-- Real switch scanning after the directional P1 fix, plus dwell, keyboard, latch, step, audio, and repeat guard with
+- Real switch scanning with optional dwell confirmation, plus keyboard, latch, step, audio, and repeat guard with
   intended users.
 - Robin visual-servoing camera/tag behavior and an opt-in rosbag capture from Bloom Debug.
 - Petanque only if the archived workflow is still expected to run.

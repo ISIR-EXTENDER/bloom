@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
 
-import { SCAN_TARGET_SELECTOR } from "./use-switch-scanning";
-
 const TICK_MS = 40;
+const DWELL_TARGET_SELECTOR = "button:not([disabled])";
 
 export type DwellActivationOptions = {
   activateTarget?: (target: HTMLElement) => void;
@@ -46,7 +45,7 @@ export function useDwellActivation(options: DwellActivationOptions): void {
 
     const onPointerMove = (event: PointerEvent) => {
       const element = event.target;
-      const candidate = element instanceof Element ? element.closest<HTMLElement>(SCAN_TARGET_SELECTOR) : null;
+      const candidate = element instanceof Element ? element.closest<HTMLElement>(DWELL_TARGET_SELECTOR) : null;
       const target = candidate && (isTargetEnabledRef.current?.(candidate) ?? true) ? candidate : null;
       if (target === targetRef.current) {
         return;

@@ -182,7 +182,7 @@ export function RuntimeWorkspace({
       target.click();
     },
     dwellMs: runtimeProfile.dwellMs,
-    enabled: runtimeProfile.motorAccessibilityPreset === "dwell",
+    enabled: runtimeProfile.dwellEnabled,
     isTargetEnabled: (target) => !stopped || target.dataset.dwellAction === "resume",
     rootRef: runtimeControlsRef,
   });
@@ -331,7 +331,12 @@ export function RuntimeWorkspace({
 
         {scanning.index >= 0 ? (
           <div className="runtime-switch-bar">
-            <button className="runtime-switch-bar-button" data-scan-switch="" type="button">
+            <button
+              className="runtime-switch-bar-button"
+              data-scan-switch=""
+              onClick={scanning.activateCurrent}
+              type="button"
+            >
               SWITCH — press Space or tap here
             </button>
             <p aria-live="polite" className="sr-only" role="status">

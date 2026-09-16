@@ -117,6 +117,8 @@ class UserProfile(BloomModel):
     repeat_guard_ms: int = Field(default=0, ge=0, le=600)
     #: How long the scan highlight rests on each control.
     scan_period_ms: int = Field(default=1400, ge=600, le=3000)
+    #: Allow pointer dwell alongside any motor preset, including scanning.
+    dwell_enabled: bool = False
     #: How long a pointer must rest on a control before activating it.
     dwell_ms: int = Field(default=1000, ge=400, le=4000)
 

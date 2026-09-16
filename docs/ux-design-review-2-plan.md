@@ -13,7 +13,7 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | --- | --- | --- |
 | 0.1 | Scanning cannot drive a joystick | **Done** — `b1bd774` |
 | J | Joystick lab: virtual physical-joystick workflow and runtime frame selection | **Done** |
-| 0.2 | Dwell and scanning are exclusive | Next |
+| 0.2 | Dwell and scanning are exclusive | **Done** |
 | 0.3 | 44 px versus 56 px kiosk bar, recorded in an ADR | Not started |
 | 0.4 | Runtime says nothing when the fit drops below 1.0 | Not started |
 | 0.5 | Capability gating extended to the runtime | Not started |
@@ -74,32 +74,39 @@ zero-motion frame interlock, kiosk/gamepad propagation, and the `11-joystick-lab
 to canonical `axis_hints`, and Rotation/Pivot were narrowed by one pixel to preserve the maintained STOP reserve at
 `1024x600`.
 
+## Lot 0.2, as delivered
+
+`UserProfile.dwell_enabled` now enables dwell independently of the motor preset; `dwell_ms` stays duration-only because
+its default is nonzero. Legacy `motor_accessibility_preset: "dwell"` profiles still enable the same behavior. The
+scanner exposes a stable `activateCurrent` action, the SWITCH bar calls it on click, and dwell uses its own button
+selector so resting on SWITCH can fire the highlighted scan target without adding SWITCH to the scan order.
+
+Explorer and Kinova **One switch** profiles opt into the combined mode. The app-level test dwells on SWITCH and asserts
+a movement intent. The live ROS session produced a nonzero conditioned scan step without a press; capture comparison
+and evidence are in `docs/validation/2026-09-16-scan-dwell-end-to-end.md`.
+
 ## Next steps, in order
 
-1. **Lot 0.2.** Move dwell out of the preset enum. Add `dwell_enabled` to `UserProfile`
-   (backend model plus `frontend/libs/api-client/src/index.ts`), keep `dwell_ms` as the
-   duration, and enable the hook when `dwellEnabled || preset === "dwell"` in
-   `RuntimeWorkspace.tsx`. A scanning user needs dwell to confirm without a firm click.
-2. **Lot 0.3.** Write `docs/decisions/0127-*.md` recording that the kiosk bar stays 44 px and
+1. **Lot 0.3.** Write `docs/decisions/0127-*.md` recording that the kiosk bar stays 44 px and
    that the lot 1 and lot 3 vertical budgets are drawn against 44, not the 56 in
    `kiosk-runtime-spec.md`. One source of truth; correct the spec reference in the trace.
-3. **Lot 0.4.** When `resolveCanvasFitScale` returns below 1.0, say so in the maintenance
+2. **Lot 0.4.** When `resolveCanvasFitScale` returns below 1.0, say so in the maintenance
    overlay, never on the controls: "composed for 1820x720, shown at 70%, targets are below
    the touch floor."
-4. **Lot 0.5.** If `runtimeCapabilityReport` does not cover a widget's target, the widget
+3. **Lot 0.5.** If `runtimeCapabilityReport` does not cover a widget's target, the widget
    renders inoperable and says why. It must not disappear.
-5. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
+4. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
    `runtime-settings.test.tsx`. Overrides persist in the existing localStorage key through
    `ui/runtime-user-preferences.ts`, under `profileOverrides[configId:appId:profileId]`, and
    `resolveRuntimeProfile` applies them after normalization, reusing `clampRange` as the
    -/+ bounds. No slider anywhere on this screen; -/+ pairs at 88x72. The try-it strip obeys
    the current values and sends nothing to the robot.
-6. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
+5. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
    `useRuntimeStrings`. Start with `runtime-status-chip.ts`, `RuntimeStopControl.tsx`,
    `RuntimeKioskBar.tsx`, and the scan announcement in `RuntimeWorkspace.tsx`, which are the
    files that still hold literals. Widget labels stay config data, one field per locale; do
    not translate them in code.
-7. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
+6. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
    an adapter is safe, so the practice steps cannot command the arm.
 
 ## How the work is run

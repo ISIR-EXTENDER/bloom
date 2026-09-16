@@ -34,6 +34,7 @@ large/assisted targets), audio cues, per-axis dead zone, repeat guard, scan
 period, and dwell duration. Browser `prefers-reduced-motion` is honored, but the
 matching profile value is not wired independently yet. Shared seeds demonstrate
 only part of that matrix; an app still needs explicit layout and hardware
-validation for each profile it claims. The current scanner advances focus and
-clicks targets, but clicking a joystick pad emits no direction; single-switch
-teleop remains open, and scan/dwell are mutually exclusive presets today.
+validation for each profile it claims. Since the later 2026-09-16 accessibility
+amendments, scanning renders directional step targets and `dwell_enabled`
+composes with any motor preset; the original `dwell` preset remains as a
+compatibility path.

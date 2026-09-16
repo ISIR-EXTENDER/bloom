@@ -102,8 +102,8 @@ The split from `extender_ui` is that ROS transport lives behind backend adapters
 The frontend owns operator interaction, widget rendering, and saved command
 identity; the backend owns ROS process access, policy, rate limiting, and audit.
 
-The current operating behavior, including STOP, profiles, the known scan/dwell
-limitations, gamepad, and frame selection, is in [operator-runtime.md](operator-runtime.md).
+The current operating behavior, including STOP, profiles, combined scan/dwell,
+gamepad, and frame selection, is in [operator-runtime.md](operator-runtime.md).
 
 ## Rosbag Gateway Operating Procedure
 

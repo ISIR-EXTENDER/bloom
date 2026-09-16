@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Only click-operable controls; the switch bar itself is never a target. */
 export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switch])";
@@ -14,6 +14,8 @@ export type SwitchScanningOptions = {
 };
 
 export type SwitchScanningState = {
+  /** Fire and focus the currently highlighted scan target. */
+  activateCurrent: () => void;
   /** Index of the lit target, or -1 while nothing is scanning. */
   index: number;
   targetCount: number;
@@ -36,6 +38,11 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
   // The ref is the source of truth inside the loop; state only informs the UI,
   // and a deferred render must never make the highlight skip a target.
   const indexRef = useRef(-1);
+  const activateCurrent = useCallback(() => {
+    const target = targetsRef.current[indexRef.current];
+    target?.click();
+    target?.focus();
+  }, []);
 
   useEffect(() => {
     // Read so the dependency is real: a screen switch changes the target list
@@ -81,28 +88,22 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       paint(nextIndex);
     };
 
-    const fire = () => {
-      const target = targetsRef.current[indexRef.current];
-      target?.click();
-      target?.focus();
-    };
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== " " && event.key !== "Enter") {
         return;
       }
       event.preventDefault();
-      fire();
+      activateCurrent();
     };
 
     const onPointerDown = (event: PointerEvent) => {
       // A tap on a control is a direct hit, not a switch press. The target is
       // not always an Element (a tap landing on the window itself is not).
       const target = event.target;
-      if (target instanceof Element && target.closest(SCAN_TARGET_SELECTOR)) {
+      if (target instanceof Element && (target.closest(SCAN_TARGET_SELECTOR) || target.closest("[data-scan-switch]"))) {
         return;
       }
-      fire();
+      activateCurrent();
     };
 
     const timer = window.setInterval(advance, periodMs);
@@ -117,7 +118,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
         target.removeAttribute("data-scan-lit");
       }
     };
-  }, [enabled, periodMs, rootRef, revision]);
+  }, [activateCurrent, enabled, periodMs, rootRef, revision]);
 
-  return { index, targetCount };
+  return { activateCurrent, index, targetCount };
 }

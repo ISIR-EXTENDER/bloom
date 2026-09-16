@@ -99,11 +99,10 @@ The runtime entry point is an app library, not the last selected builder app. Th
 - operate the app without builder or product navigation under the hand;
 - hold for maintenance before switching screens, opening diagnostics, or returning to editing.
 
-Touch, keyboard, step/latch/dwell behavior, switch-scanning infrastructure, and browser gamepads belong above the adapter
+Touch, keyboard, step/latch/dwell behavior, composable switch scanning, and browser gamepads belong above the adapter
 boundary. They are designed to produce normalized contributions for the same runtime intent and teleop composer, so ROS
-adapters receive a composed command rather than knowledge of the device. The current scanner can focus a joystick but
-does not yet translate that activation into a directional step contribution; this is a frontend input-source gap, not a
-reason to fork the robot adapter.
+adapters receive a composed command rather than knowledge of the device. Scanning renders directional step targets,
+and dwell can activate either a direct target or the highlighted target through SWITCH without changing the adapter.
 
 The current operator contract is maintained in `docs/operator-runtime.md`.
 

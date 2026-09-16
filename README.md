@@ -87,7 +87,7 @@ hardware. Complete the [Quickstart](#quickstart) installation first.
 > [!CAUTION]
 > Start with simulation or fake hardware. Bloom's STOP latches the software command path, but it does not replace the
 > robot's hardware emergency stop, controller limits, or lab safety procedure. Single-switch directional teleoperation
-> is still awaiting validation with the intended device; see the
+> and combined scan-plus-dwell are still awaiting validation with the intended devices; see the
 > [operator runtime guide](docs/operator-runtime.md#accessibility-profiles).
 
 ### 1. Build the Extender workspace

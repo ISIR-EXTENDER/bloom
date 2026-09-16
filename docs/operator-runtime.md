@@ -106,17 +106,20 @@ Supported motor presets are:
 | `step` | Joysticks/sliders expose discrete tap targets instead of requiring sustained dragging; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls hold their value until explicit zero/release or the 15-second attention timeout. |
 | `scan` | Joysticks and sliders render step targets, and a highlight advances through every button on the screen; Space, Enter, a tap outside a control, or a tap on the full-width switch bar fires the lit target. |
-| `dwell` | Resting the pointer on an eligible runtime control activates it after `dwell_ms`. |
+| `dwell` | Legacy combined step-and-dwell preset; existing profiles remain supported. |
 
 Profile bounds are enforced by the model: dead zone `0..0.5`, repeat guard `0..600 ms`, scan period `600..3000 ms`,
-and dwell duration `400..4000 ms`. Dwell never shortens the one-second resume hold.
+and dwell duration `400..4000 ms`. `dwell_enabled` enables pointer dwell alongside any motor preset, including `scan`;
+the old `dwell` preset also enables it for compatibility. `dwell_ms` controls only the duration and cannot enable the
+feature by itself because it has a nonzero default. Dwell never shortens the one-second resume hold.
 
 Latched and stepped return-to-center controls automatically publish zero after 15 seconds without renewed input; the
 visible zero control releases them sooner.
 
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
-because a click on it moves nothing. Scan and dwell are still selected as mutually exclusive motor presets. Single-switch
-directional teleop is covered by tests but not yet validated with the intended device.
+because a click on it moves nothing. Under scan, dwelling on the full-width SWITCH bar activates the highlighted target
+without a firm press. Single-switch and combined scan-plus-dwell teleop are covered by tests but not yet validated with
+the intended devices.
 
 Joysticks are keyboard operable. Focus the pad and use arrow keys; the same conditioning and command path are used as
 for pointer input. The currently shipped shared applications demonstrate only part of the profile matrix, so configure

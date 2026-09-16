@@ -94,7 +94,8 @@ describe("switch scanning", () => {
     const { rootRef } = buildScreen(4);
     const { result } = renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
 
-    expect(result.current).toEqual({ index: 0, targetCount: 4 });
+    expect(result.current).toMatchObject({ index: 0, targetCount: 4 });
+    expect(result.current.activateCurrent).toEqual(expect.any(Function));
   });
 
   it("scans only what a click can operate", () => {
@@ -114,7 +115,9 @@ describe("switch scanning", () => {
     const { result } = renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
 
     expect(result.current.targetCount).toBe(2);
+    bar.addEventListener("click", result.current.activateCurrent);
     bar.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    bar.click();
 
     expect(clicks).toEqual(["target-0"]);
   });
