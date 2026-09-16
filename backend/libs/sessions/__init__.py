@@ -23,8 +23,10 @@ from libs.sessions.teleop import (
 from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
 from libs.sessions.stop import (
     CANCEL_MODE_REQUEST,
+    RuntimeStopAssertionError,
     RuntimeStopController,
     RuntimeStopState,
+    RuntimeStoppedError,
 )
 from libs.sessions.recording import (
     NoopRuntimeRecordingGateway,
@@ -66,8 +68,10 @@ __all__ = [
     "RuntimeServerMessage",
     "RuntimeSession",
     "RuntimeSessionManager",
+    "RuntimeStopAssertionError",
     "RuntimeStopController",
     "RuntimeStopState",
+    "RuntimeStoppedError",
     "RuntimeSubscribeTopicMessage",
     "RuntimeTeleopCommandMessage",
     "TeleopCommand",

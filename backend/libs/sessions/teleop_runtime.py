@@ -4,7 +4,7 @@ from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyE
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
 from libs.sessions.models import RuntimeServerMessage, RuntimeTeleopCommandMessage
 from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
-from libs.sessions.stop import RuntimeStopController
+from libs.sessions.stop import RuntimeStopController, RuntimeStoppedError
 from libs.sessions.teleop import NoopTeleopCommandGateway, TeleopCommand, TeleopCommandGateway, TeleopVector3
 
 
@@ -21,19 +21,7 @@ def build_teleop_ack(
     # The stop latch outranks everything, including release zeros.
     stop_reason = stop_controller.rejection_reason() if stop_controller is not None else None
     if stop_reason is not None:
-        record_teleop_audit(
-            audit_log,
-            detail=stop_reason,
-            session_id=session_id,
-            status="rejected",
-            target=message.target,
-        )
-        return RuntimeServerMessage(
-            type="runtime_error",
-            detail="Teleop command was rejected: runtime stop is engaged.",
-            payload={"code": "runtime_stopped", "message": stop_reason, "target": message.target},
-            session_id=session_id,
-        )
+        return build_runtime_stopped_ack(session_id, message.target, stop_reason, audit_log)
 
     # cartesian_manager skips a command in a frame it does not know, silently;
     # Bloom refuses it loudly instead.
@@ -98,8 +86,14 @@ def build_teleop_ack(
                 session_id=session_id,
             )
 
+    command = to_teleop_command(message)
     try:
-        receipt = gateway.publish(to_teleop_command(message))
+        if stop_controller is None:
+            receipt = gateway.publish(command)
+        else:
+            receipt = stop_controller.execute_if_running(lambda: gateway.publish(command))
+    except RuntimeStoppedError as exc:
+        return build_runtime_stopped_ack(session_id, message.target, str(exc), audit_log)
     except RuntimeError as exc:
         record_teleop_audit(
             audit_log,
@@ -133,6 +127,27 @@ def build_teleop_ack(
             "status": receipt.status,
             "target": receipt.target,
         },
+        session_id=session_id,
+    )
+
+
+def build_runtime_stopped_ack(
+    session_id: str,
+    target: str,
+    detail: str,
+    audit_log: RuntimeAuditLog | None,
+) -> RuntimeServerMessage:
+    record_teleop_audit(
+        audit_log,
+        detail=detail,
+        session_id=session_id,
+        status="rejected",
+        target=target,
+    )
+    return RuntimeServerMessage(
+        type="runtime_error",
+        detail="Teleop command was rejected: runtime stop is engaged.",
+        payload={"code": "runtime_stopped", "message": detail, "target": target},
         session_id=session_id,
     )
 

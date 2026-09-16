@@ -22,7 +22,7 @@ describe("runtime string catalogs", () => {
   it("renders the status word from the selected locale", () => {
     expect(
       resolveRuntimeStatusChip(
-        { stopped: false, engaged_at: "", detail: "" },
+        { stopped: false, asserted: false, engaged_at: "", detail: "" },
         { state: "connected", settled: true },
         getRuntimeStrings("fr"),
       ),

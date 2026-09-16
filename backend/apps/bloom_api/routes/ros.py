@@ -20,7 +20,13 @@ from libs.ros_adapters import (
 )
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
-from libs.sessions import RuntimeAuditLog, RuntimeAuditRecord, RuntimeCommandRateLimiter, RuntimeRateLimitError
+from libs.sessions import (
+    RuntimeAuditLog,
+    RuntimeAuditRecord,
+    RuntimeCommandRateLimiter,
+    RuntimeRateLimitError,
+    RuntimeStoppedError,
+)
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -173,7 +179,8 @@ def publish_ros_topic(
 ) -> RosTopicPublishResponse:
     audit_log = get_runtime_audit_log(request)
     # One robot, one latch: the generic publish path is refused too.
-    stop_reason = request.app.state.runtime_stop_controller.rejection_reason()
+    stop_controller = request.app.state.runtime_stop_controller
+    stop_reason = stop_controller.rejection_reason()
     if stop_reason is not None:
         audit_log.record(
             RuntimeAuditRecord(
@@ -195,13 +202,26 @@ def publish_ros_topic(
         payload=publish_request.to_payload(),
     )
     try:
-        receipt = publish_with_runtime_policy(
-            gateway,
-            policy,
-            audit_log,
-            ros_publish_request,
-            rate_limiter,
+        receipt = stop_controller.execute_if_running(
+            lambda: publish_with_runtime_policy(
+                gateway,
+                policy,
+                audit_log,
+                ros_publish_request,
+                rate_limiter,
+            )
         )
+    except RuntimeStoppedError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=str(exc),
+                message_type=publish_request.message_type,
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
     return _to_response(receipt)
@@ -230,7 +250,8 @@ def call_ros_service(
             )
         )
 
-    stop_reason = request.app.state.runtime_stop_controller.rejection_reason()
+    stop_controller = request.app.state.runtime_stop_controller
+    stop_reason = stop_controller.rejection_reason()
     if stop_reason is not None:
         record("rejected", stop_reason)
         raise HTTPException(status_code=409, detail=stop_reason)
@@ -248,9 +269,14 @@ def call_ros_service(
         raise HTTPException(status_code=429, detail=str(exc)) from exc
 
     try:
-        receipt = get_ros_service_gateway(request).call(
-            RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
+        receipt = stop_controller.execute_if_running(
+            lambda: get_ros_service_gateway(request).call(
+                RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
+            )
         )
+    except RuntimeStoppedError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=422, detail=str(exc)) from exc

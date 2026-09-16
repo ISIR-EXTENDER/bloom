@@ -1,8 +1,10 @@
 """The runtime STOP latch: engage, assert toward the robot, outrank every path."""
 
 from pathlib import Path
+from threading import Event, Thread
 
 from fastapi.testclient import TestClient
+import pytest
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
@@ -11,7 +13,9 @@ from libs.ros_adapters import RosPublishReceipt, RosPublishRequest
 from libs.sessions import (
     CANCEL_MODE_REQUEST,
     InMemoryRuntimeAuditLog,
+    RuntimeStopAssertionError,
     RuntimeStopController,
+    RuntimeStoppedError,
     TeleopCommand,
     TeleopPublishReceipt,
 )
@@ -52,6 +56,25 @@ class FailingRosPublisherGateway:
         raise RuntimeError("rclpy is required to publish ROS messages")
 
 
+class BlockingStopTeleopGateway:
+    def __init__(self) -> None:
+        self.publish_started = Event()
+        self.release_publish = Event()
+
+    def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
+        self.publish_started.set()
+        assert self.release_publish.wait(timeout=2)
+        return TeleopPublishReceipt(detail="Zero command recorded.", status="accepted", target=command.target)
+
+
+class StopAtFinalGate:
+    def rejection_reason(self) -> None:
+        return None
+
+    def execute_if_running(self, operation):
+        raise RuntimeStoppedError("Runtime stop engaged during command validation.")
+
+
 def create_stop_test_client(
     teleop_gateway: RecordingTeleopGateway | FailingTeleopGateway | None = None,
     ros_publisher_gateway: RecordingRosPublisherGateway | FailingRosPublisherGateway | None = None,
@@ -76,6 +99,7 @@ def test_stop_state_starts_not_engaged() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "stopped": False,
+        "asserted": False,
         "engaged_at": "",
         "detail": "Runtime stop is not engaged.",
     }
@@ -91,6 +115,7 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["stopped"] is True
+    assert body["asserted"] is True
     assert body["engaged_at"] != ""
 
     [zero_command] = teleop_gateway.commands
@@ -110,13 +135,14 @@ def test_stop_latches_even_when_every_publish_fails() -> None:
 
     response = client.post("/api/v1/runtime/stop")
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["stopped"] is True
-    assert "Zero velocity could not be published" in body["detail"]
-    assert "Joint-target cancel could not be published" in body["detail"]
+    assert response.status_code == 503
+    assert "ROS assertion failed" in response.json()["detail"]
 
-    assert client.get("/api/v1/runtime/stop").json()["stopped"] is True
+    state = client.get("/api/v1/runtime/stop").json()
+    assert state["stopped"] is True
+    assert state["asserted"] is False
+    assert "Zero velocity could not be published" in state["detail"]
+    assert "Joint-target cancel could not be published" in state["detail"]
 
 
 def test_engaging_stop_twice_reasserts_instead_of_failing() -> None:
@@ -223,6 +249,7 @@ def test_resume_clears_the_latch_and_publishes_nothing() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "stopped": False,
+        "asserted": False,
         "engaged_at": "",
         "detail": "Runtime stop is not engaged.",
     }
@@ -246,9 +273,104 @@ def test_stop_transitions_are_audited() -> None:
 def test_controller_engage_survives_publish_failures_without_http() -> None:
     controller = RuntimeStopController(FailingTeleopGateway(), FailingRosPublisherGateway())
 
-    state = controller.engage()
+    with pytest.raises(RuntimeStopAssertionError) as error:
+        controller.engage()
 
+    state = error.value.state
     assert state.stopped is True
+    assert state.asserted is False
     assert controller.rejection_reason() is not None
     assert controller.resume().stopped is False
     assert controller.rejection_reason() is None
+
+
+def test_command_gate_rejects_a_command_waiting_behind_stop_assertion() -> None:
+    teleop_gateway = BlockingStopTeleopGateway()
+    controller = RuntimeStopController(teleop_gateway, RecordingRosPublisherGateway())
+    stop_finished = Event()
+    command_executed = Event()
+    command_rejected = Event()
+
+    def engage() -> None:
+        controller.engage()
+        stop_finished.set()
+
+    def command() -> None:
+        try:
+            controller.execute_if_running(command_executed.set)
+        except RuntimeStoppedError:
+            command_rejected.set()
+
+    stop_thread = Thread(target=engage)
+    stop_thread.start()
+    assert teleop_gateway.publish_started.wait(timeout=2)
+
+    command_thread = Thread(target=command)
+    command_thread.start()
+    assert not command_executed.wait(timeout=0.05)
+
+    teleop_gateway.release_publish.set()
+    stop_thread.join(timeout=2)
+    command_thread.join(timeout=2)
+
+    assert stop_finished.is_set()
+    assert command_rejected.is_set()
+    assert not command_executed.is_set()
+
+
+def test_teleop_checks_stop_again_at_the_publish_gate() -> None:
+    teleop_gateway = RecordingTeleopGateway()
+    client = create_stop_test_client(teleop_gateway, RecordingRosPublisherGateway())
+    client.app.state.runtime_stop_controller = StopAtFinalGate()
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "linear": {"x": 0.4, "y": 0.0, "z": 0.0},
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "seq": 1,
+            }
+        )
+        rejection = websocket.receive_json()
+
+    assert rejection["type"] == "runtime_error"
+    assert rejection["payload"]["code"] == "runtime_stopped"
+    assert teleop_gateway.commands == []
+
+
+def test_runtime_action_checks_stop_again_at_the_publish_gate() -> None:
+    ros_gateway = RecordingRosPublisherGateway()
+    client = create_stop_test_client(RecordingTeleopGateway(), ros_gateway)
+    client.app.state.runtime_stop_controller = StopAtFinalGate()
+
+    response = client.post(
+        "/api/v1/runtime/actions",
+        json={
+            "app_id": "explorer-user-tests",
+            "command": "explorer.deploy",
+            "config_id": "explorer-user-tests",
+        },
+    )
+
+    assert response.status_code == 409
+    assert ros_gateway.requests == []
+
+
+def test_generic_publish_checks_stop_again_at_the_publish_gate() -> None:
+    ros_gateway = RecordingRosPublisherGateway()
+    client = create_stop_test_client(RecordingTeleopGateway(), ros_gateway)
+    client.app.state.runtime_stop_controller = StopAtFinalGate()
+
+    response = client.post(
+        "/api/v1/ros/topics/publish",
+        json={
+            "topic": "/mode_request",
+            "message_type": "std_msgs/msg/String",
+            "payload": {"data": "behaviour/joint_target/home"},
+        },
+    )
+
+    assert response.status_code == 409
+    assert ros_gateway.requests == []

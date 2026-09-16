@@ -9,6 +9,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Callable, TypeVar
 
 from libs.ros_adapters.publishers import RosPublishRequest, RosPublisherGateway
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
@@ -18,12 +19,27 @@ CANCEL_MODE_REQUEST = "behaviour/passthrough"
 DEFAULT_MODE_REQUEST_TOPIC = "/mode_request"
 DEFAULT_TELEOP_TARGET = "/joystick_cartesian_command"
 
+T = TypeVar("T")
+
 
 @dataclass(frozen=True)
 class RuntimeStopState:
     stopped: bool
+    asserted: bool
     engaged_at: str
     detail: str
+
+
+class RuntimeStoppedError(RuntimeError):
+    """Raised when a robot command loses the race with the STOP latch."""
+
+
+class RuntimeStopAssertionError(RuntimeError):
+    """Raised after the latch engages but its ROS assertions do not both publish."""
+
+    def __init__(self, state: RuntimeStopState) -> None:
+        super().__init__(state.detail)
+        self.state = state
 
 
 class RuntimeStopController:
@@ -44,51 +60,68 @@ class RuntimeStopController:
         self._mode_request_topic = mode_request_topic
         self._lock = threading.Lock()
         self._stopped = False
+        self._asserted = False
         self._engaged_at = ""
         self._detail = "Runtime stop is not engaged."
 
     @property
     def state(self) -> RuntimeStopState:
         with self._lock:
-            return RuntimeStopState(stopped=self._stopped, engaged_at=self._engaged_at, detail=self._detail)
+            return self._state_unlocked()
 
     def rejection_reason(self) -> str | None:
         """Why a robot command must be refused right now, or None."""
         with self._lock:
             if not self._stopped:
                 return None
-            return "Runtime stop is engaged. Hold the stop control to resume before commanding the robot."
+            return self._rejection_reason_unlocked()
+
+    def execute_if_running(self, operation: Callable[[], T]) -> T:
+        """Serialize the final robot operation with STOP assertion.
+
+        A command already inside this gate completes before STOP publishes its
+        zero/cancel pair. Once STOP owns the gate, later commands are rejected.
+        """
+        with self._lock:
+            if self._stopped:
+                raise RuntimeStoppedError(self._rejection_reason_unlocked())
+            return operation()
 
     def engage(self) -> RuntimeStopState:
         """Latch first, unconditionally; a repeated engage re-asserts."""
         with self._lock:
             self._stopped = True
+            self._asserted = False
             self._engaged_at = datetime.now(timezone.utc).isoformat()
 
-        # Straight through the gateways: not blockable by policy or rate limit.
-        zero_detail = self._publish_zero_twist()
-        cancel_detail = self._publish_joint_target_cancel()
-        detail = f"Runtime stop engaged. {zero_detail} {cancel_detail}"
-
-        with self._lock:
+            # Straight through the gateways: not blockable by policy or rate
+            # limit. Keeping the gate held makes this the last robot operation.
+            zero_ok, zero_detail = self._publish_zero_twist()
+            cancel_ok, cancel_detail = self._publish_joint_target_cancel()
+            self._asserted = zero_ok and cancel_ok
+            prefix = "Runtime stop engaged." if self._asserted else "Runtime stop latched, but ROS assertion failed."
+            detail = f"{prefix} {zero_detail} {cancel_detail}"
             self._detail = detail
-            state = RuntimeStopState(stopped=self._stopped, engaged_at=self._engaged_at, detail=self._detail)
+            state = self._state_unlocked()
 
-        self._record("accepted", detail)
+        self._record("accepted" if state.asserted else "rejected", detail)
+        if not state.asserted:
+            raise RuntimeStopAssertionError(state)
         return state
 
     def resume(self) -> RuntimeStopState:
         """Clear the latch; publishes nothing."""
         with self._lock:
             self._stopped = False
+            self._asserted = False
             self._engaged_at = ""
             self._detail = "Runtime stop is not engaged."
-            state = RuntimeStopState(stopped=self._stopped, engaged_at=self._engaged_at, detail=self._detail)
+            state = self._state_unlocked()
 
         self._record("accepted", "Runtime stop resumed by operator hold.")
         return state
 
-    def _publish_zero_twist(self) -> str:
+    def _publish_zero_twist(self) -> tuple[bool, str]:
         command = TeleopCommand(
             angular=TeleopVector3(),
             linear=TeleopVector3(),
@@ -99,10 +132,10 @@ class RuntimeStopController:
         try:
             receipt = self._teleop_gateway.publish(command)
         except RuntimeError as exc:
-            return f"Zero velocity could not be published: {exc}"
-        return f"Zero velocity {receipt.status} on {receipt.target}."
+            return False, f"Zero velocity could not be published: {exc}"
+        return True, f"Zero velocity {receipt.status} on {receipt.target}."
 
-    def _publish_joint_target_cancel(self) -> str:
+    def _publish_joint_target_cancel(self) -> tuple[bool, str]:
         request = RosPublishRequest(
             topic=self._mode_request_topic,
             message_type="std_msgs/msg/String",
@@ -111,8 +144,19 @@ class RuntimeStopController:
         try:
             receipt = self._ros_publisher_gateway.publish(request)
         except RuntimeError as exc:
-            return f"Joint-target cancel could not be published: {exc}"
-        return f"Joint-target cancel ({CANCEL_MODE_REQUEST}) {receipt.status} on {receipt.topic}."
+            return False, f"Joint-target cancel could not be published: {exc}"
+        return True, f"Joint-target cancel ({CANCEL_MODE_REQUEST}) {receipt.status} on {receipt.topic}."
+
+    def _rejection_reason_unlocked(self) -> str:
+        return "Runtime stop is engaged. Hold the stop control to resume before commanding the robot."
+
+    def _state_unlocked(self) -> RuntimeStopState:
+        return RuntimeStopState(
+            stopped=self._stopped,
+            asserted=self._asserted,
+            engaged_at=self._engaged_at,
+            detail=self._detail,
+        )
 
     def _record(self, status: RuntimeAuditStatus, detail: str) -> None:
         if self._audit_log is None:
@@ -130,6 +174,8 @@ class RuntimeStopController:
 
 __all__ = [
     "CANCEL_MODE_REQUEST",
+    "RuntimeStopAssertionError",
     "RuntimeStopController",
     "RuntimeStopState",
+    "RuntimeStoppedError",
 ]

@@ -52,11 +52,13 @@ from libs.sessions import (
     RuntimeServerMessage,
     RuntimeRateLimitError,
     RuntimeSessionManager,
+    RuntimeStopAssertionError,
     RuntimeTopicSample,
     RuntimeTopicSubscription,
     RuntimeTopicSubscriptionGateway,
     RuntimeTopicSubscriptionHandle,
     RuntimeStopController,
+    RuntimeStoppedError,
     RuntimeSubscribeTopicMessage,
     RuntimeTeleopCommandMessage,
     TeleopCommandGateway,
@@ -239,6 +241,7 @@ class RuntimeActionDispatchResponse(BaseModel):
 
 class RuntimeStopStateResponse(BaseModel):
     stopped: bool
+    asserted: bool
     engaged_at: str
     detail: str
 
@@ -257,7 +260,11 @@ def engage_runtime_stop(
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> RuntimeStopStateResponse:
     """HTTP on purpose: STOP matters most when the WebSocket is what died."""
-    return RuntimeStopStateResponse(**asdict(get_runtime_stop_controller(request).engage()))
+    try:
+        state = get_runtime_stop_controller(request).engage()
+    except RuntimeStopAssertionError as exc:
+        raise HTTPException(status_code=503, detail=exc.state.detail) from exc
+    return RuntimeStopStateResponse(**asdict(state))
 
 
 @router.post("/stop/resume", response_model=RuntimeStopStateResponse)
@@ -286,7 +293,8 @@ def dispatch_runtime_action(
     action_request: RuntimeActionDispatchRequest,
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> RuntimeActionDispatchResponse:
-    stop_reason = get_runtime_stop_controller(request).rejection_reason()
+    stop_controller = get_runtime_stop_controller(request)
+    stop_reason = stop_controller.rejection_reason()
     if stop_reason is not None:
         get_runtime_audit_log(request).record(
             RuntimeAuditRecord(
@@ -340,13 +348,18 @@ def dispatch_runtime_action(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
-        receipt = publish_with_runtime_policy(
-            get_ros_publisher_gateway(request),
-            get_runtime_command_policy(request),
-            audit_log,
-            ros_publish_request,
-            get_runtime_command_rate_limiter(request),
+        receipt = stop_controller.execute_if_running(
+            lambda: publish_with_runtime_policy(
+                get_ros_publisher_gateway(request),
+                get_runtime_command_policy(request),
+                audit_log,
+                ros_publish_request,
+                get_runtime_command_rate_limiter(request),
+            )
         )
+    except RuntimeStoppedError as exc:
+        record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
@@ -386,7 +399,8 @@ def dispatch_service_call_preset(
     if not preset.topic or not preset.message_type:
         raise reject(422, "service-call preset needs a service name in `topic` and a type in `message_type`")
 
-    stop_reason = get_runtime_stop_controller(request).rejection_reason()
+    stop_controller = get_runtime_stop_controller(request)
+    stop_reason = stop_controller.rejection_reason()
     if stop_reason is not None:
         raise reject(409, stop_reason)
 
@@ -403,7 +417,13 @@ def dispatch_service_call_preset(
 
     ros_service_gateway: RosServiceGateway = request.app.state.ros_service_gateway
     try:
-        receipt = ros_service_gateway.call(RosServiceRequest(service=preset.topic, service_type=preset.message_type))
+        receipt = stop_controller.execute_if_running(
+            lambda: ros_service_gateway.call(
+                RosServiceRequest(service=preset.topic, service_type=preset.message_type)
+            )
+        )
+    except RuntimeStoppedError as exc:
+        raise reject(409, str(exc)) from exc
     except ValueError as exc:
         raise reject(422, str(exc)) from exc
     except RuntimeError as exc:

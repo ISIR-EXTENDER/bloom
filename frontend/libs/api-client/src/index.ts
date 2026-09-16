@@ -352,6 +352,8 @@ export type RosServiceCallResponse = {
 
 export type RuntimeStopState = {
   stopped: boolean;
+  /** True only when both the zero velocity and joint-target cancel reached ROS. */
+  asserted: boolean;
   engaged_at: string;
   detail: string;
 };

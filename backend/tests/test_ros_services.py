@@ -8,7 +8,7 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository, load_configuration_file
 from libs.ros_adapters import RosServiceReceipt, RosServiceRequest
-from libs.sessions import InMemoryRuntimeAuditLog
+from libs.sessions import InMemoryRuntimeAuditLog, RuntimeStoppedError
 
 KINOVA_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "kinova-manager.json"
 
@@ -32,6 +32,14 @@ class RecordingServiceGateway:
 class UnavailableServiceGateway:
     def call(self, request: RosServiceRequest) -> RosServiceReceipt:
         raise RuntimeError(f"Service {request.service} is not available.")
+
+
+class StopAtFinalGate:
+    def rejection_reason(self) -> None:
+        return None
+
+    def execute_if_running(self, operation):
+        raise RuntimeStoppedError("Runtime stop engaged during command validation.")
 
 
 def create_service_client(gateway=None, audit_log=None) -> TestClient:
@@ -90,6 +98,17 @@ def test_service_calls_are_refused_while_the_stop_latch_is_engaged() -> None:
     assert gateway.requests == []
 
 
+def test_service_call_checks_stop_again_at_the_gateway() -> None:
+    gateway = RecordingServiceGateway()
+    client = create_service_client(gateway)
+    client.app.state.runtime_stop_controller = StopAtFinalGate()
+
+    response = client.post("/api/v1/ros/services/call", json=RESET_FAULT)
+
+    assert response.status_code == 409
+    assert gateway.requests == []
+
+
 def test_an_unavailable_service_is_a_gateway_error_not_a_success() -> None:
     client = create_service_client(UnavailableServiceGateway())
 
@@ -123,6 +142,20 @@ def test_the_kinova_reset_fault_preset_dispatches_the_service() -> None:
     assert body["topic"] == "/fault_controller/reset_fault"
     [request] = gateway.requests
     assert request.service_type == "example_interfaces/srv/Trigger"
+
+
+def test_service_preset_checks_stop_again_at_the_gateway() -> None:
+    gateway = RecordingServiceGateway()
+    client = create_service_client(gateway)
+    client.app.state.runtime_stop_controller = StopAtFinalGate()
+
+    response = client.post(
+        "/api/v1/runtime/actions",
+        json={"app_id": "kinova-manager", "command": "kinova.reset_fault", "config_id": "kinova-manager"},
+    )
+
+    assert response.status_code == 409
+    assert gateway.requests == []
 
 
 def test_a_refused_reset_says_so_in_the_detail() -> None:

@@ -28,6 +28,10 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   const clientRef = useRef(client);
   clientRef.current = client;
 
+  const mirrorState = useCallback((next: RuntimeStopState) => {
+    setState(next);
+  }, []);
+
   useEffect(() => {
     const getState = client?.getRuntimeStopState;
     if (!getState) {
@@ -39,7 +43,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
       getState()
         .then((next) => {
           if (!cancelled) {
-            setState(next);
+            mirrorState(next);
           }
         })
         .catch(() => {
@@ -53,7 +57,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
       cancelled = true;
       clearInterval(timer);
     };
-  }, [client]);
+  }, [client, mirrorState]);
 
   const engage = useCallback(() => {
     const engageRuntimeStop = clientRef.current?.engageRuntimeStop;
@@ -62,13 +66,24 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     }
     engageRuntimeStop()
       .then((next) => {
-        setState(next);
+        mirrorState(next);
         setRequestError("");
       })
       .catch((error: unknown) => {
-        setRequestError(error instanceof Error ? error.message : "The stop request failed.");
+        const message = error instanceof Error ? error.message : "The stop request failed.";
+        const getState = clientRef.current?.getRuntimeStopState;
+        if (!getState) {
+          setRequestError(message);
+          return;
+        }
+        getState()
+          .then((next) => {
+            mirrorState(next);
+            setRequestError(next.stopped && !next.asserted ? "" : message);
+          })
+          .catch(() => setRequestError(message));
       });
-  }, []);
+  }, [mirrorState]);
 
   const resume = useCallback(() => {
     const resumeRuntimeStop = clientRef.current?.resumeRuntimeStop;
@@ -77,13 +92,14 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     }
     resumeRuntimeStop()
       .then((next) => {
-        setState(next);
+        mirrorState(next);
         setRequestError("");
       })
       .catch((error: unknown) => {
         setRequestError(error instanceof Error ? error.message : "The resume request failed.");
       });
-  }, []);
+  }, [mirrorState]);
 
-  return { state, requestError, engage, resume };
+  const assertionError = state?.stopped && !state.asserted ? state.detail : "";
+  return { state, requestError: assertionError || requestError, engage, resume };
 }

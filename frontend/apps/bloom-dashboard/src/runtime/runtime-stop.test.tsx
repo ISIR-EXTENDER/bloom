@@ -9,11 +9,23 @@ import { RuntimeStopControl } from "./RuntimeStopControl";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { type RuntimeStopClient, useRuntimeStop } from "./use-runtime-stop";
 
-const running: RuntimeStopState = { stopped: false, engaged_at: "", detail: "Runtime stop is not engaged." };
+const running: RuntimeStopState = {
+  stopped: false,
+  asserted: false,
+  engaged_at: "",
+  detail: "Runtime stop is not engaged.",
+};
 const stoppedState: RuntimeStopState = {
   stopped: true,
+  asserted: true,
   engaged_at: "2026-09-15T10:00:00+00:00",
   detail: "Runtime stop engaged.",
+};
+const failedStopState: RuntimeStopState = {
+  stopped: true,
+  asserted: false,
+  engaged_at: "2026-09-15T10:00:00+00:00",
+  detail: "Runtime stop latched, but ROS assertion failed. Zero velocity could not be published.",
 };
 
 describe("the STOP control", () => {
@@ -165,10 +177,11 @@ describe("the stop mirror", () => {
     expect(screen.getByTestId("stopped").textContent).toBe("true");
   });
 
-  it("surfaces a failed engage and keeps the last confirmed state", async () => {
+  it("surfaces a failed assertion and immediately mirrors the latched state", async () => {
+    const getRuntimeStopState = vi.fn().mockResolvedValueOnce(running).mockResolvedValue(failedStopState);
     const client: RuntimeStopClient = {
-      getRuntimeStopState: () => Promise.resolve(running),
-      engageRuntimeStop: () => Promise.reject(new Error("Bloom API request failed with status 502")),
+      getRuntimeStopState,
+      engageRuntimeStop: () => Promise.reject(new Error("Bloom API request failed with status 503")),
     };
     render(<Probe client={client} />);
     await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
@@ -177,7 +190,7 @@ describe("the stop mirror", () => {
       fireEvent.click(screen.getByRole("button", { name: "engage" }));
     });
 
-    expect(screen.getByTestId("error").textContent).toBe("Bloom API request failed with status 502");
-    expect(screen.getByTestId("stopped").textContent).toBe("false");
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("true"));
+    expect(screen.getByTestId("error").textContent).toBe(failedStopState.detail);
   });
 });

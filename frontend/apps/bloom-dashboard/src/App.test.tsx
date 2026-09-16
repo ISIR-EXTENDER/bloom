@@ -98,6 +98,7 @@ describe("App", () => {
     window.history.replaceState(null, "", "#/runtime/supervisor/robot-monitor/robot-monitor");
     const runtimeActionClient = createRuntimeActionClient();
     runtimeActionClient.getRuntimeStopState = vi.fn(async () => ({
+      asserted: false,
       detail: "Runtime stop is not engaged.",
       engaged_at: "",
       stopped: false,
