@@ -90,7 +90,7 @@ Supported motor presets are:
 | `reduced-motion` | Reserved in the profile model. The browser's `prefers-reduced-motion` setting is honored, but this profile value is not wired independently yet. |
 | `step` | Joysticks/sliders expose discrete tap targets instead of requiring sustained dragging; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls hold their value until explicit zero/release or the 15-second attention timeout. |
-| `scan` | A highlight advances through controls; Space, Enter, or a tap outside a control activates click-responsive targets. Directional joystick scanning is not usable yet. |
+| `scan` | Joysticks and sliders render step targets, and a highlight advances through every button on the screen; Space, Enter, a tap outside a control, or a tap on the full-width switch bar fires the lit target. |
 | `dwell` | Resting the pointer on an eligible runtime control activates it after `dwell_ms`. |
 
 Profile bounds are enforced by the model: dead zone `0..0.5`, repeat guard `0..600 ms`, scan period `600..3000 ms`,
@@ -99,10 +99,9 @@ and dwell duration `400..4000 ms`. Dwell never shortens the one-second resume ho
 Latched and stepped return-to-center controls automatically publish zero after 15 seconds without renewed input; the
 visible zero control releases them sooner.
 
-Known P1 limitation: the scanner currently treats a joystick pad as one click target, while the pad emits movement only
-from pointer or keyboard directions. That click produces no vector. Scan and dwell are also selected as mutually
-exclusive motor presets. Do not rely on single-switch directional teleop until the scanner enters four directional step
-targets and the combined scan/dwell contract is decided, tested, and validated with the intended device.
+The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
+because a click on it moves nothing. Scan and dwell are still selected as mutually exclusive motor presets. Single-switch
+directional teleop is covered by tests but not yet validated with the intended device.
 
 Joysticks are keyboard operable. Focus the pad and use arrow keys; the same conditioning and command path are used as
 for pointer input. The currently shipped shared applications demonstrate only part of the profile matrix, so configure

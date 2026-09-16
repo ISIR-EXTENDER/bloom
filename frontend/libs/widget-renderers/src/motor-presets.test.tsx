@@ -114,6 +114,23 @@ describe("step zones", () => {
     expect(screen.getByRole("button", { name: "Increase Z by 0.25" })).toBeTruthy();
     expect(screen.queryByRole("slider")).toBeNull();
   });
+
+  it("renders nothing but buttons under switch scanning, so every axis is a scan target", () => {
+    const onActionIntent = vi.fn();
+    const { joystick, slider } = descriptors();
+    const { container } = render(
+      <>
+        <JoystickWidget descriptor={joystick} motorPreset="scan" onActionIntent={onActionIntent} />
+        <SliderWidget descriptor={slider} motorPreset="scan" onActionIntent={onActionIntent} />
+      </>,
+    );
+
+    expect(container.querySelectorAll('[data-motor-preset="scan"]')).toHaveLength(2);
+    expect(container.querySelector('[role="application"]')).toBeNull();
+    expect(screen.queryByRole("slider")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Back, one step" }));
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: -0.25 });
+  });
 });
 
 describe("the latch expiry", () => {

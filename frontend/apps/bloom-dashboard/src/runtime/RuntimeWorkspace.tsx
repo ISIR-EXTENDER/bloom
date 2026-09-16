@@ -311,9 +311,14 @@ export function RuntimeWorkspace({
         </div>
 
         {scanning.index >= 0 ? (
-          <p aria-live="polite" className="runtime-scan-status" role="status">
-            {`Scanning ${scanning.index + 1} of ${scanning.targetCount}. Press a switch, Space, or tap the screen.`}
-          </p>
+          <div className="runtime-switch-bar">
+            <button className="runtime-switch-bar-button" data-scan-switch="" type="button">
+              SWITCH — press Space or tap here
+            </button>
+            <p aria-live="polite" className="sr-only" role="status">
+              {`Scanning ${scanning.index + 1} of ${scanning.targetCount}.`}
+            </p>
+          </div>
         ) : null}
 
         {runtimeActionClient.engageRuntimeStop ? (

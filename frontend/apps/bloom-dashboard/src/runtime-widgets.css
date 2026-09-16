@@ -1586,8 +1586,8 @@
 }
 
 .bloom-step-zone {
-  min-width: 64px;
-  min-height: 64px;
+  min-width: 44px;
+  min-height: 44px;
   border: 2px solid var(--bloom-outline);
   border-radius: 16px;
   background: var(--bloom-surface);
@@ -1642,6 +1642,7 @@
   gap: 8px;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 }
 
 .bloom-slider-widget[data-direction="horizontal"] .bloom-slider-stepper {
@@ -1650,9 +1651,11 @@
 }
 
 .bloom-slider-step-button {
-  min-height: 56px;
-  min-width: 56px;
-  flex: 1;
+  /* Grows to fill the card, shrinks no further than the 44px touch floor, so a
+     short card clips nothing. */
+  min-height: 44px;
+  min-width: 44px;
+  flex: 1 1 56px;
   border: 2px solid var(--bloom-outline);
   border-radius: 14px;
   background: var(--bloom-surface);

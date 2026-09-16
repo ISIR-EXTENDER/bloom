@@ -752,10 +752,17 @@
  * but cannot be reached.
  */
 .runtime-app-workspace > .runtime-app-canvas-shell {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
   /* Anchors the STOP chrome, which the builder cannot move or cover. */
   position: relative;
+}
+
+.runtime-app-workspace > .runtime-app-canvas-shell > .runtime-app-canvas-viewport {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Stopped: widgets refuse input and mute; the STOP chrome stays live. */
@@ -1061,18 +1068,29 @@
   mask-composite: exclude;
 }
 
-.runtime-scan-status {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  z-index: 30;
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--bloom-surface-soft);
-  color: var(--bloom-on-surface);
-  font-size: 13px;
+/* The switch bar: the whole strip is the switch, so a tap anywhere on it
+   fires the lit target. STOP moves up to stay clear of it. */
+.runtime-switch-bar {
+  flex: 0 0 auto;
+  padding: 0 12px 12px;
+}
+
+.runtime-switch-bar-button {
+  width: 100%;
+  min-height: 88px;
+  border: none;
+  border-radius: 18px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  font-size: 20px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.runtime-app-workspace[data-runtime-scanning="true"] .runtime-stop-control {
+  bottom: 112px;
 }
 
 @media (prefers-reduced-motion: reduce) {

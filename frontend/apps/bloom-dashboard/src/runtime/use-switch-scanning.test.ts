@@ -97,11 +97,25 @@ describe("switch scanning", () => {
     expect(result.current).toEqual({ index: 0, targetCount: 4 });
   });
 
-  it("covers every control kind a widget can render", () => {
-    // The spec: a scan set that drops an axis is worse than no scan at all.
-    // Reading the DOM rather than the widget model is what guarantees it.
+  it("scans only what a click can operate", () => {
+    // A pad answers to pointer and keys, never to click(): lighting it would
+    // look usable and move nothing. Pads render step targets under scan instead.
     expect(SCAN_TARGET_SELECTOR).toContain("button");
-    expect(SCAN_TARGET_SELECTOR).toContain('role="application"');
-    expect(SCAN_TARGET_SELECTOR).toContain('role="slider"');
+    expect(SCAN_TARGET_SELECTOR).not.toContain('role="application"');
+    expect(SCAN_TARGET_SELECTOR).not.toContain('role="slider"');
+  });
+
+  it("treats the switch bar as the switch, not as a target", () => {
+    const { clicks, root, rootRef } = buildScreen(2);
+    const bar = document.createElement("button");
+    bar.setAttribute("data-scan-switch", "");
+    Object.defineProperty(bar, "offsetParent", { get: () => root });
+    root.append(bar);
+    const { result } = renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    expect(result.current.targetCount).toBe(2);
+    bar.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+
+    expect(clicks).toEqual(["target-0"]);
   });
 });

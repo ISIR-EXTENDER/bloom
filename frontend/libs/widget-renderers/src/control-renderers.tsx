@@ -13,6 +13,18 @@ import type { WidgetRendererProps } from "./types";
 
 const SLIDER_LATCH_EXPIRY_MS = 15000;
 
+const STEP_TARGET_HINTS: Partial<Record<NonNullable<WidgetRendererProps["motorPreset"]>, string>> = {
+  dwell: "rest to move",
+  scan: "scan",
+  step: "step",
+};
+
+type StepTargetPreset = keyof typeof STEP_TARGET_HINTS;
+
+function resolveStepTargetPreset(motorPreset: WidgetRendererProps["motorPreset"]): StepTargetPreset | null {
+  return motorPreset && motorPreset in STEP_TARGET_HINTS ? (motorPreset as StepTargetPreset) : null;
+}
+
 export function SliderWidget({ descriptor, motorPreset, onActionIntent }: WidgetRendererProps) {
   // Normalize first: configs carry snake_case aliases for these keys.
   const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
@@ -28,7 +40,8 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
   const defaultValue = clamp(0, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
   const formattedValue = formatSliderValue(currentValue, step, unit);
-  const usesStepTargets = motorPreset === "step" || motorPreset === "dwell";
+  const stepPreset = resolveStepTargetPreset(motorPreset);
+  const usesStepTargets = stepPreset !== null;
 
   const emitValueChange = (value: number) => {
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
@@ -67,13 +80,13 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
     return () => window.clearTimeout(expiry);
   });
 
-  if (usesStepTargets) {
+  if (stepPreset) {
     const stepBy = (delta: number) => setAndEmit(Number(clamp(currentValue + delta, min, max).toFixed(4)));
     return (
       <div
         className="bloom-slider-widget"
         data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
-        data-motor-preset={motorPreset}
+        data-motor-preset={stepPreset}
         data-show-details={showDetails ? "true" : "false"}
       >
         <header className="bloom-control-header">
@@ -81,7 +94,7 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
             {descriptor.widget.title}
             {unit ? <small className="bloom-control-unit">{unit}</small> : null}
           </strong>
-          <span>{motorPreset === "dwell" ? "rest to move" : "step"}</span>
+          <span>{STEP_TARGET_HINTS[stepPreset]}</span>
         </header>
         <fieldset aria-label={`${descriptor.widget.title} step controls`} className="bloom-slider-stepper">
           <button
@@ -228,8 +241,8 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
   };
 
   // A latched command must never outlive the operator's attention.
-  const usesStepTargets = motorPreset === "step" || motorPreset === "dwell";
-  const isLatched = motorPreset === "latch" || usesStepTargets;
+  const stepPreset = resolveStepTargetPreset(motorPreset);
+  const isLatched = motorPreset === "latch" || stepPreset !== null;
   const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
   useEffect(() => {
     if (!vectorIsHeld) {
@@ -239,13 +252,13 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
     return () => window.clearTimeout(expiry);
   });
 
-  if (usesStepTargets) {
+  if (stepPreset) {
     return (
       <StepZoneJoystick
         currentVector={currentVector}
         descriptor={descriptor}
         labels={binding.labels}
-        motorPreset={motorPreset}
+        motorPreset={stepPreset}
         onVector={emitHeldVector}
         showDetails={showDetails}
       />
@@ -315,7 +328,7 @@ function StepZoneJoystick({
   currentVector: JoystickVector;
   descriptor: WidgetRendererProps["descriptor"];
   labels: { bottom: string; left: string; right: string; top: string };
-  motorPreset: "dwell" | "step";
+  motorPreset: StepTargetPreset;
   onVector: (vector: JoystickVector) => void;
   showDetails: boolean;
 }) {
@@ -333,7 +346,7 @@ function StepZoneJoystick({
     >
       <header className="bloom-control-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>{motorPreset === "dwell" ? "rest to move" : "step"}</span>
+        <span>{STEP_TARGET_HINTS[motorPreset]}</span>
       </header>
       <fieldset aria-label={`${descriptor.widget.title} step targets`} className="bloom-step-zones">
         <button

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-export const SCAN_TARGET_SELECTOR =
-  'button:not([disabled]), [role="application"], [role="slider"]:not([aria-disabled="true"])';
+/** Only click-operable controls; the switch bar itself is never a target. */
+export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switch])";
 
 export type SwitchScanningOptions = {
   enabled: boolean;
@@ -24,9 +24,9 @@ export type SwitchScanningState = {
  *
  * The switch is deliberately broad -- Space, Enter, or a tap anywhere outside a
  * control -- because a switch box, a sip-puff and a button all present as one
- * of those. The target list is read from the DOM rather than from the widget
- * model, so every control a widget renders is scannable by construction: the
- * spec's rule that a scan set dropping an axis is worse than no scan at all.
+ * of those. Targets are read from the DOM, so a widget is scannable exactly
+ * when it renders buttons: pads and sliders switch to step targets under this
+ * preset, because a click on a pad moves nothing.
  */
 export function useSwitchScanning(options: SwitchScanningOptions): SwitchScanningState {
   const { enabled, periodMs, rootRef, revision } = options;
