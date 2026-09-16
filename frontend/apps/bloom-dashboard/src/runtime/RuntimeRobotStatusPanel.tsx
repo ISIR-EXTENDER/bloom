@@ -2,18 +2,32 @@ import type { ApplicationConfig, RosTopicStatus } from "@bloom/api-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 import { createRuntimeRobotStatus, type RuntimeModeState, type RuntimeRobotStatus } from "./runtimeModeState";
+import { enRuntimeStrings } from "./strings/en";
+import type { RuntimeStrings } from "./strings/types";
 
 type RuntimeRobotStatusPanelProps = {
   application: ApplicationConfig;
-  client: RuntimeActionClient;
+  client: Pick<RuntimeActionClient, "listRosTopicStatus">;
   modeState: RuntimeModeState;
+  refreshIntervalMs?: number;
+  sessionStatus?: "checking" | "live" | "local" | "unavailable";
+  showConfiguredModeFallback?: boolean;
+  strings?: RuntimeStrings["supervisor"]["status"];
 };
 
-export function RuntimeRobotStatusPanel({ application, client, modeState }: RuntimeRobotStatusPanelProps) {
+export function RuntimeRobotStatusPanel({
+  application,
+  client,
+  modeState,
+  refreshIntervalMs = 0,
+  sessionStatus = "local",
+  showConfiguredModeFallback = true,
+  strings = enRuntimeStrings.supervisor.status,
+}: RuntimeRobotStatusPanelProps) {
   const [apiStatus, setApiStatus] = useState<RuntimeRobotStatus["api"]>(() =>
     client.listRosTopicStatus ? "not-checked" : "unavailable",
   );
-  const [statusDetail, setStatusDetail] = useState("ROS diagnostics not checked.");
+  const [statusDetail, setStatusDetail] = useState(strings.notChecked);
   const [topicStatuses, setTopicStatuses] = useState<readonly RosTopicStatus[] | null>(null);
 
   const robotStatus = useMemo(
@@ -24,7 +38,7 @@ export function RuntimeRobotStatusPanel({ application, client, modeState }: Runt
   const refreshStatus = useCallback(async () => {
     if (!client.listRosTopicStatus) {
       setApiStatus("unavailable");
-      setStatusDetail("ROS diagnostics unavailable.");
+      setStatusDetail(strings.unavailable);
       return;
     }
 
@@ -32,49 +46,61 @@ export function RuntimeRobotStatusPanel({ application, client, modeState }: Runt
       const nextTopicStatuses = await client.listRosTopicStatus();
       setTopicStatuses(nextTopicStatuses);
       setApiStatus("connected");
-      setStatusDetail(`${nextTopicStatuses.length} topic diagnostics loaded.`);
+      setStatusDetail(strings.topicsLoaded(nextTopicStatuses.length));
     } catch (error) {
       setApiStatus("unavailable");
-      setStatusDetail(getErrorMessage(error));
+      setStatusDetail(getErrorMessage(error, strings.refreshFailed));
     }
-  }, [client]);
+  }, [client, strings]);
 
   useEffect(() => {
     void refreshStatus();
-  }, [refreshStatus]);
+    if (refreshIntervalMs <= 0) {
+      return;
+    }
+    const interval = window.setInterval(() => void refreshStatus(), refreshIntervalMs);
+    return () => window.clearInterval(interval);
+  }, [refreshIntervalMs, refreshStatus]);
 
   return (
-    <aside className="runtime-robot-status" aria-label="Runtime robot status">
+    <aside className="runtime-robot-status" aria-label={strings.panelLabel}>
       <div className="runtime-robot-status-summary">
-        <RuntimeStatusPill label="API" status={robotStatus.api === "connected" ? "ready" : robotStatus.api}>
+        <RuntimeStatusPill label={strings.api} status={robotStatus.api === "connected" ? "ready" : robotStatus.api}>
           {robotStatus.api === "connected"
-            ? "Connected"
+            ? strings.connected
             : robotStatus.api === "unavailable"
-              ? "Unavailable"
-              : "Checking"}
+              ? strings.unavailable
+              : strings.checking}
         </RuntimeStatusPill>
-        <RuntimeStatusPill label="Session" status={client.sendTeleopCommand ? "ready" : "unknown"}>
-          {client.sendTeleopCommand ? "Live" : "Local"}
+        <RuntimeStatusPill label={strings.session} status={resolveSessionPillStatus(sessionStatus)}>
+          {resolveSessionLabel(sessionStatus, strings)}
         </RuntimeStatusPill>
-        <RuntimeStatusPill label="Mode" status={robotStatus.mode.source === "operator-command" ? "ready" : "unknown"}>
-          {robotStatus.mode.mode.toUpperCase()}
+        <RuntimeStatusPill
+          label={strings.mode}
+          status={robotStatus.mode.source === "operator-command" ? "ready" : "unknown"}
+        >
+          {robotStatus.mode.requestedMode
+            ? robotStatus.mode.requestedMode.toUpperCase()
+            : showConfiguredModeFallback
+              ? robotStatus.mode.mode.toUpperCase()
+              : strings.notChecked}
         </RuntimeStatusPill>
       </div>
 
-      <ul className="runtime-robot-topic-list" aria-label="Runtime topic status">
+      <ul className="runtime-robot-topic-list" aria-label={strings.topicListLabel}>
         {robotStatus.topics.map((topicStatus) => (
           <li key={topicStatus.topic}>
             <span>
               <strong>{topicStatus.label}</strong>
               <small>{topicStatus.topic}</small>
             </span>
-            <strong data-status={topicStatus.status}>{topicStatus.statusLabel}</strong>
+            <strong data-status={topicStatus.status}>{resolveTopicStatusLabel(topicStatus, strings)}</strong>
           </li>
         ))}
       </ul>
 
       <button className="runtime-robot-status-refresh" onClick={refreshStatus} type="button">
-        Refresh status
+        {strings.refresh}
       </button>
       <p>{statusDetail}</p>
     </aside>
@@ -96,9 +122,56 @@ function RuntimeStatusPill({ children, label, status }: RuntimeStatusPillProps) 
   );
 }
 
-function getErrorMessage(error: unknown): string {
+function resolveSessionPillStatus(
+  sessionStatus: NonNullable<RuntimeRobotStatusPanelProps["sessionStatus"]>,
+): RuntimeStatusPillProps["status"] {
+  if (sessionStatus === "live") {
+    return "ready";
+  }
+  if (sessionStatus === "checking") {
+    return "not-checked";
+  }
+  if (sessionStatus === "unavailable") {
+    return "unavailable";
+  }
+  return "unknown";
+}
+
+function resolveSessionLabel(
+  sessionStatus: NonNullable<RuntimeRobotStatusPanelProps["sessionStatus"]>,
+  strings: RuntimeStrings["supervisor"]["status"],
+): string {
+  if (sessionStatus === "live") {
+    return strings.live;
+  }
+  if (sessionStatus === "checking") {
+    return strings.checking;
+  }
+  if (sessionStatus === "unavailable") {
+    return strings.unavailable;
+  }
+  return strings.local;
+}
+
+function resolveTopicStatusLabel(
+  topicStatus: RuntimeRobotStatus["topics"][number],
+  strings: RuntimeStrings["supervisor"]["status"],
+): string {
+  if (topicStatus.status === "ready") {
+    return strings.live;
+  }
+  if (topicStatus.status === "missing") {
+    return strings.missing;
+  }
+  if (topicStatus.status === "unknown") {
+    return strings.notChecked;
+  }
+  return topicStatus.requirement === "publisher" ? strings.noPublisher : strings.noSubscriber;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     return error.message;
   }
-  return "Runtime status refresh failed.";
+  return fallback;
 }

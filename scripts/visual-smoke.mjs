@@ -28,6 +28,7 @@ const routes = [
   { name: "app-config", setup: showAppConfig },
   { name: "builder-review", setup: showBuilderReview },
   { name: "runtime", setup: showRuntime },
+  { name: "supervisor-mirror", setup: showSupervisorMirror },
   { name: "runtime-tour", setup: showRuntimeTour },
   { name: "runtime-sandbox-teleop-config", setup: (page) => showSandboxRuntimeScreen(page, "Teleop Configuration") },
   { name: "runtime-control-panel", setup: (page) => showSandboxRuntimeScreen(page, "Control Panel") },
@@ -87,6 +88,9 @@ try {
       for (const route of routes) {
         await route.setup(page);
         await assertNoHorizontalOverflow(page, `${viewport.name}:${route.name}`);
+        if (route.name === "supervisor-mirror") {
+          await assertSupervisorTopicsFit(page, viewport.name);
+        }
         await page.screenshot({
           fullPage: false,
           path: resolve(outputDir, `${viewport.name}-${route.name}.png`),
@@ -214,6 +218,14 @@ async function mockConfigurationApi(page) {
           },
         ],
       },
+      status: 200,
+    });
+  });
+
+  await page.route("**/api/v1/runtime/stop", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { detail: "Runtime stop is not engaged.", engaged_at: "", stopped: false },
       status: 200,
     });
   });
@@ -427,6 +439,15 @@ async function showRuntimeTour(page) {
   await page.getByRole("region", { name: "Practice this app" }).waitFor();
 }
 
+async function showSupervisorMirror(page) {
+  await mockRuntimeWebSocket(page);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
+  await page.getByRole("button", { name: "Open Explorer Manager supervisor mirror" }).click();
+  await page.getByRole("region", { name: "Supervisor mirror" }).waitFor();
+  await page.getByText("Operator retains control").waitFor();
+}
+
 async function showSandboxRuntimeScreen(page, screenName) {
   await mockRuntimeWebSocket(page);
   await showRuntime(page);
@@ -533,6 +554,22 @@ async function assertPreviewControlsFit(page, label) {
 
   if (clipped.length > 0) {
     throw new Error(`${label} has clipped preview controls: ${JSON.stringify(clipped)}`);
+  }
+}
+
+async function assertSupervisorTopicsFit(page, label) {
+  const result = await page.locator(".supervisor-workspace .runtime-robot-topic-list").evaluate((list) => {
+    const bounds = list.getBoundingClientRect();
+    const clipped = [...list.children]
+      .map((element) => ({ label: element.textContent?.trim(), rect: element.getBoundingClientRect() }))
+      .filter(({ rect }) => rect.left < bounds.left - 2 || rect.right > bounds.right + 2)
+      .map(({ label: topicLabel, rect }) => ({ left: rect.left, right: rect.right, topicLabel }));
+    const panel = list.closest(".runtime-robot-status")?.getBoundingClientRect();
+    return { clipped, panelBottom: panel?.bottom ?? 0, viewportHeight: document.documentElement.clientHeight };
+  });
+
+  if (result.clipped.length > 0 || result.panelBottom > result.viewportHeight + 2) {
+    throw new Error(`${label} has clipped supervisor status: ${JSON.stringify(result)}`);
   }
 }
 

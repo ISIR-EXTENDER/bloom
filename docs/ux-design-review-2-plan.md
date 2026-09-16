@@ -1,9 +1,8 @@
 # Design review 2 — implementation plan and working notes
 
-Source of truth: `Bloom UX design review 2/handoff/` in this repository. Read `README.md`,
-`remaining-work.md`, `work-packages.md`, `code-fixes.md`, `settings-and-onboarding.md`,
-`i18n.md`, `kiosk-runtime-spec.md`, and `images/README.md` before touching code. The ten PNGs
-in `images/` are comparison references at 1280x720, not mockups to slice.
+The source material is the externally produced, Git-ignored `Bloom UX design review 2/handoff/` folder. This tracked
+document is Bloom's durable source of truth: it summarizes the handoff so later work never depends on that folder being
+present. The ten supplied PNGs are comparison references at 1280x720, not mockups to slice.
 
 This file tracks what is done, what is next, and how the work is run. Update it at each step.
 
@@ -20,7 +19,7 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | 1 | Runtime settings panel | **Done** — `1e2e2ee` |
 | 2 | `language` on `UserProfile` plus string catalogs | **Done** |
 | 3 | Guided tours | **Done** |
-| 4 | Read-only supervisor mirror | Not started |
+| 4 | Read-only supervisor mirror | **Done** |
 
 ## Lot 0.1, as delivered
 
@@ -172,9 +171,29 @@ Focused tests cover real actions, persistence, scanning, policy diagnosis, and t
 smoke includes both review surfaces across maintained viewports; live `1280x720` captures are `09-runtime-tour` and
 `10-builder-review`. Evidence is in `docs/validation/2026-09-16-guided-tours.md`.
 
+## Lot 4, as delivered
+
+Runtime library app cards now open a stable `#/runtime/supervisor/:config/:app` route, and a running app can open the
+same mirror in a new tab from Maintenance. Direct routes resolve the encoded app rather than using the previous Builder
+selection. The mirror shows app, configured robot, command frame, shared backend STOP latch, connection/session state,
+and relevant ROS topic readiness with automatic two-second refresh.
+
+Command ownership remains with the operator. `createSupervisorRuntimeClient` strips the full runtime client to four
+optional read/connection methods before the mirror receives it; the rendered surface has no artboard, movement, STOP,
+resume, topic-publish, or configured-action controls. It explicitly says that the operator retains control. Since the
+manager publishes no active-mode state, a fresh mirror reports mode as not checked and distinguishes browser-session
+requests from controller confirmation.
+
+Focused tests cover route round trips, exact direct-link selection, separate-tab entry, the reduced client object, and
+absence of command calls. Visual smoke covers the mirror across maintained viewports and asserts every topic tile fits.
+Live capture `12-supervisor-mirror` passed at `1280x720` against the running ROS-enabled stack. Evidence is in
+`docs/validation/2026-09-16-supervisor-mirror.md`; ADR 0128 records the read-only ownership boundary.
+
 ## Next steps, in order
 
-1. **Lot 4.** Add the read-only supervisor mirror without granting command ownership.
+The refreshed implementation packet is complete. Continue with the remaining physical-device/operator acceptance and
+the open design items in `docs/ux-design-handoff.md`; add a handover protocol only if a future supervisor role receives
+command authority.
 
 ## How the work is run
 
@@ -198,7 +217,7 @@ the repository root and echo the exit code.
 ### End-to-end captures
 
 `scripts/ros-e2e-capture.mjs` drives the real stack with Playwright at 1280x720 and writes
-the eleven review capture names. Nothing is mocked, unlike `npm run visual:smoke`.
+the twelve review capture names. Nothing is mocked, unlike `npm run visual:smoke`.
 
 ```bash
 # 1. cartesian_manager plus the feedback a robot would publish
@@ -229,6 +248,7 @@ the store already holds. Then open each capture next to its reference in
 hierarchy, target sizes, density. A hue difference is expected, a target-size difference is a
 defect. Captures 04, 05, 06, and 08 now cover the delivered Settings and language lots.
 Captures 09 and 10 cover the guided runtime practice and Builder review.
+Capture 12 covers the read-only supervisor mirror and its live status reads.
 
 Record every session under `docs/validation/` with what was and was not verified. A bench
 result is never a hardware claim.
@@ -253,6 +273,8 @@ Round-trip a file before editing it so the diff stays to the lines that changed.
   can match the live app without giving its controls a path to the robot.
 - **Builder checks describe real state.** Geometry, touch bounds, overlap, frame, and topic policy derive from the saved
   app. Profile preview and export complete only when those actions are actually used.
+- **Supervisor ownership is structural.** The mirror receives a projected read-only client and lives on a stable
+  per-app route; opening a second screen cannot implicitly grant command methods or take control from the operator.
 
 ## Open questions
 

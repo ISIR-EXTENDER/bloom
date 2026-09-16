@@ -108,6 +108,15 @@ const captures = [
       await page.waitForTimeout(400);
     },
   },
+  {
+    name: "12-supervisor-mirror",
+    setup: async (page) => {
+      await page.goto(`${dashboardUrl}/#/runtime/supervisor/${configId}/${appId}`, { waitUntil: "networkidle" });
+      await page.getByRole("region", { name: "Supervisor mirror" }).waitFor();
+      await page.getByText("Operator retains control").waitFor();
+      await page.waitForTimeout(600);
+    },
+  },
 ];
 
 await mkdir(outputDir, { recursive: true });

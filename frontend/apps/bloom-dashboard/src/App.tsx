@@ -1,7 +1,7 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionIntent } from "@bloom/widgets";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import "./builder.css";
 import "./builder-tour.css";
@@ -9,6 +9,7 @@ import "./runtime-app.css";
 import "./runtime-settings.css";
 import "./runtime-tour.css";
 import "./runtime-widgets.css";
+import "./supervisor.css";
 import "./responsive.css";
 
 import {
@@ -23,6 +24,7 @@ import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
 import { applyRuntimeModeIntent, createDefaultRuntimeModeState } from "./runtime/runtimeModeState";
+import { createSupervisorRuntimeClient } from "./runtime/supervisor-client";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { useRuntimeCapabilityReport } from "./runtime/use-runtime-capabilities";
 import { AppErrorBoundary } from "./ui/AppErrorBoundary";
@@ -63,17 +65,22 @@ export function App({
 }: AppProps) {
   const configurationState = useConfigurations(configurationClient);
   const runtimeActions = useRuntimeActionDispatcher(runtimeActionClient);
+  const supervisorRuntimeClient = useMemo(
+    () => createSupervisorRuntimeClient(runtimeActionClient),
+    [runtimeActionClient],
+  );
   const runtimeCapabilityReport = useRuntimeCapabilityReport(runtimeActionClient);
   const runtimeCapabilities = runtimeCapabilityReport?.capabilities ?? null;
   const initialRoute = getInitialBloomRoute();
   const [activeView, setActiveView] = useState<ProductView>(initialRoute.activeView);
   const [builderMode, setBuilderMode] = useState<BuilderMode>(initialRoute.builderMode);
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(initialRoute.runtimeMode);
+  const [supervisorTarget, setSupervisorTarget] = useState(initialRoute.supervisorTarget);
   const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
   const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
-  const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}`;
-  const isRuntimeAppView = activeView === "runtime" && runtimeMode === "app";
+  const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}:${supervisorTarget?.configId ?? ""}:${supervisorTarget?.appId ?? ""}`;
+  const isRuntimeSessionView = activeView === "runtime" && runtimeMode !== "home";
   const activeTheme =
     configurationState.status === "ready" && selection
       ? resolveThemePreset(
@@ -87,6 +94,7 @@ export function App({
       setActiveView(route.activeView);
       setBuilderMode(route.builderMode);
       setRuntimeMode(route.runtimeMode);
+      setSupervisorTarget(route.supervisorTarget);
     };
 
     window.addEventListener("hashchange", syncRouteFromBrowserHistory);
@@ -99,11 +107,26 @@ export function App({
   }, []);
 
   useEffect(() => {
-    if (configurationState.status !== "ready" || selection) {
+    if (configurationState.status !== "ready") {
+      return;
+    }
+
+    if (activeView === "runtime" && runtimeMode === "supervisor" && supervisorTarget) {
+      const targetSelection = resolveSupervisorSelection(configurationState.configurations, supervisorTarget);
+      if (targetSelection && !sameSelection(selection, targetSelection)) {
+        setSelection(targetSelection);
+      }
+      if (!targetSelection && selection) {
+        setSelection(null);
+      }
+      return;
+    }
+
+    if (selection) {
       return;
     }
     setSelection(getInitialWorkspaceSelection(configurationState.configurations));
-  }, [configurationState, selection]);
+  }, [activeView, configurationState, runtimeMode, selection, supervisorTarget]);
 
   useEffect(() => {
     resetViewportForRoute(activeRouteKey);
@@ -217,6 +240,22 @@ export function App({
     navigateToRoute(runtimeModeRoute("app"));
   };
 
+  const openSupervisorApp = (nextSelection: WorkspaceSelection) => {
+    setSelection(nextSelection);
+    navigateToRoute(runtimeModeRoute("supervisor", { appId: nextSelection.appId, configId: nextSelection.configId }));
+  };
+
+  const openSupervisorWindow = (nextSelection: WorkspaceSelection) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const route = runtimeModeRoute("supervisor", {
+      appId: nextSelection.appId,
+      configId: nextSelection.configId,
+    });
+    window.open(new URL(routeToHash(route), window.location.href).toString(), "_blank", "noopener,noreferrer");
+  };
+
   const handleRuntimeProfilePreferenceChange = (
     preferenceSelection: Pick<WorkspaceSelection, "appId" | "configId">,
     profileId: string,
@@ -288,6 +327,7 @@ export function App({
     setActiveView(route.activeView);
     setBuilderMode(route.builderMode);
     setRuntimeMode(route.runtimeMode);
+    setSupervisorTarget(route.supervisorTarget);
   }
 
   function navigateToRoute(route: BloomRoute) {
@@ -308,10 +348,12 @@ export function App({
   return (
     <BloomThemeProvider theme={activeTheme}>
       <main
-        className={`app-shell app-shell-${activeView}${isRuntimeAppView ? " app-shell-runtime-app" : ""}`}
+        className={`app-shell app-shell-${activeView}${isRuntimeSessionView ? " app-shell-runtime-app" : ""}`}
         id="bloom-main"
       >
-        {isRuntimeAppView ? null : <ProductNavigation activeView={activeView} onChangeView={handleProductViewChange} />}
+        {isRuntimeSessionView ? null : (
+          <ProductNavigation activeView={activeView} onChangeView={handleProductViewChange} />
+        )}
 
         <div id="bloom-main-content" tabIndex={-1}>
           <AppErrorBoundary resetKey={activeView}>
@@ -336,6 +378,8 @@ export function App({
                 onOpenHelp={() => handleProductViewChange("help")}
                 onOpenLanding={() => handleProductViewChange("landing")}
                 onOpenRuntimeApp={openRuntimeApp}
+                onOpenSupervisorApp={openSupervisorApp}
+                onOpenSupervisorWindow={openSupervisorWindow}
                 onRuntimeProfilePreferenceChange={handleRuntimeProfilePreferenceChange}
                 onRuntimeProfileOverridesChange={handleRuntimeProfileOverridesChange}
                 onRuntimeIntent={handleRuntimeIntent}
@@ -353,6 +397,7 @@ export function App({
                 runtimeActionClient={runtimeActionClient}
                 runtimeMode={runtimeMode}
                 runtimeModeState={runtimeModeState}
+                supervisorRuntimeClient={supervisorRuntimeClient}
                 teleopActive={runtimeActions.teleopActive}
                 selection={selection}
                 state={configurationState}
@@ -404,4 +449,20 @@ function resetViewportForRoute(_routeKey: string) {
 
   window.scrollTo({ top: 0 });
   document.getElementById("bloom-main-content")?.focus({ preventScroll: true });
+}
+
+function resolveSupervisorSelection(
+  configurations: Extract<ReturnType<typeof useConfigurations>, { status: "ready" }>["configurations"],
+  target: NonNullable<BloomRoute["supervisorTarget"]>,
+): WorkspaceSelection | null {
+  const configuration = configurations.find((candidate) => candidate.id === target.configId);
+  const application = configuration?.bundle.applications.find((candidate) => candidate.id === target.appId);
+  const screen = application?.screens[0];
+  return configuration && application && screen
+    ? { appId: application.id, configId: configuration.id, screenId: screen.id }
+    : null;
+}
+
+function sameSelection(current: WorkspaceSelection | null, next: WorkspaceSelection): boolean {
+  return current?.appId === next.appId && current.configId === next.configId && current.screenId === next.screenId;
 }

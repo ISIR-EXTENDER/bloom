@@ -37,6 +37,8 @@ In Bloom:
 7. Runtime presents the app as a kiosk. Editing, screen switching, diagnostics,
    and product navigation require the maintenance hold rather than sharing the
    primary operating surface.
+8. A stable per-app supervisor route may observe the same backend STOP latch and topic status on a second display. Its
+   projected frontend client contains no command methods, so observation does not transfer control ownership.
 
 In `extender_ui`, the comparable flow is closer to direct JSON/layout sync.
 That is useful for rollback and migration fixtures, but Bloom avoids making the
@@ -102,8 +104,8 @@ The split from `extender_ui` is that ROS transport lives behind backend adapters
 The frontend owns operator interaction, widget rendering, and saved command
 identity; the backend owns ROS process access, policy, rate limiting, and audit.
 
-The current operating behavior, including STOP, profiles, combined scan/dwell,
-gamepad, and frame selection, is in [operator-runtime.md](operator-runtime.md).
+The current operating behavior, including STOP, profiles, combined scan/dwell, gamepad, frame selection, and the
+read-only supervisor mirror, is in [operator-runtime.md](operator-runtime.md).
 
 ## Rosbag Gateway Operating Procedure
 

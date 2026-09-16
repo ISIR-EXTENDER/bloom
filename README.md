@@ -33,6 +33,7 @@ Bloom provides:
 
 - a visual **Builder** for applications, screens, widgets, themes, and runtime policies;
 - a distraction-free **Runtime** with connection state, guarded maintenance access, and a backend-latched STOP;
+- a separate read-only **Supervisor mirror** for robot, frame, STOP-latch, session, and ROS-topic status;
 - reusable inputs and diagnostics for touch, keyboard, gamepad, camera, plots, topics, and saved positions;
 - a FastAPI boundary for storage, WebSocket sessions, policy checks, audit records, and optional ROS 2 adapters;
 - ready-to-run **Explorer Manager** and **Kinova Manager** applications for Extender.
@@ -167,7 +168,10 @@ port `5173`. `Ctrl+C` stops both Bloom processes.
    path.
 7. Open **Practice tour** from Maintenance or Settings to rehearse the app's own movement label, STOP/resume, and the
    Maintenance hold. This replacement surface has no robot command interface; leave it to restore live controls.
-8. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
+8. Open **Supervisor mirror** from the Runtime library, or from Maintenance to launch the current app on a second
+   screen. The mirror can read live status and the shared STOP latch, but it has no movement, STOP, resume, publish, or
+   configured-action controls. The operator runtime keeps command ownership.
+9. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
 
 Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova permits `effector_frame` and adds the
 reviewed fault-reset action. Joystick Lab keeps every frame choice visible and explains when the connected robot does
@@ -272,6 +276,7 @@ applications, so it cannot silently leave a stale image in this README.
 - Touch, keyboard, and gamepad Cartesian input composed into one application-scoped 6-DoF command.
 - Per-profile English, Spanish, and French runtime shells with an English fallback.
 - Local-only guided operator practice and an action-based Builder review checklist.
+- A read-only supervisor mirror with an explicit operator-ownership notice and no command client surface.
 - Explorer and Kinova Manager workflows for Joystick Lab, Drive, Positions, Robot feedback, and Command sources.
 - JSON and SQLite configuration storage, tracked seed applications, import/export, audit, and recording hooks.
 - ROS 2 integration for `cartesian_manager`, generic topic publishing, service calls, and topic discovery.
@@ -285,8 +290,8 @@ still needs wiring. Track these and the current design review in [the UX design 
 
 New Extender IHM work belongs in Bloom. The remaining work is explicit:
 
-1. Complete the open design work around physical sizing, profile semantics, supervisor handover, and remembered role
-   entry.
+1. Complete the open design work around physical sizing, profile semantics, remembered role entry, and deliberate
+   handover only if supervisors are later allowed to command.
 2. Validate the Bloom IHM on the target tablets, assistive inputs, simulations, and robots.
 3. Keep `extender_ui` rollback artifacts until the relevant live sessions are accepted.
 4. Retain generic web/ROS boundaries so Bloom can serve robots beyond Extender.

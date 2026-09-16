@@ -1,0 +1,185 @@
+.supervisor-workspace {
+  min-height: 100svh;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font-size: calc(1rem * var(--runtime-font-scale, 1));
+}
+
+.supervisor-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 18px;
+  align-items: center;
+  min-height: 92px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--bloom-outline);
+  background: var(--bloom-surface-soft);
+}
+
+.supervisor-header h1 {
+  margin: 2px 0 0;
+  font-size: 30px;
+  letter-spacing: 0;
+}
+
+.supervisor-header > button {
+  min-height: 52px;
+  padding: 8px 18px;
+  border: 1px solid var(--bloom-outline);
+  border-radius: 8px;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font: inherit;
+  font-weight: 800;
+}
+
+.supervisor-ownership {
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--bloom-outline);
+  background: var(--bloom-secondary-container);
+  color: var(--bloom-on-secondary-container);
+}
+
+.supervisor-ownership strong {
+  font-size: 18px;
+}
+
+.supervisor-ownership p {
+  margin: 5px 0 0;
+  line-height: 1.4;
+}
+
+.supervisor-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  margin: 0;
+  border-bottom: 1px solid var(--bloom-outline);
+}
+
+.supervisor-facts > div {
+  min-width: 0;
+  min-height: 112px;
+  padding: 20px 24px;
+  border-right: 1px solid var(--bloom-outline);
+}
+
+.supervisor-facts > div:nth-child(5) {
+  grid-column: span 2;
+  border-top: 1px solid var(--bloom-outline);
+}
+
+.supervisor-facts dt {
+  margin-bottom: 8px;
+  color: var(--bloom-on-surface-muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.supervisor-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.supervisor-facts dd[data-state="stopped"] {
+  color: var(--bloom-error);
+}
+
+.supervisor-facts dd[data-state="running"] {
+  color: var(--bloom-primary);
+}
+
+.supervisor-facts small {
+  display: block;
+  margin-top: 8px;
+  color: var(--bloom-on-surface-muted);
+}
+
+.supervisor-workspace .runtime-robot-status {
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 128px;
+  padding: 18px 28px;
+  border-bottom: 1px solid var(--bloom-outline);
+}
+
+.supervisor-workspace .runtime-robot-status-summary {
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.supervisor-workspace .runtime-robot-topic-list {
+  display: grid;
+  grid-row: 2;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(min(178px, 100%), 1fr));
+  overflow: visible;
+}
+
+.supervisor-workspace .runtime-robot-status > p {
+  grid-row: 3;
+  grid-column: 1 / -1;
+}
+
+.supervisor-workspace .runtime-status-pill,
+.supervisor-workspace .runtime-robot-topic-list li {
+  min-height: 54px;
+}
+
+.supervisor-workspace .runtime-robot-topic-list li {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 6px 8px;
+}
+
+.supervisor-workspace .runtime-robot-topic-list > li > strong {
+  min-width: 64px;
+}
+
+.supervisor-workspace .runtime-robot-status-refresh {
+  grid-row: 1;
+  grid-column: 2;
+  min-height: 52px;
+  border-radius: 8px;
+}
+
+.supervisor-workspace :focus-visible {
+  outline: 3px solid var(--bloom-on-surface);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .supervisor-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .supervisor-header .runtime-kiosk-status {
+    grid-column: 1;
+  }
+
+  .supervisor-header > button {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+
+  .supervisor-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .supervisor-facts > div:nth-child(5) {
+    grid-column: 1 / -1;
+  }
+
+  .supervisor-workspace .runtime-robot-status {
+    grid-template-columns: 1fr;
+  }
+
+  .supervisor-workspace .runtime-robot-status-summary,
+  .supervisor-workspace .runtime-robot-topic-list,
+  .supervisor-workspace .runtime-robot-status-refresh,
+  .supervisor-workspace .runtime-robot-status > p {
+    grid-row: auto;
+    grid-column: 1;
+  }
+}

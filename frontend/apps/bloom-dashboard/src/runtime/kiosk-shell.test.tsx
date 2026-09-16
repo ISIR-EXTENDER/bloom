@@ -34,6 +34,7 @@ function renderBar(overrides: Partial<Parameters<typeof RuntimeKioskBar>[0]> = {
     onOpenLanding: vi.fn(),
     onOpenHelp: vi.fn(),
     onOpenSettings: vi.fn(),
+    onOpenSupervisor: vi.fn(),
     onOpenTour: vi.fn(),
     onLanguageChange: vi.fn(),
   };
@@ -177,9 +178,27 @@ describe("maintenance", () => {
     renderBar();
     hold(1600);
 
-    for (const gateway of ["Settings", "App library", "Edit this screen in the builder", "Edit app", "Help", "Home"]) {
+    for (const gateway of [
+      "Settings",
+      "Supervisor mirror",
+      "App library",
+      "Edit this screen in the builder",
+      "Edit app",
+      "Help",
+      "Home",
+    ]) {
       expect(screen.getByRole("button", { name: gateway })).toBeTruthy();
     }
+  });
+
+  it("opens the read-only supervisor mirror and closes maintenance", () => {
+    const handlers = renderBar();
+    hold(1600);
+
+    fireEvent.click(screen.getByRole("button", { name: "Supervisor mirror" }));
+
+    expect(handlers.onOpenSupervisor).toHaveBeenCalledOnce();
+    expect(isOpen()).toBe(false);
   });
 
   it("opens settings from maintenance and removes the maintenance overlay", () => {

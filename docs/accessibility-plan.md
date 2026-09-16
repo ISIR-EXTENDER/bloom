@@ -32,6 +32,8 @@ signals, and test accessibility continuously.
   robot command interface. Its movement and hold checks can be repeated from Maintenance or Settings.
 - Builder review derives geometry, touch-size, overlap, command-frame, and topic-policy checks from the saved app, then
   requires an actual profile preview and export for the final checks.
+- The supervisor mirror uses a separate read-only status surface, names that the operator retains control, and exposes
+  no command or STOP/resume controls that could create an accidental role handover.
 
 ## Motor And Input Profiles
 
@@ -96,6 +98,8 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
   status states, and a 40%-expanded visual-smoke pass.
 - Guided-tour tests cover real-action completion, persisted checks, scanning, policy diagnosis, and the absence of
   teleop or ROS publish calls from practice. Visual and live `1280x720` captures cover both tour surfaces.
+- Supervisor tests cover the reduced client surface, direct app routes, separate-tab entry, command absence, and shared
+  status reads. Visual smoke covers the mirror at all maintained viewports, including an internal topic-fit assertion.
 
 These are repository-level checks. They do not prove that a real switch, gamepad, tablet mounting position, sound level,
 or interaction pattern works for a particular person.
@@ -114,7 +118,8 @@ or interaction pattern works for a particular person.
   the delivered EN/ES/FR safety language with native speakers and operators.
 - Wire the `reduced-motion` profile value explicitly or remove it; today only the browser/OS media preference changes
   motion.
-- Design supervisor mirroring and explicit control ownership/handover.
+- Validate supervisor status readability on the actual second display. Define explicit ownership and deliberate
+  handover only if a later design adds supervisory command controls.
 - Add a stable browser-level automated accessibility scan while retaining keyboard, screen-reader, hardware, and
   operator checks that automation cannot replace.
 

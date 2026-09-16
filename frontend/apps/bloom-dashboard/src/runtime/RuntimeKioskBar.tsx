@@ -67,6 +67,7 @@ export type RuntimeKioskBarProps = {
   onOpenLanding: () => void;
   onOpenHelp: () => void;
   onOpenSettings: () => void;
+  onOpenSupervisor: () => void;
   onOpenTour: () => void;
   language?: RuntimeLanguage;
   onLanguageChange: (language: RuntimeLanguage) => void;
@@ -89,6 +90,7 @@ export function RuntimeKioskBar({
   onOpenLanding,
   onOpenHelp,
   onOpenSettings,
+  onOpenSupervisor,
   onOpenTour,
   language = "en",
   onLanguageChange,
@@ -157,6 +159,10 @@ export function RuntimeKioskBar({
           onOpenAppLibrary={onOpenAppLibrary}
           onOpenHelp={onOpenHelp}
           onOpenLanding={onOpenLanding}
+          onOpenSupervisor={() => {
+            setMaintenanceOpen(false);
+            onOpenSupervisor();
+          }}
           onLanguageChange={onLanguageChange}
           onOpenTour={() => {
             setMaintenanceOpen(false);
@@ -196,6 +202,7 @@ function RuntimeMaintenanceOverlay({
   onOpenLanding,
   onOpenHelp,
   onOpenSettings,
+  onOpenSupervisor,
   onOpenTour,
   onClose,
   language,
@@ -213,6 +220,7 @@ function RuntimeMaintenanceOverlay({
   onOpenLanding: () => void;
   onOpenHelp: () => void;
   onOpenSettings: () => void;
+  onOpenSupervisor: () => void;
   onOpenTour: () => void;
   onClose: () => void;
   language: RuntimeLanguage;
@@ -293,6 +301,9 @@ function RuntimeMaintenanceOverlay({
           </button>
           <button onClick={onOpenSettings} type="button">
             {strings.kiosk.settings}
+          </button>
+          <button onClick={onOpenSupervisor} type="button">
+            {strings.kiosk.supervisorMirror}
           </button>
           <button onClick={onOpenAppLibrary} type="button">
             {strings.kiosk.appLibrary}

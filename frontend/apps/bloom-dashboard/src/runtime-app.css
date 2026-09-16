@@ -489,6 +489,12 @@
   width: 100%;
 }
 
+.runtime-app-card-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .runtime-app-topbar {
   position: relative;
   z-index: 10;

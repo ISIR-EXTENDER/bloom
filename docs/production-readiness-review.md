@@ -9,7 +9,7 @@ validates Bloom rather than deciding which product owns the IHM.
 
 | Area | Current Bloom state | Remaining evidence or work |
 | --- | --- | --- |
-| Product shell | Builder, app library, Help, history-aware routes, kiosk runtime, reusable local-only operator practice, and Builder review. | Remembered role-aware first entry and automatic first-launch offer. |
+| Product shell | Builder, app library, Help, history-aware routes, kiosk runtime, read-only supervisor mirror, reusable local-only operator practice, and Builder review. | Remembered role-aware first entry and automatic first-launch offer. |
 | Runtime safety surface | Truthful kiosk status, fixed backend-latched STOP, held resume, held maintenance entry. | Full controller/hardware STOP acceptance. |
 | App/screen configuration | API-backed flows, shared seeds, SQLite normalized reconstruction, screen library, drag/drop with button fallbacks. | Generic collision feedback and multi-device touch review. |
 | WYSIWYG builder | Save/discard, undo/redo, palette, inspector, previews, selected-target warning, runtime shrink disclosure, and an action-based app review checklist. | Whole-screen device frames and a prevention/reflow policy for fit below physical target size. |
@@ -70,13 +70,16 @@ truthful bar, a real stop, direction words, one visible effective command frame,
 per-profile Settings and EN/ES/FR language, and control bounds in maintained seeds.
 The runtime practice path is disconnected from command interfaces in code, while the Builder review turns late lab
 checks into saved-app checks and actual preview/export actions.
+The supervisor mirror likewise receives only connection and status-read methods, identifies the operator as command
+owner, and can run on a second display without exposing STOP, resume, publish, teleop, or configured actions.
 
 The next UX work is not another broad redesign. It is the unresolved physical and social layer:
 
 - screen-space target guarantees after fit scaling;
 - switch/gamepad/dwell validation with intended users;
 - stable eyes-off control placement and non-visual cues;
-- supervisor mirroring and explicit control ownership;
+- second-display validation for the delivered read-only supervisor mirror, plus explicit handover design only if
+  supervisory commands are later introduced;
 - remembered role-aware first entry, first-launch practice policy, and native-speaker review of delivered EN/ES/FR
   safety wording;
 - camera and fault recovery language.

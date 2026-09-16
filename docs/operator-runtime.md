@@ -28,6 +28,23 @@ explicitly reports a required publisher, subscriber, service, or teleop seam una
 authored position but becomes inert and shows the backend's reason. A missing or failed capability report remains
 unknown and does not disable the screen by guesswork.
 
+## Supervisor Mirror
+
+Open **Supervisor mirror** beside an app in the Runtime library. From a running app, hold **Maintenance** and choose the
+same action to open that app's mirror in a separate browser tab or display. The route includes the configuration and
+application IDs, so a bookmarked mirror resolves the intended app instead of whichever app Builder last selected.
+
+The mirror shows the application, configured robot, effective default command frame, shared backend STOP latch,
+frontend/backend session state, and relevant ROS topic readiness. It refreshes STOP and topic status every two seconds
+and also offers a manual status refresh. `cartesian_manager` does not publish authoritative active-mode feedback, so a
+fresh mirror says **Not checked** and **No mode request observed in this browser session** rather than presenting the
+configured fallback as live robot state.
+
+This surface is read-only by construction. It receives a projected client with connection observation and status-read
+methods only. It has no movement, STOP, resume, topic-publish, or configured-action controls. The ownership notice says
+that the operator retains control; opening or closing a mirror never hands command authority to another browser.
+Deliberate handover remains a future product and safety decision if supervisory controls are ever introduced.
+
 ## Guided Practice
 
 Hold **Maintenance** and choose **Practice tour**, or open the same tour from Runtime Settings. Practice replaces the

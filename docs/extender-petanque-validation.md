@@ -61,6 +61,8 @@ fallbacks can be made unavailable:
 - Tablet UX: confirm `1024x600`, `1280x720`, and the `1820x720` logical workspace on target hardware.
 - Kiosk and STOP: confirm status/frame/profile readability, the 1.5 second maintenance hold, backend stop latching across
   clients, and the one-second resume hold against the real controller chain.
+- Supervisor: confirm the read-only mirror is legible on the intended second display, reflects the same STOP latch and
+  topic graph, states operator ownership, and cannot issue robot or stop/resume commands.
 - Accessible input: validate each intended touch, keyboard, step, latch, scan, dwell, gamepad, and audio profile with
   the actual device and operator.
 
@@ -150,6 +152,7 @@ npm run validation:petanque-parity
      disabled, updates the kiosk bar, and stamps the next virtual/gamepad command with the selected frame.
    - Neutral, Jaco, momentary Snake, gripper open/close, and speed limits publish their configured values.
    - STOP latches in the backend and resume requires a one-second hold.
+   - A Supervisor mirror opened on a second display reflects STOP/topic state and contains no command controls.
    - Bloom Debug or `GET /api/v1/ros/topics/status` shows publishers/subscribers for
      `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`.
    - Robot motion is visible in RViz/Gazebo.
@@ -231,6 +234,8 @@ On the HMTECH tablet or equivalent target viewport:
 - The effective robot/frame/profile state remains readable without stealing the control area.
 - Browser back/forward affordances do not create blank pages.
 - Backend/robot status indicators are readable without becoming alarm-noisy.
+- The supervisor mirror fits every status tile without horizontal scrolling or clipped text and remains visibly
+  read-only.
 
 ## Security Acceptance
 

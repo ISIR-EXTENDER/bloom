@@ -64,6 +64,7 @@ type RuntimeWorkspaceProps = {
   onOpenBuilderHome: () => void;
   onOpenHelp: () => void;
   onOpenLanding: () => void;
+  onOpenSupervisor: () => void;
   onProfileOverridesChange: (profileId: string, overrides: RuntimeProfileOverrides) => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onSuspendTeleop: () => void;
@@ -87,6 +88,7 @@ export function RuntimeWorkspace({
   onEditScreen,
   onOpenHelp,
   onOpenLanding,
+  onOpenSupervisor,
   onProfileOverridesChange,
   onSelectionChange,
   onSuspendTeleop,
@@ -375,6 +377,8 @@ export function RuntimeWorkspace({
             application={application}
             client={runtimeActionClient}
             modeState={runtimeModeState}
+            sessionStatus={runtimeActionClient.sendTeleopCommand ? "live" : "local"}
+            strings={strings.supervisor.status}
           />
         }
         fitWarning={canvasFit.warning}
@@ -383,6 +387,7 @@ export function RuntimeWorkspace({
         onOpenAppLibrary={onBackToRuntimeHome}
         onOpenHelp={onOpenHelp}
         onOpenLanding={onOpenLanding}
+        onOpenSupervisor={onOpenSupervisor}
         language={runtimeProfile.language}
         onLanguageChange={(language) =>
           onProfileOverridesChange(baseRuntimeProfile.id, { ...activeProfileOverrides, language })

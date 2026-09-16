@@ -7,6 +7,7 @@ import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
 type RuntimeHomeProps = {
   configurations: readonly LoadedConfiguration[];
   onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
+  onOpenSupervisorApp: (selection: WorkspaceSelection) => void;
   onProfilePreferenceChange: (selection: Pick<WorkspaceSelection, "appId" | "configId">, profileId: string) => void;
   profilePreferences: Record<string, string>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
@@ -15,6 +16,7 @@ type RuntimeHomeProps = {
 export function RuntimeHome({
   configurations,
   onOpenRuntimeApp,
+  onOpenSupervisorApp,
   onProfilePreferenceChange,
   profilePreferences,
   recentRuntimeSelections,
@@ -95,20 +97,40 @@ export function RuntimeHome({
                   </select>
                 </label>
               ) : null}
-              <BloomButton
-                ariaLabel={`Launch ${application.name} runtime`}
-                className="runtime-app-card-action"
-                disabled={!firstScreen}
-                onClick={() => {
-                  if (!firstScreen) {
-                    return;
-                  }
-                  onOpenRuntimeApp({ appId: application.id, configId: configuration.id, screenId: firstScreen.id });
-                }}
-                tone="primary"
-              >
-                Launch runtime
-              </BloomButton>
+              <div className="runtime-app-card-actions">
+                <BloomButton
+                  ariaLabel={`Launch ${application.name} runtime`}
+                  className="runtime-app-card-action"
+                  disabled={!firstScreen}
+                  onClick={() => {
+                    if (!firstScreen) {
+                      return;
+                    }
+                    onOpenRuntimeApp({ appId: application.id, configId: configuration.id, screenId: firstScreen.id });
+                  }}
+                  tone="primary"
+                >
+                  Launch runtime
+                </BloomButton>
+                <BloomButton
+                  ariaLabel={`Open ${application.name} supervisor mirror`}
+                  className="runtime-app-card-action"
+                  disabled={!firstScreen}
+                  onClick={() => {
+                    if (!firstScreen) {
+                      return;
+                    }
+                    onOpenSupervisorApp({
+                      appId: application.id,
+                      configId: configuration.id,
+                      screenId: firstScreen.id,
+                    });
+                  }}
+                  tone="subtle"
+                >
+                  Supervisor mirror
+                </BloomButton>
+              </div>
             </BloomCard>
           </li>
         ))}

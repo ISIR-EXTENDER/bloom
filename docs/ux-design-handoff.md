@@ -58,7 +58,7 @@ supervisor roles.
 | 10. Builder cannot see tablet | Partial | `native-1280x720` and selected-widget `1024x600` glass-size feedback. | Three device frames and a whole-screen touch-check mode. |
 | 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab selects a supported session frame and Runtime Settings persists a per-profile frame override, both at zero motion and shared by widgets/gamepad. | Installation-specific egocentric mapping and final operator-facing frame names. |
 | 12. Operator looks at the gripper | Partial | Keyboard, gamepad, directional scanning, dwell, and sounds for stop/link loss/recovery. | Cross-screen spatial consistency, possible latch cue, and real eyes-off tests. |
-| 13. Operator and supervisor surfaces | Open | STOP state is shared across clients. | Mirror role, explicit control ownership, and deliberate handover. |
+| 13. Operator and supervisor surfaces | Partial | Read-only per-app mirror shows shared STOP/topic/session state, explicitly leaves control with the operator, and receives no command methods. | Validate the second display; define deliberate handover only if supervisory commands are introduced. |
 | 14. Language belongs to the person | Delivered for the runtime shell | `UserProfile.language` defaults to English; EN/ES/FR catalogs cover status, STOP, Maintenance, scanning, Settings, and empty states. Maintenance and Settings persist a per-profile choice. | Native-speaker safety review and a future schema for independently localized authored labels. |
 
 ## Remaining Design Work
@@ -99,8 +99,9 @@ supervisor roles.
   from saved app state, profile preview, and export. See `docs/validation/2026-09-16-guided-tours.md`.
 - **Design camera recovery.** Permission denial, missing devices, and stream loss need one clear operator action, then
   validation with Robin's visual-servoing setup.
-- **Add the supervisor mirror.** Start with a read-only robot status surface without robot commands. Explicit ownership
-  and deliberate handover remain a later decision if supervisory control is introduced.
+- ~~**Add the supervisor mirror.**~~ Delivered 2026-09-16 as a read-only per-app status route with explicit operator
+  ownership and no command client surface. Second-display acceptance remains; deliberate handover is needed only if a
+  future supervisor role can command. See `docs/validation/2026-09-16-supervisor-mirror.md`.
 - **Expose profile coverage.** App authors need to see which profiles were designed and tested for an app instead of
   assuming every enum value is supported by every layout.
 
@@ -120,7 +121,7 @@ The latest handoff proposed this order. The state column records what now exists
 | 1 | P1 | Delivered | Add operator-usable runtime profile settings and a non-commanding live preview, with defensive local preference persistence. |
 | 2 | P1 | Delivered | Add EN/ES/FR profile language, runtime string catalogs, pseudo-locale tests, and locale captures while keeping authored labels as configuration data. |
 | 3 | P2 | Delivered | Add action-based operator and builder tours with persistent real-action checks and a structurally local-only practice surface. |
-| 4 | P2 | Not started | Add a read-only supervisor status mirror; do not grant robot commands implicitly. |
+| 4 | P2 | Delivered | Add a read-only supervisor status mirror on a stable per-app route; do not grant robot commands implicitly. |
 
 The settings design also depends on a product answer: whether a person has one editable profile or several named,
 duplicable profiles for different positions or fatigue levels.
@@ -165,6 +166,8 @@ kiosk height. Change the shared value only through an explicit design/architectu
 - Real switch scanning with optional dwell confirmation, plus keyboard, latch, step, audio, and repeat guard with
   intended users.
 - Guided practice comprehension, hold timing, and the handoff from practice to live controls with intended users.
+- Supervisor mirror readability on the intended second display and confirmation that operator ownership language is
+  understood; no command handover is implemented.
 - Robin visual-servoing camera/tag behavior and an opt-in rosbag capture from Bloom Debug.
 - Petanque only if the archived workflow is still expected to run.
 

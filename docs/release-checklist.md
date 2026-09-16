@@ -56,8 +56,9 @@ npm run capture:readme   # only when the README previews should change
 ```
 
 For runtime changes, inspect the kiosk bar, fixed STOP, maintenance overlay, effective command frame, control bounds,
-and local practice surface at every maintained viewport. For Builder changes, inspect the app review at the same
-viewports. A browser capture is layout evidence, not target-tablet acceptance.
+local practice surface, and read-only supervisor mirror at every maintained viewport. Confirm every supervisor topic
+tile is visible and no operator command appears. For Builder changes, inspect the app review at the same viewports. A
+browser capture is layout evidence, not target-tablet acceptance.
 
 ## 4. Security posture
 
@@ -110,6 +111,8 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       speed controls publish the expected topics and payloads.
 - [ ] STOP latches in the backend, is reflected by a second client or reload, and cannot resume without the one-second
       hold. This supplements rather than replaces the hardware emergency-stop check.
+- [ ] A second-display supervisor mirror reflects the same STOP latch and relevant topic state, states that the
+      operator retains control, and exposes no STOP, resume, movement, publish, or configured-action control.
 - [ ] Any profile claimed by the release is exercised with its intended input: keyboard, step, latch, scan, dwell,
       gamepad, or direct touch. Implemented support is not the same as hardware/user acceptance.
 

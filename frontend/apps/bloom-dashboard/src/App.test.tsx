@@ -94,6 +94,48 @@ describe("App", () => {
     expect(await screen.findByRole("heading", { level: 2, name: "Main" })).toBeVisible();
   });
 
+  it("restores a direct supervisor route for its exact application", async () => {
+    window.history.replaceState(null, "", "#/runtime/supervisor/robot-monitor/robot-monitor");
+    const runtimeActionClient = createRuntimeActionClient();
+    runtimeActionClient.getRuntimeStopState = vi.fn(async () => ({
+      detail: "Runtime stop is not engaged.",
+      engaged_at: "",
+      stopped: false,
+    }));
+
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: { "robot-monitor": createRobotMonitorBundle() },
+          ids: ["robot-monitor"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    expect(await screen.findByRole("region", { name: "Supervisor mirror" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Robot monitor" })).toBeVisible();
+    expect(screen.getByText("Operator retains control")).toBeVisible();
+    expect(screen.getByText(/has no movement, STOP, resume, publish, or action controls/i)).toBeVisible();
+    expect(screen.getAllByText("Not checked").length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("runtime-artboard")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /stop the robot/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(runtimeActionClient.listRosTopicStatus).toHaveBeenCalled());
+    expect(runtimeActionClient.getRuntimeStopState).toHaveBeenCalled();
+    expect(screen.getByText("Running")).toBeVisible();
+    expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalled();
+    expect(runtimeActionClient.sendTeleopCommand).not.toHaveBeenCalled();
+  });
+
+  it("does not substitute another app for an unknown supervisor route", async () => {
+    window.history.replaceState(null, "", "#/runtime/supervisor/sandbox/missing-app");
+
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Supervisor application not found.");
+    expect(screen.queryByRole("region", { name: "Supervisor mirror" })).not.toBeInTheDocument();
+  });
+
   it("provides a keyboard skip link to the main content", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
@@ -339,6 +381,40 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Resume Sandbox on Main" })).toBeVisible();
+  });
+
+  it("opens the read-only supervisor mirror from the runtime library", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox supervisor mirror" }));
+
+    expect(await screen.findByRole("region", { name: "Supervisor mirror" })).toBeVisible();
+    expect(window.location.hash).toBe("#/runtime/supervisor/sandbox/sandbox");
+    expect(screen.getByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
+    expect(screen.queryByTestId("runtime-artboard")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /stop the robot/i })).not.toBeInTheDocument();
+    expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalled();
+    expect(runtimeActionClient.sendTeleopCommand).not.toHaveBeenCalled();
+  });
+
+  it("opens the current app mirror in a separate tab from maintenance", async () => {
+    const openWindow = vi.spyOn(window, "open").mockImplementation(() => null);
+    render(<App configurationClient={createConfigurationClient()} />);
+
+    await openSandboxRuntimeFromNavigation();
+    openRuntimeMenu();
+    fireEvent.click(screen.getByRole("button", { name: "Supervisor mirror" }));
+
+    expect(openWindow).toHaveBeenCalledWith(
+      expect.stringContaining("#/runtime/supervisor/sandbox/sandbox"),
+      "_blank",
+      "noopener,noreferrer",
+    );
+    expect(screen.queryByRole("dialog", { name: "Maintenance" })).not.toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Runtime application" })).toBeVisible();
+    openWindow.mockRestore();
   });
 
   it("persists recent runtime apps and display profile preferences", async () => {

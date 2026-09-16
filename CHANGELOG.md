@@ -25,6 +25,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   scanning/dwell support, and complete English, Spanish, and French runtime-shell catalogs.
 - **Action-based guided review** with a structurally local-only five-step runtime practice path and a six-check Builder
   review derived from saved app geometry, touch bounds, frame, topic policy, profile preview, and JSON export.
+- **Read-only supervisor mirror** with stable per-app routes, live robot/frame/STOP/topic status, explicit operator
+  ownership, and a runtime client projection that exposes no movement, STOP, resume, publish, or action methods.
 - **One Cartesian command frame per application**, selected from backend capabilities, shown in the kiosk bar, applied
   to virtual controls and gamepads, persisted through JSON/SQLite, and checked against the deployment allowlist.
 - **Kinova Manager app** alongside Explorer Manager, including manager drive, saved positions, feedback, command-source

@@ -45,7 +45,44 @@ export type RuntimeStrings = {
     referenceFrameTitle: string;
     robotTitle: string;
     settings: string;
+    supervisorMirror: string;
     switchScreen: string;
+  };
+  supervisor: {
+    application: string;
+    backToLibrary: string;
+    commandFrame: string;
+    lastRequest: string;
+    neverRequested: string;
+    notReported: string;
+    operatorOwnsControl: string;
+    ownershipDetail: string;
+    readOnly: string;
+    robot: string;
+    running: string;
+    status: {
+      api: string;
+      checking: string;
+      connected: string;
+      live: string;
+      local: string;
+      missing: string;
+      mode: string;
+      noPublisher: string;
+      noSubscriber: string;
+      notChecked: string;
+      panelLabel: string;
+      refresh: string;
+      refreshFailed: string;
+      session: string;
+      topicsLoaded: (count: number) => string;
+      topicListLabel: string;
+      unavailable: string;
+    };
+    stopLatch: string;
+    stopped: string;
+    title: string;
+    updatedAt: (value: string) => string;
   };
   settings: {
     categories: { display: string; frame: string; language: string; movement: string; tuning: string };

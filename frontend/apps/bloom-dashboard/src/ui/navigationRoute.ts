@@ -1,22 +1,43 @@
 import type { ProductView } from "./ProductNavigation";
 
 export type BuilderRouteMode = "app-config" | "home" | "screen-builder";
-export type RuntimeRouteMode = "app" | "home";
+export type RuntimeRouteMode = "app" | "home" | "supervisor";
+
+export type SupervisorRouteTarget = {
+  appId: string;
+  configId: string;
+};
 
 export type BloomRoute = {
   activeView: ProductView;
   builderMode: BuilderRouteMode;
   runtimeMode: RuntimeRouteMode;
+  supervisorTarget: SupervisorRouteTarget | null;
 };
 
 export const DEFAULT_BLOOM_ROUTE: BloomRoute = {
   activeView: "landing",
   builderMode: "home",
   runtimeMode: "home",
+  supervisorTarget: null,
 };
 
 export function parseBloomRoute(hash: string): BloomRoute {
   const normalizedHash = hash.replace(/^#/, "").replace(/^\/?/, "/");
+  const supervisorMatch = normalizedHash.match(/^\/runtime\/supervisor\/([^/]+)\/([^/]+)$/);
+  if (supervisorMatch) {
+    const configId = tryDecodeRoutePart(supervisorMatch[1]);
+    const appId = tryDecodeRoutePart(supervisorMatch[2]);
+    if (!configId || !appId) {
+      return DEFAULT_BLOOM_ROUTE;
+    }
+    return {
+      ...DEFAULT_BLOOM_ROUTE,
+      activeView: "runtime",
+      runtimeMode: "supervisor",
+      supervisorTarget: { configId, appId },
+    };
+  }
 
   switch (normalizedHash) {
     case "":
@@ -42,12 +63,23 @@ export function parseBloomRoute(hash: string): BloomRoute {
   }
 }
 
+function tryDecodeRoutePart(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
 export function routeToHash(route: BloomRoute): string {
   if (route.activeView === "builder") {
     return route.builderMode === "home" ? "#/builder" : `#/builder/${builderModeToPath(route.builderMode)}`;
   }
 
   if (route.activeView === "runtime") {
+    if (route.runtimeMode === "supervisor" && route.supervisorTarget) {
+      return `#/runtime/supervisor/${encodeURIComponent(route.supervisorTarget.configId)}/${encodeURIComponent(route.supervisorTarget.appId)}`;
+    }
     return route.runtimeMode === "home" ? "#/runtime" : "#/runtime/app";
   }
 
@@ -78,8 +110,11 @@ export function builderModeRoute(builderMode: BuilderRouteMode): BloomRoute {
   return { ...DEFAULT_BLOOM_ROUTE, activeView: "builder", builderMode };
 }
 
-export function runtimeModeRoute(runtimeMode: RuntimeRouteMode): BloomRoute {
-  return { ...DEFAULT_BLOOM_ROUTE, activeView: "runtime", runtimeMode };
+export function runtimeModeRoute(
+  runtimeMode: RuntimeRouteMode,
+  supervisorTarget: SupervisorRouteTarget | null = null,
+): BloomRoute {
+  return { ...DEFAULT_BLOOM_ROUTE, activeView: "runtime", runtimeMode, supervisorTarget };
 }
 
 function builderModeToPath(builderMode: BuilderRouteMode): string {

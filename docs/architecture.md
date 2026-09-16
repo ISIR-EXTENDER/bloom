@@ -46,6 +46,9 @@ Bloom should separate product entry points from robot interface execution:
 - Runtime app library: lets users choose or resume the app they want to operate.
 - Runtime apps: renders a chosen robot interface as a kiosk, with only truthful operating state and the fixed STOP on
   the primary surface. Navigation, diagnostics, screen switching, and editing live behind a deliberate maintenance hold.
+- Supervisor mirror: renders a selected app's read-only status on a separate stable route. It observes connection,
+  robot, configured default frame, STOP latch, and topic readiness while the operator runtime retains every command
+  control.
 - Help page: explains current workflows step by step and keeps a visible freshness signal for handover.
 
 Screen previews, canvas builders, and runtime apps do not belong on the landing page. The landing page routes into the
@@ -112,6 +115,13 @@ and dwell can activate either a direct target or the highlighted target through 
 Guided runtime practice sits above the same accessibility layer but outside the action path. It receives app labels and
 profile behavior, but no runtime action client, intent callback, or teleop contribution callback. Leaving the practice
 replacement surface is what restores the live artboard and its command interfaces.
+
+The supervisor mirror is another intentionally separate boundary. `createSupervisorRuntimeClient` projects the full
+runtime client down to connection observation plus `getRuntimeStopState` and `listRosTopicStatus`. The mirror component
+cannot receive publish, teleop, configured-action, STOP, or resume methods. Its `#/runtime/supervisor/:config/:app`
+route can open on a second display without transferring ownership from the operator session. Because
+`cartesian_manager` publishes no authoritative mode, a fresh mirror says that mode is not checked and reports only a
+request observed in its own browser session.
 
 The current operator contract is maintained in `docs/operator-runtime.md`.
 

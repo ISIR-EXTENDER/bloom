@@ -9,13 +9,15 @@ import { RuntimeWorkspace } from "../runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "../runtime/runtime-profile-overrides";
 import type { RuntimeModeState } from "../runtime/runtimeModeState";
+import { SupervisorWorkspace } from "../runtime/SupervisorWorkspace";
+import type { SupervisorRuntimeClient } from "../runtime/supervisor-client";
 import type { useRuntimeActionDispatcher } from "../runtime/use-runtime-action-dispatcher";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import type { ProductView } from "../ui/ProductNavigation";
 import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
 
 export type BuilderMode = "app-config" | "home" | "screen-builder";
-export type RuntimeMode = "app" | "home";
+export type RuntimeMode = "app" | "home" | "supervisor";
 
 type ProductWorkspaceProps = {
   activeView: Exclude<ProductView, "landing">;
@@ -31,6 +33,8 @@ type ProductWorkspaceProps = {
   onOpenHelp: () => void;
   onOpenLanding: () => void;
   onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
+  onOpenSupervisorApp: (selection: WorkspaceSelection) => void;
+  onOpenSupervisorWindow: (selection: WorkspaceSelection) => void;
   onRuntimeProfilePreferenceChange: (
     selection: Pick<WorkspaceSelection, "appId" | "configId">,
     profileId: string,
@@ -65,6 +69,7 @@ type ProductWorkspaceProps = {
   runtimeActionClient: RuntimeActionClient;
   runtimeMode: RuntimeMode;
   runtimeModeState: RuntimeModeState;
+  supervisorRuntimeClient: SupervisorRuntimeClient;
   teleopActive: boolean;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
@@ -84,6 +89,8 @@ export function ProductWorkspace({
   onOpenHelp,
   onOpenLanding,
   onOpenRuntimeApp,
+  onOpenSupervisorApp,
+  onOpenSupervisorWindow,
   onRuntimeProfilePreferenceChange,
   onRuntimeProfileOverridesChange,
   onRuntimeIntent,
@@ -103,6 +110,7 @@ export function ProductWorkspace({
   runtimeActionClient,
   runtimeMode,
   runtimeModeState,
+  supervisorRuntimeClient,
   teleopActive,
   selection,
   state,
@@ -115,8 +123,17 @@ export function ProductWorkspace({
     return <ConfigurationStatus isError message={state.message} />;
   }
 
-  if (state.configurations.length === 0 || !selection) {
+  if (state.configurations.length === 0) {
     return <ConfigurationStatus message="No configurations found yet." />;
+  }
+
+  if (!selection) {
+    return (
+      <ConfigurationStatus
+        isError={runtimeMode === "supervisor"}
+        message={runtimeMode === "supervisor" ? "Supervisor application not found." : "No application selected."}
+      />
+    );
   }
 
   const selectedWorkspace = resolveSelectedWorkspace(state.configurations, selection);
@@ -147,9 +164,30 @@ export function ProductWorkspace({
       <RuntimeHome
         configurations={state.configurations}
         onOpenRuntimeApp={onOpenRuntimeApp}
+        onOpenSupervisorApp={onOpenSupervisorApp}
         onProfilePreferenceChange={onRuntimeProfilePreferenceChange}
         profilePreferences={profilePreferences}
         recentRuntimeSelections={recentRuntimeSelections}
+      />
+    );
+  }
+
+  if (runtimeMode === "supervisor") {
+    return (
+      <SupervisorWorkspace
+        application={selectedWorkspace.application}
+        client={supervisorRuntimeClient}
+        commandFrameId={
+          selectedWorkspace.application.runtime_policy.command_frame_id ||
+          runtimeCapabilityReport?.command_frame_id ||
+          null
+        }
+        modeState={runtimeModeState}
+        onBackToLibrary={onBackToRuntimeHome}
+        preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
+        profileOverrides={profileOverrides}
+        robotName={runtimeCapabilityReport?.robot_name ?? null}
+        selection={selection}
       />
     );
   }
@@ -165,6 +203,7 @@ export function ProductWorkspace({
       onOpenBuilderHome={onOpenBuilderHome}
       onOpenHelp={onOpenHelp}
       onOpenLanding={onOpenLanding}
+      onOpenSupervisor={() => onOpenSupervisorWindow(selection)}
       onProfileOverridesChange={(profileId, overrides) =>
         onRuntimeProfileOverridesChange(selection, profileId, overrides)
       }

@@ -17,11 +17,15 @@ describe("navigationRoute", () => {
     expect(parseBloomRoute("#/builder/screen")).toEqual(builderModeRoute("screen-builder"));
     expect(parseBloomRoute("#/runtime")).toEqual(runtimeModeRoute("home"));
     expect(parseBloomRoute("#/runtime/app")).toEqual(runtimeModeRoute("app"));
+    expect(parseBloomRoute("#/runtime/supervisor/explorer-manager/explorer-manager")).toEqual(
+      runtimeModeRoute("supervisor", { appId: "explorer-manager", configId: "explorer-manager" }),
+    );
     expect(parseBloomRoute("#/help")).toEqual(productViewRoute("help"));
   });
 
   it("falls back to the landing page for unknown routes", () => {
     expect(parseBloomRoute("#/old-route")).toEqual(DEFAULT_BLOOM_ROUTE);
+    expect(parseBloomRoute("#/runtime/supervisor/%E0%A4%A/explorer")).toEqual(DEFAULT_BLOOM_ROUTE);
   });
 
   it("serializes Bloom routes to stable hashes", () => {
@@ -31,6 +35,9 @@ describe("navigationRoute", () => {
     expect(routeToHash(builderModeRoute("screen-builder"))).toBe("#/builder/screen");
     expect(routeToHash(runtimeModeRoute("home"))).toBe("#/runtime");
     expect(routeToHash(runtimeModeRoute("app"))).toBe("#/runtime/app");
+    expect(routeToHash(runtimeModeRoute("supervisor", { appId: "explorer manager", configId: "lab/explorer" }))).toBe(
+      "#/runtime/supervisor/lab%2Fexplorer/explorer%20manager",
+    );
     expect(routeToHash(productViewRoute("help"))).toBe("#/help");
   });
 });

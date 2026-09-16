@@ -117,6 +117,8 @@ Before a robot-facing Bloom session or release:
 - move the translation/rotation joysticks and Z/RZ controls, then verify `/cartesian_command`, release-to-zero, and robot
   motion in RViz/Gazebo;
 - validate Neutral, Jaco, momentary Snake, gripper, speed limits, and the fixed STOP/backend resume latch;
+- open the current app's Supervisor mirror on a second display, verify the shared STOP/topic state, and confirm that no
+  movement, STOP, resume, publish, or action controls are present there;
 - connect any intended gamepad or assistive input and verify its real mapping and disconnect behavior;
 - open Bloom Debug and verify topic catalog, topic echo, plot, audit, and recording controls;
 - if archived Petanque is still required, open its screens and validate camera/debug/state-machine interactions against
