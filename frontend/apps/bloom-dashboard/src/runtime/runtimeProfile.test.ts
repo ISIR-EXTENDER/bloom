@@ -98,4 +98,26 @@ describe("resolveRuntimeProfile", () => {
       motorAccessibilityPreset: "scan",
     });
   });
+
+  it("applies and clamps operator overrides after profile normalization", () => {
+    expect(
+      resolveRuntimeProfile({ profiles: [...profiles] }, { height: 800, width: 1280 }, "operator", {
+        audioCues: true,
+        deadzone: 9,
+        dwellEnabled: true,
+        dwellMs: 100,
+        motorAccessibilityPreset: "scan",
+        repeatGuardMs: -10,
+        scanPeriodMs: 9000,
+      }),
+    ).toMatchObject({
+      audioCues: true,
+      deadzone: 0.5,
+      dwellEnabled: true,
+      dwellMs: 400,
+      motorAccessibilityPreset: "scan",
+      repeatGuardMs: 0,
+      scanPeriodMs: 3000,
+    });
+  });
 });

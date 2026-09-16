@@ -1,6 +1,12 @@
+import {
+  normalizeRuntimeProfileOverrides,
+  type RuntimeProfileOverrides,
+  runtimeProfileOverrideKey,
+} from "../runtime/runtime-profile-overrides";
 import type { WorkspaceSelection } from "./ConfigurationWorkspace";
 
 export type RuntimeUserPreferences = {
+  profileOverrides: Record<string, RuntimeProfileOverrides>;
   profilePreferences: Record<string, string>;
   recentRuntimeSelections: WorkspaceSelection[];
 };
@@ -9,6 +15,7 @@ const STORAGE_KEY = "bloom.runtime-user-preferences.v1";
 const MAX_RECENT_RUNTIME_SELECTIONS = 3;
 
 const EMPTY_RUNTIME_USER_PREFERENCES: RuntimeUserPreferences = {
+  profileOverrides: {},
   profilePreferences: {},
   recentRuntimeSelections: [],
 };
@@ -63,6 +70,23 @@ export function setRuntimeProfilePreference(
   return { ...preferences, profilePreferences };
 }
 
+export function setRuntimeProfileOverrides(
+  preferences: RuntimeUserPreferences,
+  selection: Pick<WorkspaceSelection, "appId" | "configId">,
+  profileId: string,
+  value: RuntimeProfileOverrides,
+): RuntimeUserPreferences {
+  const profileOverrides = { ...preferences.profileOverrides };
+  const key = runtimeProfileOverrideKey(selection, profileId);
+  const overrides = normalizeRuntimeProfileOverrides(value);
+  if (Object.keys(overrides).length > 0) {
+    profileOverrides[key] = overrides;
+  } else {
+    delete profileOverrides[key];
+  }
+  return { ...preferences, profileOverrides };
+}
+
 export function runtimePreferenceKey(selection: Pick<WorkspaceSelection, "appId" | "configId">): string {
   return `${selection.configId}:${selection.appId}`;
 }
@@ -73,9 +97,23 @@ function normalizeRuntimeUserPreferences(value: unknown): RuntimeUserPreferences
   }
 
   return {
+    profileOverrides: normalizeProfileOverrides(value.profileOverrides),
     profilePreferences: normalizeProfilePreferences(value.profilePreferences),
     recentRuntimeSelections: normalizeRecentRuntimeSelections(value.recentRuntimeSelections),
   };
+}
+
+function normalizeProfileOverrides(value: unknown): Record<string, RuntimeProfileOverrides> {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([key, candidate]) => {
+      const overrides = normalizeRuntimeProfileOverrides(candidate);
+      return key && Object.keys(overrides).length > 0 ? [[key, overrides]] : [];
+    }),
+  );
 }
 
 function normalizeProfilePreferences(value: unknown): Record<string, string> {

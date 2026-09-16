@@ -71,6 +71,14 @@ export class TeleopStreamPump {
     }
   }
 
+  /** End a runtime surface and forget the target that surface established. */
+  reset(): void {
+    this.stop();
+    this.lastRequest = null;
+    this.lastSentAt = 0;
+    this.zeroFramesLeft = 0;
+  }
+
   private tick(): void {
     // A widget stream is already keeping the command fresh.
     if (Date.now() - this.lastSentAt < this.intervalMs) {

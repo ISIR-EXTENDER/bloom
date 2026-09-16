@@ -68,6 +68,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       for (const [position, target] of targetsRef.current.entries()) {
         target.toggleAttribute("data-scan-lit", position === nextIndex);
       }
+      targetsRef.current[nextIndex]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     };
 
     readTargets();

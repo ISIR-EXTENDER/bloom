@@ -7,6 +7,7 @@ import type { useConfigurations } from "../configurations/use-configurations";
 import { RuntimeHome } from "../runtime/RuntimeHome";
 import { RuntimeWorkspace } from "../runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
+import type { RuntimeProfileOverrides } from "../runtime/runtime-profile-overrides";
 import type { RuntimeModeState } from "../runtime/runtimeModeState";
 import type { useRuntimeActionDispatcher } from "../runtime/use-runtime-action-dispatcher";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -34,6 +35,11 @@ type ProductWorkspaceProps = {
     selection: Pick<WorkspaceSelection, "appId" | "configId">,
     profileId: string,
   ) => void;
+  onRuntimeProfileOverridesChange: (
+    selection: Pick<WorkspaceSelection, "appId" | "configId">,
+    profileId: string,
+    overrides: RuntimeProfileOverrides,
+  ) => void;
   onRuntimeIntent: (
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
@@ -50,7 +56,9 @@ type ProductWorkspaceProps = {
   onTopicSample: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onUploadThemeAsset: (file: File) => Promise<string>;
+  onSuspendTeleop: ReturnType<typeof useRuntimeActionDispatcher>["suspendTeleop"];
   profilePreferences: Record<string, string>;
+  profileOverrides: Record<string, RuntimeProfileOverrides>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
   runtimeCapabilities: readonly RuntimeCapability[] | null;
   runtimeCapabilityReport: RuntimeCapabilityReport | null;
@@ -77,6 +85,7 @@ export function ProductWorkspace({
   onOpenLanding,
   onOpenRuntimeApp,
   onRuntimeProfilePreferenceChange,
+  onRuntimeProfileOverridesChange,
   onRuntimeIntent,
   onSaveApplication,
   onSaveBuilderScreen,
@@ -85,7 +94,9 @@ export function ProductWorkspace({
   onTopicSample,
   onTopicSubscriptionRequest,
   onUploadThemeAsset,
+  onSuspendTeleop,
   profilePreferences,
+  profileOverrides,
   recentRuntimeSelections,
   runtimeCapabilities,
   runtimeCapabilityReport,
@@ -154,11 +165,16 @@ export function ProductWorkspace({
       onOpenBuilderHome={onOpenBuilderHome}
       onOpenHelp={onOpenHelp}
       onOpenLanding={onOpenLanding}
+      onProfileOverridesChange={(profileId, overrides) =>
+        onRuntimeProfileOverridesChange(selection, profileId, overrides)
+      }
       onSelectionChange={onSelectionChange}
       onTeleopContribution={onTeleopContribution}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
+      onSuspendTeleop={onSuspendTeleop}
       preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
+      profileOverrides={profileOverrides}
       runtimeActionClient={runtimeActionClient}
       runtimeModeState={runtimeModeState}
       screen={selectedWorkspace.screen}

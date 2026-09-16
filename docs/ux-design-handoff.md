@@ -52,11 +52,11 @@ supervisor roles.
 | 4. Target size is discounted by fit | Partial | Builder reports selected-widget size at `1024x600`; runtime Maintenance reports authored geometry and actual scale below 1.0. | No whole-screen target analysis, prevention, or reflow. |
 | 5. Silent overlap | Partial | Maintained operator seeds and Sandbox validation reject overlapping interactive controls. | Generic immediate collision feedback in the builder. |
 | 6. Adapter-language axis labels | Delivered | Pads use operator direction words; technical axes remain in details. | Validate vocabulary per app with operators. |
-| 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Under `scan`, joysticks and sliders render step targets, and dwell on SWITCH can activate the highlighted direction. | `reduced-motion`, edge layout, settings, and validation with the intended devices remain. |
+| 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Runtime Settings now changes and safely previews the supported interaction values; under `scan`, both operation and Settings are scannable. | `reduced-motion`, edge layout, and validation with the intended devices remain. |
 | 8. Muted contrast failed | Delivered | Token corrected and semantic contrast tests expanded. | Review in real lab lighting. |
 | 9. Contributor-oriented onboarding | Open | Builder and Runtime are distinct; starter apps can include onboarding spots. | Remembered role choice and per-app operator tour. |
 | 10. Builder cannot see tablet | Partial | `native-1280x720` and selected-widget `1024x600` glass-size feedback. | Three device frames and a whole-screen touch-check mode. |
-| 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab can select one supported session frame at zero motion, shared by widgets/gamepad and shown in kiosk. | Installation-specific egocentric mapping and final operator-facing frame names. |
+| 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab selects a supported session frame and Runtime Settings persists a per-profile frame override, both at zero motion and shared by widgets/gamepad. | Installation-specific egocentric mapping and final operator-facing frame names. |
 | 12. Operator looks at the gripper | Partial | Keyboard, gamepad, directional scanning, dwell, and sounds for stop/link loss/recovery. | Cross-screen spatial consistency, possible latch cue, and real eyes-off tests. |
 | 13. Operator and supervisor surfaces | Open | STOP state is shared across clients. | Mirror role, explicit control ownership, and deliberate handover. |
 | 14. Language belongs to the person | Open | No profile language field or runtime string catalog. | EN/ES/FR model, translations, authored-label strategy, overflow tests. |
@@ -70,8 +70,10 @@ supervisor roles.
   while scanning and test the emitted movement intent, not only focus movement.
 - ~~**Surface unsafe fit scaling.**~~ Delivered 2026-09-16; Maintenance reports the authored canvas, actual rendered
   percentage, and touch-floor risk without covering controls. Prevention/reflow and whole-screen target analysis remain.
-- **Create accessible runtime settings.** Let the operator adjust the current profile from Maintenance with large
-  decrement/increment controls, reversible local overrides, and a local test strip that cannot emit robot commands.
+- ~~**Create accessible runtime settings.**~~ Delivered 2026-09-16; the full-screen surface uses large
+  decrement/increment controls, reversible per-profile overrides, scanning/dwell at the draft timing, and a safe local
+  preview. Entering Settings suspends composed teleop before controls unmount. See
+  `docs/validation/2026-09-16-runtime-settings.md`.
 - **Add runtime language.** Add `language` to the profile, translate the kiosk/STOP/status/scanner/settings shell for
   EN/ES/FR, keep authored widget labels as localized configuration data, and test a lengthened pseudo-locale.
 - **Add device-frame review.** Provide `1024x600`, `1280x720`, and `1820x720` builder frames plus a whole-screen touch

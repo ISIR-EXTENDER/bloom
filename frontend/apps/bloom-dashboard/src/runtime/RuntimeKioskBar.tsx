@@ -65,6 +65,7 @@ export type RuntimeKioskBarProps = {
   onEditApplication: () => void;
   onOpenLanding: () => void;
   onOpenHelp: () => void;
+  onOpenSettings: () => void;
 };
 
 export function RuntimeKioskBar({
@@ -83,6 +84,7 @@ export function RuntimeKioskBar({
   onEditApplication,
   onOpenLanding,
   onOpenHelp,
+  onOpenSettings,
 }: RuntimeKioskBarProps) {
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, () => setMaintenanceOpen(true));
@@ -146,6 +148,10 @@ export function RuntimeKioskBar({
           onOpenAppLibrary={onOpenAppLibrary}
           onOpenHelp={onOpenHelp}
           onOpenLanding={onOpenLanding}
+          onOpenSettings={() => {
+            setMaintenanceOpen(false);
+            onOpenSettings();
+          }}
           onSelectScreen={onSelectScreen}
           screen={screen}
         >
@@ -174,6 +180,7 @@ function RuntimeMaintenanceOverlay({
   onEditApplication,
   onOpenLanding,
   onOpenHelp,
+  onOpenSettings,
   onClose,
 }: {
   children?: ReactNode;
@@ -186,6 +193,7 @@ function RuntimeMaintenanceOverlay({
   onEditApplication: () => void;
   onOpenLanding: () => void;
   onOpenHelp: () => void;
+  onOpenSettings: () => void;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -234,6 +242,9 @@ function RuntimeMaintenanceOverlay({
         ) : null}
 
         <div className="runtime-maintenance-actions">
+          <button onClick={onOpenSettings} type="button">
+            Settings
+          </button>
           <button onClick={onOpenAppLibrary} type="button">
             App library
           </button>

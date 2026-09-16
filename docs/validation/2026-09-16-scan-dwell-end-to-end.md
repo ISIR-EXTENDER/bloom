@@ -62,4 +62,9 @@ The value is the expected `0.25` scan step after the profile/widget's scaled `0.
 
 - Validate timing, fatigue, accidental activation, and the switch/dwell combination with the intended devices and
   operators.
-- Decide in runtime settings whether dwell is presented as a simple enable plus duration or as named setup choices.
+
+## Runtime Settings Follow-up
+
+Lot 1 resolved the presentation question: **Rest to select** is an independent toggle beside the bounded dwell duration
+in Fine tuning. The draft duration drives dwell on the Settings surface itself, including while scan remains selected.
+See `docs/validation/2026-09-16-runtime-settings.md`.

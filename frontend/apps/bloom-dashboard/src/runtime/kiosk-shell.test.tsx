@@ -33,6 +33,7 @@ function renderBar(overrides: Partial<Parameters<typeof RuntimeKioskBar>[0]> = {
     onEditApplication: vi.fn(),
     onOpenLanding: vi.fn(),
     onOpenHelp: vi.fn(),
+    onOpenSettings: vi.fn(),
   };
   render(
     <RuntimeKioskBar
@@ -174,9 +175,19 @@ describe("maintenance", () => {
     renderBar();
     hold(1600);
 
-    for (const gateway of ["App library", "Edit this screen in the builder", "Edit app", "Help", "Home"]) {
+    for (const gateway of ["Settings", "App library", "Edit this screen in the builder", "Edit app", "Help", "Home"]) {
       expect(screen.getByRole("button", { name: gateway })).toBeTruthy();
     }
+  });
+
+  it("opens settings from maintenance and removes the maintenance overlay", () => {
+    const handlers = renderBar();
+    hold(1600);
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(handlers.onOpenSettings).toHaveBeenCalledOnce();
+    expect(isOpen()).toBe(false);
   });
 
   it("discloses unsafe fit inside maintenance without covering the controls", () => {

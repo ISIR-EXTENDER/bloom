@@ -124,6 +124,26 @@ feature by itself because it has a nonzero default. Dwell never shortens the one
 Latched and stepped return-to-center controls automatically publish zero after 15 seconds without renewed input; the
 visible zero control releases them sooner.
 
+### Runtime Settings
+
+Hold **Maintenance**, then open **Settings** to adjust the currently selected profile without entering Builder. The
+settings screen replaces the robot controls rather than covering them. Entering it clears composed teleop sources and
+stops the runtime stream; its bottom try strip is local state and has no robot-action interface.
+
+Changes apply immediately and are stored in the existing browser preference payload under
+`profileOverrides[configId:appId:profileId]`. Reloading and reopening the same application/profile restores them.
+Malformed stored values are ignored. **Undo changes** restores the overrides present when Settings opened, while
+**Done** returns to operation.
+
+The movement choices expose direct drag, step, latch, and scanning behavior in operator language. **At the edge** is
+visible but disabled because Bloom has no edge-control runtime behavior yet. Fine tuning uses 88x72 decrement/increment
+targets for scan period, dead zone, dwell duration, and repeat guard, plus toggles for dwell and status sounds. Command
+frame choices come from the connected backend's allowlist and remain disabled while teleop is active. Display preset
+and text scale are read-only installation facts. Language selection arrives in the next implementation lot.
+
+Settings uses the active scan period and dwell duration itself. Its header, category rail, controls, safe preview, and
+Done action therefore remain reachable when the current profile uses scanning and/or dwell.
+
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
 because a click on it moves nothing. Under scan, dwelling on the full-width SWITCH bar activates the highlighted target
 without a firm press. Single-switch and combined scan-plus-dwell teleop are covered by tests but not yet validated with
@@ -144,7 +164,8 @@ frame. Its initial value is:
 Set it in **Builder > App configuration > Adapter guardrails > Cartesian command frame**. The selector is populated
 from `GET /api/v1/capabilities`, and the effective frame is visible in the kiosk bar. A screen may offer a
 `teleop-frame` selector such as Joystick Lab. It can choose only a reported frame and only while the composed twist is
-zero; the selection lasts for the current app runtime session and does not rewrite the application.
+zero; that selector lasts for the current app runtime session. A choice made in Runtime Settings is a per-profile local
+override and is restored when that application/profile is reopened. Neither path rewrites the application bundle.
 
 Bloom accepts only `BLOOM_ALLOWED_COMMAND_FRAME_IDS`. `cartesian_manager` recognizes its configured base,
 end-effector, and hybrid frames; it does not perform a general TF lookup. The linear component follows the manager's

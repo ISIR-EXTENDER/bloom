@@ -118,20 +118,31 @@ inert, and their notices carried the backend details. The parallel ROS-ready cap
 maintained hierarchy in reference `01`. Evidence is in
 `docs/validation/2026-09-16-runtime-capability-gating.md`.
 
+## Lot 1, as delivered
+
+`RuntimeSettingsPanel` opens from Maintenance as a replacement surface, never over robot controls. The selected
+profile's normalized overrides live in the existing localStorage payload under
+`profileOverrides[configId:appId:profileId]`; corrupt JSON and invalid fields are ignored. `resolveRuntimeProfile`
+applies the override after base-profile normalization and reuses its existing numeric clamps.
+
+The five-category rail exposes the four implemented movement behaviors, fine tuning, backend-reported command frames,
+a Lot 2 language placeholder, and read-only display facts. Edge movement stays visible but disabled because no runtime
+behavior implements it. Numeric values use 88x72 -/+ controls, dwell is an independent toggle plus duration, and every
+interactive setting is reachable through scanning. Undo restores the opening overrides.
+
+The bottom safe preview implements draft step, latch, scan, dwell, and repeat timing in local component state. Entering
+Settings clears the teleop composer and resets its stream before and after the runtime controls unmount. A live
+ROS-enabled browser probe observed no WebSocket frames from Left, Forward, or Right preview clicks. Evidence and
+reference comparison are in `docs/validation/2026-09-16-runtime-settings.md`.
+
 ## Next steps, in order
 
-1. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
-   `runtime-settings.test.tsx`. Overrides persist in the existing localStorage key through
-   `ui/runtime-user-preferences.ts`, under `profileOverrides[configId:appId:profileId]`, and
-   `resolveRuntimeProfile` applies them after normalization, reusing `clampRange` as the
-   -/+ bounds. No slider anywhere on this screen; -/+ pairs at 88x72. The try-it strip obeys
-   the current values and sends nothing to the robot.
-2. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
+1. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
    `useRuntimeStrings`. Start with `runtime-status-chip.ts`, `RuntimeStopControl.tsx`,
    `RuntimeKioskBar.tsx`, and the scan announcement in `RuntimeWorkspace.tsx`, which are the
    files that still hold literals. Widget labels stay config data, one field per locale; do
    not translate them in code.
-3. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
+2. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
    an adapter is safe, so the practice steps cannot command the arm.
 
 ## How the work is run

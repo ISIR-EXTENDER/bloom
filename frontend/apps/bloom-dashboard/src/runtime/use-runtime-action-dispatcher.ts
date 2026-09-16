@@ -150,7 +150,13 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     [syncTeleopActive],
   );
 
-  return { contributeTeleop, dispatch, records, subscribeTopic, teleopActive };
+  const suspendTeleop = useCallback(() => {
+    teleopComposer.current.clear();
+    teleopPump.current?.reset();
+    syncTeleopActive();
+  }, [syncTeleopActive]);
+
+  return { contributeTeleop, dispatch, records, subscribeTopic, suspendTeleop, teleopActive };
 }
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {

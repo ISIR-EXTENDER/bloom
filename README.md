@@ -160,8 +160,11 @@ port `5173`. `Ctrl+C` stops both Bloom processes.
    frame, then use translation, height, rotation, pivot, modes, and gripper on one screen. Frame buttons stay disabled
    until every motion control is back at zero.
 5. Use **Drive** for the regular operating layout and speed limits. Hold the maintenance button for 1.5 seconds to
-   reach **Positions**, **Robot feedback**, and **Command sources**.
-6. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
+   reach **Positions**, **Robot feedback**, **Command sources**, and **Settings**.
+6. Open **Settings** to adjust the selected profile's movement style, scan/dwell timing, dead zone, repeat guard,
+   status sounds, and command frame. Changes apply immediately and survive a reload. **Undo changes** restores the
+   state from when the screen opened; the bottom try strip is local and never enters the robot command path.
+7. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
 
 Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova permits `effector_frame` and adds the
 reviewed fault-reset action. Joystick Lab keeps every frame choice visible and explains when the connected robot does

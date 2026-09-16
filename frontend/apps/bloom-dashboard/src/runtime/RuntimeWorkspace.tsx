@@ -9,6 +9,7 @@ import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
 import { RuntimeKioskBar } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
+import { RuntimeSettingsPanel } from "./RuntimeSettingsPanel";
 import { RuntimeStopControl } from "./RuntimeStopControl";
 import type {
   RuntimeActionClient,
@@ -16,6 +17,7 @@ import type {
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
 import { resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
+import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
@@ -60,10 +62,13 @@ type RuntimeWorkspaceProps = {
   onOpenBuilderHome: () => void;
   onOpenHelp: () => void;
   onOpenLanding: () => void;
+  onProfileOverridesChange: (profileId: string, overrides: RuntimeProfileOverrides) => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onSuspendTeleop: () => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
   preferredProfileId?: string;
+  profileOverrides: Readonly<Record<string, RuntimeProfileOverrides>>;
   runtimeActionClient: RuntimeActionClient;
   runtimeModeState: RuntimeModeState;
   screen: ScreenConfig;
@@ -80,11 +85,14 @@ export function RuntimeWorkspace({
   onEditScreen,
   onOpenHelp,
   onOpenLanding,
+  onProfileOverridesChange,
   onSelectionChange,
+  onSuspendTeleop,
   onTeleopContribution,
   onTopicSample,
   onTopicSubscriptionRequest,
   preferredProfileId = "",
+  profileOverrides,
   runtimeActionClient,
   runtimeModeState,
   screen,
@@ -92,6 +100,7 @@ export function RuntimeWorkspace({
 }: RuntimeWorkspaceProps) {
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const { artboardSize } = resolveScreenArtboardLayout(screen);
   const canvasFit = useMemo(
@@ -106,17 +115,28 @@ export function RuntimeWorkspace({
     }),
     [artboardScale, artboardSize],
   );
-  const runtimeProfile = useMemo(
+  const baseRuntimeProfile = useMemo(
     () => resolveRuntimeProfile(application, viewportSize, preferredProfileId),
     [application, preferredProfileId, viewportSize],
   );
-  const defaultCommandFrameId =
+  const profileOverrideKey = runtimeProfileOverrideKey(selection, baseRuntimeProfile.id);
+  const activeProfileOverrides = profileOverrides[profileOverrideKey] ?? EMPTY_PROFILE_OVERRIDES;
+  const runtimeProfile = useMemo(
+    () => resolveRuntimeProfile(application, viewportSize, preferredProfileId, activeProfileOverrides),
+    [activeProfileOverrides, application, preferredProfileId, viewportSize],
+  );
+  const configuredCommandFrameId =
     application.runtime_policy.command_frame_id || runtimeCapabilityReport?.command_frame_id || null;
+  const defaultCommandFrameId = resolvePreferredCommandFrameId(
+    activeProfileOverrides.commandFrameId,
+    configuredCommandFrameId,
+    runtimeCapabilityReport?.command_frame_ids ?? null,
+  );
   const [commandFrameId, setCommandFrameId] = useState<string | null>(defaultCommandFrameId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new app starts a new frame-selection session.
   useEffect(() => {
     setCommandFrameId(defaultCommandFrameId);
-  }, [application.id, defaultCommandFrameId]);
+  }, [application.id, baseRuntimeProfile.id, defaultCommandFrameId]);
   const controlStateByWidgetId = useMemo(
     () =>
       createRuntimeControlStateByWidgetId(screen, runtimeModeState, {
@@ -167,7 +187,7 @@ export function RuntimeWorkspace({
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
   const gamepad = useGamepadInput({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
-    enabled: onTeleopContribution !== undefined,
+    enabled: onTeleopContribution !== undefined && !settingsOpen,
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
@@ -175,7 +195,7 @@ export function RuntimeWorkspace({
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const stopped = runtimeStop.state?.stopped === true;
   const scanning = useSwitchScanning({
-    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !stopped,
+    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !settingsOpen && !stopped,
     periodMs: runtimeProfile.scanPeriodMs,
     rootRef: runtimeControlsRef,
     revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}`,
@@ -189,7 +209,7 @@ export function RuntimeWorkspace({
       target.click();
     },
     dwellMs: runtimeProfile.dwellMs,
-    enabled: runtimeProfile.dwellEnabled,
+    enabled: runtimeProfile.dwellEnabled && !settingsOpen,
     isTargetEnabled: (target) => !stopped || target.dataset.dwellAction === "resume",
     rootRef: runtimeControlsRef,
   });
@@ -216,6 +236,9 @@ export function RuntimeWorkspace({
   };
 
   useEffect(() => {
+    if (settingsOpen) {
+      return;
+    }
     const viewport = canvasViewportRef.current;
     if (!viewport) {
       return;
@@ -235,7 +258,7 @@ export function RuntimeWorkspace({
       resizeObserver.disconnect();
       window.removeEventListener("resize", updateViewportSize);
     };
-  }, []);
+  }, [settingsOpen]);
 
   useEffect(() => {
     if (!onTopicSubscriptionRequest) {
@@ -256,6 +279,12 @@ export function RuntimeWorkspace({
   }, [screen.id]);
 
   useEffect(() => {
+    if (settingsOpen) {
+      onSuspendTeleop();
+    }
+  }, [onSuspendTeleop, settingsOpen]);
+
+  useEffect(() => {
     if (!onTopicSample) {
       return;
     }
@@ -264,6 +293,33 @@ export function RuntimeWorkspace({
       setDataByWidgetId((currentData) => appendRuntimeTopicSample(currentData, screen, sample));
     });
   }, [onTopicSample, screen]);
+
+  if (settingsOpen) {
+    return (
+      <section
+        aria-label="Runtime application"
+        className="runtime-app-workspace"
+        data-display-preset={runtimeProfile.displayPreset}
+        data-has-debug="false"
+        data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
+        data-runtime-layout="operator"
+        data-runtime-scanning="false"
+        data-runtime-stopped={stopped ? "true" : "false"}
+        style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
+      >
+        <RuntimeSettingsPanel
+          allowedCommandFrameIds={runtimeCapabilityReport?.command_frame_ids ?? null}
+          baseCommandFrameId={commandFrameId ?? configuredCommandFrameId}
+          baseProfile={baseRuntimeProfile}
+          key={profileOverrideKey}
+          onChange={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}
+          onDone={() => setSettingsOpen(false)}
+          overrides={activeProfileOverrides}
+          teleopActive={teleopActive}
+        />
+      </section>
+    );
+  }
 
   return (
     <section
@@ -295,6 +351,10 @@ export function RuntimeWorkspace({
         onOpenAppLibrary={onBackToRuntimeHome}
         onOpenHelp={onOpenHelp}
         onOpenLanding={onOpenLanding}
+        onOpenSettings={() => {
+          onSuspendTeleop();
+          setSettingsOpen(true);
+        }}
         onSelectScreen={(screenId) => onSelectionChange({ ...selection, screenId })}
         profileName={runtimeProfile.name}
         screen={screen}
@@ -367,6 +427,19 @@ export function RuntimeWorkspace({
       </div>
     </section>
   );
+}
+
+const EMPTY_PROFILE_OVERRIDES: RuntimeProfileOverrides = {};
+
+function resolvePreferredCommandFrameId(
+  preferredFrameId: string | undefined,
+  fallbackFrameId: string | null,
+  allowedFrameIds: readonly string[] | null,
+): string | null {
+  if (preferredFrameId && (!allowedFrameIds || allowedFrameIds.includes(preferredFrameId))) {
+    return preferredFrameId;
+  }
+  return fallbackFrameId;
 }
 
 function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTopicSubscriptionRequest[] {

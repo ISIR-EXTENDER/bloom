@@ -1,5 +1,7 @@
 import type { ApplicationConfig, DisplayPreset, UserProfile } from "@bloom/api-client";
 
+import type { RuntimeProfileOverrides } from "./runtime-profile-overrides";
+
 export type RuntimeProfileViewport = {
   height: number;
   width: number;
@@ -37,14 +39,15 @@ export function resolveRuntimeProfile(
   application: Pick<ApplicationConfig, "profiles">,
   viewport: RuntimeProfileViewport,
   preferredProfileId = "",
+  overrides: RuntimeProfileOverrides = {},
 ): ResolvedRuntimeProfile {
   if (application.profiles.length === 0) {
-    return DEFAULT_RUNTIME_PROFILE;
+    return applyRuntimeProfileOverrides(DEFAULT_RUNTIME_PROFILE, overrides);
   }
 
   const preferredProfile = application.profiles.find((profile) => profile.id === preferredProfileId);
   if (preferredProfile) {
-    return normalizeRuntimeProfile(preferredProfile);
+    return applyRuntimeProfileOverrides(normalizeRuntimeProfile(preferredProfile), overrides);
   }
 
   const preferredDisplayPreset = resolvePreferredDisplayPreset(viewport);
@@ -54,7 +57,27 @@ export function resolveRuntimeProfile(
     application.profiles.find((profile) => profile.display_preset === "default") ??
     application.profiles[0];
 
-  return normalizeRuntimeProfile(exactProfile ?? fallbackProfile ?? DEFAULT_RUNTIME_PROFILE);
+  return applyRuntimeProfileOverrides(
+    normalizeRuntimeProfile(exactProfile ?? fallbackProfile ?? DEFAULT_RUNTIME_PROFILE),
+    overrides,
+  );
+}
+
+export function applyRuntimeProfileOverrides(
+  profile: ResolvedRuntimeProfile,
+  overrides: RuntimeProfileOverrides = {},
+): ResolvedRuntimeProfile {
+  const motorAccessibilityPreset = overrides.motorAccessibilityPreset ?? profile.motorAccessibilityPreset;
+  return {
+    ...profile,
+    audioCues: overrides.audioCues ?? profile.audioCues,
+    deadzone: clampRange(overrides.deadzone ?? profile.deadzone, 0, 0.5),
+    dwellEnabled: motorAccessibilityPreset === "dwell" || (overrides.dwellEnabled ?? profile.dwellEnabled),
+    dwellMs: clampRange(overrides.dwellMs ?? profile.dwellMs, 400, 4000),
+    motorAccessibilityPreset,
+    repeatGuardMs: clampRange(overrides.repeatGuardMs ?? profile.repeatGuardMs, 0, 600),
+    scanPeriodMs: clampRange(overrides.scanPeriodMs ?? profile.scanPeriodMs, 600, 3000),
+  };
 }
 
 function resolvePreferredDisplayPreset(viewport: RuntimeProfileViewport): DisplayPreset {

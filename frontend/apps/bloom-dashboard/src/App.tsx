@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import "./builder.css";
 import "./runtime-app.css";
+import "./runtime-settings.css";
 import "./runtime-widgets.css";
 import "./responsive.css";
 
@@ -18,6 +19,7 @@ import { useConfigurations } from "./configurations/use-configurations";
 import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
 import type { RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
+import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
 import { applyRuntimeModeIntent, createDefaultRuntimeModeState } from "./runtime/runtimeModeState";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { useRuntimeCapabilityReport } from "./runtime/use-runtime-capabilities";
@@ -41,6 +43,7 @@ import {
   addRecentRuntimeSelection,
   loadRuntimeUserPreferences,
   saveRuntimeUserPreferences,
+  setRuntimeProfileOverrides,
   setRuntimeProfilePreference,
 } from "./ui/runtime-user-preferences";
 
@@ -221,6 +224,16 @@ export function App({
     );
   };
 
+  const handleRuntimeProfileOverridesChange = (
+    preferenceSelection: Pick<WorkspaceSelection, "appId" | "configId">,
+    profileId: string,
+    overrides: RuntimeProfileOverrides,
+  ) => {
+    setRuntimeUserPreferences((currentPreferences) =>
+      setRuntimeProfileOverrides(currentPreferences, preferenceSelection, profileId, overrides),
+    );
+  };
+
   const editRuntimeApplication = () => {
     navigateToRoute(builderModeRoute("app-config"));
   };
@@ -322,6 +335,7 @@ export function App({
                 onOpenLanding={() => handleProductViewChange("landing")}
                 onOpenRuntimeApp={openRuntimeApp}
                 onRuntimeProfilePreferenceChange={handleRuntimeProfilePreferenceChange}
+                onRuntimeProfileOverridesChange={handleRuntimeProfileOverridesChange}
                 onRuntimeIntent={handleRuntimeIntent}
                 onSaveApplication={handleSaveApplication}
                 onSaveBuilderScreen={handleSaveBuilderScreen}
@@ -330,7 +344,9 @@ export function App({
                 onTopicSample={runtimeActionClient.addRuntimeTopicSampleListener}
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onUploadThemeAsset={handleUploadThemeAsset}
+                onSuspendTeleop={runtimeActions.suspendTeleop}
                 profilePreferences={runtimeUserPreferences.profilePreferences}
+                profileOverrides={runtimeUserPreferences.profileOverrides}
                 recentRuntimeSelections={runtimeUserPreferences.recentRuntimeSelections}
                 runtimeActionClient={runtimeActionClient}
                 runtimeMode={runtimeMode}

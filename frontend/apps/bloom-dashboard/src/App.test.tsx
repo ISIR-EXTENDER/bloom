@@ -367,6 +367,36 @@ describe("App", () => {
     expect(screen.getByLabelText("Explorer User Tests display profile")).toHaveValue("large-targets");
   });
 
+  it("replaces robot controls with persistent settings whose preview sends no robot action", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox runtime" }));
+    expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
+
+    openRuntimeMenu();
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+
+    expect(screen.getByRole("region", { name: "Settings" })).toBeVisible();
+    expect(screen.queryByTestId("runtime-artboard")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Left" }));
+    fireEvent.click(screen.getByRole("button", { name: "Forward" }));
+    fireEvent.click(screen.getByRole("button", { name: "Right" }));
+    expect(runtimeActionClient.sendTeleopCommand).not.toHaveBeenCalled();
+    expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Fine tuning" }));
+    fireEvent.click(screen.getByRole("button", { name: "Increase Scan speed" }));
+    await waitFor(() => {
+      const preferences = JSON.parse(window.localStorage.getItem("bloom.runtime-user-preferences.v1") ?? "{}");
+      expect(preferences.profileOverrides["sandbox:sandbox:default"].scanPeriodMs).toBe(1600);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Done" }));
+    expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
+  });
+
   it("streams robot topic samples into operator display widgets", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     render(

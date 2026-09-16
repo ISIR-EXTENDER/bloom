@@ -146,6 +146,20 @@ describe("the teleop stream pump", () => {
 
     expect(sent).toHaveLength(0);
   });
+
+  it("resets without a zero tail when the operating surface is suspended", async () => {
+    composer.contribute("drive-z", { linear_z: 0.5 });
+    const pump = createPump();
+    pump.noteDispatched(widgetRequest(), "sent");
+    await vi.advanceTimersByTimeAsync(60);
+    const sentBeforeReset = sent.length;
+
+    composer.clear();
+    pump.reset();
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(sent).toHaveLength(sentBeforeReset);
+  });
 });
 
 describe("a non-widget source", () => {
