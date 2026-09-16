@@ -12,7 +12,7 @@ validates Bloom rather than deciding which product owns the IHM.
 | Product shell | Builder, app library, Help, history-aware routes, and kiosk runtime. | Role-aware first entry and operator onboarding. |
 | Runtime safety surface | Truthful kiosk status, fixed backend-latched STOP, held resume, held maintenance entry. | Full controller/hardware STOP acceptance. |
 | App/screen configuration | API-backed flows, shared seeds, SQLite normalized reconstruction, screen library, drag/drop with button fallbacks. | Generic collision feedback and multi-device touch review. |
-| WYSIWYG builder | Save/discard, undo/redo, palette, inspector, previews, target-size warning. | Whole-screen device frames and a policy for fit below physical target size. |
+| WYSIWYG builder | Save/discard, undo/redo, palette, inspector, previews, selected-target warning, and runtime Maintenance disclosure when a whole artboard shrinks. | Whole-screen device frames and a prevention/reflow policy for fit below physical target size. |
 | Operator controls | Two joysticks, Z/RZ, per-axis composition/dead zone, mode/gripper/speed commands, saved positions, service calls. | Live Explorer/Kinova acceptance in every offered frame. |
 | Accessible input | Keyboard, large/assisted targets, directional scanning with optional dwell confirmation, step, latch, gamepad, audio, conditioning, and browser reduced-motion handling. | Wire the reduced-motion profile; complete settings and operator/device validation. |
 | Feedback/debug | Topic catalog, echo, plots/freeze, command sources, manipulability, audit, simulated or opt-in rosbag recording. | Live recording and visual-servoing sessions. |

@@ -27,3 +27,10 @@ outer frame reserves the scaled size for scrolling and centering.
   coordinates.
 - Visual QA remains necessary because widget internals can still overflow their
   own cards if the screen layout itself is too tight.
+
+## 2026-09-16 Amendment
+
+Fit scaling below 1.0 is no longer silent. Runtime keeps the operating surface clear, but Maintenance names the authored
+artboard dimensions, actual guarded render percentage, and 44 px touch-floor risk. The warning threshold uses the raw
+fit result, so the deliberate 0.99 overflow guard does not create a false warning for an otherwise one-to-one canvas.
+This disclosure does not replace prevention, reflow, or physical-panel validation.

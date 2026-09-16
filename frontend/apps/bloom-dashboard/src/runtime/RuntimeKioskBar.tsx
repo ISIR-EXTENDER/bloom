@@ -1,6 +1,7 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { type ReactNode, useEffect, useState } from "react";
 
+import type { RuntimeFitWarning } from "./runtime-canvas-fit";
 import { useHoldGesture } from "./use-hold-gesture";
 
 /**
@@ -56,6 +57,8 @@ export type RuntimeKioskBarProps = {
   statusChip?: RuntimeStatusChip;
   /** Topic diagnostics, shown inside maintenance rather than over the controls. */
   diagnostics?: ReactNode;
+  /** Unsafe fit details, disclosed only after entering Maintenance. */
+  fitWarning?: RuntimeFitWarning | null;
   onSelectScreen: (screenId: string) => void;
   onOpenAppLibrary: () => void;
   onEditScreen: () => void;
@@ -73,6 +76,7 @@ export function RuntimeKioskBar({
   robotName,
   statusChip,
   diagnostics,
+  fitWarning,
   onSelectScreen,
   onOpenAppLibrary,
   onEditScreen,
@@ -135,6 +139,7 @@ export function RuntimeKioskBar({
       {maintenanceOpen ? (
         <RuntimeMaintenanceOverlay
           application={application}
+          fitWarning={fitWarning}
           onClose={() => setMaintenanceOpen(false)}
           onEditApplication={onEditApplication}
           onEditScreen={onEditScreen}
@@ -161,6 +166,7 @@ export function RuntimeKioskBar({
 function RuntimeMaintenanceOverlay({
   children,
   application,
+  fitWarning,
   screen,
   onSelectScreen,
   onOpenAppLibrary,
@@ -172,6 +178,7 @@ function RuntimeMaintenanceOverlay({
 }: {
   children?: ReactNode;
   application: ApplicationConfig;
+  fitWarning?: RuntimeFitWarning | null;
   screen: ScreenConfig;
   onSelectScreen: (screenId: string) => void;
   onOpenAppLibrary: () => void;
@@ -198,6 +205,15 @@ function RuntimeMaintenanceOverlay({
           <h2>Maintenance</h2>
           <p>Held for 1.5s. The robot keeps its last commanded state while this is open.</p>
         </header>
+
+        {fitWarning ? (
+          <div className="runtime-maintenance-fit-warning" role="alert">
+            <strong>Touch targets scaled down</strong>
+            <p>
+              {`Composed for ${fitWarning.authoredWidth} × ${fitWarning.authoredHeight}, shown at ${fitWarning.shownPercent}%. Targets may be below the 44 px touch floor.`}
+            </p>
+          </div>
+        ) : null}
 
         {application.screens.length > 1 ? (
           <nav aria-label="Switch runtime screen" className="runtime-maintenance-screens">

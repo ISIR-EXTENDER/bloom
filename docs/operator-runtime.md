@@ -19,6 +19,9 @@ rollback while live acceptance is completed.
 Runtime is an operator surface, not a builder preview. Product navigation, screen switching, editing links, Help, and
 diagnostics are absent from the normal operating surface. Hold the maintenance button for 1.5 seconds to reveal them.
 Screen changes are deliberately kept inside maintenance so an accidental tap cannot replace the controls under a hand.
+When a fitted artboard is smaller than its authored size, Maintenance also reports the authored dimensions, actual
+rendered percentage, and risk that targets have fallen below the 44 px touch floor. The warning stays off the operating
+surface and does not claim that scaling is safe.
 
 ## Stop And Resume
 

@@ -15,7 +15,7 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | J | Joystick lab: virtual physical-joystick workflow and runtime frame selection | **Done** |
 | 0.2 | Dwell and scanning are exclusive | **Done** |
 | 0.3 | 44 px versus 56 px kiosk bar, recorded in an ADR | **Done** |
-| 0.4 | Runtime says nothing when the fit drops below 1.0 | Not started |
+| 0.4 | Runtime says nothing when the fit drops below 1.0 | **Done** |
 | 0.5 | Capability gating extended to the runtime | Not started |
 | 1 | Runtime settings panel | Not started |
 | 2 | `language` on `UserProfile` plus string catalogs | Not started |
@@ -95,25 +95,32 @@ The tracked handoff summary now resolves the historical narrative notes against 
 specification. Architecture points to the decision, and the live reference comparison is recorded in
 `docs/validation/2026-09-16-kiosk-height-decision.md`.
 
+## Lot 0.4, as delivered
+
+`resolveRuntimeCanvasFit` now keeps the raw fit threshold separate from the 0.99 overflow guard and returns a typed
+warning whenever the authored artboard must shrink. Maintenance reports the authored width and height, the actual
+guarded render percentage, and the 44 px touch-floor risk. Nothing new appears over the operating controls.
+
+Pure scale tests cover the warning threshold and one-to-one guard case; the kiosk test proves the warning is absent
+until Maintenance opens. A live `1280x720` Explorer capture reported the `1280x720` canvas at 89% and was compared with
+the maintenance reference. Evidence is in `docs/validation/2026-09-16-runtime-fit-warning.md`.
+
 ## Next steps, in order
 
-1. **Lot 0.4.** When `resolveCanvasFitScale` returns below 1.0, say so in the maintenance
-   overlay, never on the controls: "composed for 1820x720, shown at 70%, targets are below
-   the touch floor."
-2. **Lot 0.5.** If `runtimeCapabilityReport` does not cover a widget's target, the widget
+1. **Lot 0.5.** If `runtimeCapabilityReport` does not cover a widget's target, the widget
    renders inoperable and says why. It must not disappear.
-3. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
+2. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
    `runtime-settings.test.tsx`. Overrides persist in the existing localStorage key through
    `ui/runtime-user-preferences.ts`, under `profileOverrides[configId:appId:profileId]`, and
    `resolveRuntimeProfile` applies them after normalization, reusing `clampRange` as the
    -/+ bounds. No slider anywhere on this screen; -/+ pairs at 88x72. The try-it strip obeys
    the current values and sends nothing to the robot.
-4. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
+3. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
    `useRuntimeStrings`. Start with `runtime-status-chip.ts`, `RuntimeStopControl.tsx`,
    `RuntimeKioskBar.tsx`, and the scan announcement in `RuntimeWorkspace.tsx`, which are the
    files that still hold literals. Widget labels stay config data, one field per locale; do
    not translate them in code.
-5. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
+4. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
    an adapter is safe, so the practice steps cannot command the arm.
 
 ## How the work is run

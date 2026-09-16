@@ -179,6 +179,17 @@ describe("maintenance", () => {
     }
   });
 
+  it("discloses unsafe fit inside maintenance without covering the controls", () => {
+    renderBar({ fitWarning: { authoredHeight: 720, authoredWidth: 1820, shownPercent: 70 } });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    hold(1600);
+
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Composed for 1820 × 720, shown at 70%. Targets may be below the 44 px touch floor.",
+    );
+  });
+
   it("closes on Escape and on Back to operation", () => {
     renderBar();
     hold(1600);

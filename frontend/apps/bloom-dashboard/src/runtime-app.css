@@ -972,6 +972,24 @@
   color: var(--bloom-on-surface-muted);
 }
 
+.runtime-maintenance-fit-warning {
+  padding: 12px;
+  border: 1px solid var(--bloom-error);
+  border-radius: 8px;
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+}
+
+.runtime-maintenance-fit-warning strong {
+  font-size: 15px;
+}
+
+.runtime-maintenance-fit-warning p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .runtime-maintenance-screens,
 .runtime-maintenance-actions {
   display: flex;

@@ -360,7 +360,8 @@ Things to improve before a public release:
 - Add app-theme authoring guardrails so user palettes keep contrast.
 - Continue promoting repeated dashboard card/action styles into reusable `@bloom/ui` primitives.
 - Add more component examples as the primitive set grows.
-- Add whole-screen physical target checks for fit-scaled operator canvases and all maintained tablet geometries.
+- Add whole-screen physical target checks and prevention/reflow for fit-scaled operator canvases and all maintained
+  tablet geometries; the current runtime Maintenance warning is disclosure, not acceptance.
 
 ## Contribution Rules
 

@@ -1,6 +1,6 @@
 import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import { appendTopicEchoMessage, appendTopicPlotSample, resolveCanvasFitScale } from "@bloom/widgets";
+import { appendTopicEchoMessage, appendTopicPlotSample } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -15,6 +15,7 @@ import type {
   RuntimeTopicSampleMessage,
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
+import { resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
@@ -26,8 +27,6 @@ import { usePositionLibrary } from "./use-position-library";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
 import { useSwitchScanning } from "./use-switch-scanning";
-
-const FIT_OVERFLOW_GUARD = 0.99;
 
 type RuntimeViewportSize = {
   height: number;
@@ -95,11 +94,11 @@ export function RuntimeWorkspace({
   const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const { artboardSize } = resolveScreenArtboardLayout(screen);
-  const artboardScale = useMemo(() => {
-    const rawScale = resolveCanvasFitScale(screen.canvas, artboardSize, viewportSize);
-
-    return screen.canvas.runtime_mode === "fit" ? rawScale * FIT_OVERFLOW_GUARD : rawScale;
-  }, [artboardSize, screen.canvas, viewportSize]);
+  const canvasFit = useMemo(
+    () => resolveRuntimeCanvasFit(screen.canvas, artboardSize, viewportSize),
+    [artboardSize, screen.canvas, viewportSize],
+  );
+  const artboardScale = canvasFit.scale;
   const scaledArtboardSize = useMemo(
     () => ({
       height: Math.max(1, Math.floor(artboardSize.height * artboardScale)),
@@ -279,6 +278,7 @@ export function RuntimeWorkspace({
             modeState={runtimeModeState}
           />
         }
+        fitWarning={canvasFit.warning}
         onEditApplication={onEditApplication}
         onEditScreen={onEditScreen}
         onOpenAppLibrary={onBackToRuntimeHome}

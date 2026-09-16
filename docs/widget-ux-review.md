@@ -90,7 +90,8 @@ and recover confidence quickly when something is not configured.
 
 1. Run kiosk, STOP, virtual-IHM, command-frame, and accessibility profile checks on the physical tablet and robot.
 2. Add clearer camera permission guidance with one recovery action for operator screens.
-3. Prevent or explicitly handle controls that fall below the physical touch floor after fit scaling.
+3. Prevent or reflow controls that fall below the physical touch floor after fit scaling; runtime Maintenance now
+   exposes the authored geometry and actual scale but does not resolve the layout.
 4. Evaluate a richer chart dependency only when real runtime requirements need multi-series plots, zoom, cursor
    inspection, or longer offline traces.
 5. Add authoritative mode state only when the manager exposes feedback; keep last-requested mode labeled honestly until

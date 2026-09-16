@@ -49,7 +49,7 @@ supervisor roles.
 | 1. Runtime wears builder chrome | Delivered | Kiosk surface; exits and screen switching require the 1.5 second maintenance hold. | Physical-tablet validation. |
 | 2. Chrome consumes the panel | Delivered | One fixed 44 px kiosk bar. | Check density on every lab geometry. |
 | 3. No stop or sign of life | Delivered in software | Truthful status plus backend-latched STOP and one-second resume hold. | Accept against the robot and hardware safety chain. |
-| 4. Target size is discounted by fit | Partial | Builder reports selected-widget size at `1024x600` and warns below 44 px. | Runtime can still scale below 1.0; no whole-screen prevention/reflow. |
+| 4. Target size is discounted by fit | Partial | Builder reports selected-widget size at `1024x600`; runtime Maintenance reports authored geometry and actual scale below 1.0. | No whole-screen target analysis, prevention, or reflow. |
 | 5. Silent overlap | Partial | Maintained operator seeds and Sandbox validation reject overlapping interactive controls. | Generic immediate collision feedback in the builder. |
 | 6. Adapter-language axis labels | Delivered | Pads use operator direction words; technical axes remain in details. | Validate vocabulary per app with operators. |
 | 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Under `scan`, joysticks and sliders render step targets, and dwell on SWITCH can activate the highlighted direction. | `reduced-motion`, edge layout, settings, and validation with the intended devices remain. |
@@ -68,8 +68,8 @@ supervisor roles.
 - ~~**Fix directional switch scanning.**~~ Delivered 2026-09-16; see `docs/validation/2026-09-16-switch-scanning-end-to-end.md`. The scanner included a joystick's `role="application"` target and called
   `click()`, but the pad emits movement only from pointer or keyboard direction input. Render the four step directions
   while scanning and test the emitted movement intent, not only focus movement.
-- **Prevent unsafe fit scaling.** Decide whether each target uses reflow, panning, a dedicated screen/profile, or a hard
-  launch warning when fit scaling would put a control below the accepted physical size.
+- ~~**Surface unsafe fit scaling.**~~ Delivered 2026-09-16; Maintenance reports the authored canvas, actual rendered
+  percentage, and touch-floor risk without covering controls. Prevention/reflow and whole-screen target analysis remain.
 - **Create accessible runtime settings.** Let the operator adjust the current profile from Maintenance with large
   decrement/increment controls, reversible local overrides, and a local test strip that cannot emit robot commands.
 - **Add runtime language.** Add `language` to the profile, translate the kiosk/STOP/status/scanner/settings shell for

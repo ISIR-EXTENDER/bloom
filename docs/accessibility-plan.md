@@ -23,6 +23,7 @@ signals, and test accessibility continuously.
 - App profiles control display density, font scale, motor behavior, audio, dead zone, repeat guard, scan timing, and
   independently enabled dwell timing.
 - The builder reports a selected interactive widget's effective size on the `1024x600` target and warns below 44 px.
+- Runtime discloses any fit below authored size in Maintenance with the source geometry and actual rendered percentage.
 - Semantic theme pairs are tested at a minimum 4.5:1 contrast ratio, including the corrected muted-text surface pairs.
 - Forms use visible labels and touch-friendly input hints; drag/drop workflows retain button alternatives.
 
@@ -63,8 +64,8 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
 - Runtime never exposes builder affordances on the primary operating surface.
 - Color is never the only status signal.
 - Touch targets should be at least 44 px on glass, with 48 px or more preferred and 56/64 px profile targets available.
-- Builder geometry remains canonical; any fit scaling that reduces controls must be visible during authoring and covered
-  by viewport checks.
+- Builder geometry remains canonical; any fit scaling that reduces controls must be visible during authoring and in
+  runtime Maintenance, then covered by viewport checks.
 - Robot command widgets need a human label, state/release behavior, and readable failure feedback.
 - Native OS/browser keyboards remain the text-entry baseline. A custom virtual keyboard requires evidence that native
   input blocks the target workflow.
@@ -81,6 +82,7 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
 - Seed/config tests reject out-of-canvas and overlapping interactive controls on maintained operator apps.
 - Visual smoke covers maintained runtime and builder routes across tablet and desktop viewports.
 - The builder's selected-widget check tests the 44 px physical target warning.
+- Runtime fit tests cover the raw safety threshold, guarded render scale, and Maintenance-only disclosure.
 
 These are repository-level checks. They do not prove that a real switch, gamepad, tablet mounting position, sound level,
 or interaction pattern works for a particular person.
@@ -88,7 +90,8 @@ or interaction pattern works for a particular person.
 ## Open Accessibility Work
 
 - Validate every intended profile with operators and the actual HMTECH tablet, gamepad, and switch hardware.
-- Prevent or explicitly resolve runtime fit scales that reduce an interactive target below its accepted physical size.
+- Prevent or reflow runtime fit scales that reduce an interactive target below its accepted physical size; Maintenance
+  now warns, but does not make a shrunken layout acceptable.
 - Add whole-screen device-frame and touch-check views for all lab geometries, not only a selected-widget calculation.
 - Build the accessible profile settings and local safe-preview flow described in the UX handoff.
 - Decide whether named portable profiles need language, operator-frame preference, response curves, tremor smoothing,
