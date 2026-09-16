@@ -115,6 +115,10 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       operator retains control, and exposes no STOP, resume, movement, publish, or configured-action control.
 - [ ] Any profile claimed by the release is exercised with its intended input: keyboard, step, latch, scan, dwell,
       gamepad, or direct touch. Implemented support is not the same as hardware/user acceptance.
+- [ ] When same-Wi-Fi access is used, only the intended frontend port is reachable from the lab subnet, the frontend
+      health URL works from a second device, Vite proxies to the selected API port, and no router port-forward exists.
+- [ ] Multi-device Builder tests use one shared SQLite store; collaborators avoid simultaneous stale drafts, and the
+      stopped database has a current local backup before a lab session that changes shared apps.
 
 ## 6. Documentation
 

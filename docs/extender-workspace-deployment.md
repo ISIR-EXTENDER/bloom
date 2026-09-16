@@ -30,6 +30,8 @@ The script:
 | `BLOOM_API_PORT` | `8000` | API port. |
 | `BLOOM_FRONTEND_HOST` | `127.0.0.1` | Dashboard dev-server host. |
 | `BLOOM_FRONTEND_PORT` | `5173` | Dashboard dev-server port. |
+| `BLOOM_API_PROXY_TARGET` | `http://127.0.0.1:$BLOOM_API_PORT` | Server-side Vite target for HTTP and WebSocket API traffic. |
+| `BLOOM_PUBLIC_HOST` | first address from `hostname -I` | Address printed for another device when the frontend uses a wildcard bind. |
 | `BLOOM_APPLY_TABLET_TOUCH_MAP` | `0` | Set to `1` to run `scripts/extender-tablet-touch-map.sh` before launch. |
 | `DISPLAY_MODE` | empty | Optional tablet display mode passed to the touch-map helper, for example `1280x720`. |
 | `LOGICAL_DISPLAY_SIZE` | empty | Optional scaled tablet workspace, for example `1820x720`. |
@@ -46,6 +48,67 @@ APPLY_DISPLAY_MODE=1 \
 PLACE_OUTPUT_RIGHT_OF=eDP-1 \
 scripts/extender-workspace-dev.sh
 ```
+
+## Same Wi-Fi Access
+
+For a phone or tablet on the same trusted network, expose the dashboard while keeping FastAPI on loopback:
+
+```bash
+LAN_IP="$(hostname -I | awk '{print $1}')"
+
+BLOOM_API_HOST=127.0.0.1 \
+BLOOM_FRONTEND_HOST=0.0.0.0 \
+BLOOM_PUBLIC_HOST="${LAN_IP}" \
+scripts/extender-workspace-dev.sh
+```
+
+Open the printed `http://<lan-ip>:5173` URL from the other device. Vite serves the frontend on the LAN and proxies
+same-origin `/api` HTTP and WebSocket requests to `http://127.0.0.1:8000`. This avoids exposing port `8000` directly and
+needs no CORS entry for the phone. A custom API port stays aligned automatically; for a separately hosted API, set
+`BLOOM_API_PROXY_TARGET` explicitly.
+
+Verify from the host and then from the phone:
+
+```bash
+curl -fsS http://127.0.0.1:5173/api/v1/health
+curl -fsS "http://${LAN_IP}:5173/api/v1/health"
+```
+
+If the second request is blocked by UFW, allow the dashboard only from the actual lab subnet, for example:
+
+```bash
+sudo ufw allow from 192.168.1.0/24 to any port 5173 proto tcp
+```
+
+Replace that CIDR with the network in use. Do not expose the Vite development server through router port forwarding,
+a public Wi-Fi network, or the internet. The dashboard has no user-facing API-key sign-in flow yet, so this recipe is
+for a trusted local lab network. An internet or shared institutional deployment needs the production authentication
+perimeter and a reviewed reverse proxy/session design.
+
+### Shared Database Behavior
+
+All browsers talk to the one API process, whose default store is `backend/data/bloom.db`. The browser does not load or
+save local JSON files. A Builder save updates that shared SQLite store; another device sees it after reloading. Seed
+imports add missing application IDs and do not overwrite local edits.
+
+Use the CLI from the host to inspect or publish the shared state:
+
+```bash
+cd backend
+uv run python -m apps.bloom_cli.main config status
+uv run python -m apps.bloom_cli.main config publish explorer-manager
+```
+
+Two stale Builder drafts can still overwrite one another at the application/screen level, so do not edit the same app
+concurrently. Stop Bloom before backing up or replacing the database:
+
+```bash
+cd /path/to/bloom
+cp backend/data/bloom.db "backend/data/bloom-$(date +%F-%H%M%S).db"
+```
+
+The backup remains local and ignored by Git. Shared app changes belong in a published seed JSON commit, not in the
+SQLite file.
 
 ## Recording Variables
 

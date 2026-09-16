@@ -151,6 +151,27 @@ scripts/extender-workspace-dev.sh
 The launcher sources the selected workspace, starts the ROS-enabled API on port `8000`, and starts the dashboard on
 port `5173`. `Ctrl+C` stops both Bloom processes.
 
+### Open Bloom From A Phone On The Same Wi-Fi
+
+Keep the API on loopback and expose only Vite. Add these variables to either launcher command above:
+
+```bash
+BLOOM_FRONTEND_HOST=0.0.0.0 \
+BLOOM_PUBLIC_HOST="$(hostname -I | awk '{print $1}')" \
+scripts/extender-workspace-dev.sh
+```
+
+The launcher prints `Same-Wi-Fi URL: http://<lan-ip>:5173`. Open that URL from a phone or tablet on the same trusted
+network. Browser API and WebSocket traffic stays on the same origin and Vite proxies it to Bloom on
+`127.0.0.1:8000`; no direct API port or CORS change is needed. If a host firewall blocks it, allow TCP `5173` only from
+the lab subnet. Do not port-forward this development server or use it on an untrusted network.
+
+Every connected device reads and writes the same server-side `backend/data/bloom.db`; there are no browser-local JSON
+configuration files to synchronize. Builder saves are visible after another device reloads. Avoid editing the same app
+from two browsers at once because the last saved draft wins. Stop Bloom before copying the SQLite file for backup.
+See the [deployment guide](docs/extender-workspace-deployment.md#same-wi-fi-access) for verification, custom ports, and
+database operations.
+
 ### 4. Operate the Manager app
 
 1. Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and choose **Runtime**.
@@ -359,6 +380,9 @@ overrides:
 
 - `EXTENDER_WORKSPACE` or `EXTENDER_SETUP_FILE` selects the ROS workspace to source.
 - `BLOOM_API_HOST` / `BLOOM_API_PORT` and `BLOOM_FRONTEND_HOST` / `BLOOM_FRONTEND_PORT` change the listening addresses.
+- `BLOOM_API_PROXY_TARGET` overrides Vite's server-side API target; the launcher derives it from `BLOOM_API_PORT` by
+  default.
+- `BLOOM_PUBLIC_HOST` controls the same-Wi-Fi URL printed for wildcard frontend binds.
 - `BLOOM_APPLY_TABLET_TOUCH_MAP=1` applies the target tablet's touch mapping before startup.
 
 To run only the ROS-enabled API:

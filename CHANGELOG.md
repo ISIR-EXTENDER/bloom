@@ -27,6 +27,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   review derived from saved app geometry, touch bounds, frame, topic policy, profile preview, and JSON export.
 - **Read-only supervisor mirror** with stable per-app routes, live robot/frame/STOP/topic status, explicit operator
   ownership, and a runtime client projection that exposes no movement, STOP, resume, publish, or action methods.
+- **Same-Wi-Fi development access** with a wildcard frontend bind, a printed LAN URL, an API-port-aware Vite proxy, and
+  documented shared-SQLite, firewall, concurrency, and trusted-network constraints.
 - **One Cartesian command frame per application**, selected from backend capabilities, shown in the kiosk bar, applied
   to virtual controls and gamepads, persisted through JSON/SQLite, and checked against the deployment allowlist.
 - **Kinova Manager app** alongside Explorer Manager, including manager drive, saved positions, feedback, command-source
