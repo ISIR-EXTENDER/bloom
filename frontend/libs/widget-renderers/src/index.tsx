@@ -83,9 +83,12 @@ export function renderScreenWidgets(
   descriptors: readonly WidgetRenderDescriptor[],
   options: ScreenRendererOptions = {},
 ): ReactNode[] {
-  return descriptors.map((descriptor) => (
-    <WidgetFrame descriptor={descriptor} key={descriptor.widget.id}>
-      {renderWidgetDescriptor(descriptor, options)}
-    </WidgetFrame>
-  ));
+  return descriptors.map((descriptor) => {
+    const controlState = options.controlStateByWidgetId?.[descriptor.widget.id];
+    return (
+      <WidgetFrame controlState={controlState} descriptor={descriptor} key={descriptor.widget.id}>
+        {renderWidgetDescriptor(descriptor, options)}
+      </WidgetFrame>
+    );
+  });
 }

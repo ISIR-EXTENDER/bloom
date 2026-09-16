@@ -315,3 +315,81 @@ describe("runtime command-frame controls", () => {
     expect(state["frame-tool"]).toMatchObject({ disabled: true, disabledReason: "Release controls." });
   });
 });
+
+describe("runtime capability gating", () => {
+  const capabilityScreen = {
+    id: "capabilities",
+    title: "Capabilities",
+    canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+    widgets: [
+      {
+        id: "translation",
+        kind: "joystick",
+        title: "Translation",
+        layout: { x: 0, y: 0, width: 240, height: 240 },
+        settings: {},
+      },
+      {
+        id: "gripper",
+        kind: "command-button",
+        title: "Gripper",
+        layout: { x: 250, y: 0, width: 160, height: 80 },
+        settings: {},
+      },
+      {
+        id: "events",
+        kind: "event-log",
+        title: "Events",
+        layout: { x: 420, y: 0, width: 240, height: 180 },
+        settings: {},
+      },
+      {
+        id: "heading",
+        kind: "label",
+        title: "Heading",
+        layout: { x: 0, y: 250, width: 180, height: 60 },
+        settings: { text: "Always available" },
+      },
+    ],
+  } as ScreenConfig;
+  const unavailableCapabilities = [
+    {
+      id: "teleop-adapter",
+      available: false,
+      detail: "No teleop gateway is connected, so joystick and axis widgets move nothing.",
+    },
+    {
+      id: "command-dispatcher",
+      available: false,
+      detail: "No ROS publisher is connected, so commands go nowhere.",
+    },
+    {
+      id: "data-source",
+      available: false,
+      detail: "No ROS subscriber is connected, so topic widgets receive nothing.",
+    },
+  ];
+
+  it("keeps every unavailable widget in state with the backend's reason", () => {
+    const state = createRuntimeControlStateByWidgetId(capabilityScreen, createDefaultRuntimeModeState(), {
+      runtimeCapabilities: unavailableCapabilities,
+    });
+
+    expect(state.translation).toEqual({
+      disabled: true,
+      disabledReason: "No teleop gateway is connected, so joystick and axis widgets move nothing.",
+      unavailable: true,
+    });
+    expect(state.gripper).toMatchObject({ disabled: true, unavailable: true });
+    expect(state.events).toMatchObject({ disabled: true, unavailable: true });
+    expect(state.heading).toBeUndefined();
+  });
+
+  it("does not guess that a widget is unavailable before capabilities are known", () => {
+    expect(
+      createRuntimeControlStateByWidgetId(capabilityScreen, createDefaultRuntimeModeState(), {
+        runtimeCapabilities: null,
+      }),
+    ).toEqual({});
+  });
+});

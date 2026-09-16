@@ -52,6 +52,8 @@ export type WidgetActionIntentHandler = (intent: WidgetActionIntent) => void;
 export type WidgetControlState = {
   disabled?: boolean;
   disabledReason?: string;
+  /** The backend cannot serve this widget; keep it visible, inert, and explained. */
+  unavailable?: boolean;
   /**
    * Whether this control is the one currently selected among a mutually
    * exclusive set, such as the manager's mode.

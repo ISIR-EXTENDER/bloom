@@ -24,6 +24,8 @@ signals, and test accessibility continuously.
   independently enabled dwell timing.
 - The builder reports a selected interactive widget's effective size on the `1024x600` target and warns below 44 px.
 - Runtime discloses any fit below authored size in Maintenance with the source geometry and actual rendered percentage.
+- A widget whose required backend seam is explicitly unavailable remains visible, becomes inert, and exposes the
+  backend reason; unknown capability state does not disable it.
 - Semantic theme pairs are tested at a minimum 4.5:1 contrast ratio, including the corrected muted-text surface pairs.
 - Forms use visible labels and touch-friendly input hints; drag/drop workflows retain button alternatives.
 
@@ -83,6 +85,8 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
 - Visual smoke covers maintained runtime and builder routes across tablet and desktop viewports.
 - The builder's selected-widget check tests the 44 px physical target warning.
 - Runtime fit tests cover the raw safety threshold, guarded render scale, and Maintenance-only disclosure.
+- Runtime capability tests cover explicit unavailability, unknown reports, inert content, visible explanations, and
+  unchanged operation when ROS seams are available.
 
 These are repository-level checks. They do not prove that a real switch, gamepad, tablet mounting position, sound level,
 or interaction pattern works for a particular person.

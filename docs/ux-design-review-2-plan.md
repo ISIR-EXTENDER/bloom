@@ -16,7 +16,7 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | 0.2 | Dwell and scanning are exclusive | **Done** |
 | 0.3 | 44 px versus 56 px kiosk bar, recorded in an ADR | **Done** |
 | 0.4 | Runtime says nothing when the fit drops below 1.0 | **Done** |
-| 0.5 | Capability gating extended to the runtime | Not started |
+| 0.5 | Capability gating extended to the runtime | **Done** |
 | 1 | Runtime settings panel | Not started |
 | 2 | `language` on `UserProfile` plus string catalogs | Not started |
 | 3 | Guided tours | Not started, blocked on a backend answer |
@@ -105,22 +105,33 @@ Pure scale tests cover the warning threshold and one-to-one guard case; the kios
 until Maintenance opens. A live `1280x720` Explorer capture reported the `1280x720` canvas at 89% and was compared with
 the maintenance reference. Evidence is in `docs/validation/2026-09-16-runtime-fit-warning.md`.
 
+## Lot 0.5, as delivered
+
+`createRuntimeControlStateByWidgetId` now resolves every widget definition against the capability report already used
+by Builder. Explicitly missing seams add a typed `unavailable` state and the backend's concrete reason; a null report is
+still unknown and leaves the widget alone. `WidgetFrame` preserves the authored control and geometry, makes its content
+inert and inaccessible to activation, and presents an operator-readable unavailable notice. `RuntimeWorkspace` also
+drops intents from an unavailable widget as a second boundary.
+
+A real no-ROS API reported all seams unavailable: nine Explorer Drive widgets remained visible, nine content trees were
+inert, and their notices carried the backend details. The parallel ROS-ready capture had normal controls and matched the
+maintained hierarchy in reference `01`. Evidence is in
+`docs/validation/2026-09-16-runtime-capability-gating.md`.
+
 ## Next steps, in order
 
-1. **Lot 0.5.** If `runtimeCapabilityReport` does not cover a widget's target, the widget
-   renders inoperable and says why. It must not disappear.
-2. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
+1. **Lot 1.** `RuntimeSettingsPanel.tsx`, `runtime-profile-overrides.ts`,
    `runtime-settings.test.tsx`. Overrides persist in the existing localStorage key through
    `ui/runtime-user-preferences.ts`, under `profileOverrides[configId:appId:profileId]`, and
    `resolveRuntimeProfile` applies them after normalization, reusing `clampRange` as the
    -/+ bounds. No slider anywhere on this screen; -/+ pairs at 88x72. The try-it strip obeys
    the current values and sends nothing to the robot.
-3. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
+2. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
    `useRuntimeStrings`. Start with `runtime-status-chip.ts`, `RuntimeStopControl.tsx`,
    `RuntimeKioskBar.tsx`, and the scan announcement in `RuntimeWorkspace.tsx`, which are the
    files that still hold literals. Widget labels stay config data, one field per locale; do
    not translate them in code.
-4. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
+3. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
    an adapter is safe, so the practice steps cannot command the arm.
 
 ## How the work is run

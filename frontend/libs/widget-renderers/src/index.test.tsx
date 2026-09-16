@@ -72,6 +72,39 @@ describe("widget renderer registry", () => {
     expect(container.querySelector("[aria-label='Digital output Toggle']")).toBeInTheDocument();
   });
 
+  it("keeps an unavailable runtime widget visible, inert, and explained", () => {
+    const descriptors = renderScreenDescriptors(sampleScreen, createDefaultWidgetRegistry());
+    const onActionIntent = vi.fn();
+    const { container } = render(
+      <div>
+        {renderScreenWidgets(descriptors, {
+          controlStateByWidgetId: {
+            "ros-toggle": {
+              disabled: true,
+              disabledReason: "No ROS publisher is connected, so commands go nowhere.",
+              unavailable: true,
+            },
+          },
+          onActionIntent,
+        })}
+      </div>,
+    );
+
+    const framedWidget = container.querySelector<HTMLElement>("[data-widget-kind='toggle']");
+    const toggle = framedWidget?.querySelector<HTMLButtonElement>("button");
+    expect(framedWidget).toHaveAttribute("data-runtime-unavailable", "true");
+    expect(framedWidget?.querySelector(".bloom-runtime-widget-content")).toHaveAttribute("inert");
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "Digital output unavailableNo ROS publisher is connected, so commands go nowhere.",
+    );
+    expect(toggle).toBeInTheDocument();
+    if (!toggle) {
+      throw new Error("Unavailable toggle disappeared.");
+    }
+    fireEvent.click(toggle);
+    expect(onActionIntent).not.toHaveBeenCalled();
+  });
+
   it("renders labels as configured text instead of placeholder metadata", () => {
     const descriptors = renderScreenDescriptors(centeredLabelScreen, createDefaultWidgetRegistry());
     const descriptor = descriptors[0];

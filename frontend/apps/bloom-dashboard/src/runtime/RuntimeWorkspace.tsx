@@ -122,9 +122,17 @@ export function RuntimeWorkspace({
       createRuntimeControlStateByWidgetId(screen, runtimeModeState, {
         activeCommandFrameId: commandFrameId,
         allowedCommandFrameIds: runtimeCapabilityReport?.command_frame_ids ?? null,
+        runtimeCapabilities: runtimeCapabilityReport?.capabilities ?? null,
         teleopActive,
       }),
-    [commandFrameId, runtimeCapabilityReport?.command_frame_ids, runtimeModeState, screen, teleopActive],
+    [
+      commandFrameId,
+      runtimeCapabilityReport?.capabilities,
+      runtimeCapabilityReport?.command_frame_ids,
+      runtimeModeState,
+      screen,
+      teleopActive,
+    ],
   );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const screenHasPositionLibrary = screen.widgets.some((widget) => widget.kind === "position-library");
@@ -187,6 +195,9 @@ export function RuntimeWorkspace({
   });
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
+    if (controlStateByWidgetId[intent.widgetId]?.unavailable) {
+      return;
+    }
     // Position ops are runtime-shell HTTP work, not robot commands.
     if (positionLibrary.handleIntent(intent)) {
       return;

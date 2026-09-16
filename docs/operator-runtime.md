@@ -23,6 +23,11 @@ When a fitted artboard is smaller than its authored size, Maintenance also repor
 rendered percentage, and risk that targets have fallen below the 44 px touch floor. The warning stays off the operating
 surface and does not claim that scaling is safe.
 
+Runtime also checks each widget's declared backend requirement against `GET /api/v1/capabilities`. When the backend
+explicitly reports a required publisher, subscriber, service, or teleop seam unavailable, the control remains in its
+authored position but becomes inert and shows the backend's reason. A missing or failed capability report remains
+unknown and does not disable the screen by guesswork.
+
 ## Stop And Resume
 
 - A pointer press on **STOP** engages the backend runtime stop immediately. Keyboard activation is also supported.

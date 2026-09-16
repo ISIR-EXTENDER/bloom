@@ -1,6 +1,13 @@
 import type { ApplicationConfig, RosTopicStatus, ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { WidgetControlState } from "@bloom/widget-renderers";
-import { resolveTeleopFrameId, type WidgetActionIntent } from "@bloom/widgets";
+import {
+  createDefaultWidgetRegistry,
+  describeUnavailableWidgetRuntime,
+  type RuntimeCapability,
+  resolveTeleopFrameId,
+  resolveWidgetReadiness,
+  type WidgetActionIntent,
+} from "@bloom/widgets";
 
 export type RuntimeRobotMode = "b1" | "b2";
 
@@ -37,6 +44,7 @@ export type RuntimeTopicStatusSummary = {
 type RuntimeTopicRequirement = Pick<RuntimeTopicStatusSummary, "label" | "requirement" | "topic">;
 
 const MODE_REQUEST_TOPIC = "/mode_request";
+const WIDGET_REGISTRY = createDefaultWidgetRegistry();
 
 const DEFAULT_MODE_STATE: RuntimeModeState = {
   mode: "b1",
@@ -137,12 +145,14 @@ export function createRuntimeControlStateByWidgetId(
   options: {
     activeCommandFrameId?: string | null;
     allowedCommandFrameIds?: readonly string[] | null;
+    runtimeCapabilities?: readonly RuntimeCapability[] | null;
     teleopActive?: boolean;
   } = {},
 ): Record<string, WidgetControlState> {
   const controlStateByWidgetId: Record<string, WidgetControlState> = {};
 
   for (const widget of screen.widgets) {
+    let controlState: WidgetControlState = {};
     const frameId = resolveTeleopFrameId(widget.settings.runtime_binding);
     if (frameId) {
       const unavailable = options.allowedCommandFrameIds ? !options.allowedCommandFrameIds.includes(frameId) : false;
@@ -151,28 +161,35 @@ export function createRuntimeControlStateByWidgetId(
         : unavailable
           ? "Unavailable on this robot."
           : undefined;
-      controlStateByWidgetId[widget.id] = {
+      controlState = {
         selection: frameId === options.activeCommandFrameId ? "selected" : "unselected",
         ...(disabledReason ? { disabled: true, disabledReason } : {}),
       };
-      continue;
-    }
-
-    if (isModeToggleWidget(widget)) {
-      controlStateByWidgetId[widget.id] = {
+    } else if (isModeToggleWidget(widget)) {
+      controlState = {
         toggleState: modeState.mode === "b2" ? "on" : "off",
       };
-      continue;
+    } else {
+      const widgetMode = resolveWidgetModeRequest(widget);
+      if (widgetMode) {
+        controlState = {
+          selection: widgetMode === modeState.requestedMode ? "selected" : "unselected",
+        };
+      }
     }
 
-    const widgetMode = resolveWidgetModeRequest(widget);
-    if (!widgetMode) {
-      continue;
+    const definition = WIDGET_REGISTRY.get(widget.kind);
+    if (definition && options.runtimeCapabilities !== null && options.runtimeCapabilities !== undefined) {
+      const readiness = resolveWidgetReadiness(definition, options.runtimeCapabilities);
+      const disabledReason = describeUnavailableWidgetRuntime(readiness, options.runtimeCapabilities);
+      if (disabledReason) {
+        controlState = { ...controlState, disabled: true, disabledReason, unavailable: true };
+      }
     }
 
-    controlStateByWidgetId[widget.id] = {
-      selection: widgetMode === modeState.requestedMode ? "selected" : "unselected",
-    };
+    if (Object.keys(controlState).length > 0) {
+      controlStateByWidgetId[widget.id] = controlState;
+    }
   }
 
   return controlStateByWidgetId;

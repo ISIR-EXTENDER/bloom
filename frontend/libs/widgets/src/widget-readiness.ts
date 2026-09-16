@@ -94,3 +94,22 @@ export function resolveWidgetReadiness(
     missing: [],
   };
 }
+
+/** Prefer the backend's concrete failure detail, with a stable fallback for omitted capabilities. */
+export function describeUnavailableWidgetRuntime(
+  readiness: WidgetReadiness,
+  capabilities: readonly RuntimeCapability[],
+): string | null {
+  if (readiness.state !== "unavailable") {
+    return null;
+  }
+
+  const details = readiness.missing
+    .map((requirement) => capabilities.find((capability) => capability.id === requirement)?.detail.trim())
+    .filter((detail): detail is string => Boolean(detail));
+  if (details.length === readiness.missing.length) {
+    return details.join(" ");
+  }
+
+  return `Needs ${joinRequirements(readiness.missing)}.`;
+}

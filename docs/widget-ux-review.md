@@ -70,6 +70,8 @@ and recover confidence quickly when something is not configured.
   live topic samples so debug regressions are visible in screenshot review.
 - Runtime operator apps now show truthful link/stop state plus configured robot, command frame, gamepad, and profile.
   A fixed STOP is backed by the backend latch and requires a one-second hold to resume.
+- Runtime applies the same capability vocabulary as Builder: an explicitly unsupported widget stays in place, becomes
+  inert, and displays the backend reason; unknown capability state is not presented as failure.
 - Joysticks support keyboard operation, direction words, per-axis profile conditioning, step/latch behavior, dwell
   activation, and composition with Z/RZ sliders and a physical gamepad. Scan renders directional step targets, and
   `dwell_enabled` may activate direct targets or the highlighted target through SWITCH.

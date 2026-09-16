@@ -66,3 +66,10 @@ subscriber is connected.
   needs, and a wrong answer is visible rather than inert.
 - The capability list is the same vocabulary a robot profile would need, so this
   is a step toward `docs/architecture-robot-agnostic.md` rather than a detour.
+
+## 2026-09-16 Amendment - runtime enforcement
+
+Runtime now consumes the same readiness contract. An explicit missing seam marks the widget unavailable, keeps its
+authored control visible under an inert content boundary, and overlays the backend's concrete reason. Runtime also
+rejects intents from that widget, so a synthetic or stale event cannot bypass the visual state. A null capability report
+still means unknown and disables nothing. Live validation covers both a ROS-ready session and a real no-ROS backend.

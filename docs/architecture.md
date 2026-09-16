@@ -109,6 +109,8 @@ The current operator contract is maintained in `docs/operator-runtime.md`.
 
 Status indicators should follow the same adapter boundary as runtime behavior. Backend/API state can be generic, but
 robot, ROS, network, or hardware state must come from explicit adapters instead of being inferred in frontend-only code.
+The same boundary gates widgets: runtime resolves their declared requirements against the backend capability report,
+keeps explicitly unavailable widgets visible and inert with the reported reason, and treats a missing report as unknown.
 
 ## Dependency Direction
 

@@ -30,7 +30,11 @@ function createJoystickLabConfigurationClient() {
 function createRuntimeActionClient() {
   return {
     listRuntimeCapabilities: vi.fn(async () => ({
-      capabilities: [],
+      capabilities: [
+        { id: "command-dispatcher", available: true, detail: "Commands are published to ROS." },
+        { id: "data-source", available: true, detail: "Topic subscriptions deliver live samples." },
+        { id: "teleop-adapter", available: true, detail: "Teleop commands reach the manager." },
+      ],
       command_frame_id: "base_link",
       command_frame_ids: ["base_link", "effector_frame", "hybrid_frame", "ft_frame"],
       robot_name: "Explorer",

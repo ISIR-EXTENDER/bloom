@@ -87,8 +87,8 @@ supervisor roles.
 
 ### P2 - configuration and recovery
 
-- **Gate unavailable runtime capabilities.** Builder authoring warns about unsupported targets, but runtime can still
-  present a control as operable when its required teleop seam is unavailable. Keep it visible, disable it, and explain.
+- ~~**Gate unavailable runtime capabilities.**~~ Delivered 2026-09-16; runtime keeps each explicitly unsupported widget
+  visible, makes its content inert, and displays the backend reason. Unknown reports do not create false failures.
 - **Make collision feedback generic.** Flag overlap while authoring instead of relying only on seed and browser checks.
 - **Build action-based guided tours.** Add the five-step operator and six-step builder paths only after the disconnected
   practice mode is proven unable to command a robot. A step completes from its real action, not a Next button.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_WIDGET_DEFINITIONS } from "./index";
-import { type RuntimeCapability, resolveWidgetReadiness } from "./widget-readiness";
+import { describeUnavailableWidgetRuntime, type RuntimeCapability, resolveWidgetReadiness } from "./widget-readiness";
 
 const WITH_ROS: RuntimeCapability[] = [
   { id: "command-dispatcher", available: true, detail: "" },
@@ -36,6 +36,25 @@ describe("with no ROS attached", () => {
     expect(readiness.state).toBe("unavailable");
     expect(readiness.note).toMatch(/teleop connection/);
     expect(readiness.missing).toEqual(["teleop-adapter"]);
+  });
+
+  it("uses the backend's concrete runtime failure detail", () => {
+    const capabilities = WITHOUT_ROS.map((capability) =>
+      capability.id === "teleop-adapter"
+        ? { ...capability, detail: "No teleop gateway is connected, so axis widgets move nothing." }
+        : capability,
+    );
+    const readiness = resolveWidgetReadiness(definition("joystick"), capabilities);
+
+    expect(describeUnavailableWidgetRuntime(readiness, capabilities)).toBe(
+      "No teleop gateway is connected, so axis widgets move nothing.",
+    );
+  });
+
+  it("falls back to the requirement name when an older report omits it", () => {
+    const readiness = resolveWidgetReadiness(definition("joystick"), []);
+
+    expect(describeUnavailableWidgetRuntime(readiness, [])).toBe("Needs a teleop connection to the manager.");
   });
 
   it("says a widget can still be placed, since a screen is often built before the robot is on", () => {
