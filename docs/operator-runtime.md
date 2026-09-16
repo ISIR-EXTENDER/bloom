@@ -108,6 +108,11 @@ the selected frame.
 The **Sent to manager** echo subscribes to `/joystick_cartesian_command` and shows its `twist`. It helps verify the
 command leaving Bloom; it is not controller feedback or proof of robot motion.
 
+The README includes a [live Joystick Lab capture](assets/screenshots/11-joystick-lab.png) and a
+[1:55 Explorer walkthrough](assets/demo/bloom-explorer-demo.mp4) covering Drive, Joystick Lab, feedback, command
+sources, and Bloom Debug. These are ROS-bench evidence without physical hardware acceptance; Kinova follows the same
+flow with its own frame allowlist.
+
 ## Physical Gamepad
 
 When the browser exposes a standard gamepad, Bloom treats it as another contribution to the same composed twist. The

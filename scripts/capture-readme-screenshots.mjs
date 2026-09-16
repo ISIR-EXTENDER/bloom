@@ -13,6 +13,7 @@ import { chromium } from "@playwright/test";
  *
  * Run against a dashboard with a seeded backend:
  *   BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run capture:readme
+ * Append `-- --only landing-page,builder-home` to refresh selected images.
  * Set BLOOM_README_API_URL when the dashboard uses a separate API origin.
  */
 
@@ -21,6 +22,9 @@ const repoRoot = resolve(__dirname, "..");
 const outputDir = resolve(repoRoot, "docs/assets/screenshots");
 const dashboardUrl = process.env.BLOOM_DASHBOARD_URL ?? "http://127.0.0.1:5174";
 const apiUrl = (process.env.BLOOM_README_API_URL ?? dashboardUrl).replace(/\/$/, "");
+const args = process.argv.slice(2);
+const onlyArgumentIndex = args.indexOf("--only");
+const only = onlyArgumentIndex >= 0 ? new Set((args[onlyArgumentIndex + 1] ?? "").split(",").filter(Boolean)) : null;
 const capturedApplicationIds = [
   "bloom-debug",
   "explorer-manager",
@@ -150,6 +154,9 @@ try {
   });
 
   async function step(name, navigate) {
+    if (only && !only.has(name)) {
+      return;
+    }
     try {
       await navigate();
       await capture(page, shot(name));
@@ -207,7 +214,9 @@ function applyApiDefaults(application) {
     profiles: application.profiles.map((profile) => ({
       audio_cues: false,
       deadzone: 0,
+      dwell_enabled: false,
       dwell_ms: 1000,
+      language: "en",
       repeat_guard_ms: 0,
       scan_period_ms: 1400,
       ...profile,

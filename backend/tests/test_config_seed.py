@@ -225,6 +225,25 @@ def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
     assert "/cmd/max_velocity" not in topics
 
 
+def test_cartesian_manager_monitors_use_its_twist_stamped_command_type() -> None:
+    """A wrong type leaves an apparently healthy topic widget permanently empty."""
+    checked = 0
+    for config_id in ("bloom-debug", "explorer-manager", "kinova-manager"):
+        path = DEFAULT_SEED_DIR / f"{config_id}.json"
+        bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
+        for application in bundle.applications:
+            for screen in application.screens:
+                for widget in screen.widgets:
+                    if widget.settings.get("topic") != "/joystick_cartesian_command":
+                        continue
+                    assert widget.settings.get("messageType") == "geometry_msgs/msg/TwistStamped", (
+                        f"{config_id}/{screen.id}/{widget.id} subscribes with the wrong cartesian_manager type"
+                    )
+                    checked += 1
+
+    assert checked > 0, "no cartesian_manager command monitors were checked"
+
+
 @pytest.mark.parametrize("config_id", ["explorer-manager", "kinova-manager"])
 def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> None:
     """The experiment UI replaces every physical joystick input on one screen."""

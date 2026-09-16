@@ -71,7 +71,9 @@ Delivered in Explorer Manager and Kinova Manager with app-level wiring, scan cov
 zero-motion frame interlock, kiosk/gamepad propagation, and the `11-joystick-lab` ROS capture. The dated evidence is in
 `docs/validation/2026-09-16-joystick-lab-end-to-end.md`. During live comparison, the handoff's `axes` fields were mapped
 to canonical `axis_hints`, and Rotation/Pivot were narrowed by one pixel to preserve the maintained STOP reserve at
-`1024x600`.
+`1024x600`. The capture is now tracked in the README beside a reproducible 1:55 Explorer walkthrough covering Drive,
+Joystick Lab, feedback, command sources, and Bloom Debug. Kinova uses the same tutorial with its documented
+`effector_frame` allowlist; neither artifact is physical-hardware acceptance.
 
 ## Lot 0.2, as delivered
 

@@ -25,21 +25,16 @@ reference and emergency rollback during live acceptance.
 
 ## Why Bloom
 
-Robot interfaces often bind screen layout, input devices, transport code, and one robot into a single application.
-Bloom separates those concerns so a team can improve an operator workflow without rebuilding the command path, or add
-a robot adapter without forking the interface.
+Extender's older interfaces coupled screen layout, input devices, ROS transport, and one robot. Bloom replaces that
+pattern with one configurable interface system:
 
-Bloom provides:
+- **Build** reusable robot screens, controls, themes, profiles, and safety policies in the visual Builder.
+- **Operate** the saved application in a focused Runtime with guarded maintenance, diagnostics, and a latched STOP.
+- **Connect** it through FastAPI and WebSockets to ROS 2 or another machine adapter without putting transport code in
+  the frontend.
 
-- a visual **Builder** for applications, screens, widgets, themes, and runtime policies;
-- a distraction-free **Runtime** with connection state, guarded maintenance access, and a backend-latched STOP;
-- a separate read-only **Supervisor mirror** for robot, frame, STOP-latch, session, and ROS-topic status;
-- reusable inputs and diagnostics for touch, keyboard, gamepad, camera, plots, topics, and saved positions;
-- a FastAPI boundary for storage, WebSocket sessions, policy checks, audit records, and optional ROS 2 adapters;
-- ready-to-run **Explorer Manager** and **Kinova Manager** applications for Extender.
-
-The UI model is generic. ROS 2 is one adapter, not a frontend dependency, so the same builder and runtime can support
-other robots and machine gateways later.
+Explorer Manager and Kinova Manager ship ready to run. The same model also provides accessible input profiles, a
+read-only Supervisor mirror, plots, topic inspection, audit records, and shared JSON/SQLite configuration.
 
 ## Quickstart
 
@@ -198,6 +193,13 @@ Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova p
 reviewed fault-reset action. Joystick Lab keeps every frame choice visible and explains when the connected robot does
 not support one.
 
+[![Explorer Joystick Lab in Bloom](docs/assets/screenshots/11-joystick-lab.png)](docs/assets/demo/bloom-explorer-demo.mp4)
+
+**[Watch the 1:55 Explorer walkthrough](docs/assets/demo/bloom-explorer-demo.mp4)**: Drive, Joystick Lab, live robot
+feedback, command sources, and Bloom Debug topic/audit/plot views. It was recorded against the ROS-enabled Explorer
+bench stack without physical hardware. Follow the same steps with Kinova Manager after choosing the Kinova launch and
+`effector_frame` allowlist above.
+
 The operator shell is available in English, Spanish, and French. Change it from Maintenance or **Settings >
 Language**; the choice belongs to the selected profile. App names, screen names, and widget labels are authored
 configuration data and remain as written, while topic names, frame IDs, axes, and numeric values are never translated.
@@ -274,14 +276,15 @@ ros2 launch cartesian_manager kinova.launch.py use_simulation:=false robot_ip:=1
 | --- | --- | --- |
 | ![Bloom app configuration](docs/assets/screenshots/app-configuration.png) | ![Explorer Manager positions](docs/assets/screenshots/runtime-explorer-positions.png) | ![Explorer Manager robot feedback](docs/assets/screenshots/runtime-explorer-feedback.png) |
 
-| Command sources | Camera | Bloom Debug |
+| Joystick Lab | Command sources | Bloom Debug |
 | --- | --- | --- |
-| ![Explorer Manager command sources](docs/assets/screenshots/runtime-explorer-command-sources.png) | ![Camera runtime](docs/assets/screenshots/runtime-camera.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) |
+| ![Explorer Manager Joystick Lab](docs/assets/screenshots/11-joystick-lab.png) | ![Explorer Manager command sources](docs/assets/screenshots/runtime-explorer-command-sources.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) |
 
 </details>
 
-The captures intentionally run without ROS, so topic diagnostics read `MISSING`. Refresh every tracked image from a
-running dashboard and isolated seeded backend with:
+The general preview set intentionally runs without ROS, so its topic diagnostics read `MISSING`. The Joystick Lab
+image and Explorer video above use the ROS-enabled bench stack. Refresh the general set from a running dashboard and
+isolated seeded backend with:
 
 ```bash
 npx playwright install chromium
@@ -290,6 +293,14 @@ BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run capture:readme
 
 The capture script exits non-zero for skipped screens or when the backend store differs from the committed shared
 applications, so it cannot silently leave a stale image in this README.
+
+Record the Explorer walkthrough from a seeded ROS-enabled runtime with:
+
+```bash
+BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run record:explorer-demo
+```
+
+The recorder uses Playwright and `ffmpeg`; install Chromium with the command above and provide `ffmpeg` on `PATH`.
 
 ## What Ships Today
 

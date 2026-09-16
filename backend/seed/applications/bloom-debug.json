@@ -61,7 +61,7 @@
               },
               "settings": {
                 "topic": "/joystick_cartesian_command",
-                "messageType": "extender_msgs/msg/TeleopCommand",
+                "messageType": "geometry_msgs/msg/TwistStamped",
                 "fieldPath": "",
                 "maxMessages": 100,
                 "prettyPrint": true
@@ -82,7 +82,7 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "fieldPath": "twist.linear.x",
                 "historySeconds": 30,
-                "maxSamples": 500,
+                "maxSamples": 3000,
                 "unit": "m/s",
                 "variant": "area"
               }

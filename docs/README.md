@@ -37,6 +37,8 @@ Current documentation map, reviewed 2026-09-16.
   amendments; the original decision context is retained.
 - [`docs/validation/`](validation/): point-in-time evidence. A record states what passed on that date and must not be
   read as proof of later hardware acceptance.
+- [Explorer tutorial media validation](validation/2026-09-16-explorer-tutorial-media.md): reproducible Joystick Lab
+  screenshot and ROS-bench walkthrough evidence.
 - [`docs/reviews/`](reviews/): dated review material and refactoring plans.
 - [Bloom UX design handoff](ux-design-handoff.md): the tracked summary of the externally produced design-review folder,
   delivered behavior, and remaining work. Update this summary when the source folder is refreshed.

@@ -29,6 +29,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   ownership, and a runtime client projection that exposes no movement, STOP, resume, publish, or action methods.
 - **Same-Wi-Fi development access** with a wildcard frontend bind, a printed LAN URL, an API-port-aware Vite proxy, and
   documented shared-SQLite, firewall, concurrency, and trusted-network constraints.
+- **Explorer tutorial media** with a live Joystick Lab screenshot and a reproducible 1:55 ROS-bench walkthrough through
+  Drive, Joystick Lab, feedback, command sources, and Bloom Debug.
 - **One Cartesian command frame per application**, selected from backend capabilities, shown in the kiosk bar, applied
   to virtual controls and gamepads, persisted through JSON/SQLite, and checked against the deployment allowlist.
 - **Kinova Manager app** alongside Explorer Manager, including manager drive, saved positions, feedback, command-source
@@ -86,6 +88,13 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- Fresh API environments now install a WebSocket implementation for Uvicorn, so runtime sessions still connect after
+  `uv sync` or a clean deployment.
+- Bloom Debug keeps preflight, topic, and audit status in one row at the maintained video viewport, leaving its live
+  echo and plot widgets readable at `1280x720`.
+- Bloom Debug subscribes to the default `cartesian_manager` command topic as `geometry_msgs/msg/TwistStamped`, matching
+  the publisher instead of leaving the command echo empty with an incompatible legacy message type; its command plot
+  also retains the full 30-second window at 100 Hz.
 - Three high severity advisories in transitive frontend dependencies (`nanoid`,
   `postcss`, `undici`).
 - The backend audit gate reported `pip`'s own advisory through `pip-audit`;
