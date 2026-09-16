@@ -87,7 +87,9 @@ The shipped **Explorer Manager** and **Kinova Manager** Drive screens expose the
 
 The four Cartesian widgets are composed into one complete 6-DoF twist. Releasing one source clears only its
 contribution. The runtime continues publishing the composed value so `cartesian_manager` can enforce its source timeout.
-Bloom sends normalized values and does not add a hidden linear or angular scale.
+Bloom sends normalized values and does not add a hidden linear or angular scale. Widgets may sample at up to 30 Hz,
+but one latest-value gate caps the combined WebSocket stream at 30 commands/s. Explicit zero commands bypass that gate
+and discard any queued movement; the backend's default 60 commands/s ceiling remains an independent safety boundary.
 The speed slider readouts are therefore downstream limits, not a second scale in Bloom. Maintenance diagnostics list
 their topics explicitly; **No subscriber** means the controller is not ready and the corresponding slider stays inert.
 

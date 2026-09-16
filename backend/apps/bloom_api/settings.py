@@ -117,6 +117,8 @@ class Settings(BaseModel):
         "example_interfaces/srv/Trigger",
         "std_srvs/srv/Trigger",
     )
+    # The browser coalesces the complete twist to at most 30 Hz. Keep a 2x
+    # margin for timing jitter while retaining a hard server-side ceiling.
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
         "/cartesian_command",

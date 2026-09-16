@@ -560,6 +560,18 @@ describe("widget settings contracts", () => {
     });
   });
 
+  it("rejects joystick rates above the aggregate runtime wire limit", () => {
+    expect(normalizeWidgetSettings("joystick", { publish_rate_hz: 31 })).toEqual({
+      success: false,
+      errors: [
+        {
+          field: "publish_rate_hz",
+          message: "publish_rate_hz must be less than or equal to 30",
+        },
+      ],
+    });
+  });
+
   it("validates topic plot debug settings", () => {
     expect(
       normalizeWidgetSettings("topic-plot", {

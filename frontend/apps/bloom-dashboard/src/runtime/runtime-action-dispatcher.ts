@@ -106,6 +106,7 @@ export type RuntimeActionDispatchStatus =
   | "accepted"
   | "blocked"
   | "called"
+  | "coalesced"
   | "failed"
   | "published"
   | "simulated"
@@ -141,6 +142,10 @@ export type RuntimeActionDispatchOptions = {
    * composed. Omitted keeps the historical single-widget behaviour.
    */
   teleopComposer?: TeleopTwistComposer;
+  teleopCommandSender?: (request: RuntimeTeleopCommandRequest) => Promise<{
+    detail: string;
+    status: "accepted" | "coalesced" | "simulated";
+  }>;
   teleopSequence?: number;
 };
 
@@ -359,7 +364,7 @@ async function dispatchTeleopValueIntent(
       };
     }
 
-    if (!client.sendTeleopCommand) {
+    if (!options.teleopCommandSender && !client.sendTeleopCommand) {
       return {
         intent,
         request,
@@ -369,6 +374,23 @@ async function dispatchTeleopValueIntent(
     }
 
     try {
+      if (options.teleopCommandSender) {
+        const outcome = await options.teleopCommandSender(request);
+        return {
+          intent,
+          request,
+          status: outcome.status,
+          detail: outcome.detail,
+        };
+      }
+      if (!client.sendTeleopCommand) {
+        return {
+          intent,
+          request,
+          status: "unsupported",
+          detail: "Teleop intents need a runtime WebSocket client before they can be sent.",
+        };
+      }
       const response = await client.sendTeleopCommand(request);
       return {
         intent,

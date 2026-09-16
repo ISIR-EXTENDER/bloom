@@ -51,9 +51,7 @@ function createRuntimeActionClient() {
 
 describe("pressing a mode button", () => {
   it("marks it as the requested mode and clears the others", async () => {
-    render(
-      <App configurationClient={createConfigurationClient()} runtimeActionClient={createRuntimeActionClient()} />,
-    );
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={createRuntimeActionClient()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
     fireEvent.click(await screen.findByRole("button", { name: "Launch Explorer Manager runtime" }));

@@ -1,4 +1,4 @@
-import type { JoystickSettings } from "@bloom/widgets";
+import { type JoystickSettings, MAX_JOYSTICK_PUBLISH_RATE_HZ } from "@bloom/widgets";
 import type { JoystickLabelColors, JoystickLabels } from "./JoystickPrimitive";
 
 export type ResolvedJoystickBinding = {
@@ -55,7 +55,7 @@ export function resolveJoystickBinding(settings: Record<string, unknown>): Resol
     },
     labels,
     modeId: getStringSetting(settings, "mode_id", getStringSetting(settings, "binding", "input")),
-    publishRateHz: clamp(getNumberSetting(settings, "publish_rate_hz", 30), 1, 120),
+    publishRateHz: clamp(getNumberSetting(settings, "publish_rate_hz", 30), 1, MAX_JOYSTICK_PUBLISH_RATE_HZ),
     runtimeTarget: getStringSetting(runtimeBinding, "target", getStringSetting(settings, "binding", "input")),
     zeroOnRelease: getBooleanSetting(settings, "zero_on_release", true),
   };

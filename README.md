@@ -313,6 +313,7 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
 - Explorer and Kinova Manager workflows for Joystick Lab, Drive, Positions, Robot feedback, and Command sources.
 - JSON and SQLite configuration storage, tracked seed applications, import/export, audit, and recording hooks.
 - ROS 2 integration for `cartesian_manager`, generic topic publishing, service calls, and topic discovery.
+- One 30 Hz latest-value teleop stream across every active control, with neutral commands sent immediately.
 - Frontend, backend, security, contract, and visual checks in CI.
 
 Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs

@@ -495,6 +495,31 @@ describe("runtime action dispatcher", () => {
     expect(client.publishRosTopic).not.toHaveBeenCalled();
   });
 
+  it("routes teleop through the aggregate sender when one is provided", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(),
+      sendTeleopCommand: vi.fn(),
+    };
+    const teleopCommandSender = vi.fn(async () => ({
+      detail: "Teleop update was coalesced into a newer command.",
+      status: "coalesced" as const,
+    }));
+    const intent = createTeleopValueIntent({
+      modeId: "translation",
+      runtimeBinding: { adapter: "teleop" },
+      value: { x: 0.2, y: 0.3 },
+    });
+
+    await expect(
+      dispatchRuntimeActionIntent(client, intent, { teleopCommandSender, teleopSequence: 42 }),
+    ).resolves.toMatchObject({
+      status: "coalesced",
+      detail: "Teleop update was coalesced into a newer command.",
+    });
+    expect(teleopCommandSender).toHaveBeenCalledOnce();
+    expect(client.sendTeleopCommand).not.toHaveBeenCalled();
+  });
+
   it("blocks teleop commands outside the active app runtime policy", async () => {
     const client: RuntimeActionClient = {
       publishRosTopic: vi.fn(),

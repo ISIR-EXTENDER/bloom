@@ -8,6 +8,7 @@ import {
   type RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
 import { type ComponentContribution, isZeroTwist, TeleopTwistComposer } from "./teleop-composition";
+import { TeleopRateGate } from "./teleop-rate-gate";
 import { TeleopStreamPump } from "./teleop-stream";
 
 export type RuntimeActionRecordStatus = RuntimeActionDispatchResult["status"] | "pending";
@@ -39,12 +40,9 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const externalSourcesAwaitingNeutral = useRef(new Set<string>());
   const clientRef = useRef(client);
   clientRef.current = client;
-  // Keeps the composed twist alive past the manager's 0.2s input timeout.
-  const teleopPump = useRef<TeleopStreamPump | null>(null);
-  if (teleopPump.current === null) {
-    teleopPump.current = new TeleopStreamPump({
-      composer: teleopComposer.current,
-      nextSequence: () => ++nextTeleopSequence.current,
+  const teleopRateGate = useRef<TeleopRateGate | null>(null);
+  if (teleopRateGate.current === null) {
+    teleopRateGate.current = new TeleopRateGate({
       send: (request) => {
         const sendTeleopCommand = clientRef.current.sendTeleopCommand;
         if (!sendTeleopCommand) {
@@ -52,6 +50,15 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         }
         return sendTeleopCommand(request);
       },
+    });
+  }
+  // Keeps the composed twist alive past the manager's 0.2s input timeout.
+  const teleopPump = useRef<TeleopStreamPump | null>(null);
+  if (teleopPump.current === null) {
+    teleopPump.current = new TeleopStreamPump({
+      composer: teleopComposer.current,
+      nextSequence: () => ++nextTeleopSequence.current,
+      send: (request) => teleopRateGate.current?.submit(request) ?? Promise.reject(new Error("Teleop gate is gone.")),
     });
   }
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
@@ -86,6 +93,9 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         onCommandFrameChange: options.onCommandFrameChange,
         runtimePolicy: options.runtimePolicy,
         teleopComposer: teleopComposer.current,
+        teleopCommandSender: client.sendTeleopCommand
+          ? (request) => teleopRateGate.current?.submit(request) ?? Promise.reject(new Error("Teleop gate is gone."))
+          : undefined,
         teleopSequence,
       });
       if (intent.type === "value-change") {
@@ -182,6 +192,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       window.removeEventListener("pagehide", suspendTeleop);
       document.removeEventListener("visibilitychange", suspendWhenHidden);
       suspendTeleop();
+      teleopRateGate.current?.dispose();
     };
   }, [suspendTeleop]);
 

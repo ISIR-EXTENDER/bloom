@@ -7,6 +7,7 @@ def test_default_settings_are_local() -> None:
     assert settings.api_prefix == "/api/v1"
     assert settings.configuration_dir.name == "configurations"
     assert settings.environment == "local"
+    assert settings.runtime_command_rate_limit_per_second == 60
     assert settings.service_name == "bloom-api"
 
 

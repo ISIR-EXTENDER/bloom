@@ -143,6 +143,11 @@ export BLOOM_ALLOWED_ROS_SERVICE_TYPES='example_interfaces/srv/Trigger,std_srvs/
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
 ```
 
+Keep the backend command ceiling at or above `60` for the shipped runtime. Bloom coalesces all composed teleop inputs
+to at most 30 moving commands/s and sends neutral commands immediately; the 2x margin prevents normal tablet timing
+jitter from tripping the server guard. A lower ceiling is valid only when the client stream is configured and tested
+to match it.
+
 Avoid `*` for robot-facing sessions unless you are deliberately running a temporary diagnostic setup. Prefer adding the
 smallest topic/message set needed by the app under test. The example is a Manager Drive allowlist; do not reuse it for
 Sandbox or archived Petanque without adding their explicitly reviewed topics.

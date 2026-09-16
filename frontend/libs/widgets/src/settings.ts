@@ -1,5 +1,7 @@
 import type { WidgetKind } from "@bloom/api-client";
 
+export const MAX_JOYSTICK_PUBLISH_RATE_HZ = 30;
+
 export type WidgetSettingFieldType = "boolean" | "json" | "number" | "select" | "text";
 
 export type WidgetSettingField = {
@@ -1162,7 +1164,7 @@ function validateJoystickSettings(settings: Record<string, unknown>): WidgetSett
       : []),
     ...validateString(settings, "mode_id"),
     ...validateNumber(settings, "deadzone", { min: 0, max: 1 }),
-    ...validateNumber(settings, "publish_rate_hz", { min: 1, max: 120 }),
+    ...validateNumber(settings, "publish_rate_hz", { min: 1, max: MAX_JOYSTICK_PUBLISH_RATE_HZ }),
     ...validateBoolean(settings, "show_details"),
     ...validateBoolean(settings, "zero_on_release"),
     ...validateJoystickLabels(settings.labels),
