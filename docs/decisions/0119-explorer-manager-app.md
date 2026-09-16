@@ -62,9 +62,16 @@ measured velocity makes a controller problem distinguishable from a UI problem.
 The Drive screen carries working Z and RZ controls because the teleop adapter now
 composes a full 6-DoF twist. See decision 0120.
 
-## Follow-up
+## 2026-09-16 Amendment
 
-- A saved-position library in Bloom itself, rather than only in
-  `explorer_params.yaml`. Bloom can persist poses live; the manager can only
-  reach names it was configured with, so the two need bridging.
-- Manipulability from `/ee_jac`, which is published and entirely unused.
+Both original follow-ups are delivered:
+
+- the Positions screen has a saved-position library with replay, rename/delete,
+  and export of the manager's `joint_targets` block;
+- `/ee_jac` is reduced to manipulability and plotted on Robot Feedback.
+
+The Drive virtual IHM now contains two composed joysticks, return-to-center Z/RZ
+sliders, Neutral, Jaco, momentary Snake with neutral release, and gripper
+open/close values matching `tablet_interface` (`0.2`/`1.1`). Kinova Manager uses
+the same screen contract and adds fault reset. One app-level command frame applies
+to every virtual and gamepad Cartesian contribution.

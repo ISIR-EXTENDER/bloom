@@ -39,3 +39,11 @@ state when that topic/service exists.
 - Mode toggles no longer need misleading per-widget `initialValue` changes to
   present a preferred state.
 - Backend ROS safety policy remains the final command boundary.
+
+## 2026-09-16 Amendment
+
+The kiosk redesign removed the always-visible diagnostic strip. The primary bar
+now shows only app, truthful link/stop status, configured robot/frame/gamepad,
+profile, and maintenance entry. Topic diagnostics and last-requested mode remain
+available inside Maintenance. This preserves the adapter/state decision while
+keeping debug detail away from the operating controls.

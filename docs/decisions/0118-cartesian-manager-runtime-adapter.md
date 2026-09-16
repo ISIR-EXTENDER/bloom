@@ -99,5 +99,17 @@ The target architecture replaces `geometric/jaco` with `translation` and
 `orientation` behaviours. When those land, add them to `GEOMETRIC_MODES` and let
 mode-aware joystick bindings request them directly.
 
-Live validation on Extender hardware is still pending, as for every other
-Extender item in the migration plan.
+Live validation on Extender hardware is still pending and is tracked in
+`docs/extender-petanque-validation.md` and `docs/ux-design-handoff.md`.
+
+## 2026-09-16 Amendment
+
+The frame is now selected once per application through
+`runtime_policy.command_frame_id`, offered in Builder from the backend capability
+report, and shown in the runtime kiosk bar. It stamps every composed widget and
+physical-gamepad contribution. An empty app value keeps the deployment default;
+legacy per-widget frame metadata remains only as a compatibility fallback.
+
+The backend capability report exposes the accepted frame set and robot name,
+and the teleop session rejects any non-empty frame outside
+`BLOOM_ALLOWED_COMMAND_FRAME_IDS`. See decision 0125.

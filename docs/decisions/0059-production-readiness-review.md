@@ -29,6 +29,5 @@ for Bloom. It captures:
   legacy design came from user feedback.
 - Runtime ROS parity should reuse `tablet_interface` concepts, but through Bloom
   adapters instead of direct ROS leakage into the frontend.
-- Future feature PRs should update this review or the migration plan when they
+- Future feature PRs should update this review or the current UX design handoff when they
   close a listed gap.
-

@@ -2,6 +2,9 @@
 
 Bloom is split into product apps and reusable libraries.
 
+Bloom is the active Extender IHM. `extender_ui` is legacy; its fixtures and interaction history may inform Bloom, but
+new product behavior belongs in this architecture.
+
 ## Boundaries
 
 - `frontend/apps/bloom-dashboard`: the browser app that users open.
@@ -41,12 +44,12 @@ Bloom should separate product entry points from robot interface execution:
 - Main app shell: lets users choose between building/editing apps and running existing apps.
 - App builder: edits applications, screens, widgets, layout, settings, and persistence.
 - Runtime app library: lets users choose or resume the app they want to operate.
-- Runtime apps: renders a chosen robot interface for operation without builder controls, with small edit shortcuts back
-  to the current app or screen when needed.
+- Runtime apps: renders a chosen robot interface as a kiosk, with only truthful operating state and the fixed STOP on
+  the primary surface. Navigation, diagnostics, screen switching, and editing live behind a deliberate maintenance hold.
 - Help page: explains current workflows step by step and keeps a visible freshness signal for handover.
 
-Screen previews, canvas builders, and runtime apps should not live permanently on the landing page. They can appear there
-temporarily during migration only as development previews.
+Screen previews, canvas builders, and runtime apps do not belong on the landing page. The landing page routes into the
+actual Builder and Runtime products.
 
 Current refactoring direction:
 
@@ -78,19 +81,30 @@ becomes shared.
 
 The app configuration page is also the screen lifecycle hub: users can create blank screens, duplicate existing screens,
 add reusable screens from other apps, reorder screens, remove screens from the current app, then save/discard the draft
-composition.
+composition. It owns application-wide runtime guardrails, including the one Cartesian command frame shared by virtual
+controls and physical gamepads.
 
 ## Runtime Composition
 
-Runtime uses the same screen model, widget layout model, and renderer pipeline as the builder. The difference is chrome:
-builder tools are layered around the renderer, while runtime strips them away for operation.
+Runtime uses the same screen model, widget layout model, and renderer pipeline as the builder. The difference is chrome
+and input orchestration: builder tools surround the renderer, while runtime provides a 44 px kiosk bar, backend-latched
+STOP, profile behavior, and input composition around the canonical artboard.
 
 The runtime entry point is an app library, not the last selected builder app. This keeps the user flow explicit:
 
 - choose an app to operate;
 - resume a recently opened app when useful;
-- operate the app in a clean runtime view;
-- jump back to edit app/screen only when a change is needed.
+- verify the app, robot, connection, profile, and command frame in the kiosk bar;
+- operate the app without builder or product navigation under the hand;
+- hold for maintenance before switching screens, opening diagnostics, or returning to editing.
+
+Touch, keyboard, step/latch/dwell behavior, switch-scanning infrastructure, and browser gamepads belong above the adapter
+boundary. They are designed to produce normalized contributions for the same runtime intent and teleop composer, so ROS
+adapters receive a composed command rather than knowledge of the device. The current scanner can focus a joystick but
+does not yet translate that activation into a directional step contribution; this is a frontend input-source gap, not a
+reason to fork the robot adapter.
+
+The current operator contract is maintained in `docs/operator-runtime.md`.
 
 Status indicators should follow the same adapter boundary as runtime behavior. Backend/API state can be generic, but
 robot, ROS, network, or hardware state must come from explicit adapters instead of being inferred in frontend-only code.

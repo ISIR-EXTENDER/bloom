@@ -13,6 +13,18 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Bloom as the active Extender IHM.** `extender_ui` is now documented as legacy reference/rollback software; open
+  design and live-acceptance work is tracked in the UX handoff rather than an indefinite migration percentage.
+- **Kiosk runtime shell** with a 44 px operating bar, truthful app/robot/link/frame/profile context, a 1.5 second hold
+  before maintenance actions, and screen switching outside the primary operating surface.
+- **Backend-latched runtime STOP** with immediate stop activation, cross-client state, and a one-second hold to resume.
+- **Accessible input paths** for keyboard joysticks, step controls, latch, switch-scanning focus, dwell activation,
+  browser gamepads, profile-level dead zone/repeat guard, large targets, and optional audio state cues. Browser
+  `prefers-reduced-motion` is honored; the profile enum is not yet an independent motion switch.
+- **One Cartesian command frame per application**, selected from backend capabilities, shown in the kiosk bar, applied
+  to virtual controls and gamepads, persisted through JSON/SQLite, and checked against the deployment allowlist.
+- **Kinova Manager app** alongside Explorer Manager, including manager drive, saved positions, feedback, command-source
+  visibility, gripper controls, and Trigger-style fault reset.
 - **Application lifecycle** (`active` / `archived`). Petanque is archived: kept
   and runnable, but not maintained against the current architecture and not a
   release gate. See decision 0121.
@@ -56,6 +68,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   `BLOOM_ROS_COMMAND_BACKEND=teleop_command`.
 - Mode requests are published in canonical form. `GEOMETRIC/Snake` now reaches
   ROS as `geometric/snake`.
+- Runtime operation no longer exposes product navigation or editing shortcuts directly. Those actions now require the
+  maintenance hold.
 - Sandbox V0.0 and Explorer user-test configurations target the manager
   contract. Petanque deliberately stays on `/teleop_cmd`.
 - Robot feedback topics moved from `/sandbox_controller/*` to `/ee_pose`,
@@ -69,19 +83,22 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - The backend audit gate reported `pip`'s own advisory through `pip-audit`;
   `pip` is now constrained to a patched release rather than the finding being
   suppressed.
+- Operator seed layouts are checked for canvas bounds and overlapping interactive controls; the Explorer/Kinova
+  gripper payloads and speed topics now match their live client contracts.
 
 ### Known limitations
 
 - Live validation on Extender hardware is still pending. Everything recorded so
   far is fixture, contract, or bench validation against a running
   `cartesian_manager` without a robot attached.
-- One low severity `esbuild` advisory remains. It affects the development server
-  on Windows only, which Bloom does not target.
 - Bloom applies no scaling to commands, by design. See decision 0118.
+- `cartesian_manager` still does not publish authoritative active-mode feedback; Bloom labels the mode as last requested.
+- Switch scanning can focus a joystick but cannot yet turn that activation into a directional step command. Do not claim
+  single-switch teleop until the P1 correction in the UX handoff lands and is validated.
 
 ## [0.1.0]
 
 Initial foundation: builder, runtime, widget contracts, configuration storage
 with JSON and SQLite, runtime sessions with audit and rate limiting, ROS
 adapters, design system, and the CI baseline. See
-[docs/migration-plan.md](docs/migration-plan.md) for how this was assembled.
+[the documentation map](docs/README.md) and dated decision/validation records for how this was assembled.

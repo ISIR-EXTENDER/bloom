@@ -1,10 +1,10 @@
 # Bloom Security Baseline
 
-Bloom is not a safety-certified control system. It is a web interface that can eventually trigger robot behavior, so the
+Bloom is not a safety-certified control system. It is the active Extender IHM and can trigger robot behavior, so the
 minimum security posture must be stronger than a generic internal dashboard.
 
-This baseline is intentionally small and practical. It defines what Bloom should start enforcing now and what every
-future migration slice should keep in mind.
+This baseline is intentionally small and practical. It distinguishes controls enforced now from deployment work that
+still depends on the environment.
 
 ## Reference Benchmark
 
@@ -40,6 +40,10 @@ The first things to protect are:
 - Require authentication for production settings so Bloom does not start an open production API by accident.
 - Restrict CORS to configured dashboard origins.
 - Apply a global HTTP rate limit, plus runtime command-specific rate limits for robot commands.
+- Enforce deployment allowlists for publish topics, message types, teleop targets, command frames, service calls,
+  recording topics, and recording folders, with narrower app policy as an earlier guardrail.
+- Validate manager mode grammar and reject malformed/unknown frame requests before they reach ROS.
+- Audit accepted and rejected runtime command attempts.
 - Keep file paths controlled by repositories/services, never by raw user-provided paths.
 - Keep dependency lock files committed.
 - Run dependency audits through `npm run audit:security` before deployment-oriented releases.
@@ -47,13 +51,12 @@ The first things to protect are:
   releases.
 - Keep tests independent from ROS by injecting adapters/gateways.
 
-## Controls To Add Before Real Robot Deployment
+## Remaining Deployment Controls
 
 - User-facing dashboard login/session UX if Bloom is deployed beyond trusted lab devices.
 - Stronger authorization policy per app/workspace once profiles and projects exist.
-- Explicit allowlists for publishable ROS topics, message types, and payload schemas.
 - CSRF protection or same-site cookie strategy if browser-authenticated sessions are used.
-- Persistent audit log for app config changes and robot command intents.
+- Define persistent audit retention/export if in-memory runtime audit is not sufficient for the deployment.
 - SROS2 deployment notes for secure ROS graph communication.
 - Security CI checks: scheduled dependency audits, secret scanning, and a ZAP baseline scan.
 
@@ -78,7 +81,7 @@ are easier to leak in logs.
 - API rejects invalid configuration shapes with clear 4xx responses.
 - API rejects path traversal or unknown configuration IDs.
 - App/screen membership cannot mutate another app unexpectedly.
-- ROS publish endpoints reject unknown topics, message types, and malformed payloads once allowlists exist.
+- ROS publish, teleop, service, frame, and recording endpoints reject requests outside configured policy.
 - WebSocket sessions reject unknown actions and handle disconnects cleanly.
 - HTTP responses include minimal security headers.
 - Dependency checks run regularly in CI or before releases.

@@ -17,6 +17,9 @@ coverage/
 !.env.example
 backend/data/
 
+# Externally generated design-review exports
+/Bloom UX design review */
+
 # Tooling / OS
 .DS_Store
 *.log

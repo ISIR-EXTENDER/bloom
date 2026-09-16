@@ -1,108 +1,107 @@
 # Bloom Accessibility Plan
 
-Bloom should be usable by people with different bodies, devices, contexts, and
-levels of technical expertise. This matters even more for robotics: operators
-may use a tablet in sunlight, under stress, with gloves, near moving hardware,
-or while sharing attention with a real robot.
+Reviewed 2026-09-16. Bloom is the active Extender IHM, so accessibility behavior is a runtime contract rather than a
+future migration enhancement.
 
-This plan follows the spirit of the GitHub Open Source Guide accessibility best
-practices:
+Bloom should be usable by people with different bodies, devices, contexts, and levels of technical expertise. Operators
+may use a tablet in sunlight, under stress, with gloves, with limited sustained movement, or while looking at a robot
+instead of the display.
 
-- document accessibility expectations;
-- make contribution paths accessible;
-- use semantic UI and clear language;
-- make keyboard and focus behavior reliable;
-- avoid using color as the only signal;
-- test accessibility continuously instead of treating it as a late cleanup.
+This plan follows the spirit of the
+[GitHub Open Source Guide accessibility practices](https://opensource.guide/accessibility-best-practices-for-your-project/):
+document expectations, use semantic UI and clear language, make keyboard/focus behavior reliable, pair color with other
+signals, and test accessibility continuously.
 
-Reference: <https://opensource.guide/accessibility-best-practices-for-your-project/>
+## Current Runtime Contract
 
-## Accessibility Statement
+- Runtime is a kiosk. Product navigation, editing, diagnostics, and screen switching stay behind a 1.5 second
+  maintenance hold.
+- STOP is fixed runtime chrome, engages immediately, follows a backend latch, and requires a one-second hold to resume.
+- Status uses words, color, and shape together. Audio cues can announce stop, link loss, and recovery.
+- Joysticks use pointer events and are keyboard operable. Direction words are visible inside the pad.
+- A browser gamepad contributes through the same conditioned 6-DoF command as touch and keyboard controls.
+- App profiles control display density, font scale, motor behavior, audio, dead zone, repeat guard, scan timing, and dwell
+  timing.
+- The builder reports a selected interactive widget's effective size on the `1024x600` target and warns below 44 px.
+- Semantic theme pairs are tested at a minimum 4.5:1 contrast ratio, including the corrected muted-text surface pairs.
+- Forms use visible labels and touch-friendly input hints; drag/drop workflows retain button alternatives.
 
-Bloom aims to be accessible by default for app builders, runtime operators, and
-contributors. We target practical WCAG-inspired foundations first:
+## Motor And Input Profiles
 
-- readable text and sufficient contrast;
-- keyboard reachable navigation and controls;
-- visible focus states;
-- semantic landmarks, headings, labels, status, and alert messages;
-- touch targets that work on tablets;
-- content that remains understandable without color alone;
-- reduced cognitive noise in operator-facing screens.
+The supported `motor_accessibility_preset` values have concrete runtime behavior:
 
-Bloom is still in active foundation work. Accessibility issues should be filed
-as normal product issues using the accessibility issue template, unless they are
-security-sensitive.
+| Preset | Current behavior |
+| --- | --- |
+| `default` | Direct touch/pointer and keyboard control. |
+| `large-targets` | Enlarged operator controls. |
+| `assisted-touch` | Enlarged touch-oriented presentation. |
+| `reduced-motion` | Reserved profile value; browser `prefers-reduced-motion` is honored, but profile-specific wiring remains open. |
+| `step` | Compatible joysticks and sliders expose discrete targets instead of requiring a drag; held teleop values expire after 15 seconds. |
+| `latch` | Compatible controls retain a value until explicit zero/release or the 15-second attention timeout. |
+| `scan` | Highlight advances through visible controls and activates click-responsive targets. The current joystick pad is one click target and emits no directional vector from that click, so single-switch teleop is not complete. |
+| `dwell` | Resting on an eligible runtime control activates it after the configured dwell time. |
 
-## Quick Wins Already Required
+Related profile fields are bounded by the configuration model:
 
-- Every interactive control uses a semantic element (`button`, `input`,
-  `select`, `textarea`, links for navigation only when appropriate).
-- Buttons that only make sense through context need an accessible name.
-- Forms use visible labels, not placeholder-only labels.
-- Focus must be visible for keyboard users.
-- Pages expose a skip link to jump from product navigation to the main content.
-- Status and error feedback use `role="status"` or `role="alert"` where useful.
-- Color accents must be paired with text labels, icons, grouping, or shape.
-- Touch targets should stay at least 44 px high, with 48 px preferred for Bloom.
-- Editable fields should expose touch-friendly keyboard hints. Names stay human
-  and spellcheckable; URLs and structured ROS payloads disable autocorrect,
-  autocapitalization, and unrelated browser autocomplete.
+- `font_scale`: `0.75..2.0`;
+- `deadzone`: `0..0.5`, applied per axis and rescaled above the threshold;
+- `repeat_guard_ms`: `0..600`;
+- `scan_period_ms`: `600..3000`;
+- `dwell_ms`: `400..4000`;
+- `audio_cues`: enabled or disabled per profile.
+
+Dwell cannot shorten the one-second STOP resume hold. Scan is disabled while stopped. A released pointer, stick, or
+latched zero action must clear its contribution rather than leave a standing robot command.
+Stepped or latched return-to-center values also publish zero after 15 seconds without renewed input.
 
 ## Builder And Runtime Rules
 
-- Builder pages must separate high-level choices from detail-heavy editing
-  surfaces.
-- Runtime apps should not show builder controls.
-- Empty or unimplemented runtime screens must show a clear coming-soon state.
-- Drag-and-drop interactions must keep accessible button fallbacks.
-- App themes can change color palettes, but the theme system must preserve
-  readable contrast and visible focus.
-- Robot command widgets need clear labels, state, and confirmation/error
-  feedback before being used with real hardware.
-- App-builder text editing must stay usable on Raspberry/tablet targets for app
-  names, screen names, widget labels, typed payloads, notes, and annotations.
-  A custom virtual keyboard remains a future option, but only after validating
-  that native OS/browser keyboards do not solve the target-device workflow.
-- Current virtual-keyboard exploration decision: keep using native input
-  controls with clear labels, touch-sized fields, and browser keyboard hints.
-  Before building a custom keyboard, run a Raspberry/tablet hardware pass over
-  app creation, app configuration, screen naming, widget labels, and ROS payload
-  editing. Only add a Bloom keyboard if native input blocks those workflows.
+- Every interactive control uses a semantic element or an appropriate interactive role with an accessible name.
+- Focus remains visible, and route changes move focus to useful main content.
+- Runtime never exposes builder affordances on the primary operating surface.
+- Color is never the only status signal.
+- Touch targets should be at least 44 px on glass, with 48 px or more preferred and 56/64 px profile targets available.
+- Builder geometry remains canonical; any fit scaling that reduces controls must be visible during authoring and covered
+  by viewport checks.
+- Robot command widgets need a human label, state/release behavior, and readable failure feedback.
+- Native OS/browser keyboards remain the text-entry baseline. A custom virtual keyboard requires evidence that native
+  input blocks the target workflow.
+- Technical topic, message, axis, and frame details belong in configuration or maintenance diagnostics. The one
+  effective command frame remains visible because it changes movement meaning.
 
-## Documentation And Community Rules
+## Current Test Evidence
 
-- README content should use clear headings and descriptive links.
-- Screenshots should include useful alt text.
-- Pull requests should include an accessibility check when UI, docs, or
-  interaction behavior changes.
-- Accessibility bugs should be easy to report without needing expert vocabulary.
-- New design-system decisions should note accessibility tradeoffs when relevant.
+- Component tests cover labels, roles, focus, keyboard joystick operation, hold gestures, STOP, scanner focus/click
+  activation, dwell, step, latch, gamepad conditioning, audio state transitions, and profile resolution. They do not
+  currently prove that scanning a joystick emits a direction.
+- `@bloom/ui` tests enforce contrast for semantic theme pairs.
+- Seed/config tests reject out-of-canvas and overlapping interactive controls on maintained operator apps.
+- Visual smoke covers maintained runtime and builder routes across tablet and desktop viewports.
+- The builder's selected-widget check tests the 44 px physical target warning.
 
-## Testing Roadmap
-
-Current quick checks:
-
-- component tests for visible labels, roles, statuses, and flows;
-- Playwright screenshots for layout regressions;
-- manual keyboard smoke checks during visual QA.
-
-Next tests to add:
-
-- automated accessibility scan in browser-level tests once pages stabilize;
-- keyboard-only smoke test for builder navigation and screen editing;
-- contrast checks for app theme presets;
-- reduced-motion check for animated UI;
-- screen-reader-friendly naming tests for widget controls.
+These are repository-level checks. They do not prove that a real switch, gamepad, tablet mounting position, sound level,
+or interaction pattern works for a particular person.
 
 ## Open Accessibility Work
 
-- Add a recurring keyboard smoke test for landing, builder overview, app config,
-  screen builder, and runtime.
-- Add theme validation so user-created palettes keep minimum contrast.
-- Add accessible drag-and-drop fallbacks for app screen composition and widget
-  placement.
-- Add onboarding hints that can be dismissed and are reachable by keyboard.
-- Keep README screenshots updated with meaningful alt text and captions.
-- Validate the optional virtual keyboard or touch editing assistant on hardware
-  demos where the native keyboard may not be practical.
+- Fix the P1 switch-scanning path: render joystick directions as independently scannable step targets and test the
+  emitted movement intent, not only highlight movement.
+- Decide how dwell combines with scanning. They are mutually exclusive presets today; the review asks for composition,
+  but `dwell_ms` already has a nonzero default and cannot by itself serve as a safe enable flag without a migration.
+- Validate every intended profile with operators and the actual HMTECH tablet, gamepad, and switch hardware.
+- Prevent or explicitly resolve runtime fit scales that reduce an interactive target below its accepted physical size.
+- Add whole-screen device-frame and touch-check views for all lab geometries, not only a selected-widget calculation.
+- Build the accessible profile settings and local safe-preview flow described in the UX handoff.
+- Decide whether named portable profiles need language, operator-frame preference, response curves, tremor smoothing,
+  minimum-contact filtering, or other proposed signal conditioning beyond today's dead zone and repeat guard.
+- Add generic live collision feedback in the builder.
+- Decide whether fixed control positions and additional non-visual cues are needed for eyes-off use.
+- Add role-aware onboarding, runtime EN/ES/FR localization, and translated overflow tests.
+- Wire the `reduced-motion` profile value explicitly or remove it; today only the browser/OS media preference changes
+  motion.
+- Design supervisor mirroring and explicit control ownership/handover.
+- Add a stable browser-level automated accessibility scan while retaining keyboard, screen-reader, hardware, and
+  operator checks that automation cannot replace.
+
+The design-review backlog is maintained in
+[the UX design handoff](ux-design-handoff.md).

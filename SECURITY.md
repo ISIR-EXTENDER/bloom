@@ -1,13 +1,12 @@
 # Security Policy
 
 Bloom is a web interface for robot teleoperation, supervision, and configurable
-device control. Security reports are important because UI actions may eventually
+device control. Security reports are important because UI actions can
 reach real robots, ROS topics, cameras, logs, or machine-control adapters.
 
 ## Supported Versions
 
-Bloom is currently in active migration and foundation development. Security
-fixes are handled on `main`.
+Bloom is the active Extender IHM. Security fixes are handled on `main`.
 
 | Version | Supported |
 | --- | --- |

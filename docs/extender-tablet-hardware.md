@@ -3,6 +3,9 @@
 This document captures the current touchscreen target used for Extender tests. Keep it updated when the lab changes the
 tablet, Linux display configuration, or touch mapping workflow.
 
+Bloom is the active Extender IHM. The dimensions below are therefore release targets for the operator product, not only
+migration comparison points.
+
 ## Current Touchscreen
 
 | Field | Value |
@@ -75,7 +78,13 @@ Verified target state:
    xinput map-to-output "HID 27c0:0818" HDMI-1
    ```
 
-5. Open Bloom runtime and verify a joystick knob, slider thumb, and navigation button under touch.
+5. Open a Bloom Manager app and verify both joysticks, Z/RZ sliders, mode controls, gripper, and fixed STOP under touch.
+6. Confirm the kiosk bar reports the expected robot, command frame, profile, and link state without wrapping over STOP
+   or the artboard.
+7. Hold Maintenance for 1.5 seconds, switch screens, return to operation, then verify STOP and the one-second resume
+   hold at the panel edges.
+8. If a physical gamepad or assistive input is part of the session, connect and exercise it after touch mapping is
+   confirmed. A browser-level test does not validate the actual device mapping.
 
 ## Automation Options
 
@@ -180,8 +189,18 @@ If `xinput` cannot connect to the display from systemd, prefer the desktop autos
 For every production-level builder/runtime change, validate at least:
 
 - `1024x600`: no essential button is unreachable; controls remain touchable.
+- `1280x720`: the `native-1280x720` operator canvas and kiosk chrome fit the GNOME-reported panel mode.
 - `1820x720`: layout uses the current lab tablet workspace well without becoming sparse or visually disconnected.
-- Runtime teleop: joystick and slider touch positions match visible controls.
-- Builder app config: cards, screen lists, and inspectors remain readable without horizontal scrolling.
+- Runtime teleop: joystick and slider touch positions match visible controls; release returns the composed command to
+  zero; the fixed STOP never overlaps an app control.
+- Kiosk: app, state, robot, command frame, gamepad, and profile remain readable; maintenance requires a deliberate hold.
+- Virtual IHM: Translation, Rotation, Height, Pivot, Neutral, Jaco, momentary Snake, gripper, and speed controls are all
+  reachable on the intended screen.
+- Accessibility: exercise every profile/input the app claims, including keyboard, step, latch, scan, dwell, or gamepad.
+- Builder: app config, device-size warning, screen lists, and inspectors remain readable without horizontal scrolling.
+
+Maintained Manager apps author their operator screens with `native-1280x720` and fit them into the available runtime
+viewport. Fit can still reduce authored dimensions at `1024x600`; the builder's selected-widget glass-size warning is a
+design aid, not proof that the complete screen meets the physical target floor.
 
 The target is not only "no clipping"; it is calm, readable, touchable operation under real lab conditions.

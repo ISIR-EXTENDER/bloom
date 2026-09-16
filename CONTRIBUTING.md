@@ -6,7 +6,7 @@ Bloom keeps a linear, reviewable history.
 
 - `main` is the stable branch.
 - Work happens on short-lived feature branches.
-- Prefer branch names such as `feat/widget-registry`, `fix/backend-health`, or `docs/migration-plan`.
+- Prefer branch names such as `feat/widget-registry`, `fix/backend-health`, or `docs/operator-guide`.
 
 ## Commits
 
@@ -20,7 +20,7 @@ Examples:
 
 - `feat(widgets): add command button schema`
 - `fix(api): validate topic names`
-- `docs: document migration phase one`
+- `docs: refresh the operator runtime guide`
 
 Keep commits focused. If a commit mixes unrelated work, split it before opening the PR.
 
@@ -46,6 +46,10 @@ Frontend:
 
 ```bash
 npm install
+npm run check
 npm run build
 npm run test
 ```
+
+Robot-facing, security, or visible runtime changes should also run the relevant validation commands from
+[`docs/release-checklist.md`](docs/release-checklist.md).

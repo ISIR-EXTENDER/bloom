@@ -1,42 +1,46 @@
-# Legacy Retirement Gates
+# Legacy Status And Cleanup Gates
 
-Bloom is intended to replace the old web/tablet workflow only when it is demonstrably safer, clearer, and accepted by
-users. Until then, legacy repos and packages remain operational rollback paths.
+Reviewed 2026-09-16.
 
-## Current Legacy Status
+Bloom is the active Extender IHM. `extender_ui` is legacy now; this is a product-ownership statement and does not imply
+that old repositories must be deleted before live robot acceptance is complete.
 
-Status: do not retire yet.
+## Current Status
 
-| Legacy area | Current role | Retirement status |
+| Area | Current role | Status |
 | --- | --- | --- |
-| `extender_ui` | Proven canvas builder/runtime behavior and legacy widget UX reference. | Keep active until Bloom covers required app flows. |
-| `input_interfaces/tablet_interface` | Proven ROS backend bridge and runtime behavior reference. Also migrated to `cartesian_manager`, so both clients now speak the same contract. | Keep active until Bloom ROS adapters are accepted on hardware. |
-| Petanque app packages | Real Petanque runtime behavior, messages, state machine, and camera flow. | Keep active; Bloom candidate screens still need parity validation. |
-| Extender low-level ROS packages | Controllers, robot interfaces, simulation, hardware and messages. | Not legacy for Bloom; Bloom consumes them through adapters. |
-| `sandbox_controller` and `/teleop_cmd` | Superseded by `cartesian_manager` and dropped from `extender.repos`. Still the Petanque path. | Rollback only, reachable through `BLOOM_ROS_COMMAND_BACKEND=teleop_command`. Retire once Petanque migrates or is retired. |
+| Bloom | Builder, app store, operator kiosk, accessible inputs, runtime policy, and ROS adapter surface. | Active IHM; all new IHM work belongs here. |
+| `extender_ui` | Historical behavior/configuration reference and emergency UI rollback. | Legacy. Keep available during the acceptance window; do not add new product features. |
+| `input_interfaces/tablet_interface` | Existing ROS/input implementation and parity reference for physical controls. | Compatibility/fallback implementation until the equivalent Bloom paths are accepted on hardware. Its status is separate from the `extender_ui` product decision. |
+| Petanque app packages | Petanque runtime, messages, state machine, and camera behavior. | Still active only if Petanque remains an expected workflow. Bloom's Petanque app is archived and stays on the legacy command path. |
+| Extender low-level ROS packages | Controllers, robot interfaces, simulation, hardware, and messages. | Active dependencies, not replaced or made legacy by Bloom. |
+| `sandbox_controller` and `/teleop_cmd` | Old control contract, still used by archived Petanque/rollback. | Legacy adapter path. `cartesian_manager` and `/joystick_cartesian_command` are the current default. |
 
-## Retirement Gates
+## Gates For Removing A Legacy Path
 
-A legacy workflow can only be marked legacy when all gates are complete:
+Labeling `extender_ui` legacy is complete. Removing, archiving, or making a fallback unavailable requires a separate
+decision after these gates:
 
-- Functional parity: Bloom covers the required user workflow end-to-end.
-- Runtime parity: Bloom emits the same robot-facing behavior or an intentionally accepted replacement.
-- UX parity or improvement: operators can complete the workflow on the tablet without extra cognitive load.
-- Safety parity or improvement: topic/message allowlists, rate limits, and audit records cover command paths.
-- Rollback: the old workflow can still be launched during the transition window.
-- Documentation: Bloom docs explain how to run the replacement and when to use rollback.
-- User acceptance: the relevant operator/developer validates the workflow.
+- the corresponding Bloom workflow is accepted on the target tablet and robot/simulation;
+- STOP, release-to-zero, command frame, and relevant assistive inputs have live evidence;
+- any unique configuration is imported, published, or intentionally discarded;
+- Petanque ownership is decided so `/teleop_cmd` is not removed while still required;
+- rollback launch instructions and a final known-good reference are recorded;
+- the team agrees on the transition window and archive location.
 
-## What Not To Retire
+## What Must Stay Active
 
-Do not mark low-level robot packages as legacy just because Bloom exists. Bloom is a web product and adapter layer; it
-does not replace controllers, robot interfaces, message packages, Gazebo/RViz launch files, or hardware integrations.
+Bloom is the IHM above the robot stack. It does not replace `cartesian_manager`, `qontrol_controller`, robot drivers,
+message packages, Gazebo/RViz launch files, input hardware packages, or safety hardware. Do not classify those as legacy
+because the web operator surface changed.
 
-## Retirement Process
+## Cleanup Process
 
-1. Link the accepted validation record from `docs/extender-petanque-validation.md`.
-2. Open a PR that updates the legacy repo/package README or docs with a clear legacy notice.
-3. Keep the repo/package available during the transition.
-4. Only after the transition and team agreement, decide whether archiving is appropriate.
+1. Link the relevant live record from [the end-to-end validation protocol](extender-petanque-validation.md).
+2. Confirm no required seed/configuration or unique workflow remains only in the legacy path.
+3. Update the legacy repository README with its status, supported rollback scope, and last known-good revision.
+4. Keep it available for the agreed transition window.
+5. Archive or remove only through an explicit team decision.
 
-No deletion is part of Phase 5.
+Open acceptance and design work is tracked in
+[the UX design handoff](ux-design-handoff.md).

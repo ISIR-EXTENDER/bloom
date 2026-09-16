@@ -2,7 +2,8 @@
 
 This document keeps the design notes behind Bloom's widgets, screens, and apps foundations.
 
-Roadmap ownership lives in `docs/migration-plan.md`.
+Status: historical foundation notes. Bloom is now the active IHM. Current open work lives in
+[the UX design handoff](ux-design-handoff.md).
 
 Use this file as reference material when implementing roadmap slices, especially when deciding whether a legacy widget
 belongs in Bloom core, an app extension, or a temporary migration adapter.
@@ -74,7 +75,7 @@ Avoid carrying these weaknesses forward:
 
 ## Foundation Status Snapshot
 
-For the current roadmap and ordered next steps, use `docs/migration-plan.md`.
+For current status and remaining work, use [the UX design handoff](ux-design-handoff.md).
 
 Already done:
 
@@ -305,5 +306,5 @@ Tests:
 
 Do not maintain a second ordered TODO list here.
 
-The next PR order is tracked in `docs/migration-plan.md#ordered-next-steps` so the project has one place to update
-when priorities change.
+Current priorities are tracked in [the UX design handoff](ux-design-handoff.md) so the project has one maintained place
+to update when the external design review changes.

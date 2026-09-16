@@ -1,8 +1,8 @@
 # Extender Workspace Deployment Notes
 
-Bloom should stay a web product with adapter boundaries, not a low-level ROS package. During the transition, the safest
-Extender integration is a workspace-level entrypoint that starts Bloom next to the existing ROS workspace and legacy
-packages.
+Bloom is the active Extender IHM and stays a web product with adapter boundaries, not a low-level ROS package. The
+workspace-level entrypoint starts Bloom next to the existing ROS controllers, simulation, and robot packages.
+`extender_ui` is legacy and is not part of the normal launch path.
 
 ## Local Lab Entrypoint
 
@@ -69,18 +69,28 @@ The app configuration should remain the first guardrail, but lab sessions can al
 without editing code:
 
 ```bash
-export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/cmd/mode,/cmd/gripper,/cmd/max_velocity,/cmd/joystick_z,/cmd/joystick_rz,/snake_control/enable,/ui/visual_servoing/on,/ui/visual_servoing/save,/petanque_state_machine/change_state'
-export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='std_msgs/msg/Bool,std_msgs/msg/Float64,std_msgs/msg/Int32,std_msgs/msg/String'
+export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/explorer_user_interfaces/rqt_armcontrol/max_angular_speed,/explorer_user_interfaces/rqt_armcontrol/max_linear_speed,/gripper_controller/commands,/mode_request'
+export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='std_msgs/msg/Float64,std_msgs/msg/Float64MultiArray,std_msgs/msg/String'
 export BLOOM_ALLOWED_TELEOP_TARGETS='/joystick_cartesian_command'
+export BLOOM_ROBOT_NAME='Explorer'
+export BLOOM_ROS_COMMAND_FRAME_ID='base_link'
+export BLOOM_ALLOWED_COMMAND_FRAME_IDS='base_link,ft_frame,hybrid_frame'
+export BLOOM_ALLOWED_ROS_SERVICE_CALLS='/fault_controller/reset_fault'
+export BLOOM_ALLOWED_ROS_SERVICE_TYPES='example_interfaces/srv/Trigger,std_srvs/srv/Trigger'
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
 ```
 
 Avoid `*` for robot-facing sessions unless you are deliberately running a temporary diagnostic setup. Prefer adding the
-smallest topic/message set needed by the app under test.
+smallest topic/message set needed by the app under test. The example is a Manager Drive allowlist; do not reuse it for
+Sandbox or archived Petanque without adding their explicitly reviewed topics.
+
+The backend frame is the fallback. Each app may select one value from the reported frame allowlist under **Builder > App
+configuration > Adapter guardrails**. That application frame is then shared by all virtual Cartesian controls and a
+physical gamepad and is displayed in the kiosk bar.
 
 ## Security Variables
 
-For shared lab tablets or staging deployments, enable the Phase 5 API perimeter:
+For shared lab tablets or staging deployments, enable the API perimeter:
 
 ```bash
 export BLOOM_AUTH_ENABLED=true
@@ -94,7 +104,7 @@ then, keep authentication disabled only on trusted local machines, and enable it
 
 ## Validation Checklist
 
-Before replacing a legacy workflow with Bloom:
+Before a robot-facing Bloom session or release:
 
 - build and source the Extender workspace;
 - launch `cartesian_manager` with its Explorer bringup, or the legacy `sandbox_controller` launch file when
@@ -103,11 +113,18 @@ Before replacing a legacy workflow with Bloom:
 - verify ROS graph diagnostics in Bloom Debug or with `GET /api/v1/ros/topics/status` for
   `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`;
 - open the Sandbox teleop lab app in runtime;
-- move the translation/rotation joysticks and verify `/cartesian_command` plus robot motion in RViz/Gazebo;
+- confirm the kiosk bar names the expected robot, frame, profile, and link state;
+- move the translation/rotation joysticks and Z/RZ controls, then verify `/cartesian_command`, release-to-zero, and robot
+  motion in RViz/Gazebo;
+- validate Neutral, Jaco, momentary Snake, gripper, speed limits, and the fixed STOP/backend resume latch;
+- connect any intended gamepad or assistive input and verify its real mapping and disconnect behavior;
 - open Bloom Debug and verify topic catalog, topic echo, plot, audit, and recording controls;
-- open Petanque candidate screens and validate camera/debug/state-machine interactions against the legacy behavior.
+- if archived Petanque is still required, open its screens and validate camera/debug/state-machine interactions against
+  the legacy behavior.
 
 ## Legacy Retirement Rule
 
-This entrypoint does not retire `extender_ui` or `tablet_interface`. Legacy packages should only be marked legacy after
-the required Extender and Petanque workflows are validated end-to-end in Bloom and accepted by users.
+Bloom is the active IHM and `extender_ui` is legacy. Keep the legacy repository available as a behavior reference and
+emergency rollback until the relevant live sessions are accepted; marking it legacy does not require deleting it.
+Low-level Extender ROS packages remain active. See [legacy retirement gates](legacy-retirement-gates.md) for the separate
+cleanup decision.

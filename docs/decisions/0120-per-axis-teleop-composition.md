@@ -81,9 +81,9 @@ more than a full-deflection one.
   validates their target against `allowed_teleop_targets` rather than
   misreading it as a publish topic. That is 62 assertions it was not making.
 
-## Follow-up
+## 2026-09-16 Amendment
 
-`joystick_mapper` swaps its entire axis map on a local B1/B2 button without
-publishing a mode request. Bloom has no equivalent yet: an app needs two separate
-joysticks where the physical device reuses one. A mode-swapped axis map would
-close that gap.
+Bloom now supports the local B1/B2 axis-map swap and verifies parity against the
+physical mapper. A browser gamepad can also contribute to the same composer; its
+release clears only that source. Every contribution uses the application's
+effective command frame, so composition cannot mix frame interpretations.

@@ -1,6 +1,7 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isDeepStrictEqual } from "node:util";
 import { chromium } from "@playwright/test";
 
 /**
@@ -19,6 +20,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 const outputDir = resolve(repoRoot, "docs/assets/screenshots");
 const dashboardUrl = process.env.BLOOM_DASHBOARD_URL ?? "http://127.0.0.1:5174";
+const capturedApplicationIds = [
+  "bloom-debug",
+  "explorer-manager",
+  "explorer-user-tests",
+  "kinova-manager",
+  "petanque-admin",
+  "sandbox",
+  "webcam-visualizer",
+];
+const trackedApplications = Object.fromEntries(
+  await Promise.all(
+    capturedApplicationIds.map(async (id) => {
+      const bundle = JSON.parse(await readFile(resolve(repoRoot, `backend/seed/applications/${id}.json`), "utf8"));
+      return [id, applyApiDefaults(bundle.applications[0])];
+    }),
+  ),
+);
 
 const shot = (name) => resolve(outputDir, `${name}.png`);
 
@@ -36,6 +54,7 @@ try {
   const page = await context.newPage();
 
   await page.goto(dashboardUrl, { waitUntil: "networkidle" });
+  await assertTrackedApplications(page);
 
   // ---------------------------------------------------------------- product
   await step("landing-page", async () => {
@@ -90,7 +109,7 @@ try {
 
   for (const [name, screenTitle] of explorerScreens.slice(1)) {
     await step(name, async () => {
-      await page.getByRole("button", { exact: true, name: screenTitle }).click();
+      await selectRuntimeScreen(page, screenTitle);
       await page.waitForTimeout(700);
     });
   }
@@ -151,6 +170,62 @@ if (skipped.length > 0) {
 async function openRuntimeLibrary(page) {
   await page.goto(`${dashboardUrl}/#/runtime`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+}
+
+async function assertTrackedApplications(page) {
+  for (const id of capturedApplicationIds) {
+    const bundle = await page.evaluate(async (applicationId) => {
+      const response = await fetch(`/api/v1/configurations/${applicationId}`);
+      if (!response.ok) {
+        throw new Error(`Configuration ${applicationId} returned HTTP ${response.status}`);
+      }
+      return response.json();
+    }, id);
+    const actual = bundle.applications?.[0];
+    if (!isDeepStrictEqual(actual, trackedApplications[id])) {
+      throw new Error(
+        `README capture requires the tracked ${id} seed. Start the backend with an isolated database or restore that app with config seed --force ${id}.`,
+      );
+    }
+  }
+}
+
+function applyApiDefaults(application) {
+  return {
+    ...application,
+    profiles: application.profiles.map((profile) => ({
+      audio_cues: false,
+      deadzone: 0,
+      dwell_ms: 1000,
+      repeat_guard_ms: 0,
+      scan_period_ms: 1400,
+      ...profile,
+    })),
+    runtime_policy: {
+      command_frame_id: "",
+      allowed_service_calls: [],
+      ...application.runtime_policy,
+    },
+  };
+}
+
+async function selectRuntimeScreen(page, screenTitle) {
+  const maintenanceButton = page.getByRole("button", { name: "Hold to open maintenance" });
+  const box = await maintenanceButton.boundingBox();
+  if (!box) {
+    throw new Error("Maintenance button has no visible bounds");
+  }
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(1700);
+  await page.mouse.up();
+  const maintenance = page.getByRole("dialog", { name: "Maintenance" });
+  await maintenance.waitFor();
+  await maintenance
+    .getByRole("navigation", { name: "Switch runtime screen" })
+    .getByRole("button", { exact: true, name: screenTitle })
+    .click();
+  await maintenance.waitFor({ state: "detached" });
 }
 
 async function launchBrowser() {
