@@ -1,7 +1,8 @@
-import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeLanguage, ScreenConfig } from "@bloom/api-client";
 import { type ReactNode, useEffect, useState } from "react";
 
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
+import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import { useHoldGesture } from "./use-hold-gesture";
 
 /**
@@ -66,6 +67,8 @@ export type RuntimeKioskBarProps = {
   onOpenLanding: () => void;
   onOpenHelp: () => void;
   onOpenSettings: () => void;
+  language?: RuntimeLanguage;
+  onLanguageChange: (language: RuntimeLanguage) => void;
 };
 
 export function RuntimeKioskBar({
@@ -85,7 +88,10 @@ export function RuntimeKioskBar({
   onOpenLanding,
   onOpenHelp,
   onOpenSettings,
+  language = "en",
+  onLanguageChange,
 }: RuntimeKioskBarProps) {
+  const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, () => setMaintenanceOpen(true));
 
@@ -102,24 +108,24 @@ export function RuntimeKioskBar({
           </span>
         ) : null}
         {robotName ? (
-          <span className="runtime-kiosk-robot" title="Robot this backend drives">
+          <span className="runtime-kiosk-robot" title={strings.kiosk.robotTitle}>
             {robotName}
           </span>
         ) : null}
         {commandFrameId ? (
-          <span className="runtime-kiosk-frame" title="Reference frame for operator commands">
+          <span className="runtime-kiosk-frame" title={strings.kiosk.referenceFrameTitle}>
             {commandFrameId}
           </span>
         ) : null}
         {gamepadName ? (
           <span className="runtime-kiosk-gamepad" title={gamepadName}>
-            gamepad
+            {strings.kiosk.gamepad}
           </span>
         ) : null}
         <span className="runtime-kiosk-spacer" />
         <span className="runtime-kiosk-profile">{profileName}</span>
         <button
-          aria-label="Hold to open maintenance"
+          aria-label={strings.kiosk.maintenanceAria}
           className="runtime-kiosk-maintenance"
           onKeyDown={(event) => {
             if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
@@ -142,18 +148,21 @@ export function RuntimeKioskBar({
         <RuntimeMaintenanceOverlay
           application={application}
           fitWarning={fitWarning}
+          language={language}
           onClose={() => setMaintenanceOpen(false)}
           onEditApplication={onEditApplication}
           onEditScreen={onEditScreen}
           onOpenAppLibrary={onOpenAppLibrary}
           onOpenHelp={onOpenHelp}
           onOpenLanding={onOpenLanding}
+          onLanguageChange={onLanguageChange}
           onOpenSettings={() => {
             setMaintenanceOpen(false);
             onOpenSettings();
           }}
           onSelectScreen={onSelectScreen}
           screen={screen}
+          strings={strings}
         >
           {diagnostics}
         </RuntimeMaintenanceOverlay>
@@ -182,6 +191,9 @@ function RuntimeMaintenanceOverlay({
   onOpenHelp,
   onOpenSettings,
   onClose,
+  language,
+  onLanguageChange,
+  strings,
 }: {
   children?: ReactNode;
   application: ApplicationConfig;
@@ -195,6 +207,9 @@ function RuntimeMaintenanceOverlay({
   onOpenHelp: () => void;
   onOpenSettings: () => void;
   onClose: () => void;
+  language: RuntimeLanguage;
+  onLanguageChange: (language: RuntimeLanguage) => void;
+  strings: RuntimeStrings;
 }) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -208,23 +223,46 @@ function RuntimeMaintenanceOverlay({
 
   return (
     <div className="runtime-maintenance-scrim">
-      <section aria-label="Maintenance" className="runtime-maintenance-panel" role="dialog" aria-modal="true">
+      <section
+        aria-label={strings.kiosk.maintenance}
+        className="runtime-maintenance-panel"
+        role="dialog"
+        aria-modal="true"
+      >
         <header>
-          <h2>Maintenance</h2>
-          <p>Held for 1.5s. The robot keeps its last commanded state while this is open.</p>
+          <h2>{strings.kiosk.maintenance}</h2>
+          <p>{strings.kiosk.maintenanceHelp}</p>
         </header>
+
+        <fieldset className="runtime-maintenance-languages">
+          <legend className="sr-only">{strings.settings.categories.language}</legend>
+          {(["en", "es", "fr"] as const).map((candidate) => (
+            <button
+              aria-pressed={language === candidate}
+              key={candidate}
+              onClick={() => onLanguageChange(candidate)}
+              type="button"
+            >
+              {candidate.toUpperCase()}
+            </button>
+          ))}
+        </fieldset>
 
         {fitWarning ? (
           <div className="runtime-maintenance-fit-warning" role="alert">
-            <strong>Touch targets scaled down</strong>
+            <strong>{strings.kiosk.fitTitle}</strong>
             <p>
-              {`Composed for ${fitWarning.authoredWidth} × ${fitWarning.authoredHeight}, shown at ${fitWarning.shownPercent}%. Targets may be below the 44 px touch floor.`}
+              {strings.kiosk.fitDescription(
+                fitWarning.authoredWidth,
+                fitWarning.authoredHeight,
+                fitWarning.shownPercent,
+              )}
             </p>
           </div>
         ) : null}
 
         {application.screens.length > 1 ? (
-          <nav aria-label="Switch runtime screen" className="runtime-maintenance-screens">
+          <nav aria-label={strings.kiosk.switchScreen} className="runtime-maintenance-screens">
             {application.screens.map((candidate) => (
               <button
                 aria-current={candidate.id === screen.id ? "page" : undefined}
@@ -243,29 +281,29 @@ function RuntimeMaintenanceOverlay({
 
         <div className="runtime-maintenance-actions">
           <button onClick={onOpenSettings} type="button">
-            Settings
+            {strings.kiosk.settings}
           </button>
           <button onClick={onOpenAppLibrary} type="button">
-            App library
+            {strings.kiosk.appLibrary}
           </button>
           <button onClick={onEditScreen} type="button">
-            Edit this screen in the builder
+            {strings.kiosk.editScreen}
           </button>
           <button onClick={onEditApplication} type="button">
-            Edit app
+            {strings.kiosk.editApp}
           </button>
           <button onClick={onOpenHelp} type="button">
-            Help
+            {strings.kiosk.help}
           </button>
           <button onClick={onOpenLanding} type="button">
-            Home
+            {strings.kiosk.home}
           </button>
         </div>
 
         {children ? <div className="runtime-maintenance-diagnostics">{children}</div> : null}
 
         <button className="runtime-maintenance-return" onClick={onClose} type="button">
-          Back to operation
+          {strings.kiosk.backToOperation}
         </button>
       </section>
     </div>

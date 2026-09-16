@@ -23,6 +23,7 @@ const defaultProfile: ResolvedRuntimeProfile = {
   dwellMs: 800,
   fontScale: 1,
   id: "operator",
+  language: "en",
   motorAccessibilityPreset: "default",
   name: "Camille",
   repeatGuardMs: 0,
@@ -117,13 +118,24 @@ describe("runtime settings", () => {
     expect(screen.queryByRole("button", { name: "Undo changes" })).toBeNull();
   });
 
+  it("changes the profile language and localizes the settings shell immediately", () => {
+    const { onChange } = renderSettings();
+
+    fireEvent.click(screen.getByRole("button", { name: "Language" }));
+    fireEvent.click(screen.getByRole("button", { name: "Français" }));
+
+    expect(screen.getByRole("heading", { name: "Réglages" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Terminé" })).toBeTruthy();
+    expect(onChange).toHaveBeenLastCalledWith({ language: "fr" });
+  });
+
   it("keeps the try strip local and outside the persisted settings path", () => {
     vi.useFakeTimers();
     const { onChange } = renderSettings();
 
     fireEvent.click(screen.getByRole("button", { name: "Left" }));
 
-    expect(screen.getByLabelText("Try current settings value").textContent).toContain("x -1.00");
+    expect(screen.getByLabelText("Safe preview value").textContent).toContain("x -1.00");
     expect(onChange).not.toHaveBeenCalled();
   });
 
@@ -132,13 +144,14 @@ describe("runtime settings", () => {
       EMPTY_PREFERENCES,
       { configId: "explorer-manager", appId: "explorer-manager" },
       "operator",
-      { deadzone: 0.2, motorAccessibilityPreset: "step", scanPeriodMs: 1800 },
+      { deadzone: 0.2, language: "es", motorAccessibilityPreset: "step", scanPeriodMs: 1800 },
     );
 
     saveRuntimeUserPreferences(updated);
 
     expect(loadRuntimeUserPreferences().profileOverrides["explorer-manager:explorer-manager:operator"]).toEqual({
       deadzone: 0.2,
+      language: "es",
       motorAccessibilityPreset: "step",
       scanPeriodMs: 1800,
     });
@@ -155,6 +168,7 @@ describe("runtime settings", () => {
           "config:app:profile": {
             commandFrameId: "  base_link  ",
             deadzone: "large",
+            language: "de",
             motorAccessibilityPreset: "unsupported",
             scanPeriodMs: Number.POSITIVE_INFINITY,
           },

@@ -94,6 +94,8 @@ try {
       await assertBrowserHistoryAffordance(page, viewport.name);
       await page.close();
     }
+
+    await captureRuntimeLocales(browser);
   } finally {
     await browser.close();
   }
@@ -452,13 +454,68 @@ async function mockSavedPositions(page) {
 }
 
 async function holdForMaintenance(page) {
-  const button = page.getByRole("button", { name: "Hold to open maintenance" });
+  const button = page.getByRole("button", {
+    name: /Hold to open maintenance|Mantener para abrir mantenimiento|Maintenir pour ouvrir la maintenance/,
+  });
   const box = await button.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.waitForTimeout(1700);
   await page.mouse.up();
-  await page.getByRole("dialog", { name: "Maintenance" }).waitFor();
+  await page.getByRole("dialog", { name: /Maintenance|Mantenimiento/ }).waitFor();
+}
+
+async function captureRuntimeLocales(browser) {
+  const locales = [
+    { code: "en", language: "Language", settings: "Settings" },
+    { code: "es", language: "Idioma", settings: "Ajustes" },
+    { code: "fr", language: "Langue", settings: "Réglages" },
+  ];
+
+  for (const locale of locales) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    await mockConfigurationApi(page);
+    await showExplorerRuntimeScreen(page, null);
+    await holdForMaintenance(page);
+    await page.locator(".runtime-maintenance-languages button").filter({ hasText: locale.code.toUpperCase() }).click();
+    await page.getByRole("button", { exact: true, name: locale.settings }).click();
+    await page.getByRole("button", { exact: true, name: locale.language }).click();
+    await assertNoHorizontalOverflow(page, `runtime-settings-${locale.code}`);
+    await assertPreviewControlsFit(page, `runtime-settings-${locale.code}`);
+    await page.screenshot({ path: resolve(outputDir, `runtime-settings-${locale.code}-1280x720.png`) });
+
+    if (locale.code === "en") {
+      await page.evaluate(() => {
+        const walker = document.createTreeWalker(document.querySelector(".runtime-settings"), NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+        while (node) {
+          const value = node.textContent?.trim() ?? "";
+          if (value && !/^[+\-\d.\s%xym]+$/i.test(value)) {
+            node.textContent = `[${value}${"~".repeat(Math.ceil(value.length * 0.4))}]`;
+          }
+          node = walker.nextNode();
+        }
+      });
+      await assertNoHorizontalOverflow(page, "runtime-settings-pseudo");
+      await assertPreviewControlsFit(page, "runtime-settings-pseudo");
+      await page.screenshot({ path: resolve(outputDir, "runtime-settings-pseudo-1280x720.png") });
+    }
+    await page.close();
+  }
+}
+
+async function assertPreviewControlsFit(page, label) {
+  const clipped = await page.locator(".runtime-settings-try").evaluate((container) => {
+    const bounds = container.getBoundingClientRect();
+    return [...container.querySelectorAll("button, output")]
+      .map((element) => ({ label: element.textContent?.trim(), rect: element.getBoundingClientRect() }))
+      .filter(({ rect }) => rect.left < bounds.left - 2 || rect.right > bounds.right + 2)
+      .map(({ label: elementLabel, rect }) => ({ elementLabel, left: rect.left, right: rect.right }));
+  });
+
+  if (clipped.length > 0) {
+    throw new Error(`${label} has clipped preview controls: ${JSON.stringify(clipped)}`);
+  }
 }
 
 async function showDebugRuntime(page) {

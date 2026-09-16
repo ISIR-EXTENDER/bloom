@@ -17,8 +17,8 @@ This file tracks what is done, what is next, and how the work is run. Update it 
 | 0.3 | 44 px versus 56 px kiosk bar, recorded in an ADR | **Done** |
 | 0.4 | Runtime says nothing when the fit drops below 1.0 | **Done** |
 | 0.5 | Capability gating extended to the runtime | **Done** |
-| 1 | Runtime settings panel | Not started |
-| 2 | `language` on `UserProfile` plus string catalogs | Not started |
+| 1 | Runtime settings panel | **Done** — `1e2e2ee` |
+| 2 | `language` on `UserProfile` plus string catalogs | **Done** |
 | 3 | Guided tours | Not started, blocked on a backend answer |
 | 4 | Read-only supervisor mirror | Not started |
 
@@ -126,8 +126,8 @@ profile's normalized overrides live in the existing localStorage payload under
 applies the override after base-profile normalization and reuses its existing numeric clamps.
 
 The five-category rail exposes the four implemented movement behaviors, fine tuning, backend-reported command frames,
-a Lot 2 language placeholder, and read-only display facts. Edge movement stays visible but disabled because no runtime
-behavior implements it. Numeric values use 88x72 -/+ controls, dwell is an independent toggle plus duration, and every
+language selection, and read-only display facts. Edge movement stays visible but disabled because no runtime behavior
+implements it. Numeric values use 88x72 -/+ controls, dwell is an independent toggle plus duration, and every
 interactive setting is reachable through scanning. Undo restores the opening overrides.
 
 The bottom safe preview implements draft step, latch, scan, dwell, and repeat timing in local component state. Entering
@@ -135,15 +135,25 @@ Settings clears the teleop composer and resets its stream before and after the r
 ROS-enabled browser probe observed no WebSocket frames from Left, Forward, or Right preview clicks. Evidence and
 reference comparison are in `docs/validation/2026-09-16-runtime-settings.md`.
 
+## Lot 2, as delivered
+
+`UserProfile.language` accepts `en`, `es`, or `fr` in the shared API type and backend model, with English as the
+fallback for existing profiles. Per-locale catalogs cover runtime status, STOP/resume, kiosk and Maintenance, scanner,
+Settings, and the empty-screen state. Maintenance offers a compact language switch; Settings shows the full language
+names. Both write through the existing per-profile override path.
+
+Authored application, screen, and widget labels remain configuration data and are not translated in code. Technical
+values such as topics, frame IDs, axes, and numbers also remain unchanged. Catalog-shape, fallback, immediate switching,
+status, and STOP tests protect the contract. `visual:smoke` adds English, Spanish, French, and 40%-expanded pseudo
+captures at `1280x720`, including an element-bound check for the Settings preview controls. Live ROS captures cover
+Maintenance, language Settings, and a French runtime. Evidence is in
+`docs/validation/2026-09-16-runtime-language.md`.
+
 ## Next steps, in order
 
-1. **Lot 2.** `language` on `UserProfile` plus `runtime/strings/{en,es,fr}.ts` and
-   `useRuntimeStrings`. Start with `runtime-status-chip.ts`, `RuntimeStopControl.tsx`,
-   `RuntimeKioskBar.tsx`, and the scan announcement in `RuntimeWorkspace.tsx`, which are the
-   files that still hold literals. Widget labels stay config data, one field per locale; do
-   not translate them in code.
-2. **Lot 3 and lot 4** after that. Lot 3 needs the team's answer on whether a session without
-   an adapter is safe, so the practice steps cannot command the arm.
+1. **Lot 3.** Resolve whether a session without an adapter is safe before adding action-based
+   practice tours. Practice steps must not command the arm.
+2. **Lot 4.** Add the read-only supervisor mirror without granting command ownership.
 
 ## How the work is run
 
@@ -196,7 +206,7 @@ Delete the store file before restarting the API whenever a seed changed; seeding
 the store already holds. Then open each capture next to its reference in
 `Bloom UX design review 2/handoff/images/` and compare in this order: reading order,
 hierarchy, target sizes, density. A hue difference is expected, a target-size difference is a
-defect. Captures 04, 05, 06, and 08 fail until lots 1 and 2 exist; that is the point of them.
+defect. Captures 04, 05, 06, and 08 now cover the delivered Settings and language lots.
 
 Record every session under `docs/validation/` with what was and was not verified. A bench
 result is never a hardware claim.

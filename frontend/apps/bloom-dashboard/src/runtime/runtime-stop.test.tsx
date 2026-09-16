@@ -72,6 +72,14 @@ describe("the STOP control", () => {
 
     expect(screen.getByText("Bloom API request failed with status 502")).toBeTruthy();
   });
+
+  it("uses the selected profile language", () => {
+    renderControl({ language: "fr", stopped: true });
+
+    expect(screen.getByRole("button", { name: "Maintenir une seconde pour reprendre" }).textContent).toContain(
+      "MAINTENIR POUR REPRENDRE",
+    );
+  });
 });
 
 describe("the status chip", () => {

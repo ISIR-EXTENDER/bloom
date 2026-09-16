@@ -21,6 +21,7 @@ import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runti
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
+import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
 import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
@@ -125,6 +126,7 @@ export function RuntimeWorkspace({
     () => resolveRuntimeProfile(application, viewportSize, preferredProfileId, activeProfileOverrides),
     [activeProfileOverrides, application, preferredProfileId, viewportSize],
   );
+  const strings = useRuntimeStrings(runtimeProfile.language);
   const configuredCommandFrameId =
     application.runtime_policy.command_frame_id || runtimeCapabilityReport?.command_frame_id || null;
   const defaultCommandFrameId = resolvePreferredCommandFrameId(
@@ -191,7 +193,7 @@ export function RuntimeWorkspace({
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
-  const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink);
+  const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings);
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const stopped = runtimeStop.state?.stopped === true;
   const scanning = useSwitchScanning({
@@ -297,7 +299,7 @@ export function RuntimeWorkspace({
   if (settingsOpen) {
     return (
       <section
-        aria-label="Runtime application"
+        aria-label={strings.workspace.application}
         className="runtime-app-workspace"
         data-display-preset={runtimeProfile.displayPreset}
         data-has-debug="false"
@@ -323,7 +325,7 @@ export function RuntimeWorkspace({
 
   return (
     <section
-      aria-label="Runtime application"
+      aria-label={strings.workspace.application}
       className="runtime-app-workspace"
       data-display-preset={runtimeProfile.displayPreset}
       data-has-debug={application.id === "bloom-debug" ? "true" : "false"}
@@ -351,6 +353,10 @@ export function RuntimeWorkspace({
         onOpenAppLibrary={onBackToRuntimeHome}
         onOpenHelp={onOpenHelp}
         onOpenLanding={onOpenLanding}
+        language={runtimeProfile.language}
+        onLanguageChange={(language) =>
+          onProfileOverridesChange(baseRuntimeProfile.id, { ...activeProfileOverrides, language })
+        }
         onOpenSettings={() => {
           onSuspendTeleop();
           setSettingsOpen(true);
@@ -378,7 +384,7 @@ export function RuntimeWorkspace({
           >
             <ScreenArtboard
               className="runtime-app-artboard"
-              renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} />}
+              renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} strings={strings} />}
               rendererOptions={{
                 conditioning: {
                   deadzone: runtimeProfile.deadzone,
@@ -408,10 +414,10 @@ export function RuntimeWorkspace({
               onClick={scanning.activateCurrent}
               type="button"
             >
-              SWITCH — press Space or tap here
+              {strings.scan.button}
             </button>
             <p aria-live="polite" className="sr-only" role="status">
-              {`Scanning ${scanning.index + 1} of ${scanning.targetCount}.`}
+              {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
             </p>
           </div>
         ) : null}
@@ -422,6 +428,7 @@ export function RuntimeWorkspace({
             onResume={runtimeStop.resume}
             requestError={runtimeStop.requestError}
             stopped={runtimeStop.state?.stopped ?? null}
+            language={runtimeProfile.language}
           />
         ) : null}
       </div>
@@ -687,12 +694,12 @@ function readCssPixelValue(value: string): number {
   return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
-function RuntimeComingSoonMessage({ screen }: { screen: ScreenConfig }) {
+function RuntimeComingSoonMessage({ screen, strings }: { screen: ScreenConfig; strings: RuntimeStrings }) {
   return (
-    <section className="runtime-coming-soon" aria-label="Runtime screen coming soon">
-      <p className="eyebrow">Coming soon</p>
+    <section className="runtime-coming-soon" aria-label={strings.workspace.comingSoonRegion}>
+      <p className="eyebrow">{strings.workspace.comingSoon}</p>
       <h3>{screen.title}</h3>
-      <p>This screen exists in the application model, but it does not have runtime content yet.</p>
+      <p>{strings.workspace.comingSoonDescription}</p>
     </section>
   );
 }

@@ -87,6 +87,9 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
 - Runtime fit tests cover the raw safety threshold, guarded render scale, and Maintenance-only disclosure.
 - Runtime capability tests cover explicit unavailability, unknown reports, inert content, visible explanations, and
   unchanged operation when ROS seams are available.
+- Runtime Settings tests cover scanning, dwell, reversible per-profile changes, and a local-only safe preview.
+- Runtime language tests cover complete EN/ES/FR catalogs, English fallback, immediate switching, translated STOP and
+  status states, and a 40%-expanded visual-smoke pass.
 
 These are repository-level checks. They do not prove that a real switch, gamepad, tablet mounting position, sound level,
 or interaction pattern works for a particular person.
@@ -97,12 +100,11 @@ or interaction pattern works for a particular person.
 - Prevent or reflow runtime fit scales that reduce an interactive target below its accepted physical size; Maintenance
   now warns, but does not make a shrunken layout acceptable.
 - Add whole-screen device-frame and touch-check views for all lab geometries, not only a selected-widget calculation.
-- Build the accessible profile settings and local safe-preview flow described in the UX handoff.
 - Decide whether named portable profiles need language, operator-frame preference, response curves, tremor smoothing,
   minimum-contact filtering, or other proposed signal conditioning beyond today's dead zone and repeat guard.
 - Add generic live collision feedback in the builder.
 - Decide whether fixed control positions and additional non-visual cues are needed for eyes-off use.
-- Add role-aware onboarding, runtime EN/ES/FR localization, and translated overflow tests.
+- Add role-aware onboarding; review the delivered EN/ES/FR safety language with native speakers and operators.
 - Wire the `reduced-motion` profile value explicitly or remove it; today only the browser/OS media preference changes
   motion.
 - Design supervisor mirroring and explicit control ownership/handover.

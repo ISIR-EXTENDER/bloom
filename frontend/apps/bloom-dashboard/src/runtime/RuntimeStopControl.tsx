@@ -1,3 +1,6 @@
+import type { RuntimeLanguage } from "@bloom/api-client";
+
+import { useRuntimeStrings } from "./strings";
 import { useHoldGesture } from "./use-hold-gesture";
 
 const RESUME_HOLD_MS = 1000;
@@ -8,19 +11,27 @@ export type RuntimeStopControlProps = {
   requestError: string;
   onEngage: () => void;
   onResume: () => void;
+  language?: RuntimeLanguage;
 };
 
 /**
  * STOP as runtime chrome (finding 3): tap stops on pointerdown, resuming
  * takes a 1s hold, and the stopped look follows the backend's latch only.
  */
-export function RuntimeStopControl({ stopped, requestError, onEngage, onResume }: RuntimeStopControlProps) {
+export function RuntimeStopControl({
+  stopped,
+  requestError,
+  onEngage,
+  onResume,
+  language = "en",
+}: RuntimeStopControlProps) {
+  const strings = useRuntimeStrings(language);
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, onResume);
 
   if (stopped) {
     return (
       <button
-        aria-label="Hold for one second to resume"
+        aria-label={strings.stop.resumeAria}
         className="runtime-stop-control"
         data-dwell-action="resume"
         data-dwell-min-ms={RESUME_HOLD_MS}
@@ -37,7 +48,7 @@ export function RuntimeStopControl({ stopped, requestError, onEngage, onResume }
         onPointerUp={resumeHold.cancel}
         type="button"
       >
-        <span className="runtime-stop-label">HOLD TO RESUME</span>
+        <span className="runtime-stop-label">{strings.stop.resume}</span>
         {requestError ? <span className="runtime-stop-error">{requestError}</span> : null}
         <span aria-hidden="true" className="runtime-stop-hold" style={{ transform: `scaleX(${resumeHold.value})` }} />
       </button>
@@ -46,7 +57,7 @@ export function RuntimeStopControl({ stopped, requestError, onEngage, onResume }
 
   return (
     <button
-      aria-label="Stop the robot"
+      aria-label={strings.stop.engageAria}
       className="runtime-stop-control"
       onClick={(event) => {
         // Keyboard only; a pointer tap already engaged on pointerdown.
@@ -57,7 +68,7 @@ export function RuntimeStopControl({ stopped, requestError, onEngage, onResume }
       onPointerDown={onEngage}
       type="button"
     >
-      <span className="runtime-stop-label">STOP</span>
+      <span className="runtime-stop-label">{strings.stop.engage}</span>
       {requestError ? <span className="runtime-stop-error">{requestError}</span> : null}
     </button>
   );

@@ -56,3 +56,7 @@ Both scanning follow-ups are delivered. Scan renders directional step targets, a
 the motor preset. Existing `dwell` profiles retain their behavior, while a scan profile can use dwell on a direct
 target or on the SWITCH bar to activate the highlighted target. `dwell_ms` remains duration-only because its nonzero
 default cannot safely imply enablement.
+
+Runtime localization is also delivered for the operator shell. `UserProfile.language` selects complete EN/ES/FR
+catalogs for status, STOP, Maintenance, scanning, Settings, and empty states; authored app and widget labels remain
+configuration data. See `docs/validation/2026-09-16-runtime-language.md`.

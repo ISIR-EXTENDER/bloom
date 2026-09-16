@@ -72,6 +72,7 @@ export type ApplicationTheme = {
 };
 
 export type DisplayPreset = "compact" | "comfort" | "default" | "high-visibility";
+export type RuntimeLanguage = "en" | "es" | "fr";
 
 export type MotorAccessibilityPreset =
   | "assisted-touch"
@@ -91,6 +92,7 @@ export type UserProfile = {
   app_theme_preset_id: string;
   preferred_control_layout_id: string;
   motor_accessibility_preset: MotorAccessibilityPreset;
+  language?: RuntimeLanguage;
   /** Tones for stop, link loss, and recovery; the operator watches the gripper. */
   audio_cues?: boolean;
   /** Per-axis dead zone; overrides the widget's own when above zero. */

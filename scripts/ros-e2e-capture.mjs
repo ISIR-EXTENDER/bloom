@@ -135,7 +135,7 @@ async function openRuntime(page, options = {}) {
         }
         if (language) {
           prefs.profileOverrides = prefs.profileOverrides ?? {};
-          const overrideKey = `${config}:${app}:${profileId ?? "default"}`;
+          const overrideKey = `${config}:${app}:${profileId ?? "operator"}`;
           prefs.profileOverrides[overrideKey] = { ...(prefs.profileOverrides[overrideKey] ?? {}), language };
         }
         window.localStorage.setItem("bloom.runtime-user-preferences.v1", JSON.stringify(prefs));
@@ -146,7 +146,9 @@ async function openRuntime(page, options = {}) {
   }
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { name: `Launch ${appName} runtime` }).click();
-  await page.getByRole("region", { name: "Runtime application" }).waitFor();
+  await page
+    .getByRole("region", { name: /Runtime application|Aplicación de operación|Application opérateur/ })
+    .waitFor();
   // The chip only says READY once the runtime WebSocket is really open.
   await page
     .getByRole("status")

@@ -28,7 +28,8 @@ BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 node scripts/ros-e2e-capture.mjs \
 The `1280x720` results were compared with handoff references `04-settings-movement.png` and
 `05-settings-tuning.png`. They preserve the 56 px header, five-category rail, large direct choices, numeric steppers,
 and separate dashed preview band. The maintained version additionally exposes repeat guard and the independent dwell
-toggle introduced by Lot 0.2. Language remains a Lot 2 placeholder.
+toggle introduced by Lot 0.2. Lot 2 subsequently replaced the language placeholder with EN/ES/FR selection; see
+`2026-09-16-runtime-language.md`.
 
 A second Playwright session at `1024x600` measured a `1022x586` Settings surface, a `230x530` rail, a `792x434`
 content pane, and a `792x96` preview. The document and Settings surface had no horizontal or vertical overflow, and all
@@ -54,6 +55,5 @@ remained `1.6 s`.
 - Validate target reach, dwell timing, switch timing, fatigue, and accidental activation with the intended devices and
   operators.
 - Implement and validate edge-controlled movement before enabling **At the edge**.
-- Complete Lot 2 language selection and pseudo-locale overflow captures.
 - Encode the active app/profile in navigation if direct `#/runtime/app` reloads must restore the same application;
   current persistence is correctly keyed, but that route itself does not identify an app.

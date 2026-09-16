@@ -1,4 +1,4 @@
-import type { UserProfile } from "@bloom/api-client";
+import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -8,6 +8,7 @@ import {
   runtimeProfileOverridesEqual,
 } from "./runtime-profile-overrides";
 import { applyRuntimeProfileOverrides, type ResolvedRuntimeProfile } from "./runtimeProfile";
+import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import { useDwellActivation } from "./use-dwell-activation";
 import { useSwitchScanning } from "./use-switch-scanning";
 
@@ -23,30 +24,18 @@ type RuntimeSettingsPanelProps = {
   teleopActive: boolean;
 };
 
-const CATEGORIES: readonly { id: SettingsCategory; label: string }[] = [
-  { id: "movement", label: "How I move it" },
-  { id: "tuning", label: "Fine tuning" },
-  { id: "frame", label: "Which way is forward" },
-  { id: "language", label: "Language" },
-  { id: "display", label: "Reading the screen" },
-];
+const CATEGORIES: readonly SettingsCategory[] = ["movement", "tuning", "frame", "language", "display"];
 
 const MOVEMENT_CHOICES: readonly {
-  description: string;
   disabled?: boolean;
-  label: string;
+  key: "default" | "edge" | "latch" | "scan" | "step";
   preset: UserProfile["motor_accessibility_preset"];
 }[] = [
-  { label: "Drag", description: "Move while your hand stays on the control.", preset: "default" },
-  { label: "Tap by tap", description: "Each tap moves one small step.", preset: "step" },
-  { label: "Keep going", description: "Movement continues after you let go; tap again to stop.", preset: "latch" },
-  {
-    label: "At the edge",
-    description: "Edge movement is not available in this runtime yet.",
-    disabled: true,
-    preset: "assisted-touch",
-  },
-  { label: "One switch", description: "A highlight moves through every available control.", preset: "scan" },
+  { key: "default", preset: "default" },
+  { key: "step", preset: "step" },
+  { key: "latch", preset: "latch" },
+  { key: "edge", disabled: true, preset: "assisted-touch" },
+  { key: "scan", preset: "scan" },
 ];
 
 type PreviewVector = { x: number; y: number };
@@ -70,6 +59,7 @@ export function RuntimeSettingsPanel({
   const [draft, setDraft] = useState(() => normalizeRuntimeProfileOverrides(overrides));
   const [previewVector, setPreviewVector] = useState<PreviewVector>(ZERO_VECTOR);
   const profile = useMemo(() => applyRuntimeProfileOverrides(baseProfile, draft), [baseProfile, draft]);
+  const strings = useRuntimeStrings(profile.language);
   const dirty = !runtimeProfileOverridesEqual(draft, openingOverridesRef.current);
   const scanning = useSwitchScanning({
     enabled: profile.motorAccessibilityPreset === "scan",
@@ -140,15 +130,15 @@ export function RuntimeSettingsPanel({
 
   return (
     <section
-      aria-label="Settings"
+      aria-label={strings.settings.title}
       className="runtime-settings"
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       ref={rootRef}
       style={{ "--runtime-font-scale": profile.fontScale } as CSSProperties}
     >
       <header className="runtime-settings-header">
-        <h2>Settings</h2>
-        <span>{baseProfile.name}&apos;s profile</span>
+        <h2>{strings.settings.title}</h2>
+        <span>{strings.settings.profileName(baseProfile.name)}</span>
         <div className="runtime-settings-header-actions">
           {dirty ? (
             <button
@@ -156,27 +146,27 @@ export function RuntimeSettingsPanel({
               onClick={() => commitDraft(openingOverridesRef.current)}
               type="button"
             >
-              Undo changes
+              {strings.settings.undo}
             </button>
           ) : null}
           <button className="runtime-settings-done" onClick={onDone} type="button">
-            Done
+            {strings.settings.done}
           </button>
         </div>
       </header>
 
       <div className="runtime-settings-body">
-        <nav aria-label="Settings categories" className="runtime-settings-rail">
+        <nav aria-label={strings.settings.title} className="runtime-settings-rail">
           {CATEGORIES.map((category) => (
             <button
-              aria-controls={`runtime-settings-${category.id}`}
-              aria-pressed={activeCategory === category.id}
+              aria-controls={`runtime-settings-${category}`}
+              aria-pressed={activeCategory === category}
               className="runtime-settings-category"
-              key={category.id}
-              onClick={() => setActiveCategory(category.id)}
+              key={category}
+              onClick={() => setActiveCategory(category)}
               type="button"
             >
-              {category.label}
+              {strings.settings.categories[category]}
             </button>
           ))}
         </nav>
@@ -186,8 +176,13 @@ export function RuntimeSettingsPanel({
             {activeCategory === "movement" ? (
               <MovementSettings
                 activePreset={activeMovement}
-                description={activeMovementChoice?.description ?? "Choose how controls respond to your movement."}
+                description={
+                  activeMovementChoice
+                    ? strings.settings.movementChoices[activeMovementChoice.key].description
+                    : strings.settings.movementFallback
+                }
                 onSelect={(motorAccessibilityPreset) => commitDraft({ ...draft, motorAccessibilityPreset })}
+                strings={strings}
               />
             ) : null}
             {activeCategory === "tuning" ? (
@@ -199,6 +194,7 @@ export function RuntimeSettingsPanel({
                 onRepeatGuardMsChange={(repeatGuardMs) => commitNumber("repeatGuardMs", repeatGuardMs)}
                 onScanPeriodMsChange={(scanPeriodMs) => commitNumber("scanPeriodMs", scanPeriodMs)}
                 profile={profile}
+                strings={strings}
               />
             ) : null}
             {activeCategory === "frame" ? (
@@ -207,10 +203,17 @@ export function RuntimeSettingsPanel({
                 commandFrameIds={commandFrameIds}
                 disabled={teleopActive}
                 onSelect={(commandFrameId) => commitDraft({ ...draft, commandFrameId })}
+                strings={strings}
               />
             ) : null}
-            {activeCategory === "language" ? <LanguageSettings /> : null}
-            {activeCategory === "display" ? <DisplaySettings profile={profile} /> : null}
+            {activeCategory === "language" ? (
+              <LanguageSettings
+                activeLanguage={profile.language}
+                onSelect={(language) => commitDraft({ ...draft, language })}
+                strings={strings}
+              />
+            ) : null}
+            {activeCategory === "display" ? <DisplaySettings profile={profile} strings={strings} /> : null}
           </div>
 
           <TrySettings
@@ -219,6 +222,7 @@ export function RuntimeSettingsPanel({
             previewVector={previewVector}
             scanIndex={scanning.index}
             scanTargetCount={scanning.targetCount}
+            strings={strings}
           />
         </div>
       </div>
@@ -230,31 +234,36 @@ function MovementSettings({
   activePreset,
   description,
   onSelect,
+  strings,
 }: {
   activePreset: UserProfile["motor_accessibility_preset"];
   description: string;
   onSelect: (preset: UserProfile["motor_accessibility_preset"]) => void;
+  strings: RuntimeStrings;
 }) {
   return (
     <div className="runtime-settings-section">
       <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">Movement</p>
-        <h3>How should the controls respond?</h3>
+        <p className="runtime-settings-eyebrow">{strings.settings.movementEyebrow}</p>
+        <h3>{strings.settings.movementHeading}</h3>
       </div>
       <div className="runtime-settings-movement-options">
-        {MOVEMENT_CHOICES.map((choice) => (
-          <button
-            aria-pressed={activePreset === choice.preset}
-            disabled={choice.disabled}
-            key={choice.label}
-            onClick={() => onSelect(choice.preset)}
-            title={choice.disabled ? choice.description : undefined}
-            type="button"
-          >
-            <strong>{choice.label}</strong>
-            <span>{choice.description}</span>
-          </button>
-        ))}
+        {MOVEMENT_CHOICES.map((choice) => {
+          const copy = strings.settings.movementChoices[choice.key];
+          return (
+            <button
+              aria-pressed={activePreset === choice.preset}
+              disabled={choice.disabled}
+              key={choice.key}
+              onClick={() => onSelect(choice.preset)}
+              title={choice.disabled ? copy.description : undefined}
+              type="button"
+            >
+              <strong>{copy.label}</strong>
+              <span>{copy.description}</span>
+            </button>
+          );
+        })}
       </div>
       <p className="runtime-settings-current-help">{description}</p>
     </div>
@@ -269,6 +278,7 @@ function TuningSettings({
   onRepeatGuardMsChange,
   onScanPeriodMsChange,
   profile,
+  strings,
 }: {
   onAudioCuesChange: (enabled: boolean) => void;
   onDeadzoneChange: (value: number) => void;
@@ -277,58 +287,73 @@ function TuningSettings({
   onRepeatGuardMsChange: (value: number) => void;
   onScanPeriodMsChange: (value: number) => void;
   profile: ResolvedRuntimeProfile;
+  strings: RuntimeStrings;
 }) {
   return (
     <div className="runtime-settings-section runtime-settings-tuning">
       <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">Fine tuning</p>
-        <h3>Adjust one clear step at a time.</h3>
+        <p className="runtime-settings-eyebrow">{strings.settings.tuningEyebrow}</p>
+        <h3>{strings.settings.tuningHeading}</h3>
       </div>
       <NumericSetting
         decreaseDisabled={profile.scanPeriodMs <= 600}
         formattedValue={`${(profile.scanPeriodMs / 1000).toFixed(1)} s`}
         increaseDisabled={profile.scanPeriodMs >= 3000}
-        label="Scan speed"
+        label={strings.settings.scanSpeed}
         onDecrease={() => onScanPeriodMsChange(profile.scanPeriodMs - 200)}
         onIncrease={() => onScanPeriodMsChange(profile.scanPeriodMs + 200)}
+        strings={strings}
       />
       <NumericSetting
         decreaseDisabled={profile.deadzone <= 0}
         formattedValue={profile.deadzone.toFixed(2)}
         increaseDisabled={profile.deadzone >= 0.5}
-        label="Ignore small movements"
+        label={strings.settings.smallMovements}
         onDecrease={() => onDeadzoneChange(profile.deadzone - 0.05)}
         onIncrease={() => onDeadzoneChange(profile.deadzone + 0.05)}
+        strings={strings}
       />
       <div className="runtime-settings-tuning-row runtime-settings-tuning-row-dwell">
         <div>
-          <strong>Hold before it counts</strong>
-          <span>Rest on a control to select it</span>
+          <strong>{strings.settings.dwellLabel}</strong>
+          <span>{strings.settings.dwellHelp}</span>
         </div>
         <NumericButtons
           decreaseDisabled={profile.dwellMs <= 400}
           formattedValue={`${profile.dwellMs} ms`}
-          label="Hold before it counts"
+          label={strings.settings.dwellLabel}
           increaseDisabled={profile.dwellMs >= 4000}
           onDecrease={() => onDwellMsChange(profile.dwellMs - 100)}
           onIncrease={() => onDwellMsChange(profile.dwellMs + 100)}
+          strings={strings}
         />
-        <ToggleButton checked={profile.dwellEnabled} label="Rest to select" onChange={onDwellEnabledChange} />
+        <ToggleButton
+          checked={profile.dwellEnabled}
+          label={strings.settings.restToSelect}
+          onChange={onDwellEnabledChange}
+          strings={strings}
+        />
       </div>
       <NumericSetting
         decreaseDisabled={profile.repeatGuardMs <= 0}
         formattedValue={`${profile.repeatGuardMs} ms`}
         increaseDisabled={profile.repeatGuardMs >= 600}
-        label="Ignore repeated taps"
+        label={strings.settings.repeatGuard}
         onDecrease={() => onRepeatGuardMsChange(profile.repeatGuardMs - 50)}
         onIncrease={() => onRepeatGuardMsChange(profile.repeatGuardMs + 50)}
+        strings={strings}
       />
       <div className="runtime-settings-tuning-row">
         <div>
-          <strong>Status sounds</strong>
-          <span>Hear stop, link loss, and recovery</span>
+          <strong>{strings.settings.statusSounds}</strong>
+          <span>{strings.settings.statusSoundsHelp}</span>
         </div>
-        <ToggleButton checked={profile.audioCues} label="Status sounds" onChange={onAudioCuesChange} />
+        <ToggleButton
+          checked={profile.audioCues}
+          label={strings.settings.statusSounds}
+          onChange={onAudioCuesChange}
+          strings={strings}
+        />
       </div>
     </div>
   );
@@ -341,6 +366,7 @@ function NumericSetting({
   label,
   onDecrease,
   onIncrease,
+  strings,
 }: {
   decreaseDisabled: boolean;
   formattedValue: string;
@@ -348,6 +374,7 @@ function NumericSetting({
   label: string;
   onDecrease: () => void;
   onIncrease: () => void;
+  strings: RuntimeStrings;
 }) {
   return (
     <div className="runtime-settings-tuning-row">
@@ -359,6 +386,7 @@ function NumericSetting({
         label={label}
         onDecrease={onDecrease}
         onIncrease={onIncrease}
+        strings={strings}
       />
     </div>
   );
@@ -371,6 +399,7 @@ function NumericButtons({
   label,
   onDecrease,
   onIncrease,
+  strings,
 }: {
   decreaseDisabled: boolean;
   formattedValue: string;
@@ -378,14 +407,25 @@ function NumericButtons({
   label: string;
   onDecrease: () => void;
   onIncrease: () => void;
+  strings: RuntimeStrings;
 }) {
   return (
     <div className="runtime-settings-stepper">
-      <button aria-label={`Decrease ${label}`} disabled={decreaseDisabled} onClick={onDecrease} type="button">
+      <button
+        aria-label={strings.settings.decrease(label)}
+        disabled={decreaseDisabled}
+        onClick={onDecrease}
+        type="button"
+      >
         -
       </button>
-      <output aria-label={`${label} value`}>{formattedValue}</output>
-      <button aria-label={`Increase ${label}`} disabled={increaseDisabled} onClick={onIncrease} type="button">
+      <output aria-label={strings.settings.value(label)}>{formattedValue}</output>
+      <button
+        aria-label={strings.settings.increase(label)}
+        disabled={increaseDisabled}
+        onClick={onIncrease}
+        type="button"
+      >
         +
       </button>
     </div>
@@ -396,10 +436,12 @@ function ToggleButton({
   checked,
   label,
   onChange,
+  strings,
 }: {
   checked: boolean;
   label: string;
   onChange: (checked: boolean) => void;
+  strings: RuntimeStrings;
 }) {
   return (
     <button
@@ -410,7 +452,7 @@ function ToggleButton({
       role="switch"
       type="button"
     >
-      {checked ? "On" : "Off"}
+      {checked ? strings.settings.valueOn : strings.settings.valueOff}
     </button>
   );
 }
@@ -420,25 +462,25 @@ function FrameSettings({
   commandFrameIds,
   disabled,
   onSelect,
+  strings,
 }: {
   activeFrameId: string | null;
   commandFrameIds: readonly string[];
   disabled: boolean;
   onSelect: (frameId: string) => void;
+  strings: RuntimeStrings;
 }) {
   return (
     <div className="runtime-settings-section">
       <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">Direction</p>
-        <h3>Choose what forward follows.</h3>
+        <p className="runtime-settings-eyebrow">{strings.settings.directionEyebrow}</p>
+        <h3>{strings.settings.directionHeading}</h3>
       </div>
-      {disabled ? (
-        <p className="runtime-settings-notice">Release every movement control before changing direction.</p>
-      ) : null}
+      {disabled ? <p className="runtime-settings-notice">{strings.settings.directionRelease}</p> : null}
       {commandFrameIds.length > 0 ? (
         <div className="runtime-settings-frame-options">
           {commandFrameIds.map((frameId) => {
-            const frame = describeCommandFrame(frameId);
+            const frame = describeCommandFrame(frameId, strings);
             return (
               <button
                 aria-pressed={activeFrameId === frameId}
@@ -455,45 +497,67 @@ function FrameSettings({
           })}
         </div>
       ) : (
-        <p className="runtime-settings-notice">The connected runtime has not reported any command frames.</p>
+        <p className="runtime-settings-notice">{strings.settings.frameUnavailable}</p>
       )}
     </div>
   );
 }
 
-function LanguageSettings() {
+function LanguageSettings({
+  activeLanguage,
+  onSelect,
+  strings,
+}: {
+  activeLanguage: RuntimeLanguage;
+  onSelect: (language: RuntimeLanguage) => void;
+  strings: RuntimeStrings;
+}) {
   return (
     <div className="runtime-settings-section">
       <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">Language</p>
-        <h3>English</h3>
+        <p className="runtime-settings-eyebrow">{strings.settings.languageEyebrow}</p>
+        <h3>{strings.settings.languageHeading}</h3>
       </div>
-      <p className="runtime-settings-notice">
-        This profile currently uses English. English, Spanish, and French choices arrive with the runtime language
-        catalogue in Lot 2.
-      </p>
+      <div className="runtime-settings-language-options">
+        {(
+          [
+            ["en", "English"],
+            ["es", "Español"],
+            ["fr", "Français"],
+          ] as const
+        ).map(([language, label]) => (
+          <button
+            aria-pressed={activeLanguage === language}
+            key={language}
+            onClick={() => onSelect(language)}
+            type="button"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
-function DisplaySettings({ profile }: { profile: ResolvedRuntimeProfile }) {
+function DisplaySettings({ profile, strings }: { profile: ResolvedRuntimeProfile; strings: RuntimeStrings }) {
   return (
     <div className="runtime-settings-section">
       <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">Reading the screen</p>
-        <h3>Installed display profile</h3>
+        <p className="runtime-settings-eyebrow">{strings.settings.displayEyebrow}</p>
+        <h3>{strings.settings.displayHeading}</h3>
       </div>
       <dl className="runtime-settings-readonly">
         <div>
-          <dt>Display</dt>
-          <dd>{formatDisplayPreset(profile.displayPreset)}</dd>
+          <dt>{strings.settings.displayLabel}</dt>
+          <dd>{strings.settings.displayPresets[profile.displayPreset]}</dd>
         </div>
         <div>
-          <dt>Text size</dt>
+          <dt>{strings.settings.textSize}</dt>
           <dd>{Math.round(profile.fontScale * 100)}%</dd>
         </div>
       </dl>
-      <p className="runtime-settings-notice">Display settings are fixed during tablet installation.</p>
+      <p className="runtime-settings-notice">{strings.settings.displayFixed}</p>
     </div>
   );
 }
@@ -504,41 +568,43 @@ function TrySettings({
   previewVector,
   scanIndex,
   scanTargetCount,
+  strings,
 }: {
   onActivate: (vector: PreviewVector) => void;
   onSwitch: () => void;
   previewVector: PreviewVector;
   scanIndex: number;
   scanTargetCount: number;
+  strings: RuntimeStrings;
 }) {
   return (
-    <section aria-label="Safe preview" className="runtime-settings-try">
+    <section aria-label={strings.settings.safePreview} className="runtime-settings-try">
       <div>
-        <strong>Try it here</strong>
-        <span>These buttons never send anything to the robot.</span>
+        <strong>{strings.settings.tryTitle}</strong>
+        <span>{strings.settings.tryHelp}</span>
       </div>
       <div className="runtime-settings-try-buttons">
         <button onClick={() => onActivate({ x: -1, y: 0 })} type="button">
-          Left
+          {strings.settings.tryLeft}
         </button>
         <button onClick={() => onActivate({ x: 0, y: 1 })} type="button">
-          Forward
+          {strings.settings.tryForward}
         </button>
         <button onClick={() => onActivate({ x: 1, y: 0 })} type="button">
-          Right
+          {strings.settings.tryRight}
         </button>
       </div>
-      <output aria-label="Try current settings value" className="runtime-settings-try-value">
+      <output aria-label={strings.settings.value(strings.settings.safePreview)} className="runtime-settings-try-value">
         {`x ${formatPreviewAxis(previewVector.x)}  y ${formatPreviewAxis(previewVector.y)}`}
       </output>
       {scanIndex >= 0 ? (
         <button className="runtime-settings-switch" data-scan-switch="" onClick={onSwitch} type="button">
-          SWITCH
+          {strings.scan.button}
         </button>
       ) : null}
       {scanIndex >= 0 ? (
         <p aria-live="polite" className="sr-only" role="status">
-          {`Scanning ${scanIndex + 1} of ${scanTargetCount}.`}
+          {strings.scan.progress(scanIndex + 1, scanTargetCount)}
         </p>
       ) : null}
     </section>
@@ -561,27 +627,8 @@ function resolveCommandFrameIds(allowed: readonly string[] | null, active: strin
   return active ? [active] : [];
 }
 
-function describeCommandFrame(frameId: string): { description: string; label: string } {
-  if (frameId === "base_link") {
-    return { label: "Robot axes", description: "Forward stays aligned with the robot base." };
-  }
-  if (frameId === "effector_frame") {
-    return { label: "Tool direction", description: "Forward follows the tool at the end of the arm." };
-  }
-  if (frameId === "hybrid_frame") {
-    return { label: "Where I look", description: "Translation follows the operator-facing hybrid frame." };
-  }
-  if (frameId === "ft_frame") {
-    return { label: "Force sensor", description: "Forward follows the force sensor frame." };
-  }
-  return { label: frameId, description: "Use this frame reported by the connected runtime." };
-}
-
-function formatDisplayPreset(preset: ResolvedRuntimeProfile["displayPreset"]): string {
-  return preset
-    .split("-")
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
+function describeCommandFrame(frameId: string, strings: RuntimeStrings): { description: string; label: string } {
+  return strings.settings.frameDescriptions[frameId] ?? { label: frameId, description: strings.settings.frameFallback };
 }
 
 function clampPreviewAxis(value: number): number {

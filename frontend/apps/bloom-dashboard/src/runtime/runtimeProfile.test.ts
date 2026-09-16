@@ -35,6 +35,7 @@ describe("resolveRuntimeProfile", () => {
       displayPreset: "high-visibility",
       fontScale: 1.25,
       id: "tablet",
+      language: "en",
       motorAccessibilityPreset: "large-targets",
       name: "Tablet high visibility",
     });
@@ -65,6 +66,7 @@ describe("resolveRuntimeProfile", () => {
       displayPreset: "default",
       fontScale: 1,
       id: "default",
+      language: "en",
       motorAccessibilityPreset: "default",
       name: "Default",
     });
@@ -119,5 +121,15 @@ describe("resolveRuntimeProfile", () => {
       repeatGuardMs: 0,
       scanPeriodMs: 3000,
     });
+  });
+
+  it("falls back to English and applies a language override", () => {
+    expect(resolveRuntimeProfile({ profiles: [...profiles] }, { height: 800, width: 1280 }, "operator").language).toBe(
+      "en",
+    );
+    expect(
+      resolveRuntimeProfile({ profiles: [...profiles] }, { height: 800, width: 1280 }, "operator", { language: "fr" })
+        .language,
+    ).toBe("fr");
   });
 });

@@ -271,6 +271,31 @@
   gap: 12px;
 }
 
+.runtime-settings-language-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.runtime-settings-language-options button {
+  min-height: 88px;
+  padding: 12px 18px;
+  border: 1px solid var(--bloom-outline);
+  border-radius: 8px;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.runtime-settings-language-options button[aria-pressed="true"] {
+  border-color: var(--bloom-primary);
+  box-shadow: inset 0 0 0 2px var(--bloom-primary);
+  background: var(--bloom-primary-container);
+  color: var(--bloom-on-primary-container);
+}
+
 .runtime-settings-frame-options code {
   overflow: hidden;
   color: var(--bloom-on-surface-muted);
@@ -308,7 +333,7 @@
 
 .runtime-settings-try {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto auto auto;
+  grid-template-columns: minmax(150px, 1fr) minmax(264px, 360px) minmax(136px, auto);
   gap: 16px;
   align-items: center;
   min-height: 126px;
@@ -319,6 +344,7 @@
 
 .runtime-settings-try > div:first-child {
   display: grid;
+  min-width: 0;
   gap: 4px;
 }
 
@@ -332,13 +358,15 @@
 }
 
 .runtime-settings-try-buttons {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
 .runtime-settings-try-buttons button,
 .runtime-settings-switch {
-  min-width: 88px;
+  min-width: 0;
   min-height: 72px;
   padding: 0 14px;
   border: 1px solid var(--bloom-outline);
@@ -347,6 +375,7 @@
   color: var(--bloom-on-surface);
   font: inherit;
   font-weight: 700;
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
 
@@ -383,7 +412,7 @@
   }
 
   .runtime-settings-try {
-    grid-template-columns: minmax(120px, 1fr) auto auto;
+    grid-template-columns: minmax(120px, 1fr) minmax(264px, 330px) minmax(136px, auto);
   }
 
   .runtime-settings-switch {

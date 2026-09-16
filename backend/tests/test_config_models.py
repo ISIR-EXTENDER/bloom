@@ -13,6 +13,7 @@ from libs.config import (
     ConfigurationMetadata,
     DisplayPreset,
     MotorAccessibilityPreset,
+    RuntimeLanguage,
     RuntimeCanvasMode,
     RuntimeActionPreset,
     ScreenConfig,
@@ -272,6 +273,11 @@ def test_user_profile_accepts_dwell_activation_timing() -> None:
 
     assert profile.motor_accessibility_preset == MotorAccessibilityPreset.DWELL
     assert profile.dwell_ms == 850
+
+
+def test_user_profile_language_defaults_to_english_and_accepts_french() -> None:
+    assert UserProfile(id="default", name="Default").language == RuntimeLanguage.ENGLISH
+    assert UserProfile(id="french", name="French", language="fr").language == RuntimeLanguage.FRENCH
 
 
 def test_user_profile_allows_dwell_alongside_scanning() -> None:

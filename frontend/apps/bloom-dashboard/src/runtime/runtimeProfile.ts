@@ -1,4 +1,4 @@
-import type { ApplicationConfig, DisplayPreset, UserProfile } from "@bloom/api-client";
+import type { ApplicationConfig, DisplayPreset, RuntimeLanguage, UserProfile } from "@bloom/api-client";
 
 import type { RuntimeProfileOverrides } from "./runtime-profile-overrides";
 
@@ -17,6 +17,7 @@ export type ResolvedRuntimeProfile = {
   displayPreset: DisplayPreset;
   fontScale: number;
   id: string;
+  language: RuntimeLanguage;
   motorAccessibilityPreset: UserProfile["motor_accessibility_preset"];
   name: string;
 };
@@ -31,6 +32,7 @@ const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
   displayPreset: "default",
   fontScale: 1,
   id: "default",
+  language: "en",
   motorAccessibilityPreset: "default",
   name: "Default",
 };
@@ -74,6 +76,7 @@ export function applyRuntimeProfileOverrides(
     deadzone: clampRange(overrides.deadzone ?? profile.deadzone, 0, 0.5),
     dwellEnabled: motorAccessibilityPreset === "dwell" || (overrides.dwellEnabled ?? profile.dwellEnabled),
     dwellMs: clampRange(overrides.dwellMs ?? profile.dwellMs, 400, 4000),
+    language: overrides.language ?? profile.language,
     motorAccessibilityPreset,
     repeatGuardMs: clampRange(overrides.repeatGuardMs ?? profile.repeatGuardMs, 0, 600),
     scanPeriodMs: clampRange(overrides.scanPeriodMs ?? profile.scanPeriodMs, 600, 3000),
@@ -104,6 +107,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
       displayPreset: profile.display_preset,
       fontScale: clampFontScale(profile.font_scale),
       id: profile.id,
+      language: profile.language ?? "en",
       motorAccessibilityPreset: profile.motor_accessibility_preset,
       name: profile.name,
     };
@@ -119,6 +123,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
     displayPreset: profile.displayPreset,
     fontScale: clampFontScale(profile.fontScale),
     id: profile.id,
+    language: profile.language,
     motorAccessibilityPreset: profile.motorAccessibilityPreset,
     name: profile.name,
   };

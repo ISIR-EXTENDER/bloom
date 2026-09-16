@@ -1,4 +1,4 @@
-import type { UserProfile } from "@bloom/api-client";
+import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 
@@ -8,6 +8,7 @@ export type RuntimeProfileOverrides = {
   deadzone?: number;
   dwellEnabled?: boolean;
   dwellMs?: number;
+  language?: RuntimeLanguage;
   motorAccessibilityPreset?: UserProfile["motor_accessibility_preset"];
   repeatGuardMs?: number;
   scanPeriodMs?: number;
@@ -23,6 +24,7 @@ const MOTOR_ACCESSIBILITY_PRESETS = new Set<UserProfile["motor_accessibility_pre
   "scan",
   "step",
 ]);
+const RUNTIME_LANGUAGES = new Set<RuntimeLanguage>(["en", "es", "fr"]);
 
 export function runtimeProfileOverrideKey(
   selection: Pick<WorkspaceSelection, "appId" | "configId">,
@@ -46,6 +48,9 @@ export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfile
 
   if (typeof value.commandFrameId === "string" && value.commandFrameId.trim()) {
     overrides.commandFrameId = value.commandFrameId.trim();
+  }
+  if (typeof value.language === "string" && RUNTIME_LANGUAGES.has(value.language as RuntimeLanguage)) {
+    overrides.language = value.language as RuntimeLanguage;
   }
   if (
     typeof value.motorAccessibilityPreset === "string" &&

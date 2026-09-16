@@ -139,7 +139,8 @@ The movement choices expose direct drag, step, latch, and scanning behavior in o
 visible but disabled because Bloom has no edge-control runtime behavior yet. Fine tuning uses 88x72 decrement/increment
 targets for scan period, dead zone, dwell duration, and repeat guard, plus toggles for dwell and status sounds. Command
 frame choices come from the connected backend's allowlist and remain disabled while teleop is active. Display preset
-and text scale are read-only installation facts. Language selection arrives in the next implementation lot.
+and text scale are read-only installation facts. The Language category switches the runtime shell between English,
+Spanish, and French.
 
 Settings uses the active scan period and dwell duration itself. Its header, category rail, controls, safe preview, and
 Done action therefore remain reachable when the current profile uses scanning and/or dwell.
@@ -152,6 +153,17 @@ the intended devices.
 Joysticks are keyboard operable. Focus the pad and use arrow keys; the same conditioning and command path are used as
 for pointer input. The currently shipped shared applications demonstrate only part of the profile matrix, so configure
 and verify the intended profile before relying on it in a session.
+
+### Runtime Language
+
+Runtime language belongs to the selected profile. A missing value falls back to English; a local choice is stored with
+the other per-profile overrides and is restored for the same application and profile. The selector is available in
+Maintenance for a fast change and in **Settings > Language** with full language names.
+
+The runtime status, STOP/resume control, Maintenance, scanner, Settings, and empty-screen state use the selected
+catalog. Authored app names, screen names, and widget labels remain configuration data and are not translated by the
+shell. Numbers, axis values, topic names, and frame IDs also remain unchanged. French and Spanish safety wording still
+requires native-speaker and operator review before participant use.
 
 ## Cartesian Command Frame
 

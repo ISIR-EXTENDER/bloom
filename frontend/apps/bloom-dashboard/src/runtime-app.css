@@ -997,6 +997,31 @@
   gap: 10px;
 }
 
+.runtime-maintenance-languages {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.runtime-maintenance-languages button {
+  min-height: 52px;
+  border: 1px solid var(--bloom-outline);
+  border-radius: 8px;
+  background: var(--bloom-surface);
+  color: var(--bloom-on-surface);
+  font: inherit;
+  font-weight: 700;
+}
+
+.runtime-maintenance-languages button[aria-pressed="true"] {
+  border-color: var(--bloom-primary);
+  background: var(--bloom-primary-container);
+  color: var(--bloom-on-primary-container);
+}
+
 .runtime-maintenance-screens button,
 .runtime-maintenance-actions button,
 .runtime-maintenance-return {

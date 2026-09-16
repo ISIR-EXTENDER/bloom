@@ -52,6 +52,12 @@ class DisplayPreset(str, Enum):
     HIGH_VISIBILITY = "high-visibility"
 
 
+class RuntimeLanguage(str, Enum):
+    ENGLISH = "en"
+    SPANISH = "es"
+    FRENCH = "fr"
+
+
 class MotorAccessibilityPreset(str, Enum):
     DEFAULT = "default"
     LARGE_TARGETS = "large-targets"
@@ -109,6 +115,7 @@ class UserProfile(BloomModel):
     app_theme_preset_id: str = Field(default="bloom-default", min_length=1)
     preferred_control_layout_id: str = ""
     motor_accessibility_preset: MotorAccessibilityPreset = MotorAccessibilityPreset.DEFAULT
+    language: RuntimeLanguage = RuntimeLanguage.ENGLISH
     #: Tones for stop, link loss, and recovery.
     audio_cues: bool = False
     #: Per-axis dead zone; overrides the widget's own when set above zero.

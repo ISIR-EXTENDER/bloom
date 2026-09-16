@@ -66,17 +66,16 @@ Split them when a concrete feature makes ownership unclear; they are not blocker
 ## UX Status
 
 The runtime now follows the strongest design-review requirements: no builder chrome under the operator's hand, a small
-truthful bar, a real stop, direction words, one visible effective command frame, tested contrast, multiple input modes, and control
-bounds in maintained seeds.
+truthful bar, a real stop, direction words, one visible effective command frame, tested contrast, multiple input modes,
+per-profile Settings and EN/ES/FR language, and control bounds in maintained seeds.
 
 The next UX work is not another broad redesign. It is the unresolved physical and social layer:
 
 - screen-space target guarantees after fit scaling;
-- complete profile settings and safe preview;
 - switch/gamepad/dwell validation with intended users;
 - stable eyes-off control placement and non-visual cues;
 - supervisor mirroring and explicit control ownership;
-- role-aware onboarding and EN/ES/FR runtime language;
+- role-aware onboarding and native-speaker review of delivered EN/ES/FR safety wording;
 - camera and fault recovery language.
 
 The tracked implementation matrix and backlog are in [the UX design handoff](ux-design-handoff.md).

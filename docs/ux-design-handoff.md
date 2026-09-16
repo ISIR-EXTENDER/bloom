@@ -59,7 +59,7 @@ supervisor roles.
 | 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab selects a supported session frame and Runtime Settings persists a per-profile frame override, both at zero motion and shared by widgets/gamepad. | Installation-specific egocentric mapping and final operator-facing frame names. |
 | 12. Operator looks at the gripper | Partial | Keyboard, gamepad, directional scanning, dwell, and sounds for stop/link loss/recovery. | Cross-screen spatial consistency, possible latch cue, and real eyes-off tests. |
 | 13. Operator and supervisor surfaces | Open | STOP state is shared across clients. | Mirror role, explicit control ownership, and deliberate handover. |
-| 14. Language belongs to the person | Open | No profile language field or runtime string catalog. | EN/ES/FR model, translations, authored-label strategy, overflow tests. |
+| 14. Language belongs to the person | Delivered for the runtime shell | `UserProfile.language` defaults to English; EN/ES/FR catalogs cover status, STOP, Maintenance, scanning, Settings, and empty states. Maintenance and Settings persist a per-profile choice. | Native-speaker safety review and a future schema for independently localized authored labels. |
 
 ## Remaining Design Work
 
@@ -74,8 +74,10 @@ supervisor roles.
   decrement/increment controls, reversible per-profile overrides, scanning/dwell at the draft timing, and a safe local
   preview. Entering Settings suspends composed teleop before controls unmount. See
   `docs/validation/2026-09-16-runtime-settings.md`.
-- **Add runtime language.** Add `language` to the profile, translate the kiosk/STOP/status/scanner/settings shell for
-  EN/ES/FR, keep authored widget labels as localized configuration data, and test a lengthened pseudo-locale.
+- ~~**Add runtime language.**~~ Delivered 2026-09-16; profile-backed EN/ES/FR catalogs cover the operator shell,
+  Maintenance and Settings both expose the choice, and visual smoke captures all three locales plus a 40%-expanded
+  pseudo pass. Authored labels remain configuration data and technical values remain unchanged. See
+  `docs/validation/2026-09-16-runtime-language.md`.
 - **Add device-frame review.** Provide `1024x600`, `1280x720`, and `1820x720` builder frames plus a whole-screen touch
   check. The current inspector check covers one widget at one target.
 - **Validate all input modes.** Step, latch, scan, dwell, keyboard, gamepad, large targets, audio, and conditioning are
@@ -108,15 +110,15 @@ supervisor roles.
 
 ## Refreshed Implementation Order
 
-The latest handoff proposes this order. It is a backlog, not evidence that the work exists:
+The latest handoff proposed this order. The state column records what now exists:
 
-| Lot | Priority | Scope |
-| --- | --- | --- |
-| 0 | P1/P2 | Fix directional scanning, define scan/dwell composition, record the 44 px bar decision, surface unsafe fit, and gate unavailable runtime capabilities. |
-| 1 | P1 | Add operator-usable runtime profile settings and a non-commanding live preview, with defensive local preference persistence. |
-| 2 | P1 | Add EN/ES/FR profile language, runtime string catalogs, authored-label locale data, pseudo-locale tests, and locale captures. |
-| 3 | P2 | Add action-based operator and builder tours after the disconnected-practice safety question is resolved. |
-| 4 | P2 | Add a read-only supervisor status mirror; do not grant robot commands implicitly. |
+| Lot | Priority | State | Scope |
+| --- | --- | --- | --- |
+| 0 | P1/P2 | Delivered | Fix directional scanning, define scan/dwell composition, record the 44 px bar decision, surface unsafe fit, and gate unavailable runtime capabilities. |
+| 1 | P1 | Delivered | Add operator-usable runtime profile settings and a non-commanding live preview, with defensive local preference persistence. |
+| 2 | P1 | Delivered | Add EN/ES/FR profile language, runtime string catalogs, pseudo-locale tests, and locale captures while keeping authored labels as configuration data. |
+| 3 | P2 | Blocked on safety answer | Add action-based operator and builder tours after the disconnected-practice safety question is resolved. |
+| 4 | P2 | Not started | Add a read-only supervisor status mirror; do not grant robot commands implicitly. |
 
 The settings design also depends on a product answer: whether a person has one editable profile or several named,
 duplicable profiles for different positions or fatigue levels.
@@ -130,7 +132,7 @@ they appeared in the handoff:
   center, or meet the same physical requirements through app/profile-specific screens;
 - which panel geometry is authoritative: the original `1024x600` spec or the refreshed packet's `1280x720` native claim;
 - whether continuous speed sliders should become large slow/medium/fast segments;
-- whether Maintenance should contain language and profile settings, and whether an application needs a supervisor code;
+- whether an application needs a supervisor code; Maintenance now contains language and profile Settings;
 - whether profiles can be named, exported, and reused across a lab session and daily setup;
 - how a disconnected practice tour can guarantee that no robot command is sent rather than merely claiming it is safe;
 - the final French and Spanish safety wording, which requires native-speaker and operator review.

@@ -34,6 +34,7 @@ function renderBar(overrides: Partial<Parameters<typeof RuntimeKioskBar>[0]> = {
     onOpenLanding: vi.fn(),
     onOpenHelp: vi.fn(),
     onOpenSettings: vi.fn(),
+    onLanguageChange: vi.fn(),
   };
   render(
     <RuntimeKioskBar
@@ -188,6 +189,15 @@ describe("maintenance", () => {
 
     expect(handlers.onOpenSettings).toHaveBeenCalledOnce();
     expect(isOpen()).toBe(false);
+  });
+
+  it("offers profile language selection inside maintenance", () => {
+    const handlers = renderBar();
+    hold(1600);
+
+    fireEvent.click(screen.getByRole("button", { name: "ES" }));
+
+    expect(handlers.onLanguageChange).toHaveBeenCalledWith("es");
   });
 
   it("discloses unsafe fit inside maintenance without covering the controls", () => {
