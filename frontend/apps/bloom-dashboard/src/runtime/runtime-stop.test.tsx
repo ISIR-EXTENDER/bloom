@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { RuntimeStopState } from "@bloom/api-client";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuntimeStopControl } from "./RuntimeStopControl";
@@ -133,7 +133,7 @@ describe("the stop mirror", () => {
   it("mirrors the backend's latch on mount", async () => {
     render(<Probe client={{ getRuntimeStopState: () => Promise.resolve(stoppedState) }} />);
 
-    expect((await screen.findByTestId("stopped")).textContent).toBe("true");
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("true"));
   });
 
   it("never flips to stopped before the backend confirms the latch", async () => {
@@ -146,7 +146,7 @@ describe("the stop mirror", () => {
         }),
     };
     render(<Probe client={client} />);
-    expect((await screen.findByTestId("stopped")).textContent).toBe("false");
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
 
     fireEvent.click(screen.getByRole("button", { name: "engage" }));
     expect(screen.getByTestId("stopped").textContent).toBe("false");
@@ -163,7 +163,7 @@ describe("the stop mirror", () => {
       engageRuntimeStop: () => Promise.reject(new Error("Bloom API request failed with status 502")),
     };
     render(<Probe client={client} />);
-    expect((await screen.findByTestId("stopped")).textContent).toBe("false");
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "engage" }));
