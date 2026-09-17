@@ -228,6 +228,12 @@ textarea {
 .landing-footer a {
   color: var(--bloom-ink);
   font-weight: 700;
+  text-decoration: none;
+}
+
+.landing-footer a:hover,
+.landing-footer a:focus-visible {
+  text-decoration: underline;
 }
 
 .configuration-panel,
@@ -254,10 +260,11 @@ h1 {
   margin: 0;
   color: var(--bloom-ink);
   font-family: var(--bloom-font-display);
-  font-size: clamp(3.3rem, 7vw, 6.4rem);
+  /* One line from 1280 up, as the design draws it. */
+  font-size: clamp(2.8rem, 4.6vw, 4.6rem);
   font-weight: 600;
   letter-spacing: -0.04em;
-  line-height: 0.92;
+  line-height: 0.96;
 }
 
 .hero-copy {
