@@ -14,7 +14,12 @@ import type { LoadedConfiguration } from "../configurations/configuration-loader
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
-import { findUndersizedWidgets, placeClearOfRegions, resolveBuilderPanel } from "./builder-geometry";
+import {
+  explainLayoutRefusal,
+  findUndersizedWidgets,
+  placeClearOfRegions,
+  resolveBuilderPanel,
+} from "./builder-geometry";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 
@@ -249,9 +254,18 @@ export function BuilderWorkspace({
         layoutNotice={layoutNotice}
         onResizeWidget={(widgetId, layout) => {
           const widget = draftScreen.widgets.find((candidate) => candidate.id === widgetId);
-          if (widget) {
-            commitWidgetLayout(widgetId, widget.layout, layout);
+          if (!widget) {
+            return;
           }
+          const refusal = explainLayoutRefusal(layout, draftScreen);
+          if (refusal) {
+            setLayoutNotice(
+              `${widget.title} cannot grow to ${layout.width}×${layout.height} here: ${refusal}. Move it first, then resize.`,
+            );
+            return;
+          }
+          commitWidgetLayout(widgetId, widget.layout, layout);
+          setLayoutNotice(null);
         }}
         runtimeCapabilities={runtimeCapabilities}
         onAddWidget={addWidget}

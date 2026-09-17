@@ -84,6 +84,24 @@ export function refuseReservedRegion(
   return overlapsRegion(proposed, regions) ? fallback : proposed;
 }
 
+/** Why a layout cannot stand on this screen, or null when it sits inside the canvas and clear of every region. */
+export function explainLayoutRefusal(layout: WidgetLayout, screen: ScreenConfig): string | null {
+  const { artboard } = resolveBuilderPanel(screen);
+  const region = overlapsRegion(layout, screen.reserved_regions);
+  if (region) {
+    return `it would reach into the reserved ${region.id === "stop" ? "STOP" : region.id} region`;
+  }
+  if (
+    layout.x < 0 ||
+    layout.y < 0 ||
+    layout.x + layout.width > artboard.width ||
+    layout.y + layout.height > artboard.height
+  ) {
+    return `it would run past the ${artboard.width}×${artboard.height} canvas`;
+  }
+  return null;
+}
+
 /**
  * The first grid position, reading on from the proposed one and then wrapping to the top, where a widget sits inside
  * the canvas and clear of every reserved region; null when nowhere fits, so the caller can refuse and say why.

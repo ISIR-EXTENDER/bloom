@@ -102,6 +102,29 @@ describe("the builder workspace", () => {
     expect(screen.getByRole("alert").textContent).toContain("A Label does not fit anywhere on this canvas");
     expect(screen.queryByRole("article", { name: "Label label widget" })).toBeNull();
   });
+
+  it.each([
+    ["drive-max-angular-speed", { y: 286 }, "Max angular speed", "reach into the reserved STOP region"],
+    ["drive-rz", {}, "Pivot", "run past the 1280×676 canvas"],
+  ])("explains instead of resizing %s where the minimum would not fit", (id, move, title, reason) => {
+    const detailed = {
+      ...bench,
+      widgets: bench.widgets.map((widget) =>
+        widget.id === id
+          ? { ...widget, layout: { ...widget.layout, ...move }, settings: { ...widget.settings, show_details: true } }
+          : widget,
+      ),
+    };
+    const { container } = renderWorkspace(detailed);
+    fireEvent.click(screen.getByRole("button", { name: `Select and move ${title} widget` }));
+    const before = container.querySelector(`[aria-label="${title} slider widget"]`)?.getAttribute("style");
+
+    fireEvent.click(screen.getByRole("button", { name: /^Resize to / }));
+
+    expect(screen.getByRole("alert").textContent).toContain(reason);
+    expect(container.querySelector(`[aria-label="${title} slider widget"]`)?.getAttribute("style")).toBe(before);
+    expect(screen.getByRole("button", { name: "Save changes" })).toHaveProperty("disabled", true);
+  });
 });
 
 function renderWorkspace(source: ScreenConfig) {
