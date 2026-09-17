@@ -464,6 +464,10 @@ describe("widget settings contracts", () => {
       success: false,
       errors: [
         {
+          field: "step",
+          message: "step must be greater than 0",
+        },
+        {
           field: "direction",
           message: "direction must be one of: horizontal, vertical",
         },
@@ -574,6 +578,16 @@ describe("widget settings contracts", () => {
       const result = normalizeWidgetSettings("joystick", { binding, runtime_binding: runtimeBinding });
       expect(result.success && result.settings.runtime_binding).toEqual(runtimeBinding);
     }
+  });
+
+  it("rejects a zero slider step, which leaves the slider emitting nothing", () => {
+    const result = normalizeWidgetSettings("slider", { max: 1, min: -1, step: 0 });
+
+    expect(result.success).toBe(false);
+    expect(result.success ? [] : result.errors).toContainEqual({
+      field: "step",
+      message: "step must be greater than 0",
+    });
   });
 
   it("rejects joystick rates above the aggregate runtime wire limit", () => {

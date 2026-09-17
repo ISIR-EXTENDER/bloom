@@ -1228,6 +1228,8 @@ function validateSliderSettings(settings: Record<string, unknown>): WidgetSettin
     ...validateNumber(settings, "min"),
     ...validateNumber(settings, "max"),
     ...validateNumber(settings, "step", { min: 0 }),
+    // A zero step makes the slider compute NaN and silently do nothing.
+    ...(settings.step === 0 ? [{ field: "step", message: "step must be greater than 0" }] : []),
     ...("value" in settings && settings.value !== undefined ? validateNumber(settings, "value") : []),
     ...validateOneOf(settings, "direction", ["horizontal", "vertical"]),
     ...("intent_label" in settings && settings.intent_label !== undefined

@@ -10,7 +10,7 @@ import {
   type WidgetDestination,
   type WidgetSettingField,
 } from "@bloom/widgets";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 
 type BuilderWidgetSettingsEditorProps = {
@@ -70,6 +70,9 @@ export function BuilderWidgetSettingsEditor({
       ...widget.settings,
       [field.key]: coerceFieldValue(field, rawValue),
     };
+    if (nextSettings[field.key] === undefined) {
+      delete nextSettings[field.key];
+    }
     // Step follows the range (~20 increments); a direct step edit overrides.
     if (widget.kind === "slider" && (field.key === "min" || field.key === "max")) {
       const min = readFiniteNumber(nextSettings.min ?? effectiveSettings.min);
@@ -223,17 +226,7 @@ function BuilderSettingsField({
   }
 
   if (field.type === "json") {
-    return (
-      <label className="builder-settings-field">
-        <span>{field.label}</span>
-        <textarea
-          {...getTouchEditingProps("json")}
-          onChange={(event) => onChange(event.target.value)}
-          rows={4}
-          value={formatJsonFieldValue(value)}
-        />
-      </label>
-    );
+    return <JsonSettingsField field={field} onChange={onChange} value={value} />;
   }
 
   return (
@@ -250,6 +243,51 @@ function BuilderSettingsField({
   );
 }
 
+/**
+ * Keeps half-typed JSON on screen. A keystroke the settings reject leaves the
+ * saved value unchanged, and the field used to snap back to it, so a new key
+ * could only be pasted whole.
+ */
+function JsonSettingsField({
+  field,
+  onChange,
+  value,
+}: {
+  field: WidgetSettingField;
+  onChange: (value: string) => void;
+  value: unknown;
+}) {
+  const saved = formatJsonFieldValue(value);
+  const [draft, setDraft] = useState(saved);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only an outside change to the saved value replaces the draft.
+  useEffect(() => {
+    if (!draftMatchesValue(draft, value)) {
+      setDraft(saved);
+    }
+  }, [saved]);
+
+  return (
+    <label className="builder-settings-field">
+      <span>{field.label}</span>
+      <textarea
+        {...getTouchEditingProps("json")}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          onChange(event.target.value);
+        }}
+        rows={4}
+        value={draft}
+      />
+    </label>
+  );
+}
+
+function draftMatchesValue(draft: string, value: unknown): boolean {
+  const parsed = parseJsonLikeValue(draft);
+  return JSON.stringify(parsed) === JSON.stringify(value ?? "");
+}
+
 function readFiniteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
@@ -260,7 +298,8 @@ function coerceFieldValue(field: WidgetSettingField, rawValue: string | boolean)
   }
 
   if (field.type === "number") {
-    return Number(rawValue);
+    // An emptied optional number is unset; a required one keeps retuning from 0.
+    return rawValue === "" && !field.required ? undefined : Number(rawValue);
   }
 
   if (field.type === "json" && typeof rawValue === "string") {

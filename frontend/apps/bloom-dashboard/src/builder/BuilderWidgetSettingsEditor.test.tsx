@@ -158,6 +158,30 @@ describe("slider step follows the range", () => {
   });
 });
 
+describe("editing values mid-way", () => {
+  afterEach(cleanup);
+
+  it("keeps half-typed JSON instead of snapping back to the saved value", () => {
+    renderEditor({ direction: "vertical", max: 1, min: -1, runtime_binding: TELEOP_BINDING, step: 0.1 });
+    const field = screen.getByLabelText("Runtime binding") as HTMLTextAreaElement;
+    const halfTyped = `${field.value.slice(0, -2)},\n  "axis_deadzone": `;
+
+    fireEvent.change(field, { target: { value: halfTyped } });
+
+    expect(field.value).toBe(halfTyped);
+  });
+
+  it("unsets an emptied optional number instead of storing 0", () => {
+    const onUpdateSettings = renderEditor({ fieldPath: "x", topic: "/t", yMax: 2, yMin: 1 }, "topic-plot");
+
+    fireEvent.change(screen.getByLabelText("Y minimum"), { target: { value: "" } });
+
+    const saved = onUpdateSettings.mock.calls.at(-1)?.[0] ?? {};
+    expect("yMin" in saved).toBe(false);
+    expect(saved.yMax).toBe(2);
+  });
+});
+
 describe("the on-glass size summary", () => {
   afterEach(cleanup);
 
