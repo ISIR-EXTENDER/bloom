@@ -32,6 +32,26 @@ describe("normalizeConfigurationBundle", () => {
     ]);
   });
 
+  it("keeps the regions a screen reserves for runtime chrome and drops malformed ones", () => {
+    const bundle = structuredClone(compactSandboxConfiguration) as unknown as ConfigurationBundle;
+    const firstScreen = bundle.applications[0]?.screens[0] as unknown as Record<string, unknown>;
+    firstScreen.reserved_regions = [
+      { id: "stop", owner: "runtime-chrome", x: 928, y: 410, width: 338, height: 252 },
+      { id: "", x: 0, y: 0, width: 10, height: 10 },
+      { id: "broken", x: "left" },
+    ];
+
+    const screen = normalizeConfigurationBundle(bundle).applications[0]?.screens[0];
+
+    expect(screen?.reserved_regions).toEqual([
+      { id: "stop", owner: "runtime-chrome", x: 928, y: 410, width: 338, height: 252 },
+    ]);
+    expect(
+      normalizeConfigurationBundle(compactSandboxConfiguration as unknown as ConfigurationBundle).applications[0]
+        ?.screens[0],
+    ).not.toHaveProperty("reserved_regions");
+  });
+
   it("refuses configurations written by a newer Bloom schema", () => {
     expect(() =>
       normalizeConfigurationBundle({

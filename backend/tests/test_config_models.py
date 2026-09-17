@@ -447,3 +447,24 @@ def test_extra_fields_are_rejected() -> None:
 def test_widget_settings_must_be_json_serializable() -> None:
     with pytest.raises(ValidationError, match="settings must be JSON serializable"):
         WidgetConfig(id="bad-widget", title="Bad Widget", settings={"callback": object()})
+
+
+def test_a_screen_keeps_its_reserved_regions_clear_of_widgets() -> None:
+    stop = {"id": "stop", "x": 928, "y": 410, "width": 338, "height": 252}
+    widget = {
+        "id": "pad",
+        "kind": "joystick",
+        "title": "Pad",
+        "layout": {"x": 900, "y": 400, "width": 100, "height": 100},
+    }
+
+    with pytest.raises(ValidationError, match="overlap reserved region 'stop'"):
+        ScreenConfig.model_validate({"id": "drive", "title": "Drive", "widgets": [widget], "reserved_regions": [stop]})
+    with pytest.raises(ValidationError, match="duplicate reserved region ids: stop"):
+        ScreenConfig.model_validate({"id": "drive", "title": "Drive", "reserved_regions": [stop, stop]})
+
+    beside = {**widget, "layout": {"x": 816, "y": 410, "width": 100, "height": 100}}
+    screen = ScreenConfig.model_validate(
+        {"id": "drive", "title": "Drive", "widgets": [beside], "reserved_regions": [stop]}
+    )
+    assert screen.reserved_regions[0].owner == "runtime-chrome"

@@ -187,11 +187,31 @@ class WidgetConfig(BloomModel):
         return dict(value)
 
 
+class ReservedRegion(BloomModel):
+    """Screen area the runtime draws chrome in, such as STOP; no widget may be placed there."""
+
+    id: str = Field(min_length=1)
+    owner: Literal["runtime-chrome"] = "runtime-chrome"
+    x: int = Field(ge=0)
+    y: int = Field(ge=0)
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+
+    def overlaps(self, layout: WidgetLayout) -> bool:
+        return (
+            layout.x < self.x + self.width
+            and self.x < layout.x + layout.width
+            and layout.y < self.y + self.height
+            and self.y < layout.y + layout.height
+        )
+
+
 class ScreenConfig(BloomModel):
     id: str = Field(min_length=1)
     title: str = Field(min_length=1)
     canvas: CanvasSettings = Field(default_factory=CanvasSettings)
     widgets: tuple[WidgetConfig, ...] = Field(default_factory=tuple)
+    reserved_regions: tuple[ReservedRegion, ...] = Field(default_factory=tuple)
 
     @model_validator(mode="after")
     def widget_ids_must_be_unique(self) -> "ScreenConfig":
@@ -199,6 +219,18 @@ class ScreenConfig(BloomModel):
         duplicate_ids = sorted({widget_id for widget_id in widget_ids if widget_ids.count(widget_id) > 1})
         if duplicate_ids:
             raise ValueError(f"duplicate widget ids: {', '.join(duplicate_ids)}")
+        return self
+
+    @model_validator(mode="after")
+    def reserved_regions_must_stay_clear(self) -> "ScreenConfig":
+        region_ids = [region.id for region in self.reserved_regions]
+        duplicate_ids = sorted({region_id for region_id in region_ids if region_ids.count(region_id) > 1})
+        if duplicate_ids:
+            raise ValueError(f"duplicate reserved region ids: {', '.join(duplicate_ids)}")
+        for region in self.reserved_regions:
+            covering = [widget.id for widget in self.widgets if region.overlaps(widget.layout)]
+            if covering:
+                raise ValueError(f"widgets {', '.join(covering)} overlap reserved region {region.id!r}")
         return self
 
 

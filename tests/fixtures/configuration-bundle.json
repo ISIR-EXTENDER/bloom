@@ -63,7 +63,8 @@
                 "messageType": "std_msgs/msg/Int32MultiArray"
               }
             }
-          ]
+          ],
+          "reserved_regions": []
         }
       ],
       "action_presets": []

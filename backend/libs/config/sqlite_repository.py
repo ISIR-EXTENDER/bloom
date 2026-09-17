@@ -9,6 +9,7 @@ from libs.config.models import (
     CanvasSettings,
     ConfigurationBundle,
     ConfigurationMetadata,
+    ReservedRegion,
     RuntimeActionPreset,
     RuntimeAdapterPolicy,
     ScreenConfig,
@@ -145,9 +146,10 @@ def sync_normalized_configuration_rows(
                     screen_id,
                     title,
                     canvas_json,
+                    reserved_regions_json,
                     position
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     config_id,
@@ -155,6 +157,7 @@ def sync_normalized_configuration_rows(
                     screen.id,
                     screen.title,
                     json.dumps(screen.canvas.model_dump(mode="json"), sort_keys=True),
+                    json.dumps([region.model_dump(mode="json") for region in screen.reserved_regions]),
                     screen_position,
                 ),
             )
@@ -231,7 +234,7 @@ def load_normalized_application(
     app_id = str(application_row["app_id"])
     screen_rows = connection.execute(
         """
-        SELECT screen_id, title, canvas_json
+        SELECT screen_id, title, canvas_json, reserved_regions_json
         FROM configuration_screens
         WHERE config_id = ? AND app_id = ?
         ORDER BY position, screen_id
@@ -279,6 +282,9 @@ def load_normalized_screen(
         title=str(screen_row["title"]),
         canvas=CanvasSettings.model_validate(json.loads(str(screen_row["canvas_json"]))),
         widgets=tuple(load_normalized_widget(widget_row) for widget_row in widget_rows),
+        reserved_regions=tuple(
+            ReservedRegion.model_validate(region) for region in json.loads(str(screen_row["reserved_regions_json"]))
+        ),
     )
 
 

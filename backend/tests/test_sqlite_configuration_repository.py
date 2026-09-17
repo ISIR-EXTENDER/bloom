@@ -9,9 +9,13 @@ from libs.config import (
     ConfigurationBundle,
     ConfigurationMetadata,
     ConfigurationNotFoundError,
+    ReservedRegion,
     RuntimeActionPreset,
     RuntimeAdapterPolicy,
+    ScreenConfig,
     SQLiteConfigurationRepository,
+    WidgetConfig,
+    WidgetLayout,
     dump_configuration_json,
     load_legacy_screen_file,
 )
@@ -624,3 +628,46 @@ def test_an_archived_application_stays_archived(tmp_path) -> None:
     repository.upsert("petanque-admin", bundle)
 
     assert repository.get("petanque-admin").applications[0].lifecycle == "archived"
+
+
+def make_reserved_region_bundle() -> ConfigurationBundle:
+    return ConfigurationBundle(
+        metadata=ConfigurationMetadata(source="reserved-region"),
+        applications=(
+            ApplicationConfig(
+                id="manager",
+                name="Manager",
+                screens=(
+                    ScreenConfig(
+                        id="drive",
+                        title="Drive",
+                        widgets=(
+                            WidgetConfig(id="pad", kind="joystick", title="Pad", layout=WidgetLayout(x=14, y=14)),
+                        ),
+                        reserved_regions=(ReservedRegion(id="stop", x=928, y=410, width=338, height=252),),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+
+def test_reserved_regions_round_trip_through_sqlite(tmp_path: Path) -> None:
+    repository = SQLiteConfigurationRepository(tmp_path / "bloom.db")
+    bundle = make_reserved_region_bundle()
+
+    repository.upsert("manager", bundle)
+
+    assert repository.get("manager") == bundle
+
+
+def test_v7_migration_backfills_reserved_regions_from_the_stored_bundle(tmp_path: Path) -> None:
+    database_path = tmp_path / "bloom.db"
+    bundle = make_reserved_region_bundle()
+    SQLiteConfigurationRepository(database_path).upsert("manager", bundle)
+    with sqlite_connection(database_path) as connection:
+        connection.execute("UPDATE configuration_screens SET reserved_regions_json = '[]'")
+        connection.execute("DELETE FROM schema_migrations WHERE version = 7")
+        connection.commit()
+
+    assert SQLiteConfigurationRepository(database_path).get("manager") == bundle

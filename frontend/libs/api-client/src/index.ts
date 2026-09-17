@@ -50,11 +50,22 @@ export type CanvasSettings = {
   runtime_mode: RuntimeCanvasMode;
 };
 
+/** A screen area the runtime draws chrome in, such as STOP; no widget may be placed there. */
+export type ReservedRegion = {
+  id: string;
+  owner: "runtime-chrome";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export type ScreenConfig = {
   id: string;
   title: string;
   canvas: CanvasSettings;
   widgets: WidgetConfig[];
+  reserved_regions?: ReservedRegion[];
 };
 
 export type ApplicationTheme = {

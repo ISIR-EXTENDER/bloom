@@ -4,6 +4,7 @@ import type {
   CanvasPresetId,
   CanvasSettings,
   ConfigurationBundle,
+  ReservedRegion,
   RuntimeActionPreset,
   RuntimeAdapterPolicy,
   RuntimeCanvasMode,
@@ -41,7 +42,8 @@ type PartialApplicationTheme = Partial<Omit<ApplicationTheme, "palette">> & {
   palette?: Partial<ApplicationTheme["palette"]>;
 };
 
-type PartialScreenConfig = Partial<Omit<ScreenConfig, "canvas" | "widgets">> & {
+type PartialScreenConfig = Partial<Omit<ScreenConfig, "canvas" | "widgets" | "reserved_regions">> & {
+  reserved_regions?: unknown;
   canvas?: Partial<CanvasSettings>;
   widgets?: PartialWidgetConfig[];
 };
@@ -223,13 +225,40 @@ function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): 
 
 function normalizeScreen(screen: PartialScreenConfig, index: number): ScreenConfig {
   const id = asString(screen.id, `screen-${index + 1}`);
+  const reservedRegions = normalizeReservedRegions(screen.reserved_regions);
 
   return {
     id,
     title: asString(screen.title, id),
     canvas: normalizeCanvas(screen.canvas),
     widgets: (screen.widgets ?? []).map((widget, widgetIndex) => normalizeWidget(widget, widgetIndex)),
+    ...(reservedRegions.length > 0 ? { reserved_regions: reservedRegions } : {}),
   };
+}
+
+function normalizeReservedRegions(regions: unknown): ReservedRegion[] {
+  if (!Array.isArray(regions)) {
+    return [];
+  }
+  return regions.flatMap((region): ReservedRegion[] => {
+    if (!isRecord(region) || typeof region.id !== "string" || !region.id) {
+      return [];
+    }
+    const [x, y, width, height] = [region.x, region.y, region.width, region.height];
+    if (![x, y, width, height].every((value) => typeof value === "number" && Number.isFinite(value))) {
+      return [];
+    }
+    return [
+      {
+        id: region.id,
+        owner: "runtime-chrome",
+        x: x as number,
+        y: y as number,
+        width: width as number,
+        height: height as number,
+      },
+    ];
+  });
 }
 
 function normalizeCanvas(canvas: Partial<CanvasSettings> | undefined): CanvasSettings {

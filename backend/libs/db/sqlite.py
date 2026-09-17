@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 
 class SQLiteMigrationError(RuntimeError):
@@ -395,6 +395,26 @@ def _migrate_to_v6(connection: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_to_v7(connection: sqlite3.Connection) -> None:
+    ensure_column(connection, "configuration_screens", "reserved_regions_json", "TEXT NOT NULL DEFAULT '[]'")
+
+    for config_id, payload in _load_bundle_payloads(connection).items():
+        for app_id, application in _application_payloads(config_id, payload).items():
+            screens = application.get("screens", [])
+            for screen in screens if isinstance(screens, list) else []:
+                regions = screen.get("reserved_regions") if isinstance(screen, dict) else None
+                if not regions:
+                    continue
+                connection.execute(
+                    """
+                    UPDATE configuration_screens
+                    SET reserved_regions_json = ?
+                    WHERE config_id = ? AND app_id = ? AND screen_id = ?
+                    """,
+                    (json.dumps(regions), config_id, app_id, screen.get("id")),
+                )
+
+
 MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (1, _migrate_to_v1),
     (2, _migrate_to_v2),
@@ -402,4 +422,5 @@ MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (4, _migrate_to_v4),
     (5, _migrate_to_v5),
     (6, _migrate_to_v6),
+    (7, _migrate_to_v7),
 )
