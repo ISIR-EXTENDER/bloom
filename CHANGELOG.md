@@ -22,6 +22,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **STOP is the first scan target** of every cycle, on every surface that draws it. It used to sit last in the screen's
   DOM order, 28 s away at a 1400 ms scan period.
 - **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
+  scan profile without dwell could not clear its own STOP before: the switch bar left with the scan set.
 - **STOP is the first keyboard tab stop** on every screen that has it, rather than the second-to-last.
 - An application's `allowed_teleop_targets` is enforced on the runtime socket. A tab names its app with a new
   `app_context` message, and teleop, publishes and service calls are then limited to the deployment allowlists
@@ -41,7 +42,6 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - A configuration read no longer takes a write lock. The store is migrated once, when its repository is built, and
   connections run in WAL with a 15 s busy timeout, so a CLI `config seed` holding a write no longer makes the API
   answer 500 with `database is locked`.
-- **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
 
 - **Settings reads its labels, not its keys.** `font_scale`, `dwell_ms`, `deadzone` and the rest stay on screen for
 - **Pads and axes announce where they came to rest.** Four `aria-live` readouts streamed joystick coordinates at up to
