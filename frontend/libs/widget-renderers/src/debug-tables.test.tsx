@@ -94,4 +94,34 @@ describe("the jacobian", () => {
     expect(container.querySelector(".bloom-jacobian-manipulability output")?.textContent).toMatch(/^\d\.\d{3}$/);
     expect(screen.getByText("100% of this session's best")).toBeTruthy();
   });
+
+  it("starts a new best when the data goes missing or pauses, not only on reload", () => {
+    const descriptor = renderScreenDescriptors(debugScreen, createDefaultWidgetRegistry())[1];
+    if (!descriptor) throw new Error("Missing descriptor.");
+    const matrix = (scale: number) => Array.from({ length: 36 }, (_, index) => (index % 7 === 0 ? scale : 0));
+    const view = (scale: number | null, receivedAt = "2026-09-17T10:00:00Z") => (
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            jacobian: {
+              type: "topic-echo",
+              messages: scale === null ? [] : [{ receivedAt, topic: "/ee_jac", value: { data: matrix(scale) } }],
+            },
+          },
+        })}
+      </div>
+    );
+    const { rerender } = render(view(1));
+
+    rerender(view(0.9, "2026-09-17T10:00:00.100Z"));
+    expect(screen.getByText(/^\d+% of this session's best$/).textContent).not.toBe("100% of this session's best");
+
+    rerender(view(null));
+    rerender(view(0.9, "2026-09-17T10:00:01Z"));
+    expect(screen.getByText("100% of this session's best")).toBeTruthy();
+
+    rerender(view(1, "2026-09-17T10:00:01.100Z"));
+    rerender(view(0.9, "2026-09-17T10:01:00Z"));
+    expect(screen.getByText("100% of this session's best")).toBeTruthy();
+  });
 });

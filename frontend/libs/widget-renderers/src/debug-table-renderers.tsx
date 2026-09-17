@@ -8,6 +8,7 @@ import type { WidgetRendererProps } from "./types";
 const PROXIMITY_WARN = 0.6;
 const PROXIMITY_LIMIT = 0.8;
 const STRONG_ENTRY = 0.8;
+const MANIPULABILITY_SESSION_GAP_MS = 5000;
 
 export function JointTableWidget({ data, descriptor }: WidgetRendererProps) {
   const settings = descriptor.widget.settings;
@@ -72,11 +73,19 @@ export function JacobianWidget({ data, descriptor }: WidgetRendererProps) {
   const jacobian = readJacobian(latest?.value);
   const manipulability = jacobian ? yoshikawaManipulability(jacobian) : null;
   // The absolute value depends on the arm and its units, so the bar compares against this session's best.
-  const bestRef = useRef(0);
-  if (manipulability !== null) {
-    bestRef.current = Math.max(bestRef.current, manipulability);
+  // A new topic or matrix shape, missing data or a gap (a reconnect, a restarted publisher) starts a new session.
+  const bestRef = useRef({ best: 0, lastAt: Number.NaN, stream: "" });
+  const stream = jacobian ? `${topic}|${jacobian.rows}x${jacobian.columns}` : "";
+  const receivedAt = latest ? Date.parse(latest.receivedAt) : Number.NaN;
+  const gap = receivedAt - bestRef.current.lastAt > MANIPULABILITY_SESSION_GAP_MS;
+  if (!latest || stream !== bestRef.current.stream || gap) {
+    bestRef.current = { best: 0, lastAt: receivedAt, stream };
   }
-  const share = manipulability !== null && bestRef.current > 0 ? manipulability / bestRef.current : 0;
+  bestRef.current.lastAt = receivedAt;
+  if (manipulability !== null) {
+    bestRef.current.best = Math.max(bestRef.current.best, manipulability);
+  }
+  const share = manipulability !== null && bestRef.current.best > 0 ? manipulability / bestRef.current.best : 0;
 
   return (
     <div className="bloom-jacobian bloom-info-card">
