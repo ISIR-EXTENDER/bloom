@@ -227,7 +227,7 @@ export function createRuntimeControlStateByWidgetId(
   return controlStateByWidgetId;
 }
 
-function usesTeleopAdapter(widget: WidgetConfig): boolean {
+export function usesTeleopAdapter(widget: WidgetConfig): boolean {
   const binding = widget.settings.runtime_binding;
   return (
     typeof binding === "object" &&

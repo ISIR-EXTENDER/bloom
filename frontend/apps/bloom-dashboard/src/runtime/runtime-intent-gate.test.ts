@@ -27,6 +27,17 @@ describe("runtime intent gate", () => {
     expect(resolveRuntimeIntentRefusal(release, { ownsControl: true, unavailable: true })).toBeNull();
   });
 
+  it("treats a teleop control returning to zero as a release", () => {
+    const joystick = (x: number, y: number): WidgetActionIntent => ({
+      type: "value-change",
+      widgetId: "translation",
+      widgetKind: "joystick",
+      value: { x, y },
+    });
+    expect(resolveRuntimeIntentRefusal(joystick(0, 0), { ownsControl: true, unavailable: true })).toBeNull();
+    expect(resolveRuntimeIntentRefusal(joystick(0.4, 0), { ownsControl: true, unavailable: true })).toBe("unavailable");
+  });
+
   it("lets an owner's command through an available control", () => {
     expect(resolveRuntimeIntentRefusal(press, { ownsControl: true, unavailable: false })).toBeNull();
   });

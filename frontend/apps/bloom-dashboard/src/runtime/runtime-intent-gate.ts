@@ -21,5 +21,16 @@ export function resolveRuntimeIntentRefusal(
 }
 
 function isReleaseIntent(intent: WidgetActionIntent): boolean {
-  return intent.type === "topic-publish" && intent.release === true;
+  if (intent.type === "topic-publish") {
+    return intent.release === true;
+  }
+  // A teleop control returning to zero is letting go of its contribution.
+  if (intent.type === "value-change") {
+    const { value } = intent;
+    if (typeof value === "number") {
+      return value === 0;
+    }
+    return "x" in value && "y" in value && value.x === 0 && value.y === 0;
+  }
+  return false;
 }

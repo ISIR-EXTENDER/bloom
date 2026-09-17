@@ -27,7 +27,7 @@ import { resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
 import { resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
-import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
+import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopAdapter } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
@@ -416,6 +416,26 @@ export function RuntimeWorkspace({
       onSuspendTeleop();
     }
   }, [commandFrameUnavailable, onSuspendTeleop]);
+
+  // A command composed while this session owned control must not survive
+  // losing it. The release zeros that arrive meanwhile are refused by the gate,
+  // so without this a reclaim would stream a joystick the operator let go of.
+  useEffect(() => {
+    if (runtimeControlBlocked) {
+      onSuspendTeleop();
+    }
+  }, [onSuspendTeleop, runtimeControlBlocked]);
+
+  // An unavailable control swallows its own pointer release, so a held stick
+  // would stay composed and resume streaming once the controller came back.
+  const teleopControlUnavailable = screen.widgets.some(
+    (widget) => usesTeleopAdapter(widget) && controlStateByWidgetId[widget.id]?.unavailable === true,
+  );
+  useEffect(() => {
+    if (teleopControlUnavailable) {
+      onSuspendTeleop();
+    }
+  }, [onSuspendTeleop, teleopControlUnavailable]);
 
   useEffect(() => {
     if (!onTopicSample) {
