@@ -71,7 +71,9 @@ Related profile fields are bounded by the configuration model:
 - `dwell_ms`: `400..4000`;
 - `audio_cues`: enabled or disabled per profile.
 
-Dwell can run alongside scanning, and resting on SWITCH activates the highlighted target. It cannot shorten the
+Dwell is a rest: movement of more than a few pixels inside a control restarts its timer, so a pointer crossing a
+control on its way elsewhere never fires it. Dwell can run alongside scanning, and resting on SWITCH activates the
+highlighted target. It cannot shorten the
 one-second STOP resume hold. A blocked Runtime limits scan and dwell to **Take control** and the universal STOP instead
 of exposing robot controls. Scanning keeps running while stopped, with the resume control as its only target, because a
 switch operator has no other way back; a switch press on it resumes, the scan cycle standing in for the pointer hold. A released pointer, stick, or

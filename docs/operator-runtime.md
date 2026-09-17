@@ -290,7 +290,9 @@ Supported motor presets are:
 
 Profile bounds are enforced by the model: dead zone `0..0.5`, repeat guard `0..600 ms`, scan period `600..3000 ms`,
 and dwell duration `400..4000 ms`. `dwell_enabled` enables pointer dwell alongside any motor preset, including `scan`;
-the old `dwell` preset also enables it for compatibility. `dwell_ms` controls only the duration and cannot enable the
+the old `dwell` preset also enables it for compatibility. Dwell asks for a rest: moving more than a few pixels inside a
+control starts its timer again, so a pointer crossing a control on the way somewhere else never fires it.
+`dwell_ms` controls only the duration and cannot enable the
 feature by itself because it has a nonzero default. Dwell never shortens the one-second resume hold.
 
 Latched and stepped return-to-center controls automatically publish zero after 15 seconds without renewed input; the

@@ -37,6 +37,31 @@ describe("dwell activation", () => {
     expect(button.style.getPropertyValue("--bloom-dwell-progress")).toBe("1");
   });
 
+  it("restarts the dwell while the pointer is still crossing the control", () => {
+    // Sweeping across ▲ Forward on the way elsewhere published motion.
+    const { button, onClick, rootRef } = buildTarget();
+    renderHook(() => useDwellActivation({ dwellMs: 800, enabled: true, rootRef }));
+
+    for (let step = 0; step < 10; step += 1) {
+      act(() => button.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: step * 20 })));
+      act(() => vi.advanceTimersByTime(120));
+    }
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("ignores tremor under the rest tolerance", () => {
+    const { button, onClick, rootRef } = buildTarget();
+    renderHook(() => useDwellActivation({ dwellMs: 800, enabled: true, rootRef }));
+
+    act(() => button.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 100, clientY: 100 })));
+    act(() => vi.advanceTimersByTime(400));
+    act(() => button.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 103, clientY: 102 })));
+    act(() => vi.advanceTimersByTime(400));
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it("cancels an incomplete dwell when the pointer leaves", () => {
     const { button, onClick, rootRef } = buildTarget();
     renderHook(() => useDwellActivation({ dwellMs: 800, enabled: true, rootRef }));

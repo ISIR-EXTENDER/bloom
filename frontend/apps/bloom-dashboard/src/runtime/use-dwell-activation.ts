@@ -4,6 +4,8 @@ import { activateAssistively } from "./assistive-activation";
 
 const TICK_MS = 40;
 const DWELL_TARGET_SELECTOR = "button:not([disabled])";
+/** Hand tremor and head-pointer jitter stay under this; a traversal does not. */
+const REST_TOLERANCE_PX = 6;
 
 export type DwellActivationOptions = {
   activateTarget?: (target: HTMLElement) => void;
@@ -18,9 +20,11 @@ export type DwellActivationOptions = {
  * Resting on a control fires it; no press required.
  *
  * Serves head pointing, eye tracking, and anyone for whom the click itself is
- * the hard part. Leaving the control cancels and resets -- a half-finished
- * dwell must never complete later on a different target -- and a control only
- * fires once per rest, so lingering does not repeat it.
+ * the hard part. It is a rest, not a passage: moving more than a few pixels
+ * inside the control starts the dwell over, so crossing one on the way
+ * somewhere else never fires it. Leaving the control cancels and resets -- a
+ * half-finished dwell must never complete later on a different target -- and a
+ * control only fires once per rest, so lingering does not repeat it.
  */
 export function useDwellActivation(options: DwellActivationOptions): void {
   const { activateTarget, enabled, dwellMs, isTargetEnabled, rootRef } = options;
@@ -28,6 +32,9 @@ export function useDwellActivation(options: DwellActivationOptions): void {
   const isTargetEnabledRef = useRef(isTargetEnabled);
   const targetRef = useRef<HTMLElement | null>(null);
   const startedAtRef = useRef(0);
+  // Where the rest began, so crossing the control restarts it instead of
+  // completing on the way past.
+  const restAtRef = useRef({ x: 0, y: 0 });
   // The action a rest began on. STOP becomes Resume under the pointer, and a
   // rest that started on STOP must never complete as a resume.
   const startActionRef = useRef("");
@@ -48,19 +55,33 @@ export function useDwellActivation(options: DwellActivationOptions): void {
       firedRef.current = false;
     };
 
+    const beginRest = (target: HTMLElement, event: PointerEvent) => {
+      targetRef.current = target;
+      target.setAttribute("data-dwell-active", "");
+      target.style.setProperty("--bloom-dwell-progress", "0");
+      startedAtRef.current = Date.now();
+      startActionRef.current = target.dataset.dwellAction ?? "";
+      restAtRef.current = { x: event.clientX, y: event.clientY };
+    };
+
     const onPointerMove = (event: PointerEvent) => {
       const element = event.target;
       const candidate = element instanceof Element ? element.closest<HTMLElement>(DWELL_TARGET_SELECTOR) : null;
       const target = candidate && (isTargetEnabledRef.current?.(candidate) ?? true) ? candidate : null;
+      if (target && target === targetRef.current) {
+        const moved = Math.hypot(event.clientX - restAtRef.current.x, event.clientY - restAtRef.current.y);
+        if (!firedRef.current && moved > REST_TOLERANCE_PX) {
+          // Still travelling across the control, not resting on it.
+          beginRest(target, event);
+        }
+        return;
+      }
       if (target === targetRef.current) {
         return;
       }
       clearTarget();
       if (target) {
-        targetRef.current = target;
-        target.setAttribute("data-dwell-active", "");
-        startedAtRef.current = Date.now();
-        startActionRef.current = target.dataset.dwellAction ?? "";
+        beginRest(target, event);
       }
     };
 
