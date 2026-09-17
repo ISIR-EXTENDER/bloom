@@ -333,7 +333,7 @@ describe("runtime WebSocket client", () => {
 
       expect(socket.sentMessages).toEqual(Array(3).fill(JSON.stringify({ type: "ping" })));
 
-      // The pong settles its own queued reply, so a later request still gets its answer.
+      // Pongs are dropped outside the queue, so a later request still gets its answer.
       const teleop = client.sendTeleopCommand({
         angular: { x: 0, y: 0, z: 0 },
         linear: { x: 0.1, y: 0, z: 0 },
@@ -353,6 +353,36 @@ describe("runtime WebSocket client", () => {
       socket.close();
       vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 2);
       expect(socket.sentMessages.filter((message) => message.includes("ping"))).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps replies on their own requests when a ping goes unanswered", async () => {
+    vi.useFakeTimers();
+    try {
+      const WebSocketCtor = createFakeWebSocketConstructor();
+      const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+      void client.ensureRuntimeConnected();
+      const socket = WebSocketCtor.instances[0];
+      socket.open();
+      await flushPromises();
+
+      // Three pings the server never answers: each used to take a queue slot.
+      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 3);
+
+      const teleop = client.sendTeleopCommand({
+        angular: { x: 0, y: 0, z: 0 },
+        linear: { x: 0.1, y: 0, z: 0 },
+        mode: 0,
+        seq: 1,
+        target: "/joystick_cartesian_command",
+        type: "teleop_cmd",
+      });
+      await flushPromises();
+      socket.message({ detail: "ok", payload: { status: "accepted" }, session_id: "s", type: "teleop_ack" });
+
+      await expect(teleop).resolves.toMatchObject({ type: "teleop_ack" });
     } finally {
       vi.useRealTimers();
     }

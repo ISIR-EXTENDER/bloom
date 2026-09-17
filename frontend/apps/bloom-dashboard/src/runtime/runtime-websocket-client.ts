@@ -81,7 +81,8 @@ export function createRuntimeWebSocketClient(
   let appContext: RuntimeAppContextRequest | null = null;
   let appContextSocket: WebSocketLike | null = null;
   let appContextReply: Promise<RuntimeAppContextResponse> | null = null;
-  // The server answers every message exactly once, in order, so replies match requests by position.
+  // The server answers every request exactly once, in order, so replies match requests by position. Pings are the
+  // exception: they hold no slot, and their pongs are recognised and dropped before the queue is touched.
   const pendingRepliesBySocket = new Map<WebSocketLike, PendingReply[]>();
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
   const linkStateListeners = new Set<(state: RuntimeLinkState) => void>();
@@ -174,6 +175,12 @@ export function createRuntimeWebSocketClient(
         return;
       }
 
+      // The keepalive holds no queue slot, so a pong -- or a ping the server
+      // never answers -- cannot shift every later reply onto the wrong request.
+      if (parsePong(event.data)) {
+        return;
+      }
+
       const pending = pendingReplies.shift();
       const error = parseRuntimeError(event.data);
       if (error) {
@@ -210,6 +217,7 @@ export function createRuntimeWebSocketClient(
     });
 
     runtimeSocket.addEventListener("error", () => {
+      clearInterval(keepaliveTimer);
       rejectPendingReplies(runtimeSocket, "Bloom runtime WebSocket failed before the runtime replied.");
     });
   }
@@ -241,13 +249,11 @@ export function createRuntimeWebSocketClient(
     return appContextReply;
   }
 
-  /** Queued like any other request, because the server answers in order and the client matches by position. */
+  /** Sent outside the reply queue: the lease keepalive must never be able to offset a teleop ack or a stop refusal. */
   function sendKeepalivePing(runtimeSocket: WebSocketLike) {
-    const pendingReplies = pendingRepliesBySocket.get(runtimeSocket);
-    if (!pendingReplies || runtimeSocket.readyState !== WebSocketCtor.OPEN) {
+    if (!pendingRepliesBySocket.has(runtimeSocket) || runtimeSocket.readyState !== WebSocketCtor.OPEN) {
       return;
     }
-    pendingReplies.push({ reject: () => undefined, settle: (data) => parsePong(data) !== null });
     runtimeSocket.send(JSON.stringify({ type: "ping" }));
   }
 

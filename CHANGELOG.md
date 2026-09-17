@@ -38,6 +38,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **A dwell operator is no longer trapped in the maintenance sheet.** The sheet ran switch scanning but not dwell,
   and the workspace's dwell is off while the sheet is open, so resting on **⋯** opened a sheet with no dwellable
   Close, Settings, screen or role. The sheet now runs dwell the same way it runs scanning.
+- **The lease keepalive can no longer desynchronise the runtime socket's replies.** Replies are matched to requests by
+  position, and a ping used to occupy a slot that only a pong could settle, so one unanswered ping offset every later
+  reply by one: a teleop ack would be read off the wrong command and a stop-latch refusal would never reach the stream
+  pump. Pings are now sent outside the queue and pongs dropped before it. The keepalive timer is also cleared on
+  `error`, not only on `close`.
 - **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
   latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
   resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.
