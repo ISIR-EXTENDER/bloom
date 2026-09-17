@@ -225,6 +225,8 @@
 .bloom-joystick-label-left,
 .bloom-joystick-label-right {
   top: 50%;
+  display: flex;
+  justify-content: safe center;
   width: var(--bloom-pad-label-width);
   transform: translateY(-50%);
 }
@@ -233,8 +235,15 @@
   left: var(--bloom-pad-inset);
 }
 
+/* A word wider than the label column ("Derecha ▶") spills toward the ring, never past the pad edge:
+   safe alignment falls back to the inline start, which rtl puts on the pad edge side. */
 .bloom-joystick-label-right {
   right: var(--bloom-pad-inset);
+  direction: rtl;
+}
+
+.bloom-joystick-label-right > span {
+  direction: ltr;
 }
 
 .bloom-joystick-ring,

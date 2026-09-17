@@ -225,8 +225,12 @@ export function JoystickPrimitive({
     >
       <span className="bloom-joystick-label bloom-joystick-label-top">{bindArrowToWord(labels.top)}</span>
       <span className="bloom-joystick-label bloom-joystick-label-bottom">{bindArrowToWord(labels.bottom)}</span>
-      <span className="bloom-joystick-label bloom-joystick-label-left">{bindArrowToWord(labels.left)}</span>
-      <span className="bloom-joystick-label bloom-joystick-label-right">{bindArrowToWord(labels.right)}</span>
+      <span className="bloom-joystick-label bloom-joystick-label-left">
+        <span>{bindArrowToWord(labels.left)}</span>
+      </span>
+      <span className="bloom-joystick-label bloom-joystick-label-right">
+        <span>{bindArrowToWord(labels.right)}</span>
+      </span>
       <span
         aria-hidden="true"
         className="bloom-joystick-ring"
