@@ -70,6 +70,32 @@ function renderSettings(overrides: RuntimeProfileOverrides = {}) {
 }
 
 describe("runtime settings", () => {
+  // 48 px is the floor for everyone; scan, dwell and high visibility get 64.
+  it.each([
+    [{ motorAccessibilityPreset: "scan" } as RuntimeProfileOverrides, "true"],
+    [{ dwellEnabled: true } as RuntimeProfileOverrides, "true"],
+    [{} as RuntimeProfileOverrides, "false"],
+  ])("raises its controls to the profile target for %o", (overrides, expected) => {
+    const { container } = renderSettings(overrides);
+
+    expect(within(container).getByRole("region", { name: "Settings" })).toHaveAttribute("data-assistive", expected);
+  });
+
+  it("raises them for a high-visibility display too", () => {
+    const { container } = render(
+      <RuntimeSettingsPanel
+        applicationName="Explorer Manager"
+        baseProfile={{ ...defaultProfile, displayPreset: "high-visibility" }}
+        onClose={() => undefined}
+        onSave={() => undefined}
+        overrides={{}}
+        runtimeRole="operator"
+      />,
+    );
+
+    expect(within(container).getByRole("region", { name: "Settings" })).toHaveAttribute("data-assistive", "true");
+  });
+
   it("uses a changed scan period in the real scanning interval", () => {
     vi.useFakeTimers();
     const intervalSpy = vi.spyOn(window, "setInterval");

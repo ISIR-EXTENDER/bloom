@@ -41,6 +41,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   answer 500 with `database is locked`.
 - **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
 
+- **Targets at their floor.** The **⋯** maintenance button fills the bar's 44 px instead of drawing 34, and every
 - **Focus follows the view that opens.** Opening an app, opening or leaving Settings, Escape, and a screen change from
 - **The maintenance sheet traps focus.** Focus moves into the dialog when it opens, Tab stays inside it instead of
 - **STOP is the first keyboard tab stop** on every screen that has it, rather than the second-to-last.

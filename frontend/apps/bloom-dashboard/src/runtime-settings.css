@@ -1,6 +1,9 @@
 /* Runtime settings (design 6a): Display, Timing and a real control to try, under a held bar. */
 .runtime-settings {
   --settings-hairline: color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  /* Above the 48 px floor for everyone, at the 64 px profile target for a
+     profile that asked for one. */
+  --settings-target: var(--bloom-touch-target-comfortable);
 
   display: grid;
   grid-template-rows: 44px minmax(0, 1fr);
@@ -8,6 +11,10 @@
   overflow: hidden;
   background: var(--bloom-surface);
   color: var(--bloom-ink);
+}
+
+.runtime-settings[data-assistive="true"] {
+  --settings-target: var(--bloom-touch-target-high-visibility);
 }
 
 .runtime-settings-columns {
@@ -126,8 +133,7 @@
 .runtime-settings-segments button,
 .runtime-settings-toggle,
 .runtime-settings-stepper button {
-  /* 56 px keeps every target above the 48 px floor and lets the three columns fit 1280×720 beside STOP. */
-  min-height: var(--bloom-touch-target-comfortable);
+  min-height: var(--settings-target);
   border: 2px solid var(--settings-hairline);
   border-radius: var(--bloom-radius-control);
   background: var(--bloom-surface-container);
@@ -164,7 +170,7 @@
 
 .runtime-settings-stepper {
   display: grid;
-  grid-template-columns: var(--bloom-touch-target-comfortable) minmax(0, 1fr) var(--bloom-touch-target-comfortable);
+  grid-template-columns: var(--settings-target) minmax(0, 1fr) var(--settings-target);
   gap: 12px;
   align-items: center;
 }
@@ -216,7 +222,7 @@
 }
 
 .runtime-settings-switch {
-  min-height: 72px;
+  min-height: max(72px, var(--settings-target));
   border: 0;
   border-radius: var(--bloom-radius-control);
   background: var(--bloom-primary);
@@ -240,7 +246,7 @@
 }
 
 .runtime-settings-discard {
-  min-height: 56px;
+  min-height: var(--settings-target);
   border: 2px solid var(--bloom-primary);
   border-radius: var(--bloom-radius-card);
   background: transparent;

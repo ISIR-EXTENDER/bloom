@@ -1215,7 +1215,8 @@
   align-items: center;
   justify-content: center;
   width: 56px;
-  height: 34px;
+  /* The full height of the bar: at 56x34 it was the smallest target in the runtime. */
+  height: 44px;
   min-height: 0;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
@@ -1227,13 +1228,6 @@
   line-height: 1;
   cursor: pointer;
   touch-action: none;
-}
-
-/* Draws 34 px inside the 44 px bar; the hit area still spans the bar's full height. */
-.runtime-kiosk-maintenance::before {
-  content: "";
-  position: absolute;
-  inset: -6px -1px;
 }
 
 .runtime-kiosk-dots {

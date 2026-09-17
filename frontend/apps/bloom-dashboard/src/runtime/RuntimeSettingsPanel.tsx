@@ -120,6 +120,8 @@ export function RuntimeSettingsPanel({
     <section
       aria-label={strings.settings.title}
       className="runtime-settings"
+      // Scanning, dwell and a high-visibility display all ask for the 64 px target.
+      data-assistive={inputMethod !== "touch" || profile.displayPreset === "high-visibility" ? "true" : "false"}
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       ref={rootRef}
       style={{ "--runtime-font-scale": profile.fontScale } as CSSProperties}

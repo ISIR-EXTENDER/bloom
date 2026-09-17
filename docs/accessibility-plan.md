@@ -89,6 +89,8 @@ Stepped or latched return-to-center values also publish zero after 15 seconds wi
 - Runtime never exposes builder affordances on the primary operating surface.
 - Color is never the only status signal.
 - Touch targets should be at least 44 px on glass, with 48 px or more preferred and 56/64 px profile targets available.
+  Runtime Settings holds 56 px for a touch profile and 64 px for a scan, dwell or high-visibility one. Controls inside a
+  fitted artboard still shrink with the fit; that is the open scale item below, not a per-control size.
 - Builder geometry remains canonical; any fit scaling that reduces controls must be visible during authoring and in
   runtime Maintenance, then covered by viewport checks.
 - Robot command widgets need a human label, state/release behavior, and readable failure feedback.
