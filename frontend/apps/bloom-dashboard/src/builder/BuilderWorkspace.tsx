@@ -122,14 +122,25 @@ export function BuilderWorkspace({
       return;
     }
 
+    const source = selectedWidget.layout;
+    const layout = placeClearOfRegions({ ...source, x: source.x + 24, y: source.y + 24 }, draftScreen);
+    if (!layout) {
+      setLayoutNotice(
+        `There is no room for a copy of ${selectedWidget.title} clear of the reserved regions. Make room first.`,
+      );
+      return;
+    }
+
     const widgetId = createUniqueWidgetId(draftScreen, `${selectedWidget.kind}-copy`);
     const nextScreen = duplicateWidgetInScreen(draftScreen, selectedWidget.id, {
       id: widgetId,
+      offset: { x: layout.x - source.x, y: layout.y - source.y },
       title: `${selectedWidget.title} copy`,
     });
 
     commitScreenChange(nextScreen);
     setSelectedWidgetId(widgetId);
+    setLayoutNotice(null);
   };
 
   const removeSelectedWidget = () => {

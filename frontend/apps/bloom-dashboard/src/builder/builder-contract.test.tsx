@@ -125,6 +125,17 @@ describe("the builder workspace", () => {
     expect(container.querySelector(`[aria-label="${title} slider widget"]`)?.getAttribute("style")).toBe(before);
     expect(screen.getByRole("button", { name: "Save changes" })).toHaveProperty("disabled", true);
   });
+
+  it("duplicates a widget beside STOP to a place inside the canvas and clear of it", () => {
+    const { container } = renderWorkspace(bench);
+    fireEvent.click(screen.getByRole("button", { name: "Select and move Max angular speed widget" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate widget" }));
+
+    expect(screen.getByRole("heading", { level: 2, name: "Max angular speed copy" })).toBeTruthy();
+    const copy = container.querySelector<HTMLElement>('[aria-label="Max angular speed copy slider widget"]');
+    expect([copy?.style.left, copy?.style.top]).toEqual(["0px", "326px"]);
+  });
 });
 
 function renderWorkspace(source: ScreenConfig) {
