@@ -305,8 +305,8 @@ Rules:
 - Joysticks and sliders should preserve the interaction design validated in legacy Extender UI, while adopting Bloom
   colors and accessibility states.
 - Regular runtime apps use one 44 px kiosk bar plus the artboard and fixed STOP. The bar carries app name, screen title,
-  a status chip, the command frame, the publish rate, the role pill, and the maintenance hold; the robot name, gamepad
-  and ownership moved into the maintenance sheet's facts.
+  a status chip, the command frame, the publish rate, the role pill, and the maintenance hold. The gamepad and
+  ownership tags moved into the maintenance sheet's facts, and the robot name onto the supervisor mirror.
 - STOP is runtime chrome, not a movable widget. Press stops immediately; resuming requires a one-second hold. It lives
   in the screen's `stop` reserved region, and becomes a full-height rail over Settings and the practice tour, which
   replace the canvas.

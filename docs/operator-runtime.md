@@ -53,9 +53,11 @@ role pill, and the **⋯** maintenance hold, drawn as a fill on the button itsel
 | LINK DOWN / CONNECTING | The frontend has no backend link yet or lost it. |
 | DEBUG | Bloom Debug, in place of READY. Every other chip still outranks it. |
 
-The rate reads `N Hz` at rest, `publishing · N Hz` while a control moves, and `zeros held` while held or stopped. The
-robot name, gamepad, and ownership tags moved into the maintenance sheet's facts; the robot name stays on the supervisor
-mirror.
+The rate reads `N Hz` at rest, `publishing · N Hz` while a control moves, and `zeros held` while held or stopped. A
+**Command failed** or **Not sent** alert appears beside the rate when the backend refuses or simulates an action. The
+gamepad and ownership tags moved into the maintenance sheet's facts. The robot name left the bar altogether: it is on
+the supervisor mirror and in `GET /api/v1/capabilities`, because one backend serves one robot and the operator is
+already looking at that arm.
 
 ### Maintenance Sheet
 
@@ -408,7 +410,8 @@ topic catalog, subscriptions, audit records, and recording state. Real rosbag re
 
 Before a robot session, verify:
 
-- the kiosk bar reports the expected app, robot, frame, profile, and link state;
+- the kiosk bar reports the expected app, screen, frame, role, and link state, and the maintenance sheet the expected
+  profile, device class and publish rate;
 - `/joystick_cartesian_command` has the expected publisher/subscriber graph;
 - the manager output `/cartesian_command` returns to zero when controls are released;
 - valid mode requests reach `/mode_request`, while invalid requests are rejected and audited;

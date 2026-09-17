@@ -227,15 +227,20 @@ Before a robot-facing Bloom session or release:
 
 - build and source the Extender workspace;
 - verify the Bloom API is one process and one replica, with no multi-worker or load-balanced command path;
-- launch `cartesian_manager` with its Explorer bringup, or the legacy `sandbox_controller` launch file when
-  running the rollback path;
+- launch `cartesian_manager` with its Explorer or Kinova bringup, or the legacy `sandbox_controller` launch file when
+  running the rollback path. In simulation the Explorer launch needs the two runtime workarounds in
+  [the simulation run](validation/ros-sim-e2e.md), and the Kinova needs `kortex_description` and `robotiq_description`
+  built in the workspace on the Jazzy baseline;
 - start Bloom with `scripts/extender-workspace-dev.sh`;
 - verify ROS graph diagnostics in Bloom Debug or with `GET /api/v1/ros/topics/status` for
   `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`;
-- open the Sandbox teleop lab app in runtime;
-- confirm the kiosk bar names the expected robot, frame, profile, and link state;
-- confirm the operator kiosk says **YOU CONTROL**; open the same app in a second Runtime tab and verify its artboard is
-  inert, its **Take control** action cannot force handover, and its STOP remains available;
+- open **Explorer Manager** or **Kinova Manager** in runtime, as Operator and as Bench;
+- confirm the kiosk bar names the expected app, screen, frame and role, and the maintenance sheet the expected link,
+  profile and device class. The robot name is no longer in the bar; read it on the supervisor mirror or from
+  `GET /api/v1/capabilities`;
+- confirm the kiosk reads `READY` and the maintenance sheet's Link fact adds **you control the robot**; open the same
+  app in a second Runtime tab and verify it reads `NOT IN CONTROL`, its artboard is inert, its **Take control** action
+  cannot force handover, and its STOP remains available;
 - close the owner tab, claim from the waiting tab, and verify release-to-zero precedes the first command from the new
   owner; repeat with an abrupt owner disconnect;
 - move the translation/rotation joysticks and Z/RZ controls, then verify `/cartesian_command`, release-to-zero, and robot

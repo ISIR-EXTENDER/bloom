@@ -53,14 +53,17 @@ Anything marked `edited` or `local` is unpublished. Share it with
 ```bash
 npm run visual:smoke
 npm run capture:readme   # only when the README previews should change
-npm run record:explorer-demo # only when the ROS tutorial video should change
+npm run record:demo      # only when the walkthrough video should change
 ```
+
+`record:demo` writes `docs/assets/demo/bloom-demo.mp4`, the walkthrough the README links. The older
+`record:explorer-demo` is unmaintained: three of its waits name strings that have since been renamed out of the seeds,
+so it cannot complete a run. Use `record:demo`.
 
 For runtime changes, inspect the kiosk bar, fixed STOP, maintenance overlay, effective command frame, control bounds,
 local practice surface, and read-only supervisor mirror at every maintained viewport. Confirm every supervisor topic
 tile is visible and no operator command appears. For Builder changes, inspect the app review at the same viewports.
-The Explorer recording requires a seeded ROS-enabled API and is bench evidence, not target-tablet or hardware
-acceptance.
+The recording requires a seeded ROS-enabled API and is simulation evidence, not target-tablet or hardware acceptance.
 
 ## 4. Security posture
 

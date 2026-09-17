@@ -52,7 +52,7 @@ export const getStartedSteps = [
   {
     title: "4. Edit a screen",
     description:
-      "Open the full-page builder. Add widgets from the palette, move or resize them, and use the inspector for widget-specific settings. The size chip gives each widget's glass size on the smallest panel of its class; a Too small tag offers the exact resize.",
+      "Open the full-page builder. Add widgets from the palette, move or resize them, and use the inspector for widget-specific settings. The selected widget's size chip gives its glass size on the smallest panel of its class, and any widget under its minimum is tagged Too small, with the exact resize offered in the inspector.",
   },
   {
     title: "5. Launch runtime",
@@ -67,7 +67,7 @@ export const getStartedSteps = [
   {
     title: "7. Debug before deployment",
     description:
-      "Use Bloom Debug and playground screens to inspect topics, validate widget behavior, and check robot-facing bindings before a real user test.",
+      "Run Review checklist from the app page: it derives geometry, minimum sizes, touch bounds, sibling symmetry, pad pairs, profile coverage, command frame and topic policy from the saved app. Then use Bloom Debug and playground screens to inspect topics and check robot-facing bindings before a real user test.",
   },
 ];
 
