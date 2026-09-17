@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Callable
 from contextlib import suppress
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from functools import partial
 from hashlib import sha256
 from pathlib import Path
@@ -49,6 +49,7 @@ from libs.ros_adapters.safety import (
     ensure_allowed,
 )
 from libs.sessions import (
+    RuntimeAppContextMessage,
     RuntimeAuditLog,
     RuntimeAuditRecord,
     RuntimeClaimControlMessage,
@@ -549,6 +550,55 @@ def resolve_runtime_action_payload(preset: RuntimeActionPreset) -> dict[str, Any
     return {"data": preset.payload}
 
 
+@dataclass
+class RuntimeSocketPolicy:
+    """What this socket may command: the deployment policy until an app narrows it."""
+
+    policy: RuntimeCommandPolicy
+
+
+def narrow_policy_to_application(
+    policy: RuntimeCommandPolicy,
+    application: ApplicationConfig,
+) -> RuntimeCommandPolicy:
+    """Intersect the deployment policy with the app's own, as `/runtime/actions` does.
+
+    An empty teleop or service list in an app means none, which is how an app
+    such as Bloom Debug declares that it drives nothing.
+    """
+    application_policy = application.runtime_policy
+    return RuntimeCommandPolicy(
+        allowed_message_types=narrow_allowlist(
+            policy.allowed_message_types, application_policy.allowed_message_types or ("*",)
+        ),
+        allowed_publish_topics=narrow_allowlist(
+            policy.allowed_publish_topics, application_policy.allowed_publish_topics or ("*",)
+        ),
+        allowed_recording_topics=policy.allowed_recording_topics,
+        allowed_service_calls=narrow_allowlist(policy.allowed_service_calls, application_policy.allowed_service_calls),
+        allowed_service_types=policy.allowed_service_types,
+        allowed_teleop_targets=narrow_allowlist(
+            policy.allowed_teleop_targets, application_policy.allowed_teleop_targets
+        ),
+    )
+
+
+def narrow_allowlist(deployment: tuple[str, ...], application: tuple[str, ...]) -> tuple[str, ...]:
+    if "*" in application:
+        return deployment
+    if "*" in deployment:
+        return application
+    return tuple(value for value in deployment if value in application)
+
+
+def find_runtime_application(connection: Request | WebSocket, config_id: str, app_id: str) -> ApplicationConfig | None:
+    try:
+        bundle = connection.app.state.configuration_repository.get(config_id)
+    except (ConfigurationNotFoundError, ValueError):
+        return None
+    return next((application for application in bundle.applications if application.id == app_id), None)
+
+
 def ensure_application_policy_allows(policy: RuntimeAdapterPolicy, publish_request: RosPublishRequest) -> None:
     RuntimeCommandPolicy(
         allowed_message_types=policy.allowed_message_types or ("*",),
@@ -926,6 +976,8 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     # Keyed by widget and topic: a screen that subscribes again replaces its own
     # handle instead of stacking a second subscription on the same topic.
     topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle] = {}
+    # Deployment-wide until the client names the app it is running.
+    socket_policy = RuntimeSocketPolicy(policy=get_runtime_command_policy(websocket))
     receive_task: asyncio.Task | None = None
     sample_task: asyncio.Task | None = None
 
@@ -961,6 +1013,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     topic_samples,
                     topic_subscription_handles,
                     principal,
+                    socket_policy,
                 )
                 receive_task = asyncio.create_task(websocket.receive_json())
 
@@ -1000,6 +1053,7 @@ async def handle_runtime_client_payload(
     topic_samples: asyncio.Queue[RuntimeTopicSample],
     topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle],
     principal: BloomPrincipal,
+    socket_policy: RuntimeSocketPolicy,
 ) -> None:
     # Anything this session sends, a ping included, renews its control lease.
     manager.record_activity(session.id)
@@ -1034,6 +1088,10 @@ async def handle_runtime_client_payload(
                 session_id=session.id,
             ).model_dump()
         )
+        return
+
+    if isinstance(message, RuntimeAppContextMessage):
+        await websocket.send_json(apply_runtime_app_context(websocket, session, message, socket_policy).model_dump())
         return
 
     if isinstance(message, RuntimeClaimControlMessage):
@@ -1112,7 +1170,7 @@ async def handle_runtime_client_payload(
         get_teleop_command_gateway(websocket),
         get_runtime_topic_subscription_gateway(websocket),
         audit_log,
-        get_runtime_command_policy(websocket),
+        socket_policy.policy,
         get_runtime_command_rate_limiter(websocket),
         lambda sample: event_loop.call_soon_threadsafe(enqueue_topic_sample, topic_samples, sample),
         topic_subscription_handles,
@@ -1122,6 +1180,39 @@ async def handle_runtime_client_payload(
     if isinstance(message, RuntimeTeleopCommandMessage) and response.type == "teleop_ack":
         manager.record_teleop_command(session, to_teleop_command(message))
     await websocket.send_json(response.model_dump())
+
+
+def apply_runtime_app_context(
+    websocket: WebSocket,
+    session: RuntimeSession,
+    message: RuntimeAppContextMessage,
+    socket_policy: RuntimeSocketPolicy,
+) -> RuntimeServerMessage:
+    """Narrow this socket to the app it is running.
+
+    Without it the socket only knew the deployment policy, so an app that
+    declares no teleop target of its own could still stream teleop.
+    """
+    application = find_runtime_application(websocket, message.config_id, message.app_id)
+    if application is None:
+        return RuntimeServerMessage(
+            type="runtime_error",
+            detail="Runtime app context was refused: no such application.",
+            payload={"code": "app_context_unknown", "app_id": message.app_id, "config_id": message.config_id},
+            session_id=session.id,
+        )
+
+    socket_policy.policy = narrow_policy_to_application(get_runtime_command_policy(websocket), application)
+    return RuntimeServerMessage(
+        type="app_context_ack",
+        detail=f"Runtime commands are now limited to what '{application.name}' allows.",
+        payload={
+            "allowed_teleop_targets": list(socket_policy.policy.allowed_teleop_targets),
+            "app_id": message.app_id,
+            "config_id": message.config_id,
+        },
+        session_id=session.id,
+    )
 
 
 def build_runtime_control_message(snapshot: RuntimeControlSnapshot) -> RuntimeServerMessage:

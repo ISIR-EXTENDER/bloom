@@ -62,6 +62,7 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
     releaseRuntimeControl: runtimeWebSocketClient.releaseRuntimeControl,
     resumeRuntimeStop: apiClient.resumeRuntimeStop.bind(apiClient),
     sendTeleopCommand: runtimeWebSocketClient.sendTeleopCommand,
+    setRuntimeAppContext: runtimeWebSocketClient.setRuntimeAppContext,
     startRuntimeRecording: apiClient.startRuntimeRecording.bind(apiClient),
     stopRuntimeRecording: apiClient.stopRuntimeRecording.bind(apiClient),
     subscribeRuntimeTopic: runtimeWebSocketClient.subscribeRuntimeTopic,

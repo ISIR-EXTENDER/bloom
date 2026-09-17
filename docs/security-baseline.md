@@ -45,7 +45,8 @@ The first things to protect are:
   against the allowlist before it is counted, so a topic nobody may publish to never gets a counter, and idle counters
   are swept once either map fills.
 - Enforce deployment allowlists for publish topics, message types, teleop targets, command frames, service calls,
-  recording topics, and recording folders, with narrower app policy as an earlier guardrail.
+  recording topics, and recording folders, with narrower app policy as an earlier guardrail. The runtime socket
+  applies the same narrowing once a session names the app it is running.
 - Validate manager mode grammar and reject malformed/unknown frame requests before they reach ROS.
 - Audit accepted and rejected runtime command attempts.
 - Keep file paths controlled by repositories/services, never by raw user-provided paths.

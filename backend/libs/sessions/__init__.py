@@ -12,6 +12,7 @@ from libs.sessions.manager import (
     RuntimeSessionManager,
 )
 from libs.sessions.models import (
+    RuntimeAppContextMessage,
     RuntimeClaimControlMessage,
     RuntimeClientMessage,
     RuntimePingMessage,
@@ -63,6 +64,7 @@ __all__ = [
     "RuntimeCommandRateLimiter",
     "RuntimeRateLimitError",
     "RuntimeAuditLog",
+    "RuntimeAppContextMessage",
     "RuntimeAuditRecord",
     "RuntimeClaimControlMessage",
     "RuntimeClientMessage",

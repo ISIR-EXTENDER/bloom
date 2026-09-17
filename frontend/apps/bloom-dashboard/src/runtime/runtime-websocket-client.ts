@@ -1,6 +1,8 @@
 import type { RuntimeControlState } from "@bloom/api-client";
 import type {
   RuntimeActionClient,
+  RuntimeAppContextRequest,
+  RuntimeAppContextResponse,
   RuntimeLinkState,
   RuntimeTeleopCommandRequest,
   RuntimeTeleopCommandResponse,
@@ -64,6 +66,7 @@ export function createRuntimeWebSocketClient(
     | "getRuntimeSessionId"
     | "releaseRuntimeControl"
     | "sendTeleopCommand"
+    | "setRuntimeAppContext"
     | "subscribeRuntimeTopic"
     | "unsubscribeRuntimeTopic"
   >
@@ -74,6 +77,10 @@ export function createRuntimeWebSocketClient(
   let linkState: RuntimeLinkState = "connecting";
   let controlState: RuntimeControlState | null = null;
   let sessionId = "";
+  // Re-sent on every socket, so a reconnect keeps the app's narrower policy.
+  let appContext: RuntimeAppContextRequest | null = null;
+  let appContextSocket: WebSocketLike | null = null;
+  let appContextReply: Promise<RuntimeAppContextResponse> | null = null;
   // The server answers every message exactly once, in order, so replies match requests by position.
   const pendingRepliesBySocket = new Map<WebSocketLike, PendingReply[]>();
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
@@ -112,6 +119,7 @@ export function createRuntimeWebSocketClient(
       const handleOpen = () => {
         removeConnectionListeners();
         bindRuntimeListeners(nextSocket);
+        sendAppContext(nextSocket);
         setLinkState("connected");
         resolve(nextSocket);
       };
@@ -206,6 +214,33 @@ export function createRuntimeWebSocketClient(
     });
   }
 
+  /** A reconnected socket is deployment-wide again until it is told which app it runs. */
+  function sendAppContext(runtimeSocket: WebSocketLike): Promise<RuntimeAppContextResponse> | null {
+    const pendingReplies = pendingRepliesBySocket.get(runtimeSocket);
+    if (!appContext || !pendingReplies || appContextSocket === runtimeSocket) {
+      return null;
+    }
+    const message = { type: "app_context", ...appContext };
+    appContextSocket = runtimeSocket;
+    appContextReply = new Promise<RuntimeAppContextResponse>((resolve, reject) => {
+      pendingReplies.push({
+        reject,
+        settle: (data) => {
+          const reply = parseAppContextAck(data);
+          if (reply === null) {
+            return false;
+          }
+          resolve(reply);
+          return true;
+        },
+      });
+      runtimeSocket.send(JSON.stringify(message));
+    });
+    // A resend nobody awaits still fails when the socket closes under it.
+    void appContextReply.catch(() => undefined);
+    return appContextReply;
+  }
+
   /** Queued like any other request, because the server answers in order and the client matches by position. */
   function sendKeepalivePing(runtimeSocket: WebSocketLike) {
     const pendingReplies = pendingRepliesBySocket.get(runtimeSocket);
@@ -284,6 +319,18 @@ export function createRuntimeWebSocketClient(
     },
     sendTeleopCommand(teleopRequest: RuntimeTeleopCommandRequest): Promise<RuntimeTeleopCommandResponse> {
       return request(teleopRequest, parseTeleopAck);
+    },
+    async setRuntimeAppContext(context: RuntimeAppContextRequest): Promise<RuntimeAppContextResponse> {
+      appContext = context;
+      appContextSocket = null;
+      appContextReply = null;
+      // Connecting sends it as the socket opens; this call then awaits that reply.
+      const runtimeSocket = await ensureConnected();
+      return (
+        sendAppContext(runtimeSocket) ??
+        appContextReply ??
+        Promise.reject(new Error("Bloom runtime WebSocket could not name the running app."))
+      );
     },
     subscribeRuntimeTopic(subscription: RuntimeTopicSubscriptionRequest): Promise<RuntimeTopicSubscriptionResponse> {
       return request(subscription, parseTopicSubscriptionAck);
@@ -388,6 +435,19 @@ export function resolveRuntimeWebSocketProtocols(apiKey = ""): string[] | undefi
 
 function isSubprotocolToken(value: string): boolean {
   return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(value);
+}
+
+function parseAppContextAck(data: unknown): RuntimeAppContextResponse | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(data) as Partial<RuntimeAppContextResponse>;
+    return parsed.type === "app_context_ack" && parsed.payload ? (parsed as RuntimeAppContextResponse) : null;
+  } catch {
+    return null;
+  }
 }
 
 function parsePong(data: unknown): { type: "pong" } | null {

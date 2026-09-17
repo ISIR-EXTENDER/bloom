@@ -81,6 +81,18 @@ export type RuntimeTopicUnsubscriptionResponse = {
   type: "unsubscription_ack";
 };
 
+/** Names the app the socket is running, so its runtime policy applies to teleop too. */
+export type RuntimeAppContextRequest = {
+  app_id: string;
+  config_id: string;
+};
+
+export type RuntimeAppContextResponse = {
+  detail: string;
+  payload: { allowed_teleop_targets: string[]; app_id: string; config_id: string };
+  type: "app_context_ack";
+};
+
 export type RuntimeTopicSampleMessage = {
   detail: string;
   payload: {
@@ -118,6 +130,7 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   claimRuntimeControl?: () => Promise<RuntimeControlState>;
   releaseRuntimeControl?: () => Promise<RuntimeControlState>;
   sendTeleopCommand?: (request: RuntimeTeleopCommandRequest) => Promise<RuntimeTeleopCommandResponse>;
+  setRuntimeAppContext?: (request: RuntimeAppContextRequest) => Promise<RuntimeAppContextResponse>;
   startRuntimeRecording?: BloomApiClient["startRuntimeRecording"];
   stopRuntimeRecording?: BloomApiClient["stopRuntimeRecording"];
   subscribeRuntimeTopic?: (request: RuntimeTopicSubscriptionRequest) => Promise<RuntimeTopicSubscriptionResponse>;

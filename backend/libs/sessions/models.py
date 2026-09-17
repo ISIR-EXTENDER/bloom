@@ -19,6 +19,14 @@ class RuntimeReleaseControlMessage(RuntimeModel):
     type: Literal["release_control"]
 
 
+class RuntimeAppContextMessage(RuntimeModel):
+    """Names the application this socket is running, so its policy applies here too."""
+
+    type: Literal["app_context"]
+    config_id: str = Field(min_length=1, max_length=128)
+    app_id: str = Field(min_length=1, max_length=128)
+
+
 class RuntimeSubscribeTopicMessage(RuntimeModel):
     type: Literal["subscribe_topic"]
     topic: str = Field(min_length=1)
@@ -108,7 +116,8 @@ class RuntimeTeleopCommandMessage(RuntimeModel):
 
 
 RuntimeClientMessage = Annotated[
-    RuntimeClaimControlMessage
+    RuntimeAppContextMessage
+    | RuntimeClaimControlMessage
     | RuntimePingMessage
     | RuntimeReleaseControlMessage
     | RuntimeSubscribeTopicMessage
@@ -122,6 +131,7 @@ runtime_client_message_adapter = TypeAdapter(RuntimeClientMessage)
 
 class RuntimeServerMessage(RuntimeModel):
     type: Literal[
+        "app_context_ack",
         "control_state",
         "session_connected",
         "pong",

@@ -32,6 +32,7 @@ from libs.sessions import (
 )
 
 EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
+BLOOM_DEBUG_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "bloom-debug.json"
 
 
 class MovableClock:
@@ -1175,6 +1176,106 @@ def test_a_teleop_stream_is_one_audit_record_with_a_count() -> None:
 
     assert (stream.channel, stream.repeats) == ("websocket_teleop", 900)
     assert stop.channel == "runtime_stop"
+
+
+def teleop_command(target: str = "/joystick_cartesian_command") -> dict:
+    return {
+        "type": "teleop_cmd",
+        "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+        "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+        "mode": 3,
+        "seq": 1,
+        "target": target,
+    }
+
+
+def test_an_app_that_allows_no_teleop_target_cannot_stream_teleop() -> None:
+    # Bloom Debug and the webcam app declare allowed_teleop_targets: [], and
+    # the socket used to know only the deployment-wide policy.
+    gateway = RecordingTeleopGateway()
+    bundle = load_configuration_file(BLOOM_DEBUG_FIXTURE_PATH)
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository({"bloom-debug": bundle}),
+            teleop_command_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "app_context", "app_id": "bloom-debug", "config_id": "bloom-debug"})
+        acknowledged = websocket.receive_json()
+        websocket.send_json(teleop_command())
+        refused = websocket.receive_json()
+
+    assert acknowledged["type"] == "app_context_ack"
+    assert acknowledged["payload"]["allowed_teleop_targets"] == []
+    assert refused["type"] == "runtime_error"
+    assert "not allowed by the runtime policy" in refused["payload"]["message"]
+    assert gateway.commands == []
+
+
+def test_an_app_keeps_the_teleop_target_it_declares() -> None:
+    gateway = RecordingTeleopGateway()
+    bundle = load_configuration_file(EXPLORER_FIXTURE_PATH)
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository({"explorer": bundle}),
+            teleop_command_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "app_context", "app_id": "explorer-user-tests", "config_id": "explorer"})
+        websocket.receive_json()
+        websocket.send_json(teleop_command())
+        acknowledged = websocket.receive_json()
+
+    assert acknowledged["type"] == "teleop_ack"
+    assert [command.target for command in gateway.commands] == ["/joystick_cartesian_command"]
+
+
+def test_a_socket_that_names_no_app_keeps_the_deployment_policy() -> None:
+    gateway = RecordingTeleopGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            teleop_command_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(teleop_command())
+        acknowledged = websocket.receive_json()
+
+    assert acknowledged["type"] == "teleop_ack"
+    assert len(gateway.commands) == 1
+
+
+def test_an_unknown_app_context_is_refused_and_changes_nothing() -> None:
+    gateway = RecordingTeleopGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            teleop_command_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "app_context", "app_id": "nowhere", "config_id": "nowhere"})
+        refused = websocket.receive_json()
+        websocket.send_json(teleop_command())
+        acknowledged = websocket.receive_json()
+
+    assert refused["payload"]["code"] == "app_context_unknown"
+    assert acknowledged["type"] == "teleop_ack"
 
 
 def test_the_backend_refuses_more_sessions_than_it_serves() -> None:

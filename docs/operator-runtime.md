@@ -76,6 +76,12 @@ Resuming closes the sheet and publishing resumes at once. Nothing in the sheet c
 The publish rate is the ceiling while a control moves. At rest nothing is streamed: a release sends a short tail of
 zeros, and `cartesian_manager` expires an input after 0.2 s, so its output stays at zero.
 
+A Runtime tab names the app it is running on its socket as soon as it opens (`app_context`). From then on teleop,
+topic publishes and service calls are limited to the intersection of the deployment allowlists and that app's
+`runtime_policy`, the same narrowing `POST /runtime/actions` has always applied. An app that declares no teleop target
+of its own, such as Bloom Debug or the webcam visualizer, can stream none. A client that names no app keeps the
+deployment-wide limits.
+
 Runtime also checks each widget's declared backend requirement against `GET /api/v1/capabilities`. The report names one
 seam each for commands, services, topic data, teleop, camera frames, and recording. When the backend
 explicitly reports a required publisher, subscriber, service, or teleop seam unavailable, the control remains in its

@@ -276,6 +276,25 @@ async function mockRuntimeWebSocket(page) {
           }, 0);
           return;
         }
+        if (message?.type === "app_context") {
+          window.setTimeout(() => {
+            this.dispatchEvent(
+              new MessageEvent("message", {
+                data: JSON.stringify({
+                  detail: "Runtime commands are now limited to what this app allows.",
+                  payload: {
+                    allowed_teleop_targets: ["/joystick_cartesian_command", "/teleop_cmd"],
+                    app_id: message.app_id,
+                    config_id: message.config_id,
+                  },
+                  session_id: this.sessionId,
+                  type: "app_context_ack",
+                }),
+              }),
+            );
+          }, 0);
+          return;
+        }
         if (message?.type === "ping") {
           // The keepalive is a request like any other, and replies match by position.
           window.setTimeout(() => {

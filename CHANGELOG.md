@@ -19,6 +19,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- An application's `allowed_teleop_targets` is enforced on the runtime socket. A tab names its app with a new
+  `app_context` message, and teleop, publishes and service calls are then limited to the deployment allowlists
+  intersected with that app's `runtime_policy`, as `POST /runtime/actions` already did. A session on Bloom Debug or the
+  webcam visualizer, which declare no teleop target, can no longer stream teleop. A client that sends no app context
+  keeps today's deployment-wide behaviour.
 - The runtime socket serves at most 32 sessions. A connection past that is refused with `session_limit` and closed
   instead of adding another session, each of which could hold 64 ROS subscriptions.
 - Rate-limit state is bounded. A camera frame is checked against the publish allowlist before it is counted, so an

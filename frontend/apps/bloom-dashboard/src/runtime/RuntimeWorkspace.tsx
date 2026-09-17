@@ -253,6 +253,12 @@ export function RuntimeWorkspace({
     }
     return merged;
   }, [dataByWidgetId, plotSelections.selections, positionLibrary.state, screen, screenHasPositionLibrary]);
+  // The socket knows only the deployment policy until it is told which app it runs.
+  useEffect(() => {
+    runtimeActionClient
+      .setRuntimeAppContext?.({ app_id: selection.appId, config_id: selection.configId })
+      .catch(() => undefined);
+  }, [runtimeActionClient, selection.appId, selection.configId]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);

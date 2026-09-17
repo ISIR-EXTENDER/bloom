@@ -290,6 +290,35 @@ describe("runtime WebSocket client", () => {
     expect(socket.sentMessages).toEqual([JSON.stringify(request)]);
   });
 
+  it("names the running app, and names it again on a new socket", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+
+    const context = client.setRuntimeAppContext({ app_id: "bloom-debug", config_id: "bloom-debug" });
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message({
+      detail: "Runtime commands are now limited to what 'Bloom Debug' allows.",
+      payload: { allowed_teleop_targets: [], app_id: "bloom-debug", config_id: "bloom-debug" },
+      session_id: "runtime-session",
+      type: "app_context_ack",
+    });
+
+    await expect(context).resolves.toMatchObject({ payload: { allowed_teleop_targets: [] } });
+
+    // A reconnected socket starts deployment-wide, so the context goes out again.
+    socket.close();
+    void client.ensureRuntimeConnected();
+    const reconnected = WebSocketCtor.instances[1];
+    reconnected.open();
+    await flushPromises();
+
+    expect(reconnected.sentMessages[0]).toBe(
+      JSON.stringify({ type: "app_context", app_id: "bloom-debug", config_id: "bloom-debug" }),
+    );
+  });
+
   it("pings while the operator is idle so the backend keeps the control lease", async () => {
     vi.useFakeTimers();
     try {

@@ -223,6 +223,18 @@ export async function installRuntimeWebSocketMock(page) {
           this.acknowledgeSubscription(message);
           return;
         }
+        if (message.type === "ping") {
+          this.reply({ type: "pong", detail: "Runtime session is alive.", payload: {} });
+          return;
+        }
+        if (message.type === "app_context") {
+          this.reply({
+            type: "app_context_ack",
+            detail: "Harness runtime accepted the app context.",
+            payload: { app_id: message.app_id, config_id: message.config_id },
+          });
+          return;
+        }
         if (message.type === "unsubscribe_topic") {
           // Replies match requests by position, so every request needs one.
           this.reply({
