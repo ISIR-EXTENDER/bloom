@@ -1,6 +1,7 @@
 import {
   normalizeRuntimeProfileOverrides,
   type RuntimeProfileOverrides,
+  runtimePreferenceKey,
   runtimeProfileOverrideKey,
 } from "../runtime/runtime-profile-overrides";
 import type { WorkspaceSelection } from "./ConfigurationWorkspace";
@@ -87,9 +88,7 @@ export function setRuntimeProfileOverrides(
   return { ...preferences, profileOverrides };
 }
 
-export function runtimePreferenceKey(selection: Pick<WorkspaceSelection, "appId" | "configId">): string {
-  return `${selection.configId}:${selection.appId}`;
-}
+export { runtimePreferenceKey };
 
 function normalizeRuntimeUserPreferences(value: unknown): RuntimeUserPreferences {
   if (!isRecord(value)) {

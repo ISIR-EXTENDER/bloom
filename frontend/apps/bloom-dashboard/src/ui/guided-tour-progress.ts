@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
 
+import { runtimePreferenceKey } from "../runtime/runtime-profile-overrides";
+
 const STORAGE_KEY = "bloom.guided-tour-progress.v1";
 
 type GuidedTourProgress = Record<string, string[]>;
 
 export function guidedTourProgressKey(kind: "builder" | "runtime", configId: string, appId: string): string {
-  return `${kind}:${configId}:${appId}`;
+  return `${kind}:${runtimePreferenceKey({ appId, configId })}`;
 }
 
 export function loadGuidedTourProgress(tourKey: string): string[] {

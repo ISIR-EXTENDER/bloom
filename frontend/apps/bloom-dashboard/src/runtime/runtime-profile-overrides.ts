@@ -26,11 +26,16 @@ const MOTOR_ACCESSIBILITY_PRESETS = new Set<UserProfile["motor_accessibility_pre
 ]);
 const RUNTIME_LANGUAGES = new Set<RuntimeLanguage>(["en", "es", "fr"]);
 
+/** The one place a stored preference is keyed to an app: settings, the remembered role and tour progress share it. */
+export function runtimePreferenceKey(selection: Pick<WorkspaceSelection, "appId" | "configId">): string {
+  return `${selection.configId}:${selection.appId}`;
+}
+
 export function runtimeProfileOverrideKey(
   selection: Pick<WorkspaceSelection, "appId" | "configId">,
   profileId: string,
 ): string {
-  return `${selection.configId}:${selection.appId}:${profileId}`;
+  return `${runtimePreferenceKey(selection)}:${profileId}`;
 }
 
 export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfileOverrides {
@@ -58,12 +63,6 @@ export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfile
   }
 
   return overrides;
-}
-
-export function runtimeProfileOverridesEqual(left: unknown, right: unknown): boolean {
-  return (
-    JSON.stringify(normalizeRuntimeProfileOverrides(left)) === JSON.stringify(normalizeRuntimeProfileOverrides(right))
-  );
 }
 
 function copyBoolean<Key extends "audioCues" | "dwellEnabled">(
