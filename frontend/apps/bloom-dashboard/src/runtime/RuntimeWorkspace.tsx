@@ -48,6 +48,7 @@ import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
 import { useRuntimeControl } from "./use-runtime-control";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
+import { useStoppedControls } from "./use-stopped-controls";
 import { useSwitchScanning } from "./use-switch-scanning";
 
 type RuntimeViewportSize = {
@@ -307,6 +308,7 @@ export function RuntimeWorkspace({
     rootRef: workspaceRef,
     revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}:${runtimeControlBlocked}:${stopped}`,
   });
+  useStoppedControls(canvasViewportRef, stopped);
   useDwellActivation({
     dwellMs: runtimeProfile.dwellMs,
     enabled: runtimeProfile.dwellEnabled && !maintenanceOpen && !settingsOpen && !tourOpen,

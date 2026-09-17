@@ -20,6 +20,7 @@ signals, and test accessibility continuously.
 - STOP is fixed runtime chrome, engages immediately, follows a backend latch, and requires a one-second hold to resume.
   Under scanning it is the first target of every cycle, wherever it is drawn, so a switch never waits out a screen to
   reach it.
+- While the STOP latch is on, canvas controls are `aria-disabled` and out of the tab order, not merely inert in CSS.
 - Status uses words, color, and shape together. Audio cues can announce stop, link loss, and recovery.
 - Joysticks use pointer events and are keyboard operable. Direction words are visible inside the pad.
 - A browser gamepad contributes through the same conditioned 6-DoF command as touch and keyboard controls.

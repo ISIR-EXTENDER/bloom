@@ -177,7 +177,9 @@ configuration and app, but the tour remains available for repetition.
 - STOP stays live above the maintenance scrim, Settings, and the practice tour. Over the sheet it keeps its place;
   over Settings and the tour, which replace the canvas, it becomes a full-height rail on the right that those views
   keep clear.
-- While stopped, the screen's widgets go muted and inert and the control becomes **HOLD TO RESUME**.
+- While stopped, the screen's widgets go muted and inert and the control becomes **HOLD TO RESUME**. They are marked
+  `aria-disabled` and leave the keyboard tab order while the latch is on, so a keyboard or screen-reader operator is
+  not walked through controls that answer nothing; STOP and resume stay reachable.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
 - Scanning stays on while stopped, and the highlight rests on the resume control as its only target. A switch press
   there resumes: waiting out the scan cycle is itself the deliberate act the pointer hold asks for. Dwell still rests
