@@ -72,7 +72,7 @@ describe("the Explorer speed controls", () => {
 
     const linearSpeed = await screen.findByRole("slider", { name: "Max linear speed" });
     expect(linearSpeed).toHaveAttribute("aria-valuenow", "0.15");
-    expect(screen.getByText("0.150 m/s")).toBeVisible();
+    expect(screen.getByText("0.15 m/s")).toBeVisible();
     expect(screen.getByRole("slider", { name: "Max angular speed" })).toHaveAttribute("aria-valuenow", "0.4");
     expect(screen.getByText("0.40 rad/s")).toBeVisible();
     await waitFor(() => expect(linearSpeed).toBeEnabled());
@@ -87,5 +87,6 @@ describe("the Explorer speed controls", () => {
         payload: { data: 0.165 },
       }),
     );
+    expect(screen.getByText("0.165 m/s")).toBeVisible();
   });
 });

@@ -840,6 +840,7 @@ export function resolveDecimalPlaces(step: number): number {
 }
 
 function formatSliderValue(value: number, step: number, unit: string): string {
-  const formatted = value.toFixed(resolveDecimalPlaces(step));
+  // A fine step keeps its digits only when they carry one: 0.165 stays, 0.150 reads 0.15 (design 1b).
+  const formatted = value.toFixed(resolveDecimalPlaces(step)).replace(/(\.\d\d\d*?)0+$/, "$1");
   return unit ? `${formatted} ${unit}` : formatted;
 }
