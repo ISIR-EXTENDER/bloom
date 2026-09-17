@@ -1262,6 +1262,11 @@
   touch-action: none;
 }
 
+/* Over settings and the tour there is no canvas shell to anchor it; STOP pins to the viewport corner. */
+.runtime-app-workspace > .runtime-stop-control {
+  position: fixed;
+}
+
 .runtime-stop-control[data-stopped="true"] {
   background: var(--bloom-error);
   color: var(--bloom-error-container);

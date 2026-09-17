@@ -242,6 +242,11 @@
   outline-offset: 2px;
 }
 
+/* The practice panel keeps clear of the live corner STOP. */
+.runtime-app-workspace > .runtime-guided-tour .runtime-tour-main {
+  padding-right: 212px;
+}
+
 @media (max-width: 900px) {
   .runtime-tour-body {
     grid-template-columns: 230px minmax(0, 1fr);

@@ -3,7 +3,7 @@
  */
 import type { ConfigurationBundle, RuntimeStopState } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
@@ -34,6 +34,11 @@ const isZero = (request: RuntimeTeleopCommandRequest) =>
   );
 
 describe("maintenance holds the robot, and STOP outranks it (plan §8.3)", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/");
+    window.localStorage.clear();
+  });
+
   it("zeros a held control when the sheet opens, sends no motion while open, and still engages STOP", async () => {
     window.localStorage.setItem(
       "bloom.runtime-user-preferences.v1",
@@ -91,4 +96,41 @@ describe("maintenance holds the robot, and STOP outranks it (plan §8.3)", () =>
       ),
     );
   }, 20000);
+
+  it.each([
+    ["Settings", "Settings"],
+    ["Practice tour", "Practice this app"],
+  ])(
+    "keeps STOP live and engageable while %s is open",
+    async (action, region) => {
+      const client = {
+        engageRuntimeStop: vi.fn(
+          async (): Promise<RuntimeStopState> => ({
+            asserted: true,
+            detail: "Runtime stop engaged.",
+            engaged_at: "2026-09-17T10:00:00+00:00",
+            stopped: true,
+          }),
+        ),
+        publishRosTopic: vi.fn(),
+      } satisfies RuntimeActionClient;
+
+      render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
+      await openRuntimeApp("Explorer Manager");
+      fireEvent.pointerDown(await screen.findByRole("button", { name: "Hold to open maintenance" }));
+      fireEvent.click(await screen.findByRole("button", { name: action }, { timeout: 3000 }));
+      await screen.findByRole("region", { name: region });
+
+      fireEvent.pointerDown(screen.getByRole("button", { name: "Stop the robot" }));
+      await waitFor(() => expect(client.engageRuntimeStop).toHaveBeenCalledOnce());
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "Hold for one second to resume" }).getAttribute("data-stopped")).toBe(
+          "true",
+        ),
+      );
+      expect(screen.getByRole("region", { name: region })).toBeTruthy();
+    },
+    20000,
+  );
 });

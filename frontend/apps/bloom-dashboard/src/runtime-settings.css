@@ -248,6 +248,11 @@
   outline-offset: 2px;
 }
 
+/* Room to scroll the last card clear of the corner STOP. */
+.runtime-app-workspace > .runtime-settings > .runtime-settings-columns {
+  padding-bottom: 156px;
+}
+
 @media (max-width: 900px) {
   .runtime-settings-columns {
     grid-template-columns: minmax(0, 1fr);

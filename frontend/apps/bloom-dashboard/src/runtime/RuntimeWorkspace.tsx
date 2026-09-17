@@ -42,7 +42,7 @@ import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
-import { findRuntimeRegion, findStopRegion, useReservedRegionRect } from "./use-reserved-region-rect";
+import { findRuntimeRegion, findStopRegion, type RegionRect, useReservedRegionRect } from "./use-reserved-region-rect";
 import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
 import { useRuntimeControl } from "./use-runtime-control";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
@@ -489,6 +489,21 @@ export function RuntimeWorkspace({
     });
   }, [onTopicSample, screen]);
 
+  // STOP stays live over settings and the tour: a joint-target move keeps running behind them.
+  const renderStopControl = (region: RegionRect | null) =>
+    runtimeActionClient.engageRuntimeStop ? (
+      <RuntimeStopControl
+        region={region}
+        onEngage={runtimeStop.engage}
+        onResume={runtimeStop.resume}
+        requestError={runtimeStop.requestError}
+        resumeDisabled={runtimeControlBlocked}
+        resumeDisabledReason={runtimeControlBlocked ? strings.control.resumeRequiresOwner : ""}
+        stopped={runtimeStop.state?.stopped ?? null}
+        language={runtimeProfile.language}
+      />
+    ) : null;
+
   if (settingsOpen) {
     return (
       <section
@@ -515,6 +530,7 @@ export function RuntimeWorkspace({
             layoutId: profileLayoutId(application, baseRuntimeProfile.id),
           })}
         />
+        {renderStopControl(null)}
       </section>
     );
   }
@@ -528,8 +544,8 @@ export function RuntimeWorkspace({
         data-has-debug="false"
         data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
         data-runtime-layout="operator"
-        data-runtime-scanning="false"
-        data-runtime-stopped="false"
+        data-runtime-scanning={runtimeProfile.motorAccessibilityPreset === "scan" ? "true" : "false"}
+        data-runtime-stopped={stopped ? "true" : "false"}
         style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
       >
         <RuntimeGuidedTour
@@ -539,6 +555,7 @@ export function RuntimeWorkspace({
           screen={screen}
           selection={selection}
         />
+        {renderStopControl(null)}
       </section>
     );
   }
@@ -722,18 +739,7 @@ export function RuntimeWorkspace({
           />
         ) : null}
 
-        {runtimeActionClient.engageRuntimeStop ? (
-          <RuntimeStopControl
-            region={stopRect}
-            onEngage={runtimeStop.engage}
-            onResume={runtimeStop.resume}
-            requestError={runtimeStop.requestError}
-            resumeDisabled={runtimeControlBlocked}
-            resumeDisabledReason={runtimeControlBlocked ? strings.control.resumeRequiresOwner : ""}
-            stopped={runtimeStop.state?.stopped ?? null}
-            language={runtimeProfile.language}
-          />
-        ) : null}
+        {renderStopControl(stopRect)}
       </div>
     </section>
   );
