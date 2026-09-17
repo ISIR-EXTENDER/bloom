@@ -311,7 +311,9 @@ control starts its timer again, so a pointer crossing a control on the way somew
 `dwell_ms` controls only the duration and cannot enable the
 feature by itself because it has a nonzero default. Dwell never shortens the one-second resume hold. Dwell covers the
 whole view, the kiosk bar included, so resting on **⋯** opens maintenance: a dwell cannot satisfy the 1.5 second hold
-any more than a switch press can, and resting on it is already deliberate.
+any more than a switch press can, and resting on it is already deliberate. The maintenance sheet then becomes the
+dwell root, as it already does for scanning, so Close, Settings, a screen, a role and the way out all stay reachable
+by rest alone.
 
 Latched and stepped return-to-center controls automatically publish zero after 15 seconds without renewed input; the
 visible zero control releases them sooner.

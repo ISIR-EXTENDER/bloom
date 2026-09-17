@@ -35,6 +35,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - The status chip and the kiosk bar's held badge now read the practice tour the same way the intent gate does. All
   three take one reading of which view holds motion, so they cannot drift apart if the tour ever stops replacing the
   canvas.
+- **A dwell operator is no longer trapped in the maintenance sheet.** The sheet ran switch scanning but not dwell,
+  and the workspace's dwell is off while the sheet is open, so resting on **⋯** opened a sheet with no dwellable
+  Close, Settings, screen or role. The sheet now runs dwell the same way it runs scanning.
 - **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
   latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
   resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.

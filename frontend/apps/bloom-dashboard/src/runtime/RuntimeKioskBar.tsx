@@ -5,6 +5,7 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useAssistiveActivation } from "./assistive-activation";
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
+import { useDwellActivation } from "./use-dwell-activation";
 import { useHoldGesture } from "./use-hold-gesture";
 import { useSwitchScanning } from "./use-switch-scanning";
 
@@ -63,6 +64,8 @@ export type RuntimeKioskBarProps = {
   sheetInsetRight?: number;
   /** The profile's switch scanning, which the sheet takes over while it is open. */
   scanning?: { enabled: boolean; periodMs: number };
+  /** The profile's pointer dwell, which the sheet takes over the same way. */
+  dwell?: { dwellMs: number; enabled: boolean };
   diagnostics?: ReactNode;
   fitWarning?: RuntimeFitWarning | null;
   onSelectScreen: (screenId: string) => void;
@@ -207,6 +210,7 @@ function RuntimeMaintenanceSheet({
   commandFrameId,
   ownsRobotControl = false,
   diagnostics,
+  dwell,
   fitWarning,
   gamepadName,
   language = "en",
@@ -242,6 +246,13 @@ function RuntimeMaintenanceSheet({
     periodMs: scanning?.periodMs ?? 1200,
     rootRef: panelRef,
     revision: `${choosingRole}:${screen.id}`,
+  });
+  // And the dwell root: without it a dwell operator who opened the sheet could
+  // reach neither Close nor anything inside it.
+  useDwellActivation({
+    dwellMs: dwell?.dwellMs ?? 800,
+    enabled: dwell?.enabled === true,
+    rootRef: panelRef,
   });
   const facts = strings.kiosk.facts;
   const { width: authoredWidth, height: authoredHeight } = resolveCanvasPresetSize(screen.canvas);

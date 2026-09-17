@@ -659,6 +659,7 @@ export function RuntimeWorkspace({
           enabled: runtimeProfile.motorAccessibilityPreset === "scan",
           periodMs: runtimeProfile.scanPeriodMs,
         }}
+        dwell={{ dwellMs: runtimeProfile.dwellMs, enabled: runtimeProfile.dwellEnabled }}
         sheetInsetRight={stopSheetInset}
         diagnostics={
           <RuntimeRobotStatusPanel
