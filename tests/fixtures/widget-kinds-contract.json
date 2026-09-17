@@ -9,12 +9,15 @@
     "joystick",
     "label",
     "plot",
+    "plot-board",
+    "plot-picker",
     "position-library",
     "robot-3d",
     "slider",
     "toggle",
     "topic-echo",
     "topic-plot",
-    "unknown"
+    "unknown",
+    "value-strip"
   ]
 }

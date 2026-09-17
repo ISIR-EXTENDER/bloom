@@ -15,6 +15,7 @@ export { resolveDecimalPlaces, resolveJoystickControlSize } from "./control-rend
 export type { JoystickLabels, JoystickPrimitiveProps, JoystickVector } from "./JoystickPrimitive";
 export { JoystickPrimitive, normalizeJoystickVector } from "./JoystickPrimitive";
 export type {
+  PlotSeriesSnapshot,
   ScreenRendererOptions,
   UnknownWidgetRenderer,
   UnknownWidgetRendererProps,

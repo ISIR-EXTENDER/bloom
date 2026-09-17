@@ -13,6 +13,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
+import {
+  appendSeriesSample,
+  applyPlotSelections,
+  createSeriesSubscriptionRequests,
+  isSeriesWidget,
+  usePlotSelections,
+} from "./plot-series-data";
 import { RuntimeGuidedTour } from "./RuntimeGuidedTour";
 import { RuntimeKioskBar } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
@@ -203,11 +210,12 @@ export function RuntimeWorkspace({
     appId: selection.appId,
     configId: selection.configId,
   });
+  const plotSelections = usePlotSelections(screen, profileOverrideKey);
   const effectiveDataByWidgetId = useMemo(() => {
+    const merged = applyPlotSelections(screen, dataByWidgetId, plotSelections.selections);
     if (!screenHasPositionLibrary) {
-      return dataByWidgetId;
+      return merged;
     }
-    const merged: Record<string, WidgetDataSnapshot> = { ...dataByWidgetId };
     for (const widget of screen.widgets) {
       if (widget.kind !== "position-library") {
         continue;
@@ -228,7 +236,7 @@ export function RuntimeWorkspace({
       };
     }
     return merged;
-  }, [dataByWidgetId, positionLibrary.state, screen.widgets, screenHasPositionLibrary]);
+  }, [dataByWidgetId, plotSelections.selections, positionLibrary.state, screen, screenHasPositionLibrary]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeLink = useRuntimeLinkState(runtimeActionClient);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
@@ -284,6 +292,11 @@ export function RuntimeWorkspace({
   });
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
+    // Choosing what a plot shows is view state: no ownership needed, nothing reaches the robot.
+    if (intent.type === "plot-series-toggle") {
+      plotSelections.toggle(intent.plotId, intent.seriesKey);
+      return { accepted: true };
+    }
     const refusal = resolveRuntimeIntentRefusal(intent, {
       ownsControl: ownsRuntimeControl,
       unavailable: controlStateByWidgetId[intent.widgetId]?.unavailable === true,
@@ -688,7 +701,7 @@ function resolvePreferredCommandFrameId(
 }
 
 function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTopicSubscriptionRequest[] {
-  return screen.widgets.flatMap((widget) => {
+  const widgetRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] => {
     const topic = resolveWidgetRuntimeTopic(widget);
     if (!topic?.startsWith("/")) {
       return [];
@@ -704,6 +717,7 @@ function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTo
       },
     ];
   });
+  return [...widgetRequests, ...createSeriesSubscriptionRequests(screen, widgetRequests)];
 }
 
 function appendRuntimeTopicSample(
@@ -719,6 +733,14 @@ function appendRuntimeTopicSample(
   };
 
   for (const widget of screen.widgets) {
+    if (isSeriesWidget(widget)) {
+      const series = appendSeriesSample(currentData[widget.id], widget, topicMessage);
+      if (series) {
+        nextData = nextData ?? { ...currentData };
+        nextData[widget.id] = series;
+      }
+      continue;
+    }
     if (resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {
       continue;
     }

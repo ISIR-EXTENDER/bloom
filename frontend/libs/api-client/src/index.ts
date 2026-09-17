@@ -8,6 +8,8 @@ export const WIDGET_KINDS = [
   "joystick",
   "label",
   "plot",
+  "plot-board",
+  "plot-picker",
   "position-library",
   "robot-3d",
   "slider",
@@ -15,6 +17,7 @@ export const WIDGET_KINDS = [
   "topic-echo",
   "topic-plot",
   "unknown",
+  "value-strip",
 ] as const;
 
 export type WidgetKind = (typeof WIDGET_KINDS)[number];

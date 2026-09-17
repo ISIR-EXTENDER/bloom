@@ -970,7 +970,11 @@ function resolveScreenFeature(screen: ScreenConfig): ScreenFeature {
 
   if (
     screen.widgets.some(
-      (widget) => widget.kind === "event-log" || widget.kind === "topic-echo" || widget.kind === "topic-plot",
+      (widget) =>
+        widget.kind === "event-log" ||
+        widget.kind === "plot-board" ||
+        widget.kind === "topic-echo" ||
+        widget.kind === "topic-plot",
     )
   ) {
     return "debug";

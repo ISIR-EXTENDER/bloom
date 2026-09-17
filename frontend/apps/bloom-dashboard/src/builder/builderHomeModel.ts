@@ -158,6 +158,8 @@ export function classifyScreen(screen: ScreenConfig): ScreenLibraryType {
   if (
     widgetKinds.has("gauge") ||
     widgetKinds.has("plot") ||
+    widgetKinds.has("plot-board") ||
+    widgetKinds.has("value-strip") ||
     widgetKinds.has("event-log") ||
     widgetKinds.has("topic-echo") ||
     widgetKinds.has("topic-plot") ||

@@ -336,6 +336,8 @@ describe("widget settings contracts", () => {
       "joystick",
       "label",
       "plot",
+      "plot-board",
+      "plot-picker",
       "position-library",
       "robot-3d",
       "slider",
@@ -343,6 +345,7 @@ describe("widget settings contracts", () => {
       "topic-echo",
       "topic-plot",
       "unknown",
+      "value-strip",
     ]);
   });
 
@@ -600,6 +603,18 @@ describe("widget settings contracts", () => {
         },
       ],
     });
+  });
+
+  it("validates plot board series", () => {
+    expect(
+      normalizeWidgetSettings("plot-board", { series: [{ topic: "/cartesian_command", field_path: "twist.linear.x" }] })
+        .success,
+    ).toBe(true);
+    expect(normalizeWidgetSettings("plot-board", { series: [{ topic: "cartesian_command" }] })).toEqual({
+      success: false,
+      errors: [{ field: "series", message: "series 1 needs an absolute topic and a field_path" }],
+    });
+    expect(normalizeWidgetSettings("plot-board", { series: [], y_min: 1, y_max: 1 }).success).toBe(false);
   });
 
   it("validates topic plot debug settings", () => {

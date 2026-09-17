@@ -215,6 +215,29 @@ export type TopicPlotSettings = {
   yMin?: number;
 };
 
+export type PlotBoardSettings = {
+  history_seconds: number;
+  max_samples: number;
+  picker: { enabled: boolean; persist_per_profile: boolean };
+  series: Record<string, unknown>[];
+  show_details: boolean;
+  y_max: number;
+  y_min: number;
+};
+
+export type PlotPickerSettings = {
+  plot_id: string;
+  show_details: boolean;
+  show_unavailable: boolean;
+  show_value: boolean;
+  unavailable: { label: string; note: string }[];
+};
+
+export type ValueStripSettings = {
+  series: Record<string, unknown>[];
+  show_details: boolean;
+};
+
 export type PositionLibrarySettings = {
   /** Capture filter and order; empty captures every joint in the sample. */
   jointNames: string[];
@@ -386,6 +409,29 @@ const TOPIC_PLOT_DEFAULT_SETTINGS: TopicPlotSettings = {
   topic: "",
   unit: "",
   variant: "area",
+};
+
+const PLOT_BOARD_DEFAULT_SETTINGS: PlotBoardSettings = {
+  history_seconds: 30,
+  max_samples: 900,
+  picker: { enabled: true, persist_per_profile: true },
+  series: [],
+  show_details: false,
+  y_max: 1,
+  y_min: -1,
+};
+
+const PLOT_PICKER_DEFAULT_SETTINGS: PlotPickerSettings = {
+  plot_id: "",
+  show_details: false,
+  show_unavailable: true,
+  show_value: false,
+  unavailable: [],
+};
+
+const VALUE_STRIP_DEFAULT_SETTINGS: ValueStripSettings = {
+  series: [],
+  show_details: false,
 };
 
 const POSITION_LIBRARY_DEFAULT_SETTINGS: PositionLibrarySettings = {
@@ -601,6 +647,46 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     ],
     TOPIC_PLOT_DEFAULT_SETTINGS,
     validateTopicPlotSettings,
+  ),
+  "plot-board": createContract(
+    "plot-board",
+    [
+      {
+        key: "series",
+        label: "Series (topic, field_path, label, unit, color, enabled, emphasis)",
+        type: "json",
+        required: true,
+      },
+      { key: "history_seconds", label: "History duration", type: "number", required: true },
+      { key: "max_samples", label: "Max samples per series", type: "number", required: true },
+      { key: "y_min", label: "Y minimum", type: "number", required: true },
+      { key: "y_max", label: "Y maximum", type: "number", required: true },
+      { key: "picker", label: "Picker", type: "json", required: false },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
+    ],
+    PLOT_BOARD_DEFAULT_SETTINGS,
+    validatePlotBoardSettings,
+  ),
+  "plot-picker": createContract(
+    "plot-picker",
+    [
+      { key: "plot_id", label: "Plot board widget id", type: "text", required: true },
+      { key: "show_value", label: "Show live values", type: "boolean", required: false },
+      { key: "show_unavailable", label: "Show moved series", type: "boolean", required: false },
+      { key: "unavailable", label: "Moved series (label, note)", type: "json", required: false },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
+    ],
+    PLOT_PICKER_DEFAULT_SETTINGS,
+    validatePlotPickerSettings,
+  ),
+  "value-strip": createContract(
+    "value-strip",
+    [
+      { key: "series", label: "Series (topic, field_path, label, unit, color)", type: "json", required: true },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
+    ],
+    VALUE_STRIP_DEFAULT_SETTINGS,
+    validateValueStripSettings,
   ),
   "position-library": createContract(
     "position-library",
@@ -1322,6 +1408,55 @@ function validateTopicPlotSettings(
   }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as TopicPlotSettings);
+}
+
+function validatePlotSeriesList(settings: Record<string, unknown>) {
+  if (!Array.isArray(settings.series)) {
+    return [{ field: "series", message: "series must be a list" }];
+  }
+  return settings.series.flatMap((entry, index) =>
+    typeof entry === "object" &&
+    entry !== null &&
+    typeof (entry as Record<string, unknown>).topic === "string" &&
+    String((entry as Record<string, unknown>).topic).startsWith("/") &&
+    typeof ((entry as Record<string, unknown>).field_path ?? (entry as Record<string, unknown>).fieldPath) === "string"
+      ? []
+      : [{ field: "series", message: `series ${index + 1} needs an absolute topic and a field_path` }],
+  );
+}
+
+function validatePlotBoardSettings(
+  settings: Record<string, unknown>,
+): WidgetSettingsValidationResult<PlotBoardSettings> {
+  const errors = [
+    ...validatePlotSeriesList(settings),
+    ...validateNumber(settings, "history_seconds", { min: 1 }),
+    ...validateNumber(settings, "max_samples", { min: 1 }),
+    ...validateNumber(settings, "y_min"),
+    ...validateNumber(settings, "y_max"),
+    ...validateBoolean(settings, "show_details"),
+  ];
+  if (isNumber(settings.y_min) && isNumber(settings.y_max) && settings.y_min >= settings.y_max) {
+    errors.push({ field: "y_max", message: "y_max must be greater than y_min" });
+  }
+  if (errors.length > 0) return fail(errors);
+  return succeed(settings as PlotBoardSettings);
+}
+
+function validatePlotPickerSettings(
+  settings: Record<string, unknown>,
+): WidgetSettingsValidationResult<PlotPickerSettings> {
+  const errors = [...validateString(settings, "plot_id"), ...validateBoolean(settings, "show_details")];
+  if (errors.length > 0) return fail(errors);
+  return succeed(settings as PlotPickerSettings);
+}
+
+function validateValueStripSettings(
+  settings: Record<string, unknown>,
+): WidgetSettingsValidationResult<ValueStripSettings> {
+  const errors = [...validatePlotSeriesList(settings), ...validateBoolean(settings, "show_details")];
+  if (errors.length > 0) return fail(errors);
+  return succeed(settings as ValueStripSettings);
 }
 
 function validatePositionLibrarySettings(

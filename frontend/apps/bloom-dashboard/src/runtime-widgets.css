@@ -1202,6 +1202,224 @@
   font-size: 13px;
 }
 
+/* ---- Plot board, picker and value strip (4a, 4b) ---- */
+
+.bloom-plot-board {
+  gap: 10px;
+}
+
+.bloom-plot-board-title {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.bloom-plot-board-verdict {
+  color: var(--bloom-ink);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.bloom-plot-board-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border: 1px solid var(--bloom-hairline);
+  border-radius: 12px;
+  background: var(--bloom-surface);
+}
+
+.bloom-plot-board-area svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.bloom-plot-board-grid {
+  fill: none;
+  stroke: var(--bloom-hairline);
+  stroke-width: 1;
+}
+
+.bloom-plot-board-zero {
+  fill: none;
+  stroke: color-mix(in srgb, var(--bloom-color-forest) 25%, transparent);
+  stroke-width: 1.5;
+}
+
+.bloom-plot-board-line {
+  fill: none;
+  stroke: var(--bloom-series-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.5;
+}
+
+.bloom-plot-board-line[data-emphasis="true"] {
+  stroke-width: 5;
+}
+
+.bloom-plot-board-axis {
+  position: absolute;
+  color: var(--bloom-muted);
+  font-family: var(--bloom-font-mono);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.bloom-plot-board-axis[data-edge="top"] {
+  top: 8px;
+  left: 10px;
+}
+
+.bloom-plot-board-axis[data-edge="bottom"] {
+  bottom: 30px;
+  left: 10px;
+}
+
+.bloom-plot-board-axis[data-edge="start"] {
+  bottom: 8px;
+  left: 10px;
+}
+
+.bloom-plot-board-axis[data-edge="end"] {
+  right: 10px;
+  bottom: 8px;
+}
+
+.bloom-plot-picker.bloom-info-card {
+  padding: 12px;
+}
+
+.bloom-plot-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bloom-space-in-card);
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.bloom-plot-picker-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: var(--bloom-touch-target);
+  padding: 6px 12px;
+  border: 2px solid var(--bloom-hairline);
+  border-radius: var(--bloom-radius-control);
+  background: var(--bloom-surface-container);
+  color: var(--bloom-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bloom-plot-picker-row[aria-pressed="true"] {
+  border-color: var(--bloom-primary);
+  background: var(--bloom-secondary-container);
+}
+
+.bloom-plot-picker-row[data-unavailable="true"] {
+  border-color: transparent;
+  background: var(--bloom-surface-container-high);
+  cursor: default;
+  opacity: 0.55;
+}
+
+.bloom-plot-picker-swatch {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--bloom-hairline-strong);
+}
+
+.bloom-plot-picker-row[aria-pressed="true"] .bloom-plot-picker-swatch {
+  background: var(--bloom-series-color);
+}
+
+.bloom-plot-picker-row[aria-pressed="false"] .bloom-plot-picker-swatch {
+  background: color-mix(in srgb, var(--bloom-series-color) 20%, transparent);
+}
+
+.bloom-plot-picker-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bloom-plot-picker-text strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.bloom-plot-picker-text span {
+  overflow: hidden;
+  color: var(--bloom-muted);
+  font-family: var(--bloom-font-mono);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloom-plot-picker-value {
+  flex: 0 0 auto;
+  font-family: var(--bloom-font-mono);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.bloom-plot-picker-empty {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 15px;
+}
+
+.bloom-value-strip {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--bloom-space-card-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bloom-value-strip-card strong {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.bloom-value-strip-topic,
+.bloom-value-strip-unit {
+  overflow: hidden;
+  color: var(--bloom-muted);
+  font-family: var(--bloom-font-mono);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bloom-value-strip-number {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  color: var(--bloom-series-color);
+  font-family: var(--bloom-font-mono);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+}
+
 /* ---- Display widgets kept from the earlier system, on the card chrome above ---- */
 
 .bloom-display-header {

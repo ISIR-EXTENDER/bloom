@@ -14,6 +14,7 @@ export * from "./extensions";
 export * from "./legacy";
 export * from "./min-size";
 export * from "./pad-geometry";
+export * from "./plot-series";
 export * from "./runtime";
 export * from "./settings";
 export * from "./telemetry";
@@ -372,6 +373,45 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultTitle: "Topic echo",
     defaultSettings: getDefaultWidgetSettings("topic-echo"),
     defaultLayout: { width: 460, height: 260, minWidth: 280, minHeight: 160 },
+    runtimeRequirements: ["data-source"],
+    maturity: "ready",
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
+  },
+  {
+    kind: "plot-board",
+    displayName: "Plot board",
+    category: "feedback",
+    description: "Plots several topic fields over one shared time axis, with a picker beside it as the legend.",
+    defaultTitle: "Plot board",
+    defaultSettings: getDefaultWidgetSettings("plot-board"),
+    defaultLayout: { width: 902, height: 400, minWidth: 480, minHeight: 280 },
+    runtimeRequirements: ["data-source"],
+    maturity: "ready",
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
+  },
+  {
+    kind: "plot-picker",
+    displayName: "Plot picker",
+    category: "feedback",
+    description: "Chooses which series a plot board draws and doubles as its legend.",
+    defaultTitle: "Series",
+    defaultSettings: getDefaultWidgetSettings("plot-picker"),
+    defaultLayout: { width: 338, height: 348, minWidth: 260, minHeight: 200 },
+    runtimeRequirements: ["data-source"],
+    maturity: "ready",
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
+  },
+  {
+    kind: "value-strip",
+    displayName: "Value strip",
+    category: "feedback",
+    description: "Shows the latest value of several topic fields as large numbers.",
+    defaultTitle: "Current values",
+    defaultSettings: getDefaultWidgetSettings("value-strip"),
+    defaultLayout: { width: 902, height: 200, minWidth: 440, minHeight: 140 },
     runtimeRequirements: ["data-source"],
     maturity: "ready",
     availability: { editor: true, runtime: true },

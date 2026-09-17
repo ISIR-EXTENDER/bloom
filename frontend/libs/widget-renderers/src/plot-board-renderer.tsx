@@ -1,0 +1,213 @@
+import { type PlotVerdict, readPlotSeries, readPlotUnavailable, resolvePlotVerdict } from "@bloom/widgets";
+import { type CSSProperties, useEffect, useState } from "react";
+import { formatSignedValue } from "./control-renderers";
+import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
+import type { PlotSeriesSnapshot, WidgetRendererProps } from "./types";
+
+const PLOT_EXTENT = 1000;
+const RAMP_SIZE = 8;
+
+export function PlotBoardWidget({ data, descriptor }: WidgetRendererProps) {
+  const settings = descriptor.widget.settings;
+  const historySeconds = Math.max(1, getNumberSetting(settings, "history_seconds", 30));
+  const yMin = getNumberSetting(settings, "y_min", -1);
+  const yMax = Math.max(yMin + 1e-6, getNumberSetting(settings, "y_max", 1));
+  const series = resolveSeries(data, settings);
+  const plotted = series.filter((entry) => entry.enabled);
+  const now = useNow(250);
+  const verdict = resolvePlotVerdict(series, now);
+  const windowStart = now - historySeconds * 1000;
+  const toX = (timestamp: string) =>
+    ((new Date(timestamp).getTime() - windowStart) / (historySeconds * 1000)) * PLOT_EXTENT;
+  const toY = (value: number) => ((yMax - Math.min(yMax, Math.max(yMin, value))) / (yMax - yMin)) * PLOT_EXTENT;
+  const zeroY = yMin < 0 && yMax > 0 ? toY(0) : null;
+
+  return (
+    <div className="bloom-plot-board bloom-info-card">
+      <header className="bloom-widget-head">
+        <div className="bloom-plot-board-title">
+          <strong>{descriptor.widget.title}</strong>
+          <span className="bloom-widget-readout">
+            {plotted.length} series · −{historySeconds} s → now
+          </span>
+        </div>
+        {verdict ? (
+          <output aria-live="polite" className="bloom-plot-board-verdict" data-verdict={verdict.kind}>
+            {formatVerdict(verdict)}
+          </output>
+        ) : null}
+      </header>
+      <div className="bloom-plot-board-area">
+        <svg
+          aria-label={`${descriptor.widget.title}: ${plotted.map((entry) => entry.label).join(", ") || "no series selected"}`}
+          preserveAspectRatio="none"
+          role="img"
+          viewBox={`0 0 ${PLOT_EXTENT} ${PLOT_EXTENT}`}
+        >
+          <path
+            className="bloom-plot-board-grid"
+            d="M250 0V1000M500 0V1000M750 0V1000M0 250H1000M0 750H1000"
+            vectorEffect="non-scaling-stroke"
+          />
+          {zeroY !== null ? (
+            <path
+              className="bloom-plot-board-zero"
+              d={`M0 ${zeroY}H${PLOT_EXTENT}`}
+              vectorEffect="non-scaling-stroke"
+            />
+          ) : null}
+          {plotted.map((entry) => {
+            const points = entry.samples
+              .filter((sample) => new Date(sample.timestamp).getTime() >= windowStart)
+              .map(
+                (sample, index) =>
+                  `${index === 0 ? "M" : "L"}${toX(sample.timestamp).toFixed(1)} ${toY(sample.value).toFixed(1)}`,
+              );
+            return points.length > 0 ? (
+              <path
+                className="bloom-plot-board-line"
+                d={points.join("")}
+                data-emphasis={entry.emphasis ? "true" : undefined}
+                data-series={entry.key}
+                key={entry.key}
+                strokeDasharray={entry.rampIndex >= RAMP_SIZE ? "8 6" : undefined}
+                style={seriesColor(entry.rampIndex)}
+                vectorEffect="non-scaling-stroke"
+              />
+            ) : null;
+          })}
+        </svg>
+        <span className="bloom-plot-board-axis" data-edge="top">
+          {formatBound(yMax)}
+        </span>
+        <span className="bloom-plot-board-axis" data-edge="bottom">
+          {formatBound(yMin)}
+        </span>
+        <span className="bloom-plot-board-axis" data-edge="start">
+          −{historySeconds} s
+        </span>
+        <span className="bloom-plot-board-axis" data-edge="end">
+          now
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRendererProps) {
+  const settings = descriptor.widget.settings;
+  const plotId = getStringSetting(settings, "plot_id", "");
+  const showValue = getBooleanSetting(settings, "show_value", false);
+  const unavailable = getBooleanSetting(settings, "show_unavailable", true) ? readPlotUnavailable(settings) : [];
+  const series = data?.type === "plot-series" ? data.series : [];
+
+  return (
+    <div className="bloom-plot-picker bloom-info-card">
+      {series.length === 0 && unavailable.length === 0 ? (
+        <p className="bloom-plot-picker-empty">No plot board “{plotId}” on this screen.</p>
+      ) : null}
+      <ul aria-label={descriptor.widget.title} className="bloom-plot-picker-list">
+        {series.map((entry) => (
+          <li key={entry.key}>
+            <button
+              aria-pressed={entry.enabled}
+              className="bloom-plot-picker-row"
+              onClick={() =>
+                onActionIntent?.({
+                  type: "plot-series-toggle",
+                  plotId,
+                  seriesKey: entry.key,
+                  widgetId: descriptor.widget.id,
+                  widgetKind: descriptor.widget.kind,
+                })
+              }
+              type="button"
+            >
+              <span aria-hidden="true" className="bloom-plot-picker-swatch" style={seriesColor(entry.rampIndex)} />
+              <span className="bloom-plot-picker-text">
+                <strong>{entry.label}</strong>
+                <span>{showValue ? entry.topic : `${entry.topic} · ${shortFieldPath(entry.fieldPath)}`}</span>
+              </span>
+              {showValue ? <output className="bloom-plot-picker-value">{formatLatest(entry)}</output> : null}
+            </button>
+          </li>
+        ))}
+        {unavailable.map((entry) => (
+          <li key={entry.label}>
+            <div aria-disabled="true" className="bloom-plot-picker-row" data-unavailable="true">
+              <span aria-hidden="true" className="bloom-plot-picker-swatch" />
+              <span className="bloom-plot-picker-text">
+                <strong>{entry.label}</strong>
+                <span>{entry.note}</span>
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function ValueStripWidget({ data, descriptor }: WidgetRendererProps) {
+  const series = resolveSeries(data, descriptor.widget.settings);
+
+  return (
+    <ul aria-label={descriptor.widget.title} className="bloom-value-strip">
+      {series.map((entry) => (
+        <li className="bloom-info-card bloom-value-strip-card" key={entry.key}>
+          <strong>{entry.label}</strong>
+          <span className="bloom-value-strip-topic">{entry.topic}</span>
+          <output className="bloom-value-strip-number" style={seriesColor(entry.rampIndex)}>
+            {formatLatest(entry)}
+          </output>
+          <span className="bloom-value-strip-unit">{entry.unit}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function resolveSeries(data: WidgetRendererProps["data"], settings: Record<string, unknown>) {
+  if (data?.type === "plot-series") {
+    return data.series;
+  }
+  return readPlotSeries(settings).map((entry): PlotSeriesSnapshot => ({ ...entry, samples: [] }));
+}
+
+function useNow(intervalMs: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), intervalMs);
+    return () => window.clearInterval(timer);
+  }, [intervalMs]);
+  return now;
+}
+
+function seriesColor(rampIndex: number): CSSProperties {
+  return { "--bloom-series-color": `var(--bloom-series-${(rampIndex % RAMP_SIZE) + 1})` } as CSSProperties;
+}
+
+function formatLatest(entry: PlotSeriesSnapshot): string {
+  const latest = entry.samples.at(-1);
+  return latest ? formatSignedValue(latest.value) : "—";
+}
+
+function formatBound(value: number): string {
+  return `${value < 0 ? "−" : "+"}${Math.abs(value).toFixed(1)}`;
+}
+
+/** `twist.linear.x` reads as `linear.x`: the message wrapper says nothing the topic does not. */
+function shortFieldPath(fieldPath: string): string {
+  return fieldPath.split(".").slice(-2).join(".");
+}
+
+function formatVerdict(verdict: PlotVerdict): string {
+  if (verdict.kind === "idle") {
+    return "nothing is commanding";
+  }
+  if (verdict.kind === "unexplained") {
+    return "an unplotted source is driving";
+  }
+  const names = verdict.active.map((label) => label.charAt(0).toLowerCase() + label.slice(1));
+  return names.length === 1 ? `${names[0]} is driving` : `${names.join(" and ")} are driving`;
+}

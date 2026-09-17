@@ -18,6 +18,8 @@ class WidgetKind(str, Enum):
     JOYSTICK = "joystick"
     LABEL = "label"
     PLOT = "plot"
+    PLOT_BOARD = "plot-board"
+    PLOT_PICKER = "plot-picker"
     POSITION_LIBRARY = "position-library"
     ROBOT_3D = "robot-3d"
     SLIDER = "slider"
@@ -25,6 +27,7 @@ class WidgetKind(str, Enum):
     TOPIC_ECHO = "topic-echo"
     TOPIC_PLOT = "topic-plot"
     UNKNOWN = "unknown"
+    VALUE_STRIP = "value-strip"
 
 
 class CanvasPresetId(str, Enum):

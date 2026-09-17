@@ -1,5 +1,11 @@
 import type { MotorAccessibilityPreset, WidgetKind } from "@bloom/api-client";
-import type { TopicMessage, TopicPlotSample, WidgetActionIntent, WidgetRenderDescriptor } from "@bloom/widgets";
+import type {
+  PlotSeriesConfig,
+  TopicMessage,
+  TopicPlotSample,
+  WidgetActionIntent,
+  WidgetRenderDescriptor,
+} from "@bloom/widgets";
 import type { ReactNode } from "react";
 
 export type SavedPositionEntry = {
@@ -8,6 +14,8 @@ export type SavedPositionEntry = {
   positions: readonly number[];
   description?: string;
 };
+
+export type PlotSeriesSnapshot = PlotSeriesConfig & { samples: readonly TopicPlotSample[] };
 
 export type WidgetDataSnapshot =
   | {
@@ -37,6 +45,11 @@ export type WidgetDataSnapshot =
   | {
       samples: readonly TopicPlotSample[];
       type: "plot";
+    }
+  | {
+      /** A plot board's or value strip's series; a picker receives its board's. */
+      series: readonly PlotSeriesSnapshot[];
+      type: "plot-series";
     }
   | {
       messages: readonly TopicMessage[];

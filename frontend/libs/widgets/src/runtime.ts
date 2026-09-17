@@ -125,6 +125,14 @@ export type WidgetActionIntent =
       zeroOnRelease?: boolean;
     }
   | {
+      /** A plot picker showing or hiding one of its board's series; view state, never a robot command. */
+      type: "plot-series-toggle";
+      plotId: string;
+      seriesKey: string;
+      widgetId: string;
+      widgetKind: WidgetKind;
+    }
+  | {
       /** Position-library operations, handled by the runtime shell over HTTP. */
       type: "position-op";
       op: "capture" | "delete" | "export";
