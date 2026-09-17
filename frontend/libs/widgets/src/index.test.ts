@@ -1132,9 +1132,8 @@ describe("legacy canvas configuration adapter", () => {
         orientation: "vertical",
       },
     });
-    expect((navigation?.settings.items as Array<{ targetScreenId: string }>)[0]?.targetScreenId).toBe(
-      "default_control",
-    );
+    const navigationItems = navigation?.settings.items as Array<{ targetScreenId: string }> | undefined;
+    expect(navigationItems?.[0]?.targetScreenId).toBe("default_control");
   });
 
   it("converts real legacy screens into a Bloom configuration bundle", () => {

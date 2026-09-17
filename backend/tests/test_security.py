@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -234,6 +236,31 @@ def test_production_settings_require_runtime_control_ownership() -> None:
         raise AssertionError("production settings should require runtime control ownership")
 
 
+def walk_api_routes(routes, prefix: str = "") -> Iterator[tuple[str, APIRoute]]:
+    """Yield every APIRoute with its full path, descending into included routers.
+
+    FastAPI 0.141 keeps an included router nested behind ``_IncludedRouter``
+    instead of flattening its routes into ``app.routes``, and the leaf route
+    holds only its own path, so the prefixes are gathered on the way down.
+    """
+    for route in routes:
+        if isinstance(route, APIRoute):
+            yield prefix + route.path, route
+            continue
+
+        nested = getattr(route, "routes", None)
+        if nested is not None:
+            yield from walk_api_routes(nested, prefix)
+            continue
+
+        included = getattr(route, "original_router", None)
+        if included is not None:
+            # A router's own prefix is already baked into its leaf paths; only
+            # the prefix given at include time is missing from them.
+            context_prefix = getattr(getattr(route, "include_context", None), "prefix", "")
+            yield from walk_api_routes(included.routes, prefix + context_prefix)
+
+
 def test_every_robot_facing_http_route_requires_runtime_ownership() -> None:
     app = create_app(
         Settings(environment="test", runtime_control_required=True),
@@ -249,12 +276,14 @@ def test_every_robot_facing_http_route_requires_runtime_ownership() -> None:
         ("POST", "/api/v1/runtime/stop/resume"),
     }
     checked_routes: set[tuple[str, str]] = set()
+    api_routes = list(walk_api_routes(app.routes))
+    # A walk that finds nothing would pass every assertion below, so the guard
+    # that matters is that it found the routes at all.
+    assert len(api_routes) > 20, f"route walk found only {len(api_routes)} API routes"
 
-    for route in app.routes:
-        if not isinstance(route, APIRoute):
-            continue
+    for path, route in api_routes:
         for method in route.methods:
-            key = (method, route.path)
+            key = (method, path)
             dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
             if key in protected_routes:
                 assert require_runtime_owner in dependency_calls, key

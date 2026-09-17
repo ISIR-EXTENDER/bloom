@@ -2052,34 +2052,31 @@ describe("App", () => {
       launchButton: "Launch Webcam visualizer runtime",
       visibleCopy: "Local webcam",
     },
-  ])("opens the seeded $heading runtime app without an empty screen", async ({
-    bundle,
-    configId,
-    heading,
-    launchButton,
-    visibleCopy,
-  }) => {
-    const runtimeActionClient = createRuntimeActionClient();
-    render(
-      <App
-        configurationClient={createConfigurationClient({
-          bundles: {
-            [configId]: bundle,
-          },
-          ids: [configId],
-        })}
-        runtimeActionClient={runtimeActionClient}
-      />,
-    );
+  ])(
+    "opens the seeded $heading runtime app without an empty screen",
+    async ({ bundle, configId, heading, launchButton, visibleCopy }) => {
+      const runtimeActionClient = createRuntimeActionClient();
+      render(
+        <App
+          configurationClient={createConfigurationClient({
+            bundles: {
+              [configId]: bundle,
+            },
+            ids: [configId],
+          })}
+          runtimeActionClient={runtimeActionClient}
+        />,
+      );
 
-    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: launchButton }));
+      fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+      fireEvent.click(await screen.findByRole("button", { name: launchButton }));
 
-    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
-    expect(screen.getByRole("heading", { level: 2, name: heading })).toBeVisible();
-    expect(screen.getAllByText(visibleCopy).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("region", { name: "Runtime screen coming soon" })).not.toBeInTheDocument();
-  });
+      expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
+      expect(screen.getByRole("heading", { level: 2, name: heading })).toBeVisible();
+      expect(screen.getAllByText(visibleCopy).length).toBeGreaterThan(0);
+      expect(screen.queryByRole("region", { name: "Runtime screen coming soon" })).not.toBeInTheDocument();
+    },
+  );
 
   it("renders an empty configuration state inside the main app", async () => {
     render(<App configurationClient={createConfigurationClient({ ids: [] })} />);
