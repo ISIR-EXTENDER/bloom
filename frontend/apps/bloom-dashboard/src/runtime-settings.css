@@ -174,8 +174,9 @@
 
 .runtime-settings-stepper output {
   font-family: var(--bloom-font-mono);
-  font-size: 28px;
+  font-size: clamp(18px, 1.9vw, 28px);
   text-align: center;
+  white-space: nowrap;
 }
 
 .runtime-settings-try-target {
@@ -260,9 +261,15 @@
   outline-offset: 2px;
 }
 
-/* Room to scroll the last card clear of the corner STOP. */
+/* The STOP rail. */
 .runtime-app-workspace > .runtime-settings > .runtime-settings-columns {
-  padding-bottom: 156px;
+  padding-right: 216px;
+}
+
+@media (max-width: 1100px) {
+  .runtime-app-workspace > .runtime-settings > .runtime-settings-columns {
+    padding-right: 146px;
+  }
 }
 
 @media (max-width: 900px) {

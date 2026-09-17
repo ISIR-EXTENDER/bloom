@@ -1262,9 +1262,33 @@
   touch-action: none;
 }
 
-/* Over settings and the tour there is no canvas shell to anchor it; STOP pins to the viewport corner. */
+/* Over settings and the tour there is no canvas to anchor it: STOP takes a filled rail the views keep clear. */
 .runtime-app-workspace > .runtime-stop-control {
   position: fixed;
+  top: 58px;
+  right: 14px;
+  bottom: 14px;
+  width: 188px;
+  height: auto;
+  border-radius: var(--bloom-radius-card);
+  background: var(--bloom-error);
+  color: var(--bloom-on-error);
+  box-shadow: none;
+  font-size: clamp(20px, 4vmin, 34px);
+  letter-spacing: 0.04em;
+}
+
+.runtime-app-workspace > .runtime-stop-control[data-stopped="true"] {
+  background: var(--bloom-ink);
+  color: var(--bloom-surface);
+  font-size: clamp(16px, 2.6vmin, 22px);
+}
+
+@media (max-width: 1100px) {
+  .runtime-app-workspace > .runtime-stop-control {
+    right: 10px;
+    width: 124px;
+  }
 }
 
 .runtime-stop-control[data-stopped="true"] {
