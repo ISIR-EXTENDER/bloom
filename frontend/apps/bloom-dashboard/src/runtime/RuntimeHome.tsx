@@ -114,10 +114,7 @@ export function RuntimeHome({
   const language = resolveLibraryLanguage(selected, chosenProfile, profileOverrides);
   const strings = useRuntimeStrings(language);
   const words = strings.library;
-  const viewport =
-    typeof window === "undefined"
-      ? { height: 720, width: 1280 }
-      : { height: window.innerHeight, width: window.innerWidth };
+  const viewport = useViewportSize();
 
   useEffect(() => {
     if (!menuOpen) {
@@ -310,6 +307,23 @@ export function RuntimeHome({
       </div>
     </section>
   );
+}
+
+/** The device class follows the window, so a resized or rotated screen does not keep reporting the old one. */
+function useViewportSize() {
+  const [size, setSize] = useState(readViewportSize);
+  useEffect(() => {
+    const update = () => setSize(readViewportSize());
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return size;
+}
+
+function readViewportSize() {
+  return typeof window === "undefined"
+    ? { height: 720, width: 1280 }
+    : { height: window.innerHeight, width: window.innerWidth };
 }
 
 function classSummary(app: LibraryApp, strings: RuntimeStrings): string {

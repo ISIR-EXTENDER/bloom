@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { ConfigurationBundle } from "@bloom/api-client";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
@@ -78,6 +78,20 @@ describe("the runtime library", () => {
       />,
     );
     expect(screen.getByRole("button", { name: "Sandbox V0.0" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("reports the device class of the window as it is now, not as it was at first render", () => {
+    const { innerHeight, innerWidth } = window;
+    renderLibrary();
+    expect(document.querySelector(".runtime-library-device p")?.textContent).toContain("Tablet");
+
+    act(() => {
+      Object.assign(window, { innerHeight: 1080, innerWidth: 1920 });
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    expect(document.querySelector(".runtime-library-device p")?.textContent).toContain("Desktop · 1920×1080");
+    Object.assign(window, { innerHeight, innerWidth });
   });
 
   it("closes the library menu on Escape", () => {
