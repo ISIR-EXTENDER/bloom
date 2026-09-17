@@ -198,7 +198,9 @@ Desktop, authored at `1920x1080`:
 - `1920x1080`: the authoring panel, and the current Extender configured resolution.
 
 `npm run visual:smoke` runs the three tablet viewports over the product routes and checks Bloom Debug, the only desktop
-app, at `1920x1080` and `1440x900`.
+app, at `1920x1080` and `1440x900`. It detects page-level horizontal overflow and writes the route matrix to
+`/tmp/bloom-visual-smoke`, or to `BLOOM_VISUAL_OUTPUT_DIR` when that is set. Physical target size, touch mapping, and
+assistive-device behavior still need the hardware checks in [the deployment guide](deployment.md).
 
 Density scale:
 
@@ -354,14 +356,96 @@ When a PR changes user-facing workflows, update the Help page and design system 
 
 ## Component Styleguide
 
-The lightweight component styleguide lives in `docs/component-styleguide.md`.
+Bloom promotes a visual pattern into `@bloom/ui` deliberately rather than by habit. This is the whole of that rule
+and the primitives it has produced so far.
 
-It documents current reusable primitives and the rule for promotion:
+### Promotion Rule
 
-- keep feature-specific CSS near the feature while it is still changing;
-- promote a component to `@bloom/ui` when it appears in multiple product areas or carries accessibility/design-system
-  behavior;
-- add examples and tests when promoting it.
+Keep a visual pattern near the feature while it is still changing. Promote it to `@bloom/ui` when at least one of these
+is true:
+
+- it appears in multiple product areas;
+- it carries accessibility behavior;
+- it depends on design-system tokens;
+- it prevents repeated card/action styles;
+- it should be shared by future apps.
+
+Promoted primitives need tests and examples.
+
+### Current Primitives
+
+#### `BloomThemeProvider`
+
+Applies Bloom theme tokens to a product area.
+
+Use for:
+
+- app-level theme previews;
+- runtime app rendering;
+- future profile/display presets.
+
+#### `BloomNavBar`
+
+Product navigation with brand, active item, and accessible button labels.
+
+Use for:
+
+- main dashboard navigation;
+- top-level product sections.
+
+Avoid using it inside a runtime app screen. Runtime uses its dedicated kiosk bar; product navigation stays outside the
+operating surface.
+
+#### `BloomButton`
+
+Reusable action button with `primary`, `secondary`, and `subtle` tones.
+
+Use for:
+
+- primary builder/runtime actions;
+- accessible fallbacks for drag/drop;
+- repeated card actions.
+
+Rules:
+
+- Primary actions should be rare and obvious.
+- Use `ariaLabel` when the visible text is not enough.
+- Avoid icon-only buttons unless the icon has a clear accessible name.
+
+#### `BloomCard`
+
+Reusable surface primitive with `default`, `soft`, and `canvas` tones.
+
+Use for:
+
+- reusable product cards;
+- app library cards;
+- help panels;
+- future styleguide examples.
+
+Feature-specific cards can stay local until their structure stabilizes.
+
+#### `BloomPanel`
+
+Section surface with `aria-labelledby` support.
+
+Use for:
+
+- grouped builder panels;
+- help/documentation panels;
+- future settings surfaces.
+
+#### `BloomTag`
+
+Small semantic label for readable metadata.
+
+Use for:
+
+- screen/app type labels;
+- source-app hints;
+- status-like non-critical metadata.
+
+Do not use tags as the only state signal for safety-critical information.
 
 ## Current Critique
 

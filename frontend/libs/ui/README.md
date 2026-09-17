@@ -26,9 +26,8 @@ visuals.
 
 Reference: [`docs/brand/bloom-mood-board.png`](../../../docs/brand/bloom-mood-board.png).
 
-Design system documentation: [`docs/design-system.md`](../../../docs/design-system.md).
-
-Component styleguide: [`docs/component-styleguide.md`](../../../docs/component-styleguide.md).
+Design system documentation, including the component styleguide and the rule for promoting a pattern into this
+package: [`docs/design-system.md`](../../../docs/design-system.md).
 
 Apps can override the default design system through theme tokens. The long-term builder flow should let users choose a
 preset, palette, or generated moodboard-based theme, then apply those tokens to the runtime app without rewriting widgets.

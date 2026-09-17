@@ -186,7 +186,7 @@ the lab subnet. Do not port-forward this development server or use it on an untr
 Every connected device reads and writes the same server-side `backend/data/bloom.db`; there are no browser-local JSON
 configuration files to synchronize. Builder saves are visible after another device reloads. Avoid editing the same app
 from two browsers at once because the last saved draft wins. Stop Bloom before copying the SQLite file for backup.
-See the [deployment guide](docs/extender-workspace-deployment.md#same-wi-fi-access) for verification, custom ports, and
+See the [deployment guide](docs/deployment.md#same-wi-fi-access) for verification, custom ports, and
 database operations.
 
 ### 4. Operate the Manager app
@@ -462,7 +462,7 @@ The full Extender/Petanque validation protocol is in
 [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md).
 The kiosk, controls, profiles, gamepad, and command-frame contract is in the
 [operator runtime guide](docs/operator-runtime.md). Deployment settings and tablet startup are in the
-[Extender workspace deployment guide](docs/extender-workspace-deployment.md).
+[Extender workspace deployment guide](docs/deployment.md).
 
 Bloom changes a mode or toggle only after the runtime acknowledges the command. **Not sent** means the configured
 gateway simulated the request; **Command failed** means it was blocked, unsupported, or failed. In both cases the
@@ -638,11 +638,10 @@ High-signal project docs:
 - [docs/design](docs/design): the design handoff, screen specs and implementation reviews
 - [docs/validation/ros-sim-e2e.md](docs/validation/ros-sim-e2e.md)
 - [docs/design-system.md](docs/design-system.md)
-- [docs/component-styleguide.md](docs/component-styleguide.md)
 - [docs/accessibility-plan.md](docs/accessibility-plan.md)
 - [docs/ux-design-handoff.md](docs/ux-design-handoff.md)
-- [docs/extender-tablet-hardware.md](docs/extender-tablet-hardware.md)
-- [docs/extender-workspace-deployment.md](docs/extender-workspace-deployment.md)
+- [docs/deployment.md#tablet-hardware](docs/deployment.md#tablet-hardware)
+- [docs/deployment.md](docs/deployment.md)
 - [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md)
 - [docs/legacy-retirement-gates.md](docs/legacy-retirement-gates.md)
 

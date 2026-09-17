@@ -17,10 +17,9 @@ Current documentation map, reviewed 2026-09-17.
   [`design-system.html`](design/design-system.html) reference, [device classes](design/device-classes.md), the
   [widget minimum size contract](design/widget-min-size.md), the [pad recipe](design/pad-recipe.md), the screen specs
   under [`design/screens/`](design/screens/), and the [implementation plan](design/implementation-plan.md).
-- [Component style guide](component-styleguide.md)
 - [Accessibility plan](accessibility-plan.md)
-- [Extender tablet hardware](extender-tablet-hardware.md)
-- [Extender workspace deployment](extender-workspace-deployment.md)
+- [Extender tablet hardware](deployment.md#tablet-hardware)
+- [Deployment and lab hardware](deployment.md)
 - [Security baseline](security-baseline.md)
 - [Release checklist](release-checklist.md)
 
