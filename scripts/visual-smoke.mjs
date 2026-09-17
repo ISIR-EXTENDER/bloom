@@ -16,10 +16,13 @@ const outputDir = process.env.BLOOM_VISUAL_OUTPUT_DIR ?? resolve("/tmp", "bloom-
 const port = Number(process.env.BLOOM_VISUAL_PORT ?? "5178");
 const baseUrl = `http://127.0.0.1:${port}`;
 
+// The three panels Bloom is actually deployed on. 1280x720 and 1820x720 are
+// the sizes the design references are drawn at; 1024x600 is the smallest
+// tablet in the field.
 const viewports = [
   { name: "tablet-native", width: 1024, height: 600 },
-  { name: "tablet-wide", width: 1280, height: 800 },
-  { name: "configured-hd", width: 1920, height: 1080 },
+  { name: "tablet-720", width: 1280, height: 720 },
+  { name: "tablet-wide-720", width: 1820, height: 720 },
 ];
 
 const routes = [
@@ -43,6 +46,7 @@ const routes = [
   { name: "explorer-positions", setup: (page) => showExplorerRuntimeScreen(page, "Positions") },
   { name: "explorer-feedback", setup: (page) => showExplorerRuntimeScreen(page, "Robot feedback") },
   { name: "explorer-sources", setup: (page) => showExplorerRuntimeScreen(page, "Command sources") },
+  { name: "explorer-joystick-lab", setup: (page) => showExplorerRuntimeScreen(page, "Joystick lab") },
 ];
 
 const configurations = Object.fromEntries(
@@ -88,6 +92,8 @@ try {
       for (const route of routes) {
         await route.setup(page);
         await assertNoHorizontalOverflow(page, `${viewport.name}:${route.name}`);
+        await assertRuntimeChromeCoversNothing(page, `${viewport.name}:${route.name}`);
+        await assertNothingIsClipped(page, `${viewport.name}:${route.name}`);
         if (route.name === "supervisor-mirror") {
           await assertSupervisorTopicsFit(page, viewport.name);
         }
@@ -618,6 +624,69 @@ async function assertPreviewControlsFit(page, label) {
 
   if (clipped.length > 0) {
     throw new Error(`${label} has clipped preview controls: ${JSON.stringify(clipped)}`);
+  }
+}
+
+/**
+ * STOP is chrome drawn over the artboard. It may cover empty canvas; it must
+ * never cover a widget, because the reading a supervisor needs disappears
+ * under it without any sign that it is there.
+ */
+async function assertRuntimeChromeCoversNothing(page, label) {
+  const covered = await page.evaluate(() => {
+    const chrome = [...document.querySelectorAll(".runtime-stop-control, .runtime-switch-bar")];
+    const widgetCount = document.querySelectorAll(".widget-preview-card").length;
+    if (chrome.length > 0 && widgetCount === 0) {
+      return [{ chrome: "selector", widget: "none matched", overlap: { height: 0, width: 0 } }];
+    }
+    if (chrome.length === 0) return [];
+    const widgets = [...document.querySelectorAll(".widget-preview-card")];
+    const overlaps = [];
+    for (const piece of chrome) {
+      const a = piece.getBoundingClientRect();
+      if (a.width === 0 || a.height === 0) continue;
+      for (const widget of widgets) {
+        const b = widget.getBoundingClientRect();
+        if (b.width === 0 || b.height === 0) continue;
+        const overlapWidth = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const overlapHeight = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (overlapWidth > 2 && overlapHeight > 2) {
+          overlaps.push({
+            chrome: piece.className,
+            overlap: { height: Math.round(overlapHeight), width: Math.round(overlapWidth) },
+            widget: widget.getAttribute("aria-label"),
+          });
+        }
+      }
+    }
+    return overlaps;
+  });
+
+  if (covered.length > 0) {
+    throw new Error(`${label} has runtime chrome covering widgets: ${JSON.stringify(covered)}`);
+  }
+}
+
+/** Overflow hidden by a container reads as a design choice; it is a loss. */
+async function assertNothingIsClipped(page, label) {
+  const clipped = await page.evaluate(() => {
+    const candidates = [...document.querySelectorAll(".widget-preview-card strong, .widget-preview-card output")];
+    return candidates
+      .filter((element) => {
+        const style = window.getComputedStyle(element);
+        if (style.overflow === "visible" && style.textOverflow !== "ellipsis") return false;
+        return element.scrollWidth - element.clientWidth > 2 || element.scrollHeight - element.clientHeight > 2;
+      })
+      .slice(0, 8)
+      .map((element) => ({
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        text: element.textContent?.trim().slice(0, 40),
+      }));
+  });
+
+  if (clipped.length > 0) {
+    throw new Error(`${label} clips widget text: ${JSON.stringify(clipped)}`);
   }
 }
 
