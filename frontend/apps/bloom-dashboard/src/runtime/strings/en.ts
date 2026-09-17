@@ -114,7 +114,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     heldBadge: "Robot held at zeros",
     close: "Close",
     facts: {
-      appVersion: "App version",
+      app: "App",
       commandFrame: "Command frame",
       commandFrameNote: "stamped on every twist",
       deviceClass: "Device class",

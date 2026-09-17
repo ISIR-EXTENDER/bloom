@@ -60,7 +60,7 @@ mirror.
 
 The sheet opens over a scrim with a **Robot held at zeros** badge. While it is open, only releases reach the robot: a
 joystick still held under the sheet does not resume motion when the zero goes out. It lists six read-only facts (link,
-publish rate, command frame, profile and its layout, device class, app version) and four actions: **Settings**,
+publish rate, command frame, profile and its layout, device class, app id) and four actions: **Settings**,
 **Switch role**, **Reload this app**, and **Exit to library**. Reloading returns to the same app and screen. Screen
 switching, the practice tour, the supervisor mirror, Builder shortcuts, and Help sit in a **More** group below them;
 the group scrolls, so **Resume operating** stays on screen. It closes the sheet and publishing resumes at once. Nothing

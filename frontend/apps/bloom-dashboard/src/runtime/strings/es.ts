@@ -115,7 +115,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     heldBadge: "Robot mantenido en cero",
     close: "Cerrar",
     facts: {
-      appVersion: "Versión de la app",
+      app: "Aplicación",
       commandFrame: "Marco de comando",
       commandFrameNote: "en cada comando de velocidad",
       deviceClass: "Tipo de dispositivo",

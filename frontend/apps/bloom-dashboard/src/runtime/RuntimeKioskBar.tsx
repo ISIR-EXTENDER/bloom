@@ -289,7 +289,7 @@ function RuntimeMaintenanceSheet({
               }
               value={window.innerWidth >= 1600 ? facts.deviceDesktop : facts.deviceTablet}
             />
-            <Fact label={facts.appVersion} note={application.name} value={application.id} />
+            <Fact label={facts.app} note={application.name} value={application.id} />
           </dl>
 
           {fitWarning ? (

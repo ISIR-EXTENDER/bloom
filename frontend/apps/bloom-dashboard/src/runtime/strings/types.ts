@@ -74,7 +74,7 @@ export type RuntimeStrings = {
     heldBadge: string;
     close: string;
     facts: {
-      appVersion: string;
+      app: string;
       commandFrame: string;
       commandFrameNote: string;
       deviceClass: string;
