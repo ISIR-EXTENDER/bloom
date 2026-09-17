@@ -195,6 +195,8 @@
 }
 
 .builder-overview-card-kicker {
+  /* The card's grid stretches rows to match its taller neighbour; keep the chip a pill. */
+  align-self: start;
   width: fit-content;
   padding: 6px 12px;
   border-radius: 999px;
