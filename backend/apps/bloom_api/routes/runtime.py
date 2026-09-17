@@ -3,6 +3,7 @@ from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import asdict
 from functools import partial
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -329,8 +330,16 @@ def list_runtime_audit_records(
 ) -> RuntimeAuditListResponse:
     audit_log = get_runtime_audit_log(request)
     return RuntimeAuditListResponse(
-        records=tuple(RuntimeAuditRecordResponse(**asdict(record)) for record in audit_log.list_records(limit))
+        records=tuple(
+            RuntimeAuditRecordResponse(**(asdict(record) | {"session_id": audit_session_alias(record.session_id)}))
+            for record in audit_log.list_records(limit)
+        )
     )
+
+
+def audit_session_alias(session_id: str) -> str:
+    """A session id proves ownership, so readers get a stable alias instead."""
+    return sha256(session_id.encode()).hexdigest()[:12] if session_id else ""
 
 
 @router.post("/actions", response_model=RuntimeActionDispatchResponse)

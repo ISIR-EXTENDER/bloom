@@ -88,6 +88,9 @@ WebSocket, because live status and topic samples are what a supervisor mirror is
 teleop commands and its attempts to claim or release control. Observer is enforced on the server, not by hiding
 buttons, so a supervisor screen can be given a key that cannot take the arm.
 
+A runtime session id proves ownership of the lease on HTTP, so it is never shown to anyone else. The audit log lists
+each session as a stable alias that correlates records without revealing the id.
+
 The dashboard reads its key from `VITE_BLOOM_API_KEY` at build time and sends it on every HTTP call. A browser cannot
 set headers on a WebSocket handshake, so the runtime socket carries the same key as the `api_key` query parameter: that
 is the compatibility fallback above, and it is why an authenticated deployment should terminate TLS in front of Bloom.

@@ -11,7 +11,7 @@ from apps.bloom_api.settings import Settings, get_settings
 from libs.config import InMemoryConfigurationRepository
 
 
-def make_secure_client() -> TestClient:
+def make_secure_client(**settings) -> TestClient:
     return TestClient(
         create_app(
             Settings(
@@ -21,6 +21,7 @@ def make_secure_client() -> TestClient:
                 http_rate_limit_per_minute=0,
                 observer_api_key="observer-secret",
                 operator_api_key="operator-secret",
+                **settings,
             ),
             InMemoryConfigurationRepository(),
         )
@@ -62,6 +63,28 @@ def test_an_observer_cannot_command_the_robot() -> None:
         ).status_code
         == 403
     )
+
+
+def test_the_audit_log_never_hands_out_the_owner_session() -> None:
+    client = make_secure_client(runtime_control_required=True)
+    operator = {"X-Bloom-API-Key": "operator-secret"}
+
+    with client.websocket_connect("/api/v1/runtime/ws?api_key=operator-secret") as websocket:
+        owner_session = websocket.receive_json()["session_id"]
+        websocket.send_json({"type": "claim_control"})
+        assert websocket.receive_json()["payload"]["is_owner"] is True
+        assert client.post("/api/v1/runtime/stop", headers=operator).status_code == 200
+
+        audit = client.get("/api/v1/runtime/audit", headers=OBSERVER).json()["records"]
+        seen_sessions = {record["session_id"] for record in audit} - {""}
+
+        assert seen_sessions
+        assert owner_session not in seen_sessions
+        for session in seen_sessions:
+            response = client.post(
+                "/api/v1/runtime/stop/resume", headers=operator | {"X-Bloom-Runtime-Session": session}
+            )
+            assert response.status_code == 409
 
 
 def test_an_observer_cannot_edit_configuration() -> None:

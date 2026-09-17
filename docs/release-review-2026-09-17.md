@@ -34,7 +34,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 
 | # | Finding | Where | Status |
 | --- | --- | --- | --- |
-| B1 | The audit log returns the owner's `session_id` to any observer, and that id alone proves ownership on HTTP, so another tablet can resume STOP or dispatch actions under the owner's lease. | `routes/runtime.py`, `security.py` | Open |
+| B1 | The audit log returns the owner's `session_id` to any observer, and that id alone proves ownership on HTTP, so another tablet can resume STOP or dispatch actions under the owner's lease. | `routes/runtime.py`, `security.py` | Fixed |
 | B2 | The observer key gets 403 on every configuration read, so a supervisor build with it cannot open an app. | `routes/configurations.py` | Open |
 | B3 | Production accepts short or equal admin/operator/observer keys (an observer key equal to the operator key can drive) and a `*` CORS origin. | `settings.py` | Open |
 | B4 | The WebSocket API key travels in the query string and lands in the access log. | `security.py`, `runtime-websocket-client.ts` | Open |

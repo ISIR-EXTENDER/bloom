@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
+from apps.bloom_api.routes.runtime import audit_session_alias
 from apps.bloom_api.settings import Settings
 from libs.config import (
     ConfigurationBundle,
@@ -741,7 +742,7 @@ def test_runtime_audit_endpoint_lists_recent_records() -> None:
         "message_type": "",
         "payload_summary": {},
         "recorded_at": "",
-        "session_id": "session-1",
+        "session_id": audit_session_alias("session-1"),
         "status": "accepted",
         "target": "/teleop_cmd",
         "topic": "",
