@@ -298,6 +298,8 @@ export type RuntimeAuditRecord = {
   message_type: string;
   payload_summary: Record<string, unknown>;
   recorded_at: string;
+  /** Identical records back to back, counted instead of stored again. */
+  repeats?: number;
   session_id: string;
   status: string;
   target: string;

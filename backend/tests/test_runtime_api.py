@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
-from apps.bloom_api.routes.runtime import audit_session_alias
+from apps.bloom_api.routes.runtime import audit_session_alias, build_runtime_ack
 from apps.bloom_api.settings import Settings
 from libs.config import (
     ConfigurationBundle,
@@ -25,6 +25,7 @@ from libs.sessions import (
     TeleopCommand,
     TeleopPublishReceipt,
     TeleopVector3,
+    parse_runtime_client_message,
 )
 
 EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
@@ -742,6 +743,7 @@ def test_runtime_audit_endpoint_lists_recent_records() -> None:
         "message_type": "",
         "payload_summary": {},
         "recorded_at": "",
+        "repeats": 1,
         "session_id": audit_session_alias("session-1"),
         "status": "accepted",
         "target": "/teleop_cmd",
@@ -1064,3 +1066,53 @@ def test_a_live_subscription_says_it_is_live() -> None:
 
     assert response["payload"]["live"] is True
     assert response["detail"] == "Subscribed to /cartesian_command."
+
+
+def test_a_teleop_stream_is_one_audit_record_with_a_count() -> None:
+    audit_log = InMemoryRuntimeAuditLog(max_records=5)
+    audit_log.record(RuntimeAuditRecord(channel="runtime_stop", detail="Runtime stop engaged.", status="accepted"))
+    for _ in range(900):
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="websocket_teleop",
+                detail="Cartesian command published in frame 'base_link'.",
+                session_id="session-1",
+                status="accepted",
+                target="/joystick_cartesian_command",
+            )
+        )
+
+    stream, stop = audit_log.list_records()
+
+    assert (stream.channel, stream.repeats) == ("websocket_teleop", 900)
+    assert stop.channel == "runtime_stop"
+
+
+def test_a_session_cannot_hold_unbounded_topic_subscriptions() -> None:
+    handles: dict = {}
+
+    class Handle:
+        def close(self) -> None:
+            pass
+
+    class Gateway:
+        def subscribe(self, subscription, on_sample):
+            return Handle()
+
+    def subscribe(widget_id: str):
+        message = parse_runtime_client_message(
+            {"type": "subscribe_topic", "topic": "/joint_states", "widget_id": widget_id}
+        )
+        return build_runtime_ack(
+            "s",
+            message,
+            topic_subscription_gateway=Gateway(),
+            on_topic_sample=lambda sample: None,
+            topic_subscription_handles=handles,
+        )
+
+    replies = [subscribe(f"widget-{index}").type for index in range(70)]
+
+    assert replies.count("subscription_ack") == 64
+    assert len(handles) == 64
+    assert subscribe("widget-0").type == "subscription_ack"

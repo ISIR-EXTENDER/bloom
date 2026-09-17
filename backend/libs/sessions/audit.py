@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any, Literal
 
@@ -27,6 +27,8 @@ class RuntimeAuditRecord:
     target: str = ""
     topic: str = ""
     recorded_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    #: Identical records back to back, such as a 30 Hz teleop stream, count here instead of filling the log.
+    repeats: int = 1
 
 
 class RuntimeAuditLog:
@@ -43,6 +45,10 @@ class InMemoryRuntimeAuditLog(RuntimeAuditLog):
         self._records: list[RuntimeAuditRecord] = []
 
     def record(self, record: RuntimeAuditRecord) -> None:
+        last = self._records[-1] if self._records else None
+        if last is not None and _same_event(last, record):
+            self._records[-1] = replace(record, repeats=last.repeats + 1)
+            return
         self._records.append(record)
         if len(self._records) > self._max_records:
             self._records = self._records[-self._max_records :]
@@ -50,6 +56,10 @@ class InMemoryRuntimeAuditLog(RuntimeAuditLog):
     def list_records(self, limit: int = 100) -> tuple[RuntimeAuditRecord, ...]:
         normalized_limit = max(0, min(limit, self._max_records))
         return tuple(reversed(self._records[-normalized_limit:]))
+
+
+def _same_event(left: RuntimeAuditRecord, right: RuntimeAuditRecord) -> bool:
+    return replace(left, recorded_at="", repeats=1) == replace(right, recorded_at="", repeats=1)
 
 
 def summarize_payload(payload: dict[str, Any]) -> dict[str, Any]:

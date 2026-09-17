@@ -180,7 +180,10 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
                 <li key={`${record.recorded_at}:${record.channel}:${record.topic}:${record.target}`}>
                   <strong data-status={record.status}>{record.status}</strong>
                   <span>{record.topic || record.target || record.channel}</span>
-                  <small>{record.detail}</small>
+                  <small>
+                    {record.detail}
+                    {record.repeats && record.repeats > 1 ? ` ×${record.repeats}` : null}
+                  </small>
                 </li>
               ))}
             </ul>

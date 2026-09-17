@@ -152,6 +152,7 @@ class RuntimeAuditRecordResponse(BaseModel):
     message_type: str
     payload_summary: dict = Field(default_factory=dict)
     recorded_at: str
+    repeats: int = 1
     session_id: str
     status: str
     target: str
@@ -321,6 +322,10 @@ def resume_runtime_stop(
 ) -> RuntimeStopStateResponse:
     state = execute_as_runtime_owner(request, lambda: get_runtime_stop_controller(request).resume())
     return RuntimeStopStateResponse(**asdict(state))
+
+
+# Each is a live ROS subscription; far more than any screen has widgets.
+MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION = 64
 
 
 @router.get("/audit", response_model=RuntimeAuditListResponse)
@@ -571,23 +576,34 @@ def record_runtime_action_rejection(
     )
 
 
-def get_position_library(request: Request, config_id: str = "", app_id: str = "") -> PositionLibrary:
+def find_position_library(request: Request, config_id: str = "", app_id: str = "") -> PositionLibrary | None:
     """One library per application.
 
     A pose is a joint vector in one arm's joint order. Sharing a single library
     across Explorer and Kinova let a six-joint Explorer pose appear in a Kinova
     export, where the same numbers mean different angles.
     """
+    return position_libraries(request).get(f"{config_id}:{app_id}")
+
+
+def get_position_library_for_write(request: Request, config_id: str = "", app_id: str = "") -> PositionLibrary:
+    # Only a real application gets a library, so arbitrary ids cannot grow the map.
+    if config_id or app_id:
+        try:
+            bundle = request.app.state.configuration_repository.get(config_id)
+        except (ConfigurationNotFoundError, ValueError):
+            bundle = None
+        if bundle is None or all(application.id != app_id for application in bundle.applications):
+            raise HTTPException(status_code=404, detail=f"no application '{app_id}' in configuration '{config_id}'")
+    return position_libraries(request).setdefault(f"{config_id}:{app_id}", PositionLibrary())
+
+
+def position_libraries(request: Request) -> dict[str, PositionLibrary]:
     libraries = getattr(request.app.state, "position_libraries", None)
     if libraries is None:
         libraries = {}
         request.app.state.position_libraries = libraries
-    key = f"{config_id}:{app_id}"
-    library = libraries.get(key)
-    if library is None:
-        library = PositionLibrary()
-        libraries[key] = library
-    return library
+    return libraries
 
 
 def to_position_response(pose: JointPose) -> SavedPositionResponse:
@@ -606,8 +622,9 @@ def list_saved_positions(
     config_id: str = "",
     _principal: BloomPrincipal = Depends(require_observer),
 ) -> SavedPositionListResponse:
-    library = get_position_library(request, config_id, app_id)
-    return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in library.list()))
+    library = find_position_library(request, config_id, app_id)
+    poses = library.list() if library is not None else ()
+    return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in poses))
 
 
 @router.post("/positions", response_model=SavedPositionResponse)
@@ -618,7 +635,7 @@ def save_position(
     config_id: str = "",
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> SavedPositionResponse:
-    library = get_position_library(request, config_id, app_id)
+    library = get_position_library_for_write(request, config_id, app_id)
     try:
         pose = JointPose(
             name=payload.name,
@@ -639,8 +656,8 @@ def delete_position(
     config_id: str = "",
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> SavedPositionListResponse:
-    library = get_position_library(request, config_id, app_id)
-    if not library.remove(name):
+    library = find_position_library(request, config_id, app_id)
+    if library is None or not library.remove(name):
         raise HTTPException(status_code=404, detail=f"no saved position named '{name}'")
     return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in library.list()))
 
@@ -658,8 +675,8 @@ def export_positions(
     between the two storage layers is an export the operator pastes into
     explorer_params.yaml and restarts the node to pick up.
     """
-    library = get_position_library(request, config_id, app_id)
-    poses = library.list()
+    library = find_position_library(request, config_id, app_id)
+    poses = library.list() if library is not None else ()
     try:
         return SavedPositionExportResponse(
             yaml=render_joint_targets_yaml(poses),
@@ -1226,6 +1243,19 @@ def build_runtime_ack(
     if isinstance(message, RuntimeSubscribeTopicMessage):
         if topic_subscription_gateway and on_topic_sample and topic_subscription_handles is not None:
             subscription_key = message.widget_id or message.topic
+            if (
+                subscription_key not in topic_subscription_handles
+                and len(topic_subscription_handles) >= MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION
+            ):
+                return RuntimeServerMessage(
+                    type="runtime_error",
+                    detail="Topic subscription could not be started.",
+                    payload={
+                        "message": f"a session may hold at most {MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION} subscriptions",
+                        "topic": message.topic,
+                    },
+                    session_id=session_id,
+                )
             try:
                 handle = topic_subscription_gateway.subscribe(
                     RuntimeTopicSubscription(

@@ -1,16 +1,25 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
-from libs.config import InMemoryConfigurationRepository
+from libs.config import InMemoryConfigurationRepository, load_configuration_file
 
 JOINTS = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"]
 HOME = [2.5, 0.3, -2.4, 2.97, 1.2, -0.5]
 BOIRE = [1.0, -0.2, 0.5, 1.5, -1.0, 0.25]
+MANAGER_APPS = ("explorer-manager", "kinova-manager")
+
+
+SEED_DIR = Path(__file__).parents[1] / "seed" / "applications"
 
 
 def make_client() -> TestClient:
-    return TestClient(create_app(Settings(environment="test"), InMemoryConfigurationRepository()))
+    repository = InMemoryConfigurationRepository(
+        {config_id: load_configuration_file(SEED_DIR / f"{config_id}.json") for config_id in MANAGER_APPS}
+    )
+    return TestClient(create_app(Settings(environment="test"), repository))
 
 
 def save(client: TestClient, name: str, positions, params: dict[str, str] | None = None):
@@ -111,3 +120,23 @@ def test_delete_removes_a_position() -> None:
 
     assert [item["name"] for item in remaining] == ["boire"]
     assert client.delete("/api/v1/runtime/positions/home").status_code == 404
+
+
+def test_reading_an_unknown_application_creates_nothing() -> None:
+    client = make_client()
+
+    for index in range(50):
+        params = {"config_id": f"made-up-{index}", "app_id": "x" * 200}
+        assert client.get("/api/v1/runtime/positions", params=params).json()["positions"] == []
+        assert client.get("/api/v1/runtime/positions/export", params=params).status_code == 422
+
+    assert getattr(client.app.state, "position_libraries", {}) == {}
+
+
+def test_saving_to_an_unknown_application_is_refused() -> None:
+    client = make_client()
+
+    unknown_config = save(client, "home", HOME, {"config_id": "made-up", "app_id": "explorer-manager"})
+    unknown_app = save(client, "home", HOME, {"config_id": "explorer-manager", "app_id": "made-up"})
+
+    assert (unknown_config.status_code, unknown_app.status_code) == (404, 404)
