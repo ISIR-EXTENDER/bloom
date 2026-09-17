@@ -111,6 +111,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   far is fixture, contract, or bench validation against a running
   `cartesian_manager` without a robot attached.
 - Bloom applies no scaling to commands, by design. See decision 0118.
+- Kinova Manager has no **Go home** button. `cartesian_manager`'s Kinova parameters define `home` over six joints with Explorer's angles, and joint 4 at 2.97 rad is outside the gen3 limit of 2.57 rad. The button returns once that target is corrected upstream.
 - `cartesian_manager` still does not publish authoritative active-mode feedback; Bloom labels the mode as last requested.
 - Directional switch scanning and combined scan-plus-dwell are covered by component, app, and bench-browser evidence,
   but still require validation with the intended physical switch and operators before participant use.

@@ -1073,8 +1073,8 @@
                 "height": 82
               },
               "settings": {
-                "offLabel": "Close gripper",
-                "onLabel": "Open gripper",
+                "offLabel": "Open",
+                "onLabel": "Closed",
                 "initialValue": false,
                 "show_details": false,
                 "topic": "/gripper_controller/commands",

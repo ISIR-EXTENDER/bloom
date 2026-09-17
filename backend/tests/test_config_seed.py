@@ -256,6 +256,14 @@ def test_cartesian_manager_monitors_use_its_twist_stamped_command_type() -> None
     assert checked > 0, "no cartesian_manager command monitors were checked"
 
 
+# Each robot's own gripper range: Explorer's tablet_interface contract, and the
+# Robotiq 85 knuckle joint (0.0-0.8 rad) on the Kinova.
+GRIPPER_CLOSE_OPEN = {
+    "explorer-manager": ({"data": [1.1]}, {"data": [0.2]}),
+    "kinova-manager": ({"data": [0.8]}, {"data": [0.0]}),
+}
+
+
 @pytest.mark.parametrize("config_id", ["explorer-manager", "kinova-manager"])
 def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> None:
     """The experiment UI replaces every physical joystick input on one screen."""
@@ -295,7 +303,7 @@ def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> 
     assert (
         parse_ros_payload_text(gripper["onPayload"]),
         parse_ros_payload_text(gripper["offPayload"]),
-    ) == ({"data": [1.1]}, {"data": [0.2]})
+    ) == GRIPPER_CLOSE_OPEN[config_id]
 
     for widget_id in ("drive-translation", "drive-rotation", "drive-z", "drive-rz"):
         value_mapping = widgets[widget_id].settings["runtime_binding"].get("value_mapping", {})

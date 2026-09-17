@@ -398,8 +398,8 @@
                 "show_details": true,
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [1.1]}",
-                "offPayload": "{data: [0.2]}"
+                "onPayload": "{data: [0.8]}",
+                "offPayload": "{data: [0.0]}"
               }
             },
             {
@@ -531,39 +531,11 @@
               }
             },
             {
-              "id": "positions-home",
-              "kind": "command-button",
-              "title": "Home",
-              "layout": {
-                "x": 20,
-                "y": 120,
-                "width": 300,
-                "height": 130
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "positions-home",
-                "action_label": "Request behaviour/joint_target/home",
-                "button_label": "Go home",
-                "cancellable": false,
-                "command": "behaviour/joint_target/home",
-                "topic": "/mode_request",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "behaviour/joint_target/home"
-                },
-                "show_details": true,
-                "confirm_press": true,
-                "confirm_label": "Press again to move",
-                "confirm_timeout_seconds": 5
-              }
-            },
-            {
               "id": "positions-release",
               "kind": "command-button",
               "title": "Release",
               "layout": {
-                "x": 340,
+                "x": 20,
                 "y": 120,
                 "width": 300,
                 "height": 130
@@ -1128,14 +1100,14 @@
                 "height": 82
               },
               "settings": {
-                "offLabel": "Close gripper",
-                "onLabel": "Open gripper",
+                "offLabel": "Open",
+                "onLabel": "Closed",
                 "initialValue": false,
                 "show_details": false,
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [1.1]}",
-                "offPayload": "{data: [0.2]}"
+                "onPayload": "{data: [0.8]}",
+                "offPayload": "{data: [0.0]}"
               }
             },
             {

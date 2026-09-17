@@ -113,7 +113,7 @@ The shipped **Explorer Manager** and **Kinova Manager** Drive screens expose the
 | Neutral | Requests `geometric/both`. |
 | Jaco | Requests `geometric/jaco`. |
 | Hold snake | Requests `geometric/snake` while pressed and `geometric/both` on release. A pointer holds it; keyboard, switch scanning, and dwell latch it instead, and the next activation releases it. An unattended latch releases itself after 15 seconds. |
-| Gripper | Publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. |
+| Gripper | Explorer publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. Kinova publishes close `[0.8]` and open `[0.0]`, the Robotiq 85 knuckle joint's range. The label names the gripper's commanded state. |
 | Speed sliders | Start at the configured controller limits and publish linear/angular limits to `qontrol_controller`. They are disabled when the ROS graph has no subscriber. |
 
 The four Cartesian widgets are composed into one complete 6-DoF twist. Releasing one source clears only its

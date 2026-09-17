@@ -153,7 +153,7 @@ describe("switch scanning on a drive screen", () => {
         "Both",
         "Jaco",
         "Hold snake",
-        "Gripper: Close gripper",
+        "Gripper: Open",
         "Stop Translation",
         "Stop Rotation",
         "Increase Height by 0.01",
