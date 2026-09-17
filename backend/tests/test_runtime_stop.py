@@ -1,5 +1,6 @@
 """The runtime STOP latch: engage, assert toward the robot, outrank every path."""
 
+import base64
 from pathlib import Path
 from threading import Event, Thread
 
@@ -20,6 +21,7 @@ from libs.sessions import (
     TeleopPublishReceipt,
 )
 
+JPEG_MARKERS = b"\xff\xd8\xff\xd9"
 EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
 
 
@@ -128,6 +130,47 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
     assert cancel_request.topic == "/mode_request"
     assert cancel_request.message_type == "std_msgs/msg/String"
     assert cancel_request.payload == {"data": CANCEL_MODE_REQUEST}
+
+
+def test_stop_zeros_the_legacy_teleop_topic_on_the_teleop_command_backend() -> None:
+    teleop_gateway = RecordingTeleopGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test", ros_command_backend="teleop_command"),
+            InMemoryConfigurationRepository(),
+            ros_publisher_gateway=RecordingRosPublisherGateway(),
+            teleop_command_gateway=teleop_gateway,
+        )
+    )
+
+    assert client.post("/api/v1/runtime/stop").status_code == 200
+    assert [command.target for command in teleop_gateway.commands] == ["/teleop_cmd"]
+
+
+def test_camera_frames_are_refused_while_stopped() -> None:
+    published: list[str] = []
+
+    class RecordingCameraGateway:
+        def publish(self, topic, frame, frame_id):
+            published.append(topic)
+
+    client = TestClient(
+        create_app(
+            Settings(environment="test", allowed_ros_publish_topics=("/ui/camera/compressed",)),
+            InMemoryConfigurationRepository(),
+        )
+    )
+    client.app.state.camera_frame_gateway = RecordingCameraGateway()
+    frame = "data:image/jpeg;base64," + base64.b64encode(JPEG_MARKERS * 16).decode("ascii")
+    request = {"topic": "/ui/camera/compressed", "image_data_url": frame, "frame_id": "tablet"}
+
+    client.post("/api/v1/runtime/stop")
+    refused = client.post("/api/v1/runtime/camera-frames", json=request)
+    client.post("/api/v1/runtime/stop/resume")
+    accepted = client.post("/api/v1/runtime/camera-frames", json=request)
+
+    assert (refused.status_code, accepted.status_code) == (409, 200)
+    assert published == ["/ui/camera/compressed"]
 
 
 def test_stop_latches_even_when_every_publish_fails() -> None:

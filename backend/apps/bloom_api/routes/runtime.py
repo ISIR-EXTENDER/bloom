@@ -740,8 +740,23 @@ def publish_camera_frame(
         )
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    stop_controller = get_runtime_stop_controller(request)
     try:
-        execute_as_runtime_owner(request, lambda: gateway.publish(payload.topic, frame, payload.frame_id))
+        execute_as_runtime_owner(
+            request,
+            lambda: stop_controller.execute_if_running(lambda: gateway.publish(payload.topic, frame, payload.frame_id)),
+        )
+    except RuntimeStoppedError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_camera_frame",
+                detail=str(exc),
+                message_type="sensor_msgs/msg/CompressedImage",
+                status="rejected",
+                topic=payload.topic,
+            )
+        )
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 

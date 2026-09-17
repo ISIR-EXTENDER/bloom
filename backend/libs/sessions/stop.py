@@ -19,6 +19,8 @@ from libs.sessions.teleop import TeleopCommand, TeleopCommandGateway, TeleopVect
 CANCEL_MODE_REQUEST = "behaviour/passthrough"
 DEFAULT_MODE_REQUEST_TOPIC = "/mode_request"
 DEFAULT_TELEOP_TARGET = "/joystick_cartesian_command"
+# sandbox_controller, on the legacy teleop_command backend.
+LEGACY_TELEOP_TARGET = "/teleop_cmd"
 
 T = TypeVar("T")
 

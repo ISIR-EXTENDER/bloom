@@ -34,6 +34,7 @@ from libs.sessions import (
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
+from libs.sessions.stop import DEFAULT_TELEOP_TARGET, LEGACY_TELEOP_TARGET
 from libs.sessions.topics import is_live_subscription_gateway
 
 
@@ -88,6 +89,9 @@ def create_app(
         teleop_gateway=app.state.teleop_command_gateway,
         ros_publisher_gateway=app.state.ros_publisher_gateway,
         audit_log=app.state.runtime_audit_log,
+        teleop_target=(
+            LEGACY_TELEOP_TARGET if app_settings.ros_command_backend == "teleop_command" else DEFAULT_TELEOP_TARGET
+        ),
     )
     app.state.runtime_session_manager = RuntimeSessionManager()
     app.state.http_rate_limit_buckets = {}
