@@ -60,8 +60,8 @@ the pads could have, and a pad's corners are empty by construction.
 | `drive-rotation` | joystick | 532,146 384×384 | pad 380 |
 | `drive-rz` (Pivot) | slider horizontal | 532,548 384×114 | overlaid title |
 | `bench-speed-label` | label | 928,14 338×24 | |
-| `drive-max-linear-speed` | slider horizontal | 928,146 338×120 | continuous |
-| `drive-max-angular-speed` | slider horizontal | 928,278 338×120 | continuous |
+| `drive-max-linear-speed` | slider horizontal | 928,134 338×132 | continuous, 56 px thumb |
+| `drive-max-angular-speed` | slider horizontal | 928,278 338×132 | continuous, 56 px thumb |
 | `drive-fault-reset` (kinova) | command-button | 590,548 326×114 | |
 | **reserved** `stop` | runtime chrome | 928,410 338×252 | |
 

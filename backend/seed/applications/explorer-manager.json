@@ -442,9 +442,9 @@
               "title": "Max linear speed",
               "layout": {
                 "x": 928,
-                "y": 146,
+                "y": 134,
                 "width": 338,
-                "height": 120
+                "height": 132
               },
               "settings": {
                 "max": 0.3,
@@ -466,7 +466,7 @@
                 "x": 928,
                 "y": 278,
                 "width": 338,
-                "height": 120
+                "height": 132
               },
               "settings": {
                 "max": 0.8,

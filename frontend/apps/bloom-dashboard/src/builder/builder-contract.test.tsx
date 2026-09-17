@@ -56,7 +56,7 @@ describe("the builder canvas", () => {
     );
     const handle = screen.getByRole("button", { name: "Select and move Max linear speed widget" });
 
-    // From 928,146 down into STOP at 928,410.
+    // From 928,134 down into STOP at 928,410.
     fireEvent.pointerDown(handle, { button: 0, clientX: 0, clientY: 0 });
     fireEvent.pointerMove(window, { clientX: 0, clientY: 300 });
     fireEvent.pointerUp(window);
@@ -67,8 +67,9 @@ describe("the builder canvas", () => {
   });
 
   it.each([
-    ["Select and move Max linear speed widget", { clientX: 0, clientY: 96 }, "top", "146px"],
-    ["Resize Max angular speed widget", { clientX: 0, clientY: 8 }, "height", "120px"],
+    ["Select and move Max linear speed widget", { clientX: 0, clientY: 96 }, "top", "134px"],
+    // The card now ends flush with the STOP region, so the legal preview is a shrink.
+    ["Resize Max angular speed widget", { clientX: 0, clientY: -8 }, "height", "132px"],
   ] as const)(
     "puts a refused %s back where it started, not at its last legal preview",
     (name, legal, property, start) => {
@@ -104,7 +105,7 @@ describe("the builder workspace", () => {
   });
 
   it.each([
-    ["drive-max-angular-speed", { y: 286 }, "Max angular speed", "reach into the reserved STOP region"],
+    ["drive-max-angular-speed", { y: 286, height: 110 }, "Max angular speed", "reach into the reserved STOP region"],
     ["drive-rz", {}, "Pivot", "run past the 1280×676 canvas"],
   ])("explains instead of resizing %s where the minimum would not fit", (id, move, title, reason) => {
     const detailed = {
