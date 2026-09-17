@@ -181,9 +181,10 @@ configuration and app, but the tour remains available for repetition.
   `aria-disabled` and leave the keyboard tab order while the latch is on, so a keyboard or screen-reader operator is
   not walked through controls that answer nothing; STOP and resume stay reachable.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
-- Scanning stays on while stopped, and the highlight rests on the resume control as its only target. A switch press
-  there resumes: waiting out the scan cycle is itself the deliberate act the pointer hold asks for. Dwell still rests
-  the full second on the control.
+- Scanning stays on while stopped, and the highlight rests on the resume control and on the **⋯** button, so an
+  operator who stopped is not held on that screen. Neither a switch press nor a dwell can hold, so resume asks twice:
+  the first activation arms it and the control reads **PRESS AGAIN TO RESUME**, the second within eight seconds
+  resumes, and the arming lapses on its own. A pointer still holds the full second.
 - Link, stop, and recovery transitions can produce audio cues when the selected profile enables them.
 
 This control does not replace the robot's hardware emergency stop, controller limits, or the operator's normal lab

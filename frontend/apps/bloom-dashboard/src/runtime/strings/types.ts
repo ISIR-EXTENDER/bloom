@@ -11,7 +11,14 @@ export type RuntimeStrings = {
     ready: string;
     stopped: string;
   };
-  stop: { engage: string; engageAria: string; resume: string; resumeAria: string };
+  stop: {
+    engage: string;
+    engageAria: string;
+    resume: string;
+    resumeAria: string;
+    resumeConfirm: string;
+    resumeConfirmAria: string;
+  };
   control: {
     anotherOwner: string;
     claim: string;

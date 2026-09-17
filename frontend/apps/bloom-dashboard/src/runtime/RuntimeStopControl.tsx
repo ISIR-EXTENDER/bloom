@@ -1,4 +1,5 @@
 import type { RuntimeLanguage } from "@bloom/api-client";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAssistiveActivation } from "./assistive-activation";
 import { useRuntimeStrings } from "./strings";
@@ -6,6 +7,8 @@ import { useHoldGesture } from "./use-hold-gesture";
 import type { RegionRect } from "./use-reserved-region-rect";
 
 const RESUME_HOLD_MS = 1000;
+/** How long an armed assistive resume waits for its confirming press. */
+const ASSISTIVE_RESUME_WINDOW_MS = 8000;
 /**
  * The only positive tab index in the runtime: STOP was the second-to-last tab
  * stop on a drive screen, and nothing else may come before it.
@@ -48,9 +51,43 @@ export function RuntimeStopControl({
     }
   };
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
-  // A scan or dwell activation already took its time to get here; the pointer
-  // hold is unchanged.
-  const resumeRef = useAssistiveActivation<HTMLButtonElement>(resume);
+  const [assistiveArmed, setAssistiveArmed] = useState(false);
+  const armedTimerRef = useRef<number | null>(null);
+  const disarm = useCallback(() => {
+    if (armedTimerRef.current !== null) {
+      window.clearTimeout(armedTimerRef.current);
+      armedTimerRef.current = null;
+    }
+    setAssistiveArmed(false);
+  }, []);
+  // A switch or dwell activation cannot hold, and one press must not restart the
+  // robot: the first arms, the second within the window resumes.
+  const resumeAssistively = () => {
+    if (resumeDisabled) {
+      return;
+    }
+    if (assistiveArmed) {
+      disarm();
+      resume();
+      return;
+    }
+    setAssistiveArmed(true);
+    armedTimerRef.current = window.setTimeout(() => {
+      armedTimerRef.current = null;
+      setAssistiveArmed(false);
+    }, ASSISTIVE_RESUME_WINDOW_MS);
+  };
+  const resumeRef = useAssistiveActivation<HTMLButtonElement>(resumeAssistively);
+  useEffect(() => {
+    if (!stopped) {
+      disarm();
+    }
+    return () => {
+      if (armedTimerRef.current !== null) {
+        window.clearTimeout(armedTimerRef.current);
+      }
+    };
+  }, [disarm, stopped]);
   const startResumeHold = () => {
     if (!resumeDisabled) {
       resumeHold.start();
@@ -61,7 +98,9 @@ export function RuntimeStopControl({
     return (
       <button
         key="resume"
-        aria-label={`${strings.stop.resumeAria}${resumeDisabledReason ? `. ${resumeDisabledReason}` : ""}`}
+        aria-label={`${assistiveArmed ? strings.stop.resumeConfirmAria : strings.stop.resumeAria}${
+          resumeDisabledReason ? `. ${resumeDisabledReason}` : ""
+        }`}
         className="runtime-stop-control"
         data-dwell-action="resume"
         data-dwell-min-ms={RESUME_HOLD_MS}
@@ -86,7 +125,7 @@ export function RuntimeStopControl({
         tabIndex={STOP_TAB_INDEX}
         type="button"
       >
-        <span className="runtime-stop-label">{strings.stop.resume}</span>
+        <span className="runtime-stop-label">{assistiveArmed ? strings.stop.resumeConfirm : strings.stop.resume}</span>
         {requestError || resumeDisabledReason ? (
           <span className="runtime-stop-error">{requestError || resumeDisabledReason}</span>
         ) : null}

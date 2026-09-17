@@ -271,7 +271,9 @@ export function RuntimeWorkspace({
     if (runtimeControlBlocked) {
       return target.hasAttribute("data-runtime-control-independent");
     }
-    return !stopped || target.dataset.dwellAction === "resume";
+    // Stopped: resume, and the way out. Maintenance holds motion anyway, so a
+    // switch or dwell operator is not locked on the screen they stopped on.
+    return !stopped || target.dataset.dwellAction === "resume" || target.hasAttribute("data-assistive-maintenance");
   };
   const gamepad = useGamepadInput({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,

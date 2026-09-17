@@ -19,6 +19,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
+  latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
+  resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.
+- **A stopped switch or dwell operator can still reach maintenance**, and through it Settings, another screen, another
+  role, or the way out. Only resume was reachable before.
 - **STOP is the first scan target** of every cycle, on every surface that draws it. It used to sit last in the screen's
   DOM order, 28 s away at a 1400 ms scan period.
 - **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A

@@ -168,6 +168,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         <button
           aria-label={strings.kiosk.maintenanceAria}
           className="runtime-kiosk-maintenance"
+          data-assistive-maintenance=""
           onBlur={holdProgress.cancel}
           onKeyDown={(event) => {
             if (!event.repeat && (event.key === "Enter" || event.key === " ")) {

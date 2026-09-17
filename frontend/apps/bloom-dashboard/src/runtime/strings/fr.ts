@@ -16,6 +16,8 @@ export const frRuntimeStrings: RuntimeStrings = {
     engageAria: "Arrêter le robot",
     resume: "MAINTENIR POUR REPRENDRE",
     resumeAria: "Maintenir une seconde pour reprendre",
+    resumeConfirm: "APPUYEZ ENCORE POUR REPRENDRE",
+    resumeConfirmAria: "Appuyez encore pour reprendre",
   },
   control: {
     anotherOwner: "Un autre opérateur commande ce robot",

@@ -16,6 +16,8 @@ export const enRuntimeStrings: RuntimeStrings = {
     engageAria: "Stop the robot",
     resume: "HOLD TO RESUME",
     resumeAria: "Hold for one second to resume",
+    resumeConfirm: "PRESS AGAIN TO RESUME",
+    resumeConfirmAria: "Press again to resume",
   },
   control: {
     anotherOwner: "Another operator controls this robot",

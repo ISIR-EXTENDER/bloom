@@ -64,9 +64,16 @@ describe("a switch operator can undo their own STOP", () => {
     const resume = await screen.findByRole("button", { name: /Hold for one second to resume/ });
 
     // The switch bar is the operator's only input: it must still be there, and
-    // the highlight must rest on resume rather than stop altogether.
+    // the highlight must rest on resume or on the way out of the screen.
     await waitFor(() => expect(document.querySelector("[data-scan-switch]")).not.toBeNull());
     await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(resume));
+
+    // One press arms; a switch cannot hold, and one press must not restart the robot.
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+    });
+    await screen.findByRole("button", { name: /Press again to resume/ });
+    expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
 
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
