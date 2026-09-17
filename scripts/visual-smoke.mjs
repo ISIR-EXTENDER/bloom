@@ -50,16 +50,19 @@ const routes = [
 ];
 
 /**
- * Where "STOP covers nothing" holds today. Drive and Joystick Lab leave the
- * bottom-right corner free; Positions, Robot feedback and Command sources each
- * run a widget into it, and STOP covers about 128x115 of one at 1024x600.
- * Sandbox's legacy screens do the same and their echoes grow as samples
- * arrive, so asserting there measures the fixture. The fix is a decision, not
- * a nudge: reserve STOP a lane in the shell and every screen loses fit, or
- * re-author four screens. Measured and tracked in
- * docs/ux-design-review-2-plan.md.
+ * Every operator screen Bloom ships. STOP is chrome pinned to the bottom-right
+ * of the viewport, so the shipped apps leave that corner free: no widget ends
+ * past x=1090 while also reaching below y=545 on the 1280x720 artboard.
+ * Sandbox's lab screens still tile into it, and their topic echoes grow as
+ * samples arrive, so asserting there would measure the fixture.
  */
-const ROUTES_GUARANTEEING_CLEAR_CHROME = new Set(["explorer-drive", "explorer-joystick-lab"]);
+const ROUTES_GUARANTEEING_CLEAR_CHROME = new Set([
+  "explorer-drive",
+  "explorer-feedback",
+  "explorer-joystick-lab",
+  "explorer-positions",
+  "explorer-sources",
+]);
 
 const configurations = Object.fromEntries(
   await Promise.all(

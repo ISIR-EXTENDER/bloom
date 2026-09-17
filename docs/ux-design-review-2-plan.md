@@ -225,30 +225,31 @@ open the runtime socket for live status and topic samples. Its teleop commands a
 control are refused by the server, not hidden by the interface, so a supervisor screen can hold a key that cannot take
 the arm.
 
-### Measured, not yet fixed: STOP covers widgets at 1024x600
+### Fixed: STOP no longer covers a widget
 
 The widened visual gate found a real instance of finding 11 on shipped apps. STOP is 176x132 of chrome pinned to the
-bottom-right of the viewport, drawn over the artboard. Three Explorer screens run a widget into that corner, so at
-1024x600 the reading disappears underneath it:
+bottom-right of the viewport, drawn over the artboard, and at 1024x600 it covered a joint-target echo on Explorer
+Positions by 128x115, with the same corner taken on Robot feedback and Command sources. Kinova Manager carried the
+identical geometry.
 
-| Screen | Widget | Covered |
-| --- | --- | --- |
-| Positions | Joint target topic echo | 128x115 px |
-| Robot feedback | Manipulability plot | about the same corner |
-| Command sources | Event log | about the same corner |
+Both apps now keep that corner clear. On the 1280x720 artboard no widget ends past x=1070 while also reaching below
+y=545, which is the lane STOP occupies once the screen is scaled to the smallest panel:
 
-Drive and Joystick Lab leave the corner free and are asserted on every run. Sandbox's legacy screens have the same
-shape of problem, and their topic echoes grow as samples arrive, so asserting there measures the fixture.
+| Screen | Change |
+| --- | --- |
+| Positions | The joint-target echo narrows from 610 to 420 |
+| Command sources | The event log narrows from 610 to 420 |
+| Robot feedback | The lower row rebalances into three columns ending at x=1070 |
 
-Two ways out, and it is a decision rather than a nudge:
+The boundary was measured, not guessed: at 440 wide the echo still clipped STOP by five pixels, so the lane edge sits
+near x=1085 and the screens stop short of it.
 
-- **Reserve STOP a lane in the shell**, which is what `kiosk-runtime-spec.md` describes: STOP lives in the body's right
-  column instead of floating over the canvas. Correct for every screen ever authored, at the cost of fit on every
-  screen. The runtime already discloses a fit below 1.0, so the loss would at least be visible.
-- **Re-author the three screens** so nothing occupies the bottom-right corner. Cheaper now, and it leaves the next
-  person free to author the same collision again.
+The gate asserts every Explorer screen on every run, so authoring a widget back into that corner fails CI rather than
+shipping. Sandbox's lab screens still tile into the corner and stay exempt: their topic echoes grow as samples arrive,
+so asserting there measures the fixture rather than the layout.
 
-The first is the real fix. It needs the handoff owner's agreement because it changes every screen's scale.
+Reserving STOP a lane in the shell, which is what `kiosk-runtime-spec.md` describes, remains the structural fix. It
+would protect screens nobody has authored yet, at the cost of fit on every screen, and it is still worth deciding.
 
 ## How the work is run
 

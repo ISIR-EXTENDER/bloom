@@ -537,7 +537,7 @@
               "layout": {
                 "x": 650,
                 "y": 270,
-                "width": 610,
+                "width": 420,
                 "height": 420
               },
               "settings": {
@@ -652,7 +652,7 @@
               "layout": {
                 "x": 20,
                 "y": 290,
-                "width": 400,
+                "width": 336,
                 "height": 380
               },
               "settings": {
@@ -669,9 +669,9 @@
               "kind": "topic-echo",
               "title": "Joint states",
               "layout": {
-                "x": 440,
+                "x": 376,
                 "y": 290,
-                "width": 400,
+                "width": 336,
                 "height": 380
               },
               "settings": {
@@ -688,9 +688,9 @@
               "kind": "topic-plot",
               "title": "Manipulability",
               "layout": {
-                "x": 860,
+                "x": 732,
                 "y": 290,
-                "width": 400,
+                "width": 338,
                 "height": 380
               },
               "settings": {
@@ -819,7 +819,7 @@
               "layout": {
                 "x": 650,
                 "y": 400,
-                "width": 610,
+                "width": 420,
                 "height": 290
               },
               "settings": {
