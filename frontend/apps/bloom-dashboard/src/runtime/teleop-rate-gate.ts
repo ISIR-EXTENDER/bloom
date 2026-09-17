@@ -5,6 +5,7 @@ import { isZeroTwist } from "./teleop-composition";
 
 export type TeleopSendOutcome = {
   detail: string;
+  frameId?: string;
   status: "accepted" | "coalesced" | "simulated";
 };
 
@@ -101,6 +102,6 @@ export class TeleopRateGate {
 
   private async sendNow(request: RuntimeTeleopCommandRequest): Promise<TeleopSendOutcome> {
     const response = await this.send(request);
-    return { detail: response.detail, status: response.payload.status };
+    return { detail: response.detail, frameId: response.payload.frame_id, status: response.payload.status };
   }
 }

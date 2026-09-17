@@ -47,13 +47,13 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
     of offering everything and letting the ones that need ROS fail quietly.
     """
     settings: Settings = request.app.state.settings
+    supports_command_frames = settings.ros_command_backend == "cartesian_manager"
     return RuntimeCapabilitiesResponse(
         capabilities=[
             RuntimeCapabilityResponse(id=capability.id, available=capability.available, detail=capability.detail)
             for capability in describe_runtime_capabilities(request.app.state)
         ],
-        command_frame_id=settings.ros_command_frame_id,
-        command_frame_ids=list(settings.allowed_command_frame_ids),
+        command_frame_id=settings.ros_command_frame_id if supports_command_frames else "",
+        command_frame_ids=list(settings.allowed_command_frame_ids) if supports_command_frames else [],
         robot_name=settings.robot_name,
     )
-

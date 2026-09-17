@@ -29,6 +29,8 @@ class TeleopPublishReceipt:
     detail: str
     status: TeleopPublishStatus
     target: str
+    #: Effective ROS frame used by the adapter; empty for unframed transports.
+    frame_id: str = ""
 
 
 class TeleopCommandGateway(Protocol):
@@ -42,6 +44,7 @@ class NoopTeleopCommandGateway:
     def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
         return TeleopPublishReceipt(
             detail="Teleop gateway is not configured.",
+            frame_id=command.frame_id,
             status="simulated",
             target=command.target,
         )

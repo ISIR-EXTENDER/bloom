@@ -21,7 +21,7 @@ describe("runtime teleop suspension", () => {
         return {
           type: "teleop_ack" as const,
           detail: "Accepted.",
-          payload: { ...request, status: "accepted" as const },
+          payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" as const },
         };
       }),
     };

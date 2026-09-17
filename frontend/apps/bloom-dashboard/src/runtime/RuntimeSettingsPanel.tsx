@@ -19,6 +19,7 @@ type RuntimeSettingsPanelProps = {
   baseCommandFrameId: string | null;
   baseProfile: ResolvedRuntimeProfile;
   onChange: (overrides: RuntimeProfileOverrides) => void;
+  onCommandFrameSelect: (frameId: string) => Promise<{ accepted: boolean; detail?: string }>;
   onDone: () => void;
   onOpenTour: () => void;
   overrides: RuntimeProfileOverrides;
@@ -48,6 +49,7 @@ export function RuntimeSettingsPanel({
   baseCommandFrameId,
   baseProfile,
   onChange,
+  onCommandFrameSelect,
   onDone,
   onOpenTour,
   overrides,
@@ -59,6 +61,12 @@ export function RuntimeSettingsPanel({
   const lastPreviewActivationRef = useRef(0);
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>("movement");
   const [draft, setDraft] = useState(() => normalizeRuntimeProfileOverrides(overrides));
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const [frameSelection, setFrameSelection] = useState<{ error: string; pending: boolean }>({
+    error: "",
+    pending: false,
+  });
   const [previewVector, setPreviewVector] = useState<PreviewVector>(ZERO_VECTOR);
   const profile = useMemo(() => applyRuntimeProfileOverrides(baseProfile, draft), [baseProfile, draft]);
   const strings = useRuntimeStrings(profile.language);
@@ -94,6 +102,21 @@ export function RuntimeSettingsPanel({
     const candidate = { ...draft, [key]: nextValue };
     const clampedProfile = applyRuntimeProfileOverrides(baseProfile, candidate);
     commitDraft({ ...draft, [key]: clampedProfile[key] });
+  };
+
+  const selectCommandFrame = async (commandFrameId: string) => {
+    setFrameSelection({ error: "", pending: true });
+    try {
+      const result = await onCommandFrameSelect(commandFrameId);
+      if (!result.accepted) {
+        setFrameSelection({ error: result.detail ?? "Command frame change was rejected.", pending: false });
+        return;
+      }
+      commitDraft({ ...draftRef.current, commandFrameId });
+      setFrameSelection({ error: "", pending: false });
+    } catch (error: unknown) {
+      setFrameSelection({ error: getErrorMessage(error), pending: false });
+    }
   };
 
   const activatePreview = (nextVector: PreviewVector) => {
@@ -207,7 +230,9 @@ export function RuntimeSettingsPanel({
                 activeFrameId={effectiveCommandFrameId}
                 commandFrameIds={commandFrameIds}
                 disabled={teleopActive}
-                onSelect={(commandFrameId) => commitDraft({ ...draft, commandFrameId })}
+                error={frameSelection.error}
+                onSelect={selectCommandFrame}
+                pending={frameSelection.pending}
                 strings={strings}
               />
             ) : null}
@@ -466,13 +491,17 @@ function FrameSettings({
   activeFrameId,
   commandFrameIds,
   disabled,
+  error,
   onSelect,
+  pending,
   strings,
 }: {
   activeFrameId: string | null;
   commandFrameIds: readonly string[];
   disabled: boolean;
-  onSelect: (frameId: string) => void;
+  error: string;
+  onSelect: (frameId: string) => Promise<void>;
+  pending: boolean;
   strings: RuntimeStrings;
 }) {
   return (
@@ -482,16 +511,21 @@ function FrameSettings({
         <h3>{strings.settings.directionHeading}</h3>
       </div>
       {disabled ? <p className="runtime-settings-notice">{strings.settings.directionRelease}</p> : null}
+      {error ? (
+        <p className="runtime-settings-notice" role="alert">
+          {error}
+        </p>
+      ) : null}
       {commandFrameIds.length > 0 ? (
-        <div className="runtime-settings-frame-options">
+        <div aria-busy={pending} className="runtime-settings-frame-options">
           {commandFrameIds.map((frameId) => {
             const frame = describeCommandFrame(frameId, strings);
             return (
               <button
                 aria-pressed={activeFrameId === frameId}
-                disabled={disabled}
+                disabled={disabled || pending}
                 key={frameId}
-                onClick={() => onSelect(frameId)}
+                onClick={() => void onSelect(frameId)}
                 type="button"
               >
                 <strong>{frame.label}</strong>
@@ -642,4 +676,8 @@ function clampPreviewAxis(value: number): number {
 
 function formatPreviewAxis(value: number): string {
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Command frame change failed.";
 }

@@ -75,6 +75,7 @@ def test_gateway_publishes_stamped_twist(monkeypatch) -> None:
 
     published = node.publishers["/joystick_cartesian_command"].messages[0]
     assert receipt.status == "accepted"
+    assert receipt.frame_id == "base_link"
     assert published.twist.linear.x == 0.1
     assert published.twist.linear.y == -0.2
     assert published.twist.angular.z == 0.3

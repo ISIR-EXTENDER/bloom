@@ -130,6 +130,11 @@ export function BuilderAppConfig({
       ...(draftApplication.runtime_policy.command_frame_id ? [draftApplication.runtime_policy.command_frame_id] : []),
     ]),
   );
+  const selectedCommandFrameId = draftApplication.runtime_policy.command_frame_id ?? "";
+  const supportedCommandFrameIds = runtimeCapabilityReport?.command_frame_ids;
+  const commandFrameUnavailable = Boolean(
+    supportedCommandFrameIds && selectedCommandFrameId && !supportedCommandFrameIds.includes(selectedCommandFrameId),
+  );
 
   useEffect(() => {
     setDraftApplication(application);
@@ -140,7 +145,7 @@ export function BuilderAppConfig({
   }, [application]);
 
   const saveDraft = async () => {
-    if (!isDirty || isSaving) {
+    if (!isDirty || isSaving || commandFrameUnavailable) {
       return;
     }
 
@@ -356,7 +361,7 @@ export function BuilderAppConfig({
           <button className="builder-back-button" onClick={onBackToHome} type="button">
             Back to apps
           </button>
-          <button disabled={!isDirty || isSaving} onClick={saveDraft} type="button">
+          <button disabled={!isDirty || isSaving || commandFrameUnavailable} onClick={saveDraft} type="button">
             {isSaving ? "Saving..." : "Save app"}
           </button>
           <button
@@ -420,6 +425,8 @@ export function BuilderAppConfig({
             <label className="builder-settings-field">
               <span>Cartesian command frame</span>
               <select
+                aria-describedby={commandFrameUnavailable ? "builder-command-frame-error" : undefined}
+                aria-invalid={commandFrameUnavailable}
                 onChange={(event) => {
                   setDraftApplication((currentApplication) => ({
                     ...currentApplication,
@@ -430,7 +437,7 @@ export function BuilderAppConfig({
                   }));
                   setSaveState({ status: "idle" });
                 }}
-                value={draftApplication.runtime_policy.command_frame_id ?? ""}
+                value={selectedCommandFrameId}
               >
                 <option value="">
                   {runtimeCapabilityReport?.command_frame_id
@@ -438,12 +445,24 @@ export function BuilderAppConfig({
                     : "Backend default"}
                 </option>
                 {commandFrameIds.map((frameId) => (
-                  <option key={frameId} value={frameId}>
+                  <option
+                    disabled={Boolean(
+                      supportedCommandFrameIds && !supportedCommandFrameIds.includes(frameId),
+                    )}
+                    key={frameId}
+                    value={frameId}
+                  >
                     {frameId}
+                    {supportedCommandFrameIds && !supportedCommandFrameIds.includes(frameId) ? " (unavailable)" : ""}
                   </option>
                 ))}
               </select>
             </label>
+            {commandFrameUnavailable ? (
+              <p className="builder-inline-error" id="builder-command-frame-error" role="alert">
+                This frame is not available on the connected robot. Choose a supported frame before saving.
+              </p>
+            ) : null}
             <button className="builder-secondary-action" onClick={syncRuntimePolicyFromActionPresets} type="button">
               Sync publish guardrails from presets
             </button>

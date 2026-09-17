@@ -63,6 +63,7 @@ function renderSettings(
       baseCommandFrameId="base_link"
       baseProfile={defaultProfile}
       onChange={onChange}
+      onCommandFrameSelect={vi.fn(async () => ({ accepted: true }))}
       onDone={vi.fn()}
       onOpenTour={vi.fn()}
       overrides={overrides}

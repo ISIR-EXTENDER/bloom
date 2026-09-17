@@ -49,6 +49,7 @@ function createRuntimeActionClient() {
       detail: "Teleop command accepted.",
       payload: {
         angular: request.angular,
+        frame_id: request.frame_id ?? "",
         linear: request.linear,
         mode: request.mode,
         seq: request.seq,
@@ -87,7 +88,16 @@ describe("the Explorer Manager joystick lab", () => {
     fireEvent.keyUp(translation, { key: "ArrowRight" });
     await waitFor(() => expect(toolFrame()).toBeEnabled());
     fireEvent.click(toolFrame());
-    expect(screen.getByTitle("Reference frame for operator commands")).toHaveTextContent("effector_frame");
+    await waitFor(() =>
+      expect(screen.getByTitle("Reference frame for operator commands")).toHaveTextContent("effector_frame"),
+    );
+    expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        frame_id: "effector_frame",
+        linear: { x: 0, y: 0, z: 0 },
+        angular: { x: 0, y: 0, z: 0 },
+      }),
+    );
 
     fireEvent.keyDown(translation, { key: "ArrowRight" });
     fireEvent.keyDown(translation, { key: "ArrowRight" });

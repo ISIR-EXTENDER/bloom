@@ -121,6 +121,7 @@ def build_teleop_ack(
         detail=receipt.detail,
         payload={
             "angular": message.angular.model_dump(),
+            "frame_id": receipt.frame_id or message.frame_id,
             "linear": message.linear.model_dump(),
             "mode": message.mode,
             "seq": message.seq,

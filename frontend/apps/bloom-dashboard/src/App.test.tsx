@@ -2324,6 +2324,7 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
       detail: "Teleop command accepted.",
       payload: {
         angular: request.angular,
+        frame_id: request.frame_id ?? "",
         linear: request.linear,
         mode: request.mode,
         seq: request.seq,

@@ -17,7 +17,7 @@ describe("runtime action dispatcher", () => {
       sendTeleopCommand: vi.fn(async (request) => ({
         type: "teleop_ack" as const,
         detail: "Accepted.",
-        payload: { ...request, status: "accepted" as const },
+        payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" as const },
       })),
     };
     const composer = new TeleopTwistComposer();
@@ -469,6 +469,7 @@ describe("runtime action dispatcher", () => {
         detail: "Teleop command accepted.",
         payload: {
           angular: request.angular,
+          frame_id: request.frame_id ?? "",
           linear: request.linear,
           mode: request.mode,
           seq: request.seq,

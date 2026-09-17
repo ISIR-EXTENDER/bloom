@@ -18,7 +18,7 @@ function accepted(request: RuntimeTeleopCommandRequest): RuntimeTeleopCommandRes
   return {
     type: "teleop_ack",
     detail: "Accepted.",
-    payload: { ...request, status: "accepted" },
+    payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" },
   };
 }
 

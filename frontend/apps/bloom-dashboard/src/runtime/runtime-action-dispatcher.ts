@@ -39,6 +39,7 @@ export type RuntimeTeleopCommandResponse = {
   detail: string;
   payload: {
     angular: RuntimeVector3;
+    frame_id: string;
     linear: RuntimeVector3;
     mode: number;
     seq: number;
@@ -166,6 +167,7 @@ export type RuntimeActionDispatchOptions = {
   teleopComposer?: TeleopTwistComposer;
   teleopCommandSender?: (request: RuntimeTeleopCommandRequest) => Promise<{
     detail: string;
+    frameId?: string;
     status: "accepted" | "coalesced" | "simulated";
   }>;
   teleopSequence?: number;
@@ -202,7 +204,7 @@ async function dispatchCommandIntent(
 ): Promise<RuntimeActionDispatchResult> {
   const teleopFrameId = resolveTeleopFrameId(intent.runtimeBinding);
   if (teleopFrameId) {
-    return dispatchTeleopFrameIntent(intent, teleopFrameId, options);
+    return dispatchTeleopFrameIntent(client, intent, teleopFrameId, options);
   }
 
   const preset = findActionPreset(intent, options.actionPresets ?? []);
@@ -280,11 +282,12 @@ async function dispatchCommandIntent(
   }
 }
 
-function dispatchTeleopFrameIntent(
+async function dispatchTeleopFrameIntent(
+  client: RuntimeActionClient,
   intent: Extract<WidgetActionIntent, { type: "command" }>,
   frameId: string,
   options: RuntimeActionDispatchOptions,
-): RuntimeActionDispatchResult {
+): Promise<RuntimeActionDispatchResult> {
   if (options.allowedCommandFrameIds && !options.allowedCommandFrameIds.includes(frameId)) {
     return {
       intent,
@@ -314,12 +317,61 @@ function dispatchTeleopFrameIntent(
     };
   }
 
-  options.onCommandFrameChange(frameId);
-  return {
-    intent,
-    status: "accepted",
-    detail: `Command frame changed to "${frameId}" for this operator session.`,
+  const request: RuntimeTeleopCommandRequest = {
+    type: "teleop_cmd",
+    angular: { x: 0, y: 0, z: 0 },
+    frame_id: frameId,
+    linear: { x: 0, y: 0, z: 0 },
+    mode: 0,
+    seq: options.teleopSequence ?? 0,
+    target: "/joystick_cartesian_command",
   };
+  const policyError = validateTeleopCommandRequest(request, options.runtimePolicy);
+  if (policyError) {
+    return { intent, request, status: "blocked", detail: policyError };
+  }
+  if (!options.teleopCommandSender && !client.sendTeleopCommand) {
+    return {
+      intent,
+      request,
+      status: "unsupported",
+      detail: "Runtime frame selection needs a live teleop connection.",
+    };
+  }
+
+  try {
+    const outcome = options.teleopCommandSender
+      ? await options.teleopCommandSender(request)
+      : await client.sendTeleopCommand?.(request).then((response) => ({
+          detail: response.detail,
+          frameId: response.payload.frame_id,
+          status: response.payload.status,
+        }));
+    if (!outcome) {
+      throw new Error("Runtime frame selection did not receive a teleop acknowledgement.");
+    }
+    if (outcome.status !== "accepted") {
+      return { intent, request, status: outcome.status, detail: outcome.detail };
+    }
+    if (outcome.frameId !== frameId) {
+      return {
+        intent,
+        request,
+        status: "failed",
+        detail: `Backend acknowledged command frame "${outcome.frameId ?? "<missing>"}" instead of "${frameId}".`,
+      };
+    }
+
+    options.onCommandFrameChange(frameId);
+    return {
+      intent,
+      request,
+      status: "accepted",
+      detail: `Command frame changed to "${frameId}" for this operator session.`,
+    };
+  } catch (error: unknown) {
+    return { intent, request, status: "failed", detail: getErrorMessage(error) };
+  }
 }
 
 async function dispatchTopicPublishIntent(
@@ -376,6 +428,15 @@ async function dispatchTeleopValueIntent(
     options.runtimePolicy?.command_frame_id,
   );
   if (request) {
+    const frameError = validateCommandFrameRequest(request, options.allowedCommandFrameIds);
+    if (frameError) {
+      return {
+        intent,
+        request,
+        status: "blocked",
+        detail: frameError,
+      };
+    }
     const policyError = validateTeleopCommandRequest(request, options.runtimePolicy);
     if (policyError) {
       return {
@@ -669,6 +730,16 @@ function validateTeleopCommandRequest(
     return null;
   }
   return `Teleop target "${request.target}" is not allowed by this app runtime policy.`;
+}
+
+function validateCommandFrameRequest(
+  request: RuntimeTeleopCommandRequest,
+  allowedCommandFrameIds: readonly string[] | undefined,
+): string | null {
+  if (!request.frame_id || !allowedCommandFrameIds || allowedCommandFrameIds.includes(request.frame_id)) {
+    return null;
+  }
+  return `Command frame "${request.frame_id}" is not available on this robot.`;
 }
 
 function isAllowedByPolicy(value: string, allowedValues: readonly string[]): boolean {

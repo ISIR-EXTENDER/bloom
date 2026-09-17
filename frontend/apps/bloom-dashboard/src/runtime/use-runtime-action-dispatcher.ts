@@ -1,5 +1,5 @@
 import type { RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import type { WidgetActionIntent } from "@bloom/widgets";
+import { resolveTeleopFrameId, type WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dispatchRuntimeActionIntent,
@@ -93,7 +93,11 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         ].slice(0, 6),
       );
 
-      const teleopSequence = intent.type === "value-change" ? ++nextTeleopSequence.current : undefined;
+      const teleopSequence =
+        intent.type === "value-change" ||
+        (intent.type === "command" && resolveTeleopFrameId(intent.runtimeBinding) !== null)
+          ? ++nextTeleopSequence.current
+          : undefined;
 
       const pendingResult = dispatchRuntimeActionIntent(client, intent, {
         actionPresets: options.actionPresets,

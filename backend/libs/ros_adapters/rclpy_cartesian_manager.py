@@ -53,6 +53,7 @@ class RclpyCartesianManagerGateway:
         frame_id = command.frame_id or self._command_frame_id
         return TeleopPublishReceipt(
             detail=f"Cartesian command published in frame '{frame_id or '<manager default>'}'.",
+            frame_id=frame_id,
             status="accepted",
             target=command.target,
         )

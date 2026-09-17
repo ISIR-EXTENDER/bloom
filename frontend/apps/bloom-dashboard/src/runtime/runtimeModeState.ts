@@ -146,6 +146,7 @@ export function createRuntimeControlStateByWidgetId(
   options: {
     activeCommandFrameId?: string | null;
     allowedCommandFrameIds?: readonly string[] | null;
+    commandFrameError?: string | null;
     runtimeCapabilities?: readonly RuntimeCapability[] | null;
     teleopActive?: boolean;
     topicStatuses?: readonly RosTopicStatus[] | null;
@@ -189,6 +190,15 @@ export function createRuntimeControlStateByWidgetId(
       }
     }
 
+    if (options.commandFrameError && usesTeleopAdapter(widget)) {
+      controlState = {
+        ...controlState,
+        disabled: true,
+        disabledReason: options.commandFrameError,
+        unavailable: true,
+      };
+    }
+
     const commandTopic = resolveWidgetCommandTopic(widget);
     if (commandTopic && options.topicStatuses !== undefined) {
       const topicStatus = options.topicStatuses?.find((candidate) => candidate.name === commandTopic);
@@ -215,6 +225,16 @@ export function createRuntimeControlStateByWidgetId(
   }
 
   return controlStateByWidgetId;
+}
+
+function usesTeleopAdapter(widget: WidgetConfig): boolean {
+  const binding = widget.settings.runtime_binding;
+  return (
+    typeof binding === "object" &&
+    binding !== null &&
+    !Array.isArray(binding) &&
+    (binding as Record<string, unknown>).adapter === "teleop"
+  );
 }
 
 /**
