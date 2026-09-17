@@ -330,6 +330,16 @@ describe("maintenance", () => {
     );
   });
 
+  it("keeps Close and Resume operating outside the region that scrolls", () => {
+    renderBar();
+    hold(1600);
+
+    const body = screen.getByRole("dialog").querySelector(".runtime-maintenance-body");
+    expect(body?.contains(screen.getByRole("button", { name: "Settings" }))).toBe(true);
+    expect(body?.contains(screen.getByRole("button", { name: "Close" }))).toBe(false);
+    expect(body?.contains(screen.getByRole("button", { name: "Resume operating" }))).toBe(false);
+  });
+
   it("closes on Escape, Close and Resume operating", () => {
     renderBar();
     hold(1600);

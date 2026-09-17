@@ -261,149 +261,156 @@ function RuntimeMaintenanceSheet({
           </button>
         </header>
 
-        <dl className="runtime-maintenance-facts">
-          <Fact
-            label={facts.link}
-            note={controlOwnerLabel ? `${facts.linkNote} · ${facts.youControl}` : facts.linkNote}
-            value={linkValue}
-          />
-          <Fact label={facts.publishRate} note={facts.publishRateNote} value={strings.kiosk.rate(rate)} />
-          <Fact label={facts.commandFrame} note={facts.commandFrameNote} value={commandFrameId ?? facts.notReported} />
-          <Fact label={facts.profile} note={profile.layoutId || screen.id} value={profile.name} />
-          <Fact
-            label={facts.deviceClass}
-            note={
-              gamepadName
-                ? `${facts.deviceNote(authoredWidth, authoredHeight)} · ${facts.gamepadConnected(gamepadName)}`
-                : facts.deviceNote(authoredWidth, authoredHeight)
-            }
-            value={window.innerWidth >= 1600 ? facts.deviceDesktop : facts.deviceTablet}
-          />
-          <Fact label={facts.appVersion} note={application.name} value={application.id} />
-        </dl>
+        {/* Only the middle scrolls: Close and Resume operating stay on screen at any height. */}
+        <div className="runtime-maintenance-body">
+          <dl className="runtime-maintenance-facts">
+            <Fact
+              label={facts.link}
+              note={controlOwnerLabel ? `${facts.linkNote} · ${facts.youControl}` : facts.linkNote}
+              value={linkValue}
+            />
+            <Fact label={facts.publishRate} note={facts.publishRateNote} value={strings.kiosk.rate(rate)} />
+            <Fact
+              label={facts.commandFrame}
+              note={facts.commandFrameNote}
+              value={commandFrameId ?? facts.notReported}
+            />
+            <Fact label={facts.profile} note={profile.layoutId || screen.id} value={profile.name} />
+            <Fact
+              label={facts.deviceClass}
+              note={
+                gamepadName
+                  ? `${facts.deviceNote(authoredWidth, authoredHeight)} · ${facts.gamepadConnected(gamepadName)}`
+                  : facts.deviceNote(authoredWidth, authoredHeight)
+              }
+              value={window.innerWidth >= 1600 ? facts.deviceDesktop : facts.deviceTablet}
+            />
+            <Fact label={facts.appVersion} note={application.name} value={application.id} />
+          </dl>
 
-        {fitWarning ? (
-          <div className="runtime-maintenance-fit-warning" role="alert">
-            <strong>{strings.kiosk.fitTitle}</strong>
-            <p>
-              {strings.kiosk.fitDescription(
-                fitWarning.authoredWidth,
-                fitWarning.authoredHeight,
-                fitWarning.shownPercent,
-              )}
-            </p>
-          </div>
-        ) : null}
-
-        <h3 className="runtime-maintenance-group">{strings.kiosk.actions}</h3>
-        <div className="runtime-maintenance-actions">
-          <ActionButton
-            hint={strings.kiosk.settingsHint}
-            label={strings.kiosk.settings}
-            onClick={closeAnd(onOpenSettings)}
-          />
-          {onSwitchProfile && profiles.length > 1 ? (
-            <button
-              aria-label={strings.kiosk.switchRoleAria}
-              className="runtime-maintenance-action"
-              onBlur={roleHold.cancel}
-              onKeyDown={(event) => {
-                if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
-                  roleHold.start();
-                }
-              }}
-              onKeyUp={roleHold.cancel}
-              onPointerCancel={roleHold.cancel}
-              onPointerDown={roleHold.start}
-              onPointerLeave={roleHold.cancel}
-              onPointerUp={roleHold.cancel}
-              type="button"
-            >
-              <span
-                aria-hidden="true"
-                className="runtime-maintenance-action-hold"
-                style={{ transform: `scaleX(${roleHold.value})` }}
-              />
-              <strong>{strings.kiosk.switchRole}</strong>
-              <span>{strings.kiosk.switchRoleHint}</span>
-            </button>
+          {fitWarning ? (
+            <div className="runtime-maintenance-fit-warning" role="alert">
+              <strong>{strings.kiosk.fitTitle}</strong>
+              <p>
+                {strings.kiosk.fitDescription(
+                  fitWarning.authoredWidth,
+                  fitWarning.authoredHeight,
+                  fitWarning.shownPercent,
+                )}
+              </p>
+            </div>
           ) : null}
-          <ActionButton hint={strings.kiosk.reloadHint} label={strings.kiosk.reload} onClick={onReload} />
-          <ActionButton
-            danger
-            hint={strings.kiosk.exitHint}
-            label={strings.kiosk.exitToLibrary}
-            onClick={closeAnd(onOpenAppLibrary)}
-          />
+
+          <h3 className="runtime-maintenance-group">{strings.kiosk.actions}</h3>
+          <div className="runtime-maintenance-actions">
+            <ActionButton
+              hint={strings.kiosk.settingsHint}
+              label={strings.kiosk.settings}
+              onClick={closeAnd(onOpenSettings)}
+            />
+            {onSwitchProfile && profiles.length > 1 ? (
+              <button
+                aria-label={strings.kiosk.switchRoleAria}
+                className="runtime-maintenance-action"
+                onBlur={roleHold.cancel}
+                onKeyDown={(event) => {
+                  if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
+                    roleHold.start();
+                  }
+                }}
+                onKeyUp={roleHold.cancel}
+                onPointerCancel={roleHold.cancel}
+                onPointerDown={roleHold.start}
+                onPointerLeave={roleHold.cancel}
+                onPointerUp={roleHold.cancel}
+                type="button"
+              >
+                <span
+                  aria-hidden="true"
+                  className="runtime-maintenance-action-hold"
+                  style={{ transform: `scaleX(${roleHold.value})` }}
+                />
+                <strong>{strings.kiosk.switchRole}</strong>
+                <span>{strings.kiosk.switchRoleHint}</span>
+              </button>
+            ) : null}
+            <ActionButton hint={strings.kiosk.reloadHint} label={strings.kiosk.reload} onClick={onReload} />
+            <ActionButton
+              danger
+              hint={strings.kiosk.exitHint}
+              label={strings.kiosk.exitToLibrary}
+              onClick={closeAnd(onOpenAppLibrary)}
+            />
+          </div>
+
+          {choosingRole ? (
+            <fieldset className="runtime-maintenance-roles">
+              <legend>{strings.kiosk.switchRoleChoose}</legend>
+              {profiles.map((candidate) => (
+                <button
+                  aria-pressed={candidate.id === profile.id}
+                  data-role={resolveRuntimeRole(candidate)}
+                  key={candidate.id}
+                  onClick={closeAnd(() => onSwitchProfile?.(candidate.id))}
+                  type="button"
+                >
+                  {candidate.name}
+                </button>
+              ))}
+            </fieldset>
+          ) : null}
+
+          <h3 className="runtime-maintenance-group">{strings.kiosk.more}</h3>
+          {application.screens.length > 1 ? (
+            <nav aria-label={strings.kiosk.switchScreen} className="runtime-maintenance-screens">
+              {application.screens.map((candidate) => (
+                <button
+                  aria-current={candidate.id === screen.id ? "page" : undefined}
+                  key={candidate.id}
+                  onClick={closeAnd(() => onSelectScreen(candidate.id))}
+                  type="button"
+                >
+                  {candidate.title}
+                </button>
+              ))}
+            </nav>
+          ) : null}
+          <div className="runtime-maintenance-tools">
+            <button onClick={closeAnd(onOpenTour)} type="button">
+              {strings.settings.practiceTour}
+            </button>
+            <button onClick={closeAnd(onOpenSupervisor)} type="button">
+              {strings.kiosk.supervisorMirror}
+            </button>
+            <button onClick={onEditScreen} type="button">
+              {strings.kiosk.editScreen}
+            </button>
+            <button onClick={onEditApplication} type="button">
+              {strings.kiosk.editApp}
+            </button>
+            <button onClick={onOpenHelp} type="button">
+              {strings.kiosk.help}
+            </button>
+            <button onClick={onOpenLanding} type="button">
+              {strings.kiosk.home}
+            </button>
+            <fieldset className="runtime-maintenance-languages">
+              <legend className="sr-only">{strings.settings.language}</legend>
+              {(["en", "es", "fr"] as const).map((candidate) => (
+                <button
+                  aria-pressed={language === candidate}
+                  key={candidate}
+                  onClick={() => onLanguageChange(candidate)}
+                  type="button"
+                >
+                  {candidate.toUpperCase()}
+                </button>
+              ))}
+            </fieldset>
+          </div>
+
+          {diagnostics ? <div className="runtime-maintenance-diagnostics">{diagnostics}</div> : null}
         </div>
-
-        {choosingRole ? (
-          <fieldset className="runtime-maintenance-roles">
-            <legend>{strings.kiosk.switchRoleChoose}</legend>
-            {profiles.map((candidate) => (
-              <button
-                aria-pressed={candidate.id === profile.id}
-                data-role={resolveRuntimeRole(candidate)}
-                key={candidate.id}
-                onClick={closeAnd(() => onSwitchProfile?.(candidate.id))}
-                type="button"
-              >
-                {candidate.name}
-              </button>
-            ))}
-          </fieldset>
-        ) : null}
-
-        <h3 className="runtime-maintenance-group">{strings.kiosk.more}</h3>
-        {application.screens.length > 1 ? (
-          <nav aria-label={strings.kiosk.switchScreen} className="runtime-maintenance-screens">
-            {application.screens.map((candidate) => (
-              <button
-                aria-current={candidate.id === screen.id ? "page" : undefined}
-                key={candidate.id}
-                onClick={closeAnd(() => onSelectScreen(candidate.id))}
-                type="button"
-              >
-                {candidate.title}
-              </button>
-            ))}
-          </nav>
-        ) : null}
-        <div className="runtime-maintenance-tools">
-          <button onClick={closeAnd(onOpenTour)} type="button">
-            {strings.settings.practiceTour}
-          </button>
-          <button onClick={closeAnd(onOpenSupervisor)} type="button">
-            {strings.kiosk.supervisorMirror}
-          </button>
-          <button onClick={onEditScreen} type="button">
-            {strings.kiosk.editScreen}
-          </button>
-          <button onClick={onEditApplication} type="button">
-            {strings.kiosk.editApp}
-          </button>
-          <button onClick={onOpenHelp} type="button">
-            {strings.kiosk.help}
-          </button>
-          <button onClick={onOpenLanding} type="button">
-            {strings.kiosk.home}
-          </button>
-          <fieldset className="runtime-maintenance-languages">
-            <legend className="sr-only">{strings.settings.language}</legend>
-            {(["en", "es", "fr"] as const).map((candidate) => (
-              <button
-                aria-pressed={language === candidate}
-                key={candidate}
-                onClick={() => onLanguageChange(candidate)}
-                type="button"
-              >
-                {candidate.toUpperCase()}
-              </button>
-            ))}
-          </fieldset>
-        </div>
-
-        {diagnostics ? <div className="runtime-maintenance-diagnostics">{diagnostics}</div> : null}
 
         <footer className="runtime-maintenance-footer">
           <p>{strings.kiosk.resumeNote}</p>

@@ -1376,7 +1376,8 @@
   gap: 12px;
   width: min(860px, 100%);
   max-height: 100%;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 24px;
   border-radius: var(--bloom-radius-panel);
   background: var(--bloom-surface);
@@ -1416,6 +1417,19 @@
   font-size: 17px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.runtime-maintenance-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  /* Room for the 5 px focus ring, which the scroll edge would otherwise clip. */
+  margin: -6px;
+  padding: 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .runtime-maintenance-facts {
@@ -1587,6 +1601,7 @@
 }
 
 .runtime-maintenance-footer {
+  flex: 0 0 auto;
   display: flex;
   gap: 16px;
   align-items: center;
