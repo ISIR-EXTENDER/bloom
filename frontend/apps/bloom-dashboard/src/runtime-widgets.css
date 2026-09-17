@@ -584,16 +584,21 @@
   gap: var(--bloom-space-in-card);
 }
 
+/* Locale contract (design 7c): a long word wraps and the segment grows; it never clips. */
 .bloom-segment {
   min-width: 0;
   min-height: var(--bloom-touch-target-high-visibility);
+  padding: 0 4px;
   border: 2px solid var(--bloom-hairline);
   border-radius: var(--bloom-radius-control);
   background: var(--bloom-surface-container);
   color: var(--bloom-ink);
   font: inherit;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: break-word;
   cursor: pointer;
 }
 
