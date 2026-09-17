@@ -135,6 +135,19 @@ source_ros() {
   set -u
 }
 
+# Upstream spawns qontrol and forward_position_controller for the same joints, and whichever wins the race keeps
+# them. When the wrong one wins, qontrol stays inactive and publishes no pose, so hand the interfaces over.
+claim_joint_interfaces_for_qontrol() {
+  # Both launches name it qontrol_explorer, Kinova included.
+  local controller="qontrol_explorer"
+  if ros2 control list_controllers 2>/dev/null | grep -qE "^${controller}\s+\S+\s+active"; then
+    return 0
+  fi
+  log "qontrol is not active; taking the joint interfaces from forward_position_controller"
+  ros2 control set_controller_state forward_position_controller inactive >/dev/null 2>&1 || true
+  ros2 control set_controller_state "${controller}" active >/dev/null 2>&1 || true
+}
+
 free_port() {
   node -e 'const s=require("node:net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})'
 }
@@ -218,6 +231,7 @@ else
   fi
 
   wait_for "the gripper controller" "${STARTUP_TIMEOUT}" log_has "${LAUNCH_LOG}" "activated.*gripper_controller"
+  claim_joint_interfaces_for_qontrol
   wait_for "qontrol to publish /ee_pose" "${STARTUP_TIMEOUT}" topic_has_sample /ee_pose
   log "simulation ready"
 
