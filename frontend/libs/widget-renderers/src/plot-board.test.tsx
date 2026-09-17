@@ -60,8 +60,8 @@ const sourcesScreen: ScreenConfig = {
   ],
 };
 
-function snapshot(values: Record<string, number>): PlotSeriesSnapshot[] {
-  const time = Date.now();
+function snapshot(values: Record<string, number>, ageMs = 0): PlotSeriesSnapshot[] {
+  const time = Date.now() - ageMs;
   return readPlotSeries({ series }).map((entry) => ({
     ...entry,
     samples: entry.label in values ? [{ time, value: values[entry.label] as number }] : [],
@@ -145,5 +145,20 @@ describe("the value strip", () => {
 
     expect(screen.getByText("+0.25")).toBeTruthy();
     expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.queryByText("stale")).toBeNull();
+  });
+
+  it("marks a value that stopped arriving as stale instead of showing it as live", () => {
+    renderWidget(2, snapshot({ Height: 0.25 }, 5000));
+
+    expect(screen.getByText("+0.25").closest("li")?.getAttribute("data-stale")).toBe("true");
+    expect(screen.getByText("stale")).toBeTruthy();
+  });
+
+  it("marks a stale value in the picker too", () => {
+    renderWidget(1, snapshot({ "Visual servoing": -0.25 }, 5000));
+
+    expect(screen.getByRole("button", { name: /Visual servoing/ }).textContent).toContain("stale");
+    expect(screen.getByText("−0.25").getAttribute("data-stale")).toBe("true");
   });
 });

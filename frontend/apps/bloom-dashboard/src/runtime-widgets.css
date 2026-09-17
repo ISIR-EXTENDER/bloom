@@ -1434,6 +1434,17 @@
   line-height: 1;
 }
 
+.bloom-value-strip-card[data-stale] .bloom-value-strip-number,
+.bloom-plot-picker-value[data-stale] {
+  opacity: 0.45;
+}
+
+.bloom-value-stale {
+  color: var(--bloom-ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* ---- Bloom Debug tables (5b) ---- */
 
 .bloom-joint-table table {

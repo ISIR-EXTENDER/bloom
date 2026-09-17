@@ -99,6 +99,7 @@ export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRen
   const showValue = getBooleanSetting(settings, "show_value", false);
   const unavailable = getBooleanSetting(settings, "show_unavailable", true) ? readPlotUnavailable(settings) : [];
   const series = data?.type === "plot-series" ? data.series : [];
+  const now = useNow(1000);
 
   return (
     <div className="bloom-plot-picker bloom-info-card">
@@ -127,7 +128,12 @@ export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRen
                 <strong>{entry.label}</strong>
                 <span>{showValue ? entry.topic : `${entry.topic} · ${shortFieldPath(entry.fieldPath)}`}</span>
               </span>
-              {showValue ? <output className="bloom-plot-picker-value">{formatLatest(entry)}</output> : null}
+              {showValue && isStale(entry, now) ? <span className="bloom-value-stale">stale</span> : null}
+              {showValue ? (
+                <output className="bloom-plot-picker-value" data-stale={isStale(entry, now) || undefined}>
+                  {formatLatest(entry)}
+                </output>
+              ) : null}
             </button>
           </li>
         ))}
@@ -149,21 +155,37 @@ export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRen
 
 export function ValueStripWidget({ data, descriptor }: WidgetRendererProps) {
   const series = resolveSeries(data, descriptor.widget.settings);
+  const now = useNow(1000);
 
   return (
     <ul aria-label={descriptor.widget.title} className="bloom-value-strip">
       {series.map((entry) => (
-        <li className="bloom-info-card bloom-value-strip-card" key={entry.key}>
+        <li
+          className="bloom-info-card bloom-value-strip-card"
+          data-stale={isStale(entry, now) || undefined}
+          key={entry.key}
+        >
           <strong>{entry.label}</strong>
           <span className="bloom-value-strip-topic">{entry.topic}</span>
           <output className="bloom-value-strip-number" style={seriesColor(entry.rampIndex)}>
             {formatLatest(entry)}
           </output>
-          <span className="bloom-value-strip-unit">{entry.unit}</span>
+          <span className="bloom-value-strip-unit">
+            {entry.unit}
+            {isStale(entry, now) ? <span className="bloom-value-stale"> stale</span> : null}
+          </span>
         </li>
       ))}
     </ul>
   );
+}
+
+/** Quiet this long and the last value is dimmed and marked, not passed off as live. */
+const STALE_VALUE_AFTER_MS = 3000;
+
+function isStale(entry: PlotSeriesSnapshot, now: number): boolean {
+  const latest = entry.samples.at(-1);
+  return latest !== undefined && now - latest.time > STALE_VALUE_AFTER_MS;
 }
 
 function resolveSeries(data: WidgetRendererProps["data"], settings: Record<string, unknown>) {
