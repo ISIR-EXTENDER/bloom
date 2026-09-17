@@ -85,9 +85,11 @@ are listed under *Found alongside* because they changed what a screen shows.
 
 - The builder's selection chip (`W×H · N px glass`) sits above the selection and can cover the widget above it. The
   prototype places it the same way.
-- Bloom Debug: its role pill reads **Default** because the app declares no profiles (the design shows Bench), and
-  Pause, Clear and Copy are 36 px.
-- The raw echo's empty text and its Pause, Clear and Copy labels are hard-coded English.
+- ~~Bloom Debug: its role pill reads **Default** because the app declares no profiles (the design shows Bench), and
+  Pause, Clear and Copy are 36 px.~~ Fixed the same day in `c4d0b34`: the seed declares a Bench profile and the echo's
+  actions meet the touch floor.
+- ~~The raw echo's empty text and its Pause, Clear and Copy labels are hard-coded English.~~ Fixed in `c4d0b34`: they
+  come from the operator glossary, and the empty line is built per language around the widget's title.
 - The maintenance sheet's wording and the landing page's header, headline and button sizes drift from the prototype;
   the plot board draws its y bounds inside the plot where the prototype draws them outside.
 

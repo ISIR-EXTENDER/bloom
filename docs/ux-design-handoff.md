@@ -1,9 +1,10 @@
 # Bloom UX Design Handoff
 
-Tracked summary reviewed 2026-09-16, including the refreshed implementation packet reviewed against Bloom tree
+Tracked summary reviewed 2026-09-17, including the refreshed implementation packet reviewed against Bloom tree
 `7377900`. This document preserves the actionable content of the Claude design-review handoffs inside Bloom. Those
 source folders are externally produced and may be replaced, so current product documentation must link here rather than
-depend on their contents.
+depend on their contents. The third handoff, delivered on 2026-09-17, is tracked in
+[`docs/design/`](design/) instead of being summarised here.
 
 ## Product Baseline
 
@@ -49,14 +50,14 @@ supervisor roles.
 | 1. Runtime wears builder chrome | Delivered | Kiosk surface; exits and screen switching require the 1.5 second maintenance hold. | Physical-tablet validation. |
 | 2. Chrome consumes the panel | Delivered | One fixed 44 px kiosk bar. | Check density on every lab geometry. |
 | 3. No stop or sign of life | Delivered in software | Truthful status plus backend-latched STOP and one-second resume hold. | Accept against the robot and hardware safety chain. |
-| 4. Target size is discounted by fit | Partial | Builder reports selected-widget size at `1024x600`; runtime Maintenance reports authored geometry and actual scale below 1.0. | No whole-screen target analysis, prevention, or reflow. |
+| 4. Target size is discounted by fit | Partial | Builder reports the selected widget's size on the smallest panel of its device class, and the review checklist measures every control on every screen there and names the first below 44 px; runtime Maintenance reports authored geometry and actual scale below 1.0. | No prevention or reflow once a canvas is fit-scaled. |
 | 5. Silent overlap | Partial | Maintained operator seeds and Sandbox validation reject overlapping interactive controls. | Generic immediate collision feedback in the builder. |
 | 6. Adapter-language axis labels | Delivered | Pads use operator direction words; technical axes remain in details. | Validate vocabulary per app with operators. |
 | 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Runtime Settings now changes and safely previews the supported interaction values; under `scan`, both operation and Settings are scannable. | `reduced-motion`, edge layout, and validation with the intended devices remain. |
 | 8. Muted contrast failed | Delivered | Token corrected and semantic contrast tests expanded. | Review in real lab lighting. |
-| 9. Contributor-oriented onboarding | Partial | Builder and Runtime are distinct; each runtime app has a persistent, action-based local practice tour, and Builder has a six-check review. | Remembered role choice and automatic first-launch offer. |
-| 10. Builder cannot see tablet | Partial | `native-1280x720` and selected-widget `1024x600` glass-size feedback. | Three device frames and a whole-screen touch-check mode. |
-| 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab selects a supported session frame and Runtime Settings persists a per-profile frame override, both at zero motion and shared by widgets/gamepad. | Installation-specific egocentric mapping and final operator-facing frame names. |
+| 9. Contributor-oriented onboarding | Partial | Builder and Runtime are distinct; each runtime app has a persistent, action-based local practice tour, and Builder has an eleven-check review. The library marks the role used last on this device and preselects it, but never opens by itself. | Automatic first-launch offer of the practice tour. |
+| 10. Builder cannot see tablet | Partial | The canvas is panel-true at the screen's own class, `1280x720` tablet or `1920x1080` desktop, with the class named above it; the glass chip and the review's touch step measure at the class's smallest panel. | Switching a canvas between device frames, and a live whole-screen touch view rather than a checklist step. |
+| 11. Forward must mean operator forward | Delivered for configuration | App policy supplies the default; Joystick Lab selects a supported session frame at zero motion, shared by widgets and gamepad. Settings no longer offers a frame, because it changes what the app publishes: a stored per-profile override is ignored and removed. | Installation-specific egocentric mapping and final operator-facing frame names. |
 | 12. Operator looks at the gripper | Partial | Keyboard, gamepad, directional scanning, dwell, and sounds for stop/link loss/recovery. | Cross-screen spatial consistency, possible latch cue, and real eyes-off tests. |
 | 13. Operator and supervisor surfaces | Partial | Read-only per-app mirror shows shared STOP/topic/session state, explicitly leaves control with the operator, and receives no command methods. | Validate the second display; define deliberate handover only if supervisory commands are introduced. |
 | 14. Language belongs to the person | Delivered for the runtime shell | `UserProfile.language` defaults to English; EN/ES/FR catalogs cover status, STOP, Maintenance, scanning, Settings, and empty states. Maintenance and Settings persist a per-profile choice. | Native-speaker safety review and a future schema for independently localized authored labels. |
@@ -136,7 +137,9 @@ they appeared in the handoff:
 - whether the general canvas should gain a dedicated no-scroll `1024x600` layout with an edge-control mode and a clear
   center, or meet the same physical requirements through app/profile-specific screens;
 - which panel geometry is authoritative: the original `1024x600` spec or the refreshed packet's `1280x720` native claim;
-- whether continuous speed sliders should become large slow/medium/fast segments;
+- ~~whether continuous speed sliders should become large slow/medium/fast segments~~: decided 2026-09-17 by splitting
+  Drive into two layouts. Operator gets Slow / Medium / Fast segments, Bench keeps continuous limits with a 56 px
+  thumb, and both publish the same topics. The Explorer segment values still need an operator's confirmation;
 - whether an application needs a supervisor code; Maintenance now contains language and profile Settings;
 - whether profiles can be named, exported, and reused across a lab session and daily setup;
 - whether the current reusable practice entry should also appear automatically on first app launch;
@@ -184,6 +187,16 @@ configuration or Petanque behavior remains there.
 
 Low-level Extender ROS packages remain active. Bloom is the IHM above the controllers, robot interfaces, simulation,
 hardware, and message contracts; it does not replace them.
+
+## Third Design Review, 2026-09-17
+
+A third handoff folder was delivered on 2026-09-17 and is tracked inside Bloom rather than summarised
+here: [`docs/design/`](design/) holds the living reference, the screen specs, the device classes, the
+widget minimum-size contract and the pad recipe, [`docs/design/implementation-plan.md`](design/implementation-plan.md)
+records how it was built, and [`docs/design/reviews/`](design/reviews/) carries the Drive review, the
+implementation review and the design gap review. What it changed is in the operator guide, not here.
+The scope it deliberately left open — the 1024×600 collapse layouts, paired desktop apps, the
+save-a-pose flow and left-handed mirroring — is listed in the implementation review.
 
 ## Second Design Review
 

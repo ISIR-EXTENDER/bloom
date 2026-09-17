@@ -1,6 +1,6 @@
 # Bloom Accessibility Plan
 
-Reviewed 2026-09-16. Bloom is the active Extender IHM, so accessibility behavior is a runtime contract rather than a
+Reviewed 2026-09-17. Bloom is the active Extender IHM, so accessibility behavior is a runtime contract rather than a
 future migration enhancement.
 
 Bloom should be usable by people with different bodies, devices, contexts, and levels of technical expertise. Operators
@@ -22,7 +22,12 @@ signals, and test accessibility continuously.
 - A browser gamepad contributes through the same conditioned 6-DoF command as touch and keyboard controls.
 - App profiles control display density, font scale, motor behavior, audio, dead zone, repeat guard, scan timing, and
   independently enabled dwell timing.
-- The builder reports a selected interactive widget's effective size on the `1024x600` target and warns below 44 px.
+- The builder reports a selected interactive widget's effective size on the smallest panel of its device class —
+  `1024x600` for a tablet screen, `1440x900` for a desktop one — and warns below 44 px. The review checklist measures
+  every control on every screen there and names the first one that fails.
+- Every authorable widget kind declares a minimum size and grows rather than clips, so a control never loses its label
+  or its target to a card that was drawn too small. Screen regions the runtime owns, STOP above all, are reserved and
+  cannot be covered by a widget.
 - Runtime discloses any fit below authored size in Maintenance with the source geometry and actual rendered percentage.
 - A widget whose required backend seam is explicitly unavailable remains visible, becomes inert, and exposes the
   backend reason; unknown capability state does not disable it.
@@ -30,8 +35,9 @@ signals, and test accessibility continuously.
 - Forms use visible labels and touch-friendly input hints; drag/drop workflows retain button alternatives.
 - Guided runtime practice uses the current profile's language, font scale, scanning, and dwell behavior, and exposes no
   robot command interface. Its movement and hold checks can be repeated from Maintenance or Settings.
-- Builder review derives geometry, touch-size, overlap, command-frame, and topic-policy checks from the saved app, then
-  requires an actual profile preview and export for the final checks.
+- Builder review derives geometry, touch-size, overlap, minimum-size, sibling-symmetry, pad-pair, profile-coverage,
+  command-frame, and topic-policy checks from the saved app, then requires an actual profile preview and export for the
+  final checks.
 - The supervisor mirror uses a separate read-only status surface, reports whether an operator currently owns control,
   and exposes no command or STOP/resume controls that could create an accidental role handover.
 - A second operator Runtime keeps the whole artboard inert behind a named ownership notice. Its explicit takeover retry
@@ -114,13 +120,15 @@ or interaction pattern works for a particular person.
 - Validate every intended profile with operators and the actual HMTECH tablet, gamepad, and switch hardware.
 - Prevent or reflow runtime fit scales that reduce an interactive target below its accepted physical size; Maintenance
   now warns, but does not make a shrunken layout acceptable.
-- Add whole-screen device-frame and touch-check views for all lab geometries, not only a selected-widget calculation.
+- Add a live whole-screen touch view and switchable device frames for all lab geometries. The review checklist now
+  measures every control, but only as a step an author has to open, and only at the screen's own class.
 - Decide whether named portable profiles need language, operator-frame preference, response curves, tremor smoothing,
   minimum-contact filtering, or other proposed signal conditioning beyond today's dead zone and repeat guard.
 - Add generic live collision feedback in the builder.
 - Decide whether fixed control positions and additional non-visual cues are needed for eyes-off use.
-- Add remembered role-aware first entry and decide whether to offer the reusable practice tour automatically; review
-  the delivered EN/ES/FR safety language with native speakers and operators.
+- Decide whether to offer the reusable practice tour automatically on first entry. The library already marks and
+  preselects the role used last on this device, but never opens by itself. Review the delivered EN/ES/FR safety
+  language, and the operator glossary on the controls, with native speakers and operators.
 - Wire the `reduced-motion` profile value explicitly or remove it; today only the browser/OS media preference changes
   motion.
 - Validate supervisor status and ownership readability on the actual second display. Keep deliberate handover in
