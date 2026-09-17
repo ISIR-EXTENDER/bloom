@@ -33,6 +33,7 @@ export function usePositionLibrary(
   scopeRef.current = scope;
   const scopeKey = `${scope?.configId ?? ""}:${scope?.appId ?? ""}`;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the scope key reloads the list for another app; the effect reads it through a ref.
   useEffect(() => {
     const listSavedPositions = client?.listSavedPositions;
     if (!enabled || !listSavedPositions) {

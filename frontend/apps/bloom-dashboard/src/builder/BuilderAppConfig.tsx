@@ -446,9 +446,7 @@ export function BuilderAppConfig({
                 </option>
                 {commandFrameIds.map((frameId) => (
                   <option
-                    disabled={Boolean(
-                      supportedCommandFrameIds && !supportedCommandFrameIds.includes(frameId),
-                    )}
+                    disabled={Boolean(supportedCommandFrameIds && !supportedCommandFrameIds.includes(frameId))}
                     key={frameId}
                     value={frameId}
                   >

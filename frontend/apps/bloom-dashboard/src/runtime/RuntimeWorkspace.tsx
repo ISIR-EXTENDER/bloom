@@ -370,6 +370,7 @@ export function RuntimeWorkspace({
     };
   }, [runtimeActionClient.listRosTopicStatus]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the connection count is the resubscribe signal, not a value the effect reads.
   useEffect(() => {
     // A reconnected socket is a new session with no subscriptions, so the
     // screen has to ask again or the telemetry stays blank behind a READY chip.
