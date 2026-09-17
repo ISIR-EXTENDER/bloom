@@ -83,6 +83,10 @@ around two issues at runtime, without patching the workspace. Both belong upstre
 2. **No clock bridge.** The launch sets `use_sim_time` but nothing bridges the Gazebo clock, so qontrol never advances
    and never publishes `/ee_pose`, `/ee_velocity` or `/ee_jac`. The script runs
    `ros2 run ros_gz_bridge parameter_bridge "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"`.
+3. **Two spawners race for the same joints.** The launch spawns `qontrol_explorer` and
+   `forward_position_controller` for the same command interfaces. When the second wins, qontrol stays inactive and
+   publishes no pose. The script checks after startup and, if needed, deactivates `forward_position_controller` and
+   activates qontrol before waiting for `/ee_pose`.
 
 With both in place `/joint_states` runs at 250 Hz and `/ee_pose` at about 83 Hz. The simulated `/joint_states` carries
 NaN velocity and effort for the passive gripper joints; Bloom sends them as `null`.
