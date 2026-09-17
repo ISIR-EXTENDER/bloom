@@ -191,6 +191,21 @@ describe("runtime settings", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it("names a shipped role in the profile's language", () => {
+    render(
+      <RuntimeSettingsPanel
+        applicationName="Explorer Manager"
+        baseProfile={{ ...defaultProfile, language: "fr", name: "Operator" }}
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        overrides={{}}
+        runtimeRole="operator"
+      />,
+    );
+
+    expect(document.querySelector(".runtime-kiosk-role")?.textContent).toBe("Opérateur");
+  });
+
   it("reads a zero dead zone as each control keeping its own, not as no dead zone", () => {
     renderSettings({ deadzone: 0 });
     expect(screen.getByLabelText("Joystick dead zone value").textContent).toBe("each control's own");

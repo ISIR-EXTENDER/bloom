@@ -1,4 +1,5 @@
 import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
+import { localizeOperatorText } from "@bloom/widgets";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -127,7 +128,7 @@ export function RuntimeSettingsPanel({
         </span>
         <span className="runtime-kiosk-spacer" />
         <span className="runtime-kiosk-role" data-role={runtimeRole}>
-          {baseProfile.name}
+          {localizeOperatorText(baseProfile.name, profile.language)}
         </span>
       </header>
 
@@ -291,7 +292,7 @@ export function RuntimeSettingsPanel({
           </button>
           <div className="runtime-settings-card runtime-settings-saved">
             <h4>{strings.settings.savedTo}</h4>
-            <p>{strings.settings.savedToBody(baseProfile.name)}</p>
+            <p>{strings.settings.savedToBody(localizeOperatorText(baseProfile.name, profile.language))}</p>
           </div>
         </div>
       </div>
