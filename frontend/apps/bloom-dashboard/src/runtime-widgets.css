@@ -404,6 +404,7 @@
 .bloom-slider-widget[data-direction="vertical"] .bloom-axis-word {
   right: 0;
   left: 0;
+  max-width: none;
   text-align: center;
 }
 
