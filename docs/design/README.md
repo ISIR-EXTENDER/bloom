@@ -4,7 +4,7 @@ Design lives where the thing it describes lives, and changes in the same pull re
 
 | file | what it is | who reads it |
 | --- | --- | --- |
-| `design-system.html` | The living reference: tokens, type, density, artboard regions, card anatomy, minimum sizes, states, chrome, locale, builder, landing, invariants. | anyone building a screen |
+| `design-system.html` | The living reference: tokens and the §02b series ramp, type, density, artboard regions, card anatomy, minimum sizes, the §04b target sizes, states, chrome, locale, builder, landing, invariants. | anyone building a screen |
 | `widget-min-size.md` | The geometry contract per widget kind, plus the constant to ship. | whoever authors a screen or reviews one |
 | `device-classes.md` | Tablet and desktop — paired apps, the drift guard, and why density is not a device property. | |
 | `pad-recipe.md` | The joystick pad formula — labels, ring, dead zone, knob — derived from one input. | whoever touches a pad |
@@ -14,6 +14,8 @@ Design lives where the thing it describes lives, and changes in the same pull re
 | `screens/runtime-library.md` | The library — seven apps, lifecycle, and what replaces the Display-profile select. | |
 | `screens/diagnostics.md` | Robot feedback and Command sources — the plot board, and what moved to Bloom Debug. | |
 | `reviews/2026-09-17-drive.md` | The review that produced it: finding → decision → screen. | anyone asking "why is Pivot 400 wide now" |
+| `reviews/2026-09-17-implementation.md` | What shipped per phase, where it differs from the handoff, and what stayed open. | anyone reviewing the build |
+| `reviews/2026-09-17-design-gap-review.md` | Every prototype artboard compared with the live app: what was fixed, what stays open by decision. | anyone asking "was this a bug or a choice" |
 | `../decisions/0132-…`, `0133-…` | ADRs for the two rules that constrain code, filed with the other ADRs. | engineering |
 | `prototypes/` | The interactive HTML prototypes the screens were drawn in. Serve the folder over HTTP to open them. | anyone checking a behaviour |
 | `HANDOFF.md` | The handoff note that delivered this folder. | |

@@ -36,6 +36,9 @@ Each difference is recorded with its reason in the plan's §2 and §9. The ones 
 - **Bloom Debug proximity reads "not reported"**, because joint limits are not exposed to Bloom.
 - **STOP has no 64 px glass floor.** Every shipped `stop` region stays far above it at the 0.8 fit, so the floor waits
   for a screen that needs it.
+- **No prototype capture script.** The plan's phase 1 step 6 asked for `scripts/capture-design-references.mjs` writing
+  cropped artboards to `docs/design/captures/`. Neither was built; the prototypes are compared by opening them, and the
+  paired captures the gap review measured were kept out of the repository.
 
 ## Found by building it
 

@@ -52,7 +52,8 @@ The design seeds were generated from a ref that predates this morning's fixes:
 - **Tests and scripts that pin today's screens.** `test_config_seed.py` requires `manager_drive`. The Joystick Lab
   scanning test expects 27 buttons, including "Gripper: Open". `visual-smoke`, `capture-readme-screenshots`,
   `record-explorer-demo` and `ros-e2e-capture` navigate by the screen titles "Robot feedback", "Command sources" and
-  "Joystick lab". All are updated in the same commit as the seed change.
+  "Joystick lab". All are updated in the same commit as the seed change, except `record-explorer-demo`, which was left
+  behind and no longer completes a run; `record-bloom-demo` replaced it.
 - **Closed enums.** The backend `WidgetKind` enum, `tests/fixtures/widget-kinds-contract.json` and `WIDGET_KINDS` must all
   gain `plot-board`, `plot-picker` and `value-strip`. `ScreenConfig` forbids extra fields, so the design seeds do not
   load today.
