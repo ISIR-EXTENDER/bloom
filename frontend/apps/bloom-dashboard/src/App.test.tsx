@@ -1209,7 +1209,7 @@ describe("App", () => {
 
     expect(screen.getByRole("heading", { level: 2, name: "Label" })).toBeVisible();
     expect(screen.getByText((_, element) => element?.textContent === "56, 56")).toBeVisible();
-    expect(screen.getByText((_, element) => element?.textContent === "280 x 64")).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "280 × 64")).toBeVisible();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
@@ -1342,7 +1342,7 @@ describe("App", () => {
     window.dispatchEvent(new MouseEvent("pointerup"));
 
     await waitFor(() => {
-      expect(screen.getByText((_, element) => element?.textContent === "264 x 136")).toBeVisible();
+      expect(screen.getByText((_, element) => element?.textContent === "264 × 136")).toBeVisible();
     });
   });
 
@@ -1968,7 +1968,7 @@ describe("App", () => {
     expect(document.querySelector("[data-screen-renderer='screen-artboard']")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
     expect(screen.getByText((_, element) => element?.textContent === "128, 104")).toBeVisible();
-    expect(screen.getByText((_, element) => element?.textContent === "272 x 192")).toBeVisible();
+    expect(screen.getByText((_, element) => element?.textContent === "272 × 192")).toBeVisible();
   });
 
   it("renders real legacy toggle settings when optional payload fields are missing", async () => {

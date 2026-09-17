@@ -1,5 +1,6 @@
 import type { WidgetConfig, WidgetLayout } from "@bloom/api-client";
 import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import { glassPx } from "./builder-geometry";
 import {
   type BuilderCanvasSize,
   type BuilderWidgetMinSize,
@@ -11,22 +12,27 @@ import {
 type BuilderCanvasItemProps = {
   canvasSize: BuilderCanvasSize;
   children: ReactNode;
+  /** Scale this canvas reaches the glass at on the class's smallest panel. */
+  glassScale?: number;
   onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
   onPreviewWidgetLayout: (widgetId: string, layout: WidgetLayout) => void;
   onSelectWidget: (widgetId: string) => void;
   selected: boolean;
   minSize: BuilderWidgetMinSize;
+  tooSmall?: boolean;
   widget: WidgetConfig;
 };
 
 export function BuilderCanvasItem({
   canvasSize,
   children,
+  glassScale = 1,
   minSize,
   onCommitWidgetLayout,
   onPreviewWidgetLayout,
   onSelectWidget,
   selected,
+  tooSmall = false,
   widget,
 }: BuilderCanvasItemProps) {
   const startInteraction = (event: ReactPointerEvent<HTMLButtonElement>, mode: "move" | "resize") => {
@@ -83,6 +89,7 @@ export function BuilderCanvasItem({
     <article
       aria-label={`${widget.title} ${widget.kind} widget`}
       className={`builder-widget-frame widget-preview-card ${selected ? "is-selected" : ""}`}
+      data-too-small={tooSmall ? "true" : undefined}
       data-widget-kind={widget.kind}
       style={{
         left: `${widget.layout.x}px`,
@@ -101,6 +108,12 @@ export function BuilderCanvasItem({
       />
       {children}
       <span className="builder-widget-frame-badge">{widget.kind}</span>
+      {tooSmall ? <span className="builder-widget-too-small">Too small</span> : null}
+      {selected ? (
+        <span className="builder-widget-size-chip">
+          {widget.layout.width}×{widget.layout.height} · {glassPx(widget, glassScale)} px glass
+        </span>
+      ) : null}
       <button
         aria-label={`Resize ${widget.title} widget`}
         className="builder-widget-resize-handle"

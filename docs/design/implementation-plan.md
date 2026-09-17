@@ -499,3 +499,6 @@ Each commit carries its tests. Commits 12 and 13 run the live bench before pushi
   proximity column reads "not reported" until limits are configured. Manipulability's absolute value depends on the arm,
   so its bar compares against the best seen this session rather than a guessed "well conditioned" threshold. The status
   cards and actions render in a `debug-status` reserved region, like STOP.
+- **The builder's glass is measured at the class's smallest panel.** 1024×600 for tablet and 1440×900 for desktop,
+  so a 56 px button on a 1280×720 canvas reads 45 px. The device switcher shows the screen's class; the other
+  class is disabled until a paired `-desktop` app exists, because switching moves between apps rather than rescaling.

@@ -1,8 +1,9 @@
 import type { ScreenConfig, WidgetLayout } from "@bloom/api-client";
-import type { WidgetRenderDescriptor } from "@bloom/widgets";
+import { findSizeShortfall, type WidgetRenderDescriptor } from "@bloom/widgets";
 import type { ReactNode } from "react";
-import { resolveScreenArtboardLayout, ScreenArtboard, type ScreenArtboardLayout } from "../screen/ScreenArtboard";
+import { ScreenArtboard, type ScreenArtboardLayout } from "../screen/ScreenArtboard";
 import { BuilderCanvasItem } from "./BuilderCanvasItem";
+import { KIOSK_BAR_HEIGHT, overlapsRegion, refuseReservedRegion, resolveBuilderPanel } from "./builder-geometry";
 
 type BuilderCanvasProps = {
   onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
@@ -19,15 +20,24 @@ export function BuilderCanvas({
   screen,
   selectedWidgetId,
 }: BuilderCanvasProps) {
-  const { artboardSize } = resolveScreenArtboardLayout(screen);
+  const { artboard: artboardSize, glassScale } = resolveBuilderPanel(screen);
+  const regions = screen.reserved_regions ?? [];
 
   const renderEditableWidgetFrame = (descriptor: WidgetRenderDescriptor, content: ReactNode) => (
     <BuilderCanvasItem
       canvasSize={artboardSize}
+      glassScale={glassScale}
       key={descriptor.widget.id}
       minSize={resolveWidgetMinSize(descriptor)}
-      onCommitWidgetLayout={onCommitWidgetLayout}
-      onPreviewWidgetLayout={onPreviewWidgetLayout}
+      onCommitWidgetLayout={(widgetId, start, final) =>
+        onCommitWidgetLayout(widgetId, start, refuseReservedRegion(final, start, regions))
+      }
+      onPreviewWidgetLayout={(widgetId, layout) => {
+        if (!overlapsRegion(layout, regions)) {
+          onPreviewWidgetLayout(widgetId, layout);
+        }
+      }}
+      tooSmall={findSizeShortfall(descriptor.widget) !== null}
       onSelectWidget={onSelectWidget}
       selected={descriptor.widget.id === selectedWidgetId}
       widget={descriptor.widget}
@@ -38,13 +48,38 @@ export function BuilderCanvas({
 
   return (
     <div className="builder-canvas-viewport">
-      <ScreenArtboard
-        className="builder-canvas-artboard"
-        renderBackground={(layout, renderedScreen) => <BuilderPresetTarget layout={layout} screen={renderedScreen} />}
-        renderEmptyState={(emptyScreen) => <BuilderComingSoonMessage screen={emptyScreen} />}
-        renderWidgetFrame={renderEditableWidgetFrame}
-        screen={screen}
-      />
+      <div className="builder-canvas-panel" style={{ width: `${artboardSize.width}px` }}>
+        <div aria-hidden="true" className="builder-canvas-bar" style={{ height: `${KIOSK_BAR_HEIGHT}px` }}>
+          kiosk bar · {KIOSK_BAR_HEIGHT} px · chrome
+        </div>
+        <ScreenArtboard
+          className="builder-canvas-artboard"
+          renderBackground={(layout, renderedScreen) => (
+            <>
+              {regions.length === 0 ? <BuilderPresetTarget layout={layout} screen={renderedScreen} /> : null}
+              {regions.map((region) => (
+                <div
+                  className="builder-canvas-region"
+                  key={region.id}
+                  role="note"
+                  style={{
+                    height: `${region.height}px`,
+                    left: `${region.x}px`,
+                    top: `${region.y}px`,
+                    width: `${region.width}px`,
+                  }}
+                >
+                  Reserved {region.id === "stop" ? "STOP" : region.id}
+                </div>
+              ))}
+            </>
+          )}
+          renderEmptyState={(emptyScreen) => <BuilderComingSoonMessage screen={emptyScreen} />}
+          renderWidgetFrame={renderEditableWidgetFrame}
+          screen={screen}
+          style={{ height: `${artboardSize.height}px`, width: `${artboardSize.width}px` }}
+        />
+      </div>
     </div>
   );
 }

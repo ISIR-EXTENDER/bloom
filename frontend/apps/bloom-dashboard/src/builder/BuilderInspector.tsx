@@ -1,11 +1,19 @@
-import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
-import { type RuntimeCapability, resolveWidgetReadiness, type WidgetDefinition } from "@bloom/widgets";
+import type { CanvasSettings, WidgetConfig, WidgetLayout } from "@bloom/api-client";
+import {
+  findSizeShortfall,
+  type RuntimeCapability,
+  resolveWidgetReadiness,
+  type WidgetDefinition,
+} from "@bloom/widgets";
 import type { ReactNode } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
+import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
   canvas?: CanvasSettings;
+  glassScale?: number;
+  onResizeWidget?: (widgetId: string, layout: WidgetLayout) => void;
   runtimeCapabilities: readonly RuntimeCapability[] | null;
   onAddWidget: (definition: WidgetDefinition) => void;
   onDuplicateWidget: () => void;
@@ -21,6 +29,8 @@ type BuilderInspectorProps = {
 export function BuilderInspector({
   availableWidgetDefinitions,
   canvas,
+  glassScale = 1,
+  onResizeWidget,
   runtimeCapabilities,
   onAddWidget,
   onDuplicateWidget,
@@ -62,6 +72,9 @@ export function BuilderInspector({
     );
   }
 
+  const shortfall = findSizeShortfall(selectedWidget);
+  const glass = glassPx(selectedWidget, glassScale);
+
   return (
     <BuilderInspectorPanel title={selectedWidget.title}>
       <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={selectedWidget.id} widgets={widgets} />
@@ -76,17 +89,39 @@ export function BuilderInspector({
             {selectedWidget.layout.x}, {selectedWidget.layout.y}
           </dd>
         </div>
-        <div>
+        <div data-error={shortfall ? "true" : undefined}>
           <dt>Size</dt>
           <dd>
-            {selectedWidget.layout.width} x {selectedWidget.layout.height}
+            {selectedWidget.layout.width} × {selectedWidget.layout.height}
           </dd>
         </div>
-        <div>
-          <dt>Settings</dt>
-          <dd>{Object.keys(selectedWidget.settings).length} fields</dd>
+        <div data-error={glass < TOUCH_FLOOR_PX ? "true" : undefined}>
+          <dt>Glass at fit {glassScale.toFixed(2)}</dt>
+          <dd>{glass} px</dd>
         </div>
       </dl>
+      {shortfall ? (
+        <section aria-label="Below minimum size" className="builder-minimum-warning">
+          <h3>Below minimum size</h3>
+          <p>
+            A {selectedWidget.kind} with these settings needs {shortfall.minimum[0]}×{shortfall.minimum[1]}. At{" "}
+            {shortfall.width}×{shortfall.height} its content cannot all fit, so the card grows past its slot.
+          </p>
+          <button
+            onClick={() =>
+              onResizeWidget?.(selectedWidget.id, {
+                ...selectedWidget.layout,
+                height: Math.max(selectedWidget.layout.height, shortfall.minimum[1]),
+                width: Math.max(selectedWidget.layout.width, shortfall.minimum[0]),
+              })
+            }
+            type="button"
+          >
+            Resize to {Math.max(selectedWidget.layout.width, shortfall.minimum[0])}×
+            {Math.max(selectedWidget.layout.height, shortfall.minimum[1])}
+          </button>
+        </section>
+      ) : null}
       <p className="builder-inspector-copy">
         Use duplicate or remove for quick layout iteration. Settings are rendered from the widget contract.
       </p>
@@ -145,6 +180,7 @@ function WidgetList({
             <span>
               {widget.kind} · {widget.layout.x}, {widget.layout.y}
             </span>
+            {findSizeShortfall(widget) ? <em className="builder-widget-too-small">Too small</em> : null}
           </button>
         ))}
       </div>

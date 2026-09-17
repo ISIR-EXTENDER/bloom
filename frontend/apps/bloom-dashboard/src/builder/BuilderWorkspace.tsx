@@ -14,6 +14,7 @@ import type { LoadedConfiguration } from "../configurations/configuration-loader
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
+import { findUndersizedWidgets, placeClearOfRegions, resolveBuilderPanel } from "./builder-geometry";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 
@@ -61,6 +62,8 @@ export function BuilderWorkspace({
   const { selectedWidget, selectedWidgetId, setSelectedWidgetId } = useSelectedBuilderWidget(draftScreen);
   const [saveState, setSaveState] = useState<DraftSaveState>({ status: "idle" });
   const isSaving = saveState.status === "saving";
+  const panel = resolveBuilderPanel(draftScreen);
+  const undersizedCount = findUndersizedWidgets(draftScreen).length;
 
   useEffect(() => {
     if (isDirty && saveState.status === "saved") {
@@ -92,7 +95,7 @@ export function BuilderWorkspace({
     const widgetId = createUniqueWidgetId(draftScreen, definition.kind);
     const nextScreen = addWidgetToScreen(draftScreen, definition, {
       id: widgetId,
-      layout: createNewWidgetLayout(draftScreen, definition),
+      layout: placeClearOfRegions(createNewWidgetLayout(draftScreen, definition), draftScreen),
     });
 
     commitScreenChange(nextScreen);
@@ -174,20 +177,49 @@ export function BuilderWorkspace({
               Redo
             </button>
           </div>
+          <fieldset className="builder-device-switch">
+            <legend className="sr-only">Device class</legend>
+            {/* Tablet and desktop are separate apps: the class follows the screen, it is not a rescale. */}
+            <button
+              aria-pressed={panel.deviceClass === "tablet"}
+              disabled={panel.deviceClass !== "tablet"}
+              type="button"
+            >
+              Tablet 1280×720
+            </button>
+            <button
+              aria-pressed={panel.deviceClass === "desktop"}
+              disabled={panel.deviceClass !== "desktop"}
+              type="button"
+            >
+              Desktop 1920×1080
+            </button>
+          </fieldset>
           <dl className="builder-stage-meta">
             <div>
               <dt>Canvas</dt>
-              <dd>{draftScreen.canvas.preset_id}</dd>
+              <dd>
+                {panel.artboard.width}×{panel.artboard.height}
+              </dd>
             </div>
             <div>
               <dt>Widgets</dt>
               <dd>{draftScreen.widgets.length}</dd>
             </div>
             <div>
+              <dt>Fit scale</dt>
+              <dd>{panel.glassScale.toFixed(2)}</dd>
+            </div>
+            <div>
               <dt>Mode</dt>
               <dd>{isDirty ? "Unsaved draft" : "Saved"}</dd>
             </div>
           </dl>
+          {undersizedCount > 0 ? (
+            <p className="builder-undersized-count" role="note">
+              {undersizedCount === 1 ? "1 widget below its minimum" : `${undersizedCount} widgets below their minimum`}
+            </p>
+          ) : null}
           <DraftSaveStatus state={saveState} />
         </header>
 
@@ -203,6 +235,13 @@ export function BuilderWorkspace({
       <BuilderInspector
         availableWidgetDefinitions={availableWidgetDefinitions}
         canvas={draftScreen.canvas}
+        glassScale={panel.glassScale}
+        onResizeWidget={(widgetId, layout) => {
+          const widget = draftScreen.widgets.find((candidate) => candidate.id === widgetId);
+          if (widget) {
+            commitWidgetLayout(widgetId, widget.layout, layout);
+          }
+        }}
         runtimeCapabilities={runtimeCapabilities}
         onAddWidget={addWidget}
         onDuplicateWidget={duplicateSelectedWidget}

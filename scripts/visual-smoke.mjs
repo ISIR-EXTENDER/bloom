@@ -132,6 +132,7 @@ try {
 
     await captureRuntimeLocales(browser);
     await captureDesktopDebug(browser);
+    await captureBuilderCanvas(browser);
   } finally {
     await browser.close();
   }
@@ -805,6 +806,22 @@ async function showDebugRuntime(page) {
   await page.getByRole("button", { name: "Refresh audit" }).click();
   await page.getByRole("article", { name: /Joint states/i }).waitFor();
   await page.getByRole("article", { name: /Jacobian/i }).waitFor();
+}
+
+/** The builder canvas (design 7a) is a desktop surface: the panel on its desk, regions and minimum-size tags. */
+async function captureBuilderCanvas(browser) {
+  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+  await mockConfigurationApi(page);
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Builder: Compose screens" }).click();
+  await page.getByRole("button", { exact: true, name: "Apps" }).click();
+  await page.getByRole("button", { name: "Open Explorer Manager app" }).click();
+  await page.getByRole("button", { name: "Open Drive · Operator screen builder" }).click();
+  await page.getByRole("heading", { level: 2, name: "Drive · Operator" }).waitFor();
+  await page.locator(".builder-widget-list-items button", { hasText: "Gripper" }).click();
+  await assertNoHorizontalOverflow(page, "desktop-1080:builder-canvas");
+  await page.screenshot({ fullPage: false, path: resolve(outputDir, "desktop-1080-builder-canvas.png") });
+  await page.close();
 }
 
 /** Bloom Debug is desktop-only (device-classes.md): authored at 1920×1080, checked at 1440×900. */

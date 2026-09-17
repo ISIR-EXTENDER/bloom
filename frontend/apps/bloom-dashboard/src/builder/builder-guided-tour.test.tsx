@@ -49,7 +49,7 @@ const application = {
           id: "translation",
           kind: "joystick",
           title: "Translation",
-          layout: { x: 80, y: 100, width: 320, height: 320 },
+          layout: { x: 80, y: 100, width: 320, height: 400 },
           settings: {
             runtime_binding: {
               adapter: "teleop",
@@ -90,6 +90,11 @@ describe("the builder review checklist", () => {
     expect(evaluateBuilderTour(application)).toEqual({
       geometry: true,
       touch: true,
+      minimum: true,
+      symmetry: true,
+      pads: true,
+      profiles: true,
+      pairs: true,
       frame: true,
       topics: true,
       profile: true,
@@ -112,26 +117,38 @@ describe("the builder review checklist", () => {
           },
         ],
       }),
-    ).toEqual({ geometry: false, touch: false, frame: false, topics: false, profile: true });
+    ).toEqual({
+      geometry: false,
+      touch: false,
+      minimum: false,
+      symmetry: true,
+      pads: true,
+      profiles: true,
+      pairs: true,
+      frame: false,
+      topics: false,
+      profile: true,
+    });
   });
 
   it("earns profile and ship checks only through preview and export actions", async () => {
     const callbacks = renderTour();
     const tourKey = guidedTourProgressKey("builder", selection.configId, selection.appId);
 
-    await waitFor(() => expect(loadGuidedTourProgress(tourKey)).toEqual(["geometry", "touch", "frame", "topics"]));
+    const derived = ["geometry", "touch", "minimum", "symmetry", "pads", "profiles", "pairs", "frame", "topics"];
+    await waitFor(() => expect(loadGuidedTourProgress(tourKey)).toEqual(derived));
     expect(screen.getByRole("heading", { name: "Test as the person, not as you" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Open profile preview" }));
     expect(callbacks.onPreviewRuntime).toHaveBeenCalledWith(selection);
     expect(loadGuidedTourProgress(tourKey)).toContain("profile");
 
-    fireEvent.click(screen.getByRole("button", { name: /06Ship it to the tablet/ }));
+    fireEvent.click(screen.getByRole("button", { name: /11Ship it to the tablet/ }));
     fireEvent.click(screen.getByRole("button", { name: "Export reviewed app" }));
 
     expect(URL.createObjectURL).toHaveBeenCalledOnce();
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce();
-    expect(loadGuidedTourProgress(tourKey)).toEqual(["geometry", "touch", "frame", "topics", "profile", "ship"]);
+    expect(loadGuidedTourProgress(tourKey)).toEqual([...derived, "profile", "ship"]);
   });
 
   it("opens the screen containing the first topic-policy problem", () => {
@@ -164,6 +181,37 @@ describe("the builder review checklist", () => {
     expect(callbacks.onOpenScreenBuilder).toHaveBeenCalledWith({ ...selection, screenId: "sources" });
   });
 
+  it("names an undersized widget and opens the screen it is on", () => {
+    const callbacks = renderTour({
+      application: {
+        ...application,
+        screens: [
+          ...application.screens,
+          {
+            id: "grip",
+            title: "Grip",
+            canvas: { preset_id: "hd", runtime_mode: "fit" },
+            widgets: [
+              {
+                id: "gripper",
+                kind: "toggle",
+                title: "Gripper",
+                layout: { x: 14, y: 14, width: 202, height: 96 },
+                settings: { show_details: false },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /03Every widget meets its minimum size/ }));
+    expect(screen.getByText("Gripper on Grip needs 200×120.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Open screen builder" }));
+
+    expect(callbacks.onOpenScreenBuilder).toHaveBeenCalledWith({ ...selection, screenId: "grip" });
+  });
+
   it("restores completed action checks after reopening", async () => {
     renderTour();
     fireEvent.click(screen.getByRole("button", { name: "Open profile preview" }));
@@ -172,7 +220,7 @@ describe("the builder review checklist", () => {
     renderTour();
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /05Test as the person, not as youComplete/ })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /10Test as the person, not as youComplete/ })).toBeTruthy(),
     );
   });
 });

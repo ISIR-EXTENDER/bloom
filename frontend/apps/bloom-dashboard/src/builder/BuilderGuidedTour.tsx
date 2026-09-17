@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-progress";
+import { findUndersizedWidgets, glassPx, resolveBuilderPanel, reviewScreens, TOUCH_FLOOR_PX } from "./builder-geometry";
 
-type BuilderTourStepId = "geometry" | "touch" | "frame" | "topics" | "profile" | "ship";
+type ReviewRuleId = "minimum" | "symmetry" | "pads" | "profiles" | "pairs";
+type BuilderTourStepId = "geometry" | "touch" | ReviewRuleId | "frame" | "topics" | "profile" | "ship";
 
 type BuilderGuidedTourProps = {
   application: ApplicationConfig;
@@ -14,6 +16,8 @@ type BuilderGuidedTourProps = {
   onOpenScreenBuilder: (selection: WorkspaceSelection) => void;
   onPreviewRuntime: (selection: WorkspaceSelection) => void;
   selection: WorkspaceSelection;
+  /** Other apps in the configuration, for the paired-app policy check. */
+  siblings?: readonly ApplicationConfig[];
 };
 
 type BuilderTourStep = {
@@ -26,6 +30,8 @@ type BuilderTourStep = {
 };
 
 const INTERACTIVE_WIDGET_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
+const PANEL_PRESETS = new Set(["full-hd", "hd", "native-1280x720"]);
+const NO_SIBLINGS: readonly ApplicationConfig[] = [];
 
 export function BuilderGuidedTour({
   application,
@@ -34,15 +40,16 @@ export function BuilderGuidedTour({
   onOpenScreenBuilder,
   onPreviewRuntime,
   selection,
+  siblings = NO_SIBLINGS,
 }: BuilderGuidedTourProps) {
   const firstScreen = application.screens[0];
   const tourKey = guidedTourProgressKey("builder", selection.configId, selection.appId);
   const { completedStepIds, completeStep } = useGuidedTourProgress(tourKey);
-  const checks = useMemo(() => evaluateBuilderTour(application), [application]);
+  const checks = useMemo(() => evaluateBuilderTour(application, siblings), [application, siblings]);
   const topicProblem = useMemo(() => findFirstTopicProblem(application), [application]);
   const steps = useMemo(
-    () => createBuilderTourSteps(application, checks, completedStepIds, Boolean(firstScreen), topicProblem),
-    [application, checks, completedStepIds, firstScreen, topicProblem],
+    () => createBuilderTourSteps(application, checks, completedStepIds, Boolean(firstScreen), topicProblem, siblings),
+    [application, checks, completedStepIds, firstScreen, siblings, topicProblem],
   );
   const [activeStepId, setActiveStepId] = useState<BuilderTourStepId>(
     () => steps.find((step) => !step.complete)?.id ?? steps[0]?.id ?? "ship",
@@ -63,8 +70,13 @@ export function BuilderGuidedTour({
   }
 
   const screenSelection = firstScreen ? { ...selection, screenId: firstScreen.id } : selection;
+  const undersizedScreen = application.screens.find((screen) => findUndersizedWidgets(screen).length > 0);
   const activeScreenSelection =
-    activeStep.id === "topics" && topicProblem ? { ...selection, screenId: topicProblem.screen.id } : screenSelection;
+    activeStep.id === "topics" && topicProblem
+      ? { ...selection, screenId: topicProblem.screen.id }
+      : activeStep.id === "minimum" && undersizedScreen
+        ? { ...selection, screenId: undersizedScreen.id }
+        : screenSelection;
 
   return (
     <section className="builder-guided-tour" aria-label="Builder review checklist">
@@ -125,7 +137,7 @@ export function BuilderGuidedTour({
                     completeStep("ship");
                     return;
                   }
-                  if (activeStep.id === "frame") {
+                  if (activeStep.id === "frame" || activeStep.id === "profiles" || activeStep.id === "pairs") {
                     onOpenConfiguration();
                     return;
                   }
@@ -150,20 +162,34 @@ export function BuilderGuidedTour({
 
 export function evaluateBuilderTour(
   application: ApplicationConfig,
+  siblings: readonly ApplicationConfig[] = [],
 ): Record<Exclude<BuilderTourStepId, "ship">, boolean> {
+  const rules = Object.fromEntries(reviewScreens(application, siblings).map((rule) => [rule.id, rule.passed]));
   const interactiveWidgets = application.screens.flatMap((screen) =>
     screen.widgets.filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind)),
   );
   const destinations = collectWidgetDestinations(application);
 
   return {
+    // native-1280x720 and hd are the same tablet panel; full-hd is the desktop one.
     geometry:
       application.screens.length > 0 &&
-      application.screens.every((screen) => screen.canvas.preset_id === "native-1280x720"),
+      application.screens.every((screen) => PANEL_PRESETS.has(screen.canvas.preset_id)),
+    // Measured on the glass: the target inside each control, at the class's smallest panel.
     touch:
       interactiveWidgets.length > 0 &&
-      interactiveWidgets.every((widget) => widget.layout.width >= 44 && widget.layout.height >= 44) &&
+      application.screens.every((screen) => {
+        const { glassScale } = resolveBuilderPanel(screen);
+        return screen.widgets
+          .filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind))
+          .every((widget) => glassPx(widget, glassScale) >= TOUCH_FLOOR_PX);
+      }) &&
       application.screens.every((screen) => !hasInteractiveOverlap(screen.widgets)),
+    minimum: rules.minimum === true,
+    symmetry: rules.symmetry === true,
+    pads: rules.pads === true,
+    profiles: rules.profiles === true,
+    pairs: rules.pairs === true,
     frame: Boolean(application.runtime_policy.command_frame_id),
     topics:
       destinations.length > 0 &&
@@ -172,20 +198,29 @@ export function evaluateBuilderTour(
   };
 }
 
+const REVIEW_RULE_WHY: Record<ReviewRuleId, string> = {
+  minimum: "A card smaller than its content grows past its slot and covers the next control.",
+  symmetry: "Controls of one kind side by side read as a group only when they match.",
+  pads: "Two pads at different sizes or heights ask the hand to relearn each one.",
+  profiles: "A role that names a missing screen opens the wrong layout for the person using it.",
+  pairs: "A tablet and desktop app that publish differently make a bench test say nothing about the operator.",
+};
+
 function createBuilderTourSteps(
   application: ApplicationConfig,
   checks: ReturnType<typeof evaluateBuilderTour>,
   completedStepIds: readonly string[],
   hasScreen: boolean,
   topicProblem: WidgetTopicProblem | null,
+  siblings: readonly ApplicationConfig[] = [],
 ): BuilderTourStep[] {
   const stepDefinitions: BuilderTourStep[] = [
     {
       id: "geometry",
       title: "Start from the panel, not the desktop",
       detail: checks.geometry
-        ? "Every screen uses the native 1280x720 panel geometry."
-        : "Set each screen to native 1280x720 in the screen builder.",
+        ? "Every screen uses a panel preset: 1280×720 for tablet, 1920×1080 for desktop."
+        : "Set each screen to the 1280×720 tablet panel, or 1920×1080 for a desktop app.",
       why: "Authoring at another size can scale controls down on the installed display.",
       action: "Open screen geometry",
       complete: checks.geometry,
@@ -194,12 +229,22 @@ function createBuilderTourSteps(
       id: "touch",
       title: "Place controls, watch the bounds",
       detail: checks.touch
-        ? "Interactive widget frames meet the 44 px floor and do not overlap."
+        ? "Every control's target meets the 44 px floor on the glass of the smallest panel, and none overlap."
         : "A control is too small, overlaps another control, or no control has been placed yet.",
       why: "Touch checks belong in the authoring loop, before the app reaches the lab.",
       action: "Inspect control bounds",
       complete: checks.touch,
     },
+    ...reviewScreens(application, siblings).map(
+      (rule): BuilderTourStep => ({
+        id: rule.id as ReviewRuleId,
+        title: rule.title,
+        detail: rule.detail,
+        why: REVIEW_RULE_WHY[rule.id as ReviewRuleId],
+        action: rule.id === "profiles" || rule.id === "pairs" ? "Open app configuration" : "Open screen builder",
+        complete: rule.passed,
+      }),
+    ),
     {
       id: "frame",
       title: "Say which way is forward",
@@ -243,7 +288,7 @@ function createBuilderTourSteps(
   ];
 
   return stepDefinitions.filter((step) => {
-    if (["geometry", "touch", "topics", "profile"].includes(step.id)) {
+    if (["geometry", "touch", "minimum", "symmetry", "pads", "topics", "profile"].includes(step.id)) {
       return hasScreen && (step.id !== "profile" || checks.profile);
     }
     return true;

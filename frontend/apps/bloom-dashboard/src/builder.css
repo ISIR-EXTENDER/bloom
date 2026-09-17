@@ -1503,24 +1503,167 @@
   font-weight: 800;
 }
 
+/* The desk: the panel sits on it at true proportion, with the kiosk bar it will carry (design 7a). */
 .builder-canvas-viewport {
   min-height: 0;
   overflow: auto;
-  padding: 18px;
-  border: 1px solid var(--bloom-border);
+  padding: 48px;
   border-radius: 24px;
-  background:
-    radial-gradient(circle at 16% 12%, rgba(127, 150, 126, 0.2), transparent 30%),
-    radial-gradient(circle at 86% 80%, rgba(255, 216, 155, 0.18), transparent 28%), var(--bloom-surface-container);
+  background: color-mix(in srgb, var(--bloom-ink) 92%, black);
+}
+
+.builder-canvas-panel {
+  margin: 0 auto;
+}
+
+.builder-canvas-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--bloom-color-forest) 12%, transparent);
+  border-radius: 6px 6px 0 0;
+  background: var(--bloom-surface-container-high);
+  color: var(--bloom-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.builder-canvas-region {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--bloom-error);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bloom-error-container) 60%, transparent);
+  color: var(--bloom-error);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.builder-widget-frame[data-too-small="true"] {
+  outline: 2px solid var(--bloom-error);
+  outline-offset: -2px;
+}
+
+.builder-widget-too-small {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 6;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bloom-pollen);
+  color: var(--bloom-ink);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.builder-widget-size-chip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 7;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  font-family: var(--bloom-font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.builder-device-switch {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 14px;
+}
+
+.builder-device-switch button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 10px;
+  background: var(--bloom-surface-container);
+  color: var(--bloom-ink);
+  font: inherit;
+  font-weight: 700;
+}
+
+.builder-device-switch button[aria-pressed="true"] {
+  border-color: var(--bloom-primary);
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+}
+
+.builder-device-switch button:disabled:not([aria-pressed="true"]) {
+  border-style: dashed;
+  color: var(--bloom-ink-soft);
+}
+
+.builder-undersized-count {
+  margin: 0;
+  padding: 10px 16px;
+  border: 2px solid var(--bloom-error);
+  border-radius: 12px;
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+  font-weight: 700;
+}
+
+.builder-inspector-grid div[data-error="true"] {
+  border: 2px solid var(--bloom-error);
+  background: var(--bloom-error-container);
+}
+
+.builder-minimum-warning {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 2px solid var(--bloom-error);
+  border-radius: 14px;
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+}
+
+.builder-minimum-warning h3 {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.builder-minimum-warning p {
+  margin: 0;
+}
+
+.builder-minimum-warning button {
+  min-height: 48px;
+  border: 2px solid var(--bloom-error);
+  border-radius: 10px;
+  background: var(--bloom-surface);
+  color: var(--bloom-ink);
+  font: inherit;
+  font-weight: 700;
 }
 
 .builder-canvas-artboard {
   position: relative;
   min-width: 720px;
   min-height: 520px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(63, 78, 70, 0.2);
-  border-radius: 22px;
+  border-radius: 0 0 6px 6px;
   background:
     linear-gradient(to right, rgba(127, 150, 126, 0.14) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(127, 150, 126, 0.14) 1px, transparent 1px), var(--bloom-surface-container-low);
@@ -1627,8 +1770,8 @@
 
 .builder-widget-frame-badge {
   position: absolute;
-  right: 8px;
   bottom: 7px;
+  left: 8px;
   max-width: calc(100% - 16px);
   overflow: hidden;
   padding: 3px 7px;

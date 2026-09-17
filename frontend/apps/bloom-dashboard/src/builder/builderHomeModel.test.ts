@@ -12,6 +12,7 @@ import {
   classifyScreen,
   createBuilderApplicationItems,
   createNewApplicationName,
+  createPreviewWidgetStyle,
   createScreenLibraryItems,
   filterScreens,
   formatScreenTitle,
@@ -147,3 +148,22 @@ function createScreen({ id, widgets }: { id: string; widgets: Array<{ kind: Widg
     })),
   };
 }
+
+describe("screen previews", () => {
+  it("place widgets against the screen's own canvas, not a desktop one", () => {
+    const screen = {
+      id: "drive",
+      title: "Drive",
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+      reserved_regions: [{ id: "stop", owner: "runtime-chrome", x: 928, y: 410, width: 338, height: 252 }],
+      widgets: [],
+    } as ScreenConfig;
+
+    expect(createPreviewWidgetStyle({ x: 640, y: 338, width: 640, height: 338 }, screen)).toEqual({
+      height: "50%",
+      left: "50%",
+      top: "50%",
+      width: "50%",
+    });
+  });
+});

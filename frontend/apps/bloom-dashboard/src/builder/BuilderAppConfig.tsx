@@ -8,7 +8,7 @@ import type {
 import { BLOOM_THEME_PRESETS, type BloomThemePresetId } from "@bloom/ui";
 import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   addScreenToApplication,
   createUniqueId,
@@ -116,6 +116,13 @@ export function BuilderAppConfig({
   const [saveState, setSaveState] = useState<AppSaveState>({ status: "idle" });
   const [themeInspirationError, setThemeInspirationError] = useState("");
   const [tourOpen, setTourOpen] = useState(false);
+  const siblingApplications = useMemo(
+    () =>
+      configurations
+        .find((configuration) => configuration.id === selection.configId)
+        ?.bundle.applications.filter((candidate) => candidate.id !== selection.appId) ?? [],
+    [configurations, selection.appId, selection.configId],
+  );
   const availableScreens = collectAvailableScreens(selectedWorkspace.bundle.applications);
   const assignedScreenIds = new Set(draftApplication.screens.map((screen) => screen.id));
   const unassignedScreens = availableScreens.filter(({ screen }) => !assignedScreenIds.has(screen.id));
@@ -329,6 +336,7 @@ export function BuilderAppConfig({
     return (
       <BuilderGuidedTour
         application={draftApplication}
+        siblings={siblingApplications}
         onClose={() => setTourOpen(false)}
         onOpenConfiguration={() => setTourOpen(false)}
         onOpenScreenBuilder={onOpenScreenBuilder}

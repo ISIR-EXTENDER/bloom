@@ -1,6 +1,7 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import type { CSSProperties } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
+import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
 
 export type BuilderApplicationItem = {
   application: ApplicationConfig;
@@ -230,12 +231,9 @@ export function createPreviewWidgetStyle(
   };
 }
 
+// Every preset used to fall back to 1920×1080, so a 1280×720 screen previewed at two thirds of its card.
 function resolveScreenPreviewBounds(screen: ScreenConfig): { height: number; width: number } {
-  if (screen.canvas.preset_id === "tablet") {
-    return { height: 800, width: 1280 };
-  }
-
-  return { height: 1080, width: 1920 };
+  return resolveRuntimeArtboardSize(screen);
 }
 
 function capitalize(value: string): string {
