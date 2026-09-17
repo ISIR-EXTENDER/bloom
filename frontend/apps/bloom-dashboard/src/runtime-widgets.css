@@ -945,13 +945,15 @@
   text-align: right;
 }
 
-/* A group label names a region; it is never the only carrier of meaning (§03). */
+/* A group label names a region; it is never the only carrier of meaning (§03).
+   A longer locale wraps to a second line inside the authored width instead of clipping. */
 .bloom-label-widget[data-variant="group"] {
   color: var(--bloom-ink-soft);
   font-size: var(--bloom-type-group-label);
   letter-spacing: var(--bloom-tracking-group-label);
+  line-height: 1.1;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .bloom-label-widget[data-variant="screen-title"] {
