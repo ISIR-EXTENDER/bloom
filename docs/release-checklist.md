@@ -162,13 +162,16 @@ ros2 param get /cartesian_manager frames.hybrid_frame
 
 ## 7. Version
 
-Three files carry the version and must agree:
+Fifteen places carry the version and must agree: every workspace `package.json` and its `package-lock.json` entry,
+`backend/pyproject.toml`, the `bloom-backend` entry in `backend/uv.lock`, and the API settings default:
 
 ```bash
 npm run check:version
 ```
 
-It fails when the three disagree, so this is a gate rather than a reading.
+It fails when any of them disagree, so this is a gate rather than a reading. Bump them together with
+`npm version <x.y.z> --workspaces --include-workspace-root --no-git-tag-version`, then edit `pyproject.toml` and
+`settings.py` and run `uv lock` in `backend`. A deployment that sets `BLOOM_APP_VERSION` reports that value instead.
 
 ## 8. Honest release notes
 
