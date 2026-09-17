@@ -75,6 +75,11 @@ practice tour, the supervisor mirror, Builder shortcuts, Help, Home, and the EN/
 below them; only that group scrolls, so **Close** at the top and **Resume operating** at the bottom stay on screen.
 Resuming closes the sheet and publishing resumes at once. Nothing in the sheet changes what the app sends.
 
+Focus moves into the sheet when it opens and is trapped there while it is open: the artboard behind the scrim is
+hidden from screen readers by `aria-modal`, so Tab must not walk into it. **Close**, **Resume operating** and Escape all
+return focus to **⋯**. STOP stays live above the scrim for pointer and scanning; a keyboard operator closes the sheet
+first, which is one keypress away.
+
 Under scanning the sheet becomes the scan root while it is open, with STOP first and its own SWITCH bar in the footer,
 so Settings, a screen change, a role switch and **Resume operating** are all reachable by switch. The canvas behind the
 scrim is never scanned. Settings does the same with its own controls.

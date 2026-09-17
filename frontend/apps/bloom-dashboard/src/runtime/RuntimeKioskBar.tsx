@@ -15,6 +15,8 @@ import { useSwitchScanning } from "./use-switch-scanning";
 
 const MAINTENANCE_HOLD_MS = 1500;
 const ROLE_SWITCH_HOLD_MS = 1500;
+const DIALOG_FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /** Word + color + dot shape carry the same message; never color alone. */
 export type RuntimeStatusChipTone =
@@ -265,6 +267,44 @@ function RuntimeMaintenanceSheet({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
+  // aria-modal hides the artboard from screen readers, so Tab must not walk
+  // into it. Focus starts on the dialog and stays inside until it closes.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) {
+      return;
+    }
+    panel.focus();
+
+    const keepFocusInside = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") {
+        return;
+      }
+      const focusable = [...panel.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR)];
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const active = document.activeElement;
+      const outside = !(active instanceof Node) || !panel.contains(active);
+      if (event.shiftKey && (outside || active === first)) {
+        event.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!event.shiftKey && (outside || active === last)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", keepFocusInside, true);
+    return () => document.removeEventListener("keydown", keepFocusInside, true);
+  }, []);
+
   return (
     <div className="runtime-maintenance-scrim" style={{ paddingRight: sheetInsetRight }}>
       <section
@@ -273,6 +313,7 @@ function RuntimeMaintenanceSheet({
         className="runtime-maintenance-panel"
         ref={panelRef}
         role="dialog"
+        tabIndex={-1}
       >
         <header className="runtime-maintenance-head">
           <h2>{strings.kiosk.maintenance}</h2>
