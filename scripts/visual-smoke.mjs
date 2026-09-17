@@ -1,12 +1,15 @@
-import { spawn } from "node:child_process";
-import { mkdir, readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { chromium } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import { resolve } from "node:path";
+import {
+  assertNoHorizontalOverflow,
+  installConfigurationMocks,
+  installRuntimeWebSocketMock,
+  launchBrowser,
+  loadSeedConfigurationsByPath,
+  repoRoot,
+  startDashboardServer,
+} from "./lib/runtime-harness.mjs";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(__dirname, "..");
-const dashboardRoot = resolve(repoRoot, "frontend/apps/bloom-dashboard");
 const configurationFixturePaths = {
   "bloom-debug": resolve(repoRoot, "backend/seed/applications/bloom-debug.json"),
   "explorer-manager": resolve(repoRoot, "backend/seed/applications/explorer-manager.json"),
@@ -14,7 +17,6 @@ const configurationFixturePaths = {
 };
 const outputDir = process.env.BLOOM_VISUAL_OUTPUT_DIR ?? resolve("/tmp", "bloom-visual-smoke");
 const port = Number(process.env.BLOOM_VISUAL_PORT ?? "5178");
-const baseUrl = `http://127.0.0.1:${port}`;
 
 // The three panels Bloom is actually deployed on. 1280x720 and 1820x720 are
 // the sizes the design references are drawn at; 1024x600 is the smallest
@@ -70,45 +72,20 @@ const ROUTES_GUARANTEEING_CLEAR_CHROME = new Set([
   "explorer-sources",
 ]);
 
-const configurations = Object.fromEntries(
-  await Promise.all(
-    Object.entries(configurationFixturePaths).map(async ([id, fixturePath]) => [
-      id,
-      JSON.parse(await readFile(fixturePath, "utf8")),
-    ]),
-  ),
-);
+const configurations = await loadSeedConfigurationsByPath(configurationFixturePaths);
 await mkdir(outputDir, { recursive: true });
 
-const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
-  cwd: dashboardRoot,
-  detached: true,
-  env: { ...process.env, VITE_BLOOM_API_URL: "" },
-  stdio: ["ignore", "pipe", "pipe"],
-});
-
-let serverExitError;
-server.on("exit", (code, signal) => {
-  if (code !== null && code !== 0) {
-    serverExitError = new Error(`Bloom dashboard dev server exited with code ${code}.`);
-    return;
-  }
-
-  if (signal) {
-    serverExitError = new Error(`Bloom dashboard dev server exited with signal ${signal}.`);
-  }
-});
-server.stdout.on("data", (chunk) => process.stdout.write(chunk));
-server.stderr.on("data", (chunk) => process.stderr.write(chunk));
+const server = startDashboardServer(port);
+const baseUrl = server.baseUrl;
 
 try {
-  await waitForServer(baseUrl);
+  await server.ready();
   const browser = await launchBrowser();
 
   try {
     for (const viewport of viewports) {
       const page = await browser.newPage({ viewport });
-      await mockConfigurationApi(page);
+      await installConfigurationMocks(page, configurations);
 
       for (const route of routes) {
         await route.setup(page);
@@ -137,145 +114,10 @@ try {
     await browser.close();
   }
 } finally {
-  await stopServer();
+  await server.stop();
 }
 
 console.log(`Bloom visual smoke screenshots captured in ${outputDir}`);
-
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "chrome" });
-  } catch {
-    return chromium.launch();
-  }
-}
-
-async function waitForServer(url) {
-  const startedAt = Date.now();
-
-  while (Date.now() - startedAt < 20_000) {
-    if (serverExitError) {
-      throw serverExitError;
-    }
-
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      // Vite is still starting.
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-
-  throw new Error(`Timed out waiting for ${url}`);
-}
-
-async function stopServer() {
-  if (!server.pid || server.killed) {
-    return;
-  }
-
-  try {
-    process.kill(-server.pid, "SIGTERM");
-  } catch {
-    return;
-  }
-
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  try {
-    process.kill(-server.pid, "SIGKILL");
-  } catch {
-    // The server already stopped after SIGTERM.
-  }
-}
-
-async function mockConfigurationApi(page) {
-  await page.route("**/api/v1/configurations", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      json: { configuration_ids: Object.keys(configurations) },
-      status: 200,
-    });
-  });
-
-  for (const [configurationId, configuration] of Object.entries(configurations)) {
-    await page.route(`**/api/v1/configurations/${configurationId}`, async (route) => {
-      await route.fulfill({
-        contentType: "application/json",
-        json: configuration,
-        status: 200,
-      });
-    });
-  }
-
-  await page.route("**/api/v1/ros/topics/status", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      json: {
-        topics: [
-          {
-            name: "/joystick_cartesian_command",
-            message_type: "geometry_msgs/msg/TwistStamped",
-            publisher_count: 1,
-            subscription_count: 1,
-          },
-          {
-            name: "/mode_request",
-            message_type: "std_msgs/msg/String",
-            publisher_count: 1,
-            subscription_count: 1,
-          },
-          {
-            name: "/joint_states",
-            message_type: "sensor_msgs/msg/JointState",
-            publisher_count: 1,
-            subscription_count: 0,
-          },
-          {
-            name: "/cartesian_command",
-            message_type: "geometry_msgs/msg/TwistStamped",
-            publisher_count: 1,
-            subscription_count: 0,
-          },
-          {
-            name: "/visual_servoing/velocity_command",
-            message_type: "geometry_msgs/msg/TwistStamped",
-            publisher_count: 1,
-            subscription_count: 0,
-          },
-        ],
-      },
-      status: 200,
-    });
-  });
-
-  await page.route("**/api/v1/runtime/stop", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      json: { detail: "Runtime stop is not engaged.", engaged_at: "", stopped: false },
-      status: 200,
-    });
-  });
-
-  await page.route("**/api/v1/runtime/control", async (route) => {
-    const sessionId = route.request().headers()["x-bloom-runtime-session"] ?? "";
-    await route.fulfill({
-      contentType: "application/json",
-      json: {
-        active_sessions: 1,
-        detail: sessionId ? "This runtime session owns robot control." : "Another runtime session owns robot control.",
-        is_owner: sessionId !== "",
-        owner_present: true,
-        session_id: sessionId,
-      },
-      status: 200,
-    });
-  });
-}
 
 async function mockRuntimeDebugApi(page) {
   await page.route("**/api/v1/ros/topics/status", async (route) => {
@@ -320,213 +162,6 @@ async function mockRuntimeDebugApi(page) {
       json: { records: [] },
       status: 200,
     });
-  });
-}
-
-async function mockRuntimeWebSocket(page) {
-  await page.addInitScript(() => {
-    class BloomVisualSmokeWebSocket extends EventTarget {
-      static CONNECTING = 0;
-      static OPEN = 1;
-      static CLOSING = 2;
-      static CLOSED = 3;
-
-      readyState = BloomVisualSmokeWebSocket.CONNECTING;
-
-      constructor(url) {
-        super();
-        this.url = url;
-        this.sessionId = `visual-smoke-${Date.now()}-${Math.random()}`;
-        window.setTimeout(() => {
-          this.readyState = BloomVisualSmokeWebSocket.OPEN;
-          this.dispatchEvent(new Event("open"));
-          window.setTimeout(() => {
-            this.dispatchEvent(
-              new MessageEvent("message", {
-                data: JSON.stringify({
-                  active_sessions: 1,
-                  payload: {
-                    active_sessions: 1,
-                    is_owner: false,
-                    owner_present: false,
-                    session_id: this.sessionId,
-                  },
-                  session_id: this.sessionId,
-                  type: "session_connected",
-                }),
-              }),
-            );
-          }, 0);
-        }, 0);
-      }
-
-      close() {
-        this.readyState = BloomVisualSmokeWebSocket.CLOSED;
-        this.dispatchEvent(new CloseEvent("close"));
-      }
-
-      send(data) {
-        const message = parseRuntimeCommand(data);
-        if (!message) {
-          return;
-        }
-
-        if (message.type === "claim_control") {
-          this.acknowledgeControl(true);
-          return;
-        }
-
-        if (message.type === "release_control") {
-          this.acknowledgeControl(false);
-          return;
-        }
-
-        if (message.type === "subscribe_topic") {
-          this.acknowledgeSubscription(message);
-          return;
-        }
-
-        if (message.type === "unsubscribe_topic") {
-          // Replies match requests by position, so every request needs one.
-          window.setTimeout(() => {
-            this.dispatchEvent(
-              new MessageEvent("message", {
-                data: JSON.stringify({
-                  type: "unsubscription_ack",
-                  detail: `Unsubscribed from ${message.topic}.`,
-                  payload: { removed: true, topic: message.topic, widget_id: message.widget_id },
-                }),
-              }),
-            );
-          }, 0);
-          return;
-        }
-
-        if (message.type === "teleop_cmd") {
-          this.acknowledgeTeleopCommand(message);
-        }
-      }
-
-      acknowledgeControl(isOwner) {
-        const detail = isOwner ? "This runtime session owns robot control." : "No runtime session owns robot control.";
-        window.setTimeout(() => {
-          this.dispatchEvent(
-            new MessageEvent("message", {
-              data: JSON.stringify({
-                detail,
-                payload: {
-                  active_sessions: 1,
-                  is_owner: isOwner,
-                  owner_present: isOwner,
-                  session_id: this.sessionId,
-                },
-                session_id: this.sessionId,
-                type: "control_state",
-              }),
-            }),
-          );
-        }, 0);
-      }
-
-      acknowledgeSubscription(message) {
-        window.setTimeout(() => {
-          this.dispatchEvent(
-            new MessageEvent("message", {
-              data: JSON.stringify({
-                type: "subscription_ack",
-                detail: `Subscribed to ${message.topic}.`,
-                payload: {
-                  field_path: message.field_path ?? "",
-                  message_type: message.message_type ?? "",
-                  topic: message.topic,
-                  widget_id: message.widget_id,
-                },
-              }),
-            }),
-          );
-          this.dispatchEvent(
-            new MessageEvent("message", {
-              data: JSON.stringify({
-                type: "topic_sample",
-                detail: `Sample received from ${message.topic}.`,
-                payload: {
-                  message_type: message.message_type ?? "",
-                  received_at: new Date().toISOString(),
-                  topic: message.topic,
-                  value: createSampleValue(message.field_path, message.topic),
-                },
-              }),
-            }),
-          );
-        }, 0);
-      }
-
-      acknowledgeTeleopCommand(message) {
-        window.setTimeout(() => {
-          this.dispatchEvent(
-            new MessageEvent("message", {
-              data: JSON.stringify({
-                type: "teleop_ack",
-                detail: "Teleop command accepted by visual smoke runtime.",
-                payload: {
-                  angular: message.angular,
-                  linear: message.linear,
-                  mode: message.mode,
-                  seq: message.seq,
-                  status: "simulated",
-                  target: message.target,
-                },
-              }),
-            }),
-          );
-        }, 0);
-      }
-    }
-
-    function createSampleValue(fieldPath, topic) {
-      if (topic === "/joint_states") {
-        return {
-          name: ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"],
-          position: [0.56, 0.34, -0.17, -0.76, -1.08, -0.89],
-          velocity: [-0.067, -0.159, -0.176, -0.111, 0.007, 0.121],
-          effort: [-0.3, -2.1, -2.1, -0.1, 2, 2.2],
-        };
-      }
-      if (topic === "/ee_jac") {
-        return {
-          data: Array.from({ length: 36 }, (_, index) => (index % 7 === 0 ? 0.87 : ((index * 37) % 11) / 20 - 0.25)),
-        };
-      }
-      if (topic === "/ee_pose") {
-        return { header: { frame_id: "base_link" }, pose: { position: { x: 0.3, y: 0.1, z: 0.32 } } };
-      }
-      if (fieldPath === "" && /command|velocity/.test(topic ?? "")) {
-        return {
-          header: { frame_id: "base_link" },
-          twist: { linear: { x: 0.27, y: 0.19, z: 0.32 }, angular: { x: 0, y: 0, z: 0.35 } },
-        };
-      }
-      if (fieldPath === "twist.linear.x") {
-        return { twist: { linear: { x: 0.12 }, angular: { z: 0 } } };
-      }
-      if (fieldPath === "data") {
-        return { data: 0.12 };
-      }
-      return { data: "visual-smoke-sample" };
-    }
-
-    function parseRuntimeCommand(data) {
-      if (typeof data !== "string") {
-        return null;
-      }
-      try {
-        return JSON.parse(data);
-      } catch {
-        return null;
-      }
-    }
-
-    window.WebSocket = BloomVisualSmokeWebSocket;
   });
 }
 
@@ -579,7 +214,7 @@ async function showRuntimeTour(page) {
 }
 
 async function showSupervisorMirror(page) {
-  await mockRuntimeWebSocket(page);
+  await installRuntimeWebSocketMock(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { exact: true, name: "Explorer Manager" }).click();
@@ -589,7 +224,7 @@ async function showSupervisorMirror(page) {
 }
 
 async function showSandboxRuntimeScreen(page, screenName) {
-  await mockRuntimeWebSocket(page);
+  await installRuntimeWebSocketMock(page);
   await showRuntime(page);
 
   // Screen switching moved behind the maintenance hold when the runtime became
@@ -605,7 +240,7 @@ async function showSandboxRuntimeScreen(page, screenName) {
 }
 
 async function showExplorerRuntimeScreen(page, screenName) {
-  await mockRuntimeWebSocket(page);
+  await installRuntimeWebSocketMock(page);
   await mockSavedPositions(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
@@ -653,7 +288,7 @@ async function captureRuntimeLocales(browser) {
 
   for (const locale of locales) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
-    await mockConfigurationApi(page);
+    await installConfigurationMocks(page, configurations);
     await showExplorerRuntimeScreen(page, null);
     await holdForMaintenance(page);
     await page.locator(".runtime-maintenance-languages button").filter({ hasText: locale.code.toUpperCase() }).click();
@@ -805,7 +440,7 @@ async function assertSupervisorTopicsFit(page, label) {
 
 async function showDebugRuntime(page) {
   await mockRuntimeDebugApi(page);
-  await mockRuntimeWebSocket(page);
+  await installRuntimeWebSocketMock(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await openRuntimeApp(page, "Bloom Debug");
@@ -827,7 +462,7 @@ async function showDebugRuntime(page) {
 /** The builder canvas (design 7a) is a desktop surface: the panel on its desk, regions and minimum-size tags. */
 async function captureBuilderCanvas(browser) {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-  await mockConfigurationApi(page);
+  await installConfigurationMocks(page, configurations);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Builder: Compose screens" }).click();
   await page.getByRole("button", { exact: true, name: "Apps" }).click();
@@ -847,7 +482,7 @@ async function captureDesktopDebug(browser) {
     { name: "desktop-900", width: 1440, height: 900 },
   ]) {
     const page = await browser.newPage({ viewport });
-    await mockConfigurationApi(page);
+    await installConfigurationMocks(page, configurations);
     await showDebugRuntime(page);
     const label = `${viewport.name}:debug-runtime`;
     await assertNoHorizontalOverflow(page, label);
@@ -873,27 +508,6 @@ async function assertBrowserHistoryAffordance(page, label) {
   await page.goForward({ waitUntil: "networkidle" });
   await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
   await assertNoHorizontalOverflow(page, `${label}:browser-forward`);
-}
-
-async function assertNoHorizontalOverflow(page, label) {
-  const overflow = await page.evaluate(() => ({
-    bodyClientWidth: document.body.clientWidth,
-    bodyScrollWidth: document.body.scrollWidth,
-    documentClientWidth: document.documentElement.clientWidth,
-    documentScrollWidth: document.documentElement.scrollWidth,
-  }));
-
-  const toleratedOverflowPx = 2;
-  const bodyOverflow = overflow.bodyScrollWidth - overflow.bodyClientWidth;
-  const documentOverflow = overflow.documentScrollWidth - overflow.documentClientWidth;
-
-  if (bodyOverflow > toleratedOverflowPx || documentOverflow > toleratedOverflowPx) {
-    throw new Error(
-      `${label} has horizontal overflow: body=${bodyOverflow}px, document=${documentOverflow}px (${JSON.stringify(
-        overflow,
-      )})`,
-    );
-  }
 }
 
 /** The library opens an app as a role: select its row, keep the remembered role or take the first, open. */
