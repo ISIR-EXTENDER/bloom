@@ -7,6 +7,9 @@ merged product does; live robot acceptance is tracked separately in
 Bloom is the active Extender IHM. `extender_ui` is legacy and may be used only as a behavior reference or emergency
 rollback while live acceptance is completed.
 
+If you are about to drive an arm rather than check a claim, read [Operate safely](tutorials/operate-safely.md)
+first. It is this contract in the order the work happens.
+
 ## Launch An Application
 
 1. Start the Bloom API and dashboard. For an Extender lab session, use

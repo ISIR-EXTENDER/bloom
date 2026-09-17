@@ -476,22 +476,22 @@ Node 26 becomes LTS on 28 October 2026; move `.nvmrc` then.
 
 ## Documentation
 
-High-signal project docs:
+[docs/README.md](docs/README.md) indexes everything and says what each page is for. The three tutorials are in
+[docs/tutorials/](docs/tutorials/). The pages behind them:
 
-- [docs/README.md](docs/README.md)
-- [docs/operator-runtime.md](docs/operator-runtime.md)
-- [docs/design](docs/design): the design handoff, screen specs and implementation reviews
-- [docs/validation/ros-sim-e2e.md](docs/validation/ros-sim-e2e.md)
-- [docs/design-system.md](docs/design-system.md)
-- [docs/accessibility-plan.md](docs/accessibility-plan.md)
-- [docs/ux-design-handoff.md](docs/ux-design-handoff.md)
-- [docs/deployment.md#tablet-hardware](docs/deployment.md#tablet-hardware)
-- [docs/deployment.md](docs/deployment.md)
-- [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md)
-- [docs/legacy-retirement-gates.md](docs/legacy-retirement-gates.md)
+- [docs/operator-runtime.md](docs/operator-runtime.md) — the canonical runtime contract.
+- [docs/architecture.md](docs/architecture.md) — code boundaries, save/load and the runtime action path.
+- [docs/design-system.md](docs/design-system.md) and [docs/design](docs/design) — tokens, geometry contract, screen specs.
+- [docs/deployment.md](docs/deployment.md) — environment variables, same-Wi-Fi access, the lab tablet.
+- [docs/security-baseline.md](docs/security-baseline.md) and [docs/accessibility-plan.md](docs/accessibility-plan.md).
+- [docs/extender-petanque-validation.md](docs/extender-petanque-validation.md) and
+  [docs/validation/ros-sim-e2e.md](docs/validation/ros-sim-e2e.md) — what has been proven, and how.
+- [docs/ux-design-handoff.md](docs/ux-design-handoff.md) and
+  [docs/legacy-retirement-gates.md](docs/legacy-retirement-gates.md) — what is still open.
 
-Design decisions and migration notes live in [docs/decisions](docs/decisions). Add a new decision when an architectural,
-UX, security, or adapter choice would be hard to infer from code alone.
+Design decisions live in [docs/decisions](docs/decisions). Add one when an architectural, UX, security, or adapter
+choice would be hard to infer from code alone. Closed reviews and finished plans move to
+[docs/archive](docs/archive/README.md) rather than being deleted.
 
 ## License
 
