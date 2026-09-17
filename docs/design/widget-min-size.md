@@ -44,7 +44,7 @@ not a relaxation: the glass target is still 56, and the group is still named.
 seed validator all read one source:
 
 ```ts
-export const WIDGET_MIN_SIZE: Record<string, { off: [number, number]; on: [number, number] }> = {
+export const WIDGET_MIN_SIZE = {
   joystick:            { off: [280, 332], on: [320, 400] },
   'slider:vertical':   { off: [104, 284], on: [130, 312] },
   'slider:horizontal': { off: [260, 104], on: [300, 132] },
@@ -53,22 +53,22 @@ export const WIDGET_MIN_SIZE: Record<string, { off: [number, number]; on: [numbe
   // in a labelled group (settings.hide_title) the widget renders no title of its own:
   'command-button:grouped': { off: [140, 88], on: [140, 88] },
   'toggle:grouped':         { off: [200, 88], on: [200, 88] },
+  // settings.layout "inline": title and commanded state beside the button
+  'toggle:inline':          { off: [360, 88], on: [360, 88] },
   'topic-echo':        { off: [226, 200], on: [280, 280] },
   'topic-plot':        { off: [280, 180], on: [320, 240] },
   gauge:               { off: [280, 180], on: [320, 240] },
-  label:               { off: [120,  28], on: [120,  28] },
+  label:               { off: [120,  24], on: [120,  24] },
   'position-library':  { off: [420, 300], on: [480, 360] },
   'event-log':         { off: [300, 200], on: [340, 240] },
+  'plot-board':        { off: [480, 280], on: [480, 280] },
+  'plot-picker':       { off: [260, 200], on: [260, 200] },
+  'value-strip':       { off: [440, 140], on: [440, 140] },
 };
-
-export function minSizeFor(kind: string, settings: { show_details?: boolean; direction?: string }) {
-  let key = kind === 'slider' ? `slider:${settings.direction ?? 'horizontal'}` : kind;
-  if (settings.hide_title && WIDGET_MIN_SIZE[`${key}:grouped`]) key = `${key}:grouped`;
-  const entry = WIDGET_MIN_SIZE[key];
-  if (!entry) return null;
-  return settings.show_details ? entry.on : entry.off;
-}
 ```
+
+Shipped as `frontend/libs/widgets/src/min-size.ts` with `minSizeFor(kind, settings)`; a test keeps this block and the
+constant identical. The label floor is 24, matching the table above and every shipped group label.
 
 ## The target is physical
 

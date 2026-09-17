@@ -12,6 +12,8 @@ export * from "./canvas-defaults";
 export * from "./editor";
 export * from "./extensions";
 export * from "./legacy";
+export * from "./min-size";
+export * from "./pad-geometry";
 export * from "./runtime";
 export * from "./settings";
 export * from "./telemetry";
