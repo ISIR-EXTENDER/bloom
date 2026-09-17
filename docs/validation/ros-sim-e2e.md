@@ -42,13 +42,11 @@ The Kinova launch does not spawn `fault_controller`, so Reset fault is not exerc
 - Chrome, or the Playwright Chromium.
 - Explorer: `ros-jazzy-ros-gz-bridge` and the Explorer Gazebo packages, and no other Gazebo simulation running. Gazebo
   transport ignores `ROS_DOMAIN_ID`, so the script refuses to start a second world.
-- Kinova: `kortex_description` and `picknik_reset_fault_controller` on the ament path, for example
-  `sudo apt install ros-jazzy-kortex-description ros-jazzy-picknik-reset-fault-controller`. On 2026-09-17 the Jazzy apt
-  `ros-jazzy-robotiq-description` (0.0.1) is older than what `kortex_description` 0.2.6 expects and xacro fails with
-  `Invalid parameter "mock_sensor_commands"`; use `robotiq_description` from
-  [ros2_robotiq_gripper](https://github.com/PickNikRobotics/ros2_robotiq_gripper) instead. The old Humble
-  `kinova_ros2_ws` cannot be overlaid on Jazzy. Packages installed outside a sourced workspace can be added with
-  `BLOOM_E2E_EXTRA_PREFIX`.
+- Kinova: `kortex_description` and `robotiq_description` built in the Extender workspace. They are in
+  `extender.repos` (`Kinovarobotics/ros2_kortex` on `jazzy`, `PickNikRobotics/ros2_robotiq_gripper` on `main`); the
+  workspace README explains which packages to ignore and why the versions must match. `kortex_description` 0.2.3, the
+  copy in the older `kinova_ros2_ws`, writes a `mimic` attribute Jazzy's `ros2_control` refuses, so no controller
+  spawns. Packages installed outside the sourced workspace can still be added with `BLOOM_E2E_EXTRA_PREFIX`.
 
 ## Commands
 
@@ -91,14 +89,14 @@ NaN velocity and effort for the passive gripper joints; Bloom sends them as `nul
 
 ## Results, 2026-09-17
 
-- **Kinova**, self-contained run on `ROS_DOMAIN_ID=42` with `kortex_description` 0.2.6 from apt and `robotiq_description`
-  from source: 12/12 checks passed. Translation moved `/ee_pose` 12.0 cm, the parity twist was `base_link` linear
-  `(0, 1, 0)` from both layouts, Bloom Debug showed 13 joint rows and a 6x7 Jacobian.
-- **Explorer**, `--reuse-stack` against a simulation already running on the default domain with both workarounds
-  applied by hand: 12/12 checks passed. Go home published the `home` joint target from `explorer_params.yaml`, Bloom
-  Debug showed 12 joint rows and a 6x6 Jacobian, and Translation moved `/ee_pose` 15.3 cm in an 800 ms stroke. The
-  self-contained Explorer path (launch log wait, controller manager stop, clock bridge) was checked against that
-  simulation's launch log but not run end to end, because a second Gazebo could not be started beside it.
+Both robots ran self-contained, each starting its own simulation, API and dashboard and tearing them down again.
+
+- **Kinova**, on `ROS_DOMAIN_ID=42` with `kortex_description` 0.2.6 and `robotiq_description` built in the workspace:
+  12/12 checks passed. Translation moved `/ee_pose` 11.9 cm, the parity twist was `base_link` linear `(0, 1, 0)` from
+  both layouts, the gripper sent `[0.8]` and `[0]`, and Bloom Debug showed 13 joint rows and a 6x7 Jacobian.
+- **Explorer**, including the two launch workarounds applied by the script: 12/12 checks passed. Go home published the
+  `home` joint target from `explorer_params.yaml`, Release returned `behaviour/passthrough`, Bloom Debug showed 12
+  joint rows and a 6x6 Jacobian, and Translation moved `/ee_pose` 14.2 cm in an 800 ms stroke.
 
 Findings from these runs, none blocking:
 
