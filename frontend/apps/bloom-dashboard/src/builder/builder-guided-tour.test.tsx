@@ -151,6 +151,38 @@ describe("the builder review checklist", () => {
     expect(loadGuidedTourProgress(tourKey)).toEqual([...derived, "profile", "ship"]);
   });
 
+  it("names the control, the screen and which of the three touch problems it is", () => {
+    const bench = { ...application.screens[0], title: "Drive · Bench" };
+    const pad = application.screens[0].widgets[0];
+    const showTouchStep = (widgets: typeof bench.widgets) => {
+      renderTour({ application: { ...application, screens: [{ ...bench, widgets }] } });
+      fireEvent.click(screen.getByRole("button", { name: /02Place controls, watch the bounds/ }));
+    };
+
+    showTouchStep([]);
+    expect(screen.getByText("No control has been placed yet, so there is no target to measure.")).toBeTruthy();
+    cleanup();
+
+    // A 70 px card leaves 38 px for the button, and the tablet fit turns that into 29 on the glass.
+    showTouchStep([
+      {
+        id: "neutral",
+        kind: "command-button",
+        title: "Neutral",
+        layout: { x: 14, y: 46, width: 264, height: 70 },
+        settings: {},
+      },
+    ]);
+    expect(screen.getByText("Neutral on Drive · Bench is 29 px on the glass, needs 44.")).toBeTruthy();
+    cleanup();
+
+    showTouchStep([
+      pad,
+      { ...pad, id: "rotation", title: "Rotation", layout: { ...pad.layout, x: pad.layout.x + 100 } },
+    ]);
+    expect(screen.getByText("Translation overlaps Rotation on Drive · Bench.")).toBeTruthy();
+  });
+
   it("opens the screen containing the first topic-policy problem", () => {
     const callbacks = renderTour({
       application: {

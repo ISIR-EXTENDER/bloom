@@ -46,9 +46,19 @@ export function BuilderGuidedTour({
   const { completedStepIds, completeStep } = useGuidedTourProgress(tourKey);
   const checks = useMemo(() => evaluateBuilderTour(application, siblings), [application, siblings]);
   const topicProblem = useMemo(() => findFirstTopicProblem(application), [application]);
+  const touchProblem = useMemo(() => findTouchProblem(application), [application]);
   const steps = useMemo(
-    () => createBuilderTourSteps(application, checks, completedStepIds, Boolean(firstScreen), topicProblem, siblings),
-    [application, checks, completedStepIds, firstScreen, siblings, topicProblem],
+    () =>
+      createBuilderTourSteps(
+        application,
+        checks,
+        completedStepIds,
+        Boolean(firstScreen),
+        topicProblem,
+        touchProblem,
+        siblings,
+      ),
+    [application, checks, completedStepIds, firstScreen, siblings, topicProblem, touchProblem],
   );
   const [activeStepId, setActiveStepId] = useState<BuilderTourStepId>(
     () => steps.find((step) => !step.complete)?.id ?? steps[0]?.id ?? "ship",
@@ -70,12 +80,17 @@ export function BuilderGuidedTour({
 
   const screenSelection = firstScreen ? { ...selection, screenId: firstScreen.id } : selection;
   const undersizedScreen = application.screens.find((screen) => findUndersizedWidgets(screen).length > 0);
-  const activeScreenSelection =
-    activeStep.id === "topics" && topicProblem
-      ? { ...selection, screenId: topicProblem.screen.id }
-      : activeStep.id === "minimum" && undersizedScreen
-        ? { ...selection, screenId: undersizedScreen.id }
-        : screenSelection;
+  const problemScreenId =
+    activeStep.id === "topics"
+      ? topicProblem?.screen.id
+      : activeStep.id === "touch"
+        ? touchProblem?.kind === "empty"
+          ? undefined
+          : touchProblem?.screen.id
+        : activeStep.id === "minimum"
+          ? undersizedScreen?.id
+          : undefined;
+  const activeScreenSelection = problemScreenId ? { ...selection, screenId: problemScreenId } : screenSelection;
 
   return (
     <section className="builder-guided-tour" aria-label="Builder review checklist">
@@ -164,9 +179,6 @@ export function evaluateBuilderTour(
   siblings: readonly ApplicationConfig[] = [],
 ): Record<Exclude<BuilderTourStepId, "ship">, boolean> {
   const rules = Object.fromEntries(reviewScreens(application, siblings).map((rule) => [rule.id, rule.passed]));
-  const interactiveWidgets = application.screens.flatMap((screen) =>
-    screen.widgets.filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind)),
-  );
   const destinations = collectWidgetDestinations(application);
 
   return {
@@ -175,15 +187,7 @@ export function evaluateBuilderTour(
       application.screens.length > 0 &&
       application.screens.every((screen) => PANEL_PRESETS.has(screen.canvas.preset_id)),
     // Measured on the glass: the target inside each control, at the class's smallest panel.
-    touch:
-      interactiveWidgets.length > 0 &&
-      application.screens.every((screen) => {
-        const { glassScale } = resolveBuilderPanel(screen);
-        return screen.widgets
-          .filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind))
-          .every((widget) => glassPx(widget, glassScale) >= TOUCH_FLOOR_PX);
-      }) &&
-      application.screens.every((screen) => !hasInteractiveOverlap(screen.widgets)),
+    touch: findTouchProblem(application) === null,
     minimum: rules.minimum === true,
     symmetry: rules.symmetry === true,
     pads: rules.pads === true,
@@ -211,6 +215,7 @@ function createBuilderTourSteps(
   completedStepIds: readonly string[],
   hasScreen: boolean,
   topicProblem: WidgetTopicProblem | null,
+  touchProblem: WidgetTouchProblem | null,
   siblings: readonly ApplicationConfig[] = [],
 ): BuilderTourStep[] {
   const stepDefinitions: BuilderTourStep[] = [
@@ -227,9 +232,10 @@ function createBuilderTourSteps(
     {
       id: "touch",
       title: "Place controls, watch the bounds",
-      detail: checks.touch
-        ? "Every control's target meets the 44 px floor on the glass of the smallest panel, and none overlap."
-        : "A control is too small, overlaps another control, or no control has been placed yet.",
+      detail:
+        touchProblem === null
+          ? "Every control's target meets the 44 px floor on the glass of the smallest panel, and none overlap."
+          : describeTouchProblem(touchProblem),
       why: "Touch checks belong in the authoring loop, before the app reaches the lab.",
       action: "Inspect control bounds",
       complete: checks.touch,
@@ -294,9 +300,11 @@ function createBuilderTourSteps(
   });
 }
 
+type TourScreen = ApplicationConfig["screens"][number];
+
 type WidgetTopicProblem = {
   destination: NonNullable<ReturnType<typeof resolveWidgetDestination>>;
-  screen: ApplicationConfig["screens"][number];
+  screen: TourScreen;
   widget: WidgetConfig;
 };
 
@@ -334,22 +342,62 @@ function isTopicDestinationAllowed(
     : application.runtime_policy.allowed_publish_topics.includes(destination.topic);
 }
 
-function hasInteractiveOverlap(widgets: readonly WidgetConfig[]): boolean {
-  const interactive = widgets.filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind));
-  return interactive.some((left, index) =>
-    interactive.slice(index + 1).some((right) => {
+/** The three ways the touch step fails, each carrying what it takes to name the offender. */
+type WidgetTouchProblem =
+  | { kind: "empty" }
+  | { glass: number; kind: "small"; screen: TourScreen; widget: WidgetConfig }
+  | { kind: "overlap"; other: WidgetConfig; screen: TourScreen; widget: WidgetConfig };
+
+function findTouchProblem(application: ApplicationConfig): WidgetTouchProblem | null {
+  const controlsOn = (screen: TourScreen) =>
+    screen.widgets.filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind));
+  if (!application.screens.some((screen) => controlsOn(screen).length > 0)) {
+    return { kind: "empty" };
+  }
+
+  for (const screen of application.screens) {
+    const { glassScale } = resolveBuilderPanel(screen);
+    const controls = controlsOn(screen);
+    const small = controls.find((widget) => glassPx(widget, glassScale) < TOUCH_FLOOR_PX);
+    if (small) {
+      return { glass: glassPx(small, glassScale), kind: "small", screen, widget: small };
+    }
+    const overlap = findInteractiveOverlap(controls);
+    if (overlap) {
+      return { kind: "overlap", other: overlap[1], screen, widget: overlap[0] };
+    }
+  }
+  return null;
+}
+
+function describeTouchProblem(problem: WidgetTouchProblem): string {
+  if (problem.kind === "empty") {
+    return "No control has been placed yet, so there is no target to measure.";
+  }
+  if (problem.kind === "small") {
+    return `${problem.widget.title} on ${problem.screen.title} is ${problem.glass} px on the glass, needs ${TOUCH_FLOOR_PX}.`;
+  }
+  return `${problem.widget.title} overlaps ${problem.other.title} on ${problem.screen.title}.`;
+}
+
+function findInteractiveOverlap(controls: readonly WidgetConfig[]): [WidgetConfig, WidgetConfig] | null {
+  for (const [index, left] of controls.entries()) {
+    for (const right of controls.slice(index + 1)) {
       const leftRight = left.layout.x + left.layout.width;
       const rightRight = right.layout.x + right.layout.width;
       const leftBottom = left.layout.y + left.layout.height;
       const rightBottom = right.layout.y + right.layout.height;
-      return (
+      if (
         left.layout.x < rightRight &&
         leftRight > right.layout.x &&
         left.layout.y < rightBottom &&
         leftBottom > right.layout.y
-      );
-    }),
-  );
+      ) {
+        return [left, right];
+      }
+    }
+  }
+  return null;
 }
 
 function downloadApplication(application: ApplicationConfig): void {
