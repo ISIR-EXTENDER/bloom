@@ -112,6 +112,11 @@ Or, for a Kinova gen3 on mock hardware:
 ros2 launch cartesian_manager kinova.launch.py use_simulation:=true
 ```
 
+> [!NOTE]
+> Kinova needs `kortex_description` and `robotiq_description` built in the workspace, at versions that agree. They are
+> in `extender.repos`; the workspace README explains which packages to ignore and why the versions matter. Without
+> them the launch loads no hardware and no controller spawns.
+
 Leave that terminal running.
 
 ### 7. Start Bloom against that robot
