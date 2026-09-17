@@ -33,7 +33,9 @@ export function CommandLikeWidget({
   const isSelected = selection === "selected";
   const disabled = controlState?.disabled === true;
   const disabledReason = controlState?.disabledReason;
-  const disabledReasonId = disabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
+  // An unavailable widget's frame already states the reason; saying it twice only grows the card.
+  const showsDisabledReason = Boolean(disabledReason) && controlState?.unavailable !== true;
+  const disabledReasonId = showsDisabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
   const isMomentaryPressedRef = useRef(false);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
   const [isMomentaryLatched, setIsMomentaryLatched] = useState(false);
@@ -168,6 +170,8 @@ export function CommandLikeWidget({
   };
 
   const layout = getBooleanSetting(descriptor.widget.settings, "hide_title", false) ? "bare" : "card";
+  const showsTitle =
+    layout === "card" && descriptor.widget.title.trim().toLowerCase() !== buttonLabel.trim().toLowerCase();
   const detail = actionLabel || command;
   const hint = isArmed
     ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
@@ -209,10 +213,10 @@ export function CommandLikeWidget({
         title={disabledReason}
         type="button"
       >
-        {layout === "card" ? <span className="bloom-action-title">{descriptor.widget.title}</span> : null}
+        {showsTitle ? <span className="bloom-action-title">{descriptor.widget.title}</span> : null}
         <span className="bloom-action-label">{visibleButtonLabel}</span>
         {hint ? <span className="bloom-action-hint">{hint}</span> : null}
-        {disabledReason ? (
+        {showsDisabledReason ? (
           <small className="bloom-command-button-disabled-reason" id={disabledReasonId}>
             {disabledReason}
           </small>
@@ -304,7 +308,7 @@ export function ToggleWidget({ conditioning, controlState, descriptor, onActionI
   if (variant === "mode-segmented") {
     return (
       <div className="bloom-toggle-widget" data-state={isOn ? "active" : "inactive"} data-variant={variant}>
-        <strong>{descriptor.widget.title}</strong>
+        <strong className="bloom-toggle-title">{descriptor.widget.title}</strong>
         <button
           aria-pressed={isOn}
           aria-label={`${descriptor.widget.title}: ${stateLabel}`}

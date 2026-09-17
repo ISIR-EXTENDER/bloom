@@ -23,7 +23,7 @@ const checks = [
     assertions: async (page) => {
       await assertFramesInsideViewport(page, "Control Panel");
       await assertNoFrameOverlap(page, "Control Panel");
-      await assertVisibleBox(page, ".bloom-slider-widget[data-binding='z'] .bloom-slider-track", {
+      await assertVisibleBox(page, ".bloom-slider-widget[data-direction='vertical'] .bloom-axis-slider", {
         label: "Control Panel Z slider track",
         minHeight: 120,
       });

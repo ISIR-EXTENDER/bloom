@@ -887,7 +887,7 @@
   background: var(--bloom-surface-container-high);
 }
 
-.bloom-toggle-widget[data-variant="mode-segmented"] > strong {
+.bloom-toggle-title {
   font-size: 18px;
 }
 
@@ -902,7 +902,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 72px;
+  min-width: 80px;
   min-height: 48px;
   padding: 0 12px;
   border-radius: 10px;
