@@ -51,7 +51,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | C2 | Position libraries are created on read for any id pair and never bounded, subscriptions per socket are unbounded, and per-message teleop auditing turns the 500-record audit log over in about 17 s. | `routes/runtime.py`, `sessions/audit.py`, `teleop_runtime.py` | Fixed |
 | C3 | Store edge cases: CLI commands skip adopting the old file store, deleting a shipped configuration is undone on restart, concurrent saves to one configuration lose an edit, and publishing an unedited app rewrites its seed file. | `config/*`, `routes/configurations.py` | Fixed |
 | C4 | Builder: JSON fields revert every keystroke that leaves the JSON invalid; a topic echo stays blank after Clear on a full buffer; an emptied number field stores 0 and `step: 0` passes validation. | `builder/*`, `debug-renderers.tsx`, `widgets/settings.ts` | Fixed |
-| C5 | The launcher leaves Vite running when it exits and lets it drift to another port; Node checks compare only the major version; the workspace path is hard-coded to one user. | `scripts/extender-workspace-dev.sh`, `scripts/verify.sh` | Open |
+| C5 | The launcher leaves Vite running when it exits and lets it drift to another port; Node checks compare only the major version; the workspace path is hard-coded to one user. | `scripts/extender-workspace-dev.sh`, `scripts/verify.sh` | Fixed |
 | C6 | CI does not run the contract validations or the version check, `verify` omits the dynamic security smoke, the coherence check skips Kinova, and the workflow has no `permissions` block. | `.github/workflows/ci.yml`, `scripts/*` | Open |
 
 ## D. Release documentation

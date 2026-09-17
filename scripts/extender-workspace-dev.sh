@@ -2,7 +2,7 @@
 set -euo pipefail
 
 BLOOM_ROOT=${BLOOM_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}
-EXTENDER_WORKSPACE=${EXTENDER_WORKSPACE:-"/home/susana/workspace/extender/extender_workspace"}
+EXTENDER_WORKSPACE=${EXTENDER_WORKSPACE:-"$(dirname "${BLOOM_ROOT}")/extender_workspace"}
 EXTENDER_SETUP_FILE=${EXTENDER_SETUP_FILE:-"${EXTENDER_WORKSPACE}/install/setup.bash"}
 BLOOM_API_HOST=${BLOOM_API_HOST:-"127.0.0.1"}
 BLOOM_API_PORT=${BLOOM_API_PORT:-"8000"}
@@ -24,12 +24,14 @@ source_extender_workspace() {
 }
 
 cleanup() {
+  # Each server runs in its own process group; killing only the subshell left
+  # npm's Vite child running and holding the port.
   if [[ -n "${FRONTEND_PID}" ]]; then
-    kill "${FRONTEND_PID}" 2>/dev/null || true
+    kill -- "-${FRONTEND_PID}" 2>/dev/null || true
   fi
 
   if [[ -n "${API_PID}" ]]; then
-    kill "${API_PID}" 2>/dev/null || true
+    kill -- "-${API_PID}" 2>/dev/null || true
   fi
 }
 
@@ -67,6 +69,9 @@ if [[ -z "${BLOOM_CORS_ALLOWED_ORIGINS:-}" ]]; then
   export BLOOM_CORS_ALLOWED_ORIGINS
 fi
 
+# Job control gives each background server its own process group.
+set -m
+
 echo "Starting Bloom API with ROS adapters..."
 (
   cd "${BLOOM_ROOT}/backend"
@@ -75,18 +80,15 @@ echo "Starting Bloom API with ROS adapters..."
 ) &
 API_PID="$!"
 
-required_node_major="$(cat "${BLOOM_ROOT}/.nvmrc")"
-node_major="$(node --version | sed -E 's/^v([0-9]+).*/\1/')"
-if [ "${node_major}" -lt "${required_node_major}" ]; then
-  echo "warning: Node $(node --version) is older than the Node ${required_node_major} baseline." >&2
-  echo "         The dashboard still starts, but tests will not run here. See README > Tooling." >&2
+if ! node "${BLOOM_ROOT}/scripts/check-node-version.mjs"; then
+  echo "warning: the dashboard still starts, but tests will not run here. See README > Tooling." >&2
 fi
 
 echo "Starting Bloom dashboard..."
 (
   cd "${BLOOM_ROOT}"
   VITE_BLOOM_API_PROXY_TARGET="${BLOOM_API_PROXY_TARGET}" \
-    npm run dev --workspace @bloom/dashboard -- --host "${BLOOM_FRONTEND_HOST}" --port "${BLOOM_FRONTEND_PORT}"
+    npm run dev --workspace @bloom/dashboard -- --host "${BLOOM_FRONTEND_HOST}" --port "${BLOOM_FRONTEND_PORT}" --strictPort
 ) &
 FRONTEND_PID="$!"
 

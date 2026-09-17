@@ -395,7 +395,8 @@ It reads whichever store is configured and marks each application `shared`, `edi
 The [Extender tutorial](#extender-tutorial) is the normal development path. Its launcher accepts these useful
 overrides:
 
-- `EXTENDER_WORKSPACE` or `EXTENDER_SETUP_FILE` selects the ROS workspace to source.
+- `EXTENDER_WORKSPACE` or `EXTENDER_SETUP_FILE` selects the ROS workspace to source. The default is an
+  `extender_workspace` checkout next to this repository.
 - `BLOOM_API_HOST` / `BLOOM_API_PORT` and `BLOOM_FRONTEND_HOST` / `BLOOM_FRONTEND_PORT` change the listening addresses.
 - `BLOOM_API_PROXY_TARGET` overrides Vite's server-side API target; the launcher derives it from `BLOOM_API_PORT` by
   default.
@@ -577,8 +578,8 @@ requests for npm, uv and GitHub Actions, grouping minor and patch updates; major
 | GitHub CLI | latest stable | PR creation, CI checks, and squash-merge workflow. |
 | Playwright | installed through npm | Browser checks and README screenshots. |
 
-Local work and CI both run Node.js 24, the current LTS line, read from `.nvmrc`; `npm run verify` refuses an older
-Node. On Ubuntu with the NodeSource repository, upgrade with:
+Local work and CI both run Node.js 24, the current LTS line, read from `.nvmrc`; `npm run verify` refuses a Node
+older than the `engines.node` floor in `package.json`, patch release included. On Ubuntu with the NodeSource repository, upgrade with:
 
 ```bash
 sudo sed -i 's|node_[0-9]*\.x|node_24.x|' /etc/apt/sources.list.d/nodesource.list

@@ -7,11 +7,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-required_node_major="$(cat .nvmrc)"
-node_major="$(node --version | sed -E 's/^v([0-9]+).*/\1/')"
-if [ "$node_major" -lt "$required_node_major" ]; then
-  echo "error: Node $(node --version) is older than the Node $required_node_major baseline in .nvmrc." >&2
-  echo "       The jsdom test suites cannot start on it; see README > Tooling to upgrade." >&2
+if ! node scripts/check-node-version.mjs; then
+  echo "error: the jsdom test suites cannot start on this Node; see README > Tooling to upgrade." >&2
   exit 1
 fi
 
