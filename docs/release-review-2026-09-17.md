@@ -47,7 +47,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 
 | # | Finding | Where | Status |
 | --- | --- | --- | --- |
-| C1 | The supervisor mirror keeps showing motion and the old frame during STOP, misses mode requests the shipped buttons publish, records one-shot joint targets as lasting modes, and shows the configured frame when an idle operator chose another. | `sessions/manager.py`, `routes/ros.py`, `SupervisorWorkspace.tsx` | Open |
+| C1 | The supervisor mirror keeps showing motion and the old frame during STOP, misses mode requests the shipped buttons publish, records one-shot joint targets as lasting modes, and shows the configured frame when an idle operator chose another. | `sessions/manager.py`, `routes/ros.py`, `SupervisorWorkspace.tsx` | Fixed |
 | C2 | Position libraries are created on read for any id pair and never bounded, subscriptions per socket are unbounded, and per-message teleop auditing turns the 500-record audit log over in about 17 s. | `routes/runtime.py`, `sessions/audit.py`, `teleop_runtime.py` | Open |
 | C3 | Store edge cases: CLI commands skip adopting the old file store, deleting a shipped configuration is undone on restart, concurrent saves to one configuration lose an edit, and publishing an unedited app rewrites its seed file. | `config/*`, `routes/configurations.py` | Open |
 | C4 | Builder: JSON fields revert every keystroke that leaves the JSON invalid; a topic echo stays blank after Clear on a full buffer; an emptied number field stores 0 and `step: 0` passes validation. | `builder/*`, `debug-renderers.tsx`, `widgets/settings.ts` | Open |

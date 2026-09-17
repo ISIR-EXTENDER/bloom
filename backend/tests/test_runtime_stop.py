@@ -417,3 +417,47 @@ def test_generic_publish_checks_stop_again_at_the_publish_gate() -> None:
 
     assert response.status_code == 409
     assert ros_gateway.requests == []
+
+
+def test_the_mirror_follows_generic_mode_publishes_and_stop() -> None:
+    client = TestClient(
+        create_app(
+            Settings(environment="test", runtime_control_required=True),
+            InMemoryConfigurationRepository(),
+            ros_publisher_gateway=RecordingRosPublisherGateway(),
+            teleop_command_gateway=RecordingTeleopGateway(),
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        headers = {"X-Bloom-Runtime-Session": websocket.receive_json()["session_id"]}
+        websocket.send_json({"type": "claim_control"})
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "frame_id": "hybrid_frame",
+                "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+                "seq": 1,
+                "target": "/joystick_cartesian_command",
+            }
+        )
+        assert websocket.receive_json()["type"] == "teleop_ack"
+        published = client.post(
+            "/api/v1/ros/topics/publish",
+            headers=headers,
+            json={
+                "topic": "/mode_request",
+                "message_type": "std_msgs/msg/String",
+                "payload": {"data": "geometric/both"},
+            },
+        )
+        assert published.status_code == 200
+        driving = client.get("/api/v1/runtime/control").json()
+
+        assert client.post("/api/v1/runtime/stop").status_code == 200
+        stopped = client.get("/api/v1/runtime/control").json()
+
+    assert (driving["owner_moving"], driving["owner_mode_request"]) == (True, "geometric/both")
+    assert (stopped["owner_moving"], stopped["owner_mode_request"]) == (False, "behaviour/passthrough")
+    assert stopped["owner_frame_id"] == "hybrid_frame"

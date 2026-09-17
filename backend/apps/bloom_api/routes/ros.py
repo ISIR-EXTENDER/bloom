@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from apps.bloom_api.security import (
+    RUNTIME_SESSION_HEADER,
     BloomPrincipal,
     execute_as_runtime_owner,
     require_observer,
@@ -232,6 +233,10 @@ def publish_ros_topic(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
+    # The shipped mode buttons publish here, not as action presets.
+    request.app.state.runtime_session_manager.record_published_mode_request(
+        request.headers.get(RUNTIME_SESSION_HEADER, "").strip(), ros_publish_request.topic, ros_publish_request.payload
+    )
     return _to_response(receipt)
 
 

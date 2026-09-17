@@ -54,9 +54,9 @@ export function SupervisorWorkspace({
   const stopState = useSupervisorStopState(client);
   const controlState = useSupervisorControlState(client);
   const statusChip = resolveRuntimeStatusChip(stopState, link, strings);
-  // The operating session's own state beats this browser's copy of it. Its
-  // absence is not "unknown": nobody is driving, so the app's configured frame
-  // is what the next command would carry.
+  // The operating session's own state beats this browser's copy of it. The
+  // backend keeps the last frame the operator sent; without one, the app's
+  // configured frame is what the next command would carry.
   const operatorFrameId = controlState?.owner_frame_id ?? "";
   const operatorIsDriving = controlState?.owner_moving === true;
   const requestedMode = controlState?.owner_mode_request || modeState.requestedMode;

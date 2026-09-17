@@ -4,9 +4,11 @@ from threading import Lock
 from typing import TypeVar
 from uuid import uuid4
 
+from libs.ros_adapters.mode_request import ModeRequestError, parse_mode_request
 from libs.sessions.teleop import TeleopCommand
 
 T = TypeVar("T")
+STOP_MODE_REQUEST = "behaviour/passthrough"
 
 
 @dataclass(frozen=True)
@@ -38,6 +40,7 @@ class RuntimeSessionManager:
         self._releasing_session_id: str | None = None
         self._teleop_commands: dict[str, dict[str, TeleopCommand]] = {}
         self._mode_requests: dict[str, str] = {}
+        self._frame_ids: dict[str, str] = {}
         self._lock = Lock()
         self._operation_lock = Lock()
 
@@ -57,6 +60,7 @@ class RuntimeSessionManager:
             self._sessions.discard(session.id)
             self._teleop_commands.pop(session.id, None)
             self._mode_requests.pop(session.id, None)
+            self._frame_ids.pop(session.id, None)
             if self._owner_session_id == session.id:
                 self._owner_session_id = None
             if self._releasing_session_id == session.id:
@@ -123,6 +127,9 @@ class RuntimeSessionManager:
     def record_teleop_command(self, session: RuntimeSession, command: TeleopCommand) -> None:
         with self._lock:
             self._ensure_connected(session.id)
+            # A frame change sends a zero, so the frame is kept even when nothing moves.
+            if command.frame_id:
+                self._frame_ids[session.id] = command.frame_id
             commands = self._teleop_commands.setdefault(session.id, {})
             if _is_zero_command(command):
                 commands.pop(command.target, None)
@@ -137,9 +144,31 @@ class RuntimeSessionManager:
         The manager publishes no mode feedback, so this is the last request,
         never a confirmed controller state.
         """
+        try:
+            request = parse_mode_request(mode)
+        except ModeRequestError:
+            return
+        # A joint target fires once and the manager falls back by itself, so it is not a lasting mode.
+        if request.one_shot:
+            return
         with self._lock:
-            if session_id in self._sessions and mode:
-                self._mode_requests[session_id] = mode
+            if session_id in self._sessions:
+                self._mode_requests[session_id] = request.normalized
+
+    def record_published_mode_request(self, session_id: str, topic: str, payload: object) -> None:
+        mode = payload.get("data") if isinstance(payload, dict) else None
+        if topic.endswith("mode_request") and isinstance(mode, str):
+            self.record_mode_request(session_id, mode)
+
+    def record_runtime_stop(self, zeroed_target: str) -> None:
+        """STOP zeroed that target and asked every session's manager for passthrough."""
+        with self._lock:
+            for session_id in self._sessions:
+                self._mode_requests[session_id] = STOP_MODE_REQUEST
+                commands = self._teleop_commands.get(session_id, {})
+                commands.pop(zeroed_target, None)
+                if not commands:
+                    self._teleop_commands.pop(session_id, None)
 
     def moving_teleop_commands(self, session: RuntimeSession) -> tuple[TeleopCommand, ...]:
         with self._lock:
@@ -153,7 +182,9 @@ class RuntimeSessionManager:
         owner_id = self._owner_session_id
         owner_commands = tuple(self._teleop_commands.get(owner_id or "", {}).values())
         # Only moving commands are kept, so any entry means the arm is driven.
-        owner_frame_id = next((command.frame_id for command in owner_commands if command.frame_id), "")
+        owner_frame_id = next((command.frame_id for command in owner_commands if command.frame_id), "") or (
+            self._frame_ids.get(owner_id or "", "")
+        )
         return RuntimeControlSnapshot(
             active_sessions=len(self._sessions),
             is_owner=self._is_control_owner(session_id),

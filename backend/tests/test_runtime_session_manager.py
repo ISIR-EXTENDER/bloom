@@ -1,3 +1,4 @@
+from dataclasses import replace
 from threading import Event, Thread
 
 import pytest
@@ -154,4 +155,55 @@ def test_a_released_command_stops_reading_as_movement() -> None:
 
     seen = manager.control_snapshot("")
     assert seen.owner_moving is False
-    assert seen.owner_frame_id == ""
+    # The next command carries the frame the operator last chose, moving or not.
+    assert seen.owner_frame_id == "ft_frame"
+
+
+def moving_command(frame_id: str = "hybrid_frame") -> TeleopCommand:
+    return TeleopCommand(
+        angular=TeleopVector3(),
+        frame_id=frame_id,
+        linear=TeleopVector3(x=0.2),
+        mode=0,
+        seq=1,
+        target="/joystick_cartesian_command",
+    )
+
+
+def test_stop_ends_the_mirrored_motion_and_mode() -> None:
+    manager = RuntimeSessionManager()
+    owner = manager.connect()
+    manager.claim_control(owner)
+    manager.record_teleop_command(owner, moving_command())
+    manager.record_mode_request(owner.id, "geometric/both")
+
+    manager.record_runtime_stop("/joystick_cartesian_command")
+
+    seen = manager.control_snapshot("")
+    assert seen.owner_moving is False
+    assert seen.owner_mode_request == "behaviour/passthrough"
+    assert seen.owner_frame_id == "hybrid_frame"
+
+
+def test_a_joint_target_is_not_mirrored_as_a_lasting_mode() -> None:
+    manager = RuntimeSessionManager()
+    owner = manager.connect()
+    manager.claim_control(owner)
+    manager.record_mode_request(owner.id, "Geometric/Both")
+
+    manager.record_mode_request(owner.id, "behaviour/joint_target/home")
+    manager.record_mode_request(owner.id, "not a mode")
+
+    assert manager.control_snapshot("").owner_mode_request == "geometric/both"
+
+
+def test_a_frame_chosen_while_idle_is_mirrored() -> None:
+    manager = RuntimeSessionManager()
+    owner = manager.connect()
+    manager.claim_control(owner)
+    zero = replace(moving_command("ft_frame"), linear=TeleopVector3())
+
+    manager.record_teleop_command(owner, zero)
+
+    seen = manager.control_snapshot("")
+    assert (seen.owner_moving, seen.owner_frame_id) == (False, "ft_frame")

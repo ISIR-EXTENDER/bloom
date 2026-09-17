@@ -84,6 +84,7 @@ def create_app(
     )
     app.state.runtime_recording_gateway = runtime_recording_gateway or create_runtime_recording_gateway(app_settings)
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
+    app.state.runtime_session_manager = RuntimeSessionManager()
     # After the gateways; still latches when both are Noops.
     app.state.runtime_stop_controller = runtime_stop_controller or RuntimeStopController(
         teleop_gateway=app.state.teleop_command_gateway,
@@ -92,8 +93,8 @@ def create_app(
         teleop_target=(
             LEGACY_TELEOP_TARGET if app_settings.ros_command_backend == "teleop_command" else DEFAULT_TELEOP_TARGET
         ),
+        on_asserted=app.state.runtime_session_manager.record_runtime_stop,
     )
-    app.state.runtime_session_manager = RuntimeSessionManager()
     app.state.http_rate_limit_buckets = {}
     install_cors(app, app_settings)
     install_http_rate_limit(app)

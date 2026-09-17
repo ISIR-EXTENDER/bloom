@@ -422,7 +422,9 @@ def dispatch_runtime_action(
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
-    record_mode_request_for_mirror(request, preset, payload)
+    request.app.state.runtime_session_manager.record_published_mode_request(
+        request.headers.get(RUNTIME_SESSION_HEADER, "").strip(), preset.topic, payload
+    )
 
     return RuntimeActionDispatchResponse(
         app_id=action_request.app_id,
@@ -434,18 +436,6 @@ def dispatch_runtime_action(
         status=receipt.status,
         topic=receipt.topic,
     )
-
-
-def record_mode_request_for_mirror(request: Request, preset: RuntimeActionPreset, payload: object) -> None:
-    """Remember a published mode request so the read-only mirror can show it."""
-    if not preset.topic.endswith("mode_request"):
-        return
-    mode = payload.get("data") if isinstance(payload, dict) else None
-    if not isinstance(mode, str):
-        return
-    session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
-    if session_id:
-        request.app.state.runtime_session_manager.record_mode_request(session_id, mode)
 
 
 def dispatch_service_call_preset(

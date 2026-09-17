@@ -55,12 +55,15 @@ class RuntimeStopController:
         audit_log: RuntimeAuditLog | None = None,
         teleop_target: str = DEFAULT_TELEOP_TARGET,
         mode_request_topic: str = DEFAULT_MODE_REQUEST_TOPIC,
+        on_asserted: Callable[[str], None] | None = None,
     ) -> None:
         self._teleop_gateway = teleop_gateway
         self._ros_publisher_gateway = ros_publisher_gateway
         self._audit_log = audit_log
         self._teleop_target = teleop_target
         self._mode_request_topic = mode_request_topic
+        # Told the zeroed target once both assertions publish, so session state can follow.
+        self._on_asserted = on_asserted
         self._lock = threading.Lock()
         self._stopped = False
         self._asserted = False
@@ -122,6 +125,8 @@ class RuntimeStopController:
         self._record("accepted" if state.asserted else "rejected", detail)
         if not state.asserted:
             raise RuntimeStopAssertionError(state)
+        if self._on_asserted is not None:
+            self._on_asserted(self._teleop_target)
         return state
 
     def resume(self) -> RuntimeStopState:
