@@ -330,6 +330,12 @@ export type SavedPosition = {
   description: string;
 };
 
+/** Joint order belongs to one arm, so poses belong to one application. */
+export type SavedPositionScope = {
+  appId: string;
+  configId: string;
+};
+
 export type SavedPositionListResponse = {
   positions: SavedPosition[];
 };
@@ -535,29 +541,31 @@ export class BloomApiClient {
     });
   }
 
-  async listSavedPositions(): Promise<SavedPosition[]> {
-    const response = await this.request<SavedPositionListResponse>("/api/v1/runtime/positions");
+  async listSavedPositions(scope?: SavedPositionScope): Promise<SavedPosition[]> {
+    const response = await this.request<SavedPositionListResponse>(
+      `/api/v1/runtime/positions${savedPositionQuery(scope)}`,
+    );
     return response.positions;
   }
 
-  saveSavedPosition(request: SavedPosition): Promise<SavedPosition> {
-    return this.request<SavedPosition>("/api/v1/runtime/positions", {
+  saveSavedPosition(request: SavedPosition, scope?: SavedPositionScope): Promise<SavedPosition> {
+    return this.request<SavedPosition>(`/api/v1/runtime/positions${savedPositionQuery(scope)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
     });
   }
 
-  async deleteSavedPosition(name: string): Promise<SavedPosition[]> {
+  async deleteSavedPosition(name: string, scope?: SavedPositionScope): Promise<SavedPosition[]> {
     const response = await this.request<SavedPositionListResponse>(
-      `/api/v1/runtime/positions/${encodeURIComponent(name)}`,
+      `/api/v1/runtime/positions/${encodeURIComponent(name)}${savedPositionQuery(scope)}`,
       { method: "DELETE" },
     );
     return response.positions;
   }
 
-  exportSavedPositions(): Promise<SavedPositionExportResponse> {
-    return this.request<SavedPositionExportResponse>("/api/v1/runtime/positions/export");
+  exportSavedPositions(scope?: SavedPositionScope): Promise<SavedPositionExportResponse> {
+    return this.request<SavedPositionExportResponse>(`/api/v1/runtime/positions/export${savedPositionQuery(scope)}`);
   }
 
   callRosService(request: RosServiceCallRequest): Promise<RosServiceCallResponse> {
@@ -619,6 +627,14 @@ export class BloomApiClient {
 
 export function createBloomApiClient(options: BloomApiClientOptions = {}): BloomApiClient {
   return new BloomApiClient(options);
+}
+
+function savedPositionQuery(scope?: SavedPositionScope): string {
+  if (!scope?.appId && !scope?.configId) {
+    return "";
+  }
+  const query = new URLSearchParams({ app_id: scope.appId, config_id: scope.configId });
+  return `?${query.toString()}`;
 }
 
 function normalizeBaseUrl(baseUrl: string): string {

@@ -551,11 +551,22 @@ def record_runtime_action_rejection(
     )
 
 
-def get_position_library(request: Request) -> PositionLibrary:
-    library = getattr(request.app.state, "position_library", None)
+def get_position_library(request: Request, config_id: str = "", app_id: str = "") -> PositionLibrary:
+    """One library per application.
+
+    A pose is a joint vector in one arm's joint order. Sharing a single library
+    across Explorer and Kinova let a six-joint Explorer pose appear in a Kinova
+    export, where the same numbers mean different angles.
+    """
+    libraries = getattr(request.app.state, "position_libraries", None)
+    if libraries is None:
+        libraries = {}
+        request.app.state.position_libraries = libraries
+    key = f"{config_id}:{app_id}"
+    library = libraries.get(key)
     if library is None:
         library = PositionLibrary()
-        request.app.state.position_library = library
+        libraries[key] = library
     return library
 
 
@@ -571,9 +582,11 @@ def to_position_response(pose: JointPose) -> SavedPositionResponse:
 @router.get("/positions", response_model=SavedPositionListResponse)
 def list_saved_positions(
     request: Request,
+    app_id: str = "",
+    config_id: str = "",
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> SavedPositionListResponse:
-    library = get_position_library(request)
+    library = get_position_library(request, config_id, app_id)
     return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in library.list()))
 
 
@@ -581,9 +594,11 @@ def list_saved_positions(
 def save_position(
     payload: SavedPositionRequest,
     request: Request,
+    app_id: str = "",
+    config_id: str = "",
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> SavedPositionResponse:
-    library = get_position_library(request)
+    library = get_position_library(request, config_id, app_id)
     try:
         pose = JointPose(
             name=payload.name,
@@ -600,9 +615,11 @@ def save_position(
 def delete_position(
     name: str,
     request: Request,
+    app_id: str = "",
+    config_id: str = "",
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> SavedPositionListResponse:
-    library = get_position_library(request)
+    library = get_position_library(request, config_id, app_id)
     if not library.remove(name):
         raise HTTPException(status_code=404, detail=f"no saved position named '{name}'")
     return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in library.list()))
@@ -611,6 +628,8 @@ def delete_position(
 @router.get("/positions/export", response_model=SavedPositionExportResponse)
 def export_positions(
     request: Request,
+    app_id: str = "",
+    config_id: str = "",
     _principal: BloomPrincipal = Depends(require_operator),
 ) -> SavedPositionExportResponse:
     """Render the joint_targets block for cartesian_manager.
@@ -619,7 +638,7 @@ def export_positions(
     between the two storage layers is an export the operator pastes into
     explorer_params.yaml and restarts the node to pick up.
     """
-    library = get_position_library(request)
+    library = get_position_library(request, config_id, app_id)
     poses = library.list()
     try:
         return SavedPositionExportResponse(

@@ -187,7 +187,10 @@ export function RuntimeWorkspace({
   );
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const screenHasPositionLibrary = screen.widgets.some((widget) => widget.kind === "position-library");
-  const positionLibrary = usePositionLibrary(runtimeActionClient, screenHasPositionLibrary);
+  const positionLibrary = usePositionLibrary(runtimeActionClient, screenHasPositionLibrary, {
+    appId: selection.appId,
+    configId: selection.configId,
+  });
   const effectiveDataByWidgetId = useMemo(() => {
     if (!screenHasPositionLibrary) {
       return dataByWidgetId;

@@ -1,12 +1,12 @@
-import { BloomApiError, type SavedPosition } from "@bloom/api-client";
+import { BloomApiError, type SavedPosition, type SavedPositionScope } from "@bloom/api-client";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type PositionLibraryClient = {
-  deleteSavedPosition?: (name: string) => Promise<SavedPosition[]>;
-  exportSavedPositions?: () => Promise<{ yaml: string; target_names: string[] }>;
-  listSavedPositions?: () => Promise<SavedPosition[]>;
-  saveSavedPosition?: (request: SavedPosition) => Promise<SavedPosition>;
+  deleteSavedPosition?: (name: string, scope?: SavedPositionScope) => Promise<SavedPosition[]>;
+  exportSavedPositions?: (scope?: SavedPositionScope) => Promise<{ yaml: string; target_names: string[] }>;
+  listSavedPositions?: (scope?: SavedPositionScope) => Promise<SavedPosition[]>;
+  saveSavedPosition?: (request: SavedPosition, scope?: SavedPositionScope) => Promise<SavedPosition>;
 };
 
 export type PositionLibraryState = {
@@ -17,12 +17,21 @@ export type PositionLibraryState = {
 };
 
 /** Serves position-op intents from position-library widgets over HTTP. */
-export function usePositionLibrary(client: PositionLibraryClient | null | undefined, enabled: boolean) {
+export function usePositionLibrary(
+  client: PositionLibraryClient | null | undefined,
+  enabled: boolean,
+  scope?: SavedPositionScope,
+) {
   const [state, setState] = useState<PositionLibraryState>({ saved: [], exportYaml: "", notice: "", busy: false });
   const clientRef = useRef(client);
   clientRef.current = client;
   const savedRef = useRef<SavedPosition[]>([]);
   savedRef.current = state.saved;
+  // A pose is a joint vector in one arm's order; the scope keeps Explorer's
+  // poses out of Kinova's export.
+  const scopeRef = useRef(scope);
+  scopeRef.current = scope;
+  const scopeKey = `${scope?.configId ?? ""}:${scope?.appId ?? ""}`;
 
   useEffect(() => {
     const listSavedPositions = client?.listSavedPositions;
@@ -30,7 +39,7 @@ export function usePositionLibrary(client: PositionLibraryClient | null | undefi
       return;
     }
     let cancelled = false;
-    listSavedPositions()
+    listSavedPositions(scopeRef.current)
       .then((saved) => {
         if (!cancelled) {
           setState((current) => ({ ...current, saved }));
@@ -44,7 +53,7 @@ export function usePositionLibrary(client: PositionLibraryClient | null | undefi
     return () => {
       cancelled = true;
     };
-  }, [client, enabled]);
+  }, [client, enabled, scopeKey]);
 
   const handleIntent = useCallback((intent: WidgetActionIntent): boolean => {
     if (intent.type !== "position-op") {
@@ -58,13 +67,16 @@ export function usePositionLibrary(client: PositionLibraryClient | null | undefi
     if (intent.op === "capture" && positionsClient?.saveSavedPosition && intent.jointNames && intent.positions) {
       const name = nextPoseName(savedRef.current);
       positionsClient
-        .saveSavedPosition({
-          name,
-          joint_names: [...intent.jointNames],
-          positions: [...intent.positions],
-          description: "",
-        })
-        .then(() => positionsClient.listSavedPositions?.() ?? [])
+        .saveSavedPosition(
+          {
+            name,
+            joint_names: [...intent.jointNames],
+            positions: [...intent.positions],
+            description: "",
+          },
+          scopeRef.current,
+        )
+        .then(() => positionsClient.listSavedPositions?.(scopeRef.current) ?? [])
         .then((saved) => finish({ saved, notice: `Captured ${name}.` }))
         .catch((error: unknown) => finish({ notice: describeError(error) }));
       return true;
@@ -73,7 +85,7 @@ export function usePositionLibrary(client: PositionLibraryClient | null | undefi
     if (intent.op === "delete" && positionsClient?.deleteSavedPosition && intent.name) {
       const name = intent.name;
       positionsClient
-        .deleteSavedPosition(name)
+        .deleteSavedPosition(name, scopeRef.current)
         .then((saved) => finish({ saved, notice: `Deleted ${name}.` }))
         .catch((error: unknown) => finish({ notice: describeError(error) }));
       return true;
@@ -81,7 +93,7 @@ export function usePositionLibrary(client: PositionLibraryClient | null | undefi
 
     if (intent.op === "export" && positionsClient?.exportSavedPositions) {
       positionsClient
-        .exportSavedPositions()
+        .exportSavedPositions(scopeRef.current)
         .then((response) => finish({ exportYaml: response.yaml, notice: "Exported. Paste into the manager's params." }))
         .catch((error: unknown) => finish({ notice: describeError(error) }));
       return true;

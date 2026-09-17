@@ -117,6 +117,9 @@ and discard any queued movement; the backend's default 60 commands/s ceiling rem
 The speed slider readouts are therefore downstream limits, not a second scale in Bloom. Maintenance diagnostics list
 their topics explicitly; **No subscriber** means the controller is not ready and the corresponding slider stays inert.
 
+Saved positions belong to one application. A pose is a joint vector in one arm's joint order, so Explorer's poses never
+appear in Kinova's export, where the same numbers would mean different angles.
+
 The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, replay,
 rename/delete, and export of a `joint_targets` configuration block. Robot Feedback and Command Sources expose measured
 state and the manager's summed inputs without placing debug detail on the Drive screen.

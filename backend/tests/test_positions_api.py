@@ -13,11 +13,33 @@ def make_client() -> TestClient:
     return TestClient(create_app(Settings(environment="test"), InMemoryConfigurationRepository()))
 
 
-def save(client: TestClient, name: str, positions):
+def save(client: TestClient, name: str, positions, params: dict[str, str] | None = None):
     return client.post(
         "/api/v1/runtime/positions",
         json={"name": name, "joint_names": JOINTS, "positions": positions},
+        params=params,
     )
+
+
+def test_each_application_keeps_its_own_positions() -> None:
+    # A pose is a joint vector in one arm's joint order. Shared across apps,
+    # an Explorer pose would land in a Kinova export as different angles.
+    client = make_client()
+    explorer = {"config_id": "explorer-manager", "app_id": "explorer-manager"}
+    kinova = {"config_id": "kinova-manager", "app_id": "kinova-manager"}
+
+    assert save(client, "home", HOME, explorer).status_code == 200
+
+    kinova_positions = client.get("/api/v1/runtime/positions", params=kinova).json()["positions"]
+    assert kinova_positions == []
+
+    explorer_positions = client.get("/api/v1/runtime/positions", params=explorer).json()["positions"]
+    assert [item["name"] for item in explorer_positions] == ["home"]
+
+    # Nothing to export for an app that saved nothing, rather than Explorer's
+    # poses rendered into Kinova's params block.
+    assert client.get("/api/v1/runtime/positions/export", params=kinova).status_code == 422
+    assert client.get("/api/v1/runtime/positions/export", params=explorer).json()["target_names"] == ["home"]
 
 
 def test_saves_and_lists_positions() -> None:
