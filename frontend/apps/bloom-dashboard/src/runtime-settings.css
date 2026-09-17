@@ -11,6 +11,8 @@
 }
 
 .runtime-settings-columns {
+  /* Contains the absolutely placed sr-only legends, which otherwise scroll the whole page. */
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(260px, 338px);
   gap: 14px;
@@ -22,12 +24,12 @@
 .runtime-settings-column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .runtime-settings-group {
-  margin: 14px 0 0;
+  margin: 6px 0 0;
   color: var(--bloom-ink-soft);
   font-size: 12px;
   font-weight: 700;
@@ -48,9 +50,9 @@
 .runtime-settings-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  padding: 14px;
+  padding: 10px 14px;
   border: 1px solid var(--settings-hairline);
   border-radius: var(--bloom-radius-card);
   background: var(--bloom-surface-container-high);
@@ -124,7 +126,8 @@
 .runtime-settings-segments button,
 .runtime-settings-toggle,
 .runtime-settings-stepper button {
-  min-height: var(--bloom-touch-target-high-visibility);
+  /* 56 px keeps every target above the 48 px floor and lets the three columns fit 1280×720 beside STOP. */
+  min-height: var(--bloom-touch-target-comfortable);
   border: 2px solid var(--settings-hairline);
   border-radius: var(--bloom-radius-control);
   background: var(--bloom-surface-container);
@@ -161,9 +164,7 @@
 
 .runtime-settings-stepper {
   display: grid;
-  grid-template-columns: var(--bloom-touch-target-high-visibility) minmax(0, 1fr) var(
-      --bloom-touch-target-high-visibility
-    );
+  grid-template-columns: var(--bloom-touch-target-comfortable) minmax(0, 1fr) var(--bloom-touch-target-comfortable);
   gap: 12px;
   align-items: center;
 }
