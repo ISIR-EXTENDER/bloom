@@ -176,4 +176,9 @@ def create_runtime_recording_gateway(settings: Settings) -> RuntimeRecordingGate
     return NoopRuntimeRecordingGateway()
 
 
-app = create_app()
+def __getattr__(name: str) -> FastAPI:
+    # Built on first use: the CLI imports this module, and building the app opens and seeds the default store.
+    if name != "app":
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    app = globals()["app"] = create_app()
+    return app

@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from typer.testing import CliRunner
@@ -273,3 +276,40 @@ def test_api_run_delegates_to_uvicorn(monkeypatch) -> None:
         "port": 9000,
         "reload": True,
     }
+
+
+def test_config_status_reports_every_shipped_app(tmp_path: Path) -> None:
+    seed_dir = tmp_path / "seed"
+    database_path = tmp_path / "bloom.db"
+    bundle = load_configuration_file(Path(__file__).parents[1] / "seed" / "applications" / "sandbox.json")
+    for config_id in ("alpha", "beta", "gamma"):
+        save_configuration_file(bundle, seed_dir / f"{config_id}.json")
+    store = ["--storage", "sqlite", "--database-path", str(database_path), "--seed-dir", str(seed_dir)]
+    runner = CliRunner()
+
+    runner.invoke(cli, ["config", "seed", *store])
+    result = runner.invoke(cli, ["config", "status", *store])
+
+    assert result.exit_code == 0
+    assert result.stdout.split() == ["shared", "alpha", "shared", "beta", "shared", "gamma"]
+
+
+def test_importing_the_cli_leaves_the_default_store_alone(tmp_path: Path) -> None:
+    backend_dir = Path(__file__).parents[1]
+    environment = os.environ | {"PYTHONPATH": str(backend_dir)}
+
+    subprocess.run([sys.executable, "-c", "import apps.bloom_cli.main"], check=True, cwd=tmp_path, env=environment)
+
+    assert not (tmp_path / "data").exists()
+
+
+def test_the_api_module_still_serves_an_app(tmp_path: Path) -> None:
+    backend_dir = Path(__file__).parents[1]
+    environment = os.environ | {"PYTHONPATH": str(backend_dir), "BLOOM_SEED_SHARED_APPLICATIONS": "false"}
+    script = "import apps.bloom_api.main as api; print(type(api.app).__name__, api.app is api.app)"
+
+    result = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, check=True, cwd=tmp_path, env=environment, text=True
+    )
+
+    assert result.stdout.split() == ["FastAPI", "True"]

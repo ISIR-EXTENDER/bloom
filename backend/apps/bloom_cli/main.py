@@ -207,13 +207,13 @@ def configuration_status(
         elif config_id not in shipped:
             typer.echo(f"local     {config_id} (run: bloom config publish {config_id} to share it)")
         else:
-            stored = repository.get(config_id)
-            shipped = load_configuration_file(Path(seed_dir) / f"{config_id}.json")
+            stored_bundle = repository.get(config_id)
+            shipped_bundle = load_configuration_file(Path(seed_dir) / f"{config_id}.json")
             # Compare content, not the seed stamp: a seeded copy carries a
             # fingerprint the shipped file does not, and that is not an edit.
-            if configuration_fingerprint(stored) == configuration_fingerprint(shipped):
+            if configuration_fingerprint(stored_bundle) == configuration_fingerprint(shipped_bundle):
                 typer.echo(f"shared    {config_id}")
-            elif is_unedited_seed_copy(stored):
+            elif is_unedited_seed_copy(stored_bundle):
                 typer.echo(f"outdated  {config_id} (run: bloom config seed to take the shipped version)")
             else:
                 typer.echo(f"edited    {config_id} (run: bloom config publish {config_id} to share your changes)")
