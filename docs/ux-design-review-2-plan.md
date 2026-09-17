@@ -225,6 +225,31 @@ open the runtime socket for live status and topic samples. Its teleop commands a
 control are refused by the server, not hidden by the interface, so a supervisor screen can hold a key that cannot take
 the arm.
 
+### Measured, not yet fixed: STOP covers widgets at 1024x600
+
+The widened visual gate found a real instance of finding 11 on shipped apps. STOP is 176x132 of chrome pinned to the
+bottom-right of the viewport, drawn over the artboard. Three Explorer screens run a widget into that corner, so at
+1024x600 the reading disappears underneath it:
+
+| Screen | Widget | Covered |
+| --- | --- | --- |
+| Positions | Joint target topic echo | 128x115 px |
+| Robot feedback | Manipulability plot | about the same corner |
+| Command sources | Event log | about the same corner |
+
+Drive and Joystick Lab leave the corner free and are asserted on every run. Sandbox's legacy screens have the same
+shape of problem, and their topic echoes grow as samples arrive, so asserting there measures the fixture.
+
+Two ways out, and it is a decision rather than a nudge:
+
+- **Reserve STOP a lane in the shell**, which is what `kiosk-runtime-spec.md` describes: STOP lives in the body's right
+  column instead of floating over the canvas. Correct for every screen ever authored, at the cost of fit on every
+  screen. The runtime already discloses a fit below 1.0, so the loss would at least be visible.
+- **Re-author the three screens** so nothing occupies the bottom-right corner. Cheaper now, and it leaves the next
+  person free to author the same collision again.
+
+The first is the real fix. It needs the handoff owner's agreement because it changes every screen's scale.
+
 ## How the work is run
 
 One lot, one commit, tested end to end before the commit. Conventional commits, imperative
