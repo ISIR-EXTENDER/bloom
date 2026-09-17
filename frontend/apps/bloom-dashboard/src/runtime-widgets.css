@@ -50,14 +50,16 @@
   font-size: 13px;
 }
 
+/* A topic path carries no spaces, so without this the reason is cut mid-token with nothing to say so. */
 .bloom-runtime-widget-unavailable span {
   display: -webkit-box;
   overflow: hidden;
   color: inherit;
   font-size: 13px;
   line-height: 1.25;
+  overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
 }
 
 /* Info card: what a control reports or configures, not what the hand holds. */
