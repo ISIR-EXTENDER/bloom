@@ -13,6 +13,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- A camera frame published with no ROS attached is reported as `simulated`, like every other Noop seam, instead of
+  `published`. `GET /api/v1/capabilities` now also reports the `camera-frames` seam, so a screen can tell whether
+  frames reach ROS.
 - A configuration read no longer takes a write lock. The store is migrated once, when its repository is built, and
   connections run in WAL with a 15 s busy timeout, so a CLI `config seed` holding a write no longer makes the API
   answer 500 with `database is locked`.

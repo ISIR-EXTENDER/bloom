@@ -12,6 +12,13 @@ class RecordingPublisherGateway:
         raise NotImplementedError
 
 
+class RecordingCameraGateway:
+    """Stands in for a wired ROS camera publisher."""
+
+    def publish(self, topic: str, frame, frame_id: str = "") -> None:  # pragma: no cover - not exercised here
+        raise NotImplementedError
+
+
 def capability(payload: dict, capability_id: str) -> dict:
     return next(entry for entry in payload["capabilities"] if entry["id"] == capability_id)
 
@@ -25,7 +32,17 @@ def test_a_backend_with_no_ros_says_so(test_settings: Settings) -> None:
     assert capability(payload, "command-dispatcher")["available"] is False
     assert capability(payload, "data-source")["available"] is False
     assert capability(payload, "teleop-adapter")["available"] is False
+    assert capability(payload, "camera-frames")["available"] is False
     assert "never receive anything" in capability(payload, "data-source")["detail"]
+
+
+def test_a_wired_camera_publisher_is_reported_as_available(test_settings: Settings) -> None:
+    """A screen cannot tell a simulated frame from a published one without this."""
+    client = TestClient(create_app(test_settings, camera_frame_gateway=RecordingCameraGateway()))
+
+    payload = client.get("/api/v1/capabilities").json()
+
+    assert capability(payload, "camera-frames")["available"] is True
 
 
 def test_a_wired_seam_is_reported_as_available(test_settings: Settings) -> None:

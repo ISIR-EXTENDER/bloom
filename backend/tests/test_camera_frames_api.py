@@ -6,6 +6,17 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 
+
+class RecordingCameraGateway:
+    """Stands in for a wired ROS camera publisher."""
+
+    def __init__(self) -> None:
+        self.topics: list[str] = []
+
+    def publish(self, topic: str, frame, frame_id: str = "") -> None:
+        self.topics.append(topic)
+
+
 PIXEL = b"\xff\xd8\xff\xd9"
 FRAME = f"data:image/jpeg;base64,{base64.b64encode(PIXEL * 16).decode('ascii')}"
 TOPIC = "/ui/camera/compressed"
@@ -31,6 +42,24 @@ def test_publishes_a_frame_without_a_ros_node_attached() -> None:
     body = response.json()
     assert body["image_format"] == "jpeg"
     assert body["byte_count"] == len(PIXEL) * 16
+
+
+def test_a_frame_with_no_ros_attached_is_reported_as_simulated() -> None:
+    # It used to say "published" while the noop gateway dropped it.
+    body = post(make_client()).json()
+
+    assert body["status"] == "simulated"
+    assert "reached no topic" in body["detail"]
+
+
+def test_a_frame_that_reaches_ros_is_reported_as_published() -> None:
+    client = make_client()
+    client.app.state.camera_frame_gateway = RecordingCameraGateway()
+
+    body = post(client).json()
+
+    assert body["status"] == "published"
+    assert body["detail"].startswith("Published jpeg frame")
 
 
 def test_rejects_a_topic_outside_the_publish_allowlist() -> None:

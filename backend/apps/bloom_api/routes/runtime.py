@@ -770,10 +770,18 @@ def publish_camera_frame(
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    # Every other Noop seam says "simulated"; a frame that reached nothing must not claim otherwise.
+    published = not isinstance(gateway, NoopCameraFrameGateway)
+    detail = (
+        f"Published {frame.image_format} frame of {len(frame.image_bytes)} bytes."
+        if published
+        else f"Accepted {frame.image_format} frame of {len(frame.image_bytes)} bytes, "
+        "but no ROS camera publisher is connected, so it reached no topic."
+    )
     audit_log.record(
         RuntimeAuditRecord(
             channel="http_camera_frame",
-            detail=f"Published {frame.image_format} frame of {len(frame.image_bytes)} bytes.",
+            detail=detail,
             message_type="sensor_msgs/msg/CompressedImage",
             payload_summary={"byte_count": len(frame.image_bytes), "format": frame.image_format},
             status="accepted",
@@ -785,8 +793,8 @@ def publish_camera_frame(
         topic=payload.topic,
         image_format=frame.image_format,
         byte_count=len(frame.image_bytes),
-        status="published",
-        detail="Camera frame published.",
+        status="published" if published else "simulated",
+        detail=detail,
     )
 
 

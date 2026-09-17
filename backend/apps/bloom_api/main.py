@@ -18,6 +18,7 @@ from libs.ros_adapters import (
     RosServiceGateway,
     RosTopicCatalogGateway,
 )
+from libs.ros_adapters.camera_frames import CameraFrameGateway, NoopCameraFrameGateway
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
 from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import (
@@ -41,6 +42,7 @@ from libs.sessions.topics import is_live_subscription_gateway
 def create_app(
     settings: Settings | None = None,
     configuration_repository: ConfigurationRepository | None = None,
+    camera_frame_gateway: CameraFrameGateway | None = None,
     ros_publisher_gateway: RosPublisherGateway | None = None,
     ros_service_gateway: RosServiceGateway | None = None,
     ros_topic_catalog_gateway: RosTopicCatalogGateway | None = None,
@@ -61,6 +63,7 @@ def create_app(
 
     app.state.settings = app_settings
     app.state.configuration_repository = configuration_repository or create_app_configuration_repository(app_settings)
+    app.state.camera_frame_gateway = camera_frame_gateway or NoopCameraFrameGateway()
     app.state.ros_publisher_gateway = ros_publisher_gateway or NoopRosPublisherGateway()
     app.state.ros_service_gateway = ros_service_gateway or NoopRosServiceGateway()
     app.state.ros_topic_catalog_gateway = ros_topic_catalog_gateway or NoopRosTopicCatalogGateway()

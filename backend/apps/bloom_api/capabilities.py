@@ -17,6 +17,7 @@ own rather than collapsed into one "ROS: yes/no".
 
 from dataclasses import dataclass
 
+from libs.ros_adapters.camera_frames import NoopCameraFrameGateway
 from libs.ros_adapters.publishers import NoopRosPublisherGateway
 from libs.ros_adapters.services import NoopRosServiceGateway
 from libs.sessions.recording import NoopRuntimeRecordingGateway
@@ -75,6 +76,13 @@ def describe_runtime_capabilities(state: object) -> list[RuntimeCapability]:
             NoopTeleopCommandGateway,
             "Teleop commands reach the manager.",
             "No teleop gateway is connected, so joystick and axis widgets move nothing.",
+        ),
+        _capability(
+            "camera-frames",
+            getattr(state, "camera_frame_gateway", None),
+            NoopCameraFrameGateway,
+            "Camera frames are published to ROS.",
+            "No camera publisher is connected, so captured frames are simulated and reach no topic.",
         ),
         _capability(
             "recording",

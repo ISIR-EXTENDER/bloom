@@ -76,7 +76,8 @@ Resuming closes the sheet and publishing resumes at once. Nothing in the sheet c
 The publish rate is the ceiling while a control moves. At rest nothing is streamed: a release sends a short tail of
 zeros, and `cartesian_manager` expires an input after 0.2 s, so its output stays at zero.
 
-Runtime also checks each widget's declared backend requirement against `GET /api/v1/capabilities`. When the backend
+Runtime also checks each widget's declared backend requirement against `GET /api/v1/capabilities`. The report names one
+seam each for commands, services, topic data, teleop, camera frames, and recording. When the backend
 explicitly reports a required publisher, subscriber, service, or teleop seam unavailable, the control remains in its
 authored position but becomes inert and shows the backend's reason. A missing or failed capability report remains
 unknown and does not disable the screen by guesswork.

@@ -18,7 +18,7 @@ from __future__ import annotations
 import base64
 import binascii
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 #: Formats a browser canvas actually produces.
 SUPPORTED_IMAGE_FORMATS = ("jpeg", "png", "webp")
@@ -82,6 +82,11 @@ def decode_image_data_url(image_data_url: str, max_bytes: int = MAX_IMAGE_BYTES)
     return DecodedImage(image_format=image_format, image_bytes=image_bytes)
 
 
+class CameraFrameGateway(Protocol):
+    def publish(self, topic: str, frame: DecodedImage, frame_id: str = "") -> None:
+        raise NotImplementedError
+
+
 class RclpyCameraFrameGateway:
     """Publish decoded frames as ``sensor_msgs/msg/CompressedImage``."""
 
@@ -142,6 +147,7 @@ __all__ = [
     "MAX_IMAGE_BYTES",
     "SUPPORTED_IMAGE_FORMATS",
     "CameraFrameError",
+    "CameraFrameGateway",
     "DecodedImage",
     "NoopCameraFrameGateway",
     "RclpyCameraFrameGateway",
