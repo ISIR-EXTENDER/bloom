@@ -1047,6 +1047,11 @@
   white-space: pre;
 }
 
+/* The empty-state sentence is prose, not a message: it wraps inside the card. */
+.bloom-topic-echo[data-empty="true"] {
+  white-space: pre-wrap;
+}
+
 .bloom-topic-debug-status {
   color: var(--bloom-ink-soft);
   font-size: 13px;

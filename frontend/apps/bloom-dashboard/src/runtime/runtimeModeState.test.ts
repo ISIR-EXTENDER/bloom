@@ -326,6 +326,35 @@ describe("runtime command-frame controls", () => {
     });
   });
 
+  it("hands the active frame to an echo of the stamped twists, and to no other echo", () => {
+    const echoes = {
+      ...frameScreen,
+      widgets: [
+        {
+          id: "sent",
+          kind: "topic-echo",
+          title: "Twist",
+          layout: { x: 0, y: 0, width: 338, height: 216 },
+          settings: { messageType: "geometry_msgs/msg/TwistStamped", topic: "/joystick_cartesian_command" },
+        },
+        {
+          id: "joints",
+          kind: "topic-echo",
+          title: "Joints",
+          layout: { x: 0, y: 220, width: 338, height: 216 },
+          settings: { messageType: "sensor_msgs/msg/JointState", topic: "/joint_states" },
+        },
+      ],
+    } as ScreenConfig;
+
+    const state = createRuntimeControlStateByWidgetId(echoes, createDefaultRuntimeModeState(), {
+      activeCommandFrameId: "effector_frame",
+    });
+
+    expect(state.sent).toEqual({ commandFrameId: "effector_frame" });
+    expect(state.joints).toBeUndefined();
+  });
+
   it("keeps saying a frame is unsupported while the twist is moving", () => {
     const state = createRuntimeControlStateByWidgetId(frameScreen, createDefaultRuntimeModeState(), {
       activeCommandFrameId: "base_link",

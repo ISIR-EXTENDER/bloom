@@ -9,13 +9,21 @@ const TOPIC_PLOT_VARIANTS = ["area", "bars", "sparkline"] as const;
 
 type TopicPlotVariant = (typeof TOPIC_PLOT_VARIANTS)[number];
 
-export function TopicDebugWidget({ data, descriptor }: WidgetRendererProps) {
+export function TopicDebugWidget({ controlState, data, descriptor }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "No topic configured");
   const fieldPath = getStringSetting(descriptor.widget.settings, "fieldPath", "");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", true);
 
   if (descriptor.widget.kind === "topic-echo") {
-    return <TopicEchoWidget data={data} descriptor={descriptor} showDetails={showDetails} topic={topic} />;
+    return (
+      <TopicEchoWidget
+        controlState={controlState}
+        data={data}
+        descriptor={descriptor}
+        showDetails={showDetails}
+        topic={topic}
+      />
+    );
   }
 
   if (descriptor.widget.kind === "topic-plot") {
@@ -40,6 +48,7 @@ export function TopicDebugWidget({ data, descriptor }: WidgetRendererProps) {
 }
 
 function TopicEchoWidget({
+  controlState,
   data,
   descriptor,
   showDetails,
@@ -60,7 +69,8 @@ function TopicEchoWidget({
         ? visibleMessages.map((message) => formatEchoMessage(message.value)).join("\n---\n")
         : formatEchoMessage(latest?.value)
       : `\u2014\n\nNo ${descriptor.widget.title.toLowerCase()} has been published this session.`;
-  const frameId = readFrameId(latest?.value);
+  // The active frame restamps the echo live (joystick-lab.md); before any twist it is still the next one's frame.
+  const frameId = controlState?.commandFrameId || readFrameId(latest?.value);
   const headerNote = frameId || (latest ? formatAge(latest.receivedAt) : "nothing sent");
   const handlePauseToggle = () => {
     if (!isPaused) {
@@ -109,7 +119,9 @@ function TopicEchoWidget({
           </button>
         </div>
       ) : null}
-      <pre className="bloom-topic-echo">{echoText}</pre>
+      <pre className="bloom-topic-echo" data-empty={visibleMessages.length === 0 ? "true" : undefined}>
+        {echoText}
+      </pre>
       {!showDetails ? <span className="sr-only">{visibleMessages.length} messages</span> : null}
       <span aria-live="polite" className="bloom-topic-debug-status">
         {copyStatus === "copied" ? "Copied to clipboard." : null}

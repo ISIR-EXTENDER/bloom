@@ -177,6 +177,12 @@ export function createRuntimeControlStateByWidgetId(
         ...(disabledReason ? { disabled: true, disabledReason } : {}),
         ...(unavailable ? { unsupported: true } : {}),
       };
+    } else if (
+      widget.kind === "topic-echo" &&
+      widget.settings.messageType === "geometry_msgs/msg/TwistStamped" &&
+      options.activeCommandFrameId
+    ) {
+      controlState = { commandFrameId: options.activeCommandFrameId };
     } else if (isModeToggleWidget(widget)) {
       controlState = {
         toggleState: modeState.mode === "b2" ? "on" : "off",

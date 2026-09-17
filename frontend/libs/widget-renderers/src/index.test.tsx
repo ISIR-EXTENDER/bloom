@@ -820,6 +820,23 @@ describe("widget renderer registry", () => {
     expect(screen.getByText(/has been published this session/)).toBeVisible();
   });
 
+  it("names the command frame in the echo header before anything is sent", () => {
+    const descriptor = renderScreenDescriptors(topicEchoScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic echo descriptor.");
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          controlStateByWidgetId: { "joint-state-echo": { commandFrameId: "base_link" } },
+          dataByWidgetId: { "joint-state-echo": { messages: [], type: "topic-echo" } },
+        })}
+      </div>,
+    );
+
+    expect(screen.getByText("base_link")).toBeVisible();
+    expect(screen.queryByText("nothing sent")).toBeNull();
+    expect(document.querySelector(".bloom-topic-echo")?.getAttribute("data-empty")).toBe("true");
+  });
+
   it("shows messages that arrive after Clear even when the buffer is full", async () => {
     const descriptor = renderScreenDescriptors(topicEchoScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing topic echo descriptor.");

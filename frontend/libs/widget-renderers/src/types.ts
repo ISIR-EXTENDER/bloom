@@ -75,6 +75,8 @@ export type WidgetControlState = {
   disabledReason?: string;
   /** The backend cannot serve this widget; keep it visible, inert, and explained. */
   unavailable?: boolean;
+  /** The frame the next operator twist is stamped with, for an echo of those twists. */
+  commandFrameId?: string;
   /** This robot will never offer it (design §09): dashed, not dimmed like a control that is only "not now". */
   unsupported?: boolean;
   /**
