@@ -1,4 +1,4 @@
-import { formatTopicEchoValue, type TopicMessage } from "@bloom/widgets";
+import { formatTopicEchoValue, localizeEmptyEcho, localizeOperatorText, type TopicMessage } from "@bloom/widgets";
 import { useState } from "react";
 import { formatAge } from "./display-renderers";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
@@ -9,7 +9,7 @@ const TOPIC_PLOT_VARIANTS = ["area", "bars", "sparkline"] as const;
 
 type TopicPlotVariant = (typeof TOPIC_PLOT_VARIANTS)[number];
 
-export function TopicDebugWidget({ controlState, data, descriptor }: WidgetRendererProps) {
+export function TopicDebugWidget({ controlState, data, descriptor, language }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "No topic configured");
   const fieldPath = getStringSetting(descriptor.widget.settings, "fieldPath", "");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", true);
@@ -20,6 +20,7 @@ export function TopicDebugWidget({ controlState, data, descriptor }: WidgetRende
         controlState={controlState}
         data={data}
         descriptor={descriptor}
+        language={language}
         showDetails={showDetails}
         topic={topic}
       />
@@ -51,9 +52,11 @@ function TopicEchoWidget({
   controlState,
   data,
   descriptor,
+  language,
   showDetails,
   topic,
 }: WidgetRendererProps & { showDetails: boolean; topic: string }) {
+  const word = (text: string) => localizeOperatorText(text, language);
   const messages = data?.type === "topic-echo" ? data.messages : [];
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | "idle">("idle");
   // The last message showing at Clear. A full buffer keeps its length, so a count would hide every newer message.
@@ -68,7 +71,7 @@ function TopicEchoWidget({
       ? showDetails
         ? visibleMessages.map((message) => formatEchoMessage(message.value)).join("\n---\n")
         : formatEchoMessage(latest?.value)
-      : `\u2014\n\nNo ${descriptor.widget.title.toLowerCase()} has been published this session.`;
+      : `\u2014\n\n${localizeEmptyEcho(descriptor.widget.title.toLowerCase(), language)}`;
   // The active frame restamps the echo live (joystick-lab.md); before any twist it is still the next one's frame.
   const frameId = controlState?.commandFrameId || readFrameId(latest?.value);
   const headerNote = frameId || (latest ? formatAge(latest.receivedAt) : "nothing sent");
@@ -99,7 +102,7 @@ function TopicEchoWidget({
             onClick={handlePauseToggle}
             type="button"
           >
-            {isPaused ? "Resume" : "Pause"}
+            {word(isPaused ? "Resume" : "Pause")}
           </button>
           <button
             className="bloom-topic-debug-action"
@@ -107,7 +110,7 @@ function TopicEchoWidget({
             onClick={handleClear}
             type="button"
           >
-            Clear
+            {word("Clear")}
           </button>
           <button
             className="bloom-topic-debug-action"
@@ -115,7 +118,7 @@ function TopicEchoWidget({
             onClick={() => copyTopicEchoText(echoText, setCopyStatus)}
             type="button"
           >
-            Copy
+            {word("Copy")}
           </button>
         </div>
       ) : null}
@@ -124,8 +127,8 @@ function TopicEchoWidget({
       </pre>
       {!showDetails ? <span className="sr-only">{visibleMessages.length} messages</span> : null}
       <span aria-live="polite" className="bloom-topic-debug-status">
-        {copyStatus === "copied" ? "Copied to clipboard." : null}
-        {copyStatus === "failed" ? "Copy failed." : null}
+        {copyStatus === "copied" ? word("Copied to clipboard.") : null}
+        {copyStatus === "failed" ? word("Copy failed.") : null}
       </span>
     </div>
   );

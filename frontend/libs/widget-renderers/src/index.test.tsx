@@ -853,6 +853,31 @@ describe("widget renderer registry", () => {
     expect(document.querySelector(".bloom-topic-echo")?.getAttribute("data-empty")).toBe("true");
   });
 
+  it("speaks the echo's own words in the profile's language", () => {
+    const detailed = {
+      ...topicEchoScreen,
+      widgets: topicEchoScreen.widgets.map((widget) => ({
+        ...widget,
+        settings: { ...widget.settings, show_details: true },
+      })),
+    };
+    const descriptor = renderScreenDescriptors(detailed, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic echo descriptor.");
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: { "joint-state-echo": { messages: [], type: "topic-echo" } },
+          language: "es",
+        })}
+      </div>,
+    );
+
+    expect(screen.getByRole("button", { name: "Pausar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Borrar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copiar" })).toBeTruthy();
+    expect(document.querySelector(".bloom-topic-echo")?.textContent).toContain("No se ha publicado");
+  });
+
   it("shows messages that arrive after Clear even when the buffer is full", async () => {
     const descriptor = renderScreenDescriptors(topicEchoScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing topic echo descriptor.");

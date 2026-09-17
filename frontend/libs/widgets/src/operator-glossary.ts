@@ -59,6 +59,12 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
     fr: "remet le gestionnaire en passage direct",
   },
   "Reset fault": { es: "Reiniciar el fallo", fr: "Réinitialiser le défaut" },
+  Pause: { es: "Pausar", fr: "Pause" },
+  Resume: { es: "Reanudar", fr: "Reprendre" },
+  Clear: { es: "Borrar", fr: "Effacer" },
+  Copy: { es: "Copiar", fr: "Copier" },
+  "Copied to clipboard.": { es: "Copiado al portapapeles.", fr: "Copié dans le presse-papiers." },
+  "Copy failed.": { es: "No se pudo copiar.", fr: "La copie a échoué." },
   "SNAKE ON": { es: "SERPIENTE ACTIVA", fr: "SERPENT ACTIVÉ" },
   Neutral: { es: "Neutro", fr: "Neutre" },
   Base: { es: "Base", fr: "Base" },
@@ -170,4 +176,15 @@ export function localizeWidget(widget: WidgetConfig, language: RuntimeLanguage |
     );
   }
   return { ...widget, settings, title: localizeOperatorText(widget.title, language) };
+}
+
+/** The echo's empty line, where the sentence has to be built around the widget's own title. */
+export function localizeEmptyEcho(title: string, language: RuntimeLanguage | undefined): string {
+  if (language === "es") {
+    return `No se ha publicado ningún ${title} en esta sesión.`;
+  }
+  if (language === "fr") {
+    return `Aucun ${title} n'a été publié pendant cette session.`;
+  }
+  return `No ${title} has been published this session.`;
 }
