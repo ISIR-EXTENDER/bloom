@@ -62,6 +62,7 @@ from libs.sessions import (
     RuntimeReleaseControlMessage,
     RuntimeServerMessage,
     RuntimeSession,
+    RuntimeSessionLimitError,
     RuntimeSessionManager,
     RuntimeStopAssertionError,
     RuntimeStopController,
@@ -905,7 +906,21 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     principal = await require_runtime_websocket_principal(websocket)
     manager = get_runtime_session_manager(websocket)
     await websocket.accept(subprotocol=select_runtime_websocket_subprotocol(websocket))
-    session = manager.connect()
+    try:
+        # Before anything else is set up, so a refusal leaves nothing behind.
+        session = manager.connect()
+    except RuntimeSessionLimitError as exc:
+        await websocket.send_json(
+            RuntimeServerMessage(
+                type="runtime_error",
+                active_sessions=manager.active_session_count,
+                detail="Runtime session refused: this robot already has enough connections.",
+                payload={"code": "session_limit", "message": str(exc)},
+                session_id="",
+            ).model_dump()
+        )
+        await websocket.close(code=1013, reason="Too many runtime sessions.")
+        return
     event_loop = asyncio.get_running_loop()
     topic_samples: asyncio.Queue[RuntimeTopicSample] = asyncio.Queue(maxsize=100)
     # Keyed by widget and topic: a screen that subscribes again replaces its own

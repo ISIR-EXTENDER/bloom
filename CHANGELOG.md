@@ -13,6 +13,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- The runtime socket serves at most 32 sessions. A connection past that is refused with `session_limit` and closed
+  instead of adding another session, each of which could hold 64 ROS subscriptions.
 - Rate-limit state is bounded. A camera frame is checked against the publish allowlist before it is counted, so an
   arbitrary topic no longer leaves a counter behind, and idle runtime keys, client-address buckets, and
   per-configuration save locks are released instead of kept for the life of the process.

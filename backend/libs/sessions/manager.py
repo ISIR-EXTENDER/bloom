@@ -9,6 +9,11 @@ from libs.sessions.teleop import TeleopCommand
 
 T = TypeVar("T")
 STOP_MODE_REQUEST = "behaviour/passthrough"
+#: Sockets one backend serves at once. Each may hold 64 ROS subscriptions, and
+#: a robot is driven by one operator with a few mirrors beside it, so anything
+#: past this is a client reconnecting in a loop rather than a room full of
+#: tablets.
+MAX_RUNTIME_SESSIONS = 32
 
 
 @dataclass(frozen=True)
@@ -33,8 +38,13 @@ class RuntimeControlNotOwnedError(RuntimeError):
     """Raised when a command loses the runtime control lease."""
 
 
+class RuntimeSessionLimitError(RuntimeError):
+    """Raised when the backend already holds every session it serves."""
+
+
 class RuntimeSessionManager:
-    def __init__(self) -> None:
+    def __init__(self, max_sessions: int = MAX_RUNTIME_SESSIONS) -> None:
+        self._max_sessions = max_sessions
         self._sessions: set[str] = set()
         self._owner_session_id: str | None = None
         self._releasing_session_id: str | None = None
@@ -52,6 +62,11 @@ class RuntimeSessionManager:
     def connect(self) -> RuntimeSession:
         session = RuntimeSession(id=str(uuid4()))
         with self._lock:
+            if len(self._sessions) >= self._max_sessions:
+                raise RuntimeSessionLimitError(
+                    f"This robot already has {self._max_sessions} runtime sessions connected. "
+                    "Close a Bloom tab or mirror and try again."
+                )
             self._sessions.add(session.id)
         return session
 

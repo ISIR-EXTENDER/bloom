@@ -94,6 +94,10 @@ session can own robot commands at a time. The owner's kiosk bar reads `READY`, a
 fact adds **you control the robot**. A second Runtime tab reads `NOT IN CONTROL`, keeps its artboard inert and shows
 **Another operator controls this robot**; it cannot publish teleop, topic, service, camera, or recording operations.
 
+One backend serves at most 32 runtime sessions at once, tabs and mirrors together. A connection past that is refused
+with **this robot already has enough connections** and closed; close a Bloom tab or a mirror and reconnect. Each
+session may hold up to 64 topic subscriptions.
+
 **Take control** is an explicit retry, not a forced takeover. It succeeds only after the current owner releases control
 or disconnects; waiting sessions are never promoted silently. STOP remains available from a blocked Runtime because
 stopping must not depend on lease ownership. Scan and dwell profiles restrict themselves to **Take control** and STOP

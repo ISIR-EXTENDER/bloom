@@ -8,6 +8,7 @@ from libs.sessions.manager import (
     RuntimeControlNotOwnedError,
     RuntimeControlSnapshot,
     RuntimeSession,
+    RuntimeSessionLimitError,
     RuntimeSessionManager,
 )
 from libs.sessions.models import (
@@ -79,6 +80,7 @@ __all__ = [
     "RuntimeReleaseControlMessage",
     "RuntimeServerMessage",
     "RuntimeSession",
+    "RuntimeSessionLimitError",
     "RuntimeSessionManager",
     "RuntimeStopAssertionError",
     "RuntimeStopController",

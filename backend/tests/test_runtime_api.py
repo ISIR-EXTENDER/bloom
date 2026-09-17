@@ -1,6 +1,8 @@
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.routes.runtime import audit_session_alias, build_runtime_ack
@@ -18,6 +20,7 @@ from libs.sessions import (
     RuntimeCommandRateLimiter,
     RuntimeRecordingReceipt,
     RuntimeRecordingRequest,
+    RuntimeSessionManager,
     RuntimeTopicSample,
     RuntimeTopicSampleCallback,
     RuntimeTopicSubscription,
@@ -1113,6 +1116,33 @@ def test_a_teleop_stream_is_one_audit_record_with_a_count() -> None:
 
     assert (stream.channel, stream.repeats) == ("websocket_teleop", 900)
     assert stop.channel == "runtime_stop"
+
+
+def test_the_backend_refuses_more_sessions_than_it_serves() -> None:
+    # The 64-subscription cap is per session, so unbounded sessions were
+    # unbounded subscriptions: a connect loop exhausted memory and ROS.
+    client = TestClient(create_app(Settings(environment="test"), InMemoryConfigurationRepository()))
+    manager = RuntimeSessionManager(max_sessions=2)
+    client.app.state.runtime_session_manager = manager
+
+    with client.websocket_connect("/api/v1/runtime/ws") as first:
+        first.receive_json()
+        with client.websocket_connect("/api/v1/runtime/ws") as second:
+            second.receive_json()
+            with client.websocket_connect("/api/v1/runtime/ws") as refused:
+                reply = refused.receive_json()
+                assert reply["type"] == "runtime_error"
+                assert reply["payload"]["code"] == "session_limit"
+                assert "Close a Bloom tab" in reply["payload"]["message"]
+                with pytest.raises(WebSocketDisconnect):
+                    refused.receive_json()
+
+            # A refused connection registers nothing, so the seats it could not take stay free.
+            assert manager.active_session_count == 2
+
+    assert manager.active_session_count == 0
+    with client.websocket_connect("/api/v1/runtime/ws") as reconnected:
+        assert reconnected.receive_json()["type"] == "session_connected"
 
 
 def test_a_session_cannot_hold_unbounded_topic_subscriptions() -> None:
