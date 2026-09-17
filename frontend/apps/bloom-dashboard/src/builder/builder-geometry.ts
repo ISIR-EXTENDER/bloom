@@ -59,8 +59,9 @@ export function resolvePrimaryTarget(widget: WidgetConfig): number {
       return 56;
     case "joystick":
       return Math.round(Math.min(width, height) * 0.26);
+    // A continuous limit's thumb is 56: at the tablet glass scale 0.80 that lands on the 44 px floor.
     case "slider":
-      return widget.settings.variant === "segments" ? 64 : widget.settings.returnToCenter === true ? 64 : 40;
+      return widget.settings.variant === "segments" ? 64 : widget.settings.returnToCenter === true ? 64 : 56;
     default:
       return Math.min(width, height);
   }

@@ -12,7 +12,9 @@ import {
   refuseReservedRegion,
   resolveBuilderPanel,
   resolveNewScreenCanvas,
+  resolvePrimaryTarget,
   reviewScreens,
+  TOUCH_FLOOR_PX,
 } from "./builder-geometry";
 
 const explorer = (structuredClone(explorerManagerConfiguration) as unknown as ConfigurationBundle)
@@ -30,6 +32,20 @@ describe("builder geometry", () => {
     const gripper = operator.widgets.find((widget) => widget.id === "drive-gripper");
     if (!gripper) throw new Error("Missing gripper.");
     expect(glassPx(gripper, panel.glassScale)).toBe(44);
+  });
+
+  it("gives the bench speed limits a thumb that survives the tablet fit scale", () => {
+    const bench = screenById("manager_drive_bench");
+    const panel = resolveBuilderPanel(bench);
+    const limits = bench.widgets.filter(
+      (widget) => widget.kind === "slider" && widget.settings.variant !== "segments" && !widget.settings.returnToCenter,
+    );
+
+    expect(limits.map((widget) => widget.title)).toEqual(["Max linear speed", "Max angular speed"]);
+    for (const limit of limits) {
+      expect(resolvePrimaryTarget(limit)).toBe(56);
+      expect(glassPx(limit, panel.glassScale)).toBe(TOUCH_FLOOR_PX);
+    }
   });
 
   it("floors glass px so a target just under the touch floor fails it", () => {

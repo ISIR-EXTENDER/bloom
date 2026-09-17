@@ -533,7 +533,7 @@
   display: flex;
   flex: 1 1 auto;
   align-items: center;
-  min-height: var(--bloom-touch-target);
+  min-height: var(--bloom-touch-target-comfortable);
   cursor: pointer;
   touch-action: none;
   user-select: none;
@@ -554,11 +554,11 @@
   background: var(--bloom-primary-container);
 }
 
-/* The bench touch floor: 48 px, the smallest target a limit may have. */
+/* 56 px, so the builder's target number is the thumb the hand actually meets. */
 .bloom-limit-thumb {
   display: block;
-  width: var(--bloom-touch-target);
-  height: var(--bloom-touch-target);
+  width: var(--bloom-touch-target-comfortable);
+  height: var(--bloom-touch-target-comfortable);
   border-radius: 50%;
   background: var(--bloom-primary);
 }
