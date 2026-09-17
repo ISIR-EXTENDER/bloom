@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
+import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 
 const explorer = (structuredClone(explorerManagerConfiguration) as unknown as ConfigurationBundle)
   .applications[0] as ApplicationConfig;
@@ -63,7 +64,43 @@ describe("the builder canvas", () => {
     const [, start, final] = onCommitWidgetLayout.mock.calls[0] ?? [];
     expect(final).toEqual(start);
   });
+
+  it.each([
+    ["Select and move Max linear speed widget", { clientX: 0, clientY: 96 }, "top", "146px"],
+    ["Resize Max angular speed widget", { clientX: 0, clientY: 8 }, "height", "120px"],
+  ] as const)(
+    "puts a refused %s back where it started, not at its last legal preview",
+    (name, legal, property, start) => {
+      render(<DraftCanvas source={bench} />);
+      const frameOf = () => screen.getByRole("button", { name }).closest("article") as HTMLElement;
+
+      fireEvent.pointerDown(screen.getByRole("button", { name }), { button: 0, clientX: 0, clientY: 0 });
+      fireEvent.pointerMove(window, legal);
+      expect(frameOf().style[property]).not.toBe(start);
+      fireEvent.pointerMove(window, { clientX: 0, clientY: 300 });
+      fireEvent.pointerUp(window);
+
+      expect(frameOf().style[property]).toBe(start);
+      expect(screen.getByTestId("can-undo").textContent).toBe("false");
+    },
+  );
 });
+
+function DraftCanvas({ source }: { source: ScreenConfig }) {
+  const draft = useBuilderScreenDraft(source);
+  return (
+    <>
+      <BuilderCanvas
+        onCommitWidgetLayout={draft.commitWidgetLayout}
+        onPreviewWidgetLayout={draft.previewWidgetLayout}
+        onSelectWidget={() => undefined}
+        screen={draft.draftScreen}
+        selectedWidgetId={null}
+      />
+      <output data-testid="can-undo">{String(draft.canUndo)}</output>
+    </>
+  );
+}
 
 describe("the builder inspector", () => {
   afterEach(cleanup);

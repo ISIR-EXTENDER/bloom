@@ -38,7 +38,12 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
   const commitWidgetLayout = (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => {
     setHistory((currentHistory) => {
       if (areLayoutsEqual(finalLayout, startingLayout)) {
-        return currentHistory;
+        // A refused drop lands back on the start, over whatever the last preview wrote, with no history entry.
+        const current = currentHistory.present.widgets.find((widget) => widget.id === widgetId);
+        if (!current || areLayoutsEqual(current.layout, startingLayout)) {
+          return currentHistory;
+        }
+        return { ...currentHistory, present: updateWidgetLayout(currentHistory.present, widgetId, startingLayout) };
       }
 
       const finalScreen = updateWidgetLayout(currentHistory.present, widgetId, finalLayout);
