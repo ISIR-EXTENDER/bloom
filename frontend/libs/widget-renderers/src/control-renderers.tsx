@@ -12,6 +12,7 @@ import {
 import type { WidgetRendererProps } from "./types";
 
 const SLIDER_LATCH_EXPIRY_MS = 15000;
+const SLIDER_STEP_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown"]);
 
 const STEP_TARGET_HINTS: Partial<Record<NonNullable<WidgetRendererProps["motorPreset"]>, string>> = {
   dwell: "rest to move",
@@ -60,13 +61,51 @@ export function SliderWidget({ descriptor, motorPreset, neutralRevision, onActio
     emitValueChange(value);
   };
 
-  const handleReleaseToCenter = () => {
-    // Latch keeps the released value; the zero control releases it.
-    if (motorPreset === "latch" || !returnToCenter || currentValue === defaultValue) {
+  // Latch keeps the released value; the zero control releases it.
+  const releasesToCenter = returnToCenter && motorPreset !== "latch";
+  // Keys still down, so a keyboard nudge is momentary like a pointer drag.
+  const heldKeysRef = useRef(new Set<string>());
+
+  const releaseToCenter = () => {
+    if (!releasesToCenter || currentValue === defaultValue) {
       return;
     }
     setCurrentValue(defaultValue);
     emitValueChange(defaultValue);
+  };
+
+  const handleValueCommit = () => {
+    if (heldKeysRef.current.size === 0) {
+      releaseToCenter();
+    }
+  };
+
+  const handleBlur = () => {
+    heldKeysRef.current.clear();
+    releaseToCenter();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (!releasesToCenter) {
+      return;
+    }
+    // Home and End would jump to full scale; Home returns to rest instead.
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      if (event.key === "Home") {
+        releaseToCenter();
+      }
+      return;
+    }
+    if (SLIDER_STEP_KEYS.has(event.key)) {
+      heldKeysRef.current.add(event.key);
+    }
+  };
+
+  const handleKeyUp = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (heldKeysRef.current.delete(event.key) && heldKeysRef.current.size === 0) {
+      releaseToCenter();
+    }
   };
 
   const setAndEmit = (value: number) => {
@@ -185,9 +224,11 @@ export function SliderWidget({ descriptor, motorPreset, neutralRevision, onActio
         data-return-to-center={returnToCenter ? "true" : "false"}
         max={max}
         min={min}
-        onBlur={handleReleaseToCenter}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
         onValueChange={handleValueChange}
-        onValueCommit={handleReleaseToCenter}
+        onValueCommit={handleValueCommit}
         orientation={direction === "horizontal" ? "horizontal" : "vertical"}
         step={step}
         value={[currentValue]}

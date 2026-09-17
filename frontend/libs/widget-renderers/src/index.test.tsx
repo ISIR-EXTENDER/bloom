@@ -163,6 +163,46 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("0.00")).toHaveClass("sr-only");
   });
 
+  it("holds a keyboard nudge on a return-to-center slider only while the key is down", () => {
+    const descriptor = renderScreenDescriptors(returnToCenterSliderScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const slider = screen.getByRole("slider", { name: "Teleop X" });
+    slider.focus();
+    fireEvent.keyDown(slider, { key: "PageUp" });
+    fireEvent.keyDown(slider, { key: "PageUp" });
+    expect(onActionIntent.mock.calls.map(([intent]) => intent.value).every((value) => value > 0)).toBe(true);
+    expect(Number(slider.getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+
+    fireEvent.keyUp(slider, { key: "PageUp" });
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(expect.objectContaining({ value: 0 }));
+    expect(slider).toHaveAttribute("aria-valuenow", "0");
+  });
+
+  it("never jumps a return-to-center slider to full scale from Home or End", () => {
+    const descriptor = renderScreenDescriptors(returnToCenterSliderScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const slider = screen.getByRole("slider", { name: "Teleop X" });
+    slider.focus();
+    fireEvent.keyDown(slider, { key: "End" });
+    fireEvent.keyUp(slider, { key: "End" });
+    expect(onActionIntent).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+    fireEvent.keyDown(slider, { key: "Home" });
+
+    expect(onActionIntent).toHaveBeenLastCalledWith(expect.objectContaining({ value: 0 }));
+    expect(onActionIntent.mock.calls.every(([intent]) => Math.abs(intent.value) < 1)).toBe(true);
+  });
+
   it("honours the snake_case slider keys configs in the wild carry", async () => {
     const descriptor = renderScreenDescriptors(legacyKeysSliderScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing slider descriptor.");
