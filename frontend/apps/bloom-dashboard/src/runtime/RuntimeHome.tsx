@@ -1,5 +1,5 @@
 import type { ApplicationConfig, RuntimeLanguage, UserProfile } from "@bloom/api-client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -118,6 +118,19 @@ export function RuntimeHome({
     typeof window === "undefined"
       ? { height: 720, width: 1280 }
       : { height: window.innerHeight, width: window.innerWidth };
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return;
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [menuOpen]);
   const needsRole = Boolean(selected && selected.application.profiles.length > 0 && !chosenProfile);
 
   const open = () => {

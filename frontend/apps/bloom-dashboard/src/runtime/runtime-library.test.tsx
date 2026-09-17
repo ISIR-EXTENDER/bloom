@@ -80,6 +80,26 @@ describe("the runtime library", () => {
     expect(screen.getByRole("button", { name: "Sandbox V0.0" }).getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("closes the library menu on Escape", () => {
+    render(
+      <RuntimeHome
+        configurations={configurations}
+        onOpenHelp={vi.fn()}
+        onOpenRuntimeApp={vi.fn()}
+        onOpenSupervisorApp={vi.fn()}
+        onProfilePreferenceChange={vi.fn()}
+        profilePreferences={{}}
+        recentRuntimeSelections={[]}
+      />,
+    );
+    const menu = screen.getByRole("button", { name: getRuntimeStrings("en").library.menu });
+    fireEvent.click(menu);
+    expect(menu.getAttribute("aria-expanded")).toBe("true");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(menu.getAttribute("aria-expanded")).toBe("false");
+  });
+
   it("makes the first launch an explicit choice, then opens the chosen role's layout", () => {
     const handlers = renderLibrary();
 
