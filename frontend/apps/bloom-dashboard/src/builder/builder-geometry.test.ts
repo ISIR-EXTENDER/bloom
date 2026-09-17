@@ -9,6 +9,7 @@ import {
   placeClearOfRegions,
   refuseReservedRegion,
   resolveBuilderPanel,
+  resolveNewScreenCanvas,
   reviewScreens,
 } from "./builder-geometry";
 
@@ -54,6 +55,16 @@ describe("builder geometry", () => {
     expect(findUndersizedWidgets(shrunk).map(({ shortfall, widget }) => [widget.id, shortfall.minimum])).toEqual([
       ["drive-gripper", [200, 120]],
     ]);
+  });
+
+  it("starts a new screen on the tablet 1280×720 panel unless the app is a desktop one", () => {
+    const desktop: ScreenConfig = { ...explorer.screens[0], canvas: { preset_id: "full-hd", runtime_mode: "center" } };
+    const legacyTablet: ScreenConfig = { ...explorer.screens[0], canvas: { preset_id: "tablet", runtime_mode: "fit" } };
+    const tablet = { preset_id: "native-1280x720", runtime_mode: "fit" };
+
+    expect(resolveNewScreenCanvas({ screens: [] })).toEqual(tablet);
+    expect(resolveNewScreenCanvas({ screens: [legacyTablet] })).toEqual(tablet);
+    expect(resolveNewScreenCanvas({ screens: [desktop] })).toEqual({ preset_id: "full-hd", runtime_mode: "center" });
   });
 
   it("refuses a drop into a reserved region and places new widgets clear of it", () => {

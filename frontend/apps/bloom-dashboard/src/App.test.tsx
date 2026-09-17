@@ -246,6 +246,7 @@ describe("App", () => {
     expect(savedApplication?.screens[0]).toMatchObject({
       id: "main",
       title: "Debug Monitor",
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
     });
     expect(savedApplication?.screens[0]?.widgets.map((widget) => widget.kind)).toEqual(["topic-echo", "event-log"]);
   });
@@ -1066,6 +1067,7 @@ describe("App", () => {
     expect(createdScreen).toMatchObject({
       id: "inspection",
       title: "Inspection",
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
       widgets: [],
     });
   });

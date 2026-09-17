@@ -1,4 +1,11 @@
-import type { ApplicationConfig, ReservedRegion, ScreenConfig, WidgetConfig, WidgetLayout } from "@bloom/api-client";
+import type {
+  ApplicationConfig,
+  CanvasSettings,
+  ReservedRegion,
+  ScreenConfig,
+  WidgetConfig,
+  WidgetLayout,
+} from "@bloom/api-client";
 import { findSizeShortfall, resolveCanvasPresetSize, type WidgetSizeShortfall } from "@bloom/widgets";
 
 import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
@@ -15,6 +22,15 @@ const CHECKED_PANEL: Record<DeviceClass, { height: number; width: number }> = {
 };
 
 const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
+
+/** The canvas a new tablet screen starts on: the 1280×720 panel the device switch and shipped screens use. */
+export const NEW_TABLET_CANVAS: CanvasSettings = { preset_id: "native-1280x720", runtime_mode: "fit" };
+
+/** A new screen in an app follows a desktop app's canvas; every other app gets the tablet panel. */
+export function resolveNewScreenCanvas(application: Pick<ApplicationConfig, "screens">): CanvasSettings {
+  const first = application.screens[0];
+  return first && resolveDeviceClass(first) === "desktop" ? { ...first.canvas } : { ...NEW_TABLET_CANVAS };
+}
 
 export function resolveDeviceClass(screen: Pick<ScreenConfig, "canvas">): DeviceClass {
   return DESKTOP_PRESETS.has(screen.canvas.preset_id) ? "desktop" : "tablet";

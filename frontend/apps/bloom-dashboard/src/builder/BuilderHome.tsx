@@ -8,6 +8,7 @@ import {
 import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import { NEW_TABLET_CANVAS } from "./builder-geometry";
 import {
   type BuilderHomeSection,
   createBuilderApplicationItems,
@@ -640,7 +641,7 @@ function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots:
     return {
       id: "main",
       title: "Debug Monitor",
-      canvas: { preset_id: "tablet", runtime_mode: "fit" },
+      canvas: { ...NEW_TABLET_CANVAS },
       widgets: [
         ...onboardingWidgets,
         {
@@ -665,7 +666,7 @@ function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots:
     return {
       id: "main",
       title: "Operator Controls",
-      canvas: { preset_id: "tablet", runtime_mode: "fit" },
+      canvas: { ...NEW_TABLET_CANVAS },
       widgets: [
         ...onboardingWidgets,
         {
@@ -700,7 +701,7 @@ function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots:
   return {
     id: "main",
     title: "Main",
-    canvas: { preset_id: "tablet", runtime_mode: "fit" },
+    canvas: { ...NEW_TABLET_CANVAS },
     widgets: onboardingWidgets,
   };
 }

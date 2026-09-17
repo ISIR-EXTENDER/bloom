@@ -28,6 +28,7 @@ import {
 } from "../ui/dragDrop";
 import { getTouchEditingProps } from "../ui/touchEditing";
 import { BuilderGuidedTour } from "./BuilderGuidedTour";
+import { resolveNewScreenCanvas } from "./builder-geometry";
 
 type BuilderAppConfigProps = {
   configurations: readonly LoadedConfiguration[];
@@ -189,10 +190,7 @@ export function BuilderAppConfig({
           ...currentApplication.screens.map((screen) => screen.id),
         ]),
         title,
-        canvas: {
-          preset_id: currentApplication.screens[0]?.canvas.preset_id ?? "tablet",
-          runtime_mode: currentApplication.screens[0]?.canvas.runtime_mode ?? "fit",
-        },
+        canvas: resolveNewScreenCanvas(currentApplication),
         widgets: [],
       }),
     );
