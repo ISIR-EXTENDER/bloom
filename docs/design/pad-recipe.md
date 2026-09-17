@@ -50,6 +50,11 @@ the remainder. On the operator layout: rail 264 (min 260), Height 106 (min 104),
 
 ## Review check
 
-Add to the builder checklist: for every pair of joysticks in one row, assert equal `width === height`
-on both, and equal pad centre `y`. Both are one line, and both are things a human eye catches only
-after a screen ships.
+The square in rule 3 is the pad *surface*, not the card. The card is whatever the layout needs —
+the shipped operator pads are 314×346 and the bench ones 384×384 — and the renderer derives one
+edge length `S` from it, so the surface is square by construction. A renderer test holds that;
+the builder checks what a screen can get wrong.
+
+In the builder checklist, for the joysticks on one screen: the same card size, the same `S` derived
+from it, and the same pad centre `y`. The message names the pad and which of the three broke. They
+are all things a human eye catches only after a screen ships.

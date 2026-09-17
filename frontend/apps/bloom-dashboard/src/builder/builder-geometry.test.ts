@@ -1,4 +1,10 @@
-import type { ApplicationConfig, ConfigurationBundle, ReservedRegion, ScreenConfig } from "@bloom/api-client";
+import type {
+  ApplicationConfig,
+  ConfigurationBundle,
+  ReservedRegion,
+  ScreenConfig,
+  WidgetConfig,
+} from "@bloom/api-client";
 import { INTERACTIVE_WIDGET_KINDS } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
@@ -105,6 +111,32 @@ describe("builder geometry", () => {
     expect(placed).toEqual({ x: 0, y: 20, width: 300, height: 120 });
     expect(placeClearOfRegions(tall, { ...bench, reserved_regions: [{ ...floor, y: 0, height: 676 }] })).toBeNull();
     expect(placeClearOfRegions({ ...tall, width: 1400 }, { ...bench, reserved_regions: [] })).toBeNull();
+  });
+
+  it("names which of a pad row's three agreements broke, and stays quiet on one pad", () => {
+    const bench = screenById("manager_drive_bench");
+    const padRule = (screen: ScreenConfig) =>
+      reviewScreens({ ...explorer, screens: [screen] }).find((rule) => rule.id === "pads");
+    const editRotation = (change: (widget: WidgetConfig) => WidgetConfig) => ({
+      ...bench,
+      widgets: bench.widgets.map((widget) => (widget.id === "drive-rotation" ? change(widget) : widget)),
+    });
+
+    expect(padRule(bench)).toMatchObject({ passed: true });
+    expect(
+      padRule({ ...bench, widgets: bench.widgets.filter((widget) => widget.id !== "drive-rotation") }),
+    ).toMatchObject({ passed: true });
+
+    // The card, the square the renderer draws inside it, and the centre line, in that order.
+    expect(padRule(editRotation((widget) => ({ ...widget, layout: { ...widget.layout, width: 380 } })))?.detail).toBe(
+      "Rotation on Drive · Bench is a different card size from the first pad.",
+    );
+    expect(
+      padRule(editRotation((widget) => ({ ...widget, settings: { ...widget.settings, show_details: true } })))?.detail,
+    ).toBe("Rotation on Drive · Bench yields a different pad square from the first pad.");
+    expect(padRule(editRotation((widget) => ({ ...widget, layout: { ...widget.layout, y: 158 } })))?.detail).toBe(
+      "Rotation on Drive · Bench sits on a different centre line from the first pad.",
+    );
   });
 
   it("passes the review rules on the manager seed and names the first failure", () => {

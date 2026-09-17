@@ -11,7 +11,7 @@ import type {
 } from "./types";
 import { WidgetFrame } from "./WidgetFrame";
 
-export { resolveDecimalPlaces, resolveJoystickControlSize } from "./control-renderers";
+export { resolveDecimalPlaces, resolveJoystickControlSize, resolveTitlePlacement } from "./control-renderers";
 export type { JoystickLabels, JoystickPrimitiveProps, JoystickVector } from "./JoystickPrimitive";
 export { JoystickPrimitive, normalizeJoystickVector } from "./JoystickPrimitive";
 export type {

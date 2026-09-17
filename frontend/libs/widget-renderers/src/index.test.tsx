@@ -632,6 +632,22 @@ describe("widget renderer registry", () => {
     expect(knob).toHaveStyle({ width: "56px", height: "56px", left: "87%", top: "50%" });
   });
 
+  it("draws a square pad inside a card that is not square (pad recipe rule 3)", () => {
+    // The shipped operator card: 314×346, and the pad inside it is still a square.
+    const oblong = {
+      ...joystickScreen,
+      widgets: [{ ...joystickScreen.widgets[0], layout: { x: 0, y: 0, width: 314, height: 346 } }],
+    } as ScreenConfig;
+    const descriptor = renderScreenDescriptors(oblong, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing joystick descriptor.");
+
+    render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    const edge = `${resolveJoystickControlSize(314, 346, { placement: "above" })}px`;
+    expect(edge).toBe("310px");
+    expect(document.querySelector<HTMLElement>(".bloom-joystick")).toHaveStyle({ width: edge, height: edge });
+  });
+
   it("keeps joystick controls inside compact and large widget frames", () => {
     expect(resolveJoystickControlSize(80, 80)).toBe(96);
     expect(resolveJoystickControlSize(220, 220)).toBe(216);

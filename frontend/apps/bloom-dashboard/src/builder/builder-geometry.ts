@@ -6,6 +6,7 @@ import type {
   WidgetConfig,
   WidgetLayout,
 } from "@bloom/api-client";
+import { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widget-renderers";
 import { findSizeShortfall, primaryTargetFor, resolveCanvasPresetSize, type WidgetSizeShortfall } from "@bloom/widgets";
 
 import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
@@ -138,7 +139,7 @@ export function placeClearOfRegions(layout: WidgetLayout, screen: ScreenConfig):
 
 export type ReviewRule = { detail: string; id: string; passed: boolean; title: string };
 
-/** Minimum size, sibling symmetry, pad pairs, profile coverage and paired-app policy (ADR 0132, 0133). */
+/** Minimum size, sibling symmetry, pad rows, profile coverage and paired-app policy (ADR 0132, 0133). */
 export function reviewScreens(
   application: ApplicationConfig,
   siblings: readonly ApplicationConfig[] = [],
@@ -149,7 +150,10 @@ export function reviewScreens(
   const asymmetric = application.screens.flatMap((screen) =>
     findAsymmetricSiblings(screen).map((pair) => ({ pair, screen })),
   );
-  const unpaired = application.screens.flatMap((screen) => (padsAreSquarePairs(screen) ? [] : [screen]));
+  const mismatchedPads = application.screens.flatMap((screen) => {
+    const mismatch = findPadMismatch(screen);
+    return mismatch ? [{ ...mismatch, screen }] : [];
+  });
   const uncovered = application.profiles.filter(
     (profile) =>
       profile.preferred_control_layout_id !== "" &&
@@ -181,12 +185,12 @@ export function reviewScreens(
     },
     {
       id: "pads",
-      title: "Pads are matched squares on one centre line",
-      passed: unpaired.length === 0,
+      title: "Pads in a row share one card, one square and one centre line",
+      passed: mismatchedPads.length === 0,
       detail:
-        unpaired.length === 0
-          ? "Every screen's joysticks share a size and a centre line."
-          : `The joysticks on ${unpaired[0]?.title} differ in size or centre line.`,
+        mismatchedPads.length === 0
+          ? "Every screen's joysticks share a card size, the square the renderer draws inside it, and a centre line."
+          : `${mismatchedPads[0]?.pad.title} on ${mismatchedPads[0]?.screen.title} ${PAD_MISMATCH_REASON[mismatchedPads[0]?.reason ?? "card"]}.`,
     },
     {
       id: "profiles",
@@ -231,22 +235,43 @@ function variantOf(widget: WidgetConfig): string {
   return [widget.kind, widget.settings.direction, widget.settings.variant, widget.settings.hide_title].join(":");
 }
 
-function padsAreSquarePairs(screen: ScreenConfig): boolean {
+/** The square edge the renderer draws inside a card: one number, so the pad is square by construction. */
+function padSurface(pad: WidgetConfig): number {
+  const showDetails = pad.settings.show_details === true;
+  return resolveJoystickControlSize(pad.layout.width, pad.layout.height, {
+    placement: resolveTitlePlacement(pad, showDetails),
+    showDetails,
+  });
+}
+
+const PAD_MISMATCH_REASON: Record<PadMismatch["reason"], string> = {
+  card: "is a different card size from the first pad",
+  square: "yields a different pad square from the first pad",
+  centre: "sits on a different centre line from the first pad",
+};
+
+type PadMismatch = { pad: WidgetConfig; reason: "card" | "centre" | "square" };
+
+/** Pad recipe rules 3 and 4: one card size, the same square inside it, one centre line. */
+function findPadMismatch(screen: ScreenConfig): PadMismatch | null {
   const pads = screen.widgets.filter((widget) => widget.kind === "joystick");
-  if (pads.length < 2) {
-    return true;
-  }
   const [first] = pads;
   if (!first) {
-    return true;
+    return null;
   }
-  const centre = (widget: WidgetConfig) => widget.layout.y + widget.layout.height / 2;
-  return pads.every(
-    (pad) =>
-      pad.layout.width === first.layout.width &&
-      pad.layout.height === first.layout.height &&
-      centre(pad) === centre(first),
-  );
+  const centre = (pad: WidgetConfig) => pad.layout.y + pad.layout.height / 2;
+  for (const pad of pads.slice(1)) {
+    if (pad.layout.width !== first.layout.width || pad.layout.height !== first.layout.height) {
+      return { pad, reason: "card" };
+    }
+    if (padSurface(pad) !== padSurface(first)) {
+      return { pad, reason: "square" };
+    }
+    if (centre(pad) !== centre(first)) {
+      return { pad, reason: "centre" };
+    }
+  }
+  return null;
 }
 
 function findPolicyDrift(left: ApplicationConfig, right: ApplicationConfig): string[] {
