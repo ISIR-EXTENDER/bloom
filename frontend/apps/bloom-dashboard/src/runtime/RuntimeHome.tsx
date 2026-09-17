@@ -103,10 +103,11 @@ export function RuntimeHome({
 }: RuntimeHomeProps) {
   const apps = collectLibraryApps(configurations);
   const recentKey = recentRuntimeSelections[0] ? runtimePreferenceKey(recentRuntimeSelections[0]) : "";
-  const [selectedKey, setSelectedKey] = useState(() => apps.find((app) => app.key === recentKey)?.key ?? apps[0]?.key);
+  // Resolved on every render: configurations load one by one, and the last app used may arrive after the first.
+  const [selectedKey, setSelectedKey] = useState<string>();
   const [chosenRoles, setChosenRoles] = useState<Record<string, string>>({});
   const [menuOpen, setMenuOpen] = useState(false);
-  const selected = apps.find((app) => app.key === selectedKey) ?? apps[0];
+  const selected = apps.find((app) => app.key === selectedKey) ?? apps.find((app) => app.key === recentKey) ?? apps[0];
   const remembered = selected ? rememberedProfileId(selected.application, profilePreferences[selected.key]) : "";
   const chosen = selected ? (chosenRoles[selected.key] ?? remembered) : "";
   const chosenProfile = selected?.application.profiles.find((profile) => profile.id === chosen);

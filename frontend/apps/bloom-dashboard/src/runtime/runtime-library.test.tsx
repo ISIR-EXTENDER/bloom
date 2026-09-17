@@ -53,6 +53,33 @@ describe("the runtime library", () => {
     expect(screen.getByRole("button", { name: "Explorer Manager" }).getAttribute("aria-pressed")).toBe("false");
   });
 
+  it("preselects the last app used on this device, even when its configuration loads after the others", () => {
+    const recent = [{ appId: "sandbox", configId: "sandbox", screenId: "sandbox-home" }];
+    const { rerender } = render(
+      <RuntimeHome
+        configurations={configurations.slice(0, 1)}
+        onOpenRuntimeApp={vi.fn()}
+        onOpenSupervisorApp={vi.fn()}
+        onProfilePreferenceChange={vi.fn()}
+        profilePreferences={{}}
+        recentRuntimeSelections={recent}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Explorer Manager" }).getAttribute("aria-pressed")).toBe("true");
+
+    rerender(
+      <RuntimeHome
+        configurations={configurations}
+        onOpenRuntimeApp={vi.fn()}
+        onOpenSupervisorApp={vi.fn()}
+        onProfilePreferenceChange={vi.fn()}
+        profilePreferences={{}}
+        recentRuntimeSelections={recent}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Sandbox V0.0" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("makes the first launch an explicit choice, then opens the chosen role's layout", () => {
     const handlers = renderLibrary();
 
