@@ -67,7 +67,9 @@ acceptance.
 - [ ] `npm run audit:security` passes, or every remaining advisory is recorded
       in the changelog with a reason.
 - [ ] Production settings refuse to start without `BLOOM_AUTH_ENABLED=true` and
-      an admin key, or with runtime ownership disabled. Verify, do not assume:
+      an admin key, with runtime ownership disabled, with a key shorter than 32
+      characters or shared between roles, or with a `*` CORS origin. Verify, do
+      not assume:
 
 ```bash
 BLOOM_ENVIRONMENT=production uv run python -c "
@@ -75,8 +77,15 @@ from apps.bloom_api.settings import Settings
 checks = (
     ('without auth', dict(environment='production')),
     ('with ownership disabled', dict(
-        environment='production', auth_enabled=True, admin_api_key='check-only',
+        environment='production', auth_enabled=True, admin_api_key='a' * 32,
         runtime_control_required=False,
+    )),
+    ('with a short key', dict(environment='production', auth_enabled=True, admin_api_key='check-only')),
+    ('with a shared key', dict(
+        environment='production', auth_enabled=True, admin_api_key='a' * 32, observer_api_key='a' * 32,
+    )),
+    ('with any origin', dict(
+        environment='production', auth_enabled=True, admin_api_key='a' * 32, cors_allowed_origins=('*',),
     )),
 )
 for label, values in checks:

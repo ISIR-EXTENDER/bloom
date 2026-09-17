@@ -1,6 +1,8 @@
+import re
 from collections.abc import Iterator
 from pathlib import Path
 
+import pytest
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -30,6 +32,7 @@ def make_secure_client(repository: InMemoryConfigurationRepository | None = None
 
 
 OBSERVER = {"X-Bloom-API-Key": "observer-secret"}
+STRONG_ADMIN_KEY = "a" * 32
 
 
 def test_an_observer_reads_runtime_state() -> None:
@@ -308,7 +311,7 @@ def test_production_settings_require_authentication() -> None:
 def test_production_settings_require_runtime_control_ownership() -> None:
     try:
         Settings(
-            admin_api_key="admin-secret",
+            admin_api_key=STRONG_ADMIN_KEY,
             auth_enabled=True,
             environment="production",
             runtime_control_required=False,
@@ -317,6 +320,32 @@ def test_production_settings_require_runtime_control_ownership() -> None:
         assert "production Bloom API requires runtime_control_required=true" in str(exc)
     else:
         raise AssertionError("production settings should require runtime control ownership")
+
+
+@pytest.mark.parametrize(
+    ("values", "reason"),
+    [
+        ({"admin_api_key": "admin-secret"}, "at least 32 characters"),
+        ({"operator_api_key": "o" * 31}, "at least 32 characters"),
+        ({"operator_api_key": "o" * 32, "observer_api_key": "o" * 32}, "must differ between roles"),
+        ({"observer_api_key": STRONG_ADMIN_KEY}, "must differ between roles"),
+        ({"cors_allowed_origins": ("*",)}, "not *"),
+    ],
+)
+def test_production_settings_refuse_a_weak_perimeter(values: dict, reason: str) -> None:
+    with pytest.raises(ValidationError, match=re.escape(reason)):
+        Settings(**({"admin_api_key": STRONG_ADMIN_KEY, "auth_enabled": True, "environment": "production"} | values))
+
+
+def test_production_settings_accept_distinct_long_keys() -> None:
+    Settings(
+        admin_api_key=STRONG_ADMIN_KEY,
+        auth_enabled=True,
+        cors_allowed_origins=("https://tablet.lab",),
+        environment="production",
+        observer_api_key="b" * 32,
+        operator_api_key="c" * 32,
+    )
 
 
 def walk_api_routes(routes, prefix: str = "") -> Iterator[tuple[str, APIRoute]]:

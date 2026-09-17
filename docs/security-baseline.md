@@ -76,6 +76,10 @@ export BLOOM_HTTP_RATE_LIMIT_PER_MINUTE=600
 export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
 
+In production Bloom refuses to start unless every key is at least 32 characters and differs from the other roles' keys,
+since a key shared by two roles grants the stronger one, and unless the origins are explicit rather than `*`. Generate
+keys with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`.
+
 `BLOOM_CORS_ALLOWED_ORIGINS` also governs the runtime WebSocket. CORS never applies to a WebSocket handshake, so Bloom checks the `Origin` itself and refuses a browser page from any origin not on the list. A client that sends no `Origin` is not a browser page and is not refused on those grounds; it still needs a key when auth is on.
 
 Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the same header, or the `api_key` query

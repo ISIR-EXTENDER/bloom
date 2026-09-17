@@ -6,6 +6,7 @@ from typing import Literal, TypeVar
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 T = TypeVar("T", bound=str)
+MIN_PRODUCTION_API_KEY_LENGTH = 32
 
 
 class Settings(BaseModel):
@@ -205,7 +206,19 @@ class Settings(BaseModel):
             raise ValueError("production Bloom API requires auth_enabled=true and an admin_api_key")
         if self.environment == "production" and not self.runtime_control_required:
             raise ValueError("production Bloom API requires runtime_control_required=true")
+        if self.environment == "production":
+            self._require_production_perimeter()
         return self
+
+    def _require_production_perimeter(self) -> None:
+        # A shared key resolves to the stronger role, so an observer key equal to the operator key can drive.
+        keys = [key for key in (self.admin_api_key, self.operator_api_key, self.observer_api_key) if key]
+        if any(len(key) < MIN_PRODUCTION_API_KEY_LENGTH for key in keys):
+            raise ValueError(f"production Bloom API keys must be at least {MIN_PRODUCTION_API_KEY_LENGTH} characters")
+        if len(set(keys)) != len(keys):
+            raise ValueError("production Bloom API keys must differ between roles")
+        if "*" in self.cors_allowed_origins:
+            raise ValueError("production Bloom API requires explicit cors_allowed_origins, not *")
 
     @classmethod
     def from_environment(cls) -> "Settings":
