@@ -62,6 +62,19 @@ describe("the STOP control", () => {
     expect(handlers.onResume).toHaveBeenCalledTimes(1);
   });
 
+  it("drops a keyboard resume hold when focus leaves before the key is released", () => {
+    const handlers = renderControl({ stopped: true });
+    const button = screen.getByRole("button", { name: "Hold for one second to resume" });
+
+    fireEvent.keyDown(button, { key: "Enter" });
+    fireEvent.blur(button);
+    act(() => {
+      vi.advanceTimersByTime(1100);
+    });
+
+    expect(handlers.onResume).not.toHaveBeenCalled();
+  });
+
   it("keeps resume inert when this session does not own control", () => {
     const handlers = renderControl({
       resumeDisabled: true,

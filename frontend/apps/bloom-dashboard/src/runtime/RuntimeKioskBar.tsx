@@ -150,6 +150,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         <button
           aria-label={strings.kiosk.maintenanceAria}
           className="runtime-kiosk-maintenance"
+          onBlur={holdProgress.cancel}
           onKeyDown={(event) => {
             if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
               holdProgress.start();
@@ -298,6 +299,7 @@ function RuntimeMaintenanceSheet({
             <button
               aria-label={strings.kiosk.switchRoleAria}
               className="runtime-maintenance-action"
+              onBlur={roleHold.cancel}
               onKeyDown={(event) => {
                 if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
                   roleHold.start();

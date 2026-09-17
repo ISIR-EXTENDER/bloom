@@ -59,6 +59,7 @@ export function RuntimeStopControl({
         data-runtime-control-independent=""
         data-stopped="true"
         disabled={resumeDisabled}
+        onBlur={resumeHold.cancel}
         onKeyDown={(event) => {
           if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
             startResumeHold();

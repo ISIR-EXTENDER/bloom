@@ -174,6 +174,21 @@ describe("the maintenance hold", () => {
 
     expect(isOpen()).toBe(false);
   });
+
+  it("drops a keyboard hold when focus leaves before the key is released", () => {
+    renderBar();
+
+    fireEvent.keyDown(maintenanceButton(), { key: "Enter" });
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+    fireEvent.blur(maintenanceButton());
+    act(() => {
+      vi.advanceTimersByTime(1600);
+    });
+
+    expect(isOpen()).toBe(false);
+  });
 });
 
 describe("maintenance", () => {
@@ -223,6 +238,20 @@ describe("maintenance", () => {
 
     expect(handlers.onSwitchProfile).toHaveBeenCalledWith("bench");
     expect(isOpen()).toBe(false);
+  });
+
+  it("drops a keyboard role-switch hold when focus leaves", () => {
+    renderBar();
+    hold(1600);
+
+    const switchRole = screen.getByRole("button", { name: "Hold to switch role" });
+    fireEvent.keyDown(switchRole, { key: " " });
+    fireEvent.blur(switchRole);
+    act(() => {
+      vi.advanceTimersByTime(1600);
+    });
+
+    expect(screen.queryByRole("group", { name: "Choose a role" })).toBeNull();
   });
 
   it("offers no role switch when the app has one profile", () => {
