@@ -4,6 +4,7 @@ import type { RuntimeLinkState } from "./runtime-action-dispatcher";
 import {
   createRuntimeWebSocketClient,
   type RuntimeWebSocketClientOptions,
+  resolveRuntimeWebSocketProtocols,
   resolveRuntimeWebSocketUrl,
 } from "./runtime-websocket-client";
 
@@ -13,15 +14,36 @@ describe("runtime WebSocket client", () => {
     expect(resolveRuntimeWebSocketUrl("https://bloom.example.test")).toBe("wss://bloom.example.test/api/v1/runtime/ws");
   });
 
-  it("carries an API key in the URL, the only place a handshake can hold one", () => {
-    // A WebSocket handshake takes no custom headers, so an authenticated
-    // deployment would otherwise be unreachable from the dashboard.
+  it("offers the API key as a subprotocol so it never lands in a logged URL", () => {
     expect(resolveRuntimeWebSocketUrl("https://bloom.example.test", undefined, "operator-secret")).toBe(
-      "wss://bloom.example.test/api/v1/runtime/ws?api_key=operator-secret",
-    );
-    expect(resolveRuntimeWebSocketUrl("https://bloom.example.test", undefined, "")).toBe(
       "wss://bloom.example.test/api/v1/runtime/ws",
     );
+    expect(resolveRuntimeWebSocketProtocols("operator-secret")).toEqual([
+      "bloom.runtime.v1",
+      "bloom.api-key.operator-secret",
+    ]);
+    expect(resolveRuntimeWebSocketProtocols("")).toBeUndefined();
+  });
+
+  it("falls back to the query for a key a subprotocol cannot carry", () => {
+    expect(resolveRuntimeWebSocketProtocols("with space")).toBeUndefined();
+    expect(resolveRuntimeWebSocketUrl("https://bloom.example.test", undefined, "with space")).toBe(
+      "wss://bloom.example.test/api/v1/runtime/ws?api_key=with+space",
+    );
+  });
+
+  it("opens the socket with the offered subprotocols", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const protocols = resolveRuntimeWebSocketProtocols("operator-secret");
+    const client = createRuntimeWebSocketClient({
+      protocols,
+      url: "ws://localhost:8000/api/v1/runtime/ws",
+      WebSocketCtor,
+    });
+
+    void client.ensureRuntimeConnected().catch(() => undefined);
+
+    expect(WebSocketCtor.instances[0]?.protocols).toEqual(protocols);
   });
 
   it("claims and releases explicit robot control for its server session", async () => {
@@ -369,7 +391,10 @@ function createFakeWebSocketConstructor() {
     readonly sentMessages: string[] = [];
     readyState = FakeWebSocket.CONNECTING;
 
-    constructor(readonly url: string) {
+    constructor(
+      readonly url: string,
+      readonly protocols?: string[],
+    ) {
       FakeWebSocket.instances.push(this);
     }
 

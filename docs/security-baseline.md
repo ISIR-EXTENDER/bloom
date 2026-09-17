@@ -82,9 +82,10 @@ keys with `python3 -c "import secrets; print(secrets.token_urlsafe(32))"`.
 
 `BLOOM_CORS_ALLOWED_ORIGINS` also governs the runtime WebSocket. CORS never applies to a WebSocket handshake, so Bloom checks the `Origin` itself and refuses a browser page from any origin not on the list. A client that sends no `Origin` is not a browser page and is not refused on those grounds; it still needs a key when auth is on.
 
-Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the same header, or the `api_key` query
-parameter when the WebSocket client cannot set headers. Treat query-string keys as a compatibility fallback because they
-are easier to leak in logs.
+Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the same header, or offer the subprotocols
+`bloom.runtime.v1` and `bloom.api-key.<key>` when they cannot set headers, as browsers cannot. The `api_key` query
+parameter remains a last fallback for a key that is not a valid subprotocol token; Bloom redacts it from the Uvicorn log,
+but a proxy in front may still record it.
 
 Three roles exist. Admin edits configuration, operator commands the robot, and observer may only read: saved apps,
 runtime control state, the STOP latch, the audit log, saved positions, and the ROS topic catalog. An observer may open
@@ -96,8 +97,8 @@ A runtime session id proves ownership of the lease on HTTP, so it is never shown
 each session as a stable alias that correlates records without revealing the id.
 
 The dashboard reads its key from `VITE_BLOOM_API_KEY` at build time and sends it on every HTTP call. A browser cannot
-set headers on a WebSocket handshake, so the runtime socket carries the same key as the `api_key` query parameter: that
-is the compatibility fallback above, and it is why an authenticated deployment should terminate TLS in front of Bloom.
+set headers on a WebSocket handshake, so the runtime socket offers the key as a subprotocol instead. Either way the key
+crosses the network in clear, which is why an authenticated deployment should terminate TLS in front of Bloom.
 Leave the variable unset for local development, where the backend runs without keys.
 
 After connecting, the dashboard receives an opaque runtime session ID and sends it as `X-Bloom-Runtime-Session` on

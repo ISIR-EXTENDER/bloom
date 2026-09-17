@@ -27,7 +27,7 @@ type WebSocketLike = {
 type WebSocketConstructorLike = {
   CONNECTING: number;
   OPEN: number;
-  new (url: string): WebSocketLike;
+  new (url: string, protocols?: string[]): WebSocketLike;
 };
 
 type PendingTeleopAck = {
@@ -46,6 +46,7 @@ type PendingControlAck = {
 };
 
 export type RuntimeWebSocketClientOptions = {
+  protocols?: string[];
   url: string;
   WebSocketCtor?: WebSocketConstructorLike;
 };
@@ -105,7 +106,7 @@ export function createRuntimeWebSocketClient(
       return connectPromise;
     }
 
-    socket = new WebSocketCtor(options.url);
+    socket = new WebSocketCtor(options.url, options.protocols);
     setLinkState("connecting");
     connectPromise = new Promise((resolve, reject) => {
       const handleOpen = () => {
@@ -379,12 +380,20 @@ export function resolveRuntimeWebSocketUrl(
   baseUrl.pathname = "/api/v1/runtime/ws";
   baseUrl.search = "";
   baseUrl.hash = "";
-  // A WebSocket handshake carries no custom headers, so an authenticated
-  // deployment passes the key the only way the browser allows.
-  if (apiKey) {
+  // Only a key that cannot travel as a subprotocol falls back to the query, which access logs record.
+  if (apiKey && !isSubprotocolToken(apiKey)) {
     baseUrl.searchParams.set("api_key", apiKey);
   }
   return baseUrl.toString();
+}
+
+/** A handshake takes no custom headers, but it does carry offered subprotocols. */
+export function resolveRuntimeWebSocketProtocols(apiKey = ""): string[] | undefined {
+  return apiKey && isSubprotocolToken(apiKey) ? ["bloom.runtime.v1", `bloom.api-key.${apiKey}`] : undefined;
+}
+
+function isSubprotocolToken(value: string): boolean {
+  return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(value);
 }
 
 function parseTeleopAck(data: unknown): RuntimeTeleopCommandResponse | null {

@@ -1,6 +1,10 @@
 import { type BloomApiClient, createBloomApiClient } from "@bloom/api-client";
 import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
-import { createRuntimeWebSocketClient, resolveRuntimeWebSocketUrl } from "../runtime/runtime-websocket-client";
+import {
+  createRuntimeWebSocketClient,
+  resolveRuntimeWebSocketProtocols,
+  resolveRuntimeWebSocketUrl,
+} from "../runtime/runtime-websocket-client";
 
 export type ConfigurationClient = Pick<
   BloomApiClient,
@@ -20,6 +24,7 @@ export function createDashboardConfigurationClient(): ConfigurationClient {
 export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   const baseUrl = getBloomApiBaseUrl();
   const runtimeWebSocketClient = createRuntimeWebSocketClient({
+    protocols: resolveRuntimeWebSocketProtocols(getBloomApiKey()),
     url: resolveRuntimeWebSocketUrl(baseUrl, undefined, getBloomApiKey()),
   });
   const apiClient = createBloomApiClient({

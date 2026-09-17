@@ -37,7 +37,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | B1 | The audit log returns the owner's `session_id` to any observer, and that id alone proves ownership on HTTP, so another tablet can resume STOP or dispatch actions under the owner's lease. | `routes/runtime.py`, `security.py` | Fixed |
 | B2 | The observer key gets 403 on every configuration read, so a supervisor build with it cannot open an app. | `routes/configurations.py` | Fixed |
 | B3 | Production accepts short or equal admin/operator/observer keys (an observer key equal to the operator key can drive) and a `*` CORS origin. | `settings.py` | Fixed |
-| B4 | The WebSocket API key travels in the query string and lands in the access log. | `security.py`, `runtime-websocket-client.ts` | Open |
+| B4 | The WebSocket API key travels in the query string and lands in the access log. | `security.py`, `runtime-websocket-client.ts` | Fixed |
 | B5 | Camera frames are published while STOP is engaged; on the legacy `teleop_command` backend STOP zeros the manager topic instead of `/teleop_cmd`. | `routes/runtime.py`, `sessions/stop.py`, `main.py` | Open |
 | B6 | `config status` overwrites its id sets inside the loop and reports every app after the first as missing; importing the API module to run any CLI command seeds and upgrades the default store first. | `bloom_cli/main.py`, `bloom_api/main.py` | Open |
 | B7 | Seed upgrades stall: the fingerprint hashes default values, so any new model field makes every unedited copy look edited; stores seeded before stamps existed never upgrade; publish leaves a stale stamp; import keeps one; one unreadable stored bundle stops the API from starting. | `config/seed.py`, `bloom_cli/main.py` | Open |

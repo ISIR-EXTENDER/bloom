@@ -1,3 +1,4 @@
+import logging
 import re
 from collections.abc import Iterator
 from pathlib import Path
@@ -207,6 +208,27 @@ def test_runtime_websocket_rejects_missing_key_when_auth_is_enabled() -> None:
             raise AssertionError("websocket should not connect without an API key")
     except WebSocketDisconnect as exc:
         assert exc.code == 1008
+
+
+def test_the_runtime_socket_takes_the_key_as_a_subprotocol() -> None:
+    client = make_secure_client()
+
+    with client.websocket_connect(
+        "/api/v1/runtime/ws", subprotocols=["bloom.runtime.v1", "bloom.api-key.operator-secret"]
+    ) as websocket:
+        assert websocket.accepted_subprotocol == "bloom.runtime.v1"
+        assert websocket.receive_json()["type"] == "session_connected"
+
+
+def test_logged_request_paths_never_carry_the_api_key(caplog) -> None:
+    make_secure_client()
+    logger = logging.getLogger("uvicorn.error")
+
+    with caplog.at_level(logging.INFO, logger="uvicorn.error"):
+        logger.info('%s - "WebSocket %s" [accepted]', "10.0.0.2:5000", "/api/v1/runtime/ws?api_key=operator-secret&x=1")
+
+    assert "operator-secret" not in caplog.text
+    assert "api_key=***&x=1" in caplog.text
 
 
 def test_cors_preflight_uses_configured_origins() -> None:

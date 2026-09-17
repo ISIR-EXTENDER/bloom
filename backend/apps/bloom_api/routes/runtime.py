@@ -18,6 +18,7 @@ from apps.bloom_api.security import (
     require_operator,
     require_runtime_owner,
     require_runtime_websocket_principal,
+    select_runtime_websocket_subprotocol,
 )
 from apps.bloom_api.settings import Settings
 from libs.config import (
@@ -865,7 +866,7 @@ def stop_runtime_recording(
 async def runtime_websocket(websocket: WebSocket) -> None:
     principal = await require_runtime_websocket_principal(websocket)
     manager = get_runtime_session_manager(websocket)
-    await websocket.accept()
+    await websocket.accept(subprotocol=select_runtime_websocket_subprotocol(websocket))
     session = manager.connect()
     event_loop = asyncio.get_running_loop()
     topic_samples: asyncio.Queue[RuntimeTopicSample] = asyncio.Queue(maxsize=100)

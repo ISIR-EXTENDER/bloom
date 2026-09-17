@@ -1,3 +1,5 @@
+import logging
+import re
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from hmac import compare_digest
@@ -17,6 +19,11 @@ SECURITY_HEADERS = {
 }
 
 API_KEY_HEADER = "x-bloom-api-key"
+# Browsers cannot set headers on a WebSocket handshake but can offer subprotocols,
+# which, unlike the query string, never reach the access log.
+RUNTIME_WEBSOCKET_SUBPROTOCOL = "bloom.runtime.v1"
+API_KEY_SUBPROTOCOL_PREFIX = "bloom.api-key."
+_API_KEY_QUERY = re.compile(r"(api_key=)[^&\s\"]*")
 RUNTIME_SESSION_HEADER = "x-bloom-runtime-session"
 T = TypeVar("T")
 
@@ -171,7 +178,18 @@ async def require_runtime_websocket_principal(websocket: WebSocket) -> BloomPrin
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Origin not allowed.")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Origin not allowed.")
 
-    api_key = websocket.headers.get(API_KEY_HEADER) or websocket.query_params.get("api_key")
+    api_key = (
+        websocket.headers.get(API_KEY_HEADER)
+        or next(
+            (
+                protocol.removeprefix(API_KEY_SUBPROTOCOL_PREFIX)
+                for protocol in websocket.scope.get("subprotocols", [])
+                if protocol.startswith(API_KEY_SUBPROTOCOL_PREFIX)
+            ),
+            None,
+        )
+        or websocket.query_params.get("api_key")
+    )
     try:
         principal = authenticate_api_key(settings, api_key)
     except HTTPException as exc:
@@ -182,6 +200,31 @@ async def require_runtime_websocket_principal(websocket: WebSocket) -> BloomPrin
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Observer role required.")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Observer role required.")
     return principal
+
+
+def select_runtime_websocket_subprotocol(websocket: WebSocket) -> str | None:
+    """A client that offered subprotocols fails the handshake unless one is chosen."""
+    offered = websocket.scope.get("subprotocols", [])
+    return RUNTIME_WEBSOCKET_SUBPROTOCOL if RUNTIME_WEBSOCKET_SUBPROTOCOL in offered else None
+
+
+class ApiKeyLogRedaction(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.args, tuple):
+            record.args = tuple(redact_api_key(arg) if isinstance(arg, str) else arg for arg in record.args)
+        return True
+
+
+def redact_api_key(text: str) -> str:
+    return _API_KEY_QUERY.sub(r"\1***", text)
+
+
+def install_api_key_log_redaction() -> None:
+    """Uvicorn logs each request path with its query, where a fallback key sits."""
+    for name in ("uvicorn.access", "uvicorn.error"):
+        logger = logging.getLogger(name)
+        if not any(isinstance(existing, ApiKeyLogRedaction) for existing in logger.filters):
+            logger.addFilter(ApiKeyLogRedaction())
 
 
 def is_allowed_origin(settings, origin: str) -> bool:

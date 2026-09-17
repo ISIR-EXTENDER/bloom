@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from apps.bloom_api.routes import api_router
-from apps.bloom_api.security import install_http_rate_limit, install_security_headers
+from apps.bloom_api.security import (
+    install_api_key_log_redaction,
+    install_http_rate_limit,
+    install_security_headers,
+)
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import ConfigurationRepository, create_configuration_repository
 from libs.config.seed import adopt_file_configurations, seed_configurations
@@ -90,6 +94,7 @@ def create_app(
     install_cors(app, app_settings)
     install_http_rate_limit(app)
     install_security_headers(app)
+    install_api_key_log_redaction()
     app.include_router(api_router, prefix=app_settings.api_prefix)
 
     return app
