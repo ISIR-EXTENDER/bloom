@@ -69,6 +69,15 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   single publish choke point and reported as HTTP 422 with a readable message.
 - This changelog, and a release checklist in
   [docs/release-checklist.md](docs/release-checklist.md).
+- **Observer role.** `BLOOM_OBSERVER_API_KEY` authenticates a supervisor that may read apps, runtime state, the STOP
+  latch, the audit log, saved positions and the topic catalog, and watch the runtime socket, but never claim control
+  or send teleop.
+- **Dashboard API key.** `VITE_BLOOM_API_KEY` is sent as `X-Bloom-API-Key` on HTTP calls and offered to the runtime
+  socket as a `bloom.api-key.<key>` subprotocol, so the dashboard reaches an authenticated backend.
+- **`npm run verify`** runs what CI runs, in CI's order. **`npm run check:contracts`** runs the version check and every
+  app contract validation, in CI and in `verify`.
+- `bloom config status` reports `outdated` for an unedited copy behind the shipped version and `deleted` for a shipped
+  app removed on purpose.
 
 ### Changed
 
@@ -85,6 +94,36 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - Robot feedback topics moved from `/sandbox_controller/*` to `/ee_pose`,
   `/ee_velocity` and `/joint_states`.
 - Documentation now describes the Ubuntu 24.04 and ROS 2 Jazzy baseline.
+- **Breaking for development machines.** Node.js 24.15.0 or later is required, pinned in `.nvmrc`. `npm run verify`
+  refuses an older Node; the Extender launcher only warns. The README gives the upgrade commands.
+- **Breaking for ROS deployments.** The command frame allowlist defaults to `base_link` and `hybrid_frame`, the frames
+  every `cartesian_manager` config has. Set `BLOOM_ROS_EE_FRAME_ID` to the robot's tool frame (`ft_frame` on Explorer,
+  `effector_frame` on the Kinova gen3) to offer it again, or set `BLOOM_ALLOWED_COMMAND_FRAME_IDS` explicitly.
+- **Breaking for API clients.** Runtime control ownership is on by default (`BLOOM_RUNTIME_CONTROL_REQUIRED=true`). One
+  runtime socket claims control at a time, and robot-facing HTTP routes need its session id in
+  `X-Bloom-Runtime-Session`. STOP stays open to any operator.
+- **Breaking for API clients.** Saved positions belong to one application, selected with `config_id` and `app_id`.
+  Saving needs that application to exist; unscoped calls keep their own library.
+- **Breaking for lab launchers.** The runtime socket refuses a browser page whose `Origin` is not in
+  `BLOOM_CORS_ALLOWED_ORIGINS`. The Extender launcher adds its own frontend and same-Wi-Fi origins; any other launcher
+  must list them.
+- Seeded apps now follow the shipped version. An unedited copy is upgraded at startup, including copies seeded before
+  this release; an edited copy is kept. A shipped app deleted on purpose stays deleted until
+  `bloom config seed --force <id>`.
+- The Kinova gripper toggles send the Robotiq 85 range (`0.0` open, `0.8` closed) instead of Explorer's values.
+- Moving teleop is capped at 60 commands per second per target (`BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND`).
+- The SQLite store migrates to schema version 6, which records deleted configurations.
+- The audit log counts identical records back to back in a `repeats` field instead of storing each one.
+
+### Security
+
+- Production refuses API keys shorter than 32 characters, a key shared by two roles, and a `*` CORS origin.
+- The runtime socket checks `Origin`, so a web page in a browser that can reach the API can no longer claim control.
+- The audit log lists sessions by alias. A session id proves ownership, and any reader could previously replay the
+  owner's.
+- The runtime socket key no longer travels in the query string by default, and Bloom redacts `api_key` values from
+  Uvicorn's log lines.
+- STOP is exempt from the HTTP rate limit, so it cannot be refused with 429.
 
 ### Fixed
 
@@ -104,6 +143,24 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   gripper payloads and speed topics now match their live client contracts.
 - Explorer and Kinova command-source event logs now read `/mode_request` instead of rendering permanently empty, and
   local `teleop-frame` controls are no longer misreported as missing ROS topic destinations.
+- Held values on stepped, latched and non-releasing controls expire after 15 s even while the screen re-renders, and
+  return to rest after STOP, a lost connection or a screen change. A latched momentary button publishes its release
+  when it unmounts or is disabled.
+- Losing control ownership suspends teleop, so a reclaimed session no longer streams a joystick already released.
+- A dwell that started on STOP can no longer complete as Resume, and switch scanning and dwell stay off the controls
+  behind the Maintenance dialog.
+- A ROS service call no longer holds the STOP lock, so STOP answers during a slow call.
+- Camera frames are refused while STOP is engaged, and on the legacy `teleop_command` backend STOP zeros `/teleop_cmd`.
+- Keyboard nudges on return-to-center sliders last only while the key is down; Home and End no longer jump to full
+  scale.
+- The supervisor mirror shows STOP, mode requests from the shipped buttons and an idle operator's frame correctly.
+- The dashboard's runtime client matches each reply to its own request, and a late close from a replaced socket no
+  longer tears down the new one.
+- Configuration store: concurrent saves to one configuration no longer lose an edit, CLI commands adopt the old file
+  store before writing SQLite, `config status` reports every app, and publishing an unedited app leaves its seed file
+  untouched.
+- Builder: JSON settings keep half-typed text, an emptied optional number is unset, and a slider step of 0 is refused.
+- The Extender launcher no longer leaves Vite running when it exits, and Vite no longer drifts to another port.
 
 ### Known limitations
 
