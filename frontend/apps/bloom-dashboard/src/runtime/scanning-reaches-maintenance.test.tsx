@@ -31,15 +31,18 @@ function configurationClient() {
 
 /** Lights `name` without waiting out the cycle, then presses the switch. */
 async function switchPressOn(name: RegExp) {
-  const target = await waitFor(() => {
-    const match = [...document.querySelectorAll<HTMLElement>("button")].find((button) =>
-      name.test(button.getAttribute("aria-label") ?? button.textContent ?? ""),
-    );
-    if (!match?.hasAttribute("data-scan-lit")) {
-      throw new Error("not lit yet");
-    }
-    return match;
-  }, 20000);
+  const target = await waitFor(
+    () => {
+      const match = [...document.querySelectorAll<HTMLElement>("button")].find((button) =>
+        name.test(button.getAttribute("aria-label") ?? button.textContent ?? ""),
+      );
+      if (!match?.hasAttribute("data-scan-lit")) {
+        throw new Error("not lit yet");
+      }
+      return match;
+    },
+    { timeout: 20000 },
+  );
   act(() => {
     window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
   });

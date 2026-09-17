@@ -171,7 +171,7 @@
 .runtime-settings-stepper {
   display: grid;
   grid-template-columns: var(--settings-target) minmax(0, 1fr) var(--settings-target);
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -179,9 +179,12 @@
   font-size: 24px;
 }
 
+/* The value keeps its own track: at a 64 px target on a 1024 px panel it would
+   otherwise run under the + button. */
 .runtime-settings-stepper output {
+  min-width: 0;
   font-family: var(--bloom-font-mono);
-  font-size: clamp(18px, 1.9vw, 28px);
+  font-size: clamp(16px, 1.7vw, 28px);
   text-align: center;
   white-space: nowrap;
 }
