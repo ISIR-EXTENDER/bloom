@@ -43,6 +43,29 @@ describe("runtime intent gate", () => {
     expect(resolveRuntimeIntentRefusal(joystick(0.4, 0), { ownsControl: true, unavailable: true })).toBe("unavailable");
   });
 
+  it("refuses everything but a release while the stop latch is on", () => {
+    // Arrow keys on a pad that already had focus never meet the canvas'
+    // pointer-events: none, and neither does an assistive activation.
+    const step: WidgetActionIntent = {
+      type: "value-change",
+      widgetId: "translation",
+      widgetKind: "joystick",
+      value: { x: 0, y: 0.5 },
+    };
+    expect(resolveRuntimeIntentRefusal(step, { ownsControl: true, stopped: true, unavailable: false })).toBe("stopped");
+    expect(resolveRuntimeIntentRefusal(press, { ownsControl: true, stopped: true, unavailable: false })).toBe(
+      "stopped",
+    );
+    // A release is how a held control returns to rest, so it still passes.
+    expect(
+      resolveRuntimeIntentRefusal(
+        { ...step, value: { x: 0, y: 0 } },
+        { ownsControl: true, stopped: true, unavailable: false },
+      ),
+    ).toBeNull();
+    expect(resolveRuntimeIntentRefusal(release, { ownsControl: true, stopped: true, unavailable: false })).toBeNull();
+  });
+
   it("lets an owner's command through an available control", () => {
     expect(resolveRuntimeIntentRefusal(press, { ownsControl: true, unavailable: false })).toBeNull();
   });

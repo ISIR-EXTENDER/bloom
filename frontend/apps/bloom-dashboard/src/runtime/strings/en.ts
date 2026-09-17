@@ -112,6 +112,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     ratePublishing: (hz) => `publishing · ${hz} Hz`,
     rateZerosHeld: "zeros held",
     heldBadge: "Robot held at zeros",
+    stoppedBadge: "Robot stopped",
     close: "Close",
     facts: {
       app: "App",

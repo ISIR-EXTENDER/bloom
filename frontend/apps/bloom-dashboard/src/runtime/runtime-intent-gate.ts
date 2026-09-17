@@ -1,6 +1,6 @@
 import type { WidgetActionIntent } from "@bloom/widgets";
 
-export type RuntimeIntentRefusal = "held" | "not-owner" | "unavailable";
+export type RuntimeIntentRefusal = "held" | "not-owner" | "stopped" | "unavailable";
 
 /**
  * Why the runtime shell refuses a widget intent before it reaches the robot, or
@@ -9,10 +9,15 @@ export type RuntimeIntentRefusal = "held" | "not-owner" | "unavailable";
  */
 export function resolveRuntimeIntentRefusal(
   intent: WidgetActionIntent,
-  options: { held?: boolean; ownsControl: boolean; unavailable: boolean },
+  options: { held?: boolean; ownsControl: boolean; stopped?: boolean; unavailable: boolean },
 ): RuntimeIntentRefusal | null {
   if (!options.ownsControl) {
     return "not-owner";
+  }
+  // The stopped canvas refuses pointers in CSS, which arrow keys on an already
+  // focused pad and an assistive activation both walk past.
+  if (options.stopped && !isReleaseIntent(intent)) {
+    return "stopped";
   }
   if (options.held && !isReleaseIntent(intent)) {
     return "held";

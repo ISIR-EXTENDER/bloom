@@ -28,6 +28,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **The stopped latch survives a re-render, and resume puts back what it found.** A widget that re-set its own
   `tabindex` got its tab stop back while the latch was still on, and releasing the latch cleared `aria-disabled` from
   controls that had declared it themselves, so an unavailable control came back looking operable.
+- **The stop latch refuses motion in the frontend too.** The runtime intent gate now knows the latch, so a widget
+  value-change is refused before it reaches the socket instead of relying on the backend to throw and on a CSS
+  `pointer-events: none` that arrow keys on an already-focused pad never meet. A release (a zero) still passes, so a
+  held control can return to rest.
 - **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
   latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
   resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.

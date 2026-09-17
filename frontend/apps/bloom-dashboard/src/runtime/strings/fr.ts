@@ -113,6 +113,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     ratePublishing: (hz) => `envoi · ${hz} Hz`,
     rateZerosHeld: "zéros maintenus",
     heldBadge: "Robot maintenu à zéro",
+    stoppedBadge: "Robot arrêté",
     close: "Fermer",
     facts: {
       app: "Application",

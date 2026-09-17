@@ -113,6 +113,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     ratePublishing: (hz) => `publicando · ${hz} Hz`,
     rateZerosHeld: "ceros mantenidos",
     heldBadge: "Robot mantenido en cero",
+    stoppedBadge: "Robot detenido",
     close: "Cerrar",
     facts: {
       app: "Aplicación",

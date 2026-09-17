@@ -77,6 +77,7 @@ export type RuntimeStrings = {
     ratePublishing: (hz: number) => string;
     rateZerosHeld: string;
     heldBadge: string;
+    stoppedBadge: string;
     close: string;
     facts: {
       app: string;

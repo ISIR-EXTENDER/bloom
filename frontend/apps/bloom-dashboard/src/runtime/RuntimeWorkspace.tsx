@@ -333,6 +333,7 @@ export function RuntimeWorkspace({
     const refusal = resolveRuntimeIntentRefusal(intent, {
       held: motionHeldRef.current,
       ownsControl: ownsRuntimeControl,
+      stopped,
       unavailable: controlStateByWidgetId[intent.widgetId]?.unavailable === true,
     });
     if (refusal === "not-owner") {
@@ -340,6 +341,9 @@ export function RuntimeWorkspace({
         accepted: false,
         detail: runtimeControl.state?.owner_present ? strings.control.anotherOwner : strings.control.noOwner,
       };
+    }
+    if (refusal === "stopped") {
+      return { accepted: false, detail: strings.kiosk.stoppedBadge };
     }
     if (refusal === "held") {
       return { accepted: false, detail: strings.kiosk.heldBadge };
