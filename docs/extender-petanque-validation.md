@@ -50,7 +50,12 @@ Latest frontend/backend coherence record:
 These checks are pending before Bloom's current robot-facing claims can be called live accepted and before legacy
 fallbacks can be made unavailable:
 
-- Sandbox teleop lab: real operator pass on the target tablet against the sandbox simulation.
+- Explorer Manager and Kinova Manager: real operator pass on the target tablet against the robot, in both roles.
+  `npm run e2e:sim` covers both robots' command paths in simulation; nobody has watched the arm.
+- Manager Drive: confirm Neutral, Jaco, momentary Snake, the gripper values, both speed-limit layouts and the Pivot
+  sign on the robot rather than on the wire.
+- Sandbox teleop lab, while it remains the rollback example: real operator pass on the target tablet against the
+  sandbox simulation.
 - Sandbox motion path: confirm `/joystick_cartesian_command` reaches `/cartesian_command` and visible robot motion.
 - Sandbox scalar controls: confirm slider publishes are stable and audited during the same live session.
 - Bloom Debug: confirm topic catalog, preflight statuses, topic echo/plot subscriptions, recording controls, and audit
@@ -96,6 +101,18 @@ Run the browser-only visual smoke to catch layout and Bloom Debug regressions wi
 npm run visual:smoke
 ```
 
+Run the simulation gate before any bench session. It starts a simulation, an API and a dashboard, drives Explorer
+Manager or Kinova Manager in a real browser, and checks every gesture on the ROS graph:
+
+```bash
+npm run e2e:sim -- --robot explorer
+npm run e2e:sim -- --robot kinova
+```
+
+A pass is simulation evidence. It says nothing about real actuators, lab network latency, the hardware emergency stop,
+the target tablet, a gamepad or a switch. What it covers is in
+[the simulation run](validation/ros-sim-e2e.md).
+
 Run the Sandbox runtime contract check before the live sandbox simulation pass:
 
 ```bash
@@ -129,7 +146,8 @@ npm run validation:petanque-parity
    source install/setup.bash
    ```
 
-2. Start sandbox simulation:
+2. Start the Explorer simulation. On the current Jazzy baseline this launch needs two runtime workarounds before the
+   arm moves; they are in [the simulation run](validation/ros-sim-e2e.md), and `npm run e2e:sim` applies them for you:
 
    ```bash
    ros2 launch cartesian_manager explorer.launch.py use_simulation:=true
@@ -145,7 +163,8 @@ npm run validation:petanque-parity
 4. Open the Bloom runtime app library and validate:
 
    - Explorer Manager or Kinova Manager opens as a kiosk without product or builder chrome.
-   - The bar names the expected app, robot, effective command frame, profile, and link state.
+   - The bar names the expected app, screen, effective command frame, role, and link state, and the maintenance sheet
+     the expected profile, device class and publish rate.
    - Translation/rotation joysticks and Height/Pivot sliders compose all six axes on
      `/joystick_cartesian_command` and return to zero on release.
    - Joystick Lab changes to every supported command frame only at zero motion, keeps unsupported frames visible and
@@ -251,6 +270,7 @@ Use this table during validation sessions.
 
 | Date | Environment | App | Result | Notes | Validator |
 | --- | --- | --- | --- | --- | --- |
+| 2026-09-17 | Explorer Gazebo and Kinova mock-hardware simulation | Explorer Manager, Kinova Manager, Bloom Debug | Accepted at simulation level | `npm run e2e:sim` passed 12/12 on both robots, each starting its own simulation, API and dashboard: motion and release to zero, Bench/Operator twist parity, gripper and speed payloads, STOP latch and hold-to-resume, maintenance zeros, the Hybrid frame stamp, Go home and Release, and live samples in Robot feedback and Bloom Debug. Simulation only; no actuator, tablet, gamepad or operator evidence. See [record](validation/ros-sim-e2e.md). | Susana |
 | 2026-09-16 | Repository/CI contracts | Bloom kiosk, Manager virtual IHM, accessible inputs, app command frame | Accepted at repository level | Kiosk, STOP, 6-DoF composition, input modes, seed bounds, frame persistence/policy, full suites, and visual smoke passed; target hardware/operator acceptance remains pending. See [record](validation/2026-09-16-kiosk-accessible-input-and-command-frame.md). | Codex |
 | 2026-06-29 | Local repo preflight | Sandbox teleop lab, Bloom Debug, Petanque admin | Pending live validation | Added `npm run validation:extender` fixture/config preflight; does not prove ROS motion or operator acceptance. | Codex |
 | 2026-07-10 | Local Extender lab preflight | Sandbox V0.0, Bloom Debug, Petanque admin | Accepted for lab entry | Preflight passed, setup file found, validation configs present, and required ROS packages discovered. See [record](validation/2026-07-10-extender-lab-preflight.md). | Codex |
