@@ -1282,10 +1282,12 @@
   white-space: nowrap;
 }
 
+/* The bounds and the time row sit in gutters, so no label lies over a line (design 4a). */
 .bloom-plot-board-area {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  padding: 0 0 22px 52px;
   border: 1px solid var(--bloom-hairline);
   border-radius: 12px;
   background: var(--bloom-surface);
@@ -1293,9 +1295,10 @@
 
 .bloom-plot-board-area svg {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 52px;
+  width: calc(100% - 52px);
+  height: calc(100% - 22px);
   overflow: visible;
 }
 
@@ -1332,23 +1335,27 @@
 }
 
 .bloom-plot-board-axis[data-edge="top"] {
-  top: 8px;
-  left: 10px;
+  top: 0;
+  left: 0;
+  width: 44px;
+  text-align: right;
 }
 
 .bloom-plot-board-axis[data-edge="bottom"] {
-  bottom: 30px;
-  left: 10px;
+  bottom: 22px;
+  left: 0;
+  width: 44px;
+  text-align: right;
 }
 
 .bloom-plot-board-axis[data-edge="start"] {
-  bottom: 8px;
-  left: 10px;
+  bottom: 2px;
+  left: 52px;
 }
 
 .bloom-plot-board-axis[data-edge="end"] {
   right: 10px;
-  bottom: 8px;
+  bottom: 2px;
 }
 
 /* Six 48 px rows fit the 348 px rail card (diagnostics.md). */

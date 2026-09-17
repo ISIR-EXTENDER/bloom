@@ -12,6 +12,8 @@ import {
 type BuilderCanvasItemProps = {
   canvasSize: BuilderCanvasSize;
   children: ReactNode;
+  /** Draw the size chip inside the frame, where hanging it above would cover the widget up there. */
+  chipInside?: boolean;
   /** Scale this canvas reaches the glass at on the class's smallest panel. */
   glassScale?: number;
   onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
@@ -26,6 +28,7 @@ type BuilderCanvasItemProps = {
 export function BuilderCanvasItem({
   canvasSize,
   children,
+  chipInside = false,
   glassScale = 1,
   minSize,
   onCommitWidgetLayout,
@@ -110,7 +113,7 @@ export function BuilderCanvasItem({
       <span className="builder-widget-frame-badge">{widget.kind}</span>
       {tooSmall ? <span className="builder-widget-too-small">Too small</span> : null}
       {selected ? (
-        <span className="builder-widget-size-chip">
+        <span className="builder-widget-size-chip" data-inside={chipInside ? "true" : undefined}>
           {widget.layout.width}×{widget.layout.height} · {glassPx(widget, glassScale)} px glass
         </span>
       ) : null}

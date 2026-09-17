@@ -1,4 +1,4 @@
-import type { ScreenConfig, WidgetLayout } from "@bloom/api-client";
+import type { ScreenConfig, WidgetConfig, WidgetLayout } from "@bloom/api-client";
 import { findSizeShortfall, type WidgetRenderDescriptor } from "@bloom/widgets";
 import type { ReactNode } from "react";
 import { ScreenArtboard, type ScreenArtboardLayout } from "../screen/ScreenArtboard";
@@ -26,6 +26,7 @@ export function BuilderCanvas({
   const renderEditableWidgetFrame = (descriptor: WidgetRenderDescriptor, content: ReactNode) => (
     <BuilderCanvasItem
       canvasSize={artboardSize}
+      chipInside={chipWouldCoverANeighbour(descriptor.widget, screen)}
       glassScale={glassScale}
       key={descriptor.widget.id}
       minSize={resolveWidgetMinSize(descriptor)}
@@ -120,5 +121,23 @@ function BuilderPresetTarget({ layout, screen }: { layout: ScreenArtboardLayout;
     >
       <span>{screen.canvas.preset_id}</span>
     </div>
+  );
+}
+
+const CHIP_STRIP = 26;
+
+/** The size chip hangs above the selection; over a widget up there it would hide that widget's own title. */
+function chipWouldCoverANeighbour(widget: WidgetConfig, screen: ScreenConfig): boolean {
+  const { layout } = widget;
+  if (layout.y < CHIP_STRIP) {
+    return true;
+  }
+  return screen.widgets.some(
+    (other) =>
+      other.id !== widget.id &&
+      other.layout.x < layout.x + 240 &&
+      other.layout.x + other.layout.width > layout.x &&
+      other.layout.y + other.layout.height > layout.y - CHIP_STRIP &&
+      other.layout.y < layout.y,
   );
 }

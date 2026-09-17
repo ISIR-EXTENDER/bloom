@@ -6,7 +6,7 @@ import type {
   WidgetConfig,
 } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import { appendTopicEchoMessage, appendTopicPlotSample, type WidgetActionIntent } from "@bloom/widgets";
+import { appendTopicEchoMessage, appendTopicPlotSample } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 

@@ -1577,6 +1577,15 @@
   position: absolute;
   bottom: calc(100% + 6px);
   left: 0;
+}
+
+.builder-widget-size-chip[data-inside="true"] {
+  top: 4px;
+  bottom: auto;
+  left: 4px;
+}
+
+.builder-widget-size-chip {
   z-index: 7;
   padding: 2px 8px;
   border-radius: 6px;
