@@ -1720,6 +1720,8 @@ describe("App", () => {
     await waitFor(() => expect(runtimeActionClient.listRosTopicStatus).toHaveBeenCalled());
     expect(screen.getByText("Translation")).toBeVisible();
     expect(within(screen.getByTestId("runtime-artboard")).getByText("Max Velocity")).toBeVisible();
+    // Maintenance holds the robot: controls answer again only once it closes.
+    fireEvent.click(screen.getByRole("button", { name: "Resume operating" }));
 
     const modeToggle = screen.getByRole("button", { name: "Mode B1/B2: B1" });
     fireEvent.click(modeToggle);

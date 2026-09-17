@@ -91,9 +91,10 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const openMaintenance = () => {
+    // Hold first, then zero: a held control's next tick is refused rather than resuming motion.
+    onMaintenanceOpenChange?.(true);
     onSuspendTeleop();
     setMaintenanceOpen(true);
-    onMaintenanceOpenChange?.(true);
   };
   const closeMaintenance = () => {
     setMaintenanceOpen(false);

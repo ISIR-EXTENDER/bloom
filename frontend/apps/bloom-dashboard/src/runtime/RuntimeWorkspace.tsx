@@ -133,6 +133,8 @@ export function RuntimeWorkspace({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+  // Read synchronously by the intent gate: a held control's next tick must not beat the re-render that holds it.
+  const motionHeldRef = useRef(false);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const fullPanel = isFullPanelScreen(screen);
   const artboardSize = useMemo(() => resolveRuntimeArtboardSize(screen), [screen]);
@@ -302,6 +304,11 @@ export function RuntimeWorkspace({
     rootRef: runtimeControlsRef,
   });
   const previousScreenIdRef = useRef(screen.id);
+  motionHeldRef.current = maintenanceOpen || settingsOpen || tourOpen;
+  const holdMotion = () => {
+    motionHeldRef.current = true;
+    onSuspendTeleop();
+  };
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
     // Choosing what a plot shows is view state: no ownership needed, nothing reaches the robot.
     if (intent.type === "plot-series-toggle") {
@@ -309,6 +316,7 @@ export function RuntimeWorkspace({
       return { accepted: true };
     }
     const refusal = resolveRuntimeIntentRefusal(intent, {
+      held: motionHeldRef.current,
       ownsControl: ownsRuntimeControl,
       unavailable: controlStateByWidgetId[intent.widgetId]?.unavailable === true,
     });
@@ -317,6 +325,9 @@ export function RuntimeWorkspace({
         accepted: false,
         detail: runtimeControl.state?.owner_present ? strings.control.anotherOwner : strings.control.noOwner,
       };
+    }
+    if (refusal === "held") {
+      return { accepted: false, detail: strings.kiosk.heldBadge };
     }
     if (refusal === "unavailable") {
       return { accepted: false, detail: controlStateByWidgetId[intent.widgetId]?.disabledReason };
@@ -585,18 +596,23 @@ export function RuntimeWorkspace({
         onOpenAppLibrary={onBackToRuntimeHome}
         onOpenHelp={onOpenHelp}
         onOpenLanding={onOpenLanding}
-        onMaintenanceOpenChange={setMaintenanceOpen}
+        onMaintenanceOpenChange={(open) => {
+          if (open) {
+            holdMotion();
+          }
+          setMaintenanceOpen(open);
+        }}
         onOpenSupervisor={onOpenSupervisor}
         language={runtimeProfile.language}
         onLanguageChange={(language) =>
           onProfileOverridesChange(baseRuntimeProfile.id, { ...activeProfileOverrides, language })
         }
         onOpenSettings={() => {
-          onSuspendTeleop();
+          holdMotion();
           setSettingsOpen(true);
         }}
         onOpenTour={() => {
-          onSuspendTeleop();
+          holdMotion();
           setTourOpen(true);
         }}
         onSelectScreen={(screenId) => {

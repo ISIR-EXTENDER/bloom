@@ -23,6 +23,11 @@ describe("runtime intent gate", () => {
     expect(resolveRuntimeIntentRefusal(press, { ownsControl: true, unavailable: true })).toBe("unavailable");
   });
 
+  it("refuses everything but a release while maintenance, settings or the tour holds the robot", () => {
+    expect(resolveRuntimeIntentRefusal(press, { held: true, ownsControl: true, unavailable: false })).toBe("held");
+    expect(resolveRuntimeIntentRefusal(release, { held: true, ownsControl: true, unavailable: false })).toBeNull();
+  });
+
   it("lets a release through an unavailable control, which is when it matters most", () => {
     expect(resolveRuntimeIntentRefusal(release, { ownsControl: true, unavailable: true })).toBeNull();
   });
