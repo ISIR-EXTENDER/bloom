@@ -13,6 +13,18 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **`npm run e2e:sim -- --robot explorer|kinova`** drives Bloom against the Explorer Gazebo simulation or Kinova fake
+  hardware, with no mocks, and checks each effect on the ROS graph: motion, release to zero, Bench and Operator parity,
+  gripper values, speed limits, STOP, the maintenance hold, the frame stamp, Go home and Release, and live samples in
+  Robot feedback and Bloom Debug. See [the simulation run](docs/validation/ros-sim-e2e.md).
+- **A five-minute walkthrough** (`docs/assets/demo/bloom-demo.mp4`) recorded against the Explorer simulation with a
+  visible cursor, reproducible with `npm run record:demo`.
+- **`unsubscribe_topic`** on the runtime socket (decision 0134): a screen change releases the topics the new screen does
+  not show, and one subscription per topic serves every screen.
+- A **NOT IN CONTROL** status chip while another session owns the robot, and a **Discard changes** action in Settings.
+- The plot board's y range widens to fit its data (`y_fit_data`, on by default), and value strip and picker readings
+  dim as stale after 3 s without a sample.
+
 - **The 2026-09-17 design handoff** (tracked in `docs/design/`, plan in `docs/design/implementation-plan.md`):
   - Widget cards follow the design anatomy: control surfaces, info cards, bare grouped buttons, and action cards.
     Pads share one geometry recipe, speed limits can render as **Slow / Medium / Fast** segments, and command buttons
@@ -106,6 +118,18 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
+- **Breaking for API clients.** The runtime socket keys topic subscriptions by widget id and topic, and a frontend with
+  this release sends `unsubscribe_topic`, which an older API refuses. Deploy the API and dashboard together.
+- STOP stays live over Settings and the practice tour, drawn as a full-height rail those views keep clear.
+- Reloading a runtime app returns to the same app and screen instead of the first app of the first configuration.
+- Plot samples are timed by the browser that received them, so a tablet clock ahead of the robot PC no longer empties
+  the plot or the Command sources verdict, which now reads the whole twist rather than one field.
+- The builder snaps a refused drag or resize back to where it started, refuses a resize, duplicate or new widget that
+  would reach a reserved region, adds palette widgets at their kind's minimum, starts new tablet screens on the
+  1280×720 panel, and floors glass sizes so a target under 44 px fails.
+- The remaining shipped operator vocabulary, screen titles and role names follow the profile's language, frames a robot
+  never offers are drawn as unsupported, and speed readouts drop a trailing zero.
+
 - **Breaking for app authors.** The Manager apps' `manager_drive` screen is split into `manager_drive_bench` and
   `manager_drive_operator`. Both send identical messages for the same gesture; the profile picks which one opens.
 - **Breaking for app authors.** Toggle `onLabel`/`offLabel` are verbs for what the button will do (**Close gripper**),
@@ -171,6 +195,26 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - STOP is exempt from the HTTP rate limit, so it cannot be refused with 429.
 
 ### Fixed
+
+- Bloom Debug's joint table waited forever on the Explorer simulation: NaN velocity and effort on the passive gripper
+  joints made every `/joint_states` sample invalid JSON. Non-finite values are sent as `null`.
+- Moving between screens stacked subscriptions, so plots received each message twice; a 100 Hz topic kept only 9 s of a
+  30 s window; the newest sample drew past the plot's right edge; and manipulability near 8e-5 read `0.000`.
+- Plot pickers and the joint table grew past their slot, under STOP on Kinova's Robot feedback and off a 1080 px screen
+  in Bloom Debug; they now scroll. Bloom Debug's raw echo is raised to its minimum, and a test keeps every Manager and
+  Bloom Debug widget at or above its kind's minimum.
+- Spanish and French labels no longer clip or run under a knob: speed segments, group labels, pad and pivot words wrap.
+- The maintenance sheet keeps **Resume operating** on screen, the **⋯** hold button stays inside the bar, Settings fits
+  1280×720 beside STOP, speed-limit thumbs meet the 48 px bench floor, and the reserved STOP rect follows the canvas
+  after Settings closes.
+- Keyboard holds cancel when focus leaves; a toggle whose label is a verb no longer announces itself as pressed.
+- The publish-rate fact no longer claims zeros are sent at rest, the Settings try-it heading says nothing is sent, and
+  a zero dead zone reads as each control's own rather than `0.00`.
+- Builder: an empty screen invites widgets instead of promising a migration, the inspector keeps the selected widget's
+  size in view, labels lose the kind badge that covered them, stray TOO SMALL tags stay in their row, and counts say
+  "1 screen".
+- The landing page no longer draws a focus ring around the page on load, and the library remembers the last app once
+  its configuration loads, keeps its device note in step with the window, and closes its menu on Escape.
 
 - A joystick held under the maintenance sheet, Settings, or the practice tour no longer resumes motion after the
   zero. Only releases pass while motion is held.
