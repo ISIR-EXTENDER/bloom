@@ -1215,7 +1215,7 @@
   justify-content: center;
   width: 56px;
   height: 34px;
-  overflow: hidden;
+  min-height: 0;
   padding: 0;
   border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
   border-radius: 10px;
@@ -1228,6 +1228,13 @@
   touch-action: none;
 }
 
+/* Draws 34 px inside the 44 px bar; the hit area still spans the bar's full height. */
+.runtime-kiosk-maintenance::before {
+  content: "";
+  position: absolute;
+  inset: -6px -1px;
+}
+
 .runtime-kiosk-dots {
   position: relative;
 }
@@ -1236,6 +1243,7 @@
 .runtime-kiosk-hold {
   position: absolute;
   inset: 0;
+  border-radius: inherit;
   background: var(--bloom-pollen);
   transform-origin: left center;
   transform: scaleX(0);
