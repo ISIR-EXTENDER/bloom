@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuntimeStopControl } from "./RuntimeStopControl";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
+import { getRuntimeStrings } from "./strings";
 import { findStopRegion } from "./use-reserved-region-rect";
 import { type RuntimeStopClient, useRuntimeStop } from "./use-runtime-stop";
 
@@ -170,12 +171,37 @@ describe("the status chip", () => {
   });
 
   it("reads HELD FOR MAINTENANCE while maintenance holds the robot, below STOPPED and LINK DOWN", () => {
-    expect(resolveRuntimeStatusChip(running, settledLink("connected"), undefined, true)).toEqual({
+    expect(
+      resolveRuntimeStatusChip(running, settledLink("connected"), undefined, { heldForMaintenance: true }),
+    ).toEqual({
       label: "HELD FOR MAINTENANCE",
       tone: "held",
     });
-    expect(resolveRuntimeStatusChip(stoppedState, settledLink("connected"), undefined, true)?.tone).toBe("stopped");
-    expect(resolveRuntimeStatusChip(running, settledLink("disconnected"), undefined, true)?.tone).toBe("link-down");
+    expect(
+      resolveRuntimeStatusChip(stoppedState, settledLink("connected"), undefined, { heldForMaintenance: true })?.tone,
+    ).toBe("stopped");
+    expect(
+      resolveRuntimeStatusChip(running, settledLink("disconnected"), undefined, { heldForMaintenance: true })?.tone,
+    ).toBe("link-down");
+  });
+
+  it("reads NOT IN CONTROL while another session owns the robot, below STOPPED and LINK DOWN", () => {
+    expect(resolveRuntimeStatusChip(running, settledLink("connected"), undefined, { notInControl: true })).toEqual({
+      label: "NOT IN CONTROL",
+      tone: "not-in-control",
+    });
+    expect(
+      resolveRuntimeStatusChip(running, settledLink("connected"), getRuntimeStrings("fr"), {
+        heldForMaintenance: true,
+        notInControl: true,
+      }),
+    ).toEqual({ label: "SANS CONTRÔLE", tone: "not-in-control" });
+    expect(
+      resolveRuntimeStatusChip(stoppedState, settledLink("connected"), undefined, { notInControl: true })?.tone,
+    ).toBe("stopped");
+    expect(
+      resolveRuntimeStatusChip(running, settledLink("disconnected"), undefined, { notInControl: true })?.tone,
+    ).toBe("link-down");
   });
 
   it("reads LINK DOWN when a link that once worked has died", () => {

@@ -1031,7 +1031,7 @@
 
 .runtime-control-gate > button {
   min-width: 176px;
-  min-height: 52px;
+  min-height: max(56px, var(--runtime-control-touch-target));
   padding: 10px 18px;
   border: 1px solid var(--bloom-primary);
   border-radius: 6px;
@@ -1117,6 +1117,13 @@
 
 .runtime-kiosk-status[data-tone="held"] {
   background: var(--bloom-pollen);
+  color: var(--bloom-ink);
+}
+
+/* Watching, not driving: outlined, never the ready green. */
+.runtime-kiosk-status[data-tone="not-in-control"] {
+  background: var(--bloom-surface);
+  box-shadow: inset 0 0 0 2px var(--bloom-ink);
   color: var(--bloom-ink);
 }
 

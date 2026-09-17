@@ -7,6 +7,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     debug: "DEBUG",
     held: "HELD FOR MAINTENANCE",
     linkDown: "LINK DOWN",
+    notInControl: "NOT IN CONTROL",
     ready: "READY",
     stopped: "STOPPED",
   },

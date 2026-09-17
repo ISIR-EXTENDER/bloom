@@ -15,7 +15,14 @@ const MAINTENANCE_HOLD_MS = 1500;
 const ROLE_SWITCH_HOLD_MS = 1500;
 
 /** Word + color + dot shape carry the same message; never color alone. */
-export type RuntimeStatusChipTone = "connecting" | "debug" | "held" | "link-down" | "ready" | "stopped";
+export type RuntimeStatusChipTone =
+  | "connecting"
+  | "debug"
+  | "held"
+  | "link-down"
+  | "not-in-control"
+  | "ready"
+  | "stopped";
 
 export type RuntimeStatusChip = {
   label: string;

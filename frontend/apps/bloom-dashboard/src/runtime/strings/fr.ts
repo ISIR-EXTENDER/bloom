@@ -7,6 +7,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     debug: "DÉBOGAGE",
     held: "EN MAINTENANCE",
     linkDown: "LIAISON COUPÉE",
+    notInControl: "SANS CONTRÔLE",
     ready: "PRÊT",
     stopped: "ARRÊTÉ",
   },

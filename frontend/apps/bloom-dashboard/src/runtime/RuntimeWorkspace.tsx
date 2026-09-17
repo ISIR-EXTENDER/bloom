@@ -278,12 +278,10 @@ export function RuntimeWorkspace({
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
-  const resolvedChip = resolveRuntimeStatusChip(
-    runtimeStop.state,
-    runtimeLink,
-    strings,
-    maintenanceOpen || settingsOpen,
-  );
+  const resolvedChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings, {
+    heldForMaintenance: maintenanceOpen || settingsOpen,
+    notInControl: runtimeControlBlocked,
+  });
   // Bloom Debug says what it is where an operator app says READY; every warning still outranks it.
   const statusChip =
     application.id === "bloom-debug" && resolvedChip?.tone === "ready"

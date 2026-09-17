@@ -7,6 +7,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     debug: "DEPURACIÓN",
     held: "EN MANTENIMIENTO",
     linkDown: "SIN CONEXIÓN",
+    notInControl: "SIN CONTROL",
     ready: "LISTO",
     stopped: "DETENIDO",
   },
