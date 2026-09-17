@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal, TypeVar
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 T = TypeVar("T", bound=str)
 
@@ -103,11 +103,16 @@ class Settings(BaseModel):
     ros_command_backend: Literal["cartesian_manager", "teleop_command"] = Field(default="cartesian_manager")
     # Default stamp; must be one of the manager's command frames.
     ros_command_frame_id: str = "base_link"
-    # The frames cartesian_manager accepts as rotation references (its
-    # frames.base_frame / ee_frame / hybrid_frame parameters). The default is
-    # the union of the Explorer (ft_frame) and Kinova (effector_frame)
-    # bringups; narrow it per robot with BLOOM_ALLOWED_COMMAND_FRAME_IDS.
-    allowed_command_frame_ids: tuple[str, ...] = ("base_link", "effector_frame", "ft_frame", "hybrid_frame")
+    # This deployment's end-effector frame, as cartesian_manager names it in
+    # frames.ee_frame: ft_frame on Explorer, effector_frame on the Kinova gen3.
+    # Empty means nobody has said, and Bloom then offers no tool frame at all.
+    ros_ee_frame_id: str = ""
+    # The frames cartesian_manager accepts as rotation references. base_link and
+    # hybrid_frame exist in every manager config; the end-effector frame differs
+    # per robot, and advertising both robots' names let an operator pick a frame
+    # the manager silently discards. Set BLOOM_ROS_EE_FRAME_ID (or the whole
+    # list with BLOOM_ALLOWED_COMMAND_FRAME_IDS) to offer the tool frame.
+    allowed_command_frame_ids: tuple[str, ...] = ("base_link", "hybrid_frame")
     allowed_teleop_targets: tuple[str, ...] = (
         "/joystick_cartesian_command",
         "/teleop_cmd",
@@ -145,6 +150,49 @@ class Settings(BaseModel):
     runtime_recording_gateway: Literal["noop", "rosbag"] = Field(default="noop")
     runtime_recording_base_directory: Path = Field(default=Path("."))
     runtime_recording_executable: str = "ros2"
+
+    @field_validator("ros_command_frame_id")
+    @classmethod
+    def command_frame_id_is_plain(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("ros_command_frame_id must not be empty")
+        if any(character.isspace() for character in normalized):
+            raise ValueError("ros_command_frame_id must not contain whitespace")
+        return normalized
+
+    @field_validator("allowed_command_frame_ids")
+    @classmethod
+    def command_frame_ids_are_plain(cls, values: tuple[str, ...]) -> tuple[str, ...]:
+        normalized: list[str] = []
+        for value in values:
+            frame_id = value.strip()
+            if not frame_id or any(character.isspace() for character in frame_id):
+                raise ValueError("allowed_command_frame_ids must contain non-empty frame names without whitespace")
+            if frame_id not in normalized:
+                normalized.append(frame_id)
+        return tuple(normalized)
+
+    @model_validator(mode="after")
+    def ee_frame_joins_the_allowlist(self) -> "Settings":
+        """The named end-effector frame is offered; an unnamed one never is."""
+        ee_frame_id = self.ros_ee_frame_id.strip()
+        if ee_frame_id and ee_frame_id not in self.allowed_command_frame_ids:
+            object.__setattr__(
+                self,
+                "allowed_command_frame_ids",
+                (*self.allowed_command_frame_ids, ee_frame_id),
+            )
+        return self
+
+    @model_validator(mode="after")
+    def cartesian_manager_default_frame_is_allowed(self) -> "Settings":
+        if (
+            self.ros_command_backend == "cartesian_manager"
+            and self.ros_command_frame_id not in self.allowed_command_frame_ids
+        ):
+            raise ValueError("ros_command_frame_id must be present in allowed_command_frame_ids")
+        return self
 
     @model_validator(mode="after")
     def production_requires_authentication(self) -> "Settings":
@@ -206,6 +254,10 @@ class Settings(BaseModel):
             allowed_teleop_targets=_read_tuple_env(
                 "BLOOM_ALLOWED_TELEOP_TARGETS",
                 cls.model_fields["allowed_teleop_targets"].default,
+            ),
+            ros_ee_frame_id=os.getenv(
+                "BLOOM_ROS_EE_FRAME_ID",
+                cls.model_fields["ros_ee_frame_id"].default,
             ),
             allowed_command_frame_ids=_read_tuple_env(
                 "BLOOM_ALLOWED_COMMAND_FRAME_IDS",

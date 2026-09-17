@@ -1,4 +1,31 @@
+import pytest
+from pydantic import ValidationError
+
 from apps.bloom_api.settings import Settings, get_settings
+
+
+def test_command_frames_exclude_a_robot_the_deployment_did_not_name() -> None:
+    # One backend serves one arm. Offering both robots' end-effector frames let
+    # an operator pick Tool on Explorer and get a frame the manager discards.
+    settings = Settings(environment="test")
+
+    assert settings.allowed_command_frame_ids == ("base_link", "hybrid_frame")
+
+
+def test_naming_the_end_effector_frame_offers_it() -> None:
+    settings = Settings(environment="test", ros_ee_frame_id="ft_frame")
+
+    assert settings.allowed_command_frame_ids == ("base_link", "hybrid_frame", "ft_frame")
+
+
+def test_an_explicit_allowlist_already_holding_the_frame_is_left_alone() -> None:
+    settings = Settings(
+        environment="test",
+        allowed_command_frame_ids=("base_link", "effector_frame"),
+        ros_ee_frame_id="effector_frame",
+    )
+
+    assert settings.allowed_command_frame_ids == ("base_link", "effector_frame")
 
 
 def test_default_settings_are_local() -> None:
@@ -124,3 +151,23 @@ def test_runtime_ros_policy_settings_can_be_loaded_from_environment(monkeypatch)
     assert settings.allowed_ros_publish_topics == ("/safe/topic", "/other/safe_topic")
     assert settings.allowed_teleop_targets == ("/teleop_cmd", "/custom_teleop")
     assert settings.runtime_command_rate_limit_per_second == 25
+
+
+def test_command_frame_settings_are_normalized_and_deduplicated() -> None:
+    settings = Settings(
+        ros_command_frame_id=" base_link ",
+        allowed_command_frame_ids=(" base_link ", "ft_frame", "ft_frame"),
+    )
+
+    assert settings.ros_command_frame_id == "base_link"
+    assert settings.allowed_command_frame_ids == ("base_link", "ft_frame")
+
+
+def test_cartesian_manager_default_frame_must_be_allowed() -> None:
+    with pytest.raises(ValidationError, match="ros_command_frame_id must be present"):
+        Settings(ros_command_frame_id="operator_frame", allowed_command_frame_ids=("base_link",))
+
+
+def test_command_frame_settings_reject_whitespace_inside_names() -> None:
+    with pytest.raises(ValidationError, match="must not contain whitespace"):
+        Settings(ros_command_frame_id="operator frame")

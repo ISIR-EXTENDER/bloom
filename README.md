@@ -129,7 +129,7 @@ cd /path/to/bloom
 EXTENDER_WORKSPACE=/path/to/extender_workspace \
 BLOOM_ROBOT_NAME=Explorer \
 BLOOM_ROS_COMMAND_FRAME_ID=base_link \
-BLOOM_ALLOWED_COMMAND_FRAME_IDS=base_link,ft_frame,hybrid_frame \
+BLOOM_ROS_EE_FRAME_ID=ft_frame \
 scripts/extender-workspace-dev.sh
 ```
 
@@ -140,7 +140,7 @@ cd /path/to/bloom
 EXTENDER_WORKSPACE=/path/to/extender_workspace \
 BLOOM_ROBOT_NAME=Kinova \
 BLOOM_ROS_COMMAND_FRAME_ID=base_link \
-BLOOM_ALLOWED_COMMAND_FRAME_IDS=base_link,effector_frame,hybrid_frame \
+BLOOM_ROS_EE_FRAME_ID=effector_frame \
 scripts/extender-workspace-dev.sh
 ```
 
@@ -192,8 +192,10 @@ database operations.
    configured-action controls. It reports whether an operator session currently owns control without transferring it.
 9. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
 
-Both Manager apps share the same workflow. Explorer permits `ft_frame`; Kinova permits `effector_frame` and adds the
-reviewed fault-reset action. Joystick Lab keeps every frame choice visible and explains when the connected robot does
+Both Manager apps share the same workflow. Explorer names `ft_frame` as its end-effector frame; Kinova names
+`effector_frame` and adds the reviewed fault-reset action. Bloom offers `base_link` and `hybrid_frame` everywhere and
+adds the end-effector frame only once a deployment names it, so no operator is offered a frame this robot's manager
+would silently discard. Joystick Lab keeps every frame choice visible and explains when the connected robot does
 not support one.
 
 [![Explorer Joystick Lab in Bloom](docs/assets/screenshots/11-joystick-lab.png)](docs/assets/demo/bloom-explorer-demo.mp4)
@@ -201,7 +203,7 @@ not support one.
 **[Watch the 1:55 Explorer walkthrough](docs/assets/demo/bloom-explorer-demo.mp4)**: Drive, Joystick Lab, live robot
 feedback, command sources, and Bloom Debug topic/audit/plot views. It was recorded against the ROS-enabled Explorer
 bench stack without physical hardware. Follow the same steps with Kinova Manager after choosing the Kinova launch and
-`effector_frame` allowlist above.
+`effector_frame` end-effector frame above.
 
 The operator shell is available in English, Spanish, and French. Change it from Maintenance or **Settings >
 Language**; the choice belongs to the selected profile. App names, screen names, and widget labels are authored
