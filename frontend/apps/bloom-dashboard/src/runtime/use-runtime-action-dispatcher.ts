@@ -73,6 +73,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
   const [feedback, setFeedback] = useState<RuntimeActionFeedback | null>(null);
   const [teleopActive, setTeleopActive] = useState(false);
+  // Advances on every suspend so held controls can return to rest as well.
+  const [neutralRevision, setNeutralRevision] = useState(0);
   const syncTeleopActive = useCallback(() => {
     setTeleopActive(!isZeroTwist(teleopComposer.current.compose()));
   }, []);
@@ -199,6 +201,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     teleopComposer.current.clear();
     void teleopPump.current?.suspend().catch(() => undefined);
     syncTeleopActive();
+    setNeutralRevision((revision) => revision + 1);
   }, [syncTeleopActive]);
 
   useEffect(() => {
@@ -220,7 +223,17 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     };
   }, [suspendTeleop]);
 
-  return { clearFeedback, contributeTeleop, dispatch, feedback, records, subscribeTopic, suspendTeleop, teleopActive };
+  return {
+    clearFeedback,
+    contributeTeleop,
+    dispatch,
+    feedback,
+    neutralRevision,
+    records,
+    subscribeTopic,
+    suspendTeleop,
+    teleopActive,
+  };
 }
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {

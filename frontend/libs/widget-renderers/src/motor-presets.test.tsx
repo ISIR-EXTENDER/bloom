@@ -238,6 +238,91 @@ describe("the latch expiry", () => {
   });
 });
 
+describe("after the runtime neutralizes teleop", () => {
+  afterEach(cleanup);
+
+  it("starts a stepped joystick from rest instead of the stale vector", () => {
+    // STOP, a hidden tab or lost control zero the robot. A control still
+    // holding y=0.5 would make the next tap jump to 0.75 from rest.
+    const onActionIntent = vi.fn();
+    const { joystick } = descriptors();
+    const { rerender } = render(
+      <JoystickWidget descriptor={joystick} motorPreset="step" neutralRevision={0} onActionIntent={onActionIntent} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Forward, one step" }));
+    fireEvent.click(screen.getByRole("button", { name: "Forward, one step" }));
+    const emittedBeforeReset = onActionIntent.mock.calls.length;
+
+    rerender(
+      <JoystickWidget descriptor={joystick} motorPreset="step" neutralRevision={1} onActionIntent={onActionIntent} />,
+    );
+    expect(onActionIntent.mock.calls.length).toBe(emittedBeforeReset);
+    expect(screen.getByText("y 0.00")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Forward, one step" }));
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0.25 });
+  });
+
+  it("starts a stepped slider from rest but keeps a configured value", () => {
+    const onActionIntent = vi.fn();
+    const { slider } = descriptors();
+    const speed = {
+      ...slider,
+      widget: {
+        ...slider.widget,
+        id: "speed",
+        title: "Speed",
+        settings: { direction: "vertical", max: 1, min: 0, step: 0.05, value: 0.15 },
+      },
+    };
+    const view = (revision: number) => (
+      <>
+        <SliderWidget
+          descriptor={slider}
+          motorPreset="step"
+          neutralRevision={revision}
+          onActionIntent={onActionIntent}
+        />
+        <SliderWidget
+          descriptor={speed}
+          motorPreset="step"
+          neutralRevision={revision}
+          onActionIntent={onActionIntent}
+        />
+      </>
+    );
+    const { rerender } = render(view(0));
+    fireEvent.click(screen.getByRole("button", { name: "Increase Z by 0.25" }));
+    fireEvent.click(screen.getByRole("button", { name: "Increase Speed by 0.05" }));
+
+    rerender(view(1));
+    fireEvent.click(screen.getByRole("button", { name: "Increase Z by 0.25" }));
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toBe(0.25);
+    // A speed limit is not a held command; the robot still has 0.2.
+    fireEvent.click(screen.getByRole("button", { name: "Increase Speed by 0.05" }));
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toBe(0.25);
+  });
+});
+
+describe("a zeroed latched joystick", () => {
+  afterEach(cleanup);
+
+  it("resumes the next arrow from rest, not from the old pad position", () => {
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="latch" onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+    for (let press = 0; press < 5; press += 1) {
+      fireEvent.keyDown(pad, { key: "ArrowRight" });
+      fireEvent.keyUp(pad, { key: "ArrowRight" });
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "Zero Translation" }));
+    fireEvent.keyDown(pad, { key: "ArrowRight" });
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0.1, y: 0 });
+  });
+});
+
 describe("the latch preset", () => {
   afterEach(cleanup);
 

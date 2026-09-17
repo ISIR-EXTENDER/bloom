@@ -73,6 +73,7 @@ type ProductWorkspaceProps = {
   runtimeModeState: RuntimeModeState;
   supervisorRuntimeClient: SupervisorRuntimeClient;
   teleopActive: boolean;
+  teleopNeutralRevision: number;
   selection: WorkspaceSelection | null;
   state: ReturnType<typeof useConfigurations>;
 };
@@ -115,6 +116,7 @@ export function ProductWorkspace({
   runtimeModeState,
   supervisorRuntimeClient,
   teleopActive,
+  teleopNeutralRevision,
   selection,
   state,
 }: ProductWorkspaceProps) {
@@ -223,6 +225,7 @@ export function ProductWorkspace({
       screen={selectedWorkspace.screen}
       selection={selection}
       teleopActive={teleopActive}
+      teleopNeutralRevision={teleopNeutralRevision}
     />
   );
 }

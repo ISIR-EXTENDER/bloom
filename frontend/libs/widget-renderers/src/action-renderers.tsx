@@ -6,7 +6,13 @@ import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
-export function CommandLikeWidget({ conditioning, controlState, descriptor, onActionIntent }: WidgetRendererProps) {
+export function CommandLikeWidget({
+  conditioning,
+  controlState,
+  descriptor,
+  neutralRevision,
+  onActionIntent,
+}: WidgetRendererProps) {
   const allowActivation = useRepeatGuard(conditioning?.repeatGuardMs);
   const buttonLabel = getStringSetting(descriptor.widget.settings, "button_label", "") || descriptor.widget.title;
   const pressedLabel = getStringSetting(descriptor.widget.settings, "pressed_label", buttonLabel);
@@ -68,6 +74,14 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     }
   }, [disabled]);
   useEffect(() => () => releaseHeldRef.current(), []);
+  const lastNeutralRevisionRef = useRef(neutralRevision);
+  useEffect(() => {
+    if (neutralRevision === lastNeutralRevisionRef.current) {
+      return;
+    }
+    lastNeutralRevisionRef.current = neutralRevision;
+    releaseHeldRef.current();
+  }, [neutralRevision]);
 
   const handlePress = () => {
     if (disabled) {

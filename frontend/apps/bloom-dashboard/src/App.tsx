@@ -416,6 +416,7 @@ export function App({
                 runtimeModeState={runtimeModeState}
                 supervisorRuntimeClient={supervisorRuntimeClient}
                 teleopActive={runtimeActions.teleopActive}
+                teleopNeutralRevision={runtimeActions.neutralRevision}
                 selection={selection}
                 state={configurationState}
               />

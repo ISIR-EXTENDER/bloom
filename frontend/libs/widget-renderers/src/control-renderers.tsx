@@ -25,7 +25,7 @@ function resolveStepTargetPreset(motorPreset: WidgetRendererProps["motorPreset"]
   return motorPreset && motorPreset in STEP_TARGET_HINTS ? (motorPreset as StepTargetPreset) : null;
 }
 
-export function SliderWidget({ descriptor, motorPreset, onActionIntent }: WidgetRendererProps) {
+export function SliderWidget({ descriptor, motorPreset, neutralRevision, onActionIntent }: WidgetRendererProps) {
   // Normalize first: configs carry snake_case aliases for these keys.
   const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
   const sliderSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
@@ -78,6 +78,23 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
   // telemetry and status polls re-render constantly, so the window is keyed on
   // input rather than restarted by every render.
   const valueIsHeld = (motorPreset === "latch" || usesStepTargets) && returnToCenter && currentValue !== defaultValue;
+
+  // After a runtime suspend a held value is gone on the robot, so it goes from
+  // the control too. A configured value, such as a speed limit, stays.
+  const lastNeutralRevisionRef = useRef(neutralRevision);
+  const returnToRestRef = useRef(() => {});
+  returnToRestRef.current = () => {
+    if (returnToCenter) {
+      setCurrentValue(defaultValue);
+    }
+  };
+  useEffect(() => {
+    if (neutralRevision === lastNeutralRevisionRef.current) {
+      return;
+    }
+    lastNeutralRevisionRef.current = neutralRevision;
+    returnToRestRef.current();
+  }, [neutralRevision]);
   const expireHeldValueRef = useRef(() => {});
   expireHeldValueRef.current = () => setAndEmit(defaultValue);
   useEffect(() => {
@@ -190,7 +207,13 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
 const STEP_ZONE_INCREMENT = 0.25;
 const LATCH_EXPIRY_MS = 15000;
 
-export function JoystickWidget({ conditioning, descriptor, motorPreset, onActionIntent }: WidgetRendererProps) {
+export function JoystickWidget({
+  conditioning,
+  descriptor,
+  motorPreset,
+  neutralRevision,
+  onActionIntent,
+}: WidgetRendererProps) {
   const normalizedSettings = normalizeWidgetSettings("joystick", descriptor.widget.settings);
   const joystickSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
   // The profile's dead zone belongs to the person, not the app: a widget's
@@ -210,6 +233,7 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
   const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
   // Counts operator input, so the attention window restarts on input only.
   const [inputRevision, setInputRevision] = useState(0);
+  const [padResetSignal, setPadResetSignal] = useState(0);
   const isHeldRef = useRef(false);
   const latestVectorRef = useRef<JoystickVector>({ x: 0, y: 0 });
   const onActionIntentRef = useRef(onActionIntent);
@@ -250,8 +274,29 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
     latestVectorRef.current = vector;
     setCurrentVector(vector);
     setInputRevision((revision) => revision + 1);
+    if (vector.x === 0 && vector.y === 0) {
+      setPadResetSignal((signal) => signal + 1);
+    }
     emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, vector);
   };
+
+  // After a runtime suspend the robot holds nothing, so neither does the
+  // control: the next tap starts from rest, not from the stale vector.
+  const lastNeutralRevisionRef = useRef(neutralRevision);
+  const returnToRestRef = useRef(() => {});
+  returnToRestRef.current = () => {
+    latestVectorRef.current = { x: 0, y: 0 };
+    isHeldRef.current = false;
+    setCurrentVector({ x: 0, y: 0 });
+    setPadResetSignal((signal) => signal + 1);
+  };
+  useEffect(() => {
+    if (neutralRevision === lastNeutralRevisionRef.current) {
+      return;
+    }
+    lastNeutralRevisionRef.current = neutralRevision;
+    returnToRestRef.current();
+  }, [neutralRevision]);
 
   // A latched command must never outlive the operator's attention. Keyed on
   // input, because re-renders from scanning or telemetry would otherwise
@@ -304,6 +349,7 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
         onInteractionEnd={handleInteractionEnd}
         onInteractionStart={handleInteractionStart}
         onVectorChange={handleVectorChange}
+        resetSignal={padResetSignal}
         size={size}
         title={descriptor.widget.title}
         zeroOnRelease={motorPreset === "latch" ? false : binding.zeroOnRelease}

@@ -29,6 +29,8 @@ export type JoystickPrimitiveProps = {
   onInteractionEnd?: () => void;
   onInteractionStart?: () => void;
   onVectorChange: (value: JoystickVector) => void;
+  /** Advancing it returns the pad to rest without emitting. */
+  resetSignal?: number;
   size: number;
   title: string;
   zeroOnRelease?: boolean;
@@ -52,6 +54,7 @@ export function JoystickPrimitive({
   onInteractionEnd,
   onInteractionStart,
   onVectorChange,
+  resetSignal = 0,
   size,
   title,
   zeroOnRelease = true,
@@ -91,6 +94,20 @@ export function JoystickPrimitive({
   const pressedKeysRef = useRef(new Set<string>());
   const vectorRef = useRef(vector);
   vectorRef.current = vector;
+
+  // The widget zeroed the command (a Zero control, the attention expiry, a
+  // runtime suspend). The pad follows, or the next arrow resumes from the old
+  // position.
+  const lastResetSignalRef = useRef(resetSignal);
+  useEffect(() => {
+    if (resetSignal === lastResetSignalRef.current) {
+      return;
+    }
+    lastResetSignalRef.current = resetSignal;
+    pressedKeysRef.current.clear();
+    pointerIdRef.current = null;
+    setVector({ x: 0, y: 0 });
+  }, [resetSignal]);
 
   const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape" || event.key === "Home") {

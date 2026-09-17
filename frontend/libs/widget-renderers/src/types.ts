@@ -88,6 +88,11 @@ export type WidgetRendererProps = {
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
   /** The operator profile's motor preset; renderers adapt their input model. */
   motorPreset?: MotorAccessibilityPreset;
+  /**
+   * Advances whenever the runtime neutralizes teleop (STOP, lost control, a
+   * hidden tab). Held controls return to rest; the runtime already sent zero.
+   */
+  neutralRevision?: number;
   onActionIntent?: WidgetActionIntentHandler;
 };
 
@@ -111,6 +116,7 @@ export type ScreenRendererOptions = {
   controlStateByWidgetId?: Readonly<Record<string, WidgetControlState>>;
   dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
   motorPreset?: MotorAccessibilityPreset;
+  neutralRevision?: number;
   onActionIntent?: WidgetActionIntentHandler;
   renderUnknown?: UnknownWidgetRenderer;
   registry?: WidgetRendererRegistry;

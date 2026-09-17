@@ -62,6 +62,8 @@ type RuntimeWorkspaceProps = {
   ) => void;
   runtimeCapabilityReport: RuntimeCapabilityReport | null;
   teleopActive: boolean;
+  /** Advances when teleop is neutralized, so held controls return to rest. */
+  teleopNeutralRevision?: number;
   application: ApplicationConfig;
   onBackToRuntimeHome: () => void;
   onActionIntent: (
@@ -91,6 +93,7 @@ type RuntimeWorkspaceProps = {
 export function RuntimeWorkspace({
   runtimeCapabilityReport,
   teleopActive,
+  teleopNeutralRevision,
   application,
   onBackToRuntimeHome,
   onActionIntent,
@@ -617,6 +620,7 @@ export function RuntimeWorkspace({
                 controlStateByWidgetId,
                 dataByWidgetId: effectiveDataByWidgetId,
                 motorPreset: runtimeProfile.motorAccessibilityPreset,
+                neutralRevision: teleopNeutralRevision,
                 onActionIntent: handleRuntimeActionIntent,
               }}
               screen={screen}

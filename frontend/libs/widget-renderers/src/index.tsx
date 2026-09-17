@@ -75,6 +75,7 @@ export function renderWidgetDescriptor(
       data={options.dataByWidgetId?.[descriptor.widget.id]}
       descriptor={descriptor}
       motorPreset={options.motorPreset}
+      neutralRevision={options.neutralRevision}
       onActionIntent={options.onActionIntent}
     />
   );

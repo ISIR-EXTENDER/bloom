@@ -339,6 +339,20 @@ describe("widget renderer registry", () => {
     expect(screen.getByRole("button", { name: /Hold Snake/ })).toHaveAttribute("aria-pressed", "false");
   });
 
+  it("releases a latched momentary button when the runtime neutralizes teleop", () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn();
+    const { rerender } = render(
+      <div>{renderWidgetDescriptor(descriptor, { neutralRevision: 0, onActionIntent })}</div>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Hold Snake" }), { detail: 0 });
+    rerender(<div>{renderWidgetDescriptor(descriptor, { neutralRevision: 1, onActionIntent })}</div>);
+
+    expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}", "{data: false}"]);
+  });
+
   it("does not publish a release for a button that was never held", () => {
     const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing momentary button descriptor.");
