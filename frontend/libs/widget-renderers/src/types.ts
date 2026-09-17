@@ -75,6 +75,8 @@ export type WidgetControlState = {
   disabledReason?: string;
   /** The backend cannot serve this widget; keep it visible, inert, and explained. */
   unavailable?: boolean;
+  /** This robot will never offer it (design §09): dashed, not dimmed like a control that is only "not now". */
+  unsupported?: boolean;
   /**
    * Whether this control is the one currently selected among a mutually
    * exclusive set, such as the manager's mode.

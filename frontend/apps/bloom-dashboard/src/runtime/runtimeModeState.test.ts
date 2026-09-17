@@ -321,8 +321,20 @@ describe("runtime command-frame controls", () => {
         disabled: true,
         disabledReason: "Unavailable on this robot.",
         selection: "unselected",
+        unsupported: true,
       },
     });
+  });
+
+  it("keeps saying a frame is unsupported while the twist is moving", () => {
+    const state = createRuntimeControlStateByWidgetId(frameScreen, createDefaultRuntimeModeState(), {
+      activeCommandFrameId: "base_link",
+      allowedCommandFrameIds: ["base_link"],
+      teleopActive: true,
+    });
+
+    expect(state["frame-base"]).toEqual({ disabled: true, disabledReason: "Release controls.", selection: "selected" });
+    expect(state["frame-tool"]).toMatchObject({ disabledReason: "Unavailable on this robot.", unsupported: true });
   });
 
   it("disables every frame change while the composed twist is moving", () => {

@@ -92,10 +92,11 @@ describe("a latching mode button", () => {
   it("keeps an unavailable frame visible and explains why it cannot be selected", () => {
     const button = renderButton(
       { runtime_binding: { adapter: "teleop-frame", frame_id: "effector_frame" } },
-      { disabled: true, disabledReason: "Unavailable on this robot.", selection: "unselected" },
+      { disabled: true, disabledReason: "Unavailable on this robot.", selection: "unselected", unsupported: true },
     );
 
     expect(button.hasAttribute("disabled")).toBe(true);
+    expect(button.getAttribute("data-unsupported")).toBe("true");
     expect(button.getAttribute("aria-label")).toContain("Unavailable on this robot.");
     expect(screen.getByText("Unavailable on this robot.")).toBeTruthy();
   });

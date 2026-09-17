@@ -207,6 +207,7 @@ export function CommandLikeWidget({
         data-confirm-press={confirmPress ? "true" : undefined}
         data-momentary={momentary ? "true" : "false"}
         data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
+        data-unsupported={controlState?.unsupported ? "true" : undefined}
         disabled={disabled}
         onClick={momentary ? handleMomentaryActivation : handlePress}
         onPointerCancel={momentary ? handleMomentaryRelease : undefined}

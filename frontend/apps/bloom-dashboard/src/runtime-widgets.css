@@ -795,6 +795,24 @@
   line-height: 1.15;
 }
 
+/* Unsupported: this robot will never offer it. Dashed with the reason, never faded (§09). */
+.bloom-command-button[data-unsupported="true"] {
+  border: 2px dashed color-mix(in srgb, var(--bloom-color-forest) 35%, transparent);
+  background: var(--bloom-surface-container-high);
+  color: var(--bloom-ink-soft);
+}
+
+.bloom-command-button[data-unsupported="true"] .bloom-action-label,
+.bloom-command-button[data-unsupported="true"] .bloom-action-title {
+  font-size: 15px;
+  opacity: 1;
+}
+
+.bloom-command-button[data-unsupported="true"] .bloom-command-button-disabled-reason {
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .bloom-action-widget[data-layout="card"] .bloom-command-button {
   padding: 14px;
   border-radius: var(--bloom-radius-card);

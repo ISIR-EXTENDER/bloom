@@ -166,14 +166,16 @@ export function createRuntimeControlStateByWidgetId(
     if (frameId) {
       const unavailable = options.allowedCommandFrameIds ? !options.allowedCommandFrameIds.includes(frameId) : false;
       const reasons = options.frameReasons ?? DEFAULT_FRAME_REASONS;
-      const disabledReason = options.teleopActive
-        ? reasons.releaseControls
-        : unavailable
-          ? reasons.unavailableOnRobot
+      // "Release controls" would promise a frame this robot never offers, so unsupported wins.
+      const disabledReason = unavailable
+        ? reasons.unavailableOnRobot
+        : options.teleopActive
+          ? reasons.releaseControls
           : undefined;
       controlState = {
         selection: frameId === options.activeCommandFrameId ? "selected" : "unselected",
         ...(disabledReason ? { disabled: true, disabledReason } : {}),
+        ...(unavailable ? { unsupported: true } : {}),
       };
     } else if (isModeToggleWidget(widget)) {
       controlState = {
