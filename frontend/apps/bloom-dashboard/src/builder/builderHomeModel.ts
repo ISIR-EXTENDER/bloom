@@ -180,6 +180,11 @@ export function classifyScreen(screen: ScreenConfig): ScreenLibraryType {
   return "general";
 }
 
+/** "1 screen", "3 screens": a count with its noun in the right number. */
+export function countLabel(count: number, singular: string, plural = `${singular}s`): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
 export function createNewApplicationName(applications: readonly ApplicationConfig[]): string {
   const baseName = "New Bloom App";
   if (!applications.some((application) => application.name === baseName)) {

@@ -29,6 +29,7 @@ import {
 import { getTouchEditingProps } from "../ui/touchEditing";
 import { BuilderGuidedTour } from "./BuilderGuidedTour";
 import { resolveNewScreenCanvas } from "./builder-geometry";
+import { countLabel } from "./builderHomeModel";
 
 type BuilderAppConfigProps = {
   configurations: readonly LoadedConfiguration[];
@@ -355,8 +356,13 @@ export function BuilderAppConfig({
             builder.
           </p>
           <div className="builder-app-summary">
-            <span>{draftApplication.screens.length} screens</span>
-            <span>{draftApplication.screens.reduce((count, screen) => count + screen.widgets.length, 0)} widgets</span>
+            <span>{countLabel(draftApplication.screens.length, "screen")}</span>
+            <span>
+              {countLabel(
+                draftApplication.screens.reduce((count, screen) => count + screen.widgets.length, 0),
+                "widget",
+              )}
+            </span>
             <span>{draftApplication.theme.preset_id}</span>
           </div>
         </div>
@@ -503,7 +509,9 @@ export function BuilderAppConfig({
                 <p className="eyebrow">Commands</p>
                 <h2 id="builder-action-presets-title">Reusable presets</h2>
               </div>
-              <span className="builder-section-badge">{draftApplication.action_presets.length} presets</span>
+              <span className="builder-section-badge">
+                {countLabel(draftApplication.action_presets.length, "preset")}
+              </span>
             </div>
             <p className="builder-inspector-copy">
               Save common app commands once, then reference them from command widgets with their preset id.
@@ -715,7 +723,7 @@ export function BuilderAppConfig({
               <p className="eyebrow">Screens</p>
               <h2 id="builder-screens-title">Build this app flow</h2>
             </div>
-            <span className="builder-section-badge">{draftApplication.screens.length} screens</span>
+            <span className="builder-section-badge">{countLabel(draftApplication.screens.length, "screen")}</span>
           </div>
           <div className="builder-screen-create-card">
             <div>

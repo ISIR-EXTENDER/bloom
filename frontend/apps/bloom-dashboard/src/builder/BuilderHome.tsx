@@ -11,6 +11,7 @@ import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { NEW_TABLET_CANVAS } from "./builder-geometry";
 import {
   type BuilderHomeSection,
+  countLabel,
   createBuilderApplicationItems,
   createNewApplicationName,
   createPreviewWidgetStyle,
@@ -156,12 +157,15 @@ export function BuilderHome({
           <button className="builder-overview-card" onClick={() => setActiveSection("apps")} type="button">
             <span className="builder-overview-card-kicker">Apps</span>
             <strong>Manage complete app workflows</strong>
-            <span>{applications.length} apps ready for configuration, runtime launch, duplication, or deletion.</span>
+            <span>
+              {countLabel(applications.length, "app")} ready for configuration, runtime launch, duplication, or
+              deletion.
+            </span>
           </button>
           <button className="builder-overview-card" onClick={() => setActiveSection("screens")} type="button">
             <span className="builder-overview-card-kicker">Screens</span>
             <strong>Design reusable screens first</strong>
-            <span>{screens.length} screens available across the shared library and existing apps.</span>
+            <span>{countLabel(screens.length, "screen")} available across the shared library and existing apps.</span>
           </button>
           <button className="builder-overview-card" onClick={() => setActiveSection("playground")} type="button">
             <span className="builder-overview-card-kicker">Playground</span>
@@ -200,7 +204,7 @@ export function BuilderHome({
                       <strong>{application.name}</strong>
                       <span>{application.description || "No description yet."}</span>
                       <small>
-                        {application.screens.length} screens · {configuration.id}
+                        {countLabel(application.screens.length, "screen")} · {configuration.id}
                       </small>
                       <div className="builder-app-card-actions">
                         <button
@@ -389,7 +393,7 @@ export function BuilderHome({
               <p className="eyebrow">Screen library</p>
               <h2 id="builder-screen-library-title">Reusable screens</h2>
             </div>
-            <span>{filteredScreens.length} screens</span>
+            <span>{countLabel(filteredScreens.length, "screen")}</span>
           </div>
           <p>
             Work directly from reusable screens when you want to design a control, camera, or debug view before
@@ -439,7 +443,7 @@ export function BuilderHome({
                           <ScreenLibraryPreview screen={screen} type={type} />
                           <span>{application.name}</span>
                           <div className="builder-screen-card-details">
-                            <span>{screen.widgets.length} widgets</span>
+                            <span>{countLabel(screen.widgets.length, "widget")}</span>
                             <span>{screen.canvas.preset_id}</span>
                             <span>{configuration.id}</span>
                           </div>

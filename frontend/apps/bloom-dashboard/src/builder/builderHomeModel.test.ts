@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import {
   classifyScreen,
+  countLabel,
   createBuilderApplicationItems,
   createNewApplicationName,
   createPreviewWidgetStyle,
@@ -148,6 +149,14 @@ function createScreen({ id, widgets }: { id: string; widgets: Array<{ kind: Widg
     })),
   };
 }
+
+describe("count labels", () => {
+  it("use the singular noun for exactly one", () => {
+    expect(countLabel(1, "screen")).toBe("1 screen");
+    expect(countLabel(0, "screen")).toBe("0 screens");
+    expect(countLabel(3, "preset")).toBe("3 presets");
+  });
+});
 
 describe("screen previews", () => {
   it("place widgets against the screen's own canvas, not a desktop one", () => {
