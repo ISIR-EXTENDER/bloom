@@ -366,12 +366,21 @@ function parseRuntimeControlState(data: unknown): RuntimeControlState | null {
   }
 }
 
-export function resolveRuntimeWebSocketUrl(apiBaseUrl: string, origin = globalThis.location?.origin ?? ""): string {
+export function resolveRuntimeWebSocketUrl(
+  apiBaseUrl: string,
+  origin = globalThis.location?.origin ?? "",
+  apiKey = "",
+): string {
   const baseUrl = new URL(apiBaseUrl || origin || "http://localhost:8000", origin || "http://localhost:8000");
   baseUrl.protocol = baseUrl.protocol === "https:" ? "wss:" : "ws:";
   baseUrl.pathname = "/api/v1/runtime/ws";
   baseUrl.search = "";
   baseUrl.hash = "";
+  // A WebSocket handshake carries no custom headers, so an authenticated
+  // deployment passes the key the only way the browser allows.
+  if (apiKey) {
+    baseUrl.searchParams.set("api_key", apiKey);
+  }
   return baseUrl.toString();
 }
 

@@ -13,6 +13,17 @@ describe("runtime WebSocket client", () => {
     expect(resolveRuntimeWebSocketUrl("https://bloom.example.test")).toBe("wss://bloom.example.test/api/v1/runtime/ws");
   });
 
+  it("carries an API key in the URL, the only place a handshake can hold one", () => {
+    // A WebSocket handshake takes no custom headers, so an authenticated
+    // deployment would otherwise be unreachable from the dashboard.
+    expect(resolveRuntimeWebSocketUrl("https://bloom.example.test", undefined, "operator-secret")).toBe(
+      "wss://bloom.example.test/api/v1/runtime/ws?api_key=operator-secret",
+    );
+    expect(resolveRuntimeWebSocketUrl("https://bloom.example.test", undefined, "")).toBe(
+      "wss://bloom.example.test/api/v1/runtime/ws",
+    );
+  });
+
   it("claims and releases explicit robot control for its server session", async () => {
     const WebSocketCtor = createFakeWebSocketConstructor();
     const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
@@ -136,6 +147,7 @@ describe("runtime WebSocket client", () => {
       detail: "Teleop command accepted.",
       payload: {
         angular: command.angular,
+        frame_id: "",
         linear: command.linear,
         mode: command.mode,
         seq: command.seq,

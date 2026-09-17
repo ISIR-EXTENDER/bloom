@@ -14,16 +14,18 @@ export type ConfigurationClient = Pick<
 >;
 
 export function createDashboardConfigurationClient(): ConfigurationClient {
-  return createBloomApiClient({ baseUrl: getBloomApiBaseUrl() });
+  return createBloomApiClient({ baseUrl: getBloomApiBaseUrl(), getRequestHeaders: createApiKeyHeaders });
 }
 
 export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   const baseUrl = getBloomApiBaseUrl();
-  const runtimeWebSocketClient = createRuntimeWebSocketClient({ url: resolveRuntimeWebSocketUrl(baseUrl) });
+  const runtimeWebSocketClient = createRuntimeWebSocketClient({
+    url: resolveRuntimeWebSocketUrl(baseUrl, undefined, getBloomApiKey()),
+  });
   const apiClient = createBloomApiClient({
     baseUrl,
     getRequestHeaders: () => {
-      const headers = new Headers();
+      const headers = createApiKeyHeaders();
       const sessionId = runtimeWebSocketClient.getRuntimeSessionId();
       if (sessionId) {
         headers.set("X-Bloom-Runtime-Session", sessionId);
@@ -63,4 +65,18 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
 
 function getBloomApiBaseUrl(): string {
   return import.meta.env.VITE_BLOOM_API_URL ?? "";
+}
+
+/** Empty in development, where the backend runs without keys. */
+function getBloomApiKey(): string {
+  return import.meta.env.VITE_BLOOM_API_KEY ?? "";
+}
+
+function createApiKeyHeaders(): Headers {
+  const headers = new Headers();
+  const apiKey = getBloomApiKey();
+  if (apiKey) {
+    headers.set("X-Bloom-API-Key", apiKey);
+  }
+  return headers;
 }

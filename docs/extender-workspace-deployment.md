@@ -176,8 +176,15 @@ export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
 export BLOOM_CORS_ALLOWED_ORIGINS='http://127.0.0.1:5173,http://tablet.local:5173'
 ```
 
-The frontend still needs a user-facing key/session workflow before this is comfortable for non-developer operators. Until
-then, keep authentication disabled only on trusted local machines, and enable it for deployment-style checks.
+Build the dashboard with the matching operator key so it can reach an authenticated backend:
+
+```bash
+VITE_BLOOM_API_KEY='replace-with-operator-secret' npm run build --workspace @bloom/dashboard
+```
+
+The key is baked into the bundle, so serve that build only to the machines the key is meant for. Bloom still has no
+per-person sign-in: one deployment holds one operator key, which is enough for a lab tablet and not enough for a shared
+public machine.
 
 ## Validation Checklist
 

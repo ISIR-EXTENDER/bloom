@@ -79,6 +79,11 @@ Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the
 parameter when the WebSocket client cannot set headers. Treat query-string keys as a compatibility fallback because they
 are easier to leak in logs.
 
+The dashboard reads its key from `VITE_BLOOM_API_KEY` at build time and sends it on every HTTP call. A browser cannot
+set headers on a WebSocket handshake, so the runtime socket carries the same key as the `api_key` query parameter: that
+is the compatibility fallback above, and it is why an authenticated deployment should terminate TLS in front of Bloom.
+Leave the variable unset for local development, where the backend runs without keys.
+
 After connecting, the dashboard receives an opaque runtime session ID and sends it as `X-Bloom-Runtime-Session` on
 robot-facing HTTP calls. This is a short-lived control lease, not authentication and not a replacement for the API key.
 The backend never exposes the owner's session ID to observers. Release enters a command-blocking state before final
