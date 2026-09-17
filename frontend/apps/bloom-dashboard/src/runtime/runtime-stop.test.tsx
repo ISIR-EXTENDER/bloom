@@ -156,6 +156,15 @@ describe("the status chip", () => {
     expect(resolveRuntimeStatusChip(running, settledLink("connected"))).toEqual({ label: "READY", tone: "ready" });
   });
 
+  it("reads HELD FOR MAINTENANCE while maintenance holds the robot, below STOPPED and LINK DOWN", () => {
+    expect(resolveRuntimeStatusChip(running, settledLink("connected"), undefined, true)).toEqual({
+      label: "HELD FOR MAINTENANCE",
+      tone: "held",
+    });
+    expect(resolveRuntimeStatusChip(stoppedState, settledLink("connected"), undefined, true)?.tone).toBe("stopped");
+    expect(resolveRuntimeStatusChip(running, settledLink("disconnected"), undefined, true)?.tone).toBe("link-down");
+  });
+
   it("reads LINK DOWN when a link that once worked has died", () => {
     expect(resolveRuntimeStatusChip(running, settledLink("disconnected"))).toEqual({
       label: "LINK DOWN",

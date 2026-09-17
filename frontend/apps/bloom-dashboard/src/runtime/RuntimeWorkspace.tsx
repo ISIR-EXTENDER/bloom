@@ -89,6 +89,8 @@ type RuntimeWorkspaceProps = {
   onSuspendTeleop: () => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
+  /** Switching role from maintenance; the workspace opens that profile's layout. */
+  onProfileChange?: (profileId: string) => void;
   preferredProfileId?: string;
   profileOverrides: Readonly<Record<string, RuntimeProfileOverrides>>;
   runtimeActionClient: RuntimeActionClient;
@@ -116,6 +118,7 @@ export function RuntimeWorkspace({
   onTeleopContribution,
   onTopicSample,
   onTopicSubscriptionRequest,
+  onProfileChange,
   preferredProfileId = "",
   profileOverrides,
   runtimeActionClient,
@@ -139,6 +142,13 @@ export function RuntimeWorkspace({
   const artboardScale = canvasFit.scale;
   const stopRegion = useMemo(() => findStopRegion(screen), [screen]);
   const stopRect = useReservedRegionRect(stopRegion, artboardFrameRef, runtimeControlsRef, artboardScale);
+  // The sheet keeps clear of STOP, which stays live above the scrim; the corner STOP is 176 px plus its margin.
+  const stopSheetInset =
+    stopRect && runtimeControlsRef.current
+      ? Math.max(0, window.innerWidth - (runtimeControlsRef.current.getBoundingClientRect().left + stopRect.left) + 14)
+      : runtimeActionClient.engageRuntimeStop
+        ? 202
+        : 0;
   const scaledArtboardSize = useMemo(
     () => ({
       height: Math.max(1, Math.floor(artboardSize.height * artboardScale)),
@@ -266,7 +276,7 @@ export function RuntimeWorkspace({
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
-  const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings);
+  const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings, maintenanceOpen || settingsOpen);
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const scanning = useSwitchScanning({
     // Maintenance covers the canvas; a switch press there must not reach it.
@@ -558,7 +568,30 @@ export function RuntimeWorkspace({
         commandFrameId={commandFrameId}
         controlOwnerLabel={runtimeControl.supported && ownsRuntimeControl ? strings.control.youOwn : null}
         gamepadName={gamepad.connected ? gamepad.id : null}
-        robotName={runtimeCapabilityReport?.robot_name ?? null}
+        held={stopped || maintenanceOpen || settingsOpen}
+        link={
+          runtimeLink.state === null
+            ? null
+            : runtimeLink.state === "connected"
+              ? "connected"
+              : runtimeLink.settled
+                ? "down"
+                : "connecting"
+        }
+        onSwitchProfile={onProfileChange}
+        profile={{
+          id: baseRuntimeProfile.id,
+          layoutId: profileLayoutId(application, baseRuntimeProfile.id),
+          name: runtimeProfile.name,
+        }}
+        profiles={application.profiles.map((candidate) => ({
+          id: candidate.id,
+          layoutId: candidate.preferred_control_layout_id,
+          name: candidate.name,
+        }))}
+        publishRateHz={resolvePublishRateHz(screen)}
+        publishing={teleopActive}
+        sheetInsetRight={stopSheetInset}
         diagnostics={
           <RuntimeRobotStatusPanel
             application={application}
@@ -593,7 +626,6 @@ export function RuntimeWorkspace({
           onSelectionChange({ ...selection, screenId });
         }}
         onSuspendTeleop={onSuspendTeleop}
-        profileName={runtimeProfile.name}
         screen={screen}
         statusChip={statusChip}
       />
@@ -694,6 +726,21 @@ export function RuntimeWorkspace({
 }
 
 const EMPTY_PROFILE_OVERRIDES: RuntimeProfileOverrides = {};
+const DEFAULT_PUBLISH_RATE_HZ = 30;
+
+function profileLayoutId(application: ApplicationConfig, profileId: string): string {
+  return application.profiles.find((profile) => profile.id === profileId)?.preferred_control_layout_id ?? "";
+}
+
+/** The rate the screen's teleop controls stream at; the composed twist never exceeds 30 Hz. */
+function resolvePublishRateHz(screen: ScreenConfig): number {
+  const rates = screen.widgets.flatMap((widget) =>
+    widget.kind === "joystick" && typeof widget.settings.publish_rate_hz === "number"
+      ? [widget.settings.publish_rate_hz]
+      : [],
+  );
+  return rates.length > 0 ? Math.min(DEFAULT_PUBLISH_RATE_HZ, Math.max(...rates)) : DEFAULT_PUBLISH_RATE_HZ;
+}
 
 function resolvePreferredCommandFrameId(
   preferredFrameId: string | undefined,

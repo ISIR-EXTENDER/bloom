@@ -47,6 +47,13 @@ const routes = [
   { name: "explorer-feedback", setup: (page) => showExplorerRuntimeScreen(page, "Robot feedback") },
   { name: "explorer-sources", setup: (page) => showExplorerRuntimeScreen(page, "Command sources") },
   { name: "explorer-joystick-lab", setup: (page) => showExplorerRuntimeScreen(page, "Joystick lab") },
+  {
+    name: "explorer-maintenance",
+    setup: async (page) => {
+      await showExplorerRuntimeScreen(page, null);
+      await holdForMaintenance(page);
+    },
+  },
 ];
 
 /**

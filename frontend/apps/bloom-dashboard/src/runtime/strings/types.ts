@@ -2,7 +2,7 @@ import type { DisplayPreset, RuntimeLanguage } from "@bloom/api-client";
 
 export type RuntimeStrings = {
   language: RuntimeLanguage;
-  status: { connecting: string; linkDown: string; ready: string; stopped: string };
+  status: { connecting: string; held: string; linkDown: string; ready: string; stopped: string };
   stop: { engage: string; engageAria: string; resume: string; resumeAria: string };
   control: {
     anotherOwner: string;
@@ -60,6 +60,41 @@ export type RuntimeStrings = {
     settings: string;
     supervisorMirror: string;
     switchScreen: string;
+    rate: (hz: number) => string;
+    ratePublishing: (hz: number) => string;
+    rateZerosHeld: string;
+    heldBadge: string;
+    close: string;
+    facts: {
+      appVersion: string;
+      commandFrame: string;
+      commandFrameNote: string;
+      deviceClass: string;
+      deviceDesktop: string;
+      deviceNote: (width: number, height: number) => string;
+      deviceTablet: string;
+      gamepadConnected: (name: string) => string;
+      link: string;
+      linkNote: string;
+      notReported: string;
+      profile: string;
+      publishRate: string;
+      publishRateNote: string;
+      youControl: string;
+    };
+    actions: string;
+    settingsHint: string;
+    switchRole: string;
+    switchRoleAria: string;
+    switchRoleHint: string;
+    switchRoleChoose: string;
+    reload: string;
+    reloadHint: string;
+    exitToLibrary: string;
+    exitHint: string;
+    more: string;
+    resumeNote: string;
+    resume: string;
   };
   supervisor: {
     application: string;

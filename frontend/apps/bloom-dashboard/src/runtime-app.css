@@ -826,61 +826,106 @@
   opacity: 0.7;
 }
 
+/* The kiosk bar (design 1b, §10): status only, one hold to leave it. */
 .runtime-kiosk-bar {
   flex: 0 0 44px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 0 14px;
-  background: var(--bloom-surface-soft);
-  border-bottom: 1px solid var(--bloom-outline);
+  gap: 16px;
+  min-width: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--bloom-color-forest) 12%, transparent);
+  background: var(--bloom-surface-container-high);
 }
 
 .runtime-kiosk-app {
   margin: 0;
-  font-size: 15px;
+  color: var(--bloom-ink);
+  font-size: 18px;
   font-weight: 700;
-  color: var(--bloom-on-surface);
   white-space: nowrap;
 }
 
-/* Round dot while running, square when anything is wrong. */
+.runtime-kiosk-screen {
+  overflow: hidden;
+  color: var(--bloom-muted);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Round dot while ready, square when anything holds the robot. */
 .runtime-kiosk-status {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 7px;
-  padding: 5px 11px;
-  border-radius: 8px;
-  font-size: 13px;
+  gap: 8px;
+  padding: 5px 12px;
+  border-radius: 9px;
+  background: var(--bloom-surface);
+  color: var(--bloom-muted);
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;
-  background: var(--bloom-surface);
-  color: var(--bloom-on-surface-muted);
 }
 
-.runtime-kiosk-control-owner {
-  flex: 0 0 auto;
-  padding: 4px 8px;
-  border: 1px solid color-mix(in srgb, var(--bloom-primary) 45%, var(--bloom-outline));
-  border-radius: 6px;
+.runtime-kiosk-status-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: currentcolor;
+}
+
+.runtime-kiosk-status[data-tone="ready"] {
   background: var(--bloom-primary-container);
-  color: var(--bloom-on-primary-container);
-  font-size: 11px;
-  font-weight: 800;
+  color: var(--bloom-ink);
+}
+
+.runtime-kiosk-status[data-tone="ready"] .runtime-kiosk-status-dot {
+  border-radius: 50%;
+}
+
+.runtime-kiosk-status[data-tone="held"] {
+  background: var(--bloom-pollen);
+  color: var(--bloom-ink);
+}
+
+.runtime-kiosk-status[data-tone="stopped"],
+.runtime-kiosk-status[data-tone="link-down"] {
+  background: var(--bloom-error);
+  color: var(--bloom-on-error);
+}
+
+.runtime-kiosk-frame {
+  flex: 0 0 auto;
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border-radius: 8px;
+  color: var(--bloom-ink);
+  font-family: var(--bloom-font-mono);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.runtime-kiosk-rate {
+  flex: 0 0 auto;
+  color: var(--bloom-muted);
+  font-family: var(--bloom-font-mono);
+  font-size: 15px;
   white-space: nowrap;
 }
 
 .runtime-kiosk-command-feedback {
   display: flex;
   min-width: 0;
-  max-width: min(320px, 32vw);
+  max-width: min(320px, 28vw);
   min-height: 32px;
   gap: 7px;
   align-items: center;
   padding: 4px 9px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--bloom-error) 55%, var(--bloom-outline));
+  border: 1px solid var(--bloom-error);
   border-radius: 8px;
   background: var(--bloom-error-container);
   color: var(--bloom-on-error-container);
@@ -889,9 +934,9 @@
 }
 
 .runtime-kiosk-command-feedback[data-status="simulated"] {
-  border-color: color-mix(in srgb, var(--bloom-color-pollen) 74%, var(--bloom-outline));
-  background: color-mix(in srgb, var(--bloom-color-pollen) 32%, var(--bloom-surface));
-  color: var(--bloom-on-surface);
+  border-color: var(--bloom-pollen);
+  background: color-mix(in srgb, var(--bloom-pollen) 32%, var(--bloom-surface));
+  color: var(--bloom-ink);
 }
 
 .runtime-kiosk-command-feedback strong {
@@ -906,80 +951,56 @@
   white-space: nowrap;
 }
 
-.runtime-kiosk-status-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  background: currentcolor;
-}
-
-.runtime-kiosk-status[data-tone="ready"] {
-  background: var(--bloom-primary-container);
-  color: var(--bloom-on-primary-container);
-}
-
-.runtime-kiosk-status[data-tone="ready"] .runtime-kiosk-status-dot {
-  border-radius: 50%;
-}
-
-.runtime-kiosk-status[data-tone="stopped"],
-.runtime-kiosk-status[data-tone="link-down"] {
-  background: var(--bloom-error-container);
-  color: var(--bloom-on-error-container);
-}
-
-.runtime-kiosk-robot {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--bloom-on-surface);
-  white-space: nowrap;
-}
-
-.runtime-kiosk-frame {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 13px;
-  color: var(--bloom-on-surface-muted);
-  white-space: nowrap;
-}
-
 .runtime-kiosk-spacer {
   flex: 1;
 }
 
-.runtime-kiosk-profile {
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 13px;
-  color: var(--bloom-on-surface-muted);
+.runtime-kiosk-role {
+  flex: 0 0 auto;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  font-size: 15px;
+  font-weight: 700;
   white-space: nowrap;
+}
+
+.runtime-kiosk-role[data-role="bench"] {
+  background: var(--bloom-lilac);
+  color: var(--bloom-ink);
 }
 
 .runtime-kiosk-maintenance {
   position: relative;
-  overflow: hidden;
-  min-width: 48px;
-  min-height: 36px;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
-  border: 1px solid var(--bloom-outline);
-  border-radius: 9px;
+  width: 56px;
+  height: 34px;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border-radius: 10px;
   background: var(--bloom-surface);
-  color: var(--bloom-on-surface);
-  font-size: 19px;
+  color: var(--bloom-ink);
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1;
   cursor: pointer;
   touch-action: none;
 }
 
-/* Fills over the hold. Transform rather than width so it cannot reflow the bar. */
+.runtime-kiosk-dots {
+  position: relative;
+}
+
+/* The hold fills the button in pollen: a held state that ends by itself. */
 .runtime-kiosk-hold {
   position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 3px;
-  background: var(--bloom-primary);
+  inset: 0;
+  background: var(--bloom-pollen);
   transform-origin: left center;
   transform: scaleX(0);
 }
@@ -989,7 +1010,8 @@
   position: absolute;
   right: 12px;
   bottom: 12px;
-  z-index: 30;
+  /* Above the maintenance scrim: STOP stays live everywhere it can command an arm. */
+  z-index: 50;
   width: 176px;
   height: 132px;
   display: flex;
@@ -1035,11 +1057,6 @@
   font-size: clamp(16px, 2.6vmin, 22px);
 }
 
-.runtime-stop-control[data-placement="region"] .runtime-stop-hold {
-  height: 8px;
-  background: var(--bloom-secondary-container);
-}
-
 .runtime-stop-label {
   text-align: center;
 }
@@ -1063,44 +1080,222 @@
   transform: scaleX(0);
 }
 
+.runtime-stop-control[data-placement="region"] .runtime-stop-hold {
+  height: 8px;
+  background: var(--bloom-secondary-container);
+}
+
+/* The maintenance sheet (design 6b). The bar stays readable above the scrim. */
 .runtime-maintenance-scrim {
   position: fixed;
-  inset: 0;
+  inset: 44px 0 0;
   z-index: 40;
-  background: color-mix(in srgb, var(--bloom-primary) 55%, transparent);
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: color-mix(in srgb, var(--bloom-color-forest) 55%, transparent);
 }
 
 .runtime-maintenance-panel {
-  width: 340px;
-  max-height: 100%;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 56px 14px 14px;
-  border-radius: 18px;
+  gap: 12px;
+  width: min(860px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: var(--bloom-radius-panel);
   background: var(--bloom-surface);
-  box-shadow: 0 18px 40px color-mix(in srgb, var(--bloom-primary) 30%, transparent);
+  color: var(--bloom-ink);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--bloom-color-forest) 30%, transparent);
 }
 
-.runtime-maintenance-panel h2 {
+.runtime-maintenance-head {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.runtime-maintenance-head h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 26px;
   font-weight: 700;
 }
 
-.runtime-maintenance-panel header p {
+.runtime-maintenance-held {
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--bloom-pollen);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.runtime-maintenance-close {
+  min-height: 48px;
+  margin-left: auto;
+  padding: 0 22px;
+  border: 2px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border-radius: 12px;
+  background: var(--bloom-surface-container);
+  color: var(--bloom-ink);
+  font: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.runtime-maintenance-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.runtime-maintenance-fact {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border-radius: 12px;
+  background: var(--bloom-surface-container-high);
+}
+
+.runtime-maintenance-fact dt {
+  color: var(--bloom-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.runtime-maintenance-fact dd {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   margin: 4px 0 0;
+  min-width: 0;
+}
+
+.runtime-maintenance-fact strong {
+  overflow: hidden;
+  font-family: var(--bloom-font-mono);
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.runtime-maintenance-fact span {
+  color: var(--bloom-muted);
   font-size: 13px;
-  color: var(--bloom-on-surface-muted);
+}
+
+.runtime-maintenance-group {
+  margin: 4px 0 0;
+  color: var(--bloom-ink-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.runtime-maintenance-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.runtime-maintenance-action {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 64px;
+  overflow: hidden;
+  padding: 10px 16px;
+  border: 2px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border-radius: 12px;
+  background: var(--bloom-surface-container);
+  color: var(--bloom-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.runtime-maintenance-action strong {
+  position: relative;
+  font-size: 17px;
+}
+
+.runtime-maintenance-action span:not(.runtime-maintenance-action-hold) {
+  position: relative;
+  color: var(--bloom-muted);
+  font-size: 13px;
+}
+
+.runtime-maintenance-action[data-danger="true"] {
+  border-color: var(--bloom-error);
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+}
+
+.runtime-maintenance-action-hold {
+  position: absolute;
+  inset: 0;
+  background: var(--bloom-pollen);
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.runtime-maintenance-roles,
+.runtime-maintenance-screens,
+.runtime-maintenance-tools,
+.runtime-maintenance-languages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+}
+
+.runtime-maintenance-roles legend {
+  margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.runtime-maintenance-roles button,
+.runtime-maintenance-screens button,
+.runtime-maintenance-tools button {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border-radius: 10px;
+  background: var(--bloom-surface-container-high);
+  color: var(--bloom-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.runtime-maintenance-roles button[data-role="bench"] {
+  background: var(--bloom-lilac);
+}
+
+.runtime-maintenance-roles button[aria-pressed="true"],
+.runtime-maintenance-screens button[aria-current="page"],
+.runtime-maintenance-languages button[aria-pressed="true"] {
+  border: 2px solid var(--bloom-primary);
+  font-weight: 700;
 }
 
 .runtime-maintenance-fit-warning {
   padding: 12px;
   border: 1px solid var(--bloom-error);
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--bloom-error-container);
   color: var(--bloom-on-error-container);
 }
@@ -1112,91 +1307,56 @@
 .runtime-maintenance-fit-warning p {
   margin: 4px 0 0;
   font-size: 13px;
-  line-height: 1.35;
-}
-
-.runtime-maintenance-screens,
-.runtime-maintenance-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.runtime-maintenance-languages {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.runtime-maintenance-languages button {
-  min-height: 52px;
-  border: 1px solid var(--bloom-outline);
-  border-radius: 8px;
-  background: var(--bloom-surface);
-  color: var(--bloom-on-surface);
-  font: inherit;
-  font-weight: 700;
-}
-
-.runtime-maintenance-languages button[aria-pressed="true"] {
-  border-color: var(--bloom-primary);
-  background: var(--bloom-primary-container);
-  color: var(--bloom-on-primary-container);
-}
-
-.runtime-maintenance-screens button,
-.runtime-maintenance-actions button,
-.runtime-maintenance-return {
-  min-height: 52px;
-  padding: 0 14px;
-  border: 1px solid var(--bloom-outline);
-  border-radius: 14px;
-  background: var(--bloom-surface);
-  color: var(--bloom-on-surface);
-  font-size: 16px;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-}
-
-.runtime-maintenance-screens button[aria-current="page"] {
-  background: var(--bloom-primary);
-  color: var(--bloom-on-primary);
-  border-color: var(--bloom-primary);
-}
-
-.runtime-maintenance-return {
-  margin-top: 4px;
-  background: var(--bloom-primary);
-  color: var(--bloom-on-primary);
-  border-color: var(--bloom-primary);
-  text-align: center;
 }
 
 .runtime-maintenance-diagnostics {
-  border-top: 1px solid var(--bloom-outline);
-  padding-top: 10px;
+  min-width: 0;
 }
 
-/* One focus ring for the whole operating surface, at text-ink contrast. */
-.runtime-app-workspace :focus-visible,
+.runtime-maintenance-footer {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--bloom-color-forest) 12%, transparent);
+}
+
+.runtime-maintenance-footer p {
+  margin: 0;
+  color: var(--bloom-muted);
+  font-size: 15px;
+}
+
+.runtime-maintenance-return {
+  flex: 0 0 auto;
+  min-height: 64px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .runtime-maintenance-panel :focus-visible {
-  outline: 3px solid var(--bloom-on-surface);
+  outline: 3px solid var(--bloom-ink);
   outline-offset: 2px;
 }
 
-.runtime-kiosk-gamepad {
-  padding: 3px 9px;
-  border-radius: 8px;
-  background: var(--bloom-primary-container);
-  color: var(--bloom-on-primary-container);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
+@media (max-width: 720px) {
+  .runtime-maintenance-facts,
+  .runtime-maintenance-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .runtime-maintenance-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* The scan highlight: a ring the operator can see from across a lit room,

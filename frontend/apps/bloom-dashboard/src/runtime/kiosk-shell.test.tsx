@@ -37,13 +37,19 @@ function renderBar(overrides: Partial<Parameters<typeof RuntimeKioskBar>[0]> = {
     onOpenSupervisor: vi.fn(),
     onOpenTour: vi.fn(),
     onLanguageChange: vi.fn(),
+    onReload: vi.fn(),
     onSuspendTeleop: vi.fn(),
+    onSwitchProfile: vi.fn(),
   };
   render(
     <RuntimeKioskBar
       application={application}
       commandFrameId="base_link"
-      profileName="Default"
+      profile={{ id: "operator", layoutId: "drive_operator", name: "Operator" }}
+      profiles={[
+        { id: "operator", layoutId: "drive_operator", name: "Operator" },
+        { id: "bench", layoutId: "drive_bench", name: "Bench" },
+      ]}
       screen={application.screens[0] as ScreenConfig}
       {...handlers}
       {...overrides}
@@ -69,8 +75,9 @@ describe("the kiosk bar", () => {
     renderBar();
 
     expect(screen.getByText("Explorer Manager")).toBeTruthy();
-    expect(screen.getByText("Default")).toBeTruthy();
-    for (const gateway of ["App library", "Edit this screen in the builder", "Home", "Help"]) {
+    expect(screen.getByText("Drive")).toBeTruthy();
+    expect(screen.getByText("Operator").getAttribute("data-role")).toBe("operator");
+    for (const gateway of ["Exit to library", "Edit this screen in the builder", "Home", "Help"]) {
       expect(screen.queryByRole("button", { name: gateway })).toBeNull();
     }
     expect(screen.queryByText("Runtime app")).toBeNull();
@@ -84,13 +91,23 @@ describe("the kiosk bar", () => {
     expect(screen.getByText("base_link")).toBeTruthy();
   });
 
-  it("names the robot this backend drives, and stays silent when unconfigured", () => {
-    renderBar({ robotName: "Kinova gen3" });
-    expect(screen.getByText("Kinova gen3")).toBeTruthy();
+  it("says whether it is publishing, and that zeros are held while stopped or in maintenance", () => {
+    renderBar();
+    expect(screen.getByText("30 Hz")).toBeTruthy();
     cleanup();
 
-    renderBar();
-    expect(screen.queryByTitle("Robot this backend drives")).toBeNull();
+    renderBar({ publishing: true, publishRateHz: 20 });
+    expect(screen.getByText("publishing · 20 Hz")).toBeTruthy();
+    cleanup();
+
+    renderBar({ held: true, publishing: true });
+    expect(screen.getByText("zeros held")).toBeTruthy();
+  });
+
+  it("draws the bench role apart from the operator's", () => {
+    renderBar({ profile: { id: "bench", layoutId: "manager_drive_bench", name: "Bench" } });
+
+    expect(screen.getByText("Bench").getAttribute("data-role")).toBe("bench");
   });
 
   it("shows no frame at all rather than guessing one", () => {
@@ -103,12 +120,6 @@ describe("the kiosk bar", () => {
     renderBar({ statusChip: { label: "READY", tone: "ready" } });
 
     expect(screen.getByRole("status").textContent).toBe("READY");
-  });
-
-  it("names when this session owns robot control", () => {
-    renderBar({ controlOwnerLabel: "YOU CONTROL" });
-
-    expect(screen.getByText("YOU CONTROL")).toBeVisible();
   });
 
   it("shows no status chip where there is no session to describe", () => {
@@ -182,6 +193,57 @@ describe("maintenance", () => {
     expect(isOpen()).toBe(false);
   });
 
+  it("reads six facts without offering to set them", () => {
+    renderBar({ controlOwnerLabel: "YOU CONTROL", link: "connected" });
+    hold(1600);
+
+    const facts = screen.getByRole("dialog").querySelector("dl");
+    expect(facts?.textContent).toContain("Connected");
+    expect(facts?.textContent).toContain("you control the robot");
+    expect(facts?.textContent).toContain("30 Hz");
+    expect(facts?.textContent).toContain("base_link");
+    expect(facts?.textContent).toContain("drive_operator");
+    expect(facts?.textContent).toContain("explorer-manager");
+    expect(screen.getByText("Robot held at zeros")).toBeTruthy();
+  });
+
+  it("switches role only after its own hold", () => {
+    const handlers = renderBar();
+    hold(1600);
+
+    const switchRole = screen.getByRole("button", { name: "Hold to switch role" });
+    fireEvent.click(switchRole);
+    expect(screen.queryByRole("group", { name: "Choose a role" })).toBeNull();
+
+    fireEvent.pointerDown(switchRole);
+    act(() => {
+      vi.advanceTimersByTime(1600);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Bench" }));
+
+    expect(handlers.onSwitchProfile).toHaveBeenCalledWith("bench");
+    expect(isOpen()).toBe(false);
+  });
+
+  it("offers no role switch when the app has one profile", () => {
+    renderBar({ profiles: [{ id: "operator", layoutId: "", name: "Operator" }] });
+    hold(1600);
+
+    expect(screen.queryByRole("button", { name: "Hold to switch role" })).toBeNull();
+  });
+
+  it("exits to the library and reloads from the actions", () => {
+    const handlers = renderBar();
+    hold(1600);
+
+    fireEvent.click(screen.getByRole("button", { name: "Reload this app" }));
+    expect(handlers.onReload).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Exit to library" }));
+    expect(handlers.onOpenAppLibrary).toHaveBeenCalledOnce();
+    expect(isOpen()).toBe(false);
+  });
+
   it("holds every gateway the bar no longer shows", () => {
     renderBar();
     hold(1600);
@@ -189,7 +251,7 @@ describe("maintenance", () => {
     for (const gateway of [
       "Settings",
       "Supervisor mirror",
-      "App library",
+      "Exit to library",
       "Edit this screen in the builder",
       "Edit app",
       "Help",
@@ -239,7 +301,7 @@ describe("maintenance", () => {
     );
   });
 
-  it("closes on Escape and on Back to operation", () => {
+  it("closes on Escape, Close and Resume operating", () => {
     renderBar();
     hold(1600);
 
@@ -247,7 +309,11 @@ describe("maintenance", () => {
     expect(isOpen()).toBe(false);
 
     hold(1600);
-    fireEvent.click(screen.getByRole("button", { name: "Back to operation" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(isOpen()).toBe(false);
+
+    hold(1600);
+    fireEvent.click(screen.getByRole("button", { name: "Resume operating" }));
     expect(isOpen()).toBe(false);
   });
 });

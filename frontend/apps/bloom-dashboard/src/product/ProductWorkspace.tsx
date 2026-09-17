@@ -10,6 +10,7 @@ import { RuntimeWorkspace } from "../runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "../runtime/runtime-profile-overrides";
 import type { RuntimeModeState } from "../runtime/runtimeModeState";
+import { resolveInitialScreen } from "../runtime/runtimeProfile";
 import { SupervisorWorkspace } from "../runtime/SupervisorWorkspace";
 import type { SupervisorRuntimeClient } from "../runtime/supervisor-client";
 import type { RuntimeActionFeedback, useRuntimeActionDispatcher } from "../runtime/use-runtime-action-dispatcher";
@@ -209,6 +210,13 @@ export function ProductWorkspace({
       onOpenHelp={onOpenHelp}
       onOpenLanding={onOpenLanding}
       onOpenSupervisor={() => onOpenSupervisorWindow(selection)}
+      onProfileChange={(profileId) => {
+        onRuntimeProfilePreferenceChange(selection, profileId);
+        const layout = resolveInitialScreen(selectedWorkspace.application, profileId);
+        if (layout) {
+          onSelectionChange({ ...selection, screenId: layout.id });
+        }
+      }}
       onProfileOverridesChange={(profileId, overrides) =>
         onRuntimeProfileOverridesChange(selection, profileId, overrides)
       }

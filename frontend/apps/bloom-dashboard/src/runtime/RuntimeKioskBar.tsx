@@ -1,39 +1,30 @@
 import type { ApplicationConfig, RuntimeLanguage, ScreenConfig } from "@bloom/api-client";
-import { type ReactNode, useEffect, useState } from "react";
+import { resolveCanvasPresetSize } from "@bloom/widgets";
+import { type ReactNode, useEffect, useId, useState } from "react";
 
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import { useHoldGesture } from "./use-hold-gesture";
 
 /**
- * The runtime's only chrome.
- *
- * The runtime used to wear the builder's clothes: an eyebrow reading "Runtime
- * app", the app name, the profile name, the active screen name, a row of screen
- * tabs and a menu holding six ways out -- Home, App library, Builder, Help,
- * Edit app, Edit screen -- with a diagnostics strip under all of it. On the
- * 1024x600 operator panel that measured 121px of the 600 available, before a
- * single control, and every one of those exits was one stray tap away while an
- * arm mounted to someone's chair was moving.
- *
- * `docs/design-system.md` already forbade it: "No builder chrome, inspector
- * controls, or edit metadata should appear in runtime."
- *
- * So there is one 44px bar, and everything that leaves the session sits behind a
- * deliberate 1.5s hold. The hold is the point: it cannot be done by brushing the
- * glass, which is how a wheelchair-mounted arm gets driven by someone whose eyes
- * are on the gripper rather than the screen.
+ * The runtime's only chrome: one 44 px bar of status (design 1b, 10). Everything that leaves or changes the session
+ * sits behind a deliberate 1.5 s hold, so brushing the glass while an arm moves cannot reach it.
  */
 
 const MAINTENANCE_HOLD_MS = 1500;
+const ROLE_SWITCH_HOLD_MS = 1500;
 
 /** Word + color + dot shape carry the same message; never color alone. */
-export type RuntimeStatusChipTone = "connecting" | "link-down" | "ready" | "stopped";
+export type RuntimeStatusChipTone = "connecting" | "held" | "link-down" | "ready" | "stopped";
 
 export type RuntimeStatusChip = {
   label: string;
   tone: RuntimeStatusChipTone;
 };
+
+export type RuntimeLinkFact = "connected" | "connecting" | "down" | null;
+
+export type RuntimeProfileSummary = { id: string; layoutId: string; name: string };
 
 export type RuntimeKioskBarProps = {
   application: ApplicationConfig;
@@ -43,27 +34,23 @@ export type RuntimeKioskBarProps = {
   } | null;
   controlOwnerLabel?: string | null;
   screen: ScreenConfig;
-  profileName: string;
-  /**
-   * The frame operator commands are stamped with, or null while unknown.
-   *
-   * Named on screen because it decides whether rotation follows the robot base,
-   * end effector, or hybrid operator mapping (finding 11).
-   *
-   * There is deliberately no latency readout here yet. The spec asks for one,
-   * but nothing in the stack measures round-trip time, and a number that is not
-   * measured is worse than an empty slot.
-   */
+  profile: RuntimeProfileSummary;
+  /** Every profile the app offers; a role switch picks one. */
+  profiles?: readonly RuntimeProfileSummary[];
+  /** The frame operator commands are stamped with, or null while unknown. */
   commandFrameId: string | null;
-  /** A connected physical input, named so the operator knows it is live. */
   gamepadName?: string | null;
-  /** Which arm this backend drives; null while unknown or unconfigured. */
-  robotName?: string | null;
+  publishRateHz?: number;
+  /** A control is sending motion right now. */
+  publishing?: boolean;
+  /** STOP or maintenance holds the robot at zeros. */
+  held?: boolean;
+  link?: RuntimeLinkFact;
   /** Omitted only where no runtime session exists (previews, tests). */
   statusChip?: RuntimeStatusChip;
-  /** Topic diagnostics, shown inside maintenance rather than over the controls. */
+  /** Pixels on the right the sheet leaves free, so it never sits under STOP. */
+  sheetInsetRight?: number;
   diagnostics?: ReactNode;
-  /** Unsafe fit details, disclosed only after entering Maintenance. */
   fitWarning?: RuntimeFitWarning | null;
   onSelectScreen: (screenId: string) => void;
   onOpenAppLibrary: () => void;
@@ -74,38 +61,33 @@ export type RuntimeKioskBarProps = {
   onOpenSettings: () => void;
   onOpenSupervisor: () => void;
   onOpenTour: () => void;
+  onReload?: () => void;
   onSuspendTeleop: () => void;
+  onSwitchProfile?: (profileId: string) => void;
   onMaintenanceOpenChange?: (open: boolean) => void;
   language?: RuntimeLanguage;
   onLanguageChange: (language: RuntimeLanguage) => void;
 };
 
-export function RuntimeKioskBar({
-  application,
-  commandFeedback,
-  controlOwnerLabel,
-  screen,
-  profileName,
-  commandFrameId,
-  gamepadName,
-  robotName,
-  statusChip,
-  diagnostics,
-  fitWarning,
-  onSelectScreen,
-  onOpenAppLibrary,
-  onEditScreen,
-  onEditApplication,
-  onOpenLanding,
-  onOpenHelp,
-  onOpenSettings,
-  onOpenSupervisor,
-  onOpenTour,
-  onSuspendTeleop,
-  onMaintenanceOpenChange,
-  language = "en",
-  onLanguageChange,
-}: RuntimeKioskBarProps) {
+export function resolveRuntimeRole(profile: Pick<RuntimeProfileSummary, "id" | "layoutId">): "bench" | "operator" {
+  return profile.id === "bench" || profile.layoutId.endsWith("_bench") ? "bench" : "operator";
+}
+
+export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
+  const {
+    application,
+    commandFeedback,
+    screen,
+    profile,
+    commandFrameId,
+    publishRateHz = 30,
+    publishing = false,
+    held = false,
+    statusChip,
+    onSuspendTeleop,
+    onMaintenanceOpenChange,
+    language = "en",
+  } = props;
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const openMaintenance = () => {
@@ -118,20 +100,32 @@ export function RuntimeKioskBar({
     onMaintenanceOpenChange?.(false);
   };
   const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, openMaintenance);
+  const rate = held
+    ? strings.kiosk.rateZerosHeld
+    : publishing
+      ? strings.kiosk.ratePublishing(publishRateHz)
+      : strings.kiosk.rate(publishRateHz);
 
   return (
     <>
       <header className="runtime-kiosk-bar">
-        {/* Stays a heading, at level 2: level 1 belongs to the app
-            configuration page, and the runtime must not claim it. */}
+        {/* Level 2: level 1 belongs to the app configuration page. */}
         <h2 className="runtime-kiosk-app">{application.name}</h2>
+        <span className="runtime-kiosk-screen">{screen.title}</span>
         {statusChip ? (
           <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
             <span aria-hidden="true" className="runtime-kiosk-status-dot" />
             {statusChip.label}
           </span>
         ) : null}
-        {controlOwnerLabel ? <span className="runtime-kiosk-control-owner">{controlOwnerLabel}</span> : null}
+        {commandFrameId ? (
+          <span className="runtime-kiosk-frame" title={strings.kiosk.referenceFrameTitle}>
+            {commandFrameId}
+          </span>
+        ) : null}
+        <span className="runtime-kiosk-rate" data-held={held ? "true" : undefined}>
+          {rate}
+        </span>
         {commandFeedback ? (
           <span
             aria-label={`${
@@ -148,23 +142,10 @@ export function RuntimeKioskBar({
             <span>{commandFeedback.detail}</span>
           </span>
         ) : null}
-        {robotName ? (
-          <span className="runtime-kiosk-robot" title={strings.kiosk.robotTitle}>
-            {robotName}
-          </span>
-        ) : null}
-        {commandFrameId ? (
-          <span className="runtime-kiosk-frame" title={strings.kiosk.referenceFrameTitle}>
-            {commandFrameId}
-          </span>
-        ) : null}
-        {gamepadName ? (
-          <span className="runtime-kiosk-gamepad" title={gamepadName}>
-            {strings.kiosk.gamepad}
-          </span>
-        ) : null}
         <span className="runtime-kiosk-spacer" />
-        <span className="runtime-kiosk-profile">{profileName}</span>
+        <span className="runtime-kiosk-role" data-role={resolveRuntimeRole(profile)}>
+          {profile.name}
+        </span>
         <button
           aria-label={strings.kiosk.maintenanceAria}
           className="runtime-kiosk-maintenance"
@@ -180,90 +161,71 @@ export function RuntimeKioskBar({
           onPointerUp={holdProgress.cancel}
           type="button"
         >
-          <span aria-hidden="true">☰</span>
-          <span className="runtime-kiosk-hold" style={{ transform: `scaleX(${holdProgress.value})` }} />
+          <span
+            aria-hidden="true"
+            className="runtime-kiosk-hold"
+            style={{ transform: `scaleX(${holdProgress.value})` }}
+          />
+          <span aria-hidden="true" className="runtime-kiosk-dots">
+            ⋯
+          </span>
         </button>
       </header>
 
       {maintenanceOpen ? (
-        <RuntimeMaintenanceOverlay
-          application={application}
-          fitWarning={fitWarning}
-          language={language}
-          onClose={closeMaintenance}
-          onEditApplication={onEditApplication}
-          onEditScreen={onEditScreen}
-          onOpenAppLibrary={onOpenAppLibrary}
-          onOpenHelp={onOpenHelp}
-          onOpenLanding={onOpenLanding}
-          onOpenSupervisor={() => {
-            closeMaintenance();
-            onOpenSupervisor();
-          }}
-          onLanguageChange={onLanguageChange}
-          onOpenTour={() => {
-            closeMaintenance();
-            onOpenTour();
-          }}
-          onOpenSettings={() => {
-            closeMaintenance();
-            onOpenSettings();
-          }}
-          onSelectScreen={onSelectScreen}
-          screen={screen}
-          strings={strings}
-        >
-          {diagnostics}
-        </RuntimeMaintenanceOverlay>
+        <RuntimeMaintenanceSheet {...props} onClose={closeMaintenance} rate={publishRateHz} strings={strings} />
       ) : null}
     </>
   );
 }
 
-/**
- * Everything that is not operating the robot.
- *
- * Screen switching lives here rather than in the bar. The bar is deliberately
- * only status, and a stray tap on a screen tab mid-session swaps the controls
- * under the operator's hand.
- */
-function RuntimeMaintenanceOverlay({
-  children,
+/** Everything that is not operating the robot (design 6b): six facts to read, four actions, then the rest. */
+function RuntimeMaintenanceSheet({
   application,
+  commandFrameId,
+  controlOwnerLabel,
+  diagnostics,
   fitWarning,
-  screen,
-  onSelectScreen,
-  onOpenAppLibrary,
-  onEditScreen,
+  gamepadName,
+  language = "en",
+  link = null,
+  onClose,
   onEditApplication,
-  onOpenLanding,
+  onEditScreen,
+  onLanguageChange,
+  onOpenAppLibrary,
   onOpenHelp,
+  onOpenLanding,
   onOpenSettings,
   onOpenSupervisor,
   onOpenTour,
-  onClose,
-  language,
-  onLanguageChange,
+  onReload = () => window.location.reload(),
+  onSelectScreen,
+  onSwitchProfile,
+  profile,
+  profiles = [],
+  rate,
+  screen,
+  sheetInsetRight = 0,
   strings,
-}: {
-  children?: ReactNode;
-  application: ApplicationConfig;
-  fitWarning?: RuntimeFitWarning | null;
-  screen: ScreenConfig;
-  onSelectScreen: (screenId: string) => void;
-  onOpenAppLibrary: () => void;
-  onEditScreen: () => void;
-  onEditApplication: () => void;
-  onOpenLanding: () => void;
-  onOpenHelp: () => void;
-  onOpenSettings: () => void;
-  onOpenSupervisor: () => void;
-  onOpenTour: () => void;
-  onClose: () => void;
-  language: RuntimeLanguage;
-  onLanguageChange: (language: RuntimeLanguage) => void;
-  strings: RuntimeStrings;
-}) {
+}: RuntimeKioskBarProps & { onClose: () => void; rate: number; strings: RuntimeStrings }) {
+  const [choosingRole, setChoosingRole] = useState(false);
+  const roleHold = useHoldGesture(ROLE_SWITCH_HOLD_MS, () => setChoosingRole(true));
+  const facts = strings.kiosk.facts;
+  const { width: authoredWidth, height: authoredHeight } = resolveCanvasPresetSize(screen.canvas);
+  const linkValue =
+    link === "connected"
+      ? strings.supervisor.status.connected
+      : link === "connecting"
+        ? strings.status.connecting
+        : link === "down"
+          ? strings.status.linkDown
+          : facts.notReported;
+  const closeAnd = (action: () => void) => () => {
+    onClose();
+    action();
+  };
+
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -275,31 +237,41 @@ function RuntimeMaintenanceOverlay({
   }, [onClose]);
 
   return (
-    <div className="runtime-maintenance-scrim">
+    <div className="runtime-maintenance-scrim" style={{ paddingRight: sheetInsetRight }}>
       <section
         aria-label={strings.kiosk.maintenance}
+        aria-modal="true"
         className="runtime-maintenance-panel"
         role="dialog"
-        aria-modal="true"
       >
-        <header>
+        <header className="runtime-maintenance-head">
           <h2>{strings.kiosk.maintenance}</h2>
-          <p>{strings.kiosk.maintenanceHelp}</p>
+          <span className="runtime-maintenance-held">{strings.kiosk.heldBadge}</span>
+          <button className="runtime-maintenance-close" onClick={onClose} type="button">
+            {strings.kiosk.close}
+          </button>
         </header>
 
-        <fieldset className="runtime-maintenance-languages">
-          <legend className="sr-only">{strings.settings.categories.language}</legend>
-          {(["en", "es", "fr"] as const).map((candidate) => (
-            <button
-              aria-pressed={language === candidate}
-              key={candidate}
-              onClick={() => onLanguageChange(candidate)}
-              type="button"
-            >
-              {candidate.toUpperCase()}
-            </button>
-          ))}
-        </fieldset>
+        <dl className="runtime-maintenance-facts">
+          <Fact
+            label={facts.link}
+            note={controlOwnerLabel ? `${facts.linkNote} · ${facts.youControl}` : facts.linkNote}
+            value={linkValue}
+          />
+          <Fact label={facts.publishRate} note={facts.publishRateNote} value={strings.kiosk.rate(rate)} />
+          <Fact label={facts.commandFrame} note={facts.commandFrameNote} value={commandFrameId ?? facts.notReported} />
+          <Fact label={facts.profile} note={profile.layoutId || screen.id} value={profile.name} />
+          <Fact
+            label={facts.deviceClass}
+            note={
+              gamepadName
+                ? `${facts.deviceNote(authoredWidth, authoredHeight)} · ${facts.gamepadConnected(gamepadName)}`
+                : facts.deviceNote(authoredWidth, authoredHeight)
+            }
+            value={window.innerWidth >= 1600 ? facts.deviceDesktop : facts.deviceTablet}
+          />
+          <Fact label={facts.appVersion} note={application.name} value={application.id} />
+        </dl>
 
         {fitWarning ? (
           <div className="runtime-maintenance-fit-warning" role="alert">
@@ -314,16 +286,72 @@ function RuntimeMaintenanceOverlay({
           </div>
         ) : null}
 
+        <h3 className="runtime-maintenance-group">{strings.kiosk.actions}</h3>
+        <div className="runtime-maintenance-actions">
+          <ActionButton
+            hint={strings.kiosk.settingsHint}
+            label={strings.kiosk.settings}
+            onClick={closeAnd(onOpenSettings)}
+          />
+          {onSwitchProfile && profiles.length > 1 ? (
+            <button
+              aria-label={strings.kiosk.switchRoleAria}
+              className="runtime-maintenance-action"
+              onKeyDown={(event) => {
+                if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
+                  roleHold.start();
+                }
+              }}
+              onKeyUp={roleHold.cancel}
+              onPointerCancel={roleHold.cancel}
+              onPointerDown={roleHold.start}
+              onPointerLeave={roleHold.cancel}
+              onPointerUp={roleHold.cancel}
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                className="runtime-maintenance-action-hold"
+                style={{ transform: `scaleX(${roleHold.value})` }}
+              />
+              <strong>{strings.kiosk.switchRole}</strong>
+              <span>{strings.kiosk.switchRoleHint}</span>
+            </button>
+          ) : null}
+          <ActionButton hint={strings.kiosk.reloadHint} label={strings.kiosk.reload} onClick={onReload} />
+          <ActionButton
+            danger
+            hint={strings.kiosk.exitHint}
+            label={strings.kiosk.exitToLibrary}
+            onClick={closeAnd(onOpenAppLibrary)}
+          />
+        </div>
+
+        {choosingRole ? (
+          <fieldset className="runtime-maintenance-roles">
+            <legend>{strings.kiosk.switchRoleChoose}</legend>
+            {profiles.map((candidate) => (
+              <button
+                aria-pressed={candidate.id === profile.id}
+                data-role={resolveRuntimeRole(candidate)}
+                key={candidate.id}
+                onClick={closeAnd(() => onSwitchProfile?.(candidate.id))}
+                type="button"
+              >
+                {candidate.name}
+              </button>
+            ))}
+          </fieldset>
+        ) : null}
+
+        <h3 className="runtime-maintenance-group">{strings.kiosk.more}</h3>
         {application.screens.length > 1 ? (
           <nav aria-label={strings.kiosk.switchScreen} className="runtime-maintenance-screens">
             {application.screens.map((candidate) => (
               <button
                 aria-current={candidate.id === screen.id ? "page" : undefined}
                 key={candidate.id}
-                onClick={() => {
-                  onSelectScreen(candidate.id);
-                  onClose();
-                }}
+                onClick={closeAnd(() => onSelectScreen(candidate.id))}
                 type="button"
               >
                 {candidate.title}
@@ -331,19 +359,12 @@ function RuntimeMaintenanceOverlay({
             ))}
           </nav>
         ) : null}
-
-        <div className="runtime-maintenance-actions">
-          <button onClick={onOpenTour} type="button">
+        <div className="runtime-maintenance-tools">
+          <button onClick={closeAnd(onOpenTour)} type="button">
             {strings.settings.practiceTour}
           </button>
-          <button onClick={onOpenSettings} type="button">
-            {strings.kiosk.settings}
-          </button>
-          <button onClick={onOpenSupervisor} type="button">
+          <button onClick={closeAnd(onOpenSupervisor)} type="button">
             {strings.kiosk.supervisorMirror}
-          </button>
-          <button onClick={onOpenAppLibrary} type="button">
-            {strings.kiosk.appLibrary}
           </button>
           <button onClick={onEditScreen} type="button">
             {strings.kiosk.editScreen}
@@ -357,14 +378,69 @@ function RuntimeMaintenanceOverlay({
           <button onClick={onOpenLanding} type="button">
             {strings.kiosk.home}
           </button>
+          <fieldset className="runtime-maintenance-languages">
+            <legend className="sr-only">{strings.settings.categories.language}</legend>
+            {(["en", "es", "fr"] as const).map((candidate) => (
+              <button
+                aria-pressed={language === candidate}
+                key={candidate}
+                onClick={() => onLanguageChange(candidate)}
+                type="button"
+              >
+                {candidate.toUpperCase()}
+              </button>
+            ))}
+          </fieldset>
         </div>
 
-        {children ? <div className="runtime-maintenance-diagnostics">{children}</div> : null}
+        {diagnostics ? <div className="runtime-maintenance-diagnostics">{diagnostics}</div> : null}
 
-        <button className="runtime-maintenance-return" onClick={onClose} type="button">
-          {strings.kiosk.backToOperation}
-        </button>
+        <footer className="runtime-maintenance-footer">
+          <p>{strings.kiosk.resumeNote}</p>
+          <button className="runtime-maintenance-return" onClick={onClose} type="button">
+            {strings.kiosk.resume}
+          </button>
+        </footer>
       </section>
     </div>
+  );
+}
+
+function Fact({ label, note, value }: { label: string; note: string; value: string }) {
+  return (
+    <div className="runtime-maintenance-fact">
+      <dt>{label}</dt>
+      <dd>
+        <strong>{value}</strong>
+        <span>{note}</span>
+      </dd>
+    </div>
+  );
+}
+
+function ActionButton({
+  danger = false,
+  hint,
+  label,
+  onClick,
+}: {
+  danger?: boolean;
+  hint: string;
+  label: string;
+  onClick: () => void;
+}) {
+  const hintId = useId();
+  return (
+    <button
+      aria-describedby={hintId}
+      aria-label={label}
+      className="runtime-maintenance-action"
+      data-danger={danger ? "true" : undefined}
+      onClick={onClick}
+      type="button"
+    >
+      <strong>{label}</strong>
+      <span id={hintId}>{hint}</span>
+    </button>
   );
 }

@@ -381,11 +381,11 @@ describe("App", () => {
     openRuntimeMenu();
     expect(screen.getByRole("navigation", { name: "Switch runtime screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Diagnostics" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "App library" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Exit to library" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit app" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit this screen in the builder" })).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "App library" }));
+    fireEvent.click(screen.getByRole("button", { name: "Exit to library" }));
 
     expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Resume Sandbox on Main" })).toBeVisible();
