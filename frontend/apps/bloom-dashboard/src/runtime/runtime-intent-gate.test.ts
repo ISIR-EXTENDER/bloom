@@ -1,7 +1,7 @@
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
-import { resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
+import { isRuntimeMotionHeld, resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 
 const press: WidgetActionIntent = {
   type: "topic-publish",
@@ -68,5 +68,13 @@ describe("runtime intent gate", () => {
 
   it("lets an owner's command through an available control", () => {
     expect(resolveRuntimeIntentRefusal(press, { ownsControl: true, unavailable: false })).toBeNull();
+  });
+
+  it("counts the practice tour as holding motion, like maintenance and settings", () => {
+    const views = { maintenanceOpen: false, settingsOpen: false, tourOpen: false };
+    expect(isRuntimeMotionHeld(views)).toBe(false);
+    expect(isRuntimeMotionHeld({ ...views, tourOpen: true })).toBe(true);
+    expect(isRuntimeMotionHeld({ ...views, settingsOpen: true })).toBe(true);
+    expect(isRuntimeMotionHeld({ ...views, maintenanceOpen: true })).toBe(true);
   });
 });

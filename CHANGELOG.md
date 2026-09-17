@@ -32,6 +32,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   value-change is refused before it reaches the socket instead of relying on the backend to throw and on a CSS
   `pointer-events: none` that arrow keys on an already-focused pad never meet. A release (a zero) still passes, so a
   held control can return to rest.
+- The status chip and the kiosk bar's held badge now read the practice tour the same way the intent gate does. All
+  three take one reading of which view holds motion, so they cannot drift apart if the tour ever stops replacing the
+  canvas.
 - **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
   latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
   resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.

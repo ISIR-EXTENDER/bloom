@@ -28,6 +28,18 @@ export function resolveRuntimeIntentRefusal(
   return null;
 }
 
+/**
+ * The gate's `held`: every view that takes over from the canvas holds the robot
+ * at zeros. One reading, so the chip, the kiosk bar and the gate cannot drift.
+ */
+export function isRuntimeMotionHeld(views: {
+  maintenanceOpen: boolean;
+  settingsOpen: boolean;
+  tourOpen: boolean;
+}): boolean {
+  return views.maintenanceOpen || views.settingsOpen || views.tourOpen;
+}
+
 function isReleaseIntent(intent: WidgetActionIntent): boolean {
   if (intent.type === "topic-publish") {
     return intent.release === true;

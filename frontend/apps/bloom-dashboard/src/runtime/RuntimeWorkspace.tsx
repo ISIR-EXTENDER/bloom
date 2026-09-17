@@ -31,7 +31,7 @@ import type {
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
 import { isFullPanelScreen, resolveRuntimeArtboardSize, resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
-import { resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
+import { isRuntimeMotionHeld, resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopAdapter } from "./runtimeModeState";
@@ -138,6 +138,7 @@ export function RuntimeWorkspace({
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   // Read synchronously by the intent gate: a held control's next tick must not beat the re-render that holds it.
   const motionHeldRef = useRef(false);
+  const motionHeld = isRuntimeMotionHeld({ maintenanceOpen, settingsOpen, tourOpen });
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
   const fullPanel = isFullPanelScreen(screen);
   const artboardSize = useMemo(() => resolveRuntimeArtboardSize(screen), [screen]);
@@ -289,7 +290,7 @@ export function RuntimeWorkspace({
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
   const resolvedChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings, {
-    heldForMaintenance: maintenanceOpen || settingsOpen,
+    heldForMaintenance: motionHeld,
     notInControl: runtimeControlBlocked,
   });
   // Bloom Debug says what it is where an operator app says READY; every warning still outranks it.
@@ -319,7 +320,7 @@ export function RuntimeWorkspace({
     rootRef: workspaceRef,
   });
   const previousScreenIdRef = useRef(screen.id);
-  motionHeldRef.current = maintenanceOpen || settingsOpen || tourOpen;
+  motionHeldRef.current = motionHeld;
   const holdMotion = () => {
     motionHeldRef.current = true;
     onSuspendTeleop();
@@ -631,7 +632,7 @@ export function RuntimeWorkspace({
         commandFrameId={commandFrameId}
         ownsRobotControl={runtimeControl.supported && ownsRuntimeControl}
         gamepadName={gamepad.connected ? gamepad.id : null}
-        held={stopped || maintenanceOpen || settingsOpen}
+        held={stopped || motionHeld}
         link={
           runtimeLink.state === null
             ? null
