@@ -79,6 +79,12 @@ textarea {
   transform: translateY(0);
 }
 
+/* The skip link and route changes focus this landmark so the next Tab starts inside it. It is not a control, and
+   Chrome counts script focus on load as focus-visible, so it draws no ring at all. */
+#bloom-main-content:focus {
+  outline: none;
+}
+
 .app-shell {
   min-height: 100vh;
   padding: 0 28px 28px;
@@ -148,7 +154,8 @@ textarea {
   gap: 24px;
   max-width: 1360px;
   margin: 0 auto;
-  padding: 16px 0 24px;
+  /* Lines the page up with the Bloom mark in the navigation (design 7b). */
+  padding: 16px 24px 24px;
 }
 
 .landing-hero {
