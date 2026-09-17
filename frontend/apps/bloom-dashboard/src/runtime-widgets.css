@@ -469,17 +469,18 @@
 }
 
 .bloom-slider-widget[data-direction="horizontal"] .bloom-axis-word {
-  /* The centred 72px knob rests between the words; a longer language wraps instead of sliding under it. */
-  max-width: calc(50% - 60px);
+  /* The centred 72px knob rests between the words: 52 = 36 knob half + 8 clear + 8 inset.
+     A longer language wraps instead of sliding under it. */
+  max-width: calc(50% - 52px);
   transform: translateY(-50%);
 }
 
 .bloom-slider-widget[data-direction="horizontal"] .bloom-axis-word[data-end="negative"] {
-  left: 16px;
+  left: 8px;
 }
 
 .bloom-slider-widget[data-direction="horizontal"] .bloom-axis-word[data-end="positive"] {
-  right: 16px;
+  right: 8px;
 }
 
 .bloom-slider-widget[data-direction="horizontal"] .bloom-axis-tick {
