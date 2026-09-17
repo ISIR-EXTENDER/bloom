@@ -1,5 +1,5 @@
-export const BLOOM_HELP_LAST_UPDATED = "2026-09-16";
-export const BLOOM_CODE_REFERENCE_DATE = "2026-09-16";
+export const BLOOM_HELP_LAST_UPDATED = "2026-09-17";
+export const BLOOM_CODE_REFERENCE_DATE = "2026-09-17";
 
 export const bloomCapabilities = [
   {
@@ -9,12 +9,12 @@ export const bloomCapabilities = [
   {
     title: "Build screens visually",
     description:
-      "Open the WYSIWYG screen builder to place, resize, inspect, and configure widgets on a tablet-sized canvas.",
+      "Place, resize, and configure widgets on the panel at true proportion. Bloom tags widgets below their minimum size and keeps them out of the regions STOP owns.",
   },
   {
     title: "Operate through a kiosk",
     description:
-      "Runtime uses the builder's screen model with a fixed STOP and truthful status; navigation and editing stay behind the Maintenance hold.",
+      "Operators open an app as a role, which picks its screen. STOP stays live in its reserved region, and navigation, settings, and editing stay behind the Maintenance hold.",
   },
   {
     title: "Reuse screens across apps",
@@ -52,12 +52,12 @@ export const getStartedSteps = [
   {
     title: "4. Edit a screen",
     description:
-      "Open the full-page builder. Add widgets from the palette, move or resize them, and use the inspector for widget-specific settings.",
+      "Open the full-page builder. Add widgets from the palette, move or resize them, and use the inspector for widget-specific settings. The size chip gives each widget's glass size on the smallest panel of its class; a Too small tag offers the exact resize.",
   },
   {
     title: "5. Launch runtime",
     description:
-      "Open Runtime, choose the app, and verify its app, robot, link, command frame, and profile in the kiosk bar before moving a control.",
+      "Open Runtime, select the app, choose a role, and press Open as. Verify the app, screen, link, command frame, and role in the kiosk bar before moving a control.",
   },
   {
     title: "6. Check operation",

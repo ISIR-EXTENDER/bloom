@@ -13,6 +13,31 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **The 2026-09-17 design handoff** (tracked in `docs/design/`, plan in `docs/design/implementation-plan.md`):
+  - Widget cards follow the design anatomy: control surfaces, info cards, bare grouped buttons, and action cards.
+    Pads share one geometry recipe, speed limits can render as **Slow / Medium / Fast** segments, and command buttons
+    take an optional `hint`.
+  - A widget minimum-size contract (decision 0132). An undersized card grows rather than clips, and streams (echo,
+    event log, position library) scroll inside their authored height.
+  - **Reserved regions** on screens: rectangles the runtime owns, such as `stop` and `debug-status`, which no widget
+    may overlap.
+  - Widget kinds `plot-board`, `plot-picker`, and `value-strip` for multi-series telemetry, with one subscription per
+    topic, per-profile picker selections, and a Command sources verdict of who is driving.
+  - Widget kinds `joint-table` and `jacobian`. They read "not reported" when joint limits or the Jacobian are missing,
+    and manipulability compares against this session's best rather than a guessed threshold.
+  - Profiles name the screen a role opens on with `preferred_control_layout_id` (decision 0133). Roles switch through
+    the maintenance sheet with their own 1.5 second hold.
+  - A kiosk bar with screen title, status chip, frame, publish rate, and role pill, and a maintenance sheet with
+    read-only facts and grouped actions.
+  - A list runtime library with a role rail, derived device badges, and the supervisor mirror as a secondary action.
+  - Bloom Debug on a 1920×1080 desktop panel with status cards, a plot board and picker, the joint table, the Jacobian,
+    the raw echo, and the Kinova fault state.
+  - Builder: panel-true canvas, drawn reserved regions, **Too small** tags, a `W×H · N px glass` chip measured at the
+    class's smallest panel, a one-tap **Resize to W×H**, and review checks for minimum size, sibling symmetry, pad
+    pairs, and profile coverage.
+  - A new landing page, and operator widget words (speeds, shaping modes, turns, gripper verbs, directions) shown in
+    Spanish and French from a glossary. ES STOP reads **PARADA**. Both still need a native speaker's review.
+
 - **Bloom as the active Extender IHM.** `extender_ui` is now documented as legacy reference/rollback software; open
   design and live-acceptance work is tracked in the UX handoff rather than an indefinite migration percentage.
 - **Kiosk runtime shell** with a 44 px operating bar, truthful app/robot/link/frame/profile context, a 1.5 second hold
@@ -81,6 +106,26 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
+- **Breaking for app authors.** The Manager apps' `manager_drive` screen is split into `manager_drive_bench` and
+  `manager_drive_operator`. Both send identical messages for the same gesture; the profile picks which one opens.
+- **Breaking for app authors.** Toggle `onLabel`/`offLabel` are verbs for what the button will do (**Close gripper**),
+  and the commanded state moved to `onStateLabel`/`offStateLabel` in the card header.
+- **Breaking for API clients.** Widget kinds `plot-board`, `plot-picker`, `value-strip`, `joint-table`, and `jacobian`
+  exist, and screens carry `reserved_regions`. The backend refuses a widget overlapping a region. The SQLite store
+  migrates to schema version 7 and backfills regions from each stored bundle.
+- **Breaking for operators.** The runtime library has no **Auto** profile. A remembered role is preselected but never
+  opens by itself, and a stored `Auto` reads as no role remembered.
+- **Breaking for operators.** The command frame left Runtime Settings and per-profile overrides; a stored frame
+  override is ignored and removed. Choose the frame on the Joystick Lab frame row.
+- Runtime Settings keeps a draft until **Save and resume**; Escape discards it. Text size is editable, and step and
+  latch appear as **How a push moves** beside the input method.
+- The horizontal Pivot slider publishes with `scale: -1`, so its left end turns the hand left (`+angular.z`). This is
+  verified on the ROS wire, not yet on hardware.
+- Kinova speed segments are 0.025 / 0.05 / 0.10 m/s, inside the gen3's 0.1 m/s; Explorer keeps 0.08 / 0.15 / 0.30.
+- STOP draws in the screen's `stop` region and stays above the maintenance scrim; the sheet is inset clear of it.
+- A full-panel screen scales its 1280×676 body with the bar, so widgets render at 1.0 on a 1280×720 panel.
+- The kiosk bar no longer shows the robot name; the supervisor mirror still does.
+
 - **Breaking for ROS deployments.** The default teleop target moved from
   `/teleop_cmd` to `/joystick_cartesian_command`. `/teleop_cmd` remains
   allowlisted, so an existing deployment can pin the old behaviour with
@@ -126,6 +171,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - STOP is exempt from the HTTP rate limit, so it cannot be refused with 429.
 
 ### Fixed
+
+- A joystick held under the maintenance sheet, Settings, or the practice tour no longer resumes motion after the
+  zero. Only releases pass while motion is held.
+- Builder home previews place widgets against the screen's own canvas rather than a desktop one.
+- A busy stream card no longer grows under STOP, and the Height slider's direction words are centred over the pad.
 
 - Fresh API environments now install a WebSocket implementation for Uvicorn, so runtime sessions still connect after
   `uv sync` or a clean deployment.

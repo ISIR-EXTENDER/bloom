@@ -1,6 +1,6 @@
 # Bloom Operator Runtime
 
-Current behavior as of 2026-09-16. This is the canonical operating contract for Bloom runtime. It documents what the
+Current behavior as of 2026-09-17. This is the canonical operating contract for Bloom runtime. It documents what the
 merged product does; live robot acceptance is tracked separately in
 [Extender and Petanque end-to-end validation](extender-petanque-validation.md).
 
@@ -11,17 +11,58 @@ rollback while live acceptance is completed.
 
 1. Start the Bloom API and dashboard. For an Extender lab session, use
    `scripts/extender-workspace-dev.sh` from the repository root.
-2. Open **Runtime** and choose an application from the app library.
-3. Confirm the kiosk bar names the expected application, robot when configured, command frame, profile, and connection
-   state before moving a control.
-4. Use the fixed **STOP** control immediately if the command path or motion is not what you expect.
+2. Open **Runtime**. The library lists the apps on this robot; select one to see its roles in the right rail.
+3. Choose a role and press **Open as <role>**. The role opens the screen its profile names.
+4. Confirm the kiosk bar names the expected application, screen, link state, command frame, and role before moving a
+   control.
+5. Use **STOP** immediately if the command path or motion is not what you expect.
 
 Runtime is an operator surface, not a builder preview. Product navigation, screen switching, editing links, Help, and
-diagnostics are absent from the normal operating surface. Hold the maintenance button for 1.5 seconds to reveal them.
-Screen changes are deliberately kept inside maintenance so an accidental tap cannot replace the controls under a hand.
-When a fitted artboard is smaller than its authored size, Maintenance also reports the authored dimensions, actual
+diagnostics are absent from the normal operating surface. Hold the **⋯** maintenance button for 1.5 seconds to reveal
+them. Screen changes are deliberately kept inside maintenance so an accidental tap cannot replace the controls under a
+hand. When a fitted artboard is smaller than its authored size, Maintenance also reports the authored dimensions, actual
 rendered percentage, and risk that targets have fallen below the 44 px touch floor. The warning stays off the operating
 surface and does not claim that scaling is safe.
+
+### Library And Roles
+
+Each row shows the app's screens, the device classes it was authored for, and an **Archived** badge when it is no
+longer maintained. The rail shows one card per profile with a short tagline. The role used last on this device is
+marked **last used** and preselected, but nothing opens until the operator presses **Open as <role>**: choosing a role
+is deliberate. An app that declares no profiles says so and opens with runtime defaults. The supervisor mirror is a
+secondary action under the open button. The former **Auto** choice is gone; a stored `Auto` reads as no role
+remembered.
+
+A profile's `preferred_control_layout_id` selects the screen a role opens on. When it names no existing screen, the app
+opens on its first screen. On the Manager apps, **Operator** and **One switch** open **Drive · Operator** and **Bench**
+opens **Drive · Bench**. To change role mid-session, open Maintenance and hold **Switch role**, which needs its own
+1.5 second hold.
+
+### Kiosk Bar
+
+The 44 px bar reads, left to right: app name, screen title, a status chip, the command frame, the publish rate, the
+role pill, and the **⋯** maintenance hold, drawn as a fill on the button itself.
+
+| Chip | Meaning |
+| --- | --- |
+| READY | Linked and this session controls the robot. |
+| HELD FOR MAINTENANCE | Maintenance, Settings, or the practice tour is open; teleop is suspended at zeros. |
+| STOPPED | The backend STOP latch is engaged. |
+| LINK DOWN / CONNECTING | The frontend has no backend link yet or lost it. |
+| DEBUG | Bloom Debug only. |
+
+The rate reads `N Hz` at rest, `publishing · N Hz` while a control moves, and `zeros held` while held or stopped. The
+robot name, gamepad, and ownership tags moved into the maintenance sheet's facts; the robot name stays on the supervisor
+mirror.
+
+### Maintenance Sheet
+
+The sheet opens over a scrim with a **Robot held at zeros** badge. While it is open, only releases reach the robot: a
+joystick still held under the sheet does not resume motion when the zero goes out. It lists six read-only facts (link,
+publish rate, command frame, profile and its layout, device class, app version) and four actions: **Settings**,
+**Switch role**, **Reload this app**, and **Exit to library**. Screen switching, the practice tour, the supervisor
+mirror, Builder shortcuts, and Help sit in a **More** group below them. **Resume operating** closes the sheet and
+publishing resumes at once. Nothing in the sheet changes what the app sends.
 
 Runtime also checks each widget's declared backend requirement against `GET /api/v1/capabilities`. When the backend
 explicitly reports a required publisher, subscriber, service, or teleop seam unavailable, the control remains in its
@@ -92,7 +133,10 @@ configuration and app, but the tour remains available for repetition.
 
 - A pointer press on **STOP** engages the backend runtime stop immediately. Keyboard activation is also supported.
 - The stop is a backend latch shared by runtime clients; it is not a decorative local button.
-- While stopped, command controls are disabled and the control becomes **HOLD TO RESUME**.
+- A screen places STOP in its `stop` reserved region, which widgets cannot occupy. A screen without one keeps STOP in
+  the bottom-right corner.
+- STOP stays above the maintenance scrim, Settings, and the practice tour. The sheet is inset so it never covers STOP.
+- While stopped, the screen's widgets go muted and inert and the control becomes **HOLD TO RESUME**.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
 - Link, stop, and recovery transitions can produce audio cues when the selected profile enables them.
 
@@ -101,8 +145,17 @@ safety procedure.
 
 ## Manager Drive Controls
 
-The shipped **Explorer Manager** and **Kinova Manager** Drive screens expose the virtual IHM used for
-`cartesian_manager` experiments:
+The shipped **Explorer Manager** and **Kinova Manager** apps each have two Drive layouts that publish byte-identical
+messages for the same gesture:
+
+- **Drive · Bench** is the debugging layout. A context row carries the shaping modes and gripper, the stage carries
+  Translation with Height and Rotation with Pivot, and a status rail on the right carries continuous speed limits and
+  the STOP region.
+- **Drive · Operator** is the accessible layout. It uses plain words (**Both**, **Hold snake**, **Close gripper**),
+  **Slow / Medium / Fast** speed segments, larger targets, and the same STOP region.
+
+Height is vertical next to Translation (linear axes); Pivot is horizontal under Rotation (angular axes). Pivot's left
+end turns the hand left (`+angular.z`). This sign is verified on the ROS wire, not yet on hardware.
 
 | Control | Runtime behavior |
 | --- | --- |
@@ -113,8 +166,8 @@ The shipped **Explorer Manager** and **Kinova Manager** Drive screens expose the
 | Neutral | Requests `geometric/both`. |
 | Jaco | Requests `geometric/jaco`. |
 | Hold snake | Requests `geometric/snake` while pressed and `geometric/both` on release. A pointer holds it; keyboard, switch scanning, and dwell latch it instead, and the next activation releases it. An unattended latch releases itself after 15 seconds. |
-| Gripper | Explorer publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. Kinova publishes close `[0.8]` and open `[0.0]`, the Robotiq 85 knuckle joint's range. The label names the gripper's commanded state. |
-| Speed sliders | Start at the configured controller limits and publish linear/angular limits to `qontrol_controller`. They are disabled when the ROS graph has no subscriber. |
+| Gripper | Explorer publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. Kinova publishes close `[0.8]` and open `[0.0]`, the Robotiq 85 knuckle joint's range. The button names what it will do (**Close gripper**); the card header names the commanded state. |
+| Speed limits | Bench sliders start at the configured controller limits; Operator segments offer Slow, Medium, and Fast (Explorer 0.08 / 0.15 / 0.30, Kinova 0.025 / 0.05 / 0.10). Both publish linear/angular limits to `qontrol_controller` and are disabled when the ROS graph has no subscriber. |
 
 The four Cartesian widgets are composed into one complete 6-DoF twist. Releasing one source clears only its
 contribution. The runtime continues publishing the composed value so `cartesian_manager` can enforce its source timeout.
@@ -201,25 +254,30 @@ visible zero control releases them sooner.
 
 ### Runtime Settings
 
-Hold **Maintenance**, then open **Settings** to adjust the currently selected profile without entering Builder. The
-settings screen replaces the robot controls rather than covering them. Entering it clears composed teleop sources and
-stops the runtime stream; its bottom try strip is local state and has no robot-action interface.
+Hold **Maintenance**, then open **Settings** to adjust the current profile without entering Builder. Settings replaces
+the robot controls rather than covering them, the bar reads **HELD FOR MAINTENANCE**, and composed teleop stays
+suspended.
 
-Changes apply immediately and are stored in the existing browser preference payload under
-`profileOverrides[configId:appId:profileId]`. Reloading and reopening the same application/profile restores them.
-Malformed stored values are ignored. **Undo changes** restores the overrides present when Settings opened, while
-**Done** returns to operation.
+Settings has three columns:
 
-The movement choices expose direct drag, step, latch, and scanning behavior in operator language. **At the edge** is
-visible but disabled because Bloom has no edge-control runtime behavior yet. Fine tuning uses 88x72 decrement/increment
-targets for scan period, dead zone, dwell duration, and repeat guard, plus toggles for dwell and status sounds. Command
-frame choices come from the connected backend's allowlist and remain disabled while teleop is active. Display preset
-and text scale are read-only installation facts. The Language category switches the runtime shell between English,
-Spanish, and French.
+- **Display**: text size (Normal, Large, Larger), language (EN, ES, FR), and sound on every press.
+- **How you reach the controls**: the input method (Touch, Dwell, Scan) and, as a separate card, **How a push moves**
+  (Drag, Tap by tap, Keep going), which maps to the direct, step, and latch presets.
+- **Timing**: hold to activate, scan step, ignore repeats, and joystick dead zone. A setting that does not apply to the
+  chosen input method is drawn dashed and reads, for example, **only for Scan**.
 
-Settings uses the active scan period and dwell duration itself. Its header, category rail, controls, safe preview, and
-Done action therefore remain reachable when the current profile uses scanning and/or dwell.
-**Practice tour** opens the guided local-only path without returning through the live controls first.
+**Try it** is the real control running with the draft settings, with a readout of target size, font scale, and timing.
+It has no robot-action interface. Changes stay a draft until **Save and resume**, which stores them in the browser
+preference payload under `profileOverrides[configId:appId:profileId]` and returns to operation. Escape discards the
+draft. Malformed stored values are ignored.
+
+The command frame is no longer a setting: it changes what the app publishes, so it is chosen on the Joystick Lab frame
+row and shown read-only in the bar and the maintenance sheet. A stored per-profile frame override is ignored and
+removed.
+
+Settings uses the active scan period and dwell duration itself, so its controls and **Save and resume** stay reachable
+under scanning and dwell. **Practice tour** opens the guided local-only path without returning through the live
+controls first.
 
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
 because a click on it moves nothing. Under scan, dwelling on the full-width SWITCH bar activates the highlighted target
@@ -255,8 +313,8 @@ frame. Its initial value is:
 Set it in **Builder > App configuration > Adapter guardrails > Cartesian command frame**. The selector is populated
 from `GET /api/v1/capabilities`, and the effective frame is visible in the kiosk bar. A screen may offer a
 `teleop-frame` selector such as Joystick Lab. It can choose only a reported frame and only while the composed twist is
-zero; that selector lasts for the current app runtime session. A choice made in Runtime Settings is a per-profile local
-override and is restored when that application/profile is reopened. Neither path rewrites the application bundle.
+zero; that selector lasts for the current app runtime session and does not rewrite the application bundle. Runtime
+Settings no longer offers a frame, and a stored per-profile frame override is ignored.
 
 Bloom accepts only `BLOOM_ALLOWED_COMMAND_FRAME_IDS`. `cartesian_manager` recognizes its configured base,
 end-effector, and hybrid frames; it does not perform a general TF lookup. The linear component follows the manager's
