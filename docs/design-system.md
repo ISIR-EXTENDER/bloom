@@ -81,7 +81,12 @@ Palette tokens preserve the brand mood:
 - `ink`;
 - `inkSoft`;
 - `muted`;
-- `border`.
+- `border`;
+- `accent`, `accentHover`, `accentSoft`;
+- `surfaceSoft`.
+
+A plot board needs colours that mean nothing but "the next series", so the ramp `--bloom-series-1 … -8` is its own set,
+assigned in order and never semantic. Past the eighth series a colour repeats dashed.
 
 Use palette tokens for:
 
@@ -122,6 +127,7 @@ Example:
 
 - `bloom`: default garden-inspired Bloom identity.
 - `clinical`: neutral high-readability theme for bright lab/tablet conditions.
+- `extender-ui`: blue operator palette aligned with the legacy Extender UI tablet interface.
 - `petanque-play`: warmer and more playful demo-oriented theme.
 
 These presets are intentionally small. The app builder can later expose preset selection, custom palettes, or generated
@@ -177,11 +183,22 @@ Rules:
 
 Bloom is tablet-first for runtime and common operator flows, but desktop-enhanced for builder/configuration flows.
 
-Required responsive checkpoints:
+Two runtime device classes carry their own checkpoints, as `docs/design/device-classes.md` sets them out. A screen is
+authored at its class's size and has to survive the class's smallest panel.
+
+Tablet, authored at `1280x720`:
 
 - `1024x600`: native HMTECH panel constraint and worst-case density.
-- `1280x800`: comfortable tablet/laptop validation point.
-- `1920x1080`: current Extender configured resolution.
+- `1280x720`: the authoring panel and the size the design references are drawn at.
+- `1820x720`: the scaled Extender tablet workspace.
+
+Desktop, authored at `1920x1080`:
+
+- `1440x900`: the smallest desktop panel a desktop app has to hold at.
+- `1920x1080`: the authoring panel, and the current Extender configured resolution.
+
+`npm run visual:smoke` runs the three tablet viewports over the product routes and checks Bloom Debug, the only desktop
+app, at `1920x1080` and `1440x900`.
 
 Density scale:
 
@@ -215,8 +232,9 @@ Current review finding:
 - `1024x600` is still a constrained interaction target: controls are visible, but truly comfortable robot operation
   should prefer app display profiles or adapted screens.
 - Bloom keeps WYSIWYG geometry as the source of truth and applies app display profiles for compact, comfort, or
-  high-visibility presentation. The builder reports a selected widget's effective size on the `1024x600` panel; live
-  hardware review is still required because a fit canvas can reduce authored geometry.
+  high-visibility presentation. The builder reports a selected widget's effective size on the smallest panel of its
+  device class, and the review checklist measures every control on every screen there and names the first that falls
+  below 44 px of glass; live hardware review is still required because a fit canvas can reduce authored geometry.
 
 Design implication:
 
@@ -286,10 +304,18 @@ Rules:
 - Debug/detail visibility should be configurable per widget.
 - Joysticks and sliders should preserve the interaction design validated in legacy Extender UI, while adopting Bloom
   colors and accessibility states.
-- Regular runtime apps use one 44 px kiosk bar plus the artboard and fixed STOP. The bar contains only app, truthful
-  state, configured robot/frame/gamepad context, active profile, and maintenance entry.
-- STOP is runtime chrome, not a movable widget. Press stops immediately; resuming requires a one-second hold.
-- Bloom Debug may opt into an additional debug row, but that row must not be reserved for normal operator apps.
+- Regular runtime apps use one 44 px kiosk bar plus the artboard and fixed STOP. The bar carries app name, screen title,
+  a status chip, the command frame, the publish rate, the role pill, and the maintenance hold; the robot name, gamepad
+  and ownership moved into the maintenance sheet's facts.
+- STOP is runtime chrome, not a movable widget. Press stops immediately; resuming requires a one-second hold. It lives
+  in the screen's `stop` reserved region, and becomes a full-height rail over Settings and the practice tour, which
+  replace the canvas.
+- Runtime chrome that needs room on the canvas takes a `reserved_regions` entry, which no widget may overlap. Bloom
+  Debug's three header cards are that, not a widget kind: they sit in its `debug-status` region and no operator app
+  reserves one.
+- Every widget kind that can be authored declares a minimum size and grows rather than clips (ADR 0132). Where the hand
+  meets the card is a separate number, `primaryTargetFor`, tabulated in `design-system.html` §04b; both ship from
+  `frontend/libs/widgets/src/min-size.ts` so the builder, the review checklist and the seed validator read one source.
 - Direction labels use operator words on the control. Axis names and topics remain configuration or diagnostics. The
   single effective frame stays visible in the kiosk bar; a dedicated operator workflow may also expose supported frame
   choices when changing them is the task.
@@ -345,7 +371,7 @@ Current strengths:
 - app-level theme presets exist;
 - controlled open-source fonts are bundled through `@bloom/ui`;
 - contrast checks protect semantic theme pairs;
-- visual smoke checks cover `1024x600`, `1280x800`, and `1920x1080`;
+- visual smoke checks cover `1024x600`, `1280x720`, and `1820x720`, plus Bloom Debug at `1920x1080` and `1440x900`;
 - visual smoke now covers landing, builder home, app configuration, and runtime;
 - density and iconography rules are documented;
 - visible UI is coherent with the Bloom mood board;
@@ -360,8 +386,9 @@ Things to improve before a public release:
 - Add app-theme authoring guardrails so user palettes keep contrast.
 - Continue promoting repeated dashboard card/action styles into reusable `@bloom/ui` primitives.
 - Add more component examples as the primitive set grows.
-- Add whole-screen physical target checks and prevention/reflow for fit-scaled operator canvases and all maintained
-  tablet geometries; the current runtime Maintenance warning is disclosure, not acceptance.
+- Add prevention or reflow for fit-scaled operator canvases and all maintained tablet geometries. Authoring now
+  measures every control on the class's smallest panel, but the runtime Maintenance warning is still disclosure, not
+  acceptance.
 
 ## Contribution Rules
 

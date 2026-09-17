@@ -106,12 +106,14 @@ Run:
 npm run visual:smoke
 ```
 
-This validates landing, builder, and runtime at:
+This validates landing, builder, and runtime at the three tablet panels:
 
 - `1024x600`;
-- `1280x800`;
-- `1920x1080`.
+- `1280x720`;
+- `1820x720`.
+
+Bloom Debug, the one desktop app, is checked at `1920x1080` and `1440x900` instead.
 
 The smoke test detects page-level horizontal overflow and captures the current route matrix in
-`/tmp/bloom-visual-smoke`. Physical target size, touch mapping, and assistive-device behavior still require hardware
-checks.
+`/tmp/bloom-visual-smoke`, or in `BLOOM_VISUAL_OUTPUT_DIR` when it is set. Physical target size, touch mapping, and
+assistive-device behavior still require hardware checks.
