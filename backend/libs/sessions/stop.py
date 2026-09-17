@@ -88,6 +88,18 @@ class RuntimeStopController:
                 raise RuntimeStoppedError(self._rejection_reason_unlocked())
             return operation()
 
+    def execute_blocking_if_running(self, operation: Callable[[], T]) -> T:
+        """Refuse a slow operation while STOP is latched, but run it outside the gate.
+
+        A ROS service call can block for seconds. Inside the gate, STOP would
+        wait for it. A service call is not a motion command, so finishing just
+        after STOP engages is safe; STOP being delayed by it is not.
+        """
+        with self._lock:
+            if self._stopped:
+                raise RuntimeStoppedError(self._rejection_reason_unlocked())
+        return operation()
+
     def engage(self) -> RuntimeStopState:
         """Latch first, unconditionally; a repeated engage re-asserts."""
         with self._lock:

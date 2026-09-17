@@ -41,6 +41,9 @@ class StopAtFinalGate:
     def execute_if_running(self, operation):
         raise RuntimeStoppedError("Runtime stop engaged during command validation.")
 
+    def execute_blocking_if_running(self, operation):
+        raise RuntimeStoppedError("Runtime stop engaged during command validation.")
+
 
 def create_service_client(gateway=None, audit_log=None) -> TestClient:
     return TestClient(

@@ -279,7 +279,7 @@ def call_ros_service(
     try:
         receipt = execute_as_runtime_owner(
             request,
-            lambda: stop_controller.execute_if_running(
+            lambda: stop_controller.execute_blocking_if_running(
                 lambda: get_ros_service_gateway(request).call(
                     RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
                 )

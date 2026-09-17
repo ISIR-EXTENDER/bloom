@@ -21,7 +21,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | A3 | Losing control ownership does not suspend teleop, and release zeros are blocked by the ownership gate, so after a reconnect and reclaim the pump streams a joystick value the operator already released. | `RuntimeWorkspace.tsx`, `use-runtime-action-dispatcher.ts` | Fixed |
 | A4 | STOP and Resume render the same `<button>` node, so a dwell rest that started on STOP completes as a Resume about one second after STOP was pressed. | `RuntimeStopControl.tsx`, `use-dwell-activation.ts` | Fixed |
 | A5 | Switch scanning and dwell stay active behind the Maintenance dialog; a switch press on the dialog fires the covered canvas control. | `RuntimeWorkspace.tsx`, `use-switch-scanning.ts` | Fixed |
-| A6 | A ROS service call runs inside the STOP lock for up to 4 s, so STOP waits for it; WebSocket teleop takes that lock on the event loop, freezing every socket and HTTP response meanwhile. | `sessions/stop.py`, `routes/ros.py`, `routes/runtime.py` | Open |
+| A6 | A ROS service call runs inside the STOP lock for up to 4 s, so STOP waits for it; WebSocket teleop takes that lock on the event loop, freezing every socket and HTTP response meanwhile. | `sessions/stop.py`, `routes/ros.py`, `routes/runtime.py` | Fixed |
 | A7 | STOP goes through the HTTP rate limiter and is refused with 429 once a client IP's budget is spent. | `apps/bloom_api/security.py` | Open |
 | A8 | The runtime WebSocket never checks `Origin`, and auth is off in the lab launcher, so any web page in a browser that can reach the API can claim control and send teleop. | `routes/runtime.py` | Open |
 | A9 | Kinova seed values that belong to Explorer: the gripper toggles send `[1.1]`/`[0.2]`, outside the Robotiq 85 range, and the Joystick Lab gripper labels are inverted; the upstream Kinova `home` joint target is Explorer's six-joint pose. | `seed/applications/kinova-manager.json` | Open |
@@ -65,3 +65,10 @@ Fixes land one group per commit, in the order below. Update the status column as
 ## Decisions recorded while fixing
 
 Add each decision here with its reason when a fix involves a trade-off.
+
+- **A6, WebSocket commands stay on the event loop.** Moving every WebSocket message onto a worker thread was tried and
+  rejected. It made the disconnect neutralization lose a race with handler cancellation under the test client: in some
+  runs the cleanup that latches STOP never started. What froze the loop was teleop waiting on a STOP gate held by a
+  slow service call, and service calls now run outside the gate, so no slow operation holds it any more. Separately,
+  `run_runtime_thread` now hands its work to a thread before its first await, so safety cleanup starts even when the
+  handler is cancelled immediately.

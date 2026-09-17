@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import asdict
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -481,7 +482,7 @@ def dispatch_service_call_preset(
     try:
         receipt = execute_as_runtime_owner(
             request,
-            lambda: stop_controller.execute_if_running(
+            lambda: stop_controller.execute_blocking_if_running(
                 lambda: ros_service_gateway.call(
                     RosServiceRequest(service=preset.topic, service_type=preset.message_type)
                 )
@@ -1167,12 +1168,17 @@ def disconnect_runtime_session(
 
 
 async def run_runtime_thread(operation: Callable[..., Any], *args: Any) -> Any:
-    """Finish safety work even when socket shutdown cancels its handler."""
-    task = asyncio.create_task(asyncio.to_thread(operation, *args))
+    """Finish safety work even when socket shutdown cancels its handler.
+
+    The work is handed to a thread before the first await. A task wrapping
+    to_thread only reaches the executor on its first loop iteration, and a
+    handler cancelled before then dropped the disconnect neutralization.
+    """
+    future = asyncio.get_running_loop().run_in_executor(None, partial(operation, *args))
     try:
-        return await asyncio.shield(task)
+        return await asyncio.shield(future)
     except asyncio.CancelledError:
-        return await task
+        return await future
 
 
 def record_runtime_control(audit_log: RuntimeAuditLog, session_id: str, accepted: bool, detail: str) -> None:
