@@ -44,10 +44,9 @@ export function BuilderInspector({
 }: BuilderInspectorProps) {
   if (widgetCount === 0) {
     return (
-      <BuilderInspectorPanel title="Coming soon">
+      <BuilderInspectorPanel title="Add a widget">
         <p className="builder-inspector-copy">
-          This screen is registered but does not have migrated widgets yet. The builder will keep showing this safe
-          empty state until content is available.
+          Pick a widget to place it on the canvas, then drag to move it and use the corner handle to resize.
         </p>
         <WidgetPalette
           capabilities={runtimeCapabilities}

@@ -615,7 +615,7 @@ describe("App", () => {
       "true",
     );
     expect(screen.getByText("Favorite feedback")).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Empty screen" })).not.toBeInTheDocument();
   });
 
   it("lists Explorer user-test screens as reusable builder candidates", async () => {
@@ -1126,15 +1126,15 @@ describe("App", () => {
     expect(screen.getByText(/has been published this session/)).toBeVisible();
   });
 
-  it("shows a coming soon message for registered screens without migrated widgets", async () => {
+  it("invites the author to add widgets to an empty screen", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     await openAppConfig();
     fireEvent.click(await screen.findByRole("button", { name: "Open Placeholder screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Placeholder" })).toBeVisible();
-    expect(screen.getByRole("region", { name: "Screen implementation coming soon" })).toBeVisible();
-    expect(screen.getByRole("heading", { level: 2, name: "Coming soon" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Empty screen" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Add a widget" })).toBeVisible();
   });
 
   it("moves widgets on the builder canvas draft", async () => {
@@ -1239,7 +1239,7 @@ describe("App", () => {
     await openDefaultScreenBuilder();
     fireEvent.click(await screen.findByRole("button", { name: "Remove widget" }));
 
-    expect(screen.getByRole("region", { name: "Screen implementation coming soon" })).toBeVisible();
+    expect(screen.getByRole("region", { name: "Empty screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Add Label widget" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
@@ -2041,7 +2041,7 @@ describe("App", () => {
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Webcam visualizer" })).toBeVisible();
     expect(screen.getByLabelText("Local webcam webcam preview")).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Screen implementation coming soon" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Empty screen" })).not.toBeInTheDocument();
   });
 
   it.each([

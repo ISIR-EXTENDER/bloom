@@ -74,7 +74,7 @@ export function BuilderCanvas({
               ))}
             </>
           )}
-          renderEmptyState={(emptyScreen) => <BuilderComingSoonMessage screen={emptyScreen} />}
+          renderEmptyState={(emptyScreen) => <BuilderEmptyScreenMessage screen={emptyScreen} />}
           renderWidgetFrame={renderEditableWidgetFrame}
           screen={screen}
           style={{ height: `${artboardSize.height}px`, width: `${artboardSize.width}px` }}
@@ -98,15 +98,12 @@ function resolveWidgetMinSize(descriptor: WidgetRenderDescriptor) {
   };
 }
 
-function BuilderComingSoonMessage({ screen }: { screen: ScreenConfig }) {
+function BuilderEmptyScreenMessage({ screen }: { screen: ScreenConfig }) {
   return (
-    <section className="builder-coming-soon" aria-label="Screen implementation coming soon">
-      <p className="eyebrow">Coming soon</p>
-      <h3>{screen.title} has no builder implementation yet.</h3>
-      <p>
-        This screen is already part of the application model. Once widgets are migrated or added, they will appear on
-        this canvas without changing the app routing.
-      </p>
+    <section className="builder-coming-soon" aria-label="Empty screen">
+      <p className="eyebrow">Empty screen</p>
+      <h3>{screen.title} has no widgets yet.</h3>
+      <p>Add one from the widget palette. It lands clear of any region the runtime reserves.</p>
     </section>
   );
 }
