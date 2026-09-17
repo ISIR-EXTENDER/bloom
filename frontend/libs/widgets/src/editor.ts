@@ -187,7 +187,12 @@ function createWidgetConfigFromDefinition(
   overrides: Partial<Pick<WidgetConfig, "layout" | "settings" | "title">> = {},
 ): WidgetConfig {
   const normalizedSettings = normalizeWidgetSettings(definition.kind, overrides.settings ?? {});
-  if (!normalizedSettings.success) {
+  // A palette widget starts with its topic or plot_id unset; the inspector asks for it. Anything else invalid throws.
+  const onlyUnsetNames =
+    !normalizedSettings.success &&
+    overrides.settings === undefined &&
+    normalizedSettings.errors.every((error) => error.message === `${error.field} is required`);
+  if (!normalizedSettings.success && !onlyUnsetNames) {
     throw new Error(
       `Invalid settings for widget kind "${definition.kind}": ${normalizedSettings.errors
         .map((error) => `${error.field}: ${error.message}`)
@@ -205,7 +210,7 @@ function createWidgetConfigFromDefinition(
       width: definition.defaultLayout.width,
       height: definition.defaultLayout.height,
     },
-    settings: normalizedSettings.settings,
+    settings: normalizedSettings.success ? normalizedSettings.settings : { ...definition.defaultSettings },
   };
 }
 

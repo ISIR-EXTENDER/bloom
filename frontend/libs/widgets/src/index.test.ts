@@ -878,6 +878,19 @@ describe("widget settings contracts", () => {
     ).toThrow('Invalid settings for widget kind "slider": step: step must be greater than or equal to 0');
   });
 
+  it("adds every palette widget from its defaults, leaving a topic or plot to name unset", () => {
+    const registry = createDefaultWidgetRegistry();
+    const palette = [...registry.values()].filter((definition) => definition.availability.editor);
+
+    const empty = { ...sampleScreen, widgets: [] };
+    for (const definition of palette) {
+      expect(() => addWidgetToScreen(empty, definition, { id: definition.kind }), definition.kind).not.toThrow();
+    }
+    const topicPlot = registry.get("topic-plot") as WidgetDefinition;
+    expect(addWidgetToScreen(empty, topicPlot, { id: "plot" }).widgets[0]?.settings.topic).toBe("");
+    expect(() => addWidgetToScreen(empty, topicPlot, { id: "plot", settings: {} })).toThrow("topic: topic is required");
+  });
+
   it("keeps ROS message toggle presets available for non-web users", () => {
     expect(ROS_MESSAGE_TOGGLE_PRESETS.map((preset) => preset.id)).toContain("digital-output-array");
     expect(getDefaultRosMessageTogglePayloads("std_msgs/msg/Int32MultiArray")).toEqual({
