@@ -191,6 +191,14 @@ describe("runtime settings", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it("reads a zero dead zone as each control keeping its own, not as no dead zone", () => {
+    renderSettings({ deadzone: 0 });
+    expect(screen.getByLabelText("Joystick dead zone value").textContent).toBe("each control's own");
+
+    fireEvent.click(screen.getByRole("button", { name: "Increase Joystick dead zone" }));
+    expect(screen.getByLabelText("Joystick dead zone value").textContent).toBe("0.05");
+  });
+
   it("offers no command frame: a setting an operator reaches must not change what the app sends", () => {
     renderSettings();
 

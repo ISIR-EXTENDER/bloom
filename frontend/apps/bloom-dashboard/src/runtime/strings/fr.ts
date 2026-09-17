@@ -253,6 +253,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     scanStep: "Pas du défilement",
     ignoreRepeats: "Ignorer les répétitions sous",
     deadzone: "Zone morte du joystick",
+    deadzoneWidgetDefault: "celle de chaque commande",
     decrease: (label) => `Diminuer ${label}`,
     increase: (label) => `Augmenter ${label}`,
     value: (label) => `Valeur de ${label}`,

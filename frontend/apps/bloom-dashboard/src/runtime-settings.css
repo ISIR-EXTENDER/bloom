@@ -180,6 +180,14 @@
   white-space: nowrap;
 }
 
+.runtime-settings-stepper output[data-word="true"] {
+  font-family: var(--bloom-font-ui);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: normal;
+}
+
 .runtime-settings-try-target {
   min-height: 216px;
   border: 2px solid var(--settings-hairline);

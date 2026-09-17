@@ -250,6 +250,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     scanStep: "Scan step",
     ignoreRepeats: "Ignore repeats within",
     deadzone: "Joystick dead zone",
+    deadzoneWidgetDefault: "each control's own",
     decrease: (label) => `Decrease ${label}`,
     increase: (label) => `Increase ${label}`,
     value: (label) => `${label} value`,

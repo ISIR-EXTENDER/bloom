@@ -237,7 +237,9 @@ export function RuntimeSettingsPanel({
             strings={strings}
           />
           <Stepper
-            formatted={profile.deadzone.toFixed(2)}
+            // 0 means no override: each control keeps the dead zone it was authored with.
+            formatted={profile.deadzone > 0 ? profile.deadzone.toFixed(2) : strings.settings.deadzoneWidgetDefault}
+            formattedIsWord={profile.deadzone <= 0}
             label={strings.settings.deadzone}
             max={profile.deadzone >= 0.5}
             min={profile.deadzone <= 0}
@@ -354,6 +356,7 @@ function Segments<Value extends number | string>({
 
 function Stepper({
   formatted,
+  formattedIsWord = false,
   interlocked,
   label,
   max,
@@ -363,6 +366,7 @@ function Stepper({
   strings,
 }: {
   formatted: string;
+  formattedIsWord?: boolean;
   interlocked?: string;
   label: string;
   max: boolean;
@@ -382,7 +386,9 @@ function Stepper({
         >
           −
         </button>
-        <output aria-label={strings.settings.value(label)}>{formatted}</output>
+        <output aria-label={strings.settings.value(label)} data-word={formattedIsWord ? "true" : undefined}>
+          {formatted}
+        </output>
         <button
           aria-label={strings.settings.increase(label)}
           disabled={Boolean(interlocked) || max}

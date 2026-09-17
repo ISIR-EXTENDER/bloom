@@ -182,6 +182,7 @@ export type RuntimeStrings = {
   settings: {
     decrease: (label: string) => string;
     deadzone: string;
+    deadzoneWidgetDefault: string;
     discardChanges: string;
     display: string;
     holdToActivate: string;

@@ -253,6 +253,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     scanStep: "Paso del barrido",
     ignoreRepeats: "Ignorar repeticiones en",
     deadzone: "Zona muerta del joystick",
+    deadzoneWidgetDefault: "la de cada control",
     decrease: (label) => `Reducir ${label}`,
     increase: (label) => `Aumentar ${label}`,
     value: (label) => `Valor de ${label}`,
