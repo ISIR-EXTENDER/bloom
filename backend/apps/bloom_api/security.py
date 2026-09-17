@@ -34,6 +34,11 @@ class BloomPrincipal:
     def is_operator(self) -> bool:
         return self.role in {"admin", "operator"}
 
+    @property
+    def is_observer(self) -> bool:
+        """May read runtime state. Every commanding role can also watch."""
+        return self.role in {"admin", "operator", "observer"}
+
 
 def install_security_headers(app: FastAPI) -> None:
     @app.middleware("http")
@@ -84,6 +89,9 @@ def authenticate_api_key(settings, api_key: str | None) -> BloomPrincipal:
     if api_key and settings.operator_api_key and compare_digest(api_key, settings.operator_api_key):
         return BloomPrincipal(role="operator")
 
+    if api_key and settings.observer_api_key and compare_digest(api_key, settings.observer_api_key):
+        return BloomPrincipal(role="observer")
+
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Valid Bloom API key required.",
@@ -95,6 +103,18 @@ def require_operator(request: Request) -> BloomPrincipal:
     principal = authenticate_api_key(request.app.state.settings, request.headers.get(API_KEY_HEADER))
     if not principal.is_operator:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operator role required.")
+    return principal
+
+
+def require_observer(request: Request) -> BloomPrincipal:
+    """Guard a read-only runtime surface.
+
+    A supervisor mirror authenticates with a key that cannot command the arm,
+    so watching a session never requires a credential that could take it over.
+    """
+    principal = authenticate_api_key(request.app.state.settings, request.headers.get(API_KEY_HEADER))
+    if not principal.is_observer:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Observer role required.")
     return principal
 
 
@@ -131,7 +151,13 @@ def require_admin(request: Request) -> BloomPrincipal:
     return principal
 
 
-async def require_runtime_websocket_operator(websocket: WebSocket) -> BloomPrincipal:
+async def require_runtime_websocket_principal(websocket: WebSocket) -> BloomPrincipal:
+    """Admit anyone who may watch; the payload handler refuses their commands.
+
+    An observer needs the socket for live status and topic samples, which is
+    the whole point of the mirror, so the role is enforced per message rather
+    than at the handshake.
+    """
     settings = websocket.app.state.settings
     api_key = websocket.headers.get(API_KEY_HEADER) or websocket.query_params.get("api_key")
     try:
@@ -140,9 +166,9 @@ async def require_runtime_websocket_operator(websocket: WebSocket) -> BloomPrinc
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason=str(exc.detail))
         raise
 
-    if not principal.is_operator:
-        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Operator role required.")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Operator role required.")
+    if not principal.is_observer:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Observer role required.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Observer role required.")
     return principal
 
 

@@ -173,6 +173,8 @@ For shared lab tablets or staging deployments, enable the API perimeter:
 export BLOOM_AUTH_ENABLED=true
 export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
 export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
+# Read-only, for a supervisor mirror on a second screen.
+export BLOOM_OBSERVER_API_KEY='replace-with-observer-secret'
 export BLOOM_CORS_ALLOWED_ORIGINS='http://127.0.0.1:5173,http://tablet.local:5173'
 ```
 
@@ -181,6 +183,9 @@ Build the dashboard with the matching operator key so it can reach an authentica
 ```bash
 VITE_BLOOM_API_KEY='replace-with-operator-secret' npm run build --workspace @bloom/dashboard
 ```
+
+Build a supervisor screen with the observer key instead, so the machine watching cannot command the arm even if
+someone reaches its keyboard.
 
 The key is baked into the bundle, so serve that build only to the machines the key is meant for. Bloom still has no
 per-person sign-in: one deployment holds one operator key, which is enough for a lab tablet and not enough for a shared

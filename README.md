@@ -489,6 +489,8 @@ and explicit CORS origins:
 export BLOOM_AUTH_ENABLED=true
 export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
 export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
+# Read-only: a supervisor mirror that cannot command the arm.
+export BLOOM_OBSERVER_API_KEY='replace-with-observer-secret'
 export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.local:5173'
 export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```

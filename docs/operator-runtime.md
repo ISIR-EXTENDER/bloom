@@ -69,8 +69,10 @@ driving, the mirror falls back to the app's configured frame and says so. `carte
 authoritative active-mode feedback, so a requested mode is always reported as the last request, never as confirmed
 controller state.
 
-This surface is read-only by construction. It receives a projected client with connection observation and status-read
-methods only. It has no movement, STOP, resume, topic-publish, or configured-action controls. Its ownership notice comes
+This surface is read-only twice over. It receives a projected client with connection observation and status-read
+methods only, and a deployment can give the mirror's machine a `BLOOM_OBSERVER_API_KEY` instead of the operator key.
+The server then refuses that session's teleop commands and its attempts to claim or release control, so the mirror
+cannot command the arm even if someone reaches its keyboard or its browser console. It has no movement, STOP, resume, topic-publish, or configured-action controls. Its ownership notice comes
 from the backend lease state; opening or closing a mirror never hands command authority to another browser. Deliberate
 supervisor takeover remains a future product and safety decision if supervisory controls are ever introduced.
 

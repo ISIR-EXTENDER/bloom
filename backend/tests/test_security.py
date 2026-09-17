@@ -17,11 +17,104 @@ def make_secure_client() -> TestClient:
                 auth_enabled=True,
                 environment="test",
                 http_rate_limit_per_minute=0,
+                observer_api_key="observer-secret",
                 operator_api_key="operator-secret",
             ),
             InMemoryConfigurationRepository(),
         )
     )
+
+
+OBSERVER = {"X-Bloom-API-Key": "observer-secret"}
+
+
+def test_an_observer_reads_runtime_state() -> None:
+    # A supervisor mirror watches with a key that cannot command the arm.
+    client = make_secure_client()
+
+    assert client.get("/api/v1/runtime/control", headers=OBSERVER).status_code == 200
+    assert client.get("/api/v1/runtime/stop", headers=OBSERVER).status_code == 200
+    assert client.get("/api/v1/runtime/audit", headers=OBSERVER).status_code == 200
+    assert client.get("/api/v1/runtime/positions", headers=OBSERVER).status_code == 200
+    assert client.get("/api/v1/ros/topics/status", headers=OBSERVER).status_code == 200
+
+
+def test_an_observer_cannot_command_the_robot() -> None:
+    client = make_secure_client()
+
+    assert client.post("/api/v1/runtime/stop", headers=OBSERVER).status_code == 403
+    assert client.post("/api/v1/runtime/stop/resume", headers=OBSERVER).status_code == 403
+    assert (
+        client.post(
+            "/api/v1/ros/topics/publish",
+            headers=OBSERVER,
+            json={"topic": "/mode_request", "message_type": "std_msgs/msg/String", "payload": {"data": "x"}},
+        ).status_code
+        == 403
+    )
+    assert (
+        client.post(
+            "/api/v1/runtime/actions",
+            headers=OBSERVER,
+            json={"app_id": "sandbox", "config_id": "sandbox", "preset_id": "any"},
+        ).status_code
+        == 403
+    )
+
+
+def test_an_observer_cannot_edit_configuration() -> None:
+    client = make_secure_client()
+
+    response = client.put("/api/v1/configurations/sandbox", headers=OBSERVER, json={"applications": []})
+
+    assert response.status_code == 403
+
+
+def test_an_observer_watches_the_socket_but_cannot_drive_it() -> None:
+    # The mirror needs live status and topic samples; it must never move an arm.
+    client = make_secure_client()
+
+    with client.websocket_connect("/api/v1/runtime/ws?api_key=observer-secret") as websocket:
+        connected = websocket.receive_json()
+        assert connected["type"] == "session_connected"
+
+        websocket.send_json({"type": "claim_control"})
+        refused = websocket.receive_json()
+        assert refused["type"] == "runtime_error"
+        assert refused["payload"]["code"] == "observer_read_only"
+
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+                "mode": 0,
+                "seq": 1,
+                "target": "/joystick_cartesian_command",
+            }
+        )
+        refused_command = websocket.receive_json()
+        assert refused_command["type"] == "runtime_error"
+        assert refused_command["payload"]["code"] == "observer_read_only"
+
+
+def test_an_observer_still_receives_topic_samples() -> None:
+    client = make_secure_client()
+
+    with client.websocket_connect("/api/v1/runtime/ws?api_key=observer-secret") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "subscribe_topic",
+                "field_path": "data",
+                "message_type": "std_msgs/msg/Float64",
+                "topic": "/cmd/max_velocity",
+                "widget_id": "echo",
+            }
+        )
+        ack = websocket.receive_json()
+
+    assert ack["type"] == "subscription_ack"
 
 
 def test_health_remains_available_without_api_key_when_auth_is_enabled() -> None:

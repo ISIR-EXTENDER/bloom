@@ -18,6 +18,9 @@ class Settings(BaseModel):
     auth_enabled: bool = False
     admin_api_key: str = ""
     operator_api_key: str = ""
+    #: Read-only key for a supervisor mirror. It can watch a session and never
+    #: command the arm, so a second screen needs no credential that could.
+    observer_api_key: str = ""
     # Robot-facing deployments allow one connected runtime to command at once.
     runtime_control_required: bool = True
     cors_allowed_origins: tuple[str, ...] = (
@@ -241,6 +244,7 @@ class Settings(BaseModel):
                 "BLOOM_HTTP_RATE_LIMIT_PER_MINUTE",
                 cls.model_fields["http_rate_limit_per_minute"].default,
             ),
+            observer_api_key=os.getenv("BLOOM_OBSERVER_API_KEY", ""),
             operator_api_key=os.getenv("BLOOM_OPERATOR_API_KEY", ""),
             runtime_control_required=_read_bool_env("BLOOM_RUNTIME_CONTROL_REQUIRED", default=True),
             allowed_ros_message_types=_read_tuple_env(

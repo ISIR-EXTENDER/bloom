@@ -12,9 +12,10 @@ from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
     execute_as_runtime_owner,
+    require_observer,
     require_operator,
     require_runtime_owner,
-    require_runtime_websocket_operator,
+    require_runtime_websocket_principal,
 )
 from libs.config import (
     ApplicationConfig,
@@ -279,7 +280,7 @@ class RuntimeControlStateResponse(BaseModel):
 @router.get("/control", response_model=RuntimeControlStateResponse)
 def get_runtime_control_state(
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> RuntimeControlStateResponse:
     session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
     snapshot = get_runtime_control_snapshot(request, request.app.state.runtime_session_manager, session_id)
@@ -292,7 +293,7 @@ def get_runtime_control_state(
 @router.get("/stop", response_model=RuntimeStopStateResponse)
 def get_runtime_stop_state(
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> RuntimeStopStateResponse:
     return RuntimeStopStateResponse(**asdict(get_runtime_stop_controller(request).state))
 
@@ -323,7 +324,7 @@ def resume_runtime_stop(
 def list_runtime_audit_records(
     request: Request,
     limit: int = 100,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> RuntimeAuditListResponse:
     audit_log = get_runtime_audit_log(request)
     return RuntimeAuditListResponse(
@@ -602,7 +603,7 @@ def list_saved_positions(
     request: Request,
     app_id: str = "",
     config_id: str = "",
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> SavedPositionListResponse:
     library = get_position_library(request, config_id, app_id)
     return SavedPositionListResponse(positions=tuple(to_position_response(p) for p in library.list()))
@@ -648,7 +649,7 @@ def export_positions(
     request: Request,
     app_id: str = "",
     config_id: str = "",
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> SavedPositionExportResponse:
     """Render the joint_targets block for cartesian_manager.
 
@@ -852,7 +853,7 @@ def stop_runtime_recording(
 
 @router.websocket("/ws")
 async def runtime_websocket(websocket: WebSocket) -> None:
-    await require_runtime_websocket_operator(websocket)
+    principal = await require_runtime_websocket_principal(websocket)
     manager = get_runtime_session_manager(websocket)
     await websocket.accept()
     session = manager.connect()
@@ -895,6 +896,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     event_loop,
                     topic_samples,
                     topic_subscription_handles,
+                    principal,
                 )
                 receive_task = asyncio.create_task(websocket.receive_json())
 
@@ -933,6 +935,7 @@ async def handle_runtime_client_payload(
     event_loop: asyncio.AbstractEventLoop,
     topic_samples: asyncio.Queue[RuntimeTopicSample],
     topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle],
+    principal: BloomPrincipal,
 ) -> None:
     try:
         message = parse_runtime_client_message(payload)
@@ -948,6 +951,25 @@ async def handle_runtime_client_payload(
         return
 
     audit_log = get_runtime_audit_log(websocket)
+
+    # An observer keeps the socket for status and topic samples, and nothing
+    # that reaches the arm. Subscriptions are reads, so they pass.
+    if not principal.is_operator and isinstance(
+        message,
+        (RuntimeClaimControlMessage, RuntimeReleaseControlMessage, RuntimeTeleopCommandMessage),
+    ):
+        detail = "This session may watch the runtime but not command it."
+        record_runtime_control(audit_log, session.id, False, detail)
+        await websocket.send_json(
+            RuntimeServerMessage(
+                type="runtime_error",
+                detail="Runtime command rejected: this session is read-only.",
+                payload={"code": "observer_read_only", "message": detail},
+                session_id=session.id,
+            ).model_dump()
+        )
+        return
+
     if isinstance(message, RuntimeClaimControlMessage):
         snapshot = (
             manager.claim_control(session)

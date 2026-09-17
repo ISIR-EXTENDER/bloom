@@ -219,9 +219,11 @@ were fixed in this pass, one commit each.
 | 12 | Positions shared one process-global library | Fixed: poses are scoped to the application that saved them |
 | 13 | Production authentication unusable from the dashboard | Fixed: `VITE_BLOOM_API_KEY` on HTTP calls and the socket handshake |
 
-Still open from that list: there is no server-side observer role. A supervisor authenticates with the operator key and
-is kept read-only by the projected client and by ownership, not by a separate credential. A real observer key is worth
-doing before Bloom is exposed beyond a trusted lab network.
+The observer role that list called for now exists on the server. `BLOOM_OBSERVER_API_KEY` authenticates a principal
+that may read runtime control state, the STOP latch, the audit log, saved positions, and the ROS topic catalog, and may
+open the runtime socket for live status and topic samples. Its teleop commands and its attempts to claim or release
+control are refused by the server, not hidden by the interface, so a supervisor screen can hold a key that cannot take
+the arm.
 
 ## How the work is run
 

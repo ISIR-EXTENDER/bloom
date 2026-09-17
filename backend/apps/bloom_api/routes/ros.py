@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from apps.bloom_api.security import (
     BloomPrincipal,
     execute_as_runtime_owner,
+    require_observer,
     require_operator,
     require_runtime_owner,
 )
@@ -159,7 +160,7 @@ def get_runtime_command_rate_limiter(request: Request) -> RuntimeCommandRateLimi
 @router.get("/topics", response_model=RosTopicListResponse)
 def list_ros_topics(
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> RosTopicListResponse:
     gateway = get_ros_topic_catalog_gateway(request)
     topics = tuple(_to_topic_response(topic) for topic in gateway.list_topics())
@@ -169,7 +170,7 @@ def list_ros_topics(
 @router.get("/topics/status", response_model=RosTopicStatusListResponse)
 def list_ros_topic_status(
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> RosTopicStatusListResponse:
     gateway = get_ros_topic_catalog_gateway(request)
     topics = tuple(_to_topic_status_response(topic) for topic in gateway.list_topic_status())

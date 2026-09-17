@@ -70,6 +70,7 @@ Local development keeps authentication disabled by default. Staging and producti
 export BLOOM_AUTH_ENABLED=true
 export BLOOM_ADMIN_API_KEY='replace-with-admin-secret'
 export BLOOM_OPERATOR_API_KEY='replace-with-operator-secret'
+export BLOOM_OBSERVER_API_KEY='replace-with-observer-secret'
 export BLOOM_CORS_ALLOWED_ORIGINS='http://tablet.local:5173,http://dashboard.local:5173'
 export BLOOM_HTTP_RATE_LIMIT_PER_MINUTE=600
 export BLOOM_RUNTIME_CONTROL_REQUIRED=true
@@ -78,6 +79,12 @@ export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the same header, or the `api_key` query
 parameter when the WebSocket client cannot set headers. Treat query-string keys as a compatibility fallback because they
 are easier to leak in logs.
+
+Three roles exist. Admin edits configuration, operator commands the robot, and observer may only read: runtime control
+state, the STOP latch, the audit log, saved positions, and the ROS topic catalog. An observer may open the runtime
+WebSocket, because live status and topic samples are what a supervisor mirror is for, but the server refuses its
+teleop commands and its attempts to claim or release control. Observer is enforced on the server, not by hiding
+buttons, so a supervisor screen can be given a key that cannot take the arm.
 
 The dashboard reads its key from `VITE_BLOOM_API_KEY` at build time and sends it on every HTTP call. A browser cannot
 set headers on a WebSocket handshake, so the runtime socket carries the same key as the `api_key` query parameter: that
