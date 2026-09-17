@@ -455,6 +455,17 @@ export function RuntimeWorkspace({
     unsubscribeRuntimeTopic,
   ]);
 
+  // Opening an app, closing Settings or the tour, and changing screen from
+  // maintenance all replace the view; focus follows it to the named region
+  // instead of dropping to <body>.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new screen is a new view, and focus follows it.
+  useEffect(() => {
+    if (settingsOpen || tourOpen) {
+      return;
+    }
+    workspaceRef.current?.focus({ preventScroll: true });
+  }, [screen.id, settingsOpen, tourOpen]);
+
   useEffect(() => {
     if (previousScreenIdRef.current === screen.id) {
       return;
@@ -597,6 +608,7 @@ export function RuntimeWorkspace({
       data-runtime-stopped={stopped ? "true" : "false"}
       ref={workspaceRef}
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
+      tabIndex={-1}
     >
       <RuntimeKioskBar
         application={navigableApplication}

@@ -1,6 +1,6 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { localizeOperatorText } from "@bloom/widgets";
-import { type CSSProperties, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-progress";
@@ -42,6 +42,10 @@ export function RuntimeGuidedTour({ application, onDone, profile, screen, select
     rootRef,
   });
   useDwellActivation({ dwellMs: profile.dwellMs, enabled: profile.dwellEnabled, rootRef });
+  // Practice replaces the controls; focus goes to it, not to <body>.
+  useEffect(() => {
+    rootRef.current?.focus({ preventScroll: true });
+  }, []);
 
   const finishStep = (stepId: RuntimeTourStepId) => {
     completeStep(stepId);
@@ -58,6 +62,7 @@ export function RuntimeGuidedTour({ application, onDone, profile, screen, select
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       ref={rootRef}
       style={{ "--runtime-font-scale": profile.fontScale } as CSSProperties}
+      tabIndex={-1}
     >
       <header className="runtime-tour-header">
         <div>

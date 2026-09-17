@@ -485,7 +485,16 @@ function resetViewportForRoute(_routeKey: string) {
   }
 
   window.scrollTo({ top: 0 });
-  document.getElementById("bloom-main-content")?.focus({ preventScroll: true });
+  const mainContent = document.getElementById("bloom-main-content");
+  if (!mainContent) {
+    return;
+  }
+  // This wrapper has no accessible name, so a view that already moved focus to
+  // its own labelled region keeps it.
+  if (mainContent.contains(document.activeElement) && document.activeElement !== mainContent) {
+    return;
+  }
+  mainContent.focus({ preventScroll: true });
 }
 
 function resolveSupervisorSelection(

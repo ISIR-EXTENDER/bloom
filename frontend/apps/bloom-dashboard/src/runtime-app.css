@@ -1667,6 +1667,14 @@
   }
 }
 
+/* Regions that take focus when the view changes are containers, not controls:
+   they are announced, and they draw no ring. */
+.runtime-app-workspace:focus,
+.runtime-maintenance-panel:focus,
+.runtime-guided-tour:focus {
+  outline: none;
+}
+
 /* STOP fills its own rect and clears its shadow, so the ring goes inside it:
    the halo band is what carries the 3:1 against the red. */
 .runtime-stop-control:focus-visible {

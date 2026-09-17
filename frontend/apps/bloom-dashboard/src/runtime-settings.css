@@ -265,6 +265,11 @@
   font-size: 15px;
 }
 
+/* The region Settings hands focus to; announced, but not a control. */
+.runtime-settings:focus {
+  outline: none;
+}
+
 .runtime-settings :focus-visible {
   outline: 3px solid var(--bloom-focus-ring);
   outline-offset: 2px;

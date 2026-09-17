@@ -84,6 +84,11 @@ export function RuntimeSettingsPanel({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
+  // Settings replaces the controls; focus goes to it, not to <body>.
+  useEffect(() => {
+    rootRef.current?.focus({ preventScroll: true });
+  }, []);
+
   const update = (next: RuntimeProfileOverrides) => setDraft(normalizeRuntimeProfileOverrides(next));
   const step = (key: "deadzone" | "dwellMs" | "repeatGuardMs" | "scanPeriodMs", delta: number) => {
     const clamped = applyRuntimeProfileOverrides(baseProfile, { ...draft, [key]: profile[key] + delta });
@@ -118,6 +123,7 @@ export function RuntimeSettingsPanel({
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       ref={rootRef}
       style={{ "--runtime-font-scale": profile.fontScale } as CSSProperties}
+      tabIndex={-1}
     >
       <header className="runtime-kiosk-bar">
         <h2 className="runtime-kiosk-app">{applicationName}</h2>
