@@ -269,9 +269,9 @@
               "title": "RZ",
               "layout": {
                 "x": 630,
-                "y": 124,
+                "y": 130,
                 "width": 390,
-                "height": 130
+                "height": 124
               },
               "settings": {
                 "binding": "rz",
@@ -334,10 +334,10 @@
               "kind": "toggle",
               "title": "Gripper",
               "layout": {
-                "x": 848,
-                "y": 17,
-                "width": 188,
-                "height": 92
+                "x": 836,
+                "y": 2,
+                "width": 200,
+                "height": 120
               },
               "settings": {
                 "initialValue": false,
@@ -356,10 +356,10 @@
               "kind": "toggle",
               "title": "Digital Output",
               "layout": {
-                "x": 1048,
-                "y": 17,
-                "width": 188,
-                "height": 92
+                "x": 1036,
+                "y": 2,
+                "width": 200,
+                "height": 120
               },
               "settings": {
                 "initialValue": false,
@@ -918,7 +918,7 @@
                 "x": 20,
                 "y": 442,
                 "width": 260,
-                "height": 74
+                "height": 120
               },
               "settings": {
                 "initialValue": false,
@@ -940,7 +940,7 @@
                 "x": 300,
                 "y": 442,
                 "width": 260,
-                "height": 74
+                "height": 120
               },
               "settings": {
                 "initialValue": false,
@@ -960,9 +960,9 @@
               "title": "Save Tag",
               "layout": {
                 "x": 20,
-                "y": 606,
+                "y": 574,
                 "width": 260,
-                "height": 72
+                "height": 104
               },
               "settings": {
                 "action_feedback": "none",
@@ -985,9 +985,9 @@
               "title": "Monitor",
               "layout": {
                 "x": 300,
-                "y": 606,
+                "y": 574,
                 "width": 260,
-                "height": 72
+                "height": 104
               },
               "settings": {
                 "action_feedback": "none",
@@ -1476,7 +1476,7 @@
                 "x": 800,
                 "y": 90,
                 "width": 460,
-                "height": 260
+                "height": 292
               },
               "settings": {
                 "source": "webcam",
@@ -1495,7 +1495,7 @@
               "title": "Visual Servoing",
               "layout": {
                 "x": 800,
-                "y": 370,
+                "y": 402,
                 "width": 220,
                 "height": 110
               },
@@ -1517,9 +1517,9 @@
               "title": "Save Tag",
               "layout": {
                 "x": 1040,
-                "y": 370,
+                "y": 402,
                 "width": 220,
-                "height": 58
+                "height": 104
               },
               "settings": {
                 "action_feedback": "none",
@@ -1542,9 +1542,9 @@
               "title": "Monitor",
               "layout": {
                 "x": 1040,
-                "y": 445,
+                "y": 522,
                 "width": 220,
-                "height": 58
+                "height": 104
               },
               "settings": {
                 "action_feedback": "none",
@@ -1595,9 +1595,9 @@
               "title": "Control",
               "layout": {
                 "x": 1080,
-                "y": 20,
+                "y": 16,
                 "width": 180,
-                "height": 58
+                "height": 80
               },
               "settings": {
                 "action_feedback": "none",
@@ -1612,7 +1612,8 @@
                   "data": "visual_servoing"
                 },
                 "legacyKind": "navigation-button",
-                "targetScreenId": "visual_servoing"
+                "targetScreenId": "visual_servoing",
+                "hide_title": true
               }
             },
             {
