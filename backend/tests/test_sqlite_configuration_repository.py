@@ -688,3 +688,22 @@ def test_v7_migration_writes_no_regions_when_the_stored_bundle_holds_a_non_list(
     screen = SQLiteConfigurationRepository(database_path).get("manager").applications[0].screens[0]
 
     assert screen.reserved_regions == ()
+
+
+def test_reads_succeed_while_another_connection_holds_a_write_transaction(tmp_path: Path) -> None:
+    database_path = tmp_path / "bloom.db"
+    bundle = make_schema_upgrade_bundle()
+    repository = SQLiteConfigurationRepository(database_path)
+    repository.upsert("upgrade", bundle)
+
+    with sqlite_connection(database_path) as writer:
+        writer.execute("BEGIN IMMEDIATE")
+        writer.execute(
+            "INSERT INTO configuration_bundles (config_id, bundle_json, metadata_json) VALUES ('seeding', '{}', '{}')"
+        )
+
+        assert repository.list_ids() == ["upgrade"]
+        assert repository.get("upgrade") == bundle
+        assert repository.deleted_ids() == []
+
+        writer.rollback()

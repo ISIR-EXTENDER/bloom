@@ -23,19 +23,22 @@ from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
 
 class SQLiteConfigurationRepository:
     def __init__(self, database_path: str | Path) -> None:
+        """Migrate here and only here.
+
+        Migrating on every call opened a write transaction even with nothing
+        pending, so a listing failed whenever another process held a write.
+        """
         self.database_path = Path(database_path)
         with sqlite_connection(self.database_path) as connection:
             apply_sqlite_migrations(connection)
 
     def list_ids(self) -> list[str]:
         with sqlite_connection(self.database_path) as connection:
-            apply_sqlite_migrations(connection)
             rows = connection.execute("SELECT config_id FROM configuration_bundles ORDER BY config_id").fetchall()
             return [str(row["config_id"]) for row in rows]
 
     def get(self, config_id: str) -> ConfigurationBundle:
         with sqlite_connection(self.database_path) as connection:
-            apply_sqlite_migrations(connection)
             # One read transaction, so a concurrent save cannot mix old and new rows into one bundle.
             connection.execute("BEGIN")
             row = connection.execute(
@@ -56,7 +59,6 @@ class SQLiteConfigurationRepository:
 
         bundle_json = dump_configuration_json(bundle)
         with sqlite_connection(self.database_path) as connection:
-            apply_sqlite_migrations(connection)
             connection.execute(
                 """
                 INSERT INTO configuration_bundles (config_id, bundle_json, metadata_json)
@@ -79,7 +81,6 @@ class SQLiteConfigurationRepository:
 
     def delete(self, config_id: str) -> None:
         with sqlite_connection(self.database_path) as connection:
-            apply_sqlite_migrations(connection)
             cursor = connection.execute("DELETE FROM configuration_bundles WHERE config_id = ?", (config_id,))
             if cursor.rowcount > 0:
                 connection.execute(
@@ -92,7 +93,6 @@ class SQLiteConfigurationRepository:
 
     def deleted_ids(self) -> list[str]:
         with sqlite_connection(self.database_path) as connection:
-            apply_sqlite_migrations(connection)
             rows = connection.execute("SELECT config_id FROM deleted_configurations ORDER BY config_id").fetchall()
             return [str(row["config_id"]) for row in rows]
 

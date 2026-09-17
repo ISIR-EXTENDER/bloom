@@ -11,6 +11,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Fixed
+
+- A configuration read no longer takes a write lock. The store is migrated once, when its repository is built, and
+  connections run in WAL with a 15 s busy timeout, so a CLI `config seed` holding a write no longer makes the API
+  answer 500 with `database is locked`.
+
 ## [0.2.0] - 2026-09-17
 
 ### Added

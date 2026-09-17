@@ -77,6 +77,10 @@ screen, widget, and asset rows. Reads rebuild from the normalized rows, so a fie
 added to the mirror as well or it is silently dropped on the way out. File storage stays available with
 `BLOOM_CONFIGURATION_STORAGE=file`.
 
+A store is migrated once, when its repository is built, and never again on a read: migrating per call opened a write
+transaction even with nothing pending, so a listing failed while the CLI held a write. Connections run in WAL with a
+15 s busy timeout, so the API keeps reading the last committed version while `config seed` writes.
+
 SQLite upgrades are ordered and transactional (`0130`). The canonical bundle backfills document fields introduced
 after an older normalized schema, and Bloom refuses a database or configuration document written by a newer schema.
 Every normalized field addition therefore needs a numbered migration and an old-schema snapshot test; rerunning the

@@ -7,6 +7,11 @@ from typing import Any
 
 SCHEMA_VERSION = 7
 
+#: How long a statement waits for another connection's write before giving up.
+#: The CLI holds a write for the length of a seed, which is longer than the
+#: 5 s default, and an API read that waits is better than a 500.
+BUSY_TIMEOUT_MS = 15_000
+
 
 class SQLiteMigrationError(RuntimeError):
     """Raised when a database cannot be upgraded without risking stored data."""
@@ -18,6 +23,10 @@ def connect_sqlite_database(path: str | Path) -> sqlite3.Connection:
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
+    # WAL lets a reader read the last committed version while a writer holds the
+    # write lock, which is what a status poll needs while the CLI seeds.
+    connection.execute("PRAGMA journal_mode = WAL")
+    connection.execute(f"PRAGMA busy_timeout = {BUSY_TIMEOUT_MS}")
     return connection
 
 
