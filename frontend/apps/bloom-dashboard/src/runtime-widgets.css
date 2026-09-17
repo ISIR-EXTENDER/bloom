@@ -460,6 +460,8 @@
 }
 
 .bloom-slider-widget[data-direction="horizontal"] .bloom-axis-word {
+  /* The centred 72px knob rests between the words; a longer language wraps instead of sliding under it. */
+  max-width: calc(50% - 60px);
   transform: translateY(-50%);
 }
 
