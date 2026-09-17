@@ -560,6 +560,22 @@ describe("widget settings contracts", () => {
     });
   });
 
+  it("keeps an authored runtime binding that targets both axes", () => {
+    const runtimeBinding = {
+      adapter: "teleop",
+      axis_deadzone: 0.2,
+      axis_mapping: { x: { component: "linear_y" }, y: { component: "linear_z" } },
+      frame_id: "ft_frame",
+      target: "both",
+      value_mapping: { mode: 3, target_topic: "/joystick_cartesian_command" },
+    };
+
+    for (const binding of ["joy", "rot"]) {
+      const result = normalizeWidgetSettings("joystick", { binding, runtime_binding: runtimeBinding });
+      expect(result.success && result.settings.runtime_binding).toEqual(runtimeBinding);
+    }
+  });
+
   it("rejects joystick rates above the aggregate runtime wire limit", () => {
     expect(normalizeWidgetSettings("joystick", { publish_rate_hz: 31 })).toEqual({
       success: false,

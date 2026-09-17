@@ -1092,10 +1092,8 @@ function normalizeJoystickCompatibility(settings: Record<string, unknown>): Reco
   const defaults =
     binding === "rot" ? ROTATION_JOYSTICK_COMPATIBILITY_DEFAULTS : TRANSLATION_JOYSTICK_COMPATIBILITY_DEFAULTS;
   const usesDefaultMode = settings.mode_id === JOYSTICK_DEFAULT_SETTINGS.mode_id;
-  const usesDefaultRuntimeBinding =
-    isRecord(settings.runtime_binding) &&
-    settings.runtime_binding.adapter === JOYSTICK_DEFAULT_SETTINGS.runtime_binding.adapter &&
-    settings.runtime_binding.target === JOYSTICK_DEFAULT_SETTINGS.runtime_binding.target;
+  // Only the untouched default gives way to the rotation defaults; an authored binding keeps its mapping.
+  const usesDefaultRuntimeBinding = isSameJson(settings.runtime_binding, JOYSTICK_DEFAULT_SETTINGS.runtime_binding);
   const axisHints = isRecord(settings.axis_hints)
     ? {
         x: {
@@ -1488,6 +1486,14 @@ function validateString(
 
 function isNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function isSameJson(left: unknown, right: unknown): boolean {
+  if (isRecord(left) && isRecord(right)) {
+    const keys = Object.keys(left);
+    return keys.length === Object.keys(right).length && keys.every((key) => isSameJson(left[key], right[key]));
+  }
+  return left === right;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
