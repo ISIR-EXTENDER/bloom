@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveRuntimeProfile } from "./runtimeProfile";
+import { resolveInitialScreen, resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
 
 const profiles = [
   {
@@ -131,5 +131,34 @@ describe("resolveRuntimeProfile", () => {
       resolveRuntimeProfile({ profiles: [...profiles] }, { height: 800, width: 1280 }, "operator", { language: "fr" })
         .language,
     ).toBe("fr");
+  });
+});
+
+describe("profile-selected control layout", () => {
+  const screen = (id: string) => ({ id }) as never;
+  const application = {
+    profiles: [
+      { ...profiles[0], id: "bench", preferred_control_layout_id: "drive_bench" },
+      { ...profiles[0], id: "operator", preferred_control_layout_id: "drive_operator" },
+      { ...profiles[0], id: "legacy", preferred_control_layout_id: "default" },
+    ],
+    screens: [screen("drive_bench"), screen("drive_operator"), screen("positions")],
+  };
+  const ids = (screens: readonly { id: string }[]) => screens.map((item) => item.id);
+
+  it("opens the layout the profile names", () => {
+    expect(resolveInitialScreen(application, "operator")?.id).toBe("drive_operator");
+    expect(resolveInitialScreen(application, "bench")?.id).toBe("drive_bench");
+  });
+
+  it("falls back to the first screen for an unknown profile or a layout id naming no screen", () => {
+    expect(resolveInitialScreen(application, "")?.id).toBe("drive_bench");
+    expect(resolveInitialScreen(application, "legacy")?.id).toBe("drive_bench");
+    expect(resolveInitialScreen({ profiles: [], screens: [] }, "operator")).toBeUndefined();
+  });
+
+  it("leaves the other role's layout out of navigation", () => {
+    expect(ids(resolveNavigableScreens(application, "operator"))).toEqual(["drive_operator", "positions"]);
+    expect(ids(resolveNavigableScreens(application, "legacy"))).toEqual(["drive_bench", "positions"]);
   });
 });

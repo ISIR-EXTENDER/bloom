@@ -65,6 +65,21 @@ export function resolveRuntimeProfile(
   );
 }
 
+type LayoutApplication = Pick<ApplicationConfig, "profiles" | "screens">;
+
+/** The profile's control layout when it names a screen, otherwise the first screen (ADR 0133). */
+export function resolveInitialScreen(application: LayoutApplication, profileId: string) {
+  const layoutId = application.profiles.find((profile) => profile.id === profileId)?.preferred_control_layout_id;
+  return application.screens.find((screen) => screen.id === layoutId) ?? application.screens[0];
+}
+
+/** The screens a session can switch to: another role's layout is reached through maintenance, not navigation. */
+export function resolveNavigableScreens(application: LayoutApplication, profileId: string) {
+  const activeLayoutId = resolveInitialScreen(application, profileId)?.id;
+  const layoutIds = new Set(application.profiles.map((profile) => profile.preferred_control_layout_id));
+  return application.screens.filter((screen) => screen.id === activeLayoutId || !layoutIds.has(screen.id));
+}
+
 export function applyRuntimeProfileOverrides(
   profile: ResolvedRuntimeProfile,
   overrides: RuntimeProfileOverrides = {},

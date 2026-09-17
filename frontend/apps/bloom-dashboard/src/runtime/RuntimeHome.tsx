@@ -3,6 +3,7 @@ import { BloomButton, BloomCard, BloomTag } from "@bloom/ui";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
+import { resolveInitialScreen, resolveRuntimeProfile } from "./runtimeProfile";
 
 type RuntimeHomeProps = {
   configurations: readonly LoadedConfiguration[];
@@ -21,7 +22,7 @@ export function RuntimeHome({
   profilePreferences,
   recentRuntimeSelections,
 }: RuntimeHomeProps) {
-  const runtimeApps = collectRuntimeApps(configurations);
+  const runtimeApps = collectRuntimeApps(configurations, profilePreferences);
   const recentRuntimeApps = collectRecentRuntimeApps(configurations, recentRuntimeSelections);
 
   return (
@@ -139,13 +140,22 @@ export function RuntimeHome({
   );
 }
 
-export function collectRuntimeApps(configurations: readonly LoadedConfiguration[]) {
+export function collectRuntimeApps(
+  configurations: readonly LoadedConfiguration[],
+  profilePreferences: Record<string, string> = {},
+) {
+  const viewport =
+    typeof window === "undefined"
+      ? { height: 720, width: 1280 }
+      : { height: window.innerHeight, width: window.innerWidth };
   return configurations.flatMap((configuration) =>
-    configuration.bundle.applications.map((application) => ({
-      application,
-      configuration,
-      firstScreen: application.screens[0],
-    })),
+    configuration.bundle.applications.map((application) => {
+      const preferredProfileId =
+        profilePreferences[runtimePreferenceKey({ appId: application.id, configId: configuration.id })] ?? "";
+      // Resolved as the workspace resolves it, so launch opens the layout the session will run.
+      const profile = resolveRuntimeProfile(application, viewport, preferredProfileId);
+      return { application, configuration, firstScreen: resolveInitialScreen(application, profile.id) };
+    }),
   );
 }
 

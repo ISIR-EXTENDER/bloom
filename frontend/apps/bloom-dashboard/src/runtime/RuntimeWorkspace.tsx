@@ -28,7 +28,7 @@ import { resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopAdapter } from "./runtimeModeState";
-import { resolveRuntimeProfile } from "./runtimeProfile";
+import { resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
 import { useAudioCues } from "./use-audio-cues";
@@ -138,6 +138,10 @@ export function RuntimeWorkspace({
   const baseRuntimeProfile = useMemo(
     () => resolveRuntimeProfile(application, viewportSize, preferredProfileId),
     [application, preferredProfileId, viewportSize],
+  );
+  const navigableApplication = useMemo(
+    () => ({ ...application, screens: resolveNavigableScreens(application, baseRuntimeProfile.id) }),
+    [application, baseRuntimeProfile.id],
   );
   const profileOverrideKey = runtimeProfileOverrideKey(selection, baseRuntimeProfile.id);
   const activeProfileOverrides = profileOverrides[profileOverrideKey] ?? EMPTY_PROFILE_OVERRIDES;
@@ -526,7 +530,7 @@ export function RuntimeWorkspace({
       style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
     >
       <RuntimeKioskBar
-        application={application}
+        application={navigableApplication}
         commandFeedback={
           runtimeActionFeedback?.appId === application.id
             ? runtimeActionFeedback
