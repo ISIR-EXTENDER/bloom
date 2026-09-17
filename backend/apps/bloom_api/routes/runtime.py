@@ -1001,6 +1001,8 @@ async def handle_runtime_client_payload(
     topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle],
     principal: BloomPrincipal,
 ) -> None:
+    # Anything this session sends, a ping included, renews its control lease.
+    manager.record_activity(session.id)
     try:
         message = parse_runtime_client_message(payload)
     except ValidationError as exc:

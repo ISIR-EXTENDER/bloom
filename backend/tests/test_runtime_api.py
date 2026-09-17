@@ -34,6 +34,14 @@ from libs.sessions import (
 EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
 
 
+class MovableClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
 class RecordingRosPublisherGateway:
     def __init__(self) -> None:
         self.requests: list[RosPublishRequest] = []
@@ -220,6 +228,57 @@ def test_runtime_control_is_exclusive_and_requires_explicit_handover() -> None:
             assert claimed["session_id"] == waiting_connected["session_id"]
 
         assert owner_connected["session_id"] != waiting_connected["session_id"]
+
+
+def test_a_silent_owner_is_displaced_and_the_next_operator_can_resume() -> None:
+    # The owner's tablet drops off Wi-Fi with its socket open: without a
+    # liveness rule, resume answered 409 until that socket finally died.
+    clock = MovableClock()
+    app = create_app(Settings(environment="test", runtime_control_required=True), InMemoryConfigurationRepository())
+    app.state.runtime_session_manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=clock)
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as owner:
+        owner.receive_json()
+        owner.send_json({"type": "claim_control"})
+        assert owner.receive_json()["payload"]["is_owner"] is True
+
+        with client.websocket_connect("/api/v1/runtime/ws") as waiting:
+            waiting_session = waiting.receive_json()["session_id"]
+            # STOP never needs the lease, from either operator.
+            assert client.post("/api/v1/runtime/stop").status_code == 200
+
+            clock.now = 11.0
+            waiting.send_json({"type": "claim_control"})
+
+            assert waiting.receive_json()["payload"]["is_owner"] is True
+            resumed = client.post("/api/v1/runtime/stop/resume", headers={"X-Bloom-Runtime-Session": waiting_session})
+            assert resumed.status_code == 200
+
+
+def test_an_idle_owner_that_keeps_pinging_is_not_displaced() -> None:
+    clock = MovableClock()
+    app = create_app(Settings(environment="test", runtime_control_required=True), InMemoryConfigurationRepository())
+    app.state.runtime_session_manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=clock)
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as owner:
+        owner.receive_json()
+        owner.send_json({"type": "claim_control"})
+        owner.receive_json()
+
+        with client.websocket_connect("/api/v1/runtime/ws") as waiting:
+            waiting_session = waiting.receive_json()["session_id"]
+            for tick in (3.0, 6.0, 9.0, 12.0):
+                clock.now = tick
+                owner.send_json({"type": "ping"})
+                assert owner.receive_json()["type"] == "pong"
+
+            waiting.send_json({"type": "claim_control"})
+
+            assert waiting.receive_json()["payload"]["is_owner"] is False
+            refused = client.post("/api/v1/runtime/stop/resume", headers={"X-Bloom-Runtime-Session": waiting_session})
+            assert refused.status_code == 409
 
 
 def test_robot_facing_http_commands_require_the_control_owner_session() -> None:

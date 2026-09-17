@@ -1,8 +1,9 @@
 import type { RuntimeControlState } from "@bloom/api-client";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { RuntimeLinkState } from "./runtime-action-dispatcher";
 import {
   createRuntimeWebSocketClient,
+  RUNTIME_KEEPALIVE_INTERVAL_MS,
   type RuntimeWebSocketClientOptions,
   resolveRuntimeWebSocketProtocols,
   resolveRuntimeWebSocketUrl,
@@ -287,6 +288,45 @@ describe("runtime WebSocket client", () => {
 
     await expect(responsePromise).resolves.toMatchObject({ payload: { removed: true, topic: "/ee_velocity" } });
     expect(socket.sentMessages).toEqual([JSON.stringify(request)]);
+  });
+
+  it("pings while the operator is idle so the backend keeps the control lease", async () => {
+    vi.useFakeTimers();
+    try {
+      const WebSocketCtor = createFakeWebSocketConstructor();
+      const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+      void client.ensureRuntimeConnected();
+      const socket = WebSocketCtor.instances[0];
+      socket.open();
+      await flushPromises();
+
+      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 3);
+
+      expect(socket.sentMessages).toEqual(Array(3).fill(JSON.stringify({ type: "ping" })));
+
+      // The pong settles its own queued reply, so a later request still gets its answer.
+      const teleop = client.sendTeleopCommand({
+        angular: { x: 0, y: 0, z: 0 },
+        linear: { x: 0.1, y: 0, z: 0 },
+        mode: 0,
+        seq: 1,
+        target: "/joystick_cartesian_command",
+        type: "teleop_cmd",
+      });
+      await flushPromises();
+      for (let index = 0; index < 3; index += 1) {
+        socket.message({ detail: "Runtime session is alive.", session_id: "s", type: "pong" });
+      }
+      socket.message({ detail: "ok", payload: { status: "accepted" }, session_id: "s", type: "teleop_ack" });
+
+      await expect(teleop).resolves.toMatchObject({ type: "teleop_ack" });
+
+      socket.close();
+      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 2);
+      expect(socket.sentMessages.filter((message) => message.includes("ping"))).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("settles each request with its own reply when an earlier one fails", async () => {

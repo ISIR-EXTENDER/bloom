@@ -38,6 +38,12 @@ type PendingReply = {
   settle: (data: unknown) => boolean;
 };
 
+/**
+ * The backend drops a control lease after 10 s of silence, so an operator who
+ * is watching the screen and moving nothing still says it is there.
+ */
+export const RUNTIME_KEEPALIVE_INTERVAL_MS = 3000;
+
 export type RuntimeWebSocketClientOptions = {
   protocols?: string[];
   url: string;
@@ -136,6 +142,7 @@ export function createRuntimeWebSocketClient(
     pendingRepliesBySocket.set(runtimeSocket, pendingReplies);
     // A socket that was replaced still delivers its own replies, but no longer speaks for the link.
     const isCurrent = () => socket === runtimeSocket;
+    const keepaliveTimer = setInterval(() => sendKeepalivePing(runtimeSocket), RUNTIME_KEEPALIVE_INTERVAL_MS);
 
     runtimeSocket.addEventListener("message", (event) => {
       if (!(event instanceof MessageEvent)) {
@@ -181,6 +188,7 @@ export function createRuntimeWebSocketClient(
     });
 
     runtimeSocket.addEventListener("close", () => {
+      clearInterval(keepaliveTimer);
       rejectPendingReplies(runtimeSocket, "Bloom runtime WebSocket closed before the runtime replied.");
       pendingRepliesBySocket.delete(runtimeSocket);
       if (!isCurrent()) {
@@ -196,6 +204,16 @@ export function createRuntimeWebSocketClient(
     runtimeSocket.addEventListener("error", () => {
       rejectPendingReplies(runtimeSocket, "Bloom runtime WebSocket failed before the runtime replied.");
     });
+  }
+
+  /** Queued like any other request, because the server answers in order and the client matches by position. */
+  function sendKeepalivePing(runtimeSocket: WebSocketLike) {
+    const pendingReplies = pendingRepliesBySocket.get(runtimeSocket);
+    if (!pendingReplies || runtimeSocket.readyState !== WebSocketCtor.OPEN) {
+      return;
+    }
+    pendingReplies.push({ reject: () => undefined, settle: (data) => parsePong(data) !== null });
+    runtimeSocket.send(JSON.stringify({ type: "ping" }));
   }
 
   function rejectPendingReplies(runtimeSocket: WebSocketLike, message: string) {
@@ -370,6 +388,18 @@ export function resolveRuntimeWebSocketProtocols(apiKey = ""): string[] | undefi
 
 function isSubprotocolToken(value: string): boolean {
   return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(value);
+}
+
+function parsePong(data: unknown): { type: "pong" } | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  try {
+    return (JSON.parse(data) as { type?: unknown }).type === "pong" ? { type: "pong" } : null;
+  } catch {
+    return null;
+  }
 }
 
 function parseTeleopAck(data: unknown): RuntimeTeleopCommandResponse | null {

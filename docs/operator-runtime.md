@@ -98,8 +98,11 @@ One backend serves at most 32 runtime sessions at once, tabs and mirrors togethe
 with **this robot already has enough connections** and closed; close a Bloom tab or a mirror and reconnect. Each
 session may hold up to 64 topic subscriptions.
 
-**Take control** is an explicit retry, not a forced takeover. It succeeds only after the current owner releases control
-or disconnects; waiting sessions are never promoted silently. STOP remains available from a blocked Runtime because
+**Take control** is an explicit retry, not a forced takeover. It succeeds after the current owner releases control,
+disconnects, or has said nothing at all for 10 seconds — a tablet that lost Wi-Fi keeps its connection open, and its
+lease must not block the room until that connection finally dies (decision 0135). A Runtime tab pings every 3 seconds
+while it is open, so an operator reading the screen and moving nothing never looks stale. Waiting sessions are never
+promoted silently: someone has to press **Take control**. STOP remains available from a blocked Runtime because
 stopping must not depend on lease ownership. Scan and dwell profiles restrict themselves to **Take control** and STOP
 while blocked rather than disappearing or reaching robot controls. Resume and every other robot-facing command require
 the lease.

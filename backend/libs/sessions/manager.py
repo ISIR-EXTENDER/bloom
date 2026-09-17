@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from threading import Lock
+from time import monotonic
 from typing import TypeVar
 from uuid import uuid4
 
@@ -14,6 +15,11 @@ STOP_MODE_REQUEST = "behaviour/passthrough"
 #: past this is a client reconnecting in a loop rather than a room full of
 #: tablets.
 MAX_RUNTIME_SESSIONS = 32
+#: How long an owner may say nothing at all before another operator may take
+#: the lease. The dashboard pings every 3 s, so a live but idle tablet is never
+#: stale; a tablet that lost Wi-Fi with its socket still open is displaced
+#: after five dashboard status polls rather than never.
+CONTROL_LEASE_TIMEOUT_SEC = 10.0
 
 
 @dataclass(frozen=True)
@@ -43,8 +49,16 @@ class RuntimeSessionLimitError(RuntimeError):
 
 
 class RuntimeSessionManager:
-    def __init__(self, max_sessions: int = MAX_RUNTIME_SESSIONS) -> None:
+    def __init__(
+        self,
+        max_sessions: int = MAX_RUNTIME_SESSIONS,
+        lease_timeout_sec: float = CONTROL_LEASE_TIMEOUT_SEC,
+        clock: Callable[[], float] = monotonic,
+    ) -> None:
         self._max_sessions = max_sessions
+        self._lease_timeout_sec = lease_timeout_sec
+        self._clock = clock
+        self._last_seen: dict[str, float] = {}
         self._sessions: set[str] = set()
         self._owner_session_id: str | None = None
         self._releasing_session_id: str | None = None
@@ -68,11 +82,19 @@ class RuntimeSessionManager:
                     "Close a Bloom tab or mirror and try again."
                 )
             self._sessions.add(session.id)
+            self._last_seen[session.id] = self._clock()
         return session
+
+    def record_activity(self, session_id: str) -> None:
+        """Any message from a session, a ping included, proves it is still there."""
+        with self._lock:
+            if session_id in self._sessions:
+                self._last_seen[session_id] = self._clock()
 
     def disconnect(self, session: RuntimeSession) -> None:
         with self._lock:
             self._sessions.discard(session.id)
+            self._last_seen.pop(session.id, None)
             self._teleop_commands.pop(session.id, None)
             self._mode_requests.pop(session.id, None)
             self._frame_ids.pop(session.id, None)
@@ -84,6 +106,8 @@ class RuntimeSessionManager:
     def claim_control(self, session: RuntimeSession) -> RuntimeControlSnapshot:
         with self._lock:
             self._ensure_connected(session.id)
+            self._last_seen[session.id] = self._clock()
+            self._drop_a_stale_lease()
             if self._owner_session_id is None and self._releasing_session_id is None:
                 self._owner_session_id = session.id
             return self._snapshot(session.id)
@@ -209,6 +233,25 @@ class RuntimeSessionManager:
             owner_mode_request=self._mode_requests.get(owner_id or "", ""),
             owner_moving=bool(owner_commands),
         )
+
+    def _drop_a_stale_lease(self) -> None:
+        """A lease holds only while its session is still saying something.
+
+        A tablet that loses Wi-Fi keeps its TCP socket open, and its lease used
+        to block every other operator, and every resume, until that socket
+        finally died.
+        """
+        owner_id = self._owner_session_id or self._releasing_session_id
+        if owner_id is None:
+            return
+        last_seen = self._last_seen.get(owner_id)
+        if last_seen is not None and self._clock() - last_seen <= self._lease_timeout_sec:
+            return
+
+        self._owner_session_id = None
+        self._releasing_session_id = None
+        # Whatever it last sent expired on the manager long before this.
+        self._teleop_commands.pop(owner_id, None)
 
     def _is_control_owner(self, session_id: str) -> bool:
         return (

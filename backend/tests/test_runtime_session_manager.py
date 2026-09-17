@@ -6,6 +6,14 @@ import pytest
 from libs.sessions import RuntimeControlNotOwnedError, RuntimeSessionManager, TeleopCommand, TeleopVector3
 
 
+class MovableClock:
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
 def test_control_must_be_released_before_another_session_can_claim_it() -> None:
     manager = RuntimeSessionManager()
     first = manager.connect()
@@ -19,6 +27,53 @@ def test_control_must_be_released_before_another_session_can_claim_it() -> None:
     manager.release_control(first)
 
     assert manager.claim_control(second).is_owner is True
+
+
+def test_a_silent_owner_loses_the_lease_to_a_waiting_session() -> None:
+    # A tablet off Wi-Fi keeps its socket open; without this its lease blocks
+    # every other operator, and every resume, until the socket finally dies.
+    clock = MovableClock()
+    manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=clock)
+    owner = manager.connect()
+    waiting = manager.connect()
+    manager.claim_control(owner)
+
+    clock.now = 11.0
+
+    assert manager.claim_control(waiting).is_owner is True
+    assert manager.is_control_owner(owner.id) is False
+
+
+def test_a_live_but_idle_owner_keeps_the_lease() -> None:
+    clock = MovableClock()
+    manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=clock)
+    owner = manager.connect()
+    waiting = manager.connect()
+    manager.claim_control(owner)
+
+    # The dashboard pings while the operator reads the screen and moves nothing.
+    for tick in (3.0, 6.0, 9.0, 12.0):
+        clock.now = tick
+        manager.record_activity(owner.id)
+
+    blocked = manager.claim_control(waiting)
+
+    assert blocked.is_owner is False
+    assert blocked.owner_present is True
+    assert manager.is_control_owner(owner.id) is True
+
+
+def test_a_lease_stuck_mid_release_is_also_dropped_once_stale() -> None:
+    clock = MovableClock()
+    manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=clock)
+    owner = manager.connect()
+    waiting = manager.connect()
+    manager.claim_control(owner)
+    assert manager.begin_control_release(owner) is True
+
+    clock.now = 11.0
+
+    assert manager.claim_control(waiting).is_owner is True
 
 
 def test_disconnect_releases_control_without_promoting_a_waiting_session() -> None:

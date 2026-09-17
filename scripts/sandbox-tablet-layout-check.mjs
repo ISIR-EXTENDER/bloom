@@ -276,6 +276,22 @@ async function mockRuntimeWebSocket(page) {
           }, 0);
           return;
         }
+        if (message?.type === "ping") {
+          // The keepalive is a request like any other, and replies match by position.
+          window.setTimeout(() => {
+            this.dispatchEvent(
+              new MessageEvent("message", {
+                data: JSON.stringify({
+                  detail: "Runtime session is alive.",
+                  payload: {},
+                  session_id: this.sessionId,
+                  type: "pong",
+                }),
+              }),
+            );
+          }, 0);
+          return;
+        }
         if (message?.type === "unsubscribe_topic") {
           window.setTimeout(() => {
             this.dispatchEvent(

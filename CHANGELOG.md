@@ -11,6 +11,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Changed
+
+- A control lease now holds only while its session is still talking (decision 0135). An owner silent for 10 s can be
+  displaced by another operator's **Take control**, so a tablet that lost Wi-Fi with its socket still open no longer
+  blocks every other operator and every resume. Runtime tabs ping every 3 s, so an idle operator is never displaced.
+
 ### Fixed
 
 - The runtime socket serves at most 32 sessions. A connection past that is refused with `session_limit` and closed
