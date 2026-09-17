@@ -530,13 +530,22 @@ Security docs:
 
 ## Testing
 
-Run the main checks before opening PRs:
+Run everything CI runs, in CI's order, before pushing:
 
 ```bash
-npm run check
-npm run test
+npm run verify
+```
+
+It lints and tests the backend, then lints, builds and tests the frontend, audits dependencies, and runs the visual
+gate. It warns when the working tree is dirty, because a push only carries what is committed. The individual steps are:
+
+```bash
+npm run check          # Biome lint and format
 npm run build
+npm run test
+npm run visual:smoke
 cd backend
+make lint              # ruff lint and format check; `make format` applies formatting
 make test
 ```
 
@@ -554,6 +563,9 @@ npm run security:dynamic
 
 Backend tests intentionally disable external pytest plugin autoloading so a sourced ROS environment cannot leak
 ROS-specific pytest plugins into generic Bloom tests.
+
+CI runs the backend on Python 3.10 and 3.12, the supported floor and the deployed version. Dependabot opens weekly pull
+requests for npm, uv and GitHub Actions, grouping minor and patch updates; majors arrive one at a time.
 
 ## Tooling
 
