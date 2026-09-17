@@ -14,7 +14,7 @@
   <a href="#why-bloom">Why Bloom</a> ·
   <a href="#watch-it-run">Watch it run</a> ·
   <a href="#quickstart">Quickstart</a> ·
-  <a href="#extender-tutorial">Extender tutorial</a> ·
+  <a href="#tutorials">Tutorials</a> ·
   <a href="#preview">Preview</a> ·
   <a href="#design-language">Design language</a> ·
   <a href="#documentation">Documentation</a>
@@ -92,10 +92,18 @@ launch one of the shared applications.
 The backend imports the tracked applications on first start. ROS diagnostics show `MISSING` when no ROS graph is
 attached; that is expected in this quickstart and still lets you inspect the full UI safely.
 
-## Extender Tutorial
+To go from here to a moving arm, follow [Getting started](docs/tutorials/getting-started.md).
 
-This walkthrough connects Bloom to `cartesian_manager` and runs either Explorer in simulation or Kinova with fake
-hardware. Complete the [Quickstart](#quickstart) installation first.
+## Tutorials
+
+Three walkthroughs in [`docs/tutorials/`](docs/tutorials/), in the order a newcomer needs them:
+
+- **[Getting started](docs/tutorials/getting-started.md)** — from this clone to a simulated Explorer or Kinova arm
+  moving under your hand, with the ROS commands that prove it.
+- **[Build your first app](docs/tutorials/build-your-first-app.md)** — create an app, add a screen, place a joystick
+  and a command button, point it at a topic, pass the review checklist, open it as a role.
+- **[Operate safely](docs/tutorials/operate-safely.md)** — the operator's page: roles, the kiosk bar, STOP and resume,
+  maintenance, settings, and what to check before touching a control.
 
 > [!CAUTION]
 > Start with simulation or fake hardware. Bloom's STOP latches the software command path, but it does not replace the
@@ -103,74 +111,7 @@ hardware. Complete the [Quickstart](#quickstart) installation first.
 > and combined scan-plus-dwell are still awaiting validation with the intended devices; see the
 > [operator runtime guide](docs/operator-runtime.md#accessibility-profiles).
 
-### 1. Build the Extender workspace
-
-```bash
-cd /path/to/extender_workspace
-source /opt/ros/jazzy/setup.bash
-colcon build --symlink-install
-source install/setup.bash
-```
-
-### 2. Start one robot
-
-For **Explorer simulation**:
-
-```bash
-cd /path/to/extender_workspace
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-ros2 launch cartesian_manager explorer.launch.py use_simulation:=true
-```
-
-> [!NOTE]
-> On the current Jazzy install the Explorer simulation needs two runtime workarounds before the arm moves: stop the
-> standalone `ros2_control_node` that blocks the Gazebo spawn, and bridge the Gazebo clock. Both are explorer_stack
-> issues; the commands are in [the simulation run](docs/validation/ros-sim-e2e.md), which applies them for you.
-
-Or, for **Kinova fake hardware**:
-
-```bash
-cd /path/to/extender_workspace
-source /opt/ros/jazzy/setup.bash
-source install/setup.bash
-ros2 launch cartesian_manager kinova.launch.py use_simulation:=true
-```
-
-Keep that terminal running.
-
-### 3. Start Bloom for that robot
-
-In a new terminal, start the API with ROS adapters and the dashboard together.
-
-For **Explorer**:
-
-```bash
-cd /path/to/bloom
-EXTENDER_WORKSPACE=/path/to/extender_workspace \
-BLOOM_ROBOT_NAME=Explorer \
-BLOOM_ROS_COMMAND_FRAME_ID=base_link \
-BLOOM_ROS_EE_FRAME_ID=ft_frame \
-scripts/extender-workspace-dev.sh
-```
-
-For **Kinova**:
-
-```bash
-cd /path/to/bloom
-EXTENDER_WORKSPACE=/path/to/extender_workspace \
-BLOOM_ROBOT_NAME=Kinova \
-BLOOM_ROS_COMMAND_FRAME_ID=base_link \
-BLOOM_ROS_EE_FRAME_ID=effector_frame \
-scripts/extender-workspace-dev.sh
-```
-
-The launcher sources the selected workspace, starts the ROS-enabled API on port `8000`, and starts the dashboard on
-port `5173`. `Ctrl+C` stops both Bloom processes.
-
-### Open Bloom From A Phone On The Same Wi-Fi
-
-Keep the API on loopback and expose only Vite. Add these variables to either launcher command above:
+To open Bloom from a phone or tablet on the same trusted network, keep the API on loopback and expose only Vite:
 
 ```bash
 BLOOM_FRONTEND_HOST=0.0.0.0 \
@@ -178,106 +119,10 @@ BLOOM_PUBLIC_HOST="$(hostname -I | awk '{print $1}')" \
 scripts/extender-workspace-dev.sh
 ```
 
-The launcher prints `Same-Wi-Fi URL: http://<lan-ip>:5173`. Open that URL from a phone or tablet on the same trusted
-network. Browser API and WebSocket traffic stays on the same origin and Vite proxies it to Bloom on
-`127.0.0.1:8000`; no direct API port or CORS change is needed. If a host firewall blocks it, allow TCP `5173` only from
-the lab subnet. Do not port-forward this development server or use it on an untrusted network.
-
-Every connected device reads and writes the same server-side `backend/data/bloom.db`; there are no browser-local JSON
-configuration files to synchronize. Builder saves are visible after another device reloads. Avoid editing the same app
-from two browsers at once because the last saved draft wins. Stop Bloom before copying the SQLite file for backup.
-See the [deployment guide](docs/deployment.md#same-wi-fi-access) for verification, custom ports, and
-database operations.
-
-### 4. Operate the Manager app
-
-1. Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and choose **Runtime**. The library lists the apps on this robot.
-2. Select **Explorer Manager** or **Kinova Manager** to match the robot process, choose a role, and press
-   **Open as Operator** or **Open as Bench**. The role opens its own Drive layout; a remembered role is marked but
-   never opens by itself.
-3. Before moving a control, read the kiosk bar: app, screen, status chip, command frame, publish rate, and role.
-   `READY` describes the frontend-to-backend link; use the diagnostics below to verify the ROS path. A second Runtime
-   tab stays inert until the first leaves and the second operator chooses **Take control**.
-4. **Drive · Operator** carries plain words, **Slow / Medium / Fast** speed segments and larger targets; **Drive ·
-   Bench** carries continuous speed limits in a status rail. Both send identical messages for the same gesture.
-5. Hold the **⋯** button for 1.5 seconds to open **Maintenance**. Motion is held while it is open. It lists read-only
-   facts and reaches **Settings**, **Switch role**, **Reload this app**, **Exit to library**, and a **More** group with
-   the other screens (**Positions**, **Robot feedback**, **Command sources**, **Joystick lab**), the practice tour, the
-   supervisor mirror, the Builder shortcuts, Help, Home and the EN/ES/FR selector. Only that group scrolls, so
-   **Resume operating** stays reachable.
-6. **Joystick lab** is the physical-joystick-equivalent workflow: choose a supported command frame, then use
-   translation, height, rotation, pivot, modes and gripper on one screen, with the twist that was sent. Frame buttons
-   stay disabled until every motion control is back at zero.
-7. **Settings** adjusts the selected profile: text size, language, sound, input method (Touch, Dwell, Scan), how a push
-   moves (Drag, Tap by tap, Keep going), and timing. Changes are a draft until **Save and resume**; **Discard changes**
-   leaves without saving. The command frame is not a setting, because it changes what the app publishes.
-8. **STOP** is always live, including over Maintenance, Settings and the practice tour. Press it to latch the command
-   output, and resume only after checking the cause, with the one-second hold.
-9. Open **Supervisor mirror** from the library to watch the app on a second screen. It reads live status and the shared
-   STOP latch, but it has no movement, STOP, resume, publish or configured-action controls.
-
-Both Manager apps share the same workflow. Explorer names `ft_frame` as its end-effector frame; Kinova names
-`effector_frame` and adds the reviewed fault-reset action. Bloom offers `base_link` and `hybrid_frame` everywhere and
-adds the end-effector frame only once a deployment names it, so no operator is offered a frame this robot's manager
-would silently discard.
-
-The operator shell is available in English, Spanish, and French, and the shipped operator words on the controls
-(speeds, modes, turns, gripper verbs, directions) follow the profile's language. Topic names, frame IDs, axes and
-numbers are never translated. Spanish and French still need a native speaker's review before participant use.
-
-Before publishing an edited app, open **Builder > Apps > Open app > Review checklist**. Bloom derives geometry, minimum
-sizes, sibling symmetry, pad pairs, profile coverage, command frame and topic-policy checks from the saved application.
-
-### 5. Verify the command path
-
-In another sourced ROS terminal:
-
-```bash
-source /opt/ros/jazzy/setup.bash
-source /path/to/extender_workspace/install/setup.bash
-ros2 topic info /joystick_cartesian_command
-ros2 topic echo /joystick_cartesian_command
-ros2 topic echo /cartesian_command
-```
-
-Move one Drive control and release it. The manager output should become non-zero while commanded and return to zero on
-release. In Joystick Lab, select a frame while the controls are at zero and confirm the next
-`/joystick_cartesian_command` message carries that `header.frame_id`. Bloom follows this path:
-
-```text
-browser control -> Bloom WebSocket -> ROS adapter -> /joystick_cartesian_command
-                -> cartesian_manager -> /cartesian_command
-```
-
-Check Bloom itself from another terminal:
-
-```bash
-curl -fsS http://127.0.0.1:8000/api/v1/health
-curl -fsS http://127.0.0.1:8000/api/v1/ros/topics/status
-```
-
-The full pre-session checklist, including modes, gripper, gamepad, tablet, and STOP validation, is in
-[Extender and Petanque end-to-end validation](docs/extender-petanque-validation.md).
-
-<details>
-<summary>Run on real hardware</summary>
-
-Use the normal lab authorization and safety procedure first. Then replace the simulation launch with the matching
-hardware command.
-
-Explorer:
-
-```bash
-ros2 launch cartesian_manager explorer.launch.py use_simulation:=false
-```
-
-Kinova, replacing the address when needed:
-
-```bash
-ros2 launch cartesian_manager kinova.launch.py use_simulation:=false robot_ip:=192.168.1.10
-```
-
-</details>
+The launcher prints `Same-Wi-Fi URL: http://<lan-ip>:5173`. Every connected device reads and writes the same
+server-side `backend/data/bloom.db`, so a Builder save is visible after another device reloads. Do not port-forward
+this development server. The [deployment guide](docs/deployment.md#same-wi-fi-access) covers verification, custom
+ports, firewall rules and database operations.
 
 ## Preview
 
@@ -430,8 +275,8 @@ or `deleted`. The [operator guide](docs/operator-runtime.md#shared-applications-
 
 ## Extender Reference
 
-The [Extender tutorial](#extender-tutorial) is the normal development path. Its launcher accepts these useful
-overrides:
+[Getting started](docs/tutorials/getting-started.md) is the normal development path. Its launcher accepts these
+useful overrides:
 
 - `EXTENDER_WORKSPACE` or `EXTENDER_SETUP_FILE` selects the ROS workspace to source. The default is an
   `extender_workspace` checkout next to this repository.
