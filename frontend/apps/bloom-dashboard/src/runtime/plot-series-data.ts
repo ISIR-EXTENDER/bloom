@@ -1,6 +1,6 @@
 import type { ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { PlotSeriesSnapshot, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import { appendTopicPlotSample, readPlotSeries, type TopicMessage } from "@bloom/widgets";
+import { appendPlotSeriesSample, readPlotSeries, type TopicMessage } from "@bloom/widgets";
 import { useCallback, useEffect, useState } from "react";
 
 import type { RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
@@ -43,10 +43,12 @@ export function createSeriesSubscriptionRequests(
   );
 }
 
+/** Samples are timed on arrival here, not by the backend's `received_at`: the tablet clock may be skewed. */
 export function appendSeriesSample(
   current: WidgetDataSnapshot | undefined,
   widget: WidgetConfig,
   message: TopicMessage,
+  receivedAtMs = Date.now(),
 ): WidgetDataSnapshot | null {
   const configs = readPlotSeries(widget.settings);
   if (!configs.some((series) => series.topic === message.topic)) {
@@ -64,7 +66,12 @@ export function appendSeriesSample(
         ...config,
         samples:
           config.topic === message.topic
-            ? appendTopicPlotSample(samples, message, { fieldPath: config.fieldPath, historySeconds, maxSamples })
+            ? appendPlotSeriesSample(samples, message, {
+                fieldPath: config.fieldPath,
+                historySeconds,
+                maxSamples,
+                receivedAtMs,
+              })
             : samples,
       };
     }),

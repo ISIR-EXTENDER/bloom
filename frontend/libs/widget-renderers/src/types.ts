@@ -1,6 +1,7 @@
 import type { MotorAccessibilityPreset, RuntimeLanguage, WidgetKind } from "@bloom/api-client";
 import type {
   PlotSeriesConfig,
+  PlotSeriesSample,
   TopicMessage,
   TopicPlotSample,
   WidgetActionIntent,
@@ -15,7 +16,7 @@ export type SavedPositionEntry = {
   description?: string;
 };
 
-export type PlotSeriesSnapshot = PlotSeriesConfig & { samples: readonly TopicPlotSample[] };
+export type PlotSeriesSnapshot = PlotSeriesConfig & { samples: readonly PlotSeriesSample[] };
 
 export type WidgetDataSnapshot =
   | {

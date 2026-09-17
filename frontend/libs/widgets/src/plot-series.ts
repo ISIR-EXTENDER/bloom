@@ -1,4 +1,4 @@
-import type { TopicPlotSample } from "./telemetry";
+import { resolveFieldPath, type TopicMessage } from "./telemetry";
 
 /** The design system's series ramp (design-system §05). A seed colour naming one of these keeps its slot. */
 export const SERIES_RAMP = ["#31493f", "#7e967e", "#c98a7e", "#536960", "#8a7f5c", "#6b7f8a", "#8a6b7f", "#5c7d6b"];
@@ -16,6 +16,9 @@ export type PlotSeriesConfig = {
   topic: string;
   unit: string;
 };
+
+/** Timed in the browser that received it: a backend stamp read against a skewed tablet clock falls off the window. */
+export type PlotSeriesSample = { time: number; value: number };
 
 export type PlotUnavailableEntry = { label: string; note: string };
 
@@ -61,6 +64,23 @@ export function readPlotUnavailable(settings: Record<string, unknown>): PlotUnav
   );
 }
 
+export function appendPlotSeriesSample(
+  samples: readonly PlotSeriesSample[],
+  message: TopicMessage,
+  settings: { fieldPath: string; historySeconds: number; maxSamples: number; receivedAtMs: number },
+): PlotSeriesSample[] {
+  const raw = resolveFieldPath(message.value, settings.fieldPath);
+  // A flag plots as 1 or 0, so a fault reads on the same axis as everything else.
+  const value = typeof raw === "boolean" ? Number(raw) : raw;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return [...samples];
+  }
+  const oldestAllowed = settings.receivedAtMs - settings.historySeconds * 1000;
+  const next = [...samples, { time: settings.receivedAtMs, value }];
+  const firstKept = next.findIndex((sample) => sample.time >= oldestAllowed);
+  return next.slice(Math.max(firstKept, next.length - settings.maxSamples));
+}
+
 export type PlotVerdict = { active: readonly string[]; kind: "driving" | "idle" | "unexplained" };
 
 const ACTIVE_THRESHOLD = 0.01;
@@ -72,20 +92,16 @@ const STALE_AFTER_MS = 500;
  * emphasised series, so a plain feedback board states no verdict.
  */
 export function resolvePlotVerdict(
-  series: readonly { emphasis: boolean; label: string; samples: readonly TopicPlotSample[] }[],
+  series: readonly { emphasis: boolean; label: string; samples: readonly PlotSeriesSample[] }[],
   now: number,
 ): PlotVerdict | null {
   const output = series.find((entry) => entry.emphasis);
   if (!output) {
     return null;
   }
-  const isActive = (samples: readonly TopicPlotSample[]) => {
+  const isActive = (samples: readonly PlotSeriesSample[]) => {
     const latest = samples.at(-1);
-    return (
-      latest !== undefined &&
-      now - new Date(latest.timestamp).getTime() <= STALE_AFTER_MS &&
-      Math.abs(latest.value) > ACTIVE_THRESHOLD
-    );
+    return latest !== undefined && now - latest.time <= STALE_AFTER_MS && Math.abs(latest.value) > ACTIVE_THRESHOLD;
   };
   if (!isActive(output.samples)) {
     return { active: [], kind: "idle" };

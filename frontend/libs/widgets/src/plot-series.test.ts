@@ -5,7 +5,7 @@ import designSystemPage from "../../../../docs/design/design-system.html?raw";
 import { plotSeriesKey, readPlotSeries, readPlotUnavailable, resolvePlotVerdict, SERIES_RAMP } from "./plot-series";
 
 const NOW = Date.parse("2026-09-17T10:00:00.000Z");
-const at = (msAgo: number, value: number) => ({ timestamp: new Date(NOW - msAgo).toISOString(), value });
+const at = (msAgo: number, value: number) => ({ time: NOW - msAgo, value });
 
 describe("plot series", () => {
   it("uses the ramp the design system documents", () => {

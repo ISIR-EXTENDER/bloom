@@ -66,8 +66,8 @@ describe("plot series telemetry", () => {
   it("reads each series' own field from one message", () => {
     const board = feedback.widgets[0];
     if (!board) throw new Error("Missing board.");
-    const first = appendSeriesSample(undefined, board, twist(0.4, -0.2, "2026-09-17T10:00:00.000Z"));
-    const second = appendSeriesSample(first ?? undefined, board, twist(0.5, 0.1, "2026-09-17T10:00:00.100Z"));
+    const first = appendSeriesSample(undefined, board, twist(0.4, -0.2, "2026-09-17T10:00:00.000Z"), 1_000);
+    const second = appendSeriesSample(first ?? undefined, board, twist(0.5, 0.1, "2026-09-17T10:00:00.100Z"), 1_100);
 
     expect(second?.type === "plot-series" && second.series.map((entry) => entry.samples.map((s) => s.value))).toEqual([
       [],
@@ -80,12 +80,20 @@ describe("plot series telemetry", () => {
   it("keeps only the latest value for a value strip", () => {
     const strip = feedback.widgets[1];
     if (!strip) throw new Error("Missing strip.");
-    const first = appendSeriesSample(undefined, strip, twist(0.4, 0, "2026-09-17T10:00:00.000Z"));
-    const second = appendSeriesSample(first ?? undefined, strip, twist(0.5, 0, "2026-09-17T10:00:00.100Z"));
+    const first = appendSeriesSample(undefined, strip, twist(0.4, 0, "2026-09-17T10:00:00.000Z"), 1_000);
+    const second = appendSeriesSample(first ?? undefined, strip, twist(0.5, 0, "2026-09-17T10:00:00.100Z"), 1_100);
 
-    expect(second?.type === "plot-series" && second.series[1]?.samples).toEqual([
-      { timestamp: "2026-09-17T10:00:00.100Z", value: 0.5 },
-    ]);
+    expect(second?.type === "plot-series" && second.series[1]?.samples).toEqual([{ time: 1_100, value: 0.5 }]);
+  });
+
+  it("times samples by their arrival, whatever clock the backend stamped them with", () => {
+    const board = feedback.widgets[0];
+    if (!board) throw new Error("Missing board.");
+    const arrived = Date.parse("2026-09-17T10:00:00.000Z");
+    // The backend's clock runs 30 s ahead of this tablet's.
+    const data = appendSeriesSample(undefined, board, twist(0.4, 0, "2026-09-17T10:00:30.000Z"), arrived);
+
+    expect(data?.type === "plot-series" && data.series[1]?.samples).toEqual([{ time: arrived, value: 0.4 }]);
   });
 
   it("applies picker choices to the board and hands the picker the same series", () => {

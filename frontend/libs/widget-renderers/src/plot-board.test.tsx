@@ -61,10 +61,10 @@ const sourcesScreen: ScreenConfig = {
 };
 
 function snapshot(values: Record<string, number>): PlotSeriesSnapshot[] {
-  const timestamp = new Date().toISOString();
+  const time = Date.now();
   return readPlotSeries({ series }).map((entry) => ({
     ...entry,
-    samples: entry.label in values ? [{ timestamp, value: values[entry.label] as number }] : [],
+    samples: entry.label in values ? [{ time, value: values[entry.label] as number }] : [],
   }));
 }
 

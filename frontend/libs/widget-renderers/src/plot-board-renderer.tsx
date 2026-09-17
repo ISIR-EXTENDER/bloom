@@ -17,8 +17,7 @@ export function PlotBoardWidget({ data, descriptor }: WidgetRendererProps) {
   const now = useNow(250);
   const verdict = resolvePlotVerdict(series, now);
   const windowStart = now - historySeconds * 1000;
-  const toX = (timestamp: string) =>
-    ((new Date(timestamp).getTime() - windowStart) / (historySeconds * 1000)) * PLOT_EXTENT;
+  const toX = (time: number) => ((time - windowStart) / (historySeconds * 1000)) * PLOT_EXTENT;
   const toY = (value: number) => ((yMax - Math.min(yMax, Math.max(yMin, value))) / (yMax - yMin)) * PLOT_EXTENT;
   const zeroY = yMin < 0 && yMax > 0 ? toY(0) : null;
 
@@ -58,10 +57,10 @@ export function PlotBoardWidget({ data, descriptor }: WidgetRendererProps) {
           ) : null}
           {plotted.map((entry) => {
             const points = entry.samples
-              .filter((sample) => new Date(sample.timestamp).getTime() >= windowStart)
+              .filter((sample) => sample.time >= windowStart)
               .map(
                 (sample, index) =>
-                  `${index === 0 ? "M" : "L"}${toX(sample.timestamp).toFixed(1)} ${toY(sample.value).toFixed(1)}`,
+                  `${index === 0 ? "M" : "L"}${toX(sample.time).toFixed(1)} ${toY(sample.value).toFixed(1)}`,
               );
             return points.length > 0 ? (
               <path
