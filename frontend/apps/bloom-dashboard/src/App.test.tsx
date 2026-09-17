@@ -243,6 +243,10 @@ describe("App", () => {
         preset_id: "bloom-default",
       },
     });
+    // A role to open it as: the library launches roles, and the review checklist asks every profile for a screen.
+    expect(savedApplication?.profiles).toMatchObject([
+      { id: "operator", name: "Operator", preferred_control_layout_id: savedApplication?.screens?.[0]?.id },
+    ]);
     expect(savedApplication?.screens[0]).toMatchObject({
       id: "main",
       title: "Debug Monitor",
@@ -699,7 +703,7 @@ describe("App", () => {
     expect(savedApplication).toMatchObject({
       id: "new-bloom-app",
       name: "New Bloom App",
-      profiles: [],
+      profiles: [{ id: "operator", preferred_control_layout_id: "main" }],
       theme: DEFAULT_APPLICATION_THEME,
     });
     expect(savedApplication?.screens[0]).toMatchObject({

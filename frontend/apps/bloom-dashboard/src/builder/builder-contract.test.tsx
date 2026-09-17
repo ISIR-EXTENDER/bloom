@@ -91,6 +91,25 @@ describe("the builder canvas", () => {
       expect(screen.getByTestId("can-undo").textContent).toBe("false");
     },
   );
+  it("moves and resizes the selection from the keyboard", () => {
+    render(<DraftCanvas source={bench} />);
+    const frameOf = () =>
+      screen.getByRole("button", { name: "Select and move Max linear speed widget" }).closest("article") as HTMLElement;
+
+    const pixels = (value: string) => Number.parseInt(value, 10);
+    const startTop = pixels(frameOf().style.top);
+    const startWidth = pixels(frameOf().style.width);
+
+    // Layouts snap to the grid, so the step is a direction, not an exact pixel count.
+    fireEvent.keyDown(screen.getByRole("button", { name: "Select and move Max linear speed widget" }), {
+      key: "ArrowDown",
+      shiftKey: true,
+    });
+    expect(pixels(frameOf().style.top)).toBeGreaterThan(startTop);
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Resize Max linear speed widget" }), { key: "ArrowRight" });
+    expect(pixels(frameOf().style.width)).toBeGreaterThan(startWidth);
+  });
 });
 
 describe("the builder workspace", () => {

@@ -1,5 +1,5 @@
 import type { WidgetConfig, WidgetLayout } from "@bloom/api-client";
-import type { ReactNode, PointerEvent as ReactPointerEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode, PointerEvent as ReactPointerEvent } from "react";
 import { glassPx } from "./builder-geometry";
 import {
   type BuilderCanvasSize,
@@ -88,6 +88,25 @@ export function BuilderCanvasItem({
     window.addEventListener("pointerup", handlePointerUp);
   };
 
+  // The canvas is otherwise pointer-only: arrows nudge, shift takes the coarse step.
+  const nudge = (event: ReactKeyboardEvent<HTMLButtonElement>, mode: "move" | "resize") => {
+    const step = event.shiftKey ? 16 : 2;
+    const delta = { dx: 0, dy: 0 };
+    if (event.key === "ArrowLeft") delta.dx = -step;
+    else if (event.key === "ArrowRight") delta.dx = step;
+    else if (event.key === "ArrowUp") delta.dy = -step;
+    else if (event.key === "ArrowDown") delta.dy = step;
+    else return;
+
+    event.preventDefault();
+    const next =
+      mode === "move"
+        ? moveWidgetLayout(widget.layout, delta, canvasSize)
+        : resizeWidgetLayout(widget.layout, delta, canvasSize, minSize);
+    onSelectWidget(widget.id);
+    onCommitWidgetLayout(widget.id, widget.layout, next);
+  };
+
   return (
     <article
       aria-label={`${widget.title} ${widget.kind} widget`}
@@ -106,6 +125,7 @@ export function BuilderCanvasItem({
         aria-pressed={selected}
         className="builder-widget-selector"
         onClick={() => onSelectWidget(widget.id)}
+        onKeyDown={(event) => nudge(event, "move")}
         onPointerDown={(event) => startInteraction(event, "move")}
         type="button"
       />
@@ -120,6 +140,7 @@ export function BuilderCanvasItem({
       <button
         aria-label={`Resize ${widget.title} widget`}
         className="builder-widget-resize-handle"
+        onKeyDown={(event) => nudge(event, "resize")}
         onPointerDown={(event) => startInteraction(event, "resize")}
         type="button"
       />

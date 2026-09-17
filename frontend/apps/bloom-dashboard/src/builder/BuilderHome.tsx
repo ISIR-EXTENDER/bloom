@@ -4,6 +4,7 @@ import {
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
+  type UserProfile,
 } from "@bloom/api-client";
 import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
@@ -593,8 +594,25 @@ function createGuidedApplication(
     action_presets: DEFAULT_ACTION_PRESETS,
     runtime_policy: DEFAULT_RUNTIME_POLICY,
     theme: CREATE_THEME_PRESETS[wizard.themePresetId],
-    profiles: [],
+    // A role the app can be opened as: the library launches roles, and the review checklist asks for one.
+    profiles: [createStarterProfile(screen.id, wizard.themePresetId)],
     screens: [screen],
+  };
+}
+
+function createStarterProfile(screenId: string, themePresetId: CreateThemePresetId): UserProfile {
+  return {
+    id: "operator",
+    name: "Operator",
+    display_preset: "comfort",
+    font_scale: 1,
+    app_theme_preset_id: themePresetId,
+    preferred_control_layout_id: screenId,
+    motor_accessibility_preset: "default",
+    audio_cues: false,
+    deadzone: 0,
+    repeat_guard_ms: 0,
+    scan_period_ms: 1400,
   };
 }
 
