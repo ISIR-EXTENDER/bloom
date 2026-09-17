@@ -46,7 +46,9 @@ def legacy_screen_to_config(payload: dict[str, Any]) -> ScreenConfig:
     screen_id = str(payload.get("id") or payload["name"])
     title = str(payload.get("title") or payload.get("label") or payload["name"])
     widgets = tuple(_legacy_widget_to_config(widget) for widget in payload.get("widgets", []))
-    return ScreenConfig(id=screen_id, title=title, canvas=_legacy_canvas_to_settings(payload.get("canvas")), widgets=widgets)
+    return ScreenConfig(
+        id=screen_id, title=title, canvas=_legacy_canvas_to_settings(payload.get("canvas")), widgets=widgets
+    )
 
 
 def legacy_application_to_config(payload: dict[str, Any]) -> ApplicationConfig:

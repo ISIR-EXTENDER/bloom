@@ -21,8 +21,8 @@ refuses to start unless
 from __future__ import annotations
 
 import threading
+from collections.abc import Iterable
 from dataclasses import dataclass, field, replace
-from typing import Iterable
 
 
 class PositionLibraryError(ValueError):
@@ -45,8 +45,7 @@ class JointPose:
             raise PositionLibraryError("a saved position needs joint names")
         if len(self.joint_names) != len(self.positions):
             raise PositionLibraryError(
-                f"'{self.name}' has {len(self.positions)} values for "
-                f"{len(self.joint_names)} joints"
+                f"'{self.name}' has {len(self.positions)} values for {len(self.joint_names)} joints"
             )
 
 
@@ -111,8 +110,7 @@ class PositionLibrary:
         expected = self.poses[0].joint_names
         if pose.joint_names != expected:
             raise PositionLibraryError(
-                f"'{pose.name}' uses joints {list(pose.joint_names)} but the library uses "
-                f"{list(expected)}"
+                f"'{pose.name}' uses joints {list(pose.joint_names)} but the library uses {list(expected)}"
             )
 
 
@@ -129,9 +127,7 @@ def render_joint_targets_yaml(poses: Iterable[JointPose], indent: str = "      "
     joint_names = pose_list[0].joint_names
     for pose in pose_list:
         if pose.joint_names != joint_names:
-            raise PositionLibraryError(
-                f"'{pose.name}' uses a different joint order to '{pose_list[0].name}'"
-            )
+            raise PositionLibraryError(f"'{pose.name}' uses a different joint order to '{pose_list[0].name}'")
 
     flattened: list[float] = []
     for pose in pose_list:
@@ -170,7 +166,14 @@ def pose_from_joint_state(
     joints permuted, which then moves the arm somewhere unintended.
     """
     ordered = list(joint_names)
-    lookup = dict(zip([str(item) for item in state_names], [float(item) for item in state_positions]))
+    names = [str(item) for item in state_names]
+    positions = [float(item) for item in state_positions]
+    # Truncating to the shorter list would record a pose built from whichever
+    # joints happened to line up, which is the permuted pose this function
+    # exists to prevent.
+    if len(names) != len(positions):
+        raise PositionLibraryError(f"joint state has {len(names)} names for {len(positions)} positions")
+    lookup = dict(zip(names, positions, strict=True))
 
     missing = [joint for joint in ordered if joint not in lookup]
     if missing:

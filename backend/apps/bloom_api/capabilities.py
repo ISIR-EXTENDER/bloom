@@ -33,7 +33,9 @@ class RuntimeCapability:
     detail: str
 
 
-def _capability(id: str, gateway: object, noop_type: type, available_detail: str, missing_detail: str) -> RuntimeCapability:
+def _capability(
+    id: str, gateway: object, noop_type: type, available_detail: str, missing_detail: str
+) -> RuntimeCapability:
     available = not isinstance(gateway, noop_type)
     return RuntimeCapability(
         id=id,

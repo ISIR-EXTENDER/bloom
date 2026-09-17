@@ -11,6 +11,9 @@ if [ -n "$(git status --porcelain)" ]; then
   echo "note: working tree is dirty, so this verifies more than a push would."
 fi
 
+echo "==> backend lint"
+(cd backend && make lint)
+
 echo "==> backend tests"
 (cd backend && make test)
 

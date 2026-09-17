@@ -6,16 +6,13 @@ import uvicorn
 
 from apps.bloom_api.main import create_app, create_camera_frame_gateway, create_teleop_command_gateway
 from apps.bloom_api.settings import get_settings
-from libs.ros_adapters import RclpyRosServiceGateway, RclpyRosTopicCatalogGateway
-from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
-from libs.ros_adapters.rclpy_topic_streams import RclpyRuntimeTopicSubscriptionGateway
 from libs.config import (
     ApplicationConfig,
+    ConfigurationBundle,
+    ConfigurationMetadata,
     ConfigurationNotFoundError,
     ConfigurationRepository,
     ConfigurationStorageKind,
-    ConfigurationBundle,
-    ConfigurationMetadata,
     create_configuration_repository,
     load_configuration_file,
     load_legacy_application_file,
@@ -31,6 +28,9 @@ from libs.config.seed import (
     seed_configurations,
     strip_seed_fingerprint,
 )
+from libs.ros_adapters import RclpyRosServiceGateway, RclpyRosTopicCatalogGateway
+from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
+from libs.ros_adapters.rclpy_topic_streams import RclpyRuntimeTopicSubscriptionGateway
 
 cli = typer.Typer(
     name="bloom",
@@ -99,7 +99,9 @@ def run_ros_api(
         import rclpy
         from rclpy.node import Node
     except ModuleNotFoundError as exc:
-        typer.echo("ROS 2 Python packages are not available. Source a ROS environment before running this command.", err=True)
+        typer.echo(
+            "ROS 2 Python packages are not available. Source a ROS environment before running this command.", err=True
+        )
         raise typer.Exit(code=1) from exc
 
     rclpy.init()
@@ -264,8 +266,12 @@ def import_configuration(
 def import_legacy_screen(
     config_id: str = typer.Argument(..., help="Configuration ID to store."),
     source_path: Path = typer.Argument(..., help="Legacy screen JSON file to import."),
-    application_id: str = typer.Option("legacy-application", "--application-id", help="Application ID to wrap the screen."),
-    application_name: str = typer.Option("Legacy Application", "--application-name", help="Application name to wrap the screen."),
+    application_id: str = typer.Option(
+        "legacy-application", "--application-id", help="Application ID to wrap the screen."
+    ),
+    application_name: str = typer.Option(
+        "Legacy Application", "--application-name", help="Application name to wrap the screen."
+    ),
     storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to write to."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),

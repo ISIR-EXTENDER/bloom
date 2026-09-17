@@ -19,11 +19,11 @@ a single number would waste the WebSocket on data no widget displays.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
-from libs.sessions import (
+from libs.sessions.topics import (
     RuntimeTopicSample,
     RuntimeTopicSampleCallback,
     RuntimeTopicSubscription,
@@ -48,9 +48,7 @@ class JacobianMatrix:
         if self.rows <= 0 or self.columns <= 0:
             raise ManipulabilityError("jacobian needs a positive shape")
         if len(self.values) != self.rows * self.columns:
-            raise ManipulabilityError(
-                f"jacobian has {len(self.values)} values for a {self.rows}x{self.columns} matrix"
-            )
+            raise ManipulabilityError(f"jacobian has {len(self.values)} values for a {self.rows}x{self.columns} matrix")
 
     def row(self, index: int) -> tuple[float, ...]:
         start = index * self.columns
@@ -75,7 +73,7 @@ def jacobian_from_float_array(values: Sequence[float], rows: int = 6) -> Jacobia
 def _multiply_by_transpose(matrix: JacobianMatrix) -> list[list[float]]:
     """Compute ``J J^T``, which is square and small (6x6 for a Cartesian arm)."""
     return [
-        [sum(a * b for a, b in zip(matrix.row(i), matrix.row(j))) for j in range(matrix.rows)]
+        [sum(a * b for a, b in zip(matrix.row(i), matrix.row(j), strict=True)) for j in range(matrix.rows)]
         for i in range(matrix.rows)
     ]
 

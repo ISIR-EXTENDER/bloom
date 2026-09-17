@@ -13,9 +13,9 @@ from libs.config import (
     ConfigurationMetadata,
     DisplayPreset,
     MotorAccessibilityPreset,
-    RuntimeLanguage,
-    RuntimeCanvasMode,
     RuntimeActionPreset,
+    RuntimeCanvasMode,
+    RuntimeLanguage,
     ScreenConfig,
     UserProfile,
     WidgetConfig,
@@ -56,9 +56,7 @@ def test_app_configuration_fixtures_do_not_ship_empty_runtime_screens() -> None:
 
 
 def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
-    bundle = ConfigurationBundle.model_validate_json(
-        (SEED_DIR / "sandbox.json").read_text(encoding="utf-8")
-    )
+    bundle = ConfigurationBundle.model_validate_json((SEED_DIR / "sandbox.json").read_text(encoding="utf-8"))
     application = bundle.applications[0]
 
     assert application.id == "sandbox"
@@ -94,9 +92,7 @@ def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
 
     monitor_screen = next(screen for screen in application.screens if screen.id == "visual_servoing_monitor")
     monitor_topics = {
-        widget.settings["topic"]
-        for widget in monitor_screen.widgets
-        if widget.kind == WidgetKind.TOPIC_ECHO
+        widget.settings["topic"] for widget in monitor_screen.widgets if widget.kind == WidgetKind.TOPIC_ECHO
     }
     assert monitor_topics == {"/tag_detections"}
     monitor_plot_fields = {

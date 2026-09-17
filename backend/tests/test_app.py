@@ -46,9 +46,7 @@ def test_create_app_uses_sqlite_by_default(test_settings: Settings, tmp_path) ->
 
 
 def test_create_app_can_still_use_file_storage(test_settings: Settings, tmp_path) -> None:
-    settings = test_settings.model_copy(
-        update={"configuration_dir": tmp_path, "configuration_storage": "file"}
-    )
+    settings = test_settings.model_copy(update={"configuration_dir": tmp_path, "configuration_storage": "file"})
     app = create_app(settings)
 
     assert isinstance(app.state.configuration_repository, FileConfigurationRepository)

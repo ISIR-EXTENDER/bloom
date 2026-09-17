@@ -109,9 +109,20 @@ def test_config_cli_keeps_file_storage_available(
 
     import_result = runner.invoke(
         cli,
-        ["config", "import", "sandbox", str(source_path), "--storage", "file", "--configuration-dir", str(configuration_dir)],
+        [
+            "config",
+            "import",
+            "sandbox",
+            str(source_path),
+            "--storage",
+            "file",
+            "--configuration-dir",
+            str(configuration_dir),
+        ],
     )
-    list_result = runner.invoke(cli, ["config", "list", "--storage", "file", "--configuration-dir", str(configuration_dir)])
+    list_result = runner.invoke(
+        cli, ["config", "list", "--storage", "file", "--configuration-dir", str(configuration_dir)]
+    )
 
     assert import_result.exit_code == 0
     assert (configuration_dir / "sandbox.json").exists()

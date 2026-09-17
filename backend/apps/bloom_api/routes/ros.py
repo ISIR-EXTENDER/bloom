@@ -9,13 +9,12 @@ from apps.bloom_api.security import (
     BloomPrincipal,
     execute_as_runtime_owner,
     require_observer,
-    require_operator,
     require_runtime_owner,
 )
 from libs.ros_adapters import (
+    RosPublisherGateway,
     RosPublishReceipt,
     RosPublishRequest,
-    RosPublisherGateway,
     RosServiceGateway,
     RosServiceRequest,
     RosTopicCatalogGateway,
@@ -44,7 +43,7 @@ class RosTopicPublishRequest(BaseModel):
     payload_text: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
-    def _validate_single_payload_source(self) -> "RosTopicPublishRequest":
+    def _validate_single_payload_source(self) -> RosTopicPublishRequest:
         if self.payload is not None and self.payload_text is not None:
             raise ValueError("Use either payload or payload_text, not both")
         return self
@@ -218,7 +217,7 @@ def publish_ros_topic(
                     ros_publish_request,
                     rate_limiter,
                 )
-            )
+            ),
         )
     except RuntimeStoppedError as exc:
         audit_log.record(
@@ -284,7 +283,7 @@ def call_ros_service(
                 lambda: get_ros_service_gateway(request).call(
                     RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
                 )
-            )
+            ),
         )
     except RuntimeStoppedError as exc:
         record("rejected", str(exc))

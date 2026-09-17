@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from time import monotonic
-from typing import Callable
 
 
 class RuntimeRateLimitError(RuntimeError):
@@ -29,8 +29,7 @@ class RuntimeCommandRateLimiter:
 
         if len(events) >= self.max_commands_per_second:
             raise RuntimeRateLimitError(
-                f"Runtime command rate limit exceeded for '{key}' "
-                f"({self.max_commands_per_second} commands/s)."
+                f"Runtime command rate limit exceeded for '{key}' ({self.max_commands_per_second} commands/s)."
             )
 
         events.append(now)

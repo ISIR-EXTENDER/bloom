@@ -350,9 +350,7 @@ def test_operator_screens_fit_their_canvas_and_controls_do_not_overlap() -> None
                             and a.y < b.y + b.height
                             and b.y < a.y + a.height
                         )
-                        assert not overlaps, (
-                            f"{config_id}/{screen.id}: controls {first.id} and {second.id} overlap"
-                        )
+                        assert not overlaps, f"{config_id}/{screen.id}: controls {first.id} and {second.id} overlap"
 
     assert checked > 0, "no operator screens were checked; the walk is broken"
 
@@ -380,9 +378,7 @@ def test_no_interactive_control_shares_glass_with_the_stop_chrome() -> None:
                         continue
                     layout = widget.layout
                     in_reserve = layout.x + layout.width > reserve_x and layout.y + layout.height > reserve_y
-                    assert not in_reserve, (
-                        f"{config_id}/{screen.id}/{widget.id} reaches under the STOP chrome"
-                    )
+                    assert not in_reserve, f"{config_id}/{screen.id}/{widget.id} reaches under the STOP chrome"
                     checked += 1
 
     assert checked > 0, "no interactive widgets were checked; the walk is broken"
@@ -398,7 +394,9 @@ def test_an_untouched_copy_receives_the_shipped_update() -> None:
     repository.upsert(
         "explorer-manager",
         shrunk.model_copy(
-            update={"metadata": shrunk.metadata.model_copy(update={"seed_fingerprint": configuration_fingerprint(shrunk)})}
+            update={
+                "metadata": shrunk.metadata.model_copy(update={"seed_fingerprint": configuration_fingerprint(shrunk)})
+            }
         ),
     )
 

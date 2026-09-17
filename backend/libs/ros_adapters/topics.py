@@ -65,7 +65,7 @@ class RclpyRosTopicCatalogGateway:
         )
 
     def _get_topic_names_and_types(self) -> tuple[tuple[str, tuple[str, ...]], ...]:
-        get_topics = getattr(self._node, "get_topic_names_and_types")
+        get_topics = self._node.get_topic_names_and_types
         return tuple((topic_name, tuple(message_types)) for topic_name, message_types in get_topics())
 
     def _count_publishers(self, topic_name: str) -> int:

@@ -3,8 +3,8 @@
 from pathlib import Path
 from threading import Event, Thread
 
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings

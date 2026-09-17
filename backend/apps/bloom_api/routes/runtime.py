@@ -1,13 +1,13 @@
 import asyncio
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
-from apps.bloom_api.settings import Settings
 from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
@@ -17,6 +17,7 @@ from apps.bloom_api.security import (
     require_runtime_owner,
     require_runtime_websocket_principal,
 )
+from apps.bloom_api.settings import Settings
 from libs.config import (
     ApplicationConfig,
     ConfigurationNotFoundError,
@@ -25,8 +26,8 @@ from libs.config import (
     RuntimeAdapterPolicy,
 )
 from libs.ros_adapters import (
-    RosPublishRequest,
     RosPublisherGateway,
+    RosPublishRequest,
     RosServiceGateway,
     RosServiceRequest,
     SafeRosPublishError,
@@ -44,45 +45,44 @@ from libs.ros_adapters.safety import (
     RuntimePayloadShapeError,
     ensure_allowed,
 )
-from libs.sessions.positions import (
-    JointPose,
-    PositionLibrary,
-    PositionLibraryError,
-    render_joint_targets_yaml,
-)
 from libs.sessions import (
-    RuntimeClaimControlMessage,
-    RuntimeClientMessage,
-    RuntimeControlSnapshot,
     RuntimeAuditLog,
     RuntimeAuditRecord,
+    RuntimeClaimControlMessage,
+    RuntimeClientMessage,
     RuntimeCommandRateLimiter,
+    RuntimeControlSnapshot,
     RuntimePingMessage,
+    RuntimeRateLimitError,
     RuntimeRecordingGateway,
     RuntimeRecordingRequest,
     RuntimeReleaseControlMessage,
-    RuntimeSession,
     RuntimeServerMessage,
-    RuntimeRateLimitError,
+    RuntimeSession,
     RuntimeSessionManager,
     RuntimeStopAssertionError,
-    RuntimeTopicSample,
-    RuntimeTopicSubscription,
-    RuntimeTopicSubscriptionGateway,
-    RuntimeTopicSubscriptionHandle,
     RuntimeStopController,
     RuntimeStoppedError,
     RuntimeSubscribeTopicMessage,
     RuntimeTeleopCommandMessage,
+    RuntimeTopicSample,
+    RuntimeTopicSubscription,
+    RuntimeTopicSubscriptionGateway,
+    RuntimeTopicSubscriptionHandle,
     TeleopCommand,
     TeleopCommandGateway,
     TeleopVector3,
     parse_runtime_client_message,
 )
 from libs.sessions.audit import summarize_payload
+from libs.sessions.positions import (
+    JointPose,
+    PositionLibrary,
+    PositionLibraryError,
+    render_joint_targets_yaml,
+)
+from libs.sessions.teleop_runtime import build_teleop_ack, to_teleop_command
 from libs.sessions.topics import is_live_subscription_gateway
-from libs.sessions.teleop_runtime import build_teleop_ack
-from libs.sessions.teleop_runtime import to_teleop_command
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
 
@@ -403,7 +403,7 @@ def dispatch_runtime_action(
                     ros_publish_request,
                     get_runtime_command_rate_limiter(request),
                 )
-            )
+            ),
         )
     except RuntimeStoppedError as exc:
         record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
@@ -485,7 +485,7 @@ def dispatch_service_call_preset(
                 lambda: ros_service_gateway.call(
                     RosServiceRequest(service=preset.topic, service_type=preset.message_type)
                 )
-            )
+            ),
         )
     except RuntimeStoppedError as exc:
         raise reject(409, str(exc)) from exc
@@ -798,7 +798,7 @@ def start_runtime_recording(
                     output_folder=recording_request.output_folder,
                     topics=recording_request.topics,
                 )
-            )
+            ),
         )
     except RuntimeError as exc:
         get_runtime_audit_log(request).record(
@@ -982,9 +982,7 @@ async def handle_runtime_client_payload(
 
     if isinstance(message, RuntimeReleaseControlMessage):
         release_started = (
-            manager.begin_control_release(session)
-            if websocket.app.state.settings.runtime_control_required
-            else False
+            manager.begin_control_release(session) if websocket.app.state.settings.runtime_control_required else False
         )
         if release_started:
             try:
@@ -1091,7 +1089,9 @@ def get_runtime_control_snapshot(
     )
 
 
-def runtime_control_detail(snapshot_or_is_owner: RuntimeControlSnapshot | bool, owner_present: bool | None = None) -> str:
+def runtime_control_detail(
+    snapshot_or_is_owner: RuntimeControlSnapshot | bool, owner_present: bool | None = None
+) -> str:
     if isinstance(snapshot_or_is_owner, RuntimeControlSnapshot):
         is_owner = snapshot_or_is_owner.is_owner
         owner_present = snapshot_or_is_owner.owner_present

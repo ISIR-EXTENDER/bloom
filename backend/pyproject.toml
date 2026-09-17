@@ -25,6 +25,7 @@ dev = [
   "pip>=26.2",
   "pip-audit>=2.10.0",
   "pytest>=9.0.3,<10",
+  "ruff>=0.15.0",
 ]
 
 [tool.uv]
@@ -33,3 +34,28 @@ package = false
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+# Matches the frontend's Biome line width, so a file reads the same either side.
+line-length = 120
+target-version = "py310"
+
+[tool.ruff.lint]
+# Correctness and clarity, not style opinions: pyflakes, pycodestyle, import
+# order, modern syntax, bugbear, comprehensions.
+select = ["E", "F", "I", "UP", "B", "C4"]
+
+[tool.ruff.lint.flake8-bugbear]
+# Calling these in a default argument is how FastAPI and Typer are written.
+# B008 exists to catch a mutable default evaluated once; these are neither.
+extend-immutable-calls = [
+  "fastapi.Body",
+  "fastapi.Depends",
+  "fastapi.File",
+  "fastapi.Form",
+  "fastapi.Header",
+  "fastapi.Path",
+  "fastapi.Query",
+  "typer.Argument",
+  "typer.Option",
+]

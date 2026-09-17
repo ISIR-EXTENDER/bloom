@@ -4,7 +4,6 @@ from typing import Literal
 from libs.config.repository import ConfigurationRepository, FileConfigurationRepository
 from libs.config.sqlite_repository import SQLiteConfigurationRepository
 
-
 ConfigurationStorageKind = Literal["file", "sqlite"]
 
 

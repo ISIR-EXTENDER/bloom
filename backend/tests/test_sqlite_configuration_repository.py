@@ -23,7 +23,6 @@ from libs.db.sqlite import (
     sqlite_connection,
 )
 
-
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
 
 

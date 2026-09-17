@@ -37,6 +37,10 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Lint backend
+        working-directory: backend
+        run: make lint
+
       - name: Run backend tests
         working-directory: backend
         run: make test

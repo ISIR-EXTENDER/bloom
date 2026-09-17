@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from libs.sessions import RuntimeTopicSample, RuntimeTopicSampleCallback, RuntimeTopicSubscription
+from libs.sessions.topics import RuntimeTopicSample, RuntimeTopicSampleCallback, RuntimeTopicSubscription
 
 
 class RclpyRuntimeTopicSubscriptionHandle:

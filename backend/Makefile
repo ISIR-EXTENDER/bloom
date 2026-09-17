@@ -4,6 +4,15 @@ SHELL := /bin/bash
 test: ## Run backend unit tests without external pytest plugin leakage
 	@PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 
+.PHONY: lint
+lint: ## Lint and format-check the backend
+	@uv run ruff check .
+	@uv run ruff format --check .
+
+.PHONY: format
+format: ## Apply ruff formatting
+	@uv run ruff format .
+
 .PHONY: audit
 audit: ## Run Python dependency vulnerability audit
 	@requirements_file="$$(mktemp)" && \

@@ -7,11 +7,12 @@ the manager's own joint-target cancel. Not an IEC emergency stop.
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Callable, TypeVar
+from typing import TypeVar
 
-from libs.ros_adapters.publishers import RosPublishRequest, RosPublisherGateway
+from libs.ros_adapters.publishers import RosPublisherGateway, RosPublishRequest
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
 from libs.sessions.teleop import TeleopCommand, TeleopCommandGateway, TeleopVector3
 

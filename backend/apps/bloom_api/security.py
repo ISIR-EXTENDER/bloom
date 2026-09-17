@@ -9,7 +9,6 @@ from starlette.responses import JSONResponse, Response
 
 from libs.sessions import RuntimeControlNotOwnedError
 
-
 SECURITY_HEADERS = {
     "Permissions-Policy": "camera=(self), microphone=(), geolocation=()",
     "X-Content-Type-Options": "nosniff",

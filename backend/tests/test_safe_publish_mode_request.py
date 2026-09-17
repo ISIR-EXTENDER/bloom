@@ -16,9 +16,7 @@ def test_valid_mode_passes() -> None:
 
 
 def test_mode_is_normalized_before_checking() -> None:
-    normalize_mode_request_payload(
-        request("/mode_request", {"data": "Behaviour/Joint-Target/Home"}), MODE_TOPICS
-    )
+    normalize_mode_request_payload(request("/mode_request", {"data": "Behaviour/Joint-Target/Home"}), MODE_TOPICS)
 
 
 def test_invalid_mode_is_rejected() -> None:
@@ -39,9 +37,7 @@ def test_other_topics_are_untouched() -> None:
 def test_mode_is_published_in_canonical_form() -> None:
     # cartesian_manager normalizes internally, but /mode_request should carry the
     # canonical value so echoes and tablet_interface agree.
-    normalized = normalize_mode_request_payload(
-        request("/mode_request", {"data": "GEOMETRIC/Snake"}), MODE_TOPICS
-    )
+    normalized = normalize_mode_request_payload(request("/mode_request", {"data": "GEOMETRIC/Snake"}), MODE_TOPICS)
 
     assert normalized.payload["data"] == "geometric/snake"
 

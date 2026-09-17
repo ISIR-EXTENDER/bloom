@@ -339,7 +339,9 @@ def test_theme_asset_upload_rejects_unsupported_type(
     sample_configuration_bundle: ConfigurationBundle,
 ) -> None:
     client = TestClient(
-        create_app(Settings(environment="test", configuration_dir=tmp_path / "configurations", theme_asset_dir=tmp_path))
+        create_app(
+            Settings(environment="test", configuration_dir=tmp_path / "configurations", theme_asset_dir=tmp_path)
+        )
     )
     client.put("/api/v1/configurations/sandbox", json=sample_configuration_bundle.model_dump(mode="json"))
 

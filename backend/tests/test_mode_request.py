@@ -68,6 +68,4 @@ def test_joint_targets_are_one_shot() -> None:
 
 def test_joint_target_names_are_not_validated_here() -> None:
     # The manager owns the target-name list through its parameters.
-    assert parse_mode_request("behaviour/joint_target/anything").normalized == (
-        "behaviour/joint_target/anything"
-    )
+    assert parse_mode_request("behaviour/joint_target/anything").normalized == ("behaviour/joint_target/anything")

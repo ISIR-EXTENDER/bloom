@@ -1,22 +1,3 @@
-from libs.config.models import (
-    ApplicationConfig,
-    CanvasPresetId,
-    CanvasSettings,
-    ConfigurationBundle,
-    ConfigurationMetadata,
-    CURRENT_CONFIGURATION_SCHEMA_VERSION,
-    DisplayPreset,
-    MotorAccessibilityPreset,
-    RuntimeLanguage,
-    RuntimeAdapterPolicy,
-    RuntimeActionPreset,
-    RuntimeCanvasMode,
-    ScreenConfig,
-    UserProfile,
-    WidgetConfig,
-    WidgetKind,
-    WidgetLayout,
-)
 from libs.config.editor import (
     ApplicationNotFoundError,
     ConfigurationEditError,
@@ -28,14 +9,6 @@ from libs.config.editor import (
     upsert_application,
     upsert_screen,
 )
-from libs.config.repository import (
-    ConfigurationNotFoundError,
-    ConfigurationRepository,
-    FileConfigurationRepository,
-    InMemoryConfigurationRepository,
-)
-from libs.config.storage import ConfigurationStorageKind, create_configuration_repository
-from libs.config.sqlite_repository import SQLiteConfigurationRepository
 from libs.config.json_io import (
     configuration_to_dict,
     dump_configuration_json,
@@ -53,6 +26,33 @@ from libs.config.legacy_json import (
     load_legacy_screen_file,
     load_legacy_screen_json,
 )
+from libs.config.models import (
+    CURRENT_CONFIGURATION_SCHEMA_VERSION,
+    ApplicationConfig,
+    CanvasPresetId,
+    CanvasSettings,
+    ConfigurationBundle,
+    ConfigurationMetadata,
+    DisplayPreset,
+    MotorAccessibilityPreset,
+    RuntimeActionPreset,
+    RuntimeAdapterPolicy,
+    RuntimeCanvasMode,
+    RuntimeLanguage,
+    ScreenConfig,
+    UserProfile,
+    WidgetConfig,
+    WidgetKind,
+    WidgetLayout,
+)
+from libs.config.repository import (
+    ConfigurationNotFoundError,
+    ConfigurationRepository,
+    FileConfigurationRepository,
+    InMemoryConfigurationRepository,
+)
+from libs.config.sqlite_repository import SQLiteConfigurationRepository
+from libs.config.storage import ConfigurationStorageKind, create_configuration_repository
 
 __all__ = [
     "ApplicationConfig",

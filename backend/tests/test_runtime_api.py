@@ -4,18 +4,23 @@ from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
-from libs.config import ConfigurationBundle, InMemoryConfigurationRepository, RuntimeActionPreset, load_configuration_file
+from libs.config import (
+    ConfigurationBundle,
+    InMemoryConfigurationRepository,
+    RuntimeActionPreset,
+    load_configuration_file,
+)
 from libs.ros_adapters import RosPublishReceipt, RosPublishRequest
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
-    RuntimeCommandRateLimiter,
     RuntimeAuditRecord,
+    RuntimeCommandRateLimiter,
     RuntimeRecordingReceipt,
     RuntimeRecordingRequest,
     RuntimeTopicSample,
+    RuntimeTopicSampleCallback,
     RuntimeTopicSubscription,
     RuntimeTopicSubscriptionHandle,
-    RuntimeTopicSampleCallback,
     TeleopCommand,
     TeleopPublishReceipt,
     TeleopVector3,
@@ -776,10 +781,9 @@ def test_runtime_action_dispatches_saved_explorer_adapters_through_ros_policy() 
     ]
 
     assert [response.status_code for response in responses] == [200, 200, 200, 200, 200]
-    assert [
-        (request.topic, request.message_type, request.payload)
-        for request in gateway.requests
-    ] == [(topic, message_type, payload) for _, topic, message_type, payload in expected_requests]
+    assert [(request.topic, request.message_type, request.payload) for request in gateway.requests] == [
+        (topic, message_type, payload) for _, topic, message_type, payload in expected_requests
+    ]
     assert responses[0].json() | {"detail": ""} == {
         "app_id": "explorer-user-tests",
         "command": "explorer.deploy",

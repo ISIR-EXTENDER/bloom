@@ -176,7 +176,9 @@ def test_service_preset_needs_the_app_policy_to_allow_it() -> None:
     stripped = bundle.model_copy(
         update={
             "applications": tuple(
-                app.model_copy(update={"runtime_policy": app.runtime_policy.model_copy(update={"allowed_service_calls": ()})})
+                app.model_copy(
+                    update={"runtime_policy": app.runtime_policy.model_copy(update={"allowed_service_calls": ()})}
+                )
                 for app in bundle.applications
             )
         }

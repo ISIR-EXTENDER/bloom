@@ -203,8 +203,7 @@ def load_normalized_configuration_bundle(
     return ConfigurationBundle(
         metadata=ConfigurationMetadata.model_validate(json.loads(str(bundle_row["metadata_json"]))),
         applications=tuple(
-            load_normalized_application(connection, config_id, application_row)
-            for application_row in application_rows
+            load_normalized_application(connection, config_id, application_row) for application_row in application_rows
         ),
     )
 
@@ -236,11 +235,10 @@ def load_normalized_application(
         lifecycle=str(application_row["lifecycle"]),
         runtime_policy=RuntimeAdapterPolicy.model_validate(json.loads(str(application_row["runtime_policy_json"]))),
         theme=ApplicationTheme.model_validate(json.loads(str(application_row["theme_json"]))),
-        profiles=tuple(UserProfile.model_validate(profile) for profile in json.loads(str(application_row["profiles_json"]))),
-        screens=tuple(
-            load_normalized_screen(connection, config_id, app_id, screen_row)
-            for screen_row in screen_rows
+        profiles=tuple(
+            UserProfile.model_validate(profile) for profile in json.loads(str(application_row["profiles_json"]))
         ),
+        screens=tuple(load_normalized_screen(connection, config_id, app_id, screen_row) for screen_row in screen_rows),
     )
 
 

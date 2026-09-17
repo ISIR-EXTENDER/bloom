@@ -101,9 +101,7 @@ class RclpyCameraFrameGateway:
         publisher = self._publishers.get(topic)
         if publisher is not None:
             return publisher
-        publisher = self._node.create_publisher(
-            self._get_compressed_image_class(), topic, self._qos_profile
-        )
+        publisher = self._node.create_publisher(self._get_compressed_image_class(), topic, self._qos_profile)
         self._publishers[topic] = publisher
         return publisher
 

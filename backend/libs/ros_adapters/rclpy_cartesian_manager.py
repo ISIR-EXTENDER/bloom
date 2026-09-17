@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from libs.sessions import TeleopCommand, TeleopPublishReceipt
+from libs.sessions.teleop import TeleopCommand, TeleopPublishReceipt
 
 DEFAULT_COMMAND_FRAME_ID = "base_link"
 
@@ -63,9 +63,7 @@ class RclpyCartesianManagerGateway:
         if publisher is not None:
             return publisher
 
-        publisher = self._node.create_publisher(
-            self._get_twist_stamped_message_class(), target, self._qos_profile
-        )
+        publisher = self._node.create_publisher(self._get_twist_stamped_message_class(), target, self._qos_profile)
         self._publishers[target] = publisher
         return publisher
 

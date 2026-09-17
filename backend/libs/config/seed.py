@@ -31,7 +31,7 @@ from pathlib import Path
 
 from libs.config.json_io import configuration_to_dict, load_configuration_file
 from libs.config.models import ConfigurationBundle
-from libs.config.repository import ConfigurationRepository, FileConfigurationRepository
+from libs.config.repository import ConfigurationRepository
 
 DEFAULT_SEED_DIR = Path(__file__).resolve().parents[2] / "seed" / "applications"
 
@@ -66,9 +66,7 @@ def stamp_seed_fingerprint(bundle: ConfigurationBundle) -> ConfigurationBundle:
 
 
 def strip_seed_fingerprint(bundle: ConfigurationBundle) -> ConfigurationBundle:
-    return bundle.model_copy(
-        update={"metadata": bundle.metadata.model_copy(update={"seed_fingerprint": ""})}
-    )
+    return bundle.model_copy(update={"metadata": bundle.metadata.model_copy(update={"seed_fingerprint": ""})})
 
 
 def is_unedited_seed_copy(stored: ConfigurationBundle) -> bool:

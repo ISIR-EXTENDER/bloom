@@ -7,9 +7,9 @@ from libs.ros_adapters.mode_request import (
 )
 from libs.ros_adapters.publishers import (
     NoopRosPublisherGateway,
+    RosPublisherGateway,
     RosPublishReceipt,
     RosPublishRequest,
-    RosPublisherGateway,
 )
 from libs.ros_adapters.rclpy_cartesian_manager import (
     DEFAULT_COMMAND_FRAME_ID,

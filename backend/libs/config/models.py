@@ -5,7 +5,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-
 CURRENT_CONFIGURATION_SCHEMA_VERSION = 1
 
 

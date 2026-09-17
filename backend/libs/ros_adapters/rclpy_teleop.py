@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from libs.sessions import TeleopCommand, TeleopPublishReceipt
+from libs.sessions.teleop import TeleopCommand, TeleopPublishReceipt
 
 
 class RclpyTeleopCommandGateway:

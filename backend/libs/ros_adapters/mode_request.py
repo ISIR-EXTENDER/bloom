@@ -74,9 +74,7 @@ def parse_mode_request(raw: str) -> ModeRequest:
         if len(parts) != 2:
             raise ModeRequestError("geometric mode request takes exactly one name")
         if parts[1] not in GEOMETRIC_MODES:
-            raise ModeRequestError(
-                f"unknown geometric mode '{parts[1]}', expected one of {', '.join(GEOMETRIC_MODES)}"
-            )
+            raise ModeRequestError(f"unknown geometric mode '{parts[1]}', expected one of {', '.join(GEOMETRIC_MODES)}")
         return ModeRequest(normalized=normalized, detail=f"geometric mode {parts[1]}", one_shot=False)
 
     if parts[0] == BEHAVIOUR_PREFIX:
@@ -100,9 +98,7 @@ def parse_mode_request(raw: str) -> ModeRequest:
 
         raise ModeRequestError(f"unknown behaviour '{parts[1]}', expected passthrough or joint_target")
 
-    raise ModeRequestError(
-        f"unknown mode family '{parts[0]}', expected {GEOMETRIC_PREFIX} or {BEHAVIOUR_PREFIX}"
-    )
+    raise ModeRequestError(f"unknown mode family '{parts[0]}', expected {GEOMETRIC_PREFIX} or {BEHAVIOUR_PREFIX}")
 
 
 __all__ = [

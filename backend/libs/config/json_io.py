@@ -27,4 +27,3 @@ def save_configuration_file(bundle: ConfigurationBundle, path: str | Path, *, in
 
 def configuration_to_dict(bundle: ConfigurationBundle) -> dict[str, Any]:
     return bundle.model_dump(mode="json")
-

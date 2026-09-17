@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from shutil import which
-from typing import Any, Callable, Literal, Protocol
+from typing import Any, Literal, Protocol
 from uuid import uuid4
-
 
 RuntimeRecordingStatus = Literal["recording", "simulated", "stopped"]
 

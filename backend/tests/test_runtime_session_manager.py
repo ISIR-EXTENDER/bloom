@@ -2,8 +2,7 @@ from threading import Event, Thread
 
 import pytest
 
-from libs.sessions import RuntimeSessionManager, TeleopCommand, TeleopVector3
-from libs.sessions import RuntimeControlNotOwnedError
+from libs.sessions import RuntimeControlNotOwnedError, RuntimeSessionManager, TeleopCommand, TeleopVector3
 
 
 def test_control_must_be_released_before_another_session_can_claim_it() -> None:
