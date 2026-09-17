@@ -159,6 +159,25 @@ export BLOOM_RUNTIME_RECORDING_EXECUTABLE=ros2
 Recording remains constrained by both topic and folder allowlists. Keep folders relative and approved so a dashboard
 operator cannot write bags outside the intended Bloom data area.
 
+Start the API from that sourced shell, then start a recording from Bloom Debug or over the API:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/runtime/recordings \
+  -H 'Content-Type: application/json' \
+  -d '{"topics":["/cartesian_command"],"output_folder":"data/recordings","label":"bench"}'
+
+curl -X POST http://127.0.0.1:8000/api/v1/runtime/recordings/{recording_id}/stop
+```
+
+After stopping, verify the bag from the same sourced shell:
+
+```bash
+ros2 bag info backend/data/recordings/<recording-folder>
+```
+
+Enable the rosbag gateway only in a sourced ROS shell, keep every recorded topic in `BLOOM_ALLOWED_RECORDING_TOPICS`,
+keep output folders relative, and never use a wildcard publish policy for a robot-facing session.
+
 ## Runtime ROS Policy Variables
 
 The app configuration should remain the first guardrail, but lab sessions can also tune the backend runtime policy

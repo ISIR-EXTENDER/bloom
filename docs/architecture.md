@@ -98,6 +98,42 @@ Its Builder review is a derived validation surface, not another configuration mo
 overlap, command frame, and widget destinations are read from the saved application; profile preview and JSON export
 are recorded only when those real actions occur.
 
+## Save And Load Flow
+
+The browser is never the source of truth. An edit travels the same path every time:
+
+1. The builder edits an `ApplicationConfig` or a `ScreenConfig`.
+2. The dashboard calls `PUT /api/v1/configurations/{config_id}/applications/{app_id}`, or
+   `PUT /api/v1/configurations/{config_id}/applications/{app_id}/screens/{screen_id}` for one screen.
+3. The backend repository persists it. With SQLite it writes the full JSON bundle plus normalized rows for apps,
+   screens, widgets, runtime policies, action presets, profiles, and theme assets.
+4. Later reads reconstruct from the normalized rows when they exist, with the bundle JSON as the export and migration
+   fallback.
+5. The runtime library opens the saved app and screen through the same API contract.
+
+Saved apps and screens survive a backend restart, and the legacy JSON fixtures under `backend/tests/fixtures/legacy/`
+still round-trip through the configuration API.
+
+## Runtime Action Flow
+
+Command widgets emit generic intents such as `explorer.deploy`, `explorer.repli`, or `explorer.pose.load.home`. The
+dashboard posts them to `POST /api/v1/runtime/actions` with `config_id`, `app_id`, and either `preset_id` or `command`.
+Robot-facing HTTP requests carry the WebSocket session ID in `X-Bloom-Runtime-Session`, and the backend checks that
+lease both when it authorizes the request and again at the final adapter operation. STOP is exempt; resume is not.
+
+The backend then reloads the saved configuration, resolves the command against the app's saved `action_presets`,
+rejects anything no saved preset backs, parses the payload, applies the app runtime policy, applies the global ROS
+policy and rate limit, publishes through the configured gateway, and audits the accepted or rejected operation.
+
+The browser can therefore ask for a saved command, but it cannot invent a topic, message type, or payload for a
+concrete robot action. Direct topic-publish widgets stay supported for debug and simple controls, and they pass the
+same policy, payload, rate-limit, and audit path.
+
+The details the robot side observes are preserved deliberately: joystick values stay normalized to the unit-disk
+contract, teleop uses the runtime WebSocket `teleop_cmd` contract against configured targets such as
+`/joystick_cartesian_command`, several widgets and a physical gamepad compose one 6-DoF twist with per-axis scaled dead
+zones and release-to-zero, and one effective Cartesian command frame stamps every contribution.
+
 ## Runtime Composition
 
 Runtime uses the same screen model, widget layout model, and renderer pipeline as the builder. The difference is chrome

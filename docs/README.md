@@ -8,7 +8,6 @@ Current documentation map, reviewed 2026-09-17.
 - [Operator runtime guide](operator-runtime.md): current kiosk behavior, single-session command ownership, controls,
   profiles, command frames, read-only supervisor mirror, and lab use.
 - [Architecture](architecture.md): code boundaries, configuration ownership, and runtime composition.
-- [Runtime flow compared with `extender_ui`](runtime-flow-vs-extender-ui.md): persistence, command dispatch, and ROS ownership.
 - [Extender/Petanque validation](extender-petanque-validation.md): live acceptance procedure and what remains unvalidated.
 
 ## Build, Operate, And Deploy
@@ -35,8 +34,6 @@ Current documentation map, reviewed 2026-09-17.
 - [Legacy retirement gates](legacy-retirement-gates.md)
 - [Robot-agnostic architecture note](architecture-robot-agnostic.md)
 - [Partner interface review](partner-interface-review.md)
-- [Widget migration inventory](widget-migration-inventory.md)
-- [Widgets, screens and apps foundation plan](widgets-screens-apps-foundation-plan.md)
 
 ## Evidence And History
 

@@ -509,8 +509,8 @@ for applications, screens, widgets, and theme assets. A machine that still has a
 
 File storage remains available with `BLOOM_CONFIGURATION_STORAGE=file`, and JSON stays the interchange format: the
 shared bundles, `config import` / `config export`, and `config publish` all speak it whichever store is configured.
-The app/screen API save-load flow and its differences from `extender_ui` are documented in
-[docs/runtime-flow-vs-extender-ui.md](docs/runtime-flow-vs-extender-ui.md).
+The app/screen API save-load flow and the runtime action path are documented in
+[docs/architecture.md](docs/architecture.md).
 
 Legacy JSON helpers:
 

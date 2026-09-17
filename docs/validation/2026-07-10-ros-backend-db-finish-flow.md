@@ -21,8 +21,8 @@ runtime safety, database save/load behavior, and the Bloom flow comparison with
   cancel pose, favorite mode/layout, emergency stop, and gripper close.
 - SQLite save/load tests cover creating a new app and creating a new screen via
   the API, then reloading the configuration from a fresh backend instance.
-- The current Bloom flow and `extender_ui` differences are documented in
-  `docs/runtime-flow-vs-extender-ui.md`.
+- The current Bloom save/load and runtime action flow is documented in
+  `docs/architecture.md`.
 
 ## Checks
 
