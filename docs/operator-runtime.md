@@ -31,7 +31,8 @@ longer maintained. The rail shows one card per profile with a short tagline. The
 marked **last used** and preselected, but nothing opens until the operator presses **Open as <role>**: choosing a role
 is deliberate. An app that declares no profiles says so and opens with runtime defaults. The supervisor mirror is a
 secondary action under the open button. The former **Auto** choice is gone; a stored `Auto` reads as no role
-remembered.
+remembered. A **This device** note in the rail names the class this browser counts as, its floor and its input. The
+app opened last is preselected once its configuration loads, and Escape closes the library menu.
 
 A profile's `preferred_control_layout_id` selects the screen a role opens on. When it names no existing screen, the app
 opens on its first screen. On the Manager apps, **Operator** and **One switch** open **Drive · Operator** and **Bench**
@@ -50,7 +51,7 @@ role pill, and the **⋯** maintenance hold, drawn as a fill on the button itsel
 | STOPPED | The backend STOP latch is engaged. |
 | NOT IN CONTROL | Another session owns the robot; this screen is inert until you **Take control**. |
 | LINK DOWN / CONNECTING | The frontend has no backend link yet or lost it. |
-| DEBUG | Bloom Debug only. |
+| DEBUG | Bloom Debug, in place of READY. Every other chip still outranks it. |
 
 The rate reads `N Hz` at rest, `publishing · N Hz` while a control moves, and `zeros held` while held or stopped. The
 robot name, gamepad, and ownership tags moved into the maintenance sheet's facts; the robot name stays on the supervisor
@@ -60,11 +61,12 @@ mirror.
 
 The sheet opens over a scrim with a **Robot held at zeros** badge. While it is open, only releases reach the robot: a
 joystick still held under the sheet does not resume motion when the zero goes out. It lists six read-only facts (link,
-publish rate, command frame, profile and its layout, device class, app id) and four actions: **Settings**,
-**Switch role**, **Reload this app**, and **Exit to library**. Reloading returns to the same app and screen. Screen
-switching, the practice tour, the supervisor mirror, Builder shortcuts, and Help sit in a **More** group below them;
-the group scrolls, so **Resume operating** stays on screen. It closes the sheet and publishing resumes at once. Nothing
-in the sheet changes what the app sends.
+publish rate, command frame, profile and its layout, device class, and **App**, which names the application) and four
+actions: **Settings**, **Switch role**, **Reload this app**, and **Exit to library**. **Switch role** appears only when
+the app offers more than one profile. Reloading returns to the same app, role and screen. Screen switching, the
+practice tour, the supervisor mirror, Builder shortcuts, Help, Home, and the EN/ES/FR selector sit in a **More** group
+below them; only that group scrolls, so **Close** at the top and **Resume operating** at the bottom stay on screen.
+Resuming closes the sheet and publishing resumes at once. Nothing in the sheet changes what the app sends.
 
 The publish rate is the ceiling while a control moves. At rest nothing is streamed: a release sends a short tail of
 zeros, and `cartesian_manager` expires an input after 0.2 s, so its output stays at zero.
@@ -82,9 +84,9 @@ Treat either message as an incomplete operation; a simulated response is useful 
 ## Control Ownership And Handover
 
 Each Runtime tab receives an opaque backend session ID and automatically asks to control the robot. Only one connected
-session can own robot commands at a time. The owner sees **YOU CONTROL** in the kiosk bar. A second Runtime tab keeps its
-artboard inert and shows **Another operator controls this robot**; it cannot publish teleop, topic, service, camera, or
-recording operations.
+session can own robot commands at a time. The owner's kiosk bar reads `READY`, and the maintenance sheet's **Link**
+fact adds **you control the robot**. A second Runtime tab reads `NOT IN CONTROL`, keeps its artboard inert and shows
+**Another operator controls this robot**; it cannot publish teleop, topic, service, camera, or recording operations.
 
 **Take control** is an explicit retry, not a forced takeover. It succeeds only after the current owner releases control
 or disconnects; waiting sessions are never promoted silently. STOP remains available from a blocked Runtime because
@@ -188,7 +190,9 @@ Saved positions belong to one application. A pose is a joint vector in one arm's
 appear in Kinova's export, where the same numbers would mean different angles.
 
 The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, deleting
-a saved pose, and export of a `joint_targets` configuration block. A saved pose cannot be replayed or renamed from Bloom:
+a saved pose, and export of a `joint_targets` configuration block. Explorer offers **Go home**, which arms on the first
+press and publishes on the second; Kinova offers none, because its manager loads no home joint target
+(cartesian_manager#10). Both offer **Release**. A saved pose cannot be replayed or renamed from Bloom:
 the manager moves only to targets it loaded at start, so a new pose reaches the robot through the export and a manager
 restart. Saved poses live in the API process and are lost when it restarts, so export them before stopping it. Robot
 Feedback and Command Sources expose measured state and the manager's summed inputs without placing debug detail on the
@@ -206,8 +210,12 @@ composed twist is non-zero, all frame buttons are disabled with **Release contro
 reinterpret motion already in progress. The kiosk bar updates immediately, and the next widget or gamepad command uses
 the selected frame.
 
-The **Sent to manager** echo subscribes to `/joystick_cartesian_command` and shows its `twist`. It helps verify the
-command leaving Bloom; it is not controller feedback or proof of robot motion.
+Under **SENT — /joystick_cartesian_command**, the **Twist** echo subscribes to that topic and prints the latest
+`twist` with signed two-decimal linear and angular rows. Its header names the frame the session is stamping, so it is
+readable before anything has been sent; once a message arrives the frame comes from the message itself. Its Pause,
+Clear and Copy words and its empty line follow the profile's language, and the empty line wraps inside the card, while
+message text keeps its own line breaks and scrolls. The echo helps verify the command leaving Bloom; it is not
+controller feedback or proof of robot motion.
 
 The README includes a [live Joystick Lab capture](assets/screenshots/11-joystick-lab.png) and a
 [five-minute walkthrough](assets/demo/bloom-demo.mp4) recorded against the Explorer Gazebo simulation: the Builder, both
@@ -358,10 +366,39 @@ automatically and never touches an `edited` one. Use `seed --force <app-id>` to 
 
 ## Live Telemetry
 
-A runtime screen subscribes one topic per widget over the runtime WebSocket. The backend keys those subscriptions by
-widget, so a screen that asks again replaces its own subscription instead of stacking a second one on the same topic.
-Every subscription belongs to the socket that made it: a reconnect starts a session holding none, so the screen
-re-requests them when the link comes back. Without that, the chip could return to `READY` over blank telemetry panels.
+A runtime workspace holds at most one subscription per topic per socket, whichever widget asked first, so two widgets
+reading the same topic are served by one stream and a sample arrives once (decision 0134). Changing screen releases the
+topics the new screen does not show with an `unsubscribe_topic` message. The backend keys each handle by widget id and
+topic, so an unsubscribe closes exactly the handle it names and a widget asking again for its own topic replaces its
+handle instead of stacking one; a session may hold at most 64. Every subscription belongs to the socket that made it: a
+reconnect starts a session holding none, so the screen re-requests them when the link comes back. Without that, the chip
+could return to `READY` over blank telemetry panels.
+
+Values that JSON cannot carry are not dropped. A non-finite number anywhere in a message — the NaN velocity and effort
+the simulated passive gripper joints report, for instance — is sent as `null`, so the rest of the message still
+arrives. Plots skip a `null` reading rather than drawing it as zero.
+
+### Display Widgets
+
+**Robot feedback** and **Command sources** are built from a plot board, a picker beside it, and either a value strip or
+an event log. The board draws up to eight series from the `--bloom-series-1 … -8` ramp, in order and never by meaning; a
+ninth series repeats a colour dashed. The picker chooses which series are drawn and remembers the choice per profile.
+Command sources also states which input is driving, judged on the whole twist rather than one axis.
+
+- A sample is timed by the browser that received it, not by the message stamp, so a tablet clock running behind the
+  robot's cannot push a live reading off the window.
+- `history_seconds` sets the window, 30 s by default, and the board keeps that whole window even on a fast topic.
+- `y_fit_data` is on by default. It widens the authored `y_min`/`y_max` to take in the data with 5% headroom; it never
+  narrows below the authored range.
+- A reading with no new sample for three seconds dims and is marked **stale** in the value strip and in a picker row
+  that shows values. The newest sample stops at the right edge instead of drawing past it.
+
+**Bloom Debug** is a desktop app authored at 1920×1080. Its three header cards — Robot preflight, Topic catalog,
+Runtime audit — are runtime chrome drawn inside the screen's `debug-status` reserved region, not widgets, so no author
+can place or resize them. Below them sit the plot board and picker, a joint table, a Jacobian with its manipulability
+row, and the raw topic echo. The joint table and the Jacobian read **not reported** when joint limits or `/ee_jac` are
+missing, manipulability is compared against this session's best rather than a guessed threshold, and a value under 0.01
+is shown in exponent form rather than rounding to `0.000`. Every list scrolls inside its own card.
 
 ## Recording And Diagnostics
 
