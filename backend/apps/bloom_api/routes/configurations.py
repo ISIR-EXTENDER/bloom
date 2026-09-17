@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from apps.bloom_api.security import BloomPrincipal, require_admin, require_operator
+from apps.bloom_api.security import BloomPrincipal, require_admin, require_observer
 from libs.config import (
     ApplicationConfig,
     ApplicationNotFoundError,
@@ -73,7 +73,7 @@ def get_configuration_repository(request: Request) -> ConfigurationRepository:
 @router.get("", response_model=ConfigurationListResponse)
 def list_configurations(
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> ConfigurationListResponse:
     repository = get_configuration_repository(request)
     return ConfigurationListResponse(configuration_ids=repository.list_ids())
@@ -83,7 +83,7 @@ def list_configurations(
 def get_configuration(
     config_id: str,
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> ConfigurationBundle:
     repository = get_configuration_repository(request)
     try:
@@ -110,7 +110,7 @@ def upsert_configuration(
 def list_applications(
     config_id: str,
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> ApplicationListResponse:
     bundle = get_configuration_bundle(config_id, request)
     return ApplicationListResponse(applications=list(bundle.applications))
@@ -157,7 +157,7 @@ def delete_configuration_application(
 def list_configuration_screens(
     config_id: str,
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> ReusableScreensResponse:
     bundle = get_configuration_bundle(config_id, request)
     return ReusableScreensResponse(
@@ -267,7 +267,7 @@ def get_theme_asset(
     config_id: str,
     asset_filename: str,
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_observer),
 ) -> FileResponse:
     get_configuration_bundle(config_id, request)
 

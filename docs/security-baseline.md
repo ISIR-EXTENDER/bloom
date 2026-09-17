@@ -82,10 +82,10 @@ Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the
 parameter when the WebSocket client cannot set headers. Treat query-string keys as a compatibility fallback because they
 are easier to leak in logs.
 
-Three roles exist. Admin edits configuration, operator commands the robot, and observer may only read: runtime control
-state, the STOP latch, the audit log, saved positions, and the ROS topic catalog. An observer may open the runtime
-WebSocket, because live status and topic samples are what a supervisor mirror is for, but the server refuses its
-teleop commands and its attempts to claim or release control. Observer is enforced on the server, not by hiding
+Three roles exist. Admin edits configuration, operator commands the robot, and observer may only read: saved apps,
+runtime control state, the STOP latch, the audit log, saved positions, and the ROS topic catalog. An observer may open
+the runtime WebSocket, because live status and topic samples are what a supervisor mirror is for, but the server refuses
+its teleop commands and its attempts to claim or release control. Observer is enforced on the server, not by hiding
 buttons, so a supervisor screen can be given a key that cannot take the arm.
 
 A runtime session id proves ownership of the lease on HTTP, so it is never shown to anyone else. The audit log lists

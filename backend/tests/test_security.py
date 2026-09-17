@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from pathlib import Path
 
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
@@ -8,10 +9,10 @@ from starlette.websockets import WebSocketDisconnect
 from apps.bloom_api.main import create_app
 from apps.bloom_api.security import require_runtime_owner
 from apps.bloom_api.settings import Settings, get_settings
-from libs.config import InMemoryConfigurationRepository
+from libs.config import InMemoryConfigurationRepository, load_configuration_file
 
 
-def make_secure_client(**settings) -> TestClient:
+def make_secure_client(repository: InMemoryConfigurationRepository | None = None, **settings) -> TestClient:
     return TestClient(
         create_app(
             Settings(
@@ -23,7 +24,7 @@ def make_secure_client(**settings) -> TestClient:
                 operator_api_key="operator-secret",
                 **settings,
             ),
-            InMemoryConfigurationRepository(),
+            repository or InMemoryConfigurationRepository(),
         )
     )
 
@@ -85,6 +86,16 @@ def test_the_audit_log_never_hands_out_the_owner_session() -> None:
                 "/api/v1/runtime/stop/resume", headers=operator | {"X-Bloom-Runtime-Session": session}
             )
             assert response.status_code == 409
+
+
+def test_an_observer_opens_an_app_to_mirror_it() -> None:
+    seed = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
+    client = make_secure_client(InMemoryConfigurationRepository({"explorer": load_configuration_file(seed)}))
+
+    assert client.get("/api/v1/configurations", headers=OBSERVER).status_code == 200
+    assert client.get("/api/v1/configurations/explorer", headers=OBSERVER).status_code == 200
+    assert client.get("/api/v1/configurations/explorer/applications", headers=OBSERVER).status_code == 200
+    assert client.get("/api/v1/configurations/explorer/screens", headers=OBSERVER).status_code == 200
 
 
 def test_an_observer_cannot_edit_configuration() -> None:
