@@ -95,8 +95,8 @@ function readArgument(flag) {
 
 async function openExplorerRuntime(page) {
   await page.goto(`${dashboardUrl}/#/runtime`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
-  await page.getByRole("button", { name: "Launch Explorer Manager runtime" }).click();
+  await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
+  await openRuntimeApp(page, "Explorer Manager");
   await page.getByRole("region", { name: "Runtime application" }).waitFor();
   await page
     .getByRole("status")
@@ -143,9 +143,9 @@ async function holdForMaintenance(page) {
 
 async function openBloomDebug(page) {
   await page.goto(`${dashboardUrl}/#/runtime`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+  await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
   await show(page, 2500);
-  await page.getByRole("button", { name: "Launch Bloom Debug runtime" }).click();
+  await openRuntimeApp(page, "Bloom Debug");
   await page.getByRole("heading", { name: "Inspect, record, and audit runtime topics." }).waitFor();
   await show(page, 3500);
 }
@@ -205,4 +205,14 @@ function transcodeVideo(inputPath, destinationPath) {
       rejectPromise(new Error(`ffmpeg exited with code ${code}: ${errorOutput.slice(-2000)}`));
     });
   });
+}
+
+/** The library opens an app as a role: select its row, keep the remembered role or take the first, open. */
+async function openRuntimeApp(page, appName) {
+  await page.getByRole("button", { exact: true, name: appName }).click();
+  const open = page.locator(".runtime-library-open");
+  if (await open.isDisabled()) {
+    await page.locator(".runtime-library-roles button").first().click();
+  }
+  await open.click();
 }

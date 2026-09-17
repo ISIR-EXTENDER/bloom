@@ -138,6 +138,39 @@ export type RuntimeStrings = {
     title: string;
     updatedAt: (value: string) => string;
   };
+  library: {
+    active: string;
+    appsLabel: string;
+    archived: string;
+    brand: string;
+    builder: string;
+    chooseRole: string;
+    classes: Record<"both" | "desktop" | "desktopOnly" | "tablet" | "tabletOnly", string>;
+    deviceDesktop: (width: number, height: number) => string;
+    deviceTablet: (width: number, height: number) => string;
+    empty: string;
+    lastUsed: string;
+    menu: string;
+    noProfiles: string;
+    open: string;
+    openAs: (role: string) => string;
+    openAsLabel: string;
+    roleNote: string;
+    screens: (count: number) => string;
+    supervisorAria: (appName: string) => string;
+    tagline: {
+      accessible: string;
+      continuousLimits: string;
+      debugging: string;
+      dwell: string;
+      period: (seconds: string) => string;
+      plainLanguage: string;
+      scan: string;
+      target: (px: number) => string;
+    };
+    thisDevice: string;
+    title: string;
+  };
   settings: {
     decrease: (label: string) => string;
     deadzone: string;

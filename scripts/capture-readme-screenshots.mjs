@@ -94,7 +94,7 @@ try {
   // ---------------------------------------------------------------- runtime
   await step("runtime-library", async () => {
     await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-    await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+    await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
   });
 
   // Explorer Manager is the app built for the cartesian_manager architecture,
@@ -107,7 +107,7 @@ try {
   ];
 
   await step(explorerScreens[0][0], async () => {
-    await page.getByRole("button", { name: "Launch Explorer Manager runtime" }).click();
+    await openRuntimeApp(page, "Explorer Manager");
     await page.getByRole("region", { name: "Runtime application" }).waitFor();
     await page.waitForTimeout(800);
   });
@@ -121,28 +121,28 @@ try {
 
   await step("runtime-kinova-drive", async () => {
     await openRuntimeLibrary(page);
-    await page.getByRole("button", { name: "Launch Kinova Manager runtime" }).click();
+    await openRuntimeApp(page, "Kinova Manager");
     await page.getByRole("region", { name: "Runtime application" }).waitFor();
     await page.waitForTimeout(800);
   });
 
   await step("runtime-live-teleop", async () => {
     await openRuntimeLibrary(page);
-    await page.getByRole("button", { name: "Launch Sandbox V0.0 runtime" }).click();
+    await openRuntimeApp(page, "Sandbox V0.0");
     await page.getByRole("region", { name: "Runtime application" }).waitFor();
     await page.waitForTimeout(600);
   });
 
   await step("runtime-camera", async () => {
     await openRuntimeLibrary(page);
-    await page.getByRole("button", { name: "Launch Webcam visualizer runtime" }).click();
+    await openRuntimeApp(page, "Webcam visualizer");
     await page.getByRole("region", { name: "Runtime application" }).waitFor();
     await page.waitForTimeout(800);
   });
 
   await step("runtime-bloom-debug", async () => {
     await openRuntimeLibrary(page);
-    await page.getByRole("button", { name: "Launch Bloom Debug runtime" }).click();
+    await openRuntimeApp(page, "Bloom Debug");
     await page.getByRole("region", { name: "Runtime application" }).waitFor();
     await page.waitForTimeout(600);
   });
@@ -184,7 +184,7 @@ if (skipped.length > 0) {
 
 async function openRuntimeLibrary(page) {
   await page.goto(`${dashboardUrl}/#/runtime`, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+  await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
 }
 
 async function assertTrackedApplications(page, apiBaseUrl) {
@@ -259,4 +259,14 @@ async function launchBrowser() {
 async function capture(page, path) {
   await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ fullPage: false, path });
+}
+
+/** The library opens an app as a role: select its row, keep the remembered role or take the first, open. */
+async function openRuntimeApp(page, appName) {
+  await page.getByRole("button", { exact: true, name: appName }).click();
+  const open = page.locator(".runtime-library-open");
+  if (await open.isDisabled()) {
+    await page.locator(".runtime-library-roles button").first().click();
+  }
+  await open.click();
 }

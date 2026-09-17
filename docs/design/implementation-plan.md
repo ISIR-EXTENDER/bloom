@@ -492,3 +492,6 @@ Each commit carries its tests. Commits 12 and 13 run the live bench before pushi
 - **Kinova segments.** Explorer's 0.08 / 0.15 / 0.30 exceed Kinova's 0.1 m/s; Kinova uses 0.025 / 0.05 / 0.10.
 - **Positions keeps capture.** The design shows a pick-only list because no save flow is designed, but the library can
   already capture and export. It stays editable until the save flow exists; `editable: false` gives the pick-only list.
+- **Library device badges are derived, not declared.** An app is tablet when any screen uses a tablet preset and desktop
+  when one uses `full-hd`/`local-screen` or an `<id>-desktop` sibling exists. No desktop siblings exist yet, so every
+  manager app honestly reads "tablet only" until one is authored; 5a's "tablet + desktop" anticipates them.

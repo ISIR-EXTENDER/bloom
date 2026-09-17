@@ -30,6 +30,7 @@ const routes = [
   { name: "builder", setup: showBuilder },
   { name: "app-config", setup: showAppConfig },
   { name: "builder-review", setup: showBuilderReview },
+  { name: "runtime-library", setup: showRuntimeLibrary },
   { name: "runtime", setup: showRuntime },
   { name: "supervisor-mirror", setup: showSupervisorMirror },
   { name: "runtime-tour", setup: showRuntimeTour },
@@ -518,10 +519,16 @@ async function showBuilderReview(page) {
   await page.getByRole("region", { name: "Builder review checklist" }).waitFor();
 }
 
+async function showRuntimeLibrary(page) {
+  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
+  await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
+}
+
 async function showRuntime(page) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("button", { name: "Launch Sandbox V0.0 runtime" }).click();
+  await openRuntimeApp(page, "Sandbox V0.0");
   await page.getByRole("region", { name: "Runtime application" }).waitFor();
 }
 
@@ -536,6 +543,7 @@ async function showSupervisorMirror(page) {
   await mockRuntimeWebSocket(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
+  await page.getByRole("button", { exact: true, name: "Explorer Manager" }).click();
   await page.getByRole("button", { name: "Open Explorer Manager supervisor mirror" }).click();
   await page.getByRole("region", { name: "Supervisor mirror" }).waitFor();
   await page.getByText("Operator retains control").waitFor();
@@ -562,7 +570,7 @@ async function showExplorerRuntimeScreen(page, screenName) {
   await mockSavedPositions(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("button", { name: "Launch Explorer Manager runtime" }).click();
+  await openRuntimeApp(page, "Explorer Manager");
   await page.getByRole("region", { name: "Runtime application" }).waitFor();
   if (screenName === null) {
     return;
@@ -761,7 +769,7 @@ async function showDebugRuntime(page) {
   await mockRuntimeWebSocket(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("button", { name: "Launch Bloom Debug runtime" }).click();
+  await openRuntimeApp(page, "Bloom Debug");
   await page.getByRole("heading", { name: "Bloom Debug" }).waitFor();
   await page.getByRole("heading", { name: "Inspect, record, and audit runtime topics." }).waitFor();
   await page.getByRole("button", { name: "Refresh topics" }).click();
@@ -779,14 +787,14 @@ async function assertBrowserHistoryAffordance(page, label) {
   await page.getByRole("heading", { name: "Choose what to build." }).waitFor();
 
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+  await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
 
   await page.goBack({ waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Choose what to build." }).waitFor();
   await assertNoHorizontalOverflow(page, `${label}:browser-back`);
 
   await page.goForward({ waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: "Choose an app to operate." }).waitFor();
+  await page.getByRole("heading", { level: 1, name: "Runtime library" }).waitFor();
   await assertNoHorizontalOverflow(page, `${label}:browser-forward`);
 }
 
@@ -809,4 +817,14 @@ async function assertNoHorizontalOverflow(page, label) {
       )})`,
     );
   }
+}
+
+/** The library opens an app as a role: select its row, keep the remembered role or take the first, open. */
+async function openRuntimeApp(page, appName) {
+  await page.getByRole("button", { exact: true, name: appName }).click();
+  const open = page.locator(".runtime-library-open");
+  if (await open.isDisabled()) {
+    await page.locator(".runtime-library-roles button").first().click();
+  }
+  await open.click();
 }

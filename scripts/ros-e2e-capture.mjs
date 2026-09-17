@@ -171,7 +171,7 @@ async function openRuntime(page, options = {}) {
     await page.goto(dashboardUrl, { waitUntil: "networkidle" });
   }
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("button", { name: `Launch ${appName} runtime` }).click();
+  await openRuntimeApp(page, appName);
   await page
     .getByRole("region", { name: /Runtime application|Aplicación de operación|Application opérateur/ })
     .waitFor();
@@ -225,4 +225,14 @@ async function openSettings(page) {
   await page.getByRole("button", { name: /settings|réglages|ajustes/i }).click();
   await page.getByRole("region", { name: /settings|réglages|ajustes/i }).waitFor();
   await page.waitForTimeout(200);
+}
+
+/** The library opens an app as a role: select its row, keep the remembered role or take the first, open. */
+async function openRuntimeApp(page, appName) {
+  await page.getByRole("button", { exact: true, name: appName }).click();
+  const open = page.locator(".runtime-library-open");
+  if (await open.isDisabled()) {
+    await page.locator(".runtime-library-roles button").first().click();
+  }
+  await open.click();
 }

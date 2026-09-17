@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
+import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
 /**
@@ -54,7 +55,7 @@ describe("pressing a mode button", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={createRuntimeActionClient()} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Explorer Manager runtime" }));
+    await openRuntimeApp("Explorer Manager");
 
     expect(await screen.findByRole("button", { name: /^Jaco/ })).toBeTruthy();
     expect(pressedState(/^Jaco/)).toBe("false");

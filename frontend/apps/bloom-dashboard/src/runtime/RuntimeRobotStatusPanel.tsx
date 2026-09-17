@@ -117,7 +117,7 @@ function RuntimeStatusPill({ children, label, status }: RuntimeStatusPillProps) 
   return (
     <span className="runtime-status-pill" data-status={status}>
       <small>{label}</small>
-      <strong>{children}</strong>
+      <strong className="runtime-status-pill-value">{children}</strong>
     </span>
   );
 }

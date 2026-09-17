@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
+import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
 function createJoystickLabConfigurationClient() {
@@ -73,7 +74,7 @@ describe("the Explorer Manager joystick lab", () => {
     );
 
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Explorer Manager runtime" }));
+    await openRuntimeApp("Explorer Manager");
 
     const translation = await screen.findByRole("application", { name: "Translation" });
     const toolFrame = () => screen.getByRole("button", { name: /^Tool/ });

@@ -169,9 +169,13 @@ export function ProductWorkspace({
     return (
       <RuntimeHome
         configurations={state.configurations}
+        onOpenBuilderHome={onOpenBuilderHome}
+        onOpenHelp={onOpenHelp}
+        onOpenLanding={onOpenLanding}
         onOpenRuntimeApp={onOpenRuntimeApp}
         onOpenSupervisorApp={onOpenSupervisorApp}
         onProfilePreferenceChange={onRuntimeProfilePreferenceChange}
+        profileOverrides={profileOverrides}
         profilePreferences={profilePreferences}
         recentRuntimeSelections={recentRuntimeSelections}
       />

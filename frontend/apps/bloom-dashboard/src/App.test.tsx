@@ -18,6 +18,7 @@ import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-te
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient, RuntimeTopicSampleMessage } from "./runtime/runtime-action-dispatcher";
+import { openRuntimeApp } from "./test-support/open-runtime-app";
 import { BLOOM_APP_SCREEN_REORDER_DRAG_TYPE, BLOOM_SCREEN_DRAG_TYPE } from "./ui/dragDrop";
 
 Element.prototype.setPointerCapture = vi.fn();
@@ -65,7 +66,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
     expect(window.location.hash).toBe("#/runtime");
 
     window.history.back();
@@ -76,7 +77,7 @@ describe("App", () => {
     window.history.forward();
 
     await waitFor(() => expect(window.location.hash).toBe("#/runtime"));
-    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
   });
 
   it("restores direct runtime and builder routes from the browser URL", async () => {
@@ -84,7 +85,7 @@ describe("App", () => {
 
     const { unmount } = render(<App configurationClient={createConfigurationClient()} />);
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
 
     unmount();
     window.history.replaceState(null, "", "#/builder/screen");
@@ -369,10 +370,10 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
 
-    expect(await screen.findByRole("heading", { level: 1, name: "Choose an app to operate." })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Launch Sandbox runtime" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Sandbox" })).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Launch Sandbox runtime" }));
+    await openRuntimeApp("Sandbox");
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     // Screen switching and every gateway now sit behind the maintenance hold,
@@ -387,8 +388,9 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Exit to library" }));
 
-    expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Resume Sandbox on Main" })).toBeVisible();
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Sandbox" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Open" })).toBeEnabled();
   });
 
   it("opens the read-only supervisor mirror from the runtime library", async () => {
@@ -425,7 +427,7 @@ describe("App", () => {
     openWindow.mockRestore();
   });
 
-  it("persists recent runtime apps and display profile preferences", async () => {
+  it("remembers the last role on this device and marks it without launching it", async () => {
     const configurationClient = createConfigurationClient({
       bundles: {
         "explorer-user-tests": explorerUserTestsConfiguration as unknown as ConfigurationBundle,
@@ -435,20 +437,23 @@ describe("App", () => {
     const { unmount } = render(<App configurationClient={configurationClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.change(await screen.findByLabelText("Explorer User Tests display profile"), {
-      target: { value: "large-targets" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Launch Explorer User Tests runtime" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Explorer User Tests" }));
+    // No role remembered yet: opening is an explicit choice.
+    expect(screen.getByRole("button", { name: "Choose a role to open" })).toBeDisabled();
+    await openRuntimeApp("Explorer User Tests", "Large tactile targets");
 
-    expect(await screen.findByText("Large tactile targets")).toBeVisible();
+    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     unmount();
 
     window.history.replaceState(null, "", "#/runtime");
     render(<App configurationClient={configurationClient} />);
 
-    expect(await screen.findByRole("heading", { level: 2, name: "Resume quickly" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Resume Explorer User Tests on Explorer control modes" })).toBeVisible();
-    expect(screen.getByLabelText("Explorer User Tests display profile")).toHaveValue("large-targets");
+    expect(await screen.findByRole("button", { name: "Explorer User Tests" })).toHaveAttribute("aria-pressed", "true");
+    const remembered = screen.getByRole("button", { name: "Large tactile targets" });
+    expect(remembered).toHaveAttribute("aria-pressed", "true");
+    expect(remembered.textContent).toContain("last used");
+    expect(screen.getByRole("button", { name: "Open as Large tactile targets" })).toBeEnabled();
+    expect(screen.queryByRole("region", { name: "Runtime application" })).not.toBeInTheDocument();
   });
 
   it("replaces robot controls with persistent settings whose preview sends no robot action", async () => {
@@ -456,7 +461,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox runtime" }));
+    await openRuntimeApp("Sandbox");
     expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
 
     openRuntimeMenu();
@@ -483,7 +488,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox runtime" }));
+    await openRuntimeApp("Sandbox");
     expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
 
     openRuntimeMenu();
@@ -515,7 +520,7 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Robot monitor runtime" }));
+    await openRuntimeApp("Robot monitor");
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(4));
@@ -579,8 +584,8 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
 
-    expect(await screen.findByRole("button", { name: "Launch Explorer User Tests runtime" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Launch Explorer User Tests runtime" }));
+    expect(await screen.findByRole("button", { name: "Explorer User Tests" })).toBeVisible();
+    await openRuntimeApp("Explorer User Tests");
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Explorer User Tests" })).toBeVisible();
@@ -1709,7 +1714,7 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox V0.0 runtime" }));
+    await openRuntimeApp("Sandbox V0.0");
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox V0.0" })).toBeVisible();
@@ -2007,7 +2012,7 @@ describe("App", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Webcam visualizer runtime" }));
+    await openRuntimeApp("Webcam visualizer");
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Webcam visualizer" })).toBeVisible();
@@ -2020,40 +2025,35 @@ describe("App", () => {
       bundle: migratedPetanqueAdminConfiguration as unknown as ConfigurationBundle,
       configId: "petanque-admin",
       heading: "Petanque admin",
-      launchButton: "Launch Petanque admin runtime",
       visibleCopy: "Translation",
     },
     {
       bundle: sandboxTeleopLabConfiguration as unknown as ConfigurationBundle,
       configId: "sandbox",
       heading: "Sandbox",
-      launchButton: "Launch Sandbox runtime",
       visibleCopy: "Translation joystick",
     },
     {
       bundle: bloomDebugConfiguration as unknown as ConfigurationBundle,
       configId: "bloom-debug",
       heading: "Bloom Debug",
-      launchButton: "Launch Bloom Debug runtime",
       visibleCopy: "Teleop command echo",
     },
     {
       bundle: explorerUserTestsConfiguration as unknown as ConfigurationBundle,
       configId: "explorer-user-tests",
       heading: "Explorer User Tests",
-      launchButton: "Launch Explorer User Tests runtime",
       visibleCopy: "Mode-aware joystick",
     },
     {
       bundle: webcamVisualizerConfiguration as unknown as ConfigurationBundle,
       configId: "webcam-visualizer",
       heading: "Webcam visualizer",
-      launchButton: "Launch Webcam visualizer runtime",
       visibleCopy: "Local webcam",
     },
   ])(
     "opens the seeded $heading runtime app without an empty screen",
-    async ({ bundle, configId, heading, launchButton, visibleCopy }) => {
+    async ({ bundle, configId, heading, visibleCopy }) => {
       const runtimeActionClient = createRuntimeActionClient();
       render(
         <App
@@ -2068,7 +2068,7 @@ describe("App", () => {
       );
 
       fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-      fireEvent.click(await screen.findByRole("button", { name: launchButton }));
+      await openRuntimeApp(heading);
 
       expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
       expect(screen.getByRole("heading", { level: 2, name: heading })).toBeVisible();
@@ -2639,12 +2639,12 @@ async function openAppConfig() {
 
 async function openSandboxRuntimeFromNavigation() {
   fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-  fireEvent.click(await screen.findByRole("button", { name: "Launch Sandbox runtime" }));
+  await openRuntimeApp("Sandbox");
 }
 
 async function openBloomDebugRuntimeFromNavigation() {
   fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-  fireEvent.click(await screen.findByRole("button", { name: "Launch Bloom Debug runtime" }));
+  await openRuntimeApp("Bloom Debug");
 }
 
 /**

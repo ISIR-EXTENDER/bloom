@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
+import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient, RuntimeTeleopCommandRequest } from "./runtime-action-dispatcher";
 
 class ResizeObserverMock {
@@ -64,7 +65,7 @@ describe("step preset after STOP and resume", () => {
 
     render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Explorer Manager runtime" }));
+    await openRuntimeApp("Explorer Manager");
     const forward = (await screen.findAllByRole("button", { name: /Forward, one step/ }))[0];
     fireEvent.click(forward);
     await waitFor(() => expect(sent.some((r) => r.linear.y > 0)).toBe(true));

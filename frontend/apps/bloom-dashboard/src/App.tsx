@@ -81,7 +81,8 @@ export function App({
   const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}:${supervisorTarget?.configId ?? ""}:${supervisorTarget?.appId ?? ""}`;
-  const isRuntimeSessionView = activeView === "runtime" && runtimeMode !== "home";
+  // The library is a kiosk screen too (design 5a): its own bar, no product navigation.
+  const isRuntimeSessionView = activeView === "runtime";
   const isRuntimeOperationView = activeView === "runtime" && runtimeMode === "app";
   const activeTheme =
     configurationState.status === "ready" && selection

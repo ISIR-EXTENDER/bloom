@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
+import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient, RuntimeTeleopCommandRequest } from "./runtime-action-dispatcher";
 
 class ResizeObserverMock {
@@ -65,7 +66,7 @@ describe("maintenance holds the robot, and STOP outranks it (plan §8.3)", () =>
 
     render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Explorer Manager runtime" }));
+    await openRuntimeApp("Explorer Manager");
     const translation = await screen.findByRole("application", { name: "Translation" });
 
     for (let step = 0; step < 4; step += 1) {

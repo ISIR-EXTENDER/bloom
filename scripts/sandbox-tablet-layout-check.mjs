@@ -312,7 +312,7 @@ async function mockRuntimeWebSocket(page) {
 async function showSandboxRuntimeScreen(page, screenName) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("button", { name: "Launch Sandbox V0.0 runtime" }).click();
+  await openRuntimeApp(page, "Sandbox V0.0");
 
   // Screen switching lives behind the maintenance hold now, so the check has
   // to hold too. That is the point of the gate: it cannot be done by brushing
@@ -423,4 +423,14 @@ async function assertVisibleBox(page, selector, options) {
   if (!usable) {
     throw new Error(`${options.label} is too small: ${JSON.stringify(boxes)}`);
   }
+}
+
+/** The library opens an app as a role: select its row, keep the remembered role or take the first, open. */
+async function openRuntimeApp(page, appName) {
+  await page.getByRole("button", { exact: true, name: appName }).click();
+  const open = page.locator(".runtime-library-open");
+  if (await open.isDisabled()) {
+    await page.locator(".runtime-library-roles button").first().click();
+  }
+  await open.click();
 }

@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
+import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
 const LINEAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed";
@@ -67,7 +68,7 @@ describe("the Explorer speed controls", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     await user.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
-    await user.click(await screen.findByRole("button", { name: "Launch Explorer Manager runtime" }));
+    await openRuntimeApp("Explorer Manager");
 
     const linearSpeed = await screen.findByRole("slider", { name: "Max linear speed" });
     expect(linearSpeed).toHaveAttribute("aria-valuenow", "0.15");

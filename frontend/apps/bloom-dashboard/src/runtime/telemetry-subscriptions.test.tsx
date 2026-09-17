@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import bloomDebugConfiguration from "../../../../../backend/seed/applications/bloom-debug.json";
 import { App } from "../App";
+import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient, RuntimeLinkState } from "./runtime-action-dispatcher";
 
 class ResizeObserverMock {
@@ -49,7 +50,7 @@ describe("telemetry subscriptions", () => {
 
     render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Launch Bloom Debug runtime" }));
+    await openRuntimeApp("Bloom Debug");
     await screen.findByRole("region", { name: "Runtime application" });
 
     expect(client.subscribeRuntimeTopic).not.toHaveBeenCalled();
