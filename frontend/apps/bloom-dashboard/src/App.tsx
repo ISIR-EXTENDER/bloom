@@ -44,6 +44,7 @@ import {
   runtimeModeRoute,
 } from "./ui/navigationRoute";
 import { ProductNavigation, type ProductView } from "./ui/ProductNavigation";
+import { restoreRuntimeSessionSelection, saveRuntimeSessionSelection } from "./ui/runtime-session-selection";
 import {
   addRecentRuntimeSelection,
   loadRuntimeUserPreferences,
@@ -128,8 +129,25 @@ export function App({
     if (selection) {
       return;
     }
-    setSelection(getInitialWorkspaceSelection(configurationState.configurations));
-  }, [activeView, configurationState, runtimeMode, selection, supervisorTarget]);
+    const restoredSelection =
+      activeView === "runtime" && runtimeMode === "app"
+        ? restoreRuntimeSessionSelection(configurationState.configurations, runtimeUserPreferences.profilePreferences)
+        : null;
+    setSelection(restoredSelection ?? getInitialWorkspaceSelection(configurationState.configurations));
+  }, [
+    activeView,
+    configurationState,
+    runtimeMode,
+    runtimeUserPreferences.profilePreferences,
+    selection,
+    supervisorTarget,
+  ]);
+
+  useEffect(() => {
+    if (isRuntimeOperationView && selection) {
+      saveRuntimeSessionSelection(selection);
+    }
+  }, [isRuntimeOperationView, selection]);
 
   useEffect(() => {
     resetViewportForRoute(activeRouteKey);
