@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 const CONTROL_SELECTOR = 'button, [role="application"], [role="slider"], [role="switch"], [tabindex]';
 const HELD_TAB_INDEX = "data-stopped-tabindex";
@@ -10,8 +10,14 @@ const HELD_TAB_INDEX = "data-stopped-tabindex";
  * that answered nothing. STOP and resume are never touched.
  */
 export function useStoppedControls(rootRef: { current: HTMLElement | null }, stopped: boolean): void {
+  const [root, setRoot] = useState<HTMLElement | null>(null);
+
+  // Settings and the tour unmount the canvas; the remounted node must be latched, not the detached one.
+  useLayoutEffect(() => {
+    setRoot((current) => (current === rootRef.current ? current : rootRef.current));
+  });
+
   useEffect(() => {
-    const root = rootRef.current;
     if (!root || !stopped) {
       return;
     }
@@ -50,5 +56,5 @@ export function useStoppedControls(rootRef: { current: HTMLElement | null }, sto
         }
       }
     };
-  }, [rootRef, stopped]);
+  }, [root, stopped]);
 }

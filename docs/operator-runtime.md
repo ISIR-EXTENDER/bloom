@@ -179,7 +179,8 @@ configuration and app, but the tour remains available for repetition.
   keep clear.
 - While stopped, the screen's widgets go muted and inert and the control becomes **HOLD TO RESUME**. They are marked
   `aria-disabled` and leave the keyboard tab order while the latch is on, so a keyboard or screen-reader operator is
-  not walked through controls that answer nothing; STOP and resume stay reachable.
+  not walked through controls that answer nothing; STOP and resume stay reachable. Stopping from Settings or the
+  practice tour, which replace the canvas, leaves the canvas stopped when it comes back.
 - A dwell in progress when STOP engages is abandoned rather than completed. Resting on a screen control while another
   operator or a hardware event latches the stop never fires that control; the pointer has to move away and rest again.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
