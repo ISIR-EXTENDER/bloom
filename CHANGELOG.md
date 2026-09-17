@@ -39,6 +39,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - A configuration read no longer takes a write lock. The store is migrated once, when its repository is built, and
   connections run in WAL with a 15 s busy timeout, so a CLI `config seed` holding a write no longer makes the API
   answer 500 with `database is locked`.
+- **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
 
 ## [0.2.0] - 2026-09-17
 

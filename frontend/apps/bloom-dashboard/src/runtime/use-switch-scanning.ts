@@ -10,6 +10,8 @@ export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switc
 export const SCAN_PRIORITY_SELECTOR = `${SCAN_TARGET_SELECTOR}[data-scan-priority]`;
 
 export type SwitchScanningOptions = {
+  /** Fires the lit target; without one the target is clicked. */
+  activateTarget?: (target: HTMLElement) => void;
   enabled: boolean;
   /** Restricts scanning further when only a safe subset may be operated. */
   isTargetEnabled?: (target: HTMLElement) => boolean;
@@ -39,19 +41,28 @@ export type SwitchScanningState = {
  * preset, because a click on a pad moves nothing.
  */
 export function useSwitchScanning(options: SwitchScanningOptions): SwitchScanningState {
-  const { enabled, isTargetEnabled, periodMs, rootRef, revision } = options;
+  const { activateTarget, enabled, isTargetEnabled, periodMs, rootRef, revision } = options;
   const [index, setIndex] = useState(-1);
   const [targetCount, setTargetCount] = useState(0);
   const targetsRef = useRef<HTMLElement[]>([]);
+  const activateTargetRef = useRef(activateTarget);
   const isTargetEnabledRef = useRef(isTargetEnabled);
+  activateTargetRef.current = activateTarget;
   isTargetEnabledRef.current = isTargetEnabled;
   // The ref is the source of truth inside the loop; state only informs the UI,
   // and a deferred render must never make the highlight skip a target.
   const indexRef = useRef(-1);
   const activateCurrent = useCallback(() => {
     const target = targetsRef.current[indexRef.current];
-    target?.click();
-    target?.focus();
+    if (!target) {
+      return;
+    }
+    if (activateTargetRef.current) {
+      activateTargetRef.current(target);
+    } else {
+      target.click();
+    }
+    target.focus();
   }, []);
 
   useEffect(() => {

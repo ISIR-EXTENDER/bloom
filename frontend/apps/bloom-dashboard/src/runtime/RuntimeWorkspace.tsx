@@ -294,27 +294,28 @@ export function RuntimeWorkspace({
       ? { label: strings.status.debug, tone: "debug" as const }
       : resolvedChip;
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
+  // A scan or dwell activation of the resume control is already slow and
+  // deliberate; it stands in for the pointer's one-second hold.
+  const activateAssistiveTarget = (target: HTMLElement) => {
+    if (target.dataset.dwellAction === "resume") {
+      runtimeStop.resume();
+      return;
+    }
+    target.click();
+  };
   const scanning = useSwitchScanning({
+    activateTarget: activateAssistiveTarget,
     // Maintenance covers the canvas; a switch press there must not reach it.
-    enabled:
-      runtimeProfile.motorAccessibilityPreset === "scan" &&
-      !maintenanceOpen &&
-      !settingsOpen &&
-      !tourOpen &&
-      (!stopped || runtimeControlBlocked),
+    // Scanning stays on while stopped: isTargetEnabled leaves resume as the
+    // only target, and turning it off would latch a switch operator out.
+    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !maintenanceOpen && !settingsOpen && !tourOpen,
     isTargetEnabled: isAssistiveRuntimeTargetEnabled,
     periodMs: runtimeProfile.scanPeriodMs,
     rootRef: runtimeControlsRef,
     revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}:${runtimeControlBlocked}:${stopped}`,
   });
   useDwellActivation({
-    activateTarget: (target) => {
-      if (target.dataset.dwellAction === "resume") {
-        runtimeStop.resume();
-        return;
-      }
-      target.click();
-    },
+    activateTarget: activateAssistiveTarget,
     dwellMs: runtimeProfile.dwellMs,
     enabled: runtimeProfile.dwellEnabled && !maintenanceOpen && !settingsOpen && !tourOpen,
     isTargetEnabled: isAssistiveRuntimeTargetEnabled,

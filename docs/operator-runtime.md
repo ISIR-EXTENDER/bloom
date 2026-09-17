@@ -166,6 +166,9 @@ configuration and app, but the tour remains available for repetition.
   keep clear.
 - While stopped, the screen's widgets go muted and inert and the control becomes **HOLD TO RESUME**.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
+- Scanning stays on while stopped, and the highlight rests on the resume control as its only target. A switch press
+  there resumes: waiting out the scan cycle is itself the deliberate act the pointer hold asks for. Dwell still rests
+  the full second on the control.
 - Link, stop, and recovery transitions can produce audio cues when the selected profile enables them.
 
 This control does not replace the robot's hardware emergency stop, controller limits, or the operator's normal lab

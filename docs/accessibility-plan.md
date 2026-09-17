@@ -72,7 +72,8 @@ Related profile fields are bounded by the configuration model:
 
 Dwell can run alongside scanning, and resting on SWITCH activates the highlighted target. It cannot shorten the
 one-second STOP resume hold. A blocked Runtime limits scan and dwell to **Take control** and the universal STOP instead
-of exposing robot controls; owner scanning is disabled while stopped. A released pointer, stick, or
+of exposing robot controls. Scanning keeps running while stopped, with the resume control as its only target, because a
+switch operator has no other way back; a switch press on it resumes, the scan cycle standing in for the pointer hold. A released pointer, stick, or
 latched zero action must clear its contribution rather than leave a standing robot command.
 Stepped or latched return-to-center values also publish zero after 15 seconds without renewed input.
 
