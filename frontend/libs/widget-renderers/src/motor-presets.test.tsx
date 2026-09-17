@@ -347,6 +347,39 @@ describe("the latch preset", () => {
   });
 });
 
+describe("a joystick authored not to zero on release", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    cleanup();
+  });
+
+  function holdingJoystick() {
+    const { joystick } = descriptors();
+    return {
+      ...joystick,
+      widget: { ...joystick.widget, settings: { ...joystick.widget.settings, zero_on_release: false } },
+    };
+  }
+
+  it("offers a zero control and expires the held vector like the latch preset", () => {
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={holdingJoystick()} onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+
+    fireEvent.keyDown(pad, { key: "ArrowRight" });
+    fireEvent.keyUp(pad, { key: "ArrowRight" });
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0.1, y: 0 });
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Zero Translation" }).disabled).toBe(false);
+
+    act(() => {
+      vi.advanceTimersByTime(15500);
+    });
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0 });
+  });
+});
+
 describe("driving the joystick from a keyboard", () => {
   afterEach(cleanup);
 

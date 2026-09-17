@@ -343,7 +343,9 @@ export function JoystickWidget({
   // input, because re-renders from scanning or telemetry would otherwise
   // restart the window forever.
   const stepPreset = resolveStepTargetPreset(motorPreset);
-  const isLatched = motorPreset === "latch" || stepPreset !== null;
+  // An authored zero_on_release: false holds the vector just like the latch preset.
+  const keepsReleasedVector = motorPreset === "latch" || !binding.zeroOnRelease;
+  const isLatched = keepsReleasedVector || stepPreset !== null;
   const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
   const expireHeldVectorRef = useRef(() => {});
   expireHeldVectorRef.current = () => emitHeldVector({ x: 0, y: 0 });
@@ -393,9 +395,9 @@ export function JoystickWidget({
         resetSignal={padResetSignal}
         size={size}
         title={descriptor.widget.title}
-        zeroOnRelease={motorPreset === "latch" ? false : binding.zeroOnRelease}
+        zeroOnRelease={!keepsReleasedVector}
       />
-      {motorPreset === "latch" ? (
+      {keepsReleasedVector ? (
         <button
           aria-label={`Zero ${descriptor.widget.title}`}
           className="bloom-latch-zero"

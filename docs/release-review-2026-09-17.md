@@ -27,7 +27,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | A9 | Kinova seed values that belong to Explorer: the gripper toggles send `[1.1]`/`[0.2]`, outside the Robotiq 85 range, and the Joystick Lab gripper labels are inverted; the upstream Kinova `home` joint target is Explorer's six-joint pose. | `seed/applications/kinova-manager.json` | Fixed |
 | A10 | Step and latch widgets keep their held vector or value across STOP, blur and loss of control, so the next tap jumps from the stale value; a latched joystick's Zero leaves the pad's own vector stale. | `control-renderers.tsx`, `JoystickPrimitive.tsx` | Fixed |
 | A11 | On a return-to-center slider, Home, End, PageUp and PageDown send a full-scale value that stays held until focus leaves. | `control-renderers.tsx` | Fixed |
-| A12 | A joystick with `zero_on_release: false` in the default preset has no Zero control and no attention timeout. | `control-renderers.tsx` | Open |
+| A12 | A joystick with `zero_on_release: false` in the default preset has no Zero control and no attention timeout. | `control-renderers.tsx` | Fixed |
 | A13 | The joystick normalizer replaces an authored `runtime_binding` whose target is `both` with the defaults, discarding `axis_mapping`, `axis_deadzone` and the frame. No shipped app is affected; any app authored with a custom mapping is. | `widgets/settings.ts` | Open |
 
 ## B. Security and broken features
