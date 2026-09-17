@@ -81,6 +81,17 @@ describe("runtime settings", () => {
     expect(within(container).getByRole("region", { name: "Settings" })).toHaveAttribute("data-assistive", expected);
   });
 
+  it("keeps the stored setting keys out of what a screen reader reads", () => {
+    // font_scale, dwell_ms and deadzone are for whoever edits the profile.
+    const { container } = renderSettings();
+
+    const keys = [...container.querySelectorAll<HTMLElement>("span.runtime-settings-key")];
+    expect(keys.length).toBeGreaterThan(0);
+    for (const key of keys) {
+      expect(key).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
   it("raises them for a high-visibility display too", () => {
     const { container } = render(
       <RuntimeSettingsPanel

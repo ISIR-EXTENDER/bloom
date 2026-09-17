@@ -322,6 +322,9 @@ Settings has three columns:
   chosen input method is drawn dashed and reads, for example, **only for Scan**. A dead zone of zero reads **each
   control's own**, because each widget then keeps its authored dead zone.
 
+Each card shows the stored profile key (`font_scale`, `dwell_ms`, `deadzone`) for whoever edits a profile; it is
+hidden from screen readers, which read the card's label instead.
+
 **Try it** runs a press target with the draft settings and a readout of target size, font scale, and timing. Nothing is
 sent. Changes stay a draft until **Save and resume**, which stores them in the browser preference payload under
 `profileOverrides[configId:appId:profileId]` and returns to operation. **Discard changes**, or Escape on a keyboard,

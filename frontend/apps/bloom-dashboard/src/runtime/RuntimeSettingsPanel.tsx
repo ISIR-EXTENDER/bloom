@@ -169,7 +169,9 @@ export function RuntimeSettingsPanel({
           <div className="runtime-settings-card runtime-settings-card-row">
             <div>
               <strong>{strings.settings.sound}</strong>
-              <span className="runtime-settings-key">audio_cues</span>
+              <span aria-hidden="true" className="runtime-settings-key">
+                audio_cues
+              </span>
             </div>
             <button
               aria-checked={profile.audioCues}
@@ -324,7 +326,12 @@ function SettingCard({
       <div className="runtime-settings-card-head">
         <strong>{label}</strong>
         {interlocked ? <span className="runtime-settings-interlock">{interlocked}</span> : null}
-        {readout ? <span className="runtime-settings-key">{readout}</span> : null}
+        {/* The stored key is for the person who edits the profile JSON; a screen reader reads the label instead. */}
+        {readout ? (
+          <span aria-hidden="true" className="runtime-settings-key">
+            {readout}
+          </span>
+        ) : null}
       </div>
       {children}
     </div>

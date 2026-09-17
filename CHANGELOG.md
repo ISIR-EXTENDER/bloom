@@ -41,6 +41,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   answer 500 with `database is locked`.
 - **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
 
+- **Settings reads its labels, not its keys.** `font_scale`, `dwell_ms`, `deadzone` and the rest stay on screen for
 - **Pads and axes announce where they came to rest.** Four `aria-live` readouts streamed joystick coordinates at up to
 - **`Max speed m/s`** keeps the space between a control's title and its unit, which a screen reader used to run
 - **Stopped controls say so.** While the STOP latch is on, the canvas controls are marked `aria-disabled` and leave
