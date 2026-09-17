@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -87,6 +88,9 @@ def to_jsonable_ros_message(message: Any) -> Any:
 
 
 def to_jsonable_value(value: Any) -> Any:
+    # JSON has no NaN; passive joints report it and the browser would drop the whole message.
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
     if isinstance(value, Mapping):
         return {str(key): to_jsonable_value(item) for key, item in value.items()}
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
