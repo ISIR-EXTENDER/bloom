@@ -47,7 +47,9 @@ One page per topic. These describe what Bloom does today.
 - [`docs/validation/`](validation/) — point-in-time evidence. A record states what passed on that date and is not proof
   of anything later. Two worth knowing: [the ROS simulation run](validation/ros-sim-e2e.md), which `npm run e2e:sim`
   reproduces for both robots, and
-  [the Explorer tutorial media record](validation/2026-09-16-explorer-tutorial-media.md) behind the README's captures.
+  [the Explorer tutorial media record](validation/2026-09-16-explorer-tutorial-media.md) behind the README's captures,
+  and [the release hardening record](validation/2026-09-18-release-hardening.md) for what the reviews before 0.2.0
+  found, fixed and left open.
 - [`docs/design/reviews/`](design/reviews/) — the 2026-09-17 design reviews:
   [the Drive review](design/reviews/2026-09-17-drive.md) that produced the two Drive layouts,
   [the implementation review](design/reviews/2026-09-17-implementation.md) of the handoff, and
