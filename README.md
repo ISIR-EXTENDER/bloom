@@ -203,7 +203,8 @@ database operations.
 5. Hold the **⋯** button for 1.5 seconds to open **Maintenance**. Motion is held while it is open. It lists read-only
    facts and reaches **Settings**, **Switch role**, **Reload this app**, **Exit to library**, and a **More** group with
    the other screens (**Positions**, **Robot feedback**, **Command sources**, **Joystick lab**), the practice tour, the
-   supervisor mirror and Help.
+   supervisor mirror, the Builder shortcuts, Help, Home and the EN/ES/FR selector. Only that group scrolls, so
+   **Resume operating** stays reachable.
 6. **Joystick lab** is the physical-joystick-equivalent workflow: choose a supported command frame, then use
    translation, height, rotation, pivot, modes and gripper on one screen, with the twist that was sent. Frame buttons
    stay disabled until every motion control is back at zero.
@@ -393,15 +394,16 @@ bloom/
 
 ## Shared Applications
 
-The first time the backend starts it imports the applications committed under
-`backend/seed/applications/`: Explorer Manager, Kinova Manager, Sandbox V0.0,
-Explorer User Tests, Petanque Admin, Bloom Debug, and the webcam demo. A fresh clone comes up
+Every time the backend starts it imports the applications committed under
+`backend/seed/applications/` that the store is missing: Explorer Manager, Kinova Manager, Sandbox V0.0,
+Explorer User Tests, Petanque admin, Bloom Debug, and the webcam visualizer. A fresh clone comes up
 with the same app library everyone else has.
 
 Your own store lives in `backend/data/`, which is not tracked. Seeding never
-overwrites an application you already have, so screens you rearrange in the
-builder stay yours. To reset one back to the committed version, or to import
-anything that is missing:
+overwrites an application you have edited, so screens you rearrange in the
+builder stay yours; a copy nobody edited takes the shipped version, and an app
+someone deleted on purpose stays deleted. To reset one back to the committed
+version, or to import anything that is missing:
 
 ```bash
 cd backend
