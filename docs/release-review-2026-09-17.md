@@ -17,7 +17,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | # | Finding | Where | Status |
 | --- | --- | --- | --- |
 | A1 | The 15 s attention timeouts on stepped/latched sliders and joysticks and on latched momentary buttons are effects without dependencies, so every render restarts them. Scanning, telemetry and status polls re-render constantly, so a held value never expires. | `widget-renderers/control-renderers.tsx`, `action-renderers.tsx` | Fixed |
-| A2 | A latched momentary button (Hold snake) never publishes its release when it unmounts (Settings, screen change) or becomes disabled, so the manager stays in snake mode. | `action-renderers.tsx` | Open |
+| A2 | A latched momentary button (Hold snake) never publishes its release when it unmounts (Settings, screen change) or becomes disabled, so the manager stays in snake mode. | `action-renderers.tsx` | Fixed |
 | A3 | Losing control ownership does not suspend teleop, and release zeros are blocked by the ownership gate, so after a reconnect and reclaim the pump streams a joystick value the operator already released. | `RuntimeWorkspace.tsx`, `use-runtime-action-dispatcher.ts` | Open |
 | A4 | STOP and Resume render the same `<button>` node, so a dwell rest that started on STOP completes as a Resume about one second after STOP was pressed. | `RuntimeStopControl.tsx`, `use-dwell-activation.ts` | Open |
 | A5 | Switch scanning and dwell stay active behind the Maintenance dialog; a switch press on the dialog fires the covered canvas control. | `RuntimeWorkspace.tsx`, `use-switch-scanning.ts` | Open |

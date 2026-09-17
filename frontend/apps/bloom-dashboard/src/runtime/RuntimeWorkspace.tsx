@@ -24,6 +24,7 @@ import type {
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
 import { resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
+import { resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState } from "./runtimeModeState";
@@ -270,13 +271,17 @@ export function RuntimeWorkspace({
   });
   const previousScreenIdRef = useRef(screen.id);
   const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
-    if (!ownsRuntimeControl) {
+    const refusal = resolveRuntimeIntentRefusal(intent, {
+      ownsControl: ownsRuntimeControl,
+      unavailable: controlStateByWidgetId[intent.widgetId]?.unavailable === true,
+    });
+    if (refusal === "not-owner") {
       return {
         accepted: false,
         detail: runtimeControl.state?.owner_present ? strings.control.anotherOwner : strings.control.noOwner,
       };
     }
-    if (controlStateByWidgetId[intent.widgetId]?.unavailable) {
+    if (refusal === "unavailable") {
       return { accepted: false, detail: controlStateByWidgetId[intent.widgetId]?.disabledReason };
     }
     // Position ops are runtime-shell HTTP work, not robot commands.

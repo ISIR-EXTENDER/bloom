@@ -302,6 +302,54 @@ describe("widget renderer registry", () => {
     }
   });
 
+  it("releases a latched momentary button when it unmounts", () => {
+    // Opening Settings or changing screen unmounts Hold snake. Without a
+    // release, the manager stays in snake mode after the button is gone.
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn();
+    const { unmount } = render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    fireEvent.click(screen.getByRole("button", { name: "Hold Snake" }), { detail: 0 });
+    unmount();
+
+    expect(onActionIntent.mock.calls.map(([intent]) => [intent.payload, intent.release])).toEqual([
+      ["{data: true}", undefined],
+      ["{data: false}", true],
+    ]);
+  });
+
+  it("releases a held momentary button when it becomes disabled mid-hold", () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn();
+    const { rerender } = render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Hold Snake" }), { pointerId: 1 });
+    rerender(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          controlStateByWidgetId: { "snake-hold": { disabled: true, disabledReason: "No subscriber." } },
+          onActionIntent,
+        })}
+      </div>,
+    );
+
+    expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}", "{data: false}"]);
+    expect(screen.getByRole("button", { name: /Hold Snake/ })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("does not publish a release for a button that was never held", () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn();
+    const { unmount } = render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    unmount();
+
+    expect(onActionIntent).not.toHaveBeenCalled();
+  });
+
   it("leaves a pointer hold alone when its click follows the release", () => {
     const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing momentary button descriptor.");

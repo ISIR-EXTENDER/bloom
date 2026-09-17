@@ -50,16 +50,24 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     return () => clearTimeout(timer);
   }, [confirmTimeoutSeconds, isArmed]);
 
-  // A latched hold must never outlive the operator's attention. Keyed on the
-  // latch alone, so re-renders from scanning or telemetry cannot restart it.
-  const expireLatchRef = useRef(() => {});
+  // A held mode must be let go of whenever the operator can no longer do it
+  // themselves: after the attention window, when the control is disabled, and
+  // when it unmounts (Settings, a screen change). Otherwise the manager stays in
+  // snake mode after the button that requested it is gone.
+  const releaseHeldRef = useRef(() => {});
   useEffect(() => {
     if (!isMomentaryLatched) {
       return;
     }
-    const timer = setTimeout(() => expireLatchRef.current(), MOMENTARY_HOLD_EXPIRY_MS);
+    const timer = setTimeout(() => releaseHeldRef.current(), MOMENTARY_HOLD_EXPIRY_MS);
     return () => clearTimeout(timer);
   }, [isMomentaryLatched]);
+  useEffect(() => {
+    if (disabled) {
+      releaseHeldRef.current();
+    }
+  }, [disabled]);
+  useEffect(() => () => releaseHeldRef.current(), []);
 
   const handlePress = () => {
     if (disabled) {
@@ -112,7 +120,7 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     setIsMomentaryLatched(false);
     publishMomentaryPayload("releasedPayload");
   };
-  expireLatchRef.current = () => {
+  releaseHeldRef.current = () => {
     if (isMomentaryPressedRef.current) {
       releaseMomentary();
     }
@@ -141,6 +149,7 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
       topic,
       messageType,
       payload: descriptor.widget.settings[payloadKey],
+      ...(payloadKey === "releasedPayload" ? { release: true } : {}),
     } satisfies WidgetActionIntent);
   };
 

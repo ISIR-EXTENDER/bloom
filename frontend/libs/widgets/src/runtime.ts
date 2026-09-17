@@ -90,6 +90,8 @@ export type WidgetActionIntent =
       payload: unknown;
       payloadText?: string;
       presetId?: string;
+      /** Lets go of a held command; it must reach the robot even from a control that just became unavailable. */
+      release?: boolean;
       topic: string;
       type: "topic-publish";
       widgetId: string;
