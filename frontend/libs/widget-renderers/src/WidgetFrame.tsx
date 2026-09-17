@@ -32,7 +32,8 @@ export function WidgetFrame({ children, controlState, descriptor }: WidgetFrameP
         left: `${widget.layout.x}px`,
         top: `${widget.layout.y}px`,
         width: `${widget.layout.width}px`,
-        height: `${widget.layout.height}px`,
+        // A card grows rather than clips (ADR 0132): the authored height is a floor.
+        minHeight: `${widget.layout.height}px`,
       }}
     >
       <div

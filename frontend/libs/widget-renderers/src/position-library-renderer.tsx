@@ -11,6 +11,8 @@ const DELETE_CONFIRM_MS = 4000;
  */
 export function PositionLibraryWidget({ descriptor, data, onActionIntent }: WidgetRendererProps) {
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
+  // A pick-only library (the operator Positions screen) sets editable: false.
+  const editable = getBooleanSetting(descriptor.widget.settings, "editable", true);
   const snapshot = data?.type === "position-library" ? data : undefined;
   const joints = snapshot?.joints;
   const saved = snapshot?.saved ?? [];
@@ -65,71 +67,76 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
   };
 
   return (
-    <div className="bloom-position-library" data-show-details={showDetails ? "true" : "false"}>
-      <header className="bloom-control-header">
+    <div className="bloom-position-library bloom-info-card" data-show-details={showDetails ? "true" : "false"}>
+      <header className="bloom-widget-head">
         <strong>{descriptor.widget.title}</strong>
-        <span>
-          {saved.length} saved · {joints ? `${joints.names.length} joints live` : "waiting for joint states"}
+        <span className="bloom-widget-readout">
+          {showDetails
+            ? `${saved.length} saved · ${joints ? `${joints.names.length} joints live` : "waiting for joint states"}`
+            : `${saved.length} saved`}
         </span>
       </header>
 
-      <button
-        aria-label="Capture the robot's current pose"
-        className="bloom-position-capture"
-        disabled={busy || !joints}
-        onClick={handleCapture}
-        type="button"
-      >
-        Capture pose
-      </button>
-
       {saved.length === 0 ? (
-        <p className="bloom-position-empty">No saved poses yet. Capture one while the robot holds the pose you want.</p>
+        <p className="bloom-position-empty">No saved poses yet.</p>
       ) : (
         <ul aria-label="Saved poses" className="bloom-position-list">
           {saved.map((pose) => (
             <li key={pose.name}>
               <span className="bloom-position-name">{pose.name}</span>
-              <span className="bloom-position-meta">{pose.jointNames.length} joints</span>
-              <button
-                aria-label={
-                  armedDelete === pose.name ? `Confirm deleting ${pose.name}` : `Delete saved pose ${pose.name}`
-                }
-                className="bloom-position-delete"
-                data-armed={armedDelete === pose.name ? "true" : "false"}
-                disabled={busy}
-                onClick={() => handleDelete(pose.name)}
-                type="button"
-              >
-                {armedDelete === pose.name ? "Delete?" : "Delete"}
-              </button>
+              <span className="bloom-position-meta">{pose.positions.map((value) => value.toFixed(2)).join(" ")}</span>
+              {editable ? (
+                <button
+                  aria-label={
+                    armedDelete === pose.name ? `Confirm deleting ${pose.name}` : `Delete saved pose ${pose.name}`
+                  }
+                  className="bloom-position-delete"
+                  data-armed={armedDelete === pose.name ? "true" : "false"}
+                  disabled={busy}
+                  onClick={() => handleDelete(pose.name)}
+                  type="button"
+                >
+                  {armedDelete === pose.name ? "Delete?" : "Delete"}
+                </button>
+              ) : null}
             </li>
           ))}
         </ul>
       )}
 
-      <div className="bloom-position-footer">
-        <button
-          aria-label="Export saved poses as manager parameters"
-          className="bloom-position-export"
-          disabled={busy || saved.length === 0}
-          onClick={() =>
-            emit({
-              type: "position-op",
-              op: "export",
-              widgetId: descriptor.widget.id,
-              widgetKind: descriptor.widget.kind,
-            })
-          }
-          type="button"
-        >
-          Export YAML
-        </button>
-        <p className="bloom-position-note">
-          Poses stay on this backend until it restarts. To dispatch one, paste the export into the manager&apos;s
-          joint-target parameters.
-        </p>
-      </div>
+      {editable ? (
+        <div className="bloom-position-footer">
+          <button
+            aria-label="Capture the robot's current pose"
+            className="bloom-position-capture"
+            disabled={busy || !joints}
+            onClick={handleCapture}
+            type="button"
+          >
+            Capture pose
+          </button>
+          <button
+            aria-label="Export saved poses as manager parameters"
+            className="bloom-position-export"
+            disabled={busy || saved.length === 0}
+            onClick={() =>
+              emit({
+                type: "position-op",
+                op: "export",
+                widgetId: descriptor.widget.id,
+                widgetKind: descriptor.widget.kind,
+              })
+            }
+            type="button"
+          >
+            Export YAML
+          </button>
+          <p className="bloom-position-note">
+            Poses stay on this backend until it restarts. To dispatch one, paste the export into the manager&apos;s
+            joint-target parameters.
+          </p>
+        </div>
+      ) : null}
 
       {snapshot?.exportYaml ? (
         <section aria-label="Manager joint-target parameters" className="bloom-position-yaml">

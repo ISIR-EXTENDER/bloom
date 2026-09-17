@@ -1,3 +1,4 @@
+import { padGeometry } from "@bloom/widgets";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -19,24 +20,23 @@ export type JoystickLabels = {
   top: string;
 };
 
-export type JoystickLabelColors = Partial<Record<keyof JoystickLabels, string>>;
-
 export type JoystickPrimitiveProps = {
+  /** Knob fill; a token reference such as `var(--bloom-axis-rotation)`. */
   color?: string;
   deadzone: number;
   labels: JoystickLabels;
-  labelColors?: JoystickLabelColors;
   onInteractionEnd?: () => void;
   onInteractionStart?: () => void;
   onVectorChange: (value: JoystickVector) => void;
   /** Advancing it returns the pad to rest without emitting. */
   resetSignal?: number;
+  /** The pad's edge length; every other number derives from it (pad recipe). */
   size: number;
   title: string;
   zeroOnRelease?: boolean;
 };
 
-const DEFAULT_COLOR = "#7fa95f";
+const DEFAULT_COLOR = "var(--bloom-axis-translation)";
 
 const KEYBOARD_STEP = 0.1;
 const KEY_VECTORS: Record<string, JoystickVector> = {
@@ -50,7 +50,6 @@ export function JoystickPrimitive({
   color = DEFAULT_COLOR,
   deadzone,
   labels,
-  labelColors = {},
   onInteractionEnd,
   onInteractionStart,
   onVectorChange,
@@ -64,9 +63,7 @@ export function JoystickPrimitive({
   const onVectorChangeRef = useRef(onVectorChange);
   const pointerIdRef = useRef<number | null>(null);
   const [vector, setVector] = useState<JoystickVector>({ x: 0, y: 0 });
-  const knobDiameter = Math.max(34, Math.round(size * 0.24));
-  const interactionDiameter = Math.max(1, size - 32);
-  const visualTravelRadius = Math.max(1, (interactionDiameter - knobDiameter) / 2);
+  const geometry = padGeometry(size, Math.max(0, Math.min(1, deadzone)));
 
   useEffect(() => {
     onInteractionEndRef.current = onInteractionEnd;
@@ -207,9 +204,6 @@ export function JoystickPrimitive({
     }
     endInteraction(event.currentTarget, event.pointerId, false);
   };
-  const isXGuideActive = Math.abs(vector.x) > 0.08 && Math.abs(vector.y) < 0.12;
-  const isYGuideActive = Math.abs(vector.y) > 0.08 && Math.abs(vector.x) < 0.12;
-
   return (
     <div
       aria-label={title}
@@ -221,46 +215,40 @@ export function JoystickPrimitive({
       // biome-ignore lint/a11y/noNoninteractiveTabindex: role=application is the interactive pad; focus is how the keyboard drives it.
       tabIndex={0}
       style={{
-        ["--bloom-joystick-knob-size" as string]: `${knobDiameter}px`,
-        ["--bloom-joystick-knob-x" as string]: `${vector.x * visualTravelRadius}px`,
-        ["--bloom-joystick-knob-y" as string]: `${-vector.y * visualTravelRadius}px`,
-        ["--bloom-joystick-size" as string]: `${size}px`,
+        width: `${size}px`,
+        height: `${size}px`,
+        ["--bloom-pad-top-inset" as string]: `${geometry.topInset}px`,
+        ["--bloom-pad-inset" as string]: `${geometry.inset}px`,
+        ["--bloom-pad-label-width" as string]: `${geometry.labelWidth}px`,
+        ["--bloom-pad-line-height" as string]: `${geometry.lineHeight}px`,
       }}
     >
-      <span className="bloom-joystick-label bloom-joystick-label-top" style={{ color: labelColors.top }}>
-        {labels.top}
-      </span>
-      <span className="bloom-joystick-label bloom-joystick-label-right" style={{ color: labelColors.right }}>
-        {labels.right}
-      </span>
-      <span className="bloom-joystick-label bloom-joystick-label-bottom" style={{ color: labelColors.bottom }}>
-        {labels.bottom}
-      </span>
-      <span className="bloom-joystick-label bloom-joystick-label-left" style={{ color: labelColors.left }}>
-        {labels.left}
-      </span>
-      <div
+      <span className="bloom-joystick-label bloom-joystick-label-top">{bindArrowToWord(labels.top)}</span>
+      <span className="bloom-joystick-label bloom-joystick-label-bottom">{bindArrowToWord(labels.bottom)}</span>
+      <span className="bloom-joystick-label bloom-joystick-label-left">{bindArrowToWord(labels.left)}</span>
+      <span className="bloom-joystick-label bloom-joystick-label-right">{bindArrowToWord(labels.right)}</span>
+      <span
+        aria-hidden="true"
+        className="bloom-joystick-ring"
+        style={{ width: geometry.ring, height: geometry.ring }}
+      />
+      <span
+        aria-hidden="true"
         className="bloom-joystick-deadzone"
         style={{
-          ["--bloom-joystick-deadzone" as string]: `${Math.max(0, Math.min(1, deadzone))}`,
+          width: geometry.deadzone,
+          height: geometry.deadzone,
+          ["--bloom-joystick-deadzone" as string]: `${deadzone}`,
         }}
       />
       <span
         aria-hidden="true"
-        className={`bloom-joystick-axis-guide bloom-joystick-axis-guide-x${
-          isXGuideActive ? " bloom-joystick-axis-guide-active" : ""
-        }`}
-      />
-      <span
-        aria-hidden="true"
-        className={`bloom-joystick-axis-guide bloom-joystick-axis-guide-y${
-          isYGuideActive ? " bloom-joystick-axis-guide-active" : ""
-        }`}
-      />
-      <div
-        aria-hidden="true"
         className="bloom-joystick-knob"
         style={{
+          width: geometry.knob,
+          height: geometry.knob,
+          left: `${50 + vector.x * 37}%`,
+          top: `${50 - vector.y * 37}%`,
           background: color,
         }}
       />
@@ -274,6 +262,20 @@ export function JoystickPrimitive({
       />
     </div>
   );
+}
+
+const DIRECTION_ARROWS = "▲▼◀▶↶↷";
+
+/** An arrow orphaned onto its own line carries no direction (pad recipe rule 2). */
+export function bindArrowToWord(label: string): string {
+  const trimmed = label.trim();
+  if (DIRECTION_ARROWS.includes(trimmed.charAt(0))) {
+    return trimmed.replace(/^(\S)\s+/, "$1\u00a0");
+  }
+  if (DIRECTION_ARROWS.includes(trimmed.charAt(trimmed.length - 1))) {
+    return trimmed.replace(/\s+(\S)$/, "\u00a0$1");
+  }
+  return trimmed;
 }
 
 export function clampToUnitDisk(vector: JoystickVector): JoystickVector {

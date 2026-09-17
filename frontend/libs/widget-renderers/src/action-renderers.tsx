@@ -167,15 +167,27 @@ export function CommandLikeWidget({
     } satisfies WidgetActionIntent);
   };
 
+  const layout = getBooleanSetting(descriptor.widget.settings, "hide_title", false) ? "bare" : "card";
+  const detail = actionLabel || command;
+  const hint = isArmed
+    ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
+    : showDetails && detail
+      ? isSelected
+        ? `Last requested \u00b7 ${detail}`
+        : detail
+      : "";
+
   return (
     <div
       className="bloom-action-widget"
+      data-armed={isArmed ? "true" : undefined}
+      data-layout={layout}
       data-momentary={momentary ? "true" : "false"}
+      data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
       data-selection={selection}
       data-show-details={showDetails ? "true" : "false"}
       data-variant={variant || undefined}
     >
-      <strong>{descriptor.widget.title}</strong>
       <button
         aria-describedby={disabledReasonId}
         aria-label={`${
@@ -197,16 +209,15 @@ export function CommandLikeWidget({
         title={disabledReason}
         type="button"
       >
-        <span>{visibleButtonLabel}</span>
+        {layout === "card" ? <span className="bloom-action-title">{descriptor.widget.title}</span> : null}
+        <span className="bloom-action-label">{visibleButtonLabel}</span>
+        {hint ? <span className="bloom-action-hint">{hint}</span> : null}
         {disabledReason ? (
           <small className="bloom-command-button-disabled-reason" id={disabledReasonId}>
             {disabledReason}
           </small>
         ) : null}
       </button>
-      {showDetails && (actionLabel || command) ? (
-        <span>{isSelected ? `Last requested \u00b7 ${actionLabel || command}` : actionLabel || command}</span>
-      ) : null}
     </div>
   );
 }
@@ -215,10 +226,17 @@ export function LabelWidget({ descriptor }: WidgetRendererProps) {
   const text = getStringSetting(descriptor.widget.settings, "text", descriptor.widget.title);
   const fontSize = getNumberSetting(descriptor.widget.settings, "fontSize", 20);
   const align = getLabelAlignment(getStringSetting(descriptor.widget.settings, "align", "left"));
-  const variant = getStringSetting(descriptor.widget.settings, "variant", "");
+  const authoredVariant = getStringSetting(descriptor.widget.settings, "variant", "");
+  // A 12 px label names a group of controls: uppercase, tracked, never a control itself.
+  const variant = authoredVariant || (fontSize <= 12 ? "group" : "");
 
   return (
-    <div className="bloom-label-widget" data-align={align} data-variant={variant || undefined} style={{ fontSize }}>
+    <div
+      className="bloom-label-widget"
+      data-align={align}
+      data-variant={variant || undefined}
+      style={variant === "group" ? undefined : { fontSize }}
+    >
       <span>{text}</span>
     </div>
   );
@@ -277,9 +295,47 @@ export function ToggleWidget({ conditioning, controlState, descriptor, onActionI
     }
   };
 
+  const onStateLabel = getStringSetting(descriptor.widget.settings, "onStateLabel", "");
+  const offStateLabel = getStringSetting(descriptor.widget.settings, "offStateLabel", "");
+  const commandedState = isOn ? onStateLabel : offStateLabel;
+  const stateText = commandedState ? `commanded: ${commandedState}` : "";
+  const inline = getStringSetting(descriptor.widget.settings, "layout", "") === "inline";
+
+  if (variant === "mode-segmented") {
+    return (
+      <div className="bloom-toggle-widget" data-state={isOn ? "active" : "inactive"} data-variant={variant}>
+        <strong>{descriptor.widget.title}</strong>
+        <button
+          aria-pressed={isOn}
+          aria-label={`${descriptor.widget.title}: ${stateLabel}`}
+          aria-busy={isPending}
+          className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
+          disabled={isPending}
+          onClick={handleToggle}
+          type="button"
+        >
+          <span className="bloom-toggle-segment" data-active={!isOn ? "true" : "false"}>
+            {offLabel}
+          </span>
+          <span className="bloom-toggle-segment" data-active={isOn ? "true" : "false"}>
+            {onLabel}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="bloom-toggle-widget" data-state={isOn ? "active" : "inactive"} data-variant={variant || undefined}>
-      <strong>{descriptor.widget.title}</strong>
+    <div
+      className="bloom-toggle-widget bloom-info-card"
+      data-layout={inline ? "inline" : "stacked"}
+      data-narrow={descriptor.widget.layout.width < 260 ? "true" : undefined}
+      data-state={isOn ? "active" : "inactive"}
+    >
+      <header className="bloom-widget-head bloom-toggle-head">
+        <strong>{descriptor.widget.title}</strong>
+        {stateText ? <span className="bloom-toggle-state">{stateText}</span> : null}
+      </header>
       <button
         aria-pressed={isOn}
         aria-label={`${descriptor.widget.title}: ${stateLabel}`}
@@ -289,20 +345,9 @@ export function ToggleWidget({ conditioning, controlState, descriptor, onActionI
         onClick={handleToggle}
         type="button"
       >
-        {variant === "mode-segmented" ? (
-          <>
-            <span className="bloom-toggle-segment" data-active={!isOn ? "true" : "false"}>
-              {offLabel}
-            </span>
-            <span className="bloom-toggle-segment" data-active={isOn ? "true" : "false"}>
-              {onLabel}
-            </span>
-          </>
-        ) : (
-          stateLabel
-        )}
+        {stateLabel}
       </button>
-      {showDetails && topic ? <span>{topic}</span> : null}
+      {showDetails && topic ? <span className="bloom-widget-topic">{topic}</span> : null}
     </div>
   );
 }

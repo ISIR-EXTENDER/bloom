@@ -306,7 +306,7 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
     fireEvent.click(await screen.findByRole("button", { name: "Preview Diagnostics screen runtime" }));
 
-    expect(await screen.findByText("Waiting for messages...")).toBeVisible();
+    expect(await screen.findByText(/has been published this session/)).toBeVisible();
 
     runtimeActionClient.emitRuntimeTopicSample({
       type: "topic_sample",
@@ -1112,7 +1112,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Diagnostics" })).toBeVisible();
     // Scoped to the canvas: the inspector also names the topic now.
     expect(within(screen.getByRole("region", { name: "Diagnostics" })).getByText("/teleop_cmd")).toBeVisible();
-    expect(screen.getByText("Waiting for messages...")).toBeVisible();
+    expect(screen.getByText(/has been published this session/)).toBeVisible();
   });
 
   it("shows a coming soon message for registered screens without migrated widgets", async () => {

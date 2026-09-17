@@ -126,7 +126,7 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
-    expect(screen.getByText("0.80 m/s")).toHaveClass("sr-only");
+    expect(screen.getByText("0.80 m/s")).toHaveClass("bloom-widget-readout");
     screen.getByRole("slider", { name: "Speed" }).focus();
     await user.keyboard("{ArrowRight}");
 
@@ -147,7 +147,7 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
     const slider = screen.getByRole("slider", { name: "Teleop X" });
-    expect(slider.closest(".bloom-slider")).toHaveAttribute("data-return-to-center", "true");
+    expect(slider.closest(".bloom-axis-slider")).toHaveAttribute("data-return-to-center", "true");
     slider.focus();
     await user.keyboard("{ArrowRight}");
     fireEvent.blur(slider);
@@ -160,7 +160,7 @@ describe("widget renderer registry", () => {
         widgetKind: "slider",
       }),
     );
-    expect(screen.getByText("0.00")).toHaveClass("sr-only");
+    expect(document.querySelector(".bloom-slider-widget output.sr-only")).toHaveTextContent("0.00");
   });
 
   it("holds a keyboard nudge on a return-to-center slider only while the key is down", () => {
@@ -212,8 +212,8 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
 
     const slider = screen.getByRole("slider", { name: "Z" });
-    expect(slider.closest(".bloom-slider")).toHaveAttribute("data-return-to-center", "true");
-    expect(slider.closest(".bloom-slider")).toHaveAttribute("data-orientation", "horizontal");
+    expect(slider.closest(".bloom-axis-slider")).toHaveAttribute("data-return-to-center", "true");
+    expect(slider.closest(".bloom-axis-slider")).toHaveAttribute("data-orientation", "horizontal");
     slider.focus();
     await user.keyboard("{ArrowRight}");
     fireEvent.blur(slider);
@@ -233,8 +233,9 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
-    expect(screen.getByText("0.00 m/s → 2.00 m/s")).toBeVisible();
+    expect(screen.getByText("0.00 → 2.00 · linear")).toBeVisible();
     expect(screen.getByText("0.80 m/s")).toBeVisible();
+    expect(screen.getByText("Teleoperation gain")).toHaveClass("bloom-control-intent");
   });
 
   it("keeps compact slider intent accessible without taking layout space", () => {
@@ -243,10 +244,8 @@ describe("widget renderer registry", () => {
 
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
-    expect(screen.getByText("m/s")).toBeVisible();
+    expect(screen.getByText("0.80 m/s")).toBeVisible();
     expect(screen.getByText("Teleoperation gain")).toHaveClass("sr-only");
-    expect(screen.getByText("0.80 m/s")).toHaveClass("sr-only");
-    expect(screen.getByText("0.00 m/s → 2.00 m/s")).toHaveClass("bloom-control-detail-hidden");
   });
 
   it("emits command intents from command buttons", async () => {
@@ -530,8 +529,7 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("translation / translation")).toBeVisible();
     expect(screen.getByText("30 Hz")).toBeVisible();
     expect(screen.getByText("/joystick_cartesian_command")).toBeVisible();
-    expect(screen.getByText("x 0.00")).toBeVisible();
-    expect(screen.getByText("y 0.00")).toBeVisible();
+    expect(document.querySelector(".bloom-widget-head .bloom-widget-readout")).toHaveTextContent("x +0.00 y +0.00");
   });
 
   it("emits gesture value-change intents from trajectory pads", () => {
@@ -600,7 +598,6 @@ describe("widget renderer registry", () => {
     const joystickZone = getJoystickZone();
     fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
     fireEvent.pointerMove(joystickZone, { clientX: 150, clientY: 125, pointerId: 1 });
-    expect(document.querySelector(".bloom-joystick-axis-guide-y")).toHaveClass("bloom-joystick-axis-guide-active");
     fireEvent.pointerMove(joystickZone, { clientX: 162.5, clientY: 125, pointerId: 1 });
 
     await waitFor(() => expect(onActionIntent.mock.calls.length).toBeGreaterThanOrEqual(2), { timeout: 250 });
@@ -630,19 +627,17 @@ describe("widget renderer registry", () => {
     const joystickZone = getJoystickZone();
     fireEvent.pointerDown(joystickZone, { clientX: 200, clientY: 150, pointerId: 1 });
 
-    const joystick = document.querySelector<HTMLElement>(".bloom-joystick");
-    expect(joystick).toHaveStyle({
-      "--bloom-joystick-knob-size": "39px",
-      "--bloom-joystick-knob-x": "46.5px",
-      "--bloom-joystick-knob-y": "0px",
-    });
+    // Pad recipe: knob S × 0.26, full deflection travels 37% of the pad from centre.
+    const knob = document.querySelector<HTMLElement>(".bloom-joystick-knob");
+    expect(knob).toHaveStyle({ width: "56px", height: "56px", left: "87%", top: "50%" });
   });
 
   it("keeps joystick controls inside compact and large widget frames", () => {
     expect(resolveJoystickControlSize(80, 80)).toBe(96);
-    expect(resolveJoystickControlSize(220, 220)).toBe(164);
-    expect(resolveJoystickControlSize(220, 220, { showDetails: true })).toBe(102);
-    expect(resolveJoystickControlSize(720, 720)).toBe(400);
+    expect(resolveJoystickControlSize(220, 220)).toBe(216);
+    expect(resolveJoystickControlSize(280, 332, { placement: "above" })).toBe(276);
+    expect(resolveJoystickControlSize(320, 400, { placement: "above", showDetails: true })).toBe(316);
+    expect(resolveJoystickControlSize(720, 720)).toBe(716);
   });
 
   it("renders topic debug widgets with topic and field context", () => {
@@ -822,7 +817,7 @@ describe("widget renderer registry", () => {
     expect(screen.getByText(/joint_2/)).toBeVisible();
 
     await userEvent.click(screen.getByRole("button", { name: "Clear" }));
-    expect(screen.getByText("Waiting for messages...")).toBeVisible();
+    expect(screen.getByText(/has been published this session/)).toBeVisible();
   });
 
   it("shows messages that arrive after Clear even when the buffer is full", async () => {
@@ -1031,7 +1026,8 @@ describe("widget renderer registry", () => {
     );
 
     expect(screen.getByText("Velocity limit active")).toBeVisible();
-    expect(screen.getByText("3 events")).toBeVisible();
+    // Live events replace the authored placeholder entries instead of mixing with them.
+    expect(screen.queryByText("Safety zone active")).not.toBeInTheDocument();
   });
 
   it("can reveal event log details for debug-focused screens", () => {
@@ -1041,7 +1037,7 @@ describe("widget renderer registry", () => {
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
     expect(screen.getByText("Safety adapter accepted the configured boundary.")).toBeVisible();
-    expect(screen.getByText("2026-06-04T10:00:00.000Z")).toBeVisible();
+    expect(document.querySelector('time[datetime="2026-06-04T10:00:00.000Z"]')).toHaveTextContent(/ago$/);
   });
 });
 

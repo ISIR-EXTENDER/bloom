@@ -123,3 +123,30 @@ describe("deleting a saved pose", () => {
     expect(onActionIntent).not.toHaveBeenCalled();
   });
 });
+
+describe("a pick-only library", () => {
+  afterEach(cleanup);
+
+  it("lists poses with their joint values and offers no editing", () => {
+    const widget = positionScreen.widgets[0];
+    if (!widget) throw new Error("Missing widget.");
+    const screenConfig = {
+      ...positionScreen,
+      widgets: [{ ...widget, settings: { ...widget.settings, editable: false } }],
+    };
+    const descriptor = renderScreenDescriptors(screenConfig, createDefaultWidgetRegistry())[0];
+    if (descriptor?.status !== "resolved") throw new Error("Missing descriptor.");
+    render(
+      <PositionLibraryWidget
+        data={{
+          type: "position-library",
+          saved: [{ name: "pose-1", jointNames: ["joint_1", "joint_2"], positions: [0.5, -1.2] }],
+        }}
+        descriptor={descriptor}
+      />,
+    );
+
+    expect(screen.getByText("0.50 -1.20")).toBeTruthy();
+    expect(screen.queryByRole("button")).toBeNull();
+  });
+});

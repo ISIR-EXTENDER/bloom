@@ -300,13 +300,13 @@ const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
   binding: "joy",
   axis_hints: {
     x: {
-      color: "#7fa95f",
+      color: "var(--bloom-axis-translation)",
       negative_label: "X-",
       positive_label: "X+",
       semantic: "translation",
     },
     y: {
-      color: "#d89f5d",
+      color: "var(--bloom-axis-translation)",
       negative_label: "Y-",
       positive_label: "Y+",
       semantic: "translation",
@@ -1135,13 +1135,13 @@ const TRANSLATION_JOYSTICK_COMPATIBILITY_DEFAULTS = {
 const ROTATION_JOYSTICK_COMPATIBILITY_DEFAULTS = {
   axis_hints: {
     x: {
-      color: "#95a5c8",
+      color: "var(--bloom-axis-rotation)",
       negative_label: "RX-",
       positive_label: "RX+",
       semantic: "rotation",
     },
     y: {
-      color: "#c8a3cf",
+      color: "var(--bloom-axis-rotation)",
       negative_label: "RY-",
       positive_label: "RY+",
       semantic: "rotation",

@@ -697,6 +697,7 @@ async function assertNothingIsClipped(page, label) {
     const candidates = [...document.querySelectorAll(".widget-preview-card strong, .widget-preview-card output")];
     return candidates
       .filter((element) => {
+        if (element.closest(".sr-only")) return false;
         const style = window.getComputedStyle(element);
         if (style.overflow === "visible" && style.textOverflow !== "ellipsis") return false;
         return element.scrollWidth - element.clientWidth > 2;

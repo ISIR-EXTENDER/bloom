@@ -1,7 +1,7 @@
 import { createWidgetActionIntent, normalizeWidgetSettings, resolveWidgetDestination } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
-import { JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
+import { bindArrowToWord, JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
 import {
   clamp,
   getBooleanSetting,
@@ -149,7 +149,7 @@ export function SliderWidget({ descriptor, motorPreset, neutralRevision, onActio
     const stepBy = (delta: number) => setAndEmit(Number(clamp(currentValue + delta, min, max).toFixed(4)));
     return (
       <div
-        className="bloom-slider-widget"
+        className="bloom-slider-widget bloom-info-card"
         data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
         data-motor-preset={stepPreset}
         data-show-details={showDetails ? "true" : "false"}
@@ -199,50 +199,168 @@ export function SliderWidget({ descriptor, motorPreset, neutralRevision, onActio
     );
   }
 
+  const orientation: "horizontal" | "vertical" = direction === "horizontal" ? "horizontal" : "vertical";
+  const radixHandlers = {
+    max,
+    min,
+    onBlur: handleBlur,
+    onKeyDown: handleKeyDown,
+    onKeyUp: handleKeyUp,
+    onValueChange: handleValueChange,
+    onValueCommit: handleValueCommit,
+    orientation,
+    step,
+    value: [currentValue],
+  } satisfies SliderPrimitive.SliderProps;
+
+  const segmentLabels = readStringList(sliderSettings.segment_labels);
+  const segmentValues = readNumberList(sliderSettings.segment_values);
+  if (getStringSetting(sliderSettings, "variant", "") === "segments" && segmentValues.length > 0) {
+    return (
+      <div
+        className="bloom-slider-widget bloom-info-card"
+        data-show-details={showDetails ? "true" : "false"}
+        data-slider-kind="segments"
+      >
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <output className="bloom-widget-readout">{formattedValue}</output>
+        </header>
+        <fieldset aria-label={descriptor.widget.title} className="bloom-segments">
+          {segmentValues.map((value, index) => {
+            const selected = Math.abs(value - currentValue) < 1e-9;
+            return (
+              <button
+                aria-pressed={selected}
+                className="bloom-segment"
+                data-selected={selected ? "true" : undefined}
+                key={value}
+                onClick={() => setAndEmit(clamp(value, min, max))}
+                type="button"
+              >
+                {segmentLabels[index] ?? formatLimitValue(value, unit)}
+              </button>
+            );
+          })}
+        </fieldset>
+      </div>
+    );
+  }
+
+  if (!returnToCenter) {
+    const axisWord = unit === "m/s" ? "linear" : unit === "rad/s" ? "angular" : "";
+    return (
+      <div
+        className="bloom-slider-widget bloom-info-card"
+        data-show-details={showDetails ? "true" : "false"}
+        data-slider-kind="limit"
+      >
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <output aria-live="polite" className="bloom-widget-readout">
+            {formattedValue}
+          </output>
+        </header>
+        {intentLabel ? <p className={showDetails ? "bloom-control-intent" : "sr-only"}>{intentLabel}</p> : null}
+        <SliderPrimitive.Root className="bloom-limit-slider" data-orientation={orientation} {...radixHandlers}>
+          <SliderPrimitive.Track className="bloom-limit-track">
+            <SliderPrimitive.Range className="bloom-limit-range" />
+          </SliderPrimitive.Track>
+          <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-limit-thumb" />
+        </SliderPrimitive.Root>
+        <p className="bloom-limit-range-line">
+          {min.toFixed(2)} → {max.toFixed(2)}
+          {axisWord ? ` · ${axisWord}` : ""}
+        </p>
+      </div>
+    );
+  }
+
+  const placement = resolveTitlePlacement(descriptor.widget, showDetails);
+  const words = resolveAxisWords(sliderSettings, orientation);
+  const bindingTarget =
+    typeof sliderSettings.runtime_binding === "object" && sliderSettings.runtime_binding !== null
+      ? String((sliderSettings.runtime_binding as Record<string, unknown>).target ?? "")
+      : "";
+  const readout = formatSignedValue(currentValue);
   return (
     <div
       className="bloom-slider-widget"
-      data-binding={getStringSetting(sliderSettings, "binding", "value")}
-      data-direction={direction === "horizontal" ? "horizontal" : "vertical"}
+      data-axis={/angular|rotation/.test(bindingTarget) ? "rotation" : "translation"}
+      data-direction={orientation}
       data-show-details={showDetails ? "true" : "false"}
+      data-slider-kind="motion"
+      data-title-placement={placement}
     >
-      <header className="bloom-control-header">
-        <strong>
-          {descriptor.widget.title}
-          {unit ? <small className="bloom-control-unit">{unit}</small> : null}
-        </strong>
-        <span className={showDetails ? undefined : "bloom-control-detail-hidden"}>
-          {formatSliderValue(min, step, unit)} → {formatSliderValue(max, step, unit)}
-        </span>
-      </header>
-      {intentLabel ? (
-        <p className={showDetails ? "bloom-control-intent" : "bloom-control-intent sr-only"}>{intentLabel}</p>
+      {placement === "above" ? (
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <output aria-live="off" className="bloom-widget-readout">
+            {readout}
+          </output>
+        </header>
       ) : null}
-      <SliderPrimitive.Root
-        className={`bloom-slider bloom-slider-${direction === "horizontal" ? "horizontal" : "vertical"}`}
-        data-orientation={direction === "horizontal" ? "horizontal" : "vertical"}
-        data-return-to-center={returnToCenter ? "true" : "false"}
-        max={max}
-        min={min}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        onKeyUp={handleKeyUp}
-        onValueChange={handleValueChange}
-        onValueCommit={handleValueCommit}
-        orientation={direction === "horizontal" ? "horizontal" : "vertical"}
-        step={step}
-        value={[currentValue]}
-      >
-        <SliderPrimitive.Track className="bloom-slider-track">
-          <SliderPrimitive.Range className="bloom-slider-range" />
-        </SliderPrimitive.Track>
-        <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-slider-thumb" />
-      </SliderPrimitive.Root>
-      <output aria-live="polite" className={showDetails ? "bloom-control-readout" : "bloom-control-readout sr-only"}>
+      <div className="bloom-control-surface bloom-axis-surface">
+        {placement === "overlay" ? (
+          <>
+            <strong className="bloom-axis-title">{descriptor.widget.title}</strong>
+            <output aria-live="off" className="bloom-axis-readout">
+              {readout}
+            </output>
+          </>
+        ) : null}
+        <span aria-hidden="true" className="bloom-axis-word" data-end="negative">
+          {bindArrowToWord(words.negative)}
+        </span>
+        <span aria-hidden="true" className="bloom-axis-word" data-end="positive">
+          {bindArrowToWord(words.positive)}
+        </span>
+        <span aria-hidden="true" className="bloom-axis-tick" />
+        <SliderPrimitive.Root
+          className="bloom-axis-slider"
+          data-orientation={orientation}
+          data-return-to-center="true"
+          {...radixHandlers}
+        >
+          <SliderPrimitive.Track className="bloom-axis-track">
+            <SliderPrimitive.Range className="bloom-axis-range" />
+          </SliderPrimitive.Track>
+          <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-axis-knob" />
+        </SliderPrimitive.Root>
+      </div>
+      <output aria-live="polite" className="sr-only">
         {formattedValue}
       </output>
     </div>
   );
+}
+
+function resolveAxisWords(
+  settings: Record<string, unknown>,
+  orientation: "horizontal" | "vertical",
+): { negative: string; positive: string } {
+  const labels =
+    typeof settings.labels === "object" && settings.labels !== null ? (settings.labels as Record<string, unknown>) : {};
+  const fallback =
+    orientation === "vertical" ? { negative: "▼ Down", positive: "▲ Up" } : { negative: "◀ Left", positive: "Right ▶" };
+  return {
+    negative: typeof labels.negative === "string" && labels.negative ? labels.negative : fallback.negative,
+    positive: typeof labels.positive === "string" && labels.positive ? labels.positive : fallback.positive,
+  };
+}
+
+function formatLimitValue(value: number, unit: string): string {
+  return unit ? `${value.toFixed(2)} ${unit}` : value.toFixed(2);
+}
+
+function readStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function readNumberList(value: unknown): number[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is number => typeof item === "number" && Number.isFinite(item))
+    : [];
 }
 
 const STEP_ZONE_INCREMENT = 0.25;
@@ -266,9 +384,10 @@ export function JoystickWidget({
   // the literal "input", neither of which is a topic. Show where the joystick
   // actually publishes instead.
   const destination = resolveWidgetDestination(descriptor.widget.kind, joystickSettings);
-  const color = getStringSetting(descriptor.widget.settings, "accentColor", "#7fa95f");
   const showDetails = getBooleanSetting(joystickSettings, "show_details", false);
+  const placement = resolveTitlePlacement(descriptor.widget, showDetails);
   const size = resolveJoystickControlSize(descriptor.widget.layout.width, descriptor.widget.layout.height, {
+    placement,
     showDetails,
   });
   const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
@@ -371,47 +490,68 @@ export function JoystickWidget({
     );
   }
 
+  const isRotation = binding.knobColor.includes("rotation");
+  const readout = formatVectorReadout(currentVector, isRotation);
+  const pad = (
+    <JoystickPrimitive
+      color={binding.knobColor}
+      deadzone={deadzone}
+      labels={binding.labels}
+      onInteractionEnd={handleInteractionEnd}
+      onInteractionStart={handleInteractionStart}
+      onVectorChange={handleVectorChange}
+      resetSignal={padResetSignal}
+      size={size}
+      title={descriptor.widget.title}
+      zeroOnRelease={!keepsReleasedVector}
+    />
+  );
+
   return (
-    <div className="bloom-joystick-widget" data-show-details={showDetails ? "true" : "false"}>
-      <header className="bloom-control-header">
-        <strong>{descriptor.widget.title}</strong>
-        <span className={showDetails ? undefined : "bloom-control-detail-hidden"}>{binding.modeId}</span>
-      </header>
+    <div
+      className="bloom-joystick-widget"
+      data-show-details={showDetails ? "true" : "false"}
+      data-title-placement={placement}
+    >
+      {placement === "above" ? (
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <output aria-live="off" className="bloom-widget-readout">
+            {readout}
+          </output>
+        </header>
+      ) : null}
       {showDetails ? (
         <div className="bloom-joystick-mode-strip" aria-label={`Joystick mode ${binding.modeId}`} role="note">
+          <span>{binding.modeId}</span>
           <span>{binding.axisSummary}</span>
           <span>{binding.publishRateHz} Hz</span>
           <span>{destination?.topic ?? binding.runtimeTarget}</span>
         </div>
       ) : null}
-      <JoystickPrimitive
-        color={color}
-        deadzone={deadzone}
-        labelColors={binding.labelColors}
-        labels={binding.labels}
-        onInteractionEnd={handleInteractionEnd}
-        onInteractionStart={handleInteractionStart}
-        onVectorChange={handleVectorChange}
-        resetSignal={padResetSignal}
-        size={size}
-        title={descriptor.widget.title}
-        zeroOnRelease={!keepsReleasedVector}
-      />
-      {keepsReleasedVector ? (
-        <button
-          aria-label={`Zero ${descriptor.widget.title}`}
-          className="bloom-latch-zero"
-          disabled={!vectorIsHeld}
-          onClick={() => emitHeldVector({ x: 0, y: 0 })}
-          type="button"
-        >
-          Zero
-        </button>
-      ) : null}
-      <output
-        aria-live="polite"
-        className={showDetails ? "bloom-control-vector-readout" : "bloom-control-vector-readout sr-only"}
-      >
+      <div className="bloom-control-surface bloom-pad-surface">
+        {placement === "overlay" ? (
+          <>
+            <strong className="bloom-pad-title">{descriptor.widget.title}</strong>
+            <output aria-live="off" className="bloom-pad-readout">
+              {readout}
+            </output>
+          </>
+        ) : null}
+        {pad}
+        {keepsReleasedVector ? (
+          <button
+            aria-label={`Zero ${descriptor.widget.title}`}
+            className="bloom-latch-zero"
+            disabled={!vectorIsHeld}
+            onClick={() => emitHeldVector({ x: 0, y: 0 })}
+            type="button"
+          >
+            Zero
+          </button>
+        ) : null}
+      </div>
+      <output aria-live="polite" className="sr-only">
         <span>x {currentVector.x.toFixed(2)}</span>
         <span>y {currentVector.y.toFixed(2)}</span>
       </output>
@@ -447,7 +587,7 @@ function StepZoneJoystick({
 
   return (
     <div
-      className="bloom-joystick-widget"
+      className="bloom-joystick-widget bloom-info-card"
       data-motor-preset={motorPreset}
       data-show-details={showDetails ? "true" : "false"}
     >
@@ -619,18 +759,56 @@ function emitJoystickVectorChange(
 }
 
 type JoystickControlSizeOptions = {
+  placement?: TitlePlacement;
   showDetails?: boolean;
 };
 
+/** The pad edge inside its 2 px surface border; `above` spends 32 px on the title row. */
 export function resolveJoystickControlSize(
   width: number,
   height: number,
   options: JoystickControlSizeOptions = {},
 ): number {
-  const controlChromeHeight = options.showDetails ? 118 : 56;
-  const horizontalRoom = Math.max(96, width - 40);
-  const verticalRoom = Math.max(96, height - controlChromeHeight);
-  return Math.round(clamp(Math.min(horizontalRoom, verticalRoom), 96, 400));
+  const chrome = (options.placement === "above" ? 32 : 0) + (options.showDetails ? 38 : 0);
+  return Math.max(96, Math.min(width, height - chrome) - 4);
+}
+
+export type TitlePlacement = "above" | "overlay";
+
+/**
+ * Bench cards overlay the title in the control's own corner; operator cards carry it in a row above. An authored
+ * `title_placement` wins; otherwise a control with 32 px to spare beyond its body takes the row.
+ */
+export function resolveTitlePlacement(
+  widget: { kind: string; layout: { width: number; height: number }; settings: Record<string, unknown> },
+  showDetails = false,
+): TitlePlacement {
+  const authored = widget.settings.title_placement;
+  if (authored === "above" || authored === "overlay") {
+    return authored;
+  }
+  if (showDetails) {
+    return "above";
+  }
+  const { width, height } = widget.layout;
+  if (widget.kind === "joystick") {
+    return height - width >= 32 ? "above" : "overlay";
+  }
+  if (widget.kind === "slider" && widget.settings.direction === "horizontal") {
+    return height >= 146 ? "above" : "overlay";
+  }
+  return "overlay";
+}
+
+/** Signed to two places with a true minus, the way every design readout prints. */
+export function formatSignedValue(value: number): string {
+  const rounded = Math.abs(value) < 0.005 ? 0 : value;
+  return `${rounded < 0 ? "\u2212" : "+"}${Math.abs(rounded).toFixed(2)}`;
+}
+
+function formatVectorReadout(vector: JoystickVector, rotation: boolean): string {
+  const [x, y] = rotation ? ["rx", "ry"] : ["x", "y"];
+  return `${x} ${formatSignedValue(vector.x)}  ${y} ${formatSignedValue(vector.y)}`;
 }
 
 export function resolveDecimalPlaces(step: number): number {

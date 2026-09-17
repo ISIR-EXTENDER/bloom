@@ -1,5 +1,6 @@
 import { formatTopicEchoValue, type TopicMessage } from "@bloom/widgets";
 import { useState } from "react";
+import { formatAge } from "./display-renderers";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { getBooleanSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
@@ -52,10 +53,15 @@ function TopicEchoWidget({
   const [pausedMessages, setPausedMessages] = useState(messages);
   const clearedIndex = clearedThrough ? messages.lastIndexOf(clearedThrough) : -1;
   const visibleMessages = isPaused ? pausedMessages : messages.slice(clearedIndex + 1);
+  const latest = visibleMessages.at(-1);
   const echoText =
     visibleMessages.length > 0
-      ? visibleMessages.map((message) => formatTopicEchoValue(message.value, true)).join("\n---\n")
-      : "Waiting for messages...";
+      ? showDetails
+        ? visibleMessages.map((message) => formatEchoMessage(message.value)).join("\n---\n")
+        : formatEchoMessage(latest?.value)
+      : `\u2014\n\nNo ${descriptor.widget.title.toLowerCase()} has been published this session.`;
+  const frameId = readFrameId(latest?.value);
+  const headerNote = frameId || (latest ? formatAge(latest.receivedAt) : "nothing sent");
   const handlePauseToggle = () => {
     if (!isPaused) {
       setPausedMessages(visibleMessages);
@@ -68,13 +74,14 @@ function TopicEchoWidget({
   };
 
   return (
-    <div className="bloom-topic-debug-widget" data-show-details={showDetails ? "true" : "false"}>
-      <header className="bloom-topic-debug-header">
-        <div>
-          <strong>{descriptor.widget.title}</strong>
-          {showDetails ? <span>{topic}</span> : null}
-        </div>
+    <div className="bloom-topic-debug-widget bloom-info-card" data-show-details={showDetails ? "true" : "false"}>
+      <header className="bloom-widget-head">
+        <strong>{descriptor.widget.title}</strong>
+        <span className="bloom-widget-readout">{headerNote}</span>
+      </header>
+      {showDetails ? (
         <div className="bloom-topic-debug-actions">
+          <span className="bloom-widget-topic">{topic}</span>
           <button
             aria-pressed={isPaused}
             className="bloom-topic-debug-action"
@@ -101,15 +108,47 @@ function TopicEchoWidget({
             Copy
           </button>
         </div>
-      </header>
+      ) : null}
       <pre className="bloom-topic-echo">{echoText}</pre>
-      {!showDetails ? <span className="bloom-topic-debug-summary">{visibleMessages.length} messages</span> : null}
+      {!showDetails ? <span className="sr-only">{visibleMessages.length} messages</span> : null}
       <span aria-live="polite" className="bloom-topic-debug-status">
         {copyStatus === "copied" ? "Copied to clipboard." : null}
         {copyStatus === "failed" ? "Copy failed." : null}
       </span>
     </div>
   );
+}
+
+const SIGNED = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value)
+    ? `${value < -0.005 ? "\u2212" : "+"}${Math.abs(value).toFixed(2)}`
+    : String(value);
+
+/** Twists and joint states print the way an engineer reads them aloud; anything else prints as JSON. */
+export function formatEchoMessage(value: unknown): string {
+  const twist = isRecord(value) && isRecord(value.twist) ? value.twist : value;
+  if (isRecord(twist) && isRecord(twist.linear) && isRecord(twist.angular)) {
+    const vector = (v: Record<string, unknown>) => `x ${SIGNED(v.x)}  y ${SIGNED(v.y)}  z ${SIGNED(v.z)}`;
+    return `linear:\n  ${vector(twist.linear)}\nangular:\n  ${vector(twist.angular)}`;
+  }
+  if (isRecord(value) && Array.isArray(value.name) && Array.isArray(value.position)) {
+    const names = value.name.map(String);
+    const nameLine = names.length > 2 ? `${names[0]} \u2026 ${names.at(-1)}` : names.join(" ");
+    const positions = value.position.map((position) => SIGNED(position)).join("\n  ");
+    return `name:\n  ${nameLine}\nposition:\n  ${positions}`;
+  }
+  return formatTopicEchoValue(value, true) ?? "(empty message)";
+}
+
+function readFrameId(value: unknown): string {
+  if (isRecord(value) && isRecord(value.header) && typeof value.header.frame_id === "string") {
+    return value.header.frame_id;
+  }
+  return "";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function TopicPlotWidget({

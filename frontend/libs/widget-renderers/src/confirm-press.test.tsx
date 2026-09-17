@@ -65,7 +65,7 @@ describe("command button confirm press", () => {
 
     fireEvent.click(screen.getByRole("button"));
 
-    expect(screen.getByRole("button").textContent).toBe("Press again to move");
+    expect(screen.getByRole("button").querySelector(".bloom-action-label")?.textContent).toBe("Press again to move");
   });
 
   it("disarms itself after the timeout so a stale arm cannot be completed later", () => {

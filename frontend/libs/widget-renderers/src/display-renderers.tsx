@@ -27,35 +27,62 @@ const DEFAULT_EVENT_LOG_ENTRIES: readonly EventLogEntry[] = [
 ];
 
 export function EventLogWidget({ data, descriptor }: WidgetRendererProps) {
-  const maxEntries = Math.max(1, Math.round(getNumberSetting(descriptor.widget.settings, "maxEntries", 20)));
-  const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
-  const showTimestamps = getBooleanSetting(descriptor.widget.settings, "showTimestamps", true);
-  const severityFilter = readStringArraySetting(descriptor.widget.settings.severityFilter);
-  const runtimeEntries = data?.type === "event-log" ? data.messages.map(toRuntimeEventLogEntry).reverse() : [];
-  const entries = [...runtimeEntries, ...readEventLogEntries(descriptor.widget.settings.entries)]
+  const settings = descriptor.widget.settings;
+  const maxEntries = Math.max(1, Math.round(getNumberSetting(settings, "maxEntries", 20)));
+  const showDetails = getBooleanSetting(settings, "show_details", false);
+  const showTimestamps = getBooleanSetting(settings, "showTimestamps", true);
+  const newestFirst = getBooleanSetting(settings, "newest_first", true);
+  const topic = getStringSetting(settings, "topic", "");
+  const notes = isRecord(settings.notes) ? settings.notes : {};
+  const severityFilter = readStringArraySetting(settings.severityFilter);
+  const runtimeEntries = data?.type === "event-log" ? data.messages.map(toRuntimeEventLogEntry) : [];
+  const orderedRuntime = newestFirst ? [...runtimeEntries].reverse() : runtimeEntries;
+  // Authored entries are a placeholder for a log with no source yet, never mixed into live events.
+  const entries = (orderedRuntime.length > 0 ? orderedRuntime : readEventLogEntries(settings.entries))
     .filter((entry) => severityFilter.length === 0 || severityFilter.includes(entry.severity))
     .slice(0, maxEntries);
 
   return (
-    <div className="bloom-event-log-widget">
-      <header className="bloom-display-header">
+    <div className="bloom-event-log-widget bloom-info-card">
+      <header className="bloom-widget-head">
         <strong>{descriptor.widget.title}</strong>
-        <span>{formatEventCount(entries.length)}</span>
+        <span className="bloom-widget-readout">
+          {topic ? `${topic}${newestFirst ? " \u00b7 newest first" : ""}` : formatEventCount(entries.length)}
+        </span>
       </header>
       <ol className="bloom-event-log-list">
-        {entries.map((entry) => (
-          <li className="bloom-event-log-entry" data-severity={entry.severity} key={createEventLogEntryKey(entry)}>
-            <span aria-hidden="true" className="bloom-event-log-marker" />
-            <div>
+        {entries.map((entry) => {
+          const note = readString(notes[entry.summary], "") || (showDetails ? entry.detail : "");
+          return (
+            <li className="bloom-event-log-entry" data-severity={entry.severity} key={createEventLogEntryKey(entry)}>
+              <span aria-hidden="true" className="bloom-event-log-marker" />
+              {showTimestamps && entry.timestamp ? (
+                <time className="bloom-event-log-age" dateTime={entry.timestamp}>
+                  {formatAge(entry.timestamp)}
+                </time>
+              ) : null}
               <strong>{entry.summary}</strong>
-              {showTimestamps && entry.timestamp ? <time dateTime={entry.timestamp}>{entry.timestamp}</time> : null}
-              {showDetails && entry.detail ? <p>{entry.detail}</p> : null}
-            </div>
-          </li>
-        ))}
+              {note ? <p>{note}</p> : null}
+            </li>
+          );
+        })}
       </ol>
     </div>
   );
+}
+
+/** "12 s ago", "2 min ago": how long, not when; the operator reads freshness. */
+export function formatAge(timestamp: string, now = Date.now()): string {
+  const time = new Date(timestamp).getTime();
+  if (Number.isNaN(time)) {
+    return timestamp;
+  }
+  const seconds = Math.max(0, Math.round((now - time) / 1000));
+  if (seconds < 60) {
+    return `${seconds} s ago`;
+  }
+  const minutes = Math.round(seconds / 60);
+  return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
 }
 
 function createEventLogEntryKey(entry: EventLogEntry): string {

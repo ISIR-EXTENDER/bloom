@@ -1,9 +1,10 @@
 import { type JoystickSettings, MAX_JOYSTICK_PUBLISH_RATE_HZ } from "@bloom/widgets";
-import type { JoystickLabelColors, JoystickLabels } from "./JoystickPrimitive";
+import type { JoystickLabels } from "./JoystickPrimitive";
 
 export type ResolvedJoystickBinding = {
   axisSummary: string;
-  labelColors: JoystickLabelColors;
+  /** Knob colour token: translation sage, rotation clay — never a hex. */
+  knobColor: string;
   labels: JoystickLabels;
   modeId: string;
   publishRateHz: number;
@@ -44,15 +45,12 @@ export function resolveJoystickBinding(settings: Record<string, unknown>): Resol
   const axisHints = getJoystickAxisHints(settings);
   const labels = getJoystickLabelsFromAxisHints(settings, axisHints);
   const runtimeBinding = isRecord(settings.runtime_binding) ? settings.runtime_binding : {};
+  const runtimeTarget = getStringSetting(runtimeBinding, "target", "");
+  const isRotation = axisHints.x.semantic === "rotation" || /rotation|angular/.test(runtimeTarget);
 
   return {
     axisSummary: `${axisHints.x.semantic} / ${axisHints.y.semantic}`,
-    labelColors: {
-      bottom: axisHints.y.color,
-      left: axisHints.x.color,
-      right: axisHints.x.color,
-      top: axisHints.y.color,
-    },
+    knobColor: isRotation ? "var(--bloom-axis-rotation)" : "var(--bloom-axis-translation)",
     labels,
     modeId: getStringSetting(settings, "mode_id", getStringSetting(settings, "binding", "input")),
     publishRateHz: clamp(getNumberSetting(settings, "publish_rate_hz", 30), 1, MAX_JOYSTICK_PUBLISH_RATE_HZ),
@@ -82,9 +80,10 @@ function getJoystickLabelsFromAxisHints(
 }
 
 function getJoystickAxisHints(settings: Record<string, unknown>): JoystickSettings["axis_hints"] {
-  const axisHints = isRecord(settings.axis_hints) ? settings.axis_hints : {};
+  // Seeds name the block `axes`; the settings contract names it `axis_hints`.
+  const axisHints = isRecord(settings.axis_hints) ? settings.axis_hints : isRecord(settings.axes) ? settings.axes : {};
   const defaultSemantic = getStringSetting(settings, "binding", "joy") === "rot" ? "rotation" : "translation";
-  const defaultColor = defaultSemantic === "rotation" ? "#95a5c8" : "#7fa95f";
+  const defaultColor = defaultSemantic === "rotation" ? "var(--bloom-axis-rotation)" : "var(--bloom-axis-translation)";
 
   return {
     x: getJoystickAxisHint(axisHints.x, {
@@ -94,7 +93,7 @@ function getJoystickAxisHints(settings: Record<string, unknown>): JoystickSettin
       semantic: defaultSemantic,
     }),
     y: getJoystickAxisHint(axisHints.y, {
-      color: defaultSemantic === "rotation" ? "#c8a3cf" : "#d89f5d",
+      color: defaultColor,
       negative_label: defaultSemantic === "rotation" ? "RY-" : "Y-",
       positive_label: defaultSemantic === "rotation" ? "RY+" : "Y+",
       semantic: defaultSemantic,
