@@ -101,11 +101,15 @@ export const frRuntimeStrings: RuntimeStrings = {
   supervisor: {
     application: "Application",
     backToLibrary: "Retour à la bibliothèque d'apps",
+    activeFrame: "Repère actif",
     commandFrame: "Repère configuré",
     controlOwnerUnknown: "Propriétaire du contrôle non indiqué",
+    driving: "En mouvement",
+    holding: "À l'arrêt",
     lastRequest: "Dernier mode demandé",
     neverRequested: "Aucune demande de mode observée dans cette session du navigateur",
     noOperatorOwnsControl: "Aucun opérateur ne détient le contrôle",
+    noModeRequested: "Aucun mode demandé par la session opératrice",
     notReported: "Non indiqué",
     operatorOwnsControl: "L'opérateur garde le contrôle",
     ownershipDetail:

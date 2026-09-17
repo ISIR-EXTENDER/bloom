@@ -198,6 +198,31 @@ The refreshed implementation packet is complete. Runtime tabs now use an explici
 not grant the supervisor role authority. Continue with the remaining physical-device/operator acceptance and the open
 design items in `docs/ux-design-handoff.md`; add a supervisor takeover protocol only if that role receives commands.
 
+## Second review pass, 2026-09-17
+
+A follow-up review listed thirteen findings. Two P0s and three P1s had already been closed by the lots above; the rest
+were fixed in this pass, one commit each.
+
+| # | Finding | State |
+| --- | --- | --- |
+| 1 | STOP not atomic with command publication | Already fixed: the stop gate serializes commands, and a failed assertion returns 503 |
+| 2 | Leaving runtime could leave motion streaming | Already fixed: suspend publishes an explicit zero on every lifecycle change |
+| 3 | Explorer speed controls did not control the manager | Already fixed: sliders start at the configured limits and go inert without a subscriber |
+| 4 | Joystick use could exceed the backend rate limit | Already fixed: the client rate gate coalesces to one latest-value stream |
+| 5 | Command failures invisible, UI became false | Already fixed: controls wait for the acknowledgement |
+| 6 | No operator ownership or true supervisor mirror | Ownership fixed earlier; the mirror now reads the operating session's frame and mode from the backend |
+| 7 | Installations never received shipped app updates | Fixed: unedited copies are stamped and upgraded, `config status` gains `outdated` |
+| 8 | Frame allowlist disagreed with the robot | Fixed: only base, hybrid, and the named end-effector frame are offered |
+| 9 | Telemetry died on reconnect, subscriptions stacked | Fixed: screens resubscribe on reconnect, handles are keyed by widget |
+| 10 | Hold snake was pointer-only | Fixed: keyboard, scanning and dwell latch it, with the 15-second attention expiry |
+| 11 | Visual gate missed visible collisions | Fixed: deployed viewports, chrome-overlap and clipping assertions |
+| 12 | Positions shared one process-global library | Fixed: poses are scoped to the application that saved them |
+| 13 | Production authentication unusable from the dashboard | Fixed: `VITE_BLOOM_API_KEY` on HTTP calls and the socket handshake |
+
+Still open from that list: there is no server-side observer role. A supervisor authenticates with the operator key and
+is kept read-only by the projected client and by ownership, not by a separate credential. A real observer key is worth
+doing before Bloom is exposed beyond a trusted lab network.
+
 ## How the work is run
 
 One lot, one commit, tested end to end before the commit. Conventional commits, imperative

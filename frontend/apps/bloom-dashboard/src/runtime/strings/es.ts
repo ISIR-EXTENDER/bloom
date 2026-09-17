@@ -101,11 +101,15 @@ export const esRuntimeStrings: RuntimeStrings = {
   supervisor: {
     application: "Aplicación",
     backToLibrary: "Volver a la biblioteca de apps",
+    activeFrame: "Marco activo",
     commandFrame: "Marco configurado",
     controlOwnerUnknown: "Propietario del control no indicado",
+    driving: "En movimiento",
+    holding: "Detenido",
     lastRequest: "Último modo solicitado",
     neverRequested: "No se ha observado ninguna solicitud de modo en esta sesión del navegador",
     noOperatorOwnsControl: "Ningún operador tiene el control",
+    noModeRequested: "La sesión operadora no ha solicitado ningún modo",
     notReported: "No indicado",
     operatorOwnsControl: "El operador conserva el control",
     ownershipDetail:

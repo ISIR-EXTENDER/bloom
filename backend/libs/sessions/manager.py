@@ -20,6 +20,11 @@ class RuntimeControlSnapshot:
     is_owner: bool
     owner_present: bool
     session_id: str
+    #: What the operator who holds control is actually doing, so a supervisor
+    #: reads the session's state instead of its own browser's copy of it.
+    owner_frame_id: str = ""
+    owner_mode_request: str = ""
+    owner_moving: bool = False
 
 
 class RuntimeControlNotOwnedError(RuntimeError):
@@ -32,6 +37,7 @@ class RuntimeSessionManager:
         self._owner_session_id: str | None = None
         self._releasing_session_id: str | None = None
         self._teleop_commands: dict[str, dict[str, TeleopCommand]] = {}
+        self._mode_requests: dict[str, str] = {}
         self._lock = Lock()
         self._operation_lock = Lock()
 
@@ -50,6 +56,7 @@ class RuntimeSessionManager:
         with self._lock:
             self._sessions.discard(session.id)
             self._teleop_commands.pop(session.id, None)
+            self._mode_requests.pop(session.id, None)
             if self._owner_session_id == session.id:
                 self._owner_session_id = None
             if self._releasing_session_id == session.id:
@@ -124,6 +131,16 @@ class RuntimeSessionManager:
                 return
             commands[command.target] = command
 
+    def record_mode_request(self, session_id: str, mode: str) -> None:
+        """Remember what the controlling session last asked the manager for.
+
+        The manager publishes no mode feedback, so this is the last request,
+        never a confirmed controller state.
+        """
+        with self._lock:
+            if session_id in self._sessions and mode:
+                self._mode_requests[session_id] = mode
+
     def moving_teleop_commands(self, session: RuntimeSession) -> tuple[TeleopCommand, ...]:
         with self._lock:
             return tuple(self._teleop_commands.get(session.id, {}).values())
@@ -133,11 +150,18 @@ class RuntimeSessionManager:
             self._teleop_commands.pop(session.id, None)
 
     def _snapshot(self, session_id: str) -> RuntimeControlSnapshot:
+        owner_id = self._owner_session_id
+        owner_commands = tuple(self._teleop_commands.get(owner_id or "", {}).values())
+        # Only moving commands are kept, so any entry means the arm is driven.
+        owner_frame_id = next((command.frame_id for command in owner_commands if command.frame_id), "")
         return RuntimeControlSnapshot(
             active_sessions=len(self._sessions),
             is_owner=self._is_control_owner(session_id),
-            owner_present=self._owner_session_id is not None,
+            owner_present=owner_id is not None,
             session_id=session_id,
+            owner_frame_id=owner_frame_id,
+            owner_mode_request=self._mode_requests.get(owner_id or "", ""),
+            owner_moving=bool(owner_commands),
         )
 
     def _is_control_owner(self, session_id: str) -> bool:

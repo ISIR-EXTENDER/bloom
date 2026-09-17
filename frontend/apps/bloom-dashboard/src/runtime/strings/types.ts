@@ -61,7 +61,11 @@ export type RuntimeStrings = {
   supervisor: {
     application: string;
     backToLibrary: string;
+    activeFrame: string;
     commandFrame: string;
+    driving: string;
+    holding: string;
+    noModeRequested: string;
     controlOwnerUnknown: string;
     lastRequest: string;
     neverRequested: string;

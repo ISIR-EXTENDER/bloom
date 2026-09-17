@@ -96,3 +96,63 @@ def test_release_waits_for_inflight_command_then_blocks_commands_and_handover() 
 
     manager.finish_control_release(owner)
     assert manager.claim_control(waiting).is_owner is True
+
+
+def test_the_snapshot_reports_what_the_controlling_session_is_doing() -> None:
+    # A supervisor on another screen must read the operating session, not its
+    # own browser's copy of a frame and mode it never saw chosen.
+    manager = RuntimeSessionManager()
+    owner = manager.connect()
+    observer = manager.connect()
+    manager.claim_control(owner)
+
+    assert manager.control_snapshot(observer.id).owner_moving is False
+
+    manager.record_teleop_command(
+        owner,
+        TeleopCommand(
+            angular=TeleopVector3(),
+            frame_id="ft_frame",
+            linear=TeleopVector3(x=0.2),
+            mode=0,
+            seq=1,
+            target="/joystick_cartesian_command",
+        ),
+    )
+    manager.record_mode_request(owner.id, "geometric/snake")
+
+    seen = manager.control_snapshot(observer.id)
+    assert seen.owner_moving is True
+    assert seen.owner_frame_id == "ft_frame"
+    assert seen.owner_mode_request == "geometric/snake"
+    assert seen.is_owner is False
+
+
+def test_a_released_command_stops_reading_as_movement() -> None:
+    manager = RuntimeSessionManager()
+    owner = manager.connect()
+    manager.claim_control(owner)
+    moving = TeleopCommand(
+        angular=TeleopVector3(),
+        frame_id="ft_frame",
+        linear=TeleopVector3(x=0.2),
+        mode=0,
+        seq=1,
+        target="/joystick_cartesian_command",
+    )
+    manager.record_teleop_command(owner, moving)
+    manager.record_teleop_command(
+        owner,
+        TeleopCommand(
+            angular=TeleopVector3(),
+            frame_id="ft_frame",
+            linear=TeleopVector3(),
+            mode=0,
+            seq=2,
+            target=moving.target,
+        ),
+    )
+
+    seen = manager.control_snapshot("")
+    assert seen.owner_moving is False
+    assert seen.owner_frame_id == ""

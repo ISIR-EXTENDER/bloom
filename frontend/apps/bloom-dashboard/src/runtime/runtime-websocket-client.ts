@@ -358,6 +358,9 @@ function parseRuntimeControlState(data: unknown): RuntimeControlState | null {
       active_sessions: parsed.payload.active_sessions,
       detail: typeof parsed.detail === "string" ? parsed.detail : "Runtime control state updated.",
       is_owner: parsed.payload.is_owner,
+      owner_frame_id: parsed.payload.owner_frame_id ?? "",
+      owner_mode_request: parsed.payload.owner_mode_request ?? "",
+      owner_moving: parsed.payload.owner_moving === true,
       owner_present: parsed.payload.owner_present,
       session_id: parsed.session_id,
     };

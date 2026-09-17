@@ -270,6 +270,10 @@ class RuntimeControlStateResponse(BaseModel):
     is_owner: bool
     owner_present: bool
     session_id: str
+    #: The controlling session's own state, for the read-only mirror.
+    owner_frame_id: str = ""
+    owner_mode_request: str = ""
+    owner_moving: bool = False
 
 
 @router.get("/control", response_model=RuntimeControlStateResponse)
@@ -406,6 +410,8 @@ def dispatch_runtime_action(
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
 
+    record_mode_request_for_mirror(request, preset, payload)
+
     return RuntimeActionDispatchResponse(
         app_id=action_request.app_id,
         command=preset.command,
@@ -416,6 +422,18 @@ def dispatch_runtime_action(
         status=receipt.status,
         topic=receipt.topic,
     )
+
+
+def record_mode_request_for_mirror(request: Request, preset: RuntimeActionPreset, payload: object) -> None:
+    """Remember a published mode request so the read-only mirror can show it."""
+    if not preset.topic.endswith("mode_request"):
+        return
+    mode = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(mode, str):
+        return
+    session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+    if session_id:
+        request.app.state.runtime_session_manager.record_mode_request(session_id, mode)
 
 
 def dispatch_service_call_preset(
@@ -1038,11 +1056,16 @@ def get_runtime_control_snapshot(
     snapshot = manager.control_snapshot(session_id)
     if connection.app.state.settings.runtime_control_required:
         return snapshot
+    # Without an ownership lease nobody "holds" control, but what the robot is
+    # being told is still true and still worth mirroring.
     return RuntimeControlSnapshot(
         active_sessions=snapshot.active_sessions,
         is_owner=bool(session_id),
         owner_present=snapshot.active_sessions > 0,
         session_id=session_id,
+        owner_frame_id=snapshot.owner_frame_id,
+        owner_mode_request=snapshot.owner_mode_request,
+        owner_moving=snapshot.owner_moving,
     )
 
 

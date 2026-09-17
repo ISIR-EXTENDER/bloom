@@ -54,7 +54,12 @@ export function SupervisorWorkspace({
   const stopState = useSupervisorStopState(client);
   const controlState = useSupervisorControlState(client);
   const statusChip = resolveRuntimeStatusChip(stopState, link, strings);
-  const requestedMode = modeState.requestedMode;
+  // The operating session's own state beats this browser's copy of it. Its
+  // absence is not "unknown": nobody is driving, so the app's configured frame
+  // is what the next command would carry.
+  const operatorFrameId = controlState?.owner_frame_id ?? "";
+  const operatorIsDriving = controlState?.owner_moving === true;
+  const requestedMode = controlState?.owner_mode_request || modeState.requestedMode;
 
   return (
     <section
@@ -99,8 +104,9 @@ export function SupervisorWorkspace({
           <dd>{robotName ?? strings.supervisor.notReported}</dd>
         </div>
         <div>
-          <dt>{strings.supervisor.commandFrame}</dt>
-          <dd>{commandFrameId ?? strings.supervisor.notReported}</dd>
+          <dt>{operatorFrameId ? strings.supervisor.activeFrame : strings.supervisor.commandFrame}</dt>
+          <dd>{operatorFrameId || commandFrameId || strings.supervisor.notReported}</dd>
+          <small>{operatorIsDriving ? strings.supervisor.driving : strings.supervisor.holding}</small>
         </div>
         <div>
           <dt>{strings.supervisor.stopLatch}</dt>
@@ -114,7 +120,9 @@ export function SupervisorWorkspace({
         </div>
         <div>
           <dt>{strings.supervisor.lastRequest}</dt>
-          <dd>{requestedMode ?? strings.supervisor.neverRequested}</dd>
+          <dd>
+            {requestedMode ?? (controlState ? strings.supervisor.noModeRequested : strings.supervisor.neverRequested)}
+          </dd>
           {modeState.updatedAt ? <small>{strings.supervisor.updatedAt(formatTime(modeState.updatedAt))}</small> : null}
         </div>
       </dl>

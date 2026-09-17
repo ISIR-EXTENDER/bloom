@@ -52,6 +52,9 @@ describe("runtime WebSocket client", () => {
       active_sessions: 1,
       detail: "This runtime session owns robot control.",
       is_owner: true,
+      owner_frame_id: "",
+      owner_mode_request: "",
+      owner_moving: false,
       owner_present: true,
       session_id: "runtime-session",
     };

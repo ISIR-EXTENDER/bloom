@@ -58,11 +58,16 @@ Open **Supervisor mirror** beside an app in the Runtime library. From a running 
 same action to open that app's mirror in a separate browser tab or display. The route includes the configuration and
 application IDs, so a bookmarked mirror resolves the intended app instead of whichever app Builder last selected.
 
-The mirror shows the application, configured robot, effective default command frame, shared backend STOP latch,
-whether an operator currently owns control, frontend/backend session state, and relevant ROS topic readiness. It
-refreshes ownership, STOP, and topic status every two seconds and also offers a manual status refresh.
-`cartesian_manager` does not publish authoritative active-mode feedback, so a fresh mirror says **Not checked** and
-**No mode request observed in this browser session** rather than presenting the configured fallback as live robot state.
+The mirror shows the application, configured robot, shared backend STOP latch, whether an operator currently owns
+control, frontend/backend session state, and relevant ROS topic readiness. It refreshes ownership, STOP, and topic
+status every two seconds and also offers a manual status refresh.
+
+The frame and mode it reports come from the backend, not from the mirror's own browser. While an operator is driving,
+the backend reports the frame their commands are actually stamped with and the mode their session last requested, so a
+supervisor watching from another screen reads the operating session rather than a local copy of it. With no operator
+driving, the mirror falls back to the app's configured frame and says so. `cartesian_manager` publishes no
+authoritative active-mode feedback, so a requested mode is always reported as the last request, never as confirmed
+controller state.
 
 This surface is read-only by construction. It receives a projected client with connection observation and status-read
 methods only. It has no movement, STOP, resume, topic-publish, or configured-action controls. Its ownership notice comes

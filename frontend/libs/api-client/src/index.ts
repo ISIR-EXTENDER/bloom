@@ -373,6 +373,10 @@ export type RuntimeControlState = {
   is_owner: boolean;
   owner_present: boolean;
   session_id: string;
+  /** What the controlling session is doing, as the backend sees it. */
+  owner_frame_id?: string;
+  owner_mode_request?: string;
+  owner_moving?: boolean;
 };
 
 export type BloomApiClientOptions = {
