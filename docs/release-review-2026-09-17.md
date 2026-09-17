@@ -72,3 +72,40 @@ Add each decision here with its reason when a fix involves a trade-off.
   slow service call, and service calls now run outside the gate, so no slow operation holds it any more. Separately,
   `run_runtime_thread` now hands its work to a thread before its first await, so safety cleanup starts even when the
   handler is cancelled immediately.
+
+## E. Second pass, after the design handoff
+
+A second review of `3785001..HEAD`, the handoff implementation, in four areas reviewed in parallel: runtime chrome and
+its safety, widgets and telemetry, the builder with its backend, and seed fidelity to the screen specs. Recording the
+walkthrough against the Explorer simulation and a new end-to-end run against both simulations added the rest. The
+visual gaps are tracked in [the design gap review](design/reviews/2026-09-17-design-gap-review.md).
+
+| # | Finding | Where | Status |
+| --- | --- | --- | --- |
+| E1 | Settings and the practice tour returned before rendering STOP, so a joint-target move kept running with no STOP until the operator left. | `RuntimeWorkspace.tsx` | Fixed |
+| E2 | On a touchscreen the only way out of Settings was to save the draft. | `RuntimeSettingsPanel.tsx` | Fixed |
+| E3 | Passive gripper joints publish NaN; Python wrote bare `NaN`, which is not JSON, so the browser dropped every `/joint_states` sample. Real Explorer hardware is likely affected too. | `ros_adapters/rclpy_topic_streams.py` | Fixed |
+| E4 | Plot freshness and windows compared the browser clock with backend timestamps: a tablet 1 s ahead read "nothing is commanding" while the arm moved. | `widgets/plot-series.ts`, `plot-board-renderer.tsx` | Fixed |
+| E5 | Screen changes stacked topic subscriptions and never released them, doubling samples and counting against the session limit. Adds `unsubscribe_topic` (decision 0134). | `RuntimeWorkspace.tsx`, `routes/runtime.py` | Fixed |
+| E6 | "Reload this app" landed in the first app of the first configuration. | `App.tsx` | Fixed |
+| E7 | The reserved STOP rect stayed bound to a detached canvas after Settings closed, so STOP could drift off its region on resize. | `use-reserved-region-rect.ts` | Fixed |
+| E8 | Keyboard holds (maintenance, switch role, resume) completed after focus left. | `RuntimeKioskBar.tsx`, `RuntimeStopControl.tsx` | Fixed |
+| E9 | A 100 Hz topic kept 9 s of a 30 s window; the verdict read one field of the twist; the y range clipped joint positions; stale readings looked live. | `plot-series-data.ts`, `plot-board-renderer.tsx` | Fixed |
+| E10 | Builder: a refused drag kept its last preview, and Resize to W×H, Duplicate and Add could reach a reserved region, which the backend then refused on save. | `builder/*` | Fixed |
+| E11 | Bloom Debug's raw echo was below its kind's minimum, and nothing checked seeds against the minimums. | `seed/applications/bloom-debug.json` | Fixed |
+| E12 | The maintenance fact said zeros are published at rest; nothing is, and the manager's input timeout keeps the output at zero. | `runtime/strings` | Fixed |
+
+### Release gate on `main`
+
+- **Automated:** CI green on the pushed fixes; frontend, widgets, renderer and backend suites, build, contracts,
+  `qa:review`, visual smoke, and both dependency audits pass.
+- **Simulation:** `npm run e2e:sim` passes 12 of 12 checks on Kinova fake hardware and on the Explorer Gazebo
+  simulation, each verified on the ROS graph.
+- **Field:** on 2026-09-17 visual servoing on the new architecture was driven from Bloom with one toggle and one command
+  button.
+- **Still open before tagging:** D3, the version; hardware validation on Extender and Kinova, including the Pivot
+  sign; a native speaker's check of the Spanish and French wording; the operator target floor (48 or 56 px, see the
+  design gap review).
+- **Upstream, not Bloom:** the Explorer simulation needs two runtime workarounds on Jazzy (`explorer_stack`), the apt
+  `robotiq_description` is too old for `kortex_description` 0.2.6, and `kinova.launch.py` never spawns
+  `fault_controller`. Details in [the simulation run](validation/ros-sim-e2e.md).
