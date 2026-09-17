@@ -42,3 +42,22 @@ describe("joint state readings", () => {
     expect(readJointStates({ name: ["a"] })).toEqual([]);
   });
 });
+
+describe("plotting a flag", () => {
+  it("reads true and false as 1 and 0", async () => {
+    const { appendTopicPlotSample } = await import("./telemetry");
+    const settings = { fieldPath: "data", historySeconds: 30, maxSamples: 10 };
+    const faulted = appendTopicPlotSample(
+      [],
+      { receivedAt: "2026-09-17T10:00:00Z", topic: "/fault", value: { data: true } },
+      settings,
+    );
+    const cleared = appendTopicPlotSample(
+      faulted,
+      { receivedAt: "2026-09-17T10:00:01Z", topic: "/fault", value: { data: false } },
+      settings,
+    );
+
+    expect(cleared.map((sample) => sample.value)).toEqual([1, 0]);
+  });
+});

@@ -1881,7 +1881,7 @@ describe("App", () => {
     expect(screen.getByText("No Jacobian received on /ee_jac.")).toBeVisible();
 
     // One subscription per topic: the table, matrix and raw echo, plus the plot series they do not already cover.
-    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(6));
     const subscribe = runtimeActionClient.subscribeRuntimeTopic;
     if (!subscribe) throw new Error("Missing subscribe client.");
     expect(
@@ -1889,7 +1889,14 @@ describe("App", () => {
         .mocked(subscribe)
         .mock.calls.map(([request]) => request.topic)
         .sort(),
-    ).toEqual(["/cartesian_command", "/ee_jac", "/ee_pose", "/ee_velocity", "/joint_states"]);
+    ).toEqual([
+      "/cartesian_command",
+      "/ee_jac",
+      "/ee_pose",
+      "/ee_velocity",
+      "/fault_controller/internal_fault",
+      "/joint_states",
+    ]);
   });
 
   it("uses Bloom Debug controls to inspect topics, audit, and runtime recordings", async () => {

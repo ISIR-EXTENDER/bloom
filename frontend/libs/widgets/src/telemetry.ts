@@ -28,7 +28,9 @@ export function appendTopicPlotSample(
   message: TopicMessage,
   settings: Pick<TopicPlotSettings, "fieldPath" | "historySeconds" | "maxSamples">,
 ): TopicPlotSample[] {
-  const value = resolveFieldPath(message.value, settings.fieldPath);
+  const raw = resolveFieldPath(message.value, settings.fieldPath);
+  // A flag plots as 1 or 0, so a fault reads on the same axis as everything else.
+  const value = typeof raw === "boolean" ? Number(raw) : raw;
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return [...samples].slice(-settings.maxSamples);
   }
