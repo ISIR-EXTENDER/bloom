@@ -68,14 +68,17 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
 
   return (
     <div className="bloom-position-library bloom-info-card" data-show-details={showDetails ? "true" : "false"}>
-      <header className="bloom-widget-head">
-        <strong>{descriptor.widget.title}</strong>
-        <span className="bloom-widget-readout">
-          {showDetails
-            ? `${saved.length} saved · ${joints ? `${joints.names.length} joints live` : "waiting for joint states"}`
-            : `${saved.length} saved`}
-        </span>
-      </header>
+      {showDetails ? (
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <span className="bloom-widget-readout">
+            {saved.length} saved · {joints ? `${joints.names.length} joints live` : "waiting for joint states"}
+          </span>
+        </header>
+      ) : (
+        // The group label above names the list on screen.
+        <h3 className="sr-only">{descriptor.widget.title}</h3>
+      )}
 
       {saved.length === 0 ? (
         <p className="bloom-position-empty">No saved poses yet.</p>

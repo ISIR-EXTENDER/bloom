@@ -133,6 +133,8 @@ class Settings(BaseModel):
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
         "/cartesian_command",
+        # qontrol's Jacobian, for the manipulability view in Bloom Debug.
+        "/ee_jac",
         "/ee_pose",
         "/ee_velocity",
         "/joint_states",

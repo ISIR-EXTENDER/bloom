@@ -1291,14 +1291,15 @@
   bottom: 8px;
 }
 
+/* Six 48 px rows fit the 348 px rail card (diagnostics.md). */
 .bloom-plot-picker.bloom-info-card {
-  padding: 12px;
+  padding: 10px;
 }
 
 .bloom-plot-picker-list {
   display: flex;
   flex-direction: column;
-  gap: var(--bloom-space-in-card);
+  gap: 6px;
   min-height: 0;
   margin: 0;
   padding: 0;
@@ -1312,12 +1313,13 @@
   align-items: center;
   width: 100%;
   min-height: var(--bloom-touch-target);
-  padding: 6px 12px;
+  padding: 4px 12px;
   border: 2px solid var(--bloom-hairline);
   border-radius: var(--bloom-radius-control);
   background: var(--bloom-surface-container);
   color: var(--bloom-ink);
   font: inherit;
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
 }

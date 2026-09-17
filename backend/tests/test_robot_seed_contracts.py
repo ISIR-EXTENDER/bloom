@@ -36,16 +36,16 @@ def test_kinova_gripper_stays_within_the_robotiq_85_range() -> None:
             assert 0.0 <= position(toggle["settings"][key]) <= 0.8, (toggle["id"], key)
 
 
-def test_gripper_labels_name_the_state_the_payload_commands() -> None:
-    # A toggle shows onLabel while on, so on must be the closing position when
-    # it reads Closed. The Joystick Lab toggles read "Open gripper" while closing.
+def test_gripper_labels_name_the_press_and_the_commanded_state() -> None:
+    # The button names what pressing does; the header names what was last commanded.
+    # On is the closing position, so while on the button offers to open.
     for config_id in ("explorer-manager", "kinova-manager"):
         for toggle in gripper_toggles(config_id):
             settings = toggle["settings"]
             closing_on = position(settings["onPayload"]) > position(settings["offPayload"])
             assert closing_on, (config_id, toggle["id"])
-            assert settings["onLabel"] == "Closed", (config_id, toggle["id"])
-            assert settings["offLabel"] == "Open", (config_id, toggle["id"])
+            assert (settings["onLabel"], settings["offLabel"]) == ("Open gripper", "Close gripper"), toggle["id"]
+            assert (settings["onStateLabel"], settings["offStateLabel"]) == ("closed", "open"), toggle["id"]
 
 
 def test_kinova_requests_no_joint_target_defined_for_another_arm() -> None:
@@ -55,6 +55,6 @@ def test_kinova_requests_no_joint_target_defined_for_another_arm() -> None:
     requests = [
         widget["id"]
         for widget in widgets("kinova-manager")
-        if "behaviour/joint_target/" in json.dumps(widget["settings"])
+        if "behaviour/joint_target/" in json.dumps(widget["settings"].get("payload"))
     ]
     assert requests == []

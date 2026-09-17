@@ -173,13 +173,16 @@ export function CommandLikeWidget({
   const showsTitle =
     layout === "card" && descriptor.widget.title.trim().toLowerCase() !== buttonLabel.trim().toLowerCase();
   const detail = actionLabel || command;
+  const authoredHint = getStringSetting(descriptor.widget.settings, "hint", "");
   const hint = isArmed
     ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
-    : showDetails && detail
-      ? isSelected
-        ? `Last requested \u00b7 ${detail}`
-        : detail
-      : "";
+    : authoredHint
+      ? authoredHint
+      : showDetails && detail
+        ? isSelected
+          ? `Last requested \u00b7 ${detail}`
+          : detail
+        : "";
 
   return (
     <div

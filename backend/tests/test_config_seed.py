@@ -18,6 +18,9 @@ from libs.config.seed import (
 )
 from libs.config.storage import create_configuration_repository
 
+# Drive ships as one screen per role (ADR 0133).
+DRIVE_LAYOUTS = ("manager_drive_bench", "manager_drive_operator")
+
 SHARED_APP_IDS = {
     "bloom-debug",
     "explorer-manager",
@@ -230,15 +233,16 @@ def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
     assert "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed" in topics
     assert "/cmd/max_velocity" not in topics
 
-    drive = next(screen for screen in bundle.applications[0].screens if screen.id == "manager_drive")
-    speed_settings = {
-        widget.id: widget.settings
-        for widget in drive.widgets
-        if widget.id in {"drive-max-linear-speed", "drive-max-angular-speed"}
-    }
-    assert speed_settings["drive-max-linear-speed"]["value"] == 0.15
-    assert speed_settings["drive-max-angular-speed"]["value"] == 0.4
-    assert all(settings["messageType"] == "std_msgs/msg/Float64" for settings in speed_settings.values())
+    for screen_id in DRIVE_LAYOUTS:
+        drive = next(screen for screen in bundle.applications[0].screens if screen.id == screen_id)
+        speed_settings = {
+            widget.id: widget.settings
+            for widget in drive.widgets
+            if widget.id in {"drive-max-linear-speed", "drive-max-angular-speed"}
+        }
+        assert speed_settings["drive-max-linear-speed"]["value"] == 0.15
+        assert speed_settings["drive-max-angular-speed"]["value"] == 0.4
+        assert all(settings["messageType"] == "std_msgs/msg/Float64" for settings in speed_settings.values())
 
 
 def test_cartesian_manager_monitors_use_its_twist_stamped_command_type() -> None:
@@ -268,15 +272,16 @@ GRIPPER_CLOSE_OPEN = {
 }
 
 
+@pytest.mark.parametrize("screen_id", DRIVE_LAYOUTS)
 @pytest.mark.parametrize("config_id", ["explorer-manager", "kinova-manager"])
-def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> None:
-    """The experiment UI replaces every physical joystick input on one screen."""
+def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str, screen_id: str) -> None:
+    """The experiment UI replaces every physical joystick input on one screen, in either role's layout."""
     from libs.ros_adapters.payloads import parse_ros_payload_text
 
     path = DEFAULT_SEED_DIR / f"{config_id}.json"
     bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
     application = bundle.applications[0]
-    drive = next(screen for screen in application.screens if screen.id == "manager_drive")
+    drive = next(screen for screen in application.screens if screen.id == screen_id)
     widgets = {widget.id: widget for widget in drive.widgets}
 
     assert application.runtime_policy.command_frame_id == "base_link"
@@ -312,6 +317,42 @@ def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str) -> 
     for widget_id in ("drive-translation", "drive-rotation", "drive-z", "drive-rz"):
         value_mapping = widgets[widget_id].settings["runtime_binding"].get("value_mapping", {})
         assert value_mapping["target_topic"] == "/joystick_cartesian_command"
+
+
+# Settings a role may change (ADR 0133 rule 3); everything else must reach the manager unchanged.
+PRESENTATION_SETTINGS = {
+    "hide_title",
+    "labels",
+    "layout",
+    "segment_labels",
+    "segment_values",
+    "show_details",
+    "title_placement",
+    "variant",
+}
+
+
+@pytest.mark.parametrize("config_id", ["explorer-manager", "kinova-manager"])
+def test_bench_and_operator_send_identical_messages(config_id: str) -> None:
+    """A bench test is evidence about the operator's session only if both layouts publish the same bytes."""
+    path = DEFAULT_SEED_DIR / f"{config_id}.json"
+    bundle = ConfigurationBundle.model_validate_json(path.read_text(encoding="utf-8"))
+    application = bundle.applications[0]
+    bench, operator = (
+        {widget.id: widget for widget in next(s for s in application.screens if s.id == screen_id).widgets}
+        for screen_id in DRIVE_LAYOUTS
+    )
+    profiles = {profile.id: profile.preferred_control_layout_id for profile in application.profiles}
+
+    assert profiles["bench"] == "manager_drive_bench"
+    assert profiles["operator"] == "manager_drive_operator"
+    shared = [widget_id for widget_id in bench if widget_id in operator and bench[widget_id].kind.value != "label"]
+    assert len(shared) >= 10
+    for widget_id in shared:
+        a, b = bench[widget_id], operator[widget_id]
+        assert a.kind == b.kind, widget_id
+        strip = lambda settings: {k: v for k, v in settings.items() if k not in PRESENTATION_SETTINGS}  # noqa: E731
+        assert strip(a.settings) == strip(b.settings), widget_id
 
 
 # Sizes of the canvas presets operator apps target, from CANVAS_PRESETS in
@@ -380,6 +421,9 @@ def test_no_interactive_control_shares_glass_with_the_stop_chrome() -> None:
             for screen in application.screens:
                 size = OPERATOR_CANVAS_SIZES.get(screen.canvas.preset_id)
                 if size is None or screen.canvas.preset_id == "hd":
+                    continue
+                if screen.reserved_regions:
+                    # The screen places STOP itself; the model rejects any widget inside the region.
                     continue
                 width, height = size
                 scale = min(panel_width / width, panel_height / height) * 0.99

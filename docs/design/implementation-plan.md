@@ -478,3 +478,17 @@ Each commit carries its tests. Commits 12 and 13 run the live bench before pushi
      (bench) and shown read-only in the bar and the maintenance sheet. The per-profile frame override stops being
      writable; a stored one is ignored and removed.
 6. **Scope** stays as §5. After this plan ships, the out-of-scope items are revisited and the implementation reviewed.
+
+## 9. Found while implementing
+
+- **Order.** Layout resolution (commit 11) and the plot kinds (13) landed before the seed change (12), so the new seeds
+  load and open in their role. STOP in its reserved region (part of 8) ships with 12: the corner STOP would cover the
+  operator Pivot at 1024×600.
+- **Kinova Drive · Bench fault reset.** The spec's `590,548 326×114` overlaps Pivot at `532,548`. It takes the free slot
+  under Translation, `136,548 384×114`, titled, so `bench-fault-label` is not needed.
+- **Pivot sign.** Height reads up as `+linear_z` and Translation reads forward/right as `+linear_y`/`+linear_x`, so z is
+  up and `+angular_z` turns left. The horizontal Pivot sends `scale: -1` so its left end turns left, on Drive and the
+  Lab alike. Verify on the bench.
+- **Kinova segments.** Explorer's 0.08 / 0.15 / 0.30 exceed Kinova's 0.1 m/s; Kinova uses 0.025 / 0.05 / 0.10.
+- **Positions keeps capture.** The design shows a pick-only list because no save flow is designed, but the library can
+  already capture and export. It stays editable until the save flow exists; `editable: false` gives the pick-only list.

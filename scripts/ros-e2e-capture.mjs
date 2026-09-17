@@ -120,7 +120,7 @@ const captures = [
 ];
 
 await mkdir(outputDir, { recursive: true });
-const browser = await chromium.launch();
+const browser = await chromium.launch({ channel: "chrome" }).catch(() => chromium.launch());
 const failures = [];
 try {
   for (const capture of captures) {

@@ -17,6 +17,10 @@ function createJoystickLabConfigurationClient() {
   }
 
   application.screens.sort((screen) => (screen.id === "manager_joystick_lab" ? -1 : 1));
+  // Launch opens the first screen only when no profile names a layout.
+  for (const profile of application.profiles) {
+    profile.preferred_control_layout_id = "";
+  }
 
   return {
     listConfigurations: vi.fn(async () => ["explorer-manager"]),

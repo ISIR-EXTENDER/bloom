@@ -13,7 +13,7 @@ const temporaryVideoDirectory = await mkdtemp(resolve(tmpdir(), "bloom-explorer-
 
 await mkdir(dirname(outputPath), { recursive: true });
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ channel: "chrome" }).catch(() => chromium.launch());
 const context = await browser.newContext({
   recordVideo: { dir: temporaryVideoDirectory, size: { height: 720, width: 1280 } },
   viewport: { height: 720, width: 1280 },

@@ -50,11 +50,10 @@ const routes = [
 ];
 
 /**
- * Every operator screen Bloom ships. STOP is chrome pinned to the bottom-right
- * of the viewport, so the shipped apps leave that corner free: no widget ends
- * past x=1090 while also reaching below y=545 on the 1280x720 artboard.
- * Sandbox's lab screens still tile into it, and their topic echoes grow as
- * samples arrive, so asserting there would measure the fixture.
+ * Every operator screen Bloom ships. STOP is chrome drawn in each screen's
+ * reserved region, so no widget may sit under it. Sandbox's lab screens still
+ * tile into the corner STOP, and their topic echoes grow as samples arrive, so
+ * asserting there would measure the fixture.
  */
 const ROUTES_GUARANTEEING_CLEAR_CHROME = new Set([
   "explorer-drive",

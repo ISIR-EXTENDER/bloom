@@ -150,7 +150,7 @@ real rosbag process management explicitly:
 
 ```bash
 export BLOOM_RUNTIME_RECORDING_GATEWAY=rosbag
-export BLOOM_ALLOWED_RECORDING_TOPICS='/cartesian_command,/joystick_cartesian_command,/mode_request,/joint_states,/ee_pose,/ee_velocity,/tag_detections,/visual_servoing/velocity_command'
+export BLOOM_ALLOWED_RECORDING_TOPICS='/cartesian_command,/joystick_cartesian_command,/mode_request,/joint_states,/ee_jac,/ee_pose,/ee_velocity,/tag_detections,/visual_servoing/velocity_command'
 export BLOOM_ALLOWED_RECORDING_OUTPUT_FOLDERS='data/recordings'
 export BLOOM_RUNTIME_RECORDING_BASE_DIRECTORY="$PWD/backend"
 export BLOOM_RUNTIME_RECORDING_EXECUTABLE=ros2
