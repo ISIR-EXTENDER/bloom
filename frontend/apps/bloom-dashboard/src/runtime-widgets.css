@@ -958,8 +958,14 @@
 /* Streams scroll inside their authored height; only controls grow (ADR 0132). */
 .bloom-topic-debug-widget.bloom-info-card,
 .bloom-event-log-widget.bloom-info-card,
-.bloom-position-library.bloom-info-card {
+.bloom-position-library.bloom-info-card,
+.bloom-plot-picker.bloom-info-card,
+.bloom-joint-table.bloom-info-card {
   max-height: var(--bloom-widget-height);
+}
+
+.bloom-joint-table.bloom-info-card {
+  overflow-y: auto;
 }
 
 .bloom-topic-debug-widget.bloom-info-card {
