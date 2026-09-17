@@ -246,8 +246,10 @@ export function RuntimeWorkspace({
   const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings);
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const scanning = useSwitchScanning({
+    // Maintenance covers the canvas; a switch press there must not reach it.
     enabled:
       runtimeProfile.motorAccessibilityPreset === "scan" &&
+      !maintenanceOpen &&
       !settingsOpen &&
       !tourOpen &&
       (!stopped || runtimeControlBlocked),
@@ -265,7 +267,7 @@ export function RuntimeWorkspace({
       target.click();
     },
     dwellMs: runtimeProfile.dwellMs,
-    enabled: runtimeProfile.dwellEnabled && !settingsOpen && !tourOpen,
+    enabled: runtimeProfile.dwellEnabled && !maintenanceOpen && !settingsOpen && !tourOpen,
     isTargetEnabled: isAssistiveRuntimeTargetEnabled,
     rootRef: runtimeControlsRef,
   });

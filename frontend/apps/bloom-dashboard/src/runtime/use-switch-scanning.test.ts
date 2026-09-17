@@ -117,6 +117,19 @@ describe("switch scanning", () => {
     expect(result.current.activateCurrent).toEqual(expect.any(Function));
   });
 
+  it("leaves a switch press inside an open dialog to the dialog", () => {
+    const { clicks, rootRef } = buildScreen(2);
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    document.body.append(dialog);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    dialog.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: " " }));
+
+    expect(clicks).toEqual([]);
+  });
+
   it("scans only what a click can operate", () => {
     // A pad answers to pointer and keys, never to click(): lighting it would
     // look usable and move nothing. Pads render step targets under scan instead.

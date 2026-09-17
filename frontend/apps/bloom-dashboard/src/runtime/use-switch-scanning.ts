@@ -97,6 +97,11 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       if (event.key !== " " && event.key !== "Enter") {
         return;
       }
+      // A key meant for an open dialog belongs to the dialog, never to the
+      // control highlighted behind it.
+      if (isInsideModal(event.target)) {
+        return;
+      }
       event.preventDefault();
       activateCurrent();
     };
@@ -106,6 +111,9 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       // not always an Element (a tap landing on the window itself is not).
       const target = event.target;
       if (target instanceof Element && (target.closest(SCAN_TARGET_SELECTOR) || target.closest("[data-scan-switch]"))) {
+        return;
+      }
+      if (isInsideModal(target)) {
         return;
       }
       activateCurrent();
@@ -126,4 +134,8 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
   }, [activateCurrent, enabled, periodMs, rootRef, revision]);
 
   return { activateCurrent, index, targetCount };
+}
+
+function isInsideModal(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('[role="dialog"], [aria-modal="true"]') !== null;
 }
