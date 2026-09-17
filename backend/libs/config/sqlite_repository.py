@@ -130,7 +130,7 @@ def sync_normalized_configuration_rows(
                 json.dumps(application.theme.model_dump(mode="json"), sort_keys=True),
                 json.dumps([profile.model_dump(mode="json") for profile in application.profiles], sort_keys=True),
                 json.dumps(application.runtime_policy.model_dump(mode="json"), sort_keys=True),
-                json.dumps([preset.model_dump(mode="json") for preset in application.action_presets], sort_keys=True),
+                json.dumps([preset.model_dump(mode="json") for preset in application.action_presets]),
                 application.lifecycle,
                 application_position,
             ),
@@ -183,7 +183,7 @@ def sync_normalized_configuration_rows(
                         widget.kind.value,
                         widget.title,
                         json.dumps(widget.layout.model_dump(mode="json"), sort_keys=True),
-                        json.dumps(widget.settings, sort_keys=True),
+                        json.dumps(widget.settings),
                         widget_position,
                     ),
                 )

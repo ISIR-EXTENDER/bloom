@@ -361,3 +361,35 @@ def test_a_cli_write_to_a_fresh_sqlite_store_keeps_the_file_store_work(tmp_path:
 
     repository = create_configuration_repository("sqlite", configuration_dir=file_store, database_path=database_path)
     assert "my-own-app" in repository.list_ids()
+
+
+def test_publishing_an_unedited_app_leaves_its_seed_file_untouched(tmp_path: Path) -> None:
+    seed_dir = tmp_path / "seed"
+    seed_dir.mkdir()
+    shipped = Path(__file__).parents[1] / "seed" / "applications" / "explorer-manager.json"
+    (seed_dir / "explorer-manager.json").write_bytes(shipped.read_bytes())
+    store = ["--storage", "sqlite", "--database-path", str(tmp_path / "bloom.db"), "--seed-dir", str(seed_dir)]
+    runner = CliRunner()
+    runner.invoke(cli, ["config", "seed", *store])
+
+    result = runner.invoke(cli, ["config", "publish", "explorer-manager", *store])
+
+    assert result.exit_code == 0
+    assert "nothing to commit" in result.stdout
+    assert (seed_dir / "explorer-manager.json").read_bytes() == shipped.read_bytes()
+
+
+def test_sqlite_keeps_the_authored_order_of_widget_settings(tmp_path: Path) -> None:
+    shipped = load_configuration_file(Path(__file__).parents[1] / "seed" / "applications" / "explorer-manager.json")
+    repository = create_configuration_repository(
+        "sqlite", configuration_dir=tmp_path / "cfg", database_path=tmp_path / "b.db"
+    )
+
+    repository.upsert("explorer-manager", shipped)
+
+    def settings_orders(bundle: ConfigurationBundle) -> list[list[str]]:
+        return [
+            list(widget.settings) for app in bundle.applications for screen in app.screens for widget in screen.widgets
+        ]
+
+    assert settings_orders(repository.get("explorer-manager")) == settings_orders(shipped)
