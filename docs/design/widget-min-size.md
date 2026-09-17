@@ -80,6 +80,10 @@ scale 1.0; the builder must also report the **effective** size after fit, for th
 not for one selected widget. Nothing an operator acts on may land below 44 px of glass, and the
 `comfort` preset holds 56.
 
+The card minimum is not the target. Where the target sits *inside* the card is
+`design-system.html` §04b, shipped as `primaryTargetFor(kind, settings, layout)` next to
+`minSizeFor` — and a kind with no entry there is the definition of a kind nothing has to hit.
+
 ## Enforcement
 
 Warn, never block (ADR 0132). An undersized widget gets a pollen corner tag on the canvas and the

@@ -6,7 +6,7 @@ import type {
   WidgetConfig,
   WidgetLayout,
 } from "@bloom/api-client";
-import { findSizeShortfall, resolveCanvasPresetSize, type WidgetSizeShortfall } from "@bloom/widgets";
+import { findSizeShortfall, primaryTargetFor, resolveCanvasPresetSize, type WidgetSizeShortfall } from "@bloom/widgets";
 
 import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
 
@@ -49,22 +49,11 @@ export function resolveBuilderPanel(screen: ScreenConfig) {
   };
 }
 
-/** The target a hand actually meets inside a widget, in canvas px (the renderers' anatomy, design-system §06). */
+/** The target a hand meets inside a widget, in canvas px; a kind that declares none is read at its card. */
 export function resolvePrimaryTarget(widget: WidgetConfig): number {
-  const { height, width } = widget.layout;
-  switch (widget.kind) {
-    case "command-button":
-      return widget.settings.hide_title === true ? height - 32 : Math.min(56, height - 32);
-    case "toggle":
-      return 56;
-    case "joystick":
-      return Math.round(Math.min(width, height) * 0.26);
-    // A continuous limit's thumb is 56: at the tablet glass scale 0.80 that lands on the 44 px floor.
-    case "slider":
-      return widget.settings.variant === "segments" ? 64 : widget.settings.returnToCenter === true ? 64 : 56;
-    default:
-      return Math.min(width, height);
-  }
+  return (
+    primaryTargetFor(widget.kind, widget.settings, widget.layout) ?? Math.min(widget.layout.width, widget.layout.height)
+  );
 }
 
 /** Whole glass px, floored so a 43.5 px target reads 43 and fails the 44 px floor instead of rounding up to pass. */

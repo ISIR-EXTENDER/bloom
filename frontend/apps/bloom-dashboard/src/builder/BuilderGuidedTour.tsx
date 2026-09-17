@@ -1,5 +1,5 @@
 import type { ApplicationConfig, WidgetConfig } from "@bloom/api-client";
-import { resolveWidgetDestination } from "@bloom/widgets";
+import { INTERACTIVE_WIDGET_KINDS, resolveWidgetDestination } from "@bloom/widgets";
 import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -29,7 +29,6 @@ type BuilderTourStep = {
   why: string;
 };
 
-const INTERACTIVE_WIDGET_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
 const PANEL_PRESETS = new Set(["full-hd", "hd", "native-1280x720"]);
 const NO_SIBLINGS: readonly ApplicationConfig[] = [];
 

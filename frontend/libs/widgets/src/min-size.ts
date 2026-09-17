@@ -55,6 +55,36 @@ export function minSizeFor(kind: string, settings: MinSizeSettings = {}): Widget
   return settings.show_details === true ? entry.on : entry.off;
 }
 
+export type PrimaryTargetLayout = { height: number; width: number };
+export type PrimaryTargetSettings = MinSizeSettings & { returnToCenter?: unknown; variant?: unknown };
+
+/**
+ * What the hand meets inside a card, in canvas px (design-system §04b). A kind absent from the table
+ * declares no target, which is also what makes it non-interactive.
+ */
+const PRIMARY_TARGET: Readonly<
+  Record<string, (settings: PrimaryTargetSettings, layout: PrimaryTargetLayout) => number>
+> = {
+  "command-button": (settings, layout) =>
+    settings.hide_title === true ? layout.height - 32 : Math.min(56, layout.height - 32),
+  "gesture-pad": (_settings, layout) => Math.min(layout.width, layout.height),
+  joystick: (_settings, layout) => Math.round(Math.min(layout.width, layout.height) * 0.26),
+  slider: (settings) => (settings.variant === "segments" || settings.returnToCenter === true ? 64 : 56),
+  toggle: () => 56,
+};
+
+/** The kinds the touch floor and the overlap rule apply to: the ones that declare a target. */
+export const INTERACTIVE_WIDGET_KINDS: ReadonlySet<string> = new Set(Object.keys(PRIMARY_TARGET));
+
+/** The target for a widget as configured, or null for a kind that is not something to hit. */
+export function primaryTargetFor(
+  kind: string,
+  settings: PrimaryTargetSettings,
+  layout: PrimaryTargetLayout,
+): number | null {
+  return PRIMARY_TARGET[kind]?.(settings, layout) ?? null;
+}
+
 export type WidgetSizeShortfall = { minimum: WidgetMinSize; width: number; height: number };
 
 /** The shortfall when a layout is smaller than its kind's minimum; the fix is `Resize to minimum`. */

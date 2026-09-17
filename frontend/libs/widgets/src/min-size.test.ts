@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 
+import designSystemPage from "../../../../docs/design/design-system.html?raw";
 import minSizeDoc from "../../../../docs/design/widget-min-size.md?raw";
 
 import { DEFAULT_WIDGET_DEFINITIONS } from "./index";
-import { findSizeShortfall, minSizeFor, WIDGET_MIN_SIZE } from "./min-size";
+import {
+  findSizeShortfall,
+  INTERACTIVE_WIDGET_KINDS,
+  minSizeFor,
+  type PrimaryTargetLayout,
+  type PrimaryTargetSettings,
+  primaryTargetFor,
+  WIDGET_MIN_SIZE,
+} from "./min-size";
 import { BENCH_RAIL, padGeometry } from "./pad-geometry";
 
 describe("the widget minimum-size contract", () => {
@@ -42,6 +51,74 @@ describe("the widget minimum-size contract", () => {
       findSizeShortfall({ kind: "toggle", layout: { width: 130, height: 130 }, settings: { show_details: true } }),
     ).toEqual({ minimum: [250, 144], width: 130, height: 130 });
     expect(findSizeShortfall({ kind: "toggle", layout: { width: 300, height: 120 }, settings: {} })).toBeNull();
+  });
+});
+
+/** Each §04b row, as the settings that select that derivation. */
+const TARGET_ROWS: Readonly<Record<string, { kind: string; settings: PrimaryTargetSettings }>> = {
+  toggle: { kind: "toggle", settings: {} },
+  joystick: { kind: "joystick", settings: {} },
+  "gesture-pad": { kind: "gesture-pad", settings: {} },
+  "slider · segments": { kind: "slider", settings: { variant: "segments" } },
+  "slider · return to centre": { kind: "slider", settings: { returnToCenter: true } },
+  "slider · continuous": { kind: "slider", settings: {} },
+  "command-button": { kind: "command-button", settings: {} },
+  "command-button · in a group": { kind: "command-button", settings: { hide_title: true } },
+};
+
+const TARGET_PROBES: PrimaryTargetLayout[] = [
+  { height: 88, width: 264 },
+  { height: 120, width: 338 },
+  { height: 346, width: 314 },
+  { height: 384, width: 384 },
+];
+
+/** The grammar §04b writes its targets in: a constant, `w`, `h`, `x - k`, `x * k`, `min(…)`, `round(…)`. */
+function evaluateTarget(formula: string, layout: PrimaryTargetLayout): number {
+  const term = formula.trim();
+  const rounded = term.match(/^round\((.+)\)$/);
+  if (rounded?.[1]) return Math.round(evaluateTarget(rounded[1], layout));
+  const scaled = term.match(/^(.+) \* ([\d.]+)$/);
+  if (scaled?.[1]) return evaluateTarget(scaled[1], layout) * Number(scaled[2]);
+  const smallest = term.match(/^min\((.+), (.+)\)$/);
+  if (smallest?.[1] && smallest[2]) {
+    return Math.min(evaluateTarget(smallest[1], layout), evaluateTarget(smallest[2], layout));
+  }
+  const reduced = term.match(/^(.+) - (\d+)$/);
+  if (reduced?.[1]) return evaluateTarget(reduced[1], layout) - Number(reduced[2]);
+  if (term === "w") return layout.width;
+  if (term === "h") return layout.height;
+  return Number(term);
+}
+
+describe("the primary target contract", () => {
+  const section = designSystemPage.split('id=\\"targets\\"')[1]?.split('id=\\"regions\\"')[0] ?? "";
+  const documented = [
+    ...section.matchAll(
+      /font-weight: 700;[^>]*>([^<]+)<\\u002Fsc-raw-td>[^<]*<sc-raw-td[^>]*>([^<]+)<\\u002Fsc-raw-td>/g,
+    ),
+  ].map(([, kind, formula]) => [kind, formula] as const);
+
+  it("covers every interactive kind and nothing else", () => {
+    expect(documented.map(([kind]) => kind)).toEqual(Object.keys(TARGET_ROWS));
+    expect([...new Set(Object.values(TARGET_ROWS).map((row) => row.kind))].sort()).toEqual(
+      [...INTERACTIVE_WIDGET_KINDS].sort(),
+    );
+    expect(primaryTargetFor("label", {}, TARGET_PROBES[0] as PrimaryTargetLayout)).toBeNull();
+  });
+
+  it.each(documented)("computes the %s target the design system documents as %s", (kind, formula) => {
+    const row = TARGET_ROWS[kind];
+    if (!row) throw new Error(`Undocumented row ${kind}.`);
+    for (const layout of TARGET_PROBES) {
+      expect(primaryTargetFor(row.kind, row.settings, layout)).toBe(evaluateTarget(formula, layout));
+    }
+  });
+
+  it("keeps a continuous limit on the 44 px floor at the tablet fit scale", () => {
+    const limit = primaryTargetFor("slider", {}, { height: 120, width: 338 });
+    expect(limit).toBe(56);
+    expect(Math.floor((limit ?? 0) * 0.8)).toBe(44);
   });
 });
 

@@ -1,4 +1,5 @@
 import type { ApplicationConfig, ConfigurationBundle, ReservedRegion, ScreenConfig } from "@bloom/api-client";
+import { INTERACTIVE_WIDGET_KINDS } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
 import bloomDebugConfiguration from "../../../../../backend/seed/applications/bloom-debug.json";
@@ -151,6 +152,23 @@ describe("builder geometry", () => {
 });
 
 describe("shipped design screens", () => {
+  it("keep every control on the touch floor of the class's smallest panel", () => {
+    const belowFloor = [explorerManagerConfiguration, kinovaManagerConfiguration, bloomDebugConfiguration].flatMap(
+      (bundle) =>
+        (bundle as unknown as ConfigurationBundle).applications.flatMap((application) =>
+          application.screens.flatMap((screen) => {
+            const { glassScale } = resolveBuilderPanel(screen);
+            return screen.widgets
+              .filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind))
+              .filter((widget) => glassPx(widget, glassScale) < TOUCH_FLOOR_PX)
+              .map((widget) => `${application.id}/${screen.id}/${widget.id}`);
+          }),
+        ),
+    );
+
+    expect(belowFloor).toEqual([]);
+  });
+
   it("keep every widget at or above its kind's minimum", () => {
     const undersized = [explorerManagerConfiguration, kinovaManagerConfiguration, bloomDebugConfiguration].flatMap(
       (bundle) =>
