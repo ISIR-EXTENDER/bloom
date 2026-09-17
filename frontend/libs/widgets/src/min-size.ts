@@ -1,9 +1,12 @@
+import { resolveJoystickControlSize, resolveTitlePlacement } from "./control-geometry.ts";
+import { padGeometry } from "./pad-geometry.ts";
+
+export type WidgetMinSize = readonly [width: number, height: number];
+
 /**
  * Minimum size per widget kind at scale 1.0, derived from what each renderer draws (ADR 0132,
  * docs/design/widget-min-size.md). The builder inspector, the review checklist and the seed validator read this one table.
  */
-export type WidgetMinSize = readonly [width: number, height: number];
-
 export const WIDGET_MIN_SIZE: Readonly<Record<string, { off: WidgetMinSize; on: WidgetMinSize }>> = {
   joystick: { off: [280, 332], on: [320, 400] },
   "slider:vertical": { off: [104, 284], on: [130, 312] },
@@ -33,6 +36,7 @@ export type MinSizeSettings = {
   hide_title?: unknown;
   layout?: unknown;
   show_details?: unknown;
+  title_placement?: unknown;
 };
 
 export function minSizeKey(kind: string, settings: MinSizeSettings = {}): string {
@@ -68,7 +72,13 @@ const PRIMARY_TARGET: Readonly<
   "command-button": (settings, layout) =>
     settings.hide_title === true ? layout.height - 32 : Math.min(56, layout.height - 32),
   "gesture-pad": (_settings, layout) => Math.min(layout.width, layout.height),
-  joystick: (_settings, layout) => Math.round(Math.min(layout.width, layout.height) * 0.26),
+  // The knob of the pad the renderer draws, not of the card: the title row and the readouts come off
+  // the edge first, so a card measured whole reports a target the hand never meets.
+  joystick: (settings, layout) => {
+    const showDetails = settings.show_details === true;
+    const placement = resolveTitlePlacement({ kind: "joystick", layout, settings }, showDetails);
+    return padGeometry(resolveJoystickControlSize(layout.width, layout.height, { placement, showDetails })).knob;
+  },
   slider: (settings) => (settings.variant === "segments" || settings.returnToCenter === true ? 64 : 56),
   toggle: () => 56,
 };

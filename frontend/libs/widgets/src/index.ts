@@ -9,6 +9,7 @@ import type {
 import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
 export * from "./canvas-defaults";
+export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
 export * from "./extensions";

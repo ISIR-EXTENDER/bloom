@@ -57,7 +57,9 @@ describe("the widget minimum-size contract", () => {
 /** Each §04b row, as the settings that select that derivation. */
 const TARGET_ROWS: Readonly<Record<string, { kind: string; settings: PrimaryTargetSettings }>> = {
   toggle: { kind: "toggle", settings: {} },
-  joystick: { kind: "joystick", settings: {} },
+  "joystick · title above": { kind: "joystick", settings: { title_placement: "above" } },
+  "joystick · title in the corner": { kind: "joystick", settings: { title_placement: "overlay" } },
+  "joystick · with readouts": { kind: "joystick", settings: { show_details: true } },
   "gesture-pad": { kind: "gesture-pad", settings: {} },
   "slider · segments": { kind: "slider", settings: { variant: "segments" } },
   "slider · return to centre": { kind: "slider", settings: { returnToCenter: true } },
@@ -69,20 +71,24 @@ const TARGET_ROWS: Readonly<Record<string, { kind: string; settings: PrimaryTarg
 const TARGET_PROBES: PrimaryTargetLayout[] = [
   { height: 88, width: 264 },
   { height: 120, width: 338 },
+  // The square that passed the floor at 56 and drew a 47 px knob.
+  { height: 216, width: 216 },
   { height: 346, width: 314 },
   { height: 384, width: 384 },
 ];
 
-/** The grammar §04b writes its targets in: a constant, `w`, `h`, `x - k`, `x * k`, `min(…)`, `round(…)`. */
+/** The grammar §04b writes its targets in: a constant, `w`, `h`, `x - k`, `x * k`, `min`/`max`, `round(…)`. */
 function evaluateTarget(formula: string, layout: PrimaryTargetLayout): number {
   const term = formula.trim();
   const rounded = term.match(/^round\((.+)\)$/);
   if (rounded?.[1]) return Math.round(evaluateTarget(rounded[1], layout));
   const scaled = term.match(/^(.+) \* ([\d.]+)$/);
   if (scaled?.[1]) return evaluateTarget(scaled[1], layout) * Number(scaled[2]);
-  const smallest = term.match(/^min\((.+), (.+)\)$/);
-  if (smallest?.[1] && smallest[2]) {
-    return Math.min(evaluateTarget(smallest[1], layout), evaluateTarget(smallest[2], layout));
+  // Nesting only ever sits in the second argument, so the first comma is the split.
+  const bound = term.match(/^(min|max)\((.+?), (.+)\)$/);
+  if (bound?.[2] && bound[3]) {
+    const pair = [evaluateTarget(bound[2], layout), evaluateTarget(bound[3], layout)] as const;
+    return bound[1] === "max" ? Math.max(...pair) : Math.min(...pair);
   }
   const reduced = term.match(/^(.+) - (\d+)$/);
   if (reduced?.[1]) return evaluateTarget(reduced[1], layout) - Number(reduced[2]);

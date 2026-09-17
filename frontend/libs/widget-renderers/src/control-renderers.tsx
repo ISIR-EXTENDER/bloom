@@ -2,6 +2,8 @@ import {
   createWidgetActionIntent,
   localizeOperatorText,
   normalizeWidgetSettings,
+  resolveJoystickControlSize,
+  resolveTitlePlacement,
   resolveWidgetDestination,
 } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
@@ -776,48 +778,6 @@ function emitJoystickVectorChange(
   value: JoystickVector,
 ) {
   onActionIntent?.(createWidgetActionIntent(widget, { type: "set-vector", value }));
-}
-
-type JoystickControlSizeOptions = {
-  placement?: TitlePlacement;
-  showDetails?: boolean;
-};
-
-/** The pad edge inside its 2 px surface border; `above` spends 32 px on the title row. */
-export function resolveJoystickControlSize(
-  width: number,
-  height: number,
-  options: JoystickControlSizeOptions = {},
-): number {
-  const chrome = (options.placement === "above" ? 32 : 0) + (options.showDetails ? 38 : 0);
-  return Math.max(96, Math.min(width, height - chrome) - 4);
-}
-
-export type TitlePlacement = "above" | "overlay";
-
-/**
- * Bench cards overlay the title in the control's own corner; operator cards carry it in a row above. An authored
- * `title_placement` wins; otherwise a control with 32 px to spare beyond its body takes the row.
- */
-export function resolveTitlePlacement(
-  widget: { kind: string; layout: { width: number; height: number }; settings: Record<string, unknown> },
-  showDetails = false,
-): TitlePlacement {
-  const authored = widget.settings.title_placement;
-  if (authored === "above" || authored === "overlay") {
-    return authored;
-  }
-  if (showDetails) {
-    return "above";
-  }
-  const { width, height } = widget.layout;
-  if (widget.kind === "joystick") {
-    return height - width >= 32 ? "above" : "overlay";
-  }
-  if (widget.kind === "slider" && widget.settings.direction === "horizontal") {
-    return height >= 146 ? "above" : "overlay";
-  }
-  return "overlay";
 }
 
 /** Signed to two places with a true minus, the way every design readout prints. */
