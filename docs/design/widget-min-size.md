@@ -38,6 +38,20 @@ not a relaxation: the glass target is still 56, and the group is still named.
 `plot-board` series take `--bloom-series-1 … -8` in order, from the ramp in `design-system.html`
 §02b. A design never names a hex for a series, and series colour is never semantic.
 
+## `status-card` is not a value-strip
+
+Bloom Debug's three header cards — Robot preflight, Topic catalog, Runtime audit — read like a kind
+missing from the table above. They are not a kind at all. They are runtime chrome, drawn by
+`BloomDebugPanel` inside the screen's `debug-status` reserved region (1892×104 in
+`backend/seed/applications/bloom-debug.json`), which is why no widget in that seed carries them.
+
+Chrome in a reserved region has no widget kind and no card minimum: the region declares the size,
+the panel fills it, and an author can neither place nor resize it. So there is nothing for this
+table to state, and a `status-card` kind would only give the region a second, disagreeing size.
+
+A `button-group` fails the same way. A group is a `label` with buttons under it that set
+`hide_title`, and that derivation is already above.
+
 ## Ship it as a constant
 
 `frontend/libs/widgets/src/min-size.ts`, so the builder inspector, the review checklist and the
