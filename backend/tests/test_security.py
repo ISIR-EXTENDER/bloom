@@ -198,6 +198,38 @@ def test_cors_preflight_uses_configured_origins() -> None:
     assert "x-bloom-runtime-session" in response.headers["access-control-allow-headers"].lower()
 
 
+def runtime_socket_with_origin(origin: str | None, **settings) -> dict:
+    client = TestClient(create_app(Settings(environment="test", **settings), InMemoryConfigurationRepository()))
+    headers = {"origin": origin} if origin is not None else {}
+    with client.websocket_connect("/api/v1/runtime/ws", headers=headers) as websocket:
+        return websocket.receive_json()
+
+
+def test_the_runtime_socket_refuses_a_page_from_an_unknown_origin() -> None:
+    # CORS does not apply to a WebSocket handshake. Without this, any page open
+    # in a browser that can reach the API could claim control and drive.
+    try:
+        runtime_socket_with_origin("https://evil.example")
+    except WebSocketDisconnect as exc:
+        assert exc.code == 1008
+    else:
+        raise AssertionError("a socket from an unknown origin was accepted")
+
+
+def test_the_runtime_socket_accepts_the_dashboard_origin() -> None:
+    assert runtime_socket_with_origin("http://127.0.0.1:5173")["type"] == "session_connected"
+
+
+def test_the_runtime_socket_accepts_a_client_that_sends_no_origin() -> None:
+    # Scripts and bench tools are not browsers a web page can steer.
+    assert runtime_socket_with_origin(None)["type"] == "session_connected"
+
+
+def test_a_wildcard_origin_setting_accepts_any_origin() -> None:
+    reply = runtime_socket_with_origin("https://anything.example", cors_allowed_origins=("*",))
+    assert reply["type"] == "session_connected"
+
+
 def test_stop_is_never_refused_by_the_http_rate_limit() -> None:
     # Kiosks behind one address, or one stuck client, share this budget.
     client = TestClient(

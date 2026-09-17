@@ -76,6 +76,8 @@ export BLOOM_HTTP_RATE_LIMIT_PER_MINUTE=600
 export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
 
+`BLOOM_CORS_ALLOWED_ORIGINS` also governs the runtime WebSocket. CORS never applies to a WebSocket handshake, so Bloom checks the `Origin` itself and refuses a browser page from any origin not on the list. A client that sends no `Origin` is not a browser page and is not refused on those grounds; it still needs a key when auth is on.
+
 Requests use the `X-Bloom-API-Key` header. Runtime WebSocket clients can use the same header, or the `api_key` query
 parameter when the WebSocket client cannot set headers. Treat query-string keys as a compatibility fallback because they
 are easier to leak in logs.

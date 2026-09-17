@@ -51,6 +51,22 @@ if [[ "${BLOOM_APPLY_TABLET_TOUCH_MAP}" == "1" ]]; then
   "${BLOOM_ROOT}/scripts/extender-tablet-touch-map.sh"
 fi
 
+if [[ "${BLOOM_FRONTEND_HOST}" == "0.0.0.0" || "${BLOOM_FRONTEND_HOST}" == "::" ]]; then
+  if [[ -z "${BLOOM_PUBLIC_HOST}" ]]; then
+    BLOOM_PUBLIC_HOST="$(discover_lan_ip)"
+  fi
+fi
+
+# The API refuses runtime sockets from origins it does not know, so a phone on
+# the same Wi-Fi needs its page origin allowed. An explicit setting wins.
+if [[ -z "${BLOOM_CORS_ALLOWED_ORIGINS:-}" ]]; then
+  BLOOM_CORS_ALLOWED_ORIGINS="http://127.0.0.1:${BLOOM_FRONTEND_PORT},http://localhost:${BLOOM_FRONTEND_PORT}"
+  if [[ -n "${BLOOM_PUBLIC_HOST}" ]]; then
+    BLOOM_CORS_ALLOWED_ORIGINS="${BLOOM_CORS_ALLOWED_ORIGINS},http://${BLOOM_PUBLIC_HOST}:${BLOOM_FRONTEND_PORT}"
+  fi
+  export BLOOM_CORS_ALLOWED_ORIGINS
+fi
+
 echo "Starting Bloom API with ROS adapters..."
 (
   cd "${BLOOM_ROOT}/backend"
@@ -86,10 +102,6 @@ Press Ctrl+C to stop both processes.
 EOF
 
 if [[ "${BLOOM_FRONTEND_HOST}" == "0.0.0.0" || "${BLOOM_FRONTEND_HOST}" == "::" ]]; then
-  if [[ -z "${BLOOM_PUBLIC_HOST}" ]]; then
-    BLOOM_PUBLIC_HOST="$(discover_lan_ip)"
-  fi
-
   if [[ -n "${BLOOM_PUBLIC_HOST}" ]]; then
     echo "Same-Wi-Fi URL: http://${BLOOM_PUBLIC_HOST}:${BLOOM_FRONTEND_PORT}"
   else

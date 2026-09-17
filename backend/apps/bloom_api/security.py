@@ -163,6 +163,14 @@ async def require_runtime_websocket_principal(websocket: WebSocket) -> BloomPrin
     than at the handshake.
     """
     settings = websocket.app.state.settings
+    # CORS never applies to a WebSocket handshake, so without this any page
+    # open in a browser that can reach the API could claim control and drive.
+    # Clients that send no Origin are not browsers a page can steer.
+    origin = websocket.headers.get("origin")
+    if origin is not None and not is_allowed_origin(settings, origin):
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Origin not allowed.")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Origin not allowed.")
+
     api_key = websocket.headers.get(API_KEY_HEADER) or websocket.query_params.get("api_key")
     try:
         principal = authenticate_api_key(settings, api_key)
@@ -174,6 +182,11 @@ async def require_runtime_websocket_principal(websocket: WebSocket) -> BloomPrin
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Observer role required.")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Observer role required.")
     return principal
+
+
+def is_allowed_origin(settings, origin: str) -> bool:
+    allowed = settings.cors_allowed_origins
+    return "*" in allowed or origin.rstrip("/") in {entry.rstrip("/") for entry in allowed}
 
 
 def _allow_http_request(

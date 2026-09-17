@@ -86,9 +86,13 @@ scripts/extender-workspace-dev.sh
 ```
 
 Open the printed `http://<lan-ip>:5173` URL from the other device. Vite serves the frontend on the LAN and proxies
-same-origin `/api` HTTP and WebSocket requests to `http://127.0.0.1:8000`. This avoids exposing port `8000` directly and
-needs no CORS entry for the phone. A custom API port stays aligned automatically; for a separately hosted API, set
-`BLOOM_API_PROXY_TARGET` explicitly.
+same-origin `/api` HTTP and WebSocket requests to `http://127.0.0.1:8000`. This avoids exposing port `8000` directly. A
+custom API port stays aligned automatically; for a separately hosted API, set `BLOOM_API_PROXY_TARGET` explicitly.
+
+The API refuses a runtime WebSocket from a browser page whose origin it does not know, so the phone's page origin must
+be allowed. Unless `BLOOM_CORS_ALLOWED_ORIGINS` is already set, the launcher allows the loopback dashboard origins and
+`http://<BLOOM_PUBLIC_HOST>:<frontend port>` before it starts the API. A device reaching the dashboard under another
+name, or a port Vite moved to, is refused until that origin is added.
 
 Verify from the host and then from the phone:
 
