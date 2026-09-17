@@ -260,6 +260,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     immediate: "immediate",
     tryForward: "Forward",
     saveAndResume: "Save and resume",
+    discardChanges: "Discard changes",
     savedTo: "Saved to",
     savedToBody: (profileName) =>
       `The ${profileName} profile on this device. It does not change what the app publishes, only how you reach it.`,

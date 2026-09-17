@@ -174,6 +174,7 @@ export type RuntimeStrings = {
   settings: {
     decrease: (label: string) => string;
     deadzone: string;
+    discardChanges: string;
     display: string;
     holdToActivate: string;
     ignoreRepeats: string;

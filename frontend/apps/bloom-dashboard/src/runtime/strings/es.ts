@@ -263,6 +263,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     immediate: "inmediato",
     tryForward: "Adelante",
     saveAndResume: "Guardar y reanudar",
+    discardChanges: "Descartar cambios",
     savedTo: "Guardado en",
     savedToBody: (profileName) =>
       `El perfil ${profileName} en este dispositivo. No cambia lo que publica la app, solo cómo la alcanzas.`,

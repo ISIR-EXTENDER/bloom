@@ -41,7 +41,7 @@ const TARGET_PX: Record<ResolvedRuntimeProfile["displayPreset"], number> = {
 
 /**
  * Runtime settings (design 6a): only how a person reaches the controls, never what the app sends. Changes preview
- * live on this screen and reach the profile on "Save and resume"; Escape leaves without saving.
+ * live on this screen and reach the profile on "Save and resume"; "Discard changes" or Escape leaves without saving.
  */
 export function RuntimeSettingsPanel({
   applicationName,
@@ -283,6 +283,9 @@ export function RuntimeSettingsPanel({
             type="button"
           >
             {strings.settings.saveAndResume}
+          </button>
+          <button className="runtime-settings-discard" onClick={onClose} type="button">
+            {strings.settings.discardChanges}
           </button>
           <div className="runtime-settings-card runtime-settings-saved">
             <h4>{strings.settings.savedTo}</h4>

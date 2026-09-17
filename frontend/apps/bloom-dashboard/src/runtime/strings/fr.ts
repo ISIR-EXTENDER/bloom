@@ -263,6 +263,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     immediate: "immédiat",
     tryForward: "Avant",
     saveAndResume: "Enregistrer et reprendre",
+    discardChanges: "Annuler les modifications",
     savedTo: "Enregistré dans",
     savedToBody: (profileName) =>
       `Le profil ${profileName} sur cet appareil. Il ne change pas ce que l'app publie, seulement comment vous l'atteignez.`,

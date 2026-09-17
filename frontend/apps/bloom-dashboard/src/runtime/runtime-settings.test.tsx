@@ -163,6 +163,17 @@ describe("runtime settings", () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
+  it("leaves without saving on Discard changes, the exit a touchscreen can reach", () => {
+    const { onClose, onSave } = renderSettings();
+
+    fireEvent.click(screen.getByRole("button", { name: "Larger" }));
+    fireEvent.click(screen.getByRole("button", { name: "ES" }));
+    fireEvent.click(screen.getByRole("button", { name: "Descartar cambios" }));
+
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it("tries a press locally, honouring the repeat guard, and sends nothing", () => {
     vi.useFakeTimers();
     const { onSave } = renderSettings({ repeatGuardMs: 300 });

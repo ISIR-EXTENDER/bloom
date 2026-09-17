@@ -229,6 +229,18 @@
   cursor: pointer;
 }
 
+.runtime-settings-discard {
+  min-height: 56px;
+  border: 2px solid var(--bloom-primary);
+  border-radius: var(--bloom-radius-card);
+  background: transparent;
+  color: var(--bloom-primary);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .runtime-settings-saved h4 {
   margin: 0;
   color: var(--bloom-ink-soft);
