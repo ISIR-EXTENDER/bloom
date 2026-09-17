@@ -104,6 +104,7 @@ def test_stop_state_starts_not_engaged() -> None:
         "asserted": False,
         "engaged_at": "",
         "detail": "Runtime stop is not engaged.",
+        "simulated": False,
     }
 
 
@@ -120,10 +121,14 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
     assert body["asserted"] is True
     assert body["engaged_at"] != ""
 
-    [zero_command] = teleop_gateway.commands
-    assert zero_command.target == "/joystick_cartesian_command"
-    assert (zero_command.linear.x, zero_command.linear.y, zero_command.linear.z) == (0.0, 0.0, 0.0)
-    assert (zero_command.angular.x, zero_command.angular.y, zero_command.angular.z) == (0.0, 0.0, 0.0)
+    # Every accepted target is zeroed: the latch cannot know which one a session was driving.
+    assert [command.target for command in teleop_gateway.commands] == [
+        "/joystick_cartesian_command",
+        "/teleop_cmd",
+    ]
+    for zero_command in teleop_gateway.commands:
+        assert (zero_command.linear.x, zero_command.linear.y, zero_command.linear.z) == (0.0, 0.0, 0.0)
+        assert (zero_command.angular.x, zero_command.angular.y, zero_command.angular.z) == (0.0, 0.0, 0.0)
 
     # behaviour/passthrough is the manager's own joint-target cancel.
     [cancel_request] = ros_gateway.requests
@@ -144,7 +149,7 @@ def test_stop_zeros_the_legacy_teleop_topic_on_the_teleop_command_backend() -> N
     )
 
     assert client.post("/api/v1/runtime/stop").status_code == 200
-    assert [command.target for command in teleop_gateway.commands] == ["/teleop_cmd"]
+    assert [command.target for command in teleop_gateway.commands] == ["/teleop_cmd", "/joystick_cartesian_command"]
 
 
 def test_camera_frames_are_refused_while_stopped() -> None:
@@ -179,13 +184,36 @@ def test_stop_latches_even_when_every_publish_fails() -> None:
     response = client.post("/api/v1/runtime/stop")
 
     assert response.status_code == 503
-    assert "ROS assertion failed" in response.json()["detail"]
+    # The body carries the whole state, so a client can tell a latched-but-unasserted STOP from a refused one.
+    body = response.json()["detail"]
+    assert body["stopped"] is True
+    assert body["asserted"] is False
+    assert "ROS assertion failed" in body["detail"]
 
     state = client.get("/api/v1/runtime/stop").json()
     assert state["stopped"] is True
     assert state["asserted"] is False
     assert "Zero velocity could not be published" in state["detail"]
     assert "Joint-target cancel could not be published" in state["detail"]
+
+
+class InvalidHandleTeleopGateway:
+    """rclpy raises its own errors, not RuntimeError, when a publisher handle is stale."""
+
+    def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
+        raise ValueError("publisher handle is invalid")
+
+
+def test_a_gateway_error_that_is_not_a_runtime_error_still_cancels_the_joint_target() -> None:
+    ros_gateway = RecordingRosPublisherGateway()
+    client = create_stop_test_client(InvalidHandleTeleopGateway(), ros_gateway)
+
+    response = client.post("/api/v1/runtime/stop")
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["stopped"] is True
+    # The cancel still went out: a joint-target move must not keep running because the zero failed.
+    assert [request.payload for request in ros_gateway.requests] == [{"data": CANCEL_MODE_REQUEST}]
 
 
 def test_engaging_stop_twice_reasserts_instead_of_failing() -> None:
@@ -199,7 +227,8 @@ def test_engaging_stop_twice_reasserts_instead_of_failing() -> None:
     assert first.status_code == 200
     assert second.status_code == 200
     assert second.json()["stopped"] is True
-    assert len(teleop_gateway.commands) == 2
+    # Two accepted teleop targets, zeroed once per engage.
+    assert len(teleop_gateway.commands) == 4
     assert len(ros_gateway.requests) == 2
 
 
@@ -295,6 +324,7 @@ def test_resume_clears_the_latch_and_publishes_nothing() -> None:
         "asserted": False,
         "engaged_at": "",
         "detail": "Runtime stop is not engaged.",
+        "simulated": False,
     }
     assert len(teleop_gateway.commands) == commands_after_engage
     assert len(ros_gateway.requests) == requests_after_engage

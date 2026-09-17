@@ -7,7 +7,7 @@ the manager's own joint-target cancel. Not an IEC emergency stop.
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TypeVar
@@ -31,6 +31,8 @@ class RuntimeStopState:
     asserted: bool
     engaged_at: str
     detail: str
+    # True when an assertion was only simulated, so `asserted` does not mean the robot was told.
+    simulated: bool = False
 
 
 class RuntimeStoppedError(RuntimeError):
@@ -56,17 +58,21 @@ class RuntimeStopController:
         teleop_target: str = DEFAULT_TELEOP_TARGET,
         mode_request_topic: str = DEFAULT_MODE_REQUEST_TOPIC,
         on_asserted: Callable[[str], None] | None = None,
+        teleop_targets: Sequence[str] | None = None,
     ) -> None:
         self._teleop_gateway = teleop_gateway
         self._ros_publisher_gateway = ros_publisher_gateway
         self._audit_log = audit_log
         self._teleop_target = teleop_target
+        # Every target the deployment accepts is zeroed: a session may have been driving any of them.
+        self._teleop_targets = tuple(dict.fromkeys([teleop_target, *(teleop_targets or ())]))
         self._mode_request_topic = mode_request_topic
         # Told the zeroed target once both assertions publish, so session state can follow.
         self._on_asserted = on_asserted
         self._lock = threading.Lock()
         self._stopped = False
         self._asserted = False
+        self._simulated = False
         self._engaged_at = ""
         self._detail = "Runtime stop is not engaged."
 
@@ -114,19 +120,22 @@ class RuntimeStopController:
 
             # Straight through the gateways: not blockable by policy or rate
             # limit. Keeping the gate held makes this the last robot operation.
-            zero_ok, zero_detail = self._publish_zero_twist()
-            cancel_ok, cancel_detail = self._publish_joint_target_cancel()
+            zero_ok, zero_detail, zero_simulated = self._publish_zero_twists()
+            cancel_ok, cancel_detail, cancel_simulated = self._publish_joint_target_cancel()
             self._asserted = zero_ok and cancel_ok
+            self._simulated = zero_simulated or cancel_simulated
             prefix = "Runtime stop engaged." if self._asserted else "Runtime stop latched, but ROS assertion failed."
             detail = f"{prefix} {zero_detail} {cancel_detail}"
             self._detail = detail
             state = self._state_unlocked()
 
         self._record("accepted" if state.asserted else "rejected", detail)
+        # The session state follows the zeros whether or not both assertions published: those targets were told.
+        if self._on_asserted is not None:
+            for target in self._teleop_targets:
+                self._on_asserted(target)
         if not state.asserted:
             raise RuntimeStopAssertionError(state)
-        if self._on_asserted is not None:
-            self._on_asserted(self._teleop_target)
         return state
 
     def resume(self) -> RuntimeStopState:
@@ -134,6 +143,7 @@ class RuntimeStopController:
         with self._lock:
             self._stopped = False
             self._asserted = False
+            self._simulated = False
             self._engaged_at = ""
             self._detail = "Runtime stop is not engaged."
             state = self._state_unlocked()
@@ -141,21 +151,32 @@ class RuntimeStopController:
         self._record("accepted", "Runtime stop resumed by operator hold.")
         return state
 
-    def _publish_zero_twist(self) -> tuple[bool, str]:
-        command = TeleopCommand(
-            angular=TeleopVector3(),
-            linear=TeleopVector3(),
-            mode=0,
-            seq=0,
-            target=self._teleop_target,
-        )
-        try:
-            receipt = self._teleop_gateway.publish(command)
-        except RuntimeError as exc:
-            return False, f"Zero velocity could not be published: {exc}"
-        return True, f"Zero velocity {receipt.status} on {receipt.target}."
+    def _publish_zero_twists(self) -> tuple[bool, str, bool]:
+        """Every accepted target, because the latch cannot know which one a session was driving."""
+        published: list[str] = []
+        failures: list[str] = []
+        simulated = False
+        for target in self._teleop_targets:
+            command = TeleopCommand(
+                angular=TeleopVector3(),
+                linear=TeleopVector3(),
+                mode=0,
+                seq=0,
+                target=target,
+            )
+            try:
+                receipt = self._teleop_gateway.publish(command)
+            # Any gateway error, not only RuntimeError: rclpy raises its own, and the cancel below must still run.
+            except Exception as exc:  # noqa: BLE001
+                failures.append(f"{target} ({exc})")
+                continue
+            simulated = simulated or receipt.status == "simulated"
+            published.append(f"{receipt.status} on {receipt.target}")
+        if failures:
+            return False, f"Zero velocity could not be published: {', '.join(failures)}.", simulated
+        return True, f"Zero velocity {'; '.join(published)}.", simulated
 
-    def _publish_joint_target_cancel(self) -> tuple[bool, str]:
+    def _publish_joint_target_cancel(self) -> tuple[bool, str, bool]:
         request = RosPublishRequest(
             topic=self._mode_request_topic,
             message_type="std_msgs/msg/String",
@@ -163,9 +184,13 @@ class RuntimeStopController:
         )
         try:
             receipt = self._ros_publisher_gateway.publish(request)
-        except RuntimeError as exc:
-            return False, f"Joint-target cancel could not be published: {exc}"
-        return True, f"Joint-target cancel ({CANCEL_MODE_REQUEST}) {receipt.status} on {receipt.topic}."
+        except Exception as exc:  # noqa: BLE001
+            return False, f"Joint-target cancel could not be published: {exc}", False
+        return (
+            True,
+            f"Joint-target cancel ({CANCEL_MODE_REQUEST}) {receipt.status} on {receipt.topic}.",
+            receipt.status == "simulated",
+        )
 
     def _rejection_reason_unlocked(self) -> str:
         return "Runtime stop is engaged. Hold the stop control to resume before commanding the robot."
@@ -176,6 +201,7 @@ class RuntimeStopController:
             asserted=self._asserted,
             engaged_at=self._engaged_at,
             detail=self._detail,
+            simulated=self._simulated,
         )
 
     def _record(self, status: RuntimeAuditStatus, detail: str) -> None:

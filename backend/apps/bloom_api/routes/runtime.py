@@ -268,6 +268,7 @@ class RuntimeStopStateResponse(BaseModel):
     asserted: bool
     engaged_at: str
     detail: str
+    simulated: bool = False
 
 
 class RuntimeControlStateResponse(BaseModel):
@@ -312,7 +313,8 @@ def engage_runtime_stop(
     try:
         state = get_runtime_stop_controller(request).engage()
     except RuntimeStopAssertionError as exc:
-        raise HTTPException(status_code=503, detail=exc.state.detail) from exc
+        # The latch is set; the body carries the whole state so a client can tell that from a refused STOP.
+        raise HTTPException(status_code=503, detail=asdict(exc.state)) from exc
     return RuntimeStopStateResponse(**asdict(state))
 
 

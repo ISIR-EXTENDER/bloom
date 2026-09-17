@@ -93,6 +93,7 @@ def create_app(
         teleop_target=(
             LEGACY_TELEOP_TARGET if app_settings.ros_command_backend == "teleop_command" else DEFAULT_TELEOP_TARGET
         ),
+        teleop_targets=app_settings.allowed_teleop_targets,
         on_asserted=app.state.runtime_session_manager.record_runtime_stop,
     )
     app.state.http_rate_limit_buckets = {}

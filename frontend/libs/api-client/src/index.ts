@@ -383,6 +383,8 @@ export type RuntimeStopState = {
   asserted: boolean;
   engaged_at: string;
   detail: string;
+  /** True when an assertion was only simulated, so the robot was never told. */
+  simulated?: boolean;
 };
 
 export type RuntimeControlState = {
