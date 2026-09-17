@@ -215,6 +215,20 @@ export type TopicPlotSettings = {
   yMin?: number;
 };
 
+export type JointTableSettings = {
+  /** Per-joint [lower, upper] in radians; a joint without one reports no proximity. */
+  joint_limits: Record<string, [number, number]>;
+  messageType: string;
+  show_details: boolean;
+  topic: string;
+};
+
+export type JacobianSettings = {
+  messageType: string;
+  show_details: boolean;
+  topic: string;
+};
+
 export type PlotBoardSettings = {
   history_seconds: number;
   max_samples: number;
@@ -409,6 +423,19 @@ const TOPIC_PLOT_DEFAULT_SETTINGS: TopicPlotSettings = {
   topic: "",
   unit: "",
   variant: "area",
+};
+
+const JOINT_TABLE_DEFAULT_SETTINGS: JointTableSettings = {
+  joint_limits: {},
+  messageType: "sensor_msgs/msg/JointState",
+  show_details: false,
+  topic: "/joint_states",
+};
+
+const JACOBIAN_DEFAULT_SETTINGS: JacobianSettings = {
+  messageType: "std_msgs/msg/Float64MultiArray",
+  show_details: false,
+  topic: "/ee_jac",
 };
 
 const PLOT_BOARD_DEFAULT_SETTINGS: PlotBoardSettings = {
@@ -647,6 +674,33 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     ],
     TOPIC_PLOT_DEFAULT_SETTINGS,
     validateTopicPlotSettings,
+  ),
+  "joint-table": createContract(
+    "joint-table",
+    [
+      { key: "topic", label: "Joint state topic", type: "text", required: true },
+      { key: "messageType", label: "Message type", type: "text", required: false },
+      { key: "joint_limits", label: "Joint limits (name: [lower, upper])", type: "json", required: false },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
+    ],
+    JOINT_TABLE_DEFAULT_SETTINGS,
+    (settings) => {
+      const errors = [...validateString(settings, "topic"), ...validateBoolean(settings, "show_details")];
+      return errors.length > 0 ? fail(errors) : succeed(settings as JointTableSettings);
+    },
+  ),
+  jacobian: createContract(
+    "jacobian",
+    [
+      { key: "topic", label: "Jacobian topic", type: "text", required: true },
+      { key: "messageType", label: "Message type", type: "text", required: false },
+      { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
+    ],
+    JACOBIAN_DEFAULT_SETTINGS,
+    (settings) => {
+      const errors = [...validateString(settings, "topic"), ...validateBoolean(settings, "show_details")];
+      return errors.length > 0 ? fail(errors) : succeed(settings as JacobianSettings);
+    },
   ),
   "plot-board": createContract(
     "plot-board",

@@ -15,6 +15,8 @@ class WidgetKind(str, Enum):
     EVENT_LOG = "event-log"
     GAUGE = "gauge"
     GESTURE_PAD = "gesture-pad"
+    JACOBIAN = "jacobian"
+    JOINT_TABLE = "joint-table"
     JOYSTICK = "joystick"
     LABEL = "label"
     PLOT = "plot"

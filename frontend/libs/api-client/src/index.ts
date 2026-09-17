@@ -5,6 +5,8 @@ export const WIDGET_KINDS = [
   "event-log",
   "gauge",
   "gesture-pad",
+  "jacobian",
+  "joint-table",
   "joystick",
   "label",
   "plot",

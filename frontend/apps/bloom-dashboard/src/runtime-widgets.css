@@ -1422,6 +1422,138 @@
   line-height: 1;
 }
 
+/* ---- Bloom Debug tables (5b) ---- */
+
+.bloom-joint-table table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  font-family: var(--bloom-font-mono);
+  font-size: 16px;
+}
+
+.bloom-joint-table th[scope="col"] {
+  padding: 0 10px;
+  color: var(--bloom-ink-soft);
+  font-family: var(--bloom-font-ui);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.bloom-joint-table th[scope="col"]:first-child,
+.bloom-joint-table th[scope="row"] {
+  text-align: left;
+}
+
+.bloom-joint-table tbody th,
+.bloom-joint-table tbody td {
+  padding: 12px 10px;
+  background: var(--bloom-surface);
+  font-weight: 500;
+  text-align: right;
+}
+
+.bloom-joint-table tbody tr:nth-child(odd) th,
+.bloom-joint-table tbody tr:nth-child(odd) td {
+  background: var(--bloom-surface-container);
+}
+
+.bloom-joint-table tbody th {
+  border-radius: 10px 0 0 10px;
+}
+
+.bloom-joint-table tbody td:last-child {
+  border-radius: 0 10px 10px 0;
+}
+
+.bloom-joint-proximity {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.bloom-joint-proximity-bar {
+  width: 100px;
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    var(--bloom-proximity-color, var(--bloom-series-2)) var(--bloom-proximity),
+    color-mix(in srgb, var(--bloom-color-forest) 12%, transparent) 0
+  );
+}
+
+.bloom-joint-proximity[data-level="near"] {
+  --bloom-proximity-color: var(--bloom-pollen);
+}
+
+.bloom-joint-proximity[data-level="limit"] {
+  --bloom-proximity-color: var(--bloom-error);
+}
+
+.bloom-debug-unreported,
+.bloom-debug-empty {
+  color: var(--bloom-muted);
+  font-family: var(--bloom-font-ui);
+  font-size: 13px;
+}
+
+.bloom-debug-empty {
+  margin: 0;
+  font-size: 15px;
+}
+
+.bloom-jacobian-grid {
+  flex: 1 1 auto;
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 4px;
+  table-layout: fixed;
+}
+
+.bloom-jacobian-grid td {
+  padding: 0 12px;
+  border-radius: 8px;
+  font-family: var(--bloom-font-mono);
+  font-size: 15px;
+  text-align: right;
+}
+
+.bloom-jacobian-grid td[data-strong="true"] {
+  background: var(--bloom-secondary-container);
+  font-weight: 700;
+}
+
+.bloom-jacobian-manipulability {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.bloom-jacobian-manipulability strong {
+  font-size: 15px;
+}
+
+.bloom-jacobian-manipulability output {
+  font-family: var(--bloom-font-mono);
+  font-size: 20px;
+}
+
+.bloom-jacobian-bar {
+  flex: 1 1 auto;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(
+    to right,
+    var(--bloom-series-2) var(--bloom-share),
+    color-mix(in srgb, var(--bloom-color-forest) 12%, transparent) 0
+  );
+}
+
 /* ---- Display widgets kept from the earlier system, on the card chrome above ---- */
 
 .bloom-display-header {

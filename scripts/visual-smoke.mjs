@@ -42,7 +42,6 @@ const routes = [
     name: "runtime-visual-servoing-monitor",
     setup: (page) => showSandboxRuntimeScreen(page, "Visual Servoing Monitor"),
   },
-  { name: "debug-runtime", setup: showDebugRuntime },
   { name: "explorer-drive", setup: (page) => showExplorerRuntimeScreen(page, null) },
   { name: "explorer-positions", setup: (page) => showExplorerRuntimeScreen(page, "Positions") },
   { name: "explorer-feedback", setup: (page) => showExplorerRuntimeScreen(page, "Robot feedback") },
@@ -132,6 +131,7 @@ try {
     }
 
     await captureRuntimeLocales(browser);
+    await captureDesktopDebug(browser);
   } finally {
     await browser.close();
   }
@@ -436,7 +436,7 @@ async function mockRuntimeWebSocket(page) {
                   message_type: message.message_type ?? "",
                   received_at: new Date().toISOString(),
                   topic: message.topic,
-                  value: createSampleValue(message.field_path),
+                  value: createSampleValue(message.field_path, message.topic),
                 },
               }),
             }),
@@ -466,7 +466,29 @@ async function mockRuntimeWebSocket(page) {
       }
     }
 
-    function createSampleValue(fieldPath) {
+    function createSampleValue(fieldPath, topic) {
+      if (topic === "/joint_states") {
+        return {
+          name: ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"],
+          position: [0.56, 0.34, -0.17, -0.76, -1.08, -0.89],
+          velocity: [-0.067, -0.159, -0.176, -0.111, 0.007, 0.121],
+          effort: [-0.3, -2.1, -2.1, -0.1, 2, 2.2],
+        };
+      }
+      if (topic === "/ee_jac") {
+        return {
+          data: Array.from({ length: 36 }, (_, index) => (index % 7 === 0 ? 0.87 : ((index * 37) % 11) / 20 - 0.25)),
+        };
+      }
+      if (topic === "/ee_pose") {
+        return { header: { frame_id: "base_link" }, pose: { position: { x: 0.3, y: 0.1, z: 0.32 } } };
+      }
+      if (fieldPath === "" && /command|velocity/.test(topic ?? "")) {
+        return {
+          header: { frame_id: "base_link" },
+          twist: { linear: { x: 0.27, y: 0.19, z: 0.32 }, angular: { x: 0, y: 0, z: 0.35 } },
+        };
+      }
       if (fieldPath === "twist.linear.x") {
         return { twist: { linear: { x: 0.12 }, angular: { z: 0 } } };
       }
@@ -771,14 +793,36 @@ async function showDebugRuntime(page) {
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await openRuntimeApp(page, "Bloom Debug");
   await page.getByRole("heading", { name: "Bloom Debug" }).waitFor();
-  await page.getByRole("heading", { name: "Inspect, record, and audit runtime topics." }).waitFor();
   await page.getByRole("button", { name: "Refresh topics" }).click();
-  await page.getByLabel("Topic catalog").getByText("/joystick_cartesian_command").waitFor();
-  await page.getByLabel("Robot preflight").getByText("Ready").first().waitFor();
+  await page
+    .getByLabel("Topic catalog")
+    .getByText(/topics · \d+ to record/)
+    .waitFor();
+  await page
+    .getByLabel("Robot preflight")
+    .getByText(/of \d+ ready/)
+    .waitFor();
   await page.getByRole("button", { name: "Refresh audit" }).click();
-  await page.getByRole("article", { name: /Teleop command echo/i }).waitFor();
-  await page.getByRole("article", { name: /Velocity command X/i }).waitFor();
-  await page.getByRole("heading", { name: "Topic catalog" }).waitFor();
+  await page.getByRole("article", { name: /Joint states/i }).waitFor();
+  await page.getByRole("article", { name: /Jacobian/i }).waitFor();
+}
+
+/** Bloom Debug is desktop-only (device-classes.md): authored at 1920×1080, checked at 1440×900. */
+async function captureDesktopDebug(browser) {
+  for (const viewport of [
+    { name: "desktop-1080", width: 1920, height: 1080 },
+    { name: "desktop-900", width: 1440, height: 900 },
+  ]) {
+    const page = await browser.newPage({ viewport });
+    await mockConfigurationApi(page);
+    await showDebugRuntime(page);
+    const label = `${viewport.name}:debug-runtime`;
+    await assertNoHorizontalOverflow(page, label);
+    await assertRuntimeChromeCoversNothing(page, label);
+    await assertNothingIsClipped(page, label);
+    await page.screenshot({ fullPage: false, path: resolve(outputDir, `${viewport.name}-debug-runtime.png`) });
+    await page.close();
+  }
 }
 
 async function assertBrowserHistoryAffordance(page, label) {

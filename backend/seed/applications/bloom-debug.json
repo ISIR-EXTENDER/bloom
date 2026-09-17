@@ -1,7 +1,7 @@
 {
   "metadata": {
     "schema_version": 1,
-    "exported_at": "2026-06-03T16:00:00Z",
+    "exported_at": "2026-09-17T18:00:00Z",
     "source": "bloom-debug-runtime-fixture"
   },
   "applications": [
@@ -16,6 +16,8 @@
         "allowed_publish_topics": [],
         "allowed_recording_topics": [
           "/cartesian_command",
+          "/ee_jac",
+          "/ee_pose",
           "/ee_velocity",
           "/joint_states",
           "/joystick_cartesian_command",
@@ -45,65 +47,200 @@
           "id": "runtime-topic-monitor",
           "title": "Runtime topic monitor",
           "canvas": {
-            "preset_id": "hd",
+            "preset_id": "full-hd",
             "runtime_mode": "fit"
           },
           "widgets": [
             {
-              "id": "teleop-echo",
-              "kind": "topic-echo",
-              "title": "Teleop command echo",
+              "id": "debug-plot",
+              "kind": "plot-board",
+              "title": "Plot board",
               "layout": {
-                "x": 64,
-                "y": 64,
-                "width": 560,
-                "height": 300
+                "x": 14,
+                "y": 130,
+                "width": 1460,
+                "height": 440
               },
               "settings": {
-                "topic": "/joystick_cartesian_command",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "",
-                "maxMessages": 100,
-                "prettyPrint": true
+                "series": [
+                  {
+                    "topic": "/joint_states",
+                    "message_type": "sensor_msgs/msg/JointState",
+                    "field_path": "position[0]",
+                    "label": "joint_1 position",
+                    "unit": "rad",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/joint_states",
+                    "message_type": "sensor_msgs/msg/JointState",
+                    "field_path": "position[1]",
+                    "label": "joint_2 position",
+                    "unit": "rad",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/cartesian_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "/cartesian_command linear.x",
+                    "unit": "norm",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/joint_states",
+                    "message_type": "sensor_msgs/msg/JointState",
+                    "field_path": "position[2]",
+                    "label": "joint_3 position",
+                    "unit": "rad",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/joint_states",
+                    "message_type": "sensor_msgs/msg/JointState",
+                    "field_path": "position[3]",
+                    "label": "joint_4 position",
+                    "unit": "rad",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/joint_states",
+                    "message_type": "sensor_msgs/msg/JointState",
+                    "field_path": "position[4]",
+                    "label": "joint_5 position",
+                    "unit": "rad",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/joint_states",
+                    "message_type": "sensor_msgs/msg/JointState",
+                    "field_path": "position[5]",
+                    "label": "joint_6 position",
+                    "unit": "rad",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/ee_pose",
+                    "message_type": "geometry_msgs/msg/PoseStamped",
+                    "field_path": "pose.position.z",
+                    "label": "/ee_pose position.z",
+                    "unit": "m",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/ee_velocity",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "/ee_velocity linear.x",
+                    "unit": "m/s",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/joint_states",
+                    "message_type": "sensor_msgs/msg/JointState",
+                    "field_path": "effort[1]",
+                    "label": "joint_2 effort",
+                    "unit": "Nm",
+                    "enabled": false
+                  }
+                ],
+                "history_seconds": 30,
+                "max_samples": 900,
+                "y_min": -1,
+                "y_max": 1,
+                "show_details": false,
+                "picker": {
+                  "enabled": true,
+                  "persist_per_profile": true
+                }
               }
             },
             {
-              "id": "velocity-plot",
-              "kind": "topic-plot",
-              "title": "Velocity command X",
+              "id": "debug-series-picker",
+              "kind": "plot-picker",
+              "title": "Series",
               "layout": {
-                "x": 688,
-                "y": 64,
-                "width": 560,
-                "height": 300
+                "x": 1486,
+                "y": 130,
+                "width": 420,
+                "height": 476
               },
               "settings": {
-                "topic": "/cartesian_command",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "twist.linear.x",
-                "historySeconds": 30,
-                "maxSamples": 3000,
-                "unit": "m/s",
-                "variant": "area"
+                "plot_id": "debug-plot",
+                "show_value": true,
+                "show_unavailable": false,
+                "show_details": false
               }
             },
             {
-              "id": "joint-state-echo",
-              "kind": "topic-echo",
-              "title": "Joint states echo",
+              "id": "debug-joint-table",
+              "kind": "joint-table",
+              "title": "Joint states",
               "layout": {
-                "x": 64,
-                "y": 420,
-                "width": 560,
-                "height": 260
+                "x": 14,
+                "y": 582,
+                "width": 724,
+                "height": 440
               },
               "settings": {
                 "topic": "/joint_states",
                 "messageType": "sensor_msgs/msg/JointState",
-                "fieldPath": "",
-                "maxMessages": 50,
-                "prettyPrint": true
+                "joint_limits": {},
+                "show_details": false
               }
+            },
+            {
+              "id": "debug-jacobian",
+              "kind": "jacobian",
+              "title": "Jacobian",
+              "layout": {
+                "x": 750,
+                "y": 582,
+                "width": 724,
+                "height": 440
+              },
+              "settings": {
+                "topic": "/ee_jac",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "show_details": false
+              }
+            },
+            {
+              "id": "debug-raw-echo",
+              "kind": "topic-echo",
+              "title": "Raw",
+              "layout": {
+                "x": 1486,
+                "y": 618,
+                "width": 420,
+                "height": 248
+              },
+              "settings": {
+                "topic": "/cartesian_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "",
+                "maxMessages": 100,
+                "prettyPrint": true,
+                "show_details": true
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "debug-status",
+              "owner": "runtime-chrome",
+              "x": 14,
+              "y": 14,
+              "width": 1892,
+              "height": 104
+            },
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 1486,
+              "y": 878,
+              "width": 420,
+              "height": 144
             }
           ]
         }

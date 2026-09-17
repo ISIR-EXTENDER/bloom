@@ -4,6 +4,7 @@ export const frRuntimeStrings: RuntimeStrings = {
   language: "fr",
   status: {
     connecting: "CONNEXION",
+    debug: "DÉBOGAGE",
     held: "EN MAINTENANCE",
     linkDown: "LIAISON COUPÉE",
     ready: "PRÊT",

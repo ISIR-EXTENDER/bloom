@@ -1877,18 +1877,19 @@ describe("App", () => {
     await openBloomDebugRuntimeFromNavigation();
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
-    expect(screen.getByText("Teleop command echo")).toBeVisible();
-    expect(screen.getByText("Velocity command X")).toBeVisible();
-    expect(screen.getByText("Joint states echo")).toBeVisible();
+    expect(screen.getByText("Joint states")).toBeVisible();
+    expect(screen.getByText("No Jacobian received on /ee_jac.")).toBeVisible();
 
-    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(3));
-    expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
-      expect.objectContaining({
-        topic: "/cartesian_command",
-        field_path: "twist.linear.x",
-        widget_id: "velocity-plot",
-      }),
-    );
+    // One subscription per topic: the table, matrix and raw echo, plus the plot series they do not already cover.
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(5));
+    const subscribe = runtimeActionClient.subscribeRuntimeTopic;
+    if (!subscribe) throw new Error("Missing subscribe client.");
+    expect(
+      vi
+        .mocked(subscribe)
+        .mock.calls.map(([request]) => request.topic)
+        .sort(),
+    ).toEqual(["/cartesian_command", "/ee_jac", "/ee_pose", "/ee_velocity", "/joint_states"]);
   });
 
   it("uses Bloom Debug controls to inspect topics, audit, and runtime recordings", async () => {
@@ -1908,6 +1909,10 @@ describe("App", () => {
     await openBloomDebugRuntimeFromNavigation();
 
     fireEvent.click(await screen.findByRole("button", { name: "Refresh topics" }));
+    await waitFor(() => expect(screen.getAllByRole("button", { name: "Show" })).toHaveLength(2));
+    for (const card of ["Robot preflight", "Topic catalog"]) {
+      fireEvent.click(within(screen.getByRole("region", { name: card })).getByRole("button", { name: "Show" }));
+    }
 
     expect(await screen.findByLabelText(/\/joystick_cartesian_command/)).toBeChecked();
     expect(screen.getByLabelText(/\/joint_states/)).toBeChecked();
@@ -1928,6 +1933,9 @@ describe("App", () => {
     expect(await screen.findByRole("button", { name: "Stop recording" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh audit" }));
+    fireEvent.click(
+      await within(screen.getByRole("region", { name: "Runtime audit" })).findByRole("button", { name: "Show" }),
+    );
     expect(await screen.findByText("Recording started.")).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Stop recording" }));
@@ -2037,7 +2045,7 @@ describe("App", () => {
       bundle: bloomDebugConfiguration as unknown as ConfigurationBundle,
       configId: "bloom-debug",
       heading: "Bloom Debug",
-      visibleCopy: "Teleop command echo",
+      visibleCopy: "Jacobian",
     },
     {
       bundle: explorerUserTestsConfiguration as unknown as ConfigurationBundle,

@@ -42,7 +42,7 @@ import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
-import { findStopRegion, useReservedRegionRect } from "./use-reserved-region-rect";
+import { findRuntimeRegion, findStopRegion, useReservedRegionRect } from "./use-reserved-region-rect";
 import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
 import { useRuntimeControl } from "./use-runtime-control";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
@@ -145,6 +145,8 @@ export function RuntimeWorkspace({
   const artboardScale = canvasFit.scale;
   const stopRegion = useMemo(() => findStopRegion(screen), [screen]);
   const stopRect = useReservedRegionRect(stopRegion, artboardFrameRef, runtimeControlsRef, artboardScale);
+  const debugRegion = useMemo(() => findRuntimeRegion(screen, "debug-status"), [screen]);
+  const debugRect = useReservedRegionRect(debugRegion, artboardFrameRef, runtimeControlsRef, artboardScale);
   // The sheet keeps clear of STOP, which stays live above the scrim; the corner STOP is 176 px plus its margin.
   const stopSheetInset =
     stopRect && runtimeControlsRef.current
@@ -275,7 +277,17 @@ export function RuntimeWorkspace({
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
-  const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings, maintenanceOpen || settingsOpen);
+  const resolvedChip = resolveRuntimeStatusChip(
+    runtimeStop.state,
+    runtimeLink,
+    strings,
+    maintenanceOpen || settingsOpen,
+  );
+  // Bloom Debug says what it is where an operator app says READY; every warning still outranks it.
+  const statusChip =
+    application.id === "bloom-debug" && resolvedChip?.tone === "ready"
+      ? { label: strings.status.debug, tone: "debug" as const }
+      : resolvedChip;
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
   const scanning = useSwitchScanning({
     // Maintenance covers the canvas; a switch press there must not reach it.
@@ -624,7 +636,7 @@ export function RuntimeWorkspace({
         statusChip={statusChip}
       />
 
-      {application.id === "bloom-debug" ? <BloomDebugPanel client={runtimeActionClient} /> : null}
+      {application.id === "bloom-debug" && !debugRegion ? <BloomDebugPanel client={runtimeActionClient} /> : null}
 
       <div className="runtime-app-canvas-shell" ref={runtimeControlsRef}>
         {runtimeControlBlocked ? (
@@ -700,6 +712,13 @@ export function RuntimeWorkspace({
               {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
             </p>
           </div>
+        ) : null}
+
+        {debugRegion && debugRect ? (
+          <BloomDebugPanel
+            client={runtimeActionClient}
+            region={{ left: debugRect.left, scale: artboardScale, top: debugRect.top, width: debugRegion.width }}
+          />
         ) : null}
 
         {runtimeActionClient.engageRuntimeStop ? (
@@ -792,6 +811,12 @@ function appendRuntimeTopicSample(
           maxMessages: readNumberSetting(widget.settings, "maxMessages", 100),
         }),
       };
+    }
+
+    // Tables read only the newest message.
+    if (widget.kind === "joint-table" || widget.kind === "jacobian") {
+      nextData = nextData ?? { ...currentData };
+      nextData[widget.id] = { type: "topic-echo", messages: [topicMessage] };
     }
 
     if (widget.kind === "event-log") {
@@ -893,6 +918,8 @@ export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefi
   if (
     widget.kind === "gauge" ||
     widget.kind === "event-log" ||
+    widget.kind === "jacobian" ||
+    widget.kind === "joint-table" ||
     widget.kind === "plot" ||
     widget.kind === "topic-echo" ||
     widget.kind === "topic-plot"

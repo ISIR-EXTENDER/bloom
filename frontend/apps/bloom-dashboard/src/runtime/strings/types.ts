@@ -2,7 +2,7 @@ import type { RuntimeLanguage } from "@bloom/api-client";
 
 export type RuntimeStrings = {
   language: RuntimeLanguage;
-  status: { connecting: string; held: string; linkDown: string; ready: string; stopped: string };
+  status: { connecting: string; debug: string; held: string; linkDown: string; ready: string; stopped: string };
   stop: { engage: string; engageAria: string; resume: string; resumeAria: string };
   control: {
     anotherOwner: string;

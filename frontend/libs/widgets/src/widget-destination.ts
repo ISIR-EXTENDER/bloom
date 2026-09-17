@@ -73,7 +73,7 @@ const LEGACY_BINDING_INERT_ON_SLIDER =
   "Nothing reads this on a slider. The runtime binding below is what routes the value.";
 
 /** Mirrors `resolveWidgetRuntimeTopic` in `RuntimeWorkspace`. */
-const READING_KINDS = new Set(["event-log", "gauge", "plot", "topic-echo", "topic-plot"]);
+const READING_KINDS = new Set(["event-log", "gauge", "jacobian", "joint-table", "plot", "topic-echo", "topic-plot"]);
 const PUBLISHING_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
 const ROBOT_3D_DEFAULT_TOPIC = "/joint_states";
 

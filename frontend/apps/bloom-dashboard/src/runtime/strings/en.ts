@@ -4,6 +4,7 @@ export const enRuntimeStrings: RuntimeStrings = {
   language: "en",
   status: {
     connecting: "CONNECTING",
+    debug: "DEBUG",
     held: "HELD FOR MAINTENANCE",
     linkDown: "LINK DOWN",
     ready: "READY",

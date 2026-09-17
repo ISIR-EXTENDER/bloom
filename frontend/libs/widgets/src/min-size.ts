@@ -24,6 +24,8 @@ export const WIDGET_MIN_SIZE: Readonly<Record<string, { off: WidgetMinSize; on: 
   "plot-board": { off: [480, 280], on: [480, 280] },
   "plot-picker": { off: [260, 200], on: [260, 200] },
   "value-strip": { off: [440, 140], on: [440, 140] },
+  "joint-table": { off: [480, 280], on: [480, 280] },
+  jacobian: { off: [480, 360], on: [480, 360] },
 };
 
 export type MinSizeSettings = {

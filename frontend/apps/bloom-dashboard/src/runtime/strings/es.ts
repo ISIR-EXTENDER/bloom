@@ -4,6 +4,7 @@ export const esRuntimeStrings: RuntimeStrings = {
   language: "es",
   status: {
     connecting: "CONECTANDO",
+    debug: "DEPURACIÓN",
     held: "EN MANTENIMIENTO",
     linkDown: "SIN CONEXIÓN",
     ready: "LISTO",

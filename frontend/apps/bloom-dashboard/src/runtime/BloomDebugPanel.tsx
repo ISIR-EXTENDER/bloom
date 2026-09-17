@@ -5,14 +5,16 @@ import type {
   RuntimeRecordingResponse,
   RuntimeRecordingStartRequest,
 } from "@bloom/api-client";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
 type BloomDebugPanelProps = {
   client: RuntimeActionClient;
+  /** The screen's `debug-status` region: drawn at its authored size and scaled with the artboard. */
+  region?: { left: number; scale: number; top: number; width: number } | null;
 };
 
-export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
+export function BloomDebugPanel({ client, region = null }: BloomDebugPanelProps) {
   const [auditRecords, setAuditRecords] = useState<RuntimeAuditRecord[]>([]);
   const [recording, setRecording] = useState<RuntimeRecordingResponse | null>(null);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
@@ -92,15 +94,99 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
     }
   };
 
+  const preflight = topics.length > 0 ? buildRobotPreflightRows(topics) : [];
+  const readyCount = preflight.filter((row) => row.status === "ready").length;
+  const latestAudit = auditRecords[0];
+
   return (
-    <aside className="bloom-debug-panel" aria-label="Bloom Debug controls">
-      <div className="bloom-debug-panel-main">
-        <div>
-          <p className="eyebrow">Bloom Debug</p>
-          <h3>Inspect, record, and audit runtime topics.</h3>
-        </div>
-        <p>{status}</p>
-      </div>
+    <aside
+      aria-label="Bloom Debug controls"
+      className="bloom-debug-panel"
+      data-placement={region ? "region" : "band"}
+      style={
+        region
+          ? {
+              left: region.left,
+              top: region.top,
+              transform: `scale(${region.scale})`,
+              width: region.width,
+            }
+          : undefined
+      }
+    >
+      <DebugCard
+        label="Robot preflight"
+        note={topics.length === 0 ? "Refresh topics before robot tests." : status}
+        summary={topics.length === 0 ? "No topics loaded yet" : `${readyCount} of ${preflight.length} ready`}
+      >
+        {preflight.length > 0 ? (
+          <ul className="bloom-debug-preflight-list">
+            {preflight.map((row) => (
+              <li key={row.topic}>
+                <span>
+                  <strong className="bloom-debug-preflight-title">{row.label}</strong>
+                  <small>{row.topic}</small>
+                </span>
+                <strong data-status={row.status}>{row.status_label}</strong>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </DebugCard>
+
+      <DebugCard
+        label="Topic catalog"
+        note="Discovered from the ROS graph."
+        summary={
+          topics.length === 0 ? "No topics loaded yet" : `${topics.length} topics · ${selectedTopics.length} to record`
+        }
+      >
+        {topics.length > 0 ? (
+          <ul className="bloom-debug-topic-list">
+            {topics.map((topic) => (
+              <li key={topic.name}>
+                <label>
+                  <input
+                    checked={selectedTopics.includes(topic.name)}
+                    onChange={() => setSelectedTopics((currentTopics) => toggleTopic(currentTopics, topic.name))}
+                    type="checkbox"
+                  />
+                  <span>
+                    <strong>{topic.name}</strong>
+                    <small>{topic.message_type}</small>
+                    {topic.publisher_count !== undefined && topic.subscription_count !== undefined ? (
+                      <small>
+                        {topic.publisher_count} pub · {topic.subscription_count} sub
+                      </small>
+                    ) : null}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </DebugCard>
+
+      <DebugCard
+        label="Runtime audit"
+        note={recording ? "Recording. Stop it to add the record." : "Start recording to add one."}
+        summary={latestAudit ? `${auditRecords.length} records · latest ${latestAudit.status}` : "No audit records yet"}
+      >
+        {auditRecords.length > 0 ? (
+          <ul className="bloom-debug-audit-list">
+            {auditRecords.map((record) => (
+              <li key={`${record.recorded_at}:${record.channel}:${record.topic}:${record.target}`}>
+                <strong data-status={record.status}>{record.status}</strong>
+                <span>{record.topic || record.target || record.channel}</span>
+                <small>
+                  {record.detail}
+                  {record.repeats && record.repeats > 1 ? ` ×${record.repeats}` : null}
+                </small>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </DebugCard>
 
       <div className="bloom-debug-panel-actions">
         <button onClick={loadTopics} type="button">
@@ -114,83 +200,45 @@ export function BloomDebugPanel({ client }: BloomDebugPanelProps) {
             Stop recording
           </button>
         ) : (
-          <button onClick={startRecording} type="button">
+          <button className="bloom-debug-primary-action" onClick={startRecording} type="button">
             Start recording
           </button>
         )}
-      </div>
-
-      <div className="bloom-debug-panel-grid">
-        <section aria-labelledby="bloom-debug-robot-preflight">
-          <h4 id="bloom-debug-robot-preflight">Robot preflight</h4>
-          {topics.length === 0 ? (
-            <p>Refresh topics before robot tests.</p>
-          ) : (
-            <ul className="bloom-debug-preflight-list">
-              {buildRobotPreflightRows(topics).map((row) => (
-                <li key={row.topic}>
-                  <span>
-                    <strong className="bloom-debug-preflight-title">{row.label}</strong>
-                    <small>{row.topic}</small>
-                  </span>
-                  <strong data-status={row.status}>{row.status_label}</strong>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section aria-labelledby="bloom-debug-topic-catalog">
-          <h4 id="bloom-debug-topic-catalog">Topic catalog</h4>
-          {topics.length === 0 ? (
-            <p>No topics loaded yet.</p>
-          ) : (
-            <ul className="bloom-debug-topic-list">
-              {topics.slice(0, 8).map((topic) => (
-                <li key={topic.name}>
-                  <label>
-                    <input
-                      checked={selectedTopics.includes(topic.name)}
-                      onChange={() => setSelectedTopics((currentTopics) => toggleTopic(currentTopics, topic.name))}
-                      type="checkbox"
-                    />
-                    <span>
-                      <strong>{topic.name}</strong>
-                      <small>{topic.message_type}</small>
-                      {topic.publisher_count !== undefined && topic.subscription_count !== undefined ? (
-                        <small>
-                          {topic.publisher_count} pub · {topic.subscription_count} sub
-                        </small>
-                      ) : null}
-                    </span>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section aria-labelledby="bloom-debug-audit">
-          <h4 id="bloom-debug-audit">Runtime audit</h4>
-          {auditRecords.length === 0 ? (
-            <p>No audit records loaded yet.</p>
-          ) : (
-            <ul className="bloom-debug-audit-list">
-              {auditRecords.slice(0, 5).map((record) => (
-                <li key={`${record.recorded_at}:${record.channel}:${record.topic}:${record.target}`}>
-                  <strong data-status={record.status}>{record.status}</strong>
-                  <span>{record.topic || record.target || record.channel}</span>
-                  <small>
-                    {record.detail}
-                    {record.repeats && record.repeats > 1 ? ` ×${record.repeats}` : null}
-                  </small>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <p aria-live="polite" className="sr-only">
+          {status}
+        </p>
       </div>
     </aside>
+  );
+}
+
+/** A 104 px status card; its full list opens below it on demand so the row keeps its height. */
+function DebugCard({
+  children,
+  label,
+  note,
+  summary,
+}: {
+  children: ReactNode;
+  label: string;
+  note: string;
+  summary: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section aria-label={label} className="bloom-debug-card">
+      <h4>{label}</h4>
+      <strong>{summary}</strong>
+      <small>{note}</small>
+      {children ? (
+        <>
+          <button aria-expanded={open} className="bloom-debug-card-toggle" onClick={() => setOpen(!open)} type="button">
+            {open ? "Hide" : "Show"}
+          </button>
+          {open ? <div className="bloom-debug-card-details">{children}</div> : null}
+        </>
+      ) : null}
+    </section>
   );
 }
 

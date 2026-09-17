@@ -495,3 +495,7 @@ Each commit carries its tests. Commits 12 and 13 run the live bench before pushi
 - **Library device badges are derived, not declared.** An app is tablet when any screen uses a tablet preset and desktop
   when one uses `full-hd`/`local-screen` or an `<id>-desktop` sibling exists. No desktop siblings exist yet, so every
   manager app honestly reads "tablet only" until one is authored; 5a's "tablet + desktop" anticipates them.
+- **Bloom Debug without invented numbers.** Joint limits are not exposed to Bloom, so `joint_limits` is empty and the
+  proximity column reads "not reported" until limits are configured. Manipulability's absolute value depends on the arm,
+  so its bar compares against the best seen this session rather than a guessed "well conditioned" threshold. The status
+  cards and actions render in a `debug-status` reserved region, like STOP.

@@ -333,6 +333,8 @@ describe("widget settings contracts", () => {
       "event-log",
       "gauge",
       "gesture-pad",
+      "jacobian",
+      "joint-table",
       "joystick",
       "label",
       "plot",

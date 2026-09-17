@@ -3,8 +3,12 @@ import { type RefObject, useLayoutEffect, useState } from "react";
 
 export type RegionRect = { height: number; left: number; top: number; width: number };
 
+export function findRuntimeRegion(screen: ScreenConfig, id: string): ReservedRegion | null {
+  return screen.reserved_regions?.find((region) => region.id === id && region.owner === "runtime-chrome") ?? null;
+}
+
 export function findStopRegion(screen: ScreenConfig): ReservedRegion | null {
-  return screen.reserved_regions?.find((region) => region.id === "stop" && region.owner === "runtime-chrome") ?? null;
+  return findRuntimeRegion(screen, "stop");
 }
 
 /**

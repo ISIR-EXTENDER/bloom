@@ -9,6 +9,7 @@ import type {
 import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
 export * from "./canvas-defaults";
+export * from "./debug-readings";
 export * from "./editor";
 export * from "./extensions";
 export * from "./legacy";
@@ -373,6 +374,32 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultTitle: "Topic echo",
     defaultSettings: getDefaultWidgetSettings("topic-echo"),
     defaultLayout: { width: 460, height: 260, minWidth: 280, minHeight: 160 },
+    runtimeRequirements: ["data-source"],
+    maturity: "ready",
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
+  },
+  {
+    kind: "joint-table",
+    displayName: "Joint table",
+    category: "feedback",
+    description: "Lists each joint's position, velocity, effort and how close it is to a configured limit.",
+    defaultTitle: "Joint states",
+    defaultSettings: getDefaultWidgetSettings("joint-table"),
+    defaultLayout: { width: 724, height: 440, minWidth: 480, minHeight: 280 },
+    runtimeRequirements: ["data-source"],
+    maturity: "ready",
+    availability: { editor: true, runtime: true },
+    editor: createDefaultEditorCapabilities(["backgroundColor", "textColor"]),
+  },
+  {
+    kind: "jacobian",
+    displayName: "Jacobian",
+    category: "feedback",
+    description: "Shows the end-effector Jacobian as a matrix with its manipulability.",
+    defaultTitle: "Jacobian",
+    defaultSettings: getDefaultWidgetSettings("jacobian"),
+    defaultLayout: { width: 724, height: 440, minWidth: 480, minHeight: 360 },
     runtimeRequirements: ["data-source"],
     maturity: "ready",
     availability: { editor: true, runtime: true },

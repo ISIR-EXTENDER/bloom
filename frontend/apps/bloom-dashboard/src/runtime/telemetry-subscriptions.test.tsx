@@ -55,13 +55,13 @@ describe("telemetry subscriptions", () => {
 
     expect(client.subscribeRuntimeTopic).not.toHaveBeenCalled();
     setLink("connected");
-    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(5));
 
     setLink("disconnected");
     setLink("connecting");
     setLink("connected");
-    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(6));
+    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(10));
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(6);
+    expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(10);
   });
 });

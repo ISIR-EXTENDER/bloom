@@ -2,6 +2,7 @@ import { CommandLikeWidget, LabelWidget, ToggleWidget } from "./action-renderers
 import { CameraWidget } from "./camera-renderer";
 import { GesturePadWidget, JoystickWidget, SliderWidget } from "./control-renderers";
 import { TopicDebugWidget } from "./debug-renderers";
+import { JacobianWidget, JointTableWidget } from "./debug-table-renderers";
 import { EventLogWidget, GaugeWidget, PlotWidget, Robot3dWidget } from "./display-renderers";
 import { PlaceholderWidget } from "./fallback-renderers";
 import { PlotBoardWidget, PlotPickerWidget, ValueStripWidget } from "./plot-board-renderer";
@@ -19,6 +20,8 @@ export const DEFAULT_WIDGET_RENDERERS: readonly WidgetRendererRegistration[] = [
   { kind: "camera", render: CameraWidget },
   { kind: "gauge", render: GaugeWidget },
   { kind: "gesture-pad", render: GesturePadWidget },
+  { kind: "jacobian", render: JacobianWidget },
+  { kind: "joint-table", render: JointTableWidget },
   { kind: "plot", render: PlotWidget },
   { kind: "plot-board", render: PlotBoardWidget },
   { kind: "plot-picker", render: PlotPickerWidget },
