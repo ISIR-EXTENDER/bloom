@@ -121,7 +121,7 @@ export function JacobianWidget({ data, descriptor }: WidgetRendererProps) {
           </table>
           <footer className="bloom-jacobian-manipulability">
             <strong>Manipulability</strong>
-            <output>{(manipulability ?? 0).toFixed(3)}</output>
+            <output>{formatManipulability(manipulability ?? 0)}</output>
             <span
               aria-hidden="true"
               className="bloom-jacobian-bar"
@@ -142,4 +142,12 @@ export function JacobianWidget({ data, descriptor }: WidgetRendererProps) {
 function formatSigned(value: number, digits: number): string {
   const rounded = Math.abs(value) < 0.5 * 10 ** -digits ? 0 : value;
   return `${rounded < 0 ? "−" : "+"}${Math.abs(rounded).toFixed(digits)}`;
+}
+
+/** Explorer's w sits near 1e-4, which three decimals would show as a flat zero. */
+export function formatManipulability(value: number): string {
+  if (value === 0) {
+    return "0";
+  }
+  return value >= 0.01 ? value.toFixed(3) : value.toExponential(2);
 }

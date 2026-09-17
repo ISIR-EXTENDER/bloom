@@ -6,6 +6,7 @@ import { createDefaultWidgetRegistry, renderScreenDescriptors } from "@bloom/wid
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { formatManipulability } from "./debug-table-renderers";
 import { renderWidgetDescriptor } from "./index";
 
 const debugScreen: ScreenConfig = {
@@ -123,5 +124,13 @@ describe("the jacobian", () => {
     rerender(view(1, "2026-09-17T10:00:01.100Z"));
     rerender(view(0.9, "2026-09-17T10:01:00Z"));
     expect(screen.getByText("100% of this session's best")).toBeTruthy();
+  });
+});
+
+describe("manipulability readout", () => {
+  it("keeps an arm near a singularity from reading as zero", () => {
+    expect(formatManipulability(0.031)).toBe("0.031");
+    expect(formatManipulability(8.3e-5)).toBe("8.30e-5");
+    expect(formatManipulability(0)).toBe("0");
   });
 });
