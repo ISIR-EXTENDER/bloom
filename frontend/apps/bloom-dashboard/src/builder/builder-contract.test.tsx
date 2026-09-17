@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
+import { BuilderWorkspace } from "./BuilderWorkspace";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 
 const explorer = (structuredClone(explorerManagerConfiguration) as unknown as ConfigurationBundle)
@@ -85,6 +86,42 @@ describe("the builder canvas", () => {
     },
   );
 });
+
+describe("the builder workspace", () => {
+  afterEach(cleanup);
+
+  it("refuses to add a widget when nothing on the canvas is clear of the reserved regions", () => {
+    const walled: ScreenConfig = {
+      ...bench,
+      reserved_regions: [{ id: "wall", owner: "runtime-chrome", x: 0, y: 0, width: 1280, height: 676 }],
+    };
+    renderWorkspace(walled);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Add Label widget/ }));
+
+    expect(screen.getByRole("alert").textContent).toContain("A Label does not fit anywhere on this canvas");
+    expect(screen.queryByRole("article", { name: "Label label widget" })).toBeNull();
+  });
+});
+
+function renderWorkspace(source: ScreenConfig) {
+  const application = { ...explorer, screens: [source] };
+  return render(
+    <BuilderWorkspace
+      configurations={[
+        {
+          id: "explorer-manager",
+          bundle: { ...(explorerManagerConfiguration as unknown as ConfigurationBundle), applications: [application] },
+        },
+      ]}
+      onBackToAppConfig={vi.fn()}
+      onBackToBuilderHome={vi.fn()}
+      onSaveScreenDraft={vi.fn()}
+      runtimeCapabilities={null}
+      selection={{ appId: application.id, configId: "explorer-manager", screenId: source.id }}
+    />,
+  );
+}
 
 function DraftCanvas({ source }: { source: ScreenConfig }) {
   const draft = useBuilderScreenDraft(source);

@@ -84,19 +84,31 @@ export function refuseReservedRegion(
   return overlapsRegion(proposed, regions) ? fallback : proposed;
 }
 
-/** The first position on the grid, scanning rows, where a new widget sits clear of every reserved region. */
-export function placeClearOfRegions(layout: WidgetLayout, screen: ScreenConfig): WidgetLayout {
+/**
+ * The first grid position, reading on from the proposed one and then wrapping to the top, where a widget sits inside
+ * the canvas and clear of every reserved region; null when nowhere fits, so the caller can refuse and say why.
+ */
+export function placeClearOfRegions(layout: WidgetLayout, screen: ScreenConfig): WidgetLayout | null {
   const { artboard } = resolveBuilderPanel(screen);
   const regions = screen.reserved_regions ?? [];
-  for (let y = layout.y; y + layout.height <= artboard.height; y += 24) {
-    for (let x = y === layout.y ? layout.x : 0; x + layout.width <= artboard.width; x += 24) {
+  const lastX = artboard.width - layout.width;
+  const lastY = artboard.height - layout.height;
+  const startX = Math.max(0, layout.x);
+  const startY = Math.max(0, layout.y);
+  const rows: number[] = [];
+  for (let y = startY; y <= lastY; y += 24) rows.push(y);
+  for (let y = startY % 24; y < startY && y <= lastY; y += 24) rows.push(y);
+  if (rows[0] === startY) rows.push(startY);
+
+  for (const [index, y] of rows.entries()) {
+    for (let x = index === 0 && y === startY ? startX : 0; x <= lastX; x += 24) {
       const candidate = { ...layout, x, y };
       if (!overlapsRegion(candidate, regions)) {
         return candidate;
       }
     }
   }
-  return layout;
+  return null;
 }
 
 export type ReviewRule = { detail: string; id: string; passed: boolean; title: string };

@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ConfigurationBundle, ReservedRegion, ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
@@ -51,7 +51,18 @@ describe("builder geometry", () => {
 
     expect(overlapsRegion(intoStop, bench.reserved_regions)?.id).toBe("stop");
     expect(refuseReservedRegion(intoStop, start, bench.reserved_regions)).toBe(start);
-    expect(overlapsRegion(placeClearOfRegions(intoStop, bench), bench.reserved_regions)).toBeNull();
+    expect(overlapsRegion(placeClearOfRegions(intoStop, bench) ?? intoStop, bench.reserved_regions)).toBeNull();
+  });
+
+  it("places a widget above a region that fills the canvas below it, and refuses when nothing fits", () => {
+    const bench = screenById("manager_drive_bench");
+    const floor: ReservedRegion = { id: "floor", owner: "runtime-chrome", x: 0, y: 300, width: 1280, height: 376 };
+    const tall = { x: 928, y: 500, width: 300, height: 120 };
+
+    const placed = placeClearOfRegions(tall, { ...bench, reserved_regions: [floor] });
+    expect(placed).toEqual({ x: 0, y: 20, width: 300, height: 120 });
+    expect(placeClearOfRegions(tall, { ...bench, reserved_regions: [{ ...floor, y: 0, height: 676 }] })).toBeNull();
+    expect(placeClearOfRegions({ ...tall, width: 1400 }, { ...bench, reserved_regions: [] })).toBeNull();
   });
 
   it("passes the review rules on the manager seed and names the first failure", () => {

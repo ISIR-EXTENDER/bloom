@@ -13,6 +13,8 @@ type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
   canvas?: CanvasSettings;
   glassScale?: number;
+  /** Why the last add, duplicate or resize was refused. */
+  layoutNotice?: string | null;
   onResizeWidget?: (widgetId: string, layout: WidgetLayout) => void;
   runtimeCapabilities: readonly RuntimeCapability[] | null;
   onAddWidget: (definition: WidgetDefinition) => void;
@@ -30,6 +32,7 @@ export function BuilderInspector({
   availableWidgetDefinitions,
   canvas,
   glassScale = 1,
+  layoutNotice = null,
   onResizeWidget,
   runtimeCapabilities,
   onAddWidget,
@@ -44,7 +47,7 @@ export function BuilderInspector({
 }: BuilderInspectorProps) {
   if (widgetCount === 0) {
     return (
-      <BuilderInspectorPanel title="Add a widget">
+      <BuilderInspectorPanel notice={layoutNotice} title="Add a widget">
         <p className="builder-inspector-copy">
           Pick a widget to place it on the canvas, then drag to move it and use the corner handle to resize.
         </p>
@@ -59,7 +62,7 @@ export function BuilderInspector({
 
   if (!selectedWidget) {
     return (
-      <BuilderInspectorPanel title="Select a widget">
+      <BuilderInspectorPanel notice={layoutNotice} title="Select a widget">
         <p className="builder-inspector-copy">Choose a widget on the canvas or in the screen list to inspect it.</p>
         <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={null} widgets={widgets} />
         <WidgetPalette
@@ -75,7 +78,7 @@ export function BuilderInspector({
   const glass = glassPx(selectedWidget, glassScale);
 
   return (
-    <BuilderInspectorPanel title={selectedWidget.title}>
+    <BuilderInspectorPanel notice={layoutNotice} title={selectedWidget.title}>
       <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={selectedWidget.id} widgets={widgets} />
       <dl className="builder-inspector-grid">
         <div>
@@ -234,11 +237,24 @@ function WidgetPalette({
   );
 }
 
-function BuilderInspectorPanel({ children, title }: { children: ReactNode; title: string }) {
+function BuilderInspectorPanel({
+  children,
+  notice,
+  title,
+}: {
+  children: ReactNode;
+  notice: string | null;
+  title: string;
+}) {
   return (
     <aside className="builder-inspector-panel" aria-labelledby="builder-inspector-title">
       <p className="eyebrow">Inspector</p>
       <h2 id="builder-inspector-title">{title}</h2>
+      {notice ? (
+        <p className="builder-layout-notice" role="alert">
+          {notice}
+        </p>
+      ) : null}
       {children}
     </aside>
   );

@@ -1636,6 +1636,16 @@
   color: var(--bloom-on-error-container);
 }
 
+.builder-layout-notice {
+  margin: 0;
+  padding: 12px 14px;
+  border: 2px solid var(--bloom-error);
+  border-radius: 14px;
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+  font-weight: 700;
+}
+
 .builder-minimum-warning h3 {
   margin: 0;
   font-size: 12px;

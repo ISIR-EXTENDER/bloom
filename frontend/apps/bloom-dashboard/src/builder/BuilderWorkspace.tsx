@@ -61,6 +61,7 @@ export function BuilderWorkspace({
   } = useBuilderScreenDraft(selectedWorkspace.screen);
   const { selectedWidget, selectedWidgetId, setSelectedWidgetId } = useSelectedBuilderWidget(draftScreen);
   const [saveState, setSaveState] = useState<DraftSaveState>({ status: "idle" });
+  const [layoutNotice, setLayoutNotice] = useState<string | null>(null);
   const isSaving = saveState.status === "saving";
   const panel = resolveBuilderPanel(draftScreen);
   const undersizedCount = findUndersizedWidgets(draftScreen).length;
@@ -86,20 +87,29 @@ export function BuilderWorkspace({
     }
   };
 
+  const selectWidget = (widgetId: string | null) => {
+    setLayoutNotice(null);
+    setSelectedWidgetId(widgetId);
+  };
+
   const discardDraft = () => {
     resetDraft();
     setSaveState({ status: "idle" });
   };
 
   const addWidget = (definition: WidgetDefinition) => {
-    const widgetId = createUniqueWidgetId(draftScreen, definition.kind);
-    const nextScreen = addWidgetToScreen(draftScreen, definition, {
-      id: widgetId,
-      layout: placeClearOfRegions(createNewWidgetLayout(draftScreen, definition), draftScreen),
-    });
+    const layout = placeClearOfRegions(createNewWidgetLayout(draftScreen, definition), draftScreen);
+    if (!layout) {
+      setLayoutNotice(
+        `A ${definition.displayName} does not fit anywhere on this canvas clear of the reserved regions. Make room first.`,
+      );
+      return;
+    }
 
-    commitScreenChange(nextScreen);
+    const widgetId = createUniqueWidgetId(draftScreen, definition.kind);
+    commitScreenChange(addWidgetToScreen(draftScreen, definition, { id: widgetId, layout }));
     setSelectedWidgetId(widgetId);
+    setLayoutNotice(null);
   };
 
   const duplicateSelectedWidget = () => {
@@ -226,7 +236,7 @@ export function BuilderWorkspace({
         <BuilderCanvas
           onCommitWidgetLayout={commitWidgetLayout}
           onPreviewWidgetLayout={previewWidgetLayout}
-          onSelectWidget={setSelectedWidgetId}
+          onSelectWidget={selectWidget}
           screen={draftScreen}
           selectedWidgetId={selectedWidgetId}
         />
@@ -236,6 +246,7 @@ export function BuilderWorkspace({
         availableWidgetDefinitions={availableWidgetDefinitions}
         canvas={draftScreen.canvas}
         glassScale={panel.glassScale}
+        layoutNotice={layoutNotice}
         onResizeWidget={(widgetId, layout) => {
           const widget = draftScreen.widgets.find((candidate) => candidate.id === widgetId);
           if (widget) {
@@ -246,7 +257,7 @@ export function BuilderWorkspace({
         onAddWidget={addWidget}
         onDuplicateWidget={duplicateSelectedWidget}
         onRemoveWidget={removeSelectedWidget}
-        onSelectWidget={setSelectedWidgetId}
+        onSelectWidget={selectWidget}
         onUpdateWidgetSettings={updateSelectedWidgetSettings}
         onUpdateWidgetTitle={updateSelectedWidgetTitle}
         selectedWidget={selectedWidget}
