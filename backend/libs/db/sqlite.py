@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class SQLiteMigrationError(RuntimeError):
@@ -383,10 +383,23 @@ def _dump_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True)
 
 
+def _migrate_to_v6(connection: sqlite3.Connection) -> None:
+    # Remembers deliberate deletions, so seeding does not bring a shipped app back.
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS deleted_configurations (
+            config_id TEXT PRIMARY KEY,
+            deleted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
 MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (1, _migrate_to_v1),
     (2, _migrate_to_v2),
     (3, _migrate_to_v3),
     (4, _migrate_to_v4),
     (5, _migrate_to_v5),
+    (6, _migrate_to_v6),
 )

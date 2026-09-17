@@ -510,3 +510,22 @@ def test_one_unreadable_stored_bundle_does_not_stop_seeding() -> None:
 
     assert "sandbox" in outcome.skipped
     assert set(outcome.imported) == SHARED_APP_IDS - {"sandbox"}
+
+
+@pytest.mark.parametrize("storage", ["file", "sqlite"])
+def test_a_deleted_shipped_app_stays_deleted_until_forced(tmp_path: Path, storage: str) -> None:
+    def open_store():
+        return create_configuration_repository(
+            storage, configuration_dir=tmp_path / "configurations", database_path=tmp_path / "bloom.db"
+        )
+
+    seed_configurations(open_store())
+    open_store().delete("petanque-admin")
+
+    restarted = seed_configurations(open_store())
+    assert "petanque-admin" not in open_store().list_ids()
+    assert "petanque-admin" in restarted.skipped
+
+    seed_configurations(open_store(), force_ids={"petanque-admin"})
+    assert "petanque-admin" in open_store().list_ids()
+    assert open_store().deleted_ids() == []

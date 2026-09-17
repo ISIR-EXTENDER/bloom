@@ -127,11 +127,15 @@ def seed_configurations(
     directory = Path(seed_dir)
     forced = frozenset(force_ids or ())
     existing = set(repository.list_ids())
+    deleted = set(repository.deleted_ids())
 
     imported: list[str] = []
     skipped: list[str] = []
     upgraded: list[str] = []
     for config_id in available_seed_ids(directory):
+        if config_id in deleted and config_id not in forced:
+            skipped.append(config_id)
+            continue
         shipped = stamp_seed_fingerprint(load_configuration_file(directory / f"{config_id}.json"))
         if config_id not in existing or config_id in forced:
             repository.upsert(config_id, shipped)

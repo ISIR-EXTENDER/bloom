@@ -69,6 +69,7 @@ class SQLiteConfigurationRepository:
                 ),
             )
             sync_normalized_configuration_rows(connection, config_id, bundle)
+            connection.execute("DELETE FROM deleted_configurations WHERE config_id = ?", (config_id,))
             connection.commit()
         return bundle
 
@@ -76,9 +77,20 @@ class SQLiteConfigurationRepository:
         with sqlite_connection(self.database_path) as connection:
             apply_sqlite_migrations(connection)
             cursor = connection.execute("DELETE FROM configuration_bundles WHERE config_id = ?", (config_id,))
+            if cursor.rowcount > 0:
+                connection.execute(
+                    "INSERT OR REPLACE INTO deleted_configurations (config_id) VALUES (?)",
+                    (config_id,),
+                )
             connection.commit()
         if cursor.rowcount == 0:
             raise ConfigurationNotFoundError(config_id)
+
+    def deleted_ids(self) -> list[str]:
+        with sqlite_connection(self.database_path) as connection:
+            apply_sqlite_migrations(connection)
+            rows = connection.execute("SELECT config_id FROM deleted_configurations ORDER BY config_id").fetchall()
+            return [str(row["config_id"]) for row in rows]
 
 
 def sync_normalized_configuration_rows(

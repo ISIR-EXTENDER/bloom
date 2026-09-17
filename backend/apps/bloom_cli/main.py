@@ -208,9 +208,12 @@ def configuration_status(
     repository = open_configuration_repository(storage, configuration_dir, database_path)
     stored = set(repository.list_ids())
     shipped = set(available_seed_ids(seed_dir))
+    deleted = set(repository.deleted_ids())
 
     for config_id in sorted(stored | shipped):
-        if config_id not in stored:
+        if config_id not in stored and config_id in deleted:
+            typer.echo(f"deleted   {config_id} (run: bloom config seed --force {config_id} to restore it)")
+        elif config_id not in stored:
             typer.echo(f"missing   {config_id} (run: bloom config seed)")
         elif config_id not in shipped:
             typer.echo(f"local     {config_id} (run: bloom config publish {config_id} to share it)")
