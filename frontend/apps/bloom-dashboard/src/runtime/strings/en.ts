@@ -23,7 +23,6 @@ export const enRuntimeStrings: RuntimeStrings = {
     claiming: "Claiming control...",
     noOwner: "No operator currently controls this robot",
     resumeRequiresOwner: "Take control before resuming the robot.",
-    youOwn: "YOU CONTROL",
   },
   scan: {
     button: "SWITCH - press Space or tap here",
@@ -104,7 +103,6 @@ export const enRuntimeStrings: RuntimeStrings = {
     maintenanceAria: "Hold to open maintenance",
     maintenanceHelp: "Motion is stopped while maintenance is open. Return controls to neutral before resuming.",
     referenceFrameTitle: "Reference frame for operator commands",
-    robotTitle: "Robot this backend drives",
     settings: "Settings",
     supervisorMirror: "Supervisor mirror",
     switchScreen: "Switch runtime screen",

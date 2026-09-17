@@ -40,6 +40,11 @@ also survives a 100 Hz command stream.
 
 With a seeded ROS-enabled Explorer API and its dashboard already running:
 
+> [!NOTE]
+> `npm run record:explorer-demo` and its script were removed on 2026-09-17, once the screens it navigated by name had
+> been renamed. `npm run record:demo` records the current walkthrough. The commands below are kept as the record of how
+> this evidence was produced.
+
 ```bash
 BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 \
   node scripts/ros-e2e-capture.mjs --only 11-joystick-lab --out docs/assets/screenshots

@@ -14,7 +14,6 @@
     "build": "npm run build --workspaces --if-present",
     "capture:readme": "node scripts/capture-readme-screenshots.mjs",
     "record:demo": "node scripts/record-bloom-demo.mjs",
-    "record:explorer-demo": "node scripts/record-explorer-demo.mjs",
     "check": "biome check .",
     "format": "biome check --write .",
     "dev": "npm run dev --workspace @bloom/dashboard",

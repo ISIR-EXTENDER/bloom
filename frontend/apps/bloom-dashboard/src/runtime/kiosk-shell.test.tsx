@@ -224,7 +224,7 @@ describe("maintenance", () => {
   });
 
   it("reads six facts without offering to set them", () => {
-    renderBar({ controlOwnerLabel: "YOU CONTROL", link: "connected" });
+    renderBar({ link: "connected", ownsRobotControl: true });
     hold(1600);
 
     const facts = screen.getByRole("dialog").querySelector("dl");

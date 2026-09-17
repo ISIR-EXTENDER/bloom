@@ -23,7 +23,6 @@ export const esRuntimeStrings: RuntimeStrings = {
     claiming: "Tomando el control...",
     noOwner: "Ningún operador controla este robot",
     resumeRequiresOwner: "Toma el control antes de reanudar el robot.",
-    youOwn: "TIENES EL CONTROL",
   },
   scan: {
     button: "PULSADOR - pulsa Espacio o toca aquí",
@@ -105,7 +104,6 @@ export const esRuntimeStrings: RuntimeStrings = {
     maintenanceHelp:
       "El movimiento se detiene mientras el mantenimiento está abierto. Devuelve los controles a posición neutra antes de reanudar.",
     referenceFrameTitle: "Marco de referencia de los comandos",
-    robotTitle: "Robot controlado por este servidor",
     settings: "Ajustes",
     supervisorMirror: "Vista de supervisión",
     switchScreen: "Cambiar pantalla de operación",

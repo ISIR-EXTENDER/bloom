@@ -39,7 +39,7 @@ export type RuntimeKioskBarProps = {
     detail: string;
     status: "blocked" | "failed" | "simulated" | "unsupported";
   } | null;
-  controlOwnerLabel?: string | null;
+  ownsRobotControl?: boolean;
   screen: ScreenConfig;
   profile: RuntimeProfileSummary;
   /** Every profile the app offers; a role switch picks one. */
@@ -192,7 +192,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
 function RuntimeMaintenanceSheet({
   application,
   commandFrameId,
-  controlOwnerLabel,
+  ownsRobotControl = false,
   diagnostics,
   fitWarning,
   gamepadName,
@@ -266,7 +266,7 @@ function RuntimeMaintenanceSheet({
           <dl className="runtime-maintenance-facts">
             <Fact
               label={facts.link}
-              note={controlOwnerLabel ? `${facts.linkNote} · ${facts.youControl}` : facts.linkNote}
+              note={ownsRobotControl ? `${facts.linkNote} · ${facts.youControl}` : facts.linkNote}
               value={linkValue}
             />
             <Fact label={facts.publishRate} note={facts.publishRateNote} value={strings.kiosk.rate(rate)} />

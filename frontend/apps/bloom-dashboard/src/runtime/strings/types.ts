@@ -18,7 +18,6 @@ export type RuntimeStrings = {
     claiming: string;
     noOwner: string;
     resumeRequiresOwner: string;
-    youOwn: string;
   };
   scan: { button: string; progress: (current: number, total: number) => string };
   tour: {
@@ -64,7 +63,6 @@ export type RuntimeStrings = {
     maintenanceAria: string;
     maintenanceHelp: string;
     referenceFrameTitle: string;
-    robotTitle: string;
     settings: string;
     supervisorMirror: string;
     switchScreen: string;

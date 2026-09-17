@@ -57,8 +57,8 @@ npm run record:demo      # only when the walkthrough video should change
 ```
 
 `record:demo` writes `docs/assets/demo/bloom-demo.mp4`, the walkthrough the README links. The older
-`record:explorer-demo` is unmaintained: three of its waits name strings that have since been renamed out of the seeds,
-so it cannot complete a run. Use `record:demo`.
+`record:explorer-demo` was removed on 2026-09-17: three of its waits named strings the seeds no longer use, so it could
+not complete a run. Its recording, `bloom-explorer-demo.mp4`, stays as the evidence of its own dated validation.
 
 For runtime changes, inspect the kiosk bar, fixed STOP, maintenance overlay, effective command frame, control bounds,
 local practice surface, and read-only supervisor mirror at every maintained viewport. Confirm every supervisor topic

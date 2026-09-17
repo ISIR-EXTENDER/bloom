@@ -608,7 +608,7 @@ export function RuntimeWorkspace({
               : null
         }
         commandFrameId={commandFrameId}
-        controlOwnerLabel={runtimeControl.supported && ownsRuntimeControl ? strings.control.youOwn : null}
+        ownsRobotControl={runtimeControl.supported && ownsRuntimeControl}
         gamepadName={gamepad.connected ? gamepad.id : null}
         held={stopped || maintenanceOpen || settingsOpen}
         link={

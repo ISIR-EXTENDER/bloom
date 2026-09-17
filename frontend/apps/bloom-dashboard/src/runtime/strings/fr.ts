@@ -23,7 +23,6 @@ export const frRuntimeStrings: RuntimeStrings = {
     claiming: "Prise de contrôle...",
     noOwner: "Aucun opérateur ne commande ce robot",
     resumeRequiresOwner: "Prenez le contrôle avant de reprendre le robot.",
-    youOwn: "VOUS COMMANDEZ",
   },
   scan: {
     button: "CONTACTEUR - appuyez Espace ou touchez ici",
@@ -105,7 +104,6 @@ export const frRuntimeStrings: RuntimeStrings = {
     maintenanceHelp:
       "Le mouvement est arrêté pendant l'ouverture de la maintenance. Remettez les commandes au neutre avant de reprendre.",
     referenceFrameTitle: "Repère des commandes opérateur",
-    robotTitle: "Robot piloté par ce serveur",
     settings: "Réglages",
     supervisorMirror: "Vue superviseur",
     switchScreen: "Changer d'écran opérateur",
