@@ -64,6 +64,13 @@ const KNOWN_GAPS = [
       "these screens declare no reserved region, so the canvas carries the 44 px kiosk bar inside its own fit (0.75 at 1024x600, not 0.80) and STOP floats in the corner over whatever is under it. The one fix is to author them full-panel with a reserved STOP region, which is a layout decision per screen.",
   },
   {
+    apps: ["sandbox"],
+    screens: ["sandbox_teleop_config"],
+    rules: ["touch-floor", "target-claim", "clipped-text"],
+    reason:
+      "the six axis-invert buttons are 70x58: 26 px of target and a title that clips. Growing them puts the right-hand pair under the corner STOP, and a reserved region turns the screen full-panel so its own bottom row falls off the artboard. The screen needs re-authoring for the 1280x676 body, which is a layout decision; it is a bench configuration screen, off the operator path.",
+  },
+  {
     apps: ["explorer-user-tests", "app-petanque-admin"],
     rules: ["overlap", "artboard", "clipped-text"],
     reason:
