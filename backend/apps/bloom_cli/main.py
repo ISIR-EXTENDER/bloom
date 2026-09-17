@@ -22,6 +22,7 @@ from libs.config import (
 )
 from libs.config.seed import (
     DEFAULT_SEED_DIR,
+    adopt_file_configurations,
     available_seed_ids,
     configuration_fingerprint,
     is_unedited_seed_copy,
@@ -140,11 +141,17 @@ def open_configuration_repository(
     store than the running app and reported stale content without saying so.
     """
     settings = get_settings()
-    return create_configuration_repository(
-        storage or settings.configuration_storage,
-        configuration_dir=configuration_dir or settings.configuration_dir,
+    kind = storage or settings.configuration_storage
+    file_store_dir = configuration_dir or settings.configuration_dir
+    repository = create_configuration_repository(
+        kind,
+        configuration_dir=file_store_dir,
         database_path=database_path or settings.configuration_database_path,
     )
+    if kind == "sqlite":
+        # As at API startup: a first CLI write would otherwise make the store non-empty and hide the file store.
+        adopt_file_configurations(repository, configuration_dir=file_store_dir)
+    return repository
 
 
 @config_cli.command("list")

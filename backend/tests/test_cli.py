@@ -348,3 +348,16 @@ def test_an_imported_bundle_never_counts_as_an_unedited_seed_copy(tmp_path: Path
         "sqlite", configuration_dir=tmp_path / "cfg", database_path=database_path
     )
     assert repository.get("work").metadata.seed_fingerprint == ""
+
+
+def test_a_cli_write_to_a_fresh_sqlite_store_keeps_the_file_store_work(tmp_path: Path) -> None:
+    file_store = tmp_path / "configurations"
+    shipped = load_configuration_file(Path(__file__).parents[1] / "seed" / "applications" / "sandbox.json")
+    save_configuration_file(shipped.model_copy(update={"applications": ()}), file_store / "my-own-app.json")
+    database_path = tmp_path / "bloom.db"
+    store = ["--storage", "sqlite", "--database-path", str(database_path), "--configuration-dir", str(file_store)]
+
+    CliRunner().invoke(cli, ["config", "seed", *store])
+
+    repository = create_configuration_repository("sqlite", configuration_dir=file_store, database_path=database_path)
+    assert "my-own-app" in repository.list_ids()
