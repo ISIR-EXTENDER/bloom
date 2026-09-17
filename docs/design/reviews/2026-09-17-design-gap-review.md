@@ -106,3 +106,30 @@ layout.
 Paired prototype and live captures, with measured card sizes, overlaps, clipped text and target sizes, were kept out of
 the repository. The fixes carry their own before and after checks in the commit bodies, and the suites, contracts,
 visual smoke and `npm run e2e:sim` pass on `main` after them.
+
+---
+
+## Second design review, same day
+
+The designer reviewed the implementation again against `main` and raised six findings. All are settled.
+
+- **The shipped seed could not pass the shipped checklist.** A continuous slider's target was 40 canvas px, which is
+  32 px on the tablet glass, so Drive · Bench's speed limits failed the builder tour's touch step on both Manager apps.
+  Decision: the thumb grows to **56 canvas px** (44 on the glass, at the floor) and Bench keeps continuous limits;
+  Operator keeps segments. The two cards are re-authored 132 tall from y 134 so the rail keeps its 12 px gap and still
+  ends flush with the STOP region.
+- **Target sizes were design logic living in a builder helper.** `primaryTargetFor` now sits in the widget contract
+  beside `minSizeFor`, the interactive-kind list is derived from it, and `design-system.html` gained a §04b table that a
+  test parses and compares with the function, like the card minimums already do.
+- **`status-card` and `button-group` are not needed.** Bloom Debug's three header cards are runtime chrome inside the
+  `debug-status` reserved region, not widgets; `widget-min-size.md` now says so.
+- **The pad rule now checks what its name promises**, at the level where the rule is true: the pad surface is square
+  inside a taller card, and the renderer is tested for it.
+- **`hd` is 1280×720**, so classifying it as tablet was already right; a test now pins every 720-tall preset to the
+  tablet class.
+- **The touch step names its offender** — which widget, which screen, and which of the three problems.
+
+Smaller: the ADR numbering was already consistent on `main` (0131 observer role, 0132 minimum size, 0133 profile
+layout); the reviewer read a stale tree. The `sage` token that held a cyan is fixed, with a test holding every preset's
+sage to a sage hue. The `--bloom-axis-translation` risk the review inferred from it does not exist: that variable
+resolves to a `:root` series literal, not through the preset tokens.

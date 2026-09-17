@@ -196,6 +196,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- Drive · Bench's continuous speed limits had a 40 px thumb, 32 px on the tablet glass, so the shipped apps failed the
+  builder's own touch floor. The thumb is 56 px and the two cards are authored 132 tall to keep the rail's spacing.
+
 - Bloom Debug's joint table waited forever on the Explorer simulation: NaN velocity and effort on the passive gripper
   joints made every `/joint_states` sample invalid JSON. Non-finite values are sent as `null`.
 - Moving between screens stacked subscriptions, so plots received each message twice; a 100 Hz topic kept only 9 s of a
