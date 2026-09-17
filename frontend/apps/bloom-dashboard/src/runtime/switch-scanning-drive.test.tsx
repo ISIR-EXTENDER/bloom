@@ -42,6 +42,28 @@ const driveScreen: ScreenConfig = {
   ],
 };
 
+const momentaryScreen: ScreenConfig = {
+  id: "modes",
+  title: "Modes",
+  canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+  widgets: [
+    {
+      id: "hold-snake",
+      kind: "command-button",
+      title: "Snake",
+      layout: { x: 0, y: 0, width: 180, height: 72 },
+      settings: {
+        button_label: "Hold snake",
+        messageType: "std_msgs/msg/String",
+        momentary: true,
+        payload: { data: "geometric/snake" },
+        releasedPayload: { data: "geometric/both" },
+        topic: "/mode_request",
+      },
+    },
+  ],
+};
+
 const joystickLabScreen = explorerManagerConfiguration.applications[0]?.screens.find(
   (screen) => screen.id === "manager_joystick_lab",
 ) as ScreenConfig | undefined;
@@ -155,5 +177,24 @@ describe("switch scanning on a drive screen", () => {
 
     expect(onActionIntent).toHaveBeenLastCalledWith(expect.objectContaining({ value: { x: 0, y: 0.25 } }));
     expect(switchBar).toHaveFocus();
+  });
+
+  it("engages and releases a momentary mode button from the switch", () => {
+    // Hold snake is a hold, and a switch user has no hold: scanning it must
+    // latch the mode, and the next activation must publish the release.
+    const onActionIntent = vi.fn<WidgetActionIntentHandler>();
+    render(<ScannedScreen onActionIntent={onActionIntent} screen={momentaryScreen} />);
+
+    expect(document.querySelector("[data-scan-lit]")?.getAttribute("aria-label")).toBe("Hold snake");
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: " " })));
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ payload: { data: "geometric/snake" }, topic: "/mode_request" }),
+    );
+
+    act(() => window.dispatchEvent(new KeyboardEvent("keydown", { key: " " })));
+    expect(onActionIntent).toHaveBeenLastCalledWith(
+      expect.objectContaining({ payload: { data: "geometric/both" }, topic: "/mode_request" }),
+    );
   });
 });

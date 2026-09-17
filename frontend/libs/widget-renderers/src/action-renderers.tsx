@@ -1,4 +1,7 @@
 import { createWidgetActionIntent, type WidgetActionIntent } from "@bloom/widgets";
+
+const MOMENTARY_HOLD_EXPIRY_MS = 15000;
+
 import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
@@ -27,6 +30,7 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
   const disabledReasonId = disabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
   const isMomentaryPressedRef = useRef(false);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
+  const [isMomentaryLatched, setIsMomentaryLatched] = useState(false);
   const [isArmed, setIsArmed] = useState(false);
   const visibleButtonLabel = momentary
     ? isMomentaryPressed
@@ -46,6 +50,19 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     return () => clearTimeout(timer);
   }, [confirmTimeoutSeconds, isArmed]);
 
+  // A latched hold must never outlive the operator's attention.
+  useEffect(() => {
+    if (!isMomentaryLatched) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (isMomentaryPressedRef.current) {
+        releaseMomentary();
+      }
+    }, MOMENTARY_HOLD_EXPIRY_MS);
+    return () => clearTimeout(timer);
+  });
+
   const handlePress = () => {
     if (disabled) {
       return;
@@ -64,12 +81,38 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     if (disabled || isMomentaryPressedRef.current) {
       return;
     }
+    setIsMomentaryLatched(false);
     if (typeof event.currentTarget.setPointerCapture === "function") {
       event.currentTarget.setPointerCapture(event.pointerId);
     }
     isMomentaryPressedRef.current = true;
     setIsMomentaryPressed(true);
     publishMomentaryPayload("payload");
+  };
+  // Scanning, dwell and the keyboard all activate through click(), which a
+  // pointer-only hold cannot serve: the hold becomes a latch, with the same
+  // attention expiry the stepped controls use.
+  const handleMomentaryActivation = (event: { detail: number }) => {
+    if (disabled || event.detail !== 0) {
+      return;
+    }
+    if (isMomentaryPressedRef.current) {
+      releaseMomentary();
+      return;
+    }
+    if (!allowActivation()) {
+      return;
+    }
+    isMomentaryPressedRef.current = true;
+    setIsMomentaryPressed(true);
+    setIsMomentaryLatched(true);
+    publishMomentaryPayload("payload");
+  };
+  const releaseMomentary = () => {
+    isMomentaryPressedRef.current = false;
+    setIsMomentaryPressed(false);
+    setIsMomentaryLatched(false);
+    publishMomentaryPayload("releasedPayload");
   };
   const handleMomentaryRelease = (event: PointerEvent<HTMLButtonElement>) => {
     if (!isMomentaryPressedRef.current) {
@@ -82,9 +125,7 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     ) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-    isMomentaryPressedRef.current = false;
-    setIsMomentaryPressed(false);
-    publishMomentaryPayload("releasedPayload");
+    releaseMomentary();
   };
   const publishMomentaryPayload = (payloadKey: "payload" | "releasedPayload") => {
     if (!topic || !messageType) {
@@ -122,7 +163,7 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
         data-momentary={momentary ? "true" : "false"}
         data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
         disabled={disabled}
-        onClick={momentary ? undefined : handlePress}
+        onClick={momentary ? handleMomentaryActivation : handlePress}
         onPointerCancel={momentary ? handleMomentaryRelease : undefined}
         onPointerDown={momentary ? handleMomentaryPress : undefined}
         onPointerLeave={momentary ? handleMomentaryRelease : undefined}

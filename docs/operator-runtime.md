@@ -105,7 +105,7 @@ The shipped **Explorer Manager** and **Kinova Manager** Drive screens expose the
 | Pivot slider | Contributes `angular.z` and returns to zero on release. |
 | Neutral | Requests `geometric/both`. |
 | Jaco | Requests `geometric/jaco`. |
-| Hold snake | Requests `geometric/snake` while pressed and `geometric/both` on release. |
+| Hold snake | Requests `geometric/snake` while pressed and `geometric/both` on release. A pointer holds it; keyboard, switch scanning, and dwell latch it instead, and the next activation releases it. An unattended latch releases itself after 15 seconds. |
 | Gripper | Publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. |
 | Speed sliders | Start at the configured controller limits and publish linear/angular limits to `qontrol_controller`. They are disabled when the ROS graph has no subscriber. |
 

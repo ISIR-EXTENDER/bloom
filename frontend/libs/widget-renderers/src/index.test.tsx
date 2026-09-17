@@ -262,6 +262,39 @@ describe("widget renderer registry", () => {
     );
   });
 
+  it("latches a momentary button for switch, dwell and keyboard activation", () => {
+    // Scanning, dwell and the keyboard all arrive as click(): a pointer-only
+    // hold would leave Hold Snake unreachable for the people who need it most.
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const button = screen.getByRole("button", { name: "Hold Snake" });
+    fireEvent.click(button, { detail: 0 });
+    expect(button).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(button, { detail: 0 });
+    expect(button).toHaveAttribute("aria-pressed", "false");
+
+    expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}", "{data: false}"]);
+  });
+
+  it("leaves a pointer hold alone when its click follows the release", () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+    const button = screen.getByRole("button", { name: "Hold Snake" });
+    fireEvent.pointerDown(button, { pointerId: 1 });
+    fireEvent.pointerUp(button, { pointerId: 1 });
+    fireEvent.click(button, { detail: 1 });
+
+    expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}", "{data: false}"]);
+  });
+
   it("emits topic publish intents from toggles", async () => {
     const descriptor = renderScreenDescriptors(toggleScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing toggle descriptor.");
