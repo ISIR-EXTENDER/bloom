@@ -20,7 +20,8 @@ export function PlotBoardWidget({ data, descriptor }: WidgetRendererProps) {
   const [yMin, yMax] = getBooleanSetting(settings, "y_fit_data", true)
     ? fitRange(declaredMin, declaredMax, plotted, windowStart)
     : [declaredMin, declaredMax];
-  const toX = (time: number) => ((time - windowStart) / (historySeconds * 1000)) * PLOT_EXTENT;
+  // The clock ticks every 250 ms, so a sample can arrive after `now`; it belongs at the right edge, not past it.
+  const toX = (time: number) => Math.min(PLOT_EXTENT, ((time - windowStart) / (historySeconds * 1000)) * PLOT_EXTENT);
   const toY = (value: number) => ((yMax - Math.min(yMax, Math.max(yMin, value))) / (yMax - yMin)) * PLOT_EXTENT;
   const zeroY = yMin < 0 && yMax > 0 ? toY(0) : null;
 

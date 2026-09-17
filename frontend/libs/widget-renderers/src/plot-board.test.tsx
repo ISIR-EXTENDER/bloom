@@ -97,6 +97,14 @@ describe("the plot board", () => {
     expect(lines[1]?.getAttribute("data-emphasis")).toBe("true");
   });
 
+  it("keeps a sample that lands after the clock tick on the right edge", () => {
+    renderWidget(0, snapshot({ "This tablet": 0.5 }, -400));
+
+    const line = document.querySelector<SVGPathElement>(".bloom-plot-board-line");
+    const x = Number(line?.getAttribute("d")?.match(/[ML](-?[\d.]+)/)?.[1]);
+    expect(x).toBeLessThanOrEqual(1000);
+  });
+
   it("states which source is driving", () => {
     renderWidget(0, snapshot({ "This tablet": 0.5, "Manager output": 0.5 }));
     expect(screen.getByText("this tablet is driving")).toBeTruthy();
