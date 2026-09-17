@@ -53,24 +53,20 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderSettings(
-  overrides: RuntimeProfileOverrides = {},
-  onChange = vi.fn<(next: RuntimeProfileOverrides) => void>(),
-) {
+function renderSettings(overrides: RuntimeProfileOverrides = {}) {
+  const onSave = vi.fn<(next: RuntimeProfileOverrides) => void>();
+  const onClose = vi.fn();
   const result = render(
     <RuntimeSettingsPanel
-      allowedCommandFrameIds={["base_link", "effector_frame", "hybrid_frame"]}
-      baseCommandFrameId="base_link"
+      applicationName="Explorer Manager"
       baseProfile={defaultProfile}
-      onChange={onChange}
-      onCommandFrameSelect={vi.fn(async () => ({ accepted: true }))}
-      onDone={vi.fn()}
-      onOpenTour={vi.fn()}
+      onClose={onClose}
+      onSave={onSave}
       overrides={overrides}
-      teleopActive={false}
+      runtimeRole="operator"
     />,
   );
-  return { ...result, onChange };
+  return { ...result, onClose, onSave };
 }
 
 describe("runtime settings", () => {
@@ -79,10 +75,9 @@ describe("runtime settings", () => {
     const intervalSpy = vi.spyOn(window, "setInterval");
     renderSettings({ motorAccessibilityPreset: "scan" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Fine tuning" }));
-    fireEvent.click(screen.getByRole("button", { name: "Increase Scan speed" }));
+    fireEvent.click(screen.getByRole("button", { name: "Increase Scan step" }));
 
-    expect(screen.getByLabelText("Scan speed value").textContent).toBe("1.6 s");
+    expect(screen.getByLabelText("Scan step value").textContent).toBe("1600 ms");
     expect(intervalSpy).toHaveBeenCalledWith(expect.any(Function), 1600);
   });
 
@@ -107,38 +102,87 @@ describe("runtime settings", () => {
     expect(screen.getByText(new RegExp(`Scanning .+ of ${expectedTargets.length}`))).toBeTruthy();
   });
 
-  it("restores the opening overrides with Undo changes", () => {
-    const { onChange } = renderSettings({ deadzone: 0.15 });
+  it("dims the timing that does not apply to the chosen input method instead of accepting input", () => {
+    renderSettings();
 
-    fireEvent.click(screen.getByRole("button", { name: "Fine tuning" }));
-    fireEvent.click(screen.getByRole("button", { name: "Increase Ignore small movements" }));
-    expect(screen.getByRole("button", { name: "Undo changes" })).toBeTruthy();
+    expect(screen.getByText("Timing — touch needs no timing")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Increase Hold to activate" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+    expect(screen.getByText("only for Dwell")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Increase Joystick dead zone" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Undo changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dwell" }));
+    fireEvent.click(screen.getByRole("button", { name: "Increase Hold to activate" }));
 
-    expect(onChange).toHaveBeenLastCalledWith({ deadzone: 0.15 });
-    expect(screen.queryByRole("button", { name: "Undo changes" })).toBeNull();
+    expect(screen.getByLabelText("Hold to activate value").textContent).toBe("900 ms");
   });
 
-  it("changes the profile language and localizes the settings shell immediately", () => {
-    const { onChange } = renderSettings();
+  it("keeps how a push moves apart from how the controls are reached", () => {
+    const { onSave } = renderSettings();
 
-    fireEvent.click(screen.getByRole("button", { name: "Language" }));
-    fireEvent.click(screen.getByRole("button", { name: "Français" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tap by tap" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dwell" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
 
-    expect(screen.getByRole("heading", { name: "Réglages" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Terminé" })).toBeTruthy();
-    expect(onChange).toHaveBeenLastCalledWith({ language: "fr" });
+    expect(onSave).toHaveBeenCalledWith({ dwellEnabled: true, motorAccessibilityPreset: "step" });
   });
 
-  it("keeps the try strip local and outside the persisted settings path", () => {
+  it("interlocks the push choice while scanning", () => {
+    renderSettings({ motorAccessibilityPreset: "scan" });
+
+    expect(screen.getByText("only for Touch and Dwell")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Keep going" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("changes the text size and language live, and saves only on Save and resume", () => {
+    const { onClose, onSave } = renderSettings();
+
+    fireEvent.click(screen.getByRole("button", { name: "Larger" }));
+    fireEvent.click(screen.getByRole("button", { name: "FR" }));
+
+    expect(screen.getByRole("region", { name: "Réglages" }).getAttribute("style")).toContain(
+      "--runtime-font-scale: 1.3",
+    );
+    expect(onSave).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer et reprendre" }));
+    expect(onSave).toHaveBeenCalledWith({ fontScale: 1.3, language: "fr" });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("leaves without saving on Escape", () => {
+    const { onClose, onSave } = renderSettings();
+
+    fireEvent.click(screen.getByRole("button", { name: "Large" }));
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("tries a press locally, honouring the repeat guard, and sends nothing", () => {
     vi.useFakeTimers();
-    const { onChange } = renderSettings();
+    const { onSave } = renderSettings({ repeatGuardMs: 300 });
+    const target = screen.getByRole("button", { name: "Try a press" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Left" }));
+    fireEvent.click(target);
+    fireEvent.click(target);
+    expect(screen.getByText("Pressed 1 time. Nothing was sent.")).toBeTruthy();
 
-    expect(screen.getByLabelText("Safe preview value").textContent).toContain("x -1.00");
-    expect(onChange).not.toHaveBeenCalled();
+    act(() => vi.advanceTimersByTime(400));
+    fireEvent.click(target);
+    expect(screen.getByText("Pressed 2 times. Nothing was sent.")).toBeTruthy();
+    expect(screen.getByText("target 56 px · font 1.00 · immediate")).toBeTruthy();
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it("offers no command frame: a setting an operator reaches must not change what the app sends", () => {
+    renderSettings();
+
+    expect(screen.queryByText(/base_link|frame/i)).toBeNull();
   });
 
   it("persists profile overrides in the existing preference payload", () => {
@@ -178,8 +222,7 @@ describe("runtime settings", () => {
       }),
     );
 
-    expect(loadRuntimeUserPreferences().profileOverrides["config:app:profile"]).toEqual({
-      commandFrameId: "base_link",
-    });
+    // A stored command frame is dropped: the frame is chosen on the Joystick Lab, never per profile.
+    expect(loadRuntimeUserPreferences().profileOverrides["config:app:profile"]).toBeUndefined();
   });
 });

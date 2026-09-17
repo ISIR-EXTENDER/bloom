@@ -379,7 +379,7 @@ function RuntimeMaintenanceSheet({
             {strings.kiosk.home}
           </button>
           <fieldset className="runtime-maintenance-languages">
-            <legend className="sr-only">{strings.settings.categories.language}</legend>
+            <legend className="sr-only">{strings.settings.language}</legend>
             {(["en", "es", "fr"] as const).map((candidate) => (
               <button
                 aria-pressed={language === candidate}

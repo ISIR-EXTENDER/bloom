@@ -91,6 +91,7 @@ export function applyRuntimeProfileOverrides(
     deadzone: clampRange(overrides.deadzone ?? profile.deadzone, 0, 0.5),
     dwellEnabled: motorAccessibilityPreset === "dwell" || (overrides.dwellEnabled ?? profile.dwellEnabled),
     dwellMs: clampRange(overrides.dwellMs ?? profile.dwellMs, 400, 4000),
+    fontScale: clampFontScale(overrides.fontScale ?? profile.fontScale),
     language: overrides.language ?? profile.language,
     motorAccessibilityPreset,
     repeatGuardMs: clampRange(overrides.repeatGuardMs ?? profile.repeatGuardMs, 0, 600),

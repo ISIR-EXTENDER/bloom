@@ -1,157 +1,114 @@
 import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import {
-  normalizeRuntimeProfileOverrides,
-  type RuntimeProfileOverrides,
-  runtimeProfileOverridesEqual,
-} from "./runtime-profile-overrides";
+import { normalizeRuntimeProfileOverrides, type RuntimeProfileOverrides } from "./runtime-profile-overrides";
 import { applyRuntimeProfileOverrides, type ResolvedRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import { useDwellActivation } from "./use-dwell-activation";
 import { useSwitchScanning } from "./use-switch-scanning";
 
-type SettingsCategory = "display" | "frame" | "language" | "movement" | "tuning";
+type InputMethod = "dwell" | "scan" | "touch";
+type PushMode = "drag" | "latch" | "step";
 
 type RuntimeSettingsPanelProps = {
-  allowedCommandFrameIds: readonly string[] | null;
-  baseCommandFrameId: string | null;
+  applicationName: string;
   baseProfile: ResolvedRuntimeProfile;
-  onChange: (overrides: RuntimeProfileOverrides) => void;
-  onCommandFrameSelect: (frameId: string) => Promise<{ accepted: boolean; detail?: string }>;
-  onDone: () => void;
-  onOpenTour: () => void;
+  onClose: () => void;
+  onSave: (overrides: RuntimeProfileOverrides) => void;
   overrides: RuntimeProfileOverrides;
-  teleopActive: boolean;
+  runtimeRole: "bench" | "operator";
 };
 
-const CATEGORIES: readonly SettingsCategory[] = ["movement", "tuning", "frame", "language", "display"];
-
-const MOVEMENT_CHOICES: readonly {
-  disabled?: boolean;
-  key: "default" | "edge" | "latch" | "scan" | "step";
-  preset: UserProfile["motor_accessibility_preset"];
-}[] = [
-  { key: "default", preset: "default" },
-  { key: "step", preset: "step" },
-  { key: "latch", preset: "latch" },
-  { key: "edge", disabled: true, preset: "assisted-touch" },
-  { key: "scan", preset: "scan" },
+const TEXT_SIZES: readonly { key: "large" | "larger" | "normal"; scale: number }[] = [
+  { key: "normal", scale: 1 },
+  { key: "large", scale: 1.15 },
+  { key: "larger", scale: 1.3 },
 ];
 
-type PreviewVector = { x: number; y: number };
+const PUSH_PRESETS: Record<PushMode, UserProfile["motor_accessibility_preset"]> = {
+  drag: "default",
+  latch: "latch",
+  step: "step",
+};
 
-const ZERO_VECTOR: PreviewVector = { x: 0, y: 0 };
+const TARGET_PX: Record<ResolvedRuntimeProfile["displayPreset"], number> = {
+  compact: 40,
+  comfort: 56,
+  default: 48,
+  "high-visibility": 64,
+};
 
+/**
+ * Runtime settings (design 6a): only how a person reaches the controls, never what the app sends. Changes preview
+ * live on this screen and reach the profile on "Save and resume"; Escape leaves without saving.
+ */
 export function RuntimeSettingsPanel({
-  allowedCommandFrameIds,
-  baseCommandFrameId,
+  applicationName,
   baseProfile,
-  onChange,
-  onCommandFrameSelect,
-  onDone,
-  onOpenTour,
+  onClose,
+  onSave,
   overrides,
-  teleopActive,
+  runtimeRole,
 }: RuntimeSettingsPanelProps) {
   const rootRef = useRef<HTMLElement | null>(null);
-  const openingOverridesRef = useRef(normalizeRuntimeProfileOverrides(overrides));
-  const previewTimerRef = useRef<number | null>(null);
-  const lastPreviewActivationRef = useRef(0);
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>("movement");
   const [draft, setDraft] = useState(() => normalizeRuntimeProfileOverrides(overrides));
-  const draftRef = useRef(draft);
-  draftRef.current = draft;
-  const [frameSelection, setFrameSelection] = useState<{ error: string; pending: boolean }>({
-    error: "",
-    pending: false,
-  });
-  const [previewVector, setPreviewVector] = useState<PreviewVector>(ZERO_VECTOR);
+  const [tryCount, setTryCount] = useState(0);
+  const lastTryRef = useRef(0);
   const profile = useMemo(() => applyRuntimeProfileOverrides(baseProfile, draft), [baseProfile, draft]);
   const strings = useRuntimeStrings(profile.language);
-  const dirty = !runtimeProfileOverridesEqual(draft, openingOverridesRef.current);
+  const inputMethod: InputMethod =
+    profile.motorAccessibilityPreset === "scan" ? "scan" : profile.dwellEnabled ? "dwell" : "touch";
+  const pushMode: PushMode =
+    profile.motorAccessibilityPreset === "step"
+      ? "step"
+      : profile.motorAccessibilityPreset === "latch"
+        ? "latch"
+        : "drag";
   const scanning = useSwitchScanning({
-    enabled: profile.motorAccessibilityPreset === "scan",
+    enabled: inputMethod === "scan",
     periodMs: profile.scanPeriodMs,
-    revision: activeCategory,
+    revision: `${inputMethod}:${pushMode}`,
     rootRef,
   });
-  useDwellActivation({
-    dwellMs: profile.dwellMs,
-    enabled: profile.dwellEnabled,
-    rootRef,
-  });
+  useDwellActivation({ dwellMs: profile.dwellMs, enabled: inputMethod === "dwell", rootRef });
 
-  useEffect(
-    () => () => {
-      if (previewTimerRef.current !== null) {
-        window.clearTimeout(previewTimerRef.current);
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
       }
-    },
-    [],
-  );
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
 
-  const commitDraft = (nextValue: RuntimeProfileOverrides) => {
-    const nextDraft = normalizeRuntimeProfileOverrides(nextValue);
-    setDraft(nextDraft);
-    onChange(nextDraft);
+  const update = (next: RuntimeProfileOverrides) => setDraft(normalizeRuntimeProfileOverrides(next));
+  const step = (key: "deadzone" | "dwellMs" | "repeatGuardMs" | "scanPeriodMs", delta: number) => {
+    const clamped = applyRuntimeProfileOverrides(baseProfile, { ...draft, [key]: profile[key] + delta });
+    update({ ...draft, [key]: key === "deadzone" ? Math.round(clamped[key] * 100) / 100 : clamped[key] });
   };
-
-  const commitNumber = (key: "deadzone" | "dwellMs" | "repeatGuardMs" | "scanPeriodMs", nextValue: number) => {
-    const candidate = { ...draft, [key]: nextValue };
-    const clampedProfile = applyRuntimeProfileOverrides(baseProfile, candidate);
-    commitDraft({ ...draft, [key]: clampedProfile[key] });
-  };
-
-  const selectCommandFrame = async (commandFrameId: string) => {
-    setFrameSelection({ error: "", pending: true });
-    try {
-      const result = await onCommandFrameSelect(commandFrameId);
-      if (!result.accepted) {
-        setFrameSelection({ error: result.detail ?? "Command frame change was rejected.", pending: false });
-        return;
-      }
-      commitDraft({ ...draftRef.current, commandFrameId });
-      setFrameSelection({ error: "", pending: false });
-    } catch (error: unknown) {
-      setFrameSelection({ error: getErrorMessage(error), pending: false });
-    }
-  };
-
-  const activatePreview = (nextVector: PreviewVector) => {
+  const chooseInput = (method: InputMethod) =>
+    update({
+      ...draft,
+      dwellEnabled: method === "dwell",
+      motorAccessibilityPreset: method === "scan" ? "scan" : PUSH_PRESETS[pushMode],
+    });
+  const tryPress = () => {
     const now = Date.now();
-    if (now - lastPreviewActivationRef.current < profile.repeatGuardMs) {
+    if (now - lastTryRef.current < profile.repeatGuardMs) {
       return;
     }
-    lastPreviewActivationRef.current = now;
-    if (previewTimerRef.current !== null) {
-      window.clearTimeout(previewTimerRef.current);
-      previewTimerRef.current = null;
-    }
-
-    if (profile.motorAccessibilityPreset === "latch") {
-      const isActiveDirection = previewVector.x === nextVector.x && previewVector.y === nextVector.y;
-      setPreviewVector(isActiveDirection ? ZERO_VECTOR : nextVector);
-      return;
-    }
-
-    if (profile.motorAccessibilityPreset === "step") {
-      setPreviewVector((current) => ({
-        x: clampPreviewAxis(current.x + nextVector.x * 0.25),
-        y: clampPreviewAxis(current.y + nextVector.y * 0.25),
-      }));
-      return;
-    }
-
-    setPreviewVector(nextVector);
-    previewTimerRef.current = window.setTimeout(() => setPreviewVector(ZERO_VECTOR), 500);
+    lastTryRef.current = now;
+    setTryCount((count) => count + 1);
   };
-
-  const activeMovement = normalizeMovementPreset(profile.motorAccessibilityPreset);
-  const activeMovementChoice = MOVEMENT_CHOICES.find((choice) => choice.preset === activeMovement);
-  const effectiveCommandFrameId = draft.commandFrameId ?? baseCommandFrameId;
-  const commandFrameIds = resolveCommandFrameIds(allowedCommandFrameIds, effectiveCommandFrameId);
+  const timing =
+    inputMethod === "dwell"
+      ? `${profile.dwellMs} ms`
+      : inputMethod === "scan"
+        ? `${(profile.scanPeriodMs / 1000).toFixed(1)} s`
+        : strings.settings.immediate;
+  const methodName = (method: InputMethod) => strings.settings.inputMethods[method];
 
   return (
     <section
@@ -161,523 +118,277 @@ export function RuntimeSettingsPanel({
       ref={rootRef}
       style={{ "--runtime-font-scale": profile.fontScale } as CSSProperties}
     >
-      <header className="runtime-settings-header">
-        <h2>{strings.settings.title}</h2>
-        <span>{strings.settings.profileName(baseProfile.name)}</span>
-        <div className="runtime-settings-header-actions">
-          <button onClick={onOpenTour} type="button">
-            {strings.settings.practiceTour}
-          </button>
-          {dirty ? (
-            <button
-              className="runtime-settings-undo"
-              onClick={() => commitDraft(openingOverridesRef.current)}
-              type="button"
-            >
-              {strings.settings.undo}
-            </button>
-          ) : null}
-          <button className="runtime-settings-done" onClick={onDone} type="button">
-            {strings.settings.done}
-          </button>
-        </div>
+      <header className="runtime-kiosk-bar">
+        <h2 className="runtime-kiosk-app">{applicationName}</h2>
+        <span className="runtime-kiosk-screen">{strings.settings.title}</span>
+        <span className="runtime-kiosk-status" data-tone="held" role="status">
+          <span aria-hidden="true" className="runtime-kiosk-status-dot" />
+          {strings.status.held}
+        </span>
+        <span className="runtime-kiosk-spacer" />
+        <span className="runtime-kiosk-role" data-role={runtimeRole}>
+          {baseProfile.name}
+        </span>
       </header>
 
-      <div className="runtime-settings-body">
-        <nav aria-label={strings.settings.title} className="runtime-settings-rail">
-          {CATEGORIES.map((category) => (
+      <div className="runtime-settings-columns">
+        <div className="runtime-settings-column">
+          <h3 className="runtime-settings-group">{strings.settings.display}</h3>
+          <SettingCard label={strings.settings.textSize} readout={`font_scale ${profile.fontScale.toFixed(2)}`}>
+            <Segments
+              label={strings.settings.textSize}
+              onSelect={(scale) => update({ ...draft, fontScale: scale })}
+              options={TEXT_SIZES.map((size) => ({
+                label: strings.settings.textSizes[size.key],
+                style: { fontSize: `${15 * size.scale}px` },
+                value: size.scale,
+              }))}
+              selected={profile.fontScale}
+            />
+          </SettingCard>
+          <SettingCard label={strings.settings.language} readout={profile.language}>
+            <Segments
+              label={strings.settings.language}
+              onSelect={(language: RuntimeLanguage) => update({ ...draft, language })}
+              options={(["en", "es", "fr"] as const).map((language) => ({
+                label: language.toUpperCase(),
+                value: language,
+              }))}
+              selected={profile.language}
+            />
+          </SettingCard>
+          <div className="runtime-settings-card runtime-settings-card-row">
+            <div>
+              <strong>{strings.settings.sound}</strong>
+              <span className="runtime-settings-key">audio_cues</span>
+            </div>
             <button
-              aria-controls={`runtime-settings-${category}`}
-              aria-pressed={activeCategory === category}
-              className="runtime-settings-category"
-              key={category}
-              onClick={() => setActiveCategory(category)}
+              aria-checked={profile.audioCues}
+              aria-label={strings.settings.sound}
+              className="runtime-settings-toggle"
+              onClick={() => update({ ...draft, audioCues: !profile.audioCues })}
+              role="switch"
               type="button"
             >
-              {strings.settings.categories[category]}
+              {profile.audioCues ? strings.settings.valueOn : strings.settings.valueOff}
             </button>
-          ))}
-        </nav>
-
-        <div className="runtime-settings-main">
-          <div className="runtime-settings-pane" id={`runtime-settings-${activeCategory}`} role="tabpanel">
-            {activeCategory === "movement" ? (
-              <MovementSettings
-                activePreset={activeMovement}
-                description={
-                  activeMovementChoice
-                    ? strings.settings.movementChoices[activeMovementChoice.key].description
-                    : strings.settings.movementFallback
-                }
-                onSelect={(motorAccessibilityPreset) => commitDraft({ ...draft, motorAccessibilityPreset })}
-                strings={strings}
-              />
-            ) : null}
-            {activeCategory === "tuning" ? (
-              <TuningSettings
-                onAudioCuesChange={(audioCues) => commitDraft({ ...draft, audioCues })}
-                onDeadzoneChange={(deadzone) => commitNumber("deadzone", deadzone)}
-                onDwellEnabledChange={(dwellEnabled) => commitDraft({ ...draft, dwellEnabled })}
-                onDwellMsChange={(dwellMs) => commitNumber("dwellMs", dwellMs)}
-                onRepeatGuardMsChange={(repeatGuardMs) => commitNumber("repeatGuardMs", repeatGuardMs)}
-                onScanPeriodMsChange={(scanPeriodMs) => commitNumber("scanPeriodMs", scanPeriodMs)}
-                profile={profile}
-                strings={strings}
-              />
-            ) : null}
-            {activeCategory === "frame" ? (
-              <FrameSettings
-                activeFrameId={effectiveCommandFrameId}
-                commandFrameIds={commandFrameIds}
-                disabled={teleopActive}
-                error={frameSelection.error}
-                onSelect={selectCommandFrame}
-                pending={frameSelection.pending}
-                strings={strings}
-              />
-            ) : null}
-            {activeCategory === "language" ? (
-              <LanguageSettings
-                activeLanguage={profile.language}
-                onSelect={(language) => commitDraft({ ...draft, language })}
-                strings={strings}
-              />
-            ) : null}
-            {activeCategory === "display" ? <DisplaySettings profile={profile} strings={strings} /> : null}
           </div>
 
-          <TrySettings
-            onActivate={activatePreview}
-            onSwitch={scanning.activateCurrent}
-            previewVector={previewVector}
-            scanIndex={scanning.index}
-            scanTargetCount={scanning.targetCount}
+          <h3 className="runtime-settings-group">{strings.settings.reach}</h3>
+          <SettingCard label={strings.settings.inputMethod} readout={profile.motorAccessibilityPreset}>
+            <Segments
+              label={strings.settings.inputMethod}
+              onSelect={chooseInput}
+              options={(["touch", "dwell", "scan"] as const).map((method) => ({
+                label: methodName(method),
+                value: method,
+              }))}
+              selected={inputMethod}
+            />
+          </SettingCard>
+          <SettingCard
+            interlocked={inputMethod === "scan" ? strings.settings.onlyForTouchAndDwell : undefined}
+            label={strings.settings.pushMoves}
+          >
+            <Segments
+              disabled={inputMethod === "scan"}
+              label={strings.settings.pushMoves}
+              onSelect={(mode: PushMode) => update({ ...draft, motorAccessibilityPreset: PUSH_PRESETS[mode] })}
+              options={(["drag", "step", "latch"] as const).map((mode) => ({
+                label: strings.settings.pushModes[mode],
+                value: mode,
+              }))}
+              selected={pushMode}
+            />
+          </SettingCard>
+        </div>
+
+        <div className="runtime-settings-column">
+          <h3 className="runtime-settings-group">
+            {inputMethod === "touch" ? strings.settings.timingTouch : strings.settings.timing}
+          </h3>
+          <Stepper
+            formatted={`${profile.dwellMs} ms`}
+            interlocked={inputMethod === "dwell" ? undefined : strings.settings.onlyFor(methodName("dwell"))}
+            label={strings.settings.holdToActivate}
+            max={profile.dwellMs >= 4000}
+            min={profile.dwellMs <= 400}
+            onStep={(direction) => step("dwellMs", direction * 100)}
+            settingKey="dwell_ms"
+            strings={strings}
+          />
+          <Stepper
+            formatted={`${profile.scanPeriodMs} ms`}
+            interlocked={inputMethod === "scan" ? undefined : strings.settings.onlyFor(methodName("scan"))}
+            label={strings.settings.scanStep}
+            max={profile.scanPeriodMs >= 3000}
+            min={profile.scanPeriodMs <= 600}
+            onStep={(direction) => step("scanPeriodMs", direction * 200)}
+            settingKey="scan_period_ms"
+            strings={strings}
+          />
+          <Stepper
+            formatted={`${profile.repeatGuardMs} ms`}
+            label={strings.settings.ignoreRepeats}
+            max={profile.repeatGuardMs >= 600}
+            min={profile.repeatGuardMs <= 0}
+            onStep={(direction) => step("repeatGuardMs", direction * 50)}
+            settingKey="repeat_guard_ms"
+            strings={strings}
+          />
+          <Stepper
+            formatted={profile.deadzone.toFixed(2)}
+            label={strings.settings.deadzone}
+            max={profile.deadzone >= 0.5}
+            min={profile.deadzone <= 0}
+            onStep={(direction) => step("deadzone", direction * 0.05)}
+            settingKey="deadzone"
             strings={strings}
           />
         </div>
-      </div>
-    </section>
-  );
-}
 
-function MovementSettings({
-  activePreset,
-  description,
-  onSelect,
-  strings,
-}: {
-  activePreset: UserProfile["motor_accessibility_preset"];
-  description: string;
-  onSelect: (preset: UserProfile["motor_accessibility_preset"]) => void;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <div className="runtime-settings-section">
-      <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">{strings.settings.movementEyebrow}</p>
-        <h3>{strings.settings.movementHeading}</h3>
-      </div>
-      <div className="runtime-settings-movement-options">
-        {MOVEMENT_CHOICES.map((choice) => {
-          const copy = strings.settings.movementChoices[choice.key];
-          return (
-            <button
-              aria-pressed={activePreset === choice.preset}
-              disabled={choice.disabled}
-              key={choice.key}
-              onClick={() => onSelect(choice.preset)}
-              title={choice.disabled ? copy.description : undefined}
-              type="button"
-            >
-              <strong>{copy.label}</strong>
-              <span>{copy.description}</span>
+        <div className="runtime-settings-column">
+          <h3 className="runtime-settings-group">{strings.settings.tryIt}</h3>
+          <div className="runtime-settings-card runtime-settings-try">
+            <strong>{strings.settings.tryTitle}</strong>
+            <button className="runtime-settings-try-target" onClick={tryPress} type="button">
+              {strings.settings.tryTitle}
             </button>
-          );
-        })}
-      </div>
-      <p className="runtime-settings-current-help">{description}</p>
-    </div>
-  );
-}
-
-function TuningSettings({
-  onAudioCuesChange,
-  onDeadzoneChange,
-  onDwellEnabledChange,
-  onDwellMsChange,
-  onRepeatGuardMsChange,
-  onScanPeriodMsChange,
-  profile,
-  strings,
-}: {
-  onAudioCuesChange: (enabled: boolean) => void;
-  onDeadzoneChange: (value: number) => void;
-  onDwellEnabledChange: (enabled: boolean) => void;
-  onDwellMsChange: (value: number) => void;
-  onRepeatGuardMsChange: (value: number) => void;
-  onScanPeriodMsChange: (value: number) => void;
-  profile: ResolvedRuntimeProfile;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <div className="runtime-settings-section runtime-settings-tuning">
-      <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">{strings.settings.tuningEyebrow}</p>
-        <h3>{strings.settings.tuningHeading}</h3>
-      </div>
-      <NumericSetting
-        decreaseDisabled={profile.scanPeriodMs <= 600}
-        formattedValue={`${(profile.scanPeriodMs / 1000).toFixed(1)} s`}
-        increaseDisabled={profile.scanPeriodMs >= 3000}
-        label={strings.settings.scanSpeed}
-        onDecrease={() => onScanPeriodMsChange(profile.scanPeriodMs - 200)}
-        onIncrease={() => onScanPeriodMsChange(profile.scanPeriodMs + 200)}
-        strings={strings}
-      />
-      <NumericSetting
-        decreaseDisabled={profile.deadzone <= 0}
-        formattedValue={profile.deadzone.toFixed(2)}
-        increaseDisabled={profile.deadzone >= 0.5}
-        label={strings.settings.smallMovements}
-        onDecrease={() => onDeadzoneChange(profile.deadzone - 0.05)}
-        onIncrease={() => onDeadzoneChange(profile.deadzone + 0.05)}
-        strings={strings}
-      />
-      <div className="runtime-settings-tuning-row runtime-settings-tuning-row-dwell">
-        <div>
-          <strong>{strings.settings.dwellLabel}</strong>
-          <span>{strings.settings.dwellHelp}</span>
-        </div>
-        <NumericButtons
-          decreaseDisabled={profile.dwellMs <= 400}
-          formattedValue={`${profile.dwellMs} ms`}
-          label={strings.settings.dwellLabel}
-          increaseDisabled={profile.dwellMs >= 4000}
-          onDecrease={() => onDwellMsChange(profile.dwellMs - 100)}
-          onIncrease={() => onDwellMsChange(profile.dwellMs + 100)}
-          strings={strings}
-        />
-        <ToggleButton
-          checked={profile.dwellEnabled}
-          label={strings.settings.restToSelect}
-          onChange={onDwellEnabledChange}
-          strings={strings}
-        />
-      </div>
-      <NumericSetting
-        decreaseDisabled={profile.repeatGuardMs <= 0}
-        formattedValue={`${profile.repeatGuardMs} ms`}
-        increaseDisabled={profile.repeatGuardMs >= 600}
-        label={strings.settings.repeatGuard}
-        onDecrease={() => onRepeatGuardMsChange(profile.repeatGuardMs - 50)}
-        onIncrease={() => onRepeatGuardMsChange(profile.repeatGuardMs + 50)}
-        strings={strings}
-      />
-      <div className="runtime-settings-tuning-row">
-        <div>
-          <strong>{strings.settings.statusSounds}</strong>
-          <span>{strings.settings.statusSoundsHelp}</span>
-        </div>
-        <ToggleButton
-          checked={profile.audioCues}
-          label={strings.settings.statusSounds}
-          onChange={onAudioCuesChange}
-          strings={strings}
-        />
-      </div>
-    </div>
-  );
-}
-
-function NumericSetting({
-  decreaseDisabled,
-  formattedValue,
-  increaseDisabled,
-  label,
-  onDecrease,
-  onIncrease,
-  strings,
-}: {
-  decreaseDisabled: boolean;
-  formattedValue: string;
-  increaseDisabled: boolean;
-  label: string;
-  onDecrease: () => void;
-  onIncrease: () => void;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <div className="runtime-settings-tuning-row">
-      <strong>{label}</strong>
-      <NumericButtons
-        decreaseDisabled={decreaseDisabled}
-        formattedValue={formattedValue}
-        increaseDisabled={increaseDisabled}
-        label={label}
-        onDecrease={onDecrease}
-        onIncrease={onIncrease}
-        strings={strings}
-      />
-    </div>
-  );
-}
-
-function NumericButtons({
-  decreaseDisabled,
-  formattedValue,
-  increaseDisabled,
-  label,
-  onDecrease,
-  onIncrease,
-  strings,
-}: {
-  decreaseDisabled: boolean;
-  formattedValue: string;
-  increaseDisabled: boolean;
-  label: string;
-  onDecrease: () => void;
-  onIncrease: () => void;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <div className="runtime-settings-stepper">
-      <button
-        aria-label={strings.settings.decrease(label)}
-        disabled={decreaseDisabled}
-        onClick={onDecrease}
-        type="button"
-      >
-        -
-      </button>
-      <output aria-label={strings.settings.value(label)}>{formattedValue}</output>
-      <button
-        aria-label={strings.settings.increase(label)}
-        disabled={increaseDisabled}
-        onClick={onIncrease}
-        type="button"
-      >
-        +
-      </button>
-    </div>
-  );
-}
-
-function ToggleButton({
-  checked,
-  label,
-  onChange,
-  strings,
-}: {
-  checked: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <button
-      aria-checked={checked}
-      aria-label={label}
-      className="runtime-settings-toggle"
-      onClick={() => onChange(!checked)}
-      role="switch"
-      type="button"
-    >
-      {checked ? strings.settings.valueOn : strings.settings.valueOff}
-    </button>
-  );
-}
-
-function FrameSettings({
-  activeFrameId,
-  commandFrameIds,
-  disabled,
-  error,
-  onSelect,
-  pending,
-  strings,
-}: {
-  activeFrameId: string | null;
-  commandFrameIds: readonly string[];
-  disabled: boolean;
-  error: string;
-  onSelect: (frameId: string) => Promise<void>;
-  pending: boolean;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <div className="runtime-settings-section">
-      <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">{strings.settings.directionEyebrow}</p>
-        <h3>{strings.settings.directionHeading}</h3>
-      </div>
-      {disabled ? <p className="runtime-settings-notice">{strings.settings.directionRelease}</p> : null}
-      {error ? (
-        <p className="runtime-settings-notice" role="alert">
-          {error}
-        </p>
-      ) : null}
-      {commandFrameIds.length > 0 ? (
-        <div aria-busy={pending} className="runtime-settings-frame-options">
-          {commandFrameIds.map((frameId) => {
-            const frame = describeCommandFrame(frameId, strings);
-            return (
-              <button
-                aria-pressed={activeFrameId === frameId}
-                disabled={disabled || pending}
-                key={frameId}
-                onClick={() => void onSelect(frameId)}
-                type="button"
-              >
-                <strong>{frame.label}</strong>
-                <span>{frame.description}</span>
-                <code>{frameId}</code>
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="runtime-settings-notice">{strings.settings.frameUnavailable}</p>
-      )}
-    </div>
-  );
-}
-
-function LanguageSettings({
-  activeLanguage,
-  onSelect,
-  strings,
-}: {
-  activeLanguage: RuntimeLanguage;
-  onSelect: (language: RuntimeLanguage) => void;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <div className="runtime-settings-section">
-      <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">{strings.settings.languageEyebrow}</p>
-        <h3>{strings.settings.languageHeading}</h3>
-      </div>
-      <div className="runtime-settings-language-options">
-        {(
-          [
-            ["en", "English"],
-            ["es", "Español"],
-            ["fr", "Français"],
-          ] as const
-        ).map(([language, label]) => (
+            <p aria-live="polite">{tryCount > 0 ? strings.settings.tryPressed(tryCount) : strings.settings.tryIdle}</p>
+            <output className="runtime-settings-key">
+              {strings.settings.tryReadout(TARGET_PX[profile.displayPreset], profile.fontScale.toFixed(2), timing)}
+            </output>
+            {scanning.index >= 0 ? (
+              <>
+                <button
+                  className="runtime-settings-switch"
+                  data-scan-switch=""
+                  onClick={scanning.activateCurrent}
+                  type="button"
+                >
+                  {strings.scan.button}
+                </button>
+                <p aria-live="polite" className="sr-only" role="status">
+                  {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
+                </p>
+              </>
+            ) : null}
+          </div>
           <button
-            aria-pressed={activeLanguage === language}
-            key={language}
-            onClick={() => onSelect(language)}
+            className="runtime-settings-save"
+            onClick={() => {
+              onSave(draft);
+              onClose();
+            }}
             type="button"
           >
-            {label}
+            {strings.settings.saveAndResume}
           </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function DisplaySettings({ profile, strings }: { profile: ResolvedRuntimeProfile; strings: RuntimeStrings }) {
-  return (
-    <div className="runtime-settings-section">
-      <div className="runtime-settings-section-heading">
-        <p className="runtime-settings-eyebrow">{strings.settings.displayEyebrow}</p>
-        <h3>{strings.settings.displayHeading}</h3>
-      </div>
-      <dl className="runtime-settings-readonly">
-        <div>
-          <dt>{strings.settings.displayLabel}</dt>
-          <dd>{strings.settings.displayPresets[profile.displayPreset]}</dd>
+          <div className="runtime-settings-card runtime-settings-saved">
+            <h4>{strings.settings.savedTo}</h4>
+            <p>{strings.settings.savedToBody(baseProfile.name)}</p>
+          </div>
         </div>
-        <div>
-          <dt>{strings.settings.textSize}</dt>
-          <dd>{Math.round(profile.fontScale * 100)}%</dd>
-        </div>
-      </dl>
-      <p className="runtime-settings-notice">{strings.settings.displayFixed}</p>
-    </div>
-  );
-}
-
-function TrySettings({
-  onActivate,
-  onSwitch,
-  previewVector,
-  scanIndex,
-  scanTargetCount,
-  strings,
-}: {
-  onActivate: (vector: PreviewVector) => void;
-  onSwitch: () => void;
-  previewVector: PreviewVector;
-  scanIndex: number;
-  scanTargetCount: number;
-  strings: RuntimeStrings;
-}) {
-  return (
-    <section aria-label={strings.settings.safePreview} className="runtime-settings-try">
-      <div>
-        <strong>{strings.settings.tryTitle}</strong>
-        <span>{strings.settings.tryHelp}</span>
       </div>
-      <div className="runtime-settings-try-buttons">
-        <button onClick={() => onActivate({ x: -1, y: 0 })} type="button">
-          {strings.settings.tryLeft}
-        </button>
-        <button onClick={() => onActivate({ x: 0, y: 1 })} type="button">
-          {strings.settings.tryForward}
-        </button>
-        <button onClick={() => onActivate({ x: 1, y: 0 })} type="button">
-          {strings.settings.tryRight}
-        </button>
-      </div>
-      <output aria-label={strings.settings.value(strings.settings.safePreview)} className="runtime-settings-try-value">
-        {`x ${formatPreviewAxis(previewVector.x)}  y ${formatPreviewAxis(previewVector.y)}`}
-      </output>
-      {scanIndex >= 0 ? (
-        <button className="runtime-settings-switch" data-scan-switch="" onClick={onSwitch} type="button">
-          {strings.scan.button}
-        </button>
-      ) : null}
-      {scanIndex >= 0 ? (
-        <p aria-live="polite" className="sr-only" role="status">
-          {strings.scan.progress(scanIndex + 1, scanTargetCount)}
-        </p>
-      ) : null}
     </section>
   );
 }
 
-function normalizeMovementPreset(
-  preset: UserProfile["motor_accessibility_preset"],
-): UserProfile["motor_accessibility_preset"] {
-  if (preset === "assisted-touch" || preset === "dwell" || preset === "large-targets" || preset === "reduced-motion") {
-    return "default";
-  }
-  return preset;
+function SettingCard({
+  children,
+  interlocked,
+  label,
+  readout,
+}: {
+  children: ReactNode;
+  interlocked?: string;
+  label: string;
+  readout?: string;
+}) {
+  return (
+    <div className="runtime-settings-card" data-interlocked={interlocked ? "true" : undefined}>
+      <div className="runtime-settings-card-head">
+        <strong>{label}</strong>
+        {interlocked ? <span className="runtime-settings-interlock">{interlocked}</span> : null}
+        {readout ? <span className="runtime-settings-key">{readout}</span> : null}
+      </div>
+      {children}
+    </div>
+  );
 }
 
-function resolveCommandFrameIds(allowed: readonly string[] | null, active: string | null): string[] {
-  if (allowed && allowed.length > 0) {
-    return [...new Set(allowed)];
-  }
-  return active ? [active] : [];
+function Segments<Value extends number | string>({
+  disabled = false,
+  label,
+  onSelect,
+  options,
+  selected,
+}: {
+  disabled?: boolean;
+  label: string;
+  onSelect: (value: Value) => void;
+  options: readonly { label: string; style?: CSSProperties; value: Value }[];
+  selected: Value;
+}) {
+  return (
+    <fieldset className="runtime-settings-segments">
+      <legend className="sr-only">{label}</legend>
+      {options.map((option) => (
+        <button
+          aria-pressed={option.value === selected}
+          disabled={disabled}
+          key={String(option.value)}
+          onClick={() => onSelect(option.value)}
+          style={option.style}
+          type="button"
+        >
+          {option.label}
+        </button>
+      ))}
+    </fieldset>
+  );
 }
 
-function describeCommandFrame(frameId: string, strings: RuntimeStrings): { description: string; label: string } {
-  return strings.settings.frameDescriptions[frameId] ?? { label: frameId, description: strings.settings.frameFallback };
-}
-
-function clampPreviewAxis(value: number): number {
-  return Math.min(1, Math.max(-1, value));
-}
-
-function formatPreviewAxis(value: number): string {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}`;
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Command frame change failed.";
+function Stepper({
+  formatted,
+  interlocked,
+  label,
+  max,
+  min,
+  onStep,
+  settingKey,
+  strings,
+}: {
+  formatted: string;
+  interlocked?: string;
+  label: string;
+  max: boolean;
+  min: boolean;
+  onStep: (direction: -1 | 1) => void;
+  settingKey: string;
+  strings: RuntimeStrings;
+}) {
+  return (
+    <SettingCard interlocked={interlocked} label={label} readout={settingKey}>
+      <div className="runtime-settings-stepper">
+        <button
+          aria-label={strings.settings.decrease(label)}
+          disabled={Boolean(interlocked) || min}
+          onClick={() => onStep(-1)}
+          type="button"
+        >
+          −
+        </button>
+        <output aria-label={strings.settings.value(label)}>{formatted}</output>
+        <button
+          aria-label={strings.settings.increase(label)}
+          disabled={Boolean(interlocked) || max}
+          onClick={() => onStep(1)}
+          type="button"
+        >
+          +
+        </button>
+      </div>
+    </SettingCard>
+  );
 }

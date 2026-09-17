@@ -21,7 +21,7 @@ import {
   usePlotSelections,
 } from "./plot-series-data";
 import { RuntimeGuidedTour } from "./RuntimeGuidedTour";
-import { RuntimeKioskBar } from "./RuntimeKioskBar";
+import { RuntimeKioskBar, resolveRuntimeRole } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
 import { RuntimeSettingsPanel } from "./RuntimeSettingsPanel";
 import { RuntimeStopControl } from "./RuntimeStopControl";
@@ -175,11 +175,7 @@ export function RuntimeWorkspace({
   const configuredCommandFrameId =
     application.runtime_policy.command_frame_id || runtimeCapabilityReport?.command_frame_id || null;
   const allowedCommandFrameIds = runtimeCapabilityReport?.command_frame_ids ?? null;
-  const defaultCommandFrameId = resolvePreferredCommandFrameId(
-    activeProfileOverrides.commandFrameId,
-    configuredCommandFrameId,
-    allowedCommandFrameIds,
-  );
+  const defaultCommandFrameId = configuredCommandFrameId;
   const [commandFrameId, setCommandFrameId] = useState<string | null>(defaultCommandFrameId);
   const commandFrameUnavailable = Boolean(
     commandFrameId && allowedCommandFrameIds !== null && !allowedCommandFrameIds.includes(commandFrameId),
@@ -342,24 +338,6 @@ export function RuntimeWorkspace({
     });
   };
 
-  const handleCommandFrameSelection = async (frameId: string) => {
-    const intent: Extract<WidgetActionIntent, { type: "command" }> = {
-      type: "command",
-      widgetId: "runtime-settings-command-frame",
-      widgetKind: "command-button",
-      command: "set-teleop-frame",
-      runtimeBinding: { adapter: "teleop-frame", frame_id: frameId },
-    };
-    const result = (await handleRuntimeActionIntent(intent)) ?? {
-      accepted: false,
-      detail: "Command frame change was not handled.",
-    };
-    if (result.accepted) {
-      onProfileOverridesChange(baseRuntimeProfile.id, { ...activeProfileOverrides, commandFrameId: frameId });
-    }
-    return result;
-  };
-
   useEffect(() => {
     if (settingsOpen || tourOpen) {
       return;
@@ -493,6 +471,7 @@ export function RuntimeWorkspace({
       <section
         aria-label={strings.workspace.application}
         className="runtime-app-workspace"
+        data-full-panel="true"
         data-display-preset={runtimeProfile.displayPreset}
         data-has-debug="false"
         data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
@@ -502,19 +481,16 @@ export function RuntimeWorkspace({
         style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
       >
         <RuntimeSettingsPanel
-          allowedCommandFrameIds={allowedCommandFrameIds}
-          baseCommandFrameId={commandFrameId ?? configuredCommandFrameId}
+          applicationName={application.name}
           baseProfile={baseRuntimeProfile}
           key={profileOverrideKey}
-          onChange={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}
-          onCommandFrameSelect={handleCommandFrameSelection}
-          onDone={() => setSettingsOpen(false)}
-          onOpenTour={() => {
-            setSettingsOpen(false);
-            setTourOpen(true);
-          }}
+          onClose={() => setSettingsOpen(false)}
+          onSave={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}
           overrides={activeProfileOverrides}
-          teleopActive={teleopActive}
+          runtimeRole={resolveRuntimeRole({
+            id: baseRuntimeProfile.id,
+            layoutId: profileLayoutId(application, baseRuntimeProfile.id),
+          })}
         />
       </section>
     );
@@ -742,17 +718,6 @@ function resolvePublishRateHz(screen: ScreenConfig): number {
       : [],
   );
   return rates.length > 0 ? Math.min(DEFAULT_PUBLISH_RATE_HZ, Math.max(...rates)) : DEFAULT_PUBLISH_RATE_HZ;
-}
-
-function resolvePreferredCommandFrameId(
-  preferredFrameId: string | undefined,
-  fallbackFrameId: string | null,
-  allowedFrameIds: readonly string[] | null,
-): string | null {
-  if (preferredFrameId && (!allowedFrameIds || allowedFrameIds.includes(preferredFrameId))) {
-    return preferredFrameId;
-  }
-  return fallbackFrameId;
 }
 
 function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTopicSubscriptionRequest[] {

@@ -599,9 +599,9 @@ async function holdForMaintenance(page) {
 
 async function captureRuntimeLocales(browser) {
   const locales = [
-    { code: "en", language: "Language", settings: "Settings" },
-    { code: "es", language: "Idioma", settings: "Ajustes" },
-    { code: "fr", language: "Langue", settings: "Réglages" },
+    { code: "en", settings: "Settings" },
+    { code: "es", settings: "Ajustes" },
+    { code: "fr", settings: "Réglages" },
   ];
 
   for (const locale of locales) {
@@ -611,7 +611,7 @@ async function captureRuntimeLocales(browser) {
     await holdForMaintenance(page);
     await page.locator(".runtime-maintenance-languages button").filter({ hasText: locale.code.toUpperCase() }).click();
     await page.getByRole("button", { exact: true, name: locale.settings }).click();
-    await page.getByRole("button", { exact: true, name: locale.language }).click();
+    await page.getByRole("region", { name: locale.settings }).waitFor();
     await assertNoHorizontalOverflow(page, `runtime-settings-${locale.code}`);
     await assertPreviewControlsFit(page, `runtime-settings-${locale.code}`);
     await page.screenshot({ path: resolve(outputDir, `runtime-settings-${locale.code}-1280x720.png`) });

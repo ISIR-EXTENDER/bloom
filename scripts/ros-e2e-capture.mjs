@@ -62,7 +62,7 @@ const captures = [
     setup: async (page) => {
       await openRuntime(page);
       await openSettings(page);
-      await page.getByRole("button", { name: "Fine tuning" }).click();
+      await page.getByRole("button", { exact: true, name: "Dwell" }).click();
       await page.waitForTimeout(200);
     },
   },
@@ -71,7 +71,7 @@ const captures = [
     setup: async (page) => {
       await openRuntime(page);
       await openSettings(page);
-      await page.getByRole("button", { name: "Language" }).click();
+      await page.getByRole("button", { exact: true, name: "ES" }).click();
       await page.waitForTimeout(200);
     },
   },

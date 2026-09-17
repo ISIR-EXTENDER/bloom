@@ -464,20 +464,17 @@ describe("App", () => {
 
     expect(screen.getByRole("region", { name: "Settings" })).toBeVisible();
     expect(screen.queryByTestId("runtime-artboard")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Left" }));
-    fireEvent.click(screen.getByRole("button", { name: "Forward" }));
-    fireEvent.click(screen.getByRole("button", { name: "Right" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try a press" }));
     expect(runtimeActionClient.sendTeleopCommand).not.toHaveBeenCalled();
     expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Fine tuning" }));
-    fireEvent.click(screen.getByRole("button", { name: "Increase Scan speed" }));
+    fireEvent.click(screen.getByRole("button", { name: "Scan" }));
+    fireEvent.click(screen.getByRole("button", { name: "Increase Scan step" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
     await waitFor(() => {
       const preferences = JSON.parse(window.localStorage.getItem("bloom.runtime-user-preferences.v1") ?? "{}");
       expect(preferences.profileOverrides["sandbox:sandbox:default"].scanPeriodMs).toBe(1600);
     });
-
-    fireEvent.click(screen.getByRole("button", { name: "Done" }));
     expect(await screen.findByTestId("runtime-artboard")).toBeVisible();
   });
 

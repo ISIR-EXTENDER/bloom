@@ -4,10 +4,10 @@ import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 
 export type RuntimeProfileOverrides = {
   audioCues?: boolean;
-  commandFrameId?: string;
   deadzone?: number;
   dwellEnabled?: boolean;
   dwellMs?: number;
+  fontScale?: number;
   language?: RuntimeLanguage;
   motorAccessibilityPreset?: UserProfile["motor_accessibility_preset"];
   repeatGuardMs?: number;
@@ -43,12 +43,10 @@ export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfile
   copyBoolean(value, "dwellEnabled", overrides);
   copyFiniteNumber(value, "deadzone", overrides);
   copyFiniteNumber(value, "dwellMs", overrides);
+  copyFiniteNumber(value, "fontScale", overrides);
   copyFiniteNumber(value, "repeatGuardMs", overrides);
   copyFiniteNumber(value, "scanPeriodMs", overrides);
 
-  if (typeof value.commandFrameId === "string" && value.commandFrameId.trim()) {
-    overrides.commandFrameId = value.commandFrameId.trim();
-  }
   if (typeof value.language === "string" && RUNTIME_LANGUAGES.has(value.language as RuntimeLanguage)) {
     overrides.language = value.language as RuntimeLanguage;
   }
@@ -78,7 +76,7 @@ function copyBoolean<Key extends "audioCues" | "dwellEnabled">(
   }
 }
 
-function copyFiniteNumber<Key extends "deadzone" | "dwellMs" | "repeatGuardMs" | "scanPeriodMs">(
+function copyFiniteNumber<Key extends "deadzone" | "dwellMs" | "fontScale" | "repeatGuardMs" | "scanPeriodMs">(
   source: Record<string, unknown>,
   key: Key,
   target: RuntimeProfileOverrides,
