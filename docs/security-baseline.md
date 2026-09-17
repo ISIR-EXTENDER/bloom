@@ -41,7 +41,9 @@ The first things to protect are:
 - Require one runtime control owner in production. Gate teleop and robot-facing HTTP operations with the same opaque
   WebSocket session lease, while keeping STOP callable without ownership.
 - Restrict CORS to configured dashboard origins.
-- Apply a global HTTP rate limit, plus runtime command-specific rate limits for robot commands.
+- Apply a global HTTP rate limit, plus runtime command-specific rate limits for robot commands. A command is checked
+  against the allowlist before it is counted, so a topic nobody may publish to never gets a counter, and idle counters
+  are swept once either map fills.
 - Enforce deployment allowlists for publish topics, message types, teleop targets, command frames, service calls,
   recording topics, and recording folders, with narrower app policy as an earlier guardrail.
 - Validate manager mode grammar and reject malformed/unknown frame requests before they reach ROS.

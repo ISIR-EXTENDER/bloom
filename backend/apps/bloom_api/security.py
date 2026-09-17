@@ -25,6 +25,9 @@ RUNTIME_WEBSOCKET_SUBPROTOCOL = "bloom.runtime.v1"
 API_KEY_SUBPROTOCOL_PREFIX = "bloom.api-key."
 _API_KEY_QUERY = re.compile(r"(api_key=)[^&\s\"]*")
 RUNTIME_SESSION_HEADER = "x-bloom-runtime-session"
+#: Addresses kept before idle ones are swept. A lab has a handful of tablets;
+#: past this the buckets are a spoofed-address memory leak, not traffic.
+MAX_RATE_LIMIT_CLIENTS = 1024
 T = TypeVar("T")
 
 
@@ -239,6 +242,8 @@ def _allow_http_request(
     now: float,
 ) -> bool:
     window_start = now - 60.0
+    if len(buckets) >= MAX_RATE_LIMIT_CLIENTS:
+        _forget_idle_clients(buckets, window_start)
     recent_requests = [timestamp for timestamp in buckets.get(client_key, []) if timestamp >= window_start]
     if len(recent_requests) >= limit_per_minute:
         buckets[client_key] = recent_requests
@@ -247,3 +252,9 @@ def _allow_http_request(
     recent_requests.append(now)
     buckets[client_key] = recent_requests
     return True
+
+
+def _forget_idle_clients(buckets: dict[str, list[float]], window_start: float) -> None:
+    """A client with nothing left in its window counts the same as a new one."""
+    for client_key in [key for key, timestamps in buckets.items() if not timestamps or timestamps[-1] < window_start]:
+        del buckets[client_key]

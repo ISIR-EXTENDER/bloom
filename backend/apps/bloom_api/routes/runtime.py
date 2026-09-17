@@ -708,6 +708,22 @@ def publish_camera_frame(
     audit_log = get_runtime_audit_log(request)
     gateway = get_camera_frame_gateway(request)
 
+    # The allowlist runs first: counting an unknown topic would let any string
+    # in a request body create a rate-limit bucket that is never collected.
+    try:
+        policy.ensure_publish_allowed(payload.topic, "sensor_msgs/msg/CompressedImage", {})
+    except RuntimeCommandPolicyError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_camera_frame",
+                detail=str(exc),
+                message_type="sensor_msgs/msg/CompressedImage",
+                status="rejected",
+                topic=payload.topic,
+            )
+        )
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
     # Frames are megabytes each. Without a limit a camera widget stuck in a
     # retry loop would saturate the backend and the ROS graph, so this is rate
     # limited like every other robot-facing command.
@@ -724,20 +740,6 @@ def publish_camera_frame(
             )
         )
         raise HTTPException(status_code=429, detail=str(exc)) from exc
-
-    try:
-        policy.ensure_publish_allowed(payload.topic, "sensor_msgs/msg/CompressedImage", {})
-    except RuntimeCommandPolicyError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_camera_frame",
-                detail=str(exc),
-                message_type="sensor_msgs/msg/CompressedImage",
-                status="rejected",
-                topic=payload.topic,
-            )
-        )
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
     try:
         frame = decode_image_data_url(payload.image_data_url)

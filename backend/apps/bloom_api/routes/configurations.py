@@ -2,6 +2,7 @@ import base64
 import hashlib
 import re
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import wraps
 from pathlib import Path
 from threading import Lock
@@ -75,7 +76,13 @@ def get_configuration_repository(request: Request) -> ConfigurationRepository:
     return request.app.state.configuration_repository
 
 
-_configuration_locks: dict[str, Lock] = {}
+@dataclass
+class _ConfigurationLock:
+    lock: Lock
+    holders: int = 0
+
+
+_configuration_locks: dict[str, _ConfigurationLock] = {}
 _configuration_locks_guard = Lock()
 
 
@@ -84,10 +91,20 @@ def serialized_per_configuration(route: Callable[..., T]) -> Callable[..., T]:
 
     @wraps(route)
     def locked_route(*args: Any, **kwargs: Any) -> T:
+        config_id = kwargs["config_id"]
         with _configuration_locks_guard:
-            lock = _configuration_locks.setdefault(kwargs["config_id"], Lock())
-        with lock:
-            return route(*args, **kwargs)
+            entry = _configuration_locks.setdefault(config_id, _ConfigurationLock(lock=Lock()))
+            entry.holders += 1
+        try:
+            with entry.lock:
+                return route(*args, **kwargs)
+        finally:
+            # Kept only while someone holds or waits for it, so an id nobody
+            # saves any more leaves no lock behind.
+            with _configuration_locks_guard:
+                entry.holders -= 1
+                if entry.holders == 0:
+                    _configuration_locks.pop(config_id, None)
 
     return locked_route
 

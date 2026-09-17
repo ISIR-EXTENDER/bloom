@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from starlette.websockets import WebSocketDisconnect
 
 from apps.bloom_api.main import create_app
-from apps.bloom_api.security import require_runtime_owner
+from apps.bloom_api.security import MAX_RATE_LIMIT_CLIENTS, _allow_http_request, require_runtime_owner
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import InMemoryConfigurationRepository, load_configuration_file
 
@@ -319,6 +319,28 @@ def test_global_http_rate_limit_rejects_excess_requests() -> None:
 
     assert response.status_code == 429
     assert response.json() == {"detail": "Too many requests."}
+
+
+def test_idle_client_buckets_are_forgotten_once_the_map_fills() -> None:
+    # One bucket per address, kept forever, is a memory leak any spoofed
+    # source address can drive.
+    buckets: dict[str, list[float]] = {}
+    for index in range(MAX_RATE_LIMIT_CLIENTS):
+        assert _allow_http_request(buckets, f"10.0.0.{index}", 60, 0.0) is True
+    assert len(buckets) == MAX_RATE_LIMIT_CLIENTS
+
+    assert _allow_http_request(buckets, "10.1.0.1", 60, 120.0) is True
+
+    assert list(buckets) == ["10.1.0.1"]
+
+
+def test_a_client_still_inside_its_window_keeps_its_bucket() -> None:
+    buckets: dict[str, list[float]] = {}
+    _allow_http_request(buckets, "10.1.0.1", 1, 0.0)
+    for index in range(MAX_RATE_LIMIT_CLIENTS):
+        _allow_http_request(buckets, f"10.0.0.{index}", 60, 30.0)
+
+    assert _allow_http_request(buckets, "10.1.0.1", 1, 30.0) is False
 
 
 def test_production_settings_require_authentication() -> None:

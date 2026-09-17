@@ -28,6 +28,19 @@ def test_camera_frames_are_rate_limited() -> None:
     assert 429 in statuses[2:]
 
 
+def test_a_topic_outside_the_allowlist_never_gets_a_rate_limit_bucket() -> None:
+    # Counting before validating let any string in a request body leave a
+    # permanent deque behind.
+    settings = Settings(environment="test", allowed_ros_publish_topics=(TOPIC,))
+    client = TestClient(create_app(settings, InMemoryConfigurationRepository()))
+
+    for index in range(20):
+        body = {"topic": f"/made/up/{index}", "image_data_url": FRAME}
+        assert client.post("/api/v1/runtime/camera-frames", json=body).status_code == 403
+
+    assert client.app.state.runtime_command_rate_limiter.tracked_keys == ()
+
+
 def test_rate_limited_frames_are_audited() -> None:
     settings = Settings(
         environment="test",

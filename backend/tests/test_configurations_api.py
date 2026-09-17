@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
+from apps.bloom_api.routes.configurations import _configuration_locks
 from apps.bloom_api.settings import Settings
 from libs.config import (
     ApplicationConfig,
@@ -491,3 +492,16 @@ def test_concurrent_screen_saves_to_one_configuration_keep_both_edits(
     screens = client.get("/api/v1/configurations/sandbox").json()["applications"][0]["screens"]
     assert statuses == [200, 200]
     assert {"edit-one", "edit-two"} <= {screen["id"] for screen in screens}
+
+
+def test_a_finished_save_leaves_no_lock_behind(client: TestClient) -> None:
+    # One lock per config id, kept forever, grows with every id ever saved.
+    screen = ScreenConfig(id="edit-one", title="Edit one", canvas=CanvasSettings(preset_id="tablet"))
+
+    for config_id in ("sandbox", "missing-one", "missing-two"):
+        client.put(
+            f"/api/v1/configurations/{config_id}/applications/sandbox/screens/edit-one",
+            json=screen.model_dump(mode="json"),
+        )
+
+    assert _configuration_locks == {}

@@ -13,6 +13,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- Rate-limit state is bounded. A camera frame is checked against the publish allowlist before it is counted, so an
+  arbitrary topic no longer leaves a counter behind, and idle runtime keys, client-address buckets, and
+  per-configuration save locks are released instead of kept for the life of the process.
 - A service call the robot refused is audited as `rejected`, not `accepted`, and every service audit row carries the
   receipt's own `call_status` and `success`, so a simulated call is visible as one.
 - A camera frame published with no ROS attached is reported as `simulated`, like every other Noop seam, instead of

@@ -5,6 +5,10 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from time import monotonic
 
+#: Keys held before idle ones are swept. A deployment counts a handful of
+#: topics and targets, so anything past this is a client inventing keys.
+MAX_TRACKED_KEYS = 256
+
 
 class RuntimeRateLimitError(RuntimeError):
     """Raised when a runtime command exceeds the configured rate limit."""
@@ -22,6 +26,8 @@ class RuntimeCommandRateLimiter:
 
         now = self.clock()
         window_start = now - 1.0
+        if len(self._events_by_key) >= MAX_TRACKED_KEYS:
+            self._forget_idle_keys(window_start)
         events = self._events_by_key[key]
 
         while events and events[0] <= window_start:
@@ -33,3 +39,13 @@ class RuntimeCommandRateLimiter:
             )
 
         events.append(now)
+
+    @property
+    def tracked_keys(self) -> tuple[str, ...]:
+        return tuple(self._events_by_key)
+
+    def _forget_idle_keys(self, window_start: float) -> None:
+        """A key with nothing left in its window is indistinguishable from a new one."""
+        idle_keys = [key for key, events in self._events_by_key.items() if not events or events[-1] <= window_start]
+        for idle_key in idle_keys:
+            del self._events_by_key[idle_key]
