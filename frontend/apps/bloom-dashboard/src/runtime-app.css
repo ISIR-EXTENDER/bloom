@@ -1017,6 +1017,29 @@
   font-size: 16px;
 }
 
+/* In the screen's reserved region (drive.md): the largest target, filled, at its canvas rect. */
+.runtime-stop-control[data-placement="region"] {
+  right: auto;
+  bottom: auto;
+  border-radius: var(--bloom-radius-card);
+  background: var(--bloom-error);
+  color: var(--bloom-on-error);
+  box-shadow: none;
+  font-size: clamp(20px, 4vmin, 34px);
+  letter-spacing: 0.04em;
+}
+
+.runtime-stop-control[data-placement="region"][data-stopped="true"] {
+  background: var(--bloom-ink);
+  color: var(--bloom-surface);
+  font-size: clamp(16px, 2.6vmin, 22px);
+}
+
+.runtime-stop-control[data-placement="region"] .runtime-stop-hold {
+  height: 8px;
+  background: var(--bloom-secondary-container);
+}
+
 .runtime-stop-label {
   text-align: center;
 }

@@ -2,6 +2,7 @@ import type { RuntimeLanguage } from "@bloom/api-client";
 
 import { useRuntimeStrings } from "./strings";
 import { useHoldGesture } from "./use-hold-gesture";
+import type { RegionRect } from "./use-reserved-region-rect";
 
 const RESUME_HOLD_MS = 1000;
 
@@ -14,6 +15,8 @@ export type RuntimeStopControlProps = {
   language?: RuntimeLanguage;
   resumeDisabled?: boolean;
   resumeDisabledReason?: string;
+  /** The screen's reserved `stop` region in the canvas shell; without one STOP floats in the corner. */
+  region?: RegionRect | null;
 };
 
 /**
@@ -28,7 +31,10 @@ export function RuntimeStopControl({
   language = "en",
   resumeDisabled = false,
   resumeDisabledReason = "",
+  region = null,
 }: RuntimeStopControlProps) {
+  const placement = region ? "region" : "corner";
+  const style = region ? { height: region.height, left: region.left, top: region.top, width: region.width } : undefined;
   const strings = useRuntimeStrings(language);
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, () => {
     if (!resumeDisabled) {
@@ -49,6 +55,7 @@ export function RuntimeStopControl({
         className="runtime-stop-control"
         data-dwell-action="resume"
         data-dwell-min-ms={RESUME_HOLD_MS}
+        data-placement={placement}
         data-runtime-control-independent=""
         data-stopped="true"
         disabled={resumeDisabled}
@@ -62,6 +69,7 @@ export function RuntimeStopControl({
         onPointerDown={startResumeHold}
         onPointerLeave={resumeHold.cancel}
         onPointerUp={resumeHold.cancel}
+        style={style}
         type="button"
       >
         <span className="runtime-stop-label">{strings.stop.resume}</span>
@@ -78,6 +86,7 @@ export function RuntimeStopControl({
       key="stop"
       aria-label={strings.stop.engageAria}
       className="runtime-stop-control"
+      data-placement={placement}
       data-runtime-control-independent=""
       onClick={(event) => {
         // Keyboard only; a pointer tap already engaged on pointerdown.
@@ -86,6 +95,7 @@ export function RuntimeStopControl({
         }
       }}
       onPointerDown={onEngage}
+      style={style}
       type="button"
     >
       <span className="runtime-stop-label">{strings.stop.engage}</span>

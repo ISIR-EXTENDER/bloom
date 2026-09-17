@@ -1,0 +1,62 @@
+import type { ReservedRegion, ScreenConfig } from "@bloom/api-client";
+import { type RefObject, useLayoutEffect, useState } from "react";
+
+export type RegionRect = { height: number; left: number; top: number; width: number };
+
+export function findStopRegion(screen: ScreenConfig): ReservedRegion | null {
+  return screen.reserved_regions?.find((region) => region.id === "stop" && region.owner === "runtime-chrome") ?? null;
+}
+
+/**
+ * Where a reserved region lands inside `anchor`, following the scaled artboard. STOP is drawn outside the
+ * artboard so it never inherits the canvas' inert or stopped state.
+ */
+export function useReservedRegionRect(
+  region: ReservedRegion | null,
+  artboardRef: RefObject<HTMLElement | null>,
+  anchorRef: RefObject<HTMLElement | null>,
+  scale: number,
+): RegionRect | null {
+  const [rect, setRect] = useState<RegionRect | null>(null);
+
+  useLayoutEffect(() => {
+    const artboard = artboardRef.current;
+    const anchor = anchorRef.current;
+    if (!region || !artboard || !anchor) {
+      setRect(null);
+      return;
+    }
+    const measure = () => {
+      const origin = artboard.getBoundingClientRect();
+      const bounds = anchor.getBoundingClientRect();
+      const next = {
+        height: region.height * scale,
+        left: origin.left - bounds.left + region.x * scale,
+        top: origin.top - bounds.top + region.y * scale,
+        width: region.width * scale,
+      };
+      setRect((current) =>
+        current &&
+        current.left === next.left &&
+        current.top === next.top &&
+        current.width === next.width &&
+        current.height === next.height
+          ? current
+          : next,
+      );
+    };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(artboard);
+    observer?.observe(anchor);
+    window.addEventListener("resize", measure);
+    anchor.addEventListener("scroll", measure, true);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", measure);
+      anchor.removeEventListener("scroll", measure, true);
+    };
+  }, [anchorRef, artboardRef, region, scale]);
+
+  return rect;
+}

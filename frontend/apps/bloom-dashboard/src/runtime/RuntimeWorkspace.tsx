@@ -42,6 +42,7 @@ import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { usePositionLibrary } from "./use-position-library";
+import { findStopRegion, useReservedRegionRect } from "./use-reserved-region-rect";
 import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
 import { useRuntimeControl } from "./use-runtime-control";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
@@ -124,6 +125,7 @@ export function RuntimeWorkspace({
   selection,
 }: RuntimeWorkspaceProps) {
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
+  const artboardFrameRef = useRef<HTMLDivElement | null>(null);
   const runtimeControlsRef = useRef<HTMLDivElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
@@ -135,6 +137,8 @@ export function RuntimeWorkspace({
     [artboardSize, screen.canvas, viewportSize],
   );
   const artboardScale = canvasFit.scale;
+  const stopRegion = useMemo(() => findStopRegion(screen), [screen]);
+  const stopRect = useReservedRegionRect(stopRegion, artboardFrameRef, runtimeControlsRef, artboardScale);
   const scaledArtboardSize = useMemo(
     () => ({
       height: Math.max(1, Math.floor(artboardSize.height * artboardScale)),
@@ -625,6 +629,7 @@ export function RuntimeWorkspace({
         >
           <div
             className="runtime-app-artboard-frame"
+            ref={artboardFrameRef}
             style={{
               height: `${scaledArtboardSize.height}px`,
               width: `${scaledArtboardSize.width}px`,
@@ -673,6 +678,7 @@ export function RuntimeWorkspace({
 
         {runtimeActionClient.engageRuntimeStop ? (
           <RuntimeStopControl
+            region={stopRect}
             onEngage={runtimeStop.engage}
             onResume={runtimeStop.resume}
             requestError={runtimeStop.requestError}

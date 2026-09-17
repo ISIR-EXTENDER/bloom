@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuntimeStopControl } from "./RuntimeStopControl";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
+import { findStopRegion } from "./use-reserved-region-rect";
 import { type RuntimeStopClient, useRuntimeStop } from "./use-runtime-stop";
 
 const running: RuntimeStopState = {
@@ -101,6 +102,35 @@ describe("the STOP control", () => {
     renderControl({ requestError: "Bloom API request failed with status 502" });
 
     expect(screen.getByText("Bloom API request failed with status 502")).toBeTruthy();
+  });
+
+  it("takes the screen's reserved region, stopped or not", () => {
+    const region = { height: 224, left: 826, top: 365, width: 301 };
+    renderControl({ region });
+    const stop = screen.getByRole("button");
+    expect(stop.getAttribute("data-placement")).toBe("region");
+    expect(stop).toHaveStyle({ height: "224px", left: "826px", top: "365px", width: "301px" });
+
+    cleanup();
+    renderControl({ region, stopped: true });
+    expect(screen.getByRole("button").getAttribute("data-placement")).toBe("region");
+    expect(screen.getByRole("button")).toHaveStyle({ left: "826px" });
+  });
+
+  it("finds the stop region a screen reserves for runtime chrome", () => {
+    const stop = { id: "stop", owner: "runtime-chrome" as const, x: 928, y: 410, width: 338, height: 252 };
+    const screenOf = (reserved_regions?: (typeof stop)[]) =>
+      ({
+        canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+        id: "s",
+        reserved_regions,
+        title: "S",
+        widgets: [],
+      }) as never;
+
+    expect(findStopRegion(screenOf([stop]))).toBe(stop);
+    expect(findStopRegion(screenOf([{ ...stop, id: "banner" }]))).toBeNull();
+    expect(findStopRegion(screenOf())).toBeNull();
   });
 
   it("uses the selected profile language", () => {
