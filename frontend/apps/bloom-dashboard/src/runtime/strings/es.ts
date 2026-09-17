@@ -256,7 +256,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     decrease: (label) => `Reducir ${label}`,
     increase: (label) => `Aumentar ${label}`,
     value: (label) => `Valor de ${label}`,
-    tryIt: "Pruébalo — este es el control real",
+    tryIt: "Pruébalo — no se envía nada",
     tryTitle: "Prueba una pulsación",
     tryIdle: "Pulsa para probar. No se envía nada.",
     tryPressed: (count) => `Pulsado ${count} ${count === 1 ? "vez" : "veces"}. No se envió nada.`,

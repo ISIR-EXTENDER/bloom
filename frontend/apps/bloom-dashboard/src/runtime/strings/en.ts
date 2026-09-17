@@ -253,7 +253,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     decrease: (label) => `Decrease ${label}`,
     increase: (label) => `Increase ${label}`,
     value: (label) => `${label} value`,
-    tryIt: "Try it — this is the real control",
+    tryIt: "Try it — nothing is sent",
     tryTitle: "Try a press",
     tryIdle: "Press to try. Nothing is sent.",
     tryPressed: (count) => `Pressed ${count} ${count === 1 ? "time" : "times"}. Nothing was sent.`,

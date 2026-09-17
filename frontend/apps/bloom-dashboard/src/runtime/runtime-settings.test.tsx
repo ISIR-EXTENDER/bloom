@@ -178,6 +178,7 @@ describe("runtime settings", () => {
     vi.useFakeTimers();
     const { onSave } = renderSettings({ repeatGuardMs: 300 });
     const target = screen.getByRole("button", { name: "Try a press" });
+    expect(screen.getByRole("heading", { name: "Try it — nothing is sent" })).toBeTruthy();
 
     fireEvent.click(target);
     fireEvent.click(target);

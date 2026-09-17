@@ -256,7 +256,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     decrease: (label) => `Diminuer ${label}`,
     increase: (label) => `Augmenter ${label}`,
     value: (label) => `Valeur de ${label}`,
-    tryIt: "Essayez — c'est la vraie commande",
+    tryIt: "Essayez — rien n'est envoyé",
     tryTitle: "Essayez un appui",
     tryIdle: "Appuyez pour essayer. Rien n'est envoyé.",
     tryPressed: (count) => `Appuyé ${count} fois. Rien n'a été envoyé.`,
