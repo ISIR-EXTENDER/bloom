@@ -1,26 +1,30 @@
 <p align="center">
-  <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom logo" width="160" />
+  <img src="docs/assets/readme/hero.png" alt="Bloom: give the gesture back. A tablet showing the Explorer Manager Drive screen with its STOP rail." width="100%" />
 </p>
 
-<h1 align="center">Bloom</h1>
-
 <p align="center">
-  <strong>Build and operate accessible web interfaces for robots.</strong>
+  <a href="https://github.com/ISIR-EXTENDER/bloom/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ISIR-EXTENDER/bloom/actions/workflows/ci.yml/badge.svg" /></a>
+  <img alt="ROS 2 Jazzy" src="https://img.shields.io/badge/ROS%202-Jazzy-31493f?style=flat-square" />
+  <img alt="Node 24" src="https://img.shields.io/badge/Node-24%20LTS-7e967e?style=flat-square" />
+  <img alt="Python 3.10 to 3.12" src="https://img.shields.io/badge/Python-3.10%E2%80%933.12-7e967e?style=flat-square" />
+  <img alt="MIT license" src="https://img.shields.io/badge/license-MIT-ffd89b?style=flat-square&labelColor=31493f" />
 </p>
 
 <p align="center">
   <a href="#why-bloom">Why Bloom</a> ·
+  <a href="#watch-it-run">Watch it run</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#extender-tutorial">Extender tutorial</a> ·
   <a href="#preview">Preview</a> ·
+  <a href="#design-language">Design language</a> ·
   <a href="#documentation">Documentation</a>
 </p>
 
-Bloom turns reusable screens and controls into operator applications, then connects them to robots through a
-policy-checked backend. Build an interface visually, run that same configuration in a focused kiosk, and keep
-robot-specific integration at the adapter boundary.
+Bloom builds accessible web interfaces for robots and runs them in a focused kiosk. Compose screens visually, open the
+saved app as a role on a tablet or desktop, and reach the robot through a policy-checked backend that keeps ROS at the
+adapter boundary.
 
-**Bloom is the active Extender operator interface (IHM).** `extender_ui` is legacy and remains only as a behavior
+**Bloom is the active Extender operator interface (IHM).** `extender_ui` is legacy and remains only as a behaviour
 reference and emergency rollback during live acceptance.
 
 ## Why Bloom
@@ -36,6 +40,18 @@ pattern with one configurable interface system:
 
 Explorer Manager and Kinova Manager ship ready to run. The same model also provides accessible input profiles, a
 read-only Supervisor mirror, plots, topic inspection, audit records, and shared JSON/SQLite configuration.
+
+## Watch It Run
+
+<p align="center">
+  <a href="docs/assets/demo/bloom-demo.mp4"><img src="docs/assets/readme/demo-poster.png" alt="Play the five-minute Bloom walkthrough" width="80%" /></a>
+</p>
+
+**[Watch the five-minute walkthrough](docs/assets/demo/bloom-demo.mp4).** It creates an app and a screen in the
+Builder, opens Explorer Manager as Operator, drives the arm, sends it home, switches frames in Joystick Lab, changes
+Settings to Spanish, latches and resumes STOP, and reads live joint states and the Jacobian in Bloom Debug. Nothing is
+mocked: it runs against `cartesian_manager`, `qontrol_controller` and the Explorer Gazebo simulation. The camera scene
+uses a synthetic feed.
 
 ## Quickstart
 
@@ -107,6 +123,11 @@ source install/setup.bash
 ros2 launch cartesian_manager explorer.launch.py use_simulation:=true
 ```
 
+> [!NOTE]
+> On the current Jazzy install the Explorer simulation needs two runtime workarounds before the arm moves: stop the
+> standalone `ros2_control_node` that blocks the Gazebo spawn, and bridge the Gazebo clock. Both are explorer_stack
+> issues; the commands are in [the simulation run](docs/validation/ros-sim-e2e.md), which applies them for you.
+
 Or, for **Kinova fake hardware**:
 
 ```bash
@@ -170,48 +191,41 @@ database operations.
 
 ### 4. Operate the Manager app
 
-1. Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and choose **Runtime**.
-2. Launch **Explorer Manager** or **Kinova Manager** to match the robot process you started.
-3. Before moving a control, confirm the kiosk bar shows the expected app, robot, profile, `base_link` frame, and link
-   state, plus **YOU CONTROL**. `READY` describes the frontend-to-backend link; use the diagnostics below to verify the
-   ROS path. A second Runtime tab stays inert until the first leaves and the second operator chooses **Take control**.
-4. Open **Joystick lab** from Maintenance for the physical-joystick-equivalent workflow: choose a supported command
-   frame, then use translation, height, rotation, pivot, modes, and gripper on one screen. Frame buttons stay disabled
-   until every motion control is back at zero.
-5. Use **Drive** for the regular operating layout and speed limits. The speed controls show their configured initial
-   limits and remain unavailable if the ROS graph has no `qontrol_controller` subscriber. Hold the maintenance button
-   for 1.5 seconds to reach **Positions**, **Robot feedback**, **Command sources**, and **Settings**.
-6. Open **Settings** to adjust the selected profile's movement style, scan/dwell timing, dead zone, repeat guard,
-   status sounds, command frame, and language. Changes apply immediately and survive a reload. **Undo changes**
-   restores the state from when the screen opened; the bottom try strip is local and never enters the robot command
-   path.
-7. Open **Practice tour** from Maintenance or Settings to rehearse the app's own movement label, STOP/resume, and the
-   Maintenance hold. This replacement surface has no robot command interface; leave it to restore live controls.
-8. Open **Supervisor mirror** from the Runtime library, or from Maintenance to launch the current app on a second
-   screen. The mirror can read live status and the shared STOP latch, but it has no movement, STOP, resume, publish, or
-   configured-action controls. It reports whether an operator session currently owns control without transferring it.
-9. Press **STOP** to latch command output. Resume only after checking the cause, using the one-second hold.
+1. Open [http://127.0.0.1:5173](http://127.0.0.1:5173) and choose **Runtime**. The library lists the apps on this robot.
+2. Select **Explorer Manager** or **Kinova Manager** to match the robot process, choose a role, and press
+   **Open as Operator** or **Open as Bench**. The role opens its own Drive layout; a remembered role is marked but
+   never opens by itself.
+3. Before moving a control, read the kiosk bar: app, screen, status chip, command frame, publish rate, and role.
+   `READY` describes the frontend-to-backend link; use the diagnostics below to verify the ROS path. A second Runtime
+   tab stays inert until the first leaves and the second operator chooses **Take control**.
+4. **Drive · Operator** carries plain words, **Slow / Medium / Fast** speed segments and larger targets; **Drive ·
+   Bench** carries continuous speed limits in a status rail. Both send identical messages for the same gesture.
+5. Hold the **⋯** button for 1.5 seconds to open **Maintenance**. Motion is held while it is open. It lists read-only
+   facts and reaches **Settings**, **Switch role**, **Reload this app**, **Exit to library**, and a **More** group with
+   the other screens (**Positions**, **Robot feedback**, **Command sources**, **Joystick lab**), the practice tour, the
+   supervisor mirror and Help.
+6. **Joystick lab** is the physical-joystick-equivalent workflow: choose a supported command frame, then use
+   translation, height, rotation, pivot, modes and gripper on one screen, with the twist that was sent. Frame buttons
+   stay disabled until every motion control is back at zero.
+7. **Settings** adjusts the selected profile: text size, language, sound, input method (Touch, Dwell, Scan), how a push
+   moves (Drag, Tap by tap, Keep going), and timing. Changes are a draft until **Save and resume**; **Discard changes**
+   leaves without saving. The command frame is not a setting, because it changes what the app publishes.
+8. **STOP** is always live, including over Maintenance, Settings and the practice tour. Press it to latch the command
+   output, and resume only after checking the cause, with the one-second hold.
+9. Open **Supervisor mirror** from the library to watch the app on a second screen. It reads live status and the shared
+   STOP latch, but it has no movement, STOP, resume, publish or configured-action controls.
 
 Both Manager apps share the same workflow. Explorer names `ft_frame` as its end-effector frame; Kinova names
 `effector_frame` and adds the reviewed fault-reset action. Bloom offers `base_link` and `hybrid_frame` everywhere and
 adds the end-effector frame only once a deployment names it, so no operator is offered a frame this robot's manager
-would silently discard. Joystick Lab keeps every frame choice visible and explains when the connected robot does
-not support one.
+would silently discard.
 
-[![Explorer Joystick Lab in Bloom](docs/assets/screenshots/11-joystick-lab.png)](docs/assets/demo/bloom-explorer-demo.mp4)
+The operator shell is available in English, Spanish, and French, and the shipped operator words on the controls
+(speeds, modes, turns, gripper verbs, directions) follow the profile's language. Topic names, frame IDs, axes and
+numbers are never translated. Spanish and French still need a native speaker's review before participant use.
 
-**[Watch the 1:55 Explorer walkthrough](docs/assets/demo/bloom-explorer-demo.mp4)**: Drive, Joystick Lab, live robot
-feedback, command sources, and Bloom Debug topic/audit/plot views. It was recorded against the ROS-enabled Explorer
-bench stack without physical hardware. Follow the same steps with Kinova Manager after choosing the Kinova launch and
-`effector_frame` end-effector frame above.
-
-The operator shell is available in English, Spanish, and French. Change it from Maintenance or **Settings >
-Language**; the choice belongs to the selected profile. App names, screen names, and widget labels are authored
-configuration data and remain as written, while topic names, frame IDs, axes, and numeric values are never translated.
-
-Before publishing an edited app, open **Builder > Apps > Open app > Review checklist**. Bloom derives geometry, touch
-bounds and overlap, command frame, and topic-policy checks from the saved application. The last checks complete only
-when you preview the operator profile and export the reviewed JSON.
+Before publishing an edited app, open **Builder > Apps > Open app > Review checklist**. Bloom derives geometry, minimum
+sizes, sibling symmetry, pad pairs, profile coverage, command frame and topic-policy checks from the saved application.
 
 ### 5. Verify the command path
 
@@ -287,8 +301,8 @@ ros2 launch cartesian_manager kinova.launch.py use_simulation:=false robot_ip:=1
 
 </details>
 
-The general preview set intentionally runs without ROS, so its topic diagnostics read `MISSING`. The Joystick Lab
-image and Explorer video above use the ROS-enabled bench stack. Refresh the general set from a running dashboard and
+The general preview set is captured from the ROS bench, so a control whose topic has no subscriber there reads as
+unavailable. The Joystick Lab image and the walkthrough use a live ROS graph. Refresh the general set from a running dashboard and
 isolated seeded backend with:
 
 ```bash
@@ -299,10 +313,13 @@ BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run capture:readme
 The capture script exits non-zero for skipped screens or when the backend store differs from the committed shared
 applications, so it cannot silently leave a stale image in this README.
 
-Record the Explorer walkthrough from a seeded ROS-enabled runtime with:
+Record the walkthrough from a seeded ROS-enabled runtime, with a visible cursor and captions. `--probe <dir>` runs it
+quickly and saves one screenshot per scene instead:
 
 ```bash
-BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 npm run record:explorer-demo
+BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 \
+BLOOM_DEMO_ROS_SETUP=/path/to/extender_workspace/install/setup.bash \
+npm run record:demo -- --camera feed.y4m
 ```
 
 The recorder uses Playwright and `ffmpeg`; install Chromium with the command above and provide `ffmpeg` on `PATH`.
@@ -318,7 +335,11 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
 - JSON and SQLite configuration storage, tracked seed applications, import/export, audit, and recording hooks.
 - ROS 2 integration for `cartesian_manager`, generic topic publishing, service calls, and topic discovery.
 - One 30 Hz latest-value teleop stream across every active control, with neutral commands sent immediately.
-- Frontend, backend, security, contract, and visual checks in CI.
+- Frontend, backend, security, contract, and visual checks in CI, plus an end-to-end run against the Explorer and
+  Kinova simulations that checks each effect on the ROS graph.
+- Role-based layouts: a profile names the screen it opens, and Drive ships as Bench and Operator.
+- Widget cards built to the design system: minimum sizes that grow rather than clip, reserved regions for STOP,
+  multi-series plot boards and pickers, a joint table, and a Jacobian with manipulability.
 
 Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs
 validation with the intended device. Browser reduced-motion preferences work; the equivalent saved profile setting
@@ -328,14 +349,28 @@ still needs wiring. Track these and the current design review in [the UX design 
 
 New Extender IHM work belongs in Bloom. The remaining work is explicit:
 
-1. Complete the open design work around physical sizing, profile semantics, remembered role entry, and deliberate
-   handover only if supervisors are later allowed to command.
-2. Validate the Bloom IHM on the target tablets, assistive inputs, simulations, and robots.
+1. Complete the open design work: the 1024×600 collapse layouts, paired desktop apps, the save-a-pose flow, and
+   deliberate handover only if supervisors are later allowed to command.
+2. Validate the Bloom IHM on the target tablets, assistive inputs and robots. The simulations are covered by
+   `npm run e2e:sim`, and visual servoing has been driven from Bloom on the new architecture.
 3. Keep `extender_ui` rollback artifacts until the relevant live sessions are accepted.
 4. Retain generic web/ROS boundaries so Bloom can serve robots beyond Extender.
 
 Low-level Extender ROS packages remain active dependencies. The archived Petanque path keeps its explicit legacy
 adapter until its future is decided.
+
+## Design Language
+
+<p align="center">
+  <img src="docs/assets/readme/design-language.png" alt="Bloom design language: Cormorant Garamond headings, Atkinson Hyperlegible operator words, JetBrains Mono readouts, and the forest, sage, mist, cream, pollen, petal, lilac and STOP palette." width="100%" />
+</p>
+
+Bloom's interface is calm on purpose. Operator words use Atkinson Hyperlegible, readouts and topics a monospace face,
+and colour carries meaning rather than decoration: forest for what is selected, pollen for what is held, lilac only in
+Bloom Debug, and the STOP red nowhere else. Every widget declares a minimum size and grows rather than clips, and STOP
+lives in a reserved region widgets cannot enter. The tokens, prototypes and screen specs are tracked in
+[docs/design](docs/design); the artwork on this page is rendered from those tokens with
+`node scripts/render-readme-art.mjs`.
 
 ## Repository Shape
 
@@ -555,6 +590,7 @@ Additional checks:
 
 ```bash
 npm run validation:extender
+npm run e2e:sim -- --robot explorer   # or kinova: Bloom against the ROS simulation, no mocks
 npm run validation:sandbox-tablet
 npm run validation:sandbox-runtime
 npm run validation:visual-servoing
@@ -597,6 +633,8 @@ High-signal project docs:
 
 - [docs/README.md](docs/README.md)
 - [docs/operator-runtime.md](docs/operator-runtime.md)
+- [docs/design](docs/design): the design handoff, screen specs and implementation reviews
+- [docs/validation/ros-sim-e2e.md](docs/validation/ros-sim-e2e.md)
 - [docs/design-system.md](docs/design-system.md)
 - [docs/component-styleguide.md](docs/component-styleguide.md)
 - [docs/widget-ux-review.md](docs/widget-ux-review.md)

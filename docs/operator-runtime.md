@@ -203,9 +203,10 @@ The **Sent to manager** echo subscribes to `/joystick_cartesian_command` and sho
 command leaving Bloom; it is not controller feedback or proof of robot motion.
 
 The README includes a [live Joystick Lab capture](assets/screenshots/11-joystick-lab.png) and a
-[1:55 Explorer walkthrough](assets/demo/bloom-explorer-demo.mp4) covering Drive, Joystick Lab, feedback, command
-sources, and Bloom Debug. These are ROS-bench evidence without physical hardware acceptance; Kinova follows the same
-flow with its own frame allowlist.
+[five-minute walkthrough](assets/demo/bloom-demo.mp4) recorded against the Explorer Gazebo simulation: the Builder, both
+Drive layouts, Positions, Robot feedback, Joystick Lab, Settings, STOP, Bloom Debug and the camera. It is simulation
+evidence without physical hardware acceptance; Kinova follows the same flow with its own frame allowlist, and
+`npm run e2e:sim` checks both robots' command paths on the ROS graph.
 
 ## Physical Gamepad
 
