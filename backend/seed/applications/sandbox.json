@@ -483,7 +483,7 @@
               "layout": {
                 "x": 650,
                 "y": 255,
-                "width": 529,
+                "width": 514,
                 "height": 152
               },
               "settings": {
@@ -713,14 +713,14 @@
               "layout": {
                 "x": 560,
                 "y": 302,
-                "width": 70,
-                "height": 58
+                "width": 88,
+                "height": 88
               },
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
                 "action_label": "toggle",
-                "button_label": "Invert Linear X",
+                "button_label": "Invert",
                 "cancellable": false,
                 "command": "toggle",
                 "topic": "/teleop_config/invert_linear_x",
@@ -728,7 +728,8 @@
                 "payload": {
                   "data": "toggle"
                 },
-                "legacyKind": "button"
+                "legacyKind": "button",
+                "hide_title": true
               }
             },
             {
@@ -738,14 +739,14 @@
               "layout": {
                 "x": 560,
                 "y": 459,
-                "width": 70,
-                "height": 58
+                "width": 88,
+                "height": 88
               },
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
                 "action_label": "toggle",
-                "button_label": "Invert Linear Y",
+                "button_label": "Invert",
                 "cancellable": false,
                 "command": "toggle",
                 "topic": "/teleop_config/invert_linear_y",
@@ -753,7 +754,8 @@
                 "payload": {
                   "data": "toggle"
                 },
-                "legacyKind": "button"
+                "legacyKind": "button",
+                "hide_title": true
               }
             },
             {
@@ -763,14 +765,14 @@
               "layout": {
                 "x": 560,
                 "y": 603,
-                "width": 70,
-                "height": 58
+                "width": 88,
+                "height": 88
               },
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
                 "action_label": "toggle",
-                "button_label": "Invert Linear Z",
+                "button_label": "Invert",
                 "cancellable": false,
                 "command": "toggle",
                 "topic": "/teleop_config/invert_linear_z",
@@ -778,7 +780,8 @@
                 "payload": {
                   "data": "toggle"
                 },
-                "legacyKind": "button"
+                "legacyKind": "button",
+                "hide_title": true
               }
             },
             {
@@ -786,16 +789,16 @@
               "kind": "command-button",
               "title": "Invert Angular X",
               "layout": {
-                "x": 1190,
+                "x": 1172,
                 "y": 321,
-                "width": 70,
-                "height": 58
+                "width": 88,
+                "height": 88
               },
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
                 "action_label": "toggle",
-                "button_label": "Invert Angular X",
+                "button_label": "Invert",
                 "cancellable": false,
                 "command": "toggle",
                 "topic": "/teleop_config/invert_angular_x",
@@ -803,7 +806,8 @@
                 "payload": {
                   "data": "toggle"
                 },
-                "legacyKind": "button"
+                "legacyKind": "button",
+                "hide_title": true
               }
             },
             {
@@ -813,14 +817,14 @@
               "layout": {
                 "x": 950,
                 "y": 459,
-                "width": 70,
-                "height": 58
+                "width": 88,
+                "height": 88
               },
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
                 "action_label": "toggle",
-                "button_label": "Invert Angular Y",
+                "button_label": "Invert",
                 "cancellable": false,
                 "command": "toggle",
                 "topic": "/teleop_config/invert_angular_y",
@@ -828,7 +832,8 @@
                 "payload": {
                   "data": "toggle"
                 },
-                "legacyKind": "button"
+                "legacyKind": "button",
+                "hide_title": true
               }
             },
             {
@@ -838,14 +843,14 @@
               "layout": {
                 "x": 950,
                 "y": 611,
-                "width": 70,
-                "height": 58
+                "width": 88,
+                "height": 88
               },
               "settings": {
                 "action_feedback": "none",
                 "action_id": "",
                 "action_label": "toggle",
-                "button_label": "Invert Angular Z",
+                "button_label": "Invert",
                 "cancellable": false,
                 "command": "toggle",
                 "topic": "/teleop_config/invert_angular_z",
@@ -853,7 +858,8 @@
                 "payload": {
                   "data": "toggle"
                 },
-                "legacyKind": "button"
+                "legacyKind": "button",
+                "hide_title": true
               }
             }
           ]
