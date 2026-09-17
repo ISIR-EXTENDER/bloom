@@ -1650,8 +1650,9 @@
 }
 
 .runtime-maintenance-panel :focus-visible {
-  outline: 3px solid var(--bloom-ink);
+  outline: 3px solid var(--bloom-focus-ring);
   outline-offset: 2px;
+  box-shadow: 0 0 0 7px var(--bloom-focus-ring-contrast);
 }
 
 @media (max-width: 720px) {
@@ -1664,6 +1665,14 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* STOP fills its own rect and clears its shadow, so the ring goes inside it:
+   the halo band is what carries the 3:1 against the red. */
+.runtime-stop-control:focus-visible {
+  outline: 3px solid var(--bloom-focus-ring);
+  outline-offset: -5px;
+  box-shadow: inset 0 0 0 9px var(--bloom-focus-ring-contrast);
 }
 
 /* The scan highlight: a ring the operator can see from across a lit room,

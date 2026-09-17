@@ -21,6 +21,8 @@ export type BloomPaletteTokenName =
 export type BloomSemanticColorTokenName =
   | "error"
   | "errorContainer"
+  | "focusRing"
+  | "focusRingContrast"
   | "onError"
   | "onErrorContainer"
   | "onPrimary"
@@ -73,6 +75,8 @@ function createThemePreset({ description, id, name, palette, roles = {} }: Bloom
       ...palette,
       error: roles.error ?? palette.accent,
       errorContainer: roles.errorContainer ?? palette.accentSoft,
+      focusRing: roles.focusRing ?? palette.ink,
+      focusRingContrast: roles.focusRingContrast ?? palette.paper,
       onError: roles.onError ?? palette.paper,
       onErrorContainer: roles.onErrorContainer ?? palette.ink,
       onPrimary: roles.onPrimary ?? palette.paper,
@@ -240,6 +244,8 @@ export function createBloomThemeStyle(theme: BloomThemePreset | BloomThemeTokens
     "--bloom-color-cream": tokens.cream,
     "--bloom-color-error": tokens.error,
     "--bloom-color-error-container": tokens.errorContainer,
+    "--bloom-color-focus-ring": tokens.focusRing,
+    "--bloom-color-focus-ring-contrast": tokens.focusRingContrast,
     "--bloom-color-forest": tokens.forest,
     "--bloom-color-ink": tokens.ink,
     "--bloom-color-ink-soft": tokens.inkSoft,
@@ -281,6 +287,8 @@ export function createBloomThemeStyle(theme: BloomThemePreset | BloomThemeTokens
     "--bloom-warning": tokens.error,
     "--bloom-error": tokens.error,
     "--bloom-error-container": tokens.errorContainer,
+    "--bloom-focus-ring": tokens.focusRing,
+    "--bloom-focus-ring-contrast": tokens.focusRingContrast,
     "--bloom-ink": tokens.onSurface,
     "--bloom-ink-soft": tokens.onSurfaceMuted,
     "--bloom-on-error": tokens.onError,

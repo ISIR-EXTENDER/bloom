@@ -41,6 +41,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   answer 500 with `database is locked`.
 - **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
 
+- **A visible keyboard focus ring.** The shipped ring was a 28% primary tint, 1.59:1 on the cream surface. It is now a
 - **Dwell requires a rest, not a passage.** Moving more than a few pixels inside a control restarts its dwell, so
 - **Maintenance is reachable under scanning.** The **⋯** button is part of the scan set and its activation opens the
 

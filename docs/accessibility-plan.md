@@ -35,6 +35,8 @@ signals, and test accessibility continuously.
 - A widget whose required backend seam is explicitly unavailable remains visible, becomes inert, and exposes the
   backend reason; unknown capability state does not disable it.
 - Semantic theme pairs are tested at a minimum 4.5:1 contrast ratio, including the corrected muted-text surface pairs.
+- The keyboard focus ring is a two-tone theme token (`focusRing` plus `focusRingContrast`), tested so one half always
+  clears 3:1 (SC 1.4.11) against the surface, the cream and forest chrome, and the STOP red.
 - Forms use visible labels and touch-friendly input hints; drag/drop workflows retain button alternatives.
 - Guided runtime practice uses the current profile's language, font scale, scanning, and dwell behavior, and exposes no
   robot command interface. Its movement and hold checks can be repeated from Maintenance or Settings.

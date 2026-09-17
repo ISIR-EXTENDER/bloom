@@ -133,6 +133,25 @@ describe("BloomNavBar", () => {
     expect(style["--bloom-muted"]).toBe(BLOOM_THEME_PRESETS["extender-ui"].tokens.muted);
   });
 
+  it("keeps the focus ring visible on every surface it lands on", () => {
+    // SC 1.4.11 wants 3:1. The shipped ring was a 28% primary tint: 1.59:1 on
+    // the cream surface, which is no ring at all. The pair is two-tone, so one
+    // half always carries the contrast.
+    const surfaces = ["surface", "surfaceContainer", "surfaceContainerHigh", "primary", "error"] as const;
+
+    for (const preset of Object.values(BLOOM_THEME_PRESETS)) {
+      const { focusRing, focusRingContrast } = preset.tokens;
+      for (const surface of surfaces) {
+        const best = Math.max(
+          getContrastRatio(preset.tokens[surface], focusRing),
+          getContrastRatio(preset.tokens[surface], focusRingContrast),
+        );
+        expect(best, `${preset.id}: focus ring on ${surface}`).toBeGreaterThanOrEqual(3);
+      }
+      expect(getContrastRatio(focusRing, focusRingContrast)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
   it("keeps every theme preset above minimum readable contrast for semantic text pairs", () => {
     const contrastPairs = [
       ["primary", "onPrimary"],

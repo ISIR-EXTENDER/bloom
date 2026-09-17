@@ -42,12 +42,15 @@ button {
   cursor: pointer;
 }
 
+/* Two-tone: the dark ring carries the shape, the light halo guarantees the 3:1
+   whatever it lands on (SC 1.4.11). A 28% primary tint read 1.59:1 on cream. */
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 4px solid color-mix(in srgb, var(--bloom-primary) 28%, transparent);
-  outline-offset: 3px;
+  outline: 3px solid var(--bloom-focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 7px var(--bloom-focus-ring-contrast);
 }
 
 textarea {

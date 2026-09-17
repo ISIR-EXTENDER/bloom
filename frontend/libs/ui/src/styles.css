@@ -30,6 +30,10 @@
   --bloom-color-surface-container: var(--bloom-color-cream);
   --bloom-color-surface-container-high: var(--bloom-color-cloud);
   --bloom-color-outline: var(--bloom-color-border);
+  /* The keyboard focus ring is two-tone on purpose: one of the pair always has
+     3:1 against what it lands on, cream, forest and the STOP red alike. */
+  --bloom-color-focus-ring: var(--bloom-color-ink);
+  --bloom-color-focus-ring-contrast: var(--bloom-color-paper);
   --bloom-color-error: #9b3d2e;
   --bloom-color-on-error: var(--bloom-color-paper);
   --bloom-color-error-container: #f5ddd8;
@@ -114,6 +118,8 @@
   --bloom-sand: var(--bloom-color-surface-container);
   --bloom-warning: var(--bloom-color-error);
   --bloom-error: var(--bloom-color-error);
+  --bloom-focus-ring: var(--bloom-color-focus-ring);
+  --bloom-focus-ring-contrast: var(--bloom-color-focus-ring-contrast);
   --bloom-error-container: var(--bloom-color-error-container);
   --bloom-on-error: var(--bloom-color-on-error);
   --bloom-on-error-container: var(--bloom-color-on-error-container);

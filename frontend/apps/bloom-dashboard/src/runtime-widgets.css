@@ -191,8 +191,9 @@
 }
 
 .bloom-joystick:focus-visible {
-  outline: 3px solid var(--bloom-primary);
+  outline: 3px solid var(--bloom-focus-ring);
   outline-offset: 2px;
+  box-shadow: 0 0 0 7px var(--bloom-focus-ring-contrast);
 }
 
 .bloom-joystick-zone {
@@ -405,8 +406,9 @@
 }
 
 .bloom-axis-knob:focus-visible {
-  outline: 3px solid var(--bloom-primary);
+  outline: 3px solid var(--bloom-focus-ring);
   outline-offset: 3px;
+  box-shadow: 0 0 0 8px var(--bloom-focus-ring-contrast);
 }
 
 /* Vertical: Height. */
@@ -566,8 +568,9 @@
 }
 
 .bloom-limit-thumb:focus-visible {
-  outline: 3px solid var(--bloom-primary);
+  outline: 3px solid var(--bloom-focus-ring);
   outline-offset: 3px;
+  box-shadow: 0 0 0 8px var(--bloom-focus-ring-contrast);
 }
 
 .bloom-limit-range-line {
@@ -1861,8 +1864,9 @@
 }
 
 .bloom-gesture-pad:focus-visible {
-  outline: 4px solid color-mix(in srgb, var(--bloom-accent) 55%, transparent);
-  outline-offset: 4px;
+  outline: 3px solid var(--bloom-focus-ring);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 8px var(--bloom-focus-ring-contrast);
 }
 
 .bloom-gesture-arc {
