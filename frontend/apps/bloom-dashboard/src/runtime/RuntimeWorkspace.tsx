@@ -8,7 +8,7 @@ import type {
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { appendTopicEchoMessage, appendTopicPlotSample } from "@bloom/widgets";
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -152,12 +152,17 @@ export function RuntimeWorkspace({
   const debugRegion = useMemo(() => findRuntimeRegion(screen, "debug-status"), [screen]);
   const debugRect = useReservedRegionRect(debugRegion, artboardFrameRef, runtimeControlsRef, artboardScale);
   // The sheet keeps clear of STOP, which stays live above the scrim; the corner STOP is 176 px plus its margin.
-  const stopSheetInset =
-    stopRect && runtimeControlsRef.current
-      ? Math.max(0, window.innerWidth - (runtimeControlsRef.current.getBoundingClientRect().left + stopRect.left) + 14)
-      : runtimeActionClient.engageRuntimeStop
-        ? 202
-        : 0;
+  const stopFallbackInset = runtimeActionClient.engageRuntimeStop ? 202 : 0;
+  const [stopSheetInset, setStopSheetInset] = useState(stopFallbackInset);
+  // Measured after layout, not during render: reading the shell mid-render made the first one take the fallback.
+  useLayoutEffect(() => {
+    const shell = runtimeControlsRef.current;
+    const next =
+      stopRect && shell
+        ? Math.max(0, window.innerWidth - (shell.getBoundingClientRect().left + stopRect.left) + 14)
+        : stopFallbackInset;
+    setStopSheetInset((current) => (current === next ? current : next));
+  });
   const scaledArtboardSize = useMemo(
     () => ({
       height: Math.max(1, Math.floor(artboardSize.height * artboardScale)),
