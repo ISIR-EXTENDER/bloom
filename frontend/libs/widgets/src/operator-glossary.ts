@@ -59,6 +59,60 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
     fr: "remet le gestionnaire en passage direct",
   },
   "Reset fault": { es: "Reiniciar el fallo", fr: "Réinitialiser le défaut" },
+  "SNAKE ON": { es: "SERPIENTE ACTIVA", fr: "SERPENT ACTIVÉ" },
+  Neutral: { es: "Neutro", fr: "Neutre" },
+  Base: { es: "Base", fr: "Base" },
+  Tool: { es: "Herramienta", fr: "Outil" },
+  Hybrid: { es: "Híbrido", fr: "Hybride" },
+  "Force sensor": { es: "Sensor de fuerza", fr: "Capteur d'effort" },
+  "COMMAND FRAME — stamped on every twist": {
+    es: "MARCO DE COMANDO — en cada twist",
+    fr: "REPÈRE DE COMMANDE — sur chaque twist",
+  },
+  "SHAPING MODE — requested, never confirmed": {
+    es: "MODO DE MOVIMIENTO — solicitado, nunca confirmado",
+    fr: "MODE DE MOUVEMENT — demandé, jamais confirmé",
+  },
+  "SHAPING MODE — requested, the manager never confirms": {
+    es: "MODO DE MOVIMIENTO — solicitado, el gestor nunca lo confirma",
+    fr: "MODE DE MOUVEMENT — demandé, le gestionnaire ne le confirme jamais",
+  },
+  "SPEED LIMITS — CONTINUOUS": { es: "LÍMITES DE VELOCIDAD — CONTINUOS", fr: "LIMITES DE VITESSE — CONTINUES" },
+  "Max linear speed": { es: "Velocidad lineal máxima", fr: "Vitesse linéaire maximale" },
+  "Max angular speed": { es: "Velocidad angular máxima", fr: "Vitesse angulaire maximale" },
+  "Saved poses": { es: "Poses guardadas", fr: "Poses enregistrées" },
+  "SAVED POSES — dispatched once; the manager reports no progress": {
+    es: "POSES GUARDADAS — enviadas una vez; el gestor no informa el progreso",
+    fr: "POSES ENREGISTRÉES — envoyées une fois ; le gestionnaire ne signale aucune progression",
+  },
+  "Joint target": { es: "Objetivo articular", fr: "Cible articulaire" },
+  "Current values": { es: "Valores actuales", fr: "Valeurs actuelles" },
+  "Mode requests": { es: "Solicitudes de modo", fr: "Demandes de mode" },
+  "LIVE FROM THE ROBOT — 30 second window": {
+    es: "EN VIVO DEL ROBOT — ventana de 30 segundos",
+    fr: "EN DIRECT DU ROBOT — fenêtre de 30 secondes",
+  },
+  "cartesian_manager SUMS EVERY ACTIVATED INPUT — COMPARE THEM HERE": {
+    es: "cartesian_manager SUMA CADA ENTRADA ACTIVADA — COMPÁRALAS AQUÍ",
+    fr: "cartesian_manager ADDITIONNE CHAQUE ENTRÉE ACTIVÉE — COMPAREZ-LES ICI",
+  },
+  // Screen titles and profile names of the shipped seeds, shown in the kiosk bar and maintenance.
+  "Drive · Bench": { es: "Conducción · Banco", fr: "Conduite · Banc" },
+  "Drive · Operator": { es: "Conducción · Operador", fr: "Conduite · Opérateur" },
+  Positions: { es: "Posiciones", fr: "Positions" },
+  "Robot feedback": { es: "Estado del robot", fr: "Retour du robot" },
+  "Command sources": { es: "Fuentes de comando", fr: "Sources de commande" },
+  "Joystick lab": { es: "Laboratorio de joystick", fr: "Labo joystick" },
+  Operator: { es: "Operador", fr: "Opérateur" },
+  Bench: { es: "Banco", fr: "Banc" },
+  "One switch": { es: "Un pulsador", fr: "Un contacteur" },
+  Default: { es: "Predeterminado", fr: "Par défaut" },
+};
+
+/** Group labels that name a topic: the words translate, the topic after the dash never does. */
+const TOPIC_LABEL_PREFIXES: Record<string, { es: string; fr: string }> = {
+  "SENT — ": { es: "ENVIADO — ", fr: "ENVOYÉ — " },
+  "WHAT WAS SENT — ": { es: "LO QUE SE ENVIÓ — ", fr: "CE QUI A ÉTÉ ENVOYÉ — " },
 };
 
 const ARROWS = /^([▲▼◀▶↶↷]\s*)?(.*?)(\s*[▲▼◀▶↶↷])?$/u;
@@ -69,11 +123,27 @@ export function localizeOperatorText(text: string, language: RuntimeLanguage | u
     return text;
   }
   const [, before = "", core = "", after = ""] = text.match(ARROWS) ?? [];
-  const translated = GLOSSARY[core]?.[language];
+  const translated = GLOSSARY[core]?.[language] ?? localizeTopicLabel(core, language);
   return translated ? `${before}${translated}${after}` : text;
 }
 
-const TEXT_SETTINGS = ["button_label", "hint", "onLabel", "offLabel", "onStateLabel", "offStateLabel", "text"];
+function localizeTopicLabel(text: string, language: "es" | "fr"): string | undefined {
+  const prefix = Object.keys(TOPIC_LABEL_PREFIXES).find((candidate) => text.startsWith(candidate));
+  const topic = prefix ? text.slice(prefix.length) : "";
+  return prefix && /^\/\S+$/.test(topic) ? `${TOPIC_LABEL_PREFIXES[prefix][language]}${topic}` : undefined;
+}
+
+const TEXT_SETTINGS = [
+  "button_label",
+  "hint",
+  "onLabel",
+  "offLabel",
+  "onStateLabel",
+  "offStateLabel",
+  "pressed_label",
+  "released_label",
+  "text",
+];
 
 /** The widget as the operator reads it. Only display words change; ids, topics and payloads are untouched. */
 export function localizeWidget(widget: WidgetConfig, language: RuntimeLanguage | undefined): WidgetConfig {

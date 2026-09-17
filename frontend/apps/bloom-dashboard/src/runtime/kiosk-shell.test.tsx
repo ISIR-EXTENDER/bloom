@@ -127,6 +127,21 @@ describe("the kiosk bar", () => {
 
     expect(screen.queryByRole("status")).toBeNull();
   });
+
+  it("shows shipped screen titles and role names in the profile's language", () => {
+    vi.useFakeTimers();
+    renderBar({ language: "es", screen: application.screens[1] as ScreenConfig });
+
+    expect(document.querySelector(".runtime-kiosk-screen")?.textContent).toBe("Posiciones");
+    expect(document.querySelector(".runtime-kiosk-role")?.textContent).toBe("Operador");
+
+    fireEvent.pointerDown(document.querySelector(".runtime-kiosk-maintenance") as HTMLElement);
+    act(() => {
+      vi.advanceTimersByTime(1600);
+    });
+    expect(screen.getByRole("button", { name: "Posiciones" })).toBeTruthy();
+    vi.useRealTimers();
+  });
 });
 
 describe("the maintenance hold", () => {

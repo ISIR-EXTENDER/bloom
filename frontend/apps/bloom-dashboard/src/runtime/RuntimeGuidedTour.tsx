@@ -1,4 +1,5 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import { localizeOperatorText } from "@bloom/widgets";
 import { type CSSProperties, useMemo, useRef, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -110,7 +111,7 @@ export function RuntimeGuidedTour({ application, onDone, profile, screen, select
             movement={movement}
             onDone={onDone}
             practiceStopped={practiceStopped}
-            screenTitle={screen.title}
+            screenTitle={localizeOperatorText(screen.title, strings.language)}
             setMoveCount={setMoveCount}
             setPracticeStopped={setPracticeStopped}
             strings={strings}

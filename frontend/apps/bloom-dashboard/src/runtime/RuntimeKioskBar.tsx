@@ -1,5 +1,5 @@
 import type { ApplicationConfig, RuntimeLanguage, ScreenConfig } from "@bloom/api-client";
-import { resolveCanvasPresetSize } from "@bloom/widgets";
+import { localizeOperatorText, resolveCanvasPresetSize } from "@bloom/widgets";
 import { type ReactNode, useEffect, useId, useState } from "react";
 
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
@@ -119,7 +119,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
       <header className="runtime-kiosk-bar">
         {/* Level 2: level 1 belongs to the app configuration page. */}
         <h2 className="runtime-kiosk-app">{application.name}</h2>
-        <span className="runtime-kiosk-screen">{screen.title}</span>
+        <span className="runtime-kiosk-screen">{localizeOperatorText(screen.title, language)}</span>
         {statusChip ? (
           <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
             <span aria-hidden="true" className="runtime-kiosk-status-dot" />
@@ -152,7 +152,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         ) : null}
         <span className="runtime-kiosk-spacer" />
         <span className="runtime-kiosk-role" data-role={resolveRuntimeRole(profile)}>
-          {profile.name}
+          {localizeOperatorText(profile.name, language)}
         </span>
         <button
           aria-label={strings.kiosk.maintenanceAria}
@@ -275,7 +275,11 @@ function RuntimeMaintenanceSheet({
               note={facts.commandFrameNote}
               value={commandFrameId ?? facts.notReported}
             />
-            <Fact label={facts.profile} note={profile.layoutId || screen.id} value={profile.name} />
+            <Fact
+              label={facts.profile}
+              note={profile.layoutId || screen.id}
+              value={localizeOperatorText(profile.name, language)}
+            />
             <Fact
               label={facts.deviceClass}
               note={
@@ -354,7 +358,7 @@ function RuntimeMaintenanceSheet({
                   onClick={closeAnd(() => onSwitchProfile?.(candidate.id))}
                   type="button"
                 >
-                  {candidate.name}
+                  {localizeOperatorText(candidate.name, language)}
                 </button>
               ))}
             </fieldset>
@@ -370,7 +374,7 @@ function RuntimeMaintenanceSheet({
                   onClick={closeAnd(() => onSelectScreen(candidate.id))}
                   type="button"
                 >
-                  {candidate.title}
+                  {localizeOperatorText(candidate.title, language)}
                 </button>
               ))}
             </nav>
