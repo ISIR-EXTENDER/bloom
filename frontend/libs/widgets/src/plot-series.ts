@@ -64,10 +64,20 @@ export function readPlotUnavailable(settings: Record<string, unknown>): PlotUnav
   );
 }
 
+/** A 30 s board is about 1000 units wide: samples closer than this share a pixel. */
+export const PLOT_SAMPLE_SPACING_MS = 33;
+
 export function appendPlotSeriesSample(
   samples: readonly PlotSeriesSample[],
   message: TopicMessage,
-  settings: { fieldPath: string; historySeconds: number; maxSamples: number; receivedAtMs: number },
+  settings: {
+    fieldPath: string;
+    historySeconds: number;
+    maxSamples: number;
+    /** Keeps at most one sample per slot this many ms wide. */
+    minSpacingMs?: number;
+    receivedAtMs: number;
+  },
 ): PlotSeriesSample[] {
   const raw = resolveFieldPath(message.value, settings.fieldPath);
   // A flag plots as 1 or 0, so a fault reads on the same axis as everything else.
@@ -75,10 +85,20 @@ export function appendPlotSeriesSample(
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return [...samples];
   }
-  const oldestAllowed = settings.receivedAtMs - settings.historySeconds * 1000;
-  const next = [...samples, { time: settings.receivedAtMs, value }];
-  const firstKept = next.findIndex((sample) => sample.time >= oldestAllowed);
-  return next.slice(Math.max(firstKept, next.length - settings.maxSamples));
+  const time = settings.receivedAtMs;
+  const spacing = settings.minSpacingMs ?? 0;
+  const historyMs = settings.historySeconds * 1000;
+  const latest = samples.at(-1);
+  // One sample per spacing slot, the newest in it, so a live value is never held back.
+  const sameSlot =
+    latest !== undefined && spacing > 0 && Math.floor(time / spacing) === Math.floor(latest.time / spacing);
+  const next = sameSlot ? [...samples.slice(0, -1), { time, value }] : [...samples, { time, value }];
+
+  // Samples arrive in order, so the scan stops at the first one still inside the window.
+  const firstKept = next.findIndex((sample) => sample.time >= time - historyMs);
+  // max_samples is a floor under what the window needs, so a fast topic still fills history_seconds.
+  const capacity = Math.max(settings.maxSamples, spacing > 0 ? Math.ceil(historyMs / spacing) + 2 : 0);
+  return next.slice(Math.max(firstKept, next.length - capacity));
 }
 
 export type PlotVerdict = { active: readonly string[]; kind: "driving" | "idle" | "unexplained" };

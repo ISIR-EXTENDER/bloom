@@ -1,6 +1,6 @@
 import type { ScreenConfig, WidgetConfig } from "@bloom/api-client";
 import type { PlotSeriesSnapshot, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import { appendPlotSeriesSample, readPlotSeries, type TopicMessage } from "@bloom/widgets";
+import { appendPlotSeriesSample, PLOT_SAMPLE_SPACING_MS, readPlotSeries, type TopicMessage } from "@bloom/widgets";
 import { useCallback, useEffect, useState } from "react";
 
 import type { RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
@@ -70,6 +70,7 @@ export function appendSeriesSample(
                 fieldPath: config.fieldPath,
                 historySeconds,
                 maxSamples,
+                minSpacingMs: board ? PLOT_SAMPLE_SPACING_MS : 0,
                 receivedAtMs,
               })
             : samples,

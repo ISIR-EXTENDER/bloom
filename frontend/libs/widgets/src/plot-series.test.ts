@@ -2,10 +2,43 @@ import { describe, expect, it } from "vitest";
 
 import designSystemPage from "../../../../docs/design/design-system.html?raw";
 
-import { plotSeriesKey, readPlotSeries, readPlotUnavailable, resolvePlotVerdict, SERIES_RAMP } from "./plot-series";
+import {
+  appendPlotSeriesSample,
+  plotSeriesKey,
+  readPlotSeries,
+  readPlotUnavailable,
+  resolvePlotVerdict,
+  SERIES_RAMP,
+} from "./plot-series";
 
 const NOW = Date.parse("2026-09-17T10:00:00.000Z");
 const at = (msAgo: number, value: number) => ({ time: NOW - msAgo, value });
+
+describe("plot series samples", () => {
+  const message = (data: number) => ({ receivedAt: "", topic: "/speed", value: { data } });
+  const settings = { fieldPath: "data", historySeconds: 1, maxSamples: 2, minSpacingMs: 33 };
+
+  it("keeps the newest sample of each spacing slot", () => {
+    const samples = [0, 10, 20, 40].reduce(
+      (kept, time) => appendPlotSeriesSample(kept, message(time), { ...settings, receivedAtMs: time }),
+      [] as ReturnType<typeof appendPlotSeriesSample>,
+    );
+
+    expect(samples).toEqual([
+      { time: 20, value: 20 },
+      { time: 40, value: 40 },
+    ]);
+  });
+
+  it("trims by time, with max_samples only a floor under what the window needs", () => {
+    const samples = [0, 500, 1000, 1500].reduce(
+      (kept, time) => appendPlotSeriesSample(kept, message(time), { ...settings, receivedAtMs: time }),
+      [] as ReturnType<typeof appendPlotSeriesSample>,
+    );
+
+    expect(samples.map((sample) => sample.time)).toEqual([500, 1000, 1500]);
+  });
+});
 
 describe("plot series", () => {
   it("uses the ramp the design system documents", () => {

@@ -96,6 +96,21 @@ describe("plot series telemetry", () => {
     expect(data?.type === "plot-series" && data.series[1]?.samples).toEqual([{ time: arrived, value: 0.4 }]);
   });
 
+  it("keeps the whole window of a 100 Hz command stream, however low max_samples is", () => {
+    const board = feedback.widgets[0];
+    if (!board) throw new Error("Missing board.");
+    let data = appendSeriesSample(undefined, board, twist(0, 0, ""), 0);
+    for (let time = 10; time <= 40_000; time += 10) {
+      data = appendSeriesSample(data ?? undefined, board, twist(time / 40_000, 0, ""), time);
+    }
+
+    const samples = data?.type === "plot-series" ? (data.series[1]?.samples ?? []) : [];
+    expect(samples.at(-1)).toEqual({ time: 40_000, value: 1 });
+    expect(samples[0]?.time).toBeGreaterThanOrEqual(10_000);
+    expect(samples[0]?.time).toBeLessThan(10_000 + 40);
+    expect(samples.length).toBeLessThanOrEqual(912);
+  });
+
   it("applies picker choices to the board and hands the picker the same series", () => {
     const merged = applyPlotSelections(
       feedback,
