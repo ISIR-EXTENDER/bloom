@@ -1,5 +1,6 @@
 import type { RuntimeLanguage } from "@bloom/api-client";
 
+import { useAssistiveActivation } from "./assistive-activation";
 import { useRuntimeStrings } from "./strings";
 import { useHoldGesture } from "./use-hold-gesture";
 import type { RegionRect } from "./use-reserved-region-rect";
@@ -36,11 +37,15 @@ export function RuntimeStopControl({
   const placement = region ? "region" : "corner";
   const style = region ? { height: region.height, left: region.left, top: region.top, width: region.width } : undefined;
   const strings = useRuntimeStrings(language);
-  const resumeHold = useHoldGesture(RESUME_HOLD_MS, () => {
+  const resume = () => {
     if (!resumeDisabled) {
       onResume();
     }
-  });
+  };
+  const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
+  // A scan or dwell activation already took its time to get here; the pointer
+  // hold is unchanged.
+  const resumeRef = useAssistiveActivation<HTMLButtonElement>(resume);
   const startResumeHold = () => {
     if (!resumeDisabled) {
       resumeHold.start();
@@ -71,6 +76,7 @@ export function RuntimeStopControl({
         onPointerDown={startResumeHold}
         onPointerLeave={resumeHold.cancel}
         onPointerUp={resumeHold.cancel}
+        ref={resumeRef}
         style={style}
         type="button"
       >

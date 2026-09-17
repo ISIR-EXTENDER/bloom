@@ -1,10 +1,12 @@
 import type { ApplicationConfig, RuntimeLanguage, ScreenConfig } from "@bloom/api-client";
 import { localizeOperatorText, resolveCanvasPresetSize } from "@bloom/widgets";
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
+import { useAssistiveActivation } from "./assistive-activation";
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import { useHoldGesture } from "./use-hold-gesture";
+import { useSwitchScanning } from "./use-switch-scanning";
 
 /**
  * The runtime's only chrome: one 44 px bar of status (design 1b, 10). Everything that leaves or changes the session
@@ -57,6 +59,8 @@ export type RuntimeKioskBarProps = {
   statusChip?: RuntimeStatusChip;
   /** Pixels on the right the sheet leaves free, so it never sits under STOP. */
   sheetInsetRight?: number;
+  /** The profile's switch scanning, which the sheet takes over while it is open. */
+  scanning?: { enabled: boolean; periodMs: number };
   diagnostics?: ReactNode;
   fitWarning?: RuntimeFitWarning | null;
   onSelectScreen: (screenId: string) => void;
@@ -97,6 +101,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
   } = props;
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
+  const maintenanceButtonRef = useRef<HTMLButtonElement | null>(null);
   const openMaintenance = () => {
     // Hold first, then zero: a held control's next tick is refused rather than resuming motion.
     onMaintenanceOpenChange?.(true);
@@ -106,8 +111,12 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
   const closeMaintenance = () => {
     setMaintenanceOpen(false);
     onMaintenanceOpenChange?.(false);
+    maintenanceButtonRef.current?.focus();
   };
   const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, openMaintenance);
+  // A switch cannot hold anything down: selecting this button under scanning is
+  // itself the slow, deliberate act the hold asks a pointer for.
+  const maintenanceRef = useAssistiveActivation<HTMLButtonElement>(openMaintenance, maintenanceButtonRef);
   const rate = held
     ? strings.kiosk.rateZerosHeld
     : publishing
@@ -168,6 +177,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
           onPointerDown={holdProgress.start}
           onPointerLeave={holdProgress.cancel}
           onPointerUp={holdProgress.cancel}
+          ref={maintenanceRef}
           type="button"
         >
           <span
@@ -214,12 +224,22 @@ function RuntimeMaintenanceSheet({
   profile,
   profiles = [],
   rate,
+  scanning,
   screen,
   sheetInsetRight = 0,
   strings,
 }: RuntimeKioskBarProps & { onClose: () => void; rate: number; strings: RuntimeStrings }) {
   const [choosingRole, setChoosingRole] = useState(false);
+  const panelRef = useRef<HTMLElement | null>(null);
   const roleHold = useHoldGesture(ROLE_SWITCH_HOLD_MS, () => setChoosingRole(true));
+  // The sheet is the scan root while it is open, so Settings, a screen change
+  // and Resume operating stay reachable by switch.
+  const sheetScanning = useSwitchScanning({
+    enabled: scanning?.enabled === true,
+    periodMs: scanning?.periodMs ?? 1200,
+    rootRef: panelRef,
+    revision: `${choosingRole}:${screen.id}`,
+  });
   const facts = strings.kiosk.facts;
   const { width: authoredWidth, height: authoredHeight } = resolveCanvasPresetSize(screen.canvas);
   const linkValue =
@@ -251,6 +271,7 @@ function RuntimeMaintenanceSheet({
         aria-label={strings.kiosk.maintenance}
         aria-modal="true"
         className="runtime-maintenance-panel"
+        ref={panelRef}
         role="dialog"
       >
         <header className="runtime-maintenance-head">
@@ -418,6 +439,21 @@ function RuntimeMaintenanceSheet({
 
         <footer className="runtime-maintenance-footer">
           <p>{strings.kiosk.resumeNote}</p>
+          {sheetScanning.index >= 0 ? (
+            <>
+              <button
+                className="runtime-maintenance-switch"
+                data-scan-switch=""
+                onClick={sheetScanning.activateCurrent}
+                type="button"
+              >
+                {strings.scan.button}
+              </button>
+              <p aria-live="polite" className="sr-only" role="status">
+                {strings.scan.progress(sheetScanning.index + 1, sheetScanning.targetCount)}
+              </p>
+            </>
+          ) : null}
           <button className="runtime-maintenance-return" onClick={onClose} type="button">
             {strings.kiosk.resume}
           </button>

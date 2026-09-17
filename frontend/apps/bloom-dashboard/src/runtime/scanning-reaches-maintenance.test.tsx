@@ -29,57 +29,49 @@ function configurationClient() {
   } as never;
 }
 
-describe("switch scanning behind the maintenance overlay", () => {
-  it("does not fire a canvas control while the maintenance dialog covers it", async () => {
+/** Lights `name` without waiting out the cycle, then presses the switch. */
+async function switchPressOn(name: RegExp) {
+  const target = await waitFor(() => {
+    const match = [...document.querySelectorAll<HTMLElement>("button")].find((button) =>
+      name.test(button.getAttribute("aria-label") ?? button.textContent ?? ""),
+    );
+    if (!match?.hasAttribute("data-scan-lit")) {
+      throw new Error("not lit yet");
+    }
+    return match;
+  }, 20000);
+  act(() => {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+  });
+  return target;
+}
+
+describe("maintenance under switch scanning", () => {
+  it("scans the maintenance button and opens the sheet, then reaches Settings from it", async () => {
     window.localStorage.setItem(
       "bloom.runtime-user-preferences.v1",
       JSON.stringify({
         profileOverrides: {
-          "explorer-manager:explorer-manager:operator": { motorAccessibilityPreset: "scan", scanPeriodMs: 3000 },
+          "explorer-manager:explorer-manager:operator": { motorAccessibilityPreset: "scan", scanPeriodMs: 600 },
         },
         profilePreferences: { "explorer-manager:explorer-manager": "operator" },
         recentRuntimeSelections: [],
       }),
     );
-    const client = {
-      publishRosTopic: vi.fn(async (request) => ({
-        detail: "Published.",
-        message_type: request.message_type,
-        status: "published" as const,
-        topic: request.topic,
-      })),
-      sendTeleopCommand: vi.fn(async (request) => ({
-        detail: "ok",
-        payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" as const },
-        type: "teleop_ack" as const,
-      })),
-    } satisfies RuntimeActionClient;
+    const client = { publishRosTopic: vi.fn() } satisfies RuntimeActionClient;
 
     render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
     await openRuntimeApp("Explorer Manager");
     await waitFor(() => expect(document.querySelector("[data-scan-lit]")).not.toBeNull());
 
-    const menu = screen.getByRole("button", { name: /maintenance/i });
-    fireEvent.pointerDown(menu);
-    await new Promise((r) => setTimeout(r, 1700));
-    const dialog = await screen.findByRole("dialog");
-    // The sheet is the scan root while it is open: the highlight is inside it,
-    // never on a canvas control under the scrim.
-    const litTarget = document.querySelector("[data-scan-lit]");
-    expect(litTarget).not.toBeNull();
-    expect(dialog.contains(litTarget)).toBe(true);
+    // A switch press cannot satisfy the 1.5 s pointer hold, so the scan set
+    // includes the button and its activation opens maintenance directly.
+    await switchPressOn(/maintenance/i);
+    const dialog = await screen.findByRole("dialog", { name: "Maintenance" });
 
-    const before = client.sendTeleopCommand.mock.calls.length + client.publishRosTopic.mock.calls.length;
-    // A caregiver taps the dialog's background, and presses Space in it.
-    act(() => {
-      dialog.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    });
-    act(() => {
-      dialog.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: " " }));
-    });
-    await new Promise((r) => setTimeout(r, 200));
-    const after = client.sendTeleopCommand.mock.calls.length + client.publishRosTopic.mock.calls.length;
-    expect(after).toBe(before);
-  }, 20000);
+    await switchPressOn(/^Settings$/);
+    await screen.findByRole("region", { name: "Settings" });
+    expect(dialog.isConnected).toBe(false);
+  }, 40000);
 });

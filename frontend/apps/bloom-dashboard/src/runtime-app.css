@@ -1604,6 +1604,7 @@
 .runtime-maintenance-footer {
   flex: 0 0 auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   align-items: center;
   justify-content: space-between;
@@ -1629,6 +1630,23 @@
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
+}
+
+/* The sheet's own switch bar: under scanning the dialog is the scan root. */
+.runtime-maintenance-switch {
+  flex: 1 1 100%;
+  order: 1;
+  min-height: 72px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+  font: inherit;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .runtime-maintenance-panel :focus-visible {

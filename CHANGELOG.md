@@ -41,6 +41,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   answer 500 with `database is locked`.
 - **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
 
+- **Maintenance is reachable under scanning.** The **⋯** button is part of the scan set and its activation opens the
+
 ## [0.2.0] - 2026-09-17
 
 ### Added

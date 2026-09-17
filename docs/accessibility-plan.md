@@ -15,7 +15,8 @@ signals, and test accessibility continuously.
 ## Current Runtime Contract
 
 - Runtime is a kiosk. Product navigation, editing, diagnostics, and screen switching stay behind a 1.5 second
-  maintenance hold.
+  maintenance hold. Under scanning the **⋯** button is a scan target and its activation opens maintenance directly,
+  because a switch cannot hold; the sheet and Settings then scan themselves.
 - STOP is fixed runtime chrome, engages immediately, follows a backend latch, and requires a one-second hold to resume.
   Under scanning it is the first target of every cycle, wherever it is drawn, so a switch never waits out a screen to
   reach it.

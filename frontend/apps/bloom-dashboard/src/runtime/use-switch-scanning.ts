@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { activateAssistively } from "./assistive-activation";
+
 /** Only click-operable controls; the switch bar itself is never a target. */
 export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switch])";
 
@@ -60,7 +62,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     if (activateTargetRef.current) {
       activateTargetRef.current(target);
     } else {
-      target.click();
+      activateAssistively(target);
     }
     target.focus();
   }, []);
@@ -75,6 +77,10 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       setTargetCount(0);
       return;
     }
+
+    // Scanning a dialog is the dialog's own business; only a root outside one
+    // keeps its hands off the keys and taps that belong to it.
+    const rootIsModal = isInsideModal(root);
 
     const readTargets = () => {
       // Priority targets are read from the document: STOP is runtime chrome and
@@ -122,7 +128,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       }
       // A key meant for an open dialog belongs to the dialog, never to the
       // control highlighted behind it.
-      if (isInsideModal(event.target)) {
+      if (!rootIsModal && isInsideModal(event.target)) {
         return;
       }
       event.preventDefault();
@@ -136,7 +142,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       if (target instanceof Element && (target.closest(SCAN_TARGET_SELECTOR) || target.closest("[data-scan-switch]"))) {
         return;
       }
-      if (isInsideModal(target)) {
+      if (!rootIsModal && isInsideModal(target)) {
         return;
       }
       activateCurrent();

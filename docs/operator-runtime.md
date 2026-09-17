@@ -45,7 +45,9 @@ opens **Drive · Bench**. To change role mid-session, open Maintenance and hold 
 ### Kiosk Bar
 
 The 44 px bar reads, left to right: app name, screen title, a status chip, the command frame, the publish rate, the
-role pill, and the **⋯** maintenance hold, drawn as a fill on the button itself.
+role pill, and the **⋯** maintenance hold, drawn as a fill on the button itself. Under scanning **⋯** is part of the
+scan set, and selecting it opens maintenance at once: a switch cannot hold anything down, and waiting out the scan
+cycle is already the deliberate act the 1.5 s hold asks a pointer for. The pointer and keyboard hold is unchanged.
 
 | Chip | Meaning |
 | --- | --- |
@@ -72,6 +74,10 @@ the app offers more than one profile. Reloading returns to the same app, role an
 practice tour, the supervisor mirror, Builder shortcuts, Help, Home, and the EN/ES/FR selector sit in a **More** group
 below them; only that group scrolls, so **Close** at the top and **Resume operating** at the bottom stay on screen.
 Resuming closes the sheet and publishing resumes at once. Nothing in the sheet changes what the app sends.
+
+Under scanning the sheet becomes the scan root while it is open, with STOP first and its own SWITCH bar in the footer,
+so Settings, a screen change, a role switch and **Resume operating** are all reachable by switch. The canvas behind the
+scrim is never scanned. Settings does the same with its own controls.
 
 The publish rate is the ceiling while a control moves. At rest nothing is streamed: a release sends a short tail of
 zeros, and `cartesian_manager` expires an input after 0.2 s, so its output stays at zero.

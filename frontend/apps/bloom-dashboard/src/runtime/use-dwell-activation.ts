@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
 
+import { activateAssistively } from "./assistive-activation";
+
 const TICK_MS = 40;
 const DWELL_TARGET_SELECTOR = "button:not([disabled])";
 
@@ -84,7 +86,7 @@ export function useDwellActivation(options: DwellActivationOptions): void {
         if (activateTargetRef.current) {
           activateTargetRef.current(target);
         } else {
-          target.click();
+          activateAssistively(target);
         }
         target.focus();
       }
