@@ -14,10 +14,12 @@ format: ## Apply ruff formatting
 	@uv run ruff format .
 
 .PHONY: audit
-audit: ## Run Python dependency vulnerability audit
+audit: ## Audit exactly the versions pinned in uv.lock
+	@# uv export already resolves the full set, hashed from uv.lock. Letting pip-audit
+	@# resolve it again would build a throwaway pip virtualenv and could audit other versions.
 	@requirements_file="$$(mktemp)" && \
-	uv export --no-hashes --format requirements-txt --all-groups > "$$requirements_file" && \
-	uv run pip-audit -r "$$requirements_file"; \
+	uv export --format requirements-txt --all-groups > "$$requirements_file" && \
+	uv run pip-audit -r "$$requirements_file" --require-hashes --disable-pip; \
 	status="$$?"; \
 	rm -f "$$requirements_file"; \
 	exit "$$status"

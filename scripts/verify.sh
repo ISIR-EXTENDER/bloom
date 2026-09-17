@@ -35,21 +35,7 @@ echo "==> frontend tests"
 npm run test
 
 echo "==> dependency audits"
-npm run audit:frontend
-# pip-audit resolves into a throwaway virtualenv, which needs ensurepip. A
-# machine without python3-venv cannot run it at all, and that is a missing
-# tool rather than a vulnerability, so say so instead of failing the run.
-audit_output="$(npm run audit:backend 2>&1)" && audit_status=0 || audit_status=$?
-if [ "$audit_status" -ne 0 ]; then
-  # The message wraps mid-phrase, so match the word rather than the sentence.
-  if grep -q "ensurepip" <<<"$audit_output"; then
-    echo "skipped: backend audit needs python3-venv on this machine (CI runs it)."
-    echo "         install it with: sudo apt install python3-venv"
-  else
-    echo "$audit_output"
-    exit "$audit_status"
-  fi
-fi
+npm run audit:security
 
 echo "==> visual smoke"
 npm run visual:smoke
