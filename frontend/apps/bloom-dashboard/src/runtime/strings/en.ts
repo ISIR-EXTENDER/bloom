@@ -127,7 +127,7 @@ export const enRuntimeStrings: RuntimeStrings = {
       notReported: "Not reported",
       profile: "Profile",
       publishRate: "Publish rate",
-      publishRateNote: "zeros at rest too",
+      publishRateNote: "while moving; a release sends zeros",
       youControl: "you control the robot",
     },
     actions: "Actions",

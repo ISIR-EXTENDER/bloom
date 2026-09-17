@@ -128,7 +128,7 @@ export const frRuntimeStrings: RuntimeStrings = {
       notReported: "Non signalé",
       profile: "Profil",
       publishRate: "Fréquence d'envoi",
-      publishRateNote: "zéros au repos aussi",
+      publishRateNote: "en mouvement ; relâcher envoie des zéros",
       youControl: "vous pilotez le robot",
     },
     actions: "Actions",

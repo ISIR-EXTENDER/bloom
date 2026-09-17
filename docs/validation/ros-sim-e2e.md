@@ -102,11 +102,13 @@ NaN velocity and effort for the passive gripper joints; Bloom sends them as `nul
 
 Findings from these runs, none blocking:
 
-- The maintenance card reads "Publish rate 30 Hz, zeros at rest too", but at rest nothing is published: the teleop pump
+- The maintenance card read "Publish rate 30 Hz, zeros at rest too", but at rest nothing is published: the teleop pump
   sends a six-frame zero tail after release and then stops. With maintenance open and no drive held, ROS saw no twist
   for 1.5 s. The safety property still holds, since an active drive is zeroed on open and the manager expires input
-  after 0.2 s, so the check tests that property and the copy should be corrected.
-- Bloom Debug prints manipulability with three decimals, so Explorer's live value of about 8.3e-5 reads `0.000`.
-- The Plot board draws its newest samples a few pixels past the right edge of the plot area, over the `now` label.
+  after 0.2 s, so the check tests that property. The copy now reads "while moving; a release sends zeros".
+- Bloom Debug printed manipulability with three decimals, so Explorer's live value of about 8.3e-5 read `0.000`. Values
+  under 0.01 now show in exponent form.
+- The plot board drew its newest samples a few pixels past the right edge, over the `now` label. They now stop at the
+  edge.
 - The Kinova launch declares `fault_controller` in `kinova_params.yaml` but never spawns it, so
   `/fault_controller/reset_fault` does not exist in simulation.
