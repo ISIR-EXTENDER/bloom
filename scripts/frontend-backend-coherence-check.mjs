@@ -1,29 +1,15 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readdirSync, readFileSync } from "node:fs";
+import { basename, resolve } from "node:path";
 
+// Every shipped app, read from the directory so a new one cannot be skipped.
+const seedDirectory = "backend/seed/applications";
 const configurationPairs = [
-  {
-    id: "sandbox",
-    fixture: "backend/seed/applications/sandbox.json",
-  },
-  {
-    id: "bloom-debug",
-    fixture: "backend/seed/applications/bloom-debug.json",
-  },
-  {
-    id: "petanque-admin",
-    fixture: "backend/seed/applications/petanque-admin.json",
-  },
-  {
-    id: "explorer-user-tests",
-    fixture: "backend/seed/applications/explorer-user-tests.json",
-  },
-  {
-    id: "explorer-manager",
-    fixture: "backend/seed/applications/explorer-manager.json",
-  },
+  ...readdirSync(resolve(seedDirectory))
+    .filter((file) => file.endsWith(".json"))
+    .sort()
+    .map((file) => ({ id: basename(file, ".json"), fixture: `${seedDirectory}/${file}` })),
   {
     // Test-only fixtures: not shipped to anyone, but their runtime policy is
     // still gated so they cannot drift from the backend unnoticed.
@@ -37,10 +23,6 @@ const configurationPairs = [
   {
     id: "sandbox-teleop-lab",
     fixture: "tests/fixtures/sandbox-teleop-lab-configuration.json",
-  },
-  {
-    id: "webcam-visualizer",
-    fixture: "backend/seed/applications/webcam-visualizer.json",
   },
 ];
 

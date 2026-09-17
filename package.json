@@ -27,6 +27,7 @@
     "validation:visual-servoing": "node scripts/visual-servoing-contract.mjs",
     "visual:smoke": "node scripts/visual-smoke.mjs",
     "check:version": "node scripts/version-consistency-check.mjs",
+    "check:contracts": "npm run check:version && npm run validation:frontend-backend && npm run validation:petanque-parity && npm run validation:sandbox-tablet && npm run validation:sandbox-runtime && npm run validation:visual-servoing",
     "qa:review": "node scripts/qa-review.mjs",
     "verify": "bash scripts/verify.sh"
   },
