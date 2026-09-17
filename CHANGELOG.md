@@ -11,89 +11,13 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
-### Changed
-
-- A control lease now holds only while its session is still talking (decision 0135). An owner silent for 10 s can be
-  displaced by another operator's **Take control**, so a tablet that lost Wi-Fi with its socket still open no longer
-  blocks every other operator and every resume. Runtime tabs ping every 3 s, so an idle operator is never displaced.
-
-### Fixed
-
-- **A dwell that began before STOP no longer fires after it.** The rest only checked its target when the pointer
-  arrived, so a rest started on **Forward, one step** still clicked it half a second after the latch engaged; the
-  programmatic click went straight past the canvas' `pointer-events: none`. The rest is now abandoned instead.
-- **A canvas that comes back while STOP is latched comes back stopped.** Engaging STOP with Settings or the practice
-  tour open left the remounted canvas untouched — every control kept its tab stop and said nothing to a screen
-  reader — because the latch still watched the unmounted nodes.
-- **The stopped latch survives a re-render, and resume puts back what it found.** A widget that re-set its own
-  `tabindex` got its tab stop back while the latch was still on, and releasing the latch cleared `aria-disabled` from
-  controls that had declared it themselves, so an unavailable control came back looking operable.
-- **The stop latch refuses motion in the frontend too.** The runtime intent gate now knows the latch, so a widget
-  value-change is refused before it reaches the socket instead of relying on the backend to throw and on a CSS
-  `pointer-events: none` that arrow keys on an already-focused pad never meet. A release (a zero) still passes, so a
-  held control can return to rest.
-- The status chip and the kiosk bar's held badge now read the practice tour the same way the intent gate does. All
-  three take one reading of which view holds motion, so they cannot drift apart if the tour ever stops replacing the
-  canvas.
-- **A dwell operator is no longer trapped in the maintenance sheet.** The sheet ran switch scanning but not dwell,
-  and the workspace's dwell is off while the sheet is open, so resting on **⋯** opened a sheet with no dwellable
-  Close, Settings, screen or role. The sheet now runs dwell the same way it runs scanning.
-- **The lease keepalive can no longer desynchronise the runtime socket's replies.** Replies are matched to requests by
-  position, and a ping used to occupy a slot that only a pong could settle, so one unanswered ping offset every later
-  reply by one: a teleop ack would be read off the wrong command and a stop-latch refusal would never reach the stream
-  pump. Pings are now sent outside the queue and pongs dropped before it. The keepalive timer is also cleared on
-  `error`, not only on `close`.
-- The gap the maintenance sheet leaves for STOP is measured after layout instead of read out of the DOM during
-  render, so it no longer depends on which render happens to see the mounted canvas shell.
-- **Resetting the command frame to the robot's default now reaches the stream.** A gamepad or other non-widget source
-  that reset to the default sent an empty frame, which was dropped on the way to the pump, so the stream kept stamping
-  the frame the operator had just left and the arm went on rotating in it.
-- **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
-  latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
-  resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.
-- **A stopped switch or dwell operator can still reach maintenance**, and through it Settings, another screen, another
-  role, or the way out. Only resume was reachable before.
-- **STOP is the first scan target** of every cycle, on every surface that draws it. It used to sit last in the screen's
-  DOM order, 28 s away at a 1400 ms scan period.
-- **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
-  scan profile without dwell could not clear its own STOP before: the switch bar left with the scan set.
-- **STOP is the first keyboard tab stop** on every screen that has it, rather than the second-to-last.
-- An application's `allowed_teleop_targets` is enforced on the runtime socket. A tab names its app with a new
-  `app_context` message, and teleop, publishes and service calls are then limited to the deployment allowlists
-  intersected with that app's `runtime_policy`, as `POST /runtime/actions` already did. A session on Bloom Debug or the
-  webcam visualizer, which declare no teleop target, can no longer stream teleop. A client that sends no app context
-  keeps today's deployment-wide behaviour.
-- The runtime socket serves at most 32 sessions. A connection past that is refused with `session_limit` and closed
-  instead of adding another session, each of which could hold 64 ROS subscriptions.
-- Rate-limit state is bounded. A camera frame is checked against the publish allowlist before it is counted, so an
-  arbitrary topic no longer leaves a counter behind, and idle runtime keys, client-address buckets, and
-  per-configuration save locks are released instead of kept for the life of the process.
-- A service call the robot refused is audited as `rejected`, not `accepted`, and every service audit row carries the
-  receipt's own `call_status` and `success`, so a simulated call is visible as one.
-- A camera frame published with no ROS attached is reported as `simulated`, like every other Noop seam, instead of
-  `published`. `GET /api/v1/capabilities` now also reports the `camera-frames` seam, so a screen can tell whether
-  frames reach ROS.
-- A configuration read no longer takes a write lock. The store is migrated once, when its repository is built, and
-  connections run in WAL with a 15 s busy timeout, so a CLI `config seed` holding a write no longer makes the API
-  answer 500 with `database is locked`.
-
-- **Settings reads its labels, not its keys.** `font_scale`, `dwell_ms`, `deadzone` and the rest stay on screen for
-- **Pads and axes announce where they came to rest.** Four `aria-live` readouts streamed joystick coordinates at up to
-- **`Max speed m/s`** keeps the space between a control's title and its unit, which a screen reader used to run
-- **Stopped controls say so.** While the STOP latch is on, the canvas controls are marked `aria-disabled` and leave
-- **Targets at their floor.** The **⋯** maintenance button fills the bar's 44 px instead of drawing 34, and every
-- **Focus follows the view that opens.** Opening an app, opening or leaving Settings, Escape, and a screen change from
-- **The maintenance sheet traps focus.** Focus moves into the dialog when it opens, Tab stays inside it instead of
-- **STOP is the first keyboard tab stop** on every screen that has it, rather than the second-to-last.
-- **A visible keyboard focus ring.** The shipped ring was a 28% primary tint, 1.59:1 on the cream surface. It is now a
-- **Dwell requires a rest, not a passage.** Moving more than a few pixels inside a control restarts its dwell, so
-- **Maintenance is reachable by dwell too.** Dwell covers the whole view, so resting on **⋯** opens the sheet.
-- **Maintenance is reachable under scanning.** The **⋯** button is part of the scan set and its activation opens the
-
-## [0.2.0] - 2026-09-17
+## [0.2.0] - 2026-09-18
 
 ### Added
 
+- **`npm run visual:sweep`** opens every screen of every shipped app, as every role, at the maintained viewports of
+  its device class, and checks the artboard bounds, overlapping cards, clipped text, the STOP region and the target
+  each control leaves on the glass. `npm run visual:smoke` runs it after the screenshot pass.
 - **`npm run e2e:sim -- --robot explorer|kinova`** drives Bloom against the Explorer Gazebo simulation or Kinova fake
   hardware, with no mocks, and checks each effect on the ROS graph: motion, release to zero, Bench and Operator parity,
   gripper values, speed limits, STOP, the maintenance hold, the frame stamp, Go home and Release, and live samples in
@@ -199,6 +123,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
+- A control lease now holds only while its session is still talking (decision 0135). An owner silent for 10 s can be
+  displaced by another operator's **Take control**, so a tablet that lost Wi-Fi with its socket still open no longer
+  blocks every other operator and every resume. Runtime tabs ping every 3 s, so an idle operator is never displaced.
 - **Breaking for API clients.** The runtime socket keys topic subscriptions by widget id and topic, and a frontend with
   this release sends `unsubscribe_topic`, which an older API refuses. Deploy the API and dashboard together.
 - STOP stays live over Settings and the practice tour, drawn as a full-height rail those views keep clear.
@@ -267,6 +194,16 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Security
 
+- An application's `allowed_teleop_targets` is enforced on the runtime socket. A tab names its app with a new
+  `app_context` message, and teleop, publishes and service calls are then limited to the deployment allowlists
+  intersected with that app's `runtime_policy`, as `POST /runtime/actions` already did. A session on Bloom Debug or the
+  webcam visualizer, which declare no teleop target, can no longer stream teleop. A client that sends no app context
+  keeps today's deployment-wide behaviour.
+- The runtime socket serves at most 32 sessions. A connection past that is refused with `session_limit` and closed
+  instead of adding another session, each of which could hold 64 ROS subscriptions.
+- Rate-limit state is bounded. A camera frame is checked against the publish allowlist before it is counted, so an
+  arbitrary topic no longer leaves a counter behind, and idle runtime keys, client-address buckets, and
+  per-configuration save locks are released instead of kept for the life of the process.
 - Production refuses API keys shorter than 32 characters, a key shared by two roles, and a `*` CORS origin.
 - The runtime socket checks `Origin`, so a web page in a browser that can reach the API can no longer claim control.
 - The audit log lists sessions by alias. A session id proves ownership, and any reader could previously replay the
@@ -277,6 +214,75 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **STOP comes first, for the switch and for the keyboard.** Scanning walked the screen in DOM order, which put STOP
+  last: 23 targets on the Explorer Manager drive screen, about 28 s away at the one-switch profile's 1400 ms period.
+  It is now lit first in every cycle, on the canvas, in Settings and over the maintenance sheet, and it takes the
+  runtime's only positive tab index, so it heads the tab order on every screen that draws it rather than sitting
+  second to last.
+- **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes.
+  Scanning used to be turned off with the latch, which took the switch bar with it, so a scan profile without dwell
+  could stop the arm and never clear its own STOP.
+- **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
+  latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
+  resume and the control reads **PRESS AGAIN TO RESUME**, the second within eight seconds performs it, and the arming
+  lapses by itself. A pointer hold is unchanged.
+- **Maintenance is reachable without a pointer.** The **⋯** button sat outside the scan root and opens on a 1.5 s
+  hold, which neither a switch press nor a dwell can give, so Settings, screen changes, the role switch and the way
+  out were all unreachable under a scan or dwell profile. Both now cover the whole view, and a scan or dwell
+  activation dispatches a cancelable event a control may accept in place of its hold; the **⋯** button and the resume
+  control take it. While the sheet is open it becomes the scan root itself, with STOP first and its own switch bar.
+  The button stays in the set while stopped, so an operator who stopped is not left with resume as the only thing
+  they can reach.
+- **Dwell requires a rest, not a passage.** The timer started when the pointer entered a control and never restarted
+  while it moved inside, so crossing a control counted as resting on it: a pointer swept over **▲ Forward** published
+  motion on the way past, and one parked at the edge of the screen could resume a STOP. Movement beyond six pixels
+  inside the target now starts the rest over. Tremor and head-pointer jitter stay well under that; a traversal does
+  not.
+- **A visible keyboard focus ring.** The shipped ring was a 28% primary tint on a 4 px outline: 1.59:1 on the cream
+  surface, under the 3:1 of WCAG 2.2 SC 1.4.11, and invisible on the forest bar. It is now a two-tone theme token, a
+  dark line inside a light halo, so one half always carries the contrast whatever it lands on, and STOP fills its own
+  rect and draws the ring inside the control. A theme test checks both halves against the surfaces, the forest chrome
+  and the STOP red.
+- **Focus follows the view that opens.** Opening an app focused an unnamed wrapper, and opening Settings, changing
+  screen from maintenance or pressing Escape dropped focus on `<body>`: a screen reader announced nothing and the next
+  Tab restarted at the top of the page. The runtime workspace, Settings and the practice tour each take focus on their
+  own labelled region, and the route-level reset leaves focus alone once a view has claimed it.
+- **The maintenance sheet traps focus.** The sheet claims `aria-modal="true"`, which hides the artboard behind the
+  scrim from screen readers, but Tab walked straight into it, onto controls the reader could not see. Focus now moves
+  into the dialog when it opens and stays inside it, Tab and Shift+Tab wrap at its ends, and closing it — by Close,
+  Resume operating or Escape — gives focus back to the **⋯** button that opened it.
+- **Stopped controls say so.** While the latch was on, the screen was inert by CSS alone: every control kept its tab
+  stop, announced nothing and answered nothing, so a keyboard or screen-reader operator walked a screen of
+  live-looking controls. The canvas controls now carry `aria-disabled` and leave the tab order while the latch is on,
+  including a widget that re-renders under new telemetry, and get their tab stops back on resume. STOP and resume are
+  never touched.
+- **Runtime targets at their floor.** The **⋯** maintenance button drew 56×34 in a 44 px bar, the smallest target in
+  the runtime, on the control every operator needs to leave the session; it now fills the bar's height. Settings held
+  56 px for every profile, including the ones whose whole point is a larger target, and now takes its target from the
+  profile: 56 px for touch, 64 px for scan, dwell or high visibility.
+- **Pads and axes announce where they came to rest.** Four `aria-live` readouts on the drive screen streamed joystick
+  coordinates at up to 30 Hz, so a screen reader talked over itself for as long as a hand was on the glass and the
+  number it finally read was stale. The sr-only readouts announce the value the control settled at; the visible
+  readouts are unchanged.
+- **`Max speed m/s`** keeps the space between a control's title and its unit. A step slider's header put the unit
+  straight after the title, and a screen reader and the scan announcement read "Max speedm/s" and "Max turnrad/s".
+- **Settings reads its labels, not its keys.** Every Settings card showed its stored profile key beside the label and
+  a screen reader read it: "Hold to activate dwell_ms", "Joystick dead zone deadzone". `font_scale`, `dwell_ms`,
+  `deadzone` and the rest stay on screen for whoever edits a profile and are hidden from assistive technology.
+- A joystick's target is measured on the pad the renderer draws, not on the whole card. The title row and the x/y
+  readouts come off the card before the pad does, so a 216×216 card with its title above passed the 56 px comfort
+  floor and drew a 47 px knob. Design system §04b states the three chrome cases separately. No shipped screen loses
+  its floor; every shipped pad overlays its title, so its target moves by the 2 px surface border alone.
+- A service call the robot refused is audited as `rejected`, not `accepted`, and every service audit row carries the
+  receipt's own `call_status` and `success`, so a simulated call is visible as one.
+- A camera frame published with no ROS attached is reported as `simulated`, like every other Noop seam, instead of
+  `published`. `GET /api/v1/capabilities` now also reports the `camera-frames` seam, so a screen can tell whether
+  frames reach ROS.
+- A configuration read no longer takes a write lock. The store is migrated once, when its repository is built, and
+  connections run in WAL with a 15 s busy timeout, so a CLI `config seed` holding a write no longer makes the API
+  answer 500 with `database is locked`.
+- The visual checks answer `GET /api/v1/capabilities` and the saved-position routes. Neither was stubbed, so the
+  screenshots and the sweep were taken with capabilities unresolved and the position library in its failure state.
 - Drive · Bench's continuous speed limits had a 40 px thumb, 32 px on the tablet glass, so the shipped apps failed the
   builder's own touch floor. The thumb is 56 px and the two cards are authored 132 tall to keep the rail's spacing.
 
@@ -339,6 +345,35 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   untouched.
 - Builder: JSON settings keep half-typed text, an emptied optional number is unset, and a slider step of 0 is refused.
 - The Extender launcher no longer leaves Vite running when it exits, and Vite no longer drifts to another port.
+- **A dwell that began before STOP no longer fires after it.** The rest only checked its target when the pointer
+  arrived, so a rest started on **Forward, one step** still clicked it half a second after the latch engaged; the
+  programmatic click went straight past the canvas' `pointer-events: none`. The rest is now abandoned instead.
+- **A canvas that comes back while STOP is latched comes back stopped.** Engaging STOP with Settings or the practice
+  tour open left the remounted canvas untouched — every control kept its tab stop and said nothing to a screen
+  reader — because the latch still watched the unmounted nodes.
+- **The stopped latch survives a re-render, and resume puts back what it found.** A widget that re-set its own
+  `tabindex` got its tab stop back while the latch was still on, and releasing the latch cleared `aria-disabled` from
+  controls that had declared it themselves, so an unavailable control came back looking operable.
+- **The stop latch refuses motion in the frontend too.** The runtime intent gate now knows the latch, so a widget
+  value-change is refused before it reaches the socket instead of relying on the backend to throw and on a CSS
+  `pointer-events: none` that arrow keys on an already-focused pad never meet. A release (a zero) still passes, so a
+  held control can return to rest.
+- The status chip and the kiosk bar's held badge now read the practice tour the same way the intent gate does. All
+  three take one reading of which view holds motion, so they cannot drift apart if the tour ever stops replacing the
+  canvas.
+- **A dwell operator is no longer trapped in the maintenance sheet.** The sheet ran switch scanning but not dwell,
+  and the workspace's dwell is off while the sheet is open, so resting on **⋯** opened a sheet with no dwellable
+  Close, Settings, screen or role. The sheet now runs dwell the same way it runs scanning.
+- **The lease keepalive can no longer desynchronise the runtime socket's replies.** Replies are matched to requests by
+  position, and a ping used to occupy a slot that only a pong could settle, so one unanswered ping offset every later
+  reply by one: a teleop ack would be read off the wrong command and a stop-latch refusal would never reach the stream
+  pump. Pings are now sent outside the queue and pongs dropped before it. The keepalive timer is also cleared on
+  `error`, not only on `close`.
+- The gap the maintenance sheet leaves for STOP is measured after layout instead of read out of the DOM during
+  render, so it no longer depends on which render happens to see the mounted canvas shell.
+- **Resetting the command frame to the robot's default now reaches the stream.** A gamepad or other non-widget source
+  that reset to the default sent an empty frame, which was dropped on the way to the pump, so the stream kept stamping
+  the frame the operator had just left and the arm went on rotating in it.
 
 ### Known limitations
 
