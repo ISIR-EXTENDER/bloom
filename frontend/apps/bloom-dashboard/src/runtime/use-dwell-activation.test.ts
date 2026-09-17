@@ -155,4 +155,21 @@ describe("dwell activation", () => {
     expect(onClick).not.toHaveBeenCalled();
     expect(button).not.toHaveAttribute("data-dwell-active");
   });
+
+  it("abandons a rest that began before the safety state rejected its control", () => {
+    // Resting on "Forward, one step" while STOP engages: the click the dwell
+    // would send is programmatic, so the canvas' pointer-events: none is no
+    // defence against it.
+    const { button, onClick, rootRef } = buildTarget();
+    let stopped = false;
+    renderHook(() => useDwellActivation({ dwellMs: 800, enabled: true, isTargetEnabled: () => !stopped, rootRef }));
+
+    act(() => button.dispatchEvent(new PointerEvent("pointermove", { bubbles: true })));
+    act(() => vi.advanceTimersByTime(400));
+    stopped = true;
+    act(() => vi.advanceTimersByTime(800));
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(button).not.toHaveAttribute("data-dwell-active");
+  });
 });

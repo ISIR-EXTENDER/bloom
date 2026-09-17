@@ -180,6 +180,8 @@ configuration and app, but the tour remains available for repetition.
 - While stopped, the screen's widgets go muted and inert and the control becomes **HOLD TO RESUME**. They are marked
   `aria-disabled` and leave the keyboard tab order while the latch is on, so a keyboard or screen-reader operator is
   not walked through controls that answer nothing; STOP and resume stay reachable.
+- A dwell in progress when STOP engages is abandoned rather than completed. Resting on a screen control while another
+  operator or a hardware event latches the stop never fires that control; the pointer has to move away and rest again.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
 - Scanning stays on while stopped, and the highlight rests on the resume control and on the **⋯** button, so an
   operator who stopped is not held on that screen. Neither a switch press nor a dwell can hold, so resume asks twice:

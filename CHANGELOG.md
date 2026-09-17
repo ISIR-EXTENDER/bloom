@@ -19,6 +19,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A dwell that began before STOP no longer fires after it.** The rest only checked its target when the pointer
+  arrived, so a rest started on **Forward, one step** still clicked it half a second after the latch engaged; the
+  programmatic click went straight past the canvas' `pointer-events: none`. The rest is now abandoned instead.
 - **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
   latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
   resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.

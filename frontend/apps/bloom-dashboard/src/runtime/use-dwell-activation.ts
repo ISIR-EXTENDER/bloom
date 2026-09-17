@@ -102,6 +102,12 @@ export function useDwellActivation(options: DwellActivationOptions): void {
       const nextProgress = Math.min(1, elapsed / activationMs);
       target.style.setProperty("--bloom-dwell-progress", String(nextProgress));
       if (nextProgress >= 1) {
+        // The latch may have engaged mid-rest, and a programmatic click ignores
+        // the canvas' pointer-events: none, so ask again before firing.
+        if (!(isTargetEnabledRef.current?.(target) ?? true)) {
+          clearTarget();
+          return;
+        }
         // Fire once per rest; lingering must not repeat the command.
         firedRef.current = true;
         if (activateTargetRef.current) {
