@@ -313,7 +313,8 @@ export function RuntimeWorkspace({
     dwellMs: runtimeProfile.dwellMs,
     enabled: runtimeProfile.dwellEnabled && !maintenanceOpen && !settingsOpen && !tourOpen,
     isTargetEnabled: isAssistiveRuntimeTargetEnabled,
-    rootRef: runtimeControlsRef,
+    // The whole view, as scanning uses: a dwell operator needs the bar's maintenance button too.
+    rootRef: workspaceRef,
   });
   const previousScreenIdRef = useRef(screen.id);
   motionHeldRef.current = maintenanceOpen || settingsOpen || tourOpen;

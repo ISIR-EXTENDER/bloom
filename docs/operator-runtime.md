@@ -302,7 +302,9 @@ and dwell duration `400..4000 ms`. `dwell_enabled` enables pointer dwell alongsi
 the old `dwell` preset also enables it for compatibility. Dwell asks for a rest: moving more than a few pixels inside a
 control starts its timer again, so a pointer crossing a control on the way somewhere else never fires it.
 `dwell_ms` controls only the duration and cannot enable the
-feature by itself because it has a nonzero default. Dwell never shortens the one-second resume hold.
+feature by itself because it has a nonzero default. Dwell never shortens the one-second resume hold. Dwell covers the
+whole view, the kiosk bar included, so resting on **⋯** opens maintenance: a dwell cannot satisfy the 1.5 second hold
+any more than a switch press can, and resting on it is already deliberate.
 
 Latched and stepped return-to-center controls automatically publish zero after 15 seconds without renewed input; the
 visible zero control releases them sooner.
