@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import minSizeDoc from "../../../../docs/design/widget-min-size.md?raw";
 
+import { DEFAULT_WIDGET_DEFINITIONS } from "./index";
 import { findSizeShortfall, minSizeFor, WIDGET_MIN_SIZE } from "./min-size";
 import { BENCH_RAIL, padGeometry } from "./pad-geometry";
 
@@ -28,6 +29,13 @@ describe("the widget minimum-size contract", () => {
     expect(minSizeFor("joystick", { hide_title: true })).toEqual([280, 332]);
     expect(minSizeFor("camera", {})).toBeNull();
   });
+
+  it.each(DEFAULT_WIDGET_DEFINITIONS.map((definition) => [definition.kind, definition] as const))(
+    "adds a %s from the palette at or above its minimum",
+    (kind, { defaultLayout, defaultSettings }) => {
+      expect(findSizeShortfall({ kind, layout: defaultLayout, settings: defaultSettings })).toBeNull();
+    },
+  );
 
   it("reports the shortfall that shipped as the clipped gripper", () => {
     expect(

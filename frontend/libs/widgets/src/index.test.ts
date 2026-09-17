@@ -146,10 +146,10 @@ describe("widget capability metadata", () => {
       },
       category: "input",
       defaultLayout: {
-        height: 220,
+        height: 332,
         minHeight: 160,
         minWidth: 160,
-        width: 220,
+        width: 280,
       },
       defaultSettings: {
         binding: "joy",
@@ -236,7 +236,7 @@ describe("widget capability metadata", () => {
         x: 0,
         y: 0,
         width: 120,
-        height: 220,
+        height: 284,
       },
       settings: {
         direction: "vertical",
