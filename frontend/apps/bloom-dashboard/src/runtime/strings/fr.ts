@@ -85,6 +85,10 @@ export const frRuntimeStrings: RuntimeStrings = {
     fitDescription: (width, height, percent) =>
       `Composé pour ${width} x ${height}, affiché à ${percent} %. Les cibles peuvent mesurer moins de 44 px.`,
     fitTitle: "Cibles tactiles réduites",
+    frameNotOnRobot: (frameId) =>
+      `Le repère de commande « ${frameId} » n'est pas disponible sur ce robot. Choisissez un repère disponible avant de bouger.`,
+    frameReleaseControls: "Relâchez les commandes.",
+    frameUnavailableOnRobot: "Indisponible sur ce robot.",
     gamepad: "manette",
     help: "Aide",
     home: "Accueil",

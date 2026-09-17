@@ -50,6 +50,7 @@ describe("runtime string catalogs", () => {
       '"STOPPED"',
       '"Stop the robot"',
       '"Switch runtime screen"',
+      "is not available on this robot",
     ];
 
     for (const literal of forbiddenLiterals) {

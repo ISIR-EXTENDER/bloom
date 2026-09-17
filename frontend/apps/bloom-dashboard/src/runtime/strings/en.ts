@@ -85,6 +85,10 @@ export const enRuntimeStrings: RuntimeStrings = {
     fitDescription: (width, height, percent) =>
       `Composed for ${width} × ${height}, shown at ${percent}%. Targets may be below the 44 px touch floor.`,
     fitTitle: "Touch targets scaled down",
+    frameNotOnRobot: (frameId) =>
+      `Command frame "${frameId}" is not available on this robot. Select an available frame before moving.`,
+    frameReleaseControls: "Release controls.",
+    frameUnavailableOnRobot: "Unavailable on this robot.",
     gamepad: "gamepad",
     help: "Help",
     home: "Home",

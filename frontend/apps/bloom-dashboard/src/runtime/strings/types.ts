@@ -46,6 +46,9 @@ export type RuntimeStrings = {
     editScreen: string;
     fitDescription: (width: number, height: number, percent: number) => string;
     fitTitle: string;
+    frameNotOnRobot: (frameId: string) => string;
+    frameReleaseControls: string;
+    frameUnavailableOnRobot: string;
     gamepad: string;
     help: string;
     home: string;

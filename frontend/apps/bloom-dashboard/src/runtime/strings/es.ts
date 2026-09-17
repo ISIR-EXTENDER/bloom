@@ -85,6 +85,10 @@ export const esRuntimeStrings: RuntimeStrings = {
     fitDescription: (width, height, percent) =>
       `Diseñada para ${width} x ${height}, mostrada al ${percent} %. Los objetivos pueden medir menos de 44 px.`,
     fitTitle: "Objetivos táctiles reducidos",
+    frameNotOnRobot: (frameId) =>
+      `El marco de comando "${frameId}" no está disponible en este robot. Elija un marco disponible antes de moverlo.`,
+    frameReleaseControls: "Suelte los controles.",
+    frameUnavailableOnRobot: "No disponible en este robot.",
     gamepad: "mando",
     help: "Ayuda",
     home: "Inicio",

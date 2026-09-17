@@ -158,9 +158,8 @@ export function RuntimeWorkspace({
   const commandFrameUnavailable = Boolean(
     commandFrameId && allowedCommandFrameIds !== null && !allowedCommandFrameIds.includes(commandFrameId),
   );
-  const commandFrameError = commandFrameUnavailable
-    ? `Command frame "${commandFrameId}" is not available on this robot. Select an available frame before moving.`
-    : null;
+  const commandFrameError =
+    commandFrameUnavailable && commandFrameId ? strings.kiosk.frameNotOnRobot(commandFrameId) : null;
   const [topicStatuses, setTopicStatuses] = useState<readonly RosTopicStatus[] | null | undefined>(() =>
     runtimeActionClient.listRosTopicStatus ? null : undefined,
   );
@@ -174,6 +173,10 @@ export function RuntimeWorkspace({
         activeCommandFrameId: commandFrameId,
         allowedCommandFrameIds,
         commandFrameError,
+        frameReasons: {
+          releaseControls: strings.kiosk.frameReleaseControls,
+          unavailableOnRobot: strings.kiosk.frameUnavailableOnRobot,
+        },
         runtimeCapabilities: runtimeCapabilityReport?.capabilities ?? null,
         teleopActive,
         topicStatuses,
@@ -185,6 +188,7 @@ export function RuntimeWorkspace({
       runtimeCapabilityReport?.capabilities,
       runtimeModeState,
       screen,
+      strings,
       teleopActive,
       topicStatuses,
     ],

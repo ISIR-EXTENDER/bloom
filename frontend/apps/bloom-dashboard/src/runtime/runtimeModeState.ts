@@ -140,6 +140,11 @@ function resolveModeRequestFromIntent(intent: WidgetActionIntent): string | null
   return null;
 }
 
+const DEFAULT_FRAME_REASONS = {
+  releaseControls: "Release controls.",
+  unavailableOnRobot: "Unavailable on this robot.",
+};
+
 export function createRuntimeControlStateByWidgetId(
   screen: ScreenConfig,
   modeState: RuntimeModeState,
@@ -147,6 +152,7 @@ export function createRuntimeControlStateByWidgetId(
     activeCommandFrameId?: string | null;
     allowedCommandFrameIds?: readonly string[] | null;
     commandFrameError?: string | null;
+    frameReasons?: { releaseControls: string; unavailableOnRobot: string };
     runtimeCapabilities?: readonly RuntimeCapability[] | null;
     teleopActive?: boolean;
     topicStatuses?: readonly RosTopicStatus[] | null;
@@ -159,10 +165,11 @@ export function createRuntimeControlStateByWidgetId(
     const frameId = resolveTeleopFrameId(widget.settings.runtime_binding);
     if (frameId) {
       const unavailable = options.allowedCommandFrameIds ? !options.allowedCommandFrameIds.includes(frameId) : false;
+      const reasons = options.frameReasons ?? DEFAULT_FRAME_REASONS;
       const disabledReason = options.teleopActive
-        ? "Release controls."
+        ? reasons.releaseControls
         : unavailable
-          ? "Unavailable on this robot."
+          ? reasons.unavailableOnRobot
           : undefined;
       controlState = {
         selection: frameId === options.activeCommandFrameId ? "selected" : "unselected",
