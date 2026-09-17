@@ -48,6 +48,7 @@ role pill, and the **⋯** maintenance hold, drawn as a fill on the button itsel
 | READY | Linked and this session controls the robot. |
 | HELD FOR MAINTENANCE | Maintenance, Settings, or the practice tour is open; teleop is suspended at zeros. |
 | STOPPED | The backend STOP latch is engaged. |
+| NOT IN CONTROL | Another session owns the robot; this screen is inert until you **Take control**. |
 | LINK DOWN / CONNECTING | The frontend has no backend link yet or lost it. |
 | DEBUG | Bloom Debug only. |
 
@@ -60,9 +61,13 @@ mirror.
 The sheet opens over a scrim with a **Robot held at zeros** badge. While it is open, only releases reach the robot: a
 joystick still held under the sheet does not resume motion when the zero goes out. It lists six read-only facts (link,
 publish rate, command frame, profile and its layout, device class, app version) and four actions: **Settings**,
-**Switch role**, **Reload this app**, and **Exit to library**. Screen switching, the practice tour, the supervisor
-mirror, Builder shortcuts, and Help sit in a **More** group below them. **Resume operating** closes the sheet and
-publishing resumes at once. Nothing in the sheet changes what the app sends.
+**Switch role**, **Reload this app**, and **Exit to library**. Reloading returns to the same app and screen. Screen
+switching, the practice tour, the supervisor mirror, Builder shortcuts, and Help sit in a **More** group below them;
+the group scrolls, so **Resume operating** stays on screen. It closes the sheet and publishing resumes at once. Nothing
+in the sheet changes what the app sends.
+
+The publish rate is the ceiling while a control moves. At rest nothing is streamed: a release sends a short tail of
+zeros, and `cartesian_manager` expires an input after 0.2 s, so its output stays at zero.
 
 Runtime also checks each widget's declared backend requirement against `GET /api/v1/capabilities`. When the backend
 explicitly reports a required publisher, subscriber, service, or teleop seam unavailable, the control remains in its
@@ -135,7 +140,9 @@ configuration and app, but the tour remains available for repetition.
 - The stop is a backend latch shared by runtime clients; it is not a decorative local button.
 - A screen places STOP in its `stop` reserved region, which widgets cannot occupy. A screen without one keeps STOP in
   the bottom-right corner.
-- STOP stays above the maintenance scrim, Settings, and the practice tour. The sheet is inset so it never covers STOP.
+- STOP stays live above the maintenance scrim, Settings, and the practice tour. Over the sheet it keeps its place;
+  over Settings and the tour, which replace the canvas, it becomes a full-height rail on the right that those views
+  keep clear.
 - While stopped, the screen's widgets go muted and inert and the control becomes **HOLD TO RESUME**.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
 - Link, stop, and recovery transitions can produce audio cues when the selected profile enables them.
@@ -265,12 +272,13 @@ Settings has three columns:
 - **How you reach the controls**: the input method (Touch, Dwell, Scan) and, as a separate card, **How a push moves**
   (Drag, Tap by tap, Keep going), which maps to the direct, step, and latch presets.
 - **Timing**: hold to activate, scan step, ignore repeats, and joystick dead zone. A setting that does not apply to the
-  chosen input method is drawn dashed and reads, for example, **only for Scan**.
+  chosen input method is drawn dashed and reads, for example, **only for Scan**. A dead zone of zero reads **each
+  control's own**, because each widget then keeps its authored dead zone.
 
-**Try it** is the real control running with the draft settings, with a readout of target size, font scale, and timing.
-It has no robot-action interface. Changes stay a draft until **Save and resume**, which stores them in the browser
-preference payload under `profileOverrides[configId:appId:profileId]` and returns to operation. Escape discards the
-draft. Malformed stored values are ignored.
+**Try it** runs a press target with the draft settings and a readout of target size, font scale, and timing. Nothing is
+sent. Changes stay a draft until **Save and resume**, which stores them in the browser preference payload under
+`profileOverrides[configId:appId:profileId]` and returns to operation. **Discard changes**, or Escape on a keyboard,
+leaves without saving. Malformed stored values are ignored.
 
 The command frame is no longer a setting: it changes what the app publishes, so it is chosen on the Joystick Lab frame
 row and shown read-only in the bar and the maintenance sheet. A stored per-profile frame override is ignored and
@@ -296,9 +304,10 @@ the other per-profile overrides and is restored for the same application and pro
 Maintenance for a fast change and in **Settings > Language** with full language names.
 
 The runtime status, STOP/resume control, Maintenance, scanner, Settings, the library, and empty-screen state use the
-selected catalog. Authored app names and screen names remain configuration data. Widget labels are authored in English;
-the operator vocabulary the shipped seeds use (speed words, shaping modes, turn words, gripper verbs and state,
-directions) is shown in the profile's language from a glossary, and any other authored label stays as written. A longer
+selected catalog. App names remain configuration data. Widget labels, screen titles and role names are authored in
+English; the vocabulary the shipped seeds use (speed words, shaping modes, frames, turn words, gripper verbs and state,
+directions, group labels, screen titles and role names) is shown in the profile's language from a glossary, and any
+other authored text stays as written. A longer
 language wraps to a second line and the control grows; nothing truncates. Numbers, axis values, topic names, and frame
 IDs remain unchanged. French and Spanish wording, STOP and the resume hold above all, still requires native-speaker and
 operator review before participant use.
