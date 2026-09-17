@@ -8,6 +8,8 @@ from libs.config.seed import (
     DEFAULT_SEED_DIR,
     adopt_file_configurations,
     available_seed_ids,
+    configuration_fingerprint,
+    is_unedited_seed_copy,
     seed_configurations,
 )
 from libs.config.storage import create_configuration_repository
@@ -384,3 +386,47 @@ def test_no_interactive_control_shares_glass_with_the_stop_chrome() -> None:
                     checked += 1
 
     assert checked > 0, "no interactive widgets were checked; the walk is broken"
+
+
+def test_an_untouched_copy_receives_the_shipped_update() -> None:
+    # An installation seeded once kept the app it first saw forever: screens
+    # added upstream never arrived on the machine running the robot.
+    repository = InMemoryConfigurationRepository()
+    seed_configurations(repository)
+    seeded = repository.get("explorer-manager")
+    shrunk = seeded.model_copy(update={"applications": ()})
+    repository.upsert(
+        "explorer-manager",
+        shrunk.model_copy(
+            update={"metadata": shrunk.metadata.model_copy(update={"seed_fingerprint": configuration_fingerprint(shrunk)})}
+        ),
+    )
+
+    outcome = seed_configurations(repository)
+
+    assert "explorer-manager" in outcome.upgraded
+    assert repository.get("explorer-manager").applications
+
+
+def test_an_edited_copy_is_never_replaced() -> None:
+    repository = InMemoryConfigurationRepository()
+    seed_configurations(repository)
+    seeded = repository.get("explorer-manager")
+    edited = seeded.model_copy(update={"applications": ()})
+    repository.upsert("explorer-manager", edited)
+
+    outcome = seed_configurations(repository)
+
+    assert "explorer-manager" in outcome.skipped
+    assert "explorer-manager" not in outcome.upgraded
+    assert repository.get("explorer-manager").applications == ()
+
+
+def test_a_freshly_seeded_store_reports_no_further_work() -> None:
+    repository = InMemoryConfigurationRepository()
+    seed_configurations(repository)
+
+    outcome = seed_configurations(repository)
+
+    assert outcome.upgraded == ()
+    assert is_unedited_seed_copy(repository.get("explorer-manager"))

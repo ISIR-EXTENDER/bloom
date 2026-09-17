@@ -23,8 +23,14 @@ from libs.config import (
     load_legacy_screen_file,
     save_configuration_file,
 )
-from libs.config.json_io import configuration_to_dict
-from libs.config.seed import DEFAULT_SEED_DIR, available_seed_ids, seed_configurations
+from libs.config.seed import (
+    DEFAULT_SEED_DIR,
+    available_seed_ids,
+    configuration_fingerprint,
+    is_unedited_seed_copy,
+    seed_configurations,
+    strip_seed_fingerprint,
+)
 
 cli = typer.Typer(
     name="bloom",
@@ -164,14 +170,17 @@ def seed_shared_applications(
 ) -> None:
     """Import the shared applications this store is missing.
 
-    Existing IDs are left untouched, because they hold this machine's own
-    screen layouts and edits. Use --force to reset one deliberately.
+    An edited ID is left untouched, because it holds this machine's own screen
+    layouts and edits; use --force to reset one deliberately. A copy nobody has
+    edited is updated to the shipped version.
     """
     repository = open_configuration_repository(storage, configuration_dir, database_path)
     outcome = seed_configurations(repository, seed_dir=seed_dir, force_ids=frozenset(force))
 
     for config_id in outcome.imported:
         typer.echo(f"Imported {config_id}")
+    for config_id in outcome.upgraded:
+        typer.echo(f"Updated {config_id} to the shipped version")
     for config_id in outcome.skipped:
         typer.echo(f"Kept local {config_id}")
     if not outcome.changed:
@@ -195,12 +204,17 @@ def configuration_status(
             typer.echo(f"missing   {config_id} (run: bloom config seed)")
         elif config_id not in shipped:
             typer.echo(f"local     {config_id} (run: bloom config publish {config_id} to share it)")
-        elif configuration_to_dict(repository.get(config_id)) == configuration_to_dict(
-            load_configuration_file(Path(seed_dir) / f"{config_id}.json")
-        ):
-            typer.echo(f"shared    {config_id}")
         else:
-            typer.echo(f"edited    {config_id} (run: bloom config publish {config_id} to share your changes)")
+            stored = repository.get(config_id)
+            shipped = load_configuration_file(Path(seed_dir) / f"{config_id}.json")
+            # Compare content, not the seed stamp: a seeded copy carries a
+            # fingerprint the shipped file does not, and that is not an edit.
+            if configuration_fingerprint(stored) == configuration_fingerprint(shipped):
+                typer.echo(f"shared    {config_id}")
+            elif is_unedited_seed_copy(stored):
+                typer.echo(f"outdated  {config_id} (run: bloom config seed to take the shipped version)")
+            else:
+                typer.echo(f"edited    {config_id} (run: bloom config publish {config_id} to share your changes)")
 
 
 @config_cli.command("publish")
@@ -225,7 +239,9 @@ def publish_configuration(
 
     destination = Path(seed_dir) / f"{config_id}.json"
     destination.parent.mkdir(parents=True, exist_ok=True)
-    save_configuration_file(bundle, destination)
+    # The stamp records where a store copy came from; a shipped file is the
+    # source, so it carries none.
+    save_configuration_file(strip_seed_fingerprint(bundle), destination)
     typer.echo(f"Published {config_id} to {destination}")
     typer.echo("Commit that file to share it with the team.")
 

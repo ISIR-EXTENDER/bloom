@@ -266,9 +266,11 @@ uv run python -m apps.bloom_cli.main config seed --force explorer-manager
 uv run python -m apps.bloom_cli.main config publish explorer-manager
 ```
 
-Use `config status` before assuming a local runtime matches the committed application. Use `seed --force <app-id>` to
-discard that app's local version and restore the tracked seed. Use `config publish <app-id>` when the local version is
-the one the team should share.
+Use `config status` before assuming a local runtime matches the committed application. It reports `shared` when the
+store matches the shipped bundle, `outdated` when this machine never edited its copy and a newer version ships, and
+`edited` when the local copy is someone's own work. Startup takes shipped updates for `outdated` apps automatically and
+never touches an `edited` one. Use `seed --force <app-id>` to discard local edits and restore the tracked seed, and
+`config publish <app-id>` when the local version is the one the team should share.
 
 ## Live Telemetry
 

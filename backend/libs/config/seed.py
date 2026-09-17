@@ -11,16 +11,26 @@ single camera screen.
 configuration, named for its id. They are seeded into whichever store is
 configured the first time it comes up without them.
 
-Seeding never overwrites. An id already present in the store belongs to whoever
-is working on this machine -- their screen layouts, their edits -- and silently
-replacing that with the committed version would throw away real work. Resetting
-is a separate, deliberate act (`bloom config seed --force`).
+Seeding never overwrites an edited bundle. An id already present in the store
+belongs to whoever is working on this machine -- their screen layouts, their
+edits -- and silently replacing that with the committed version would throw away
+real work. Resetting is a separate, deliberate act (`bloom config seed --force`).
+
+An *unedited* copy is different. Bloom stamps each seeded bundle with the
+fingerprint of the shipped file it came from, so a store copy that still matches
+that fingerprint is known to be nobody's work, and a newer shipped version
+replaces it. Without that, an installation seeded once kept the app it first saw
+forever: screens added upstream never arrived, and `config status` called the
+stale copy "edited".
 """
 
+import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from libs.config.json_io import load_configuration_file
+from libs.config.json_io import configuration_to_dict, load_configuration_file
+from libs.config.models import ConfigurationBundle
 from libs.config.repository import ConfigurationRepository, FileConfigurationRepository
 
 DEFAULT_SEED_DIR = Path(__file__).resolve().parents[2] / "seed" / "applications"
@@ -32,10 +42,38 @@ class SeedOutcome:
 
     imported: tuple[str, ...]
     skipped: tuple[str, ...]
+    upgraded: tuple[str, ...] = ()
 
     @property
     def changed(self) -> bool:
-        return bool(self.imported)
+        return bool(self.imported or self.upgraded)
+
+
+def configuration_fingerprint(bundle: ConfigurationBundle) -> str:
+    """Content hash, ignoring the stamp itself and when it was exported."""
+    payload = configuration_to_dict(bundle)
+    metadata = payload.get("metadata")
+    if isinstance(metadata, dict):
+        metadata = {key: value for key, value in metadata.items() if key not in ("exported_at", "seed_fingerprint")}
+        payload = {**payload, "metadata": metadata}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def stamp_seed_fingerprint(bundle: ConfigurationBundle) -> ConfigurationBundle:
+    return bundle.model_copy(
+        update={"metadata": bundle.metadata.model_copy(update={"seed_fingerprint": configuration_fingerprint(bundle)})}
+    )
+
+
+def strip_seed_fingerprint(bundle: ConfigurationBundle) -> ConfigurationBundle:
+    return bundle.model_copy(
+        update={"metadata": bundle.metadata.model_copy(update={"seed_fingerprint": ""})}
+    )
+
+
+def is_unedited_seed_copy(stored: ConfigurationBundle) -> bool:
+    stamp = stored.metadata.seed_fingerprint
+    return bool(stamp) and stamp == configuration_fingerprint(stored)
 
 
 def available_seed_ids(seed_dir: Path | str = DEFAULT_SEED_DIR) -> list[str]:
@@ -63,14 +101,27 @@ def seed_configurations(
 
     imported: list[str] = []
     skipped: list[str] = []
+    upgraded: list[str] = []
     for config_id in available_seed_ids(directory):
-        if config_id in existing and config_id not in forced:
+        shipped = stamp_seed_fingerprint(load_configuration_file(directory / f"{config_id}.json"))
+        if config_id not in existing or config_id in forced:
+            repository.upsert(config_id, shipped)
+            imported.append(config_id)
+            continue
+
+        stored = repository.get(config_id)
+        if not is_unedited_seed_copy(stored):
             skipped.append(config_id)
             continue
-        repository.upsert(config_id, load_configuration_file(directory / f"{config_id}.json"))
-        imported.append(config_id)
+        if stored.metadata.seed_fingerprint == shipped.metadata.seed_fingerprint:
+            skipped.append(config_id)
+            continue
 
-    return SeedOutcome(imported=tuple(imported), skipped=tuple(skipped))
+        # Nobody has touched this copy, and the shipped one moved on.
+        repository.upsert(config_id, shipped)
+        upgraded.append(config_id)
+
+    return SeedOutcome(imported=tuple(imported), skipped=tuple(skipped), upgraded=tuple(upgraded))
 
 
 def adopt_file_configurations(

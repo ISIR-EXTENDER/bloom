@@ -253,6 +253,10 @@ class ConfigurationMetadata(BloomModel):
     schema_version: int = Field(default=CURRENT_CONFIGURATION_SCHEMA_VERSION, ge=1)
     exported_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     source: str = "bloom"
+    #: Fingerprint of the shipped bundle this store copy was seeded from.
+    #: Equal to the stored content's own fingerprint means nobody edited it,
+    #: which is what makes an automatic upgrade safe.
+    seed_fingerprint: str = ""
 
     @field_validator("schema_version")
     @classmethod

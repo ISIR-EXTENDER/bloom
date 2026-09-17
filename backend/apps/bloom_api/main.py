@@ -121,8 +121,10 @@ def create_app_configuration_repository(settings: Settings) -> ConfigurationRepo
         adopt_file_configurations(repository, configuration_dir=settings.configuration_dir)
     if settings.seed_shared_applications:
         # A fresh clone starts with an empty store, so without this the app
-        # library is empty and the team's apps are nowhere. Existing ids are
-        # left alone: they are this machine's own work.
+        # library is empty and the team's apps are nowhere. An edited id is
+        # left alone: it is this machine's own work. An id nobody edited is
+        # brought up to the shipped version, so an installation seeded once
+        # does not keep the app it first saw forever.
         seed_configurations(repository)
     return repository
 
