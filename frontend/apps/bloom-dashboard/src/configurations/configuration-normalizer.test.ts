@@ -39,12 +39,17 @@ describe("normalizeConfigurationBundle", () => {
       { id: "stop", owner: "runtime-chrome", x: 928, y: 410, width: 338, height: 252 },
       { id: "", x: 0, y: 0, width: 10, height: 10 },
       { id: "broken", x: "left" },
+      { id: "fractional", x: 10.5, y: 0, width: 10, height: 10 },
+      { id: "negative", x: 0, y: -4, width: 10, height: 10 },
+      { id: "flat", x: 0, y: 0, width: 10, height: 0 },
+      { id: "rail", x: 0, y: 0, width: 1, height: 1 },
     ];
 
     const screen = normalizeConfigurationBundle(bundle).applications[0]?.screens[0];
 
     expect(screen?.reserved_regions).toEqual([
       { id: "stop", owner: "runtime-chrome", x: 928, y: 410, width: 338, height: 252 },
+      { id: "rail", owner: "runtime-chrome", x: 0, y: 0, width: 1, height: 1 },
     ]);
     expect(
       normalizeConfigurationBundle(compactSandboxConfiguration as unknown as ConfigurationBundle).applications[0]

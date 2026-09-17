@@ -245,17 +245,20 @@ function normalizeReservedRegions(regions: unknown): ReservedRegion[] {
       return [];
     }
     const [x, y, width, height] = [region.x, region.y, region.width, region.height];
-    if (![x, y, width, height].every((value) => typeof value === "number" && Number.isFinite(value))) {
+    // Same bounds as the backend ReservedRegion: integer origin >= 0, integer size > 0.
+    const isInteger = (value: unknown, floor: number): value is number =>
+      Number.isInteger(value) && (value as number) >= floor;
+    if (!isInteger(x, 0) || !isInteger(y, 0) || !isInteger(width, 1) || !isInteger(height, 1)) {
       return [];
     }
     return [
       {
         id: region.id,
         owner: "runtime-chrome",
-        x: x as number,
-        y: y as number,
-        width: width as number,
-        height: height as number,
+        x,
+        y,
+        width,
+        height,
       },
     ];
   });
