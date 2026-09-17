@@ -50,8 +50,9 @@ export function resolvePrimaryTarget(widget: WidgetConfig): number {
   }
 }
 
+/** Whole glass px, floored so a 43.5 px target reads 43 and fails the 44 px floor instead of rounding up to pass. */
 export function glassPx(widget: WidgetConfig, glassScale: number): number {
-  return Math.round(resolvePrimaryTarget(widget) * glassScale);
+  return Math.floor(resolvePrimaryTarget(widget) * glassScale + 1e-9);
 }
 
 export function findUndersizedWidgets(

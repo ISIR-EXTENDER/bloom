@@ -38,7 +38,7 @@ describe("the builder canvas", () => {
 
     const frame = screen.getByRole("article", { name: "Gripper toggle widget" });
     expect(within(frame).getByText("Too small")).toBeTruthy();
-    expect(within(frame).getByText("202×96 · 45 px glass")).toBeTruthy();
+    expect(within(frame).getByText("202×96 · 44 px glass")).toBeTruthy();
     expect(screen.getByRole("note").textContent).toBe("Reserved STOP");
   });
 

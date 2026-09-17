@@ -26,7 +26,19 @@ describe("builder geometry", () => {
     expect(panel.glassScale).toBeCloseTo(0.8);
     const gripper = operator.widgets.find((widget) => widget.id === "drive-gripper");
     if (!gripper) throw new Error("Missing gripper.");
-    expect(glassPx(gripper, panel.glassScale)).toBe(45);
+    expect(glassPx(gripper, panel.glassScale)).toBe(44);
+  });
+
+  it("floors glass px so a target just under the touch floor fails it", () => {
+    const button = {
+      id: "b",
+      kind: "command-button" as const,
+      layout: { x: 0, y: 0, width: 200, height: 120 },
+      settings: {},
+      title: "B",
+    };
+    expect(glassPx(button, 43.5 / 56)).toBe(43);
+    expect(glassPx(button, 0.8)).toBe(44);
   });
 
   it("flags the shipped undersized gripper and nothing on the corrected seed", () => {
