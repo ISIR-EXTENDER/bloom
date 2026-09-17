@@ -39,6 +39,8 @@ Current documentation map, reviewed 2026-09-16.
   read as proof of later hardware acceptance.
 - [Explorer tutorial media validation](validation/2026-09-16-explorer-tutorial-media.md): reproducible Joystick Lab
   screenshot and ROS-bench walkthrough evidence.
+- [ROS simulation end-to-end run](validation/ros-sim-e2e.md): `npm run e2e:sim` against simulated Explorer and Kinova
+  arms, what it proves, and the Explorer launch workarounds to report upstream.
 - [`docs/reviews/`](reviews/): dated review material and refactoring plans.
 - [Bloom UX design handoff](ux-design-handoff.md): the tracked summary of the externally produced design-review folder,
   delivered behavior, and remaining work. Update this summary when the source folder is refreshed.

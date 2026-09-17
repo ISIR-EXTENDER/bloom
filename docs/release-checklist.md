@@ -109,6 +109,24 @@ for label, values in checks:
 
 Only when the release changes robot-facing behaviour.
 
+### Simulation gate
+
+Run the browser against the live manager stack in simulation for both arms before any bench session. Each run starts
+its own simulation, API and dashboard, verifies every gesture on the ROS graph, and exits non-zero on any failure:
+
+```bash
+npm run e2e:sim -- --robot explorer
+npm run e2e:sim -- --robot kinova
+```
+
+It covers library roles, READY, Translation moving `/ee_pose` and releasing to zero, bench/operator twist parity, STOP
+latch and hold-to-resume, maintenance zeros, gripper and speed payloads, the Hybrid frame stamp, Go home and Release,
+Robot feedback and Bloom Debug. Prerequisites, the two Explorer launch workarounds and what simulation does not prove
+are in [validation/ros-sim-e2e.md](validation/ros-sim-e2e.md). A pass here is simulation evidence; the bench and
+hardware items below still apply.
+
+### Bench and deployment
+
 - [ ] `BLOOM_ROS_COMMAND_BACKEND` matches the control stack actually running
       (`cartesian_manager`, or `teleop_command` for the legacy path).
 - [ ] `BLOOM_ROS_COMMAND_FRAME_ID`, `BLOOM_ALLOWED_COMMAND_FRAME_IDS`, and any
