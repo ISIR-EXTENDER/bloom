@@ -276,7 +276,7 @@ Supported motor presets are:
 | `reduced-motion` | Reserved in the profile model. The browser's `prefers-reduced-motion` setting is honored, but this profile value is not wired independently yet. |
 | `step` | Joysticks/sliders expose discrete tap targets instead of requiring sustained dragging; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls hold their value until explicit zero/release or the 15-second attention timeout. |
-| `scan` | Joysticks and sliders render step targets, and a highlight advances through every button on the screen; Space, Enter, a tap outside a control, or a tap on the full-width switch bar fires the lit target. |
+| `scan` | Joysticks and sliders render step targets, and a highlight advances through STOP and then every button on the screen in order; Space, Enter, a tap outside a control, or a tap on the full-width switch bar fires the lit target. |
 | `dwell` | Legacy combined step-and-dwell preset; existing profiles remain supported. |
 
 Profile bounds are enforced by the model: dead zone `0..0.5`, repeat guard `0..600 ms`, scan period `600..3000 ms`,
@@ -316,7 +316,8 @@ under scanning and dwell. **Practice tour** opens the guided local-only path wit
 controls first.
 
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
-because a click on it moves nothing. Under scan, dwelling on the full-width SWITCH bar activates the highlighted target
+because a click on it moves nothing. STOP opens every cycle, ahead of the screen's own controls, on every surface that
+draws it: the canvas, Settings, and the maintenance sheet. Under scan, dwelling on the full-width SWITCH bar activates the highlighted target
 without a firm press. Single-switch and combined scan-plus-dwell teleop are covered by tests but not yet validated with
 the intended devices.
 

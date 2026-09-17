@@ -19,6 +19,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **STOP is the first scan target** of every cycle, on every surface that draws it. It used to sit last in the screen's
+  DOM order, 28 s away at a 1400 ms scan period.
 - An application's `allowed_teleop_targets` is enforced on the runtime socket. A tab names its app with a new
   `app_context` message, and teleop, publishes and service calls are then limited to the deployment allowlists
   intersected with that app's `runtime_policy`, as `POST /runtime/actions` already did. A session on Bloom Debug or the

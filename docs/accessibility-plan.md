@@ -17,6 +17,8 @@ signals, and test accessibility continuously.
 - Runtime is a kiosk. Product navigation, editing, diagnostics, and screen switching stay behind a 1.5 second
   maintenance hold.
 - STOP is fixed runtime chrome, engages immediately, follows a backend latch, and requires a one-second hold to resume.
+  Under scanning it is the first target of every cycle, wherever it is drawn, so a switch never waits out a screen to
+  reach it.
 - Status uses words, color, and shape together. Audio cues can announce stop, link loss, and recovery.
 - Joysticks use pointer events and are keyboard operable. Direction words are visible inside the pad.
 - A browser gamepad contributes through the same conditioned 6-DoF command as touch and keyboard controls.
@@ -55,7 +57,7 @@ The supported `motor_accessibility_preset` values have concrete runtime behavior
 | `reduced-motion` | Reserved profile value; browser `prefers-reduced-motion` is honored, but profile-specific wiring remains open. |
 | `step` | Compatible joysticks and sliders expose discrete targets instead of requiring a drag; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls retain a value until explicit zero/release or the 15-second attention timeout. |
-| `scan` | Joysticks/sliders render step targets and the highlight advances through every enabled button; SWITCH activates the highlighted target. |
+| `scan` | Joysticks/sliders render step targets and the highlight advances through every enabled button, STOP first; SWITCH activates the highlighted target. |
 | `dwell` | Legacy step-and-dwell preset retained for existing profiles. New profiles use `dwell_enabled`. |
 
 Related profile fields are bounded by the configuration model:

@@ -57,6 +57,7 @@ export function RuntimeStopControl({
         data-dwell-min-ms={RESUME_HOLD_MS}
         data-placement={placement}
         data-runtime-control-independent=""
+        data-scan-priority="stop"
         data-stopped="true"
         disabled={resumeDisabled}
         onBlur={resumeHold.cancel}
@@ -89,6 +90,7 @@ export function RuntimeStopControl({
       className="runtime-stop-control"
       data-placement={placement}
       data-runtime-control-independent=""
+      data-scan-priority="stop"
       onClick={(event) => {
         // Keyboard only; a pointer tap already engaged on pointerdown.
         if (event.detail === 0) {

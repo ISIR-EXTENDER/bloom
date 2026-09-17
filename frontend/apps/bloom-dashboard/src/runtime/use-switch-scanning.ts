@@ -3,6 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /** Only click-operable controls; the switch bar itself is never a target. */
 export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switch])";
 
+/**
+ * Controls that open every cycle, ahead of the screen, wherever they are drawn.
+ * STOP carries it: last in a 23-target cycle it was 31 s away at 1400 ms.
+ */
+export const SCAN_PRIORITY_SELECTOR = `${SCAN_TARGET_SELECTOR}[data-scan-priority]`;
+
 export type SwitchScanningOptions = {
   enabled: boolean;
   /** Restricts scanning further when only a safe subset may be operated. */
@@ -60,7 +66,13 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     }
 
     const readTargets = () => {
-      const targets = [...root.querySelectorAll<HTMLElement>(SCAN_TARGET_SELECTOR)].filter(
+      // Priority targets are read from the document: STOP is runtime chrome and
+      // sits outside the scanned screen, settings panel or dialog.
+      const priority = [...document.querySelectorAll<HTMLElement>(SCAN_PRIORITY_SELECTOR)];
+      const rest = [...root.querySelectorAll<HTMLElement>(SCAN_TARGET_SELECTOR)].filter(
+        (element) => !priority.includes(element),
+      );
+      const targets = [...priority, ...rest].filter(
         (element) => element.offsetParent !== null && (isTargetEnabledRef.current?.(element) ?? true),
       );
       targetsRef.current = targets;

@@ -38,6 +38,25 @@ describe("switch scanning", () => {
     expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
   });
 
+  it("opens every cycle with the priority target, wherever it is drawn", () => {
+    // STOP is runtime chrome outside the scanned screen; last in the cycle it
+    // was half a minute away at a 1400 ms period.
+    const { root, rootRef } = buildScreen(3);
+    const stop = document.createElement("button");
+    stop.setAttribute("data-scan-priority", "stop");
+    stop.textContent = "Stop the robot";
+    Object.defineProperty(stop, "offsetParent", { get: () => document.body });
+    document.body.append(stop);
+
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    expect(document.querySelector("[data-scan-lit]")?.textContent).toBe("Stop the robot");
+    vi.advanceTimersByTime(1000);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
+    vi.advanceTimersByTime(3000);
+    expect(document.querySelector("[data-scan-lit]")?.textContent).toBe("Stop the robot");
+  });
+
   it("walks the controls at the configured period and wraps around", () => {
     const { root, rootRef } = buildScreen(3);
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
