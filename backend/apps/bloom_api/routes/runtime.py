@@ -7,6 +7,7 @@ from typing import Any, Callable
 from fastapi import APIRouter, Depends, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
+from apps.bloom_api.settings import Settings
 from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
@@ -102,7 +103,10 @@ def get_runtime_stop_controller(connection: Request | WebSocket) -> RuntimeStopC
 
 
 def get_allowed_command_frame_ids(connection: Request | WebSocket) -> tuple[str, ...]:
-    return connection.app.state.settings.allowed_command_frame_ids
+    settings: Settings = connection.app.state.settings
+    if settings.ros_command_backend != "cartesian_manager":
+        return ()
+    return settings.allowed_command_frame_ids
 
 
 def get_runtime_audit_log(connection: Request | WebSocket) -> RuntimeAuditLog:
@@ -817,7 +821,9 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     session = manager.connect()
     event_loop = asyncio.get_running_loop()
     topic_samples: asyncio.Queue[RuntimeTopicSample] = asyncio.Queue(maxsize=100)
-    topic_subscription_handles: list[RuntimeTopicSubscriptionHandle] = []
+    # Keyed by widget: a screen that subscribes again replaces its own handle
+    # instead of stacking a second subscription on the same topic.
+    topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle] = {}
     receive_task: asyncio.Task | None = None
     sample_task: asyncio.Task | None = None
 
@@ -876,7 +882,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
             )
         else:
             manager.disconnect(session)
-        for handle in topic_subscription_handles:
+        for handle in topic_subscription_handles.values():
             handle.close()
         await cancel_runtime_task(receive_task)
         await cancel_runtime_task(sample_task)
@@ -889,7 +895,7 @@ async def handle_runtime_client_payload(
     payload: dict,
     event_loop: asyncio.AbstractEventLoop,
     topic_samples: asyncio.Queue[RuntimeTopicSample],
-    topic_subscription_handles: list[RuntimeTopicSubscriptionHandle],
+    topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle],
 ) -> None:
     try:
         message = parse_runtime_client_message(payload)
@@ -1125,7 +1131,7 @@ def build_runtime_ack(
     command_policy: RuntimeCommandPolicy | None = None,
     rate_limiter: RuntimeCommandRateLimiter | None = None,
     on_topic_sample: Callable[[RuntimeTopicSample], None] | None = None,
-    topic_subscription_handles: list[RuntimeTopicSubscriptionHandle] | None = None,
+    topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle] | None = None,
     stop_controller: RuntimeStopController | None = None,
     allowed_frame_ids: tuple[str, ...] | None = None,
 ) -> RuntimeServerMessage:
@@ -1134,16 +1140,15 @@ def build_runtime_ack(
 
     if isinstance(message, RuntimeSubscribeTopicMessage):
         if topic_subscription_gateway and on_topic_sample and topic_subscription_handles is not None:
+            subscription_key = message.widget_id or message.topic
             try:
-                topic_subscription_handles.append(
-                    topic_subscription_gateway.subscribe(
-                        RuntimeTopicSubscription(
-                            field_path=message.field_path,
-                            message_type=message.message_type,
-                            topic=message.topic,
-                        ),
-                        on_topic_sample,
-                    )
+                handle = topic_subscription_gateway.subscribe(
+                    RuntimeTopicSubscription(
+                        field_path=message.field_path,
+                        message_type=message.message_type,
+                        topic=message.topic,
+                    ),
+                    on_topic_sample,
                 )
             except (RuntimeError, ValueError) as exc:
                 return RuntimeServerMessage(
@@ -1152,6 +1157,10 @@ def build_runtime_ack(
                     payload={"message": str(exc), "topic": message.topic},
                     session_id=session_id,
                 )
+            previous = topic_subscription_handles.pop(subscription_key, None)
+            if previous is not None:
+                previous.close()
+            topic_subscription_handles[subscription_key] = handle
 
         live = is_live_subscription_gateway(topic_subscription_gateway)
         return RuntimeServerMessage(

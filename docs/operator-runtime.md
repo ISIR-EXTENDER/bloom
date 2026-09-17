@@ -267,6 +267,13 @@ Use `config status` before assuming a local runtime matches the committed applic
 discard that app's local version and restore the tracked seed. Use `config publish <app-id>` when the local version is
 the one the team should share.
 
+## Live Telemetry
+
+A runtime screen subscribes one topic per widget over the runtime WebSocket. The backend keys those subscriptions by
+widget, so a screen that asks again replaces its own subscription instead of stacking a second one on the same topic.
+Every subscription belongs to the socket that made it: a reconnect starts a session holding none, so the screen
+re-requests them when the link comes back. Without that, the chip could return to `READY` over blank telemetry panels.
+
 ## Recording And Diagnostics
 
 Diagnostics and recording remain maintenance/debug workflows, not primary kiosk controls. Bloom Debug can inspect the

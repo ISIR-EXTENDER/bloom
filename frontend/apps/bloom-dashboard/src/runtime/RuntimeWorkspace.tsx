@@ -6,7 +6,7 @@ import type {
   WidgetConfig,
 } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import { appendTopicEchoMessage, appendTopicPlotSample } from "@bloom/widgets";
+import { appendTopicEchoMessage, appendTopicPlotSample, type WidgetActionIntent } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -144,12 +144,19 @@ export function RuntimeWorkspace({
   const strings = useRuntimeStrings(runtimeProfile.language);
   const configuredCommandFrameId =
     application.runtime_policy.command_frame_id || runtimeCapabilityReport?.command_frame_id || null;
+  const allowedCommandFrameIds = runtimeCapabilityReport?.command_frame_ids ?? null;
   const defaultCommandFrameId = resolvePreferredCommandFrameId(
     activeProfileOverrides.commandFrameId,
     configuredCommandFrameId,
-    runtimeCapabilityReport?.command_frame_ids ?? null,
+    allowedCommandFrameIds,
   );
   const [commandFrameId, setCommandFrameId] = useState<string | null>(defaultCommandFrameId);
+  const commandFrameUnavailable = Boolean(
+    commandFrameId && allowedCommandFrameIds !== null && !allowedCommandFrameIds.includes(commandFrameId),
+  );
+  const commandFrameError = commandFrameUnavailable
+    ? `Command frame "${commandFrameId}" is not available on this robot. Select an available frame before moving.`
+    : null;
   const [topicStatuses, setTopicStatuses] = useState<readonly RosTopicStatus[] | null | undefined>(() =>
     runtimeActionClient.listRosTopicStatus ? null : undefined,
   );
@@ -161,15 +168,17 @@ export function RuntimeWorkspace({
     () =>
       createRuntimeControlStateByWidgetId(screen, runtimeModeState, {
         activeCommandFrameId: commandFrameId,
-        allowedCommandFrameIds: runtimeCapabilityReport?.command_frame_ids ?? null,
+        allowedCommandFrameIds,
+        commandFrameError,
         runtimeCapabilities: runtimeCapabilityReport?.capabilities ?? null,
         teleopActive,
         topicStatuses,
       }),
     [
       commandFrameId,
+      commandFrameError,
+      allowedCommandFrameIds,
       runtimeCapabilityReport?.capabilities,
-      runtimeCapabilityReport?.command_frame_ids,
       runtimeModeState,
       screen,
       teleopActive,
@@ -221,6 +230,7 @@ export function RuntimeWorkspace({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
     enabled:
       onTeleopContribution !== undefined &&
+      !commandFrameUnavailable &&
       ownsRuntimeControl &&
       !maintenanceOpen &&
       !settingsOpen &&
@@ -272,7 +282,7 @@ export function RuntimeWorkspace({
     }
     return onActionIntent(intent, {
       action_presets: application.action_presets,
-      allowedCommandFrameIds: runtimeCapabilityReport?.command_frame_ids,
+      allowedCommandFrameIds: allowedCommandFrameIds ?? undefined,
       appId: selection.appId,
       configId: selection.configId,
       onCommandFrameChange: setCommandFrameId,
@@ -281,6 +291,24 @@ export function RuntimeWorkspace({
         command_frame_id: commandFrameId ?? "",
       },
     });
+  };
+
+  const handleCommandFrameSelection = async (frameId: string) => {
+    const intent: Extract<WidgetActionIntent, { type: "command" }> = {
+      type: "command",
+      widgetId: "runtime-settings-command-frame",
+      widgetKind: "command-button",
+      command: "set-teleop-frame",
+      runtimeBinding: { adapter: "teleop-frame", frame_id: frameId },
+    };
+    const result = (await handleRuntimeActionIntent(intent)) ?? {
+      accepted: false,
+      detail: "Command frame change was not handled.",
+    };
+    if (result.accepted) {
+      onProfileOverridesChange(baseRuntimeProfile.id, { ...activeProfileOverrides, commandFrameId: frameId });
+    }
+    return result;
   };
 
   useEffect(() => {
@@ -340,14 +368,18 @@ export function RuntimeWorkspace({
   }, [runtimeActionClient.listRosTopicStatus]);
 
   useEffect(() => {
-    if (!onTopicSubscriptionRequest) {
+    // A reconnected socket is a new session with no subscriptions, so the
+    // screen has to ask again or the telemetry stays blank behind a READY chip.
+    // A client that reports no link at all (previews, tests) still subscribes;
+    // only a known-down link waits, because its requests would be lost.
+    if (!onTopicSubscriptionRequest || runtimeLink.state === "disconnected") {
       return;
     }
 
     for (const request of createRuntimeTopicSubscriptionRequests(screen)) {
       onTopicSubscriptionRequest(request);
     }
-  }, [onTopicSubscriptionRequest, screen]);
+  }, [onTopicSubscriptionRequest, runtimeLink.connectionCount, runtimeLink.state, screen]);
 
   useEffect(() => {
     if (previousScreenIdRef.current === screen.id) {
@@ -369,6 +401,12 @@ export function RuntimeWorkspace({
       onSuspendTeleop();
     }
   }, [onSuspendTeleop, stopped]);
+
+  useEffect(() => {
+    if (commandFrameUnavailable) {
+      onSuspendTeleop();
+    }
+  }, [commandFrameUnavailable, onSuspendTeleop]);
 
   useEffect(() => {
     if (!onTopicSample) {
@@ -394,11 +432,12 @@ export function RuntimeWorkspace({
         style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
       >
         <RuntimeSettingsPanel
-          allowedCommandFrameIds={runtimeCapabilityReport?.command_frame_ids ?? null}
+          allowedCommandFrameIds={allowedCommandFrameIds}
           baseCommandFrameId={commandFrameId ?? configuredCommandFrameId}
           baseProfile={baseRuntimeProfile}
           key={profileOverrideKey}
           onChange={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}
+          onCommandFrameSelect={handleCommandFrameSelection}
           onDone={() => setSettingsOpen(false)}
           onOpenTour={() => {
             setSettingsOpen(false);
@@ -450,7 +489,13 @@ export function RuntimeWorkspace({
     >
       <RuntimeKioskBar
         application={application}
-        commandFeedback={runtimeActionFeedback?.appId === application.id ? runtimeActionFeedback : null}
+        commandFeedback={
+          runtimeActionFeedback?.appId === application.id
+            ? runtimeActionFeedback
+            : commandFrameError
+              ? { detail: commandFrameError, status: "blocked" }
+              : null
+        }
         commandFrameId={commandFrameId}
         controlOwnerLabel={runtimeControl.supported && ownsRuntimeControl ? strings.control.youOwn : null}
         gamepadName={gamepad.connected ? gamepad.id : null}

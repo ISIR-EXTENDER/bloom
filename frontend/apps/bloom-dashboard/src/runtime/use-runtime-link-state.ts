@@ -14,6 +14,8 @@ export type RuntimeLinkSnapshot = {
   state: RuntimeLinkState | null;
   /** Sticky once the link leaves its initial "connecting". */
   settled: boolean;
+  /** Counts completed connections; a new socket carries no subscriptions. */
+  connectionCount?: number;
 };
 
 /**
@@ -21,7 +23,11 @@ export type RuntimeLinkSnapshot = {
  * and retries while down, so the chip tells the truth on an idle screen.
  */
 export function useRuntimeLinkState(client: RuntimeLinkClient | null | undefined): RuntimeLinkSnapshot {
-  const [snapshot, setSnapshot] = useState<RuntimeLinkSnapshot>({ state: null, settled: false });
+  const [snapshot, setSnapshot] = useState<RuntimeLinkSnapshot>({
+    connectionCount: 0,
+    settled: false,
+    state: null,
+  });
 
   useEffect(() => {
     const addListener = client?.addRuntimeLinkStateListener;
@@ -30,7 +36,14 @@ export function useRuntimeLinkState(client: RuntimeLinkClient | null | undefined
     }
 
     const removeListener = addListener((state) => {
-      setSnapshot((current) => ({ state, settled: current.settled || state !== "connecting" }));
+      setSnapshot((current) => ({
+        connectionCount:
+          state === "connected" && current.state !== "connected"
+            ? (current.connectionCount ?? 0) + 1
+            : (current.connectionCount ?? 0),
+        settled: current.settled || state !== "connecting",
+        state,
+      }));
     });
     client?.ensureRuntimeConnected?.().catch(() => {
       // The retry effect below owns what happens next.

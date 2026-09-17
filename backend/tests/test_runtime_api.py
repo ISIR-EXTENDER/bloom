@@ -101,6 +101,24 @@ class RecordingTopicSubscriptionHandle:
         self.closed = True
 
 
+class MultiHandleTopicSubscriptionGateway:
+    """One handle per subscribe, so a replaced subscription is observable."""
+
+    def __init__(self) -> None:
+        self.handles: list[RecordingTopicSubscriptionHandle] = []
+        self.subscriptions: list[RuntimeTopicSubscription] = []
+
+    def subscribe(
+        self,
+        subscription: RuntimeTopicSubscription,
+        on_sample: RuntimeTopicSampleCallback,
+    ) -> RecordingTopicSubscriptionHandle:
+        self.subscriptions.append(subscription)
+        handle = RecordingTopicSubscriptionHandle()
+        self.handles.append(handle)
+        return handle
+
+
 class RecordingTopicSubscriptionGateway:
     def __init__(self) -> None:
         self.handle = RecordingTopicSubscriptionHandle()
@@ -377,6 +395,39 @@ def test_runtime_websocket_accepts_topic_subscriptions() -> None:
     }
 
 
+def test_resubscribing_a_widget_replaces_its_subscription() -> None:
+    # A screen resubscribes whenever the socket reconnects. Stacking a second
+    # subscription on the same topic would double every sample and leak the
+    # first one for the life of the session.
+    gateway = MultiHandleTopicSubscriptionGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_topic_subscription_gateway=gateway,
+        )
+    )
+    request = {
+        "type": "subscribe_topic",
+        "field_path": "data",
+        "message_type": "std_msgs/msg/Float64",
+        "topic": "/cmd/max_velocity",
+        "widget_id": "max-velocity-echo",
+    }
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(request)
+        websocket.receive_json()
+        websocket.send_json(request)
+        websocket.receive_json()
+
+    assert len(gateway.handles) == 2
+    # The first is closed the moment the second replaces it; both are closed
+    # when the session ends.
+    assert [handle.closed for handle in gateway.handles] == [True, True]
+
+
 def test_runtime_websocket_streams_topic_samples_after_subscription() -> None:
     gateway = RecordingTopicSubscriptionGateway()
     client = TestClient(
@@ -455,6 +506,7 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
         "detail": "Teleop command recorded.",
         "payload": {
             "angular": {"x": 0.0, "y": 0.0, "z": 0.3},
+            "frame_id": "",
             "linear": {"x": 0.1, "y": -0.2, "z": 0.0},
             "mode": 4,
             "seq": 42,
