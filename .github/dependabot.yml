@@ -15,6 +15,14 @@ updates:
           - patch
     # Majors change what the build and the type checker enforce, so they come
     # one at a time and get their own review.
+    ignore:
+      # vitest 5 changed the type parameters of Assertion, and jest-dom 7.0.1,
+      # the current latest, still declares the vitest 4 shape: the two cannot
+      # typecheck together. Drop this once jest-dom supports vitest 5.
+      - dependency-name: vitest
+        versions:
+          - ">=5"
+
 
   - package-ecosystem: uv
     directory: /backend
