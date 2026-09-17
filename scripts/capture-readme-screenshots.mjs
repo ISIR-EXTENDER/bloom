@@ -226,6 +226,7 @@ function applyApiDefaults(application) {
       allowed_service_calls: [],
       ...application.runtime_policy,
     },
+    screens: application.screens.map((screen) => ({ reserved_regions: [], ...screen })),
   };
 }
 

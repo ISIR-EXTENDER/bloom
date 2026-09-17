@@ -952,6 +952,13 @@
 
 /* ---- Topic echo, event log, position library ---- */
 
+/* Streams scroll inside their authored height; only controls grow (ADR 0132). */
+.bloom-topic-debug-widget.bloom-info-card,
+.bloom-event-log-widget.bloom-info-card,
+.bloom-position-library.bloom-info-card {
+  max-height: var(--bloom-widget-height);
+}
+
 .bloom-topic-debug-widget.bloom-info-card {
   padding: 16px;
 }
@@ -989,7 +996,7 @@
   flex: 1 1 auto;
   min-height: 0;
   margin: 0;
-  overflow: hidden;
+  overflow: auto;
   color: var(--bloom-ink);
   font-family: var(--bloom-font-mono);
   font-size: 15px;

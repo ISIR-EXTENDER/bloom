@@ -1,5 +1,5 @@
 import type { WidgetRenderDescriptor } from "@bloom/widgets";
-import type { ReactNode, SyntheticEvent } from "react";
+import type { CSSProperties, ReactNode, SyntheticEvent } from "react";
 import type { WidgetControlState } from "./types";
 
 type WidgetFrameProps = {
@@ -28,13 +28,16 @@ export function WidgetFrame({ children, controlState, descriptor }: WidgetFrameP
       data-runtime-unavailable={unavailable ? "true" : undefined}
       data-screen-id={descriptor.context.screenId}
       data-widget-kind={widget.kind}
-      style={{
-        left: `${widget.layout.x}px`,
-        top: `${widget.layout.y}px`,
-        width: `${widget.layout.width}px`,
-        // A card grows rather than clips (ADR 0132): the authored height is a floor.
-        minHeight: `${widget.layout.height}px`,
-      }}
+      style={
+        {
+          left: `${widget.layout.x}px`,
+          top: `${widget.layout.y}px`,
+          width: `${widget.layout.width}px`,
+          // A card grows rather than clips (ADR 0132): the authored height is a floor.
+          minHeight: `${widget.layout.height}px`,
+          "--bloom-widget-height": `${widget.layout.height}px`,
+        } as CSSProperties
+      }
     >
       <div
         aria-hidden={unavailable || undefined}
