@@ -22,4 +22,4 @@ export type {
   BloomThemeTokenName,
   BloomThemeTokens,
 } from "./theme";
-export { BLOOM_THEME_PRESETS, createBloomThemeStyle } from "./theme";
+export { BLOOM_SERIES_RAMP, BLOOM_THEME_PRESETS, createBloomThemeStyle, seriesStyle } from "./theme";

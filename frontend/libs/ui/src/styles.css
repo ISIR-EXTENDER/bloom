@@ -10,7 +10,7 @@
   --bloom-color-cloud: #f8f4eb;
   --bloom-color-ink: #253d35;
   --bloom-color-ink-soft: #536960;
-  --bloom-color-muted: #74847b;
+  --bloom-color-muted: #5c6b63;
   --bloom-color-border: rgba(49, 73, 63, 0.16);
   --bloom-color-accent: #839a82;
   --bloom-color-accent-hover: #6f886f;
@@ -56,6 +56,38 @@
   --bloom-font-ui: "Atkinson Hyperlegible", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --bloom-font-mono: "JetBrains Mono", "Cascadia Code", "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
+  /* Plot series take these in order and never by meaning (docs/design/design-system.html §02b). */
+  --bloom-series-1: #31493f;
+  --bloom-series-2: #7e967e;
+  --bloom-series-3: #c98a7e;
+  --bloom-series-4: #536960;
+  --bloom-series-5: #8a7f5c;
+  --bloom-series-6: #6b7f8a;
+  --bloom-series-7: #8a6b7f;
+  --bloom-series-8: #5c7d6b;
+  --bloom-axis-translation: var(--bloom-series-2);
+  --bloom-axis-rotation: var(--bloom-series-3);
+
+  /* Geometry: larger surface, larger radius; everything a multiple of 2 (§05). */
+  --bloom-radius-control: 14px;
+  --bloom-radius-card: 18px;
+  --bloom-radius-pad: 22px;
+  --bloom-radius-panel: 26px;
+  --bloom-space-artboard: 14px;
+  --bloom-space-region: 12px;
+  --bloom-space-card-gap: 12px;
+  --bloom-space-in-card: 8px;
+  --bloom-card-inset: 16px;
+
+  /* Runtime type floors (§03): nothing read below 15px, nothing acted on below 17px. */
+  --bloom-type-screen-title: 22px;
+  --bloom-type-widget-title: 19px;
+  --bloom-type-direction: 17px;
+  --bloom-type-readout: 16px;
+  --bloom-type-body: 15px;
+  --bloom-type-group-label: 12px;
+  --bloom-tracking-group-label: 0.14em;
+
   --bloom-ink: var(--bloom-color-on-surface);
   --bloom-ink-soft: var(--bloom-color-on-surface-muted);
   --bloom-muted: var(--bloom-color-muted);
@@ -86,6 +118,10 @@
   --bloom-on-error: var(--bloom-color-on-error);
   --bloom-on-error-container: var(--bloom-color-on-error-container);
   --bloom-shadow: var(--bloom-shadow-card);
+  --bloom-pollen: var(--bloom-color-pollen);
+  --bloom-lilac: var(--bloom-color-lilac);
+  --bloom-ink-muted: var(--bloom-ink-soft);
+  --bloom-font-body: var(--bloom-font-ui);
 }
 
 .bloom-nav-shell {

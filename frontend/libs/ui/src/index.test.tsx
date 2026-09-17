@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import designSystemPage from "../../../../docs/design/design-system.html?raw";
 import {
+  BLOOM_SERIES_RAMP,
   BLOOM_THEME_PRESETS,
   BloomButton,
   BloomCard,
@@ -9,6 +11,8 @@ import {
   BloomPanel,
   BloomTag,
   BloomThemeProvider,
+  createBloomThemeStyle,
+  seriesStyle,
 } from "./index";
 
 describe("BloomNavBar", () => {
@@ -97,6 +101,24 @@ describe("BloomNavBar", () => {
 
     expect(root).toHaveStyle({ "--bloom-color-primary": BLOOM_THEME_PRESETS.bloom.tokens.primary });
     expect(root).toHaveStyle({ "--bloom-color-secondary": BLOOM_THEME_PRESETS.bloom.tokens.secondary });
+  });
+
+  it("ships the series ramp the design system documents, in order", () => {
+    const documented = [...designSystemPage.matchAll(/series-(\d)<\\u002Fdiv><div[^>]*>(#[0-9a-f]{6})/g)].map(
+      ([, position, hex]) => [Number(position), hex],
+    );
+
+    expect(documented).toEqual(BLOOM_SERIES_RAMP.map((hex, index) => [index + 1, hex]));
+    expect(seriesStyle(0)).toEqual({ color: "var(--bloom-series-1)", dashed: false });
+    expect(seriesStyle(8)).toEqual({ color: "var(--bloom-series-1)", dashed: true });
+  });
+
+  it("carries alias tokens with the theme instead of freezing them at the root", () => {
+    const style = createBloomThemeStyle(BLOOM_THEME_PRESETS["extender-ui"]) as Record<string, string>;
+
+    expect(style["--bloom-accent"]).toBe(BLOOM_THEME_PRESETS["extender-ui"].tokens.secondary);
+    expect(style["--bloom-border"]).toBe(BLOOM_THEME_PRESETS["extender-ui"].tokens.outline);
+    expect(style["--bloom-muted"]).toBe(BLOOM_THEME_PRESETS["extender-ui"].tokens.muted);
   });
 
   it("keeps every theme preset above minimum readable contrast for semantic text pairs", () => {

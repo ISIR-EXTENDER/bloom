@@ -267,6 +267,17 @@ export function createBloomThemeStyle(theme: BloomThemePreset | BloomThemeTokens
     "--bloom-color-surface-container-high": tokens.surfaceContainerHigh,
     "--bloom-color-surface-container-low": tokens.surfaceContainerLow,
     "--bloom-color-surface-soft": tokens.surfaceSoft,
+    // Aliases resolved at :root would otherwise keep the Bloom palette under every other preset.
+    "--bloom-accent": tokens.secondary,
+    "--bloom-accent-strong": tokens.primary,
+    "--bloom-border": tokens.outline,
+    "--bloom-muted": tokens.muted,
+    "--bloom-panel": `color-mix(in srgb, ${tokens.surface} 90%, transparent)`,
+    "--bloom-pollen": tokens.pollen,
+    "--bloom-lilac": tokens.lilac,
+    "--bloom-sand": tokens.surfaceContainer,
+    "--bloom-surface-soft": tokens.surfaceContainerHigh,
+    "--bloom-warning": tokens.error,
     "--bloom-error": tokens.error,
     "--bloom-error-container": tokens.errorContainer,
     "--bloom-ink": tokens.onSurface,
@@ -289,4 +300,21 @@ export function createBloomThemeStyle(theme: BloomThemePreset | BloomThemeTokens
     "--bloom-surface-container-high": tokens.surfaceContainerHigh,
     "--bloom-surface-container-low": tokens.surfaceContainerLow,
   } as CSSProperties;
+}
+
+/** The categorical plot ramp, in assignment order; past eight the ramp repeats with a dashed stroke. */
+export const BLOOM_SERIES_RAMP = [
+  "#31493f",
+  "#7e967e",
+  "#c98a7e",
+  "#536960",
+  "#8a7f5c",
+  "#6b7f8a",
+  "#8a6b7f",
+  "#5c7d6b",
+] as const;
+
+export function seriesStyle(index: number): { color: string; dashed: boolean } {
+  const position = ((index % BLOOM_SERIES_RAMP.length) + BLOOM_SERIES_RAMP.length) % BLOOM_SERIES_RAMP.length;
+  return { color: `var(--bloom-series-${position + 1})`, dashed: index >= BLOOM_SERIES_RAMP.length };
 }
