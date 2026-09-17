@@ -639,8 +639,6 @@ High-signal project docs:
 - [docs/validation/ros-sim-e2e.md](docs/validation/ros-sim-e2e.md)
 - [docs/design-system.md](docs/design-system.md)
 - [docs/component-styleguide.md](docs/component-styleguide.md)
-- [docs/widget-ux-review.md](docs/widget-ux-review.md)
-- [docs/production-readiness-review.md](docs/production-readiness-review.md)
 - [docs/accessibility-plan.md](docs/accessibility-plan.md)
 - [docs/ux-design-handoff.md](docs/ux-design-handoff.md)
 - [docs/extender-tablet-hardware.md](docs/extender-tablet-hardware.md)

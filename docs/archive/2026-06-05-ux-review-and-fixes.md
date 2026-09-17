@@ -1,5 +1,8 @@
 # 2026-06-05 UX Review And Fixes
 
+> Archived on 2026-09-17. This is evidence of a review that closed, not current documentation. See
+> [`docs/archive/README.md`](README.md) for what replaced it.
+
 ## Scope
 
 This review focused on the current Bloom frontend from a tablet-first robotics operator perspective:

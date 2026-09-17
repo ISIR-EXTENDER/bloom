@@ -1,5 +1,8 @@
 # Release review — 2026-09-17
 
+> Archived on 2026-09-17. This is evidence of a review that closed, not current documentation. See
+> [`docs/archive/README.md`](README.md) for what replaced it.
+
 A pre-release review of `main` at `95dd4d3`, in five areas reviewed in parallel: backend runtime safety, backend
 configuration and storage, the dashboard runtime, widgets and the builder, and release engineering. Every finding
 below was verified against the code, and most were reproduced with a throwaway test or script. Duplicates found by
@@ -78,7 +81,7 @@ Add each decision here with its reason when a fix involves a trade-off.
 A second review of `3785001..HEAD`, the handoff implementation, in four areas reviewed in parallel: runtime chrome and
 its safety, widgets and telemetry, the builder with its backend, and seed fidelity to the screen specs. Recording the
 walkthrough against the Explorer simulation and a new end-to-end run against both simulations added the rest. The
-visual gaps are tracked in [the design gap review](design/reviews/2026-09-17-design-gap-review.md).
+visual gaps are tracked in [the design gap review](../design/reviews/2026-09-17-design-gap-review.md).
 
 | # | Finding | Where | Status |
 | --- | --- | --- | --- |
@@ -110,4 +113,4 @@ visual gaps are tracked in [the design gap review](design/reviews/2026-09-17-des
   review).
 - **Upstream, not Bloom:** the Explorer simulation needs two runtime workarounds on Jazzy (`explorer_stack`), which the
   end-to-end script applies, and `kinova.launch.py` never spawns `fault_controller`, so Reset fault cannot be tested in
-  simulation. Details in [the simulation run](validation/ros-sim-e2e.md).
+  simulation. Details in [the simulation run](../validation/ros-sim-e2e.md).

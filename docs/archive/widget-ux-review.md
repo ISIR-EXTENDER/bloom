@@ -1,9 +1,12 @@
 # Widget UX Review
 
+> Archived on 2026-09-17. This is evidence of a review that closed, not current documentation. See
+> [`docs/archive/README.md`](README.md) for what replaced it.
+
 Last reviewed: 2026-09-17
 
 Bloom is the active Extender IHM. This review now describes the merged kiosk/widget behavior; unfinished design work is
-tracked in the [UX design handoff](ux-design-handoff.md).
+tracked in the [UX design handoff](../ux-design-handoff.md).
 
 This review looks at Bloom widgets from a user-centered, tablet-first perspective. The goal is not to expose every
 technical detail on every widget. The goal is to help an operator understand what a widget does, touch it comfortably,

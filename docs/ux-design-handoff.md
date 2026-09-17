@@ -202,7 +202,7 @@ save-a-pose flow and left-handed mirroring — is listed in the implementation r
 
 A second handoff folder, `Bloom UX design review 2/handoff/`, was delivered on 2026-09-16 with
 five code fixes and four work packages. Its implementation plan, working notes, and open
-questions live in `docs/ux-design-review-2-plan.md`, which is the file to read before
+questions live in `docs/archive/ux-design-review-2-plan.md`, which is the file to read before
 continuing that work. The later `joystick_lab_design/handoff/` adds the Joystick Lab screen,
 session frame selector, zero-motion frame interlock, capability-disabled choices, and command
 echo. Its source folder remains external; this paragraph and the implementation plan preserve

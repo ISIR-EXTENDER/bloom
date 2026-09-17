@@ -1,5 +1,8 @@
 # 2026-06-05 Full-Stack Refactoring Plan
 
+> Archived on 2026-09-17. This is evidence of a review that closed, not current documentation. See
+> [`docs/archive/README.md`](README.md) for what replaced it.
+
 ## Review Scope
 
 This review covers Bloom after the Phase 5 security/deployment/storage/runtime work merged on `main`.

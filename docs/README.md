@@ -18,7 +18,6 @@ Current documentation map, reviewed 2026-09-17.
   [widget minimum size contract](design/widget-min-size.md), the [pad recipe](design/pad-recipe.md), the screen specs
   under [`design/screens/`](design/screens/), and the [implementation plan](design/implementation-plan.md).
 - [Component style guide](component-styleguide.md)
-- [Widget UX review](widget-ux-review.md)
 - [Accessibility plan](accessibility-plan.md)
 - [Extender tablet hardware](extender-tablet-hardware.md)
 - [Extender workspace deployment](extender-workspace-deployment.md)
@@ -28,17 +27,15 @@ Current documentation map, reviewed 2026-09-17.
 ## Product Status And Remaining Work
 
 - [Bloom UX design handoff](ux-design-handoff.md)
-- [Second UX design review plan](ux-design-review-2-plan.md): the work packages from the second handoff folder.
-- [Production readiness review](production-readiness-review.md)
-- [Release review 2026-09-17](release-review-2026-09-17.md): the pre-release pass, its findings and their outcome.
 - [Legacy retirement gates](legacy-retirement-gates.md)
 - [Robot-agnostic architecture note](architecture-robot-agnostic.md)
-- [Partner interface review](partner-interface-review.md)
 
 ## Evidence And History
 
 - [`docs/decisions/`](decisions/): architectural decision records. Later implementation changes are added as dated
   amendments; the original decision context is retained.
+- [`docs/archive/`](archive/README.md): reviews and plans that closed, kept as the record of what was found and
+  what shipped. Nothing in there describes current behavior.
 - [`docs/validation/`](validation/): point-in-time evidence. A record states what passed on that date and must not be
   read as proof of later hardware acceptance.
 - [Explorer tutorial media validation](validation/2026-09-16-explorer-tutorial-media.md): reproducible Joystick Lab
@@ -49,7 +46,6 @@ Current documentation map, reviewed 2026-09-17.
   [the Drive review](design/reviews/2026-09-17-drive.md) that produced the two Drive layouts,
   [the implementation review](design/reviews/2026-09-17-implementation.md) of the handoff, and
   [the design gap review](design/reviews/2026-09-17-design-gap-review.md) comparing the built app with the prototypes.
-- [`docs/reviews/`](reviews/): dated review material and refactoring plans.
 - [Bloom UX design handoff](ux-design-handoff.md): the tracked summary of the externally produced design-review folder,
   delivered behavior, and remaining work. Update this summary when the source folder is refreshed.
 

@@ -1,9 +1,12 @@
 # Partner Interface Review
 
+> Archived on 2026-09-17. This is evidence of a review that closed, not current documentation. See
+> [`docs/archive/README.md`](README.md) for what replaced it.
+
 Status: historical source review, updated with a current disposition on 2026-09-16. Bloom is the active Extender IHM;
 `extender_ui` is legacy. The comparison table preserves the state that motivated the review and is not a current feature
-matrix. Current behavior is in [operator-runtime.md](operator-runtime.md), and open work is in
-[ux-design-handoff.md](ux-design-handoff.md).
+matrix. Current behavior is in [operator-runtime.md](../operator-runtime.md), and open work is in
+[ux-design-handoff.md](../ux-design-handoff.md).
 
 This review compares the Inria/AUCTUS `extender-interface` prototype with Bloom,
 `extender_ui`, and `tablet_interface`.
@@ -184,7 +187,7 @@ The partner repo is useful, but several choices should not become Bloom defaults
 - Mode-aware joystick contract: implemented in the widget foundation.
 - Runtime action progress/cancel contracts: implemented as generic command
   action metadata and lifecycle event types; live adapters remain future work.
-- Explorer user-test follow-up: captured in the current [UX design handoff](ux-design-handoff.md).
+- Explorer user-test follow-up: captured in the current [UX design handoff](../ux-design-handoff.md).
 - Display/profile/accessibility track: implemented as profile-ready app model;
   UI profile selection remains future work.
 - 3D robot visualization: reserved as optional `robot-3d` widget family or app

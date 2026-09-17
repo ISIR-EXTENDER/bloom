@@ -40,3 +40,10 @@ mode mappings must stay in app configuration or extension code.
 - `extender_ui` remains the reference for user-tested slider/joystick ergonomics.
 - `tablet_interface` remains the reference for safe backend ROS runtime
   behavior.
+
+## Amendment, 2026-09-17
+
+This decision was carried out. The Explorer User Tests app (decision 0091) is the Bloom app it anticipated, and the
+mode-aware joystick became decision 0067. The source comparison that argued for it is archived at
+`docs/archive/partner-interface-review.md`; its feature table is the state of 2026, not a current one. `/auctus_ui`
+was never adopted.

@@ -1,5 +1,8 @@
 # Design review 2 — implementation plan and working notes
 
+> Archived on 2026-09-17. This is evidence of a review that closed, not current documentation. See
+> [`docs/archive/README.md`](README.md) for what replaced it.
+
 The source material is the externally produced, Git-ignored `Bloom UX design review 2/handoff/` folder. This tracked
 document is Bloom's durable source of truth: it summarizes the handoff so later work never depends on that folder being
 present. The ten supplied PNGs are comparison references at 1280x720, not mockups to slice.

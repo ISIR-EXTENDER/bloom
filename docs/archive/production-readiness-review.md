@@ -1,5 +1,8 @@
 # Production Readiness Review
 
+> Archived on 2026-09-17. This is evidence of a review that closed, not current documentation. See
+> [`docs/archive/README.md`](README.md) for what replaced it.
+
 Last reviewed: 2026-09-16.
 
 Bloom is the active Extender IHM. `extender_ui` is legacy reference/rollback software; readiness work below improves and
@@ -59,7 +62,7 @@ The durable boundaries are in place:
 
 The main architecture gap is a robot profile. Extender topics, mode grammar, actuators, feedback topics, and frame sets
 still exist in several constants. A second robot/non-ROS profile is the test that will show whether that abstraction is
-real. See [the robot-agnostic note](architecture-robot-agnostic.md).
+real. See [the robot-agnostic note](../architecture-robot-agnostic.md).
 
 Maintainability risks remain in the large dashboard orchestration/test modules and centralized widget settings registry.
 Split them when a concrete feature makes ownership unclear; they are not blockers for the current operator product.
@@ -85,7 +88,7 @@ The next UX work is not another broad redesign. It is the unresolved physical an
   safety wording;
 - camera and fault recovery language.
 
-The tracked implementation matrix and backlog are in [the UX design handoff](ux-design-handoff.md).
+The tracked implementation matrix and backlog are in [the UX design handoff](../ux-design-handoff.md).
 
 ## Release Position
 
@@ -93,5 +96,5 @@ Bloom releases may state that it is the active Extender IHM and that its automat
 which target-device and live-robot paths have or have not been accepted.
 
 Do not describe `extender_ui` as the current IHM. Do not delete or make it unavailable merely to make the documentation
-look finished. Legacy cleanup has separate gates in [legacy-retirement-gates.md](legacy-retirement-gates.md), and live
-evidence belongs in [extender-petanque-validation.md](extender-petanque-validation.md).
+look finished. Legacy cleanup has separate gates in [legacy-retirement-gates.md](../legacy-retirement-gates.md), and live
+evidence belongs in [extender-petanque-validation.md](../extender-petanque-validation.md).
