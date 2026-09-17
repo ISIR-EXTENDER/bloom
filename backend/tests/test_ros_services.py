@@ -173,6 +173,33 @@ def test_a_refused_reset_says_so_in_the_detail() -> None:
     assert response.json()["detail"] == "Service refused: Robot still faulted."
 
 
+def test_a_refused_service_is_audited_as_rejected() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    client = create_service_client(RecordingServiceGateway(success=False), audit_log)
+
+    client.post(
+        "/api/v1/runtime/actions",
+        json={"app_id": "kinova-manager", "command": "kinova.reset_fault", "config_id": "kinova-manager"},
+    )
+
+    [record] = [item for item in audit_log.list_records(10) if item.channel == "runtime_action"]
+    assert record.status == "rejected"
+    assert record.payload_summary == {"call_status": "called", "success": False}
+
+
+def test_a_simulated_service_call_is_audited_as_simulated() -> None:
+    audit_log = InMemoryRuntimeAuditLog()
+    client = create_service_client(audit_log=audit_log)
+
+    client.post(
+        "/api/v1/runtime/actions",
+        json={"app_id": "kinova-manager", "command": "kinova.reset_fault", "config_id": "kinova-manager"},
+    )
+
+    [record] = [item for item in audit_log.list_records(10) if item.channel == "runtime_action"]
+    assert record.payload_summary == {"call_status": "simulated", "success": None}
+
+
 def test_service_preset_needs_the_app_policy_to_allow_it() -> None:
     gateway = RecordingServiceGateway()
     bundle = load_configuration_file(KINOVA_FIXTURE_PATH)

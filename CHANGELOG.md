@@ -13,6 +13,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- A service call the robot refused is audited as `rejected`, not `accepted`, and every service audit row carries the
+  receipt's own `call_status` and `success`, so a simulated call is visible as one.
 - A camera frame published with no ROS attached is reported as `simulated`, like every other Noop seam, instead of
   `published`. `GET /api/v1/capabilities` now also reports the `camera-frames` seam, so a screen can tell whether
   frames reach ROS.

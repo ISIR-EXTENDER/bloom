@@ -503,13 +503,16 @@ def dispatch_service_call_preset(
     except RuntimeError as exc:
         raise reject(502, str(exc)) from exc
 
-    detail = receipt.detail if receipt.success is None or receipt.success else f"Service refused: {receipt.detail}"
+    refused = receipt.success is False
+    detail = f"Service refused: {receipt.detail}" if refused else receipt.detail
+    # A refusal is not an acceptance, and a simulated call reached no service.
     audit_log.record(
         RuntimeAuditRecord(
             channel="runtime_action",
             detail=detail,
             message_type=preset.message_type,
-            status="accepted",
+            payload_summary={"call_status": receipt.status, "success": receipt.success},
+            status="rejected" if refused else "accepted",
             target=preset.command or preset.id,
             topic=preset.topic,
         )
