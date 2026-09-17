@@ -83,7 +83,9 @@ describe("plot series telemetry", () => {
     const first = appendSeriesSample(undefined, strip, twist(0.4, 0, "2026-09-17T10:00:00.000Z"), 1_000);
     const second = appendSeriesSample(first ?? undefined, strip, twist(0.5, 0, "2026-09-17T10:00:00.100Z"), 1_100);
 
-    expect(second?.type === "plot-series" && second.series[1]?.samples).toEqual([{ time: 1_100, value: 0.5 }]);
+    expect(second?.type === "plot-series" && second.series[1]?.samples).toEqual([
+      { activity: 0.5, time: 1_100, value: 0.5 },
+    ]);
   });
 
   it("times samples by their arrival, whatever clock the backend stamped them with", () => {
@@ -93,7 +95,9 @@ describe("plot series telemetry", () => {
     // The backend's clock runs 30 s ahead of this tablet's.
     const data = appendSeriesSample(undefined, board, twist(0.4, 0, "2026-09-17T10:00:30.000Z"), arrived);
 
-    expect(data?.type === "plot-series" && data.series[1]?.samples).toEqual([{ time: arrived, value: 0.4 }]);
+    expect(data?.type === "plot-series" && data.series[1]?.samples).toEqual([
+      { activity: 0.4, time: arrived, value: 0.4 },
+    ]);
   });
 
   it("keeps the whole window of a 100 Hz command stream, however low max_samples is", () => {
@@ -105,7 +109,7 @@ describe("plot series telemetry", () => {
     }
 
     const samples = data?.type === "plot-series" ? (data.series[1]?.samples ?? []) : [];
-    expect(samples.at(-1)).toEqual({ time: 40_000, value: 1 });
+    expect(samples.at(-1)).toEqual({ activity: 1, time: 40_000, value: 1 });
     expect(samples[0]?.time).toBeGreaterThanOrEqual(10_000);
     expect(samples[0]?.time).toBeLessThan(10_000 + 40);
     expect(samples.length).toBeLessThanOrEqual(912);

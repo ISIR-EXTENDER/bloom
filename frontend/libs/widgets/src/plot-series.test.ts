@@ -7,6 +7,7 @@ import {
   plotSeriesKey,
   readPlotSeries,
   readPlotUnavailable,
+  readTwistMagnitude,
   resolvePlotVerdict,
   SERIES_RAMP,
 } from "./plot-series";
@@ -91,6 +92,34 @@ describe("the command sources verdict", () => {
   it("says nothing is commanding when the output is still or stale", () => {
     expect(resolvePlotVerdict(board(0, 0, 0), NOW)).toEqual({ active: [], kind: "idle" });
     expect(resolvePlotVerdict(board(0.6, 0, 0.6, 2000), NOW)).toEqual({ active: [], kind: "idle" });
+  });
+
+  it("counts motion on an axis the board does not plot", () => {
+    // The operator drives only Z: linear.x reads zero on every series, the twists do not.
+    const zOnly = (activity: number) => [{ activity, time: NOW - 100, value: 0 }];
+    const series = [
+      { emphasis: false, label: "This tablet", samples: zOnly(0.4) },
+      { emphasis: false, label: "Visual servoing", samples: zOnly(0) },
+      { emphasis: true, label: "Manager output", samples: zOnly(0.4) },
+    ];
+
+    expect(resolvePlotVerdict(series, NOW)).toEqual({ active: ["This tablet"], kind: "driving" });
+  });
+
+  it("reads a twist's magnitude from a stamped or bare message, and nothing from other messages", () => {
+    const sample = appendPlotSeriesSample(
+      [],
+      {
+        receivedAt: "",
+        topic: "/cmd",
+        value: { twist: { linear: { x: 0, y: 0, z: 0.3 }, angular: { x: 0, y: 0, z: 0.4 } } },
+      },
+      { fieldPath: "twist.linear.x", historySeconds: 30, maxSamples: 900, receivedAtMs: NOW },
+    );
+
+    expect(sample).toEqual([{ activity: 0.5, time: NOW, value: 0 }]);
+    expect(readTwistMagnitude({ linear: { x: -0.6 }, angular: {} })).toBeCloseTo(0.6);
+    expect(readTwistMagnitude({ pose: { position: { z: 1 } } })).toBeUndefined();
   });
 
   it("flags an output no plotted source explains", () => {

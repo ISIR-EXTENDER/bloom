@@ -18,7 +18,12 @@ export type PlotSeriesConfig = {
 };
 
 /** Timed in the browser that received it: a backend stamp read against a skewed tablet clock falls off the window. */
-export type PlotSeriesSample = { time: number; value: number };
+export type PlotSeriesSample = {
+  /** The whole twist's magnitude when the message carries one, so motion on an unplotted axis still counts. */
+  activity?: number;
+  time: number;
+  value: number;
+};
 
 export type PlotUnavailableEntry = { label: string; note: string };
 
@@ -86,13 +91,15 @@ export function appendPlotSeriesSample(
     return [...samples];
   }
   const time = settings.receivedAtMs;
+  const activity = readTwistMagnitude(message.value);
+  const sample: PlotSeriesSample = activity === undefined ? { time, value } : { activity, time, value };
   const spacing = settings.minSpacingMs ?? 0;
   const historyMs = settings.historySeconds * 1000;
   const latest = samples.at(-1);
   // One sample per spacing slot, the newest in it, so a live value is never held back.
   const sameSlot =
     latest !== undefined && spacing > 0 && Math.floor(time / spacing) === Math.floor(latest.time / spacing);
-  const next = sameSlot ? [...samples.slice(0, -1), { time, value }] : [...samples, { time, value }];
+  const next = sameSlot ? [...samples.slice(0, -1), sample] : [...samples, sample];
 
   // Samples arrive in order, so the scan stops at the first one still inside the window.
   const firstKept = next.findIndex((sample) => sample.time >= time - historyMs);
@@ -121,13 +128,29 @@ export function resolvePlotVerdict(
   }
   const isActive = (samples: readonly PlotSeriesSample[]) => {
     const latest = samples.at(-1);
-    return latest !== undefined && now - latest.time <= STALE_AFTER_MS && Math.abs(latest.value) > ACTIVE_THRESHOLD;
+    return (
+      latest !== undefined &&
+      now - latest.time <= STALE_AFTER_MS &&
+      Math.abs(latest.activity ?? latest.value) > ACTIVE_THRESHOLD
+    );
   };
   if (!isActive(output.samples)) {
     return { active: [], kind: "idle" };
   }
   const active = series.filter((entry) => !entry.emphasis && isActive(entry.samples)).map((entry) => entry.label);
   return { active, kind: active.length > 0 ? "driving" : "unexplained" };
+}
+
+/** Euclidean norm over linear and angular, for a Twist or TwistStamped; undefined for anything else. */
+export function readTwistMagnitude(message: unknown): number | undefined {
+  const twist = isRecord(message) && isRecord(message.twist) ? message.twist : message;
+  if (!isRecord(twist) || !(isRecord(twist.linear) || isRecord(twist.angular))) {
+    return undefined;
+  }
+  const components = [twist.linear, twist.angular].flatMap((vector) =>
+    isRecord(vector) ? [vector.x, vector.y, vector.z].filter((part): part is number => Number.isFinite(part)) : [],
+  );
+  return Math.hypot(...components);
 }
 
 function readString(value: unknown): string {

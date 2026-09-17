@@ -54,7 +54,8 @@ Series: `/ee_velocity twist.linear.x`, `/cartesian_command twist.linear.x`,
 
 Series: this tablet, visual servoing, manager output — all `twist.linear.x`, all three default on,
 manager output emphasised. The header states the verdict in words: *this tablet is driving* /
-*visual servoing is driving* / *nothing is commanding*.
+*visual servoing is driving* / *nothing is commanding*. The verdict reads each source's whole twist,
+not only the plotted `linear.x`, so an operator driving only Z or a rotation still counts.
 
 ## What moved to Bloom Debug
 
