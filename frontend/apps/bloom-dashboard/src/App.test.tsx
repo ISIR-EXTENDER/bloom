@@ -1785,15 +1785,13 @@ describe("App", () => {
       expect.objectContaining({ topic: "/ui/navigation/visual_servoing_monitor" }),
     );
 
-    await waitFor(() =>
-      expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
-        expect.objectContaining({
-          field_path: "twist.linear.x",
-          topic: "/visual_servoing/velocity_command",
-          widget_id: "servo-velocity-linear-x",
-        }),
-      ),
-    );
+    // Control Panel already holds /visual_servoing/velocity_command; Monitor shares it rather than asking twice.
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
+    const subscribe = runtimeActionClient.subscribeRuntimeTopic;
+    if (!subscribe) throw new Error("Missing subscribe client.");
+    expect(
+      vi.mocked(subscribe).mock.calls.filter(([request]) => request.topic === "/visual_servoing/velocity_command"),
+    ).toHaveLength(1);
     runtimeActionClient.emitRuntimeTopicSample({
       detail: "Received /visual_servoing/velocity_command.",
       payload: {
@@ -1813,6 +1811,12 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Control" }));
     expect(await screen.findByText("Camera Preview")).toBeVisible();
+    // The camera screen plots no velocity, so its subscription goes.
+    await waitFor(() =>
+      expect(runtimeActionClient.unsubscribeRuntimeTopic).toHaveBeenCalledWith(
+        expect.objectContaining({ topic: "/visual_servoing/velocity_command" }),
+      ),
+    );
 
     selectRuntimeScreen("Snake Control");
     const snakeModeToggle = screen.getByRole("button", { name: "Mode B1/B2: B2" });
@@ -2377,6 +2381,11 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         topic: request.topic,
       },
       type: "subscription_ack" as const,
+    })),
+    unsubscribeRuntimeTopic: vi.fn(async (request) => ({
+      detail: `Unsubscribed from ${request.topic}.`,
+      payload: { removed: true, topic: request.topic, widget_id: request.widget_id },
+      type: "unsubscription_ack" as const,
     })),
   };
 }

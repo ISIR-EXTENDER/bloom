@@ -7,6 +7,8 @@ import type {
   RuntimeTopicSampleMessage,
   RuntimeTopicSubscriptionRequest,
   RuntimeTopicSubscriptionResponse,
+  RuntimeTopicUnsubscriptionRequest,
+  RuntimeTopicUnsubscriptionResponse,
 } from "./runtime-action-dispatcher";
 
 type WebSocketEventMap = {
@@ -57,6 +59,7 @@ export function createRuntimeWebSocketClient(
     | "releaseRuntimeControl"
     | "sendTeleopCommand"
     | "subscribeRuntimeTopic"
+    | "unsubscribeRuntimeTopic"
   >
 > {
   const WebSocketCtor = options.WebSocketCtor ?? getDefaultWebSocketConstructor();
@@ -267,6 +270,11 @@ export function createRuntimeWebSocketClient(
     subscribeRuntimeTopic(subscription: RuntimeTopicSubscriptionRequest): Promise<RuntimeTopicSubscriptionResponse> {
       return request(subscription, parseTopicSubscriptionAck);
     },
+    unsubscribeRuntimeTopic(
+      subscription: RuntimeTopicUnsubscriptionRequest,
+    ): Promise<RuntimeTopicUnsubscriptionResponse> {
+      return request(subscription, parseTopicUnsubscriptionAck);
+    },
   };
 }
 
@@ -391,6 +399,21 @@ function parseTopicSubscriptionAck(data: unknown): RuntimeTopicSubscriptionRespo
       return null;
     }
     return parsed as RuntimeTopicSubscriptionResponse;
+  } catch {
+    return null;
+  }
+}
+
+function parseTopicUnsubscriptionAck(data: unknown): RuntimeTopicUnsubscriptionResponse | null {
+  if (typeof data !== "string") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(data) as Partial<RuntimeTopicUnsubscriptionResponse>;
+    return parsed.type === "unsubscription_ack" && parsed.payload
+      ? (parsed as RuntimeTopicUnsubscriptionResponse)
+      : null;
   } catch {
     return null;
   }

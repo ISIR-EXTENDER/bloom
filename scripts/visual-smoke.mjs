@@ -386,6 +386,22 @@ async function mockRuntimeWebSocket(page) {
           return;
         }
 
+        if (message.type === "unsubscribe_topic") {
+          // Replies match requests by position, so every request needs one.
+          window.setTimeout(() => {
+            this.dispatchEvent(
+              new MessageEvent("message", {
+                data: JSON.stringify({
+                  type: "unsubscription_ack",
+                  detail: `Unsubscribed from ${message.topic}.`,
+                  payload: { removed: true, topic: message.topic, widget_id: message.widget_id },
+                }),
+              }),
+            );
+          }, 0);
+          return;
+        }
+
         if (message.type === "teleop_cmd") {
           this.acknowledgeTeleopCommand(message);
         }

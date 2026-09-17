@@ -276,6 +276,20 @@ async function mockRuntimeWebSocket(page) {
           }, 0);
           return;
         }
+        if (message?.type === "unsubscribe_topic") {
+          window.setTimeout(() => {
+            this.dispatchEvent(
+              new MessageEvent("message", {
+                data: JSON.stringify({
+                  detail: `Unsubscribed from ${message.topic}.`,
+                  payload: { removed: true, topic: message.topic, widget_id: message.widget_id },
+                  type: "unsubscription_ack",
+                }),
+              }),
+            );
+          }, 0);
+          return;
+        }
         if (message?.type !== "subscribe_topic") return;
         window.setTimeout(() => {
           this.dispatchEvent(

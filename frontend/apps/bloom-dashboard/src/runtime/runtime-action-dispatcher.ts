@@ -68,6 +68,19 @@ export type RuntimeTopicSubscriptionResponse = {
   type: "subscription_ack";
 };
 
+/** Names a subscription by the same widget_id and topic that opened it. */
+export type RuntimeTopicUnsubscriptionRequest = {
+  topic: string;
+  type: "unsubscribe_topic";
+  widget_id?: string;
+};
+
+export type RuntimeTopicUnsubscriptionResponse = {
+  detail: string;
+  payload: { removed: boolean; topic: string; widget_id?: string };
+  type: "unsubscription_ack";
+};
+
 export type RuntimeTopicSampleMessage = {
   detail: string;
   payload: {
@@ -108,6 +121,7 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   startRuntimeRecording?: BloomApiClient["startRuntimeRecording"];
   stopRuntimeRecording?: BloomApiClient["stopRuntimeRecording"];
   subscribeRuntimeTopic?: (request: RuntimeTopicSubscriptionRequest) => Promise<RuntimeTopicSubscriptionResponse>;
+  unsubscribeRuntimeTopic?: (request: RuntimeTopicUnsubscriptionRequest) => Promise<RuntimeTopicUnsubscriptionResponse>;
 };
 
 export type RuntimeActionDispatchStatus =

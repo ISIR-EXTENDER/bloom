@@ -38,6 +38,7 @@ import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopA
 import { resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
+import { type HeldTopicSubscriptions, planTopicSubscriptions } from "./topic-subscriptions";
 import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
@@ -419,18 +420,43 @@ export function RuntimeWorkspace({
 
   // A client that reports no link at all (previews, tests) subscribes once; a reporting one once per open socket.
   const topicSubscriptionsReady = !runtimeActionClient.addRuntimeLinkStateListener || runtimeLink.state === "connected";
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the connection count is the resubscribe signal, not a value the effect reads.
+  const heldTopicSubscriptionsRef = useRef<{ connectionCount?: number; held: HeldTopicSubscriptions }>({
+    connectionCount: -1,
+    held: new Map(),
+  });
+  const unsubscribeRuntimeTopic = runtimeActionClient.unsubscribeRuntimeTopic;
   useEffect(() => {
-    // A reconnected socket is a new session with no subscriptions, so the
-    // screen has to ask again or the telemetry stays blank behind a READY chip.
     if (!onTopicSubscriptionRequest || !topicSubscriptionsReady) {
       return;
     }
 
-    for (const request of createRuntimeTopicSubscriptionRequests(screen)) {
+    // A reconnected socket is a new session with no subscriptions, so the
+    // screen has to ask again or the telemetry stays blank behind a READY chip.
+    const previous = heldTopicSubscriptionsRef.current;
+    const connectionCount = runtimeLink.connectionCount;
+    const plan = planTopicSubscriptions(
+      previous.connectionCount === connectionCount ? previous.held : new Map(),
+      createRuntimeTopicSubscriptionRequests(screen),
+      Boolean(unsubscribeRuntimeTopic),
+    );
+    heldTopicSubscriptionsRef.current = { connectionCount, held: plan.held };
+    for (const request of plan.unsubscribe) {
+      unsubscribeRuntimeTopic?.({
+        type: "unsubscribe_topic",
+        topic: request.topic,
+        widget_id: request.widget_id,
+      }).catch(() => undefined);
+    }
+    for (const request of plan.subscribe) {
       onTopicSubscriptionRequest(request);
     }
-  }, [onTopicSubscriptionRequest, runtimeLink.connectionCount, topicSubscriptionsReady, screen]);
+  }, [
+    onTopicSubscriptionRequest,
+    runtimeLink.connectionCount,
+    topicSubscriptionsReady,
+    screen,
+    unsubscribeRuntimeTopic,
+  ]);
 
   useEffect(() => {
     if (previousScreenIdRef.current === screen.id) {

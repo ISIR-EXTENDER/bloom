@@ -265,6 +265,30 @@ describe("runtime WebSocket client", () => {
     expect(socket.sentMessages).toEqual([JSON.stringify(request)]);
   });
 
+  it("drops a topic subscription and resolves its ACK", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const request = {
+      type: "unsubscribe_topic" as const,
+      topic: "/ee_velocity",
+      widget_id: "feedback-plot:/ee_velocity",
+    };
+
+    const responsePromise = client.unsubscribeRuntimeTopic(request);
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message({
+      type: "unsubscription_ack",
+      session_id: "runtime-session",
+      detail: "Unsubscribed from /ee_velocity.",
+      payload: { removed: true, topic: request.topic, widget_id: request.widget_id },
+    });
+
+    await expect(responsePromise).resolves.toMatchObject({ payload: { removed: true, topic: "/ee_velocity" } });
+    expect(socket.sentMessages).toEqual([JSON.stringify(request)]);
+  });
+
   it("settles each request with its own reply when an earlier one fails", async () => {
     const WebSocketCtor = createFakeWebSocketConstructor();
     const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });

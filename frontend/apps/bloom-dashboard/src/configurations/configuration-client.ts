@@ -65,6 +65,7 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
     startRuntimeRecording: apiClient.startRuntimeRecording.bind(apiClient),
     stopRuntimeRecording: apiClient.stopRuntimeRecording.bind(apiClient),
     subscribeRuntimeTopic: runtimeWebSocketClient.subscribeRuntimeTopic,
+    unsubscribeRuntimeTopic: runtimeWebSocketClient.unsubscribeRuntimeTopic,
   };
 }
 

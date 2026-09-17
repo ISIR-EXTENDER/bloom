@@ -18,6 +18,7 @@ from libs.sessions.models import (
     RuntimeServerMessage,
     RuntimeSubscribeTopicMessage,
     RuntimeTeleopCommandMessage,
+    RuntimeUnsubscribeTopicMessage,
     parse_runtime_client_message,
 )
 from libs.sessions.rate_limit import RuntimeCommandRateLimiter, RuntimeRateLimitError
@@ -85,6 +86,7 @@ __all__ = [
     "RuntimeStoppedError",
     "RuntimeSubscribeTopicMessage",
     "RuntimeTeleopCommandMessage",
+    "RuntimeUnsubscribeTopicMessage",
     "TeleopCommand",
     "TeleopCommandGateway",
     "TeleopPublishReceipt",

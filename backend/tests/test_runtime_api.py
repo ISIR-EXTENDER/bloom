@@ -435,6 +435,33 @@ def test_resubscribing_a_widget_replaces_its_subscription() -> None:
     assert [handle.closed for handle in gateway.handles] == [True, True]
 
 
+def test_unsubscribing_closes_the_subscription_a_screen_no_longer_shows() -> None:
+    gateway = MultiHandleTopicSubscriptionGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository(),
+            runtime_topic_subscription_gateway=gateway,
+        )
+    )
+    subscription = {"topic": "/cartesian_command", "widget_id": "feedback-plot:/cartesian_command"}
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "subscribe_topic", **subscription})
+        websocket.receive_json()
+        websocket.send_json({"type": "unsubscribe_topic", **subscription})
+        removed = websocket.receive_json()
+        closed_while_connected = gateway.handles[0].closed
+        websocket.send_json({"type": "unsubscribe_topic", **subscription})
+        missing = websocket.receive_json()
+
+    assert removed["type"] == "unsubscription_ack"
+    assert removed["payload"] == {"removed": True, **subscription}
+    assert closed_while_connected is True
+    assert missing["payload"]["removed"] is False
+
+
 def test_runtime_websocket_streams_topic_samples_after_subscription() -> None:
     gateway = RecordingTopicSubscriptionGateway()
     client = TestClient(

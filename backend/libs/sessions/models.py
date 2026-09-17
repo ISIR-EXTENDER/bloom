@@ -42,6 +42,24 @@ class RuntimeSubscribeTopicMessage(RuntimeModel):
         return value.strip()
 
 
+class RuntimeUnsubscribeTopicMessage(RuntimeModel):
+    """Drops the subscription the same widget_id and topic opened."""
+
+    type: Literal["unsubscribe_topic"]
+    topic: str = Field(min_length=1)
+    widget_id: str = ""
+
+    @field_validator("topic")
+    @classmethod
+    def topic_must_be_absolute(cls, value: str) -> str:
+        return RuntimeSubscribeTopicMessage.topic_must_be_absolute(value)
+
+    @field_validator("widget_id")
+    @classmethod
+    def normalize_widget_id(cls, value: str) -> str:
+        return value.strip()
+
+
 class RuntimeVector3Message(RuntimeModel):
     x: float = Field(default=0.0, ge=-20.0, le=20.0)
     y: float = Field(default=0.0, ge=-20.0, le=20.0)
@@ -94,7 +112,8 @@ RuntimeClientMessage = Annotated[
     | RuntimePingMessage
     | RuntimeReleaseControlMessage
     | RuntimeSubscribeTopicMessage
-    | RuntimeTeleopCommandMessage,
+    | RuntimeTeleopCommandMessage
+    | RuntimeUnsubscribeTopicMessage,
     Field(discriminator="type"),
 ]
 
@@ -110,6 +129,7 @@ class RuntimeServerMessage(RuntimeModel):
         "teleop_ack",
         "topic_sample",
         "runtime_error",
+        "unsubscription_ack",
     ]
     active_sessions: int | None = None
     detail: str = ""

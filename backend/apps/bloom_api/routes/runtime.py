@@ -72,6 +72,7 @@ from libs.sessions import (
     RuntimeTopicSubscription,
     RuntimeTopicSubscriptionGateway,
     RuntimeTopicSubscriptionHandle,
+    RuntimeUnsubscribeTopicMessage,
     TeleopCommand,
     TeleopCommandGateway,
     TeleopVector3,
@@ -892,8 +893,8 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     session = manager.connect()
     event_loop = asyncio.get_running_loop()
     topic_samples: asyncio.Queue[RuntimeTopicSample] = asyncio.Queue(maxsize=100)
-    # Keyed by widget: a screen that subscribes again replaces its own handle
-    # instead of stacking a second subscription on the same topic.
+    # Keyed by widget and topic: a screen that subscribes again replaces its own
+    # handle instead of stacking a second subscription on the same topic.
     topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle] = {}
     receive_task: asyncio.Task | None = None
     sample_task: asyncio.Task | None = None
@@ -1240,9 +1241,21 @@ def build_runtime_ack(
     if isinstance(message, RuntimePingMessage):
         return RuntimeServerMessage(type="pong", detail="Runtime session is alive.", session_id=session_id)
 
+    if isinstance(message, RuntimeUnsubscribeTopicMessage):
+        key = topic_subscription_key(message.widget_id, message.topic)
+        handle = topic_subscription_handles.pop(key, None) if topic_subscription_handles is not None else None
+        if handle is not None:
+            handle.close()
+        return RuntimeServerMessage(
+            type="unsubscription_ack",
+            detail=f"Unsubscribed from {message.topic}." if handle else f"No subscription to {message.topic} was open.",
+            payload={"removed": handle is not None, "topic": message.topic, "widget_id": message.widget_id},
+            session_id=session_id,
+        )
+
     if isinstance(message, RuntimeSubscribeTopicMessage):
         if topic_subscription_gateway and on_topic_sample and topic_subscription_handles is not None:
-            subscription_key = message.widget_id or message.topic
+            subscription_key = topic_subscription_key(message.widget_id, message.topic)
             if (
                 subscription_key not in topic_subscription_handles
                 and len(topic_subscription_handles) >= MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION
@@ -1308,6 +1321,11 @@ def build_runtime_ack(
         )
 
     return RuntimeServerMessage(type="runtime_error", detail="Unsupported runtime message.", session_id=session_id)
+
+
+def topic_subscription_key(widget_id: str, topic: str) -> str:
+    """A widget re-asking for its topic replaces its handle; a new topic under the same id stands apart."""
+    return f"{widget_id} {topic}"
 
 
 def enqueue_topic_sample(topic_samples: asyncio.Queue[RuntimeTopicSample], sample: RuntimeTopicSample) -> None:
