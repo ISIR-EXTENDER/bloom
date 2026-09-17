@@ -468,7 +468,7 @@
 .runtime-library-rail {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-height: 0;
 }
 
@@ -641,7 +641,8 @@
 }
 
 .runtime-library-open {
-  min-height: 96px;
+  /* Still the largest target in the rail; sized so This device stays on a 1280×720 panel. */
+  min-height: 76px;
   border: 0;
   border-radius: var(--bloom-radius-card);
   background: var(--bloom-primary);
