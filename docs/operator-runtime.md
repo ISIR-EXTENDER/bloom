@@ -164,6 +164,8 @@ configuration and app, but the tour remains available for repetition.
 ## Stop And Resume
 
 - A pointer press on **STOP** engages the backend runtime stop immediately. Keyboard activation is also supported.
+- STOP is the first stop in the keyboard tab order, the runtime's only positive `tabindex`; it used to be
+  second-to-last, behind every control on the screen.
 - The stop is a backend latch shared by runtime clients; it is not a decorative local button.
 - A screen places STOP in its `stop` reserved region, which widgets cannot occupy. A screen without one keeps STOP in
   the bottom-right corner.

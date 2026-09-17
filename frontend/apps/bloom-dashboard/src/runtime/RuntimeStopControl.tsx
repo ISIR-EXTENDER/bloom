@@ -6,6 +6,11 @@ import { useHoldGesture } from "./use-hold-gesture";
 import type { RegionRect } from "./use-reserved-region-rect";
 
 const RESUME_HOLD_MS = 1000;
+/**
+ * The only positive tab index in the runtime: STOP was the second-to-last tab
+ * stop on a drive screen, and nothing else may come before it.
+ */
+const STOP_TAB_INDEX = 1;
 
 export type RuntimeStopControlProps = {
   /** null while unknown; rendered as running so STOP is always pressable. */
@@ -78,6 +83,7 @@ export function RuntimeStopControl({
         onPointerUp={resumeHold.cancel}
         ref={resumeRef}
         style={style}
+        tabIndex={STOP_TAB_INDEX}
         type="button"
       >
         <span className="runtime-stop-label">{strings.stop.resume}</span>
@@ -105,6 +111,7 @@ export function RuntimeStopControl({
       }}
       onPointerDown={onEngage}
       style={style}
+      tabIndex={STOP_TAB_INDEX}
       type="button"
     >
       <span className="runtime-stop-label">{strings.stop.engage}</span>
