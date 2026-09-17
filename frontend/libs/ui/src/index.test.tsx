@@ -113,6 +113,18 @@ describe("BloomNavBar", () => {
     expect(seriesStyle(8)).toEqual({ color: "var(--bloom-series-1)", dashed: true });
   });
 
+  it("keeps every preset's sage a sage", () => {
+    const documented = designSystemPage.match(/>sage<\\u002Fdiv><div[^>]*>(#[0-9a-f]{6})/)?.[1];
+    expect(documented).toBe(BLOOM_THEME_PRESETS.bloom.tokens.sage);
+
+    // Sage names live motion, so a preset that puts a blue here restores the blue knob.
+    const offHue = Object.values(BLOOM_THEME_PRESETS)
+      .map((preset) => [preset.id, hueOf(preset.tokens.sage)] as const)
+      .filter(([, hue]) => hue < 90 || hue > 150);
+
+    expect(offHue).toEqual([]);
+  });
+
   it("carries alias tokens with the theme instead of freezing them at the root", () => {
     const style = createBloomThemeStyle(BLOOM_THEME_PRESETS["extender-ui"]) as Record<string, string>;
 
@@ -183,6 +195,23 @@ function parseHexColor(color: string): [number, number, number] {
     Number.parseInt(normalized.slice(2, 4), 16),
     Number.parseInt(normalized.slice(4, 6), 16),
   ];
+}
+
+/** The colour's hue in degrees; green sits near 120, cyan near 190. */
+function hueOf(color: string): number {
+  const [red, green, blue] = parseHexColor(color).map((channel) => channel / 255) as [number, number, number];
+  const highest = Math.max(red, green, blue);
+  const delta = highest - Math.min(red, green, blue);
+  if (delta === 0) {
+    return 0;
+  }
+  const sector =
+    highest === red
+      ? ((green - blue) / delta) % 6
+      : highest === green
+        ? (blue - red) / delta + 2
+        : (red - green) / delta + 4;
+  return (sector * 60 + 360) % 360;
 }
 
 function getRelativeLuminance([red, green, blue]: [number, number, number]): number {

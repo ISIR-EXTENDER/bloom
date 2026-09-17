@@ -114,7 +114,8 @@ export const BLOOM_THEME_PRESETS: Readonly<Record<BloomThemePresetId, BloomTheme
       paper: "#f8fafc",
       petal: "#bfdbfe",
       pollen: "#38bdf8",
-      sage: "#0ea5e9",
+      // Sage names live motion; a blue here puts the first review's pure blue back on a knob.
+      sage: "#7e967e",
       surfaceSoft: "#ffffff",
     },
     roles: {
