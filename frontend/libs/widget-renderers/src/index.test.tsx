@@ -4,7 +4,7 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, createWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -278,6 +278,28 @@ describe("widget renderer registry", () => {
     expect(button).toHaveAttribute("aria-pressed", "false");
 
     expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}", "{data: false}"]);
+  });
+
+  it("releases a latched momentary button after the expiry even while re-rendering", () => {
+    vi.useFakeTimers();
+    try {
+      const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+      if (!descriptor) throw new Error("Missing momentary button descriptor.");
+      const onActionIntent = vi.fn();
+      const { rerender } = render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+
+      fireEvent.click(screen.getByRole("button", { name: "Hold Snake" }), { detail: 0 });
+      for (let second = 0; second < 16; second += 1) {
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+        rerender(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+      }
+
+      expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}", "{data: false}"]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("leaves a pointer hold alone when its click follows the release", () => {

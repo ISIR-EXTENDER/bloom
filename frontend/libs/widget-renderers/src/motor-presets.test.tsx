@@ -168,6 +168,62 @@ describe("the latch expiry", () => {
     expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0.5 });
   });
 
+  it("expires a stepped vector even while the screen keeps re-rendering", () => {
+    // Scanning, telemetry and status polls re-render the runtime every second or
+    // two. A window restarted by each render never closes, and the arm keeps moving.
+    const onActionIntent = vi.fn();
+    const { joystick } = descriptors();
+    const { rerender } = render(
+      <JoystickWidget descriptor={joystick} motorPreset="scan" onActionIntent={onActionIntent} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Forward, one step" }));
+    for (let second = 0; second < 16; second += 1) {
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      rerender(<JoystickWidget descriptor={joystick} motorPreset="scan" onActionIntent={onActionIntent} />);
+    }
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0 });
+  });
+
+  it("counts a repeated tap at full scale as renewed attention", () => {
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="step" onActionIntent={onActionIntent} />);
+
+    for (let tap = 0; tap < 6; tap += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "Forward, one step" }));
+    }
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Forward, one step" }));
+    act(() => {
+      vi.advanceTimersByTime(10000);
+    });
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 1 });
+  });
+
+  it("expires a stepped slider value even while the screen keeps re-rendering", () => {
+    const onActionIntent = vi.fn();
+    const { slider } = descriptors();
+    const { rerender } = render(
+      <SliderWidget descriptor={slider} motorPreset="step" onActionIntent={onActionIntent} />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Increase Z by 0.25" }));
+    for (let second = 0; second < 16; second += 1) {
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      rerender(<SliderWidget descriptor={slider} motorPreset="step" onActionIntent={onActionIntent} />);
+    }
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual(0);
+  });
+
   it("zeroes a latched slider value after the expiry", () => {
     const onActionIntent = vi.fn();
     render(<SliderWidget descriptor={descriptors().slider} motorPreset="latch" onActionIntent={onActionIntent} />);

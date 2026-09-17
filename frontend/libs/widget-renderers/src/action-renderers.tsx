@@ -50,18 +50,16 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     return () => clearTimeout(timer);
   }, [confirmTimeoutSeconds, isArmed]);
 
-  // A latched hold must never outlive the operator's attention.
+  // A latched hold must never outlive the operator's attention. Keyed on the
+  // latch alone, so re-renders from scanning or telemetry cannot restart it.
+  const expireLatchRef = useRef(() => {});
   useEffect(() => {
     if (!isMomentaryLatched) {
       return;
     }
-    const timer = setTimeout(() => {
-      if (isMomentaryPressedRef.current) {
-        releaseMomentary();
-      }
-    }, MOMENTARY_HOLD_EXPIRY_MS);
+    const timer = setTimeout(() => expireLatchRef.current(), MOMENTARY_HOLD_EXPIRY_MS);
     return () => clearTimeout(timer);
-  });
+  }, [isMomentaryLatched]);
 
   const handlePress = () => {
     if (disabled) {
@@ -113,6 +111,11 @@ export function CommandLikeWidget({ conditioning, controlState, descriptor, onAc
     setIsMomentaryPressed(false);
     setIsMomentaryLatched(false);
     publishMomentaryPayload("releasedPayload");
+  };
+  expireLatchRef.current = () => {
+    if (isMomentaryPressedRef.current) {
+      releaseMomentary();
+    }
   };
   const handleMomentaryRelease = (event: PointerEvent<HTMLButtonElement>) => {
     if (!isMomentaryPressedRef.current) {

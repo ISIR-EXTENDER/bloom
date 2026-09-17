@@ -40,11 +40,14 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
   const configuredValue = getNumberSetting(sliderSettings, "value", 0);
   const defaultValue = clamp(returnToCenter ? 0 : configuredValue, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
+  // Counts operator input, so the attention window restarts on input only.
+  const [inputRevision, setInputRevision] = useState(0);
   const formattedValue = formatSliderValue(currentValue, step, unit);
   const stepPreset = resolveStepTargetPreset(motorPreset);
   const usesStepTargets = stepPreset !== null;
 
   const emitValueChange = (value: number) => {
+    setInputRevision((revision) => revision + 1);
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
   };
 
@@ -71,15 +74,20 @@ export function SliderWidget({ descriptor, motorPreset, onActionIntent }: Widget
     emitValueChange(value);
   };
 
-  // A latched command must never outlive the operator's attention.
+  // A latched command must never outlive the operator's attention. Scanning,
+  // telemetry and status polls re-render constantly, so the window is keyed on
+  // input rather than restarted by every render.
   const valueIsHeld = (motorPreset === "latch" || usesStepTargets) && returnToCenter && currentValue !== defaultValue;
+  const expireHeldValueRef = useRef(() => {});
+  expireHeldValueRef.current = () => setAndEmit(defaultValue);
   useEffect(() => {
+    void inputRevision;
     if (!valueIsHeld) {
       return;
     }
-    const expiry = window.setTimeout(() => setAndEmit(defaultValue), SLIDER_LATCH_EXPIRY_MS);
+    const expiry = window.setTimeout(() => expireHeldValueRef.current(), SLIDER_LATCH_EXPIRY_MS);
     return () => window.clearTimeout(expiry);
-  });
+  }, [inputRevision, valueIsHeld]);
 
   if (stepPreset) {
     const stepBy = (delta: number) => setAndEmit(Number(clamp(currentValue + delta, min, max).toFixed(4)));
@@ -200,6 +208,8 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
     showDetails,
   });
   const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
+  // Counts operator input, so the attention window restarts on input only.
+  const [inputRevision, setInputRevision] = useState(0);
   const isHeldRef = useRef(false);
   const latestVectorRef = useRef<JoystickVector>({ x: 0, y: 0 });
   const onActionIntentRef = useRef(onActionIntent);
@@ -213,6 +223,7 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
   const handleVectorChange = (value: JoystickVector) => {
     latestVectorRef.current = value;
     setCurrentVector(value);
+    setInputRevision((revision) => revision + 1);
     emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, value);
   };
 
@@ -238,20 +249,26 @@ export function JoystickWidget({ conditioning, descriptor, motorPreset, onAction
   const emitHeldVector = (vector: JoystickVector) => {
     latestVectorRef.current = vector;
     setCurrentVector(vector);
+    setInputRevision((revision) => revision + 1);
     emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, vector);
   };
 
-  // A latched command must never outlive the operator's attention.
+  // A latched command must never outlive the operator's attention. Keyed on
+  // input, because re-renders from scanning or telemetry would otherwise
+  // restart the window forever.
   const stepPreset = resolveStepTargetPreset(motorPreset);
   const isLatched = motorPreset === "latch" || stepPreset !== null;
   const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
+  const expireHeldVectorRef = useRef(() => {});
+  expireHeldVectorRef.current = () => emitHeldVector({ x: 0, y: 0 });
   useEffect(() => {
+    void inputRevision;
     if (!vectorIsHeld) {
       return;
     }
-    const expiry = window.setTimeout(() => emitHeldVector({ x: 0, y: 0 }), LATCH_EXPIRY_MS);
+    const expiry = window.setTimeout(() => expireHeldVectorRef.current(), LATCH_EXPIRY_MS);
     return () => window.clearTimeout(expiry);
-  });
+  }, [inputRevision, vectorIsHeld]);
 
   if (stepPreset) {
     return (
