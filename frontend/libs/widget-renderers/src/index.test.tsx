@@ -513,8 +513,11 @@ describe("widget renderer registry", () => {
       widgetKind: "joystick",
       zeroOnRelease: true,
     });
-    expect(screen.getByText("x 0.50").parentElement).toHaveClass("sr-only");
-    expect(screen.getByText("y -0.25").parentElement).toHaveClass("sr-only");
+    // The live region announces where the pad came to rest, not every sample of
+    // a 30 Hz stream.
+    const announcement = document.querySelector("output.sr-only");
+    expect(announcement?.textContent).toBe("x 0.00 y 0.00");
+    await waitFor(() => expect(announcement?.textContent).toBe("x 0.50 y -0.25"));
   });
 
   it("shows joystick runtime details only when requested", () => {

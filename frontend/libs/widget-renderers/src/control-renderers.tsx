@@ -15,6 +15,7 @@ import {
   resolveJoystickBinding,
 } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
+import { useSettledAnnouncement } from "./use-settled-announcement";
 
 const SLIDER_LATCH_EXPIRY_MS = 15000;
 const SLIDER_STEP_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown"]);
@@ -55,6 +56,8 @@ export function SliderWidget({
   // Counts operator input, so the attention window restarts on input only.
   const [inputRevision, setInputRevision] = useState(0);
   const formattedValue = formatSliderValue(currentValue, step, unit);
+  // A live region cannot follow a dragged axis; it announces where it came to rest.
+  const announcedValue = useSettledAnnouncement(formattedValue);
   const stepPreset = resolveStepTargetPreset(motorPreset);
   const usesStepTargets = stepPreset !== null;
 
@@ -345,7 +348,7 @@ export function SliderWidget({
         </SliderPrimitive.Root>
       </div>
       <output aria-live="polite" className="sr-only">
-        {formattedValue}
+        {announcedValue}
       </output>
     </div>
   );
@@ -407,6 +410,8 @@ export function JoystickWidget({
     showDetails,
   });
   const [currentVector, setCurrentVector] = useState<JoystickVector>({ x: 0, y: 0 });
+  // A live region cannot follow a pad at 30 Hz; it announces where it came to rest.
+  const announcedVector = useSettledAnnouncement(`x ${currentVector.x.toFixed(2)} y ${currentVector.y.toFixed(2)}`);
   // Counts operator input, so the attention window restarts on input only.
   const [inputRevision, setInputRevision] = useState(0);
   const [padResetSignal, setPadResetSignal] = useState(0);
@@ -568,8 +573,7 @@ export function JoystickWidget({
         ) : null}
       </div>
       <output aria-live="polite" className="sr-only">
-        <span>x {currentVector.x.toFixed(2)}</span>
-        <span>y {currentVector.y.toFixed(2)}</span>
+        {announcedVector}
       </output>
     </div>
   );
