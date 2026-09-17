@@ -198,6 +198,23 @@ def test_cors_preflight_uses_configured_origins() -> None:
     assert "x-bloom-runtime-session" in response.headers["access-control-allow-headers"].lower()
 
 
+def test_stop_is_never_refused_by_the_http_rate_limit() -> None:
+    # Kiosks behind one address, or one stuck client, share this budget.
+    client = TestClient(
+        create_app(Settings(environment="test", http_rate_limit_per_minute=3), InMemoryConfigurationRepository())
+    )
+    for _ in range(3):
+        client.get("/api/v1/health")
+    assert client.get("/api/v1/health").status_code == 429
+
+    response = client.post("/api/v1/runtime/stop")
+
+    assert response.status_code == 200
+    assert response.json()["stopped"] is True
+    # Resume is deliberate and slow; it stays inside the budget.
+    assert client.post("/api/v1/runtime/stop/resume").status_code == 429
+
+
 def test_global_http_rate_limit_rejects_excess_requests() -> None:
     client = TestClient(
         create_app(

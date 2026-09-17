@@ -62,6 +62,11 @@ def install_http_rate_limit(app: FastAPI) -> None:
         settings = request.app.state.settings
         if settings.http_rate_limit_per_minute <= 0:
             return await call_next(request)
+        # Engaging STOP is never refused for being one request too many: a
+        # stuck client, or several kiosks behind one address, would otherwise
+        # spend the budget that the stop needs.
+        if request.method == "POST" and request.url.path == f"{settings.api_prefix}/runtime/stop":
+            return await call_next(request)
 
         client_key = request.client.host if request.client else "unknown"
         if not _allow_http_request(
