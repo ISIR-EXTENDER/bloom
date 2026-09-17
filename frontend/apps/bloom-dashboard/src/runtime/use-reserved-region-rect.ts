@@ -22,10 +22,22 @@ export function useReservedRegionRect(
   scale: number,
 ): RegionRect | null {
   const [rect, setRect] = useState<RegionRect | null>(null);
+  const [nodes, setNodes] = useState<{ anchor: HTMLElement | null; artboard: HTMLElement | null }>({
+    anchor: null,
+    artboard: null,
+  });
 
+  // Settings and the tour unmount the canvas; the remounted nodes must get the listeners, not the detached ones.
   useLayoutEffect(() => {
     const artboard = artboardRef.current;
     const anchor = anchorRef.current;
+    setNodes((current) =>
+      current.artboard === artboard && current.anchor === anchor ? current : { anchor, artboard },
+    );
+  });
+
+  useLayoutEffect(() => {
+    const { anchor, artboard } = nodes;
     if (!region || !artboard || !anchor) {
       setRect(null);
       return;
@@ -60,7 +72,7 @@ export function useReservedRegionRect(
       window.removeEventListener("resize", measure);
       anchor.removeEventListener("scroll", measure, true);
     };
-  }, [anchorRef, artboardRef, region, scale]);
+  }, [nodes, region, scale]);
 
   return rect;
 }
