@@ -671,3 +671,20 @@ def test_v7_migration_backfills_reserved_regions_from_the_stored_bundle(tmp_path
         connection.commit()
 
     assert SQLiteConfigurationRepository(database_path).get("manager") == bundle
+
+
+def test_v7_migration_writes_no_regions_when_the_stored_bundle_holds_a_non_list(tmp_path: Path) -> None:
+    database_path = tmp_path / "bloom.db"
+    bundle = make_reserved_region_bundle()
+    SQLiteConfigurationRepository(database_path).upsert("manager", bundle)
+    with sqlite_connection(database_path) as connection:
+        payload = json.loads(connection.execute("SELECT bundle_json FROM configuration_bundles").fetchone()[0])
+        payload["applications"][0]["screens"][0]["reserved_regions"] = {"id": "stop"}
+        connection.execute("UPDATE configuration_bundles SET bundle_json = ?", (json.dumps(payload),))
+        connection.execute("UPDATE configuration_screens SET reserved_regions_json = '[]'")
+        connection.execute("DELETE FROM schema_migrations WHERE version = 7")
+        connection.commit()
+
+    screen = SQLiteConfigurationRepository(database_path).get("manager").applications[0].screens[0]
+
+    assert screen.reserved_regions == ()

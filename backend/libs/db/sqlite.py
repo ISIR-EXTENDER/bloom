@@ -403,8 +403,10 @@ def _migrate_to_v7(connection: sqlite3.Connection) -> None:
             screens = application.get("screens", [])
             for screen in screens if isinstance(screens, list) else []:
                 regions = screen.get("reserved_regions") if isinstance(screen, dict) else None
-                if not regions:
+                if regions is None:
                     continue
+                # Reading iterates this column, so anything but a list would fail every later GET.
+                regions = regions if isinstance(regions, list) else []
                 connection.execute(
                     """
                     UPDATE configuration_screens
