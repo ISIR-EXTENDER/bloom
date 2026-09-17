@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;family=JetBrains+Mono:wght@400;700&amp;family=Cormorant+Garamond:wght@500&amp;display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f2eadc; }
+  a { color: #31493f; } a:hover { color: #9b3d2e; }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+  button { touch-action: none; }
+</style>
+</helmet>
+
+<section id="2a" style="padding: 56px 48px 40px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+
+  <div style="max-width: 1100px; margin-bottom: 36px">
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 18px">
+      <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">2a</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Turn 2 · keeping both layouts · role selection</span>
+    </div>
+    <h1 style="margin: 0 0 20px; font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1.04; letter-spacing: -0.01em; max-width: 24ch">Two Drives, one app. The profile decides which one opens.</h1>
+    <p style="margin: 0 0 12px; font-size: 18px; line-height: 1.6; max-width: 68ch; text-wrap: pretty"><a href="#1b">1b</a> becomes <strong>Drive · Bench</strong> and <a href="#1c">1c</a> becomes <strong>Drive · Operator</strong>. They are two screens in <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">explorer-manager.json</code>, not two apps and not a runtime toggle — and the selector already exists in your model.</p>
+    <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty"><code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">UserProfile.preferred_control_layout_id</code> is defined in <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">backend/libs/config/models.py:119</code>, typed in the API client, asserted in <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">test_config_models.py</code>, and already populated in <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">explorer-user-tests.json</code> as <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">"explorer-control-modes"</code>. No frontend file reads it. It is a no-op field waiting for exactly this.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">Pick a role below — the kiosk bar, the layout and the settings card all follow.</p>
+  </div>
+
+  <div style="max-width: 1180px; display: flex; flex-direction: column; gap: 14px; margin-bottom: 36px">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px">
+      <button type="button" onClick="{{ pickOperator }}" aria-pressed="{{ operatorPressed }}" style="text-align: left; padding: 24px; background: {{ operatorBg }}; border: 2px solid {{ operatorBorder }}; border-radius: 22px; font-family: inherit; color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+          <span style="font-size: 24px; font-weight: 700">Operator</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">drive-operator · 1c</span>
+        </div>
+        <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.18); padding: 7px; display: flex; flex-direction: column; gap: 5px">
+          <div style="flex: 0 0 9%; border-radius: 3px; background: #e7ede2"></div>
+          <div style="flex: 1; display: flex; gap: 5px; min-height: 0">
+            <div style="flex: 0 0 21%; display: flex; flex-direction: column; gap: 5px"><div style="flex: 1; border-radius: 4px; background: #f2eadc"></div><div style="flex: 1; border-radius: 4px; background: #f2eadc"></div><div style="flex: 1.2; border-radius: 4px; background: #f2eadc"></div></div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0"><div style="flex: 1; display: flex; gap: 5px"><div style="flex: 1; border-radius: 6px; background: #c8d5c4"></div><div style="flex: 1; border-radius: 6px; background: #c8d5c4"></div></div><div style="flex: 0 0 20%; display: flex; gap: 5px"><div style="flex: 1; border-radius: 4px; background: #e7ede2"></div><div style="flex: 1; border-radius: 4px; background: #e7ede2"></div></div></div>
+            <div style="flex: 0 0 16%; display: flex; flex-direction: column; gap: 5px"><div style="flex: 0 0 34%; border-radius: 4px; background: #f2eadc"></div><div style="flex: 1; border-radius: 4px; background: #9b3d2e"></div></div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">The person the arm is for. One reach arc, 64&nbsp;px targets, speeds as Slow/Medium/Fast, no topics anywhere on the glass. <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">display_preset: comfort</code>.</p>
+      </button>
+
+      <button type="button" onClick="{{ pickBench }}" aria-pressed="{{ benchPressed }}" style="text-align: left; padding: 24px; background: {{ benchBg }}; border: 2px solid {{ benchBorder }}; border-radius: 22px; font-family: inherit; color: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+          <span style="font-size: 24px; font-weight: 700">Bench</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">drive-bench · 1b</span>
+        </div>
+        <div style="width: 100%; aspect-ratio: 16 / 9; border-radius: 10px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.18); padding: 7px; display: flex; flex-direction: column; gap: 5px">
+          <div style="flex: 0 0 9%; border-radius: 3px; background: #e7ede2"></div>
+          <div style="flex: 0 0 16%; display: flex; gap: 5px"><div style="flex: 1; border-radius: 4px; background: #f2eadc"></div><div style="flex: 1; border-radius: 4px; background: #f2eadc"></div><div style="flex: 1; border-radius: 4px; background: #f2eadc"></div><div style="flex: 1.4; border-radius: 4px; background: #f2eadc"></div></div>
+          <div style="flex: 1; display: flex; gap: 5px; min-height: 0">
+            <div style="flex: 0 0 9%; border-radius: 4px; background: #f2eadc"></div>
+            <div style="flex: 1; border-radius: 6px; background: #c8d5c4"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0"><div style="flex: 1; border-radius: 6px; background: #c8d5c4"></div><div style="flex: 0 0 22%; border-radius: 4px; background: #e7ede2"></div></div>
+            <div style="flex: 0 0 18%; display: flex; flex-direction: column; gap: 5px"><div style="flex: 1; border-radius: 4px; background: #f2eadc"></div><div style="flex: 0 0 38%; border-radius: 4px; background: #9b3d2e"></div></div>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">The engineer verifying the command path. Four named regions, Height vertical and Pivot horizontal, continuous limits in the status rail, details available per widget. <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">display_preset: default</code>.</p>
+      </button>
+    </div>
+
+    <div style="padding: 18px; background: #2a2f2c; border-radius: 20px; overflow-x: auto">
+      <div style="min-width: 900px; border-radius: 8px; overflow: hidden">
+        <div style="height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+          <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+          <span style="font-size: 16px; color: #5c6b63">{{ roleScreenName }}</span>
+          <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c8d5c4"><span style="width: 11px; height: 11px; border-radius: 50%; background: #253d35"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">READY</span></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">30 Hz</span>
+          <span style="flex: 1"></span>
+          <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ roleChipBg }}; color: {{ roleChipFg }}"><span style="font-size: 15px; font-weight: 700">{{ roleChipLabel }}</span></span>
+          <span style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700">⋯</span>
+        </div>
+      </div>
+      <p style="margin: 14px 4px 0; font-size: 15px; line-height: 1.55; color: #c8d5c4; max-width: 80ch; text-wrap: pretty">The bar already has a profile slot — today it reads <em>Default</em>. It becomes the role, because the role is the single most consequential thing about the screen an operator is looking at, and a supervisor walking up needs to read it without touching anything.</p>
+    </div>
+  </div>
+
+  <div style="max-width: 1180px; display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 14px; margin-bottom: 36px">
+    <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Where the role is chosen</div>
+      <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.55"><strong>Runtime library</strong> — each app card offers its profiles by name, so launching <em>is</em> choosing. This also answers finding 9: remembered role entry. The last choice on this device is preselected, never auto-launched.</p>
+      <p style="margin: 0; font-size: 16px; line-height: 1.55"><strong>Maintenance &rarr; Settings</strong> — changing role mid-session needs the 1.5&nbsp;s hold, because it is not an operating control.</p>
+    </div>
+    <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">What the role may change</div>
+      <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.55">Layout, target size, how a limit is expressed, whether details are visible, scan/dwell timing, language.</p>
+      <p style="margin: 0; font-size: 16px; line-height: 1.55; font-weight: 700">And nothing else.</p>
+    </div>
+    <div style="padding: 22px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 18px">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 10px">What it must never change</div>
+      <p style="margin: 0; font-size: 16px; line-height: 1.55; color: #4f1f16">Topics, message types, command frame, dead zone semantics, publish rate, STOP behaviour, policy allowlists. Bench and Operator send byte-identical messages. If a role could change what reaches the manager, a bench test would stop being evidence about the operator's session.</p>
+    </div>
+  </div>
+
+  <div style="max-width: 1180px; display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch">
+    <div style="flex: 1 1 420px; padding: 24px; background: #31493f; color: #fffaf1; border-radius: 22px">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #c8d5c4; font-weight: 700; margin-bottom: 14px">Config — two profiles, two layouts, one app</div>
+      <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.55; white-space: pre-wrap; color: #fffaf1">"profiles": [
+  {
+    "id": "operator",
+    "name": "Operator",
+    "display_preset": "comfort",
+    "preferred_control_layout_id": "manager_drive_operator",
+    "motor_accessibility_preset": "default",
+    "deadzone": 0.0
+  },
+  {
+    "id": "bench",
+    "name": "Bench",
+    "display_preset": "default",
+    "preferred_control_layout_id": "manager_drive_bench",
+    "motor_accessibility_preset": "default",
+    "deadzone": 0.0
+  }
+]</pre>
+    </div>
+    <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px">
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">Runtime, ~30 lines</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Screen resolution reads <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">profile.preferred_control_layout_id</code> first and falls back to the app's first screen when it is empty or names a screen that does not exist. Empty stays the current behaviour, so every existing app is unaffected.</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">Builder, one check</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">The review checklist gains <em>profile coverage</em>: every profile's layout id must resolve, and every layout must pass §07 at that profile's density. That is the open "expose profile coverage" item, closed by the same change.</p>
+      </div>
+      <div style="padding: 22px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+        <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">Naming</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55"><em>Bench</em>, not <em>Developer</em> or <em>Advanced</em>: it says where you are standing rather than who is cleverer, and it does not invite an operator to go looking for the advanced one.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding: 56px 48px 96px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+
+  <div style="max-width: 1100px; margin-bottom: 40px">
+    <p style="margin: 0 0 14px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Turn 1 · Drive · Explorer Manager · 1280&times;720</p>
+    <h1 style="margin: 0 0 20px; font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1.04; letter-spacing: -0.01em; max-width: 24ch">Three Drives. Same widgets, three answers to where the hand goes.</h1>
+    <p style="margin: 0 0 12px; font-size: 18px; line-height: 1.6; max-width: 68ch; text-wrap: pretty">All three obey the minimum-size contract, so nothing is cut: the gripper is 250&times;144 with a verb label, Pivot is no longer the runt of the row, and <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">show_details</code> is off — a topic name is not something an operator can act on.</p>
+    <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">They differ on the three axes you picked: <strong>arrangement</strong>, <strong>how a speed limit is expressed</strong>, and <strong>how much the screen says</strong>. Drag the pads and sliders in any of them. Reference ids: <a href="#1a">1a</a>, <a href="#1b">1b</a>, <a href="#1c">1c</a>.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">One finding worth stating up front: at legal sizes, Drive's current top row <em>cannot</em> hold its six cards with details on. 250 + 300 + 300 + 3&times;170 and gutters is 1420 px in a 1252 px row. Turning details off is not a preference here, it is what makes the row fit.</p>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+    <div id="1a" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">1a</span>
+        <span style="font-size: 24px; font-weight: 700">Corrected Drive</span>
+        <span style="font-size: 16px; color: #536960">seed geometry only — no new code</span>
+        <span style="padding: 5px 12px; border-radius: 999px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); color: #4f1f16; font-size: 14px; font-weight: 700">Superseded by <a href="#1b" style="color: #4f1f16">1b</a></span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Today's arrangement, with every widget resized to its legal minimum and details turned off. Gripper 250&times;144. Pivot 130&times;492, matched to Height. Speeds stay continuous sliders on the top row, where they are today. STOP becomes filled chrome in a full-height rail. This is the smallest possible change that ends the clipping — a diff to two JSON files.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="1a Drive" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Drive</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ chipBgA }}; color: {{ chipFgA }}"><span style="width: 11px; height: 11px; border-radius: {{ chipDotA }}; background: {{ chipFgA }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ chipLabelA }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">30 Hz</span>
+            <span style="flex: 1"></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">Operator</span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+
+          <div style="position: absolute; left: 14px; top: 58px; width: 250px; height: 144px; padding: 16px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 700">Gripper</span><span style="font-size: 14px; color: #5c6b63">{{ gripStateA }}</span></div>
+            <button type="button" onClick="{{ gripClickA }}" style="flex: 1; min-height: 56px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">{{ gripLabelA }}</button>
+          </div>
+
+          <div style="position: absolute; left: 276px; top: 58px; width: 260px; height: 144px; padding: 16px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 700">Max speed</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">0.15 m/s</span></div>
+            <div style="flex: 1; display: flex; align-items: center"><div style="position: relative; width: 100%; height: 12px; border-radius: 999px; background: #e7ede2"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: 999px; background: #c8d5c4"></span><span style="position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; border-radius: 50%; background: #31493f; transform: translate(-50%, -50%)"></span></div></div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">0.00 → 0.30 · linear</div>
+          </div>
+
+          <div style="position: absolute; left: 548px; top: 58px; width: 260px; height: 144px; padding: 16px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 700">Max turn</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">0.40 rad/s</span></div>
+            <div style="flex: 1; display: flex; align-items: center"><div style="position: relative; width: 100%; height: 12px; border-radius: 999px; background: #e7ede2"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: 999px; background: #c8d5c4"></span><span style="position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; border-radius: 50%; background: #31493f; transform: translate(-50%, -50%)"></span></div></div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">0.00 → 0.80 · angular</div>
+          </div>
+
+          <div style="position: absolute; left: 820px; top: 58px; width: 140px; height: 144px; padding: 12px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 15px; font-weight: 700; color: #536960">Shaping</span>
+            <button type="button" onClick="{{ pickBothA }}" style="flex: 1; min-height: 56px; border: 2px solid {{ bothBorderA }}; border-radius: 14px; background: {{ bothBgA }}; color: {{ bothFgA }}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Both</button>
+          </div>
+          <div style="position: absolute; left: 972px; top: 58px; width: 140px; height: 144px; padding: 12px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 15px; font-weight: 700; color: #536960">Shaping</span>
+            <button type="button" onClick="{{ pickJacoA }}" style="flex: 1; min-height: 56px; border: 2px solid {{ jacoBorderA }}; border-radius: 14px; background: {{ jacoBgA }}; color: {{ jacoFgA }}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Jaco</button>
+          </div>
+          <div style="position: absolute; left: 1124px; top: 58px; width: 142px; height: 144px; padding: 12px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 15px; font-weight: 700; color: #536960">Momentary</span>
+            <button type="button" onPointerDown="{{ snakeDownA }}" onPointerUp="{{ snakeUpA }}" onPointerLeave="{{ snakeUpA }}" onPointerCancel="{{ snakeUpA }}" style="flex: 1; min-height: 56px; border: 2px solid {{ snakeBorderA }}; border-radius: 14px; background: {{ snakeBgA }}; color: {{ snakeFgA }}; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; line-height: 1.15">{{ snakeLabelA }}</button>
+          </div>
+
+          <div style="position: absolute; left: 14px; top: 214px; width: 130px; height: 492px; padding: 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 10px; opacity: {{ padOpacityA }}">
+            <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 19px; font-weight: 700">Height</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ zReadoutA }}</span></div>
+            <div onPointerDown="{{ zDownA }}" onPointerMove="{{ zMoveA }}" onPointerUp="{{ zUpA }}" onPointerCancel="{{ zUpA }}" onLostPointerCapture="{{ zUpA }}" style="flex: 1; position: relative; border: 2px solid rgba(49,73,63,0.18); border-radius: 16px; background: #f2eadc; touch-action: none; cursor: grab; user-select: none; pointer-events: {{ padPointerA }}">
+              <span style="position: absolute; top: 12px; left: 0; right: 0; text-align: center; font-size: 16px; font-weight: 700">▲ Up</span>
+              <span style="position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 16px; font-weight: 700">▼ Down</span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 56%; height: 2px; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; left: 10px; right: 10px; height: 64px; top: {{ zKnobTopA }}; border-radius: 14px; background: #7e967e; border: 3px solid #31493f"></span>
+            </div>
+          </div>
+
+          <div style="position: absolute; left: 156px; top: 214px; width: 380px; height: 492px; padding: 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 10px; opacity: {{ padOpacityA }}">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 700">Translation</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ tReadoutA }}</span></div>
+            <div style="flex: 1; min-height: 0; border: 2px solid rgba(49,73,63,0.18); border-radius: 22px; background: #f2eadc; display: flex; align-items: center; justify-content: center; pointer-events: {{ padPointerA }}">
+              <div onPointerDown="{{ tDownA }}" onPointerMove="{{ tMoveA }}" onPointerUp="{{ tUpA }}" onPointerCancel="{{ tUpA }}" onLostPointerCapture="{{ tUpA }}" style="position: relative; flex: 0 0 auto; width: 340px; height: 340px; touch-action: none; cursor: grab; user-select: none">
+                    <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Forward</span>
+                    <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Back</span>
+                    <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Left</span>
+                    <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Right&nbsp;▶</span>
+                    <span style="position: absolute; left: 50%; top: 50%; width: 172px; height: 172px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+                    <span style="position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+                    <span style="position: absolute; width: 88px; height: 88px; border-radius: 50%; background: #7e967e; border: 3px solid #31493f; left: {{ tKnobLeftA }}; top: {{ tKnobTopA }}; transform: translate(-50%, -50%)"></span>
+                    </div>
+            </div>
+          </div>
+
+          <div style="position: absolute; left: 548px; top: 214px; width: 380px; height: 492px; padding: 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 10px; opacity: {{ padOpacityA }}">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 700">Rotation</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ rReadoutA }}</span></div>
+            <div style="flex: 1; min-height: 0; border: 2px solid rgba(49,73,63,0.18); border-radius: 22px; background: #f2eadc; display: flex; align-items: center; justify-content: center; pointer-events: {{ padPointerA }}">
+              <div onPointerDown="{{ rDownA }}" onPointerMove="{{ rMoveA }}" onPointerUp="{{ rUpA }}" onPointerCancel="{{ rUpA }}" onLostPointerCapture="{{ rUpA }}" style="position: relative; flex: 0 0 auto; width: 340px; height: 340px; touch-action: none; cursor: grab; user-select: none">
+                    <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Tilt up</span>
+                    <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Tilt down</span>
+                    <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Roll left</span>
+                    <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Roll right&nbsp;▶</span>
+                    <span style="position: absolute; left: 50%; top: 50%; width: 172px; height: 172px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+                    <span style="position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+                    <span style="position: absolute; width: 88px; height: 88px; border-radius: 50%; background: #c98a7e; border: 3px solid #31493f; left: {{ rKnobLeftA }}; top: {{ rKnobTopA }}; transform: translate(-50%, -50%)"></span>
+                    </div>
+            </div>
+          </div>
+
+          <div style="position: absolute; left: 940px; top: 214px; width: 130px; height: 492px; padding: 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 10px; opacity: {{ padOpacityA }}">
+            <div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 19px; font-weight: 700">Pivot</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ rzReadoutA }}</span></div>
+            <div onPointerDown="{{ rzDownA }}" onPointerMove="{{ rzMoveA }}" onPointerUp="{{ rzUpA }}" onPointerCancel="{{ rzUpA }}" onLostPointerCapture="{{ rzUpA }}" style="flex: 1; position: relative; border: 2px solid rgba(49,73,63,0.18); border-radius: 16px; background: #f2eadc; touch-action: none; cursor: grab; user-select: none; pointer-events: {{ padPointerA }}">
+              <span style="position: absolute; top: 12px; left: 0; right: 0; text-align: center; font-size: 15px; font-weight: 700; line-height: 1.2">↶ Turn<br />left</span>
+              <span style="position: absolute; bottom: 12px; left: 0; right: 0; text-align: center; font-size: 15px; font-weight: 700; line-height: 1.2">Turn<br />right ↷</span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 56%; height: 2px; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; left: 10px; right: 10px; height: 64px; top: {{ rzKnobTopA }}; border-radius: 14px; background: #c98a7e; border: 3px solid #31493f"></span>
+            </div>
+          </div>
+
+          <button type="button" aria-label="{{ stopAriaA }}" onPointerDown="{{ stopDownA }}" onPointerUp="{{ stopUpA }}" onPointerLeave="{{ stopUpA }}" onPointerCancel="{{ stopUpA }}" style="position: absolute; left: 1082px; top: 214px; width: 184px; height: 492px; border: none; border-radius: 18px; background: {{ stopBgA }}; color: #fffaf1; font-family: inherit; font-size: 26px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+            <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelA }}</span>
+            <span style="position: absolute; left: 0; bottom: 0; height: 8px; width: 0%; background: #c8d5c4" ref="{{ fillRefA }}"></span>
+          </button>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Cost</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Two seed files. No renderer change, no builder change. Could merge this week.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Keeps</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Muscle memory for anyone who has used the current build. Nothing moves house.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Leaves unsolved</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">A speed slider still sits one sleeve away from the pads, and the top row is full to the millimetre — the next widget has nowhere to go.</p></div>
+      </div>
+    </div>
+
+    <div id="1b" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">1b</span>
+        <span style="font-size: 24px; font-weight: 700">Drive · Bench</span>
+        <span style="font-size: 16px; color: #536960">Drive · Bench</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The engineer verifying the command path. Four regions: the context strip names what the screen is <em>set to</em>, the stage holds what the operator holds, the rail carries the speed limits and STOP out of the sweep of a sleeve.</p>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Controls are grouped by axis type, not by shape — Height vertical beside the Translation pad, Pivot horizontal under Rotation. Height and Pivot are one 110 px-thick slider rotated; the pads are matched 380 px squares. Every card hugs its content, so the spare room falls outside the borders.</p>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Every widget here is a single seed widget at the geometry printed in <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">docs/design/screens/drive.md</code> — the mock is generated from the same table that writes the JSON.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="1b Drive" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Drive · Bench</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ chipBgB }}; color: {{ chipFgB }}"><span style="width: 11px; height: 11px; border-radius: {{ chipDotB }}; background: {{ chipFgB }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ chipLabelB }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ pubLabelB }}</span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c7bddc; color: #253d35"><span style="font-size: 15px; font-weight: 700">Bench</span></span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+          <div style="position: absolute; left: 14px; top: 14px; width: 560px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Shaping mode — requested, the manager never confirms</span></div>
+          <button type="button" onClick="{{ pickBothB }}" style="position: absolute; left: 14px; top: 46px; width: 176px; height: 88px; border: 2px solid {{ bothBorderB }}; border-radius: 14px; background: {{ bothBgB }}; color: {{ bothFgB }}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Both</button>
+          <button type="button" onClick="{{ pickJacoB }}" style="position: absolute; left: 202px; top: 46px; width: 176px; height: 88px; border: 2px solid {{ jacoBorderB }}; border-radius: 14px; background: {{ jacoBgB }}; color: {{ jacoFgB }}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Jaco</button>
+          <button type="button" onPointerDown="{{ snakeDownB }}" onPointerUp="{{ snakeUpB }}" onPointerLeave="{{ snakeUpB }}" onPointerCancel="{{ snakeUpB }}" style="position: absolute; left: 390px; top: 46px; width: 176px; height: 88px; border: 2px solid {{ snakeBorderB }}; border-radius: 14px; background: {{ snakeBgB }}; color: {{ snakeFgB }}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">{{ snakeLabelB }}</button>
+          <div style="position: absolute; left: 590px; top: 14px; width: 300px; height: 120px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; height: 22px"><span style="font-size: 18px; font-weight: 700">Gripper</span><span style="font-size: 14px; color: #5c6b63">{{ gripStateB }}</span></div>
+            <button type="button" onClick="{{ gripClickB }}" style="flex: 1; min-height: 56px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">{{ gripLabelB }}</button>
+          </div>
+
+          <div onPointerDown="{{ zDownB }}" onPointerMove="{{ zMoveB }}" onPointerUp="{{ zUpB }}" onPointerCancel="{{ zUpB }}" onLostPointerCapture="{{ zUpB }}" style="position: absolute; left: 14px; top: 146px; width: 110px; height: 384px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px; touch-action: none; cursor: grab; user-select: none; opacity: {{ padOpacityB }}; pointer-events: {{ padPointerB }}">
+            <span style="position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-size: 16px; font-weight: 700">Height</span>
+            <span style="position: absolute; left: 0; right: 0; top: 34px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ zReadoutB }}</span>
+            <span style="position: absolute; top: 72px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700">▲&nbsp;Up</span>
+            <span style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700">▼&nbsp;Down</span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 58%; height: 2px; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; left: 10px; right: 10px; height: 64px; top: {{ zKnobTopB }}; border-radius: 14px; background: #7e967e; border: 3px solid #31493f"></span>
+          </div>
+
+          <div style="position: absolute; left: 136px; top: 146px; width: 384px; height: 384px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px; display: flex; align-items: center; justify-content: center; opacity: {{ padOpacityB }}; pointer-events: {{ padPointerB }}">
+            <span style="position: absolute; left: 14px; top: 10px; font-size: 18px; font-weight: 700">Translation</span>
+            <span style="position: absolute; right: 14px; top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ tReadoutB }}</span>
+            <div onPointerDown="{{ tDownB }}" onPointerMove="{{ tMoveB }}" onPointerUp="{{ tUpB }}" onPointerCancel="{{ tUpB }}" onLostPointerCapture="{{ tUpB }}" style="position: relative; flex: 0 0 auto; width: 380px; height: 380px; touch-action: none; cursor: grab; user-select: none">
+              <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Forward</span>
+              <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Back</span>
+              <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Left</span>
+              <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Right&nbsp;▶</span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 212px; height: 212px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; width: 99px; height: 99px; border-radius: 50%; background: #7e967e; border: 3px solid #31493f; left: {{ tKnobLeftB }}; top: {{ tKnobTopB }}; transform: translate(-50%, -50%)"></span>
+            </div>
+          </div>
+
+          <div style="position: absolute; left: 532px; top: 146px; width: 384px; height: 384px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px; display: flex; align-items: center; justify-content: center; opacity: {{ padOpacityB }}; pointer-events: {{ padPointerB }}">
+            <span style="position: absolute; left: 14px; top: 10px; font-size: 18px; font-weight: 700">Rotation</span>
+            <span style="position: absolute; right: 14px; top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ rReadoutB }}</span>
+            <div onPointerDown="{{ rDownB }}" onPointerMove="{{ rMoveB }}" onPointerUp="{{ rUpB }}" onPointerCancel="{{ rUpB }}" onLostPointerCapture="{{ rUpB }}" style="position: relative; flex: 0 0 auto; width: 380px; height: 380px; touch-action: none; cursor: grab; user-select: none">
+              <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Tilt up</span>
+              <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Tilt down</span>
+              <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Roll left</span>
+              <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Roll right&nbsp;▶</span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 212px; height: 212px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; width: 99px; height: 99px; border-radius: 50%; background: #c98a7e; border: 3px solid #31493f; left: {{ rKnobLeftB }}; top: {{ rKnobTopB }}; transform: translate(-50%, -50%)"></span>
+            </div>
+          </div>
+
+          <div onPointerDown="{{ rzDownB }}" onPointerMove="{{ rzMoveB }}" onPointerUp="{{ rzUpB }}" onPointerCancel="{{ rzUpB }}" onLostPointerCapture="{{ rzUpB }}" style="position: absolute; left: 532px; top: 548px; width: 384px; height: 114px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px; touch-action: none; cursor: grab; user-select: none; opacity: {{ padOpacityB }}; pointer-events: {{ padPointerB }}">
+            <span style="position: absolute; left: 14px; top: 8px; font-size: 16px; font-weight: 700">Pivot</span>
+            <span style="position: absolute; right: 14px; top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ rzReadoutB }}</span>
+            <span style="position: absolute; left: 16px; top: 62%; transform: translateY(-50%); font-size: 17px; font-weight: 700">↶&nbsp;Turn left</span>
+            <span style="position: absolute; right: 16px; top: 62%; transform: translateY(-50%); font-size: 17px; font-weight: 700">Turn right&nbsp;↷</span>
+            <span style="position: absolute; left: 50%; top: 62%; width: 2px; height: 34%; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; top: 34px; bottom: 8px; width: 72px; left: {{ rzKnobLeftB }}; border-radius: 12px; background: #c98a7e; border: 3px solid #31493f"></span>
+          </div>
+
+          <div style="position: absolute; left: 928px; top: 14px; width: 338px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Speed limits — continuous</span></div>
+          <div style="position: absolute; left: 928px; top: 146px; width: 338px; height: 120px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; font-weight: 700">Max linear speed</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">0.15 m/s</span></div>
+            <div style="flex: 1; display: flex; align-items: center"><div style="position: relative; width: 100%; height: 12px; border-radius: 999px; background: #e7ede2"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: 999px; background: #c8d5c4"></span><span style="position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; border-radius: 50%; background: #31493f; transform: translate(-50%, -50%)"></span></div></div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">0.00 → 0.30 · linear</div>
+          </div>
+          <div style="position: absolute; left: 928px; top: 278px; width: 338px; height: 120px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; font-weight: 700">Max angular speed</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">0.40 rad/s</span></div>
+            <div style="flex: 1; display: flex; align-items: center"><div style="position: relative; width: 100%; height: 12px; border-radius: 999px; background: #e7ede2"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: 999px; background: #c8d5c4"></span><span style="position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; border-radius: 50%; background: #31493f; transform: translate(-50%, -50%)"></span></div></div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">0.00 → 0.80 · angular</div>
+          </div>
+          <button type="button" aria-label="{{ stopAriaB }}" onPointerDown="{{ stopDownB }}" onPointerUp="{{ stopUpB }}" onPointerLeave="{{ stopUpB }}" onPointerCancel="{{ stopUpB }}" style="position: absolute; left: 928px; top: 410px; width: 338px; height: 252px; border: none; border-radius: 18px; background: {{ stopBgB }}; color: #fffaf1; font-family: inherit; font-size: 30px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+            <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelB }}</span>
+            <span ref="{{ fillRefB }}" style="position: absolute; left: 0; bottom: 0; height: 8px; width: 0%; background: #c8d5c4"></span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Cost</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Two seed files plus the group-label rows. No new widget kind.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Wins</div><p style="margin: 0; font-size: 15px; line-height: 1.55">STOP and the rail land in the same place on every screen, and the pads are 380 px — a third larger than the build ships today.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Note</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Speed limits stay continuous here: reproducing a bug needs 0.137, not “medium”.</p></div>
+      </div>
+    </div>
+
+    <div id="1c" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">1c</span>
+        <span style="font-size: 24px; font-weight: 700">Drive · Operator</span>
+        <span style="font-size: 16px; color: #536960">Drive · Operator</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The person the arm is for. One reach arc on the right; the left column is read, not touched. Speed limits are three 64 px targets instead of a continuous slider, because a slider demands the exact fine motor control this product exists to stop demanding.</p>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Grouped by axis type: <strong>move the hand</strong> is Height vertical plus the Translation pad, <strong>aim the hand</strong> is the Rotation pad plus Pivot horizontal. Every control moves the way its axis moves — no mental rotation anywhere on the screen.</p>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Pads are 310 px squares, Height and Pivot the same 110 px-thick slider rotated. Mirrorable for a left-handed operator on one profile flag; the reserved STOP region mirrors with it.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="1c Drive" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Drive · Operator</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ chipBgC }}; color: {{ chipFgC }}"><span style="width: 11px; height: 11px; border-radius: {{ chipDotC }}; background: {{ chipFgC }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ chipLabelC }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ pubLabelC }}</span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #31493f; color: #fffaf1"><span style="font-size: 15px; font-weight: 700">Operator</span></span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+          <div style="position: absolute; left: 14px; top: 14px; width: 264px; height: 150px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; height: 24px"><span style="font-size: 18px; font-weight: 700">Max speed</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ linValue }} m/s</span></div>
+          <div style="flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><button type="button" onClick="{{ setLinSlow }}" style="min-height: 64px; border: 2px solid {{ linSlowBorder }}; border-radius: 14px; background: {{ linSlowBg }}; color: {{ linSlowFg }}; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; min-width: 0">Slow</button><button type="button" onClick="{{ setLinMed }}" style="min-height: 64px; border: 2px solid {{ linMedBorder }}; border-radius: 14px; background: {{ linMedBg }}; color: {{ linMedFg }}; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; min-width: 0">Medium</button><button type="button" onClick="{{ setLinFast }}" style="min-height: 64px; border: 2px solid {{ linFastBorder }}; border-radius: 14px; background: {{ linFastBg }}; color: {{ linFastFg }}; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; min-width: 0">Fast</button></div>
+        </div>
+          <div style="position: absolute; left: 14px; top: 176px; width: 264px; height: 150px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; height: 24px"><span style="font-size: 18px; font-weight: 700">Max turn</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ angValue }} rad/s</span></div>
+          <div style="flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px"><button type="button" onClick="{{ setAngSlow }}" style="min-height: 64px; border: 2px solid {{ angSlowBorder }}; border-radius: 14px; background: {{ angSlowBg }}; color: {{ angSlowFg }}; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; min-width: 0">Slow</button><button type="button" onClick="{{ setAngMed }}" style="min-height: 64px; border: 2px solid {{ angMedBorder }}; border-radius: 14px; background: {{ angMedBg }}; color: {{ angMedFg }}; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; min-width: 0">Medium</button><button type="button" onClick="{{ setAngFast }}" style="min-height: 64px; border: 2px solid {{ angFastBorder }}; border-radius: 14px; background: {{ angFastBg }}; color: {{ angFastFg }}; font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer; min-width: 0">Fast</button></div>
+        </div>
+          <div style="position: absolute; left: 14px; top: 338px; width: 264px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">SHAPING MODE</span></div>
+          <button type="button" onClick="{{ pickBothC }}" style="position: absolute; left: 14px; top: 370px; width: 264px; height: 88px; border: 2px solid {{ bothBorderC }}; background: {{ bothBgC }}; color: {{ bothFgC }}; border-radius: 14px; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Both</button>
+          <button type="button" onClick="{{ pickJacoC }}" style="position: absolute; left: 14px; top: 470px; width: 264px; height: 88px; border: 2px solid {{ jacoBorderC }}; background: {{ jacoBgC }}; color: {{ jacoFgC }}; border-radius: 14px; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Jaco</button>
+          <button type="button" onPointerDown="{{ snakeDownC }}" onPointerUp="{{ snakeUpC }}" onPointerLeave="{{ snakeUpC }}" onPointerCancel="{{ snakeUpC }}" style="position: absolute; left: 14px; top: 570px; width: 264px; height: 88px; border: 2px solid {{ snakeBorderC }}; background: {{ snakeBgC }}; color: {{ snakeFgC }}; border-radius: 14px; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">{{ snakeLabelC }}</button>
+          <div style="position: absolute; left: 290px; top: 14px; width: 436px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">MOVE THE HAND — three linear axes</span></div>
+          <div style="position: absolute; left: 738px; top: 14px; width: 314px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">AIM THE HAND — three angular axes</span></div>
+          <div style="position: absolute; left: 290px; top: 46px; width: 110px; height: 346px; display: flex; flex-direction: column; gap: 8px; opacity: {{ padOpacityC }}">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; height: 24px"><span style="font-size: 18px; font-weight: 700">Height</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ zReadoutC }}</span></div>
+          <div onPointerDown="{{ zDownC }}" onPointerMove="{{ zMoveC }}" onPointerUp="{{ zUpC }}" onPointerCancel="{{ zUpC }}" onLostPointerCapture="{{ zUpC }}" style="flex: 0 0 314px; position: relative; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px; touch-action: none; cursor: grab; user-select: none; pointer-events: {{ padPointerC }}">
+            <span style="position: absolute; top: 14px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700">▲&nbsp;Up</span>
+            <span style="position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700">▼&nbsp;Down</span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 58%; height: 2px; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; left: 10px; right: 10px; height: 64px; top: {{ zKnobTopC }}; border-radius: 14px; background: #7e967e; border: 3px solid #31493f"></span>
+          </div>
+        </div>
+          <div style="position: absolute; left: 412px; top: 46px; width: 314px; height: 346px; display: flex; flex-direction: column; gap: 8px; opacity: {{ padOpacityC }}">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; height: 24px"><span style="font-size: 18px; font-weight: 700">Translation</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ tReadoutC }}</span></div>
+          <div style="flex: 0 0 314px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px; display: flex; align-items: center; justify-content: center; pointer-events: {{ padPointerC }}">
+            <div onPointerDown="{{ tDownC }}" onPointerMove="{{ tMoveC }}" onPointerUp="{{ tUpC }}" onPointerCancel="{{ tUpC }}" onLostPointerCapture="{{ tUpC }}" style="position: relative; flex: 0 0 auto; width: 310px; height: 310px; touch-action: none; cursor: grab; user-select: none">
+            <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Forward</span>
+            <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Back</span>
+            <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Left</span>
+            <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Right&nbsp;▶</span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 142px; height: 142px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; width: 81px; height: 81px; border-radius: 50%; background: #7e967e; border: 3px solid #31493f; left: {{ tKnobLeftC }}; top: {{ tKnobTopC }}; transform: translate(-50%, -50%)"></span>
+          </div>
+          </div>
+        </div>
+          <div style="position: absolute; left: 738px; top: 46px; width: 314px; height: 346px; display: flex; flex-direction: column; gap: 8px; opacity: {{ padOpacityC }}">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; height: 24px"><span style="font-size: 18px; font-weight: 700">Rotation</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ rReadoutC }}</span></div>
+          <div style="flex: 0 0 314px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px; display: flex; align-items: center; justify-content: center; pointer-events: {{ padPointerC }}">
+            <div onPointerDown="{{ rDownC }}" onPointerMove="{{ rMoveC }}" onPointerUp="{{ rUpC }}" onPointerCancel="{{ rUpC }}" onLostPointerCapture="{{ rUpC }}" style="position: relative; flex: 0 0 auto; width: 310px; height: 310px; touch-action: none; cursor: grab; user-select: none">
+            <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Tilt up</span>
+            <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Tilt down</span>
+            <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Roll left</span>
+            <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Roll right&nbsp;▶</span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 142px; height: 142px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 28px; height: 28px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; width: 81px; height: 81px; border-radius: 50%; background: #c98a7e; border: 3px solid #31493f; left: {{ rKnobLeftC }}; top: {{ rKnobTopC }}; transform: translate(-50%, -50%)"></span>
+          </div>
+          </div>
+        </div>
+          <div style="position: absolute; left: 738px; top: 404px; width: 314px; height: 146px; display: flex; flex-direction: column; gap: 8px; opacity: {{ padOpacityC }}">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; height: 24px"><span style="font-size: 18px; font-weight: 700">Pivot</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ rzReadoutC }}</span></div>
+          <div onPointerDown="{{ rzDownC }}" onPointerMove="{{ rzMoveC }}" onPointerUp="{{ rzUpC }}" onPointerCancel="{{ rzUpC }}" onLostPointerCapture="{{ rzUpC }}" style="flex: 0 0 114px; position: relative; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px; touch-action: none; cursor: grab; user-select: none; pointer-events: {{ padPointerC }}">
+            <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 17px; font-weight: 700">↶&nbsp;Turn left</span>
+            <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 17px; font-weight: 700">Turn right&nbsp;↷</span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 2px; height: 58%; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; top: 8px; bottom: 8px; width: 72px; left: {{ rzKnobLeftC }}; border-radius: 12px; background: #c98a7e; border: 3px solid #31493f"></span>
+          </div>
+        </div>
+          <div style="position: absolute; left: 1064px; top: 14px; width: 202px; height: 168px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; height: 24px"><span style="font-size: 18px; font-weight: 700">Gripper</span></div>
+          <span style="font-size: 14px; color: #5c6b63; margin-top: -4px">{{ gripStateC }}</span>
+          <button type="button" onClick="{{ gripClickC }}" style="flex: 1; min-height: 64px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer; line-height: 1.2">{{ gripLabelC }}</button>
+        </div>
+          <button type="button" aria-label="{{ stopAriaC }}" onPointerDown="{{ stopDownC }}" onPointerUp="{{ stopUpC }}" onPointerLeave="{{ stopUpC }}" onPointerCancel="{{ stopUpC }}" style="position: absolute; left: 1064px; top: 194px; width: 202px; height: 468px; border: none; border-radius: 18px; background: {{ stopBgC }}; color: #fffaf1; font-family: inherit; font-size: 26px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+          <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelC }}</span>
+          <span ref="{{ fillRefC }}" style="position: absolute; left: 0; bottom: 0; height: 8px; width: 0%; background: #c8d5c4"></span>
+        </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Cost</div><p style="margin: 0; font-size: 15px; line-height: 1.55">One renderer change: <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">variant: "segments"</code> on slider. Everything else is seed data.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Wins</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Every target is 56–64 px and within one reach; no topic strings, no axis codes, nothing to read that cannot be acted on.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Watch</div><p style="margin: 0; font-size: 15px; line-height: 1.55">0.08 / 0.15 / 0.30 is a product decision, not a layout one — it needs Mégane and an operator to confirm the three.</p></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  state = {
+    v: { tA: { x: 0, y: 0 }, rA: { x: 0, y: 0 }, tB: { x: 0, y: 0 }, rB: { x: 0, y: 0 }, tC: { x: 0, y: 0 }, rC: { x: 0, y: 0 } },
+    s: { zA: 0, rzA: 0, zB: 0, rzB: 0, zC: 0, rzC: 0 },
+    drag: {},
+    mode: { A: "both", B: "both", C: "both" },
+    snake: { A: false, B: false, C: false },
+    grip: { A: false, B: false, C: false },
+    stopped: { A: false, B: false, C: false },
+    lin: "Med", ang: "Med",
+    role: "operator"
+  };
+  timers = {};
+  fillRefs = { A: React.createRef(), B: React.createRef(), C: React.createRef() };
+  componentDidMount() { document.title = "Bloom \u2014 Drive layouts & role selection"; }
+  componentWillUnmount() { for (const k of Object.keys(this.timers)) clearInterval(this.timers[k]); }
+  setFill(opt, p) { const n = this.fillRefs[opt].current; if (n) n.style.width = `${Math.round(p * 100)}%`; }
+
+  dz(v) { const d = 0.2, a = Math.abs(v); return a <= d ? 0 : Math.sign(v) * (a - d) / (1 - d); }
+  padVector(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const rad = Math.min(rect.width, rect.height) / 2;
+    let x = this.dz((e.clientX - (rect.left + rect.width / 2)) / rad);
+    let y = this.dz(-(e.clientY - (rect.top + rect.height / 2)) / rad);
+    const m = Math.hypot(x, y);
+    if (m > 1) { x /= m; y /= m; }
+    return { x: +x.toFixed(2), y: +y.toFixed(2) };
+  }
+  sliderValue(e, vertical) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const raw = vertical ? -(((e.clientY - rect.top) / rect.height) * 2 - 1) : ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    return +this.dz(Math.max(-1, Math.min(1, raw))).toFixed(2);
+  }
+  setDrag(key, on) { this.setState((st) => ({ drag: { ...st.drag, [key]: on } })); }
+  pad(key, opt) {
+    return {
+      down: (e) => { if (this.state.stopped[opt]) return; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} this.setDrag(key, true); this.setState((st) => ({ v: { ...st.v, [key]: this.padVector(e) } })); },
+      move: (e) => { if (!this.state.drag[key]) return; const nv = this.padVector(e); this.setState((st) => ({ v: { ...st.v, [key]: nv } })); },
+      up: () => { if (!this.state.drag[key]) return; this.setDrag(key, false); this.setState((st) => ({ v: { ...st.v, [key]: { x: 0, y: 0 } } })); }
+    };
+  }
+  sld(key, vertical, opt) {
+    return {
+      down: (e) => { if (this.state.stopped[opt]) return; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} this.setDrag(key, true); this.setState((st) => ({ s: { ...st.s, [key]: this.sliderValue(e, vertical) } })); },
+      move: (e) => { if (!this.state.drag[key]) return; const nv = this.sliderValue(e, vertical); this.setState((st) => ({ s: { ...st.s, [key]: nv } })); },
+      up: () => { if (!this.state.drag[key]) return; this.setDrag(key, false); this.setState((st) => ({ s: { ...st.s, [key]: 0 } })); }
+    };
+  }
+  startHold(opt, ms, onDone) {
+    this.cancelHold(opt);
+    const t0 = Date.now();
+    this.timers[opt] = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / ms);
+      this.setFill(opt, p);
+      if (p >= 1) { this.cancelHold(opt); onDone(); }
+    }, 40);
+  }
+  cancelHold(opt) {
+    if (this.timers[opt]) { clearInterval(this.timers[opt]); delete this.timers[opt]; }
+    this.setFill(opt, 0);
+  }
+  zeroAll(opt) {
+    this.setState((st) => ({
+      v: { ...st.v, ["t" + opt]: { x: 0, y: 0 }, ["r" + opt]: { x: 0, y: 0 } },
+      s: { ...st.s, ["z" + opt]: 0, ["rz" + opt]: 0 },
+      drag: {}
+    }));
+  }
+  setIn(bag, key, value) { this.setState((st) => ({ [bag]: { ...st[bag], [key]: value } })); }
+
+  option(opt) {
+    const st = this.state;
+    const fmt = (v) => (v >= 0 ? "+" : "\u2212") + Math.abs(v).toFixed(2);
+    const t = st.v["t" + opt], r = st.v["r" + opt], z = st.s["z" + opt], rz = st.s["rz" + opt];
+    const stopped = st.stopped[opt];
+    const driving = t.x !== 0 || t.y !== 0 || r.x !== 0 || r.y !== 0 || z !== 0 || rz !== 0;
+    const sel = { bg: "#31493f", fg: "#fffaf1", border: "#31493f" };
+    const idle = { bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)" };
+    const held = { bg: "#ffd89b", fg: "#253d35", border: "#31493f" };
+    const both = st.mode[opt] === "both" ? sel : idle;
+    const jaco = st.mode[opt] === "jaco" ? sel : idle;
+    const snake = st.snake[opt] ? held : idle;
+    const tp = this.pad("t" + opt, opt), rp = this.pad("r" + opt, opt);
+    const zp = this.sld("z" + opt, true, opt), rzp = this.sld("rz" + opt, opt === "A", opt);
+    return {
+      chipBg: stopped ? "#9b3d2e" : "#c8d5c4", chipFg: stopped ? "#fffaf1" : "#253d35",
+      chipDot: stopped ? "2px" : "50%", chipLabel: stopped ? "STOPPED" : "READY",
+      padOpacity: stopped ? 0.45 : 1, padPointer: stopped ? "none" : "auto",
+      bothBg: both.bg, bothFg: both.fg, bothBorder: both.border,
+      jacoBg: jaco.bg, jacoFg: jaco.fg, jacoBorder: jaco.border,
+      snakeBg: snake.bg, snakeFg: snake.fg, snakeBorder: snake.border,
+      snakeLabel: st.snake[opt] ? "SNAKE ON" : "Hold snake",
+      pickBoth: () => this.setIn("mode", opt, "both"),
+      pickJaco: () => this.setIn("mode", opt, "jaco"),
+      snakeDown: () => this.setIn("snake", opt, true),
+      snakeUp: () => this.setIn("snake", opt, false),
+      gripState: "commanded: " + (st.grip[opt] ? "closed" : "open"),
+      gripLabel: st.grip[opt] ? "Open gripper" : "Close gripper",
+      gripClick: () => this.setIn("grip", opt, !st.grip[opt]),
+      tDown: tp.down, tMove: tp.move, tUp: tp.up,
+      rDown: rp.down, rMove: rp.move, rUp: rp.up,
+      zDown: zp.down, zMove: zp.move, zUp: zp.up,
+      rzDown: rzp.down, rzMove: rzp.move, rzUp: rzp.up,
+      tKnobLeft: `${50 + t.x * 37}%`, tKnobTop: `${50 - t.y * 37}%`,
+      rKnobLeft: `${50 + r.x * 37}%`, rKnobTop: `${50 - r.y * 37}%`,
+      zKnobTop: `calc(${50 - z * 40}% - 32px)`,
+      rzKnobTop: `calc(${50 - rz * 40}% - 32px)`,
+      rzKnobLeft: `calc(${50 + rz * 42}% - 36px)`,
+      tReadout: `x ${fmt(t.x)}  y ${fmt(t.y)}`, rReadout: `rx ${fmt(r.x)}  ry ${fmt(r.y)}`,
+      zReadout: fmt(z), rzReadout: fmt(rz),
+      pubDot: stopped ? "#9b3d2e" : driving ? "#31493f" : "#7e967e",
+      pubLabel: stopped ? "zeros held" : driving ? "publishing \u00b7 30 Hz" : "30 Hz",
+      stopLabel: stopped ? "HOLD TO RESUME" : "STOP",
+      stopAria: stopped ? "Hold for one second to resume" : "Stop the robot",
+      stopBg: stopped ? "#253d35" : "#9b3d2e",
+      stopDown: () => {
+        if (!stopped) { this.zeroAll(opt); this.setIn("snake", opt, false); this.setIn("stopped", opt, true); return; }
+        this.startHold(opt, 1000, () => this.setIn("stopped", opt, false));
+      },
+      stopUp: () => this.cancelHold(opt),
+      fillRef: this.fillRefs[opt]
+    };
+  }
+
+  renderVals() {
+    const out = {};
+    for (const opt of ["A", "B", "C"]) {
+      const o = this.option(opt);
+      for (const k of Object.keys(o)) out[k + opt] = o[k];
+    }
+    const sel = { bg: "#31493f", fg: "#fffaf1", border: "#31493f" };
+    const idle = { bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)" };
+    const linMap = { Slow: "0.08", Med: "0.15", Fast: "0.30" };
+    const angMap = { Slow: "0.20", Med: "0.40", Fast: "0.80" };
+    for (const [bag, prefix, map, setter] of [["lin", "lin", linMap, "setLin"], ["ang", "ang", angMap, "setAng"]]) {
+      for (const name of ["Slow", "Med", "Fast"]) {
+        const s = this.state[bag] === name ? sel : idle;
+        out[prefix + name + "Bg"] = s.bg;
+        out[prefix + name + "Fg"] = s.fg;
+        out[prefix + name + "Border"] = s.border;
+        out[setter + name] = () => this.setState({ [bag]: name });
+      }
+      out[prefix + "Value"] = map[this.state[bag]];
+    }
+    const isOperator = this.state.role === "operator";
+    out.pickOperator = () => this.setState({ role: "operator" });
+    out.pickBench = () => this.setState({ role: "bench" });
+    out.operatorPressed = isOperator;
+    out.benchPressed = !isOperator;
+    out.operatorBg = isOperator ? "#e7ede2" : "#fffaf1";
+    out.benchBg = isOperator ? "#fffaf1" : "#e7ede2";
+    out.operatorBorder = isOperator ? "#31493f" : "rgba(49,73,63,0.14)";
+    out.benchBorder = isOperator ? "rgba(49,73,63,0.14)" : "#31493f";
+    out.roleScreenName = isOperator ? "Drive \u00b7 Operator" : "Drive \u00b7 Bench";
+    out.roleChipLabel = isOperator ? "Operator" : "Bench";
+    out.roleChipBg = isOperator ? "#31493f" : "#c7bddc";
+    out.roleChipFg = isOperator ? "#fffaf1" : "#253d35";
+    return out;
+  }
+}
+</script>
+</body>
+</html>

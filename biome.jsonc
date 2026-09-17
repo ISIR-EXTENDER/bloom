@@ -10,8 +10,14 @@
     // Shared application bundles are written by the backend CLI
     // (`bloom config publish`) using Python's JSON writer. Letting Biome
     // reformat them would mean every publish produced a diff against the file
-    // it just wrote.
-    "includes": ["**", "!backend/seed/applications"]
+    // it just wrote. The design seeds, prototypes and design-system page are kept as delivered.
+    "includes": [
+      "**",
+      "!backend/seed/applications",
+      "!docs/design/prototypes",
+      "!docs/design/design-system.html",
+      "!docs/design/seed"
+    ]
   },
   "formatter": {
     "enabled": true,

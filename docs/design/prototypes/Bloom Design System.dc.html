@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;family=JetBrains+Mono:wght@400;700&amp;family=Cormorant+Garamond:wght@500;600&amp;display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f2eadc; }
+  a { color: #31493f; } a:hover { color: #9b3d2e; }
+  * { box-sizing: border-box; }
+</style>
+</helmet>
+
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#31493f"/><rect x="36" y="36" width="48" height="48" rx="10" fill="none" stroke="#c8d5c4" stroke-width="4"/><circle cx="60" cy="60" r="9" fill="#7e967e"/></svg></template>
+
+<div style="min-height: 100vh; background: #f2eadc; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+
+  <div style="max-width: 1160px; margin: 0 auto; padding: 64px 32px 8px">
+    <p style="margin: 0 0 14px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Bloom · implementation reference · docs/design/</p>
+    <h1 style="margin: 0 0 22px; font-family: 'Cormorant Garamond', serif; font-size: 58px; font-weight: 500; line-height: 1.02; letter-spacing: -0.01em; max-width: 20ch">The rules a screen must hold before it reaches an operator.</h1>
+    <p style="margin: 0 0 14px; font-size: 18px; line-height: 1.6; max-width: 66ch; text-wrap: pretty">Bloom already has tokens, presets, contrast tests and a written design system. What it does not have is a <strong>geometry contract</strong>: nothing in the builder, the seed files or the renderers knows how much room a widget's own content needs. So a gripper gets authored at 130&times;130, renders a title, a 56&nbsp;px button and a 28-character topic string, and is cut — and no test fails.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 66ch; color: #536960; text-wrap: pretty">This page is that contract. Every number below is derived from a file in the repo, not chosen: tokens from <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">libs/ui/src/theme.ts</code>, content heights from the renderers in <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">libs/widget-renderers/src</code>, geometry from <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">backend/seed/applications</code>.</p>
+  </div>
+
+  <div style="max-width: 1160px; margin: 0 auto; padding: 36px 32px 0; display: flex; flex-wrap: wrap; gap: 10px">
+    <a href="#diagnosis" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">01 Diagnosis</a>
+    <a href="#color" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">02 Colour</a>
+    <a href="#series" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">02b Series ramp</a>
+    <a href="#type" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">03 Type</a>
+    <a href="#density" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">04 Density</a>
+    <a href="#regions" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">05 Artboard</a>
+    <a href="#anatomy" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">06 Card anatomy</a>
+    <a href="#pad" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #31493f; color: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">06b Pad recipe</a>
+    <a href="#minsize" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #31493f; color: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">07 Minimum sizes</a>
+    <a href="#defaults" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">08 Defaults</a>
+    <a href="#states" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">09 States</a>
+    <a href="#chrome" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">10 Chrome</a>
+    <a href="#locale" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">11 Locale</a>
+    <a href="#builder" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">12 Builder</a>
+    <a href="#landing" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">13 Landing</a>
+    <a href="#invariants" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">14 Invariants</a>
+    <a href="#trace" style="padding: 9px 16px; border: 1px solid rgba(49,73,63,0.18); border-radius: 999px; background: #fffaf1; font-size: 14px; font-weight: 700; text-decoration: none">15 Traceability</a>
+  </div>
+
+  <div id="diagnosis" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">01</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Three bugs, one missing rule</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 24px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">These are not three unrelated defects. All three are the same absence: <strong>authored geometry is trusted, and content is never measured against it.</strong></p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 28px">
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; border-left: 4px solid #9b3d2e">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 10px">Observed · Drive, both robots</div>
+        <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.55"><strong>The gripper card is cut.</strong> <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">drive-gripper</code> is authored 130&times;130 with <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">show_details: true</code>. <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">ToggleWidget</code> renders three stacked rows — title, 56&nbsp;px button, then the literal topic <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">/gripper_controller/commands</code>.</p>
+        <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">needs 250&times;144 · has 130&times;130</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; border-left: 4px solid #9b3d2e">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 10px">Observed · Drive, both robots</div>
+        <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.55"><strong>Pivot is shorter than Height.</strong> <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">drive-rz</code> is 130&times;260; <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">drive-z</code> is 130&times;440. Two controls of the same kind, on the same row, at different sizes — and 260 is below the vertical slider's own minimum, so the readout clips too.</p>
+        <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">needs 312 tall · has 260 · sibling has 440</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; border-left: 4px solid #9b3d2e">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 10px">Observed · Drive, Explorer</div>
+        <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.55"><strong>Speed readouts are cut mid-digit.</strong> <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">drive-max-linear-speed</code> is 210&times;130 and renders title + unit + a <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">min → max</code> range on one header line. At 210 px the range runs past the card edge.</p>
+        <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">needs 300&times;132 · has 210&times;130</p>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px">
+      <div style="padding: 22px; background: #31493f; color: #fffaf1; border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: #c8d5c4; margin-bottom: 10px">R1</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55"><strong>Every widget kind declares a minimum size</strong>, computed from what it actually renders in the configuration it is given. §07 is that table.</p>
+      </div>
+      <div style="padding: 22px; background: #31493f; color: #fffaf1; border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: #c8d5c4; margin-bottom: 10px">R2</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55"><strong>A card grows rather than clips.</strong> The frame's content box gets <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">min-height</code>, not <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">overflow: hidden</code>. Clipping an operator control is never the correct failure.</p>
+      </div>
+      <div style="padding: 22px; background: #31493f; color: #fffaf1; border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: #c8d5c4; margin-bottom: 10px">R3</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55"><strong>Siblings of one kind on one row share one size.</strong> Height and Pivot, Both and Jaco, the two speed limits. Asymmetry has to mean something.</p>
+      </div>
+      <div style="padding: 22px; background: #31493f; color: #fffaf1; border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: #c8d5c4; margin-bottom: 10px">R4</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55"><strong>The builder warns, it does not block.</strong> Existing seeds stay valid; an undersized widget is flagged in the inspector and in the review checklist, with the required size offered as a one-tap fix.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="color" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">02</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Colour — palette, roles, and three violations</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px; margin-bottom: 18px">
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #31493f"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">forest</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#31493f</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #7e967e"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">sage</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#7e967e</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #839a82"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">accent</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#839a82</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #c8d5c4"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">mist</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#c8d5c4</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #c7bddc"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">lilac</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#c7bddc</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #eebbbb"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">petal</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#eebbbb</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #ffd89b"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">pollen</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#ffd89b</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #9b3d2e"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">error</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#9b3d2e</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #f2eadc"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">cream</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#f2eadc</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #f8f4eb"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">surfaceSoft</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#f8f4eb</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #fffaf1; border-bottom: 1px solid rgba(49,73,63,0.14)"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">paper</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#fffaf1</div></div>
+      </div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 14px; overflow: hidden; background: #fffaf1">
+        <div style="height: 72px; background: #253d35"></div>
+        <div style="padding: 10px 12px"><div style="font-size: 14px; font-weight: 700">ink</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">#253d35</div></div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px">
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 12px">What each colour is allowed to mean</div>
+        <div style="display: flex; flex-direction: column; gap: 10px; font-size: 16px; line-height: 1.5">
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #31493f"></span><span><strong>forest</strong> — primary, the selected/active state, the one committed action on a surface.</span></div>
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #7e967e"></span><span><strong>sage</strong> — live motion: joystick knobs, slider thumbs, anything the operator is holding.</span></div>
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #c8d5c4"></span><span><strong>mist</strong> — resting truthful status (READY), current screen in maintenance, progress fills.</span></div>
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #ffd89b"></span><span><strong>pollen</strong> — a held, momentary or latched state that will end by itself. Never a resting state.</span></div>
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #c7bddc"></span><span><strong>lilac</strong> — debug and inspection surfaces only. Never inside an operator app.</span></div>
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #9b3d2e"></span><span><strong>error</strong> — STOP, latched stop, destructive release. Always paired with a word.</span></div>
+        </div>
+      </div>
+      <div style="padding: 22px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 12px">Violations in the tree today</div>
+        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 16px; line-height: 1.5; color: #4f1f16">
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #4a9eff; border: 1px solid rgba(0,0,0,0.15)"></span><span><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">#4a9eff</code> — the translation axis colour in both seed apps. Not a Bloom token; it is the only pure blue in the product.</span></div>
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #e0685f; border: 1px solid rgba(0,0,0,0.15)"></span><span><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">#e0685f</code> — the rotation axis colour. Close enough to <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">error</code> to read as a warning on a control that is perfectly safe.</span></div>
+          <div style="display: flex; gap: 12px; align-items: flex-start"><span style="flex: 0 0 16px; height: 16px; margin-top: 4px; border-radius: 4px; background: #7fa95f; border: 1px solid rgba(0,0,0,0.15)"></span><span><code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">#7fa95f</code> — the joystick's hard-coded fallback in <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">control-renderers.tsx</code>. Should be <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">--bloom-color-sage</code>.</span></div>
+          <p style="margin: 4px 0 0; font-size: 15px; line-height: 1.5"><strong>Replace with:</strong> translation <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">sage</code>, rotation <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">clay</code> — the first two entries of the series ramp in §02b. Same lightness, different hue, and named rather than typed in.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="series" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">02b</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">The series ramp — the gap that made people name hexes</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">Invariant 02 says no feature file names a colour — and then the plot board needs eight distinguishable series and the token set has six semantic colours, none of which mean "the fifth thing on a chart". So people invent hexes. The fix is a token set for the need, not an exception to the rule.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 10px; margin-bottom: 18px">
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #31493f"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-1</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#31493f</div></div></div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #7e967e"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-2</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#7e967e</div></div></div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #c98a7e"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-3</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#c98a7e</div></div></div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #536960"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-4</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#536960</div></div></div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #8a7f5c"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-5</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#8a7f5c</div></div></div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #6b7f8a"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-6</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#6b7f8a</div></div></div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #8a6b7f"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-7</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#8a6b7f</div></div></div>
+      <div style="border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; overflow: hidden; background: #fffaf1"><div style="height: 56px; background: #5c7d6b"></div><div style="padding: 8px 10px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700">series-8</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">#5c7d6b</div></div></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px">
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">How it is built</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">One hue rotation at roughly constant lightness, starting from forest and sage so the first two series are the product's own colours. Every entry sits between L* 40 and 62, so no series disappears on cream and none shouts.</p>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Rules</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Assign in order; never skip to pick a nicer colour. <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">series-1</code> is the emphasised series where one exists — the manager output on Command sources. Series colour is <strong>never</strong> semantic: a red series does not mean a bad value.</p>
+      </div>
+      <div style="padding: 20px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Eight is the limit</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Past eight overlaid series a plot is not readable and colour cannot carry the difference. The picker allows more; the ramp repeats with a dashed stroke and the design does not pretend that is legible.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="type" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">03</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Type — three faces, one floor</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 16px">
+      <div style="padding: 24px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-family: 'Cormorant Garamond', serif; font-size: 44px; font-weight: 500; line-height: 1.1; margin-bottom: 10px">Cormorant Garamond</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #536960">Display. Landing, builder card titles, empty states. <strong>Never inside a runtime app</strong> — an operator reading at arm's length does not need a serif.</p>
+      </div>
+      <div style="padding: 24px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 10px">Atkinson Hyperlegible</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #536960">Everything a person must act on: widget titles, buttons, direction words, status, settings. Its disambiguated letterforms are the reason it is here, not the look.</p>
+      </div>
+      <div style="padding: 24px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; line-height: 1.25; margin-bottom: 10px">JetBrains Mono</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #536960">Machine values only: topics, frame ids, numeric readouts, payloads. If it is monospaced, it came from the robot or goes to the robot.</p>
+      </div>
+    </div>
+    <div style="padding: 24px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700; margin-bottom: 16px">Runtime scale · minimum sizes, not suggestions</div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px">
+        <div><div style="font-size: 22px; font-weight: 700; margin-bottom: 4px">Screen title</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">22px / 700 / bar</div></div>
+        <div><div style="font-size: 19px; font-weight: 700; margin-bottom: 4px">Widget title</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">19px / 700 / 1.25</div></div>
+        <div><div style="font-size: 17px; font-weight: 700; margin-bottom: 4px">Direction word</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">17px / 700 · floor</div></div>
+        <div><div style="font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; margin-bottom: 4px">+0.42</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">16px mono · readout</div></div>
+        <div><div style="font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px">Group label</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">12px / 0.14em · floor</div></div>
+      </div>
+      <p style="margin: 16px 0 0; font-size: 15px; line-height: 1.55; color: #536960; max-width: 70ch; text-wrap: pretty">Nothing an operator reads goes below 15&nbsp;px, and nothing they act on below 17&nbsp;px. The 12&nbsp;px group label is the single exception: it names a region, it is never the only carrier of meaning, and it is never inside a control.</p>
+    </div>
+  </div>
+
+  <div id="density" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">04</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Density — which surface gets which target</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: #31493f">40px</div>
+        <div style="height: 40px; border: 2px dashed rgba(49,73,63,0.3); border-radius: 10px"></div>
+        <div><div style="font-size: 17px; font-weight: 700; margin-bottom: 4px">compact</div><div style="font-size: 15px; line-height: 1.5; color: #536960">Builder and admin only. Configuration fields, list rows, inspector inputs. <strong>Never in runtime.</strong></div></div>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: #31493f">48px</div>
+        <div style="height: 48px; border: 2px dashed rgba(49,73,63,0.3); border-radius: 10px"></div>
+        <div><div style="font-size: 17px; font-weight: 700; margin-bottom: 4px">tablet · default</div><div style="font-size: 15px; line-height: 1.5; color: #536960">Library, maintenance sheet, settings rows. The floor for anything touched at all.</div></div>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 2px solid #31493f; border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: #31493f">56px</div>
+        <div style="height: 56px; border: 2px solid #31493f; border-radius: 10px; background: #e7ede2"></div>
+        <div><div style="font-size: 17px; font-weight: 700; margin-bottom: 4px">comfortable · runtime</div><div style="font-size: 15px; line-height: 1.5; color: #536960">Every control inside an operator app: mode buttons, gripper, frame buttons, settings steppers.</div></div>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: #31493f">64px</div>
+        <div style="height: 64px; border: 2px dashed rgba(49,73,63,0.3); border-radius: 10px"></div>
+        <div><div style="font-size: 17px; font-weight: 700; margin-bottom: 4px">high-visibility</div><div style="font-size: 15px; line-height: 1.5; color: #536960">Sunlight, gloves, motor-accessibility profiles. Step targets, scan targets, STOP.</div></div>
+      </div>
+    </div>
+    <p style="margin: 18px 0 0; font-size: 16px; line-height: 1.6; max-width: 70ch; color: #536960; text-wrap: pretty">The target is <em>physical</em>. A canvas fit-scaled to 0.8 turns a 56&nbsp;px button into 45&nbsp;px of glass. The minimum-size table in §07 is stated at scale 1.0; the builder must report the effective size after fit, for the whole screen, not one selected widget.</p>
+  </div>
+
+  <div id="regions" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">05</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">The artboard — named regions for new screens</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">Authored at <strong>1280&times;720</strong>, checked at 1024&times;600. The kiosk bar takes 44&nbsp;px, leaving a <strong>676&nbsp;px</strong> body at native and 556&nbsp;px at the small panel (ADR 0127). Free absolute placement stays supported for existing apps; new screens are composed from four named regions so that a control is in the same place on every screen of an app — the eyes-off requirement.</p>
+
+    <div style="background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 22px; padding: 18px; margin-bottom: 16px">
+      <div style="width: 100%; max-width: 1080px; margin: 0 auto; aspect-ratio: 1280 / 720; display: flex; flex-direction: column; gap: 6px">
+        <div style="flex: 0 0 8.5%; background: #f8f4eb; border: 2px solid #31493f; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px">
+          <span style="font-size: 14px; font-weight: 700">bar · 44px · app, status, frame, profile, maintenance</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">fixed</span>
+        </div>
+        <div style="flex: 0 0 16%; background: #e7ede2; border: 2px solid #839a82; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px">
+          <span style="font-size: 14px; font-weight: 700">context · 104px · what this screen is set to — frame, mode, gripper</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960">optional</span>
+        </div>
+        <div style="flex: 1; display: flex; gap: 6px; min-height: 0">
+          <div style="flex: 1; background: #f2eadc; border: 2px solid #31493f; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px">
+            <span style="font-size: 15px; font-weight: 700; line-height: 1.4">stage · the controls the operator holds<br /><span style="font-weight: 400; color: #536960">never crossed by anything else</span></span>
+          </div>
+          <div style="flex: 0 0 18%; background: #f8f4eb; border: 2px solid #839a82; border-radius: 8px; display: flex; flex-direction: column; gap: 6px; padding: 8px">
+            <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center"><span style="font-size: 14px; font-weight: 700; line-height: 1.35">status<br /><span style="font-weight: 400; color: #536960">224px</span></span></div>
+            <div style="flex: 0 0 34%; background: #9b3d2e; border-radius: 6px; display: flex; align-items: center; justify-content: center"><span style="font-size: 15px; font-weight: 700; color: #fffaf1; letter-spacing: 0.06em">STOP</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px">
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #31493f; margin-bottom: 8px">spacing</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55">Artboard padding 14&nbsp;px, region gap 12&nbsp;px, card gap 12&nbsp;px, in-card gap 8&nbsp;px. Everything is a multiple of 2; nothing is a multiple of 5.</p>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #31493f; margin-bottom: 8px">radius</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55">Control 14&nbsp;px, card 18&nbsp;px, pad 22&nbsp;px, panel 26&nbsp;px. Larger surface, larger radius — never the reverse.</p>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #31493f; margin-bottom: 8px">stage rule</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55">The stage holds motion controls only. Speed limits, modes and publishing detail go to context or status, where a sleeve cannot catch them mid-task.</p>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #31493f; margin-bottom: 8px">1024&times;600</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55">Context collapses to 88&nbsp;px, status to 196&nbsp;px, the stage keeps the rest. Nothing is hidden, nothing reflows to a new position.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="anatomy" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">06</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Card anatomy — where the pixels go</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">Every widget card is the same five bands. The minimum size of a kind is the sum of the bands it renders — which is why <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">show_details</code> is a geometry setting, not a cosmetic one.</p>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+      <div style="flex: 0 0 300px; padding: 16px; background: #fffaf1; border: 2px solid #31493f; border-radius: 18px; display: flex; flex-direction: column; gap: 8px">
+        <div style="height: 24px; background: #e7ede2; border-radius: 6px; display: flex; align-items: center; padding: 0 8px; font-size: 13px; font-weight: 700">title + unit · 24</div>
+        <div style="height: 30px; background: #f2eadc; border-radius: 6px; display: flex; align-items: center; padding: 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">detail strip · 30 · only if show_details</div>
+        <div style="height: 120px; background: #c8d5c4; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700">control · kind minimum</div>
+        <div style="height: 28px; background: #f2eadc; border-radius: 6px; display: flex; align-items: center; padding: 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">readout · 28</div>
+        <div style="height: 18px; background: #f2eadc; border-radius: 6px; display: flex; align-items: center; padding: 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">topic · 18 · only if show_details</div>
+      </div>
+      <div style="flex: 1 1 380px; display: flex; flex-direction: column; gap: 12px">
+        <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">Padding 16, gaps 8</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">A card's fixed overhead is <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">32 (padding) + 24 (title) + 8 (gap)</code> = <strong>64&nbsp;px</strong> before the control gets a single pixel. Add <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">+28</code> for a readout, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">+56</code> for the detail strip and topic line.</p>
+        </div>
+        <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">The topic line sets the minimum width</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">A topic is rendered in 13&nbsp;px mono and must not wrap or clip. <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">/gripper_controller/commands</code> is 28 characters &asymp; 218&nbsp;px, so the card cannot be narrower than <strong>250&nbsp;px</strong>. That single line is the whole gripper bug.</p>
+        </div>
+        <div style="padding: 20px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">Better: don't render the topic at all</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">An operator cannot act on <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">/gripper_controller/commands</code>. Runtime default is <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">show_details: false</code>; the topic belongs in maintenance diagnostics and in Bloom Debug. §08.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pad" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">06b</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">The pad recipe — one formula, never a tuned number</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">A joystick pad has four direction labels, a dead-zone ring and a knob. Tuning those by eye per pad is how a design drifts: change the pad size and the four gaps stop matching, an arrow orphans onto its own line, and two pads side by side stop being the same square. <strong>Every number below is derived from one input — the pad's edge length <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px">S</code>.</strong></p>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start">
+      <div style="flex: 0 0 300px; display: flex; flex-direction: column; gap: 12px">
+        <div style="position: relative; width: 300px; height: 300px; border: 2px solid rgba(49,73,63,0.18); border-radius: 22px; background: #f2eadc">
+          <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Forward</span>
+          <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Back</span>
+          <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Left</span>
+          <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Right&nbsp;▶</span>
+          <span style="position: absolute; left: 50%; top: 50%; width: 132px; height: 132px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+          <span style="position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+          <span style="position: absolute; left: 50%; top: 50%; width: 78px; height: 78px; border-radius: 50%; background: #7e967e; border: 3px solid #31493f; transform: translate(-50%, -50%)"></span>
+          <span style="position: absolute; left: 8px; top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #536960">S = 300</span>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #536960">The operator pad at S = 300. Gap 12 on all four sides, by construction rather than by measurement.</p>
+      </div>
+
+      <div style="flex: 1 1 380px; display: flex; flex-direction: column; gap: 12px">
+        <div style="padding: 22px; background: #31493f; color: #fffaf1; border-radius: 18px">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #c8d5c4; font-weight: 700; margin-bottom: 12px">The formula</div>
+          <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.7; white-space: pre-wrap">inset      =  8          label edge to pad edge
+labelWidth = 64          fits "Right ▶" at the 17px floor
+gap        = 12          label edge to ring, all four sides
+lineHeight = 20
+
+block      = inset + labelWidth            = 72
+topInset   = block - lineHeight            = 52
+ring       = S - 2 * (block + gap)         = S - 168
+deadzone   = ring * 0.2                    the real 0.2 axis dead zone
+knob       = S * 0.26</pre>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px">
+          <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-bottom: 4px">S 340</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">ring 172 · dz 34 · knob 88</div></div>
+          <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-bottom: 4px">S 376</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">ring 208 · dz 42 · knob 98</div></div>
+          <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; margin-bottom: 4px">S 300</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">ring 132 · dz 26 · knob 78</div></div>
+        </div>
+        <div style="padding: 20px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 18px">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 10px">Four rules that came from getting this wrong</div>
+          <ul style="margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.6; color: #4f1f16; display: flex; flex-direction: column; gap: 6px">
+            <li><strong>Ring in px, never %.</strong> A percentage ring on a non-square box renders an ellipse, and the four gaps stop matching.</li>
+            <li><strong>Arrow bound to its word</strong> with <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">&amp;nbsp;</code>. The arrow carries the direction; orphaned on its own line it carries nothing, and the two sides end up different heights.</li>
+            <li><strong>Pads in a pair are the same square.</strong> Set the pad <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">flex: 0 0 auto</code> so a flex parent cannot shave a pixel off one axis.</li>
+            <li><strong>Pads in a row share a centre line.</strong> When one column has a trailing block (a Pivot slider), the other gets equal padding on its pad container — not a sibling spacer, which leaves a void and mis-centres by the flex gap.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <p style="margin: 22px 0 0; font-size: 16px; line-height: 1.6; max-width: 70ch; color: #536960; text-wrap: pretty">The columns beside the pads get their declared minimum and nothing more — on the operator layout that is a 264 rail, a 106 Height slider and a 202 gripper column, which leaves 318 and 316 for the two pads. The pads are the reason the screen exists.</p>
+  </div>
+
+  <div id="minsize" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">07</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Minimum size per widget kind — the contract</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">Stated at scale 1.0, in the same units as <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">widget.layout</code>. Ship as <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">WIDGET_MIN_SIZE</code> in <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px; background: #fffaf1; padding: 2px 6px; border-radius: 5px">libs/widgets</code> so the builder inspector, the review checklist and the seed validator all read one source.</p>
+
+    <div style="overflow-x: auto; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; padding: 8px">
+      <table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 15px">
+        <thead>
+          <tr style="text-align: left">
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">kind</th>
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">details off</th>
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">details on</th>
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">why</th>
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">in tree</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 14px 16px; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">joystick</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">280&times;332</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">320&times;400</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">240 pad + 64 chrome + 28 readout; detail chips need 320 wide</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #31493f; border-bottom: 1px solid rgba(49,73,63,0.1)">ok</td>
+          </tr>
+          <tr style="background: #f8f4eb">
+            <td style="padding: 14px 16px; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">slider · vertical</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">104&times;284</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">130&times;312</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">220 track is the shortest that still resolves 0.01 steps by thumb</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #9b3d2e; border-bottom: 1px solid rgba(49,73,63,0.1)">drive-rz 260</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 16px; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">slider · horizontal</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">260&times;104</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">300&times;132</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">title + unit + <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">min → max</code> share one header line</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #9b3d2e; border-bottom: 1px solid rgba(49,73,63,0.1)">speeds 210&times;130</td>
+          </tr>
+          <tr style="background: #f8f4eb">
+            <td style="padding: 14px 16px; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">toggle</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">200&times;120</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">250&times;144</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">verb label needs 200; the topic line needs 250</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #9b3d2e; border-bottom: 1px solid rgba(49,73,63,0.1)">drive-gripper 130&times;130</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 16px; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">command-button</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">140&times;104</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">170&times;152</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">56 button + a two-line action label under it</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #9b3d2e; border-bottom: 1px solid rgba(49,73,63,0.1)">modes 150&times;130</td>
+          </tr>
+          <tr style="background: #f8f4eb">
+            <td style="padding: 14px 16px; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">topic-echo</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">226&times;200</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">280&times;280</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">a twist is 8 lines of mono; the action row adds 96 when details are on</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #9b3d2e; border-bottom: 1px solid rgba(49,73,63,0.1)">lab-sent 226 w/ details</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 16px; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">topic-plot · gauge</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">280&times;180</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">320&times;240</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">a 30 s trace below 280 wide is decoration</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #31493f; border-bottom: 1px solid rgba(49,73,63,0.1)">ok</td>
+          </tr>
+          <tr style="background: #f8f4eb">
+            <td style="padding: 14px 16px; font-weight: 700">label</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace">120&times;28</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace">—</td>
+            <td style="padding: 14px 16px; color: #536960">at 12 px uppercase, 20 px tall cuts the descenders</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; color: #9b3d2e">lab labels h:20</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch">
+      <div style="flex: 1 1 340px; padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 12px">As authored · 130&times;130 · cut</div>
+        <div style="width: 130px; height: 130px; padding: 16px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; gap: 8px">
+          <div style="font-size: 19px; font-weight: 700; white-space: nowrap">Gripper</div>
+          <div style="flex: 0 0 56px; min-height: 56px; border: 1px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; white-space: nowrap">OPEN</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #536960; white-space: nowrap">/gripper_controller/commands</div>
+        </div>
+        <p style="margin: 14px 0 0; font-size: 15px; line-height: 1.55; color: #536960">Three bands that need 144&nbsp;px of height and 250&nbsp;px of width, in a 130&nbsp;px box with <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">overflow: hidden</code>.</p>
+      </div>
+      <div style="flex: 1 1 340px; padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 12px">Corrected · 250&times;144 · verb label, no topic</div>
+        <div style="width: 250px; height: 144px; padding: 16px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 19px; font-weight: 700">Gripper</span><span style="font-size: 14px; color: #536960">commanded: open</span></div>
+          <button type="button" onClick="{{ gripClick }}" style="flex: 1; min-height: 56px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">{{ gripLabel }}</button>
+        </div>
+        <p style="margin: 14px 0 0; font-size: 15px; line-height: 1.55; color: #536960">The label became a verb — what pressing will do — and the commanded state moved to the header, where it is a fact rather than a promise. Tap it.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="defaults" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">08</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Defaults — what a widget looks like before anyone configures it</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <div style="overflow-x: auto; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; padding: 8px">
+      <table style="width: 100%; min-width: 720px; border-collapse: collapse; font-size: 15px">
+        <thead>
+          <tr style="text-align: left">
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">setting</th>
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">operator app</th>
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">debug / lab app</th>
+            <th style="padding: 14px 16px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; border-bottom: 2px solid rgba(49,73,63,0.18)">rule</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">show_details</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">false</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-weight: 700; border-bottom: 1px solid rgba(49,73,63,0.1)">true</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">Topics and axis maps are diagnostics. Today Drive ships them on, on every widget.</td>
+          </tr>
+          <tr style="background: #f8f4eb">
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">labels.*</td>
+            <td style="padding: 14px 16px; border-bottom: 1px solid rgba(49,73,63,0.1)">operator words</td>
+            <td style="padding: 14px 16px; border-bottom: 1px solid rgba(49,73,63,0.1)">operator words</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">Forward / Back / Left / Right. <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">X+</code> and <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">linear_x</code> never reach an operator surface.</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">toggle labels</td>
+            <td style="padding: 14px 16px; border-bottom: 1px solid rgba(49,73,63,0.1)">verbs</td>
+            <td style="padding: 14px 16px; border-bottom: 1px solid rgba(49,73,63,0.1)">verbs</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">"Close gripper", not "Closed". A button says what it does; a header says what is true.</td>
+          </tr>
+          <tr style="background: #f8f4eb">
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">axis_deadzone</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">0.2</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">0.2</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">Matches the physical joystick (ADR 0120). The profile's dead zone overrides it — it belongs to the person.</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">publish_rate_hz</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">30</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">30</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">Zeros at rest too; the manager declares the tablet dead after 0.2 s.</td>
+          </tr>
+          <tr style="background: #f8f4eb">
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">returnToCenter</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">true</td>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace; border-bottom: 1px solid rgba(49,73,63,0.1)">true</td>
+            <td style="padding: 14px 16px; color: #536960; border-bottom: 1px solid rgba(49,73,63,0.1)">On motion axes always. A speed <em>limit</em> is not a motion axis and must not return.</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 16px; font-family: 'JetBrains Mono', monospace">mode feedback</td>
+            <td style="padding: 14px 16px">requested</td>
+            <td style="padding: 14px 16px">requested</td>
+            <td style="padding: 14px 16px; color: #536960">The manager never publishes its mode (ADR 0115). No surface may word it as confirmed.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="states" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">09</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">States — every control, six ways</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 12px">
+      <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="min-height: 56px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700">Jaco</div>
+        <div><div style="font-size: 15px; font-weight: 700">idle</div><div style="font-size: 14px; line-height: 1.45; color: #536960">cream fill, hairline border</div></div>
+      </div>
+      <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="min-height: 56px; border: 2px solid #31493f; border-radius: 14px; background: #31493f; color: #fffaf1; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700">Jaco</div>
+        <div><div style="font-size: 15px; font-weight: 700">selected</div><div style="font-size: 14px; line-height: 1.45; color: #536960">forest fill — last <em>requested</em></div></div>
+      </div>
+      <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="min-height: 56px; border: 2px solid #31493f; border-radius: 14px; background: #ffd89b; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700">SNAKE ON</div>
+        <div><div style="font-size: 15px; font-weight: 700">held</div><div style="font-size: 14px; line-height: 1.45; color: #536960">pollen — ends on release</div></div>
+      </div>
+      <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="min-height: 56px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; opacity: 0.4">Tool</div>
+        <div><div style="font-size: 15px; font-weight: 700">interlocked</div><div style="font-size: 14px; line-height: 1.45; color: #536960">40% — legal, not now</div></div>
+      </div>
+      <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="min-height: 56px; border: 2px dashed rgba(49,73,63,0.35); border-radius: 14px; background: #f8f4eb; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span style="font-size: 15px; font-weight: 700; color: #536960">Tool</span><span style="font-size: 12px; color: #536960">not on this robot</span></div>
+        <div><div style="font-size: 15px; font-weight: 700">unsupported</div><div style="font-size: 14px; line-height: 1.45; color: #536960">dashed + backend reason</div></div>
+      </div>
+      <div style="padding: 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 10px">
+        <div style="min-height: 56px; border: 2px solid #9b3d2e; border-radius: 14px; background: #f5ddd8; color: #4f1f16; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700">Release</div>
+        <div><div style="font-size: 15px; font-weight: 700">destructive</div><div style="font-size: 14px; line-height: 1.45; color: #536960">error container + verb</div></div>
+      </div>
+    </div>
+    <p style="margin: 18px 0 0; font-size: 16px; line-height: 1.6; max-width: 70ch; color: #536960; text-wrap: pretty">Interlocked and unsupported are different facts and must not share a treatment: <em>interlocked</em> means release the pads and you may; <em>unsupported</em> means this robot will never offer it. Opacity alone carries neither — both pair with a word.</p>
+
+    <div style="margin-top: 16px; padding: 22px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 18px">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 10px">Never dim a container</div>
+      <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.6; color: #4f1f16; max-width: 76ch; text-wrap: pretty"><code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">opacity</code> on a card multiplies the contrast of <em>everything</em> inside it, including text that passes on its own. A 5.37:1 badge inside a card at <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">opacity: 0.62</code> measures 2.45:1 — and nothing in the markup says so, which is why it survives review.</p>
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #4f1f16; max-width: 76ch; text-wrap: pretty">Dim the <strong>one element</strong> whose state it is, and only where the result still measures. For an unsupported or unavailable thing, use the treatment above instead: <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">#f8f4eb</code> fill, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">2px dashed rgba(49,73,63,0.35)</code>, label at <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">#536960</code> — 5.37:1, and it reads as unavailable rather than as faded.</p>
+    </div>
+  </div>
+
+  <div id="chrome" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">10</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Runtime chrome — the bar and the STOP</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+
+    <div style="background: #2a2f2c; border-radius: 20px; padding: 14px; margin-bottom: 16px; overflow-x: auto">
+      <div style="min-width: 900px; border-radius: 8px; overflow: hidden">
+        <div style="height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18); font-family: 'Atkinson Hyperlegible', sans-serif">
+          <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+          <span style="font-size: 16px; color: #5c6b63">Drive</span>
+          <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c8d5c4"><span style="width: 11px; height: 11px; border-radius: 50%; background: #253d35"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">READY</span></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">30 Hz</span>
+          <span style="flex: 1"></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">Operator</span>
+          <span style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700">⋯</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px">
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">The bar holds six things</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">App name, screen name, truthful link status, command frame, publish rate, profile, maintenance hold. Nothing else earns 44&nbsp;px across the top of an operator's panel. The status chip describes the <em>frontend-to-backend link</em> and says so; it never implies the arm is reachable.</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 10px">Gap in the build</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Today the bar shows app, status, robot, frame and a hamburger. It is missing the <strong>screen name</strong> and the <strong>publish rate</strong> — the two things that tell an operator which screen they are on and that the tablet is still alive. The hamburger also reads as a menu; maintenance is a 1.5&nbsp;s hold and should look like one, with the hold drawn as a fill.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch">
+      <div style="flex: 1 1 260px; padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 14px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700">In the build today</div>
+        <div style="height: 120px; border-radius: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); box-shadow: 0 8px 20px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #9b3d2e; letter-spacing: 0.04em">STOP</div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #536960">A white card with red text, the same weight as every widget around it. At a glance it is a label, not a control.</p>
+      </div>
+      <div style="flex: 1 1 260px; padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 14px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700">Specified · press to latch</div>
+        <button type="button" onPointerDown="{{ stopDown }}" onPointerUp="{{ stopUp }}" onPointerLeave="{{ stopUp }}" onPointerCancel="{{ stopUp }}" style="position: relative; height: 120px; border: none; border-radius: 18px; background: {{ stopBg }}; color: #fffaf1; font-family: inherit; font-size: 22px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+          <span style="position: relative; z-index: 2">{{ stopLabel }}</span>
+          <span ref="{{ fillRef }}" style="position: absolute; left: 0; bottom: 0; height: 6px; width: 0%; background: #c8d5c4"></span>
+        </button>
+        <p style="margin: 0; font-size: 15px; line-height: 1.55; color: #536960">Filled error, full-bleed in the status rail, the largest target on the screen. Press stops instantly; resuming is a one-second hold drawn as a fill. Try it.</p>
+      </div>
+      <div style="flex: 1 1 260px; padding: 22px; background: #31493f; color: #fffaf1; border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #c8d5c4; font-weight: 700">Rules</div>
+        <ul style="margin: 0; padding-left: 18px; font-size: 15px; line-height: 1.6; display: flex; flex-direction: column; gap: 8px">
+          <li>STOP is chrome, never a widget. It cannot be moved, resized or removed by an app author.</li>
+          <li>Same corner on every screen of every app. Eyes-off means muscle memory.</li>
+          <li>Stopped: pads dim to 45% and go inert; mode and frame buttons stay live so the operator can prepare the resume.</li>
+          <li>Minimum 176&times;120 at scale 1.0, and it is exempt from fit-scaling below 64&nbsp;px of glass.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div id="locale" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">11</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Locale — layout must survive +40%</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">Spanish and French safety wording runs 25–40% longer than English. A control sized to its English label is a control that clips in French. Every label below is set at the same card size; the design must hold at the longest of the three.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px">
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #536960">EN</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center">Hold to resume</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center">Close gripper</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center">Hold for maintenance</div>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #536960">ES · +28%</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.2">Mantener para reanudar</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.2">Cerrar la pinza</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.2">Mantener para mantenimiento</div>
+      </div>
+      <div style="padding: 20px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; display: flex; flex-direction: column; gap: 12px">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #536960">FR · +36%</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.2">Maintenir pour reprendre</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.2">Fermer la pince</div>
+        <div style="min-height: 56px; padding: 0 16px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; text-align: center; line-height: 1.2">Maintenir pour la maintenance</div>
+      </div>
+    </div>
+    <div style="margin-top: 14px; padding: 20px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+      <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 76ch; text-wrap: pretty"><strong>Rule:</strong> control labels wrap to two lines and the control grows; they never shrink their type and never truncate. Authored labels — app, screen and widget titles — stay as written, because they are configuration data. Topics, frame ids, axes and numbers are never translated.</p>
+    </div>
+  </div>
+
+  <div id="builder" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">12</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Builder — a different density, the same product</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <p style="margin: 0 0 22px; font-size: 18px; line-height: 1.6; max-width: 70ch; text-wrap: pretty">The builder is desktop, mouse-first, and dense. It is allowed 40&nbsp;px targets, multi-column forms and hover affordances — but it uses the same tokens, the same type and the same card language, so an author never has to translate between the thing they are editing and the thing an operator will hold.</p>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px">
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Canvas</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">The canvas is the operator's panel at true scale, on a <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">#2a2f2c</code> desk, with the device frame drawn around it. Three frames — 1024&times;600, 1280&times;720, 1820&times;720 — switch without leaving the screen. Panels never take space from it once editing starts.</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Selection &amp; overlap</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Selected widget: 2&nbsp;px forest outline plus a live size chip reading <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">400&times;440 · 56px glass</code>. Overlapping interactive widgets get a petal wash and a named pair, immediately — not at publish time.</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Undersize warning</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Below the §07 minimum, the widget gets a pollen corner tag and the inspector offers <em>Resize to 250&times;144</em> as one action. Authoring is never blocked; publishing surfaces it in the review checklist.</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Libraries</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">App and screen cards use colour for grouping only — screen type, never status. Previews are on demand. Human names come before ids; an id is mono, small, and second.</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Forms</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Label above field, 40&nbsp;px rows, 8&nbsp;px radius, one column per concept. Destructive actions confirm inline with cancel/confirm — never <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">window.confirm</code>.</p>
+      </div>
+      <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Review checklist</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.55">Geometry, touch bounds, overlap, command frame, topic policy — plus, now, minimum size and sibling symmetry. Each check names the widget and offers the fix. Export stays the last gate.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="landing" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">13</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Landing — the only place Bloom raises its voice</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch">
+      <div style="flex: 2 1 420px; padding: 32px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 22px">
+        <p style="margin: 0 0 12px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Specimen</p>
+        <h2 style="margin: 0 0 16px; font-family: 'Cormorant Garamond', serif; font-size: 46px; font-weight: 500; line-height: 1.05; max-width: 16ch">Build and operate accessible interfaces for robots.</h2>
+        <p style="margin: 0 0 22px; font-size: 17px; line-height: 1.6; max-width: 54ch; color: #536960; text-wrap: pretty">Display serif at 46&nbsp;px and above, one paragraph of Atkinson beneath it, two pill actions. Landing is the one surface allowed a mood image and a hero measure; it is not allowed a gradient, a product screenshot in a fake browser, or a stat row.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px">
+          <span style="min-height: 48px; padding: 12px 24px; border-radius: 999px; background: #31493f; color: #fffaf1; font-size: 16px; font-weight: 700; display: inline-flex; align-items: center">Open Builder</span>
+          <span style="min-height: 48px; padding: 12px 24px; border-radius: 999px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.24); font-size: 16px; font-weight: 700; display: inline-flex; align-items: center">Open Runtime</span>
+        </div>
+      </div>
+      <div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 14px">
+        <div style="flex: 1; min-height: 190px; border-radius: 22px; border: 1px solid rgba(49,73,63,0.14); background: repeating-linear-gradient(135deg, #f8f4eb 0 10px, #f2eadc 10px 20px); display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">mood image — the arm in use,<br />in a real room, with a person</span>
+        </div>
+        <div style="padding: 20px; background: #31493f; color: #fffaf1; border-radius: 18px">
+          <p style="margin: 0; font-size: 15px; line-height: 1.55">Tone: Bloom restores a person's gesture. Never "control your robot". Never a dark dashboard, a terminal, or a game-like pictogram.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="invariants" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 0">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">14</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Cross-surface invariants — what must never diverge</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <div style="padding: 30px; background: #31493f; color: #fffaf1; border-radius: 22px">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px">
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #c8d5c4; margin-bottom: 8px">01</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">A widget renders identically in builder and runtime. Runtime only removes editor affordances — it never resizes, reflows or restyles a widget.</p>
+        </div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #c8d5c4; margin-bottom: 8px">02</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">Tokens come from <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">libs/ui</code>. No feature file names a colour. The three violations in §02 are the standing exceptions and are to be removed.</p>
+        </div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #c8d5c4; margin-bottom: 8px">03</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">Colour never carries meaning alone. Every state in §09 pairs with a word, a border treatment, or both.</p>
+        </div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #c8d5c4; margin-bottom: 8px">04</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">No surface claims more than it knows. "Requested", not "active"; link status, not robot status; simulated says simulated.</p>
+        </div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #c8d5c4; margin-bottom: 8px">05</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">Adapter language stays out of operator surfaces. Frames and topics live in the bar, in maintenance and in debug.</p>
+        </div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: #c8d5c4; margin-bottom: 8px">06</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">A control is in the same place on every screen of an app. Moving STOP, the maintenance hold, or the status chip between screens is a defect.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="trace" style="max-width: 1160px; margin: 0 auto; padding: 56px 32px 100px">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 22px">
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #9b3d2e">15</span>
+      <span style="font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Traceability — where design work lives</span>
+      <span style="flex: 1; height: 1px; background: rgba(49,73,63,0.16)"></span>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: stretch">
+      <div style="flex: 1 1 380px; padding: 24px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700; margin-bottom: 14px">Same repo · design ships with the code</div>
+        <pre style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: #253d35">docs/design/
+  README.md              entry point, how to use this
+  design-system.html     this page, the living reference
+  widget-min-size.md     §07 as a table + the constant
+  screens/
+    drive.md             spec + rationale + captures
+    joystick-lab.md
+  reviews/
+    2026-09-17-drive.md  finding → decision → screen → commit
+  captures/
+    drive-1280x720.png</pre>
+      </div>
+      <div style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 14px">
+        <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">ADR — when a rule constrains code</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">Minimum sizes, the 44&nbsp;px bar, the region model, axis colour tokens. Same <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">docs/decisions</code> folder as architecture — ADR 0115, 0120 and 0127 already work this way.</p>
+        </div>
+        <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px">
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">Review log — when it is judgement</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">Why Pivot became 440 and not 360, why speed limits left the stage. Dated, one file per review, in the same shape as the UX handoff trace so the two read together.</p>
+        </div>
+        <div style="padding: 22px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+          <div style="font-size: 17px; font-weight: 700; margin-bottom: 8px">The standard, briefly</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">Design lives where the thing it describes lives, and changes in the same pull request. A separate design repo guarantees drift; a design tool as source of truth guarantees two truths. Bloom's tokens are already code — keep the source of truth there and let this page render from them.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { gripClosed: false, stopped: false };
+  timers = {};
+  fillRef = React.createRef();
+  componentDidMount() { document.title = "Bloom — design implementation reference"; }
+  componentWillUnmount() { for (const k of Object.keys(this.timers)) clearInterval(this.timers[k]); }
+  setFill(p) { const n = this.fillRef.current; if (n) n.style.width = `${Math.round(p * 100)}%`; }
+  startHold(key, ms, onDone) {
+    this.cancelHold(key);
+    const t0 = Date.now();
+    this.timers[key] = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / ms);
+      this.setFill(p);
+      if (p >= 1) { this.cancelHold(key); onDone(); }
+    }, 40);
+  }
+  cancelHold(key) {
+    if (this.timers[key]) { clearInterval(this.timers[key]); delete this.timers[key]; }
+    this.setFill(0);
+  }
+  renderVals() {
+    const s = this.state;
+    return {
+      gripLabel: s.gripClosed ? "Open gripper" : "Close gripper",
+      gripClick: () => this.setState({ gripClosed: !s.gripClosed }),
+      stopLabel: s.stopped ? "HOLD TO RESUME" : "STOP",
+      stopBg: s.stopped ? "#253d35" : "#9b3d2e",
+      stopDown: () => {
+        if (!s.stopped) { this.setState({ stopped: true }); return; }
+        this.startHold("resumeHold", 1000, () => this.setState({ stopped: false }));
+      },
+      stopUp: () => this.cancelHold("resumeHold"),
+      fillRef: this.fillRef
+    };
+  }
+}
+</script>
+</body>
+</html>

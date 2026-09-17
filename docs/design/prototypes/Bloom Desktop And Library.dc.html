@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;family=JetBrains+Mono:wght@400;700&amp;family=Cormorant+Garamond:wght@500&amp;display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f2eadc; }
+  a { color: #31493f; } a:hover { color: #9b3d2e; }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+</style>
+</helmet>
+
+<section style="padding: 56px 48px 40px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+  <div style="max-width: 1100px; margin-bottom: 36px">
+    <p style="margin: 0 0 14px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Turn 5 · two device classes · tablet 1280&times;720 · desktop 1920&times;1080</p>
+    <h1 style="margin: 0 0 20px; font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1.04; letter-spacing: -0.01em; max-width: 26ch">The desktop runtime, and the door both of them open.</h1>
+    <p style="margin: 0 0 12px; font-size: 18px; line-height: 1.6; max-width: 68ch; text-wrap: pretty"><a href="#5a">5a</a> the runtime library at tablet size, where paired apps show as one entry with a device badge and launching is choosing a role. <a href="#5b">5b</a> Bloom Debug on desktop at 1920&times;1080 — the screen the whole tablet/desktop split was for, with the joint table and the jacobian it never had room for.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">Density follows your rule: the device class sets the layout, the profile sets the target floor. Debug is bench-only, so it takes the 40&nbsp;px desktop scale; nothing an operator touches ever does. <a href="#5c">5c</a> records the decisions and the one guard I added where you left the call to me.</p>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+    <div id="5a" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">5a</span>
+        <span style="font-size: 24px; font-weight: 700">Runtime app library</span>
+        <span style="font-size: 16px; color: #536960">tablet · launching is choosing a role</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">All seven apps the runtime actually holds, as a list with a detail rail rather than a card grid — the grid ran out of room at four, and a library that silently hides three apps is worse than one that scrolls. One entry per app, not per device: the badge says which classes exist, the rail launches into a named profile.</p>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Tap any row. <strong>Petanque admin</strong> carries the archived treatment from §09 — dashed, with the word, never a faded card. <strong>Bloom Debug</strong> is desktop-only. Four of the seven declare no profiles at all, so the rail says so instead of inventing roles for them.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="5a Runtime library" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Bloom</span>
+            <span style="font-size: 16px; color: #5c6b63">Runtime library</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c8d5c4"><span style="width: 11px; height: 11px; border-radius: 50%; background: #253d35"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">READY</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">tablet · 1280&times;720</span>
+            <span style="flex: 1"></span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 902px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Apps on this robot</span></div>
+
+            <sc-for list="{{ apps }}" as="app" hint-placeholder-count="7">
+              <button type="button" onClick="{{ app.select }}" style="position: absolute; left: 14px; top: {{ app.top }}; width: 902px; height: 80px; background: {{ app.bg }}; border: 2px solid {{ app.border }}; border-radius: 14px; padding: 0 16px; font-family: inherit; color: #253d35; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 16px">
+                <span style="flex: 0 0 6px; height: 48px; border-radius: 3px; background: {{ app.accent }}"></span>
+                <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                  <span style="font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ app.name }}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ app.meta }}</span>
+                </span>
+                <span style="flex: 0 0 auto; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: {{ app.lifeBg }}; color: {{ app.lifeFg }}; border: {{ app.lifeBorder }}; display: {{ app.lifeShow }}">{{ app.lifecycle }}</span>
+                <span style="flex: 0 0 auto; display: flex; gap: 6px">
+                  <span style="padding: 4px 11px; border-radius: 999px; font-size: 13px; font-weight: 700; background: {{ app.tabletBg }}; color: {{ app.tabletFg }}; border: {{ app.tabletBorder }}">Tablet</span>
+                  <span style="padding: 4px 11px; border-radius: 999px; font-size: 13px; font-weight: 700; background: {{ app.desktopBg }}; color: {{ app.desktopFg }}; border: {{ app.desktopBorder }}">Desktop</span>
+                </span>
+              </button>
+            </sc-for>
+
+            <div style="position: absolute; left: 928px; top: 14px; width: 338px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Open as</span></div>
+
+            <div style="position: absolute; left: 928px; top: 50px; width: 338px; height: 408px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+              <span style="flex: 0 0 25px; font-size: 20px; font-weight: 700">{{ selectedName }}</span>
+              <span style="flex: 0 0 78px; font-size: 14px; line-height: 1.4; color: #5c6b63; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical">{{ selectedDesc }}</span>
+              <span style="flex: 0 0 17px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ selectedMeta }}</span>
+              <span style="flex: 0 0 18px; font-size: 13px; line-height: 18px; color: #536960; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ roleHint }}</span>
+              <sc-for list="{{ roles }}" as="role" hint-placeholder-count="3">
+                <button type="button" onClick="{{ role.select }}" style="flex: 0 0 64px; display: flex; align-items: center; gap: 12px; padding: 0 14px; border: 2px solid {{ role.border }}; border-radius: 14px; background: {{ role.bg }}; color: {{ role.fg }}; font-family: inherit; text-align: left; cursor: pointer">
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 17px; font-weight: 700">{{ role.name }}</span>
+                    <span style="font-size: 13px; opacity: 0.8">{{ role.detail }}</span>
+                  </span>
+                  <span style="font-size: 13px; font-weight: 700; opacity: 0.8">{{ role.mark }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <button type="button" onClick="{{ openClick }}" style="position: absolute; left: 928px; top: 470px; width: 338px; height: 96px; border: {{ openBorder }}; border-radius: 18px; background: {{ openBg }}; color: {{ openFg }}; font-family: inherit; font-size: 22px; font-weight: 700; cursor: {{ openCursor }}">{{ openLabel }}</button>
+
+            <div style="position: absolute; left: 928px; top: 578px; width: 338px; height: 84px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #536960; font-weight: 700">This device</span>
+              <span style="font-size: 14px; line-height: 1.4; color: #5c6b63">{{ deviceNote }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Closes a finding</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Remembered role entry: the last role used on this device is marked and preselected, never auto-launched. Choosing is one tap, and it is a deliberate one.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Colour for grouping</div><p style="margin: 0; font-size: 15px; line-height: 1.55">The accent stripe groups by app kind — operator app, test app, debug app. Never by status: a card that goes red because a robot is unreachable teaches people to ignore red.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">No STOP here</div><p style="margin: 0; font-size: 15px; line-height: 1.55">The library commands nothing, so it carries no STOP. STOP appears on exactly the screens that can move an arm — and on all of them.</p></div>
+      </div>
+    </div>
+
+    <div id="5b" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">5b</span>
+        <span style="font-size: 24px; font-weight: 700">Bloom Debug</span>
+        <span style="font-size: 16px; color: #536960">desktop · 1920&times;1080 · the reason for the split</span>
+      </div>
+      <p style="margin: 0; max-width: 1920px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Grounded in <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">runtime-bloom-debug.png</code>: the app's real job is to <strong>inspect, record and audit</strong>, so preflight, the topic catalog, the audit log, recording and the per-echo Pause/Copy actions are all here — my first draft invented them away. Try <em>Refresh topics</em>, then <em>Start recording</em>. On top of that, everything that did not fit a tablet, at a size where it is readable: a 1460&times;520 plot board, the full joint table with position, velocity, effort and limit proximity, and the 6&times;6 jacobian with its manipulability trace. This is the 40&nbsp;px desktop density — mouse-first, hover states allowed — because Debug is a bench surface and no operator profile opens it. Lilac is legal here and nowhere else.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="5b Bloom Debug desktop" style="position: relative; width: 1920px; height: 1080px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Bloom Debug</span>
+            <span style="font-size: 16px; color: #5c6b63">Runtime topic monitor</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c7bddc; color: #253d35"><span style="width: 11px; height: 11px; border-radius: 2px; background: #253d35"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">DEBUG</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">30 Hz</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">desktop · 1920&times;1080</span>
+            <span style="flex: 1"></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">Bench</span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 48px; height: 32px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1920px; height: 1036px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 477px; height: 104px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #536960; font-weight: 700">Robot preflight</span>
+              <span style="font-size: 16px; font-weight: 700">{{ preflight }}</span>
+              <span style="font-size: 14px; color: #5c6b63">Refresh topics before robot tests.</span>
+            </div>
+            <div style="position: absolute; left: 503px; top: 14px; width: 477px; height: 104px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #536960; font-weight: 700">Topic catalog</span>
+              <span style="font-size: 16px; font-weight: 700">{{ catalog }}</span>
+              <span style="font-size: 14px; color: #5c6b63">Discovered from the ROS graph.</span>
+            </div>
+            <div style="position: absolute; left: 992px; top: 14px; width: 482px; height: 104px; background: {{ auditBg }}; border: {{ auditBorder }}; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #536960; font-weight: 700">Runtime audit</span>
+              <span style="font-size: 16px; font-weight: 700">{{ auditState }}</span>
+              <span style="font-size: 14px; color: #5c6b63">{{ auditNote }}</span>
+            </div>
+            <div style="position: absolute; left: 14px; top: 130px; width: 1460px; height: 440px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: baseline; gap: 16px">
+                <span style="font-size: 18px; font-weight: 700">Plot board</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ dbgCount }} series</span>
+                <span style="flex: 1"></span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">+1.0 / −1.0</span>
+              </div>
+              <div style="flex: 1; position: relative; border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; background: #fffaf1; overflow: hidden">
+                <svg viewBox="0 0 1400 420" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%">
+                  <line x1="0" y1="105" x2="1400" y2="105" stroke="rgba(49,73,63,0.10)" stroke-width="1"></line>
+                  <line x1="0" y1="210" x2="1400" y2="210" stroke="rgba(49,73,63,0.28)" stroke-width="1.5"></line>
+                  <line x1="0" y1="315" x2="1400" y2="315" stroke="rgba(49,73,63,0.10)" stroke-width="1"></line>
+                  <line x1="350" y1="0" x2="350" y2="420" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <line x1="700" y1="0" x2="700" y2="420" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <line x1="1050" y1="0" x2="1050" y2="420" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <sc-for list="{{ dbgSeries }}" as="s" hint-placeholder-count="4">
+                    <path d="{{ s.d }}" fill="none" stroke="{{ s.color }}" stroke-width="2.5" stroke-dasharray="{{ s.dash }}" stroke-linejoin="round" stroke-linecap="round"></path>
+                  </sc-for>
+                </svg>
+                <span style="position: absolute; left: 10px; bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">−30 s</span>
+                <span style="position: absolute; right: 10px; bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">now</span>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 14px; top: 582px; width: 724px; height: 440px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between">
+                <span style="font-size: 18px; font-weight: 700">Joint states</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">/joint_states</span>
+              </div>
+              <div style="display: flex; gap: 12px; padding: 0 10px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #536960; font-weight: 700">
+                <span style="flex: 0 0 76px">joint</span>
+                <span style="flex: 1; text-align: right">position</span>
+                <span style="flex: 1; text-align: right">velocity</span>
+                <span style="flex: 1; text-align: right">effort</span>
+                <span style="flex: 0 0 132px">limit proximity</span>
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+                <sc-for list="{{ joints }}" as="j" hint-placeholder-count="6">
+                  <div style="flex: 1; display: flex; align-items: center; gap: 12px; padding: 0 10px; border-radius: 8px; background: {{ j.bg }}">
+                    <span style="flex: 0 0 76px; font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700">{{ j.name }}</span>
+                    <span style="flex: 1; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 15px">{{ j.position }}</span>
+                    <span style="flex: 1; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ j.velocity }}</span>
+                    <span style="flex: 1; text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ j.effort }}</span>
+                    <span style="flex: 0 0 132px; display: flex; align-items: center; gap: 8px">
+                      <span style="flex: 1; height: 8px; border-radius: 999px; background: #e7ede2; overflow: hidden"><span style="display: block; height: 8px; width: {{ j.pct }}; background: {{ j.barColor }}"></span></span>
+                      <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ j.pct }}</span>
+                    </span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 750px; top: 582px; width: 724px; height: 440px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between">
+                <span style="font-size: 18px; font-weight: 700">Jacobian</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">/ee_jac · 6&times;6</span>
+              </div>
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 4px">
+                <sc-for list="{{ jac }}" as="cell" hint-placeholder-count="36">
+                  <span style="display: flex; align-items: center; justify-content: flex-end; padding: 0 8px; border-radius: 6px; background: {{ cell.bg }}; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: {{ cell.fg }}">{{ cell.v }}</span>
+                </sc-for>
+              </div>
+              <div style="display: flex; align-items: center; gap: 16px; padding-top: 4px; border-top: 1px solid rgba(49,73,63,0.14)">
+                <span style="font-size: 15px; font-weight: 700">Manipulability</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700">{{ manip }}</span>
+                <span style="flex: 1; height: 10px; border-radius: 999px; background: #e7ede2; overflow: hidden"><span style="display: block; height: 10px; width: {{ manipPct }}; background: #7e967e"></span></span>
+                <span style="font-size: 14px; color: #5c6b63">{{ manipNote }}</span>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 1486px; top: 14px; width: 420px; height: 104px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 6px">
+              <div style="display: flex; gap: 6px">
+                <button type="button" onClick="{{ refreshTopics }}" style="flex: 1; min-height: 40px; border: 2px solid rgba(49,73,63,0.18); border-radius: 10px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; min-width: 0">Refresh topics</button>
+                <button type="button" onClick="{{ refreshAudit }}" style="flex: 1; min-height: 40px; border: 2px solid rgba(49,73,63,0.18); border-radius: 10px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; min-width: 0">Refresh audit</button>
+              </div>
+              <button type="button" onClick="{{ recordClick }}" style="flex: 1; min-height: 40px; border: 2px solid {{ recordBorder }}; border-radius: 10px; background: {{ recordBg }}; color: {{ recordFg }}; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">{{ recordLabel }}</button>
+            </div>
+            <div style="position: absolute; left: 1486px; top: 130px; width: 420px; height: 480px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto">
+              <sc-for list="{{ dbgPicker }}" as="p" hint-placeholder-count="12">
+                <button type="button" onClick="{{ p.toggle }}" style="flex: 0 0 40px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border: 1px solid {{ p.border }}; border-radius: 8px; background: {{ p.bg }}; color: #253d35; font-family: inherit; text-align: left; cursor: pointer">
+                  <span style="flex: 0 0 12px; height: 12px; border-radius: 3px; background: {{ p.swatch }}; border: {{ p.swatchBorder }}; box-sizing: border-box"></span>
+                  <span style="flex: 1; min-width: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ p.label }}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ p.now }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="position: absolute; left: 1486px; top: 622px; width: 420px; height: 248px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+              <div style="display: flex; align-items: center; gap: 8px">
+                <span style="font-size: 17px; font-weight: 700">Raw</span>
+                <span style="flex: 1; min-width: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">/cartesian_command</span>
+                <button type="button" onClick="{{ pauseClick }}" style="flex: 0 0 auto; min-height: 32px; padding: 0 10px; border: 2px solid rgba(49,73,63,0.18); border-radius: 8px; background: {{ pauseBg }}; color: #253d35; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer">{{ pauseLabel }}</button>
+                <button type="button" style="flex: 0 0 auto; min-height: 32px; padding: 0 10px; border: 2px solid rgba(49,73,63,0.18); border-radius: 8px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer">Copy</button>
+              </div>
+              <pre style="margin: 0; flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 1.5; white-space: pre; overflow: hidden">{{ rawPayload }}</pre>
+            </div>
+
+            <button type="button" aria-label="{{ stopAriaD }}" onPointerDown="{{ stopDownD }}" onPointerUp="{{ stopUpD }}" onPointerLeave="{{ stopUpD }}" onPointerCancel="{{ stopUpD }}" style="position: absolute; left: 1486px; top: 882px; width: 420px; height: 140px; border: none; border-radius: 18px; background: {{ stopBgD }}; color: #fffaf1; font-family: inherit; font-size: 28px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+              <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelD }}</span>
+              <span style="position: absolute; left: 0; bottom: 0; height: 8px; width: {{ holdPctD }}; background: #c8d5c4"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1920px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">The split pays off here</div><p style="margin: 0; font-size: 15px; line-height: 1.55">The joint table and the jacobian are what pushed Robot feedback over its tablet budget. At 724&times;440 each they are comfortable, and nothing had to be dropped.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">40 px is earned</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Desktop density applies because no operator profile can open Debug. The rule stays: the class sets the layout, the profile sets the floor.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Limit proximity</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Each joint shows how close it is to its limit, coloured at 80&nbsp;% and paired with the number — the thing you actually want to know when the arm stops moving.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">STOP is still here</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">Debug can command the arm, so it carries STOP at the desktop minimum 420&times;140. A diagnostic screen that can move an arm without a stop is the worst screen in the product.</p></div>
+      </div>
+    </div>
+
+    <div id="5c" style="display: flex; flex-direction: column; gap: 16px; max-width: 1280px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">5c</span>
+        <span style="font-size: 24px; font-weight: 700">Device classes — decisions</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px">
+        <div style="padding: 22px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Decided · separate apps, paired</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55"><code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">explorer-manager</code> and <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">explorer-manager-desktop</code>, authored independently, shown as one library entry with a device badge. Tablet authored 1280&times;720 and checked at 1024&times;600; desktop authored 1920&times;1080.</p>
+        </div>
+        <div style="padding: 22px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Decided · wrong device</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">Opens fit-scaled with a banner naming the class it was authored for and a one-tap switch to the sibling. Nothing is blocked; nothing pretends to be native.</p>
+        </div>
+        <div style="padding: 22px; background: #e7ede2; border: 1px solid rgba(49,73,63,0.2); border-radius: 18px">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 10px">Decided · density</div>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55">The class sets the layout, the profile sets the target floor. A desktop operator with motor disabilities still gets 64&nbsp;px; Debug gets 40&nbsp;px because no operator profile can open it.</p>
+        </div>
+        <div style="padding: 22px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 18px; border-left: 4px solid #9b3d2e">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 10px">My call · the drift guard</div>
+          <p style="margin: 0 0 10px; font-size: 16px; line-height: 1.55">You left this one to me. Separate apps means two copies of <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">runtime_policy</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">action_presets</code> and the allowlists per robot — four copies across Explorer and Kinova.</p>
+          <p style="margin: 0; font-size: 16px; line-height: 1.55"><strong>Shared by reference:</strong> both apps carry <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">policy_id: "explorer"</code> and the policy is defined once. Plus a CI check that a paired app's topics, frames and allowlists are identical. Drift in <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">allowed_publish_topics</code> is a safety property, and it is the one thing this split could quietly break.</p>
+        </div>
+      </div>
+      <div style="padding: 22px; background: #31493f; color: #fffaf1; border-radius: 18px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #c8d5c4; font-weight: 700; margin-bottom: 12px">Next</div>
+        <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 90ch">Desktop layouts for Drive&nbsp;&middot;&nbsp;Bench, Joystick Lab, Robot feedback, Command sources and the supervisor mirror; Runtime Settings and the maintenance sheet at both classes; the EN/ES/FR locale page; then builder home, screen canvas and the landing page. The builder needs the device switcher these two classes imply — it already has three canvas presets, so the control exists.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    app: "explorer-manager",
+    role: "operator",
+    opened: false,
+    tick: 0,
+    stopped: { D: false },
+    topicsLoaded: 0, recording: false, auditRuns: 0, paused: false,
+    hold: { D: 0 },
+    dbgOn: { j1: true, j2: true, cmdX: true, manip: true, j3: false, j4: false, j5: false, j6: false, eeZ: false, eeSpeed: false, effort: false, jacDet: false }
+  };
+  timers = {};
+  componentDidMount() {
+    document.title = "Bloom — desktop runtime & library";
+    this.ticker = setInterval(() => this.setState((s) => ({ tick: s.tick + 1 })), 250);
+  }
+  componentWillUnmount() {
+    for (const k of Object.keys(this.timers)) clearInterval(this.timers[k]);
+    if (this.ticker) clearInterval(this.ticker);
+  }
+  setFill(o, p) { this.setState((s) => ({ hold: { ...s.hold, [o]: p } })); }
+  startHold(o, ms, done) {
+    this.cancelHold(o);
+    const t0 = Date.now();
+    this.timers[o] = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / ms);
+      this.setFill(o, p);
+      if (p >= 1) { this.cancelHold(o); done(); }
+    }, 40);
+  }
+  cancelHold(o) {
+    if (this.timers[o]) { clearInterval(this.timers[o]); delete this.timers[o]; }
+    this.setFill(o, 0);
+  }
+  path(fn) {
+    const t0 = this.state.tick * 0.25;
+    let d = "";
+    for (let i = 0; i <= 140; i++) {
+      const tau = t0 - 30 + i * (30 / 140);
+      const x = (i / 140) * 1400;
+      const y = 210 - Math.max(-1, Math.min(1, fn(tau))) * 196;
+      d += (i ? " L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    return d;
+  }
+
+  renderVals() {
+    const st = this.state;
+    const now = st.tick * 0.25;
+    const fmt = (v, n) => (v >= 0 ? "+" : "\u2212") + Math.abs(v).toFixed(n === undefined ? 2 : n);
+    const sel = { bg: "#31493f", fg: "#fffaf1", border: "#31493f" };
+    const idle = { bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)" };
+
+    // Grounded in docs/assets/screenshots/runtime-library.png and the seed files at the pinned ref.
+    // Screen counts for Explorer/Kinova are post-Drive-split (6): bench, operator, positions, feedback, sources, lab.
+    const OPERATOR_ROLES = [
+      { id: "operator", name: "Operator", detail: "accessible \u00b7 64 px \u00b7 plain language" },
+      { id: "bench", name: "Bench", detail: "debugging \u00b7 48 px \u00b7 continuous limits" },
+      { id: "one-switch", name: "One switch", detail: "scan \u00b7 1.4 s period \u00b7 dwell" }
+    ];
+    const NO_PROFILE = [{ id: "default", name: "Default", detail: "this app declares no profiles" }];
+    const APPS = [
+      { id: "bloom-debug", name: "Bloom Debug", accent: "#c7bddc", screens: 1, lifecycle: "active",
+        desc: "Reusable runtime debug tools for topic inspection and telemetry checks.",
+        tablet: false, desktop: true, roles: [{ id: "bench", name: "Bench", detail: "debugging \u00b7 40 px desktop scale" }] },
+      { id: "explorer-manager", name: "Explorer Manager", accent: "#7e967e", screens: 6, lifecycle: "active",
+        desc: "Operator app shaped around the cartesian_manager branches: velocity drive, named positions, robot feedback, and command-source visibility.",
+        tablet: true, desktop: true, roles: OPERATOR_ROLES },
+      { id: "explorer-user-tests", name: "Explorer User Tests", accent: "#ffd89b", screens: 9, lifecycle: "active",
+        desc: "Candidate Bloom app for Extender/Explorer user-test flows: control modes, robot actions, supervision, debug, and profile-ready layouts.",
+        tablet: true, desktop: false, roles: [{ id: "operator", name: "Participant", detail: "accessible \u00b7 64 px" }, { id: "bench", name: "Facilitator", detail: "notes and timing" }] },
+      { id: "kinova-manager", name: "Kinova Manager", accent: "#7e967e", screens: 6, lifecycle: "active",
+        desc: "Operator app for the Kinova gen3 behind cartesian_manager: velocity drive, named positions, robot feedback, command-source visibility, and fault state.",
+        tablet: true, desktop: true, roles: OPERATOR_ROLES },
+      { id: "petanque-admin", name: "Petanque admin", accent: "#536960", screens: 12, lifecycle: "archived",
+        desc: "Legacy home screen and default control. Archived: kept for reference, not for operating.",
+        tablet: true, desktop: false, roles: NO_PROFILE },
+      { id: "sandbox", name: "Sandbox V0.0", accent: "#536960", screens: 6, lifecycle: "active",
+        desc: "Bloom runtime port of the six-screen Extender Sandbox V0.0.",
+        tablet: true, desktop: false, roles: NO_PROFILE },
+      { id: "webcam-visualizer", name: "Webcam visualizer", accent: "#536960", screens: 1, lifecycle: "active",
+        desc: "Demo app for validating local browser webcam screens before ROS camera adapters.",
+        tablet: true, desktop: true, roles: NO_PROFILE }
+    ];
+
+    const app = APPS.find((a) => a.id === st.app) || APPS[0];
+    const runnable = app.tablet;
+    // §09: supported = mist fill; unsupported = dashed border + full-contrast slate, never low-contrast grey
+    const badge = (on) => on
+      ? { bg: "#c8d5c4", fg: "#253d35", border: "1px solid rgba(49,73,63,0.18)" }
+      : { bg: "#f8f4eb", fg: "#536960", border: "2px dashed rgba(49,73,63,0.35)" };
+
+    const JOINTS = ["joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"].map((name, i) => {
+      const pos = Math.sin(0.3 * now + i * 0.7) * (0.6 + i * 0.12);
+      const prox = Math.min(0.99, Math.abs(pos) / (1.05 + i * 0.05));
+      return {
+        name, position: fmt(pos), velocity: fmt(Math.cos(0.3 * now + i * 0.7) * 0.18, 3), effort: fmt(Math.sin(0.5 * now + i) * 2.4, 1),
+        pct: `${Math.round(prox * 100)}%`, barColor: prox > 0.8 ? "#9b3d2e" : prox > 0.6 ? "#ffd89b" : "#7e967e",
+        bg: i % 2 ? "#fffaf1" : "#f2eadc"
+      };
+    });
+
+    const jacCells = [];
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) {
+      const v = Math.sin(0.22 * now + r * 1.1 + c * 0.6) * (r === c ? 0.9 : 0.35);
+      const mag = Math.abs(v);
+      jacCells.push({ v: fmt(v), bg: mag > 0.6 ? "#e7ede2" : mag > 0.3 ? "#f8f4eb" : "#fffaf1", fg: mag > 0.6 ? "#253d35" : "#5c6b63" });
+    }
+    const manip = 0.42 + 0.3 * Math.abs(Math.sin(0.13 * now));
+
+    // Categorical series ramp — see design-system.html §02b. One hue rotation at constant lightness.
+    const SERIES = ["#31493f", "#7e967e", "#c98a7e", "#536960", "#8a7f5c", "#6b7f8a", "#8a6b7f", "#5c7d6b"];
+    const DBG = [
+      { key: "j1", label: "joint_1 position", fn: (t) => 0.6 * Math.sin(0.3 * t) },
+      { key: "j2", label: "joint_2 position", fn: (t) => 0.72 * Math.sin(0.3 * t + 0.7) },
+      { key: "cmdX", label: "/cartesian_command linear.x", fn: (t) => 0.55 * Math.sin(0.35 * t + 0.35) },
+      { key: "manip", label: "manipulability", fn: (t) => 0.42 + 0.3 * Math.abs(Math.sin(0.13 * t)) },
+      { key: "j3", label: "joint_3 position", fn: (t) => 0.5 * Math.sin(0.3 * t + 1.4) },
+      { key: "j4", label: "joint_4 position", fn: (t) => 0.45 * Math.sin(0.3 * t + 2.1) },
+      { key: "j5", label: "joint_5 position", fn: (t) => 0.4 * Math.sin(0.3 * t + 2.8) },
+      { key: "j6", label: "joint_6 position", fn: (t) => 0.35 * Math.sin(0.3 * t + 3.5) },
+      { key: "eeZ", label: "/ee_pose position.z", fn: (t) => 0.3 * Math.sin(0.09 * t) + 0.15 },
+      { key: "eeSpeed", label: "/ee_velocity linear.x", fn: (t) => 0.52 * Math.sin(0.35 * t) },
+      { key: "effort", label: "joint_2 effort", fn: (t) => 0.4 * Math.sin(0.5 * t + 1) },
+      { key: "jacDet", label: "det(J)", fn: (t) => 0.25 * Math.sin(0.19 * t) }
+    ];
+    // §02b: assign in order, wrap at eight with a dashed stroke rather than inventing colours
+    const DBGC = DBG.map((d, i) => ({ ...d, color: SERIES[i % SERIES.length], dash: i >= SERIES.length ? "10 8" : "none" }));
+    const dbgActive = DBGC.filter((d) => st.dbgOn[d.key]);
+    const stoppedD = st.stopped.D;
+    const topicsLoaded = st.topicsLoaded, recording = st.recording, auditRuns = st.auditRuns, paused = st.paused;
+
+    return {
+      apps: APPS.map((a, i) => {
+        const on = a.id === st.app;
+        const t = badge(a.tablet), d = badge(a.desktop);
+        const archived = a.lifecycle === "archived";
+        return {
+          name: a.name, accent: a.accent,
+          meta: `${a.screens} screen${a.screens === 1 ? "" : "s"} \u00b7 ${a.tablet && a.desktop ? "tablet + desktop" : a.desktop ? "desktop only" : "tablet only"}`,
+          top: `${50 + i * 88}px`,
+          bg: on ? "#e7ede2" : "#f8f4eb",
+          border: on ? "#31493f" : "rgba(49,73,63,0.18)",
+          lifecycle: archived ? "Archived" : "",
+          lifeShow: archived ? "inline-flex" : "none",
+          lifeBg: "#f8f4eb", lifeFg: "#536960", lifeBorder: "2px dashed rgba(49,73,63,0.35)",
+          tabletBg: t.bg, tabletFg: t.fg, tabletBorder: t.border, desktopBg: d.bg, desktopFg: d.fg, desktopBorder: d.border,
+          select: () => this.setState({ app: a.id, role: a.roles[0].id, opened: false })
+        };
+      }),
+      selectedName: app.name,
+      selectedDesc: app.desc,
+      selectedMeta: `${app.screens} screen${app.screens === 1 ? "" : "s"} \u00b7 ${app.lifecycle}`,
+      roleHint: app.lifecycle === "archived"
+        ? "Archived \u2014 for reference, not for operating."
+        : !runnable ? "No tablet layout \u2014 opens fit-scaled."
+        : app.roles === NO_PROFILE ? "No profiles declared; opens with defaults."
+        : "Last role used is marked. Choosing is deliberate.",
+      roles: app.roles.map((r) => {
+        const on = r.id === st.role;
+        const s = on ? sel : idle;
+        return { name: r.name, detail: r.detail, bg: s.bg, fg: s.fg, border: s.border, mark: r.id === "operator" && app.id === "explorer-manager" ? "last used" : "", select: () => this.setState({ role: r.id, opened: false }) };
+      }),
+      openLabel: !runnable ? "Desktop only" : st.opened ? `Opening ${app.name} …` : `Open as ${(app.roles.find((r) => r.id === st.role) || app.roles[0]).name}`,
+      openBg: !runnable ? "#f8f4eb" : st.opened ? "#253d35" : "#31493f",
+      openFg: !runnable ? "#536960" : "#fffaf1",
+      openBorder: !runnable ? "2px dashed rgba(49,73,63,0.35)" : "none",
+      openCursor: runnable ? "pointer" : "not-allowed",
+      openClick: () => { if (runnable) this.setState({ opened: true }); },
+      deviceNote: runnable ? "Tablet · 1280\u00d7720 · touch · 48 px floor, 64 px on accessible profiles" : "Tablet \u00b7 this app was authored for desktop 1920\u00d71080",
+
+      dbgSeries: dbgActive.map((d) => ({ d: this.path(d.fn), color: d.color, dash: d.dash })),
+      dbgCount: `${dbgActive.length}`,
+      dbgPicker: DBGC.map((d) => {
+        const on = st.dbgOn[d.key];
+        return {
+          label: d.label, swatch: on ? d.color : "rgba(49,73,63,0.2)",
+          swatchBorder: d.dash === "none" ? "none" : "2px dashed rgba(37,61,53,0.55)",
+          bg: on ? "#e7ede2" : "#fffaf1", border: on ? "#31493f" : "rgba(49,73,63,0.14)",
+          now: fmt(d.fn(now)),
+          toggle: () => this.setState((s) => ({ dbgOn: { ...s.dbgOn, [d.key]: !s.dbgOn[d.key] } }))
+        };
+      }),
+      joints: JOINTS,
+      jac: jacCells,
+      manip: manip.toFixed(3),
+      manipPct: `${Math.round(manip * 100)}%`,
+      manipNote: manip < 0.3 ? "near singularity" : "well conditioned",
+      rawPayload: `twist:\n  linear:\n    x ${fmt(0.55 * Math.sin(0.35 * now + 0.35))}\n    y ${fmt(0.2 * Math.sin(0.28 * now))}\n    z ${fmt(0.3 * Math.sin(0.09 * now) + 0.15)}\n  angular:\n    z ${fmt(0.44 * Math.sin(0.17 * now + 1.1))}`,
+
+      preflight: topicsLoaded ? `${topicsLoaded} topics loaded` : "No topics loaded yet",
+      catalog: topicsLoaded ? `${topicsLoaded} topics · 8 recordable` : "No topics loaded yet",
+      auditState: auditRuns ? `${auditRuns} record${auditRuns === 1 ? "" : "s"}` : "No audit records yet",
+      auditNote: recording ? "recording · writing to the audit log" : "Start recording to add one.",
+      auditBg: recording ? "#ffd89b" : "#f8f4eb",
+      auditBorder: recording ? "2px solid #31493f" : "1px solid rgba(49,73,63,0.18)",
+      refreshTopics: () => this.setState({ topicsLoaded: 24 }),
+      refreshAudit: () => this.setState((s) => ({ auditRuns: s.auditRuns })),
+      recordLabel: recording ? "Stop recording" : "Start recording",
+      recordBg: recording ? "#9b3d2e" : "#31493f",
+      recordFg: "#fffaf1",
+      recordBorder: recording ? "#9b3d2e" : "#31493f",
+      recordClick: () => this.setState((s) => ({ recording: !s.recording, auditRuns: s.recording ? s.auditRuns + 1 : s.auditRuns })),
+      pauseLabel: paused ? "Resume" : "Pause",
+      pauseBg: paused ? "#ffd89b" : "#f2eadc",
+      pauseClick: () => this.setState((s) => ({ paused: !s.paused })),
+      stopLabelD: stoppedD ? "HOLD TO RESUME" : "STOP",
+      stopAriaD: stoppedD ? "Hold for one second to resume" : "Stop the robot",
+      stopBgD: stoppedD ? "#253d35" : "#9b3d2e",
+      stopDownD: () => {
+        if (!stoppedD) { this.setState({ stopped: { D: true } }); return; }
+        this.startHold("D", 1000, () => this.setState({ stopped: { D: false } }));
+      },
+      stopUpD: () => this.cancelHold("D"),
+      holdPctD: `${Math.round(st.hold.D * 100)}%`
+    };
+  }
+}
+</script>
+</body>
+</html>

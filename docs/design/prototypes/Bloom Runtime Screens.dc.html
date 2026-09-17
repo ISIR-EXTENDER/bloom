@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;family=JetBrains+Mono:wght@400;700&amp;family=Cormorant+Garamond:wght@500&amp;display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f2eadc; }
+  a { color: #31493f; } a:hover { color: #9b3d2e; }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+  button { touch-action: none; }
+</style>
+</helmet>
+
+<section style="padding: 56px 48px 40px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+  <div style="max-width: 1100px; margin-bottom: 36px">
+    <p style="margin: 0 0 14px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Turn 4 · one plot, picked series · 1280&times;720</p>
+    <h1 style="margin: 0 0 20px; font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1.04; letter-spacing: -0.01em; max-width: 26ch">Six small charts nobody can read become one you can.</h1>
+    <p style="margin: 0 0 12px; font-size: 18px; line-height: 1.6; max-width: 68ch; text-wrap: pretty">Your call from <a href="#3c">3c</a>, applied: joint states and the jacobian move to Bloom Debug, and both diagnostic screens are rebuilt on a <strong>plot board</strong> — one large plot, a topic picker beside it, series overlaid on a shared time axis. The lab's own tool, in the runtime.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">This is the first thing here that needs a widget kind that does not exist yet. Pick series in the rail; the plot is live at 30&nbsp;Hz over a 30-second window. <a href="#4a">4a</a> Robot feedback, <a href="#4b">4b</a> Command sources.</p>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+    <div id="4a" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">4a</span>
+        <span style="font-size: 24px; font-weight: 700">Robot feedback</span>
+        <span style="font-size: 16px; color: #536960">what the arm is actually doing</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Was: a gauge, three 400&times;250 traces and two 336&times;380 echoes — six widgets in a space that holds four at legible sizes. Now: one 902&times;400 plot, four live numbers under it, and the topic picker in the rail. The two echoes are gone from here; joint states and the jacobian are Bloom Debug's job, and the picker says so rather than leaving you wondering where they went.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="4a Robot feedback" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Robot feedback</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ chipBgF }}; color: {{ chipFgF }}"><span style="width: 11px; height: 11px; border-radius: {{ chipDotF }}; background: {{ chipFgF }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ chipLabelF }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">30 Hz</span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c7bddc; color: #253d35"><span style="font-size: 15px; font-weight: 700">Bench</span></span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 902px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Live from the robot — 30 second window</span></div>
+
+            <div style="position: absolute; left: 14px; top: 50px; width: 902px; height: 400px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: baseline; gap: 16px">
+                <span style="font-size: 18px; font-weight: 700">Plot board</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ fbCount }} series · −30 s → now</span>
+                <span style="flex: 1"></span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">+1.0</span>
+              </div>
+              <div style="flex: 1; position: relative; border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; background: #fffaf1; overflow: hidden">
+                <svg viewBox="0 0 860 300" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%">
+                  <line x1="0" y1="75" x2="860" y2="75" stroke="rgba(49,73,63,0.10)" stroke-width="1"></line>
+                  <line x1="0" y1="150" x2="860" y2="150" stroke="rgba(49,73,63,0.28)" stroke-width="1.5"></line>
+                  <line x1="0" y1="225" x2="860" y2="225" stroke="rgba(49,73,63,0.10)" stroke-width="1"></line>
+                  <line x1="215" y1="0" x2="215" y2="300" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <line x1="430" y1="0" x2="430" y2="300" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <line x1="645" y1="0" x2="645" y2="300" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <sc-for list="{{ fbSeries }}" as="s" hint-placeholder-count="3">
+                    <path d="{{ s.d }}" fill="none" stroke="{{ s.color }}" stroke-width="{{ s.width }}" stroke-linejoin="round" stroke-linecap="round"></path>
+                  </sc-for>
+                </svg>
+                <span style="position: absolute; left: 10px; bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">−30 s</span>
+                <span style="position: absolute; right: 10px; bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">now</span>
+                <span style="position: absolute; left: 10px; top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">−1.0</span>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 14px; top: 462px; width: 902px; height: 200px; display: flex; gap: 12px">
+              <sc-for list="{{ fbValues }}" as="v" hint-placeholder-count="4">
+                <div style="flex: 1; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+                  <span style="font-size: 16px; font-weight: 700">{{ v.label }}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ v.topic }}</span>
+                  <span style="flex: 1; display: flex; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 40px; font-weight: 700; color: {{ v.color }}">{{ v.value }}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ v.unit }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="position: absolute; left: 928px; top: 14px; width: 338px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Series — tap to plot</span></div>
+            <div style="position: absolute; left: 928px; top: 50px; width: 338px; height: 348px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden">
+              <sc-for list="{{ fbPicker }}" as="p" hint-placeholder-count="6">
+                <button type="button" onClick="{{ p.toggle }}" style="flex: 0 0 48px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 2px solid {{ p.border }}; border-radius: 12px; background: {{ p.bg }}; color: {{ p.fg }}; font-family: inherit; text-align: left; cursor: {{ p.cursor }}; opacity: {{ p.opacity }}">
+                  <span style="flex: 0 0 14px; height: 14px; border-radius: 3px; background: {{ p.swatch }}"></span>
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 15px; font-weight: 700">{{ p.label }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5c6b63; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ p.detail }}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+
+            <button type="button" aria-label="{{ stopAriaF }}" onPointerDown="{{ stopDownF }}" onPointerUp="{{ stopUpF }}" onPointerLeave="{{ stopUpF }}" onPointerCancel="{{ stopUpF }}" style="position: absolute; left: 928px; top: 410px; width: 338px; height: 252px; border: none; border-radius: 18px; background: {{ stopBgF }}; color: #fffaf1; font-family: inherit; font-size: 30px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+              <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelF }}</span>
+              <span style="position: absolute; left: 0; bottom: 0; height: 8px; width: {{ holdPctF }}; background: #c8d5c4"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Six widgets → three</div><p style="margin: 0; font-size: 15px; line-height: 1.55">One plot board, one value strip, one picker. The plot is 902&times;400 instead of three 400&times;250 traces, so a 30-second history is actually readable.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Moved, not dropped</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Joint states and <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">/ee_jac</code> are listed in the picker as Bloom Debug's, greyed with the reason. A diagnostic that vanished silently is worse than one that says where it went.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Needs code</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">New widget kind <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">plot-board</code>: N series over one axis, each <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">{topic, field, label, colour}</code>, picker state persisted per profile.</p></div>
+      </div>
+    </div>
+
+    <div id="4b" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">4b</span>
+        <span style="font-size: 24px; font-weight: 700">Command sources</span>
+        <span style="font-size: 16px; color: #536960">who is commanding the arm right now</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The screen exists to answer one question — <em>the arm moved; which input did that?</em> — and the old layout put the three candidates in three separate 400&times;250 sparklines, which is the one arrangement that makes them impossible to compare. Overlaid on a shared axis, the manager output drawn thicker, the answer is visible without reading a number. The log below keeps the mode requests in time order beside it.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="4b Command sources" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Command sources</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ chipBgS }}; color: {{ chipFgS }}"><span style="width: 11px; height: 11px; border-radius: {{ chipDotS }}; background: {{ chipFgS }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ chipLabelS }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">30 Hz</span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c7bddc; color: #253d35"><span style="font-size: 15px; font-weight: 700">Bench</span></span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 902px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">cartesian_manager sums every activated input — compare them here</span></div>
+
+            <div style="position: absolute; left: 14px; top: 50px; width: 902px; height: 400px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: baseline; gap: 16px">
+                <span style="font-size: 18px; font-weight: 700">linear.x by source</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ srcCount }} series · −30 s → now</span>
+                <span style="flex: 1"></span>
+                <span style="font-size: 15px; font-weight: 700; color: {{ srcVerdictColor }}">{{ srcVerdict }}</span>
+              </div>
+              <div style="flex: 1; position: relative; border: 1px solid rgba(49,73,63,0.14); border-radius: 12px; background: #fffaf1; overflow: hidden">
+                <svg viewBox="0 0 860 300" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%">
+                  <line x1="0" y1="75" x2="860" y2="75" stroke="rgba(49,73,63,0.10)" stroke-width="1"></line>
+                  <line x1="0" y1="150" x2="860" y2="150" stroke="rgba(49,73,63,0.28)" stroke-width="1.5"></line>
+                  <line x1="0" y1="225" x2="860" y2="225" stroke="rgba(49,73,63,0.10)" stroke-width="1"></line>
+                  <line x1="215" y1="0" x2="215" y2="300" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <line x1="430" y1="0" x2="430" y2="300" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <line x1="645" y1="0" x2="645" y2="300" stroke="rgba(49,73,63,0.08)" stroke-width="1"></line>
+                  <sc-for list="{{ srcSeries }}" as="s" hint-placeholder-count="3">
+                    <path d="{{ s.d }}" fill="none" stroke="{{ s.color }}" stroke-width="{{ s.width }}" stroke-linejoin="round" stroke-linecap="round"></path>
+                  </sc-for>
+                </svg>
+                <span style="position: absolute; left: 10px; bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">−30 s</span>
+                <span style="position: absolute; right: 10px; bottom: 8px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">now</span>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 14px; top: 454px; width: 902px; height: 208px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between">
+                <span style="font-size: 18px; font-weight: 700">Mode requests</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">/mode_request · newest first</span>
+              </div>
+              <div style="flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: hidden">
+                <sc-for list="{{ modeLog }}" as="row" hint-placeholder-count="4">
+                  <div style="flex: 1 1 0; min-height: 0; display: flex; align-items: center; gap: 14px; padding: 0 12px; border-radius: 8px; background: {{ row.bg }}">
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63; flex: 0 0 88px; white-space: nowrap">{{ row.age }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; flex: 1">{{ row.data }}</span>
+                    <span style="font-size: 14px; color: #5c6b63">{{ row.note }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 928px; top: 14px; width: 338px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Sources — tap to plot</span></div>
+            <div style="position: absolute; left: 928px; top: 50px; width: 338px; height: 348px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 6px; overflow: hidden">
+              <sc-for list="{{ srcPicker }}" as="p" hint-placeholder-count="5">
+                <button type="button" onClick="{{ p.toggle }}" style="flex: 0 0 56px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 2px solid {{ p.border }}; border-radius: 12px; background: {{ p.bg }}; color: {{ p.fg }}; font-family: inherit; text-align: left; cursor: {{ p.cursor }}; opacity: {{ p.opacity }}">
+                  <span style="flex: 0 0 14px; height: 14px; border-radius: 3px; background: {{ p.swatch }}"></span>
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 15px; font-weight: 700">{{ p.label }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #5c6b63; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ p.detail }}</span>
+                  </span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700">{{ p.now }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <button type="button" aria-label="{{ stopAriaS }}" onPointerDown="{{ stopDownS }}" onPointerUp="{{ stopUpS }}" onPointerLeave="{{ stopUpS }}" onPointerCancel="{{ stopUpS }}" style="position: absolute; left: 928px; top: 410px; width: 338px; height: 252px; border: none; border-radius: 18px; background: {{ stopBgS }}; color: #fffaf1; font-family: inherit; font-size: 30px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+              <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelS }}</span>
+              <span style="position: absolute; left: 0; bottom: 0; height: 8px; width: {{ holdPctS }}; background: #c8d5c4"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">The task, answered</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Manager output is drawn at double weight. When it tracks the tablet, you are driving; when it tracks visual servoing and you are not touching anything, you have your answer.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Picker doubles as legend</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Swatch, name, topic and the current value in one 56 px row. No separate legend to fall out of sync with the plot.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Open</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">Only <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">linear.x</code> is plotted. A field picker per series is the obvious next step; six axes at once is not readable, so it needs a default worth defending.</p></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section style="padding: 56px 48px 40px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+  <div style="max-width: 1100px; margin-bottom: 36px">
+    <p style="margin: 0 0 14px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Turn 3 · Explorer Manager · the bench-side screens · 1280&times;720</p>
+    <h1 style="margin: 0 0 20px; font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1.04; letter-spacing: -0.01em; max-width: 24ch">Two more screens, and two findings I can't decide for you.</h1>
+    <p style="margin: 0 0 12px; font-size: 18px; line-height: 1.6; max-width: 68ch; text-wrap: pretty"><a href="#3a">3a</a> Positions and <a href="#3b">3b</a> Joystick Lab, both authored from geometry tables like Drive, both legal against the minimum-size contract. They share the <strong>bench rail</strong>: everything at <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px">x&nbsp;804&ndash;1266</code> with STOP at <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px">804,410 462&times;252</code> on every screen — invariant 06, satisfied by construction rather than by care.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">Then <a href="#3c">3c</a>: Robot feedback and Command sources do not fit 1280&times;720 at legal widget sizes, and Drive&nbsp;&middot;&nbsp;Bench and Joystick Lab have converged to near-duplicates. Both are product calls, not layout ones.</p>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+    <div id="3a" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">3a</span>
+        <span style="font-size: 24px; font-weight: 700">Positions</span>
+        <span style="font-size: 16px; color: #536960">a pose is dispatched once, and nothing reports back</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The manager accepts a named pose and then goes quiet — no progress, no arrival, no failure. The current screen buries that in a 20&nbsp;px note; here it is the group label above the list, and the only honest feedback available (the joint target that was actually published) owns the rail. <strong>Go home</strong> is a confirm-press: the first tap arms it for five seconds, the second sends. <strong>Release</strong> is the destructive treatment from §09 because it cancels a motion in progress.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="3a Positions" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Positions</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ chipBgP }}; color: {{ chipFgP }}"><span style="width: 11px; height: 11px; border-radius: {{ chipDotP }}; background: {{ chipFgP }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ chipLabelP }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ pubLabelP }}</span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c7bddc; color: #253d35"><span style="font-size: 15px; font-weight: 700">Bench</span></span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 902px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Saved poses — dispatched once; the manager reports no progress</span></div>
+          <div style="position: absolute; left: 14px; top: 50px; width: 902px; height: 420px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
+            <sc-for list="{{ poses }}" as="pose" hint-placeholder-count="5">
+              <button type="button" onClick="{{ pose.select }}" style="flex: 1; min-height: 56px; display: flex; align-items: center; gap: 16px; padding: 0 16px; border: 2px solid {{ pose.border }}; border-radius: 14px; background: {{ pose.bg }}; color: {{ pose.fg }}; font-family: inherit; text-align: left; cursor: pointer">
+                <span style="font-size: 18px; font-weight: 700; flex: 1">{{ pose.name }}</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; opacity: 0.75">{{ pose.joints }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <button type="button" onClick="{{ homeClick }}" style="position: absolute; left: 14px; top: 482px; width: 445px; height: 180px; background: {{ homeBg }}; border: 2px solid {{ homeBorder }}; border-radius: 18px; padding: 14px; font-family: inherit; color: {{ homeFg }}; cursor: pointer; display: flex; flex-direction: column; gap: 8px; align-items: stretch">
+            <span style="font-size: 18px; font-weight: 700; text-align: left">Go home</span>
+            <span style="flex: 1; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; line-height: 1.2">{{ homeLabel }}</span>
+            <span style="font-size: 14px; text-align: left; opacity: 0.8">{{ homeHint }}</span>
+          </button>
+          <button type="button" onClick="{{ releaseClick }}" style="position: absolute; left: 471px; top: 482px; width: 445px; height: 180px; background: #f5ddd8; border: 2px solid #9b3d2e; border-radius: 18px; padding: 14px; font-family: inherit; color: #4f1f16; cursor: pointer; display: flex; flex-direction: column; gap: 8px; align-items: stretch">
+            <span style="font-size: 18px; font-weight: 700; text-align: left">Release</span>
+            <span style="flex: 1; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700">Cancel the pose</span>
+            <span style="font-size: 14px; text-align: left; opacity: 0.85">returns the manager to passthrough</span>
+          </button>
+          <div style="position: absolute; left: 928px; top: 14px; width: 338px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">What was sent — /joint_target_command</span></div>
+          <div style="position: absolute; left: 928px; top: 50px; width: 338px; height: 348px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; font-weight: 700">Joint target</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ sentAge }}</span></div>
+            <pre style="margin: 0; flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 15px; line-height: 1.6; color: #253d35; white-space: pre-wrap; overflow: hidden">{{ sentPayload }}</pre>
+          </div>
+          <button type="button" aria-label="{{ stopAriaP }}" onPointerDown="{{ stopDownP }}" onPointerUp="{{ stopUpP }}" onPointerLeave="{{ stopUpP }}" onPointerCancel="{{ stopUpP }}" style="position: absolute; left: 928px; top: 410px; width: 338px; height: 252px; border: none; border-radius: 18px; background: {{ stopBgP }}; color: #fffaf1; font-family: inherit; font-size: 30px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+            <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelP }}</span>
+            <span style="position: absolute; left: 0; bottom: 0; height: 8px; width: {{ holdPctP }}; background: #c8d5c4"></span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Changed</div><p style="margin: 0; font-size: 15px; line-height: 1.55">The 1240&times;80 prose note becomes a group label. The pose list grows from 610&times;420 to 778&times;420 — five 56 px rows visible instead of a list that lies about its length.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Honest</div><p style="margin: 0; font-size: 15px; line-height: 1.55">No progress bar, no "moving…", no arrival. The rail shows the payload that was published and how long ago. That is the whole truth available.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Open</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">Saving a pose needs a flow of its own — capture, name, confirm. It is not on this screen yet and the current build has no way to do it.</p></div>
+      </div>
+    </div>
+
+    <div id="3b" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">3b</span>
+        <span style="font-size: 24px; font-weight: 700">Joystick Lab</span>
+        <span style="font-size: 16px; color: #536960">the review reference, brought to the contract</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The screen the design review was built on, with its violations fixed: labels 20&nbsp;px&nbsp;&rarr;&nbsp;24, frame and mode buttons 82&nbsp;px&nbsp;&rarr;&nbsp;88, the sent-echo 226&nbsp;px&nbsp;&rarr;&nbsp;462&nbsp;px wide so a twist no longer wraps, and the stage on the same column grid as Drive&nbsp;&middot;&nbsp;Bench. Pick a frame — the echo restamps.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="3b Joystick Lab" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Joystick lab</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ chipBgL }}; color: {{ chipFgL }}"><span style="width: 11px; height: 11px; border-radius: {{ chipDotL }}; background: {{ chipFgL }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ chipLabelL }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">{{ frameId }}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ pubLabelL }}</span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #c7bddc; color: #253d35"><span style="font-size: 15px; font-weight: 700">Bench</span></span>
+            <button type="button" aria-label="Hold to open maintenance" style="min-width: 56px; height: 34px; border: 1px solid rgba(49,73,63,0.18); border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer">⋯</button>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 596px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Command frame — stamped on every twist</span></div>
+          <sc-for list="{{ frames }}" as="frame" hint-placeholder-count="4">
+            <button type="button" onClick="{{ frame.select }}" style="position: absolute; left: {{ frame.x }}; top: 46px; width: 140px; height: 88px; border: 2px solid {{ frame.border }}; border-radius: 14px; background: {{ frame.bg }}; color: {{ frame.fg }}; font-family: inherit; font-size: 17px; font-weight: 700; line-height: 1.2; cursor: pointer">{{ frame.name }}</button>
+          </sc-for>
+          <div style="position: absolute; left: 622px; top: 14px; width: 444px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Shaping mode — requested, never confirmed</span></div>
+          <button type="button" onClick="{{ pickBothL }}" style="position: absolute; left: 622px; top: 46px; width: 140px; height: 88px; border: 2px solid {{ bothBorderL }}; border-radius: 14px; background: {{ bothBgL }}; color: {{ bothFgL }}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Both</button>
+          <button type="button" onClick="{{ pickJacoL }}" style="position: absolute; left: 774px; top: 46px; width: 140px; height: 88px; border: 2px solid {{ jacoBorderL }}; border-radius: 14px; background: {{ jacoBgL }}; color: {{ jacoFgL }}; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Jaco</button>
+          <button type="button" onPointerDown="{{ snakeDownL }}" onPointerUp="{{ snakeUpL }}" onPointerLeave="{{ snakeUpL }}" onPointerCancel="{{ snakeUpL }}" style="position: absolute; left: 926px; top: 46px; width: 140px; height: 88px; border: 2px solid {{ snakeBorderL }}; border-radius: 14px; background: {{ snakeBgL }}; color: {{ snakeFgL }}; font-family: inherit; font-size: 17px; font-weight: 700; line-height: 1.2; cursor: pointer">{{ snakeLabelL }}</button>
+          <div onPointerDown="{{ zDownL }}" onPointerMove="{{ zMoveL }}" onPointerUp="{{ zUpL }}" onPointerCancel="{{ zUpL }}" onLostPointerCapture="{{ zUpL }}" style="position: absolute; left: 14px; top: 146px; width: 110px; height: 384px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px; touch-action: none; cursor: grab; user-select: none; opacity: {{ padOpacityL }}; pointer-events: {{ padPointerL }}">
+            <span style="position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-size: 16px; font-weight: 700">Height</span>
+            <span style="position: absolute; left: 0; right: 0; top: 34px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ zReadoutL }}</span>
+            <span style="position: absolute; top: 72px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700">▲&nbsp;Up</span>
+            <span style="position: absolute; bottom: 20px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700">▼&nbsp;Down</span>
+            <span style="position: absolute; left: 50%; top: 50%; width: 58%; height: 2px; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; left: 10px; right: 10px; height: 64px; top: {{ zKnobTopL }}; border-radius: 14px; background: #7e967e; border: 3px solid #31493f"></span>
+          </div>
+          <div style="position: absolute; left: 136px; top: 146px; width: 384px; height: 384px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px; display: flex; align-items: center; justify-content: center; opacity: {{ padOpacityL }}; pointer-events: {{ padPointerL }}">
+            <span style="position: absolute; left: 14px; top: 10px; font-size: 18px; font-weight: 700">Translation</span>
+            <span style="position: absolute; right: 14px; top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ tReadoutL }}</span>
+            <div onPointerDown="{{ tDownL }}" onPointerMove="{{ tMoveL }}" onPointerUp="{{ tUpL }}" onPointerCancel="{{ tUpL }}" onLostPointerCapture="{{ tUpL }}" style="position: relative; flex: 0 0 auto; width: 380px; height: 380px; touch-action: none; cursor: grab; user-select: none">
+              <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Forward</span>
+              <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Back</span>
+              <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Left</span>
+              <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Right&nbsp;▶</span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 212px; height: 212px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; width: 99px; height: 99px; border-radius: 50%; background: #7e967e; border: 3px solid #31493f; left: {{ tKnobLeftL }}; top: {{ tKnobTopL }}; transform: translate(-50%, -50%)"></span>
+            </div>
+          </div>
+          <div style="position: absolute; left: 532px; top: 146px; width: 384px; height: 384px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px; display: flex; align-items: center; justify-content: center; opacity: {{ padOpacityL }}; pointer-events: {{ padPointerL }}">
+            <span style="position: absolute; left: 14px; top: 10px; font-size: 18px; font-weight: 700">Rotation</span>
+            <span style="position: absolute; right: 14px; top: 12px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ rReadoutL }}</span>
+            <div onPointerDown="{{ rDownL }}" onPointerMove="{{ rMoveL }}" onPointerUp="{{ rUpL }}" onPointerCancel="{{ rUpL }}" onLostPointerCapture="{{ rUpL }}" style="position: relative; flex: 0 0 auto; width: 380px; height: 380px; touch-action: none; cursor: grab; user-select: none">
+              <span style="position: absolute; top: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▲&nbsp;Tilt up</span>
+              <span style="position: absolute; bottom: 52px; left: 0; right: 0; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">▼&nbsp;Tilt down</span>
+              <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">◀&nbsp;Roll left</span>
+              <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 64px; text-align: center; font-size: 17px; font-weight: 700; line-height: 20px">Roll right&nbsp;▶</span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 212px; height: 212px; border: 2px dashed rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; border: 2px solid rgba(49,73,63,0.28); border-radius: 50%; transform: translate(-50%, -50%)"></span>
+              <span style="position: absolute; width: 99px; height: 99px; border-radius: 50%; background: #c98a7e; border: 3px solid #31493f; left: {{ rKnobLeftL }}; top: {{ rKnobTopL }}; transform: translate(-50%, -50%)"></span>
+            </div>
+          </div>
+          <div style="position: absolute; left: 136px; top: 548px; width: 384px; height: 114px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 12px 14px; display: flex; align-items: center; gap: 14px">
+            <div style="display: flex; flex-direction: column; gap: 2px; flex: 0 0 132px"><span style="font-size: 18px; font-weight: 700">Gripper</span><span style="font-size: 13px; color: #5c6b63">{{ gripStateL }}</span></div>
+            <button type="button" onClick="{{ gripClickL }}" style="flex: 1; min-height: 64px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">{{ gripLabelL }}</button>
+          </div>
+          <div onPointerDown="{{ rzDownL }}" onPointerMove="{{ rzMoveL }}" onPointerUp="{{ rzUpL }}" onPointerCancel="{{ rzUpL }}" onLostPointerCapture="{{ rzUpL }}" style="position: absolute; left: 532px; top: 548px; width: 384px; height: 114px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px; touch-action: none; cursor: grab; user-select: none; opacity: {{ padOpacityL }}; pointer-events: {{ padPointerL }}">
+            <span style="position: absolute; left: 14px; top: 8px; font-size: 16px; font-weight: 700">Pivot</span>
+            <span style="position: absolute; right: 14px; top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ rzReadoutL }}</span>
+            <span style="position: absolute; left: 16px; top: 62%; transform: translateY(-50%); font-size: 17px; font-weight: 700">↶&nbsp;Turn left</span>
+            <span style="position: absolute; right: 16px; top: 62%; transform: translateY(-50%); font-size: 17px; font-weight: 700">Turn right&nbsp;↷</span>
+            <span style="position: absolute; left: 50%; top: 62%; width: 2px; height: 34%; background: rgba(49,73,63,0.25); transform: translate(-50%, -50%)"></span>
+            <span style="position: absolute; top: 34px; bottom: 8px; width: 72px; left: {{ rzKnobLeftL }}; border-radius: 12px; background: #c98a7e; border: 3px solid #31493f"></span>
+          </div>
+          <div style="position: absolute; left: 928px; top: 146px; width: 338px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Sent — /joystick_cartesian_command</span></div>
+          <div style="position: absolute; left: 928px; top: 182px; width: 338px; height: 216px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; font-weight: 700">Twist</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ frameId }}</span></div>
+            <pre style="margin: 0; flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 15px; line-height: 1.55; white-space: pre; overflow: hidden">{{ twistPayload }}</pre>
+          </div>
+          <button type="button" aria-label="{{ stopAriaL }}" onPointerDown="{{ stopDownL }}" onPointerUp="{{ stopUpL }}" onPointerLeave="{{ stopUpL }}" onPointerCancel="{{ stopUpL }}" style="position: absolute; left: 928px; top: 410px; width: 338px; height: 252px; border: none; border-radius: 18px; background: {{ stopBgL }}; color: #fffaf1; font-family: inherit; font-size: 30px; font-weight: 700; letter-spacing: 0.06em; cursor: pointer; overflow: hidden">
+            <span style="position: relative; z-index: 2; display: block; padding: 0 12px; line-height: 1.2">{{ stopLabelL }}</span>
+            <span style="position: absolute; left: 0; bottom: 0; height: 8px; width: {{ holdPctL }}; background: #c8d5c4"></span>
+          </button>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Fixed</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Four labels at 20 px (descenders cut) → 24. Seven buttons at 82 px → 88, the grouped minimum. Echo 226 → 462 wide, so a twist prints without wrapping.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Gained</div><p style="margin: 0; font-size: 15px; line-height: 1.55">The frame lives in the kiosk bar as well as the button row, and the echo restamps when you switch — the frame is the thing most easily got wrong.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Stays separate</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">Close to Drive · Bench by design — both are debugging surfaces on one grid. The Lab keeps the frame row and the echo; Bench keeps the speed limits.</p></div>
+      </div>
+    </div>
+
+    <div id="3c" style="display: flex; flex-direction: column; gap: 16px; max-width: 1280px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #9b3d2e; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">3c</span>
+        <span style="font-size: 24px; font-weight: 700">Two findings that need your call</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 14px">
+        <div style="padding: 24px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 20px; border-left: 4px solid #9b3d2e">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 12px">Finding · Robot feedback and Command sources do not fit</div>
+          <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.6">Robot feedback declares six widgets: a gauge, three plots and two echoes. At the legal minimums — plot 280&times;180, echo 226&times;200 — plus the bench rail and STOP, the stage holds <strong>four</strong>. Command sources declares six too, and holds four.</p>
+          <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.6">Today they fit only because the echoes are 336&times;380 with 15&nbsp;px type and the plots are 400&times;250 traces nobody can read a 30-second history from. It is the same over-subscription as kinova's Drive, one screen further along.</p>
+          <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #536960">The options are: split each into two screens; move the joint-state and jacobian views to Bloom Debug where lilac surfaces are allowed; or make the plots on-demand — one large plot with a topic picker instead of three small ones. I'd take the third for Sources and the second for Feedback, but which diagnostics your team actually reads mid-session is not something I can infer from the seed.</p>
+        </div>
+
+        <div style="padding: 24px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 20px; border-left: 4px solid #9b3d2e">
+          <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #9b3d2e; font-weight: 700; margin-bottom: 12px">Resolved · keep them separate — Susi, 17 Sep</div>
+          <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.6">Once both sit on the same column grid, <a href="#3b">3b</a> is <a href="#1b">1b</a> plus four frame buttons and a twist echo, minus the two speed limits. Same pads, same sliders, same gripper, same rail, same STOP.</p>
+          <p style="margin: 0 0 12px; font-size: 16px; line-height: 1.6">They stay two screens, and the reason reframes the split: <strong>Operator is the accessible layout</strong> — for people with motor disabilities — and it differs from Bench in <em>language</em> as much as geometry. Speed as Slow / Medium / Fast rather than 0.15&nbsp;m/s; buttons named for what they do rather than what they publish.</p>
+          <p style="margin: 0; font-size: 16px; line-height: 1.6; color: #536960"><strong>Bench is for debugging</strong>, used mostly by people without motor impairment, so it may carry more information and smaller targets than the operator surface — 48&nbsp;px tablet density rather than 64, detail strips where geometry allows. What this changes in the contract: a role now varies <em>wording</em> too, so plain-language copy becomes a property of the operator profile. Topics, frames, dead zones, publish rate and STOP behaviour stay identical — the two still send byte-identical messages.</p>
+        </div>
+      </div>
+
+      <div style="padding: 24px; background: #31493f; color: #fffaf1; border-radius: 20px">
+        <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #c8d5c4; font-weight: 700; margin-bottom: 14px">Still to build, in order</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px">
+          <p style="margin: 0; font-size: 16px; line-height: 1.6"><strong>Robot feedback</strong> and <strong>Command sources</strong> — blocked on the finding at left.</p>
+          <p style="margin: 0; font-size: 16px; line-height: 1.6"><strong>Runtime Settings</strong>, <strong>Maintenance sheet</strong>, <strong>Runtime app library</strong> — no blockers; the library also closes the remembered-role-entry finding.</p>
+          <p style="margin: 0; font-size: 16px; line-height: 1.6"><strong>Practice tour</strong> and <strong>Supervisor mirror</strong> — these need a brief; neither exists in the seed and I'd be inventing the flow.</p>
+          <p style="margin: 0; font-size: 16px; line-height: 1.6"><strong>STOP / resume states</strong> and the <strong>EN/ES/FR locale page</strong> — mechanical once the screens above are settled.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    v: { tL: { x: 0, y: 0 }, rL: { x: 0, y: 0 } },
+    s: { zL: 0, rzL: 0 },
+    drag: {},
+    mode: "both", snake: false, grip: false,
+    stopped: { P: false, L: false, F: false, S: false },
+    hold: { P: 0, L: 0, F: 0, S: 0 },
+    frame: "base_link",
+    pose: "home",
+    homeArmed: false,
+    sentAt: null,
+    tick: 0,
+    fbOn: { eeSpeed: true, cmdX: true, cmdRz: false, poseZ: false },
+    srcOn: { tablet: true, servo: true, output: true }
+  };
+  timers = {};
+  componentDidMount() {
+    document.title = "Bloom — runtime screens";
+    this.ticker = setInterval(() => this.setState((s) => ({ tick: s.tick + 1 })), 250);
+  }
+  componentWillUnmount() {
+    for (const k of Object.keys(this.timers)) clearInterval(this.timers[k]);
+    if (this.ticker) clearInterval(this.ticker);
+    if (this.armTimer) clearTimeout(this.armTimer);
+  }
+  setFill(opt, p) { this.setState((s) => ({ hold: { ...s.hold, [opt]: p } })); }
+
+  dz(v) { const d = 0.2, a = Math.abs(v); return a <= d ? 0 : Math.sign(v) * (a - d) / (1 - d); }
+  padVector(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const rad = Math.min(rect.width, rect.height) / 2;
+    let x = this.dz((e.clientX - (rect.left + rect.width / 2)) / rad);
+    let y = this.dz(-(e.clientY - (rect.top + rect.height / 2)) / rad);
+    const m = Math.hypot(x, y);
+    if (m > 1) { x /= m; y /= m; }
+    return { x: +x.toFixed(2), y: +y.toFixed(2) };
+  }
+  sliderValue(e, vertical) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const raw = vertical ? -(((e.clientY - rect.top) / rect.height) * 2 - 1) : ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    return +this.dz(Math.max(-1, Math.min(1, raw))).toFixed(2);
+  }
+  setDrag(key, on) { this.setState((st) => ({ drag: { ...st.drag, [key]: on } })); }
+  pad(key) {
+    return {
+      down: (e) => { if (this.state.stopped.L) return; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} this.setDrag(key, true); this.setState((st) => ({ v: { ...st.v, [key]: this.padVector(e) } })); },
+      move: (e) => { if (!this.state.drag[key]) return; const nv = this.padVector(e); this.setState((st) => ({ v: { ...st.v, [key]: nv } })); },
+      up: () => { if (!this.state.drag[key]) return; this.setDrag(key, false); this.setState((st) => ({ v: { ...st.v, [key]: { x: 0, y: 0 } } })); }
+    };
+  }
+  sld(key, vertical) {
+    return {
+      down: (e) => { if (this.state.stopped.L) return; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} this.setDrag(key, true); this.setState((st) => ({ s: { ...st.s, [key]: this.sliderValue(e, vertical) } })); },
+      move: (e) => { if (!this.state.drag[key]) return; const nv = this.sliderValue(e, vertical); this.setState((st) => ({ s: { ...st.s, [key]: nv } })); },
+      up: () => { if (!this.state.drag[key]) return; this.setDrag(key, false); this.setState((st) => ({ s: { ...st.s, [key]: 0 } })); }
+    };
+  }
+  startHold(opt, ms, onDone) {
+    this.cancelHold(opt);
+    const t0 = Date.now();
+    this.timers[opt] = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / ms);
+      this.setFill(opt, p);
+      if (p >= 1) { this.cancelHold(opt); onDone(); }
+    }, 40);
+  }
+  cancelHold(opt) {
+    if (this.timers[opt]) { clearInterval(this.timers[opt]); delete this.timers[opt]; }
+    this.setFill(opt, 0);
+  }
+  stopFor(opt) {
+    const stopped = this.state.stopped[opt];
+    return {
+      [`chipBg${opt}`]: stopped ? "#9b3d2e" : "#c8d5c4",
+      [`chipFg${opt}`]: stopped ? "#fffaf1" : "#253d35",
+      [`chipDot${opt}`]: stopped ? "2px" : "50%",
+      [`chipLabel${opt}`]: stopped ? "STOPPED" : "READY",
+      [`stopLabel${opt}`]: stopped ? "HOLD TO RESUME" : "STOP",
+      [`stopAria${opt}`]: stopped ? "Hold for one second to resume" : "Stop the robot",
+      [`stopBg${opt}`]: stopped ? "#253d35" : "#9b3d2e",
+      [`stopDown${opt}`]: () => {
+        if (!stopped) {
+          this.setState((st) => ({ stopped: { ...st.stopped, [opt]: true }, snake: false, v: { tL: { x: 0, y: 0 }, rL: { x: 0, y: 0 } }, s: { zL: 0, rzL: 0 }, drag: {} }));
+          return;
+        }
+        this.startHold(opt, 1000, () => this.setState((st) => ({ stopped: { ...st.stopped, [opt]: false } })));
+      },
+      [`stopUp${opt}`]: () => this.cancelHold(opt),
+      [`holdPct${opt}`]: `${Math.round(this.state.hold[opt] * 100)}%`
+    };
+  }
+
+  path(fn) {
+    const t0 = this.state.tick * 0.25;
+    let d = "";
+    for (let i = 0; i <= 120; i++) {
+      const tau = t0 - 30 + i * 0.25;
+      const x = (i / 120) * 860;
+      const y = 150 - Math.max(-1, Math.min(1, fn(tau))) * 140;
+      d += (i ? " L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    }
+    return d;
+  }
+  burst(tau, period, width, amp) {
+    const phase = ((tau % period) + period) % period;
+    return phase < width ? amp * Math.sin((phase / width) * Math.PI) : 0;
+  }
+  picker(defs, bag) {
+    const on = this.state[bag];
+    return defs.map((d) => {
+      const active = !d.moved && on[d.key];
+      return {
+        label: d.label, detail: d.moved ? d.moved : d.topic,
+        swatch: d.moved ? "rgba(49,73,63,0.25)" : active ? d.color : "rgba(49,73,63,0.2)",
+        bg: d.moved ? "#f2eadc" : active ? "#e7ede2" : "#fffaf1",
+        fg: "#253d35",
+        border: d.moved ? "rgba(49,73,63,0.14)" : active ? "#31493f" : "rgba(49,73,63,0.18)",
+        opacity: d.moved ? 0.55 : 1,
+        cursor: d.moved ? "not-allowed" : "pointer",
+        now: d.now || "",
+        toggle: d.moved ? () => {} : () => this.setState((s) => ({ [bag]: { ...s[bag], [d.key]: !s[bag][d.key] } }))
+      };
+    });
+  }
+
+  renderVals() {
+    const st = this.state;
+    const fmt = (v) => (v >= 0 ? "+" : "\u2212") + Math.abs(v).toFixed(2);
+    const sel = { bg: "#31493f", fg: "#fffaf1", border: "#31493f" };
+    const idle = { bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)" };
+    const held = { bg: "#ffd89b", fg: "#253d35", border: "#31493f" };
+
+    const t = st.v.tL, r = st.v.rL, z = st.s.zL, rz = st.s.rzL;
+    const driving = t.x !== 0 || t.y !== 0 || r.x !== 0 || r.y !== 0 || z !== 0 || rz !== 0;
+    const tp = this.pad("tL"), rp = this.pad("rL");
+    const zp = this.sld("zL", true), rzp = this.sld("rzL", false);
+    const both = st.mode === "both" ? sel : idle;
+    const jaco = st.mode === "jaco" ? sel : idle;
+    const snake = st.snake ? held : idle;
+
+    const POSES = [
+      { id: "home", name: "Home", joints: "0.00 1.57 0.00 1.57 0.00 0.00" },
+      { id: "table", name: "Table height", joints: "0.12 1.20 0.35 1.44 0.00 0.10" },
+      { id: "shelf", name: "Shelf reach", joints: "0.40 0.95 0.60 1.10 0.20 0.00" },
+      { id: "drink", name: "Drink to mouth", joints: "0.05 0.80 1.10 0.90 0.45 0.15" },
+      { id: "park", name: "Parked", joints: "0.00 2.10 0.00 2.00 0.00 0.00" }
+    ];
+    const FRAMES = [
+      { id: "base_link", name: "Base", x: "14px" },
+      { id: "effector_frame", name: "Tool", x: "166px" },
+      { id: "hybrid_frame", name: "Hybrid", x: "318px" },
+      { id: "ft_frame", name: "Force sensor", x: "470px" }
+    ];
+
+    const pose = POSES.find((p) => p.id === st.pose) || POSES[0];
+    const age = st.sentAt ? Math.max(0, Math.round((Date.now() - st.sentAt) / 1000)) : null;
+
+    return {
+      ...this.stopFor("P"),
+      ...this.stopFor("L"),
+      ...this.stopFor("F"),
+      ...this.stopFor("S"),
+      ...(() => {
+        const now = st.tick * 0.25;
+        const FB = [
+          { key: "eeSpeed", label: "End effector speed", topic: "/ee_velocity · linear.x", color: "#31493f", unit: "m/s", scale: 0.5, fn: (t) => 0.52 * Math.sin(0.35 * t) + 0.18 * Math.sin(0.9 * t) },
+          { key: "cmdX", label: "Commanded X", topic: "/cartesian_command · linear.x", color: "#7e967e", unit: "norm", scale: 1, fn: (t) => 0.62 * Math.sin(0.35 * t + 0.35) },
+          { key: "cmdRz", label: "Commanded RZ", topic: "/cartesian_command · angular.z", color: "#c98a7e", unit: "norm", scale: 1, fn: (t) => 0.44 * Math.sin(0.17 * t + 1.1) },
+          { key: "poseZ", label: "Height", topic: "/ee_pose · position.z", color: "#536960", unit: "m", scale: 0.8, fn: (t) => 0.3 * Math.sin(0.09 * t) + 0.15 },
+          { key: "joints", label: "Joint states", topic: "", moved: "moved to Bloom Debug", color: "#536960", fn: () => 0 },
+          { key: "jac", label: "Manipulability", topic: "", moved: "moved to Bloom Debug — /ee_jac", color: "#536960", fn: () => 0 }
+        ];
+        const SRC = [
+          { key: "tablet", label: "This tablet", topic: "/joystick_cartesian_command", color: "#7e967e", width: 2.5, fn: (t) => this.burst(t, 11, 5, 0.66) },
+          { key: "servo", label: "Visual servoing", topic: "/visual_servoing_cartesian_command", color: "#c98a7e", width: 2.5, fn: (t) => this.burst(t + 7, 17, 6, 0.4) },
+          { key: "output", label: "Manager output", topic: "/cartesian_command", color: "#31493f", width: 5, fn: (t) => this.burst(t, 11, 5, 0.66) + this.burst(t + 7, 17, 6, 0.4) }
+        ];
+        const fbActive = FB.filter((d) => !d.moved && st.fbOn[d.key]);
+        const srcActive = SRC.filter((d) => st.srcOn[d.key]);
+        const tabletNow = SRC[0].fn(now), servoNow = SRC[1].fn(now);
+        const dominant = Math.abs(tabletNow) < 0.04 && Math.abs(servoNow) > 0.04;
+        return {
+          fbSeries: fbActive.map((d) => ({ d: this.path(d.fn), color: d.color, width: 2.5 })),
+          fbCount: `${fbActive.length}`,
+          fbPicker: this.picker(FB, "fbOn"),
+          fbValues: FB.slice(0, 4).map((d) => ({
+            label: d.label, topic: d.topic.split(" · ")[0], unit: d.unit, color: st.fbOn[d.key] ? d.color : "#5c6b63",
+            value: ((v) => (v >= 0 ? "+" : "\u2212") + Math.abs(v).toFixed(2))(d.fn(now) * (d.scale || 1))
+          })),
+          srcSeries: srcActive.map((d) => ({ d: this.path(d.fn), color: d.color, width: d.width })),
+          srcCount: `${srcActive.length}`,
+          srcPicker: this.picker(SRC.map((d) => ({ ...d, now: ((v) => (v >= 0 ? "+" : "\u2212") + Math.abs(v).toFixed(2))(d.fn(now)) })), "srcOn"),
+          srcVerdict: dominant ? "visual servoing is driving" : Math.abs(tabletNow) > 0.04 ? "this tablet is driving" : "nothing is commanding",
+          srcVerdictColor: dominant ? "#9b3d2e" : "#31493f",
+          modeLog: [
+            { age: "12 s ago", data: "geometric/both", note: "neutral shaping", bg: "#f8f4eb" },
+            { age: "48 s ago", data: "geometric/snake", note: "held, then released", bg: "#fffaf1" },
+            { age: "2 min ago", data: "behaviour/passthrough", note: "pose released", bg: "#f8f4eb" },
+            { age: "4 min ago", data: "behaviour/joint_target/home", note: "pose dispatched", bg: "#fffaf1" }
+          ]
+        };
+      })(),
+
+      poses: POSES.map((p) => {
+        const on = p.id === st.pose;
+        return { name: p.name, joints: p.joints, bg: on ? "#e7ede2" : "#f2eadc", fg: "#253d35", border: on ? "#31493f" : "rgba(49,73,63,0.18)", select: () => this.setState({ pose: p.id, homeArmed: false }) };
+      }),
+      homeLabel: st.homeArmed ? "Press again to move" : `Send ${pose.name}`,
+      homeHint: st.homeArmed ? "arms for 5 s, then cancels itself" : "dispatched once — no progress is reported",
+      homeBg: st.homeArmed ? "#ffd89b" : "#f8f4eb",
+      homeFg: "#253d35",
+      homeBorder: st.homeArmed ? "#31493f" : "rgba(49,73,63,0.18)",
+      homeClick: () => {
+        if (this.armTimer) clearTimeout(this.armTimer);
+        if (!st.homeArmed) {
+          this.setState({ homeArmed: true });
+          this.armTimer = setTimeout(() => this.setState({ homeArmed: false }), 5000);
+          return;
+        }
+        this.setState({ homeArmed: false, sentAt: Date.now() });
+      },
+      releaseClick: () => this.setState({ homeArmed: false, sentAt: null }),
+      sentAge: age === null ? "nothing sent" : `${age} s ago`,
+      sentPayload: age === null
+        ? "—\n\nNo joint target has been\npublished this session."
+        : `name:\n  joint_1 … joint_6\nposition:\n  ${pose.joints.split(" ").join("\n  ")}`,
+
+      frames: FRAMES.map((fr) => {
+        const on = fr.id === st.frame;
+        return { name: fr.name, x: fr.x, bg: on ? sel.bg : idle.bg, fg: on ? sel.fg : idle.fg, border: on ? sel.border : idle.border, select: () => this.setState({ frame: fr.id }) };
+      }),
+      frameId: st.frame,
+
+      padOpacityL: st.stopped.L ? 0.45 : 1,
+      padPointerL: st.stopped.L ? "none" : "auto",
+      bothBgL: both.bg, bothFgL: both.fg, bothBorderL: both.border,
+      jacoBgL: jaco.bg, jacoFgL: jaco.fg, jacoBorderL: jaco.border,
+      snakeBgL: snake.bg, snakeFgL: snake.fg, snakeBorderL: snake.border,
+      snakeLabelL: st.snake ? "SNAKE ON" : "Hold snake",
+      pickBothL: () => this.setState({ mode: "both" }),
+      pickJacoL: () => this.setState({ mode: "jaco" }),
+      snakeDownL: () => this.setState({ snake: true }),
+      snakeUpL: () => this.setState({ snake: false }),
+      gripStateL: "commanded: " + (st.grip ? "closed" : "open"),
+      gripLabelL: st.grip ? "Open gripper" : "Close gripper",
+      gripClickL: () => this.setState({ grip: !st.grip }),
+
+      tDownL: tp.down, tMoveL: tp.move, tUpL: tp.up,
+      rDownL: rp.down, rMoveL: rp.move, rUpL: rp.up,
+      zDownL: zp.down, zMoveL: zp.move, zUpL: zp.up,
+      rzDownL: rzp.down, rzMoveL: rzp.move, rzUpL: rzp.up,
+      tKnobLeftL: `${50 + t.x * 37}%`, tKnobTopL: `${50 - t.y * 37}%`,
+      rKnobLeftL: `${50 + r.x * 37}%`, rKnobTopL: `${50 - r.y * 37}%`,
+      zKnobTopL: `calc(${50 - z * 40}% - 32px)`,
+      rzKnobLeftL: `calc(${50 + rz * 42}% - 36px)`,
+      tReadoutL: `x ${fmt(t.x)}  y ${fmt(t.y)}`,
+      rReadoutL: `rx ${fmt(r.x)}  ry ${fmt(r.y)}`,
+      zReadoutL: fmt(z), rzReadoutL: fmt(rz),
+      pubLabelL: st.stopped.L ? "zeros held" : driving ? "publishing \u00b7 30 Hz" : "30 Hz",
+      pubLabelP: st.stopped.P ? "zeros held" : "30 Hz",
+      twistPayload: `linear:\n  x ${fmt(t.x)}  y ${fmt(t.y)}  z ${fmt(z)}\nangular:\n  x ${fmt(r.x)}  y ${fmt(r.y)}  z ${fmt(rz)}`
+    };
+  }
+}
+</script>
+</body>
+</html>

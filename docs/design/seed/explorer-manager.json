@@ -1,0 +1,1869 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-09-17T08:30:00Z",
+    "source": "bloom:explorer-manager"
+  },
+  "applications": [
+    {
+      "id": "explorer-manager",
+      "name": "Explorer Manager",
+      "description": "Operator app shaped around the cartesian_manager branches: velocity drive, named positions, robot feedback, and command-source visibility.",
+      "lifecycle": "active",
+      "action_presets": [
+        {
+          "id": "manager-release",
+          "name": "Release joint target",
+          "kind": "topic-publish",
+          "description": "Cancel a running named position and return the manager to passthrough.",
+          "command": "behaviour/passthrough",
+          "topic": "/mode_request",
+          "message_type": "std_msgs/msg/String",
+          "payload": {
+            "data": "behaviour/passthrough"
+          },
+          "payload_text": "",
+          "tags": [
+            "explorer",
+            "safety"
+          ]
+        },
+        {
+          "id": "manager-neutral",
+          "name": "Neutral shaping",
+          "kind": "topic-publish",
+          "description": "Return the manager to geometric/both.",
+          "command": "geometric/both",
+          "topic": "/mode_request",
+          "message_type": "std_msgs/msg/String",
+          "payload": {
+            "data": "geometric/both"
+          },
+          "payload_text": "",
+          "tags": [
+            "explorer",
+            "mode"
+          ]
+        }
+      ],
+      "runtime_policy": {
+        "command_frame_id": "base_link",
+        "allowed_message_types": [
+          "geometry_msgs/msg/PoseStamped",
+          "geometry_msgs/msg/TwistStamped",
+          "sensor_msgs/msg/JointState",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": [
+          "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+          "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+          "/gripper_controller/commands",
+          "/mode_request"
+        ],
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_jac",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/visual_servoing_cartesian_command"
+        ],
+        "allowed_teleop_targets": [
+          "/joystick_cartesian_command"
+        ]
+      },
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [
+        {
+          "id": "operator",
+          "name": "Operator",
+          "display_preset": "comfort",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "manager_drive_operator",
+          "motor_accessibility_preset": "default",
+          "audio_cues": false,
+          "deadzone": 0,
+          "repeat_guard_ms": 0,
+          "scan_period_ms": 1400
+        },
+        {
+          "id": "bench",
+          "name": "Bench",
+          "display_preset": "default",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "manager_drive_bench",
+          "motor_accessibility_preset": "default",
+          "audio_cues": false,
+          "deadzone": 0,
+          "repeat_guard_ms": 0,
+          "scan_period_ms": 1400
+        },
+        {
+          "id": "one-switch",
+          "name": "One switch",
+          "display_preset": "comfort",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "manager_drive_operator",
+          "motor_accessibility_preset": "scan",
+          "audio_cues": true,
+          "deadzone": 0,
+          "repeat_guard_ms": 0,
+          "scan_period_ms": 1400,
+          "dwell_enabled": true,
+          "dwell_ms": 1000
+        }
+      ],
+      "screens": [
+        {
+          "id": "manager_drive_bench",
+          "title": "Drive · Bench",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ],
+          "widgets": [
+            {
+              "id": "bench-mode-label",
+              "kind": "label",
+              "title": "SHAPING MODE — requested, the manager never confirms",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 560,
+                "height": 24
+              },
+              "settings": {
+                "text": "SHAPING MODE — requested, the manager never confirms",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "drive-gripper",
+              "kind": "toggle",
+              "title": "Gripper",
+              "layout": {
+                "x": 590,
+                "y": 14,
+                "width": 300,
+                "height": 120
+              },
+              "settings": {
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "initialValue": false,
+                "show_details": false,
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}"
+              }
+            },
+            {
+              "id": "bench-speed-label",
+              "kind": "label",
+              "title": "SPEED LIMITS — CONTINUOUS",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SPEED LIMITS — CONTINUOUS",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "drive-mode-both",
+              "kind": "command-button",
+              "title": "Neutral",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 176,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "drive-mode-both",
+                "action_label": "Request geometric/both",
+                "button_label": "Both",
+                "cancellable": false,
+                "command": "geometric/both",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/both"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "drive-mode-jaco",
+              "kind": "command-button",
+              "title": "Jaco",
+              "layout": {
+                "x": 202,
+                "y": 46,
+                "width": 176,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "drive-mode-jaco",
+                "action_label": "Request geometric/jaco",
+                "button_label": "Jaco",
+                "cancellable": false,
+                "command": "geometric/jaco",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/jaco"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "drive-snake-hold",
+              "kind": "command-button",
+              "title": "Snake",
+              "layout": {
+                "x": 390,
+                "y": 46,
+                "width": 176,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "drive-snake-hold",
+                "action_label": "Hold for snake",
+                "button_label": "Hold snake",
+                "cancellable": false,
+                "command": "geometric/snake",
+                "momentary": true,
+                "pressed_label": "SNAKE ON",
+                "released_label": "Hold snake",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/snake"
+                },
+                "releasedPayload": {
+                  "data": "geometric/both"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "drive-z",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 14,
+                "y": 146,
+                "width": 110,
+                "height": 384
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "vertical",
+                "show_details": false,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "linear_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 136,
+                "y": 146,
+                "width": 384,
+                "height": 384
+              },
+              "settings": {
+                "axes": {
+                  "x": {
+                    "color": "#7e967e",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#7e967e",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "▶ Right"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-rotation",
+              "kind": "joystick",
+              "title": "Rotation",
+              "layout": {
+                "x": 532,
+                "y": 146,
+                "width": 384,
+                "height": 384
+              },
+              "settings": {
+                "axes": {
+                  "x": {
+                    "color": "#c98a7e",
+                    "negative_label": "RX-",
+                    "positive_label": "RX+",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#c98a7e",
+                    "negative_label": "RY-",
+                    "positive_label": "RY+",
+                    "semantic": "rotation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Tilt up",
+                  "bottom": "▼ Tilt down",
+                  "left": "◀ Roll left",
+                  "right": "▶ Roll right"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_x"
+                    },
+                    "y": {
+                      "component": "angular_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-max-linear-speed",
+              "kind": "slider",
+              "title": "Max linear speed",
+              "layout": {
+                "x": 928,
+                "y": 146,
+                "width": 338,
+                "height": 120
+              },
+              "settings": {
+                "max": 0.3,
+                "min": 0,
+                "step": 0.015,
+                "value": 0.15,
+                "direction": "horizontal",
+                "show_details": false,
+                "unit": "m/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64"
+              }
+            },
+            {
+              "id": "drive-max-angular-speed",
+              "kind": "slider",
+              "title": "Max angular speed",
+              "layout": {
+                "x": 928,
+                "y": 278,
+                "width": 338,
+                "height": 120
+              },
+              "settings": {
+                "max": 0.8,
+                "min": 0,
+                "step": 0.04,
+                "value": 0.4,
+                "direction": "horizontal",
+                "show_details": false,
+                "unit": "rad/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+                "messageType": "std_msgs/msg/Float64"
+              }
+            },
+            {
+              "id": "drive-rz",
+              "kind": "slider",
+              "title": "Pivot",
+              "layout": {
+                "x": 532,
+                "y": 548,
+                "width": 384,
+                "height": 114
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "horizontal",
+                "show_details": false,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "angular_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "manager_drive_operator",
+          "title": "Drive · Operator",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 1064,
+              "y": 194,
+              "width": 202,
+              "height": 468
+            }
+          ],
+          "widgets": [
+            {
+              "id": "drive-max-linear-speed",
+              "kind": "slider",
+              "title": "Max speed",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 264,
+                "height": 150
+              },
+              "settings": {
+                "max": 0.3,
+                "min": 0,
+                "step": 0.015,
+                "value": 0.15,
+                "direction": "horizontal",
+                "show_details": false,
+                "unit": "m/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64",
+                "variant": "segments",
+                "segment_labels": [
+                  "Slow",
+                  "Medium",
+                  "Fast"
+                ],
+                "segment_values": [
+                  0.08,
+                  0.15,
+                  0.3
+                ]
+              }
+            },
+            {
+              "id": "op-move-label",
+              "kind": "label",
+              "title": "MOVE THE HAND — three linear axes",
+              "layout": {
+                "x": 290,
+                "y": 14,
+                "width": 436,
+                "height": 24
+              },
+              "settings": {
+                "text": "MOVE THE HAND — three linear axes",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "op-aim-label",
+              "kind": "label",
+              "title": "AIM THE HAND — three angular axes",
+              "layout": {
+                "x": 738,
+                "y": 14,
+                "width": 314,
+                "height": 24
+              },
+              "settings": {
+                "text": "AIM THE HAND — three angular axes",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "drive-gripper",
+              "kind": "toggle",
+              "title": "Gripper",
+              "layout": {
+                "x": 1064,
+                "y": 14,
+                "width": 202,
+                "height": 168
+              },
+              "settings": {
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "initialValue": false,
+                "show_details": false,
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}"
+              }
+            },
+            {
+              "id": "drive-z",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 290,
+                "y": 46,
+                "width": 110,
+                "height": 346
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "vertical",
+                "show_details": false,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "linear_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 412,
+                "y": 46,
+                "width": 314,
+                "height": 346
+              },
+              "settings": {
+                "axes": {
+                  "x": {
+                    "color": "#7e967e",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#7e967e",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "▶ Right"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-rotation",
+              "kind": "joystick",
+              "title": "Rotation",
+              "layout": {
+                "x": 738,
+                "y": 46,
+                "width": 314,
+                "height": 346
+              },
+              "settings": {
+                "axes": {
+                  "x": {
+                    "color": "#c98a7e",
+                    "negative_label": "RX-",
+                    "positive_label": "RX+",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#c98a7e",
+                    "negative_label": "RY-",
+                    "positive_label": "RY+",
+                    "semantic": "rotation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Tilt up",
+                  "bottom": "▼ Tilt down",
+                  "left": "◀ Roll left",
+                  "right": "▶ Roll right"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_x"
+                    },
+                    "y": {
+                      "component": "angular_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-max-angular-speed",
+              "kind": "slider",
+              "title": "Max turn",
+              "layout": {
+                "x": 14,
+                "y": 176,
+                "width": 264,
+                "height": 150
+              },
+              "settings": {
+                "max": 0.8,
+                "min": 0,
+                "step": 0.04,
+                "value": 0.4,
+                "direction": "horizontal",
+                "show_details": false,
+                "unit": "rad/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+                "messageType": "std_msgs/msg/Float64",
+                "variant": "segments",
+                "segment_labels": [
+                  "Slow",
+                  "Medium",
+                  "Fast"
+                ],
+                "segment_values": [
+                  0.2,
+                  0.4,
+                  0.8
+                ]
+              }
+            },
+            {
+              "id": "op-mode-label",
+              "kind": "label",
+              "title": "SHAPING MODE",
+              "layout": {
+                "x": 14,
+                "y": 338,
+                "width": 264,
+                "height": 24
+              },
+              "settings": {
+                "text": "SHAPING MODE",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "drive-mode-both",
+              "kind": "command-button",
+              "title": "Neutral shaping",
+              "layout": {
+                "x": 14,
+                "y": 370,
+                "width": 264,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "drive-mode-both",
+                "action_label": "Request geometric/both",
+                "button_label": "Both",
+                "cancellable": false,
+                "command": "geometric/both",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/both"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "drive-rz",
+              "kind": "slider",
+              "title": "Pivot",
+              "layout": {
+                "x": 738,
+                "y": 404,
+                "width": 314,
+                "height": 146
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "horizontal",
+                "show_details": false,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "angular_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-mode-jaco",
+              "kind": "command-button",
+              "title": "Jaco",
+              "layout": {
+                "x": 14,
+                "y": 470,
+                "width": 264,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "drive-mode-jaco",
+                "action_label": "Request geometric/jaco",
+                "button_label": "Jaco",
+                "cancellable": false,
+                "command": "geometric/jaco",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/jaco"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "drive-snake-hold",
+              "kind": "command-button",
+              "title": "Snake",
+              "layout": {
+                "x": 14,
+                "y": 570,
+                "width": 264,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "drive-snake-hold",
+                "action_label": "Hold for snake",
+                "button_label": "Hold snake",
+                "cancellable": false,
+                "command": "geometric/snake",
+                "momentary": true,
+                "pressed_label": "SNAKE ON",
+                "released_label": "Hold snake",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/snake"
+                },
+                "releasedPayload": {
+                  "data": "geometric/both"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "manager_positions",
+          "title": "Positions",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "positions-poses-label",
+              "kind": "label",
+              "title": "SAVED POSES — dispatched once; the manager reports no progress",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 902,
+                "height": 24
+              },
+              "settings": {
+                "text": "SAVED POSES — dispatched once; the manager reports no progress",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "positions-sent-label",
+              "kind": "label",
+              "title": "WHAT WAS SENT — /joint_target_command",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "WHAT WAS SENT — /joint_target_command",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "positions-library",
+              "kind": "position-library",
+              "title": "Saved poses",
+              "layout": {
+                "x": 14,
+                "y": 50,
+                "width": 902,
+                "height": 420
+              },
+              "settings": {
+                "jointStateTopic": "/joint_states",
+                "jointNames": [
+                  "joint_1",
+                  "joint_2",
+                  "joint_3",
+                  "joint_4",
+                  "joint_5",
+                  "joint_6"
+                ],
+                "show_details": false
+              }
+            },
+            {
+              "id": "positions-target-echo",
+              "kind": "topic-echo",
+              "title": "Joint target",
+              "layout": {
+                "x": 928,
+                "y": 50,
+                "width": 338,
+                "height": 348
+              },
+              "settings": {
+                "fieldPath": "",
+                "maxMessages": 20,
+                "messageType": "sensor_msgs/msg/JointState",
+                "prettyPrint": true,
+                "show_details": true,
+                "topic": "/joint_target_command"
+              }
+            },
+            {
+              "id": "positions-home",
+              "kind": "command-button",
+              "title": "Home",
+              "layout": {
+                "x": 14,
+                "y": 482,
+                "width": 445,
+                "height": 180
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "positions-home",
+                "action_label": "Request behaviour/joint_target/home",
+                "button_label": "Go home",
+                "cancellable": false,
+                "command": "behaviour/joint_target/home",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/joint_target/home"
+                },
+                "show_details": true,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5
+              }
+            },
+            {
+              "id": "positions-release",
+              "kind": "command-button",
+              "title": "Release",
+              "layout": {
+                "x": 471,
+                "y": 482,
+                "width": 445,
+                "height": 180
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "positions-release",
+                "action_label": "Cancel the joint target",
+                "button_label": "Release",
+                "cancellable": false,
+                "command": "behaviour/passthrough",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/passthrough"
+                },
+                "show_details": true,
+                "variant": "danger"
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        },
+        {
+          "id": "manager_feedback",
+          "title": "Robot feedback",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "feedback-plot-label",
+              "kind": "label",
+              "title": "LIVE FROM THE ROBOT — 30 second window",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 902,
+                "height": 24
+              },
+              "settings": {
+                "text": "LIVE FROM THE ROBOT — 30 second window",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "feedback-plot",
+              "kind": "plot-board",
+              "title": "Plot board",
+              "layout": {
+                "x": 14,
+                "y": 50,
+                "width": 902,
+                "height": 400
+              },
+              "settings": {
+                "series": [
+                  {
+                    "topic": "/ee_velocity",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "End effector speed",
+                    "color": "#31493f",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/cartesian_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Commanded X",
+                    "color": "#7e967e",
+                    "unit": "norm",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/cartesian_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.angular.z",
+                    "label": "Commanded RZ",
+                    "color": "#c98a7e",
+                    "unit": "norm",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/ee_pose",
+                    "message_type": "geometry_msgs/msg/PoseStamped",
+                    "field_path": "pose.position.z",
+                    "label": "Height",
+                    "color": "#536960",
+                    "unit": "m",
+                    "enabled": false
+                  }
+                ],
+                "history_seconds": 30,
+                "max_samples": 900,
+                "y_min": -1,
+                "y_max": 1,
+                "show_details": false,
+                "picker": {
+                  "enabled": true,
+                  "persist_per_profile": true
+                }
+              }
+            },
+            {
+              "id": "feedback-values",
+              "kind": "value-strip",
+              "title": "Current values",
+              "layout": {
+                "x": 14,
+                "y": 462,
+                "width": 902,
+                "height": 200
+              },
+              "settings": {
+                "series": [
+                  {
+                    "topic": "/ee_velocity",
+                    "field_path": "twist.linear.x",
+                    "label": "End effector speed",
+                    "unit": "m/s",
+                    "color": "#31493f"
+                  },
+                  {
+                    "topic": "/cartesian_command",
+                    "field_path": "twist.linear.x",
+                    "label": "Commanded X",
+                    "unit": "norm",
+                    "color": "#7e967e"
+                  },
+                  {
+                    "topic": "/cartesian_command",
+                    "field_path": "twist.angular.z",
+                    "label": "Commanded RZ",
+                    "unit": "norm",
+                    "color": "#c98a7e"
+                  },
+                  {
+                    "topic": "/ee_pose",
+                    "field_path": "pose.position.z",
+                    "label": "Height",
+                    "unit": "m",
+                    "color": "#536960"
+                  }
+                ],
+                "show_details": false
+              }
+            },
+            {
+              "id": "feedback-series-label",
+              "kind": "label",
+              "title": "SERIES — tap to plot",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SERIES — tap to plot",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "feedback-series-picker",
+              "kind": "plot-picker",
+              "title": "Series",
+              "layout": {
+                "x": 928,
+                "y": 50,
+                "width": 338,
+                "height": 348
+              },
+              "settings": {
+                "plot_id": "feedback-plot",
+                "show_unavailable": true,
+                "show_details": false
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        },
+        {
+          "id": "manager_sources",
+          "title": "Command sources",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "sources-plot-label",
+              "kind": "label",
+              "title": "cartesian_manager SUMS EVERY ACTIVATED INPUT — COMPARE THEM HERE",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 902,
+                "height": 24
+              },
+              "settings": {
+                "text": "cartesian_manager SUMS EVERY ACTIVATED INPUT — COMPARE THEM HERE",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "sources-plot",
+              "kind": "plot-board",
+              "title": "linear.x by source",
+              "layout": {
+                "x": 14,
+                "y": 50,
+                "width": 902,
+                "height": 400
+              },
+              "settings": {
+                "series": [
+                  {
+                    "topic": "/joystick_cartesian_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "This tablet",
+                    "color": "#7e967e",
+                    "unit": "norm",
+                    "enabled": true,
+                    "emphasis": false
+                  },
+                  {
+                    "topic": "/visual_servoing_cartesian_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Visual servoing",
+                    "color": "#c98a7e",
+                    "unit": "norm",
+                    "enabled": true,
+                    "emphasis": false
+                  },
+                  {
+                    "topic": "/cartesian_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Manager output",
+                    "color": "#31493f",
+                    "unit": "norm",
+                    "enabled": true,
+                    "emphasis": true
+                  }
+                ],
+                "history_seconds": 30,
+                "max_samples": 900,
+                "y_min": -1,
+                "y_max": 1,
+                "show_details": false,
+                "picker": {
+                  "enabled": true,
+                  "persist_per_profile": true
+                }
+              }
+            },
+            {
+              "id": "sources-mode-log",
+              "kind": "event-log",
+              "title": "Mode requests",
+              "layout": {
+                "x": 14,
+                "y": 454,
+                "width": 902,
+                "height": 208
+              },
+              "settings": {
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "fieldPath": "data",
+                "maxEntries": 50,
+                "newest_first": true,
+                "show_details": false
+              }
+            },
+            {
+              "id": "sources-series-label",
+              "kind": "label",
+              "title": "SOURCES — tap to plot",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SOURCES — tap to plot",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "sources-series-picker",
+              "kind": "plot-picker",
+              "title": "Sources",
+              "layout": {
+                "x": 928,
+                "y": 50,
+                "width": 338,
+                "height": 348
+              },
+              "settings": {
+                "plot_id": "sources-plot",
+                "show_value": true,
+                "show_details": false
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        },
+        {
+          "id": "manager_joystick_lab",
+          "title": "Joystick lab",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "lab-frame-label",
+              "kind": "label",
+              "title": "COMMAND FRAME — stamped on every twist",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 596,
+                "height": 24
+              },
+              "settings": {
+                "text": "COMMAND FRAME — stamped on every twist",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "lab-mode-label",
+              "kind": "label",
+              "title": "SHAPING MODE — requested, never confirmed",
+              "layout": {
+                "x": 622,
+                "y": 14,
+                "width": 444,
+                "height": 24
+              },
+              "settings": {
+                "text": "SHAPING MODE — requested, never confirmed",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "lab-frame-base",
+              "kind": "command-button",
+              "title": "Base",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 140,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-base",
+                "action_label": "Stamp commands in base_link",
+                "button_label": "Base",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "base_link"
+                },
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-frame-tool",
+              "kind": "command-button",
+              "title": "Tool",
+              "layout": {
+                "x": 166,
+                "y": 46,
+                "width": 140,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-tool",
+                "action_label": "Stamp commands in effector_frame",
+                "button_label": "Tool",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "effector_frame"
+                },
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-frame-hybrid",
+              "kind": "command-button",
+              "title": "Hybrid",
+              "layout": {
+                "x": 318,
+                "y": 46,
+                "width": 140,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-hybrid",
+                "action_label": "Stamp commands in hybrid_frame",
+                "button_label": "Hybrid",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "hybrid_frame"
+                },
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-frame-ft",
+              "kind": "command-button",
+              "title": "Force sensor",
+              "layout": {
+                "x": 470,
+                "y": 46,
+                "width": 140,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-frame-ft",
+                "action_label": "Stamp commands in ft_frame",
+                "button_label": "Force sensor",
+                "cancellable": false,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop-frame",
+                  "frame_id": "ft_frame"
+                },
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-mode-both",
+              "kind": "command-button",
+              "title": "Both",
+              "layout": {
+                "x": 622,
+                "y": 46,
+                "width": 140,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-mode-both",
+                "action_label": "Request geometric/both",
+                "button_label": "Both",
+                "cancellable": false,
+                "command": "geometric/both",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/both"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-mode-jaco",
+              "kind": "command-button",
+              "title": "Jaco",
+              "layout": {
+                "x": 774,
+                "y": 46,
+                "width": 140,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-mode-jaco",
+                "action_label": "Request geometric/jaco",
+                "button_label": "Jaco",
+                "cancellable": false,
+                "command": "geometric/jaco",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/jaco"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-snake-hold",
+              "kind": "command-button",
+              "title": "Hold snake",
+              "layout": {
+                "x": 926,
+                "y": 46,
+                "width": 140,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-snake-hold",
+                "action_label": "Hold for snake",
+                "button_label": "Hold snake",
+                "cancellable": false,
+                "command": "geometric/snake",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/snake"
+                },
+                "show_details": false,
+                "momentary": true,
+                "pressed_label": "SNAKE ON",
+                "released_label": "Hold snake",
+                "releasedPayload": {
+                  "data": "geometric/both"
+                },
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-z",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 14,
+                "y": 146,
+                "width": 110,
+                "height": 384
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "vertical",
+                "show_details": true,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "linear_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "lab-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 136,
+                "y": 146,
+                "width": 384,
+                "height": 384
+              },
+              "settings": {
+                "axis_hints": {
+                  "x": {
+                    "color": "#7e967e",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#7e967e",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": true,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "lab-rotation",
+              "kind": "joystick",
+              "title": "Rotation",
+              "layout": {
+                "x": 532,
+                "y": 146,
+                "width": 384,
+                "height": 384
+              },
+              "settings": {
+                "axis_hints": {
+                  "x": {
+                    "color": "#c98a7e",
+                    "negative_label": "RX-",
+                    "positive_label": "RX+",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#c98a7e",
+                    "negative_label": "RY-",
+                    "positive_label": "RY+",
+                    "semantic": "rotation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Tilt up",
+                  "bottom": "▼ Tilt down",
+                  "left": "◀ Roll left",
+                  "right": "Roll right ▶"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": true,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_x"
+                    },
+                    "y": {
+                      "component": "angular_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "lab-sent-label",
+              "kind": "label",
+              "title": "SENT TO MANAGER — /joystick_cartesian_command",
+              "layout": {
+                "x": 928,
+                "y": 146,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SENT TO MANAGER — /joystick_cartesian_command",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "lab-sent",
+              "kind": "topic-echo",
+              "title": "Sent to manager",
+              "layout": {
+                "x": 928,
+                "y": 182,
+                "width": 338,
+                "height": 216
+              },
+              "settings": {
+                "fieldPath": "twist",
+                "maxMessages": 1,
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "prettyPrint": true,
+                "show_details": true,
+                "topic": "/joystick_cartesian_command"
+              }
+            },
+            {
+              "id": "lab-gripper",
+              "kind": "toggle",
+              "title": "Gripper",
+              "layout": {
+                "x": 136,
+                "y": 548,
+                "width": 384,
+                "height": 114
+              },
+              "settings": {
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "initialValue": false,
+                "show_details": false,
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}"
+              }
+            },
+            {
+              "id": "lab-rz",
+              "kind": "slider",
+              "title": "Pivot",
+              "layout": {
+                "x": 532,
+                "y": 548,
+                "width": 384,
+                "height": 114
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "horizontal",
+                "show_details": true,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "angular_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

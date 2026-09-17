@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;family=JetBrains+Mono:wght@400;700&amp;family=Cormorant+Garamond:wght@500;600&amp;display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f2eadc; }
+  a { color: #31493f; } a:hover { color: #9b3d2e; }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+</style>
+</helmet>
+
+<section style="padding: 56px 48px 40px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+  <div style="max-width: 1100px; margin-bottom: 36px">
+    <p style="margin: 0 0 14px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Turn 7 · the last three · builder, landing, locale</p>
+    <h1 style="margin: 0 0 20px; font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1.04; letter-spacing: -0.01em; max-width: 26ch">Where the rules get enforced, and where the words get long.</h1>
+    <p style="margin: 0 0 12px; font-size: 18px; line-height: 1.6; max-width: 68ch; text-wrap: pretty"><a href="#7a">7a</a> the builder canvas, grounded in <code style="font-family: 'JetBrains Mono', monospace; font-size: 15px">builder-screen-canvas.png</code> — the inspector gains the four things that would have caught every defect in this review. <a href="#7b">7b</a> the landing page. <a href="#7c">7c</a> the locale page you asked for: the operator's control row in EN, ES and FR at identical geometry.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">Select widgets in 7a's canvas or inspector list — the undersized one shows what the warning looks like.</p>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+    <div id="7a" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">7a</span>
+        <span style="font-size: 24px; font-weight: 700">Builder · screen canvas</span>
+        <span style="font-size: 16px; color: #536960">desktop 1920&times;1080</span>
+      </div>
+      <p style="margin: 0; max-width: 1920px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The existing canvas already has the chrome it needs — back/home, save/discard/undo/redo, canvas and widget chips, a widget list, and position/size in the inspector. What it does not have is any way to know a widget is too small for its own content, which is how the gripper shipped cut. Four additions, all from the contract: a <strong>device-class switcher</strong>, a <strong>minimum-size check</strong> with a one-tap fix, the <strong>effective glass size</strong> after fit-scaling, and the <strong>reserved STOP region</strong> drawn on the canvas so nobody places a widget under it.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="7a Builder canvas" style="position: relative; width: 1920px; height: 1080px; overflow: hidden; border-radius: 10px; background: #f2eadc; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 56px; display: flex; align-items: center; gap: 22px; padding: 0 24px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 600">Bloom</span>
+            <span style="flex: 1"></span>
+            <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #536960">HOME</span>
+            <span style="padding: 7px 16px; border-radius: 999px; background: #31493f; color: #fffaf1; font-size: 14px; font-weight: 700; letter-spacing: 0.1em">BUILDER</span>
+            <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #536960">RUNTIME</span>
+            <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #536960">HELP</span>
+          </div>
+
+          <div style="position: absolute; left: 24px; top: 80px; width: 1346px; height: 976px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; align-items: center; gap: 10px">
+              <button type="button" style="min-height: 40px; padding: 0 16px; border: 1px solid rgba(49,73,63,0.2); border-radius: 12px; background: #fffaf1; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Back to app config</button>
+              <button type="button" style="min-height: 40px; padding: 0 16px; border: 1px solid rgba(49,73,63,0.2); border-radius: 12px; background: #fffaf1; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Builder home</button>
+              <div style="flex: 1; display: flex; flex-direction: column; padding-left: 12px">
+                <span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Builder canvas</span>
+                <span style="font-size: 22px; font-weight: 700">Drive · Operator</span>
+              </div>
+              <button type="button" style="min-height: 40px; padding: 0 16px; border: none; border-radius: 12px; background: #31493f; color: #fffaf1; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Save changes</button>
+              <button type="button" style="min-height: 40px; padding: 0 16px; border: 1px solid rgba(49,73,63,0.2); border-radius: 12px; background: #fffaf1; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Discard</button>
+              <button type="button" style="min-height: 40px; padding: 0 14px; border: 1px solid rgba(49,73,63,0.2); border-radius: 12px; background: #fffaf1; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Undo</button>
+              <button type="button" style="min-height: 40px; padding: 0 14px; border: 1px solid rgba(49,73,63,0.2); border-radius: 12px; background: #fffaf1; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">Redo</button>
+            </div>
+
+            <div style="display: flex; align-items: stretch; gap: 10px">
+              <div style="display: flex; gap: 6px; padding: 6px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.2); border-radius: 14px">
+                <sc-for list="{{ classes }}" as="c" hint-placeholder-count="2">
+                  <button type="button" onClick="{{ c.pick }}" style="min-height: 40px; padding: 0 16px; border: 2px solid {{ c.border }}; border-radius: 10px; background: {{ c.bg }}; color: {{ c.fg }}; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer">{{ c.label }}</button>
+                </sc-for>
+              </div>
+              <sc-for list="{{ chips }}" as="ch" hint-placeholder-count="4">
+                <div style="padding: 8px 16px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.2); border-radius: 14px; display: flex; flex-direction: column; min-width: 0">
+                  <span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; font-weight: 700">{{ ch.label }}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; color: {{ ch.color }}">{{ ch.value }}</span>
+                </div>
+              </sc-for>
+              <span style="flex: 1"></span>
+              <div style="padding: 8px 16px; background: {{ checkBg }}; border: 2px solid {{ checkBorder }}; border-radius: 14px; display: flex; align-items: center; gap: 10px">
+                <span style="font-size: 15px; font-weight: 700; color: {{ checkFg }}">{{ checkLabel }}</span>
+              </div>
+            </div>
+
+            <div style="flex: 1; position: relative; border-radius: 18px; background: #2a2f2c; padding: 18px; min-height: 0; display: flex; align-items: center; justify-content: center">
+              <div style="position: relative; width: {{ canvasW }}; height: {{ canvasH }}; background: #fffaf1; border-radius: 6px; background-image: linear-gradient(rgba(49,73,63,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(49,73,63,0.07) 1px, transparent 1px); background-size: 20px 20px">
+                <div style="position: absolute; left: 0; top: 0; right: 0; height: 22px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18); display: flex; align-items: center; padding: 0 8px"><span style="font-size: 10px; font-weight: 700; color: #536960">kiosk bar · 44 px · chrome</span></div>
+                <div style="position: absolute; left: {{ stopLeft }}; top: {{ stopTop }}; width: {{ stopW }}; height: {{ stopH }}; border: 2px dashed rgba(155,61,46,0.55); border-radius: 8px; background: rgba(155,61,46,0.07); display: flex; align-items: center; justify-content: center">
+                  <span style="font-size: 11px; font-weight: 700; color: #9b3d2e; letter-spacing: 0.08em; text-align: center; line-height: 1.3">RESERVED<br />STOP</span>
+                </div>
+                <sc-for list="{{ widgets }}" as="w" hint-placeholder-count="6">
+                  <button type="button" onClick="{{ w.select }}" style="position: absolute; left: {{ w.left }}; top: {{ w.top }}; width: {{ w.width }}; height: {{ w.height }}; border: {{ w.border }}; border-radius: 8px; background: {{ w.bg }}; font-family: inherit; color: #253d35; cursor: pointer; padding: 4px 6px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; overflow: hidden">
+                    <span style="font-size: 11px; font-weight: 700; white-space: nowrap">{{ w.title }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #536960; white-space: nowrap">{{ w.kind }}</span>
+                    <span style="position: absolute; right: 3px; bottom: 3px; padding: 1px 5px; border-radius: 4px; background: {{ w.tagBg }}; color: {{ w.tagFg }}; font-size: 9px; font-weight: 700; display: {{ w.tagShow }}">{{ w.tag }}</span>
+                  </button>
+                </sc-for>
+                <div style="position: absolute; left: {{ selLeft }}; top: {{ selTop }}; padding: 3px 8px; border-radius: 6px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; white-space: nowrap; display: {{ selShow }}">{{ selChip }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="position: absolute; left: 1394px; top: 80px; width: 502px; height: 976px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+            <div style="display: flex; flex-direction: column">
+              <span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Inspector</span>
+              <span style="font-size: 24px; font-weight: 700">{{ selTitle }}</span>
+            </div>
+
+            <div style="padding: 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 14px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; font-weight: 700">Screen widgets</span>
+              <sc-for list="{{ widgets }}" as="w" hint-placeholder-count="6">
+                <button type="button" onClick="{{ w.select }}" style="min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border: 2px solid {{ w.rowBorder }}; border-radius: 10px; background: {{ w.rowBg }}; font-family: inherit; color: #253d35; text-align: left; cursor: pointer">
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ w.title }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #536960">{{ w.rowMeta }}</span>
+                  </span>
+                  <span style="flex: 0 0 auto; padding: 2px 8px; border-radius: 6px; background: {{ w.tagBg }}; color: {{ w.tagFg }}; font-size: 11px; font-weight: 700; display: {{ w.tagShow }}">{{ w.tag }}</span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+              <div style="padding: 12px 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 12px; display: flex; flex-direction: column"><span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; font-weight: 700">Kind</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">{{ selKind }}</span></div>
+              <div style="padding: 12px 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 12px; display: flex; flex-direction: column"><span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; font-weight: 700">Position</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">{{ selPos }}</span></div>
+              <div style="padding: 12px 14px; background: {{ sizeBg }}; border: {{ sizeBorder }}; border-radius: 12px; display: flex; flex-direction: column"><span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; font-weight: 700">Size</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">{{ selSize }}</span></div>
+              <div style="padding: 12px 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 12px; display: flex; flex-direction: column"><span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; font-weight: 700">Glass at fit {{ fitScale }}</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: {{ glassColor }}">{{ selGlass }}</span></div>
+            </div>
+
+            <div style="padding: 16px; background: {{ warnBg }}; border: 2px solid {{ warnBorder }}; border-radius: 14px; display: flex; flex-direction: column; gap: 10px">
+              <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: {{ warnFg }}; font-weight: 700">{{ warnTitle }}</span>
+              <span style="font-size: 15px; line-height: 1.45; color: {{ warnFg }}">{{ warnBody }}</span>
+              <button type="button" onClick="{{ warnFix }}" style="min-height: 48px; border: 2px solid {{ warnBtnBorder }}; border-radius: 12px; background: {{ warnBtnBg }}; color: {{ warnBtnFg }}; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; display: {{ warnFixShow }}">{{ warnFixLabel }}</button>
+            </div>
+
+            <div style="flex: 1; padding: 16px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 14px; display: flex; flex-direction: column; gap: 10px; min-height: 0">
+              <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #536960; font-weight: 700">Widget configuration</span>
+              <sc-for list="{{ fields }}" as="f" hint-placeholder-count="5">
+                <div style="display: flex; align-items: center; gap: 10px; min-height: 40px">
+                  <span style="flex: 0 0 168px; font-size: 14px; font-weight: 700">{{ f.label }}</span>
+                  <span style="flex: 1; min-width: 0; min-height: 40px; display: flex; align-items: center; padding: 0 12px; border: 1px solid rgba(49,73,63,0.2); border-radius: 10px; background: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ f.value }}</span>
+                </div>
+              </sc-for>
+              <span style="font-size: 14px; line-height: 1.45; color: #536960">Settings are rendered from the widget contract. Changing <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">show_details</code> changes this widget's minimum size, so the check above re-runs.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1920px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Minimum size</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Reads <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">WIDGET_MIN_SIZE</code> for the kind and its current <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">show_details</code>. Warns, never blocks, and offers the exact resize as one action — ADR 0132.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Glass, not canvas</div><p style="margin: 0; font-size: 15px; line-height: 1.55">A 56 px button on a canvas fit-scaled to 0.80 is 45 px of real glass. The inspector shows both, and the number goes error-red below 44.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Reserved regions</div><p style="margin: 0; font-size: 15px; line-height: 1.55">STOP is drawn on the canvas as a dashed error region. An author cannot place a widget there, and can see why.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Device switcher</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Tablet and desktop are separate apps, so the switcher moves between the paired app's screens rather than rescaling one canvas.</p></div>
+      </div>
+    </div>
+
+    <div id="7b" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">7b</span>
+        <span style="font-size: 24px; font-weight: 700">Landing</span>
+        <span style="font-size: 16px; color: #536960">1440 wide · the one surface allowed a voice</span>
+      </div>
+      <p style="margin: 0; max-width: 1440px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The existing page has the right typography and the wrong content: <em>Architecture promises</em> — "generic web logic stays independent from ROS", "every migrated slice ships with tests" — is a README section on a landing page, and the card holding it is two-thirds empty. Bloom's story is not its layering; it is that someone gets their gesture back. The promises move to the docs, where the people who need them are.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="7b Landing" style="position: relative; width: 1440px; height: 900px; overflow: hidden; border-radius: 10px; background: #f8f4eb; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 72px; display: flex; align-items: center; gap: 24px; padding: 0 40px; background: #fffaf1; border-bottom: 1px solid rgba(49,73,63,0.14)">
+            <span style="font-family: 'Cormorant Garamond', serif; font-size: 34px; font-weight: 600">Bloom</span>
+            <span style="flex: 1"></span>
+            <span style="padding: 8px 18px; border-radius: 999px; background: #31493f; color: #fffaf1; font-size: 14px; font-weight: 700; letter-spacing: 0.1em">HOME</span>
+            <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #536960">BUILDER</span>
+            <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #536960">RUNTIME</span>
+            <span style="font-size: 14px; font-weight: 700; letter-spacing: 0.1em; color: #536960">HELP</span>
+          </div>
+
+          <div style="position: absolute; left: 40px; top: 112px; width: 740px">
+            <p style="margin: 0 0 18px; font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960; font-weight: 700">Bloom · ISIR</p>
+            <h2 style="margin: 0 0 24px; font-family: 'Cormorant Garamond', serif; font-size: 78px; font-weight: 500; line-height: 0.98; letter-spacing: -0.015em">Give the gesture back.</h2>
+            <p style="margin: 0 0 30px; font-size: 21px; line-height: 1.5; max-width: 30ch; color: #31493f">Bloom builds the panel a person actually reaches the robot through — and lets you change it without touching the robot.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px">
+              <span style="min-height: 56px; padding: 16px 28px; border-radius: 999px; background: #31493f; color: #fffaf1; font-size: 17px; font-weight: 700; display: inline-flex; align-items: center">Open Runtime</span>
+              <span style="min-height: 56px; padding: 16px 28px; border-radius: 999px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.24); font-size: 17px; font-weight: 700; display: inline-flex; align-items: center">Open Builder</span>
+              <span style="min-height: 56px; padding: 16px 28px; border-radius: 999px; background: transparent; border: 1px solid rgba(49,73,63,0.24); font-size: 17px; font-weight: 700; display: inline-flex; align-items: center">Get started</span>
+            </div>
+          </div>
+
+          <div style="position: absolute; left: 812px; top: 112px; width: 588px; height: 452px; border-radius: 22px; border: 1px solid rgba(49,73,63,0.14); background: repeating-linear-gradient(135deg, #fffaf1 0 12px, #f2eadc 12px 24px); display: flex; align-items: flex-end; padding: 22px">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.5; color: #536960">the arm in use, in a real room, with a person —<br />not a product shot of a tablet</span>
+          </div>
+
+          <div style="position: absolute; left: 40px; top: 604px; width: 1360px; display: flex; gap: 16px">
+            <sc-for list="{{ pillars }}" as="p" hint-placeholder-count="3">
+              <div style="flex: 1; min-width: 0; padding: 26px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 22px; display: flex; flex-direction: column; gap: 10px">
+                <span style="font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600">{{ p.title }}</span>
+                <span style="font-size: 17px; line-height: 1.5; color: #536960">{{ p.body }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="position: absolute; left: 40px; top: 808px; width: 1360px; display: flex; align-items: center; gap: 16px; padding: 0 4px">
+            <span style="font-size: 16px; color: #536960">Built at ISIR for the Extender and Kinova arms.</span>
+            <span style="flex: 1"></span>
+            <span style="font-size: 16px; font-weight: 700">Architecture notes, ADRs and the design system live in the docs →</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1440px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">One claim, not three</div><p style="margin: 0; font-size: 15px; line-height: 1.55">"Give the gesture back." The existing headline — "Robot interfaces that grow cleanly" — describes the codebase's virtue, which is a thing only its authors want.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Runtime first</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Operators outnumber authors. <em>Open Runtime</em> comes before <em>Open Builder</em>, and the third action is the guide rather than a second preview.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Needs you</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">The image is a placeholder. A real photograph of the arm in use with a person is the single biggest improvement available to this page, and I cannot make one.</p></div>
+      </div>
+    </div>
+
+    <div id="7c" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">7c</span>
+        <span style="font-size: 24px; font-weight: 700">Locale — EN / ES / FR</span>
+        <span style="font-size: 16px; color: #536960">identical geometry, three languages</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">The operator layout's control row at 1280&times;720 geometry, rendered three times. Same widths, same 64&nbsp;px targets, only the strings change — so anything that would clip in French clips here, on the page, instead of on a panel. The longest string in each row is marked.</p>
+
+      <sc-for list="{{ localeRows }}" as="row" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; align-items: baseline; gap: 12px">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; padding: 4px 12px; border-radius: 8px; background: #31493f; color: #fffaf1">{{ row.code }}</span>
+            <span style="font-size: 17px; font-weight: 700">{{ row.name }}</span>
+            <span style="font-size: 15px; color: #536960">{{ row.note }}</span>
+          </div>
+          <div style="padding: 14px; background: #2a2f2c; border-radius: 20px">
+            <div style="width: 1252px; display: flex; gap: 12px; background: #fffaf1; border-radius: 8px; padding: 14px">
+              <div style="flex: 0 0 264px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+                <span style="font-size: 16px; font-weight: 700">{{ row.speedTitle }}</span>
+                <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+                  <span style="min-height: 64px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 14px; font-weight: 700; line-height: 1.15; padding: 0 4px; min-width: 0">{{ row.slow }}</span>
+                  <span style="min-height: 64px; border: 2px solid #31493f; border-radius: 14px; background: #31493f; color: #fffaf1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 14px; font-weight: 700; line-height: 1.15; padding: 0 4px; min-width: 0">{{ row.medium }}</span>
+                  <span style="min-height: 64px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 14px; font-weight: 700; line-height: 1.15; padding: 0 4px; min-width: 0">{{ row.fast }}</span>
+                </div>
+              </div>
+              <div style="flex: 0 0 264px; display: flex; flex-direction: column; gap: 8px">
+                <span style="min-height: 88px; border: 2px solid #31493f; border-radius: 14px; background: #31493f; color: #fffaf1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 17px; font-weight: 700; line-height: 1.2; padding: 0 10px">{{ row.both }}</span>
+                <span style="min-height: 88px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 17px; font-weight: 700; line-height: 1.2; padding: 0 10px">{{ row.snake }}</span>
+              </div>
+              <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+                <div style="flex: 1; border: 2px solid rgba(49,73,63,0.18); border-radius: 18px; background: #f2eadc; position: relative; min-height: 96px">
+                  <span style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); font-size: 17px; font-weight: 700">{{ row.turnLeft }}</span>
+                  <span style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 17px; font-weight: 700">{{ row.turnRight }}</span>
+                </div>
+                <div style="flex: 0 0 96px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 12px; display: flex; align-items: center; gap: 12px">
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 700">{{ row.gripperTitle }}</span><span style="font-size: 13px; color: #5c6b63">{{ row.gripperState }}</span></span>
+                  <span style="flex: 0 0 200px; min-height: 64px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 16px; font-weight: 700; line-height: 1.15; padding: 0 8px">{{ row.gripperLabel }}</span>
+                </div>
+              </div>
+              <div style="flex: 0 0 202px; display: flex; flex-direction: column; gap: 8px">
+                <span style="flex: 1; border-radius: 18px; background: #9b3d2e; color: #fffaf1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 22px; font-weight: 700; letter-spacing: 0.04em; line-height: 1.2; padding: 0 8px">{{ row.stop }}</span>
+                <span style="flex: 0 0 64px; border-radius: 14px; background: #253d35; color: #fffaf1; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; font-weight: 700; line-height: 1.15; padding: 0 8px">{{ row.resume }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">The rule that holds</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Control labels wrap to two lines and the control grows. They never shrink their type and never truncate — a truncated verb on a robot control is a guess.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Never translated</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Topics, frame ids, axis names and numbers. <code style="font-family: 'JetBrains Mono', monospace; font-size: 13px">base_link</code> is not a word, it is an identifier.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Needs a native speaker</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">These are my translations. Safety wording on a robot control has to be checked by someone who speaks the language and knows the arm — especially STOP and the resume hold.</p></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { cls: "tablet", sel: "drive-gripper", fixed: {} };
+
+  renderVals() {
+    const st = this.state;
+    const sel = { bg: "#31493f", fg: "#fffaf1", border: "#31493f" };
+    const idle = { bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)" };
+
+    // Operator layout, from docs/design/screens/drive.md. One widget is deliberately undersized.
+    const MIN = {
+      "slider-seg": [260, 104], "command-button": [140, 88], "joystick": [280, 332],
+      "slider-v": [104, 284], "slider-h": [260, 104], "toggle": [200, 120], "label": [120, 24]
+    };
+    const WIDGETS = [
+      { id: "drive-max-linear-speed", title: "Max speed", kind: "slider · segments", min: "slider-seg", x: 14, y: 14, w: 264, h: 150 },
+      { id: "drive-mode-both", title: "Both", kind: "command-button", min: "command-button", x: 14, y: 370, w: 264, h: 88 },
+      { id: "drive-z", title: "Height", kind: "slider · vertical", min: "slider-v", x: 290, y: 46, w: 110, h: 346 },
+      { id: "drive-translation", title: "Translation", kind: "joystick", min: "joystick", x: 412, y: 46, w: 314, h: 346 },
+      { id: "drive-rotation", title: "Rotation", kind: "joystick", min: "joystick", x: 738, y: 46, w: 314, h: 346 },
+      { id: "drive-rz", title: "Pivot", kind: "slider · horizontal", min: "slider-h", x: 738, y: 404, w: 314, h: 146 },
+      { id: "drive-gripper", title: "Gripper", kind: "toggle", min: "toggle", x: 1064, y: 14, w: 202, h: 96 }
+    ];
+    const CANVAS = st.cls === "tablet" ? { w: 1280, h: 720 } : { w: 1920, h: 1080 };
+    const view = { w: 1000, h: st.cls === "tablet" ? 562 : 562 };
+    const k = view.w / CANVAS.w;
+    const fit = st.cls === "tablet" ? 0.8 : 1.0;
+
+    const sized = WIDGETS.map((w) => {
+      const h = st.fixed[w.id] ? MIN[w.min][1] : w.h;
+      const wd = st.fixed[w.id] ? Math.max(w.w, MIN[w.min][0]) : w.w;
+      const [mw, mh] = MIN[w.min];
+      const under = wd < mw || h < mh;
+      return { ...w, w: wd, h, under, mw, mh };
+    });
+    const selected = sized.find((w) => w.id === st.sel) || sized[0];
+    const anyUnder = sized.filter((w) => w.under);
+    const glass = Math.round(56 * fit);
+
+    return {
+      classes: [{ id: "tablet", label: "Tablet 1280×720" }, { id: "desktop", label: "Desktop 1920×1080" }].map((c) => {
+        const s = st.cls === c.id ? sel : idle;
+        return { label: c.label, bg: s.bg, fg: s.fg, border: s.border, pick: () => this.setState({ cls: c.id }) };
+      }),
+      chips: [
+        { label: "Canvas", value: st.cls === "tablet" ? "1280×720" : "1920×1080", color: "#253d35" },
+        { label: "Widgets", value: `${sized.length}`, color: "#253d35" },
+        { label: "Fit scale", value: fit.toFixed(2), color: "#253d35" },
+        { label: "Mode", value: "Saved", color: "#253d35" }
+      ],
+      checkLabel: anyUnder.length ? `${anyUnder.length} widget below its minimum` : "All widgets pass the size check",
+      checkBg: anyUnder.length ? "#f5ddd8" : "#e7ede2",
+      checkBorder: anyUnder.length ? "#9b3d2e" : "#31493f",
+      checkFg: anyUnder.length ? "#4f1f16" : "#31493f",
+
+      canvasW: `${view.w}px`,
+      canvasH: `${Math.round(CANVAS.h * k)}px`,
+      stopLeft: `${Math.round(1064 * k)}px`,
+      stopTop: `${Math.round((44 + 194) * k)}px`,
+      stopW: `${Math.round(202 * k)}px`,
+      stopH: `${Math.round(468 * k)}px`,
+
+      widgets: sized.map((w) => {
+        const on = w.id === st.sel;
+        return {
+          title: w.title, kind: w.kind,
+          left: `${Math.round(w.x * k)}px`, top: `${Math.round((44 + w.y) * k)}px`,
+          width: `${Math.round(w.w * k)}px`, height: `${Math.round(w.h * k)}px`,
+          bg: w.under ? "#f5ddd8" : on ? "#e7ede2" : "#f8f4eb",
+          border: on ? "2px solid #31493f" : w.under ? "2px solid #9b3d2e" : "1px solid rgba(49,73,63,0.3)",
+          tag: w.under ? "TOO SMALL" : "",
+          tagShow: w.under ? "inline" : "none",
+          tagBg: "#ffd89b", tagFg: "#253d35",
+          rowBg: on ? "#e7ede2" : "#fffaf1",
+          rowBorder: on ? "#31493f" : "rgba(49,73,63,0.18)",
+          rowMeta: `${w.kind.toUpperCase().replace(" · ", " ")} · ${w.x}, ${w.y}`,
+          select: () => this.setState({ sel: w.id })
+        };
+      }),
+      selShow: "block",
+      selChip: `${selected.w}×${selected.h}`,
+      selLeft: `${Math.round(selected.x * k)}px`,
+      selTop: `${Math.max(0, Math.round((44 + selected.y) * k) - 18)}px`,
+
+      selTitle: selected.title,
+      selKind: selected.kind,
+      selPos: `${selected.x}, ${selected.y}`,
+      selSize: `${selected.w} × ${selected.h}`,
+      sizeBg: selected.under ? "#f5ddd8" : "#f8f4eb",
+      sizeBorder: selected.under ? "2px solid #9b3d2e" : "1px solid rgba(49,73,63,0.18)",
+      fitScale: fit.toFixed(2),
+      selGlass: `${glass} px`,
+      glassColor: glass < 44 ? "#9b3d2e" : "#253d35",
+
+      warnTitle: selected.under ? "Below minimum size" : "Size check",
+      warnBody: selected.under
+        ? `A ${selected.kind.split(" · ")[0]} with these settings needs ${selected.mw}×${selected.mh}. At ${selected.w}×${selected.h} its content is clipped — the title, the 56 px button and the commanded state cannot all fit.`
+        : `Passes: ${selected.kind.split(" · ")[0]} needs ${selected.mw}×${selected.mh} with its current settings, and glass at fit ${fit.toFixed(2)} is ${glass} px.`,
+      warnBg: selected.under ? "#f5ddd8" : "#e7ede2",
+      warnBorder: selected.under ? "#9b3d2e" : "rgba(49,73,63,0.2)",
+      warnFg: selected.under ? "#4f1f16" : "#31493f",
+      warnFixShow: selected.under ? "block" : "none",
+      warnFixLabel: `Resize to ${selected.mw}×${selected.mh}`,
+      warnBtnBg: "#fffaf1", warnBtnFg: "#4f1f16", warnBtnBorder: "#9b3d2e",
+      warnFix: () => this.setState((s) => ({ fixed: { ...s.fixed, [selected.id]: true } })),
+
+      fields: selected.id === "drive-gripper"
+        ? [
+            { label: "topic", value: "/gripper_controller/commands" },
+            { label: "messageType", value: "Float64MultiArray" },
+            { label: "onLabel", value: "Open gripper" },
+            { label: "offLabel", value: "Close gripper" },
+            { label: "show_details", value: "false" }
+          ]
+        : [
+            { label: "topic", value: "/joystick_cartesian_command" },
+            { label: "adapter", value: "teleop" },
+            { label: "axis_deadzone", value: "0.2" },
+            { label: "publish_rate_hz", value: "30" },
+            { label: "show_details", value: "false" }
+          ],
+
+      pillars: [
+        { title: "Reach", body: "One panel, laid out for the person using it — not for the axes the arm happens to have." },
+        { title: "Change", body: "Screens are configuration. Move a control, grow a target, change a word, without touching the robot code." },
+        { title: "Trust", body: "Nothing on screen claims more than the robot reported. STOP is always in the same corner." }
+      ],
+
+      localeRows: [
+        { code: "EN", name: "English", note: "authored length",
+          speedTitle: "Move speed", slow: "Slow", medium: "Medium", fast: "Fast",
+          both: "Both", snake: "Hold snake", turnLeft: "↶ Turn left", turnRight: "Turn right ↷",
+          gripperTitle: "Gripper", gripperState: "commanded: open", gripperLabel: "Close gripper",
+          stop: "STOP", resume: "Hold to resume" },
+        { code: "ES", name: "Español", note: "+28% — longest: “Mantener para reanudar”",
+          speedTitle: "Velocidad", slow: "Lenta", medium: "Media", fast: "Rápida",
+          both: "Ambos", snake: "Mantener serpiente", turnLeft: "↶ Girar a la izquierda", turnRight: "Girar a la derecha ↷",
+          gripperTitle: "Pinza", gripperState: "ordenado: abierta", gripperLabel: "Cerrar la pinza",
+          stop: "PARADA", resume: "Mantener para reanudar" },
+        { code: "FR", name: "Français", note: "+36% — longest: “Maintenir pour reprendre”",
+          speedTitle: "Vitesse", slow: "Lente", medium: "Moyenne", fast: "Rapide",
+          both: "Les deux", snake: "Maintenir serpent", turnLeft: "↶ Tourner à gauche", turnRight: "Tourner à droite ↷",
+          gripperTitle: "Pince", gripperState: "commandé : ouverte", gripperLabel: "Fermer la pince",
+          stop: "ARRÊT", resume: "Maintenir pour reprendre" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

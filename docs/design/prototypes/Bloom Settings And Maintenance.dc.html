@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&amp;family=JetBrains+Mono:wght@400;700&amp;family=Cormorant+Garamond:wght@500&amp;display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; background: #f2eadc; }
+  a { color: #31493f; } a:hover { color: #9b3d2e; }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+</style>
+</helmet>
+
+<section style="padding: 56px 48px 40px; font-family: 'Atkinson Hyperlegible', system-ui, sans-serif; color: #253d35">
+  <div style="max-width: 1100px; margin-bottom: 36px">
+    <p style="margin: 0 0 14px; font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: #536960">Turn 6 · the two screens behind the hold · tablet 1280&times;720</p>
+    <h1 style="margin: 0 0 20px; font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 500; line-height: 1.04; letter-spacing: -0.01em; max-width: 26ch">Settings that change how a person can reach the robot.</h1>
+    <p style="margin: 0 0 12px; font-size: 18px; line-height: 1.6; max-width: 68ch; text-wrap: pretty"><a href="#6a">6a</a> Runtime Settings — every control here changes the operator's physical ability to use the panel, so each one has a live preview beside it rather than a number you have to imagine. <a href="#6b">6b</a> the maintenance sheet: what the 1.5-second hold actually opens, drawn over the screen it interrupts.</p>
+    <p style="margin: 0; font-size: 16px; line-height: 1.6; max-width: 68ch; color: #536960; text-wrap: pretty">Neither screen carries STOP. Both are reached through the maintenance hold, which means the robot is already held — and a STOP on a screen where nothing can move teaches people that STOP is decoration. Change anything in 6a and watch the preview; hold the <strong>⋯</strong> in 6b's bar.</p>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start">
+
+    <div id="6a" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">6a</span>
+        <span style="font-size: 24px; font-weight: 700">Runtime Settings</span>
+        <span style="font-size: 16px; color: #536960">every setting previewed, none abstract</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">These are the <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">UserProfile</code> fields that already exist — <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">font_scale</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">motor_accessibility_preset</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">dwell_ms</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">scan_period_ms</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">repeat_guard_ms</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">deadzone</code>, <code style="font-family: 'JetBrains Mono', monospace; font-size: 14px">audio_cues</code> — plus language. Milliseconds are meaningless to the person they affect, so the rail shows a real control behaving the way the current settings will make it behave.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="6a Runtime Settings" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18)">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Settings</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #ffd89b; color: #253d35"><span style="width: 11px; height: 11px; border-radius: 2px; background: #253d35"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">HELD FOR MAINTENANCE</span></span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #31493f; color: #fffaf1"><span style="font-size: 15px; font-weight: 700">Operator</span></span>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 442px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Display</span></div>
+
+            <div style="position: absolute; left: 14px; top: 50px; width: 442px; height: 120px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; font-weight: 700">Text size</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">font_scale {{ fontScaleValue }}</span></div>
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+                <sc-for list="{{ fontScales }}" as="o" hint-placeholder-count="3">
+                  <button type="button" onClick="{{ o.pick }}" style="min-height: 64px; border: 2px solid {{ o.border }}; border-radius: 14px; background: {{ o.bg }}; color: {{ o.fg }}; font-family: inherit; font-size: {{ o.size }}; font-weight: 700; cursor: pointer; min-width: 0">{{ o.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 14px; top: 182px; width: 442px; height: 120px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; font-weight: 700">Language</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ localeCode }}</span></div>
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+                <sc-for list="{{ locales }}" as="o" hint-placeholder-count="3">
+                  <button type="button" onClick="{{ o.pick }}" style="min-height: 64px; border: 2px solid {{ o.border }}; border-radius: 14px; background: {{ o.bg }}; color: {{ o.fg }}; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer; min-width: 0">{{ o.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 14px; top: 314px; width: 442px; height: 96px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; align-items: center; gap: 14px">
+              <span style="flex: 1; display: flex; flex-direction: column; gap: 2px">
+                <span style="font-size: 18px; font-weight: 700">Sound on every press</span>
+                <span style="font-size: 14px; color: #5c6b63">audio_cues</span>
+              </span>
+              <button type="button" onClick="{{ audioToggle }}" style="flex: 0 0 132px; min-height: 64px; border: 2px solid {{ audioBorder }}; border-radius: 14px; background: {{ audioBg }}; color: {{ audioFg }}; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">{{ audioLabel }}</button>
+            </div>
+
+            <div style="position: absolute; left: 14px; top: 422px; width: 442px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">How you reach the controls</span></div>
+
+            <div style="position: absolute; left: 14px; top: 458px; width: 442px; height: 120px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 18px; font-weight: 700">Input method</span><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #5c6b63">{{ presetValue }}</span></div>
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+                <sc-for list="{{ presets }}" as="o" hint-placeholder-count="3">
+                  <button type="button" onClick="{{ o.pick }}" style="min-height: 64px; border: 2px solid {{ o.border }}; border-radius: 14px; background: {{ o.bg }}; color: {{ o.fg }}; font-family: inherit; font-size: 16px; font-weight: 700; line-height: 1.2; cursor: pointer; min-width: 0">{{ o.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="position: absolute; left: 470px; top: 14px; width: 442px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Timing — {{ timingNote }}</span></div>
+
+            <sc-for list="{{ steppers }}" as="s" hint-placeholder-count="4">
+              <div style="position: absolute; left: 470px; top: {{ s.top }}; width: 442px; height: 120px; background: {{ s.cardBg }}; border: {{ s.cardBorder }}; border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+                <div style="display: flex; align-items: baseline; gap: 10px">
+                  <span style="font-size: 18px; font-weight: 700; color: {{ s.labelColor }}">{{ s.label }}</span>
+                  <span style="font-size: 14px; font-weight: 700; color: #536960; display: {{ s.reasonShow }}">{{ s.reason }}</span>
+                  <span style="flex: 1"></span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; color: #536960">{{ s.field }}</span>
+                </div>
+                <div style="flex: 1; display: flex; align-items: center; gap: 10px">
+                  <button type="button" onClick="{{ s.dec }}" style="flex: 0 0 64px; min-height: 64px; border: {{ s.btnBorder }}; border-radius: 14px; background: {{ s.btnBg }}; color: {{ s.btnFg }}; font-family: inherit; font-size: 26px; font-weight: 700; cursor: {{ s.cursor }}">−</button>
+                  <span style="flex: 1; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; color: {{ s.labelColor }}">{{ s.value }}</span>
+                  <button type="button" onClick="{{ s.inc }}" style="flex: 0 0 64px; min-height: 64px; border: {{ s.btnBorder }}; border-radius: 14px; background: {{ s.btnBg }}; color: {{ s.btnFg }}; font-family: inherit; font-size: 26px; font-weight: 700; cursor: {{ s.cursor }}">+</button>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="position: absolute; left: 928px; top: 14px; width: 338px; height: 24px; display: flex; align-items: center"><span style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Try it — this is the real control</span></div>
+
+            <div style="position: absolute; left: 928px; top: 50px; width: 338px; height: 348px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+              <span style="font-size: {{ previewTitleSize }}; font-weight: 700">{{ previewTitle }}</span>
+              <button type="button" onPointerDown="{{ previewDown }}" onPointerUp="{{ previewUp }}" onPointerLeave="{{ previewUp }}" style="position: relative; flex: 1; min-height: {{ previewTarget }}; border: 2px solid {{ previewBorder }}; border-radius: 14px; background: {{ previewBg }}; color: {{ previewFg }}; font-family: inherit; font-size: {{ previewLabelSize }}; font-weight: 700; cursor: pointer; overflow: hidden">
+                <span style="position: relative; z-index: 2">{{ previewLabel }}</span>
+                <span style="position: absolute; left: 0; bottom: 0; height: 6px; width: {{ previewFill }}; background: #c8d5c4"></span>
+              </button>
+              <span style="font-size: {{ previewNoteSize }}; line-height: 1.4; color: #5c6b63">{{ previewNote }}</span>
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #5c6b63">{{ previewMeta }}</span>
+            </div>
+
+            <button type="button" style="position: absolute; left: 928px; top: 410px; width: 338px; height: 120px; border: none; border-radius: 18px; background: #31493f; color: #fffaf1; font-family: inherit; font-size: 22px; font-weight: 700; cursor: pointer">Save and resume</button>
+
+            <div style="position: absolute; left: 928px; top: 542px; width: 338px; height: 120px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
+              <span style="font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #536960; font-weight: 700">Saved to</span>
+              <span style="font-size: 15px; line-height: 1.4; color: #5c6b63">The <strong>Operator</strong> profile on this device. It does not change what the app publishes, only how you reach it.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Preview, not a number</div><p style="margin: 0; font-size: 15px; line-height: 1.55">A dwell of 1000&nbsp;ms means nothing until you hold a button for it. The rail's control is the real one — dwell, repeat guard, text size and language all apply to it as you change them.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Irrelevant settings dim</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Dwell time only exists for the dwell preset; scan period only for scan. The other cards go to the §09 interlocked treatment with a word, rather than accepting input that will do nothing.</p></div>
+        <div style="padding: 18px; background: #f5ddd8; border: 1px solid rgba(155,61,46,0.3); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #4f1f16; font-weight: 700; margin-bottom: 8px">Not here</div><p style="margin: 0; font-size: 15px; line-height: 1.55; color: #4f1f16">Topics, frames, publish rate and speed limits. A settings screen an operator can reach must not be able to change what the app sends.</p></div>
+      </div>
+    </div>
+
+    <div id="6b" style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; align-items: center; gap: 14px">
+        <span style="display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 34px; padding: 0 12px; border-radius: 10px; background: #31493f; color: #fffaf1; font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700">6b</span>
+        <span style="font-size: 24px; font-weight: 700">Maintenance sheet</span>
+        <span style="font-size: 16px; color: #536960">what the 1.5-second hold opens</span>
+      </div>
+      <p style="margin: 0; max-width: 1280px; font-size: 16px; line-height: 1.6; color: #536960; text-wrap: pretty">Hold the <strong>⋯</strong> in the bar. The hold is drawn as a fill on the button itself, the robot is held at zeros the moment the sheet opens, and the Drive screen stays visible behind it — an operator needs to see that the thing they were doing is still there. Release before 1.5&nbsp;s and nothing happens.</p>
+
+      <div style="padding: 18px; background: #2a2f2c; border-radius: 26px; box-shadow: 0 24px 60px rgba(37,61,53,0.28)">
+        <div data-screen-label="6b Maintenance sheet" style="position: relative; width: 1280px; height: 720px; overflow: hidden; border-radius: 10px; background: #fffaf1; color: #253d35">
+          <div style="position: absolute; left: 0; top: 0; right: 0; height: 44px; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #f8f4eb; border-bottom: 1px solid rgba(49,73,63,0.18); z-index: 3">
+            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.01em">Explorer Manager</span>
+            <span style="font-size: 16px; color: #5c6b63">Drive · Operator</span>
+            <span role="status" style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: {{ mChipBg }}; color: {{ mChipFg }}"><span style="width: 11px; height: 11px; border-radius: {{ mChipDot }}; background: {{ mChipFg }}"></span><span style="font-size: 15px; font-weight: 700; letter-spacing: 0.04em">{{ mChipLabel }}</span></span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; padding: 4px 10px; border: 1px solid rgba(49,73,63,0.18); border-radius: 8px">base_link</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #5c6b63">{{ mRate }}</span>
+            <span style="flex: 1"></span>
+            <span style="display: flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 9px; background: #31493f; color: #fffaf1"><span style="font-size: 15px; font-weight: 700">Operator</span></span>
+            <button type="button" aria-label="Hold for one and a half seconds to open maintenance" onPointerDown="{{ holdDown }}" onPointerUp="{{ holdUp }}" onPointerLeave="{{ holdUp }}" onPointerCancel="{{ holdUp }}" style="position: relative; min-width: 56px; height: 34px; border: 2px solid {{ holdBorder }}; border-radius: 10px; background: #fffaf1; color: inherit; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 1; cursor: pointer; overflow: hidden">
+              <span style="position: relative; z-index: 2">⋯</span>
+              <span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{ holdFill }}; background: #ffd89b"></span>
+            </button>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px">
+            <div style="position: absolute; left: 14px; top: 14px; width: 264px; height: 150px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px"></div>
+            <div style="position: absolute; left: 14px; top: 176px; width: 264px; height: 150px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px"></div>
+            <div style="position: absolute; left: 14px; top: 338px; width: 264px; height: 320px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px"></div>
+            <div style="position: absolute; left: 290px; top: 46px; width: 110px; height: 314px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px"></div>
+            <div style="position: absolute; left: 412px; top: 46px; width: 314px; height: 314px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px"></div>
+            <div style="position: absolute; left: 738px; top: 46px; width: 314px; height: 314px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 22px"></div>
+            <div style="position: absolute; left: 738px; top: 404px; width: 314px; height: 114px; border: 2px solid rgba(49,73,63,0.18); background: #f2eadc; border-radius: 18px"></div>
+            <div style="position: absolute; left: 1064px; top: 14px; width: 202px; height: 168px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 18px"></div>
+            <div style="position: absolute; left: 1064px; top: 194px; width: 202px; height: 468px; background: #9b3d2e; border-radius: 18px; display: flex; align-items: center; justify-content: center"><span style="font-size: 26px; font-weight: 700; color: #fffaf1; letter-spacing: 0.06em">STOP</span></div>
+          </div>
+
+          <div style="position: absolute; left: 0; top: 44px; width: 1280px; height: 676px; background: rgba(37,61,53,0.55); display: {{ sheetShow }}"></div>
+
+          <div style="position: absolute; left: 210px; top: 90px; width: 860px; height: 580px; background: #fffaf1; border-radius: 26px; box-shadow: 0 30px 80px rgba(37,61,53,0.4); padding: 24px; display: {{ sheetShow }}; flex-direction: column; gap: 16px; z-index: 2">
+            <div style="display: flex; align-items: baseline; gap: 14px">
+              <span style="font-size: 26px; font-weight: 700">Maintenance</span>
+              <span style="padding: 5px 12px; border-radius: 9px; background: #ffd89b; font-size: 15px; font-weight: 700">Robot held at zeros</span>
+              <span style="flex: 1"></span>
+              <button type="button" onClick="{{ sheetClose }}" style="min-height: 48px; padding: 0 20px; border: 2px solid rgba(49,73,63,0.18); border-radius: 14px; background: #f2eadc; color: #253d35; font-family: inherit; font-size: 17px; font-weight: 700; cursor: pointer">Close</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+              <sc-for list="{{ facts }}" as="f" hint-placeholder-count="6">
+                <div style="padding: 12px 14px; background: #f8f4eb; border: 1px solid rgba(49,73,63,0.18); border-radius: 14px; display: flex; flex-direction: column; gap: 3px; min-width: 0">
+                  <span style="font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: #536960; font-weight: 700">{{ f.label }}</span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ f.value }}</span>
+                  <span style="font-size: 13px; color: #5c6b63; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ f.note }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #536960; font-weight: 700">Actions</div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+              <sc-for list="{{ actions }}" as="ac" hint-placeholder-count="4">
+                <button type="button" onClick="{{ ac.click }}" style="min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 0 16px; border: 2px solid {{ ac.border }}; border-radius: 14px; background: {{ ac.bg }}; color: {{ ac.fg }}; font-family: inherit; text-align: left; cursor: pointer; min-width: 0">
+                  <span style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+                    <span style="font-size: 17px; font-weight: 700">{{ ac.label }}</span>
+                    <span style="font-size: 13px; opacity: 0.85">{{ ac.note }}</span>
+                  </span>
+                </button>
+              </sc-for>
+            </div>
+
+            <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(49,73,63,0.14); display: flex; align-items: center; gap: 14px">
+              <span style="font-size: 15px; line-height: 1.4; color: #5c6b63; flex: 1">Closing resumes publishing immediately. Nothing here changes what the app sends — topics, frame and rate are shown so you can read them, not set them.</span>
+              <button type="button" onClick="{{ sheetClose }}" style="flex: 0 0 200px; min-height: 64px; border: none; border-radius: 14px; background: #31493f; color: #fffaf1; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer">Resume operating</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="max-width: 1280px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">The hold is visible</div><p style="margin: 0; font-size: 15px; line-height: 1.55">The fill is on the ⋯ button itself, in pollen — a held state that ends by itself. Today it looks like a menu, which is why people tap it and nothing happens.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Held, not stopped</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Opening the sheet holds the robot at zeros and says so in the bar and the sheet. That is different from STOP, which latches — so it uses pollen, not error.</p></div>
+        <div style="padding: 18px; background: #fffaf1; border: 1px solid rgba(49,73,63,0.14); border-radius: 16px"><div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #31493f; font-weight: 700; margin-bottom: 8px">Read, don't set</div><p style="margin: 0; font-size: 15px; line-height: 1.55">Six facts an engineer asks for over the phone — link, rate, frame, profile, device class, app version — as values, not fields. Switching role needs its own hold.</p></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    font: 1.0, locale: "EN", audio: false, preset: "default",
+    dwell: 1000, scan: 1400, guard: 0, deadzone: 0.2,
+    previewHold: 0, previewDone: false,
+    holdFill: 0, sheet: false
+  };
+  timers = {};
+  componentWillUnmount() { for (const k of Object.keys(this.timers)) clearInterval(this.timers[k]); }
+
+  runHold(key, ms, onDone) {
+    this.stopHold(key);
+    const t0 = Date.now();
+    this.timers[key] = setInterval(() => {
+      const p = Math.min(1, (Date.now() - t0) / ms);
+      this.setState({ [key]: p });
+      if (p >= 1) { this.stopHold(key); onDone(); }
+    }, 40);
+  }
+  stopHold(key) {
+    if (this.timers[key]) { clearInterval(this.timers[key]); delete this.timers[key]; }
+    if (this.state[key] !== 0) this.setState({ [key]: 0 });
+  }
+  step(field, delta, min, max, round) {
+    return () => {
+      const v = Math.min(max, Math.max(min, this.state[field] + delta));
+      this.setState({ [field]: round ? Math.round(v) : +v.toFixed(2) });
+    };
+  }
+
+  renderVals() {
+    const st = this.state;
+    const sel = { bg: "#31493f", fg: "#fffaf1", border: "#31493f" };
+    const idle = { bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)" };
+    const pick = (on) => on ? sel : idle;
+
+    const COPY = {
+      EN: { title: "Close gripper", label: "Close gripper", note: "Hold the button until it fills, then it sends.", tap: "Press to send." },
+      ES: { title: "Cerrar la pinza", label: "Cerrar la pinza", note: "Mantenga el bot\u00f3n hasta que se llene, entonces env\u00eda.", tap: "Pulse para enviar." },
+      FR: { title: "Fermer la pince", label: "Fermer la pince", note: "Maintenez le bouton jusqu'\u00e0 ce qu'il se remplisse, puis il envoie.", tap: "Appuyez pour envoyer." }
+    };
+    const copy = COPY[st.locale];
+    const dwelling = st.preset === "dwell";
+    const scanning = st.preset === "scan";
+    const target = st.preset === "default" ? 64 : 72;
+
+    const STEPPERS = [
+      { field: "dwell", label: "Hold to activate", unit: "ms", top: 50, step: 100, min: 400, max: 2500, relevant: dwelling, note: "dwell_ms", reason: "only for Dwell" },
+      { field: "scan", label: "Scan step", unit: "ms", top: 182, step: 100, min: 600, max: 3000, relevant: scanning, note: "scan_period_ms", reason: "only for Scan" },
+      { field: "guard", label: "Ignore repeats within", unit: "ms", top: 314, step: 50, min: 0, max: 600, relevant: true, note: "repeat_guard_ms" },
+      { field: "deadzone", label: "Joystick dead zone", unit: "", top: 446, step: 0.05, min: 0, max: 0.5, relevant: true, note: "deadzone" }
+    ];
+
+    return {
+      fontScales: [
+        { label: "Normal", v: 1.0, size: "16px" },
+        { label: "Large", v: 1.25, size: "19px" },
+        { label: "Larger", v: 1.5, size: "22px" }
+      ].map((o) => {
+        const s = pick(st.font === o.v);
+        return { label: o.label, size: o.size, bg: s.bg, fg: s.fg, border: s.border, pick: () => this.setState({ font: o.v }) };
+      }),
+      fontScaleValue: st.font.toFixed(2),
+
+      locales: ["EN", "ES", "FR"].map((c) => {
+        const s = pick(st.locale === c);
+        return { label: c, bg: s.bg, fg: s.fg, border: s.border, pick: () => this.setState({ locale: c }) };
+      }),
+      localeCode: st.locale.toLowerCase(),
+
+      audioLabel: st.audio ? "On" : "Off",
+      audioBg: st.audio ? sel.bg : idle.bg,
+      audioFg: st.audio ? sel.fg : idle.fg,
+      audioBorder: st.audio ? sel.border : idle.border,
+      audioToggle: () => this.setState({ audio: !st.audio }),
+
+      presets: [
+        { id: "default", label: "Touch" },
+        { id: "dwell", label: "Dwell" },
+        { id: "scan", label: "Scan" }
+      ].map((o) => {
+        const s = pick(st.preset === o.id);
+        return { label: o.label, bg: s.bg, fg: s.fg, border: s.border, pick: () => this.setState({ preset: o.id, previewDone: false }) };
+      }),
+      presetValue: st.preset,
+      timingNote: dwelling ? "dwell is active" : scanning ? "scan is active" : "touch needs no timing",
+
+      steppers: STEPPERS.map((s) => ({
+        label: s.label, field: s.note, top: `${s.top}px`,
+        value: s.field === "deadzone" ? this.state[s.field].toFixed(2) : `${this.state[s.field]} ${s.unit}`,
+        // §09 interlocked treatment: dashed, full-contrast ink, and the reason in words. Never a dimmed card.
+        cardBg: s.relevant ? "#f8f4eb" : "#f8f4eb",
+        cardBorder: s.relevant ? "1px solid rgba(49,73,63,0.18)" : "2px dashed rgba(49,73,63,0.35)",
+        labelColor: s.relevant ? "#253d35" : "#536960",
+        reason: s.reason || "",
+        reasonShow: s.relevant ? "none" : "inline",
+        btnBg: s.relevant ? "#f2eadc" : "#f8f4eb",
+        btnFg: s.relevant ? "#253d35" : "#536960",
+        btnBorder: s.relevant ? "2px solid rgba(49,73,63,0.18)" : "2px dashed rgba(49,73,63,0.35)",
+        cursor: s.relevant ? "pointer" : "not-allowed",
+        dec: s.relevant ? this.step(s.field, -s.step, s.min, s.max, s.field !== "deadzone") : () => {},
+        inc: s.relevant ? this.step(s.field, s.step, s.min, s.max, s.field !== "deadzone") : () => {}
+      })),
+
+      previewTitle: copy.title,
+      previewTitleSize: `${Math.round(18 * st.font)}px`,
+      previewLabel: st.previewDone ? (st.locale === "EN" ? "Sent" : st.locale === "ES" ? "Enviado" : "Envoy\u00e9") : copy.label,
+      previewLabelSize: `${Math.round(17 * st.font)}px`,
+      previewNoteSize: `${Math.round(14 * st.font)}px`,
+      previewNote: dwelling ? copy.note : copy.tap,
+      previewMeta: `target ${target} px \u00b7 font ${st.font.toFixed(2)} \u00b7 ${dwelling ? `dwell ${st.dwell} ms` : scanning ? `scan ${st.scan} ms` : "immediate"}`,
+      previewTarget: `${target}px`,
+      previewBg: st.previewDone ? "#c8d5c4" : "#f2eadc",
+      previewFg: "#253d35",
+      previewBorder: st.previewDone ? "#31493f" : "rgba(49,73,63,0.18)",
+      previewFill: `${Math.round(st.previewHold * 100)}%`,
+      previewDown: () => {
+        if (!dwelling) { this.setState({ previewDone: true }); return; }
+        this.runHold("previewHold", st.dwell, () => this.setState({ previewDone: true }));
+      },
+      previewUp: () => this.stopHold("previewHold"),
+
+      mChipBg: st.sheet ? "#ffd89b" : "#c8d5c4",
+      mChipFg: "#253d35",
+      mChipDot: st.sheet ? "2px" : "50%",
+      mChipLabel: st.sheet ? "HELD FOR MAINTENANCE" : "READY",
+      mRate: st.sheet ? "zeros held" : "30 Hz",
+      holdFill: `${Math.round(st.holdFill * 100)}%`,
+      holdBorder: st.holdFill > 0 ? "#31493f" : "rgba(49,73,63,0.18)",
+      holdDown: () => { if (!st.sheet) this.runHold("holdFill", 1500, () => this.setState({ sheet: true })); },
+      holdUp: () => this.stopHold("holdFill"),
+      sheetShow: st.sheet ? "flex" : "none",
+      sheetClose: () => this.setState({ sheet: false }),
+
+      facts: [
+        { label: "Link", value: "Connected", note: "frontend to backend, not the arm" },
+        { label: "Publish rate", value: "30 Hz", note: "zeros at rest too" },
+        { label: "Command frame", value: "base_link", note: "stamped on every twist" },
+        { label: "Profile", value: "Operator", note: "manager_drive_operator" },
+        { label: "Device class", value: "Tablet", note: "1280\u00d7720 \u00b7 authored" },
+        { label: "App version", value: "explorer-manager", note: "schema 1 \u00b7 seeded 01 Sep" }
+      ],
+      actions: [
+        { label: "Runtime settings", note: "text size, language, how you reach controls", bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)", click: () => {} },
+        { label: "Switch role", note: "needs its own 1.5 s hold", bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)", click: () => {} },
+        { label: "Reload this app", note: "re-reads the seed; keeps your profile", bg: "#f2eadc", fg: "#253d35", border: "rgba(49,73,63,0.18)", click: () => {} },
+        { label: "Exit to library", note: "ends the session", bg: "#f5ddd8", fg: "#4f1f16", border: "#9b3d2e", click: () => {} }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
