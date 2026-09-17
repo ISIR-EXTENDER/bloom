@@ -99,13 +99,14 @@ visual gaps are tracked in [the design gap review](design/reviews/2026-09-17-des
 
 - **Automated:** CI green on the pushed fixes; frontend, widgets, renderer and backend suites, build, contracts,
   `qa:review`, visual smoke, and both dependency audits pass.
-- **Simulation:** `npm run e2e:sim` passes 12 of 12 checks on Kinova fake hardware and on the Explorer Gazebo
-  simulation, each verified on the ROS graph.
+- **Simulation:** `npm run e2e:sim` passes 12 of 12 checks on both robots, each run self-contained and each check
+  verified on the ROS graph. Kinova needed `kortex_description` and `robotiq_description` at matching versions, now in
+  the Extender workspace manifest.
 - **Field:** on 2026-09-17 visual servoing on the new architecture was driven from Bloom with one toggle and one command
   button.
 - **Still open before tagging:** D3, the version; hardware validation on Extender and Kinova, including the Pivot
   sign; a native speaker's check of the Spanish and French wording; the operator target floor (48 or 56 px, see the
   design gap review).
-- **Upstream, not Bloom:** the Explorer simulation needs two runtime workarounds on Jazzy (`explorer_stack`), the apt
-  `robotiq_description` is too old for `kortex_description` 0.2.6, and `kinova.launch.py` never spawns
-  `fault_controller`. Details in [the simulation run](validation/ros-sim-e2e.md).
+- **Upstream, not Bloom:** the Explorer simulation needs two runtime workarounds on Jazzy (`explorer_stack`), which the
+  end-to-end script applies, and `kinova.launch.py` never spawns `fault_controller`, so Reset fault cannot be tested in
+  simulation. Details in [the simulation run](validation/ros-sim-e2e.md).
