@@ -1,7 +1,11 @@
 import base64
 import hashlib
 import re
+from collections.abc import Callable
+from functools import wraps
 from pathlib import Path
+from threading import Lock
+from typing import Any, TypeVar
 from urllib.parse import unquote
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -27,6 +31,7 @@ from libs.config import (
 from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
 
 router = APIRouter(prefix="/configurations", tags=["configurations"])
+T = TypeVar("T")
 
 MAX_THEME_ASSET_BYTES = 1_000_000
 ALLOWED_THEME_ASSET_TYPES = {
@@ -70,6 +75,23 @@ def get_configuration_repository(request: Request) -> ConfigurationRepository:
     return request.app.state.configuration_repository
 
 
+_configuration_locks: dict[str, Lock] = {}
+_configuration_locks_guard = Lock()
+
+
+def serialized_per_configuration(route: Callable[..., T]) -> Callable[..., T]:
+    """Each save reads, edits and writes the whole bundle, so two at once would drop one edit."""
+
+    @wraps(route)
+    def locked_route(*args: Any, **kwargs: Any) -> T:
+        with _configuration_locks_guard:
+            lock = _configuration_locks.setdefault(kwargs["config_id"], Lock())
+        with lock:
+            return route(*args, **kwargs)
+
+    return locked_route
+
+
 @router.get("", response_model=ConfigurationListResponse)
 def list_configurations(
     request: Request,
@@ -93,6 +115,7 @@ def get_configuration(
 
 
 @router.put("/{config_id}", response_model=ConfigurationBundle)
+@serialized_per_configuration
 def upsert_configuration(
     config_id: str,
     bundle: ConfigurationBundle,
@@ -117,6 +140,7 @@ def list_applications(
 
 
 @router.put("/{config_id}/applications/{application_id}", response_model=ConfigurationBundle)
+@serialized_per_configuration
 def upsert_configuration_application(
     config_id: str,
     application_id: str,
@@ -136,6 +160,7 @@ def upsert_configuration_application(
 
 
 @router.delete("/{config_id}/applications/{application_id}", status_code=status.HTTP_204_NO_CONTENT)
+@serialized_per_configuration
 def delete_configuration_application(
     config_id: str,
     application_id: str,
@@ -173,6 +198,7 @@ def list_configuration_screens(
 
 
 @router.put("/{config_id}/applications/{application_id}/screens/{screen_id}", response_model=ConfigurationBundle)
+@serialized_per_configuration
 def upsert_configuration_screen(
     config_id: str,
     application_id: str,
@@ -196,6 +222,7 @@ def upsert_configuration_screen(
 
 
 @router.delete("/{config_id}/applications/{application_id}/screens/{screen_id}", status_code=status.HTTP_204_NO_CONTENT)
+@serialized_per_configuration
 def delete_configuration_screen(
     config_id: str,
     application_id: str,
@@ -219,6 +246,7 @@ def delete_configuration_screen(
 
 
 @router.delete("/{config_id}", status_code=status.HTTP_204_NO_CONTENT)
+@serialized_per_configuration
 def delete_configuration(
     config_id: str,
     request: Request,

@@ -1,5 +1,7 @@
 import base64
 import json
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -461,3 +463,31 @@ def upload_theme_asset(client: TestClient, filename: str, content: bytes) -> str
 
     assert response.status_code == 200
     return str(response.json()["uri"])
+
+
+def test_concurrent_screen_saves_to_one_configuration_keep_both_edits(
+    test_settings: Settings, configuration_repository
+) -> None:
+    class SlowReadRepository(type(configuration_repository)):
+        def get(self, config_id: str) -> ConfigurationBundle:
+            bundle = super().get(config_id)
+            time.sleep(0.1)
+            return bundle
+
+    client = TestClient(
+        create_app(test_settings, SlowReadRepository({"sandbox": configuration_repository.get("sandbox")}))
+    )
+
+    def save(screen_id: str) -> int:
+        screen = ScreenConfig(id=screen_id, title=screen_id, canvas=CanvasSettings(preset_id="tablet"))
+        return client.put(
+            f"/api/v1/configurations/sandbox/applications/sandbox/screens/{screen_id}",
+            json=screen.model_dump(mode="json"),
+        ).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        statuses = list(pool.map(save, ["edit-one", "edit-two"]))
+
+    screens = client.get("/api/v1/configurations/sandbox").json()["applications"][0]["screens"]
+    assert statuses == [200, 200]
+    assert {"edit-one", "edit-two"} <= {screen["id"] for screen in screens}

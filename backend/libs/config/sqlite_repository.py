@@ -35,12 +35,15 @@ class SQLiteConfigurationRepository:
     def get(self, config_id: str) -> ConfigurationBundle:
         with sqlite_connection(self.database_path) as connection:
             apply_sqlite_migrations(connection)
+            # One read transaction, so a concurrent save cannot mix old and new rows into one bundle.
+            connection.execute("BEGIN")
             row = connection.execute(
                 "SELECT bundle_json, metadata_json FROM configuration_bundles WHERE config_id = ?",
                 (config_id,),
             ).fetchone()
             if row is not None:
                 bundle = load_normalized_configuration_bundle(connection, config_id, row)
+            connection.commit()
 
         if row is None:
             raise ConfigurationNotFoundError(config_id)
