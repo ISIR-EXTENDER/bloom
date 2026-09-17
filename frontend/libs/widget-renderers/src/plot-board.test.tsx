@@ -106,6 +106,36 @@ describe("the plot board", () => {
     renderWidget(0);
     expect(screen.getByText("nothing is commanding")).toBeTruthy();
   });
+
+  it("widens a ±1 range to take in a joint at 2.5 rad and labels the real bounds", () => {
+    renderWidget(0, snapshot({ "This tablet": 2.5, "Manager output": -0.5 }));
+
+    expect(document.querySelector('[data-edge="top"]')?.textContent).toBe("+2.7");
+    expect(document.querySelector('[data-edge="bottom"]')?.textContent).toBe("−1.0");
+    const line = document.querySelector<SVGPathElement>('[data-series="/joystick_cartesian_command#twist.linear.x"]');
+    // Not pinned to the top edge at y = 0.
+    expect(Number(line?.getAttribute("d")?.split(" ")[1])).toBeGreaterThan(40);
+  });
+
+  it("keeps the declared range when a board opts out of fitting", () => {
+    const board = sourcesScreen.widgets[0];
+    if (!board) throw new Error("Missing board.");
+    const fixedScreen = {
+      ...sourcesScreen,
+      widgets: [{ ...board, settings: { ...board.settings, y_fit_data: false } }],
+    };
+    const [descriptor] = renderScreenDescriptors(fixedScreen, createDefaultWidgetRegistry());
+    if (!descriptor) throw new Error("Missing descriptor.");
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: { "sources-plot": { type: "plot-series", series: snapshot({ "This tablet": 2.5 }) } },
+        })}
+      </div>,
+    );
+
+    expect(document.querySelector('[data-edge="top"]')?.textContent).toBe("+1.0");
+  });
 });
 
 describe("the plot picker", () => {

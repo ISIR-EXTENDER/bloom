@@ -14,7 +14,7 @@ This is the shape of the tool the lab already uses for exactly this task.
 
 ```
 plot-board      settings.series[] = { topic, message_type, field_path, label, color, unit, enabled, emphasis }
-                history_seconds, max_samples, y_min, y_max
+                history_seconds, max_samples, y_min, y_max, y_fit_data (default true: widen to fit data)
                 picker: { enabled, persist_per_profile }
 plot-picker     settings.plot_id, show_value, show_unavailable
 value-strip     settings.series[] = { topic, field_path, label, unit, color }

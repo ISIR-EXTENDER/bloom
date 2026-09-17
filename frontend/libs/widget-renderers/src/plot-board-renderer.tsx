@@ -10,13 +10,16 @@ const RAMP_SIZE = 8;
 export function PlotBoardWidget({ data, descriptor }: WidgetRendererProps) {
   const settings = descriptor.widget.settings;
   const historySeconds = Math.max(1, getNumberSetting(settings, "history_seconds", 30));
-  const yMin = getNumberSetting(settings, "y_min", -1);
-  const yMax = Math.max(yMin + 1e-6, getNumberSetting(settings, "y_max", 1));
+  const declaredMin = getNumberSetting(settings, "y_min", -1);
+  const declaredMax = Math.max(declaredMin + 1e-6, getNumberSetting(settings, "y_max", 1));
   const series = resolveSeries(data, settings);
   const plotted = series.filter((entry) => entry.enabled);
   const now = useNow(250);
   const verdict = resolvePlotVerdict(series, now);
   const windowStart = now - historySeconds * 1000;
+  const [yMin, yMax] = getBooleanSetting(settings, "y_fit_data", true)
+    ? fitRange(declaredMin, declaredMax, plotted, windowStart)
+    : [declaredMin, declaredMax];
   const toX = (time: number) => ((time - windowStart) / (historySeconds * 1000)) * PLOT_EXTENT;
   const toY = (value: number) => ((yMax - Math.min(yMax, Math.max(yMin, value))) / (yMax - yMin)) * PLOT_EXTENT;
   const zeroY = yMin < 0 && yMax > 0 ? toY(0) : null;
@@ -186,6 +189,30 @@ const STALE_VALUE_AFTER_MS = 3000;
 function isStale(entry: PlotSeriesSnapshot, now: number): boolean {
   const latest = entry.samples.at(-1);
   return latest !== undefined && now - latest.time > STALE_VALUE_AFTER_MS;
+}
+
+/** The declared range, widened with a little headroom on whichever side the visible data leaves it. */
+function fitRange(
+  declaredMin: number,
+  declaredMax: number,
+  plotted: readonly PlotSeriesSnapshot[],
+  windowStart: number,
+): [number, number] {
+  let dataMin = declaredMin;
+  let dataMax = declaredMax;
+  for (const entry of plotted) {
+    for (const sample of entry.samples) {
+      if (sample.time >= windowStart) {
+        dataMin = Math.min(dataMin, sample.value);
+        dataMax = Math.max(dataMax, sample.value);
+      }
+    }
+  }
+  const headroom = (dataMax - dataMin) * 0.05;
+  return [
+    dataMin < declaredMin ? dataMin - headroom : declaredMin,
+    dataMax > declaredMax ? dataMax + headroom : declaredMax,
+  ];
 }
 
 function resolveSeries(data: WidgetRendererProps["data"], settings: Record<string, unknown>) {
