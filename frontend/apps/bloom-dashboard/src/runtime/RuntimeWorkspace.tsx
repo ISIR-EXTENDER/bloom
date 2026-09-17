@@ -10,7 +10,7 @@ import { appendTopicEchoMessage, appendTopicPlotSample, type WidgetActionIntent 
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { resolveScreenArtboardLayout, ScreenArtboard } from "../screen/ScreenArtboard";
+import { ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
 import {
@@ -30,7 +30,7 @@ import type {
   RuntimeTopicSampleMessage,
   RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
-import { resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
+import { isFullPanelScreen, resolveRuntimeArtboardSize, resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
 import { resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
@@ -134,10 +134,11 @@ export function RuntimeWorkspace({
   const [tourOpen, setTourOpen] = useState(false);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
-  const { artboardSize } = resolveScreenArtboardLayout(screen);
+  const fullPanel = isFullPanelScreen(screen);
+  const artboardSize = useMemo(() => resolveRuntimeArtboardSize(screen), [screen]);
   const canvasFit = useMemo(
-    () => resolveRuntimeCanvasFit(screen.canvas, artboardSize, viewportSize),
-    [artboardSize, screen.canvas, viewportSize],
+    () => resolveRuntimeCanvasFit(screen.canvas, artboardSize, viewportSize, fullPanel),
+    [artboardSize, fullPanel, screen.canvas, viewportSize],
   );
   const artboardScale = canvasFit.scale;
   const stopRegion = useMemo(() => findStopRegion(screen), [screen]);
@@ -551,6 +552,7 @@ export function RuntimeWorkspace({
       data-has-debug={application.id === "bloom-debug" ? "true" : "false"}
       data-motor-accessibility-preset={runtimeProfile.motorAccessibilityPreset}
       data-runtime-layout="operator"
+      data-full-panel={fullPanel ? "true" : undefined}
       data-runtime-control={ownsRuntimeControl ? "owned" : "blocked"}
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       data-runtime-stopped={stopped ? "true" : "false"}

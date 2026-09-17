@@ -689,6 +689,26 @@
   overflow: visible;
 }
 
+/* A full-panel screen is the panel: no shell padding, frame or rounded artboard between bar and glass. */
+.runtime-app-workspace[data-full-panel="true"] {
+  height: 100svh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.runtime-app-workspace[data-full-panel="true"] .runtime-app-canvas-viewport {
+  padding: 0;
+}
+
+.runtime-app-workspace[data-full-panel="true"] .runtime-app-artboard {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--bloom-surface);
+}
+
 .runtime-app-artboard {
   position: relative;
   min-width: 720px;
@@ -828,7 +848,9 @@
 
 /* The kiosk bar (design 1b, §10): status only, one hold to leave it. */
 .runtime-kiosk-bar {
+  box-sizing: border-box;
   flex: 0 0 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   gap: 16px;

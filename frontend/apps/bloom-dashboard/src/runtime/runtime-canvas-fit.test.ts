@@ -1,5 +1,6 @@
+import type { ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
-import { resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
+import { resolveRuntimeArtboardSize, resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
 
 describe("resolveRuntimeCanvasFit", () => {
   it("reports the actual guarded scale when a fit canvas shrinks", () => {
@@ -23,6 +24,27 @@ describe("resolveRuntimeCanvasFit", () => {
         { width: 1280, height: 720 },
       ),
     ).toEqual({ scale: 0.99, warning: null });
+  });
+
+  it("draws a screen that reserves regions for the whole panel body at one to one", () => {
+    const screen = {
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+      id: "drive",
+      reserved_regions: [{ height: 252, id: "stop", owner: "runtime-chrome", width: 338, x: 928, y: 410 }],
+      title: "Drive",
+      widgets: [
+        { id: "pad", kind: "joystick", layout: { height: 384, width: 1252, x: 14, y: 146 }, settings: {}, title: "" },
+      ],
+    } as ScreenConfig;
+
+    const size = resolveRuntimeArtboardSize(screen);
+    expect(size).toEqual({ width: 1280, height: 676 });
+    expect(resolveRuntimeCanvasFit(screen.canvas, size, { width: 1280, height: 676 }, true)).toEqual({
+      scale: 1,
+      warning: null,
+    });
+    expect(resolveRuntimeCanvasFit(screen.canvas, size, { width: 1024, height: 556 }, true).scale).toBe(0.8);
+    expect(resolveRuntimeArtboardSize({ ...screen, reserved_regions: [] })).toEqual({ width: 1290, height: 720 });
   });
 
   it("leaves a centered canvas at authored size without a warning", () => {
