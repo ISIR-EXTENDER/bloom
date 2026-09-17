@@ -127,9 +127,12 @@ their topics explicitly; **No subscriber** means the controller is not ready and
 Saved positions belong to one application. A pose is a joint vector in one arm's joint order, so Explorer's poses never
 appear in Kinova's export, where the same numbers would mean different angles.
 
-The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, replay,
-rename/delete, and export of a `joint_targets` configuration block. Robot Feedback and Command Sources expose measured
-state and the manager's summed inputs without placing debug detail on the Drive screen.
+The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, deleting
+a saved pose, and export of a `joint_targets` configuration block. A saved pose cannot be replayed or renamed from Bloom:
+the manager moves only to targets it loaded at start, so a new pose reaches the robot through the export and a manager
+restart. Saved poses live in the API process and are lost when it restarts, so export them before stopping it. Robot
+Feedback and Command Sources expose measured state and the manager's summed inputs without placing debug detail on the
+Drive screen.
 
 ## Joystick Lab
 
@@ -257,14 +260,16 @@ end-effector, and hybrid frames; it does not perform a general TF lookup. The li
 base convention. Angular components from end-effector or hybrid frames are rotated using the live pose. Unknown frames
 are rejected by Bloom when outside the allowlist and skipped by the manager if they reach it.
 
-The defaults cover the current Explorer and Kinova bringups: `base_link`, `ft_frame`, `effector_frame`, and
-`hybrid_frame`. Narrow the allowlist to the robot actually served by the backend. One backend instance represents one
-robot and can name it with `BLOOM_ROBOT_NAME`.
+The default allowlist is `base_link` and `hybrid_frame`, which every manager config has. Set `BLOOM_ROS_EE_FRAME_ID`
+to the served robot's end-effector frame (`ft_frame` on Explorer, `effector_frame` on the Kinova gen3) to offer it too.
+An Explorer backend that advertised `effector_frame` accepted commands the manager then discarded without a word. One
+backend instance represents one robot and can name it with `BLOOM_ROBOT_NAME`.
 
 ## Shared Applications And Local State
 
-Tracked applications live under `backend/seed/applications/`. On first start, missing applications are imported into
-the configured store. Seeding does not overwrite local edits.
+Tracked applications live under `backend/seed/applications/`. On every start, missing applications are imported into
+the configured store and unedited copies take the shipped version. Seeding never overwrites local edits, and it does
+not bring back a shipped application someone deleted.
 
 ```bash
 cd backend
@@ -275,8 +280,9 @@ uv run python -m apps.bloom_cli.main config publish explorer-manager
 
 Use `config status` before assuming a local runtime matches the committed application. It reports `shared` when the
 store matches the shipped bundle, `outdated` when this machine never edited its copy and a newer version ships, and
-`edited` when the local copy is someone's own work. Startup takes shipped updates for `outdated` apps automatically and
-never touches an `edited` one. Use `seed --force <app-id>` to discard local edits and restore the tracked seed, and
+`edited` when the local copy is someone's own work, `local` for an app that ships nowhere, `missing` for a shipped app
+not yet seeded, and `deleted` for a shipped app removed on purpose. Startup takes shipped updates for `outdated` apps
+automatically and never touches an `edited` one. Use `seed --force <app-id>` to discard local edits and restore the tracked seed, and
 `config publish <app-id>` when the local version is the one the team should share.
 
 ## Live Telemetry

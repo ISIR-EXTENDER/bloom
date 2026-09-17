@@ -106,8 +106,8 @@ Configuration dir:
 Browser-only smoke:
   npm run visual:smoke
 
-Live ROS/simulation lab:
-  export BLOOM_CONFIGURATION_DIR="${BLOOM_CONFIGURATION_DIR}"
+Live ROS/simulation lab, on the file store checked above:
+  export BLOOM_CONFIGURATION_STORAGE=file BLOOM_CONFIGURATION_DIR="${BLOOM_CONFIGURATION_DIR}"
   scripts/extender-workspace-dev.sh
 
 Then open:

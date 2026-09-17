@@ -132,9 +132,9 @@ The supervisor mirror is another intentionally separate boundary. `createSupervi
 runtime client down to connection observation plus `getRuntimeControlState`, `getRuntimeStopState`, and
 `listRosTopicStatus`. The mirror component cannot receive claim, release, publish, teleop, configured-action, STOP, or
 resume methods. Its `#/runtime/supervisor/:config/:app` route can open on a second display without transferring
-ownership from the operator session. Because
-`cartesian_manager` publishes no authoritative mode, a fresh mirror says that mode is not checked and reports only a
-request observed in its own browser session.
+ownership from the operator session. The backend reports the owning session's frame, last mode request, and whether it
+is moving, and the mirror shows those; `cartesian_manager` publishes no authoritative mode, so the mode stays labelled
+as requested. The server enforces the same boundary with the observer role (ADR 0131).
 
 The current operator contract is maintained in `docs/operator-runtime.md`.
 

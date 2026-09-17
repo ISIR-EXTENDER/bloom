@@ -388,7 +388,8 @@ To see what you have not shared yet:
 uv run python -m apps.bloom_cli.main config status
 ```
 
-It reads whichever store is configured and marks each application `shared`, `edited`, `local`, or `missing`.
+It reads whichever store is configured and marks each application `shared`, `outdated`, `edited`, `local`, `missing`,
+or `deleted`. The [operator guide](docs/operator-runtime.md#shared-applications-and-local-state) says what each means.
 
 ## Extender Reference
 

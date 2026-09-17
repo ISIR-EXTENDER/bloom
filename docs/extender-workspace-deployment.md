@@ -39,14 +39,15 @@ sudo apt install -y nodejs
 node --version   # v24.x
 ```
 
-A machine still on an older Node can launch Bloom, and the launcher says so, but it cannot run the test suites: jsdom
-30 and the undici it depends on need Node 22.19 or newer.
+The floor is 24.15.0, from `engines.node` in `package.json`, because jsdom 30 supports the 24 line from there. A
+machine on an older Node 22.12 or later can still start the dev server, and the launcher warns, but it cannot run the
+test suites.
 
 ## Useful Environment Variables
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `EXTENDER_WORKSPACE` | `/home/susana/workspace/extender/extender_workspace` | ROS workspace root. |
+| `EXTENDER_WORKSPACE` | `extender_workspace` next to this repository | ROS workspace root. |
 | `EXTENDER_SETUP_FILE` | `$EXTENDER_WORKSPACE/install/setup.bash` | Setup file to source before starting ROS adapters. |
 | `BLOOM_API_HOST` | `127.0.0.1` | API bind host. |
 | `BLOOM_API_PORT` | `8000` | API port. |
@@ -55,6 +56,11 @@ A machine still on an older Node can launch Bloom, and the launcher says so, but
 | `BLOOM_API_PROXY_TARGET` | `http://127.0.0.1:$BLOOM_API_PORT` | Server-side Vite target for HTTP and WebSocket API traffic. |
 | `BLOOM_PUBLIC_HOST` | first address from `hostname -I` | Address printed for another device when the frontend uses a wildcard bind. |
 | `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
+| `BLOOM_SEED_SHARED_APPLICATIONS` | `true` | Import and upgrade shipped applications at API start. |
+| `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
+| `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |
+| `BLOOM_APP_NAME`, `BLOOM_SERVICE_NAME`, `BLOOM_APP_DESCRIPTION` | Bloom defaults | Names reported by the API and its OpenAPI page. |
+| `BLOOM_APP_VERSION` | the release version | Version the API reports. Leave it unset, or it hides the real version. |
 | `BLOOM_APPLY_TABLET_TOUCH_MAP` | `0` | Set to `1` to run `scripts/extender-tablet-touch-map.sh` before launch. |
 | `DISPLAY_MODE` | empty | Optional tablet display mode passed to the touch-map helper, for example `1280x720`. |
 | `LOGICAL_DISPLAY_SIZE` | empty | Optional scaled tablet workspace, for example `1820x720`. |
@@ -206,7 +212,12 @@ VITE_BLOOM_API_KEY='replace-with-operator-secret' npm run build --workspace @blo
 Build a supervisor screen with the observer key instead, so the machine watching cannot command the arm even if
 someone reaches its keyboard.
 
-The key is baked into the bundle, so serve that build only to the machines the key is meant for. Bloom still has no
+Point the build at the API with `VITE_BLOOM_API_URL`, serve its `dist` directory with any static server, for example
+`npm exec --workspace @bloom/dashboard -- vite preview --host 0.0.0.0 --port 4173`, and add that origin to
+`BLOOM_CORS_ALLOWED_ORIGINS`, which the runtime socket also checks.
+
+The key is baked into the bundle, so serve that build only to the machines the key is meant for. The same holds for the
+dev server: in same-Wi-Fi mode every device that opens it gets the one key it was started with. Bloom still has no
 per-person sign-in: one deployment holds one operator key, which is enough for a lab tablet and not enough for a shared
 public machine.
 

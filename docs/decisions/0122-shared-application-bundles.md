@@ -71,3 +71,12 @@ starts empty, which is the actual problem.
 **A shared backend in the lab.** One store everyone points at. Rejected: it needs
 the server up and reachable, and there is no offline story for a laptop at a
 demo.
+
+## Amended on 2026-09-17
+
+"Seeding never overwrites" also left every machine on the version it first saw, edited or not. Each seeded copy is now stamped with the fingerprint of the file it came from; a copy still matching its stamp, or
+matching a version shipped before stamps existed, is replaced by a newer shipped version at startup. An edited copy is
+still never touched. A shipped app deleted on purpose is remembered and not seeded again without `--force`.
+
+`publish` no longer round-trips byte for byte from SQLite. It leaves the file alone when the content already matches,
+and SQLite keeps widget settings in their authored order so a real edit publishes with a small diff.

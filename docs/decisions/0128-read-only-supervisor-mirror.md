@@ -32,3 +32,10 @@ decision covering identity, ownership, acknowledgement, timeout, failure, and ha
 Projection, route, app-selection, separate-tab, and command-absence tests run in the dashboard suite. Visual smoke checks
 the mirror at maintained viewports and verifies topic tiles stay inside the status list. The live browser result is
 recorded in `docs/validation/2026-09-16-supervisor-mirror.md`.
+
+## Amended on 2026-09-17
+
+- The mirror no longer shows only what its own browser observed. The backend reports the owning session's frame, last
+  mode request and whether it is moving, and the mirror shows those. STOP ends the mirrored motion, one-shot joint
+  targets are not shown as a mode, and an idle operator's chosen frame is kept.
+- Read-only is now enforced by the server as well as by the projected client: see ADR 0131.

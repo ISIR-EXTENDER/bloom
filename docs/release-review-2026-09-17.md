@@ -59,7 +59,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | # | Finding | Where | Status |
 | --- | --- | --- | --- |
 | D1 | `CHANGELOG.md` omits the breaking and security changes of the last two days: the Node 24 floor, the narrowed frame allowlist, the observer role and API keys, per-app positions, seed auto-upgrade, and ownership on by default. | `CHANGELOG.md` | Fixed |
-| D2 | Docs describe behavior the code does not have: the default frame list, positions replay/rename and persistence, superseded ADRs 0122 and 0128, no ADR for the observer role, `config status` labels, undocumented settings, a version check covering three of eight carriers, and hard-coded English runtime strings. | `docs/*`, `README.md` | Open |
+| D2 | Docs describe behavior the code does not have: the default frame list, positions replay/rename and persistence, superseded ADRs 0122 and 0128, no ADR for the observer role, `config status` labels, undocumented settings, a version check covering three of eight carriers, and hard-coded English runtime strings. | `docs/*`, `README.md` | Fixed |
 | D3 | Version and tag: an untagged `[0.1.0]` section already exists, so this release is either 0.1.0 with that section folded in, or 0.2.0. | `CHANGELOG.md`, version carriers | Needs a decision |
 
 ## Decisions recorded while fixing

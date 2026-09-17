@@ -298,8 +298,8 @@ BLOOM_DASHBOARD_URL=http://127.0.0.1:5173 node scripts/ros-e2e-capture.mjs \
   --only 01-runtime-ready,07-runtime-scanning --out /tmp/bloom-captures
 ```
 
-Delete the store file before restarting the API whenever a seed changed; seeding skips ids
-the store already holds. Then open each capture next to its reference in
+Restart the API whenever a seed changed; startup upgrades every copy nobody edited. For a copy
+that was edited, run `bloom config seed --force <id>` first. Then open each capture next to its reference in
 `Bloom UX design review 2/handoff/images/` and compare in this order: reading order,
 hierarchy, target sizes, density. A hue difference is expected, a target-size difference is a
 defect. Captures 04, 05, 06, and 08 now cover the delivered Settings and language lots.
