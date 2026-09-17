@@ -1,4 +1,4 @@
-import type { MotorAccessibilityPreset, WidgetKind } from "@bloom/api-client";
+import type { MotorAccessibilityPreset, RuntimeLanguage, WidgetKind } from "@bloom/api-client";
 import type {
   PlotSeriesConfig,
   TopicMessage,
@@ -99,6 +99,8 @@ export type WidgetRendererProps = {
   controlState?: WidgetControlState;
   data?: WidgetDataSnapshot;
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
+  /** The profile's language; the descriptor's operator words already follow it. */
+  language?: RuntimeLanguage;
   /** The operator profile's motor preset; renderers adapt their input model. */
   motorPreset?: MotorAccessibilityPreset;
   /**
@@ -128,6 +130,7 @@ export type ScreenRendererOptions = {
   conditioning?: SignalConditioning;
   controlStateByWidgetId?: Readonly<Record<string, WidgetControlState>>;
   dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
+  language?: RuntimeLanguage;
   motorPreset?: MotorAccessibilityPreset;
   neutralRevision?: number;
   onActionIntent?: WidgetActionIntentHandler;

@@ -683,6 +683,7 @@ export function RuntimeWorkspace({
                 },
                 controlStateByWidgetId,
                 dataByWidgetId: effectiveDataByWidgetId,
+                language: runtimeProfile.language,
                 motorPreset: runtimeProfile.motorAccessibilityPreset,
                 neutralRevision: teleopNeutralRevision,
                 onActionIntent: handleRuntimeActionIntent,

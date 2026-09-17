@@ -1,50 +1,63 @@
-import { BloomButton, BloomCard } from "@bloom/ui";
+import { BloomButton } from "@bloom/ui";
 
-import { dashboardPrinciples, dashboardSteps } from "../app/dashboard-content";
 import type { ProductView } from "./ProductNavigation";
 
 type LandingPageProps = {
   onOpenView: (view: ProductView) => void;
 };
 
+const DOCS_URL = "https://github.com/ISIR-EXTENDER/bloom/tree/main/docs";
+
+const PROMISES = [
+  { title: "Reach", body: "One panel, laid out for the person using it — not for the axes the arm happens to have." },
+  {
+    title: "Change",
+    body: "Screens are configuration. Move a control, grow a target, change a word, without touching the robot code.",
+  },
+  { title: "Trust", body: "Nothing on screen claims more than the robot reported. STOP is always in the same corner." },
+];
+
+/** The one surface allowed a voice (design 7b): one claim, the runtime first, a real photograph still to come. */
 export function LandingPage({ onOpenView }: LandingPageProps) {
   return (
-    <>
-      <section className="hero" aria-labelledby="dashboard-title">
-        <BloomCard className="hero-card" tone="canvas">
-          <p className="eyebrow">Bloom dashboard</p>
-          <h1 id="dashboard-title">Robot interfaces that grow cleanly.</h1>
+    <div className="landing">
+      <section aria-labelledby="dashboard-title" className="landing-hero">
+        <div className="landing-copy">
+          <p className="eyebrow">Bloom · ISIR</p>
+          <h1 id="dashboard-title">Give the gesture back.</h1>
           <p className="hero-copy">
-            Bloom is the new web foundation for configurable robot teleoperation, supervision, and device control across
-            ISIR projects.
+            Bloom builds the panel a person actually reaches the robot through — and lets you change it without touching
+            the robot.
           </p>
           <div className="hero-actions">
-            <BloomButton onClick={() => onOpenView("builder")} tone="primary">
-              Open builder preview
+            <BloomButton onClick={() => onOpenView("runtime")} tone="primary">
+              Open Runtime
             </BloomButton>
-            <BloomButton onClick={() => onOpenView("runtime")}>Open runtime preview</BloomButton>
-            <BloomButton onClick={() => onOpenView("help")}>Read get started guide</BloomButton>
+            <BloomButton onClick={() => onOpenView("builder")}>Open Builder</BloomButton>
+            <BloomButton onClick={() => onOpenView("help")}>Get started</BloomButton>
           </div>
-        </BloomCard>
-
-        <BloomCard className="principles-card" tone="soft">
-          <h2 id="principles-title">Architecture promises</h2>
-          <ul>
-            {dashboardPrinciples.map((principle) => (
-              <li key={principle}>{principle}</li>
-            ))}
-          </ul>
-        </BloomCard>
+        </div>
+        {/* Awaiting a photograph of the arm in use with a person; the placeholder says what belongs here. */}
+        <figure className="landing-photo" data-placeholder="true">
+          <figcaption>the arm in use, in a real room, with a person — not a product shot of a tablet</figcaption>
+        </figure>
       </section>
 
-      <section className="steps" aria-label="Bloom workflow">
-        {dashboardSteps.map((step) => (
-          <BloomCard className="step-card" key={step.id} tone="soft">
-            <h2>{step.title}</h2>
-            <p>{step.description}</p>
-          </BloomCard>
+      <section aria-label="What Bloom is for" className="landing-promises">
+        {PROMISES.map((promise) => (
+          <article className="landing-promise" key={promise.title}>
+            <h2>{promise.title}</h2>
+            <p>{promise.body}</p>
+          </article>
         ))}
       </section>
-    </>
+
+      <footer className="landing-footer">
+        <span>Built at ISIR for the Extender and Kinova arms.</span>
+        <a href={DOCS_URL} rel="noreferrer" target="_blank">
+          Architecture notes, ADRs and the design system live in the docs →
+        </a>
+      </footer>
+    </div>
   );
 }

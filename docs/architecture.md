@@ -143,6 +143,14 @@ robot, ROS, network, or hardware state must come from explicit adapters instead 
 The same boundary gates widgets: runtime resolves their declared requirements against the backend capability report,
 keeps explicitly unavailable widgets visible and inert with the reported reason, and treats a missing report as unknown.
 
+## Principles
+
+These used to sit on the landing page; they are for the people working on Bloom, so they live here.
+
+- Generic web logic stays independent from ROS.
+- Robot-specific behaviour enters through explicit adapters.
+- Every migrated slice ships with tests before it becomes the default path.
+
 ## Dependency Direction
 
 Apps may depend on libs. Libs should not depend on apps.

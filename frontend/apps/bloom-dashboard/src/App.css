@@ -137,17 +137,90 @@ textarea {
   font-size: 0.78rem;
 }
 
-.hero,
-.steps,
 .main-application-grid {
   max-width: 1180px;
   margin: 0 auto;
 }
 
-.hero {
+/* Landing (design 7b). */
+.landing {
   display: grid;
-  grid-template-columns: minmax(0, 1.14fr) minmax(280px, 0.86fr);
   gap: 24px;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 16px 0 24px;
+}
+
+.landing-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+  gap: 40px;
+  align-items: center;
+}
+
+.landing-copy {
+  padding: 24px 0;
+}
+
+.landing-photo {
+  display: flex;
+  align-items: flex-end;
+  min-height: 420px;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 14%, transparent);
+  border-radius: var(--bloom-radius-panel);
+  background: repeating-linear-gradient(-45deg, var(--bloom-surface-container) 0 14px, var(--bloom-surface) 14px 28px);
+}
+
+.landing-photo figcaption {
+  max-width: 380px;
+  color: var(--bloom-ink-soft);
+  font-family: var(--bloom-font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.landing-promises {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.landing-promise {
+  padding: 28px;
+  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 14%, transparent);
+  border-radius: var(--bloom-radius-panel);
+  background: var(--bloom-surface);
+}
+
+.landing-promise h2 {
+  margin: 0;
+  color: var(--bloom-ink);
+  font-family: var(--bloom-font-display);
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.landing-promise p {
+  margin: 12px 0 0;
+  color: var(--bloom-ink-soft);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.landing-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 0 4px;
+  color: var(--bloom-ink-soft);
+}
+
+.landing-footer a {
+  color: var(--bloom-ink);
+  font-weight: 700;
 }
 
 .configuration-panel,
@@ -158,10 +231,6 @@ textarea {
   border-radius: 32px;
   background: var(--bloom-panel);
   box-shadow: var(--bloom-shadow);
-}
-
-.hero-card {
-  padding: clamp(32px, 6vw, 58px);
 }
 
 .eyebrow {
@@ -199,15 +268,6 @@ h1 {
   margin-top: 32px;
 }
 
-.principles-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 32px;
-}
-
-.principles-card h2,
-.step-card h2,
 .configuration-panel h2,
 .workspace-panel h2,
 .canvas-heading h2,
@@ -215,28 +275,6 @@ h1 {
   margin: 0;
   color: var(--bloom-ink);
   font-size: 1.45rem;
-}
-
-.principles-card ul {
-  display: grid;
-  gap: 16px;
-  margin: 20px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.principles-card li {
-  padding-left: 18px;
-  border-left: 4px solid var(--bloom-accent);
-  color: var(--bloom-ink-soft);
-  line-height: 1.55;
-}
-
-.steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 24px;
 }
 
 .help-page {

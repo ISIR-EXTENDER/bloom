@@ -1,5 +1,5 @@
 import type { WidgetKind } from "@bloom/api-client";
-import type { WidgetRenderDescriptor } from "@bloom/widgets";
+import { localizeWidget, type WidgetRenderDescriptor } from "@bloom/widgets";
 import type { ReactNode } from "react";
 import { DEFAULT_WIDGET_RENDERERS } from "./default-registry";
 import { UnknownWidget } from "./fallback-renderers";
@@ -69,12 +69,17 @@ export function renderWidgetDescriptor(
   }
 
   const Renderer = renderer;
+  const localized =
+    options.language && options.language !== "en"
+      ? { ...descriptor, widget: localizeWidget(descriptor.widget, options.language) }
+      : descriptor;
   return (
     <Renderer
       conditioning={options.conditioning}
       controlState={options.controlStateByWidgetId?.[descriptor.widget.id]}
       data={options.dataByWidgetId?.[descriptor.widget.id]}
-      descriptor={descriptor}
+      descriptor={localized}
+      language={options.language}
       motorPreset={options.motorPreset}
       neutralRevision={options.neutralRevision}
       onActionIntent={options.onActionIntent}

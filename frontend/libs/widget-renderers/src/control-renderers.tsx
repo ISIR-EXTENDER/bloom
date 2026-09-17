@@ -1,4 +1,9 @@
-import { createWidgetActionIntent, normalizeWidgetSettings, resolveWidgetDestination } from "@bloom/widgets";
+import {
+  createWidgetActionIntent,
+  localizeOperatorText,
+  normalizeWidgetSettings,
+  resolveWidgetDestination,
+} from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 import { bindArrowToWord, JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
@@ -26,7 +31,13 @@ function resolveStepTargetPreset(motorPreset: WidgetRendererProps["motorPreset"]
   return motorPreset && motorPreset in STEP_TARGET_HINTS ? (motorPreset as StepTargetPreset) : null;
 }
 
-export function SliderWidget({ descriptor, motorPreset, neutralRevision, onActionIntent }: WidgetRendererProps) {
+export function SliderWidget({
+  descriptor,
+  language,
+  motorPreset,
+  neutralRevision,
+  onActionIntent,
+}: WidgetRendererProps) {
   // Normalize first: configs carry snake_case aliases for these keys.
   const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
   const sliderSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
@@ -277,7 +288,11 @@ export function SliderWidget({ descriptor, motorPreset, neutralRevision, onActio
   }
 
   const placement = resolveTitlePlacement(descriptor.widget, showDetails);
-  const words = resolveAxisWords(sliderSettings, orientation);
+  const authoredWords = resolveAxisWords(sliderSettings, orientation);
+  const words = {
+    negative: localizeOperatorText(authoredWords.negative, language),
+    positive: localizeOperatorText(authoredWords.positive, language),
+  };
   const bindingTarget =
     typeof sliderSettings.runtime_binding === "object" && sliderSettings.runtime_binding !== null
       ? String((sliderSettings.runtime_binding as Record<string, unknown>).target ?? "")

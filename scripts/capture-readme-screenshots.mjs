@@ -63,7 +63,7 @@ try {
 
   // ---------------------------------------------------------------- product
   await step("landing-page", async () => {
-    await page.getByRole("heading", { name: /robot interfaces that grow cleanly/i }).waitFor();
+    await page.getByRole("heading", { name: /give the gesture back/i }).waitFor();
   });
 
   await step("builder-home", async () => {

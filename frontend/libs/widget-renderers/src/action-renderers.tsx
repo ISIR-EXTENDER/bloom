@@ -1,4 +1,4 @@
-import { createWidgetActionIntent, type WidgetActionIntent } from "@bloom/widgets";
+import { createWidgetActionIntent, localizeOperatorText, type WidgetActionIntent } from "@bloom/widgets";
 
 const MOMENTARY_HOLD_EXPIRY_MS = 15000;
 
@@ -265,7 +265,13 @@ export function useRepeatGuard(repeatGuardMs: number | undefined) {
   };
 }
 
-export function ToggleWidget({ conditioning, controlState, descriptor, onActionIntent }: WidgetRendererProps) {
+export function ToggleWidget({
+  conditioning,
+  controlState,
+  descriptor,
+  language,
+  onActionIntent,
+}: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const offLabel = getStringSetting(descriptor.widget.settings, "offLabel", "Inactive");
   const onLabel = getStringSetting(descriptor.widget.settings, "onLabel", "Active");
@@ -305,7 +311,9 @@ export function ToggleWidget({ conditioning, controlState, descriptor, onActionI
   const onStateLabel = getStringSetting(descriptor.widget.settings, "onStateLabel", "");
   const offStateLabel = getStringSetting(descriptor.widget.settings, "offStateLabel", "");
   const commandedState = isOn ? onStateLabel : offStateLabel;
-  const stateText = commandedState ? `commanded: ${commandedState}` : "";
+  const stateText = commandedState
+    ? `${localizeOperatorText("commanded", language)}${language === "fr" ? " : " : ": "}${commandedState}`
+    : "";
   const inline = getStringSetting(descriptor.widget.settings, "layout", "") === "inline";
 
   if (variant === "mode-segmented") {

@@ -347,11 +347,13 @@
   font-size: 13px;
 }
 
+/* A longer language wraps to a second line; nothing truncates (design 7c). */
 .bloom-axis-word {
   z-index: 1;
+  max-width: 40%;
   font-size: var(--bloom-type-direction);
   font-weight: 700;
-  white-space: nowrap;
+  line-height: 1.15;
 }
 
 .bloom-axis-tick {

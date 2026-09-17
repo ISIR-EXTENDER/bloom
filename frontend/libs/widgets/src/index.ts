@@ -14,6 +14,7 @@ export * from "./editor";
 export * from "./extensions";
 export * from "./legacy";
 export * from "./min-size";
+export * from "./operator-glossary";
 export * from "./pad-geometry";
 export * from "./plot-series";
 export * from "./runtime";

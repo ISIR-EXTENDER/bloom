@@ -22,7 +22,8 @@
     margin: -14px -14px 14px;
   }
 
-  .hero,
+  .landing-hero,
+  .landing-promises,
   .main-application-grid,
   .builder-app-config-grid,
   .builder-screen-create-card,
@@ -59,26 +60,12 @@
     min-height: 72vh;
   }
 
-  .steps {
-    grid-template-columns: 1fr;
-  }
-
-  .hero {
-    display: grid;
-  }
-
-  .steps {
-    display: grid;
-  }
-
   .runtime-panel {
     grid-column: auto;
   }
 }
 
 @media (max-width: 700px) {
-  .hero,
-  .steps,
   .builder-section-overview {
     grid-template-columns: 1fr;
   }

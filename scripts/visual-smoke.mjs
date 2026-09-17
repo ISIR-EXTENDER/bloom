@@ -516,7 +516,7 @@ async function mockRuntimeWebSocket(page) {
 
 async function showLanding(page) {
   await page.goto(baseUrl, { waitUntil: "networkidle" });
-  await page.getByRole("heading", { name: /robot interfaces that grow cleanly/i }).waitFor();
+  await page.getByRole("heading", { name: /give the gesture back/i }).waitFor();
 }
 
 async function showBuilder(page) {

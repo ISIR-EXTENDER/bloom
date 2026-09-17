@@ -11,7 +11,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     stopped: "DETENIDO",
   },
   stop: {
-    engage: "PARAR",
+    engage: "PARADA",
     engageAria: "Detener el robot",
     resume: "MANTENER PARA REANUDAR",
     resumeAria: "Mantener un segundo para reanudar",

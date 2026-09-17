@@ -236,10 +236,13 @@ Runtime language belongs to the selected profile. A missing value falls back to 
 the other per-profile overrides and is restored for the same application and profile. The selector is available in
 Maintenance for a fast change and in **Settings > Language** with full language names.
 
-The runtime status, STOP/resume control, Maintenance, scanner, Settings, and empty-screen state use the selected
-catalog. Authored app names, screen names, and widget labels remain configuration data and are not translated by the
-shell. Numbers, axis values, topic names, and frame IDs also remain unchanged. French and Spanish safety wording still
-requires native-speaker and operator review before participant use.
+The runtime status, STOP/resume control, Maintenance, scanner, Settings, the library, and empty-screen state use the
+selected catalog. Authored app names and screen names remain configuration data. Widget labels are authored in English;
+the operator vocabulary the shipped seeds use (speed words, shaping modes, turn words, gripper verbs and state,
+directions) is shown in the profile's language from a glossary, and any other authored label stays as written. A longer
+language wraps to a second line and the control grows; nothing truncates. Numbers, axis values, topic names, and frame
+IDs remain unchanged. French and Spanish wording, STOP and the resume hold above all, still requires native-speaker and
+operator review before participant use.
 
 ## Cartesian Command Frame
 

@@ -1703,3 +1703,47 @@ function mockMediaDevices(mediaDevices: {
     value: mediaDevices,
   });
 }
+
+describe("operator words in the profile's language", () => {
+  it("draws the operator row in French with identical controls", () => {
+    const localeScreen: ScreenConfig = {
+      id: "operator",
+      title: "Drive · Operator",
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+      widgets: [
+        {
+          id: "drive-gripper",
+          kind: "toggle",
+          title: "Gripper",
+          layout: { x: 1064, y: 14, width: 202, height: 168 },
+          settings: {
+            offLabel: "Close gripper",
+            onLabel: "Open gripper",
+            offStateLabel: "open",
+            onStateLabel: "closed",
+            initialValue: false,
+            topic: "/gripper_controller/commands",
+            messageType: "std_msgs/msg/Float64MultiArray",
+            onPayload: "{data: [0.8]}",
+            offPayload: "{data: [0.0]}",
+          },
+        },
+        {
+          id: "drive-rz",
+          kind: "slider",
+          title: "Pivot",
+          layout: { x: 738, y: 404, width: 314, height: 146 },
+          settings: { direction: "horizontal", returnToCenter: true, min: -1, max: 1, step: 0.01, value: 0 },
+        },
+      ],
+    };
+    const descriptors = renderScreenDescriptors(localeScreen, createDefaultWidgetRegistry());
+    render(<div>{descriptors.map((descriptor) => renderWidgetDescriptor(descriptor, { language: "fr" }))}</div>);
+
+    expect(screen.getByText("Fermer la pince")).toBeVisible();
+    expect(screen.getByText("commandé : ouverte")).toBeVisible();
+    expect(screen.getByText("Pince")).toBeVisible();
+    expect(screen.getByRole("slider", { name: "Pivot" })).toBeTruthy();
+    expect(document.querySelector('.bloom-axis-word[data-end="negative"]')?.textContent).toBe("◀\u00a0Gauche");
+  });
+});

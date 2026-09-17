@@ -33,10 +33,17 @@ describe("App", () => {
   it("renders the separated landing page", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    expect(screen.getByRole("heading", { level: 1, name: /robot interfaces that grow cleanly/i })).toBeVisible();
-    expect(screen.getByText(/configurable robot teleoperation/i)).toBeVisible();
-    expect(screen.getByRole("button", { name: /open builder preview/i })).toBeVisible();
-    expect(screen.getByRole("button", { name: /read get started guide/i })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: /give the gesture back/i })).toBeVisible();
+    expect(screen.getByText(/the panel a person actually reaches the robot through/i)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open Runtime" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Open Builder" })).toBeVisible();
+    // The architecture promises moved to the docs; the landing links there.
+    expect(screen.queryByText("Architecture promises")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /live in the docs/ })).toHaveAttribute(
+      "href",
+      "https://github.com/ISIR-EXTENDER/bloom/tree/main/docs",
+    );
+    expect(screen.getByRole("button", { name: "Get started" })).toBeVisible();
     expect(screen.queryByRole("heading", { level: 2, name: "Choose what to preview" })).not.toBeInTheDocument();
   });
 
@@ -51,7 +58,7 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Guide is aligned" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("button", { name: "Home: Project overview" }));
-    fireEvent.click(await screen.findByRole("button", { name: /Read get started guide/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Get started" }));
 
     expect(await screen.findByText("Keep this useful after handover")).toBeVisible();
   });
@@ -152,18 +159,20 @@ describe("App", () => {
     expect(document.querySelector("#bloom-main-content")).toHaveAttribute("tabindex", "-1");
   });
 
-  it("renders the first workflow cards on the landing page", () => {
+  it("says what Bloom is for in three cards, and opens the runtime first", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Configure" })).toBeVisible();
-    expect(screen.getByRole("heading", { level: 2, name: "Control" })).toBeVisible();
-    expect(screen.getByRole("heading", { level: 2, name: "Observe" })).toBeVisible();
+    for (const title of ["Reach", "Change", "Trust"]) {
+      expect(screen.getByRole("heading", { level: 2, name: title })).toBeVisible();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Open Runtime" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
   });
 
   it("opens the builder preview with loaded configurations", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Builder" }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Choose what to build." })).toBeVisible();
     expect(screen.getByRole("button", { name: "Apps" })).toBeVisible();
@@ -178,7 +187,7 @@ describe("App", () => {
   it("separates app management from the reusable screen library", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Builder" }));
 
     expect(await screen.findByRole("heading", { level: 1, name: "Choose what to build." })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Apps" }));
@@ -201,7 +210,7 @@ describe("App", () => {
   it("opens a builder playground for quick runtime screen checks", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Builder" }));
     fireEvent.click(await screen.findByRole("button", { name: "Playground" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Try screens before creating an app" })).toBeVisible();
@@ -245,7 +254,7 @@ describe("App", () => {
     const configurationClient = createConfigurationClient();
     render(<App configurationClient={configurationClient} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /open builder preview/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Open Builder" }));
     fireEvent.click(await screen.findByRole("button", { name: "Playground" }));
     fireEvent.click(screen.getByRole("button", { name: "Save Diagnostics as app" }));
 
