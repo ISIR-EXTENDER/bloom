@@ -825,6 +825,31 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("Waiting for messages...")).toBeVisible();
   });
 
+  it("shows messages that arrive after Clear even when the buffer is full", async () => {
+    const descriptor = renderScreenDescriptors(topicEchoScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing topic echo descriptor.");
+    const message = (index: number) => ({
+      receivedAt: `2026-06-02T10:00:0${index}.000Z`,
+      topic: "/joint_states",
+      value: { name: [`joint_${index}`] },
+    });
+    const full = [message(1), message(2), message(3)];
+    const echo = (messages: typeof full) => (
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: { "joint-state-echo": { messages, type: "topic-echo" } },
+        })}
+      </div>
+    );
+
+    const { rerender } = render(echo(full));
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+    rerender(echo([full[1], full[2], message(4)]));
+
+    expect(screen.getByText(/joint_4/)).toBeVisible();
+    expect(screen.queryByText(/joint_3/)).not.toBeInTheDocument();
+  });
+
   it("renders camera image streams with the configured fit mode", () => {
     const descriptor = renderScreenDescriptors(cameraStreamScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing camera descriptor.");

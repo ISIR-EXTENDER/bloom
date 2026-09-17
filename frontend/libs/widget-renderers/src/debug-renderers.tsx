@@ -1,4 +1,4 @@
-import { formatTopicEchoValue } from "@bloom/widgets";
+import { formatTopicEchoValue, type TopicMessage } from "@bloom/widgets";
 import { useState } from "react";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { getBooleanSetting, getStringSetting } from "./settings-readers";
@@ -46,10 +46,12 @@ function TopicEchoWidget({
 }: WidgetRendererProps & { showDetails: boolean; topic: string }) {
   const messages = data?.type === "topic-echo" ? data.messages : [];
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | "idle">("idle");
-  const [hiddenMessageCount, setHiddenMessageCount] = useState(0);
+  // The last message showing at Clear. A full buffer keeps its length, so a count would hide every newer message.
+  const [clearedThrough, setClearedThrough] = useState<TopicMessage | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [pausedMessages, setPausedMessages] = useState(messages);
-  const visibleMessages = isPaused ? pausedMessages : messages.slice(hiddenMessageCount);
+  const clearedIndex = clearedThrough ? messages.lastIndexOf(clearedThrough) : -1;
+  const visibleMessages = isPaused ? pausedMessages : messages.slice(clearedIndex + 1);
   const echoText =
     visibleMessages.length > 0
       ? visibleMessages.map((message) => formatTopicEchoValue(message.value, true)).join("\n---\n")
@@ -61,7 +63,7 @@ function TopicEchoWidget({
     setIsPaused(!isPaused);
   };
   const handleClear = () => {
-    setHiddenMessageCount(messages.length);
+    setClearedThrough(messages.at(-1) ?? null);
     setPausedMessages([]);
   };
 
