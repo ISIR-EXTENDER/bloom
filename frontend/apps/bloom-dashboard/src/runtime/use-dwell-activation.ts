@@ -26,6 +26,9 @@ export function useDwellActivation(options: DwellActivationOptions): void {
   const isTargetEnabledRef = useRef(isTargetEnabled);
   const targetRef = useRef<HTMLElement | null>(null);
   const startedAtRef = useRef(0);
+  // The action a rest began on. STOP becomes Resume under the pointer, and a
+  // rest that started on STOP must never complete as a resume.
+  const startActionRef = useRef("");
   const firedRef = useRef(false);
   activateTargetRef.current = activateTarget;
   isTargetEnabledRef.current = isTargetEnabled;
@@ -55,12 +58,19 @@ export function useDwellActivation(options: DwellActivationOptions): void {
         targetRef.current = target;
         target.setAttribute("data-dwell-active", "");
         startedAtRef.current = Date.now();
+        startActionRef.current = target.dataset.dwellAction ?? "";
       }
     };
 
     const tick = () => {
       const target = targetRef.current;
       if (!target || firedRef.current) {
+        return;
+      }
+      if (!target.isConnected || (target.dataset.dwellAction ?? "") !== startActionRef.current) {
+        // The control changed meaning or was replaced mid-rest; start over only
+        // when the pointer moves again.
+        clearTarget();
         return;
       }
       const elapsed = Date.now() - startedAtRef.current;

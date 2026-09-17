@@ -44,6 +44,7 @@ export function RuntimeStopControl({
   if (stopped) {
     return (
       <button
+        key="resume"
         aria-label={`${strings.stop.resumeAria}${resumeDisabledReason ? `. ${resumeDisabledReason}` : ""}`}
         className="runtime-stop-control"
         data-dwell-action="resume"
@@ -74,6 +75,7 @@ export function RuntimeStopControl({
 
   return (
     <button
+      key="stop"
       aria-label={strings.stop.engageAria}
       className="runtime-stop-control"
       data-runtime-control-independent=""

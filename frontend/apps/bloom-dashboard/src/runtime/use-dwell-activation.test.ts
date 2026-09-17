@@ -91,6 +91,33 @@ describe("dwell activation", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 
+  it("abandons a rest when the control turns into a different action under the pointer", () => {
+    // STOP becomes Resume in place. A rest that began on STOP must not
+    // complete as a resume a second after the operator pressed STOP.
+    const { button, onClick, rootRef } = buildTarget();
+    renderHook(() => useDwellActivation({ dwellMs: 1000, enabled: true, rootRef }));
+
+    act(() => button.dispatchEvent(new PointerEvent("pointermove", { bubbles: true })));
+    act(() => vi.advanceTimersByTime(300));
+    button.dataset.dwellAction = "resume";
+    act(() => vi.advanceTimersByTime(3000));
+
+    expect(onClick).not.toHaveBeenCalled();
+    expect(button.hasAttribute("data-dwell-active")).toBe(false);
+  });
+
+  it("abandons a rest when its control is replaced", () => {
+    const { button, onClick, rootRef } = buildTarget();
+    renderHook(() => useDwellActivation({ dwellMs: 800, enabled: true, rootRef }));
+
+    act(() => button.dispatchEvent(new PointerEvent("pointermove", { bubbles: true })));
+    act(() => vi.advanceTimersByTime(300));
+    button.remove();
+    act(() => vi.advanceTimersByTime(2000));
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it("ignores controls rejected by the current safety state", () => {
     const { button, onClick, rootRef } = buildTarget();
     const isTargetEnabled = vi.fn(() => false);
