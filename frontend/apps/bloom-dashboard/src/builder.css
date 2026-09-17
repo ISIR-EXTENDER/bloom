@@ -1511,7 +1511,7 @@
   overflow: auto;
   padding: 48px;
   border-radius: 24px;
-  background: color-mix(in srgb, var(--bloom-ink) 92%, black);
+  background: #2a2f2c;
 }
 
 .builder-canvas-panel {
@@ -1785,6 +1785,11 @@
   outline-offset: 3px;
 }
 
+/* A label is one line tall; its kind badge would sit on its own text. */
+.builder-widget-frame[data-widget-kind="label"] .builder-widget-frame-badge {
+  display: none;
+}
+
 .builder-widget-frame-badge {
   position: absolute;
   bottom: 7px;
@@ -1884,19 +1889,23 @@
   font-size: 1rem;
 }
 
+/* Capped so the selected widget's size and minimum stay in view on a busy screen. */
 .builder-widget-list-items {
   display: grid;
-  gap: 8px;
+  grid-auto-rows: max-content;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
 }
 
 .builder-widget-list-items button {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   justify-items: start;
-  min-height: 58px;
-  padding: 10px 12px;
+  min-height: 48px;
+  padding: 6px 12px;
   border: 1px solid var(--bloom-border);
-  border-radius: 16px;
+  border-radius: 14px;
   background: color-mix(in srgb, var(--bloom-surface) 72%, transparent);
   color: var(--bloom-ink);
   text-align: left;

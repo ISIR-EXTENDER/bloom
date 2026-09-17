@@ -5,7 +5,7 @@ import {
   resolveWidgetReadiness,
   type WidgetDefinition,
 } from "@bloom/widgets";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
 import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
@@ -160,6 +160,15 @@ function WidgetList({
   selectedWidgetId: string | null;
   widgets: readonly WidgetConfig[];
 }) {
+  const selectedRef = useRef<HTMLButtonElement | null>(null);
+
+  // The list scrolls; a widget picked on the canvas should come into view in it.
+  useEffect(() => {
+    if (selectedWidgetId) {
+      selectedRef.current?.scrollIntoView?.({ block: "nearest" });
+    }
+  }, [selectedWidgetId]);
+
   if (widgets.length === 0) {
     return null;
   }
@@ -175,6 +184,7 @@ function WidgetList({
           <button
             aria-pressed={widget.id === selectedWidgetId}
             key={widget.id}
+            ref={widget.id === selectedWidgetId ? selectedRef : undefined}
             onClick={() => onSelectWidget(widget.id)}
             type="button"
           >
