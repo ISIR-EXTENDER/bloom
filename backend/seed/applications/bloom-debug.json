@@ -171,7 +171,7 @@
                 "x": 1486,
                 "y": 130,
                 "width": 420,
-                "height": 476
+                "height": 444
               },
               "settings": {
                 "plot_id": "debug-plot",
@@ -219,9 +219,9 @@
               "title": "Raw",
               "layout": {
                 "x": 1486,
-                "y": 618,
+                "y": 586,
                 "width": 420,
-                "height": 248
+                "height": 280
               },
               "settings": {
                 "topic": "/cartesian_command",

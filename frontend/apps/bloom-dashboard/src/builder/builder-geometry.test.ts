@@ -1,7 +1,9 @@
 import type { ApplicationConfig, ConfigurationBundle, ReservedRegion, ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
+import bloomDebugConfiguration from "../../../../../backend/seed/applications/bloom-debug.json";
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
+import kinovaManagerConfiguration from "../../../../../backend/seed/applications/kinova-manager.json";
 import {
   findUndersizedWidgets,
   glassPx,
@@ -129,5 +131,20 @@ describe("builder geometry", () => {
     };
     const pairs = reviewScreens(explorer, [desktop]).find((rule) => rule.id === "pairs");
     expect(pairs).toMatchObject({ passed: false, detail: "Explorer Manager desktop differs in publish topics." });
+  });
+});
+
+describe("shipped design screens", () => {
+  it("keep every widget at or above its kind's minimum", () => {
+    const undersized = [explorerManagerConfiguration, kinovaManagerConfiguration, bloomDebugConfiguration].flatMap(
+      (bundle) =>
+        (bundle as unknown as ConfigurationBundle).applications.flatMap((application) =>
+          application.screens.flatMap((screen) =>
+            findUndersizedWidgets(screen).map(({ widget }) => `${application.id}/${screen.id}/${widget.id}`),
+          ),
+        ),
+    );
+
+    expect(undersized).toEqual([]);
   });
 });
