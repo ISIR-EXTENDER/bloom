@@ -34,3 +34,9 @@ instead of noisy.
 - The design system can grow intentionally instead of becoming a folder of random components.
 - Bloom keeps room for visual evolution while protecting the core operator experience.
 
+## Amendment, 2026-09-17
+
+The viewport list changed with the device classes in `docs/design/device-classes.md`. Visual smoke now runs the three
+tablet panels — `1024x600`, `1280x720` and `1820x720` — over the product routes, and checks Bloom Debug, the only
+desktop app, at `1920x1080` and `1440x900`. `1280x800` was never a panel Bloom runs on. The other gates stand.
+
