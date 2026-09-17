@@ -2,7 +2,7 @@ import { createWidgetActionIntent, localizeOperatorText, type WidgetActionIntent
 
 const MOMENTARY_HOLD_EXPIRY_MS = 15000;
 
-import { type PointerEvent, useEffect, useRef, useState } from "react";
+import { type PointerEvent, useEffect, useId, useRef, useState } from "react";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
@@ -283,6 +283,7 @@ export function ToggleWidget({
   const isOn = controlledToggleState ? controlledToggleState === "on" : localIsOn;
   const stateLabel = isOn ? onLabel : offLabel;
   const [isPending, setIsPending] = useState(false);
+  const stateTextId = useId();
 
   const handleToggle = async () => {
     if (isPending || !allowToggle()) {
@@ -315,6 +316,8 @@ export function ToggleWidget({
     ? `${localizeOperatorText("commanded", language)}${language === "fr" ? " : " : ": "}${commandedState}`
     : "";
   const inline = getStringSetting(descriptor.widget.settings, "layout", "") === "inline";
+  // With state labels the button words are verbs ("Open gripper"): "pressed" would contradict the commanded state.
+  const labelsAreActions = Boolean(onStateLabel || offStateLabel);
 
   if (variant === "mode-segmented") {
     return (
@@ -349,10 +352,15 @@ export function ToggleWidget({
     >
       <header className="bloom-widget-head bloom-toggle-head">
         <strong>{descriptor.widget.title}</strong>
-        {stateText ? <span className="bloom-toggle-state">{stateText}</span> : null}
+        {stateText ? (
+          <span className="bloom-toggle-state" id={stateTextId}>
+            {stateText}
+          </span>
+        ) : null}
       </header>
       <button
-        aria-pressed={isOn}
+        aria-describedby={stateText ? stateTextId : undefined}
+        aria-pressed={labelsAreActions ? undefined : isOn}
         aria-label={`${descriptor.widget.title}: ${stateLabel}`}
         aria-busy={isPending}
         className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
