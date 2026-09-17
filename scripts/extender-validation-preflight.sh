@@ -3,7 +3,7 @@ set -euo pipefail
 
 BLOOM_ROOT=${BLOOM_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}
 BLOOM_CONFIGURATION_DIR=${BLOOM_CONFIGURATION_DIR:-"${BLOOM_ROOT}/backend/data/configurations"}
-EXTENDER_WORKSPACE=${EXTENDER_WORKSPACE:-"/home/susana/workspace/extender/extender_workspace"}
+EXTENDER_WORKSPACE=${EXTENDER_WORKSPACE:-"$(dirname "${BLOOM_ROOT}")/extender_workspace"}
 EXTENDER_SETUP_FILE=${EXTENDER_SETUP_FILE:-"${EXTENDER_WORKSPACE}/install/setup.bash"}
 BLOOM_API_HOST=${BLOOM_API_HOST:-"127.0.0.1"}
 BLOOM_API_PORT=${BLOOM_API_PORT:-"8000"}
