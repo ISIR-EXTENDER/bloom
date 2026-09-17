@@ -2,6 +2,8 @@ from pathlib import Path
 
 import pytest
 
+from libs.config import seed
+from libs.config.json_io import load_configuration_file
 from libs.config.models import ConfigurationBundle
 from libs.config.repository import InMemoryConfigurationRepository
 from libs.config.seed import (
@@ -11,6 +13,8 @@ from libs.config.seed import (
     configuration_fingerprint,
     is_unedited_seed_copy,
     seed_configurations,
+    stamp_seed_fingerprint,
+    strip_seed_fingerprint,
 )
 from libs.config.storage import create_configuration_repository
 
@@ -436,3 +440,73 @@ def test_a_freshly_seeded_store_reports_no_further_work() -> None:
 
     assert outcome.upgraded == ()
     assert is_unedited_seed_copy(repository.get("explorer-manager"))
+
+
+def shipped_explorer_manager() -> ConfigurationBundle:
+    return load_configuration_file(DEFAULT_SEED_DIR / "explorer-manager.json")
+
+
+def test_a_new_model_field_does_not_make_seeded_copies_look_edited() -> None:
+    class FutureBundle(ConfigurationBundle):
+        added_later: str = ""
+
+    seeded = stamp_seed_fingerprint(shipped_explorer_manager())
+    future = FutureBundle.model_validate(seeded.model_dump())
+
+    assert is_unedited_seed_copy(future)
+
+
+def test_a_stamp_written_before_defaults_were_excluded_still_counts() -> None:
+    bundle = shipped_explorer_manager()
+    stamped = bundle.model_copy(
+        update={
+            "metadata": bundle.metadata.model_copy(update={"seed_fingerprint": seed._full_dump_fingerprint(bundle)})
+        }
+    )
+
+    assert is_unedited_seed_copy(stamped)
+
+
+def test_a_copy_seeded_before_stamps_existed_receives_the_update(tmp_path: Path, monkeypatch) -> None:
+    older = strip_seed_fingerprint(shipped_explorer_manager())
+    older = older.model_copy(update={"applications": older.applications[:0]})
+    recorded = tmp_path / "unstamped.json"
+    recorded.write_text(f'{{"explorer-manager": ["{configuration_fingerprint(older)}"]}}')
+    monkeypatch.setattr(seed, "UNSTAMPED_SHIPPED_FINGERPRINTS_PATH", recorded)
+    seed._unstamped_shipped_fingerprints.cache_clear()
+    repository = InMemoryConfigurationRepository()
+    repository.upsert("explorer-manager", older)
+    repository.upsert("sandbox", strip_seed_fingerprint(shipped_explorer_manager()))
+
+    try:
+        outcome = seed_configurations(repository)
+    finally:
+        seed._unstamped_shipped_fingerprints.cache_clear()
+
+    assert "explorer-manager" in outcome.upgraded
+    assert repository.get("explorer-manager").applications
+    assert "sandbox" in outcome.skipped
+
+
+def test_the_recorded_pre_stamp_versions_cover_every_shipped_app() -> None:
+    seed._unstamped_shipped_fingerprints.cache_clear()
+    recorded = seed._unstamped_shipped_fingerprints()
+
+    assert set(recorded) == SHARED_APP_IDS
+    assert all(recorded.values())
+
+
+def test_one_unreadable_stored_bundle_does_not_stop_seeding() -> None:
+    class CorruptSandboxRepository(InMemoryConfigurationRepository):
+        def get(self, config_id: str) -> ConfigurationBundle:
+            if config_id == "sandbox":
+                raise ValueError("bundle_json is not valid JSON")
+            return super().get(config_id)
+
+    repository = CorruptSandboxRepository()
+    repository.upsert("sandbox", shipped_explorer_manager())
+
+    outcome = seed_configurations(repository)
+
+    assert "sandbox" in outcome.skipped
+    assert set(outcome.imported) == SHARED_APP_IDS - {"sandbox"}

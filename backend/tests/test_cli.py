@@ -7,6 +7,8 @@ from typer.testing import CliRunner
 
 from apps.bloom_cli.main import cli
 from libs.config import ConfigurationBundle, load_configuration_file, save_configuration_file
+from libs.config.seed import is_unedited_seed_copy, stamp_seed_fingerprint
+from libs.config.storage import create_configuration_repository
 
 LEGACY_FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
 
@@ -313,3 +315,36 @@ def test_the_api_module_still_serves_an_app(tmp_path: Path) -> None:
     )
 
     assert result.stdout.split() == ["FastAPI", "True"]
+
+
+def test_publishing_restamps_the_store_copy_so_it_keeps_taking_updates(tmp_path: Path) -> None:
+    database_path = tmp_path / "bloom.db"
+    source = Path(__file__).parents[1] / "seed" / "applications" / "sandbox.json"
+    store = ["--storage", "sqlite", "--database-path", str(database_path)]
+    runner = CliRunner()
+    runner.invoke(cli, ["config", "import", "sandbox", str(source), *store])
+
+    result = runner.invoke(cli, ["config", "publish", "sandbox", *store, "--seed-dir", str(tmp_path / "seed")])
+
+    assert result.exit_code == 0
+    repository = create_configuration_repository(
+        "sqlite", configuration_dir=tmp_path / "cfg", database_path=database_path
+    )
+    assert is_unedited_seed_copy(repository.get("sandbox"), "sandbox")
+
+
+def test_an_imported_bundle_never_counts_as_an_unedited_seed_copy(tmp_path: Path) -> None:
+    database_path = tmp_path / "bloom.db"
+    exported = tmp_path / "exported.json"
+    shipped = load_configuration_file(Path(__file__).parents[1] / "seed" / "applications" / "sandbox.json")
+    edited = shipped.model_copy(update={"applications": ()})
+    save_configuration_file(stamp_seed_fingerprint(edited), exported)
+
+    CliRunner().invoke(
+        cli, ["config", "import", "work", str(exported), "--storage", "sqlite", "--database-path", str(database_path)]
+    )
+
+    repository = create_configuration_repository(
+        "sqlite", configuration_dir=tmp_path / "cfg", database_path=database_path
+    )
+    assert repository.get("work").metadata.seed_fingerprint == ""

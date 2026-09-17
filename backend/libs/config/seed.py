@@ -21,12 +21,16 @@ fingerprint of the shipped file it came from, so a store copy that still matches
 that fingerprint is known to be nobody's work, and a newer shipped version
 replaces it. Without that, an installation seeded once kept the app it first saw
 forever: screens added upstream never arrived, and `config status` called the
-stale copy "edited".
+stale copy "edited". A copy seeded before stamps existed is recognized by
+matching one of the shipped versions recorded in
+`seed/unstamped-shipped-fingerprints.json`.
 """
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 
 from libs.config.json_io import configuration_to_dict, load_configuration_file
@@ -34,6 +38,10 @@ from libs.config.models import ConfigurationBundle
 from libs.config.repository import ConfigurationRepository
 
 DEFAULT_SEED_DIR = Path(__file__).resolve().parents[2] / "seed" / "applications"
+# Fingerprints of every shipped version from before seeded copies were stamped.
+UNSTAMPED_SHIPPED_FINGERPRINTS_PATH = DEFAULT_SEED_DIR.parent / "unstamped-shipped-fingerprints.json"
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -50,8 +58,19 @@ class SeedOutcome:
 
 
 def configuration_fingerprint(bundle: ConfigurationBundle) -> str:
-    """Content hash, ignoring the stamp itself and when it was exported."""
-    payload = configuration_to_dict(bundle)
+    """Content hash of authored values, ignoring the stamp itself and when it was exported.
+
+    Defaults are left out, so a new model field does not make every stored copy look edited.
+    """
+    return _fingerprint(bundle.model_dump(mode="json", exclude_defaults=True))
+
+
+def _full_dump_fingerprint(bundle: ConfigurationBundle) -> str:
+    # How stamps were computed before defaults were excluded; those stamps are still honoured.
+    return _fingerprint(configuration_to_dict(bundle))
+
+
+def _fingerprint(payload: dict) -> str:
     metadata = payload.get("metadata")
     if isinstance(metadata, dict):
         metadata = {key: value for key, value in metadata.items() if key not in ("exported_at", "seed_fingerprint")}
@@ -69,9 +88,21 @@ def strip_seed_fingerprint(bundle: ConfigurationBundle) -> ConfigurationBundle:
     return bundle.model_copy(update={"metadata": bundle.metadata.model_copy(update={"seed_fingerprint": ""})})
 
 
-def is_unedited_seed_copy(stored: ConfigurationBundle) -> bool:
+def is_unedited_seed_copy(stored: ConfigurationBundle, config_id: str = "") -> bool:
     stamp = stored.metadata.seed_fingerprint
-    return bool(stamp) and stamp == configuration_fingerprint(stored)
+    if stamp:
+        return stamp in (configuration_fingerprint(stored), _full_dump_fingerprint(stored))
+    # Seeded before stamps existed: unedited if it matches any version ever shipped.
+    return configuration_fingerprint(stored) in _unstamped_shipped_fingerprints().get(config_id, ())
+
+
+@cache
+def _unstamped_shipped_fingerprints() -> dict[str, tuple[str, ...]]:
+    try:
+        recorded = json.loads(UNSTAMPED_SHIPPED_FINGERPRINTS_PATH.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {config_id: tuple(fingerprints) for config_id, fingerprints in recorded.items()}
 
 
 def available_seed_ids(seed_dir: Path | str = DEFAULT_SEED_DIR) -> list[str]:
@@ -107,8 +138,14 @@ def seed_configurations(
             imported.append(config_id)
             continue
 
-        stored = repository.get(config_id)
-        if not is_unedited_seed_copy(stored):
+        try:
+            stored = repository.get(config_id)
+        except Exception:
+            # One unreadable bundle must not keep the API, and every other app, from starting.
+            logger.exception("Stored configuration %s could not be read; leaving it untouched.", config_id)
+            skipped.append(config_id)
+            continue
+        if not is_unedited_seed_copy(stored, config_id):
             skipped.append(config_id)
             continue
         if stored.metadata.seed_fingerprint == shipped.metadata.seed_fingerprint:

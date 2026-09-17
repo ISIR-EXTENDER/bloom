@@ -26,6 +26,7 @@ from libs.config.seed import (
     configuration_fingerprint,
     is_unedited_seed_copy,
     seed_configurations,
+    stamp_seed_fingerprint,
     strip_seed_fingerprint,
 )
 from libs.ros_adapters import RclpyRosServiceGateway, RclpyRosTopicCatalogGateway
@@ -213,7 +214,7 @@ def configuration_status(
             # fingerprint the shipped file does not, and that is not an edit.
             if configuration_fingerprint(stored_bundle) == configuration_fingerprint(shipped_bundle):
                 typer.echo(f"shared    {config_id}")
-            elif is_unedited_seed_copy(stored_bundle):
+            elif is_unedited_seed_copy(stored_bundle, config_id):
                 typer.echo(f"outdated  {config_id} (run: bloom config seed to take the shipped version)")
             else:
                 typer.echo(f"edited    {config_id} (run: bloom config publish {config_id} to share your changes)")
@@ -244,6 +245,8 @@ def publish_configuration(
     # The stamp records where a store copy came from; a shipped file is the
     # source, so it carries none.
     save_configuration_file(strip_seed_fingerprint(bundle), destination)
+    # The store copy now matches what ships, so it takes the next shipped update too.
+    repository.upsert(config_id, stamp_seed_fingerprint(bundle))
     typer.echo(f"Published {config_id} to {destination}")
     typer.echo("Commit that file to share it with the team.")
 
@@ -258,7 +261,8 @@ def import_configuration(
 ) -> None:
     """Import a configuration bundle from JSON into storage."""
     repository = open_configuration_repository(storage, configuration_dir, database_path)
-    repository.upsert(config_id, load_configuration_file(source_path))
+    # An imported bundle is someone's work, even when it was exported from a seeded copy.
+    repository.upsert(config_id, strip_seed_fingerprint(load_configuration_file(source_path)))
     typer.echo(f"Imported {config_id}")
 
 
