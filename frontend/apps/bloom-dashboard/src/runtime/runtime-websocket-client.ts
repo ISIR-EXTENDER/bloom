@@ -30,19 +30,10 @@ type WebSocketConstructorLike = {
   new (url: string, protocols?: string[]): WebSocketLike;
 };
 
-type PendingTeleopAck = {
+type PendingReply = {
   reject: (error: Error) => void;
-  resolve: (response: RuntimeTeleopCommandResponse) => void;
-};
-
-type PendingTopicSubscriptionAck = {
-  reject: (error: Error) => void;
-  resolve: (response: RuntimeTopicSubscriptionResponse) => void;
-};
-
-type PendingControlAck = {
-  reject: (error: Error) => void;
-  resolve: (response: RuntimeControlState) => void;
+  /** Resolves and returns true when the reply is the kind this request expects. */
+  settle: (data: unknown) => boolean;
 };
 
 export type RuntimeWebSocketClientOptions = {
@@ -74,9 +65,8 @@ export function createRuntimeWebSocketClient(
   let linkState: RuntimeLinkState = "connecting";
   let controlState: RuntimeControlState | null = null;
   let sessionId = "";
-  const pendingControlAcks: PendingControlAck[] = [];
-  const pendingTeleopAcks: PendingTeleopAck[] = [];
-  const pendingTopicSubscriptionAcks: PendingTopicSubscriptionAck[] = [];
+  // The server answers every message exactly once, in order, so replies match requests by position.
+  const pendingRepliesBySocket = new Map<WebSocketLike, PendingReply[]>();
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
   const linkStateListeners = new Set<(state: RuntimeLinkState) => void>();
   const controlStateListeners = new Set<(state: RuntimeControlState | null) => void>();
@@ -106,34 +96,44 @@ export function createRuntimeWebSocketClient(
       return connectPromise;
     }
 
-    socket = new WebSocketCtor(options.url, options.protocols);
+    const nextSocket = new WebSocketCtor(options.url, options.protocols);
+    socket = nextSocket;
     setLinkState("connecting");
     connectPromise = new Promise((resolve, reject) => {
       const handleOpen = () => {
         removeConnectionListeners();
-        bindRuntimeListeners(socket as WebSocketLike);
+        bindRuntimeListeners(nextSocket);
         setLinkState("connected");
-        resolve(socket as WebSocketLike);
+        resolve(nextSocket);
       };
       const handleFailure = () => {
         removeConnectionListeners();
-        setLinkState("disconnected");
+        if (socket === nextSocket) {
+          socket = null;
+          connectPromise = null;
+          setLinkState("disconnected");
+        }
         reject(new Error("Bloom runtime WebSocket could not connect."));
       };
       const removeConnectionListeners = () => {
-        socket?.removeEventListener("open", handleOpen);
-        socket?.removeEventListener("close", handleFailure);
-        socket?.removeEventListener("error", handleFailure);
+        nextSocket.removeEventListener("open", handleOpen);
+        nextSocket.removeEventListener("close", handleFailure);
+        nextSocket.removeEventListener("error", handleFailure);
       };
 
-      socket?.addEventListener("open", handleOpen);
-      socket?.addEventListener("close", handleFailure);
-      socket?.addEventListener("error", handleFailure);
+      nextSocket.addEventListener("open", handleOpen);
+      nextSocket.addEventListener("close", handleFailure);
+      nextSocket.addEventListener("error", handleFailure);
     });
     return connectPromise;
   }
 
   function bindRuntimeListeners(runtimeSocket: WebSocketLike) {
+    const pendingReplies: PendingReply[] = [];
+    pendingRepliesBySocket.set(runtimeSocket, pendingReplies);
+    // A socket that was replaced still delivers its own replies, but no longer speaks for the link.
+    const isCurrent = () => socket === runtimeSocket;
+
     runtimeSocket.addEventListener("message", (event) => {
       if (!(event instanceof MessageEvent)) {
         return;
@@ -141,38 +141,10 @@ export function createRuntimeWebSocketClient(
 
       const connectedState = parseRuntimeSessionConnected(event.data);
       if (connectedState) {
-        sessionId = connectedState.session_id;
-        setControlState(connectedState);
-        return;
-      }
-
-      const error = parseRuntimeError(event.data);
-      if (error) {
-        if (error.controlState) {
-          sessionId = error.controlState.session_id;
-          setControlState(error.controlState);
+        if (isCurrent()) {
+          sessionId = connectedState.session_id;
+          setControlState(connectedState);
         }
-        rejectNextPendingAck(error.error, error.code);
-        return;
-      }
-
-      const nextControlState = parseRuntimeControlState(event.data);
-      if (nextControlState) {
-        sessionId = nextControlState.session_id;
-        setControlState(nextControlState);
-        pendingControlAcks.shift()?.resolve(nextControlState);
-        return;
-      }
-
-      const response = parseTeleopAck(event.data);
-      if (response) {
-        pendingTeleopAcks.shift()?.resolve(response);
-        return;
-      }
-
-      const subscriptionResponse = parseTopicSubscriptionAck(event.data);
-      if (subscriptionResponse) {
-        pendingTopicSubscriptionAcks.shift()?.resolve(subscriptionResponse);
         return;
       }
 
@@ -181,15 +153,36 @@ export function createRuntimeWebSocketClient(
         for (const listener of topicSampleListeners) {
           listener(topicSample);
         }
+        return;
+      }
+
+      const pending = pendingReplies.shift();
+      const error = parseRuntimeError(event.data);
+      if (error) {
+        if (error.controlState && isCurrent()) {
+          sessionId = error.controlState.session_id;
+          setControlState(error.controlState);
+        }
+        pending?.reject(error.error);
+        return;
+      }
+
+      const nextControlState = parseRuntimeControlState(event.data);
+      if (nextControlState && isCurrent()) {
+        sessionId = nextControlState.session_id;
+        setControlState(nextControlState);
+      }
+      if (pending && !pending.settle(event.data)) {
+        pending.reject(new Error("Bloom runtime WebSocket answered with an unexpected reply."));
       }
     });
 
     runtimeSocket.addEventListener("close", () => {
-      rejectPendingTeleopAcks("Bloom runtime WebSocket closed before a teleop ACK was received.");
-      rejectPendingTopicSubscriptionAcks(
-        "Bloom runtime WebSocket closed before a topic subscription ACK was received.",
-      );
-      rejectPendingControlAcks("Bloom runtime WebSocket closed before control ownership was acknowledged.");
+      rejectPendingReplies(runtimeSocket, "Bloom runtime WebSocket closed before the runtime replied.");
+      pendingRepliesBySocket.delete(runtimeSocket);
+      if (!isCurrent()) {
+        return;
+      }
       socket = null;
       connectPromise = null;
       sessionId = "";
@@ -198,46 +191,37 @@ export function createRuntimeWebSocketClient(
     });
 
     runtimeSocket.addEventListener("error", () => {
-      rejectPendingTeleopAcks("Bloom runtime WebSocket failed while waiting for a teleop ACK.");
-      rejectPendingTopicSubscriptionAcks("Bloom runtime WebSocket failed while waiting for a topic subscription ACK.");
-      rejectPendingControlAcks("Bloom runtime WebSocket failed while changing control ownership.");
+      rejectPendingReplies(runtimeSocket, "Bloom runtime WebSocket failed before the runtime replied.");
     });
   }
 
-  function rejectNextPendingAck(error: Error, code = "") {
-    if (code === "control_release_failed") {
-      pendingControlAcks.shift()?.reject(error);
-      return;
-    }
-    const pendingTeleopAck = pendingTeleopAcks.shift();
-    if (pendingTeleopAck) {
-      pendingTeleopAck.reject(error);
-      return;
-    }
-    const pendingTopicSubscriptionAck = pendingTopicSubscriptionAcks.shift();
-    if (pendingTopicSubscriptionAck) {
-      pendingTopicSubscriptionAck.reject(error);
-      return;
-    }
-    pendingControlAcks.shift()?.reject(error);
-  }
-
-  function rejectPendingTeleopAcks(message: string) {
-    while (pendingTeleopAcks.length > 0) {
-      pendingTeleopAcks.shift()?.reject(new Error(message));
+  function rejectPendingReplies(runtimeSocket: WebSocketLike, message: string) {
+    const pendingReplies = pendingRepliesBySocket.get(runtimeSocket) ?? [];
+    for (const pending of pendingReplies.splice(0)) {
+      pending.reject(new Error(message));
     }
   }
 
-  function rejectPendingTopicSubscriptionAcks(message: string) {
-    while (pendingTopicSubscriptionAcks.length > 0) {
-      pendingTopicSubscriptionAcks.shift()?.reject(new Error(message));
+  async function request<T>(message: object, parseReply: (data: unknown) => T | null): Promise<T> {
+    const runtimeSocket = await ensureConnected();
+    const pendingReplies = pendingRepliesBySocket.get(runtimeSocket);
+    if (!pendingReplies) {
+      throw new Error("Bloom runtime WebSocket closed before the request was sent.");
     }
-  }
-
-  function rejectPendingControlAcks(message: string) {
-    while (pendingControlAcks.length > 0) {
-      pendingControlAcks.shift()?.reject(new Error(message));
-    }
+    return new Promise<T>((resolve, reject) => {
+      pendingReplies.push({
+        reject,
+        settle: (data) => {
+          const reply = parseReply(data);
+          if (reply === null) {
+            return false;
+          }
+          resolve(reply);
+          return true;
+        },
+      });
+      runtimeSocket.send(JSON.stringify(message));
+    });
   }
 
   return {
@@ -262,12 +246,8 @@ export function createRuntimeWebSocketClient(
         topicSampleListeners.delete(listener);
       };
     },
-    async claimRuntimeControl() {
-      const runtimeSocket = await ensureConnected();
-      return new Promise((resolve, reject) => {
-        pendingControlAcks.push({ resolve, reject });
-        runtimeSocket.send(JSON.stringify({ type: "claim_control" }));
-      });
+    claimRuntimeControl() {
+      return request({ type: "claim_control" }, parseRuntimeControlState);
     },
     disconnectRuntime() {
       socket?.close();
@@ -278,26 +258,14 @@ export function createRuntimeWebSocketClient(
     getRuntimeSessionId() {
       return sessionId;
     },
-    async releaseRuntimeControl() {
-      const runtimeSocket = await ensureConnected();
-      return new Promise((resolve, reject) => {
-        pendingControlAcks.push({ resolve, reject });
-        runtimeSocket.send(JSON.stringify({ type: "release_control" }));
-      });
+    releaseRuntimeControl() {
+      return request({ type: "release_control" }, parseRuntimeControlState);
     },
-    async sendTeleopCommand(request: RuntimeTeleopCommandRequest): Promise<RuntimeTeleopCommandResponse> {
-      const runtimeSocket = await ensureConnected();
-      return new Promise((resolve, reject) => {
-        pendingTeleopAcks.push({ resolve, reject });
-        runtimeSocket.send(JSON.stringify(request));
-      });
+    sendTeleopCommand(teleopRequest: RuntimeTeleopCommandRequest): Promise<RuntimeTeleopCommandResponse> {
+      return request(teleopRequest, parseTeleopAck);
     },
-    async subscribeRuntimeTopic(request: RuntimeTopicSubscriptionRequest): Promise<RuntimeTopicSubscriptionResponse> {
-      const runtimeSocket = await ensureConnected();
-      return new Promise((resolve, reject) => {
-        pendingTopicSubscriptionAcks.push({ resolve, reject });
-        runtimeSocket.send(JSON.stringify(request));
-      });
+    subscribeRuntimeTopic(subscription: RuntimeTopicSubscriptionRequest): Promise<RuntimeTopicSubscriptionResponse> {
+      return request(subscription, parseTopicSubscriptionAck);
     },
   };
 }

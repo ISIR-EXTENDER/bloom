@@ -41,7 +41,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | B5 | Camera frames are published while STOP is engaged; on the legacy `teleop_command` backend STOP zeros the manager topic instead of `/teleop_cmd`. | `routes/runtime.py`, `sessions/stop.py`, `main.py` | Fixed |
 | B6 | `config status` overwrites its id sets inside the loop and reports every app after the first as missing; importing the API module to run any CLI command seeds and upgrades the default store first. | `bloom_cli/main.py`, `bloom_api/main.py` | Fixed |
 | B7 | Seed upgrades stall: the fingerprint hashes default values, so any new model field makes every unedited copy look edited; stores seeded before stamps existed never upgrade; publish leaves a stale stamp; import keeps one; one unreadable stored bundle stops the API from starting. | `config/seed.py`, `bloom_cli/main.py` | Fixed |
-| B8 | The WebSocket client matches replies by message type, so an error for one request rejects another and some promises never settle; a late close from an old socket tears down its replacement; telemetry subscribes three times per connection with unhandled rejections. | `runtime-websocket-client.ts`, `RuntimeWorkspace.tsx`, `use-runtime-action-dispatcher.ts` | Open |
+| B8 | The WebSocket client matches replies by message type, so an error for one request rejects another and some promises never settle; a late close from an old socket tears down its replacement; telemetry subscribes three times per connection with unhandled rejections. | `runtime-websocket-client.ts`, `RuntimeWorkspace.tsx`, `use-runtime-action-dispatcher.ts` | Fixed |
 
 ## C. Degraded behavior
 

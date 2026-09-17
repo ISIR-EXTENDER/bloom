@@ -265,6 +265,63 @@ describe("runtime WebSocket client", () => {
     expect(socket.sentMessages).toEqual([JSON.stringify(request)]);
   });
 
+  it("settles each request with its own reply when an earlier one fails", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    void client.ensureRuntimeConnected();
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+
+    const subscription = client.subscribeRuntimeTopic({
+      field_path: "",
+      message_type: "",
+      topic: "/missing",
+      type: "subscribe_topic",
+    });
+    const teleop = client.sendTeleopCommand({
+      angular: { x: 0, y: 0, z: 0 },
+      linear: { x: 0.1, y: 0, z: 0 },
+      mode: 0,
+      seq: 1,
+      target: "/joystick_cartesian_command",
+      type: "teleop_cmd",
+    });
+    await flushPromises();
+    socket.message({ detail: "Topic subscription could not be started.", session_id: "s", type: "runtime_error" });
+    socket.message({ detail: "ok", payload: { status: "accepted" }, session_id: "s", type: "teleop_ack" });
+
+    await expect(subscription).rejects.toThrow("Topic subscription could not be started.");
+    await expect(teleop).resolves.toMatchObject({ type: "teleop_ack" });
+  });
+
+  it("ignores a late close from the socket it already replaced", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const links: string[] = [];
+    client.addRuntimeLinkStateListener((state) => links.push(state));
+    void client.ensureRuntimeConnected();
+    const oldSocket = WebSocketCtor.instances[0];
+    oldSocket.open();
+    await flushPromises();
+
+    // Closing, but its close event has not arrived yet.
+    oldSocket.readyState = 3;
+    void client.ensureRuntimeConnected();
+    const newSocket = WebSocketCtor.instances[1];
+    newSocket.open();
+    await flushPromises();
+    newSocket.message({
+      payload: { is_owner: false, owner_present: false },
+      session_id: "new",
+      type: "session_connected",
+    });
+    oldSocket.close();
+
+    expect(links.at(-1)).toBe("connected");
+    expect(client.getRuntimeSessionId()).toBe("new");
+  });
+
   it("notifies topic sample listeners", async () => {
     const WebSocketCtor = createFakeWebSocketConstructor();
     const receivedSamples: unknown[] = [];

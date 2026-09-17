@@ -153,7 +153,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
   const subscribeTopic = useCallback(
     (request: RuntimeTopicSubscriptionRequest) => {
-      void client.subscribeRuntimeTopic?.(request);
+      // A failed subscription leaves the widget blank; the next socket asks again.
+      client.subscribeRuntimeTopic?.(request).catch(() => undefined);
     },
     [client],
   );

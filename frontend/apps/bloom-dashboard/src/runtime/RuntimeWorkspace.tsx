@@ -380,20 +380,20 @@ export function RuntimeWorkspace({
     };
   }, [runtimeActionClient.listRosTopicStatus]);
 
+  // A client that reports no link at all (previews, tests) subscribes once; a reporting one once per open socket.
+  const topicSubscriptionsReady = !runtimeActionClient.addRuntimeLinkStateListener || runtimeLink.state === "connected";
   // biome-ignore lint/correctness/useExhaustiveDependencies: the connection count is the resubscribe signal, not a value the effect reads.
   useEffect(() => {
     // A reconnected socket is a new session with no subscriptions, so the
     // screen has to ask again or the telemetry stays blank behind a READY chip.
-    // A client that reports no link at all (previews, tests) still subscribes;
-    // only a known-down link waits, because its requests would be lost.
-    if (!onTopicSubscriptionRequest || runtimeLink.state === "disconnected") {
+    if (!onTopicSubscriptionRequest || !topicSubscriptionsReady) {
       return;
     }
 
     for (const request of createRuntimeTopicSubscriptionRequests(screen)) {
       onTopicSubscriptionRequest(request);
     }
-  }, [onTopicSubscriptionRequest, runtimeLink.connectionCount, runtimeLink.state, screen]);
+  }, [onTopicSubscriptionRequest, runtimeLink.connectionCount, topicSubscriptionsReady, screen]);
 
   useEffect(() => {
     if (previousScreenIdRef.current === screen.id) {
