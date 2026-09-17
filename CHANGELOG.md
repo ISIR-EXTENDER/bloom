@@ -25,6 +25,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **A canvas that comes back while STOP is latched comes back stopped.** Engaging STOP with Settings or the practice
   tour open left the remounted canvas untouched — every control kept its tab stop and said nothing to a screen
   reader — because the latch still watched the unmounted nodes.
+- **The stopped latch survives a re-render, and resume puts back what it found.** A widget that re-set its own
+  `tabindex` got its tab stop back while the latch was still on, and releasing the latch cleared `aria-disabled` from
+  controls that had declared it themselves, so an unavailable control came back looking operable.
 - **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
   latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
   resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.

@@ -37,4 +37,32 @@ describe("the stopped-controls latch", () => {
     expect(second.control.getAttribute("aria-disabled")).toBe("true");
     expect(second.control.tabIndex).toBe(-1);
   });
+
+  it("gives a control back the aria-disabled it already had", () => {
+    // An unavailable widget says so on its own; resume must not make it look operable.
+    const { control } = buildCanvas();
+    control.setAttribute("aria-disabled", "true");
+    const rootRef = { current: control.parentElement };
+    const { rerender } = renderHook(({ stopped }) => useStoppedControls(rootRef, stopped), {
+      initialProps: { stopped: true },
+    });
+
+    rerender({ stopped: false });
+
+    expect(control.getAttribute("aria-disabled")).toBe("true");
+  });
+
+  it("re-disables a control whose re-render put its tab stop back", async () => {
+    const { control } = buildCanvas();
+    const rootRef = { current: control.parentElement };
+    renderHook(() => useStoppedControls(rootRef, true));
+    expect(control.tabIndex).toBe(-1);
+
+    // React re-rendering the widget writes tabIndex again, straight onto the node.
+    control.setAttribute("tabindex", "0");
+    await new Promise((settle) => setTimeout(settle, 0));
+
+    expect(control.tabIndex).toBe(-1);
+    expect(control.getAttribute("aria-disabled")).toBe("true");
+  });
 });

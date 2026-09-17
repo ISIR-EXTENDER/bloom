@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState } from "react";
 
 const CONTROL_SELECTOR = 'button, [role="application"], [role="slider"], [role="switch"], [tabindex]';
 const HELD_TAB_INDEX = "data-stopped-tabindex";
+const HELD_ARIA_DISABLED = "data-stopped-aria-disabled";
 
 /**
  * While the STOP latch is on, the canvas refuses input. It used to do that in
@@ -29,32 +30,48 @@ export function useStoppedControls(rootRef: { current: HTMLElement | null }, sto
 
     const disable = () => {
       for (const control of controls()) {
-        if (control.hasAttribute(HELD_TAB_INDEX)) {
-          continue;
+        if (!control.hasAttribute(HELD_TAB_INDEX)) {
+          control.setAttribute(HELD_TAB_INDEX, control.getAttribute("tabindex") ?? "");
+          control.setAttribute(HELD_ARIA_DISABLED, control.getAttribute("aria-disabled") ?? "");
         }
-        control.setAttribute(HELD_TAB_INDEX, control.getAttribute("tabindex") ?? "");
-        control.setAttribute("aria-disabled", "true");
-        control.setAttribute("tabindex", "-1");
+        // Written only when it differs, or the observer would answer its own writes forever.
+        if (control.getAttribute("aria-disabled") !== "true") {
+          control.setAttribute("aria-disabled", "true");
+        }
+        if (control.getAttribute("tabindex") !== "-1") {
+          control.setAttribute("tabindex", "-1");
+        }
       }
     };
 
     disable();
-    // A widget that re-renders or arrives with new telemetry must not come back live.
+    // A widget that re-renders, re-sets its tabindex, or arrives with new telemetry must not come back live.
     const observer = new MutationObserver(disable);
-    observer.observe(root, { childList: true, subtree: true });
+    observer.observe(root, {
+      attributeFilter: ["aria-disabled", "tabindex"],
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
 
     return () => {
       observer.disconnect();
       for (const control of root.querySelectorAll<HTMLElement>(`[${HELD_TAB_INDEX}]`)) {
-        const held = control.getAttribute(HELD_TAB_INDEX) ?? "";
+        const heldTabIndex = control.getAttribute(HELD_TAB_INDEX) ?? "";
+        const heldAriaDisabled = control.getAttribute(HELD_ARIA_DISABLED) ?? "";
         control.removeAttribute(HELD_TAB_INDEX);
-        control.removeAttribute("aria-disabled");
-        if (held) {
-          control.setAttribute("tabindex", held);
-        } else {
-          control.removeAttribute("tabindex");
-        }
+        control.removeAttribute(HELD_ARIA_DISABLED);
+        restore(control, "aria-disabled", heldAriaDisabled);
+        restore(control, "tabindex", heldTabIndex);
       }
     };
   }, [root, stopped]);
+}
+
+function restore(control: HTMLElement, name: string, held: string): void {
+  if (held) {
+    control.setAttribute(name, held);
+  } else {
+    control.removeAttribute(name);
+  }
 }
