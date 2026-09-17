@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -15,11 +16,15 @@ LEGACY_FIXTURE_DIR = Path(__file__).parent / "fixtures" / "legacy"
 
 def test_version_command_prints_backend_version() -> None:
     runner = CliRunner()
+    packaged = (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    expected = re.search(r'^version = "([^"]+)"', packaged, re.MULTILINE)
+    assert expected is not None
 
     result = runner.invoke(cli, ["version"])
 
     assert result.exit_code == 0
-    assert result.stdout.strip() == "0.1.0"
+    # Read from the package, so a release bump does not need this test edited.
+    assert result.stdout.strip() == expected.group(1)
 
 
 def test_cli_without_args_shows_help() -> None:

@@ -60,7 +60,7 @@ Fixes land one group per commit, in the order below. Update the status column as
 | --- | --- | --- | --- |
 | D1 | `CHANGELOG.md` omits the breaking and security changes of the last two days: the Node 24 floor, the narrowed frame allowlist, the observer role and API keys, per-app positions, seed auto-upgrade, and ownership on by default. | `CHANGELOG.md` | Fixed |
 | D2 | Docs describe behavior the code does not have: the default frame list, positions replay/rename and persistence, superseded ADRs 0122 and 0128, no ADR for the observer role, `config status` labels, undocumented settings, a version check covering three of eight carriers, and hard-coded English runtime strings. | `docs/*`, `README.md` | Fixed |
-| D3 | Version and tag: an untagged `[0.1.0]` section already exists, so this release is either 0.1.0 with that section folded in, or 0.2.0. | `CHANGELOG.md`, version carriers | Needs a decision |
+| D3 | Version and tag: an untagged `[0.1.0]` section already exists, so this release is either 0.1.0 with that section folded in, or 0.2.0. | `CHANGELOG.md`, version carriers | Fixed: 0.2.0, with `[0.1.0]` kept as the foundation section |
 
 ## Decisions recorded while fixing
 
@@ -104,9 +104,10 @@ visual gaps are tracked in [the design gap review](design/reviews/2026-09-17-des
   the Extender workspace manifest.
 - **Field:** on 2026-09-17 visual servoing on the new architecture was driven from Bloom with one toggle and one command
   button.
-- **Still open before tagging:** D3, the version; hardware validation on Extender and Kinova, including the Pivot
-  sign; a native speaker's check of the Spanish and French wording; the operator target floor (48 or 56 px, see the
-  design gap review).
+- **Version:** 0.2.0 across all fifteen carriers, with the changelog's `[0.1.0]` kept as the foundation section.
+- **Still open before tagging:** hardware validation on Extender and Kinova, including the Pivot sign; a native
+  speaker's check of the Spanish and French wording; the operator target floor (48 or 56 px, see the design gap
+  review).
 - **Upstream, not Bloom:** the Explorer simulation needs two runtime workarounds on Jazzy (`explorer_stack`), which the
   end-to-end script applies, and `kinova.launch.py` never spawns `fault_controller`, so Reset fault cannot be tested in
   simulation. Details in [the simulation run](validation/ros-sim-e2e.md).

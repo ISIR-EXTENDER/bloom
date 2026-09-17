@@ -1,7 +1,7 @@
 {
   "name": "@bloom/dashboard",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "build": "tsc -b && vite build",
@@ -9,10 +9,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bloom/api-client": "0.1.0",
-    "@bloom/ui": "0.1.0",
-    "@bloom/widget-renderers": "0.1.0",
-    "@bloom/widgets": "0.1.0",
+    "@bloom/api-client": "0.2.0",
+    "@bloom/ui": "0.2.0",
+    "@bloom/widget-renderers": "0.2.0",
+    "@bloom/widgets": "0.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

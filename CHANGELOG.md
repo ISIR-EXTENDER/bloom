@@ -11,6 +11,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-17
+
 ### Added
 
 - **`npm run e2e:sim -- --robot explorer|kinova`** drives Bloom against the Explorer Gazebo simulation or Kinova fake
