@@ -168,7 +168,8 @@ export function SliderWidget({
         <header className="bloom-control-header">
           <strong>
             {descriptor.widget.title}
-            {unit ? <small className="bloom-control-unit">{unit}</small> : null}
+            {/* The space is read: without it a screen reader says "Max speedm/s". */}
+            {unit ? <small className="bloom-control-unit"> {unit}</small> : null}
           </strong>
           <span>{STEP_TARGET_HINTS[stepPreset]}</span>
         </header>

@@ -41,6 +41,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   answer 500 with `database is locked`.
 - **Scanning stays on while stopped**, with the resume control as its only target, and a switch press on it resumes. A
 
+- **`Max speed m/s`** keeps the space between a control's title and its unit, which a screen reader used to run
 - **Stopped controls say so.** While the STOP latch is on, the canvas controls are marked `aria-disabled` and leave
 - **Targets at their floor.** The **⋯** maintenance button fills the bar's 44 px instead of drawing 34, and every
 - **Focus follows the view that opens.** Opening an app, opening or leaving Settings, Escape, and a screen change from

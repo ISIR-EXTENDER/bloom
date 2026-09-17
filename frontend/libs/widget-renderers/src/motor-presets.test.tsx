@@ -513,3 +513,31 @@ describe("per-profile signal conditioning", () => {
     expect(pad.querySelector(".bloom-joystick-deadzone")?.getAttribute("style")).toContain("0.4");
   });
 });
+
+describe("what a step slider's title reads as", () => {
+  afterEach(cleanup);
+
+  it("keeps a space between the title and its unit", () => {
+    // Scanning announced "Max speedm/s" and "Max turnrad/s".
+    const screenConfig: ScreenConfig = {
+      ...controlsScreen,
+      widgets: [
+        {
+          id: "max-speed",
+          kind: "slider",
+          title: "Max speed",
+          layout: { x: 0, y: 0, width: 240, height: 200 },
+          settings: { max: 0.3, min: 0, step: 0.015, unit: "m/s" },
+        },
+      ],
+    };
+    const [descriptor] = renderScreenDescriptors(screenConfig, createDefaultWidgetRegistry());
+    if (descriptor?.status !== "resolved") {
+      throw new Error("Missing descriptor.");
+    }
+
+    render(<SliderWidget descriptor={descriptor} motorPreset="step" />);
+
+    expect(screen.getByText(/Max speed/).textContent).toBe("Max speed m/s");
+  });
+});
