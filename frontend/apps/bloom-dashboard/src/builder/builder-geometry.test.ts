@@ -1,5 +1,6 @@
 import type {
   ApplicationConfig,
+  CanvasPresetId,
   ConfigurationBundle,
   ReservedRegion,
   ScreenConfig,
@@ -18,6 +19,7 @@ import {
   placeClearOfRegions,
   refuseReservedRegion,
   resolveBuilderPanel,
+  resolveDeviceClass,
   resolveNewScreenCanvas,
   resolvePrimaryTarget,
   reviewScreens,
@@ -80,6 +82,14 @@ describe("builder geometry", () => {
     expect(findUndersizedWidgets(shrunk).map(({ shortfall, widget }) => [widget.id, shortfall.minimum])).toEqual([
       ["drive-gripper", [200, 120]],
     ]);
+  });
+
+  it("classifies every 720-tall preset as tablet, including the lab's wide display", () => {
+    const classOf = (preset_id: CanvasPresetId) => resolveDeviceClass({ canvas: { preset_id, runtime_mode: "fit" } });
+
+    const presets: CanvasPresetId[] = ["hd", "native-1280x720", "wide-tablet", "tablet", "full-hd", "local-screen"];
+
+    expect(presets.map(classOf)).toEqual(["tablet", "tablet", "tablet", "tablet", "desktop", "desktop"]);
   });
 
   it("starts a new screen on the tablet 1280×720 panel unless the app is a desktop one", () => {

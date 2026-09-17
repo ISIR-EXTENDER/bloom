@@ -22,6 +22,7 @@ const CHECKED_PANEL: Record<DeviceClass, { height: number; width: number }> = {
   tablet: { height: 600, width: 1024 },
 };
 
+/** Only the 1920×1080 presets are desktop. `hd` is 1280×720 and `wide-tablet` 1820×720: both tablet. */
 const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
 
 /** The canvas a new tablet screen starts on: the 1280×720 panel the device switch and shipped screens use. */
