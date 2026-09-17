@@ -86,6 +86,7 @@ try {
     for (const viewport of viewports) {
       const page = await browser.newPage({ viewport });
       await installConfigurationMocks(page, configurations);
+      await installRuntimeWebSocketMock(page);
 
       for (const route of routes) {
         await route.setup(page);
@@ -214,7 +215,6 @@ async function showRuntimeTour(page) {
 }
 
 async function showSupervisorMirror(page) {
-  await installRuntimeWebSocketMock(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await page.getByRole("button", { exact: true, name: "Explorer Manager" }).click();
@@ -224,7 +224,6 @@ async function showSupervisorMirror(page) {
 }
 
 async function showSandboxRuntimeScreen(page, screenName) {
-  await installRuntimeWebSocketMock(page);
   await showRuntime(page);
 
   // Screen switching moved behind the maintenance hold when the runtime became
@@ -240,8 +239,6 @@ async function showSandboxRuntimeScreen(page, screenName) {
 }
 
 async function showExplorerRuntimeScreen(page, screenName) {
-  await installRuntimeWebSocketMock(page);
-  await mockSavedPositions(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await openRuntimeApp(page, "Explorer Manager");
@@ -255,16 +252,6 @@ async function showExplorerRuntimeScreen(page, screenName) {
     .getByRole("button", { exact: true, name: screenName })
     .click();
   await page.getByRole("dialog", { name: "Maintenance" }).waitFor({ state: "detached" });
-}
-
-async function mockSavedPositions(page) {
-  const positions = [
-    { name: "home", joint_names: ["joint_1", "joint_2"], positions: [2.5, 0.3], description: "" },
-    { name: "table-reach", joint_names: ["joint_1", "joint_2"], positions: [1.2, -0.4], description: "" },
-  ];
-  await page.route("**/api/v1/runtime/positions", async (route) => {
-    await route.fulfill({ json: { positions }, status: 200 });
-  });
 }
 
 async function holdForMaintenance(page) {
@@ -289,6 +276,7 @@ async function captureRuntimeLocales(browser) {
   for (const locale of locales) {
     const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
     await installConfigurationMocks(page, configurations);
+    await installRuntimeWebSocketMock(page);
     await showExplorerRuntimeScreen(page, null);
     await holdForMaintenance(page);
     await page.locator(".runtime-maintenance-languages button").filter({ hasText: locale.code.toUpperCase() }).click();
@@ -440,7 +428,6 @@ async function assertSupervisorTopicsFit(page, label) {
 
 async function showDebugRuntime(page) {
   await mockRuntimeDebugApi(page);
-  await installRuntimeWebSocketMock(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await openRuntimeApp(page, "Bloom Debug");
@@ -463,6 +450,7 @@ async function showDebugRuntime(page) {
 async function captureBuilderCanvas(browser) {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   await installConfigurationMocks(page, configurations);
+  await installRuntimeWebSocketMock(page);
   await page.goto(baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Builder: Compose screens" }).click();
   await page.getByRole("button", { exact: true, name: "Apps" }).click();
@@ -483,6 +471,7 @@ async function captureDesktopDebug(browser) {
   ]) {
     const page = await browser.newPage({ viewport });
     await installConfigurationMocks(page, configurations);
+    await installRuntimeWebSocketMock(page);
     await showDebugRuntime(page);
     const label = `${viewport.name}:debug-runtime`;
     await assertNoHorizontalOverflow(page, label);

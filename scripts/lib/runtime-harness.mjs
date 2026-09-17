@@ -124,7 +124,44 @@ export const DEFAULT_TOPIC_STATUS = [
   },
 ];
 
-export async function installConfigurationMocks(page, configurations, { topics = DEFAULT_TOPIC_STATUS } = {}) {
+/**
+ * What `GET /api/v1/capabilities` answers with every ROS seam wired (capabilities.py). Unrouted, the
+ * page gets a 502 and every capability-gated control renders in its unresolved fallback, so a visual
+ * check measures the fallback instead of the screen.
+ *
+ * The frame list is the union the shipped apps name: one deployment drives one arm, but this harness
+ * serves Explorer and Kinova bundles from one backend, and a shorter list would draw their frame rows
+ * as "not on this robot".
+ */
+export const DEFAULT_RUNTIME_CAPABILITIES = {
+  capabilities: [
+    { id: "command-dispatcher", available: true, detail: "Commands are published to ROS." },
+    { id: "service-dispatcher", available: true, detail: "ROS services can be called." },
+    { id: "data-source", available: true, detail: "Topic subscriptions deliver live samples." },
+    { id: "teleop-adapter", available: true, detail: "Teleop commands reach the manager." },
+    { id: "camera-frames", available: true, detail: "Camera frames are published to ROS." },
+    { id: "recording", available: true, detail: "Runtime recording is available." },
+  ],
+  command_frame_id: "base_link",
+  command_frame_ids: ["base_link", "hybrid_frame", "ft_frame", "effector_frame"],
+  // Empty is what a deployment that has not named its arm reports, and this one drives two.
+  robot_name: "",
+};
+
+export const DEFAULT_SAVED_POSITIONS = [
+  { name: "home", joint_names: ["joint_1", "joint_2"], positions: [2.5, 0.3], description: "" },
+  { name: "table-reach", joint_names: ["joint_1", "joint_2"], positions: [1.2, -0.4], description: "" },
+];
+
+export async function installConfigurationMocks(
+  page,
+  configurations,
+  {
+    capabilities = DEFAULT_RUNTIME_CAPABILITIES,
+    positions = DEFAULT_SAVED_POSITIONS,
+    topics = DEFAULT_TOPIC_STATUS,
+  } = {},
+) {
   await page.route("**/api/v1/configurations", async (route) => {
     await route.fulfill({
       contentType: "application/json",
@@ -139,8 +176,28 @@ export async function installConfigurationMocks(page, configurations, { topics =
     });
   }
 
+  await page.route("**/api/v1/capabilities", async (route) => {
+    await route.fulfill({ contentType: "application/json", json: capabilities, status: 200 });
+  });
+
   await page.route("**/api/v1/ros/topics/status", async (route) => {
     await route.fulfill({ contentType: "application/json", json: { topics }, status: 200 });
+  });
+
+  // The runtime scopes its library to one app, so the path always carries a query: a pattern without
+  // the trailing `**` matched nothing and the position library drew its failure state instead.
+  await page.route("**/api/v1/runtime/positions**", async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (pathname.endsWith("/export")) {
+      const yaml = ["joint_targets:", ...positions.map((position) => `  ${position.name}: ${position.positions}`)];
+      await route.fulfill({
+        contentType: "application/json",
+        json: { target_names: positions.map((position) => position.name), yaml: yaml.join("\n") },
+        status: 200,
+      });
+      return;
+    }
+    await route.fulfill({ contentType: "application/json", json: { positions }, status: 200 });
   });
 
   await page.route("**/api/v1/runtime/stop", async (route) => {
