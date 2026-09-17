@@ -31,7 +31,8 @@
     "verify": "bash scripts/verify.sh"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.15.0",
+    "npm": ">=11"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",

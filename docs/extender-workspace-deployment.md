@@ -27,6 +27,21 @@ that process; `uvicorn --workers 2`, two containers, or load balancing across re
 and defeat the one-operator guarantee. The maintained `bloom api run`, `bloom api run-ros`, and workspace script all
 start one process. A shared lease coordinator is required before scaling the command API horizontally.
 
+## Node.js
+
+Bloom requires Node.js 24, the current LTS line, pinned in `.nvmrc`. The Extender and Kinova computers install Node from
+the NodeSource apt repository, so moving an older machine to Node 24 means switching that repository:
+
+```bash
+sudo sed -i 's|node_[0-9]*\.x|node_24.x|' /etc/apt/sources.list.d/nodesource.list
+sudo apt update
+sudo apt install -y nodejs
+node --version   # v24.x
+```
+
+A machine still on an older Node can launch Bloom, and the launcher says so, but it cannot run the test suites: jsdom
+30 and the undici it depends on need Node 22.19 or newer.
+
 ## Useful Environment Variables
 
 | Variable | Default | Purpose |

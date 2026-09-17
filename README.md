@@ -39,7 +39,7 @@ read-only Supervisor mirror, plots, topic inspection, audit records, and shared 
 
 ## Quickstart
 
-This starts Bloom without ROS or robot hardware. You need Node.js 20+, npm 10+, Python 3.10-3.12, and
+This starts Bloom without ROS or robot hardware. You need Node.js 24 LTS, npm 11+, Python 3.10-3.12, and
 [`uv`](https://docs.astral.sh/uv/).
 
 ### 1. Install
@@ -571,13 +571,23 @@ requests for npm, uv and GitHub Actions, grouping minor and patch updates; major
 
 | Tool | Recommended | Used for |
 | --- | --- | --- |
-| Node.js | `>=20` | Frontend workspaces, Vite, React, TypeScript tests. |
-| npm | `>=10` | Workspace dependencies and frontend scripts. |
+| Node.js | `24` LTS, pinned in `.nvmrc` | Frontend workspaces, Vite, React, TypeScript tests. |
+| npm | `>=11` | Workspace dependencies and frontend scripts. Ships with Node 24. |
 | uv | latest stable | Backend dependency locking, tests, and CLI commands. |
 | GitHub CLI | latest stable | PR creation, CI checks, and squash-merge workflow. |
 | Playwright | installed through npm | Browser checks and README screenshots. |
 
-Local frontend work supports Node.js 20+, while GitHub CI currently runs Node.js 24 to match hosted runner baselines.
+Local work and CI both run Node.js 24, the current LTS line, read from `.nvmrc`; `npm run verify` refuses an older
+Node. On Ubuntu with the NodeSource repository, upgrade with:
+
+```bash
+sudo sed -i 's|node_[0-9]*\.x|node_24.x|' /etc/apt/sources.list.d/nodesource.list
+sudo apt update
+sudo apt install -y nodejs
+node --version   # v24.x
+```
+
+Node 26 becomes LTS on 28 October 2026; move `.nvmrc` then.
 
 ## Documentation
 

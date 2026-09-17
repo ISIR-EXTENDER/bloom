@@ -59,6 +59,13 @@ echo "Starting Bloom API with ROS adapters..."
 ) &
 API_PID="$!"
 
+required_node_major="$(cat "${BLOOM_ROOT}/.nvmrc")"
+node_major="$(node --version | sed -E 's/^v([0-9]+).*/\1/')"
+if [ "${node_major}" -lt "${required_node_major}" ]; then
+  echo "warning: Node $(node --version) is older than the Node ${required_node_major} baseline." >&2
+  echo "         The dashboard still starts, but tests will not run here. See README > Tooling." >&2
+fi
+
 echo "Starting Bloom dashboard..."
 (
   cd "${BLOOM_ROOT}"
