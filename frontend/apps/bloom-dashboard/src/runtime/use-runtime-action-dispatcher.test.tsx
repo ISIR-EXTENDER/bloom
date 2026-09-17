@@ -57,6 +57,22 @@ describe("runtime teleop suspension", () => {
     expect(sent.at(-1)?.linear.x).toBe(0.7);
   });
 
+  it("stops stamping the old frame once the operator resets to the backend default", async () => {
+    // Picking "default" in the frame picker gives an empty frame. It used to be
+    // dropped on the way to the pump, so the stick kept streaming ft_frame and
+    // the arm went on turning in the tool frame the operator had left.
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+
+    act(() => result.current.contributeTeleop("gamepad", { angular_z: 0.4 }, "ft_frame"));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(sent.at(-1)).toMatchObject({ frame_id: "ft_frame" });
+
+    act(() => result.current.contributeTeleop("gamepad", { angular_z: 0.4 }, ""));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+
+    expect(sent.at(-1)).not.toHaveProperty("frame_id");
+  });
+
   it("suspends immediately when the operating window loses focus", async () => {
     const { result } = renderHook(() => useRuntimeActionDispatcher(client));
     act(() => result.current.contributeTeleop("gamepad", { angular_z: 0.5 }));

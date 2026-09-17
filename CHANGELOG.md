@@ -45,6 +45,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   `error`, not only on `close`.
 - The gap the maintenance sheet leaves for STOP is measured after layout instead of read out of the DOM during
   render, so it no longer depends on which render happens to see the mounted canvas shell.
+- **Resetting the command frame to the robot's default now reaches the stream.** A gamepad or other non-widget source
+  that reset to the default sent an empty frame, which was dropped on the way to the pump, so the stream kept stamping
+  the frame the operator had just left and the arm went on rotating in it.
 - **An assistive resume asks twice.** A switch press or a dwell cannot hold, and one of them used to clear the STOP
   latch outright, against what the control, the guide and the checklist all promise. The first activation arms the
   resume, the second within eight seconds performs it, and the arming lapses by itself. A pointer hold is unchanged.

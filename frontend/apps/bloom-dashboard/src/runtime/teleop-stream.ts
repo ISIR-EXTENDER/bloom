@@ -56,6 +56,7 @@ export class TeleopStreamPump {
     if (!this.lastRequest) {
       this.lastRequest = fallback;
     } else if (fallback.frame_id !== undefined) {
+      // An empty frame counts: it is a reset to the backend default, not "no opinion".
       this.lastRequest = { ...this.lastRequest, frame_id: fallback.frame_id };
     }
     this.zeroFramesLeft = this.zeroTailFrames;

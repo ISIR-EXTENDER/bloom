@@ -187,7 +187,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       }
       syncTeleopActive();
       teleopPump.current?.noteExternalContribution({
-        ...(commandFrameId ? { frame_id: commandFrameId } : {}),
+        frame_id: commandFrameId,
         target: "/joystick_cartesian_command",
         mode: 0,
       });
