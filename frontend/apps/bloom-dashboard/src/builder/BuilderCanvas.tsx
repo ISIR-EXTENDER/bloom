@@ -3,7 +3,7 @@ import { findSizeShortfall, type WidgetRenderDescriptor } from "@bloom/widgets";
 import type { ReactNode } from "react";
 import { ScreenArtboard, type ScreenArtboardLayout } from "../screen/ScreenArtboard";
 import { BuilderCanvasItem } from "./BuilderCanvasItem";
-import { KIOSK_BAR_HEIGHT, overlapsRegion, refuseReservedRegion, resolveBuilderPanel } from "./builder-geometry";
+import { explainLayoutRefusal, KIOSK_BAR_HEIGHT, overlapsRegion, resolveBuilderPanel } from "./builder-geometry";
 
 type BuilderCanvasProps = {
   onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
@@ -31,7 +31,10 @@ export function BuilderCanvas({
       key={descriptor.widget.id}
       minSize={resolveWidgetMinSize(descriptor)}
       onCommitWidgetLayout={(widgetId, start, final) =>
-        onCommitWidgetLayout(widgetId, start, refuseReservedRegion(final, start, regions))
+        // The same question the inspector asks. Refusing only a reserved region let a resize handle
+        // push a widget past the artboard edge, which the inspector then refused for the very same
+        // layout -- and the backend has no upper bound, so a save persisted it.
+        onCommitWidgetLayout(widgetId, start, explainLayoutRefusal(final, screen) ? start : final)
       }
       onPreviewWidgetLayout={(widgetId, layout) => {
         if (!overlapsRegion(layout, regions)) {

@@ -107,6 +107,32 @@ describe("the builder canvas", () => {
     expect(document.body.style.cursor).not.toBe("grabbing");
   });
 
+  // A widget closer to the edge than its kind's minimum: the clamp's lower bound wins and the resize
+  // jumps straight past the canvas. The inspector refuses the identical layout, and the backend has no
+  // upper bound, so a save persisted a widget hanging off the artboard.
+  it("refuses a resize that would run past the artboard, as the inspector does", () => {
+    const edged: ScreenConfig = {
+      ...bench,
+      reserved_regions: [],
+      widgets: [
+        {
+          ...(bench.widgets[0] as ScreenConfig["widgets"][number]),
+          layout: { x: 1190, y: 100, width: 70, height: 58 },
+        },
+      ],
+    };
+    render(<DraftCanvas source={edged} />);
+    const handle = screen.getAllByRole("button", { name: /^Resize / })[0] as HTMLElement;
+    const frameOf = () => handle.closest("article") as HTMLElement;
+    const before = frameOf().style.width;
+
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+
+    const right = 1190 + Number.parseInt(frameOf().style.width, 10);
+    expect(right).toBeLessThanOrEqual(1280);
+    expect(frameOf().style.width).toBe(before);
+  });
+
   it("moves and resizes the selection from the keyboard", () => {
     render(<DraftCanvas source={bench} />);
     const frameOf = () =>
