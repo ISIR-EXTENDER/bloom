@@ -631,7 +631,9 @@ function createApplicationFromPlaygroundScreen(
     action_presets: sourceApplication.action_presets,
     runtime_policy: sourceApplication.runtime_policy,
     theme: sourceApplication.theme,
-    profiles: sourceApplication.profiles,
+    // The promoted screen is renamed, so a copied profile would name a screen this app does not have
+    // and the new app would fail its own review checklist the moment it was created.
+    profiles: sourceApplication.profiles.map((profile) => ({ ...profile, preferred_control_layout_id: "main" })),
     screens: [
       {
         ...screen,

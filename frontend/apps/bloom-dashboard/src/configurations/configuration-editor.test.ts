@@ -107,6 +107,27 @@ describe("removeScreenFromApplication", () => {
     expect(application.screens).toHaveLength(2);
   });
 
+  // Left naming a screen that is gone, a profile falls back to the first one at runtime, so the role
+  // opens whatever that happens to be -- on the shipped Manager apps, another role's layout.
+  it("repoints a profile that named the screen being removed", () => {
+    const application = createBundle().applications[0] as ApplicationConfig;
+    const withProfile: ApplicationConfig = {
+      ...application,
+      profiles: [
+        {
+          ...(application.profiles[0] as ApplicationConfig["profiles"][number]),
+          id: "operator",
+          preferred_control_layout_id: "diagnostics",
+        },
+      ],
+    };
+
+    const updated = removeScreenFromApplication(withProfile, "diagnostics");
+
+    expect(updated.profiles[0]?.preferred_control_layout_id).toBe("main");
+    expect(updated.screens.map((screen) => screen.id)).toEqual(["main"]);
+  });
+
   it("keeps at least one screen in the application", () => {
     const application = {
       ...createBundle().applications[0],

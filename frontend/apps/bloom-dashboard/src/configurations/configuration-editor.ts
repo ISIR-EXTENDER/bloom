@@ -68,9 +68,19 @@ export function removeScreenFromApplication(application: ApplicationConfig, scre
     throw new Error(`Application "${application.id}" must keep at least one screen.`);
   }
 
+  const remaining = application.screens.filter((screen) => screen.id !== screenId);
   return {
     ...application,
-    screens: application.screens.filter((screen) => screen.id !== screenId),
+    screens: remaining,
+    // A profile left naming a deleted screen falls back to the first one at runtime, so an operator
+    // opens whatever that happens to be -- the bench layout, on the shipped Manager apps. Repoint the
+    // role at the screen that is now first, which is what the fallback would have given it anyway,
+    // except that the app's own review can see it and say so.
+    profiles: application.profiles.map((profile) =>
+      profile.preferred_control_layout_id === screenId
+        ? { ...profile, preferred_control_layout_id: remaining[0]?.id ?? "" }
+        : profile,
+    ),
   };
 }
 
