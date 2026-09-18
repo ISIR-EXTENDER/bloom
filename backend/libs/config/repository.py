@@ -12,6 +12,19 @@ class ConfigurationNotFoundError(KeyError):
     pass
 
 
+class ConfigurationUnreadableError(RuntimeError):
+    """Stored, but this build cannot reconstruct it.
+
+    Most forward-incompatible changes need no migration -- a new widget kind, a new lifecycle, a newer
+    bundle schema -- so the ledger check passes and the strict models refuse the rows instead. Saying
+    which configuration and why beats a traceback that reads as Bloom having broken.
+    """
+
+    def __init__(self, config_id: str, reason: str) -> None:
+        super().__init__(f"Configuration {config_id!r} was written by a different Bloom build: {reason}")
+        self.config_id = config_id
+
+
 class ConfigurationRepository(Protocol):
     def list_ids(self) -> list[str]:
         pass

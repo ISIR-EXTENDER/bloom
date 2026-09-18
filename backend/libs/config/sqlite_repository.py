@@ -2,6 +2,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from libs.config.json_io import dump_configuration_json, load_configuration_json
 from libs.config.models import (
     ApplicationConfig,
@@ -17,7 +19,7 @@ from libs.config.models import (
     WidgetConfig,
     WidgetLayout,
 )
-from libs.config.repository import ConfigurationNotFoundError
+from libs.config.repository import ConfigurationNotFoundError, ConfigurationUnreadableError
 from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
 
 
@@ -46,8 +48,14 @@ class SQLiteConfigurationRepository:
                 (config_id,),
             ).fetchone()
             if row is not None:
-                bundle = load_normalized_configuration_bundle(connection, config_id, row)
-            connection.commit()
+                try:
+                    bundle = load_normalized_configuration_bundle(connection, config_id, row)
+                except (ValidationError, ValueError) as exc:
+                    raise ConfigurationUnreadableError(config_id, str(exc)) from exc
+                finally:
+                    connection.commit()
+            else:
+                connection.commit()
 
         if row is None:
             raise ConfigurationNotFoundError(config_id)

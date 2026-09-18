@@ -9,6 +9,7 @@ from libs.config import (
     ConfigurationBundle,
     ConfigurationMetadata,
     ConfigurationNotFoundError,
+    ConfigurationUnreadableError,
     ReservedRegion,
     RuntimeActionPreset,
     RuntimeAdapterPolicy,
@@ -723,3 +724,22 @@ def test_a_current_database_is_confirmed_without_taking_a_write(tmp_path: Path) 
                 apply_sqlite_migrations(connection)
         finally:
             holder.rollback()
+
+
+def test_a_row_this_build_cannot_read_names_the_configuration(
+    tmp_path: Path,
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    """Most forward-incompatible changes need no migration, so the ledger passes and the models refuse."""
+    database_path = tmp_path / "bloom.db"
+    repository = SQLiteConfigurationRepository(database_path)
+    repository.upsert("sandbox", sample_configuration_bundle)
+
+    with sqlite_connection(database_path) as connection:
+        connection.execute("UPDATE configuration_widgets SET kind = 'holographic-pad'")
+        connection.commit()
+
+    with pytest.raises(ConfigurationUnreadableError) as raised:
+        repository.get("sandbox")
+
+    assert "sandbox" in str(raised.value)

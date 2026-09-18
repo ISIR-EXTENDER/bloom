@@ -49,6 +49,7 @@ from libs.config.models import (
 from libs.config.repository import (
     ConfigurationNotFoundError,
     ConfigurationRepository,
+    ConfigurationUnreadableError,
     FileConfigurationRepository,
     InMemoryConfigurationRepository,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "ConfigurationMetadata",
     "CURRENT_CONFIGURATION_SCHEMA_VERSION",
     "ConfigurationNotFoundError",
+    "ConfigurationUnreadableError",
     "ConfigurationRepository",
     "ConfigurationStorageKind",
     "DisplayPreset",
