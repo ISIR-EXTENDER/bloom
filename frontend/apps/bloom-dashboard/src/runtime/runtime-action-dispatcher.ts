@@ -455,8 +455,11 @@ async function dispatchTeleopValueIntent(
     options.runtimePolicy?.command_frame_id,
   );
   if (request) {
+    // The request was composed before it was judged. A refused one must leave the composer too, or its
+    // value keeps riding on every later command from the widgets that are allowed.
     const frameError = validateCommandFrameRequest(request, options.allowedCommandFrameIds);
     if (frameError) {
+      options.teleopComposer?.release(intent.widgetId);
       return {
         intent,
         request,
@@ -466,6 +469,7 @@ async function dispatchTeleopValueIntent(
     }
     const policyError = validateTeleopCommandRequest(request, options.runtimePolicy);
     if (policyError) {
+      options.teleopComposer?.release(intent.widgetId);
       return {
         intent,
         request,

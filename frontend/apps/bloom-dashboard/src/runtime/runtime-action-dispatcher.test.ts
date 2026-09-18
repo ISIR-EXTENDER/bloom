@@ -743,6 +743,53 @@ function createTeleopFrameIntent(frameId: string): Extract<WidgetActionIntent, {
   };
 }
 
+describe("a refused teleop command", () => {
+  // The request is composed before it is judged, so a refusal has to undo the contribution. Otherwise a
+  // stick bound to a target the deployment forbids keeps its last push in the sum, and the next command
+  // from an allowed stick carries an axis the operator let go of.
+  it("stops contributing to the commands that follow it", async () => {
+    const client: RuntimeActionClient = {
+      publishRosTopic: vi.fn(),
+      sendTeleopCommand: vi.fn(async (request) => ({
+        type: "teleop_ack" as const,
+        payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" as const },
+      })),
+    };
+    const composer = new TeleopTwistComposer();
+    const policy = {
+      command_frame_id: "base_link",
+      allowed_message_types: [],
+      allowed_publish_topics: [],
+      allowed_recording_topics: [],
+      allowed_service_calls: [],
+      allowed_teleop_targets: ["/joystick_cartesian_command"],
+    };
+
+    const refused = {
+      ...createTeleopValueIntent({
+        runtimeBinding: { adapter: "teleop", value_mapping: { target_topic: "/teleop_cmd" } },
+        value: { x: 1, y: 0 },
+      }),
+      widgetId: "legacy-stick",
+    };
+    await expect(
+      dispatchRuntimeActionIntent(client, refused, { teleopComposer: composer, runtimePolicy: policy }),
+    ).resolves.toMatchObject({ status: "blocked" });
+
+    const allowed = createTeleopValueIntent({
+      runtimeBinding: { adapter: "teleop", value_mapping: { target_topic: "/joystick_cartesian_command" } },
+      value: { x: 0, y: 0.5 },
+    });
+    const result = await dispatchRuntimeActionIntent(client, allowed, {
+      teleopComposer: composer,
+      runtimePolicy: policy,
+    });
+
+    expect(result.status).toBe("accepted");
+    expect(result.request).toMatchObject({ linear: { x: 0 } });
+  });
+});
+
 function createTeleopValueIntent(options: {
   modeId?: string;
   runtimeBinding?: unknown;
