@@ -1333,3 +1333,40 @@ def test_a_session_cannot_hold_unbounded_topic_subscriptions() -> None:
     assert replies.count("subscription_ack") == 64
     assert len(handles) == 64
     assert subscribe("widget-0").type == "subscription_ack"
+
+
+def test_a_lease_that_moved_on_still_closes_the_sockets_subscriptions() -> None:
+    """A handover that fails mid-release must not strand rclpy subscriptions for the life of the process."""
+
+    class MovedOnManager(RuntimeSessionManager):
+        def wait_for_control_operations(self, session: object) -> None:
+            raise ValueError("Runtime session is not releasing robot control.")
+
+    gateway = MultiHandleTopicSubscriptionGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        runtime_topic_subscription_gateway=gateway,
+    )
+    app.state.runtime_session_manager = MovedOnManager()
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "claim_control"})
+        websocket.receive_json()
+        for index, topic in enumerate(("/ee_pose", "/joint_states", "/ee_jac")):
+            websocket.send_json(
+                {
+                    "type": "subscribe_topic",
+                    "field_path": "data",
+                    "message_type": "std_msgs/msg/Float64",
+                    "topic": topic,
+                    "widget_id": f"widget-{index}",
+                }
+            )
+            websocket.receive_json()
+
+    assert len(gateway.handles) == 3
+    assert [handle.closed for handle in gateway.handles] == [True, True, True]
+    assert app.state.runtime_session_manager.control_snapshot().owner_present is False

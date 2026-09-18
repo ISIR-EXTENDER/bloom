@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import asdict, dataclass
@@ -89,6 +90,8 @@ from libs.sessions.positions import (
 )
 from libs.sessions.teleop_runtime import build_teleop_ack, to_teleop_command
 from libs.sessions.topics import is_live_subscription_gateway
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/runtime", tags=["runtime"])
 
@@ -1024,24 +1027,33 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     finally:
-        release_started = (
-            manager.begin_control_release(session) if websocket.app.state.settings.runtime_control_required else False
-        )
-        if release_started:
-            await run_runtime_thread(
-                disconnect_runtime_session,
-                manager,
-                session,
-                get_teleop_command_gateway(websocket),
-                get_runtime_stop_controller(websocket),
-                get_runtime_audit_log(websocket),
+        # Whatever the handover does, the rclpy subscriptions and both tasks have to go: a lease that moved on
+        # while this socket was closing used to raise here and leak them for the life of the process.
+        try:
+            release_started = (
+                manager.begin_control_release(session)
+                if websocket.app.state.settings.runtime_control_required
+                else False
             )
-        else:
+            if release_started:
+                await run_runtime_thread(
+                    disconnect_runtime_session,
+                    manager,
+                    session,
+                    get_teleop_command_gateway(websocket),
+                    get_runtime_stop_controller(websocket),
+                    get_runtime_audit_log(websocket),
+                )
+            else:
+                manager.disconnect(session)
+        except Exception:
+            logger.exception("Runtime session %s failed to release control on disconnect.", session.id)
             manager.disconnect(session)
-        for handle in topic_subscription_handles.values():
-            handle.close()
-        await cancel_runtime_task(receive_task)
-        await cancel_runtime_task(sample_task)
+        finally:
+            for handle in topic_subscription_handles.values():
+                handle.close()
+            await cancel_runtime_task(receive_task)
+            await cancel_runtime_task(sample_task)
 
 
 async def handle_runtime_client_payload(
@@ -1119,7 +1131,9 @@ async def handle_runtime_client_payload(
                     get_runtime_stop_controller(websocket),
                     audit_log,
                 )
-            except RuntimeError as exc:
+            # wait_for_control_operations raises ValueError when the lease moved on mid-release, which is
+            # exactly the case this path exists to answer; catching RuntimeError alone tore the socket down.
+            except (RuntimeError, ValueError) as exc:
                 try:
                     await run_runtime_thread(get_runtime_stop_controller(websocket).engage)
                 except RuntimeStopAssertionError:
