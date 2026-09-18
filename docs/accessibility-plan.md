@@ -58,7 +58,7 @@ The supported `motor_accessibility_preset` values have concrete runtime behavior
 | `default` | Direct touch/pointer and keyboard control. |
 | `large-targets` | Enlarged operator controls. |
 | `assisted-touch` | Enlarged touch-oriented presentation. |
-| `reduced-motion` | Reserved profile value; browser `prefers-reduced-motion` is honored, but profile-specific wiring remains open. |
+| `reduced-motion` | Reserved profile value, still unwired. The browser's `prefers-reduced-motion` is honored everywhere Bloom animates: the skip link and the builder's screen preview and theme swatches. The operating surface animates nothing, so the preference and the profile value both have nothing to switch off there. |
 | `step` | Compatible joysticks and sliders expose discrete targets instead of requiring a drag; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls retain a value until explicit zero/release or the 15-second attention timeout. |
 | `scan` | Joysticks/sliders render step targets and the highlight advances through every enabled button, STOP first; SWITCH activates the highlighted target. |
@@ -140,7 +140,8 @@ or interaction pattern works for a particular person.
 - Decide whether to offer the reusable practice tour automatically on first entry. The library already marks and
   preselects the role used last on this device, but never opens by itself. Review the delivered EN/ES/FR safety
   language, and the operator glossary on the controls, with native speakers and operators.
-- Wire the `reduced-motion` profile value explicitly or remove it; today only the browser/OS media preference changes
+- Decide the `reduced-motion` profile value: wire it or remove it. Nothing on the operating surface animates, so it
+  would govern nothing there today; the browser/OS preference already covers the places that do move
   motion.
 - Validate supervisor status and ownership readability on the actual second display. Keep deliberate handover in
   Runtime unless a later safety design explicitly adds supervisory command controls.

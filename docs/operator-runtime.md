@@ -298,7 +298,7 @@ Supported motor presets are:
 | `default` | Direct pointer, touch, and keyboard operation. |
 | `large-targets` | Larger runtime targets. |
 | `assisted-touch` | Larger targets and touch-oriented presentation. |
-| `reduced-motion` | Reserved in the profile model. The browser's `prefers-reduced-motion` setting is honored, but this profile value is not wired independently yet. |
+| `reduced-motion` | Reserved in the profile model and not wired independently. The browser's `prefers-reduced-motion` is honored wherever Bloom animates; the operating surface itself animates nothing, so neither changes what an operator sees here. |
 | `step` | Joysticks/sliders expose discrete tap targets instead of requiring sustained dragging; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls hold their value until explicit zero/release or the 15-second attention timeout. |
 | `scan` | Joysticks and sliders render step targets, and a highlight advances through STOP and then every button on the screen in order; Space, Enter, a tap outside a control, or a tap on the full-width switch bar fires the lit target. |
