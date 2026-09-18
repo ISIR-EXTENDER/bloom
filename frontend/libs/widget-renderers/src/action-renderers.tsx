@@ -174,8 +174,12 @@ export function CommandLikeWidget({
     layout === "card" && descriptor.widget.title.trim().toLowerCase() !== buttonLabel.trim().toLowerCase();
   const detail = actionLabel || command;
   const authoredHint = getStringSetting(descriptor.widget.settings, "hint", "");
+  // A timeout of zero means the button stays armed until it is pressed again, which is the opposite of
+  // what the countdown wording promised on exactly the guard that protects a destructive command.
   const hint = isArmed
-    ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
+    ? confirmTimeoutSeconds > 0
+      ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
+      : "stays armed until pressed again"
     : authoredHint
       ? authoredHint
       : showDetails && detail

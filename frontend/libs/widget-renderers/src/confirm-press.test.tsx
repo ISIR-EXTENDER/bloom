@@ -97,3 +97,14 @@ describe("command button confirm press", () => {
     expect(button.getAttribute("data-armed")).toBe("true");
   });
 });
+
+describe("an armed button that never times out", () => {
+  // Zero means it stays armed until pressed again, which the countdown wording said the opposite of.
+  it("says it stays armed rather than promising to cancel itself in 0 s", async () => {
+    renderButton({ confirm_press: true, confirm_timeout_seconds: 0 });
+
+    fireEvent.click(screen.getByRole("button", { name: /Go home/ }));
+
+    expect(await screen.findByText("stays armed until pressed again")).toBeTruthy();
+  });
+});
