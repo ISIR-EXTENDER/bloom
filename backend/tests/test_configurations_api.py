@@ -505,3 +505,10 @@ def test_a_finished_save_leaves_no_lock_behind(client: TestClient) -> None:
         )
 
     assert _configuration_locks == {}
+
+
+def test_an_id_the_store_refuses_reads_as_missing_rather_than_broken(client: TestClient) -> None:
+    """The traversal guard works; it was the error mapping that answered 500 as if Bloom had broken."""
+    response = client.get("/api/v1/configurations/%2e%2e")
+
+    assert response.status_code == 404

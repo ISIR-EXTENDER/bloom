@@ -332,14 +332,16 @@ def get_configuration_bundle(config_id: str, request: Request) -> ConfigurationB
     repository = get_configuration_repository(request)
     try:
         return repository.get(config_id)
-    except ConfigurationNotFoundError as exc:
+    # Both repositories raise a plain ValueError for an id they refuse, so an id the traversal guard
+    # rejected answered 500 as though Bloom had broken rather than as though the id was wrong.
+    except (ConfigurationNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="configuration not found") from exc
 
 
 def try_get_configuration_bundle(config_id: str, request: Request) -> ConfigurationBundle | None:
     try:
         return get_configuration_repository(request).get(config_id)
-    except ConfigurationNotFoundError:
+    except (ConfigurationNotFoundError, ValueError):
         return None
 
 
