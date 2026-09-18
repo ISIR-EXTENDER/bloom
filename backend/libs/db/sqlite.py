@@ -42,6 +42,13 @@ def sqlite_connection(path: str | Path) -> Iterator[sqlite3.Connection]:
 def apply_sqlite_migrations(connection: sqlite3.Connection) -> None:
     if connection.in_transaction:
         raise SQLiteMigrationError("database migrations cannot run inside an existing transaction")
+
+    # Read the ledger before reaching for a write. A fully migrated database is the normal case, and
+    # opening BEGIN IMMEDIATE for it blocks behind any other writer and can fail on a busy timeout,
+    # which turned a routine call into a 15 second stall and a 500.
+    if _is_fully_migrated(connection):
+        return
+
     _create_migration_table(connection)
 
     while True:
@@ -63,6 +70,18 @@ def apply_sqlite_migrations(connection: sqlite3.Connection) -> None:
             raise
         else:
             connection.commit()
+
+
+def _is_fully_migrated(connection: sqlite3.Connection) -> bool:
+    """True when the ledger exists and already records every migration this build knows."""
+    try:
+        applied_versions = _read_applied_versions(connection)
+    except sqlite3.DatabaseError:
+        return False
+    if not applied_versions:
+        return False
+    _validate_applied_versions(applied_versions)
+    return {version for version, _ in MIGRATIONS}.issubset(set(applied_versions))
 
 
 def get_applied_schema_versions(connection: sqlite3.Connection) -> list[int]:

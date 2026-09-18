@@ -29,7 +29,7 @@ from libs.config import (
     upsert_application,
     upsert_screen,
 )
-from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
+from libs.db.sqlite import sqlite_connection
 
 router = APIRouter(prefix="/configurations", tags=["configurations"])
 T = TypeVar("T")
@@ -385,8 +385,8 @@ def register_theme_asset_if_sqlite(
     if settings.configuration_storage != "sqlite":
         return
 
+    # The repository migrated at startup; migrating again here only opened a write transaction.
     with sqlite_connection(settings.configuration_database_path) as connection:
-        apply_sqlite_migrations(connection)
         connection.execute(
             """
             INSERT INTO theme_assets (asset_id, uri, filename, content_type, byte_size)
@@ -461,7 +461,7 @@ def unregister_theme_asset_if_sqlite(request: Request, uri: str) -> None:
     if settings.configuration_storage != "sqlite":
         return
 
+    # The repository migrated at startup; migrating again here only opened a write transaction.
     with sqlite_connection(settings.configuration_database_path) as connection:
-        apply_sqlite_migrations(connection)
         connection.execute("DELETE FROM theme_assets WHERE uri = ?", (uri,))
         connection.commit()

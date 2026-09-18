@@ -707,3 +707,19 @@ def test_reads_succeed_while_another_connection_holds_a_write_transaction(tmp_pa
         assert repository.deleted_ids() == []
 
         writer.rollback()
+
+
+def test_a_current_database_is_confirmed_without_taking_a_write(tmp_path: Path) -> None:
+    """Migrating an already-current store used to block behind any other writer and time out at 500."""
+    database_path = tmp_path / "bloom.db"
+    with sqlite_connection(database_path) as connection:
+        apply_sqlite_migrations(connection)
+
+    # A second connection holds a write open, as a CLI seed or a second backend would.
+    with sqlite_connection(database_path) as holder:
+        holder.execute("BEGIN IMMEDIATE")
+        try:
+            with sqlite_connection(database_path) as connection:
+                apply_sqlite_migrations(connection)
+        finally:
+            holder.rollback()
