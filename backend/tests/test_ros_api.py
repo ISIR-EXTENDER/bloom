@@ -13,6 +13,7 @@ from libs.ros_adapters import (
     RosTopicStatus,
 )
 from libs.sessions import InMemoryRuntimeAuditLog, RuntimeCommandRateLimiter
+from libs.sessions.audit import MAX_SUMMARIZED_FIELDS, summarize_payload
 
 
 class RecordingRosPublisherGateway:
@@ -404,3 +405,14 @@ class ControlledClock:
 
     def __call__(self) -> float:
         return self.now
+
+
+def test_a_rejected_publish_records_a_bounded_list_of_field_names() -> None:
+    """The log keeps 500 records for the life of the process and serves them all to any observer."""
+    payload = {f"field-{index:05d}": index for index in range(20_000)}
+
+    summary = summarize_payload(payload)
+
+    assert summary["field_count"] == 20_000
+    assert len(summary["fields"]) == MAX_SUMMARIZED_FIELDS
+    assert summary["fields"][0] == "field-00000"

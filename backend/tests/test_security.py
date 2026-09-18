@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from fastapi import HTTPException
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -11,7 +12,12 @@ from starlette.websockets import WebSocketDisconnect
 
 from apps.bloom_api.body_limit import MAX_REQUEST_BODY_BYTES
 from apps.bloom_api.main import create_app
-from apps.bloom_api.security import MAX_RATE_LIMIT_CLIENTS, _allow_http_request, require_runtime_owner
+from apps.bloom_api.security import (
+    MAX_RATE_LIMIT_CLIENTS,
+    _allow_http_request,
+    authenticate_api_key,
+    require_runtime_owner,
+)
 from apps.bloom_api.settings import Settings, get_settings
 from libs.config import InMemoryConfigurationRepository, load_configuration_file
 
@@ -480,3 +486,15 @@ def test_an_oversized_body_is_refused_before_it_is_read() -> None:
     )
 
     assert response.status_code == 413
+
+
+def test_a_non_ascii_key_is_refused_rather_than_raising() -> None:
+    """Starlette decodes a header as latin-1, and compare_digest refuses non-ASCII str arguments, so
+    the guard raised TypeError where it should have answered 401 -- a 500 on every guarded route, and
+    on the websocket an exception the close-with-a-reason path never sees."""
+    settings = Settings(environment="test", auth_enabled=True, admin_api_key="a" * 32)
+
+    with pytest.raises(HTTPException) as raised:
+        authenticate_api_key(settings, "é")
+
+    assert raised.value.status_code == 401

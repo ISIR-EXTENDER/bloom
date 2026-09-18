@@ -93,17 +93,28 @@ def install_http_rate_limit(app: FastAPI) -> None:
         return await call_next(request)
 
 
+def _keys_match(presented: str, expected: str) -> bool:
+    """Compare as bytes.
+
+    Starlette decodes a header as latin-1, so a raw non-ASCII byte arrives as a character that makes
+    compare_digest raise TypeError rather than answer. A guard that should say 401 raised a 500
+    instead, and on the websocket the raise was not an HTTPException, so the socket was never closed
+    with its policy-violation reason.
+    """
+    return compare_digest(presented.encode("utf-8", "surrogateescape"), expected.encode("utf-8"))
+
+
 def authenticate_api_key(settings, api_key: str | None) -> BloomPrincipal:
     if not settings.auth_enabled:
         return BloomPrincipal(role="admin")
 
-    if api_key and settings.admin_api_key and compare_digest(api_key, settings.admin_api_key):
+    if api_key and settings.admin_api_key and _keys_match(api_key, settings.admin_api_key):
         return BloomPrincipal(role="admin")
 
-    if api_key and settings.operator_api_key and compare_digest(api_key, settings.operator_api_key):
+    if api_key and settings.operator_api_key and _keys_match(api_key, settings.operator_api_key):
         return BloomPrincipal(role="operator")
 
-    if api_key and settings.observer_api_key and compare_digest(api_key, settings.observer_api_key):
+    if api_key and settings.observer_api_key and _keys_match(api_key, settings.observer_api_key):
         return BloomPrincipal(role="observer")
 
     raise HTTPException(

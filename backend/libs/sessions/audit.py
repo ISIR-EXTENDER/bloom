@@ -62,8 +62,17 @@ def _same_event(left: RuntimeAuditRecord, right: RuntimeAuditRecord) -> bool:
     return replace(left, recorded_at="", repeats=1) == replace(right, recorded_at="", repeats=1)
 
 
+#: The audit log keeps 500 records for the life of the process and hands them all to any observer that
+#: asks. A refused publish is summarized too, so an unbounded key list is retained and re-serialized:
+#: one request with 20 000 keys left a single record carrying most of a megabyte of client text.
+MAX_SUMMARIZED_FIELDS = 20
+
+
 def summarize_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    summary: dict[str, Any] = {"field_count": len(payload), "fields": sorted(payload.keys())}
+    summary: dict[str, Any] = {
+        "field_count": len(payload),
+        "fields": sorted(payload.keys())[:MAX_SUMMARIZED_FIELDS],
+    }
     data = payload.get("data")
     if isinstance(data, list):
         summary["data_length"] = len(data)
