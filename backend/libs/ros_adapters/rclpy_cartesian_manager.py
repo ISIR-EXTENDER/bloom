@@ -18,6 +18,7 @@ Runtime clients must keep sending zeros on release.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 from libs.sessions.teleop import TeleopCommand, TeleopPublishReceipt
@@ -108,7 +109,12 @@ class RclpyCartesianManagerGateway:
 
 
 def _unit(value: float) -> float:
-    return max(-1.0, min(1.0, float(value)))
+    # min/max carry NaN straight through: max(-1.0, min(1.0, nan)) is 1.0, so a NaN axis would leave
+    # this clamp as a full-scale command. The request models reject NaN today; this is the last line.
+    number = float(value)
+    if not math.isfinite(number):
+        return 0.0
+    return max(-1.0, min(1.0, number))
 
 
 __all__ = ["DEFAULT_COMMAND_FRAME_ID", "RclpyCartesianManagerGateway"]

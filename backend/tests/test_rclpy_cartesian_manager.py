@@ -1,7 +1,7 @@
 import sys
 from types import ModuleType
 
-from libs.ros_adapters.rclpy_cartesian_manager import RclpyCartesianManagerGateway
+from libs.ros_adapters.rclpy_cartesian_manager import RclpyCartesianManagerGateway, _unit
 from libs.sessions import TeleopCommand, TeleopVector3
 
 
@@ -155,3 +155,12 @@ def install_fake_ros_messages(monkeypatch, include_extender_msgs: bool = True) -
     if not include_extender_msgs:
         monkeypatch.delitem(sys.modules, "extender_msgs", raising=False)
         monkeypatch.delitem(sys.modules, "extender_msgs.msg", raising=False)
+
+
+def test_a_non_finite_axis_clamps_to_zero_rather_than_full_scale():
+    """max(-1.0, min(1.0, nan)) is 1.0, so the clamp itself would turn a NaN into a full-speed command."""
+    assert _unit(float("nan")) == 0.0
+    assert _unit(float("inf")) == 0.0
+    assert _unit(float("-inf")) == 0.0
+    assert _unit(0.5) == 0.5
+    assert _unit(4.0) == 1.0
