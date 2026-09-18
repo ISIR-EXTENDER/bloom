@@ -7,7 +7,7 @@ problem.
 
 ## What was audited
 
-Four passes, each reproducing every finding before reporting it, none of them editing the repository:
+Six passes, each reproducing every finding before reporting it, none of them editing the repository:
 
 | Pass | Looked at | Confirmed |
 | --- | --- | --- |
