@@ -9,6 +9,7 @@ import type {
   WidgetRendererRegistration,
   WidgetRendererRegistry,
 } from "./types";
+import { WidgetBoundary } from "./WidgetBoundary";
 import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
@@ -96,7 +97,7 @@ export function renderScreenWidgets(
     const controlState = options.controlStateByWidgetId?.[descriptor.widget.id];
     return (
       <WidgetFrame controlState={controlState} descriptor={descriptor} key={descriptor.widget.id}>
-        {renderWidgetDescriptor(descriptor, options)}
+        <WidgetBoundary title={descriptor.widget.title}>{renderWidgetDescriptor(descriptor, options)}</WidgetBoundary>
       </WidgetFrame>
     );
   });

@@ -1855,3 +1855,44 @@ describe("a display widget with nothing behind it", () => {
     expect(document.querySelector('.bloom-gauge-widget[data-live="true"]')).not.toBeNull();
   });
 });
+
+describe("a widget that cannot be drawn", () => {
+  // The runtime's only boundary was the view, so one throwing renderer replaced the whole operating
+  // surface -- STOP included. A screen missing one card is recoverable; one missing STOP is not.
+  it("fails inside its own card and leaves the rest of the screen standing", () => {
+    const registry = createWidgetRendererRegistry([
+      {
+        kind: "gauge",
+        render: () => {
+          throw new Error("no settings at all");
+        },
+      } as WidgetRendererRegistration,
+    ]);
+    const screenConfig = {
+      id: "s1",
+      title: "Drive",
+      canvas: { preset_id: "hd", width: 1280, height: 720 },
+      reserved_regions: [],
+      widgets: [
+        {
+          id: "broken",
+          kind: "gauge",
+          title: "Battery",
+          layout: { x: 0, y: 0, width: 200, height: 120 },
+          settings: {},
+        },
+        { id: "fine", kind: "label", title: "Speed", layout: { x: 0, y: 200, width: 200, height: 80 }, settings: {} },
+      ],
+    } as unknown as ScreenConfig;
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <div>
+        {renderScreenWidgets(renderScreenDescriptors(screenConfig, createDefaultWidgetRegistry()), { registry })}
+      </div>,
+    );
+
+    expect(screen.getByText("This control could not be drawn. It is sending nothing.")).toBeTruthy();
+    expect(screen.getByRole("article", { name: "Speed Label" })).toBeTruthy();
+  });
+});
