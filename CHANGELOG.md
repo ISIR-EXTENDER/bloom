@@ -87,6 +87,39 @@ machines behind assistive input. Each fix carries the test that reproduces it.
   array into `Math.min`.
 - **A slider keeps a usable span** when authored with equal or reversed bounds.
 
+**The perimeter, and the role that is meant to be powerless**
+
+- **A request body is capped before anything reads it.** Starlette buffers the body and FastAPI checks
+  the API key afterwards, so an unauthenticated caller chose how much this backend allocated: one
+  300 MB request took resident memory from 47 MB to 345 MB and was then answered 401.
+- **A read-only key cannot crowd the operator off the robot.** Sessions were handed out against one
+  cap, so enough mirrors took every slot and the operator was refused the socket they need to claim
+  control or to resume after a STOP. The arm could still be stopped and no longer recovered.
+- **A read-only key cannot erase the audit trail.** Every refused command was recorded before any
+  rate limiter, and the log keeps 500 entries, so alternating two sockets pushed the operator's own
+  records out in about a second. A refusal the perimeter already guarantees is no longer recorded.
+- **A non-ASCII API key is refused rather than raising**, which was a 500 on every guarded route and,
+  on the websocket, an exception the close-with-a-reason path never sees.
+- **A refused publish remembers a bounded summary.** One request with twenty thousand keys left a
+  record carrying most of a megabyte of client text, kept for the process lifetime.
+- **A camera frame has to be the format it claims**, rather than passing the sender's MIME label on to
+  ROS consumers as a fact about the bytes.
+
+**Authoring**
+
+- **An edit made while a save is in flight survives it.** The draft reset whenever the configuration
+  store replaced its object, which is what a resolved save looks like, so the work was overwritten by
+  the server's echo of the screen before it -- and the history went too, so it could not be undone.
+- **A cancelled drag stops following the pointer.** Only pointerup tore the listeners down, so the
+  pointercancel a tablet sends when it claims the gesture for a scroll left the widget moving under a
+  pointer nobody was holding.
+- **A half-typed object no longer overwrites the object it replaces.** Committed per keystroke, a
+  fragment like `{"a": ` became the value, which the backend accepts and the runtime then publishes.
+- **A profile keeps pointing at a screen the app has.** Deleting a screen left profiles naming it, and
+  a profile that names nothing falls back to the first screen -- on the Manager apps, the bench
+  layout. An operator silently opened another role's screen.
+- **A resize is refused past the artboard on the canvas**, which the inspector already refused.
+
 **Storage and configuration**
 
 - **A failed `config publish` no longer discards the operator's work.** The
@@ -101,7 +134,8 @@ machines behind assistive input. Each fix carries the test that reproduces it.
   an upload blocked behind any other writer for the full busy timeout.
 - **A theme asset is tracked per configuration**, not per image, so the same
   picture in two apps no longer leaves one file unaccounted for.
-- **An id the store refuses reads as missing** rather than as a server fault.
+- **An id the store refuses reads as missing** rather than as a server fault, and a bundle this build
+  cannot reconstruct says which configuration and why instead of answering 500.
 
 ### Changed
 

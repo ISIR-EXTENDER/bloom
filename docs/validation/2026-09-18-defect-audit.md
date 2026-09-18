@@ -15,8 +15,10 @@ Four passes, each reproducing every finding before reporting it, none of them ed
 | Storage, configuration and API input | migrations, malformed bundles, allowlist bypasses, the CLI | 6 |
 | Runtime state machines | connection loss, ownership, teleop composition, switch scanning, dwell, unmount | 4 |
 | Widgets and builder geometry | hostile settings, numeric edges, what the screen claims | 11 |
+| Security and the supervisor mirror | the auth perimeter, the observer role, rate limits, the camera path | 6 |
+| Builder editing and lifecycle | drafts, undo, drag geometry, profiles, the configuration round trip | 9 |
 
-Twenty-eight defects, of which twenty-four were fixed here. Each fix landed as its own commit with a test
+Forty-three defects, of which thirty-six were fixed here. Each fix landed as its own commit with a test
 that fails without it.
 
 ## What the audits found sound
@@ -45,10 +47,15 @@ Worth recording, because a negative result is evidence too:
 - **Capture would save a pose from a stream that had stopped.**
 - **A socket's rclpy subscriptions leaked for the life of the process** when the lease moved on mid-release.
 - **A failed `config publish` made the next API start overwrite the operator's app.**
+- **An unauthenticated request chose how much memory the backend allocated**, because the body is
+  buffered before the key is checked.
+- **The read-only observer role could take every runtime session**, leaving the operator unable to
+  claim control or to resume after a STOP, and could erase the audit trail in about a second.
+- **An edit made while a save was in flight was discarded**, and the history with it.
 
 ## What this was verified against
 
-- Backend 455, dashboard 557, renderers 143, widgets 159, api-client 20, ui 10.
+- Backend 462, dashboard 563, renderers 143, widgets 159, api-client 20.
 - `npm run check`, `npm run build`, `npm run check:contracts`, `npm run qa:review`.
 - `npm run visual:smoke`, which includes the 165-visit sweep: no new problem, the recorded known gaps
   unchanged.
@@ -64,6 +71,12 @@ fixed are still only confirmed at that level. Hardware acceptance remains open i
 [extender-petanque-validation.md](../extender-petanque-validation.md) and on the
 [bench card](../bench-card.md).
 
-Four findings were left unfixed by decision, all recorded in the changelog's known limitations or here:
-a store written by a newer Bloom still reports a raw validation error rather than a version message, and
-three latent geometry cases that need a `NaN` layout the builder cannot currently produce.
+Left unfixed, deliberately: three latent geometry cases that need a `NaN` layout the builder cannot
+currently produce; the unauthenticated `/health` and `/capabilities` routes, which report the robot name
+and frame allowlist and are a product decision rather than a defect; navigation away from a dirty builder
+draft, which needs a confirmation flow rather than a patch; and two smaller authoring annoyances (a title
+field that refills itself when cleared, and API failures that reach the author as a bare status code).
+
+One finding was reported and did not hold: committing a JSON settings field only on valid JSON breaks the
+fields that legitimately hold ROS text such as `{data: [1.1]}`. The guard applies only where the saved
+value is structured. Two existing tests caught the overreach.
