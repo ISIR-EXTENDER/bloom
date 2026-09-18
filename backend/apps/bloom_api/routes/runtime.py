@@ -961,8 +961,9 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     manager = get_runtime_session_manager(websocket)
     await websocket.accept(subprotocol=select_runtime_websocket_subprotocol(websocket))
     try:
-        # Before anything else is set up, so a refusal leaves nothing behind.
-        session = manager.connect()
+        # Before anything else is set up, so a refusal leaves nothing behind. A principal that cannot
+        # command takes a session from the reserved half, so mirrors cannot crowd out the operator.
+        session = manager.connect(read_only=not principal.is_operator)
     except RuntimeSessionLimitError as exc:
         await websocket.send_json(
             RuntimeServerMessage(
@@ -1120,7 +1121,9 @@ async def handle_runtime_client_payload(
         (RuntimeClaimControlMessage, RuntimeReleaseControlMessage, RuntimeTeleopCommandMessage),
     ):
         detail = "This session may watch the runtime but not command it."
-        record_runtime_control(audit_log, session.id, False, detail)
+        # Deliberately not audited. The perimeter already knows this session can never command, so the
+        # record carries nothing, and writing one per message let a read-only key push the operator's
+        # own records out of a 500-entry log in about a second. The socket still answers.
         await websocket.send_json(
             RuntimeServerMessage(
                 type="runtime_error",

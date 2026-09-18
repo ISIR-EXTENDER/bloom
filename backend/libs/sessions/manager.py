@@ -56,10 +56,12 @@ class RuntimeSessionManager:
         clock: Callable[[], float] = monotonic,
     ) -> None:
         self._max_sessions = max_sessions
+        self._max_read_only_sessions = max(1, max_sessions // 2)
         self._lease_timeout_sec = lease_timeout_sec
         self._clock = clock
         self._last_seen: dict[str, float] = {}
         self._sessions: set[str] = set()
+        self._read_only_sessions: set[str] = set()
         self._owner_session_id: str | None = None
         self._releasing_session_id: str | None = None
         self._teleop_commands: dict[str, dict[str, TeleopCommand]] = {}
@@ -73,15 +75,28 @@ class RuntimeSessionManager:
         with self._lock:
             return len(self._sessions)
 
-    def connect(self) -> RuntimeSession:
+    def connect(self, *, read_only: bool = False) -> RuntimeSession:
+        """Take a session, keeping room for the people who can actually drive.
+
+        Mirrors and other read-only clients share half the cap between them. Handed out first come
+        first served, enough of them filled every slot, and the operator was then refused the socket
+        they need to claim control or to resume after a STOP: the arm stays latched and undriveable.
+        """
         session = RuntimeSession(id=str(uuid4()))
         with self._lock:
+            if read_only and len(self._read_only_sessions) >= self._max_read_only_sessions:
+                raise RuntimeSessionLimitError(
+                    f"This robot already has {self._max_read_only_sessions} read-only sessions connected. "
+                    "Close a supervisor mirror and try again."
+                )
             if len(self._sessions) >= self._max_sessions:
                 raise RuntimeSessionLimitError(
                     f"This robot already has {self._max_sessions} runtime sessions connected. "
                     "Close a Bloom tab or mirror and try again."
                 )
             self._sessions.add(session.id)
+            if read_only:
+                self._read_only_sessions.add(session.id)
             self._last_seen[session.id] = self._clock()
         return session
 
@@ -94,6 +109,7 @@ class RuntimeSessionManager:
     def disconnect(self, session: RuntimeSession) -> None:
         with self._lock:
             self._sessions.discard(session.id)
+            self._read_only_sessions.discard(session.id)
             self._last_seen.pop(session.id, None)
             self._teleop_commands.pop(session.id, None)
             self._mode_requests.pop(session.id, None)

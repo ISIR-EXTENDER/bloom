@@ -3,7 +3,13 @@ from threading import Event, Thread
 
 import pytest
 
-from libs.sessions import RuntimeControlNotOwnedError, RuntimeSessionManager, TeleopCommand, TeleopVector3
+from libs.sessions import (
+    RuntimeControlNotOwnedError,
+    RuntimeSessionLimitError,
+    RuntimeSessionManager,
+    TeleopCommand,
+    TeleopVector3,
+)
 
 
 class MovableClock:
@@ -262,3 +268,22 @@ def test_a_frame_chosen_while_idle_is_mirrored() -> None:
 
     seen = manager.control_snapshot("")
     assert (seen.owner_moving, seen.owner_frame_id) == (False, "ft_frame")
+
+
+def test_read_only_sessions_cannot_crowd_out_an_operator() -> None:
+    """Filling every slot with mirrors left the operator unable to claim control or resume a STOP."""
+    manager = RuntimeSessionManager(max_sessions=4)
+
+    mirrors = []
+    for _ in range(2):
+        mirrors.append(manager.connect(read_only=True))
+
+    with pytest.raises(RuntimeSessionLimitError):
+        manager.connect(read_only=True)
+
+    # The half kept back is still there for whoever can actually drive.
+    operator = manager.connect()
+    assert operator.id not in {mirror.id for mirror in mirrors}
+
+    manager.disconnect(mirrors[0])
+    assert manager.connect(read_only=True) is not None

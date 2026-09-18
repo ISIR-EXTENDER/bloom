@@ -1420,3 +1420,27 @@ def test_a_disconnect_zeros_a_moving_target_without_the_control_lease() -> None:
         websocket.receive_json()
 
     assert gateway.commands[-1].linear.x == 0.0
+
+
+def test_a_read_only_session_cannot_push_the_operators_records_out_of_the_log() -> None:
+    """A refusal the perimeter already guarantees must not cost an audit slot."""
+    settings = Settings(
+        environment="test",
+        auth_enabled=True,
+        admin_api_key="a" * 32,
+        operator_api_key="o" * 32,
+        observer_api_key="b" * 32,
+    )
+    app = create_app(settings, InMemoryConfigurationRepository())
+    client = TestClient(app)
+
+    with client.websocket_connect(
+        "/api/v1/runtime/ws", subprotocols=["bloom.api-key." + "b" * 32]
+    ) as websocket:
+        websocket.receive_json()
+        for _ in range(30):
+            websocket.send_json({"type": "claim_control"})
+            rejected = websocket.receive_json()
+            assert rejected["payload"]["code"] == "observer_read_only"
+
+    assert list(app.state.runtime_audit_log.list_records()) == []
