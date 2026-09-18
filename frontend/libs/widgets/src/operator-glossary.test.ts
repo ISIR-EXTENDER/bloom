@@ -1,6 +1,8 @@
-import type { WidgetConfig } from "@bloom/api-client";
+import type { ApplicationConfig, WidgetConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 
+import explorerManager from "../../../../backend/seed/applications/explorer-manager.json";
+import kinovaManager from "../../../../backend/seed/applications/kinova-manager.json";
 import { localizeOperatorText, localizeWidget } from "./operator-glossary";
 
 describe("the operator glossary", () => {
@@ -81,4 +83,42 @@ describe("the operator glossary", () => {
     });
     expect(localizeWidget(gripper, "en")).toBe(gripper);
   });
+
+  // Words the operator apps put on screen must not reach an ES or FR session in English. Proper nouns are
+  // named here rather than translated: an arm, a ROS type and a frame keep their names in every language.
+  it("knows every display word the two operator apps ship", () => {
+    const KEEPS_ITS_NAME = new Set(["Jaco", "Twist", "Base", "Hybrid"]);
+    const untranslated: string[] = [];
+
+    for (const bundle of [explorerManager, kinovaManager] as unknown as { applications: ApplicationConfig[] }[]) {
+      for (const application of bundle.applications) {
+        for (const screen of application.screens) {
+          for (const widget of screen.widgets) {
+            for (const [key, value] of Object.entries({ title: widget.title, ...widget.settings })) {
+              if (typeof value !== "string" || !TEXT_KEYS.has(key)) continue;
+              if (!/[a-zA-Z]{3}/.test(value) || KEEPS_ITS_NAME.has(value)) continue;
+              // A word the glossary knows may still read the same in one language: Pivot is Pivot in French.
+              const known = localizeOperatorText(value, "es") !== value || localizeOperatorText(value, "fr") !== value;
+              if (!known) untranslated.push(`${screen.id}.${widget.id}.${key}: ${value}`);
+            }
+          }
+        }
+      }
+    }
+
+    expect(untranslated).toEqual([]);
+  });
 });
+
+const TEXT_KEYS = new Set([
+  "button_label",
+  "hint",
+  "offLabel",
+  "offStateLabel",
+  "onLabel",
+  "onStateLabel",
+  "pressed_label",
+  "released_label",
+  "text",
+  "title",
+]);

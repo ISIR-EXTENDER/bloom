@@ -102,6 +102,14 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
     es: "cartesian_manager SUMA CADA ENTRADA ACTIVADA — COMPÁRALAS AQUÍ",
     fr: "cartesian_manager ADDITIONNE CHAQUE ENTRÉE ACTIVÉE — COMPAREZ-LES ICI",
   },
+  // Robot feedback and Command sources: both are reachable from the maintenance sheet.
+  "Plot board": { es: "Panel de gráficas", fr: "Tableau de courbes" },
+  Series: { es: "Series", fr: "Séries" },
+  Sources: { es: "Fuentes", fr: "Sources" },
+  "SERIES — tap to plot": { es: "SERIES — toca para graficar", fr: "SÉRIES — touchez pour tracer" },
+  "SOURCES — tap to plot": { es: "FUENTES — toca para graficar", fr: "SOURCES — touchez pour tracer" },
+  // The field name stays; only the words around it move.
+  "linear.x by source": { es: "linear.x por fuente", fr: "linear.x par source" },
   // Screen titles and profile names of the shipped seeds, shown in the kiosk bar and maintenance.
   "Drive · Bench": { es: "Conducción · Banco", fr: "Conduite · Banc" },
   "Drive · Operator": { es: "Conducción · Operador", fr: "Conduite · Opérateur" },
