@@ -3,6 +3,7 @@ import { type CSSProperties, useEffect, useState } from "react";
 import { formatSignedValue } from "./control-renderers";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { PlotSeriesSnapshot, WidgetRendererProps } from "./types";
+import { STALE_VALUE_AFTER_MS, useNow } from "./use-now";
 
 const PLOT_EXTENT = 1000;
 const RAMP_SIZE = 8;
@@ -184,9 +185,6 @@ export function ValueStripWidget({ data, descriptor }: WidgetRendererProps) {
   );
 }
 
-/** Quiet this long and the last value is dimmed and marked, not passed off as live. */
-const STALE_VALUE_AFTER_MS = 3000;
-
 function isStale(entry: PlotSeriesSnapshot, now: number): boolean {
   const latest = entry.samples.at(-1);
   return latest !== undefined && now - latest.time > STALE_VALUE_AFTER_MS;
@@ -221,15 +219,6 @@ function resolveSeries(data: WidgetRendererProps["data"], settings: Record<strin
     return data.series;
   }
   return readPlotSeries(settings).map((entry): PlotSeriesSnapshot => ({ ...entry, samples: [] }));
-}
-
-function useNow(intervalMs: number): number {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), intervalMs);
-    return () => window.clearInterval(timer);
-  }, [intervalMs]);
-  return now;
 }
 
 function seriesColor(rampIndex: number): CSSProperties {

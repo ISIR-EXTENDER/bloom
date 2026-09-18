@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { getBooleanSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
+import { isSampleStale, useNow } from "./use-now";
 
 const DELETE_CONFIRM_MS = 4000;
 
@@ -17,6 +18,9 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
   const joints = snapshot?.joints;
   const saved = snapshot?.saved ?? [];
   const busy = snapshot?.busy === true;
+  // Capture promises the robot's current pose. On a sample that stopped arriving it would save where the
+  // arm was, under a name someone later drives to.
+  const stale = isSampleStale(joints?.receivedAt, useNow(1000));
   const [armedDelete, setArmedDelete] = useState("");
   const disarmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -34,7 +38,7 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
   };
 
   const handleCapture = () => {
-    if (!joints) {
+    if (!joints || stale) {
       return;
     }
     emit({
@@ -72,7 +76,12 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
         <header className="bloom-widget-head">
           <strong>{descriptor.widget.title}</strong>
           <span className="bloom-widget-readout">
-            {saved.length} saved · {joints ? `${joints.names.length} joints live` : "waiting for joint states"}
+            {saved.length} saved ·{" "}
+            {joints
+              ? stale
+                ? `${joints.names.length} joints · stale`
+                : `${joints.names.length} joints live`
+              : "waiting for joint states"}
           </span>
         </header>
       ) : (
@@ -112,7 +121,7 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
           <button
             aria-label="Capture the robot's current pose"
             className="bloom-position-capture"
-            disabled={busy || !joints}
+            disabled={busy || !joints || stale}
             onClick={handleCapture}
             type="button"
           >

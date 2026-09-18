@@ -3,6 +3,7 @@ import { type CSSProperties, useRef } from "react";
 import { formatSignedValue } from "./control-renderers";
 import { getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
+import { isSampleStale, useNow } from "./use-now";
 
 /** Coloured at 80 %: that is when an engineer needs to look before the arm stops (design 5b). */
 const PROXIMITY_WARN = 0.6;
@@ -15,12 +16,14 @@ export function JointTableWidget({ data, descriptor }: WidgetRendererProps) {
   const topic = getStringSetting(settings, "topic", "/joint_states");
   const latest = data?.type === "topic-echo" ? data.messages.at(-1) : undefined;
   const rows = readJointStates(latest?.value, readJointLimits(settings.joint_limits));
+  // A frozen pose read as the arm's current one is how an operator plans a move from where it was.
+  const stale = isSampleStale(latest?.receivedAt, useNow(1000));
 
   return (
-    <div className="bloom-joint-table bloom-info-card">
+    <div className="bloom-joint-table bloom-info-card" data-stale={stale ? "true" : undefined}>
       <header className="bloom-widget-head">
         <strong>{descriptor.widget.title}</strong>
-        <span className="bloom-widget-readout">{topic}</span>
+        <span className="bloom-widget-readout">{stale ? `${topic} · stale` : topic}</span>
       </header>
       {rows.length === 0 ? (
         <p className="bloom-debug-empty">Waiting for {topic}.</p>

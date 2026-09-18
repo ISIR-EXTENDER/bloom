@@ -24,8 +24,17 @@ const positionScreen: ScreenConfig = {
   ],
 };
 
+/** Capture saves "the robot's current pose", so a live snapshot has to carry a current timestamp. */
 const liveJoints = {
-  joints: { names: ["joint_1", "joint_2"], positions: [0.5, -1.2], receivedAt: "2026-09-15T10:00:00Z" },
+  joints: { names: ["joint_1", "joint_2"], positions: [0.5, -1.2], receivedAt: new Date().toISOString() },
+};
+
+const staleJoints = {
+  joints: {
+    names: ["joint_1", "joint_2"],
+    positions: [0.5, -1.2],
+    receivedAt: new Date(Date.now() - 600_000).toISOString(),
+  },
 };
 
 function renderLibrary(data?: Partial<Extract<WidgetDataSnapshot, { type: "position-library" }>>) {
@@ -148,5 +157,19 @@ describe("a pick-only library", () => {
 
     expect(screen.getByText("0.50 -1.20")).toBeTruthy();
     expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("a joint stream that stopped", () => {
+  // Captured from a stale snapshot, a pose records where the arm was, under a name someone later drives
+  // to. The button promises the current pose, so it has to refuse rather than quietly save the old one.
+  it("refuses to capture a pose and says the joints are stale", () => {
+    const onActionIntent = renderLibrary(staleJoints);
+
+    const capture = screen.getByRole("button", { name: "Capture the robot's current pose" });
+    expect(capture).toHaveProperty("disabled", true);
+
+    fireEvent.click(capture);
+    expect(onActionIntent).not.toHaveBeenCalled();
   });
 });

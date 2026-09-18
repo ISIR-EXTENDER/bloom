@@ -1515,6 +1515,11 @@
   font-weight: 700;
 }
 
+/* A joint table whose stream stopped must not read as the arm's present pose. */
+.bloom-joint-table[data-stale="true"] table {
+  opacity: 0.45;
+}
+
 /* A gauge or plot with nothing behind it draws its authored placeholder. Dimmed, and saying so, it
    cannot be read as the robot's own number. */
 .bloom-gauge-widget[data-live="false"] .bloom-gauge-meter,
