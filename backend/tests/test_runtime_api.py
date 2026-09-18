@@ -1370,3 +1370,22 @@ def test_a_lease_that_moved_on_still_closes_the_sockets_subscriptions() -> None:
     assert len(gateway.handles) == 3
     assert [handle.closed for handle in gateway.handles] == [True, True, True]
     assert app.state.runtime_session_manager.control_snapshot().owner_present is False
+
+
+def test_one_bad_frame_is_answered_rather_than_ending_the_session() -> None:
+    """A stray frame from a reconnecting client must not cost the operator their lease and telemetry."""
+    client = TestClient(create_app(Settings(environment="test"), InMemoryConfigurationRepository()))
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        connected = websocket.receive_json()
+        websocket.send_text("not json at all")
+        error = websocket.receive_json()
+
+        assert error["type"] == "runtime_error"
+        assert error["detail"] == "Invalid runtime message."
+
+        # The socket is still the same session, and still usable.
+        websocket.send_json({"type": "ping"})
+        pong = websocket.receive_json()
+        assert pong["type"] == "pong"
+        assert pong["session_id"] == connected["session_id"]

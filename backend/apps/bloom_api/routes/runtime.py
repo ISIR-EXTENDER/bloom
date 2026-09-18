@@ -5,6 +5,7 @@ from contextlib import suppress
 from dataclasses import asdict, dataclass
 from functools import partial
 from hashlib import sha256
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
@@ -1006,7 +1007,22 @@ async def runtime_websocket(websocket: WebSocket) -> None:
             )
 
             if receive_task in done_tasks:
-                payload = receive_task.result()
+                # A frame that is not JSON, or not text at all, is one client's mistake. Answering it the
+                # way an unparseable message is already answered keeps the operator's lease and their
+                # telemetry; unwinding here used to drop both and force a reconnect.
+                try:
+                    payload = receive_task.result()
+                except (JSONDecodeError, KeyError, UnicodeDecodeError) as exc:
+                    await websocket.send_json(
+                        RuntimeServerMessage(
+                            type="runtime_error",
+                            detail="Invalid runtime message.",
+                            payload={"message": str(exc)},
+                            session_id=session.id,
+                        ).model_dump()
+                    )
+                    receive_task = asyncio.create_task(websocket.receive_json())
+                    continue
                 await handle_runtime_client_payload(
                     websocket,
                     session,
