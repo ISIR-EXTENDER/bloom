@@ -1837,7 +1837,8 @@ describe("a display widget with nothing behind it", () => {
   it("marks a gauge live once a sample arrives", () => {
     render(
       <GaugeWidget
-        data={{ type: "gauge", receivedAt: "2026-09-18T10:00:00Z", topic: "/battery", value: 42 }}
+        // Fresh on purpose: a fixed timestamp ages past the stale threshold as the clock moves on.
+        data={{ type: "gauge", receivedAt: new Date().toISOString(), topic: "/battery", value: 42 }}
         descriptor={
           {
             widget: {
