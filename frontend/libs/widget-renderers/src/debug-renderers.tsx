@@ -4,6 +4,7 @@ import { formatAge } from "./display-renderers";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { getBooleanSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
+import { useNow } from "./use-now";
 
 const TOPIC_PLOT_VARIANTS = ["area", "bars", "sparkline"] as const;
 
@@ -74,7 +75,13 @@ function TopicEchoWidget({
       : `\u2014\n\n${localizeEmptyEcho(descriptor.widget.title.toLowerCase(), language)}`;
   // The active frame restamps the echo live (joystick-lab.md); before any twist it is still the next one's frame.
   const frameId = controlState?.commandFrameId || readFrameId(latest?.value);
-  const headerNote = frameId || (latest ? formatAge(latest.receivedAt) : "nothing sent");
+  // Read from a ticker: computed during render the age freezes exactly when the stream stops, which is
+  // when it matters, and the echo sits at "0 s ago" for as long as nothing else re-renders.
+  const now = useNow(1000);
+  // A TwistStamped always carries a frame, so showing the frame alone meant the echo never showed an
+  // age: a command sent ten minutes ago read exactly like the one just sent. Show both.
+  const age = latest ? formatAge(latest.receivedAt, now) : "nothing sent";
+  const headerNote = frameId ? `${frameId} \u00b7 ${age}` : age;
   const handlePauseToggle = () => {
     if (!isPaused) {
       setPausedMessages(visibleMessages);

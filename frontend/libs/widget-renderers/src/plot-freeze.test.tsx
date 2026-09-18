@@ -3,7 +3,7 @@
  */
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-
+import { TopicDebugWidget } from "./debug-renderers";
 import { PlotWidget } from "./display-renderers";
 import { createSparklinePath } from "./plot-rendering";
 import type { WidgetRendererProps } from "./types";
@@ -90,5 +90,42 @@ describe("a sample outside the configured bounds", () => {
     const ys = [...path.matchAll(/[ML][\d.]+ (-?[\d.]+)/g)].map((match) => Number(match[1]));
     expect(Math.min(...ys)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...ys)).toBeLessThanOrEqual(82);
+  });
+});
+
+describe("the echo's header note", () => {
+  // Every TwistStamped carries a frame, so showing the frame alone meant the echo never showed an age:
+  // a command sent ten minutes ago read exactly like the one just sent.
+  it("carries the age beside the frame", () => {
+    render(
+      <TopicDebugWidget
+        controlState={{ commandFrameId: "base_link" }}
+        data={{
+          type: "topic-echo",
+          messages: [
+            {
+              receivedAt: new Date(Date.now() - 600_000).toISOString(),
+              topic: "/joystick_cartesian_command",
+              value: { twist: { linear: { x: 0.4 } } },
+            },
+          ],
+        }}
+        descriptor={
+          {
+            widget: {
+              id: "sent",
+              kind: "topic-echo",
+              title: "What was sent",
+              layout: { x: 0, y: 0, width: 400, height: 200 },
+              settings: {},
+            },
+          } as never
+        }
+      />,
+    );
+
+    const note = screen.getByText(/base_link/);
+    expect(note.textContent).toContain("base_link");
+    expect(note.textContent).toContain("10 min ago");
   });
 });
