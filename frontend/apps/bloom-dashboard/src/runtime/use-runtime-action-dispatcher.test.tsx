@@ -57,6 +57,26 @@ describe("runtime teleop suspension", () => {
     expect(sent.at(-1)?.linear.x).toBe(0.7);
   });
 
+  // A stick already at rest has nothing to release. Arming it anyway swallowed the operator's whole next
+  // push -- after every STOP, settings close and screen switch -- and taught them the pad needs two.
+  it("lets a source that was resting at the suspend drive on its very next push", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+
+    act(() => result.current.contributeTeleop("gamepad", { linear_x: 0.4 }, "base_link"));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    act(() => result.current.contributeTeleop("gamepad", null, "base_link"));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+
+    act(() => result.current.suspendTeleop());
+    const countAfterSuspend = sent.length;
+
+    act(() => result.current.contributeTeleop("gamepad", { linear_x: 0.6 }, "base_link"));
+    await act(() => vi.advanceTimersByTimeAsync(60));
+
+    expect(sent.length).toBeGreaterThan(countAfterSuspend);
+    expect(sent.at(-1)?.linear.x).toBe(0.6);
+  });
+
   it("stops stamping the old frame once the operator resets to the backend default", async () => {
     // Picking "default" in the frame picker gives an empty frame. It used to be
     // dropped on the way to the pump, so the stick kept streaming ft_frame and

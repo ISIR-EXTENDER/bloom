@@ -196,8 +196,13 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   );
 
   const suspendTeleop = useCallback(() => {
-    for (const sourceId of externalSources.current) {
-      externalSourcesAwaitingNeutral.current.add(sourceId);
+    // Only a source that was actually pushing has something to release. A gamepad already at rest emits
+    // its next null only after a contribution, so arming it here swallowed the operator's whole next
+    // push and taught them the stick needs a second one.
+    for (const sourceId of teleopComposer.current.activeWidgetIds) {
+      if (externalSources.current.has(sourceId)) {
+        externalSourcesAwaitingNeutral.current.add(sourceId);
+      }
     }
     teleopComposer.current.clear();
     void teleopPump.current?.suspend().catch(() => undefined);
