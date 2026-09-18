@@ -398,3 +398,27 @@ def test_sqlite_keeps_the_authored_order_of_widget_settings(tmp_path: Path) -> N
         ]
 
     assert settings_orders(repository.get("explorer-manager")) == settings_orders(shipped)
+
+
+def test_a_publish_that_cannot_write_leaves_the_store_copy_marked_as_edited(tmp_path: Path) -> None:
+    """The stamp says "this is the shipped copy", which lets the next seed run replace it."""
+    database_path = tmp_path / "bloom.db"
+    source = Path(__file__).parents[1] / "seed" / "applications" / "sandbox.json"
+    store = ["--storage", "sqlite", "--database-path", str(database_path)]
+    runner = CliRunner()
+    runner.invoke(cli, ["config", "import", "sandbox", str(source), *store])
+
+    read_only = tmp_path / "read-only-seed"
+    read_only.mkdir()
+    read_only.chmod(0o500)
+    try:
+        result = runner.invoke(cli, ["config", "publish", "sandbox", *store, "--seed-dir", str(read_only)])
+    finally:
+        read_only.chmod(0o700)
+
+    assert result.exit_code != 0
+    repository = create_configuration_repository(
+        "sqlite", configuration_dir=tmp_path / "cfg", database_path=database_path
+    )
+    # Nothing was shared, so the operator's copy must still look like their own work.
+    assert not is_unedited_seed_copy(repository.get("sandbox"), "sandbox")

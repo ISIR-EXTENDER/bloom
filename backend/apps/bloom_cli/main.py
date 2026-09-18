@@ -251,18 +251,24 @@ def publish_configuration(
         raise typer.BadParameter(f"No configuration {config_id!r} in this store. Available: {known}") from None
 
     destination = Path(seed_dir) / f"{config_id}.json"
-    # The store copy matches what ships either way, so it takes the next shipped update too.
-    repository.upsert(config_id, stamp_seed_fingerprint(bundle))
     # Rewriting an unchanged app would only reorder keys and spell out defaults.
-    if destination.is_file() and configuration_fingerprint(
+    already_published = destination.is_file() and configuration_fingerprint(
         load_configuration_file(destination)
-    ) == configuration_fingerprint(bundle):
+    ) == configuration_fingerprint(bundle)
+    if not already_published:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        # The stamp records where a store copy came from; a shipped file is the
+        # source, so it carries none.
+        save_configuration_file(strip_seed_fingerprint(bundle), destination)
+
+    # Stamped only once the file is really there. The stamp says "this copy is the shipped one", which
+    # lets the next seed run replace it; claiming that before a write that then failed threw the
+    # operator's edits away on the next API start.
+    repository.upsert(config_id, stamp_seed_fingerprint(bundle))
+
+    if already_published:
         typer.echo(f"{config_id} already matches {destination}; nothing to commit.")
         return
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    # The stamp records where a store copy came from; a shipped file is the
-    # source, so it carries none.
-    save_configuration_file(strip_seed_fingerprint(bundle), destination)
     typer.echo(f"Published {config_id} to {destination}")
     typer.echo("Commit that file to share it with the team.")
 
