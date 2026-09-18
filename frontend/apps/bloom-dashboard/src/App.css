@@ -82,6 +82,13 @@ textarea {
   transform: translateY(0);
 }
 
+/* The link still arrives and still takes focus; it just stops sliding in. */
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
+
 /* The skip link and route changes focus this landmark so the next Tab starts inside it. It is not a control, and
    Chrome counts script focus on load as focus-visible, so it draws no ring at all. */
 #bloom-main-content:focus {

@@ -1749,12 +1749,6 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  [data-scan-lit] {
-    transition: none;
-  }
-
-  [data-dwell-active]::after {
-    transition: none;
-  }
-}
+/* The scan ring and the dwell ring change in one step and never animate, so there is nothing here for
+   prefers-reduced-motion to switch off. The transitions Bloom does draw are in App.css and builder.css,
+   and each one honours the preference beside its own rule. */

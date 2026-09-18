@@ -2220,3 +2220,12 @@
   font-weight: 600;
   color: var(--bloom-on-error-container);
 }
+
+/* Both of these move to draw attention, which is exactly what someone asking for less motion has turned
+   down. They keep their end state, so nothing is lost but the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .builder-screen-library-preview-popover,
+  .builder-theme-swatch {
+    transition: none;
+  }
+}
