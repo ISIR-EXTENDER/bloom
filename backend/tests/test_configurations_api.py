@@ -533,9 +533,7 @@ def test_the_same_image_in_two_configurations_keeps_a_row_each(
     }
     uris = []
     for config_id in ("sandbox", "second"):
-        client.put(
-            f"/api/v1/configurations/{config_id}", json=sample_configuration_bundle.model_dump(mode="json")
-        )
+        client.put(f"/api/v1/configurations/{config_id}", json=sample_configuration_bundle.model_dump(mode="json"))
         uris.append(client.post(f"/api/v1/configurations/{config_id}/theme-assets", json=upload).json()["uri"])
 
     with sqlite_connection(database_path) as connection:
