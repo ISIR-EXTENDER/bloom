@@ -612,15 +612,15 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
         },
         "session_id": connected["session_id"],
     }
-    assert gateway.commands == [
-        TeleopCommand(
-            angular=TeleopVector3(x=0.0, y=0.0, z=0.3),
-            linear=TeleopVector3(x=0.1, y=-0.2, z=0.0),
-            mode=4,
-            seq=42,
-            target="/teleop_cmd",
-        )
-    ]
+    # The socket closing zeros the target it was moving, so the accepted command is followed by a zero.
+    assert gateway.commands[0] == TeleopCommand(
+        angular=TeleopVector3(x=0.0, y=0.0, z=0.3),
+        linear=TeleopVector3(x=0.1, y=-0.2, z=0.0),
+        mode=4,
+        seq=42,
+        target="/teleop_cmd",
+    )
+    assert gateway.commands[-1].linear == TeleopVector3()
 
 
 def test_runtime_websocket_keeps_legacy_axes_alias_for_teleop_commands() -> None:
@@ -760,7 +760,9 @@ def test_runtime_websocket_rejects_rate_limited_teleop_commands() -> None:
     assert accepted["type"] == "teleop_ack"
     assert rejected["type"] == "runtime_error"
     assert rejected["detail"] == "Teleop command was rejected by runtime rate limit."
-    assert len(gateway.commands) == 1
+    # One accepted command, then the zero the disconnect publishes for it.
+    assert len(gateway.commands) == 2
+    assert gateway.commands[-1].linear == TeleopVector3()
     record = audit_log.list_records()[0]
     assert record.channel == "websocket_teleop"
     assert record.status == "rejected"
@@ -1235,7 +1237,7 @@ def test_an_app_keeps_the_teleop_target_it_declares() -> None:
         acknowledged = websocket.receive_json()
 
     assert acknowledged["type"] == "teleop_ack"
-    assert [command.target for command in gateway.commands] == ["/joystick_cartesian_command"]
+    assert {command.target for command in gateway.commands} == {"/joystick_cartesian_command"}
 
 
 def test_a_socket_that_names_no_app_keeps_the_deployment_policy() -> None:
@@ -1254,7 +1256,9 @@ def test_a_socket_that_names_no_app_keeps_the_deployment_policy() -> None:
         acknowledged = websocket.receive_json()
 
     assert acknowledged["type"] == "teleop_ack"
-    assert len(gateway.commands) == 1
+    # The accepted command, then the zero the disconnect publishes for the target it was moving.
+    assert len(gateway.commands) == 2
+    assert gateway.commands[-1].linear == TeleopVector3()
 
 
 def test_an_unknown_app_context_is_refused_and_changes_nothing() -> None:
@@ -1389,3 +1393,30 @@ def test_one_bad_frame_is_answered_rather_than_ending_the_session() -> None:
         pong = websocket.receive_json()
         assert pong["type"] == "pong"
         assert pong["session_id"] == connected["session_id"]
+
+
+def test_a_disconnect_zeros_a_moving_target_without_the_control_lease() -> None:
+    """Zeroing belongs to "this session was commanding", not to the ownership feature."""
+    gateway = RecordingTeleopGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=False),
+        InMemoryConfigurationRepository(),
+        teleop_command_gateway=gateway,
+    )
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "linear": {"x": 1.0, "y": 0.0, "z": 0.0},
+                "mode": 3,
+                "seq": 1,
+                "target": "/joystick_cartesian_command",
+            }
+        )
+        websocket.receive_json()
+
+    assert gateway.commands[-1].linear.x == 0.0

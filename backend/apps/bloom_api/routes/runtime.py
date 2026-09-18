@@ -1061,6 +1061,19 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     get_runtime_audit_log(websocket),
                 )
             else:
+                # Zeroing belongs to "this session was commanding", not to the lease feature. Without the
+                # lease a disconnect used to leave the last non-zero twist standing; cartesian_manager
+                # expires it after 0.2 s, but the legacy /teleop_cmd path has no such timeout. There is
+                # no release to wait for here, so the neutralize step runs on its own.
+                if manager.moving_teleop_commands(session):
+                    await run_runtime_thread(
+                        neutralize_runtime_session,
+                        manager,
+                        session,
+                        get_teleop_command_gateway(websocket),
+                        get_runtime_stop_controller(websocket),
+                        get_runtime_audit_log(websocket),
+                    )
                 manager.disconnect(session)
         except Exception:
             logger.exception("Runtime session %s failed to release control on disconnect.", session.id)

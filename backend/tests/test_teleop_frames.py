@@ -56,8 +56,10 @@ def test_a_known_frame_travels_to_the_gateway() -> None:
 
     assert response["type"] == "teleop_ack"
     assert response["payload"]["frame_id"] == "ft_frame"
-    [command] = gateway.commands
+    # The socket closes at the end of the with-block, which zeros the target it was moving.
+    command, zero = gateway.commands
     assert command.frame_id == "ft_frame"
+    assert (zero.frame_id, zero.linear.x) == ("ft_frame", 0.0)
 
 
 def test_an_empty_frame_means_the_configured_default() -> None:
@@ -70,8 +72,9 @@ def test_an_empty_frame_means_the_configured_default() -> None:
 
     assert response["type"] == "teleop_ack"
     assert response["payload"]["frame_id"] == "base_link"
-    [command] = gateway.commands
+    command, zero = gateway.commands
     assert command.frame_id == ""
+    assert zero.linear.x == 0.0
 
 
 def test_an_unknown_frame_is_refused_loudly() -> None:
