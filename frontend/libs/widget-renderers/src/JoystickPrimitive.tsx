@@ -311,8 +311,13 @@ function readPointerVector(
 
 export function normalizeJoystickVector(vector: JoystickVector, deadzone: number): JoystickVector {
   const rawMagnitude = Math.hypot(vector.x, vector.y);
+  // The pointer area is square, so a corner sits at magnitude √2 while the pad only ever means 1. Compare
+  // the dead zone against what the pad can express, and clamp it the way the drawing already does: read
+  // raw, a dead zone of 1 drew an inert pad whose corners still published a full-scale command.
+  const safeDeadzone = Math.max(0, Math.min(1, deadzone));
+  const magnitude = Math.min(rawMagnitude, 1);
 
-  if (rawMagnitude <= deadzone) {
+  if (magnitude <= safeDeadzone) {
     return { x: 0, y: 0 };
   }
 

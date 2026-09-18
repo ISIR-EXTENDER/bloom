@@ -5,6 +5,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { JoystickWidget } from "./control-renderers";
+import { normalizeJoystickVector } from "./JoystickPrimitive";
 
 /**
  * With `show_details` on, the joystick prints a strip of runtime facts so an
@@ -71,5 +72,26 @@ describe("the joystick runtime detail strip", () => {
 
     expect(targetSlot()).not.toBe("input");
     expect(targetSlot()).toMatch(/^\//);
+  });
+});
+
+describe("the dead zone", () => {
+  // The pointer area is square: a corner press reaches magnitude √2 while the pad only ever means 1.
+  // Compared raw, a pad drawn completely inert still published a full-scale command from its corners.
+  it("makes a pad inert at its maximum, corners included", () => {
+    expect(normalizeJoystickVector({ x: 1, y: 1 }, 1)).toEqual({ x: 0, y: 0 });
+    expect(normalizeJoystickVector({ x: 0.9, y: 0 }, 1)).toEqual({ x: 0, y: 0 });
+  });
+
+  it("clamps a dead zone authored out of range instead of trusting it", () => {
+    expect(normalizeJoystickVector({ x: 1, y: 1 }, 1.4)).toEqual({ x: 0, y: 0 });
+    expect(normalizeJoystickVector({ x: 0.5, y: 0 }, -1)).toEqual({ x: 0.5, y: 0 });
+  });
+
+  it("still passes a real push through at an ordinary dead zone", () => {
+    expect(normalizeJoystickVector({ x: 0.1, y: 0 }, 0.2)).toEqual({ x: 0, y: 0 });
+    expect(normalizeJoystickVector({ x: 0.5, y: 0 }, 0.2)).toEqual({ x: 0.5, y: 0 });
+    const corner = normalizeJoystickVector({ x: 1, y: 1 }, 0.2);
+    expect(Math.hypot(corner.x, corner.y)).toBeCloseTo(1, 5);
   });
 });
