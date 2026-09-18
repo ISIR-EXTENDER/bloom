@@ -115,11 +115,16 @@
 }
 
 .bloom-widget-readout {
-  flex: 0 0 auto;
+  /* The widget's own title wins the row. The note beside it -- a topic, a frame, an age -- gives up
+     width and truncates visibly rather than squeezing the title to nothing. */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   color: var(--bloom-muted);
   font-family: var(--bloom-font-mono);
   font-size: 14px;
-  white-space: pre;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bloom-widget-topic {

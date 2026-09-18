@@ -851,9 +851,9 @@ describe("widget renderer registry", () => {
       </div>,
     );
 
-    // With no message yet the note still names the frame the next command will carry, and says so.
-    expect(screen.getByText(/base_link/)).toBeVisible();
-    expect(screen.getByText(/nothing sent/)).toBeVisible();
+    // With no message yet the note names the frame the next command will carry.
+    expect(screen.getByText("base_link")).toBeVisible();
+    expect(screen.queryByText("nothing sent")).toBeNull();
     expect(document.querySelector(".bloom-topic-echo")?.getAttribute("data-empty")).toBe("true");
   });
 
