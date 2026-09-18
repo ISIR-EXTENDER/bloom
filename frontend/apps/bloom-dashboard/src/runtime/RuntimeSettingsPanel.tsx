@@ -1,5 +1,5 @@
 import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
-import { localizeOperatorText } from "@bloom/widgets";
+import { localizeOperatorText, PROFILE_TARGET_PX } from "@bloom/widgets";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -31,13 +31,6 @@ const PUSH_PRESETS: Record<PushMode, UserProfile["motor_accessibility_preset"]> 
   drag: "default",
   latch: "latch",
   step: "step",
-};
-
-const TARGET_PX: Record<ResolvedRuntimeProfile["displayPreset"], number> = {
-  compact: 40,
-  comfort: 56,
-  default: 48,
-  "high-visibility": 64,
 };
 
 /**
@@ -269,7 +262,11 @@ export function RuntimeSettingsPanel({
             </button>
             <p aria-live="polite">{tryCount > 0 ? strings.settings.tryPressed(tryCount) : strings.settings.tryIdle}</p>
             <output className="runtime-settings-key">
-              {strings.settings.tryReadout(TARGET_PX[profile.displayPreset], profile.fontScale.toFixed(2), timing)}
+              {strings.settings.tryReadout(
+                PROFILE_TARGET_PX[profile.displayPreset],
+                profile.fontScale.toFixed(2),
+                timing,
+              )}
             </output>
             {scanning.index >= 0 ? (
               <>

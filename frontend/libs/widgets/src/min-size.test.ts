@@ -8,9 +8,11 @@ import {
   findSizeShortfall,
   INTERACTIVE_WIDGET_KINDS,
   minSizeFor,
+  PROFILE_TARGET_PX,
   type PrimaryTargetLayout,
   type PrimaryTargetSettings,
   primaryTargetFor,
+  TOUCH_FLOOR_PX,
   WIDGET_MIN_SIZE,
 } from "./min-size";
 import { BENCH_RAIL, padGeometry } from "./pad-geometry";
@@ -125,6 +127,20 @@ describe("the primary target contract", () => {
     const limit = primaryTargetFor("slider", {}, { height: 120, width: 338 });
     expect(limit).toBe(56);
     expect(Math.floor((limit ?? 0) * 0.8)).toBe(44);
+  });
+
+  it("promises the hand one table, wherever the promise is read", () => {
+    expect(PROFILE_TARGET_PX).toEqual({ compact: 40, comfort: 56, default: 48, "high-visibility": 64 });
+    expect(Math.min(...Object.values(PROFILE_TARGET_PX))).toBeGreaterThanOrEqual(TOUCH_FLOOR_PX - 4);
+  });
+
+  // A toggle is a fixed 56 and a command button caps there, so a role claiming more than 56 cannot be met by
+  // those two kinds at any size. The sweep records it per app; this holds the ceiling itself.
+  it("cannot meet a claim above the 56 px ceiling those two kinds share", () => {
+    const roomy = { height: 400, width: 400 };
+    expect(primaryTargetFor("toggle", {}, roomy)).toBe(56);
+    expect(primaryTargetFor("command-button", {}, roomy)).toBe(56);
+    expect(PROFILE_TARGET_PX["high-visibility"]).toBeGreaterThan(56);
   });
 });
 

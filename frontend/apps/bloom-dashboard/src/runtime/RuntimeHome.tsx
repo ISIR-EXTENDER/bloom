@@ -1,4 +1,5 @@
 import type { ApplicationConfig, RuntimeLanguage, UserProfile } from "@bloom/api-client";
+import { PROFILE_TARGET_PX } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
@@ -32,13 +33,6 @@ export type LibraryApp = {
 };
 
 const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
-const TARGET_PX: Record<UserProfile["display_preset"], number> = {
-  compact: 40,
-  comfort: 56,
-  default: 48,
-  "high-visibility": 64,
-};
-
 /** One entry per app; a `<id>-desktop` sibling in the same configuration adds the desktop class (device-classes.md). */
 export function collectLibraryApps(configurations: readonly LoadedConfiguration[]): LibraryApp[] {
   return configurations.flatMap((configuration) => {
@@ -83,7 +77,7 @@ export function describeProfile(profile: UserProfile, strings: RuntimeStrings): 
     scan ? words.scan : bench ? words.debugging : words.accessible,
     scan
       ? words.period(((profile.scan_period_ms ?? 1400) / 1000).toFixed(1))
-      : words.target(TARGET_PX[profile.display_preset]),
+      : words.target(PROFILE_TARGET_PX[profile.display_preset]),
     bench ? words.continuousLimits : profile.dwell_enabled || scan ? words.dwell : words.plainLanguage,
   ];
   return parts.join(" · ");

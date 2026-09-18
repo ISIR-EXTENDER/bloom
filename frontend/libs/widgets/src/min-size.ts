@@ -86,6 +86,23 @@ const PRIMARY_TARGET: Readonly<
 /** The kinds the touch floor and the overlap rule apply to: the ones that declare a target. */
 export const INTERACTIVE_WIDGET_KINDS: ReadonlySet<string> = new Set(Object.keys(PRIMARY_TARGET));
 
+/** Nothing an operator acts on may land below this much glass, after fit-scaling (decision 0132). */
+export const TOUCH_FLOOR_PX = 44;
+
+export type DisplayPreset = "compact" | "comfort" | "default" | "high-visibility";
+
+/**
+ * What a role's tagline promises the hand, in canvas px (design-system §04b). It belongs beside
+ * `primaryTargetFor`, which is what a widget actually delivers: the library, Settings and the sweep all
+ * compare the two, and three copies of the table could drift apart without a test noticing.
+ */
+export const PROFILE_TARGET_PX: Readonly<Record<DisplayPreset, number>> = {
+  compact: 40,
+  comfort: 56,
+  default: 48,
+  "high-visibility": 64,
+};
+
 /** The target for a widget as configured, or null for a kind that is not something to hit. */
 export function primaryTargetFor(
   kind: string,

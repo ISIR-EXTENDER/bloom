@@ -2,7 +2,12 @@
 
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
-import { INTERACTIVE_WIDGET_KINDS, primaryTargetFor } from "../frontend/libs/widgets/src/min-size.ts";
+import {
+  INTERACTIVE_WIDGET_KINDS,
+  PROFILE_TARGET_PX,
+  primaryTargetFor,
+  TOUCH_FLOOR_PX,
+} from "../frontend/libs/widgets/src/min-size.ts";
 import {
   assertNoHorizontalOverflow,
   installConfigurationMocks,
@@ -30,12 +35,6 @@ const TIGHTEST_VIEWPORT = { desktop: "desktop-1440x900", tablet: "tablet-1024x60
 
 /** Only the 1920×1080 presets are desktop; `hd` and `wide-tablet` are tablet (builder-geometry.ts). */
 const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
-
-/** What a role's tagline promises the hand, in canvas px (RuntimeHome.tsx). */
-const TARGET_PX = { compact: 40, comfort: 56, default: 48, "high-visibility": 64 };
-
-/** Nothing an operator acts on may land below this much glass (widget-min-size.md). */
-const TOUCH_FLOOR_PX = 44;
 
 /**
  * Debt this sweep found and named rather than guessed a fix for. Each entry is one decision that has
@@ -476,7 +475,7 @@ function screenCanCommandAnArm(visit) {
  * is what the hand actually meets once the canvas is fit to this panel.
  */
 function checkTargetsMeetTheFloor(visit, measured) {
-  const claimed = TARGET_PX[visit.role.displayPreset] ?? TARGET_PX.default;
+  const claimed = PROFILE_TARGET_PX[visit.role.displayPreset] ?? PROFILE_TARGET_PX.default;
   const problems = [];
 
   for (const widget of visit.screen.widgets) {

@@ -7,12 +7,18 @@ import type {
   WidgetLayout,
 } from "@bloom/api-client";
 import { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widget-renderers";
-import { findSizeShortfall, primaryTargetFor, resolveCanvasPresetSize, type WidgetSizeShortfall } from "@bloom/widgets";
+import {
+  findSizeShortfall,
+  primaryTargetFor,
+  resolveCanvasPresetSize,
+  TOUCH_FLOOR_PX,
+  type WidgetSizeShortfall,
+} from "@bloom/widgets";
 
 import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
 
 export const KIOSK_BAR_HEIGHT = 44;
-export const TOUCH_FLOOR_PX = 44;
+export { TOUCH_FLOOR_PX };
 
 export type DeviceClass = "desktop" | "tablet";
 
