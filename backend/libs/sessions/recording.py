@@ -77,6 +77,9 @@ class RosbagRuntimeRecordingGateway:
     def start(self, request: RuntimeRecordingRequest) -> RuntimeRecordingReceipt:
         self._ensure_executable_available()
         recording_id = build_recording_id(request)
+        if recording_id in self._recordings:
+            # Never overwrite a tracked process: the one it replaced could no longer be stopped.
+            raise RuntimeError(f"A recording is already tracked as {recording_id}.")
         output_path = self._base_directory / request.output_folder / recording_id
         output_path.parent.mkdir(parents=True, exist_ok=True)
         command = [self._executable, "bag", "record", "-o", str(output_path), *request.topics]
@@ -129,9 +132,13 @@ class RosbagRuntimeRecordingGateway:
 
 
 def build_recording_id(request: RuntimeRecordingRequest) -> str:
+    # The label describes the run; it never identifies it. Two starts in the same second under one label
+    # used to share an id, and the second replaced the first in the register: that process kept writing,
+    # to the same path, and nothing could stop it again.
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    suffix = normalize_recording_label(request.label) or uuid4().hex[:8]
-    return f"rosbag-{timestamp}-{suffix}"
+    label = normalize_recording_label(request.label)
+    unique = uuid4().hex[:8]
+    return f"rosbag-{timestamp}-{label}-{unique}" if label else f"rosbag-{timestamp}-{unique}"
 
 
 def normalize_recording_label(label: str) -> str:

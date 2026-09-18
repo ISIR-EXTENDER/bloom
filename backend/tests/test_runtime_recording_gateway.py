@@ -59,7 +59,8 @@ def test_rosbag_recording_gateway_starts_and_stops_rosbag_process(
 
     assert receipt.status == "recording"
     assert receipt.recording_id.startswith("rosbag-")
-    assert receipt.recording_id.endswith("-sandbox-debug")
+    # The label describes the run and the suffix identifies it, so two runs can share a label.
+    assert "-sandbox-debug-" in receipt.recording_id
     assert receipt.output_folder.startswith(str(tmp_path / "data" / "recordings" / "rosbag-"))
     assert processes[0].command == [
         "ros2",
@@ -87,6 +88,17 @@ def test_rosbag_recording_gateway_reports_missing_ros2_executable(monkeypatch: p
 def test_recording_labels_are_safe_for_output_paths() -> None:
     assert normalize_recording_label(" Sandbox Debug / Robot #1 ") == "sandbox-debug-robot-1"
     assert normalize_recording_label("!!!") == ""
-    assert build_recording_id(RuntimeRecordingRequest(label="A" * 80, output_folder="data", topics=("/a",))).endswith(
-        f"-{'a' * 40}"
+    assert f"-{'a' * 40}-" in build_recording_id(
+        RuntimeRecordingRequest(label="A" * 80, output_folder="data", topics=("/a",))
     )
+
+
+def test_two_recordings_with_one_label_in_the_same_second_stay_separate():
+    """The second used to take the first's id, and the first could then never be stopped."""
+    request = RuntimeRecordingRequest(topics=("/joint_states",), output_folder="data/recordings", label="run")
+
+    first = build_recording_id(request)
+    second = build_recording_id(request)
+
+    assert first != second
+    assert first.startswith("rosbag-") and "run" in first
