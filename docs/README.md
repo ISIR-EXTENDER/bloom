@@ -50,7 +50,8 @@ One page per topic. These describe what Bloom does today.
   reproduces for both robots, and
   [the Explorer tutorial media record](validation/2026-09-16-explorer-tutorial-media.md) behind the README's captures,
   and [the release hardening record](validation/2026-09-18-release-hardening.md) for what the reviews before 0.2.0
-  found, fixed and left open.
+  found, fixed and left open, and [the defect audit](validation/2026-09-18-defect-audit.md) for what four
+  concurrency, storage, runtime and widget passes found after it.
 - [`docs/design/reviews/`](design/reviews/) — the 2026-09-17 design reviews:
   [the Drive review](design/reviews/2026-09-17-drive.md) that produced the two Drive layouts,
   [the implementation review](design/reviews/2026-09-17-implementation.md) of the handoff, and

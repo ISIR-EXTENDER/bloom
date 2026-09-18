@@ -11,6 +11,112 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Fixed
+
+Found by an audit of the seams the test suites do not reach: concurrency and
+lifecycle in the backend, malformed input in the widget layer, and the state
+machines behind assistive input. Each fix carries the test that reproduces it.
+
+**Motion and safety**
+
+- **A refused teleop command no longer rides on the ones that follow.** The
+  composed twist was built before the command was judged, so a stick bound to a
+  target the deployment forbids left its last push in the sum. The operator let
+  go of a control that appeared inert, and the next command from an allowed
+  stick carried an axis nobody was touching.
+- **The dead zone is measured against what the pad can express.** The pointer
+  area is square, so a corner press reaches magnitude 1.41 while the pad means
+  1. A pad authored at the contract's own maximum drew a dead zone over the
+  whole ring and still published full scale from any corner.
+- **A disconnect zeros a moving target whether or not the session held the
+  control lease.** Neutralization was gated on the ownership feature rather than
+  on whether the session was commanding.
+- **A non-finite axis clamps to zero.** `max(-1.0, min(1.0, nan))` is 1.0, so
+  the clamp that bounds an axis would have turned a NaN into full scale.
+
+**Assistive input**
+
+- **The scan highlight leaves a control that leaves the scan set.** A command
+  button disables itself while its command is in flight, and kept the highlight:
+  two controls lit at once, and the switch fired the one the operator was not
+  looking at.
+- **A scanned control is re-checked at the press**, as the dwell path already
+  does, rather than trusting what the last cycle admitted.
+- **A gamepad resting at a suspend drives on its very next push.** Every
+  external source was asked for a neutral it did not owe, so the push after any
+  STOP, settings close or screen switch was discarded whole.
+
+**What the screen claims**
+
+- **An authored value is no longer drawn as a reading.** Gauges and plots fall
+  back to authored numbers, and three gauges with no topic at all read as the
+  robot's battery, task progress and confidence to a participant. The
+  placeholder stays for the builder, dimmed and under "no source".
+- **A pose cannot be captured from a stream that stopped.** Capture promises the
+  robot's current pose and was enabled on a snapshot of any age. The joint table
+  marks a stale stream rather than passing a frozen pose off as the arm's
+  present one.
+- **An out-of-range sample is railed at the edge of the plot** instead of drawn
+  outside the viewBox and clipped away, which hid exactly the excursion an
+  operator needs to see.
+- **The echo shows its age once the sample is old enough to mislead.** Every
+  TwistStamped carries a frame, so the frame alone had the row and a command
+  sent ten minutes ago read like the one just sent.
+- **An armed button with no timeout says it stays armed**, rather than promising
+  a countdown it does not run.
+- **The builder's settings editor measures the target it claims to check**,
+  instead of the card around it, which could never fail for a widget that met
+  its minimum size.
+
+**Holding together under load and error**
+
+- **A socket's ROS subscriptions are closed even when the lease moved on.** The
+  handover raises `ValueError` when another operator has already claimed, which
+  aborted the rest of the teardown and leaked every subscription for the life of
+  the process.
+- **A bulk topic cannot stall the telemetry executor.** Converting one 480p
+  image costs about three quarters of a second on the single thread every
+  subscription shares, so a camera topic on the telemetry path stopped
+  `/ee_pose` and `/joint_states` updating while the arm was still moving.
+- **A malformed frame is answered rather than ending the session**, using the
+  reply already written for it.
+- **One widget's failure stays inside that widget.** The only boundary was the
+  view, so a renderer that threw replaced the whole operating surface, STOP
+  included.
+- **A plot survives its own sample count**, folding rather than spreading the
+  array into `Math.min`.
+- **A slider keeps a usable span** when authored with equal or reversed bounds.
+
+**Storage and configuration**
+
+- **A failed `config publish` no longer discards the operator's work.** The
+  store copy was stamped as matching the shipped file before that file was
+  written, so a publish that could not write left the copy claiming to be
+  unedited, and the next API start replaced it.
+- **Every rosbag recording gets its own id.** Two starts in the same second
+  under one label collided, and the first `ros2 bag record` process became
+  untrackable and could never be stopped.
+- **An already-migrated store is confirmed with a read.** Theme-asset requests
+  re-ran the migration routine, which takes an exclusive write transaction, so
+  an upload blocked behind any other writer for the full busy timeout.
+- **A theme asset is tracked per configuration**, not per image, so the same
+  picture in two apps no longer leaves one file unaccounted for.
+- **An id the store refuses reads as missing** rather than as a server fault.
+
+### Changed
+
+- Reduced motion is honored where Bloom actually animates. The runtime switched
+  off transitions on two controls that declare none, while the skip link and two
+  builder surfaces ignored the preference entirely.
+- Six words the Robot feedback and Command sources screens show are translated;
+  they reached a Spanish or French operator in English. A test now walks every
+  display string the operator apps ship.
+- One table defines what a target promises the hand, beside the function that
+  says what a widget delivers. The preset table and the touch floor each had
+  several copies.
+- The builder reports a screen's device class instead of drawing two buttons
+  that never did anything.
+
 ## [0.2.0] - 2026-09-18
 
 ### Added
