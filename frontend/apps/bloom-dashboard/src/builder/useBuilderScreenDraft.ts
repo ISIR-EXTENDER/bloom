@@ -1,6 +1,6 @@
 import type { ScreenConfig, WidgetLayout } from "@bloom/api-client";
 import { updateWidgetLayout } from "@bloom/widgets";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type BuilderScreenDraftHistory = {
   future: ScreenConfig[];
@@ -24,8 +24,22 @@ export type BuilderScreenDraft = {
 export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreenDraft {
   const [history, setHistory] = useState<BuilderScreenDraftHistory>(() => createInitialHistory(sourceScreen));
 
+  const editingScreenId = useRef(sourceScreen.id);
+
   useEffect(() => {
-    setHistory(createInitialHistory(sourceScreen));
+    setHistory((currentHistory) => {
+      // A different screen is a different editing session.
+      if (editingScreenId.current !== sourceScreen.id) {
+        editingScreenId.current = sourceScreen.id;
+        return createInitialHistory(sourceScreen);
+      }
+      // The same screen arriving as a new object is what a resolved save looks like: the store replaces
+      // the configuration and this effect runs again. Adopting it threw away anything authored while
+      // the request was in flight, and cleared the history, so it could not even be undone.
+      return areScreensEqual(currentHistory.present, sourceScreen)
+        ? createInitialHistory(sourceScreen)
+        : currentHistory;
+    });
   }, [sourceScreen]);
 
   const previewWidgetLayout = (widgetId: string, layout: WidgetLayout) => {

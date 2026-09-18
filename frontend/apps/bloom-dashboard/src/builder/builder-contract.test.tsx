@@ -91,6 +91,22 @@ describe("the builder canvas", () => {
       expect(screen.getByTestId("can-undo").textContent).toBe("false");
     },
   );
+  it("stops following the pointer when the browser cancels the gesture", () => {
+    render(<DraftCanvas source={bench} />);
+    const handle = screen.getByRole("button", { name: "Select and move Max linear speed widget" });
+    const frameOf = () => handle.closest("article") as HTMLElement;
+    const start = frameOf().style.top;
+
+    fireEvent.pointerDown(handle, { button: 0, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 48 });
+    fireEvent.pointerCancel(window);
+    // A scroll on the tablet ends the drag here; nothing is being held any more.
+    fireEvent.pointerMove(window, { clientX: 0, clientY: 96 });
+
+    expect(frameOf().style.top).toBe(start);
+    expect(document.body.style.cursor).not.toBe("grabbing");
+  });
+
   it("moves and resizes the selection from the keyboard", () => {
     render(<DraftCanvas source={bench} />);
     const frameOf = () =>
@@ -169,6 +185,44 @@ describe("the builder workspace", () => {
     const current = screen.getByText("Tablet 1280×720");
     expect(current.getAttribute("aria-current")).toBe("true");
     expect(screen.getByText("Desktop 1920×1080").getAttribute("aria-current")).toBeNull();
+  });
+});
+
+describe("a draft while a save is in flight", () => {
+  // The store replaces the configuration object when a save resolves, which ran the draft's reset
+  // effect. Anything authored during the request was discarded, and the history went with it, so the
+  // author could not even undo their way back to it.
+  it("keeps an edit the author made while the request was out", () => {
+    function Harness({ source }: { source: ScreenConfig }) {
+      const draft = useBuilderScreenDraft(source);
+      return (
+        <div>
+          <span data-testid="top">{draft.draftScreen.widgets[0]?.layout.y}</span>
+          <span data-testid="dirty">{String(draft.isDirty)}</span>
+          <button
+            onClick={() =>
+              draft.commitWidgetLayout(bench.widgets[0]!.id, bench.widgets[0]!.layout, {
+                ...bench.widgets[0]!.layout,
+                y: 168,
+              })
+            }
+            type="button"
+          >
+            nudge
+          </button>
+        </div>
+      );
+    }
+
+    const { rerender } = render(<Harness source={bench} />);
+    fireEvent.click(screen.getByRole("button", { name: "nudge" }));
+    expect(screen.getByTestId("top").textContent).toBe("168");
+
+    // The save resolves: same screen, new object, still carrying the pre-edit geometry.
+    rerender(<Harness source={structuredClone(bench)} />);
+
+    expect(screen.getByTestId("top").textContent).toBe("168");
+    expect(screen.getByTestId("dirty").textContent).toBe("true");
   });
 });
 

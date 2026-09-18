@@ -73,6 +73,7 @@ export function BuilderCanvasItem({
     const cleanup = () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerCancel);
       document.body.style.cursor = previousCursor;
       document.body.style.userSelect = previousUserSelect;
     };
@@ -84,8 +85,18 @@ export function BuilderCanvasItem({
       }
     };
 
+    // The browser claiming the gesture -- a scroll on the tablet this is authored on -- ends the drag
+    // without a pointerup. Left listening, the widget kept following a pointer nobody was holding.
+    const handlePointerCancel = () => {
+      cleanup();
+      if (finalLayout !== startLayout) {
+        onPreviewWidgetLayout(widget.id, startLayout);
+      }
+    };
+
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerCancel);
   };
 
   // The canvas is otherwise pointer-only: arrows nudge, shift takes the coarse step.
