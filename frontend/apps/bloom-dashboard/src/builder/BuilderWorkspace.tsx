@@ -203,24 +203,12 @@ export function BuilderWorkspace({
               Redo
             </button>
           </div>
-          <fieldset className="builder-device-switch">
-            <legend className="sr-only">Device class</legend>
-            {/* Tablet and desktop are separate apps: the class follows the screen, it is not a rescale. */}
-            <button
-              aria-pressed={panel.deviceClass === "tablet"}
-              disabled={panel.deviceClass !== "tablet"}
-              type="button"
-            >
-              Tablet 1280×720
-            </button>
-            <button
-              aria-pressed={panel.deviceClass === "desktop"}
-              disabled={panel.deviceClass !== "desktop"}
-              type="button"
-            >
-              Desktop 1920×1080
-            </button>
-          </fieldset>
+          {/* Tablet and desktop are separate apps: the class follows the screen, so this reports it, never sets it. */}
+          <dl aria-label="Device class" className="builder-device-switch">
+            <dt className="sr-only">Device class</dt>
+            <dd aria-current={panel.deviceClass === "tablet" ? "true" : undefined}>Tablet 1280×720</dd>
+            <dd aria-current={panel.deviceClass === "desktop" ? "true" : undefined}>Desktop 1920×1080</dd>
+          </dl>
           <dl className="builder-stage-meta">
             <div>
               <dt>Canvas</dt>

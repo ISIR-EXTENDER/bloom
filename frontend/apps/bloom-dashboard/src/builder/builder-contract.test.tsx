@@ -161,6 +161,15 @@ describe("the builder workspace", () => {
     const copy = container.querySelector<HTMLElement>('[aria-label="Max angular speed copy slider widget"]');
     expect([copy?.style.left, copy?.style.top]).toEqual(["0px", "326px"]);
   });
+
+  it("reports the screen's device class without offering to change it", () => {
+    renderWorkspace(bench);
+
+    expect(screen.queryByRole("button", { name: /Tablet 1280×720|Desktop 1920×1080/ })).toBeNull();
+    const current = screen.getByText("Tablet 1280×720");
+    expect(current.getAttribute("aria-current")).toBe("true");
+    expect(screen.getByText("Desktop 1920×1080").getAttribute("aria-current")).toBeNull();
+  });
 });
 
 function renderWorkspace(source: ScreenConfig) {

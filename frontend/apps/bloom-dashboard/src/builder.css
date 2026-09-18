@@ -1605,26 +1605,24 @@
   border-radius: 14px;
 }
 
-.builder-device-switch button {
+.builder-device-switch dd {
   min-height: 40px;
+  margin: 0;
   padding: 0 16px;
-  border: 1px solid var(--bloom-border);
+  border: 1px dashed var(--bloom-border);
   border-radius: 10px;
   background: var(--bloom-surface-container);
-  color: var(--bloom-ink);
+  color: var(--bloom-ink-soft);
   font: inherit;
   font-weight: 700;
+  line-height: 40px;
 }
 
-.builder-device-switch button[aria-pressed="true"] {
+.builder-device-switch dd[aria-current="true"] {
+  border-style: solid;
   border-color: var(--bloom-primary);
   background: var(--bloom-primary);
   color: var(--bloom-on-primary);
-}
-
-.builder-device-switch button:disabled:not([aria-pressed="true"]) {
-  border-style: dashed;
-  color: var(--bloom-ink-soft);
 }
 
 .builder-undersized-count {
