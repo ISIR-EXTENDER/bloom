@@ -11,6 +11,7 @@ Three walkthroughs, in the order a newcomer needs them.
 | [Getting started](tutorials/getting-started.md) | From a clone to a simulated Explorer or Kinova arm moving under your hand. Part one needs no ROS. |
 | [Build your first app](tutorials/build-your-first-app.md) | Create an app, add a screen, place a joystick and a command button, allow their topics, pass the review checklist, open it in Runtime. |
 | [Operate safely](tutorials/operate-safely.md) | The operator's page: roles, the kiosk bar, STOP and resume, maintenance, settings, and what to check before touching a control. |
+| [Bench card](bench-card.md) | One page to work from during a session with a real arm: bring-up, the frame check, the Pivot sign, what only hardware can prove, and what is known-absent. |
 
 The [project README](../README.md) covers installation, the repository shape, the shared applications, and the commands
 CI runs.
