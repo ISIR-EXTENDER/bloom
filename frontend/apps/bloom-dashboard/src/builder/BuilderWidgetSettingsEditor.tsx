@@ -3,6 +3,7 @@ import {
   deriveSliderStep,
   findInertSetting,
   getWidgetSettingsContract,
+  INTERACTIVE_WIDGET_KINDS,
   normalizeWidgetSettings,
   resolveCanvasFitScale,
   resolveCanvasPresetSize,
@@ -12,6 +13,7 @@ import {
 } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
+import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderWidgetSettingsEditorProps = {
   canvas?: CanvasSettings;
@@ -22,9 +24,7 @@ type BuilderWidgetSettingsEditorProps = {
 
 // The HMTECH operator panel; touch targets live or die at this geometry.
 const OPERATOR_PANEL = { width: 1024, height: 600 };
-const TOUCH_FLOOR_PX = 44;
 const FIT_OVERFLOW_GUARD = 0.99;
-const TOUCH_CHECK_KINDS = new Set(["button", "command-button", "gesture-pad", "joystick", "slider", "toggle"]);
 
 function WidgetGlassSizeSummary({ canvas, widget }: { canvas?: CanvasSettings; widget: WidgetConfig }) {
   if (!canvas) {
@@ -35,7 +35,12 @@ function WidgetGlassSizeSummary({ canvas, widget }: { canvas?: CanvasSettings; w
     canvas.runtime_mode === "fit" ? resolveCanvasFitScale(canvas, artboard, OPERATOR_PANEL) * FIT_OVERFLOW_GUARD : 1;
   const glassWidth = Math.round(widget.layout.width * scale);
   const glassHeight = Math.round(widget.layout.height * scale);
-  const belowFloor = TOUCH_CHECK_KINDS.has(widget.kind) && Math.min(glassWidth, glassHeight) < TOUCH_FLOOR_PX;
+  // Measure what the hand meets as well as the card around it. The card alone could never fail for a
+  // widget that met its minimum size, so it reassured an author while the inspector was warning; the
+  // target alone misses a card too small to hold it, because some kinds declare a fixed target.
+  const interactive = INTERACTIVE_WIDGET_KINDS.has(widget.kind);
+  const target = interactive ? Math.min(glassPx(widget, scale), glassWidth, glassHeight) : null;
+  const belowFloor = target !== null && target < TOUCH_FLOOR_PX;
 
   return (
     <div className="builder-glass-size" data-below-floor={belowFloor ? "true" : "false"}>
@@ -45,8 +50,8 @@ function WidgetGlassSizeSummary({ canvas, widget }: { canvas?: CanvasSettings; w
       </p>
       {belowFloor ? (
         <p className="builder-glass-size-warning" role="alert">
-          Below the {TOUCH_FLOOR_PX}px touch floor (≈9.6 mm). The size tokens are honest; the fit scale discounts them —
-          make the control larger instead of trusting the authored size.
+          Its target is {target} px, below the {TOUCH_FLOOR_PX}px touch floor (≈9.6 mm). The size tokens are honest; the
+          fit scale discounts them — make the control larger instead of trusting the authored size.
         </p>
       ) : null}
     </div>
