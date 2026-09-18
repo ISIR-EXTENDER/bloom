@@ -3,6 +3,7 @@ import { type CSSProperties, useState } from "react";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
+import { isSampleStale, useNow } from "./use-now";
 
 const DEFAULT_PLOT_VALUES = [0.18, 0.34, 0.28, 0.52, 0.47, 0.68, 0.61, 0.79, 0.73, 0.88];
 const EVENT_LOG_SEVERITIES = ["error", "info", "success", "warning"] as const;
@@ -98,8 +99,12 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
   const max = getNumberSetting(descriptor.widget.settings, "max", 1);
   // An authored value is a placeholder for the builder, never a reading. Drawn the same as a live one it
   // becomes a claim about the robot: a gauge with no topic at all read "Battery 76 %" to a participant.
-  const live = data?.type === "gauge";
-  const value = clamp(live ? data.value : getNumberSetting(descriptor.widget.settings, "value", min), min, max);
+  const hasSample = data?.type === "gauge";
+  // A sample that stopped arriving is not a reading either: the number is where the value was.
+  const stale = isSampleStale(hasSample ? data.receivedAt : undefined, useNow(1000));
+  const live = hasSample && !stale;
+  // A stale sample is still the robot's last word; it is marked, not replaced by the placeholder.
+  const value = clamp(hasSample ? data.value : getNumberSetting(descriptor.widget.settings, "value", min), min, max);
   const unit = getStringSetting(descriptor.widget.settings, "unit", "");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const ratio = max > min ? (value - min) / (max - min) : 0;
@@ -109,7 +114,7 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
     <div className="bloom-gauge-widget" data-live={live ? "true" : "false"}>
       <header className="bloom-display-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>{showDetails && live ? data.topic : unit || "Gauge"}</span>
+        <span>{showDetails && hasSample ? data.topic : unit || "Gauge"}</span>
       </header>
       <meter
         aria-label={`${descriptor.widget.title}: ${formatNumber(value)}${unit ? ` ${unit}` : ""}`}
