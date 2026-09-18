@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { PlotWidget } from "./display-renderers";
+import { createSparklinePath } from "./plot-rendering";
 import type { WidgetRendererProps } from "./types";
 
 /**
@@ -77,5 +78,17 @@ describe("plot freeze", () => {
 
     expect(screen.getByRole("status").textContent).toContain("latest");
     expect(screen.getByRole("status").textContent).toContain("9");
+  });
+});
+
+describe("a sample outside the configured bounds", () => {
+  // Drawn unclamped it lands outside the viewBox and is clipped away, so an overspeed excursion vanishes
+  // from the trace while the readout still shows it. The bars variant already railed it at the edge.
+  it("is railed at the edge of the plot rather than clipped out of it", () => {
+    const path = createSparklinePath([0.2, 0.5, 2.5, 0.4], 220, 82, { max: 1, min: 0 });
+
+    const ys = [...path.matchAll(/[ML][\d.]+ (-?[\d.]+)/g)].map((match) => Number(match[1]));
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...ys)).toBeLessThanOrEqual(82);
   });
 });

@@ -28,7 +28,11 @@ export function createSparklinePath(
   return values
     .map((value, index) => {
       const x = values.length === 1 ? width : (index / (values.length - 1)) * width;
-      const y = height - ((value - bounds.min) / range) * height;
+      // Railed at the edge, the way the bars already are. Drawn unclamped, a sample outside the
+      // configured bounds lands outside the viewBox and is clipped away entirely -- and a reading that
+      // left its range is the one an operator most needs to see.
+      const normalized = Math.max(0, Math.min(1, (value - bounds.min) / range));
+      const y = height - normalized * height;
       return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
