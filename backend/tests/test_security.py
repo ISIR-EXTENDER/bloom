@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from starlette.websockets import WebSocketDisconnect
 
+from apps.bloom_api.body_limit import MAX_REQUEST_BODY_BYTES
 from apps.bloom_api.main import create_app
 from apps.bloom_api.security import MAX_RATE_LIMIT_CLIENTS, _allow_http_request, require_runtime_owner
 from apps.bloom_api.settings import Settings, get_settings
@@ -465,3 +466,17 @@ def test_settings_can_be_loaded_from_environment(monkeypatch) -> None:
     assert settings.cors_allowed_origins == ("http://tablet.local:5173", "http://desktop.local:5173")
     assert settings.environment == "staging"
     assert settings.http_rate_limit_per_minute == 120
+
+
+def test_an_oversized_body_is_refused_before_it_is_read() -> None:
+    """Starlette buffers the body and FastAPI checks the key afterwards, so the cap has to come first."""
+    settings = Settings(environment="test", auth_enabled=True, admin_api_key="a" * 32)
+    client = TestClient(create_app(settings, InMemoryConfigurationRepository()))
+
+    response = client.post(
+        "/api/v1/runtime/camera-frames",
+        content=b"x" * (MAX_REQUEST_BODY_BYTES + 1),
+        headers={"Content-Type": "application/json"},
+    )
+
+    assert response.status_code == 413

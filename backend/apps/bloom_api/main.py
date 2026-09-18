@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from apps.bloom_api.body_limit import RequestBodyLimitMiddleware
 from apps.bloom_api.routes import api_router
 from apps.bloom_api.security import (
     install_api_key_log_redaction,
@@ -102,11 +103,18 @@ def create_app(
     app.state.http_rate_limit_buckets = {}
     install_cors(app, app_settings)
     install_http_rate_limit(app)
+    # Added last so it wraps the others: the body is refused before anything reads or routes it.
+    install_body_limit(app)
     install_security_headers(app)
     install_api_key_log_redaction()
     app.include_router(api_router, prefix=app_settings.api_prefix)
 
     return app
+
+
+def install_body_limit(app: FastAPI) -> None:
+    """Outermost, so an oversized body is refused before routing, auth or buffering."""
+    app.add_middleware(RequestBodyLimitMiddleware)
 
 
 def install_cors(app: FastAPI, settings: Settings) -> None:
