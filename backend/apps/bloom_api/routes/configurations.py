@@ -298,7 +298,16 @@ def upload_theme_asset(
     asset_path = asset_dir / asset_filename
     asset_path.write_bytes(content)
     asset_uri = f"{request.app.state.settings.api_prefix}/configurations/{config_id}/theme-assets/{asset_filename}"
-    register_theme_asset_if_sqlite(request, asset_digest, asset_uri, asset_filename, upload.content_type, len(content))
+    # Keyed by configuration as well as content: the same picture uploaded to two apps has two uris and
+    # two files, and a ledger keyed on content alone kept one row and lost track of the other file.
+    register_theme_asset_if_sqlite(
+        request,
+        f"{config_id}:{asset_digest}",
+        asset_uri,
+        asset_filename,
+        upload.content_type,
+        len(content),
+    )
 
     return ThemeAssetUploadResponse(
         uri=asset_uri,

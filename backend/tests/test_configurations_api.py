@@ -512,3 +512,34 @@ def test_an_id_the_store_refuses_reads_as_missing_rather_than_broken(client: Tes
     response = client.get("/api/v1/configurations/%2e%2e")
 
     assert response.status_code == 404
+
+
+def test_the_same_image_in_two_configurations_keeps_a_row_each(
+    tmp_path, sample_configuration_bundle: ConfigurationBundle
+) -> None:
+    """Keyed on content alone, the second upload took the first's row and its file went untracked."""
+    database_path = tmp_path / "bloom.db"
+    settings = Settings(
+        environment="test",
+        configuration_database_path=database_path,
+        configuration_storage="sqlite",
+        theme_asset_dir=tmp_path / "theme-assets",
+    )
+    client = TestClient(create_app(settings))
+    upload = {
+        "filename": "Mood Board.png",
+        "content_type": "image/png",
+        "content_base64": base64.b64encode(b"fake png bytes").decode("ascii"),
+    }
+    uris = []
+    for config_id in ("sandbox", "second"):
+        client.put(
+            f"/api/v1/configurations/{config_id}", json=sample_configuration_bundle.model_dump(mode="json")
+        )
+        uris.append(client.post(f"/api/v1/configurations/{config_id}/theme-assets", json=upload).json()["uri"])
+
+    with sqlite_connection(database_path) as connection:
+        rows = connection.execute("SELECT uri FROM theme_assets ORDER BY uri").fetchall()
+
+    assert uris[0] != uris[1]
+    assert sorted(row["uri"] for row in rows) == sorted(uris)
