@@ -80,8 +80,10 @@ export function resolvePlotBounds(
     return { max: configuredMax ?? 1, min: configuredMin ?? 0 };
   }
 
-  const min = configuredMin ?? Math.min(...values);
-  const max = configuredMax ?? Math.max(...values);
+  // Spreading the array into Math.min blows the call stack somewhere past a hundred thousand samples,
+  // and maxSamples has no upper bound, so the plot took the whole view down with it.
+  const min = configuredMin ?? values.reduce((low, value) => (value < low ? value : low), values[0] as number);
+  const max = configuredMax ?? values.reduce((high, value) => (value > high ? value : high), values[0] as number);
 
   return max > min ? { max, min } : { max: min + 1, min };
 }

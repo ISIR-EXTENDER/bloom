@@ -2,9 +2,9 @@
  * @vitest-environment jsdom
  */
 import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { JoystickWidget } from "./control-renderers";
+import { JoystickWidget, SliderWidget } from "./control-renderers";
 import { normalizeJoystickVector } from "./JoystickPrimitive";
 
 /**
@@ -93,5 +93,42 @@ describe("the dead zone", () => {
     expect(normalizeJoystickVector({ x: 0.5, y: 0 }, 0.2)).toEqual({ x: 0.5, y: 0 });
     const corner = normalizeJoystickVector({ x: 1, y: 1 }, 0.2);
     expect(Math.hypot(corner.x, corner.y)).toBeCloseTo(1, 5);
+  });
+});
+
+class SliderResizeObserverMock {
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
+
+describe("a slider authored with impossible bounds", () => {
+  beforeAll(() => {
+    globalThis.ResizeObserver = SliderResizeObserverMock as never;
+  });
+
+  // Validation refuses min >= max, but the renderer falls back to the raw settings when it does, so the
+  // pair still reaches the track. Equal bounds divided by zero and left the thumb unplaceable.
+  it("keeps a usable span rather than dividing by zero", () => {
+    render(
+      <SliderWidget
+        descriptor={
+          {
+            widget: {
+              id: "speed",
+              kind: "slider",
+              title: "Speed",
+              layout: { x: 0, y: 0, width: 300, height: 120 },
+              settings: { direction: "horizontal", max: 1, min: 1, value: 1 },
+            },
+          } as never
+        }
+      />,
+    );
+
+    const slider = screen.getByRole("slider");
+    const low = Number(slider.getAttribute("aria-valuemin"));
+    const high = Number(slider.getAttribute("aria-valuemax"));
+    expect(high).toBeGreaterThan(low);
   });
 });

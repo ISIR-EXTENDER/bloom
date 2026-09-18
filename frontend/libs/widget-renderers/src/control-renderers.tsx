@@ -45,7 +45,11 @@ export function SliderWidget({
   const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
   const sliderSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
   const min = getNumberSetting(sliderSettings, "min", -1);
-  const max = getNumberSetting(sliderSettings, "max", 1);
+  // Validation refuses min >= max, but an invalid pair falls back to the raw settings above and reaches
+  // the track: equal bounds divide by zero and leave the thumb unplaceable, reversed ones publish an
+  // aria range that reads backwards. Keep a usable span whatever was authored.
+  const authoredMax = getNumberSetting(sliderSettings, "max", 1);
+  const max = authoredMax > min ? authoredMax : min + 1;
   const step = getNumberSetting(sliderSettings, "step", 0.01);
   const direction = getStringSetting(sliderSettings, "direction", "vertical");
   const returnToCenter = getBooleanSetting(sliderSettings, "returnToCenter", false);

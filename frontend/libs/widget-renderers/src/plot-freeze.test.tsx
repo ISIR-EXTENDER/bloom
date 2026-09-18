@@ -5,7 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { TopicDebugWidget } from "./debug-renderers";
 import { PlotWidget } from "./display-renderers";
-import { createSparklinePath } from "./plot-rendering";
+import { createSparklinePath, resolvePlotBounds } from "./plot-rendering";
 import type { WidgetRendererProps } from "./types";
 
 /**
@@ -127,5 +127,18 @@ describe("the echo's header note", () => {
     const note = screen.getByText(/base_link/);
     expect(note.textContent).toContain("base_link");
     expect(note.textContent).toContain("10 min ago");
+  });
+});
+
+describe("a very long sample series", () => {
+  // maxSamples is validated with a floor and no ceiling, and spreading the array into Math.min threw
+  // RangeError past about a hundred thousand values, taking the view down with it.
+  it("finds its bounds without spreading the array", () => {
+    const values = Array.from({ length: 200_000 }, (_, index) => index / 1000);
+
+    const bounds = resolvePlotBounds(values, undefined, undefined);
+
+    expect(bounds.min).toBe(0);
+    expect(bounds.max).toBeCloseTo(199.999, 3);
   });
 });
