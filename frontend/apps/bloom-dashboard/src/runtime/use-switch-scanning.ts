@@ -83,6 +83,12 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     const rootIsModal = isInsideModal(root);
 
     const readTargets = () => {
+      // Clear the outgoing set first. paint() only touches targets still in the list, so one that left it --
+      // a command button disabled by its own press, a stepper at its limit -- kept the highlight, and the
+      // operator saw two lit controls while the switch fired the other one.
+      for (const previous of targetsRef.current) {
+        previous.removeAttribute("data-scan-lit");
+      }
       // Priority targets are read from the document: STOP is runtime chrome and
       // sits outside the scanned screen, settings panel or dialog.
       const priority = [...document.querySelectorAll<HTMLElement>(SCAN_PRIORITY_SELECTOR)];

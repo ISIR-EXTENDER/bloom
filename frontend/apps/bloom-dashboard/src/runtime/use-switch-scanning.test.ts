@@ -67,6 +67,25 @@ describe("switch scanning", () => {
     expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
   });
 
+  // A command button disables itself while its command is in flight, so the lit control can leave the
+  // scan set between two ticks. Leaving it lit puts two highlights on the screen, and the operator's
+  // switch fires the one they were not looking at.
+  it("takes the highlight off a control that leaves the scan set", () => {
+    const { root, rootRef } = buildScreen(3);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    vi.advanceTimersByTime(1000);
+    const lit = root.querySelector<HTMLButtonElement>("[data-scan-lit]");
+    expect(lit?.textContent).toBe("target-1");
+
+    lit?.setAttribute("disabled", "");
+    vi.advanceTimersByTime(1000);
+
+    const stillLit = [...root.querySelectorAll("[data-scan-lit]")].map((element) => element.textContent);
+    expect(stillLit).toHaveLength(1);
+    expect(stillLit).not.toContain("target-1");
+  });
+
   it("fires the lit control on Space", () => {
     const { clicks, rootRef } = buildScreen(3);
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
