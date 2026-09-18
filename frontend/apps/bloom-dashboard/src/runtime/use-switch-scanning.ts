@@ -59,6 +59,11 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     if (!target) {
       return;
     }
+    // Ask again at fire time, as the dwell path does: the latch may have engaged since this target was
+    // read, and a stopped control is only aria-disabled, so a programmatic click would still reach it.
+    if (!(isTargetEnabledRef.current?.(target) ?? true)) {
+      return;
+    }
     if (activateTargetRef.current) {
       activateTargetRef.current(target);
     } else {

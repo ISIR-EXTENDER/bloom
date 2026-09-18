@@ -86,6 +86,28 @@ describe("switch scanning", () => {
     expect(stillLit).not.toContain("target-1");
   });
 
+  // The latch can engage between the tick that lit a control and the switch press that fires it. A
+  // stopped control is only aria-disabled, so a programmatic click still reaches it; ask again first.
+  it("refuses to fire a control that stopped being allowed since it was lit", () => {
+    const { clicks, rootRef } = buildScreen(3);
+    let allowed = true;
+    renderHook(() =>
+      useSwitchScanning({
+        enabled: true,
+        isTargetEnabled: () => allowed,
+        periodMs: 1000,
+        rootRef,
+        revision: "a",
+      }),
+    );
+
+    vi.advanceTimersByTime(1000);
+    allowed = false;
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+
+    expect(clicks).toEqual([]);
+  });
+
   it("fires the lit control on Space", () => {
     const { clicks, rootRef } = buildScreen(3);
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
