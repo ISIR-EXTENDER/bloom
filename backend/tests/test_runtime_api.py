@@ -1434,9 +1434,7 @@ def test_a_read_only_session_cannot_push_the_operators_records_out_of_the_log() 
     app = create_app(settings, InMemoryConfigurationRepository())
     client = TestClient(app)
 
-    with client.websocket_connect(
-        "/api/v1/runtime/ws", subprotocols=["bloom.api-key." + "b" * 32]
-    ) as websocket:
+    with client.websocket_connect("/api/v1/runtime/ws", subprotocols=["bloom.api-key." + "b" * 32]) as websocket:
         websocket.receive_json()
         for _ in range(30):
             websocket.send_json({"type": "claim_control"})
