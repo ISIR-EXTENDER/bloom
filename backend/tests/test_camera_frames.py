@@ -12,6 +12,14 @@ from libs.ros_adapters.camera_frames import (
 )
 
 PIXEL = b"\xff\xd8\xff\xd9"
+#: A CompressedImage carries the format to every ROS consumer as a fact, so each sample starts with
+#: what that format really begins with.
+SAMPLES = {
+    "image/jpeg": PIXEL,
+    "image/jpg": PIXEL,
+    "image/png": b"\x89PNG\r\n\x1a\n" + b"\x00",
+    "image/webp": b"RIFF\x00\x00\x00\x00WEBP",
+}
 
 
 def data_url(payload: bytes = PIXEL, mime: str = "image/jpeg") -> str:
@@ -28,7 +36,16 @@ def test_decodes_a_jpeg_frame() -> None:
 @pytest.mark.parametrize("mime,expected", [("image/png", "png"), ("image/webp", "webp"), ("image/jpg", "jpeg")])
 def test_normalizes_supported_formats(mime: str, expected: str) -> None:
     # jpg is normalized to jpeg, matching tablet_interface.
-    assert decode_image_data_url(data_url(mime=mime)).image_format == expected
+    assert decode_image_data_url(data_url(SAMPLES[mime], mime=mime)).image_format == expected
+
+
+def test_refuses_bytes_that_are_not_the_format_they_claim() -> None:
+    """The format reaches ROS consumers as a fact; the data URL only ever claimed it."""
+    with pytest.raises(CameraFrameError, match="not png data"):
+        decode_image_data_url(data_url(b"\x7fELF\x02\x01\x01", mime="image/png"))
+
+    with pytest.raises(CameraFrameError, match="not jpeg data"):
+        decode_image_data_url(data_url(b"<script>alert(1)</script>", mime="image/jpeg"))
 
 
 def test_rejects_a_non_image_url() -> None:

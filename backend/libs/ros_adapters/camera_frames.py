@@ -38,6 +38,14 @@ class DecodedImage:
     image_bytes: bytes
 
 
+#: What each supported format must actually begin with. A WebP file is "RIFF", four size bytes, "WEBP".
+IMAGE_MAGIC_PREFIXES: dict[str, tuple[bytes, ...]] = {
+    "jpeg": (b"\xff\xd8\xff",),
+    "png": (b"\x89PNG\r\n\x1a\n",),
+    "webp": (b"RIFF",),
+}
+
+
 def decode_image_data_url(image_data_url: str, max_bytes: int = MAX_IMAGE_BYTES) -> DecodedImage:
     """Decode a ``data:image/...;base64,...`` URL.
 
@@ -78,6 +86,12 @@ def decode_image_data_url(image_data_url: str, max_bytes: int = MAX_IMAGE_BYTES)
         raise CameraFrameError("frame payload is empty")
     if len(image_bytes) > max_bytes:
         raise CameraFrameError(f"frame is larger than the {max_bytes} byte limit")
+
+    # The format so far is only what the data URL claimed. CompressedImage carries it to every ROS
+    # consumer as a fact, so check it against the bytes rather than passing on the sender's word.
+    magic = IMAGE_MAGIC_PREFIXES.get(image_format)
+    if magic and not any(image_bytes.startswith(prefix) for prefix in magic):
+        raise CameraFrameError(f"frame payload is not {image_format} data")
 
     return DecodedImage(image_format=image_format, image_bytes=image_bytes)
 
