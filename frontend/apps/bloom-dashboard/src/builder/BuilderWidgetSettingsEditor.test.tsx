@@ -222,3 +222,28 @@ describe("the on-glass size summary", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });
+
+describe("a JSON settings field mid-typing", () => {
+  // A permissive field takes whatever JSON.parse cannot read as a plain string, so committing every
+  // keystroke replaced an object with something like '{"a": '. The backend accepts it and the runtime
+  // then publishes a string where an object belongs.
+  it("keeps the half-typed text on screen without applying it", () => {
+    const onUpdateSettings = renderEditor({ payload: { a: 1 } }, "command-button");
+
+    const field = screen.getByLabelText(/payload/i);
+    fireEvent.change(field, { target: { value: '{"a": ' } });
+
+    expect((field as HTMLTextAreaElement).value).toBe('{"a": ');
+    expect(screen.getByText("Not valid JSON yet, so it has not been applied.")).toBeTruthy();
+    expect(onUpdateSettings).not.toHaveBeenCalled();
+  });
+
+  it("applies it once it parses", () => {
+    const onUpdateSettings = renderEditor({ payload: { a: 1 } }, "command-button");
+
+    fireEvent.change(screen.getByLabelText(/payload/i), { target: { value: '{"a": 2}' } });
+
+    expect(onUpdateSettings).toHaveBeenCalled();
+    expect(screen.queryByText("Not valid JSON yet, so it has not been applied.")).toBeNull();
+  });
+});

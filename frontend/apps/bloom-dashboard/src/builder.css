@@ -2063,6 +2063,14 @@
   font-weight: 800;
 }
 
+/* A field still being typed: said plainly, without the alarm of a rejection. */
+.builder-settings-pending {
+  margin: 0;
+  color: var(--bloom-ink-soft);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
 .builder-save-status {
   grid-column: 1 / -1;
   margin: 0;

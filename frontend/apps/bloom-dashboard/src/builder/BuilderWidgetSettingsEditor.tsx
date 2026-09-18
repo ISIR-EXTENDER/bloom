@@ -272,20 +272,46 @@ function JsonSettingsField({
     }
   }, [saved]);
 
+  // These fields hold two different kinds of thing. Some are ROS-ish text the seeds write as a string,
+  // like "{data: [1.1]}", which JSON.parse cannot read and which is nonetheless the saved value. Others
+  // hold a real object. Only for those does a draft that does not parse mean "still typing": committed
+  // per keystroke it replaced the object with a fragment like '{"a": ', which the backend accepts and
+  // the runtime then publishes.
+  const structured = value !== null && typeof value === "object";
+  const pending = structured && draft.trim().length > 0 && !isParsableJson(draft);
+
   return (
     <label className="builder-settings-field">
       <span>{field.label}</span>
       <textarea
         {...getTouchEditingProps("json")}
+        aria-describedby={pending ? `${field.key}-pending` : undefined}
         onChange={(event) => {
           setDraft(event.target.value);
-          onChange(event.target.value);
+          const stillTyping = structured && event.target.value.trim() && !isParsableJson(event.target.value);
+          if (!stillTyping) {
+            onChange(event.target.value);
+          }
         }}
         rows={4}
         value={draft}
       />
+      {pending ? (
+        <small className="builder-settings-pending" id={`${field.key}-pending`}>
+          Not valid JSON yet, so it has not been applied.
+        </small>
+      ) : null}
     </label>
   );
+}
+
+function isParsableJson(rawValue: string): boolean {
+  try {
+    JSON.parse(rawValue.trim());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function draftMatchesValue(draft: string, value: unknown): boolean {
