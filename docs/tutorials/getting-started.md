@@ -201,16 +201,24 @@ simulation does not prove.
 ## When you move to a real arm
 
 Use your lab's authorization and safety procedure first, then replace the simulation launch with the hardware one.
-Nothing on the Bloom side changes.
 
 ```bash
 ros2 launch cartesian_manager explorer.launch.py use_simulation:=false
 ros2 launch cartesian_manager kinova.launch.py use_simulation:=false robot_ip:=192.168.1.10
 ```
 
-Work through the pre-session checks in
-[Extender and Petanque end-to-end validation](../extender-petanque-validation.md) before an operator session, and read
-[Operate safely](operate-safely.md) with whoever will be driving.
+Bloom itself is launched the same way, but two of its settings stop being optional. Both are read once at startup,
+so set them before the process starts.
+
+- **Driving from a tablet** needs `BLOOM_FRONTEND_HOST=0.0.0.0`, as in
+  [the same-Wi-Fi recipe](../deployment.md#same-wi-fi-access). The runtime socket refuses a page whose origin it
+  does not know, and that is what lets the launcher allow the tablet's.
+- **Kinova** needs `BLOOM_ROS_EE_FRAME_ID=effector_frame`, as in step 7. The default allowlist carries no tool
+  frame, so leaving it unset offers the operator none.
+
+Then work from the [bench card](../bench-card.md), which is the one page to have open during the session, and read
+[Operate safely](operate-safely.md) with whoever will be driving. The full pre-session list is in
+[Extender and Petanque end-to-end validation](../extender-petanque-validation.md).
 
 ## Where to go next
 
