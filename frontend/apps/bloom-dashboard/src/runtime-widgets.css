@@ -1505,6 +1505,14 @@
   font-weight: 700;
 }
 
+/* A gauge or plot with nothing behind it draws its authored placeholder. Dimmed, and saying so, it
+   cannot be read as the robot's own number. */
+.bloom-gauge-widget[data-live="false"] .bloom-gauge-meter,
+.bloom-plot-widget[data-live="false"] .bloom-plot-sparkline,
+.bloom-plot-widget[data-live="false"] .bloom-plot-readout {
+  opacity: 0.4;
+}
+
 /* ---- Bloom Debug tables (5b) ---- */
 
 .bloom-joint-table table {

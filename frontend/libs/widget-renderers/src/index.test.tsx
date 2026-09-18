@@ -7,7 +7,7 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
+import { GaugeWidget } from "./display-renderers";
 import {
   createWidgetRendererRegistry,
   renderScreenWidgets,
@@ -1806,5 +1806,52 @@ describe("operator words in the profile's language", () => {
     expect(screen.getByText("Pince")).toBeVisible();
     expect(screen.getByRole("slider", { name: "Pivot" })).toBeTruthy();
     expect(document.querySelector('.bloom-axis-word[data-end="negative"]')?.textContent).toBe("◀\u00a0Gauche");
+  });
+});
+
+describe("a display widget with nothing behind it", () => {
+  // explorer-user-tests ships gauges with no topic at all. Drawn like a reading, an authored 76 becomes
+  // a claim about the robot's battery to whoever is sitting in front of it.
+  it("says so rather than presenting its authored placeholder as a reading", () => {
+    render(
+      <GaugeWidget
+        descriptor={
+          {
+            widget: {
+              id: "battery",
+              kind: "gauge",
+              title: "Battery",
+              layout: { x: 0, y: 0, width: 240, height: 160 },
+              settings: { max: 100, min: 0, unit: "%", value: 76 },
+            },
+          } as never
+        }
+      />,
+    );
+
+    expect(screen.getByText("no source")).toBeTruthy();
+    expect(document.querySelector('.bloom-gauge-widget[data-live="false"]')).not.toBeNull();
+  });
+
+  it("marks a gauge live once a sample arrives", () => {
+    render(
+      <GaugeWidget
+        data={{ type: "gauge", receivedAt: "2026-09-18T10:00:00Z", topic: "/battery", value: 42 }}
+        descriptor={
+          {
+            widget: {
+              id: "battery",
+              kind: "gauge",
+              title: "Battery",
+              layout: { x: 0, y: 0, width: 240, height: 160 },
+              settings: { max: 100, min: 0, unit: "%", value: 76 },
+            },
+          } as never
+        }
+      />,
+    );
+
+    expect(screen.queryByText("no source")).toBeNull();
+    expect(document.querySelector('.bloom-gauge-widget[data-live="true"]')).not.toBeNull();
   });
 });

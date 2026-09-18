@@ -96,21 +96,20 @@ function formatEventCount(count: number): string {
 export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
   const min = getNumberSetting(descriptor.widget.settings, "min", 0);
   const max = getNumberSetting(descriptor.widget.settings, "max", 1);
-  const value = clamp(
-    data?.type === "gauge" ? data.value : getNumberSetting(descriptor.widget.settings, "value", min),
-    min,
-    max,
-  );
+  // An authored value is a placeholder for the builder, never a reading. Drawn the same as a live one it
+  // becomes a claim about the robot: a gauge with no topic at all read "Battery 76 %" to a participant.
+  const live = data?.type === "gauge";
+  const value = clamp(live ? data.value : getNumberSetting(descriptor.widget.settings, "value", min), min, max);
   const unit = getStringSetting(descriptor.widget.settings, "unit", "");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const ratio = max > min ? (value - min) / (max - min) : 0;
   const percent = Math.round(ratio * 100);
 
   return (
-    <div className="bloom-gauge-widget">
+    <div className="bloom-gauge-widget" data-live={live ? "true" : "false"}>
       <header className="bloom-display-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>{showDetails && data?.type === "gauge" ? data.topic : unit || "Gauge"}</span>
+        <span>{showDetails && live ? data.topic : unit || "Gauge"}</span>
       </header>
       <meter
         aria-label={`${descriptor.widget.title}: ${formatNumber(value)}${unit ? ` ${unit}` : ""}`}
@@ -133,9 +132,13 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
         <span>{formatNumber(min)}</span>
         <span>{formatNumber(max)}</span>
       </div>
-      {showDetails && data?.type === "gauge" ? (
-        <small className="bloom-display-source">updated {formatShortTimestamp(data.receivedAt)}</small>
-      ) : null}
+      {live ? (
+        showDetails ? (
+          <small className="bloom-display-source">updated {formatShortTimestamp(data.receivedAt)}</small>
+        ) : null
+      ) : (
+        <small className="bloom-display-source">no source</small>
+      )}
     </div>
   );
 }
@@ -145,6 +148,9 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
   const historySeconds = getNumberSetting(descriptor.widget.settings, "historySeconds", 10);
   const allowFreeze = getBooleanSetting(descriptor.widget.settings, "allow_freeze", true);
   const liveSamples = data?.type === "plot" ? data.samples : [];
+  // Authored samples, and the default ramp behind them, are builder scaffolding. Drawn like a live trace
+  // they read as the robot's own history.
+  const live = liveSamples.length > 0;
   const liveValues =
     liveSamples.length > 0
       ? liveSamples.map((sample) => sample.value)
@@ -173,7 +179,7 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
   const latestValue = values.at(-1) ?? 0;
 
   return (
-    <div className="bloom-plot-widget" data-variant={variant}>
+    <div className="bloom-plot-widget" data-live={live ? "true" : "false"} data-variant={variant}>
       <header className="bloom-display-header">
         <strong>{descriptor.widget.title}</strong>
         {showLegend ? (
@@ -203,11 +209,15 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
         {formatNumber(latestValue)}
         {unit ? ` ${unit}` : ""}
       </output>
-      {showDetails && data?.type === "plot" ? (
-        <small className="bloom-display-source">
-          live from {getStringSetting(descriptor.widget.settings, "topic", "topic")}
-        </small>
-      ) : null}
+      {live ? (
+        showDetails ? (
+          <small className="bloom-display-source">
+            live from {getStringSetting(descriptor.widget.settings, "topic", "topic")}
+          </small>
+        ) : null
+      ) : (
+        <small className="bloom-display-source">no source</small>
+      )}
     </div>
   );
 }

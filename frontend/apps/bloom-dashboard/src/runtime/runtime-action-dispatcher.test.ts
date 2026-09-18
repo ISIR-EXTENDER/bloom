@@ -7,6 +7,7 @@ import {
   createValueTopicPublishRequest,
   dispatchRuntimeActionIntent,
   type RuntimeActionClient,
+  type RuntimeTeleopCommandRequest,
 } from "./runtime-action-dispatcher";
 import { TeleopTwistComposer } from "./teleop-composition";
 
@@ -750,8 +751,9 @@ describe("a refused teleop command", () => {
   it("stops contributing to the commands that follow it", async () => {
     const client: RuntimeActionClient = {
       publishRosTopic: vi.fn(),
-      sendTeleopCommand: vi.fn(async (request) => ({
+      sendTeleopCommand: vi.fn(async (request: RuntimeTeleopCommandRequest) => ({
         type: "teleop_ack" as const,
+        detail: "Accepted.",
         payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" as const },
       })),
     };
