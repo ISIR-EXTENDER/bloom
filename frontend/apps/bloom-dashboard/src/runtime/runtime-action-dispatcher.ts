@@ -757,7 +757,15 @@ function validateTeleopCommandRequest(
   request: RuntimeTeleopCommandRequest,
   policy: RuntimeAdapterPolicy | undefined,
 ): string | null {
-  if (!policy || isAllowedByPolicy(request.target, policy.allowed_teleop_targets)) {
+  if (!policy) {
+    return null;
+  }
+  // Empty means none here, not "no restriction". The backend narrows a socket to the app's own teleop
+  // list and an app that declares none drives nothing, so reading empty as permissive let the screen
+  // dispatch a command the server then refused -- the operator got "Command failed" from a control
+  // that should never have been live.
+  const allowed = policy.allowed_teleop_targets;
+  if (allowed.includes("*") || allowed.includes(request.target)) {
     return null;
   }
   return `Teleop target "${request.target}" is not allowed by this app runtime policy.`;
