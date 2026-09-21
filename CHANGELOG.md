@@ -137,6 +137,25 @@ machines behind assistive input. Each fix carries the test that reproduces it.
 - **An id the store refuses reads as missing** rather than as a server fault, and a bundle this build
   cannot reconstruct says which configuration and why instead of answering 500.
 
+**From Robin's bench session, 2026-09-21** (recorded in
+[the validation record](docs/validation/2026-09-21-robin-bench.md))
+
+- **An app authored in the Builder can drive the robot.** A new app declared no teleop target, and an
+  app that declares none drives nothing -- right for Bloom Debug, wrong for a screen someone has just
+  built. Everything on the publish path worked and everything on the teleop path was refused. The
+  default is now the manager's own command topic, and an explicitly empty list still means none.
+- **Both ends agree on what an empty teleop list means.** The frontend read it as "no restriction" and
+  the backend as "none", so a screen dispatched a command the server refused and the operator met
+  "Command failed" from a control that should never have been live.
+- **A screen is judged at the panel its own class runs on.** The glass check fitted every screen to
+  1024x600 and held it to the touch floor whatever its class, so a desktop screen was scaled to a panel
+  it will never run on and reported every control below the floor with nothing an author could do.
+- **The Builder says the runtime draws STOP.** There is none to place and nothing said so.
+- **A toggle's payloads follow its message type.** They are ROS text and each type wants a different
+  shape; the helper that returns the right pair had existed unused since the widget was written.
+- **Command sources no longer calls the command topic "This tablet".** It carries every publisher on
+  it, and ROS gives a subscriber no way to tell them apart.
+
 ### Changed
 
 - Reduced motion is honored where Bloom actually animates. The runtime switched
