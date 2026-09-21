@@ -93,6 +93,21 @@ Confirm the link reports subscribers rather than `MISSING`:
 curl -fsS http://127.0.0.1:8000/api/v1/ros/topics/status
 ```
 
+## 4b. If a physical joystick is on the bench
+
+Bloom reads any gamepad the browser can see, and publishes it to the same topic `joystick_mapper` uses.
+`cartesian_manager` keeps one command per input source and replaces it, so the two overwrite each other and a
+centred stick streams zeros over Bloom's twist. Their axis maps also disagree: the bench's three-axis stick reads
+axis 2 as `linear_z`, Bloom's default reads it as `angular.x`.
+
+**Pick one.** Either stop `joystick_mapper`, or close Bloom's browser on the machine the stick is plugged into.
+
+```bash
+ros2 topic info /joystick_cartesian_command --verbose   # two publishers means both are live
+```
+
+The kiosk bar shows a gamepad chip whenever Bloom can see a pad. If a Z push produces rotation, this is why.
+
 ## 5. Before touching a control
 
 Read the kiosk bar. Confirm four things:

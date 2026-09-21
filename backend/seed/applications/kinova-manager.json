@@ -1351,7 +1351,7 @@
                     "topic": "/joystick_cartesian_command",
                     "message_type": "geometry_msgs/msg/TwistStamped",
                     "field_path": "twist.linear.x",
-                    "label": "This tablet",
+                    "label": "Command topic",
                     "color": "#7e967e",
                     "unit": "norm",
                     "enabled": true,

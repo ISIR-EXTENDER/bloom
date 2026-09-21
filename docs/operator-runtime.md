@@ -285,6 +285,21 @@ The active profile dead zone is applied per axis with the same scaled-dead-zone 
 sticks to center emits one release and clears the gamepad contribution. Browser Gamepad API support and live hardware
 mapping must be checked with the actual controller before a session.
 
+> [!WARNING]
+> **Do not run Bloom's gamepad and `joystick_mapper` against the same stick.** That table assumes a standard
+> twin-stick pad. The Extender bench uses a three-axis stick, whose `joystick_3d.yaml` `b1` mode reads axis 2 as
+> `linear_z` where the table above reads it as `angular.x`, so the same push means different things to the two
+> readers.
+>
+> They also share one channel. `joystick_mapper` publishes to `/joystick_cartesian_command`, the topic Bloom
+> teleop uses, and `cartesian_manager` keeps one command per input source and *replaces* it rather than summing,
+> so whichever published last wins — a centred physical stick still streams zeros over Bloom's twist at `/joy`
+> rate. Summing happens between different sources, not within one.
+>
+> Before a session, either close Bloom's browser on the machine the stick is plugged into, or stop
+> `joystick_mapper`. `ros2 topic info /joystick_cartesian_command --verbose` lists both publishers when both are
+> running, and the kiosk bar shows a gamepad chip whenever Bloom can see a pad.
+
 ## Accessibility Profiles
 
 An application profile controls display density, font scale, audio cues, signal conditioning, and motor interaction.

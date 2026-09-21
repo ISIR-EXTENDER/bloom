@@ -104,6 +104,9 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
   },
   // Robot feedback and Command sources: both are reachable from the maintenance sheet.
   "Plot board": { es: "Panel de gráficas", fr: "Tableau de courbes" },
+  // Not "this tablet": the topic carries every publisher on it, and ROS gives a subscriber no way to
+  // tell them apart. Naming the topic is the most the screen can honestly claim.
+  "Command topic": { es: "Tema de comando", fr: "Topic de commande" },
   Series: { es: "Series", fr: "Séries" },
   Sources: { es: "Fuentes", fr: "Sources" },
   "SERIES — tap to plot": { es: "SERIES — toca para graficar", fr: "SÉRIES — touchez pour tracer" },
