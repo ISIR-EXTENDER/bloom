@@ -153,7 +153,11 @@ export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
   allowed_publish_topics: [],
   allowed_recording_topics: [],
   allowed_service_calls: [],
-  allowed_teleop_targets: [],
+  // In step with the backend model default. An app that says nothing gets the manager's own command
+  // topic, so a screen authored here can drive the robot as soon as it is opened; an app that declares
+  // an empty list still drives nothing. Kept identical so an app made through the API and one made in
+  // the builder do not start life different.
+  allowed_teleop_targets: ["/joystick_cartesian_command"],
 };
 
 export const DEFAULT_ACTION_PRESETS: RuntimeActionPreset[] = [];

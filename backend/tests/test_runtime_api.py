@@ -8,6 +8,7 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.routes.runtime import audit_session_alias, build_runtime_ack
 from apps.bloom_api.settings import Settings
 from libs.config import (
+    ApplicationConfig,
     ConfigurationBundle,
     InMemoryConfigurationRepository,
     RuntimeActionPreset,
@@ -1442,3 +1443,31 @@ def test_a_read_only_session_cannot_push_the_operators_records_out_of_the_log() 
             assert rejected["payload"]["code"] == "observer_read_only"
 
     assert list(app.state.runtime_audit_log.list_records()) == []
+
+
+def test_a_freshly_created_app_can_drive_the_robot() -> None:
+    """Robin's bench report, 2026-09-21: a joystick authored in the Builder answered "rejected by
+    runtime policy". A new app declared no teleop target, and an app that declares none drives
+    nothing -- which is right for Bloom Debug and wrong for a screen someone has just built."""
+    gateway = RecordingTeleopGateway()
+    # Exactly what the Builder stores for a new app: nothing said about teleop.
+    brand_new = ApplicationConfig(id="my-first-app", name="My first app")
+    bundle = ConfigurationBundle(applications=(brand_new,))
+    client = TestClient(
+        create_app(
+            Settings(environment="test"),
+            InMemoryConfigurationRepository({"mine": bundle}),
+            teleop_command_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json({"type": "app_context", "app_id": "my-first-app", "config_id": "mine"})
+        context = websocket.receive_json()
+        websocket.send_json(teleop_command())
+        acknowledged = websocket.receive_json()
+
+    assert context["payload"]["allowed_teleop_targets"] == ["/joystick_cartesian_command"]
+    assert acknowledged["type"] == "teleop_ack", acknowledged
+    assert gateway.commands[0].target == "/joystick_cartesian_command"
