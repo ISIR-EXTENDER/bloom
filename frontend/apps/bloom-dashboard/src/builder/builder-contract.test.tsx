@@ -44,7 +44,9 @@ describe("the builder canvas", () => {
         .getByText(/px glass/)
         .getAttribute("data-inside"),
     ).toBe("true");
-    expect(screen.getByRole("note").textContent).toBe("Reserved STOP");
+    // Robin, 2026-09-21: "je ne trouve pas le bouton stop dans le builder". There is no STOP to place;
+    // the region has to say that where the author is looking for one.
+    expect(screen.getByRole("note").textContent).toBe("STOP · drawn by the runtime, no widget needed");
   });
 
   it("refuses a move into a reserved region", () => {

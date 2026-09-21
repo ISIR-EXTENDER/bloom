@@ -35,7 +35,11 @@ Save before you go further. **Open builder** on a screen is disabled while the a
 
 Artboard size and reserved regions are not editable here. A screen inherits the canvas of the app's device class, and
 reserved regions — the area STOP owns — are authored in the app's JSON and shown read-only on the canvas as
-**Reserved STOP**.
+**STOP · drawn by the runtime, no widget needed**.
+
+There is no STOP in the widget palette, and there is not meant to be. Every runtime app gets one, drawn by the
+runtime itself above everything on the screen, and no widget may be placed in the region it reserves. You do not
+add it, you cannot move it, and you cannot remove it by editing a screen.
 
 ## 3. Place a joystick and a command button
 

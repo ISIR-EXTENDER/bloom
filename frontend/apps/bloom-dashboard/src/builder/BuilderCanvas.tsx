@@ -73,7 +73,9 @@ export function BuilderCanvas({
                     width: `${region.width}px`,
                   }}
                 >
-                  Reserved {region.id === "stop" ? "STOP" : region.id}
+                  {/* An author looking for a STOP to place will not find one: the runtime draws it. Say so
+                      here, where they are looking, rather than leaving the region unexplained. */}
+                  {region.id === "stop" ? "STOP · drawn by the runtime, no widget needed" : `Reserved ${region.id}`}
                 </div>
               ))}
             </>
