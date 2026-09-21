@@ -2,6 +2,7 @@ import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import {
   deriveSliderStep,
   findInertSetting,
+  getDefaultRosMessageTogglePayloads,
   getWidgetSettingsContract,
   INTERACTIVE_WIDGET_KINDS,
   normalizeWidgetSettings,
@@ -102,6 +103,20 @@ export function BuilderWidgetSettingsEditor({
       const max = readFiniteNumber(nextSettings.max ?? effectiveSettings.max);
       if (min !== undefined && max !== undefined && max !== min) {
         nextSettings.step = deriveSliderStep(min, max);
+      }
+    }
+    // A toggle's payloads are ROS text, not JSON, and every message type wants a different shape. An
+    // author who picks a type and is left to write "{data: [1.1]}" from memory gets a toggle that
+    // publishes nothing. Carry the matching pair across, unless they have written their own.
+    if (widget.kind === "toggle" && field.key === "messageType") {
+      const previous = getDefaultRosMessageTogglePayloads(String(effectiveSettings.messageType ?? ""));
+      const untouched =
+        (effectiveSettings.onPayload ?? "") === previous.onPayload &&
+        (effectiveSettings.offPayload ?? "") === previous.offPayload;
+      if (untouched || !effectiveSettings.onPayload) {
+        const suggested = getDefaultRosMessageTogglePayloads(String(rawValue));
+        nextSettings.onPayload = suggested.onPayload;
+        nextSettings.offPayload = suggested.offPayload;
       }
     }
     setValidationMessage(onUpdateSettings(nextSettings));

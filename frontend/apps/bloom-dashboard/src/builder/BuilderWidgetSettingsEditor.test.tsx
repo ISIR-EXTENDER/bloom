@@ -304,3 +304,53 @@ describe("the glass summary on a screen that is not a tablet", () => {
     expect(screen.queryByRole("alert")).toBeNull();
   });
 });
+
+describe("a toggle that changes message type", () => {
+  afterEach(cleanup);
+
+  // Robin's bench report, 2026-09-21: a gripper toggle built in the Builder did not work. The payloads
+  // are ROS text, not JSON, and each message type wants a different shape; an author who picks a type
+  // and is left to write "{data: [1.1]}" from memory gets a toggle that publishes nothing.
+  it("carries the matching payload pair across", () => {
+    const onUpdateSettings = renderEditor(
+      {
+        topic: "/gripper_controller/commands",
+        messageType: "std_msgs/msg/Bool",
+        onPayload: "{data: true}",
+        offPayload: "{data: false}",
+        onLabel: "Open",
+        offLabel: "Close",
+      },
+      "toggle",
+    );
+
+    fireEvent.change(screen.getByLabelText(/message type/i), {
+      target: { value: "std_msgs/msg/Float64MultiArray" },
+    });
+
+    const next = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(next.onPayload).toBe("{data: 1.0}");
+    expect(next.offPayload).toBe("{data: 0.0}");
+  });
+
+  it("leaves a payload the author wrote themselves alone", () => {
+    const onUpdateSettings = renderEditor(
+      {
+        topic: "/gripper_controller/commands",
+        messageType: "std_msgs/msg/Bool",
+        onPayload: "{data: [1.1]}",
+        offPayload: "{data: [0.2]}",
+        onLabel: "Open",
+        offLabel: "Close",
+      },
+      "toggle",
+    );
+
+    fireEvent.change(screen.getByLabelText(/message type/i), {
+      target: { value: "std_msgs/msg/Float64MultiArray" },
+    });
+
+    const next = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(next.onPayload).toBe("{data: [1.1]}");
+  });
+});
