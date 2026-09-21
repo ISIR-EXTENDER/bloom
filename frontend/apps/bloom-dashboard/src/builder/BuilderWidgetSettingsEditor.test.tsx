@@ -1,11 +1,11 @@
 /**
  * @vitest-environment jsdom
  */
-import type { WidgetConfig } from "@bloom/api-client";
+import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
+import { densityFloorFor, resolveBuilderPanel } from "./builder-geometry";
 
 /**
  * The inspector has to answer "where does this widget publish" without the
@@ -185,6 +185,8 @@ describe("editing values mid-way", () => {
 describe("the on-glass size summary", () => {
   afterEach(cleanup);
 
+  // Mirrors the inspector: the scale and the panel come from the screen's own device class, so the
+  // summary and the inspector's glass reading cannot drift apart.
   function renderWithCanvas(kind: string, layout: { width: number; height: number }) {
     const widget = {
       id: "probe",
@@ -193,27 +195,45 @@ describe("the on-glass size summary", () => {
       layout: { x: 0, y: 0, ...layout },
       settings: {},
     } as unknown as WidgetConfig;
+    const canvas = { preset_id: "native-1280x720", runtime_mode: "fit" } as unknown as CanvasSettings;
+    const screenConfig = {
+      id: "s",
+      title: "S",
+      canvas,
+      reserved_regions: [],
+      widgets: [widget],
+    } as unknown as Parameters<typeof resolveBuilderPanel>[0];
+    const panelInfo = resolveBuilderPanel(screenConfig);
     render(
       <BuilderWidgetSettingsEditor
-        canvas={{ preset_id: "native-1280x720", runtime_mode: "fit" }}
+        canvas={canvas}
         onUpdateSettings={vi.fn(() => null)}
         onUpdateTitle={vi.fn()}
+        panel={CHECKED_PANEL_FOR_TEST[panelInfo.deviceClass]}
         widget={widget}
       />,
     );
+    return panelInfo;
   }
 
-  it("states what the authored size becomes on the panel", () => {
-    // 1280x720 fits 1024x600 at 0.8, times the 0.99 overflow guard.
-    renderWithCanvas("toggle", { width: 130, height: 130 });
+  const CHECKED_PANEL_FOR_TEST = {
+    desktop: { height: 900, width: 1440 },
+    tablet: { height: 600, width: 1024 },
+  } as const;
 
-    expect(screen.getByText("103 × 103 px")).toBeTruthy();
+  it("states what the authored size becomes on the panel", () => {
+    renderWithCanvas("toggle", { width: 130, height: 130 });
+    // 1280x720 fits the 1024x600 tablet panel at 0.8, times the 0.99 overflow guard.
+    const expected = Math.round(130 * 0.8 * 0.99);
+
+    expect(screen.getByText(`${expected} × ${expected} px`)).toBeTruthy();
+    expect(screen.getByText(/On the 1024×600 panel/)).toBeTruthy();
   });
 
   it("flags an interactive control that lands under the 44px touch floor", () => {
     renderWithCanvas("toggle", { width: 50, height: 50 });
 
-    expect(screen.getByRole("alert").textContent).toContain("44px touch floor");
+    expect(screen.getByRole("alert").textContent).toContain("44px floor");
   });
 
   it("does not flag display widgets, which nobody has to hit", () => {
@@ -245,5 +265,42 @@ describe("a JSON settings field mid-typing", () => {
 
     expect(onUpdateSettings).toHaveBeenCalled();
     expect(screen.queryByText("Not valid JSON yet, so it has not been applied.")).toBeNull();
+  });
+});
+
+describe("the glass summary on a screen that is not a tablet", () => {
+  afterEach(cleanup);
+
+  // Robin's bench report, 2026-09-21: "Glass retourne toujours une erreur de taille en px trop
+  // petite". The summary scaled every screen to 1024x600, so a desktop screen was measured against a
+  // panel it will never run on and every control on it read as below the floor.
+  it("measures a desktop screen at the panel its own class is checked at", () => {
+    const widget = {
+      id: "probe",
+      kind: "command-button",
+      title: "Probe",
+      layout: { x: 0, y: 0, width: 240, height: 120 },
+      settings: {},
+    } as unknown as WidgetConfig;
+    const canvas = { preset_id: "full-hd", runtime_mode: "fit" } as unknown as CanvasSettings;
+    const screenConfig = { id: "s", title: "S", canvas, reserved_regions: [], widgets: [widget] } as never;
+    const panelInfo = resolveBuilderPanel(screenConfig);
+
+    expect(panelInfo.deviceClass).toBe("desktop");
+
+    render(
+      <BuilderWidgetSettingsEditor
+        canvas={canvas}
+        glassScale={panelInfo.glassScale}
+        onUpdateSettings={vi.fn(() => null)}
+        floorPx={densityFloorFor("desktop")}
+        onUpdateTitle={vi.fn()}
+        panel={{ height: 900, width: 1440 }}
+        widget={widget}
+      />,
+    );
+
+    expect(screen.getByText(/On the 1440×900 panel/)).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

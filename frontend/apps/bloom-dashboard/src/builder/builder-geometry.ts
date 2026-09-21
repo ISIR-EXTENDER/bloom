@@ -20,6 +20,14 @@ import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
 export const KIOSK_BAR_HEIGHT = 44;
 export { TOUCH_FLOOR_PX };
 
+/** The desktop floor is the mouse one (device-classes.md); the touch floor belongs to the tablet. */
+const DESKTOP_DENSITY_FLOOR_PX = 40;
+
+/** The smallest a target may be on this class's own checked panel. */
+export function densityFloorFor(deviceClass: DeviceClass): number {
+  return deviceClass === "desktop" ? DESKTOP_DENSITY_FLOOR_PX : TOUCH_FLOOR_PX;
+}
+
 export type DeviceClass = "desktop" | "tablet";
 
 /** Each class is checked at its smallest panel (device-classes.md): what an author ships must work there. */

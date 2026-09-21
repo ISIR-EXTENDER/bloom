@@ -7,12 +7,14 @@ import {
 } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
-import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
+import { densityFloorFor, glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
   canvas?: CanvasSettings;
+  deviceClass?: "desktop" | "tablet";
   glassScale?: number;
+  panel?: { height: number; width: number };
   /** Why the last add, duplicate or resize was refused. */
   layoutNotice?: string | null;
   onResizeWidget?: (widgetId: string, layout: WidgetLayout) => void;
@@ -31,7 +33,9 @@ type BuilderInspectorProps = {
 export function BuilderInspector({
   availableWidgetDefinitions,
   canvas,
+  deviceClass = "tablet",
   glassScale = 1,
+  panel = { height: 600, width: 1024 },
   layoutNotice = null,
   onResizeWidget,
   runtimeCapabilities,
@@ -129,6 +133,8 @@ export function BuilderInspector({
       </p>
       <BuilderWidgetSettingsEditor
         canvas={canvas}
+        floorPx={densityFloorFor(deviceClass)}
+        panel={panel}
         key={selectedWidget.id}
         onUpdateSettings={onUpdateWidgetSettings}
         onUpdateTitle={onUpdateWidgetTitle}

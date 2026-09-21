@@ -43,6 +43,12 @@ const availableWidgetDefinitions = Array.from(widgetRegistry.values()).filter(
   (definition) => definition.availability.editor && definition.kind !== "unknown",
 );
 
+/** What each class is checked at, named so the inspector can say which panel it measured. */
+const CHECKED_PANEL_BY_CLASS = {
+  desktop: { height: 900, width: 1440 },
+  tablet: { height: 600, width: 1024 },
+} as const;
+
 export function BuilderWorkspace({
   configurations,
   runtimeCapabilities,
@@ -249,7 +255,9 @@ export function BuilderWorkspace({
       <BuilderInspector
         availableWidgetDefinitions={availableWidgetDefinitions}
         canvas={draftScreen.canvas}
+        deviceClass={panel.deviceClass}
         glassScale={panel.glassScale}
+        panel={CHECKED_PANEL_BY_CLASS[panel.deviceClass]}
         layoutNotice={layoutNotice}
         onResizeWidget={(widgetId, layout) => {
           const widget = draftScreen.widgets.find((candidate) => candidate.id === widgetId);

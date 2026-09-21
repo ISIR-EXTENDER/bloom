@@ -17,22 +17,38 @@ import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderWidgetSettingsEditorProps = {
   canvas?: CanvasSettings;
+  /** The fit scale of this screen's own device class, as the inspector measured it. */
+  /** The floor this screen's device class is held to: the touch floor on a tablet, the mouse one on a desktop. */
+  floorPx?: number;
+  glassScale?: number;
+  panel?: { height: number; width: number };
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   onUpdateTitle: (title: string) => void;
   widget: WidgetConfig;
 };
 
-// The HMTECH operator panel; touch targets live or die at this geometry.
-const OPERATOR_PANEL = { width: 1024, height: 600 };
 const FIT_OVERFLOW_GUARD = 0.99;
 
-function WidgetGlassSizeSummary({ canvas, widget }: { canvas?: CanvasSettings; widget: WidgetConfig }) {
+function WidgetGlassSizeSummary({
+  canvas,
+  floorPx,
+  panel,
+  widget,
+}: {
+  canvas?: CanvasSettings;
+  floorPx: number;
+  panel: { height: number; width: number };
+  widget: WidgetConfig;
+}) {
   if (!canvas) {
     return null;
   }
   const artboard = resolveCanvasPresetSize(canvas);
-  const scale =
-    canvas.runtime_mode === "fit" ? resolveCanvasFitScale(canvas, artboard, OPERATOR_PANEL) * FIT_OVERFLOW_GUARD : 1;
+  // Fit against the panel this screen's own device class is checked at, not the tablet every time.
+  // Measured against 1024x600 regardless, a desktop screen was scaled to a panel it will never run on
+  // and every interactive control on it reported a target below the floor, with nothing an author
+  // could do about it.
+  const scale = canvas.runtime_mode === "fit" ? resolveCanvasFitScale(canvas, artboard, panel) * FIT_OVERFLOW_GUARD : 1;
   const glassWidth = Math.round(widget.layout.width * scale);
   const glassHeight = Math.round(widget.layout.height * scale);
   // Measure what the hand meets as well as the card around it. The card alone could never fail for a
@@ -40,18 +56,18 @@ function WidgetGlassSizeSummary({ canvas, widget }: { canvas?: CanvasSettings; w
   // target alone misses a card too small to hold it, because some kinds declare a fixed target.
   const interactive = INTERACTIVE_WIDGET_KINDS.has(widget.kind);
   const target = interactive ? Math.min(glassPx(widget, scale), glassWidth, glassHeight) : null;
-  const belowFloor = target !== null && target < TOUCH_FLOOR_PX;
+  const belowFloor = target !== null && target < floorPx;
 
   return (
     <div className="builder-glass-size" data-below-floor={belowFloor ? "true" : "false"}>
       <p className="builder-inspector-copy">
-        On the 1024×600 panel: <strong>{`${glassWidth} × ${glassHeight} px`}</strong> of glass (scale {scale.toFixed(2)}
-        ).
+        On the {panel.width}×{panel.height} panel: <strong>{`${glassWidth} × ${glassHeight} px`}</strong> of glass
+        (scale {scale.toFixed(2)}).
       </p>
       {belowFloor ? (
         <p className="builder-glass-size-warning" role="alert">
-          Its target is {target} px, below the {TOUCH_FLOOR_PX}px touch floor (≈9.6 mm). The size tokens are honest; the
-          fit scale discounts them — make the control larger instead of trusting the authored size.
+          Its target is {target} px, below the {floorPx}px floor for this panel. The size tokens are honest; the fit
+          scale discounts them — make the control larger instead of trusting the authored size.
         </p>
       ) : null}
     </div>
@@ -60,6 +76,8 @@ function WidgetGlassSizeSummary({ canvas, widget }: { canvas?: CanvasSettings; w
 
 export function BuilderWidgetSettingsEditor({
   canvas,
+  floorPx = TOUCH_FLOOR_PX,
+  panel = { height: 600, width: 1024 },
   onUpdateSettings,
   onUpdateTitle,
   widget,
@@ -107,7 +125,7 @@ export function BuilderWidgetSettingsEditor({
       </label>
 
       <WidgetDestinationSummary destination={destination} />
-      <WidgetGlassSizeSummary canvas={canvas} widget={widget} />
+      <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (
         <p className="builder-inspector-copy">This widget does not expose configurable settings yet.</p>
