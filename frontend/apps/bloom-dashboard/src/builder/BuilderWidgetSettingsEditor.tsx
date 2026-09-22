@@ -1,5 +1,6 @@
 import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import {
+  buildCliPreview,
   deriveSliderStep,
   findInertSetting,
   getDefaultRosMessageTogglePayloads,
@@ -30,6 +31,41 @@ type BuilderWidgetSettingsEditorProps = {
 };
 
 const FIT_OVERFLOW_GUARD = 0.99;
+
+/**
+ * The same command on the terminal.
+ *
+ * A form is abstract. This is a sentence an author can paste into a shell and check against a running
+ * robot without the app, without a session and without asking anyone -- and the first thing to try when
+ * a control does nothing. A toggle sends two different messages, so it gets both lines.
+ */
+function WidgetCliPreview({ widget }: { widget: WidgetConfig }) {
+  const settings = widget.settings ?? {};
+  const lines =
+    widget.kind === "toggle"
+      ? [
+          ["ON", buildCliPreview(widget.kind, settings, settings.onPayload)],
+          ["OFF", buildCliPreview(widget.kind, settings, settings.offPayload)],
+        ]
+      : [["", buildCliPreview(widget.kind, settings, settings.payload)]];
+  const shown = lines.filter(([, line]) => line !== null);
+
+  if (shown.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="builder-cli-preview">
+      <p className="builder-inspector-copy">The same command on the terminal:</p>
+      {shown.map(([label, line]) => (
+        <code key={label}>
+          {label ? `${label}: ` : ""}
+          {line}
+        </code>
+      ))}
+    </div>
+  );
+}
 
 function WidgetGlassSizeSummary({
   canvas,
@@ -141,6 +177,7 @@ export function BuilderWidgetSettingsEditor({
       </label>
 
       <WidgetDestinationSummary destination={destination} />
+      <WidgetCliPreview widget={widget} />
       <AxisMappingEditor onUpdateSettings={onUpdateSettings} widget={widget} />
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 

@@ -414,3 +414,49 @@ describe("what a teleop control moves", () => {
     expect(binding.axis_mapping.value?.scale).toBe(-1);
   });
 });
+
+describe("the command line beside the fields", () => {
+  afterEach(cleanup);
+
+  // The single best idea in the old builder: a sentence an author can paste into a terminal to check a
+  // control against a real robot, without the app and without asking anyone.
+  it("writes both lines for a toggle, from the settings as they stand", () => {
+    const widget = {
+      id: "gripper",
+      kind: "toggle",
+      title: "Gripper",
+      layout: { x: 0, y: 0, width: 220, height: 120 },
+      settings: {
+        topic: "/gripper_controller/commands",
+        messageType: "std_msgs/msg/Float64MultiArray",
+        onPayload: "{data: [0.2]}",
+        offPayload: "{data: [1.1]}",
+        onLabel: "Open",
+        offLabel: "Close",
+      },
+    } as unknown as WidgetConfig;
+
+    render(
+      <BuilderWidgetSettingsEditor onUpdateSettings={vi.fn(() => null)} onUpdateTitle={vi.fn()} widget={widget} />,
+    );
+
+    expect(screen.getByText(/ON: ros2 topic pub -1 \/gripper_controller\/commands/)).toBeTruthy();
+    expect(screen.getByText(/OFF: .*\{data: \[1.1\]\}/)).toBeTruthy();
+  });
+
+  it("says nothing for a control with nothing to send yet", () => {
+    const widget = {
+      id: "blank",
+      kind: "command-button",
+      title: "Command",
+      layout: { x: 0, y: 0, width: 160, height: 104 },
+      settings: { topic: "", messageType: "", payload: "" },
+    } as unknown as WidgetConfig;
+
+    render(
+      <BuilderWidgetSettingsEditor onUpdateSettings={vi.fn(() => null)} onUpdateTitle={vi.fn()} widget={widget} />,
+    );
+
+    expect(screen.queryByText(/ros2 topic pub/)).toBeNull();
+  });
+});

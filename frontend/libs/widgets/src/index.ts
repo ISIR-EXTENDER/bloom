@@ -10,6 +10,7 @@ import { gripperToggleSettings } from "./gripper";
 import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
 export * from "./canvas-defaults";
+export * from "./cli-preview";
 export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
