@@ -186,6 +186,7 @@ export function BuilderWidgetSettingsEditor({
       ) : (
         contract.fields.map((field) => (
           <BuilderSettingsField
+            defaultValue={contract.defaultSettings[field.key]}
             field={field}
             key={field.key}
             onChange={(rawValue) => updateSetting(field, rawValue)}
@@ -240,13 +241,20 @@ function WidgetDestinationSummary({ destination }: { destination: WidgetDestinat
   );
 }
 
+function isSameJsonValue(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
 function BuilderSettingsField({
+  defaultValue,
   field,
   inert,
   onChange,
   onClear,
   value,
 }: {
+  /** What the contract gave this field, so an untouched inert setting stays quiet. */
+  defaultValue?: unknown;
   field: WidgetSettingField;
   inert?: { key: string; reason: string };
   onChange: (value: string | boolean) => void;
@@ -254,13 +262,14 @@ function BuilderSettingsField({
   value: unknown;
 }) {
   // A setting the runtime ignores is not worth an editable control. When it is
-  // empty there is nothing to say, so it is hidden as pure noise. When it holds
-  // a value it stays visible and disabled, because a stale value that quietly
-  // does nothing is exactly what would mislead the next person to open this
-  // widget, and they need a way to clear it.
+  // empty, or still holds what the contract gave it, there is nothing to say and
+  // it is hidden as pure noise. When someone chose a value it stays visible and
+  // disabled, because a stale value that quietly does nothing is exactly what
+  // would mislead the next person to open this widget, and they need a way to
+  // clear it.
   if (inert) {
     const hasValue = typeof value === "string" ? value.trim().length > 0 : value != null && value !== "";
-    if (!hasValue) {
+    if (!hasValue || isSameJsonValue(value, defaultValue)) {
       return null;
     }
 

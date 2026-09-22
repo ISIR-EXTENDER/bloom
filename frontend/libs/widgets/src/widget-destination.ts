@@ -72,6 +72,21 @@ const TELEOP_DEFAULT_TARGET = "/joystick_cartesian_command";
 const LEGACY_BINDING_INERT_ON_SLIDER =
   "Nothing reads this on a slider. The runtime binding below is what routes the value.";
 
+/**
+ * The action contract a command button still declares, and nothing acts on.
+ *
+ * `createRuntimeActionContract` attaches these to the intent, and no dispatcher, renderer or kiosk
+ * surface reads them back: there is no progress indicator and no cancel affordance to drive. They
+ * were required fields, so every command button asked an author two questions with no consequence.
+ */
+const ACTION_CONTRACT_INERT = "Nothing reads this yet: there is no progress or cancel surface to drive.";
+
+const ACTION_CONTRACT_SETTINGS: InertSetting[] = [
+  { key: "action_id", reason: ACTION_CONTRACT_INERT },
+  { key: "action_feedback", reason: ACTION_CONTRACT_INERT },
+  { key: "cancellable", reason: ACTION_CONTRACT_INERT },
+];
+
 /** Mirrors `resolveWidgetRuntimeTopic` in `RuntimeWorkspace`. */
 const READING_KINDS = new Set(["event-log", "gauge", "jacobian", "joint-table", "plot", "topic-echo", "topic-plot"]);
 const PUBLISHING_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
@@ -128,7 +143,10 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
   const valueMapping = asRecord(runtimeBinding.value_mapping);
   const adapter = typeof runtimeBinding.adapter === "string" ? runtimeBinding.adapter : "";
   const bindingTopic = asTopic(valueMapping.target_topic) ?? asTopic(valueMapping.topic);
-  const legacy: InertSetting[] = kind === "slider" ? [{ key: "binding", reason: LEGACY_BINDING_INERT_ON_SLIDER }] : [];
+  const legacy: InertSetting[] = [
+    ...(kind === "slider" ? [{ key: "binding", reason: LEGACY_BINDING_INERT_ON_SLIDER }] : []),
+    ...(kind === "command-button" ? ACTION_CONTRACT_SETTINGS : []),
+  ];
 
   // Frame controls change the local composition context. They do not publish
   // a ROS message of their own, so reporting a missing topic is misleading.

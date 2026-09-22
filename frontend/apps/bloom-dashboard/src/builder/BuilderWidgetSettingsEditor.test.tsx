@@ -95,6 +95,23 @@ describe("settings the runtime ignores", () => {
     expect(nextSettings.topic).toBe("");
   });
 
+  it("asks nothing about a command button's action contract, which nothing reads", () => {
+    // `action_feedback` and `cancellable` were required, so every command button asked an author two
+    // questions with no consequence: the contract they feed is built and never read back.
+    renderEditor({ command: "explorer.deploy" }, "command-button");
+
+    expect(screen.queryByLabelText("Action feedback")).toBeNull();
+    expect(screen.queryByText("Cancellable")).toBeNull();
+  });
+
+  it("says so when a shipped app promised a behaviour that contract cannot give", () => {
+    // explorer-user-tests has seven buttons declaring themselves cancellable, including "Deploy
+    // robot". Nothing cancels them, and hiding that would leave the promise standing.
+    renderEditor({ command: "explorer.deploy", cancellable: true }, "command-button");
+
+    expect(screen.getByText(/no progress or cancel surface/)).toBeTruthy();
+  });
+
   it("leaves fields the runtime does use fully editable", () => {
     renderEditor({ topic: "/cmd/max_velocity", messageType: "std_msgs/msg/Float64", runtime_binding: {} });
 

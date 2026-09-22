@@ -514,14 +514,16 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
       { key: "button_label", label: "Button label", type: "text", required: false },
       { key: "action_id", label: "Action id", type: "text", required: false },
       { key: "action_label", label: "Action label", type: "text", required: false },
+      // Not required: nothing reads either one, so demanding an answer promised a behaviour that
+      // does not exist. They stay in the contract so shipped apps keep validating.
       {
         key: "action_feedback",
         label: "Action feedback",
         type: "select",
-        required: true,
+        required: false,
         options: ["none", "progress", "result"],
       },
-      { key: "cancellable", label: "Cancellable", type: "boolean", required: true },
+      { key: "cancellable", label: "Cancellable", type: "boolean", required: false },
       // Hold to run: the shipped Snake button. The released payload is what goes out on let-go.
       { key: "momentary", label: "Hold to run", type: "boolean", required: false },
       { key: "pressed_label", label: "Label while held", type: "text", required: false },
