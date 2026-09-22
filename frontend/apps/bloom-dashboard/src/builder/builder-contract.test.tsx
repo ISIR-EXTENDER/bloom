@@ -210,10 +210,11 @@ describe("the builder workspace", () => {
   it("reports the screen's device class without offering to change it", () => {
     renderWorkspace(bench);
 
+    // Not a control, and no longer shaped like one: showing both classes with one filled in read
+    // as a switch, so it invited a click that could never do anything.
     expect(screen.queryByRole("button", { name: /Tablet 1280×720|Desktop 1920×1080/ })).toBeNull();
-    const current = screen.getByText("Tablet 1280×720");
-    expect(current.getAttribute("aria-current")).toBe("true");
-    expect(screen.getByText("Desktop 1920×1080").getAttribute("aria-current")).toBeNull();
+    expect(screen.getByText("Tablet 1280×720")).toBeTruthy();
+    expect(screen.queryByText("Desktop 1920×1080")).toBeNull();
   });
 });
 

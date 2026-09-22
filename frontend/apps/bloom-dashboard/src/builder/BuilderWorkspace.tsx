@@ -264,13 +264,14 @@ export function BuilderWorkspace({
               Redo
             </button>
           </div>
-          {/* Tablet and desktop are separate apps: the class follows the screen, so this reports it, never sets it. */}
-          <dl aria-label="Device class" className="builder-device-switch">
-            <dt className="sr-only">Device class</dt>
-            <dd aria-current={panel.deviceClass === "tablet" ? "true" : undefined}>Tablet 1280×720</dd>
-            <dd aria-current={panel.deviceClass === "desktop" ? "true" : undefined}>Desktop 1920×1080</dd>
-          </dl>
           <dl className="builder-stage-meta">
+            {/* Tablet and desktop are separate apps: the class follows the screen, so this reports
+                it, never sets it. Shown as a reading beside the others, because two framed pills
+                with one filled in read as a switch and invite a click that does nothing. */}
+            <div>
+              <dt>Device</dt>
+              <dd>{panel.deviceClass === "desktop" ? "Desktop 1920×1080" : "Tablet 1280×720"}</dd>
+            </div>
             <div>
               <dt>Canvas</dt>
               <dd>
