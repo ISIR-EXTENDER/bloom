@@ -56,3 +56,59 @@ describe("an app as the Builder creates it", () => {
     expect(tooSmall.map((definition) => definition.kind)).toEqual([]);
   });
 });
+
+describe("a shipped command button's command", () => {
+  /**
+   * `findActionPreset` matches on the exact string, so a rename on one side and not the other leaves
+   * a button that looks live and dispatches nothing. That is how "Enable safety zone" in the user
+   * test app came to name `explorer.safety_zone.enable` while its preset said `explorer.safe_zone.enable`.
+   *
+   * Five buttons in that app still resolve to nothing and are listed here rather than hidden: they
+   * have no preset at all, and inventing the legacy UI's payloads would be guessing at a robot
+   * contract. Deciding their fate is a study-design question.
+   */
+  const UNRESOLVED = new Set([
+    "disable-safety-zone",
+    "reset-safety-zone",
+    "start-drink-mode",
+    "pause-drink-mode",
+    "complete-drink-mode",
+  ]);
+
+  it("names a preset that exists, in every shipped app", async () => {
+    const seeds = await Promise.all(
+      ["explorer-manager", "kinova-manager", "explorer-user-tests", "explorer-camera-test", "kinova-camera-test"].map(
+        async (id) => [id, (await import(`../../../../../backend/seed/applications/${id}.json`)).default] as const,
+      ),
+    );
+
+    const dangling: string[] = [];
+    for (const [seedId, bundle] of seeds) {
+      for (const application of bundle.applications) {
+        const commands = new Set(
+          (application.action_presets ?? []).flatMap((preset: { command?: string }) =>
+            preset.command ? [preset.command] : [],
+          ),
+        );
+        const presetIds = new Set((application.action_presets ?? []).map((preset: { id: string }) => preset.id));
+        for (const screenConfig of application.screens ?? []) {
+          for (const widget of screenConfig.widgets ?? []) {
+            if (widget.kind !== "command-button") continue;
+            const settings = widget.settings ?? {};
+            const routed =
+              Boolean(settings.topic) ||
+              Boolean(settings.runtime_binding) ||
+              presetIds.has(settings.presetId) ||
+              commands.has(settings.command) ||
+              Boolean(settings.targetScreenId);
+            if (!routed && settings.command && !UNRESOLVED.has(widget.id)) {
+              dangling.push(`${seedId}/${widget.id} → ${settings.command}`);
+            }
+          }
+        }
+      }
+    }
+
+    expect(dangling.sort()).toEqual([]);
+  });
+});

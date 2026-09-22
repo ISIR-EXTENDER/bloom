@@ -734,7 +734,7 @@
                 "height": 150
               },
               "settings": {
-                "command": "explorer.safety_zone.enable",
+                "command": "explorer.safe_zone.enable",
                 "button_label": "Enable",
                 "action_id": "explorer-safety-zone-enable",
                 "action_label": "Enable safety zone",
