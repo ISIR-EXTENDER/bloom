@@ -142,6 +142,10 @@ class Settings(BaseModel):
         "/joystick_cartesian_command",
         "/mode_request",
         "/petanque_state_machine/change_state",
+        # The joint command the QP controller writes. Against /joint_states it is tracking error,
+        # and it is the only visible sign of a QP that stopped solving: the controller has no else
+        # branch on a failed solve and publishes no fault.
+        "/qontrol_controller/commands",
         "/rosout",
         # Legacy sandbox_controller feedback, still used by the Petanque app.
         # Remove when Petanque migrates off /teleop_cmd.

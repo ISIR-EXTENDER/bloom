@@ -23,6 +23,7 @@
           "/joystick_cartesian_command",
           "/mode_request",
           "/petanque_state_machine/change_state",
+          "/qontrol_controller/commands",
           "/rosout",
           "/teleop_cmd"
         ],
@@ -164,6 +165,22 @@
                     "label": "Kinova fault",
                     "unit": "flag",
                     "enabled": false
+                  },
+                  {
+                    "topic": "/qontrol_controller/commands",
+                    "message_type": "std_msgs/msg/Float64MultiArray",
+                    "field_path": "data[0]",
+                    "label": "joint_1 commanded",
+                    "unit": "rad",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/qontrol_controller/commands",
+                    "message_type": "std_msgs/msg/Float64MultiArray",
+                    "field_path": "data[1]",
+                    "label": "joint_2 commanded",
+                    "unit": "rad",
+                    "enabled": true
                   }
                 ],
                 "history_seconds": 30,

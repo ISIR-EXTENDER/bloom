@@ -55,13 +55,14 @@ describe("telemetry subscriptions", () => {
 
     expect(client.subscribeRuntimeTopic).not.toHaveBeenCalled();
     setLink("connected");
-    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(6));
+    // Six topics the screen reads, plus /qontrol_controller/commands for tracking error.
+    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(7));
 
     setLink("disconnected");
     setLink("connecting");
     setLink("connected");
-    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(12));
+    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(14));
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(12);
+    expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(14);
   });
 });
