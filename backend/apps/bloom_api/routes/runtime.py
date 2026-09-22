@@ -43,6 +43,12 @@ from libs.ros_adapters.camera_frames import (
     NoopCameraFrameGateway,
     decode_image_data_url,
 )
+from libs.ros_adapters.camera_streams import (
+    CameraStreamFrame,
+    CameraStreamGateway,
+    CameraStreamHandle,
+    NoopCameraStreamGateway,
+)
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import (
     RuntimeCommandPolicy,
@@ -107,6 +113,11 @@ def get_teleop_command_gateway(websocket: WebSocket) -> TeleopCommandGateway:
 
 def get_runtime_topic_subscription_gateway(websocket: WebSocket) -> RuntimeTopicSubscriptionGateway:
     return websocket.app.state.runtime_topic_subscription_gateway
+
+
+def get_camera_stream_gateway(websocket: WebSocket) -> CameraStreamGateway:
+    gateway = getattr(websocket.app.state, "camera_stream_gateway", None)
+    return gateway if gateway is not None else NoopCameraStreamGateway()
 
 
 def get_runtime_stop_controller(connection: Request | WebSocket) -> RuntimeStopController:
@@ -1084,6 +1095,80 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 handle.close()
             await cancel_runtime_task(receive_task)
             await cancel_runtime_task(sample_task)
+
+
+@router.websocket("/camera")
+async def runtime_camera_websocket(websocket: WebSocket) -> None:
+    """Stream one ROS camera topic as binary frames.
+
+    Separate from `/ws` on purpose: a frame is hundreds of times larger than a
+    twist, and putting the two on one socket makes a slow image delay the
+    telemetry an operator is steering by. Watching needs no control lease, for
+    the same reason STOP does not: a locked-out session should still see.
+    """
+    await require_runtime_websocket_principal(websocket)
+    topic = websocket.query_params.get("topic", "").strip()
+    await websocket.accept(subprotocol=select_runtime_websocket_subprotocol(websocket))
+
+    if not topic.startswith("/") or any(character.isspace() for character in topic):
+        await websocket.close(code=1008, reason="A camera topic must start with / and carry no whitespace.")
+        return
+
+    gateway = get_camera_stream_gateway(websocket)
+    event_loop = asyncio.get_running_loop()
+    # One slot: an operator judging where the gripper is wants the newest frame, never a backlog.
+    frames: asyncio.Queue[CameraStreamFrame] = asyncio.Queue(maxsize=1)
+    handle: CameraStreamHandle | None = None
+    receive_task: asyncio.Task | None = None
+    frame_task: asyncio.Task | None = None
+
+    try:
+        handle = gateway.subscribe(
+            topic,
+            lambda frame: event_loop.call_soon_threadsafe(enqueue_camera_frame, frames, frame),
+        )
+    except (RuntimeError, ValueError) as error:
+        logger.warning("Cannot stream camera topic %s: %s", topic, error)
+        await websocket.close(code=1011, reason=str(error))
+        return
+
+    try:
+        # Said once, before any frame: "waiting for a frame" and "no ROS here" look identical otherwise.
+        await websocket.send_json(
+            {
+                "type": "camera_stream_opened",
+                "topic": topic,
+                "connected": not isinstance(gateway, NoopCameraStreamGateway),
+            }
+        )
+        receive_task = asyncio.create_task(websocket.receive_text())
+        frame_task = asyncio.create_task(frames.get())
+        while True:
+            done, _ = await asyncio.wait({receive_task, frame_task}, return_when=asyncio.FIRST_COMPLETED)
+            if receive_task in done:
+                # The client sends nothing; this task exists so a disconnect lands here.
+                receive_task.result()
+                receive_task = asyncio.create_task(websocket.receive_text())
+            if frame_task in done:
+                await websocket.send_bytes(frame_task.result().image_bytes)
+                frame_task = asyncio.create_task(frames.get())
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if handle is not None:
+            handle.close()
+        await cancel_runtime_task(receive_task)
+        await cancel_runtime_task(frame_task)
+
+
+def enqueue_camera_frame(frames: asyncio.Queue[CameraStreamFrame], frame: CameraStreamFrame) -> None:
+    """Keep the newest frame. A frame nobody has read yet is already stale."""
+    try:
+        frames.put_nowait(frame)
+    except asyncio.QueueFull:
+        with suppress(asyncio.QueueEmpty):
+            frames.get_nowait()
+        frames.put_nowait(frame)
 
 
 async def handle_runtime_client_payload(

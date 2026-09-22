@@ -4,7 +4,12 @@ from threading import Thread
 import typer
 import uvicorn
 
-from apps.bloom_api.main import create_app, create_camera_frame_gateway, create_teleop_command_gateway
+from apps.bloom_api.main import (
+    create_app,
+    create_camera_frame_gateway,
+    create_camera_stream_gateway,
+    create_teleop_command_gateway,
+)
 from apps.bloom_api.settings import get_settings
 from libs.config import (
     ApplicationConfig,
@@ -121,6 +126,7 @@ def run_ros_api(
             teleop_command_gateway=create_teleop_command_gateway(get_settings(), node),
         )
         app.state.camera_frame_gateway = create_camera_frame_gateway(node)
+        app.state.camera_stream_gateway = create_camera_stream_gateway(node)
         uvicorn.run(app, host=host, port=port, reload=False)
     finally:
         executor.shutdown()
