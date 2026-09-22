@@ -2,23 +2,44 @@ import { useEffect, useRef, useState } from "react";
 import { getBooleanSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
-export function CameraWidget({ descriptor }: WidgetRendererProps) {
+export function CameraWidget({ data, descriptor }: WidgetRendererProps) {
   const source = getStringSetting(descriptor.widget.settings, "source", "placeholder");
   const streamUrl = getStringSetting(descriptor.widget.settings, "streamUrl", "");
+  const topic = getStringSetting(descriptor.widget.settings, "topic", "");
   const fitMode = getStringSetting(descriptor.widget.settings, "fitMode", "contain");
   const showHeader = getBooleanSetting(descriptor.widget.settings, "showHeader", true);
   const showStatus = getBooleanSetting(descriptor.widget.settings, "showStatus", true);
   const showWebcamPicker = getBooleanSetting(descriptor.widget.settings, "webcamPicker", true);
+  const frame = data?.type === "camera-frame" ? data : undefined;
 
   return (
     <div className="bloom-camera-widget">
       {showHeader ? (
         <header className="bloom-camera-header">
           <strong>{descriptor.widget.title}</strong>
-          <span>{source === "webcam" ? "Local camera" : streamUrl ? "Stream configured" : "No source"}</span>
+          <span>{describeCameraSource(source, streamUrl, topic)}</span>
         </header>
       ) : null}
-      {source === "webcam" ? (
+      {source === "ros-topic" ? (
+        <>
+          <div className="bloom-camera-body">
+            <div className="bloom-camera-frame" data-fit-mode={fitMode === "cover" ? "cover" : "contain"}>
+              {frame?.frameUrl ? (
+                <img
+                  alt={descriptor.widget.title}
+                  className="bloom-camera-image"
+                  src={frame.frameUrl}
+                  style={{ objectFit: fitMode === "cover" ? "cover" : "contain" }}
+                />
+              ) : (
+                <CameraPlaceholder message={describeRosCameraStatus(topic, frame)} />
+              )}
+            </div>
+          </div>
+          {/* The placeholder already carries the reason; the status line stays the short label. */}
+          {showStatus ? <span className="bloom-camera-status">{topic || "Topic needed"}</span> : null}
+        </>
+      ) : source === "webcam" ? (
         <div className="bloom-camera-body">
           <WebcamPreview
             fitMode={fitMode}
@@ -45,6 +66,36 @@ export function CameraWidget({ descriptor }: WidgetRendererProps) {
       )}
     </div>
   );
+}
+
+function describeCameraSource(source: string, streamUrl: string, topic: string): string {
+  if (source === "ros-topic") {
+    return topic || "No topic";
+  }
+  if (source === "webcam") {
+    return "Local camera";
+  }
+  return streamUrl ? "Stream configured" : "No source";
+}
+
+/** Each state names what to do about it; "no image" alone sends an operator hunting the wrong thing. */
+function describeRosCameraStatus(
+  topic: string,
+  frame: { connected: boolean; frameUrl?: string; detail?: string } | undefined,
+): string {
+  if (!topic) {
+    return "Name a compressed image topic to show a camera.";
+  }
+  if (!frame) {
+    return "Connecting…";
+  }
+  if (frame.detail) {
+    return frame.detail;
+  }
+  if (!frame.connected) {
+    return "This backend has no ROS node, so no camera can reach it.";
+  }
+  return frame.frameUrl ? topic : `Waiting for a frame on ${topic}.`;
 }
 
 function WebcamPreview({

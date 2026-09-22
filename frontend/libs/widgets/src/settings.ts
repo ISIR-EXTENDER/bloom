@@ -40,8 +40,10 @@ export type CameraSettings = {
   fitMode: "contain" | "cover";
   showHeader: boolean;
   showStatus: boolean;
-  source: "placeholder" | "stream-url" | "webcam";
+  source: "placeholder" | "ros-topic" | "stream-url" | "webcam";
   streamUrl: string;
+  /** The compressed image topic, read only when source is `ros-topic`. */
+  topic: string;
   webcamPicker: boolean;
 };
 
@@ -279,6 +281,7 @@ const CAMERA_DEFAULT_SETTINGS: CameraSettings = {
   showStatus: true,
   source: "placeholder",
   streamUrl: "",
+  topic: "",
   webcamPicker: true,
 };
 
@@ -487,12 +490,14 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
     "camera",
     [
       { key: "streamUrl", label: "Stream URL", type: "text", required: false },
+      // A compressed image topic, not a raw one: the raw frame is converted nowhere on the way.
+      { key: "topic", label: "ROS image topic (compressed)", type: "text", required: false },
       {
         key: "source",
         label: "Source",
         type: "select",
         required: true,
-        options: ["placeholder", "stream-url", "webcam"],
+        options: ["placeholder", "ros-topic", "stream-url", "webcam"],
       },
       { key: "fitMode", label: "Fit mode", type: "select", required: true, options: ["contain", "cover"] },
       { key: "showHeader", label: "Show header", type: "boolean", required: true },
@@ -1168,7 +1173,8 @@ function validateButtonSettings(settings: Record<string, unknown>): WidgetSettin
 function validateCameraSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<CameraSettings> {
   const errors = [
     ...validateString(settings, "streamUrl", { allowEmpty: true }),
-    ...validateOneOf(settings, "source", ["placeholder", "stream-url", "webcam"]),
+    ...validateString(settings, "topic", { allowEmpty: true }),
+    ...validateOneOf(settings, "source", ["placeholder", "ros-topic", "stream-url", "webcam"]),
     ...validateOneOf(settings, "fitMode", ["contain", "cover"]),
     ...validateBoolean(settings, "showHeader"),
     ...validateBoolean(settings, "showStatus"),

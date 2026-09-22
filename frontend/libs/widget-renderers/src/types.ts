@@ -20,6 +20,15 @@ export type PlotSeriesSnapshot = PlotSeriesConfig & { samples: readonly PlotSeri
 
 export type WidgetDataSnapshot =
   | {
+      type: "camera-frame";
+      topic: string;
+      /** An object URL for the newest frame, absent until the first one arrives. */
+      frameUrl?: string;
+      /** False when the backend has no ROS node, so "starting up" and "never will" read differently. */
+      connected: boolean;
+      detail?: string;
+    }
+  | {
       messages: readonly TopicMessage[];
       type: "event-log";
     }

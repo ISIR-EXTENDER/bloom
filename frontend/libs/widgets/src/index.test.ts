@@ -506,6 +506,7 @@ describe("widget settings contracts", () => {
         showStatus: true,
         source: "webcam",
         streamUrl: "webcam:///dev/video0",
+        topic: "",
         webcamPicker: true,
       },
     });
@@ -517,6 +518,7 @@ describe("widget settings contracts", () => {
         showStatus: true,
         source: "ros-camera",
         streamUrl: "",
+        topic: "",
         webcamPicker: true,
       }),
     ).toEqual({
@@ -524,7 +526,7 @@ describe("widget settings contracts", () => {
       errors: [
         {
           field: "source",
-          message: "source must be one of: placeholder, stream-url, webcam",
+          message: "source must be one of: placeholder, ros-topic, stream-url, webcam",
         },
       ],
     });
@@ -717,6 +719,7 @@ describe("widget settings contracts", () => {
         showStatus: true,
         source: "stream-url",
         streamUrl: "webrtc://localhost:8001/rviz",
+        topic: "",
         webcamPicker: true,
       },
     });

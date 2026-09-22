@@ -16,6 +16,7 @@ import {
   resolveJoystickControlSize,
   type WidgetRendererRegistration,
 } from "./index";
+import type { WidgetDataSnapshot } from "./types";
 
 class ResizeObserverMock {
   disconnect() {}
@@ -920,6 +921,38 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("Ready")).toBeVisible();
   });
 
+  it("renders a ROS camera topic, and says which of the three silences it is in", () => {
+    // Robin asked to see the gripper while driving. "No image" alone sends an operator hunting the
+    // wrong thing, so waiting, unconfigured and no-ROS each read differently.
+    const [descriptor] = renderScreenDescriptors(rosCameraScreen, createDefaultWidgetRegistry());
+    if (!descriptor) throw new Error("Missing ROS camera descriptor.");
+    const draw = (data?: WidgetDataSnapshot) =>
+      render(
+        <div>{renderWidgetDescriptor(descriptor, { dataByWidgetId: data ? { "gripper-camera": data } : {} })}</div>,
+      );
+
+    draw();
+    expect(screen.getByText("Connecting…")).toBeVisible();
+    cleanup();
+
+    draw({ type: "camera-frame", topic: "/camera/color/image_raw/compressed", connected: false });
+    expect(screen.getByText(/no ROS node/)).toBeVisible();
+    cleanup();
+
+    draw({ type: "camera-frame", topic: "/camera/color/image_raw/compressed", connected: true });
+    expect(screen.getByText(/Waiting for a frame/)).toBeVisible();
+    cleanup();
+
+    draw({
+      type: "camera-frame",
+      topic: "/camera/color/image_raw/compressed",
+      connected: true,
+      frameUrl: "blob:bloom/frame-1",
+    });
+    const image = screen.getByRole("img", { name: "Gripper camera" });
+    expect(image).toHaveAttribute("src", "blob:bloom/frame-1");
+  });
+
   it("renders webcam previews with discovered browser cameras", async () => {
     const descriptor = renderScreenDescriptors(webcamScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing webcam descriptor.");
@@ -1500,6 +1533,27 @@ const topicEchoScreen: ScreenConfig = {
         messageType: "sensor_msgs/msg/JointState",
         prettyPrint: true,
         topic: "/joint_states",
+      },
+    },
+  ],
+};
+
+const rosCameraScreen: ScreenConfig = {
+  id: "gripper",
+  title: "Gripper",
+  canvas: { preset_id: "hd", runtime_mode: "fit" },
+  widgets: [
+    {
+      id: "gripper-camera",
+      kind: "camera",
+      title: "Gripper camera",
+      layout: { x: 16, y: 24, width: 480, height: 320 },
+      settings: {
+        fitMode: "contain",
+        showHeader: true,
+        showStatus: true,
+        source: "ros-topic",
+        topic: "/camera/color/image_raw/compressed",
       },
     },
   ],
