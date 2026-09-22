@@ -10,9 +10,11 @@ import { appendTopicEchoMessage, appendTopicPlotSample } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { getBloomApiBaseUrl, getBloomApiKey } from "../configurations/configuration-client";
 import { ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BloomDebugPanel } from "./BloomDebugPanel";
+import { resolveCameraStreamTargets, useCameraStreams } from "./camera-stream";
 import {
   appendSeriesSample,
   applyPlotSelections,
@@ -235,8 +237,11 @@ export function RuntimeWorkspace({
     configId: selection.configId,
   });
   const plotSelections = usePlotSelections(screen, profileOverrideKey);
+  // Camera frames arrive on their own socket, never on the one the operator steers by.
+  const cameraTargets = useMemo(() => resolveCameraStreamTargets(screen), [screen]);
+  const cameraFrames = useCameraStreams(cameraTargets, getBloomApiBaseUrl(), getBloomApiKey());
   const effectiveDataByWidgetId = useMemo(() => {
-    const merged = applyPlotSelections(screen, dataByWidgetId, plotSelections.selections);
+    const merged = { ...applyPlotSelections(screen, dataByWidgetId, plotSelections.selections), ...cameraFrames };
     if (!screenHasPositionLibrary) {
       return merged;
     }
@@ -260,7 +265,14 @@ export function RuntimeWorkspace({
       };
     }
     return merged;
-  }, [dataByWidgetId, plotSelections.selections, positionLibrary.state, screen, screenHasPositionLibrary]);
+  }, [
+    cameraFrames,
+    dataByWidgetId,
+    plotSelections.selections,
+    positionLibrary.state,
+    screen,
+    screenHasPositionLibrary,
+  ]);
   // The socket knows only the deployment policy until it is told which app it runs.
   useEffect(() => {
     runtimeActionClient

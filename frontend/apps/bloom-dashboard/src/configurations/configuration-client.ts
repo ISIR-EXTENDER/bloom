@@ -70,12 +70,12 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
   };
 }
 
-function getBloomApiBaseUrl(): string {
+export function getBloomApiBaseUrl(): string {
   return import.meta.env.VITE_BLOOM_API_URL ?? "";
 }
 
 /** Empty in development, where the backend runs without keys. */
-function getBloomApiKey(): string {
+export function getBloomApiKey(): string {
   return import.meta.env.VITE_BLOOM_API_KEY ?? "";
 }
 
