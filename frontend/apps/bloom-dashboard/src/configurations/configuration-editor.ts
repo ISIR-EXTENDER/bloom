@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ConfigurationBundle, ScreenConfig, UserProfile } from "@bloom/api-client";
 
 export function duplicateApplicationInConfigurationBundle(
   bundle: ConfigurationBundle,
@@ -213,4 +213,43 @@ export function replaceScreenInConfigurationBundle(
     ...bundle,
     applications,
   };
+}
+
+/**
+ * Roles.
+ *
+ * A profile is what the library offers as a role, what the kiosk bar switches between, and which screen
+ * opens for whoever picked it. The shipped apps carry three; until now the Builder could mint exactly
+ * one, hardcoded, at app creation, so the whole scanning and one-switch story was unauthorable.
+ */
+export function addProfileToApplication(application: ApplicationConfig, profile: UserProfile): ApplicationConfig {
+  if (application.profiles.some((candidate) => candidate.id === profile.id)) {
+    throw new Error(`Role "${profile.id}" already exists in application "${application.id}".`);
+  }
+
+  return { ...application, profiles: [...application.profiles, structuredClone(profile)] };
+}
+
+export function updateProfileInApplication(
+  application: ApplicationConfig,
+  profileId: string,
+  patch: Partial<UserProfile>,
+): ApplicationConfig {
+  if (!application.profiles.some((profile) => profile.id === profileId)) {
+    throw new Error(`Role "${profileId}" was not found in application "${application.id}".`);
+  }
+
+  return {
+    ...application,
+    profiles: application.profiles.map((profile) => (profile.id === profileId ? { ...profile, ...patch } : profile)),
+  };
+}
+
+export function removeProfileFromApplication(application: ApplicationConfig, profileId: string): ApplicationConfig {
+  if (!application.profiles.some((profile) => profile.id === profileId)) {
+    throw new Error(`Role "${profileId}" was not found in application "${application.id}".`);
+  }
+  // An app with no role still opens: the library offers it directly and the runtime falls back to a
+  // comfort profile. Keeping one artificially would be a rule the runtime does not have.
+  return { ...application, profiles: application.profiles.filter((profile) => profile.id !== profileId) };
 }

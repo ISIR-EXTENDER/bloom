@@ -2081,6 +2081,58 @@
   outline-offset: 2px;
 }
 
+/* Roles: everything about how a person reaches the controls, on one card each. */
+.builder-profile-list {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.builder-profile-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 14px;
+  background: var(--bloom-surface);
+}
+
+.builder-profile-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.builder-profile-row label {
+  display: grid;
+  flex: 1 1 180px;
+  gap: 4px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.builder-profile-check {
+  display: flex !important;
+  flex: 1 1 220px;
+  gap: 8px;
+  align-items: center;
+}
+
+.builder-profile-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.builder-profile-id {
+  color: var(--bloom-ink-soft);
+  font-family: var(--bloom-font-mono);
+  font-size: 0.78rem;
+}
+
 /* The same command on the terminal: made to be read and copied, so it wraps rather than truncates. */
 .builder-cli-preview {
   display: grid;

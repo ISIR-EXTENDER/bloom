@@ -53,7 +53,7 @@ type PlaygroundActionState =
   | { message: string; status: "error" };
 
 export type StarterScreenId = "blank" | "operator-control" | "debug-monitor";
-type CreateThemePresetId = "bloom-default" | "extender-ui" | "high-visibility";
+export type CreateThemePresetId = "bloom-default" | "extender-ui" | "high-visibility";
 
 const CREATE_THEME_PRESETS: Record<CreateThemePresetId, ApplicationConfig["theme"]> = {
   "bloom-default": {
@@ -601,7 +601,8 @@ function createGuidedApplication(
   };
 }
 
-function createStarterProfile(screenId: string, themePresetId: CreateThemePresetId): UserProfile {
+/** Shared with the app config, so a role added later starts life like the one created with the app. */
+export function createStarterProfile(screenId: string, themePresetId: CreateThemePresetId): UserProfile {
   return {
     id: "operator",
     name: "Operator",

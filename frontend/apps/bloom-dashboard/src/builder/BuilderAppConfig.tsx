@@ -4,18 +4,22 @@ import type {
   RuntimeAdapterPolicy,
   RuntimeCapabilityReport,
   ScreenConfig,
+  UserProfile,
 } from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, type BloomThemePresetId } from "@bloom/ui";
 import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  addProfileToApplication,
   addScreenToApplication,
   createUniqueId,
   duplicateScreenInApplication,
   moveScreenBeforeInApplication,
+  removeProfileFromApplication,
   removeScreenFromApplication,
   reorderScreenInApplication,
+  updateProfileInApplication,
 } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { describeApiError } from "../ui/api-error";
@@ -29,6 +33,8 @@ import {
 } from "../ui/dragDrop";
 import { getTouchEditingProps } from "../ui/touchEditing";
 import { BuilderGuidedTour } from "./BuilderGuidedTour";
+import { createStarterProfile } from "./BuilderHome";
+import { BuilderProfilesPanel } from "./BuilderProfilesPanel";
 import { defaultStopRegion, resolveNewScreenCanvas } from "./builder-geometry";
 import { countLabel } from "./builderHomeModel";
 
@@ -180,6 +186,36 @@ export function BuilderAppConfig({
     }
 
     addScreen(availableScreen.screen);
+  };
+
+  const addProfile = () => {
+    setDraftApplication((currentApplication) => {
+      const name = `Role ${currentApplication.profiles.length + 1}`;
+      // A new role opens on the screen the author is most likely to mean: the first one.
+      const profile = {
+        ...createStarterProfile(
+          currentApplication.screens[0]?.id ?? "",
+          currentApplication.theme.preset_id as "bloom-default" | "extender-ui" | "high-visibility",
+        ),
+        id: createUniqueId(
+          name,
+          currentApplication.profiles.map((candidate) => candidate.id),
+        ),
+        name,
+      };
+      return addProfileToApplication(currentApplication, profile);
+    });
+    setSaveState({ status: "idle" });
+  };
+
+  const updateProfile = (profileId: string, patch: Partial<UserProfile>) => {
+    setDraftApplication((currentApplication) => updateProfileInApplication(currentApplication, profileId, patch));
+    setSaveState({ status: "idle" });
+  };
+
+  const removeProfile = (profileId: string) => {
+    setDraftApplication((currentApplication) => removeProfileFromApplication(currentApplication, profileId));
+    setSaveState({ status: "idle" });
   };
 
   const createScreen = () => {
@@ -721,6 +757,13 @@ export function BuilderAppConfig({
             </fieldset>
           </section>
         </aside>
+
+        <BuilderProfilesPanel
+          application={draftApplication}
+          onAddProfile={addProfile}
+          onRemoveProfile={removeProfile}
+          onUpdateProfile={updateProfile}
+        />
 
         <section className="builder-config-panel builder-screens-panel" aria-labelledby="builder-screens-title">
           <div className="builder-config-panel-header">
