@@ -587,7 +587,9 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   "gesture-pad": createContract(
     "gesture-pad",
     [
-      { key: "command", label: "Command", type: "text", required: true },
+      // Not required: the dispatcher never reads the binding this becomes, so an answer changes
+      // nothing. Output topic and message type are what make a gesture pad publish.
+      { key: "command", label: "Command", type: "text", required: false },
       { key: "topic", label: "Output topic", type: "text", required: false },
       { key: "messageType", label: "ROS message type", type: "text", required: false },
       { key: "angleLabel", label: "Angle label", type: "text", required: true },
@@ -805,7 +807,14 @@ export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettin
   "robot-3d": createContract(
     "robot-3d",
     [
-      { key: "modelSource", label: "Model source", type: "select", required: true, options: ["extension", "urdf-url"] },
+      // Not required: nothing fetches a model, which the palette's maturity note already says.
+      {
+        key: "modelSource",
+        label: "Model source",
+        type: "select",
+        required: false,
+        options: ["extension", "urdf-url"],
+      },
       { key: "robotModelUrl", label: "Robot model URL", type: "text", required: false },
       { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
       { key: "showAxes", label: "Show axes", type: "boolean", required: true },

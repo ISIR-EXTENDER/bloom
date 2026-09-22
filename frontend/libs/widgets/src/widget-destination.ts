@@ -81,6 +81,18 @@ const LEGACY_BINDING_INERT_ON_SLIDER =
  */
 const ACTION_CONTRACT_INERT = "Nothing reads this yet: there is no progress or cancel surface to drive.";
 
+/** A gesture pad's `command` is copied onto the intent and no dispatcher reads it back. */
+const GESTURE_COMMAND_INERT =
+  "Nothing reads this on a gesture pad. The output topic and message type below are what publish.";
+
+/** `robot-3d` draws a joint-state summary; no code fetches a model, which its palette note also says. */
+const ROBOT_MODEL_INERT = "Nothing loads a model yet, so this widget draws a joint-state summary instead.";
+
+const ROBOT_MODEL_SETTINGS: InertSetting[] = [
+  { key: "modelSource", reason: ROBOT_MODEL_INERT },
+  { key: "robotModelUrl", reason: ROBOT_MODEL_INERT },
+];
+
 const ACTION_CONTRACT_SETTINGS: InertSetting[] = [
   { key: "action_id", reason: ACTION_CONTRACT_INERT },
   { key: "action_feedback", reason: ACTION_CONTRACT_INERT },
@@ -102,6 +114,7 @@ function asTopic(value: unknown): string | null {
 
 function resolveReadSource(kind: string, settings: Record<string, unknown>): WidgetDestination {
   if (kind === "robot-3d" || kind === "position-library") {
+    const modelSettings = kind === "robot-3d" ? ROBOT_MODEL_SETTINGS : [];
     const configured = asTopic(settings.jointStateTopic);
     return configured
       ? {
@@ -109,14 +122,14 @@ function resolveReadSource(kind: string, settings: Record<string, unknown>): Wid
           topic: configured,
           source: "input-topic",
           detail: null,
-          inertSettings: [],
+          inertSettings: modelSettings,
         }
       : {
           direction: "reads",
           topic: ROBOT_3D_DEFAULT_TOPIC,
           source: "widget-default",
           detail: "The default when no joint state topic is set.",
-          inertSettings: [],
+          inertSettings: modelSettings,
         };
   }
 
@@ -146,6 +159,7 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
   const legacy: InertSetting[] = [
     ...(kind === "slider" ? [{ key: "binding", reason: LEGACY_BINDING_INERT_ON_SLIDER }] : []),
     ...(kind === "command-button" ? ACTION_CONTRACT_SETTINGS : []),
+    ...(kind === "gesture-pad" ? [{ key: "command", reason: GESTURE_COMMAND_INERT }] : []),
   ];
 
   // Frame controls change the local composition context. They do not publish
