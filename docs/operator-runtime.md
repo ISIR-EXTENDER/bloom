@@ -409,7 +409,8 @@ base convention. Angular components from end-effector or hybrid frames are rotat
 are rejected by Bloom when outside the allowlist and skipped by the manager if they reach it.
 
 The default allowlist is `base_link` and `hybrid_frame`, which every manager config has. Set `BLOOM_ROS_EE_FRAME_ID`
-to the served robot's end-effector frame (`ft_frame` on Explorer, `effector_frame` on the Kinova gen3) to offer it too.
+to the served robot's end-effector frame, `effector_frame` on both arms since cartesian_manager d9a1fa5 moved
+Explorer off `ft_frame`, to offer it too.
 An Explorer backend that advertised `effector_frame` accepted commands the manager then discarded without a word. One
 backend instance represents one robot and can name it with `BLOOM_ROBOT_NAME`.
 

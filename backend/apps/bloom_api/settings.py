@@ -108,7 +108,7 @@ class Settings(BaseModel):
     # Default stamp; must be one of the manager's command frames.
     ros_command_frame_id: str = "base_link"
     # This deployment's end-effector frame, as cartesian_manager names it in
-    # frames.ee_frame: ft_frame on Explorer, effector_frame on the Kinova gen3.
+    # frames.ee_frame: effector_frame on both arms since cartesian_manager d9a1fa5.
     # Empty means nobody has said, and Bloom then offers no tool frame at all.
     ros_ee_frame_id: str = ""
     # The frames cartesian_manager accepts as rotation references. base_link and

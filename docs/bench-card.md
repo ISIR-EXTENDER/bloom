@@ -43,7 +43,7 @@ cd /path/to/bloom
 EXTENDER_WORKSPACE=/path/to/extender_workspace \
 BLOOM_ROBOT_NAME=Explorer \
 BLOOM_ROS_COMMAND_FRAME_ID=base_link \
-BLOOM_ROS_EE_FRAME_ID=ft_frame \
+BLOOM_ROS_EE_FRAME_ID=effector_frame \
 scripts/extender-workspace-dev.sh
 ```
 

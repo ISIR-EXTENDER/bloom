@@ -61,7 +61,10 @@ done
 case "${ROBOT}" in
   explorer)
     ROBOT_NAME="Explorer"
-    EE_FRAME_ID="ft_frame"
+    # cartesian_manager d9a1fa5 moved Explorer's ee_frame from ft_frame to effector_frame, so both
+    # arms now name their tool frame the same way. A frame the manager does not know is skipped
+    # silently, which looks exactly like a broken web stack.
+    EE_FRAME_ID="effector_frame"
     ;;
   kinova)
     ROBOT_NAME="Kinova"
