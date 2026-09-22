@@ -3,6 +3,7 @@ import {
   findSizeShortfall,
   type RuntimeCapability,
   resolveWidgetReadiness,
+  type WidgetCategory,
   type WidgetDefinition,
 } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef } from "react";
@@ -221,37 +222,61 @@ function WidgetPalette({
         <p className="eyebrow">Widget palette</p>
         <h3 id="builder-widget-palette-title">Add widgets</h3>
       </div>
-      <div className="builder-widget-palette-grid">
-        {definitions.map((definition) => {
-          const readiness = resolveWidgetReadiness(definition, capabilities);
-          // A widget that cannot work here stays in the palette, marked. Hiding
-          // it would leave someone hunting for a widget that used to be there.
-          return (
-            <button
-              aria-label={
-                readiness.note
-                  ? `Add ${definition.displayName} widget. ${readiness.note}`
-                  : `Add ${definition.displayName} widget`
-              }
-              data-readiness={readiness.state === "ready" ? undefined : readiness.state}
-              key={definition.kind}
-              onClick={() => onAddWidget(definition)}
-              type="button"
-            >
-              <strong>{definition.displayName}</strong>
-              <span>{definition.category}</span>
-              {readiness.state === "unavailable" ? (
-                <em className="builder-widget-palette-flag">Not connected</em>
-              ) : null}
-              {readiness.state === "preview" ? <em className="builder-widget-palette-flag">Preview</em> : null}
-              {readiness.note ? <small className="builder-widget-palette-note">{readiness.note}</small> : null}
-            </button>
-          );
-        })}
-      </div>
+      {PALETTE_CATEGORIES.map(({ id, label }) => {
+        const inCategory = definitions.filter((definition) => definition.category === id);
+        if (inCategory.length === 0) {
+          return null;
+        }
+        return (
+          <div key={id}>
+            <h4 className="builder-widget-palette-category">{label}</h4>
+            <div className="builder-widget-palette-grid">
+              {inCategory.map((definition) => {
+                const readiness = resolveWidgetReadiness(definition, capabilities);
+                // A widget that cannot work here stays in the palette, marked. Hiding
+                // it would leave someone hunting for a widget that used to be there.
+                return (
+                  <button
+                    aria-label={
+                      readiness.note
+                        ? `Add ${definition.displayName} widget. ${readiness.note}`
+                        : `Add ${definition.displayName} widget`
+                    }
+                    data-readiness={readiness.state === "ready" ? undefined : readiness.state}
+                    key={definition.kind}
+                    onClick={() => onAddWidget(definition)}
+                    type="button"
+                  >
+                    <strong>{definition.displayName}</strong>
+                    {readiness.state === "unavailable" ? (
+                      <em className="builder-widget-palette-flag">Not connected</em>
+                    ) : null}
+                    {readiness.state === "preview" ? <em className="builder-widget-palette-flag">Preview</em> : null}
+                    {readiness.note ? <small className="builder-widget-palette-note">{readiness.note}</small> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </section>
   );
 }
+
+/**
+ * The palette in the order someone builds a screen: drive it, command it, then read it back.
+ *
+ * Nineteen widgets in one flat grid, each printing its own category underneath, asked an author to
+ * do the grouping in their head every time. `unknown` is not offered, so it is not listed.
+ */
+const PALETTE_CATEGORIES: readonly { id: WidgetCategory; label: string }[] = [
+  { id: "input", label: "Drive the robot" },
+  { id: "command", label: "Send a command" },
+  { id: "display", label: "See what it is doing" },
+  { id: "feedback", label: "Read the data" },
+  { id: "device", label: "Devices" },
+];
 
 function BuilderInspectorPanel({
   children,

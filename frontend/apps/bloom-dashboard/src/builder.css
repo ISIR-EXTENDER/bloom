@@ -1944,6 +1944,16 @@
   font-size: 1rem;
 }
 
+/* The heading the cards used to print on themselves, said once for the group instead. */
+.builder-widget-palette-category {
+  margin: 14px 0 6px;
+  color: var(--bloom-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .builder-widget-palette-grid {
   display: grid;
   gap: 10px;

@@ -95,3 +95,28 @@ describe("before the backend has answered", () => {
     expect(paletteButton("Joystick").getAttribute("data-readiness")).toBe("unknown");
   });
 });
+
+describe("how the palette is grouped", () => {
+  afterEach(cleanup);
+
+  it("puts every offered widget under a heading, so none can go missing", () => {
+    // The headings are a hand-written list. A widget whose category is not on it would vanish from
+    // the palette without a word, which is exactly the failure this grouping was meant to end.
+    const offered = Array.from(createDefaultWidgetRegistry().values()).filter(
+      (definition) => definition.availability.editor && definition.kind !== "unknown",
+    );
+    renderPalette(WITH_ROS);
+
+    for (const definition of offered) {
+      expect(paletteButton(definition.displayName), definition.kind).toBeTruthy();
+    }
+  });
+
+  it("names the groups in the order someone builds a screen", () => {
+    renderPalette(WITH_ROS);
+
+    const headings = screen.getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent);
+
+    expect(headings).toEqual(["Drive the robot", "Send a command", "See what it is doing", "Read the data", "Devices"]);
+  });
+});
