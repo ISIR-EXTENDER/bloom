@@ -1886,3 +1886,42 @@ describe("authoring a shipped screen", () => {
     expect([...missing].sort()).toEqual([]);
   });
 });
+
+describe("what the Builder says a pad moves", () => {
+  // The seeds name their axes in runtime_binding and omit the legacy `binding` string, so every
+  // seeded joystick normalized to translation defaults: the Builder showed X+/X- in sage for the
+  // rotation pad while the runtime drew RX+/RX- in clay. Same widget, two answers.
+  it("reads the rotation pad as rotation, from what it actually drives", () => {
+    const seeded = {
+      mode_id: "both",
+      runtime_binding: {
+        adapter: "teleop",
+        target: "rotation",
+        value_mapping: { mode: 0, target_topic: "/joystick_cartesian_command" },
+        axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
+      },
+    };
+
+    const normalized = normalizeWidgetSettings("joystick", seeded);
+
+    expect(normalized.success).toBe(true);
+    if (!normalized.success) return;
+    const hints = normalized.settings.axis_hints as { x: { positive_label: string; semantic: string } };
+    expect(hints.x.positive_label).toBe("RX+");
+    expect(hints.x.semantic).toBe("rotation");
+  });
+
+  it("leaves a translation pad alone", () => {
+    const normalized = normalizeWidgetSettings("joystick", {
+      runtime_binding: {
+        adapter: "teleop",
+        axis_mapping: { x: { component: "linear_x" }, y: { component: "linear_y" } },
+      },
+    });
+
+    expect(normalized.success).toBe(true);
+    if (!normalized.success) return;
+    const hints = normalized.settings.axis_hints as { x: { positive_label: string } };
+    expect(hints.x.positive_label).toBe("X+");
+  });
+});

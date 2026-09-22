@@ -834,7 +834,7 @@ export function normalizeWidgetSettings(
     ...settings,
   };
   if (kind === "joystick") {
-    return validateWidgetSettings(kind, normalizeJoystickCompatibility(mergedSettings));
+    return validateWidgetSettings(kind, normalizeJoystickCompatibility(mergedSettings, settings));
   }
   if (kind === "camera") {
     return validateWidgetSettings(kind, normalizeCameraCompatibility(mergedSettings));
@@ -1270,22 +1270,50 @@ function validateGesturePadSettings(
   return succeed(settings as GesturePadSettings);
 }
 
-function normalizeJoystickCompatibility(settings: Record<string, unknown>): Record<string, unknown> {
+/** True when this pad's axes drive the angular components. */
+function drivesRotation(settings: Record<string, unknown>): boolean {
+  const runtimeBinding = isRecord(settings.runtime_binding) ? settings.runtime_binding : undefined;
+  const axisMapping = runtimeBinding && isRecord(runtimeBinding.axis_mapping) ? runtimeBinding.axis_mapping : undefined;
+  if (!axisMapping) {
+    return false;
+  }
+  return Object.values(axisMapping).some(
+    (axis) => isRecord(axis) && typeof axis.component === "string" && axis.component.startsWith("angular_"),
+  );
+}
+
+/**
+ * `settings` is already merged with the joystick defaults; `authored` is what the app actually wrote.
+ * The distinction matters: the defaults carry translation hints and labels, so asking the merged
+ * object whether the author supplied any always answered yes, and the rotation defaults below could
+ * never win.
+ */
+function normalizeJoystickCompatibility(
+  settings: Record<string, unknown>,
+  authored: Record<string, unknown>,
+): Record<string, unknown> {
   const binding = typeof settings.binding === "string" ? settings.binding : undefined;
+  // What the pad moves is the honest answer to which hints it carries. The seeds name their axes in
+  // runtime_binding and omit the legacy `binding`, so keying off `binding` alone read every seeded
+  // joystick as translation: the Builder showed X+/X- in sage for the rotation pad while the runtime
+  // drew RX+/RX- in clay.
   const defaults =
-    binding === "rot" ? ROTATION_JOYSTICK_COMPATIBILITY_DEFAULTS : TRANSLATION_JOYSTICK_COMPATIBILITY_DEFAULTS;
+    binding === "rot" || drivesRotation(settings)
+      ? ROTATION_JOYSTICK_COMPATIBILITY_DEFAULTS
+      : TRANSLATION_JOYSTICK_COMPATIBILITY_DEFAULTS;
+  const authoredHints = isRecord(authored.axis_hints) ? authored.axis_hints : undefined;
   const usesDefaultMode = settings.mode_id === JOYSTICK_DEFAULT_SETTINGS.mode_id;
   // Only the untouched default gives way to the rotation defaults; an authored binding keeps its mapping.
   const usesDefaultRuntimeBinding = isSameJson(settings.runtime_binding, JOYSTICK_DEFAULT_SETTINGS.runtime_binding);
-  const axisHints = isRecord(settings.axis_hints)
+  const axisHints = authoredHints
     ? {
         x: {
           ...defaults.axis_hints.x,
-          ...(isRecord(settings.axis_hints.x) ? settings.axis_hints.x : {}),
+          ...(isRecord(authoredHints.x) ? authoredHints.x : {}),
         },
         y: {
           ...defaults.axis_hints.y,
-          ...(isRecord(settings.axis_hints.y) ? settings.axis_hints.y : {}),
+          ...(isRecord(authoredHints.y) ? authoredHints.y : {}),
         },
       }
     : defaults.axis_hints;
@@ -1293,7 +1321,7 @@ function normalizeJoystickCompatibility(settings: Record<string, unknown>): Reco
   return {
     ...settings,
     axis_hints: axisHints,
-    labels: isRecord(settings.labels) ? settings.labels : defaults.labels,
+    labels: isRecord(authored.labels) ? authored.labels : defaults.labels,
     mode_id:
       typeof settings.mode_id === "string" && settings.mode_id.trim().length > 0 && !usesDefaultMode
         ? settings.mode_id
