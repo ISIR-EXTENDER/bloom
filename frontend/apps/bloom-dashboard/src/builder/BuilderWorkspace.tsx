@@ -157,6 +157,33 @@ export function BuilderWorkspace({
     setLayoutNotice(null);
   };
 
+  // STOP is placed, never removed: the region moves, and a move that would cover a control is refused
+  // the way a widget moving into the region is.
+  const moveReservedRegion = (regionId: string, next: { x: number; y: number }) => {
+    const regions = draftScreen.reserved_regions ?? [];
+    const region = regions.find((candidate) => candidate.id === regionId);
+    if (!region) {
+      return;
+    }
+    const moved = { ...region, ...next };
+    const covered = draftScreen.widgets.find(
+      (widget) =>
+        widget.layout.x < moved.x + moved.width &&
+        widget.layout.x + widget.layout.width > moved.x &&
+        widget.layout.y < moved.y + moved.height &&
+        widget.layout.y + widget.layout.height > moved.y,
+    );
+    if (covered) {
+      setLayoutNotice(`STOP cannot go there: it would cover ${covered.title}.`);
+      return;
+    }
+    setLayoutNotice(null);
+    commitScreenChange({
+      ...draftScreen,
+      reserved_regions: regions.map((candidate) => (candidate.id === regionId ? moved : candidate)),
+    });
+  };
+
   const removeSelectedWidget = () => {
     if (!selectedWidget) {
       return;
@@ -252,6 +279,7 @@ export function BuilderWorkspace({
         </header>
 
         <BuilderCanvas
+          onMoveReservedRegion={moveReservedRegion}
           onCommitWidgetLayout={commitWidgetLayout}
           onPreviewWidgetLayout={previewWidgetLayout}
           onSelectWidget={selectWidget}

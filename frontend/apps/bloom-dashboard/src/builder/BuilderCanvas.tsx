@@ -6,6 +6,8 @@ import { BuilderCanvasItem } from "./BuilderCanvasItem";
 import { explainLayoutRefusal, KIOSK_BAR_HEIGHT, overlapsRegion, resolveBuilderPanel } from "./builder-geometry";
 
 type BuilderCanvasProps = {
+  /** Moves the box STOP is drawn in. It can be placed, never removed. */
+  onMoveReservedRegion?: (regionId: string, next: { x: number; y: number }) => void;
   onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
   onPreviewWidgetLayout: (widgetId: string, layout: WidgetLayout) => void;
   onSelectWidget: (widgetId: string) => void;
@@ -14,6 +16,7 @@ type BuilderCanvasProps = {
 };
 
 export function BuilderCanvas({
+  onMoveReservedRegion,
   onCommitWidgetLayout,
   onPreviewWidgetLayout,
   onSelectWidget,
@@ -61,23 +64,53 @@ export function BuilderCanvas({
           renderBackground={(layout, renderedScreen) => (
             <>
               {regions.length === 0 ? <BuilderPresetTarget layout={layout} screen={renderedScreen} /> : null}
-              {regions.map((region) => (
-                <div
-                  className="builder-canvas-region"
-                  key={region.id}
-                  role="note"
-                  style={{
-                    height: `${region.height}px`,
-                    left: `${region.x}px`,
-                    top: `${region.y}px`,
-                    width: `${region.width}px`,
-                  }}
-                >
-                  {/* An author looking for a STOP to place will not find one: the runtime draws it. Say so
-                      here, where they are looking, rather than leaving the region unexplained. */}
-                  {region.id === "stop" ? "STOP · drawn by the runtime, no widget needed" : `Reserved ${region.id}`}
-                </div>
-              ))}
+              {regions.map((region) => {
+                const movable = region.id === "stop" && onMoveReservedRegion !== undefined;
+                const nudge = (dx: number, dy: number) =>
+                  onMoveReservedRegion?.(region.id, {
+                    x: Math.max(0, Math.min(artboardSize.width - region.width, region.x + dx)),
+                    y: Math.max(0, Math.min(artboardSize.height - region.height, region.y + dy)),
+                  });
+                const box = {
+                  height: `${region.height}px`,
+                  left: `${region.x}px`,
+                  top: `${region.y}px`,
+                  width: `${region.width}px`,
+                };
+                // The runtime draws STOP; an author places the box it goes in, and cannot remove it.
+                const label =
+                  region.id === "stop" ? "STOP · drawn by the runtime, placed here" : `Reserved ${region.id}`;
+
+                if (!movable) {
+                  return (
+                    <div className="builder-canvas-region" key={region.id} role="note" style={box}>
+                      {label}
+                    </div>
+                  );
+                }
+
+                return (
+                  <button
+                    aria-label="Move the STOP region"
+                    className="builder-canvas-region"
+                    data-movable="true"
+                    key={region.id}
+                    onKeyDown={(event) => {
+                      const step = event.shiftKey ? 16 : 2;
+                      if (event.key === "ArrowLeft") nudge(-step, 0);
+                      else if (event.key === "ArrowRight") nudge(step, 0);
+                      else if (event.key === "ArrowUp") nudge(0, -step);
+                      else if (event.key === "ArrowDown") nudge(0, step);
+                      else return;
+                      event.preventDefault();
+                    }}
+                    style={box}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </>
           )}
           renderEmptyState={(emptyScreen) => <BuilderEmptyScreenMessage screen={emptyScreen} />}

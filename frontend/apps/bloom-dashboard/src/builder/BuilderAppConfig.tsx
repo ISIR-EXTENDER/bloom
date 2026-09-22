@@ -28,7 +28,7 @@ import {
 } from "../ui/dragDrop";
 import { getTouchEditingProps } from "../ui/touchEditing";
 import { BuilderGuidedTour } from "./BuilderGuidedTour";
-import { resolveNewScreenCanvas } from "./builder-geometry";
+import { defaultStopRegion, resolveNewScreenCanvas } from "./builder-geometry";
 import { countLabel } from "./builderHomeModel";
 
 type BuilderAppConfigProps = {
@@ -183,6 +183,7 @@ export function BuilderAppConfig({
 
   const createScreen = () => {
     const title = newScreenName.trim() || "New screen";
+    const newScreenCanvas = resolveNewScreenCanvas(draftApplication);
 
     setDraftApplication((currentApplication) =>
       addScreenToApplication(currentApplication, {
@@ -191,7 +192,10 @@ export function BuilderAppConfig({
           ...currentApplication.screens.map((screen) => screen.id),
         ]),
         title,
-        canvas: resolveNewScreenCanvas(currentApplication),
+        canvas: newScreenCanvas,
+        // Every shipped operator screen reserves STOP's box, and a screen without one is not a screen
+        // without STOP: the runtime falls back to floating it in a corner over whatever is underneath.
+        reserved_regions: [defaultStopRegion(newScreenCanvas)],
         widgets: [],
       }),
     );

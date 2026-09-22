@@ -46,7 +46,8 @@ describe("the builder canvas", () => {
     ).toBe("true");
     // Robin, 2026-09-21: "je ne trouve pas le bouton stop dans le builder". There is no STOP to place;
     // the region has to say that where the author is looking for one.
-    expect(screen.getByRole("note").textContent).toBe("STOP · drawn by the runtime, no widget needed");
+    // Placed, never removed: on a bare canvas with no move handler it is still just a note.
+    expect(screen.getByRole("note").textContent).toBe("STOP · drawn by the runtime, placed here");
   });
 
   it("refuses a move into a reserved region", () => {
@@ -323,5 +324,30 @@ describe("the builder inspector", () => {
     expect(glass?.getAttribute("data-error")).toBe("true");
     expect(glass?.textContent).toContain("39 px");
     expect(screen.getAllByText("Too small")).toHaveLength(1);
+  });
+});
+
+describe("the STOP region in the builder", () => {
+  afterEach(cleanup);
+
+  // Susana, 2026-09-22: STOP has to be available in the builder. It is placed, never removed: every
+  // screen keeps exactly one, and a screen without the region is not a screen without STOP -- the
+  // runtime floats it in a corner over whatever is underneath.
+  it("moves from the keyboard and refuses to cover a control", () => {
+    renderWorkspace(bench);
+    const regionAt = () => screen.getByRole("button", { name: "Move the STOP region" }) as HTMLElement;
+    const top = () => Number.parseInt(regionAt().style.top, 10);
+    const startTop = top();
+
+    // The bench rail boxes STOP in: the stage to its left, the speed card flush above it, the artboard
+    // below. Down is the one direction with room, and it clamps at the edge rather than leaving it.
+    fireEvent.keyDown(regionAt(), { key: "ArrowDown", shiftKey: true });
+    expect(top()).toBeGreaterThan(startTop);
+
+    // Left is the stage, where the controls are. STOP is drawn above everything, so it must not be
+    // placed over one: a control under it can be pressed nowhere.
+    fireEvent.keyDown(regionAt(), { key: "ArrowLeft", shiftKey: true });
+
+    expect(screen.getByRole("alert").textContent).toContain("STOP cannot go there");
   });
 });

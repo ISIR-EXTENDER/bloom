@@ -20,6 +20,27 @@ import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
 export const KIOSK_BAR_HEIGHT = 44;
 export { TOUCH_FLOOR_PX };
 
+/**
+ * The box STOP is drawn in, placed as the shipped screens place it: the bottom of the right-hand rail.
+ *
+ * A screen without one is not a screen without STOP -- the runtime falls back to a corner and floats it
+ * over whatever is underneath. Reserving the box is what keeps every control clear of it, and it is also
+ * what makes the screen full-panel, so its absence quietly changes the fit scale too.
+ */
+export function defaultStopRegion(canvas: CanvasSettings): ReservedRegion {
+  const preset = resolveCanvasPresetSize(canvas);
+  const width = Math.min(338, Math.round(preset.width * 0.27));
+  const height = Math.min(252, Math.round(preset.height * 0.35));
+  return {
+    id: "stop",
+    owner: "runtime-chrome",
+    x: Math.max(0, preset.width - width - 14),
+    y: Math.max(0, preset.height - height - 58),
+    width,
+    height,
+  };
+}
+
 /** The desktop floor is the mouse one (device-classes.md); the touch floor belongs to the tablet. */
 const DESKTOP_DENSITY_FLOOR_PX = 40;
 

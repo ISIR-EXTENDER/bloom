@@ -2071,6 +2071,16 @@
   font-weight: 700;
 }
 
+/* Placed, never removed: it takes focus and moves, and says which it is. */
+.builder-canvas-region[data-movable="true"] {
+  cursor: grab;
+}
+
+.builder-canvas-region[data-movable="true"]:focus-visible {
+  outline: 3px solid var(--bloom-primary);
+  outline-offset: 2px;
+}
+
 /* What a stick or a slider moves: a control, not a JSON blob. */
 .builder-axis-mapping {
   display: grid;
