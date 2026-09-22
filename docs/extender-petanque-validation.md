@@ -6,7 +6,9 @@ evidence is completed.
 
 ## Validation Status
 
-Status: in progress for live hardware/operator acceptance.
+Status: in progress for live hardware/operator acceptance. Explorer has now moved under Bloom
+([2026-09-21](validation/2026-09-21-robin-bench.md)); the operator pass on the target tablet, the Pivot sign and
+everything Kinova remain open.
 
 Current result: repository, browser, contract, and manager bench gates pass. Bloom is the current IHM, but the remaining
 claims in this document still need operator passes on the target tablet and robot/simulation stack. No unrun live check
@@ -51,7 +53,9 @@ These checks are pending before Bloom's current robot-facing claims can be calle
 fallbacks can be made unavailable:
 
 - Explorer Manager and Kinova Manager: real operator pass on the target tablet against the robot, in both roles.
-  `npm run e2e:sim` covers both robots' command paths in simulation; nobody has watched the arm.
+  `npm run e2e:sim` covers both robots' command paths in simulation. **Explorer moved under the shipped runtime
+  app on 2026-09-21** ([Robin's bench session](validation/2026-09-21-robin-bench.md)); which way it turned is not
+  recorded, and Kinova has still not been driven.
 - Manager Drive: confirm Neutral, Jaco, momentary Snake, the gripper values, both speed-limit layouts and the Pivot
   sign on the robot rather than on the wire.
 - Sandbox teleop lab, while it remains the rollback example: real operator pass on the target tablet against the

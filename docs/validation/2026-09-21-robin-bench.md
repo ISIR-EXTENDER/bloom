@@ -1,8 +1,8 @@
 # 2026-09-21 — Robin's bench session
 
-Status: **first evidence from outside the repository.** Robin tested Bloom against the Extender stack and
-recorded the result himself, function by function. This page keeps his results as he gave them and separates
-what was ours to fix from what was not.
+Status: **first hardware evidence.** Robin tested Bloom against the Extender stack and recorded the result
+himself, function by function. He confirmed separately, by message, that **the robot moved** under the runtime
+with Explorer. This page keeps his results as he gave them and separates what was ours to fix from what was not.
 
 Validator: Robin Gibaud. Source: his own spreadsheet, 19 items.
 
@@ -61,12 +61,16 @@ built to answer "who is driving" was asserting an answer it cannot know. It name
 
 ## What this session does and does not establish
 
-It is bench evidence: the stack ran, the app opened, the controls published, and a second input source was
-present and interfering. Whether an arm moved, and in which direction, is **not** recorded here, because Robin's
-sheet does not say. So the one thing simulation has never been able to check is still unchecked:
+**The arm moved.** Robin confirmed it by message, against Explorer, through the shipped runtime app. That is the
+first time anything in this repository has been able to say so, and it retires the oldest caveat in it: every
+claim until now was fixture, contract, browser or simulation evidence.
+
+What it does not yet establish is *direction*. His sheet records functions as ok or nok, not which way the hand
+went, so the one thing simulation has never been able to check is still unchecked:
 
 - **The Pivot sign on an arm.** Bloom publishes Pivot's left end as `+angular.z`, meaning the hand turns left.
-  Verified on the wire, never watched on hardware. It is step 6 of the bench card for this reason.
+  Verified on the wire, and the arm has now moved, but nobody has recorded which way it turned. It is step 6 of
+  the bench card for this reason.
 - Kinova was not covered at all: no gripper values on the Robotiq, no Reset fault.
 - The gripper **button** command was left blank.
 
