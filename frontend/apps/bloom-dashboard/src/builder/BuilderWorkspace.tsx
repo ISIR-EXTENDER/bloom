@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from "react";
 
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
+import { describeApiError } from "../ui/api-error";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
@@ -346,11 +347,7 @@ function DraftSaveStatus({ state }: { state: DraftSaveState }) {
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Bloom could not save this builder draft.";
+  return describeApiError(error, "Bloom could not save this builder draft.");
 }
 
 function createNewWidgetLayout(screen: ScreenConfig, definition: WidgetDefinition) {

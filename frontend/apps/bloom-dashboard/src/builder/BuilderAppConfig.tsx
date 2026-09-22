@@ -18,6 +18,7 @@ import {
   reorderScreenInApplication,
 } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
+import { describeApiError } from "../ui/api-error";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import {
   BLOOM_APP_SCREEN_REORDER_DRAG_TYPE,
@@ -1147,8 +1148,5 @@ function AppSaveStatus({ state }: { state: AppSaveState }) {
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Bloom could not save this app configuration.";
+  return describeApiError(error, "Bloom could not save this app configuration.");
 }

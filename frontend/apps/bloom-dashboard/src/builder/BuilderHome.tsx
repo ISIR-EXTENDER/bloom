@@ -8,6 +8,7 @@ import {
 } from "@bloom/api-client";
 import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
+import { describeApiError } from "../ui/api-error";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { NEW_TABLET_CANVAS } from "./builder-geometry";
 import {
@@ -775,8 +776,5 @@ function ScreenLibraryPreview({ screen, type }: { screen: ScreenConfig; type: Sc
 }
 
 function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Bloom could not create this app.";
+  return describeApiError(error, "Bloom could not create this app.");
 }
