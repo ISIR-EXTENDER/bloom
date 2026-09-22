@@ -255,7 +255,7 @@ describe("a draft while a save is in flight", () => {
   });
 });
 
-function renderWorkspace(source: ScreenConfig) {
+function renderWorkspace(source: ScreenConfig, overrides: { onBackToBuilderHome?: () => void } = {}) {
   const application = { ...explorer, screens: [source] };
   return render(
     <BuilderWorkspace
@@ -266,7 +266,7 @@ function renderWorkspace(source: ScreenConfig) {
         },
       ]}
       onBackToAppConfig={vi.fn()}
-      onBackToBuilderHome={vi.fn()}
+      onBackToBuilderHome={overrides.onBackToBuilderHome ?? vi.fn()}
       onSaveScreenDraft={vi.fn()}
       runtimeCapabilities={null}
       selection={{ appId: application.id, configId: "explorer-manager", screenId: source.id }}
@@ -349,5 +349,42 @@ describe("the STOP region in the builder", () => {
     fireEvent.keyDown(regionAt(), { key: "ArrowLeft", shiftKey: true });
 
     expect(screen.getByRole("alert").textContent).toContain("STOP cannot go there");
+  });
+});
+
+describe("leaving the builder with unsaved work", () => {
+  afterEach(cleanup);
+
+  // The draft lives in the component. Navigating away took it with no trace, which is a bad way for
+  // someone authoring without help to learn that Save was a step.
+  it("asks before discarding a dirty draft, and stays when refused", () => {
+    const onBackToBuilderHome = vi.fn();
+    renderWorkspace(bench, { onBackToBuilderHome });
+    fireEvent.keyDown(screen.getByRole("button", { name: "Select and move Max linear speed widget" }), {
+      key: "ArrowDown",
+      shiftKey: true,
+    });
+
+    const confirmed = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Builder home" }));
+    expect(confirmed).toHaveBeenCalled();
+    expect(onBackToBuilderHome).not.toHaveBeenCalled();
+
+    confirmed.mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Builder home" }));
+    expect(onBackToBuilderHome).toHaveBeenCalled();
+    confirmed.mockRestore();
+  });
+
+  it("does not ask when nothing is unsaved", () => {
+    const onBackToBuilderHome = vi.fn();
+    renderWorkspace(bench, { onBackToBuilderHome });
+
+    const confirmed = vi.spyOn(window, "confirm").mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "Builder home" }));
+
+    expect(confirmed).not.toHaveBeenCalled();
+    expect(onBackToBuilderHome).toHaveBeenCalled();
+    confirmed.mockRestore();
   });
 });

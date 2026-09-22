@@ -88,6 +88,25 @@ export function BuilderWorkspace({
     }
   }, [isDirty, saveState.status]);
 
+  // A draft lives in this component. Closing the tab or reloading takes it with no trace, which is a
+  // bad way for someone authoring without help to learn that Save was a step.
+  useEffect(() => {
+    if (!isDirty) {
+      return;
+    }
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [isDirty]);
+
+  /** Leaving with unsaved work asks first; the wording names what is at stake. */
+  const leaveWith = (leave: () => void) => () => {
+    if (isDirty && !window.confirm(`${draftScreen.title} has unsaved changes. Leave and lose them?`)) {
+      return;
+    }
+    leave();
+  };
+
   const saveDraft = async () => {
     if (!isDirty || isSaving) {
       return;
@@ -220,10 +239,10 @@ export function BuilderWorkspace({
       <section className="builder-stage-panel" aria-labelledby="builder-stage-title">
         <header className="builder-stage-toolbar">
           <div className="builder-stage-navigation">
-            <button className="builder-back-button" onClick={onBackToAppConfig} type="button">
+            <button className="builder-back-button" onClick={leaveWith(onBackToAppConfig)} type="button">
               Back to app config
             </button>
-            <button className="builder-back-button" onClick={onBackToBuilderHome} type="button">
+            <button className="builder-back-button" onClick={leaveWith(onBackToBuilderHome)} type="button">
               Builder home
             </button>
           </div>
