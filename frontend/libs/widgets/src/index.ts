@@ -218,11 +218,12 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     kind: "camera",
     displayName: "Camera",
     category: "display",
-    description:
-      "Shows a browser webcam or a stream URL. Runs entirely in the page; it does not read a ROS image topic.",
+    description: "Shows a browser webcam, a stream URL, or a ROS compressed image topic such as a gripper camera.",
     defaultTitle: "Camera",
     defaultSettings: getDefaultWidgetSettings("camera"),
     defaultLayout: { width: 360, height: 260, minWidth: 240, minHeight: 160 },
+    // Webcam and stream URL need no backend, so the widget stays available without one; the
+    // ROS source says for itself when no node is attached.
     runtimeRequirements: ["none"],
     maturity: "ready",
     availability: { editor: true, runtime: true },
