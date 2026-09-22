@@ -895,6 +895,18 @@ describe("widget settings contracts", () => {
     expect(() => addWidgetToScreen(empty, topicPlot, { id: "plot", settings: {} })).toThrow("topic: topic is required");
   });
 
+  it("offers nothing in the palette that has no settings to fill in", () => {
+    // `button` sat first in the command category marked ready, with an empty contract and the same
+    // renderer as `command-button`. An author picked it, found a blank inspector, and had no way to
+    // make it send or navigate anything.
+    const blank = [...createDefaultWidgetRegistry().values()]
+      .filter((definition) => definition.availability.editor && definition.kind !== "unknown")
+      .filter((definition) => getWidgetSettingsContract(definition.kind).fields.length === 0)
+      .map((definition) => definition.kind);
+
+    expect(blank).toEqual([]);
+  });
+
   it("keeps ROS message toggle presets available for non-web users", () => {
     expect(ROS_MESSAGE_TOGGLE_PRESETS.map((preset) => preset.id)).toContain("digital-output-array");
     expect(getDefaultRosMessageTogglePayloads("std_msgs/msg/Int32MultiArray")).toEqual({

@@ -203,13 +203,15 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     kind: "button",
     displayName: "Button",
     category: "command",
-    description: "Generic button for local UI actions such as navigation or editor workflows.",
+    description:
+      "Legacy generic button, kept so Petanque admin still renders. Command button does the same and is authorable.",
     defaultTitle: "Button",
     defaultSettings: getDefaultWidgetSettings("button"),
     defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
     runtimeRequirements: ["none"],
     maturity: "ready",
-    availability: { editor: true, runtime: true },
+    // Its contract has no fields, so the palette offered a control nothing could configure.
+    availability: { editor: false, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
   },
   {
