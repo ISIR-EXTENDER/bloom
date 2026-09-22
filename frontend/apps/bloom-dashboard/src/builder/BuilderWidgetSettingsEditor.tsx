@@ -14,6 +14,7 @@ import {
 } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
+import { AxisMappingEditor } from "./AxisMappingEditor";
 import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderWidgetSettingsEditorProps = {
@@ -140,6 +141,7 @@ export function BuilderWidgetSettingsEditor({
       </label>
 
       <WidgetDestinationSummary destination={destination} />
+      <AxisMappingEditor onUpdateSettings={onUpdateSettings} widget={widget} />
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (

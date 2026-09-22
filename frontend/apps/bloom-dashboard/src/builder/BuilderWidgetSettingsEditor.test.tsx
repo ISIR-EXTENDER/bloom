@@ -354,3 +354,63 @@ describe("a toggle that changes message type", () => {
     expect(next.onPayload).toBe("{data: [1.1]}");
   });
 });
+
+describe("what a teleop control moves", () => {
+  afterEach(cleanup);
+
+  // Robin, 2026-09-22: "les axes ne sont pas bons mais je n'ai pas essayé de changer les valeurs dans le
+  // builder". He could have, but only by hand-writing {"x": {"component": "linear_x"}} into a raw JSON
+  // box and knowing the schema. The mapping is a control now.
+  it("changes the component an axis drives without editing JSON", () => {
+    const widget = {
+      id: "drive-translation",
+      kind: "joystick",
+      title: "Translation",
+      layout: { x: 0, y: 0, width: 280, height: 332 },
+      settings: {
+        runtime_binding: {
+          adapter: "teleop",
+          value_mapping: { target_topic: "/joystick_cartesian_command" },
+          axis_mapping: { x: { component: "linear_x" }, y: { component: "linear_y" } },
+        },
+      },
+    } as unknown as WidgetConfig;
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
+
+    render(<BuilderWidgetSettingsEditor onUpdateSettings={onUpdateSettings} onUpdateTitle={vi.fn()} widget={widget} />);
+
+    fireEvent.change(screen.getByLabelText("Forward (Y)"), { target: { value: "linear_z" } });
+
+    const next = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    const binding = next.runtime_binding as Record<string, Record<string, { component?: string }>>;
+    expect(binding.axis_mapping.y?.component).toBe("linear_z");
+    // The axis it did not touch, and the rest of the binding, survive.
+    expect(binding.axis_mapping.x?.component).toBe("linear_x");
+    expect((next.runtime_binding as Record<string, unknown>).adapter).toBe("teleop");
+  });
+
+  it("inverts a direction, which is how Pivot reads left as a left turn", () => {
+    const widget = {
+      id: "drive-rz",
+      kind: "slider",
+      title: "Pivot",
+      layout: { x: 0, y: 0, width: 384, height: 114 },
+      settings: {
+        runtime_binding: {
+          adapter: "teleop",
+          value_mapping: { target_topic: "/joystick_cartesian_command" },
+          axis_mapping: { value: { component: "angular_z" } },
+        },
+      },
+    } as unknown as WidgetConfig;
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
+
+    render(<BuilderWidgetSettingsEditor onUpdateSettings={onUpdateSettings} onUpdateTitle={vi.fn()} widget={widget} />);
+
+    fireEvent.change(screen.getByLabelText("Invert"), { target: { value: "-1" } });
+
+    const next = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    const binding = next.runtime_binding as Record<string, Record<string, { scale?: number }>>;
+    expect(binding.axis_mapping.value?.scale).toBe(-1);
+  });
+});

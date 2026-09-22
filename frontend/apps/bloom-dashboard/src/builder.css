@@ -2071,6 +2071,34 @@
   font-weight: 700;
 }
 
+/* What a stick or a slider moves: a control, not a JSON blob. */
+.builder-axis-mapping {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 12px;
+}
+
+.builder-axis-mapping legend {
+  padding: 0 6px;
+  font-weight: 800;
+}
+
+.builder-axis-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 8px;
+}
+
+.builder-axis-row label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
 .builder-save-status {
   grid-column: 1 / -1;
   margin: 0;
