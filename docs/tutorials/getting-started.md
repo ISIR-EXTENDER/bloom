@@ -59,7 +59,8 @@ Visit <http://127.0.0.1:5173>. You should land on a page headed **Give the gestu
 **Open Builder** and **Get started**, and a top navigation of **Home**, **Builder**, **Runtime** and **Help**.
 
 Choose **Open Runtime**. The left column, **Apps on this robot**, lists the shipped applications: Explorer Manager,
-Kinova Manager, Sandbox V0.0, Explorer User Tests, Petanque admin, Bloom Debug and the webcam visualizer. Select
+Kinova Manager, Sandbox V0.0, Explorer User Tests, Petanque admin, Bloom Debug, the webcam visualizer, and one camera
+test app per robot. Select
 **Explorer Manager**, choose **Operator** in the **Open as** rail, and press **Open as Operator**.
 
 You are now in the kiosk. The 44 px bar across the top reads the app name, the screen title, a status chip, the command
