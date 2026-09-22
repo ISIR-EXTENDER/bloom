@@ -1,0 +1,294 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-09-22T18:00:00Z",
+    "source": "bloom:explorer-camera-test"
+  },
+  "applications": [
+    {
+      "id": "explorer-camera-test",
+      "name": "Explorer camera test",
+      "description": "Drives the arm with a camera in view, to check the camera path end to end before it is added to an operator app.",
+      "lifecycle": "active",
+      "action_presets": [],
+      "runtime_policy": {
+        "command_frame_id": "base_link",
+        "allowed_message_types": [
+          "geometry_msgs/msg/PoseStamped",
+          "geometry_msgs/msg/TwistStamped",
+          "sensor_msgs/msg/JointState",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": [
+          "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+          "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+          "/gripper_controller/commands",
+          "/mode_request"
+        ],
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_jac",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/visual_servoing_cartesian_command"
+        ],
+        "allowed_teleop_targets": [
+          "/joystick_cartesian_command"
+        ]
+      },
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [
+        {
+          "id": "bench",
+          "name": "Bench",
+          "display_preset": "default",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "camera_test_drive",
+          "motor_accessibility_preset": "default",
+          "audio_cues": false,
+          "deadzone": 0,
+          "repeat_guard_ms": 0,
+          "scan_period_ms": 1400
+        }
+      ],
+      "screens": [
+        {
+          "id": "camera_test_drive",
+          "title": "Drive with the camera",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ],
+          "widgets": [
+            {
+              "id": "camera-label",
+              "kind": "label",
+              "title": "CAMERA — /camera/color/image_raw/compressed",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 900,
+                "height": 24
+              },
+              "settings": {
+                "text": "CAMERA — /camera/color/image_raw/compressed",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "camera-view",
+              "kind": "camera",
+              "title": "Gripper camera",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 512,
+                "height": 502
+              },
+              "settings": {
+                "fitMode": "contain",
+                "showHeader": true,
+                "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "drive-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 542,
+                "y": 46,
+                "width": 372,
+                "height": 372
+              },
+              "settings": {
+                "axes": {
+                  "x": {
+                    "color": "#7e967e",
+                    "negative_label": "X-",
+                    "positive_label": "X+",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#7e967e",
+                    "negative_label": "Y-",
+                    "positive_label": "Y+",
+                    "semantic": "translation"
+                  }
+                },
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "drive-z",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 542,
+                "y": 434,
+                "width": 372,
+                "height": 114
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "horizontal",
+                "show_details": false,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "linear_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "speed-label",
+              "kind": "label",
+              "title": "SPEED",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SPEED",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "drive-max-linear-speed",
+              "kind": "slider",
+              "title": "Max linear speed",
+              "layout": {
+                "x": 928,
+                "y": 46,
+                "width": 338,
+                "height": 132
+              },
+              "settings": {
+                "max": 0.3,
+                "min": 0,
+                "step": 0.015,
+                "value": 0.15,
+                "direction": "horizontal",
+                "show_details": false,
+                "unit": "m/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64"
+              }
+            },
+            {
+              "id": "sent-label",
+              "kind": "label",
+              "title": "SENT",
+              "layout": {
+                "x": 928,
+                "y": 186,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SENT — /joystick_cartesian_command",
+                "fontSize": 12,
+                "align": "left"
+              }
+            },
+            {
+              "id": "lab-sent",
+              "kind": "topic-echo",
+              "title": "Twist",
+              "layout": {
+                "x": 928,
+                "y": 214,
+                "width": 338,
+                "height": 180
+              },
+              "settings": {
+                "fieldPath": "",
+                "maxMessages": 1,
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "prettyPrint": true,
+                "show_details": false,
+                "topic": "/joystick_cartesian_command"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -23,13 +23,19 @@ DRIVE_LAYOUTS = ("manager_drive_bench", "manager_drive_operator")
 
 SHARED_APP_IDS = {
     "bloom-debug",
+    "explorer-camera-test",
     "explorer-manager",
-    "kinova-manager",
     "explorer-user-tests",
+    "kinova-camera-test",
+    "kinova-manager",
     "petanque-admin",
     "sandbox",
     "webcam-visualizer",
 }
+
+#: The apps that shipped before seeds carried a fingerprint, and so need a recorded one to be
+#: recognised as unedited. An app first shipped after stamps existed has never been unstamped.
+PRE_STAMP_APP_IDS = SHARED_APP_IDS - {"explorer-camera-test", "kinova-camera-test"}
 
 
 def test_shipped_bundles_are_present_and_valid() -> None:
@@ -536,7 +542,9 @@ def test_the_recorded_pre_stamp_versions_cover_every_shipped_app() -> None:
     seed._unstamped_shipped_fingerprints.cache_clear()
     recorded = seed._unstamped_shipped_fingerprints()
 
-    assert set(recorded) == SHARED_APP_IDS
+    # Exactly the pre-stamp apps: a missing one loses its unedited check, and an extra one is a
+    # fingerprint for a version that was never shipped without a stamp.
+    assert set(recorded) == PRE_STAMP_APP_IDS
     assert all(recorded.values())
 
 
