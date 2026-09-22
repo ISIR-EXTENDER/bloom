@@ -6,6 +6,7 @@ import type {
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
+import { gripperToggleSettings } from "./gripper";
 import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
 
 export * from "./canvas-defaults";
@@ -13,6 +14,7 @@ export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
 export * from "./extensions";
+export * from "./gripper";
 export * from "./legacy";
 export * from "./min-size";
 export * from "./operator-glossary";
@@ -359,9 +361,11 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     kind: "toggle",
     displayName: "Toggle",
     category: "device",
-    description: "Captures an ON/OFF operator intent.",
-    defaultTitle: "Toggle",
-    defaultSettings: getDefaultWidgetSettings("toggle"),
+    // Placed wired to the gripper: the control this toggle is nearly always used for, and the one the
+    // command architecture defines end to end. Repointing the topic makes it an ordinary toggle again.
+    description: "An ON/OFF command. Arrives wired to the gripper; change the topic to drive something else.",
+    defaultTitle: "Gripper",
+    defaultSettings: gripperToggleSettings(),
     defaultLayout: { width: 220, height: 120, minWidth: 160, minHeight: 80 },
     runtimeRequirements: ["command-dispatcher"],
     maturity: "ready",

@@ -32,6 +32,7 @@ import {
   getDefaultRosMessageTogglePayloads,
   getRosMessageCommandPresetsByCategory,
   getWidgetSettingsContract,
+  gripperToggleSettings,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreensToApplicationConfig,
   legacyCanvasScreensToConfigurationBundle,
@@ -1820,3 +1821,33 @@ function jsonResponse(payload: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+describe("a toggle straight from the palette", () => {
+  // Robin, 2026-09-21: a gripper toggle built in the Builder did not publish. It arrived holding a bare
+  // JS boolean and no topic, so it had to be assembled from four fields an author had to know.
+  it("publishes the gripper command without anything being configured", () => {
+    const definition = DEFAULT_WIDGET_DEFINITIONS.find((candidate) => candidate.kind === "toggle");
+    const widget = {
+      id: "gripper",
+      kind: "toggle",
+      title: definition?.defaultTitle ?? "",
+      layout: { x: 0, y: 0, ...definition?.defaultLayout },
+      settings: definition?.defaultSettings,
+    } as WidgetConfig;
+
+    expect(createWidgetActionIntent(widget, { type: "toggle", nextState: "on" })).toMatchObject({
+      type: "topic-publish",
+      topic: "/gripper_controller/commands",
+      messageType: "std_msgs/msg/Float64MultiArray",
+    });
+  });
+
+  it("gives each arm its own travel", () => {
+    expect(gripperToggleSettings("Explorer").onPayload).toBe("{data: [0.2]}");
+    expect(gripperToggleSettings("Explorer").offPayload).toBe("{data: [1.1]}");
+    expect(gripperToggleSettings("Kinova").onPayload).toBe("{data: [0]}");
+    expect(gripperToggleSettings("Kinova").offPayload).toBe("{data: [0.8]}");
+    // An unknown or absent robot falls back to the arm this stack was built for.
+    expect(gripperToggleSettings(undefined).offPayload).toBe("{data: [1.1]}");
+  });
+});

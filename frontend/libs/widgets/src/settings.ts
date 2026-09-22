@@ -398,6 +398,7 @@ const SLIDER_DEFAULT_SETTINGS: SliderSettings = {
   value: 0,
 };
 
+/** The contract fallback for a field a toggle does not carry; the palette's starting point is separate. */
 const TOGGLE_DEFAULT_SETTINGS: ToggleSettings = {
   initialValue: false,
   offLabel: "Inactive",

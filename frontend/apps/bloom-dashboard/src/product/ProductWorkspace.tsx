@@ -317,6 +317,7 @@ function BuilderProductWorkspace({
 
   return (
     <BuilderWorkspace
+      robotName={runtimeCapabilityReport?.robot_name}
       runtimeCapabilities={runtimeCapabilities}
       configurations={state.configurations}
       onBackToAppConfig={() => onChangeBuilderMode("app-config")}

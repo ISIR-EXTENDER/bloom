@@ -3,6 +3,7 @@ import {
   addWidgetToScreen,
   createDefaultWidgetRegistry,
   duplicateWidgetInScreen,
+  gripperToggleSettings,
   removeWidgetFromScreen,
   updateWidgetSettings,
   updateWidgetTitle,
@@ -25,6 +26,8 @@ import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 
 type BuilderWorkspaceProps = {
   configurations: readonly LoadedConfiguration[];
+  /** Names the arm this deployment drives, so a gripper arrives with that arm's own travel. */
+  robotName?: string;
   runtimeCapabilities: readonly RuntimeCapability[] | null;
   onBackToAppConfig: () => void;
   onBackToBuilderHome: () => void;
@@ -51,6 +54,7 @@ const CHECKED_PANEL_BY_CLASS = {
 
 export function BuilderWorkspace({
   configurations,
+  robotName,
   runtimeCapabilities,
   onBackToAppConfig,
   onBackToBuilderHome,
@@ -118,7 +122,11 @@ export function BuilderWorkspace({
     }
 
     const widgetId = createUniqueWidgetId(draftScreen, definition.kind);
-    commitScreenChange(addWidgetToScreen(draftScreen, definition, { id: widgetId, layout }));
+    // A toggle is placed wired to the gripper, and the two arms travel different distances. Giving it
+    // the other arm's numbers would be a control that looks right and closes on nothing.
+    const placed =
+      definition.kind === "toggle" ? { ...definition, defaultSettings: gripperToggleSettings(robotName) } : definition;
+    commitScreenChange(addWidgetToScreen(draftScreen, placed, { id: widgetId, layout }));
     setSelectedWidgetId(widgetId);
     setLayoutNotice(null);
   };
