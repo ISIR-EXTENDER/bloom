@@ -250,7 +250,7 @@ describe("a JSON settings field mid-typing", () => {
   it("keeps the half-typed text on screen without applying it", () => {
     const onUpdateSettings = renderEditor({ payload: { a: 1 } }, "command-button");
 
-    const field = screen.getByLabelText(/payload/i);
+    const field = screen.getByLabelText("Payload");
     fireEvent.change(field, { target: { value: '{"a": ' } });
 
     expect((field as HTMLTextAreaElement).value).toBe('{"a": ');
@@ -261,7 +261,7 @@ describe("a JSON settings field mid-typing", () => {
   it("applies it once it parses", () => {
     const onUpdateSettings = renderEditor({ payload: { a: 1 } }, "command-button");
 
-    fireEvent.change(screen.getByLabelText(/payload/i), { target: { value: '{"a": 2}' } });
+    fireEvent.change(screen.getByLabelText("Payload"), { target: { value: '{"a": 2}' } });
 
     expect(onUpdateSettings).toHaveBeenCalled();
     expect(screen.queryByText("Not valid JSON yet, so it has not been applied.")).toBeNull();

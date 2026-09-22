@@ -1,3 +1,4 @@
+import type { ApplicationConfig } from "@bloom/api-client";
 import {
   type ConfigurationBundle,
   createBloomApiClient,
@@ -6,6 +7,8 @@ import {
   type WidgetConfig,
 } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
+import explorerManagerSeed from "../../../../backend/seed/applications/explorer-manager.json";
+import kinovaManagerSeed from "../../../../backend/seed/applications/kinova-manager.json";
 import legacyPetanqueApplication from "../../../../backend/tests/fixtures/legacy/application-play-petanque.json";
 import legacyConfigurationsScreen from "../../../../backend/tests/fixtures/legacy/configurations.json";
 import legacySandboxScreen from "../../../../backend/tests/fixtures/legacy/sandbox_control.json";
@@ -1849,5 +1852,37 @@ describe("a toggle straight from the palette", () => {
     expect(gripperToggleSettings("Kinova").offPayload).toBe("{data: [0.8]}");
     // An unknown or absent robot falls back to the arm this stack was built for.
     expect(gripperToggleSettings(undefined).offPayload).toBe("{data: [1.1]}");
+  });
+});
+
+describe("authoring a shipped screen", () => {
+  // Susana, 2026-09-22: everything the runtime does today must be reproducible in the Builder. The
+  // renderers honoured about twenty settings the inspector never showed -- hold-to-run, confirm-to-move,
+  // the gripper's commanded-state readout, the operator speed segments -- so a shipped screen could be
+  // read but not rebuilt.
+  it("offers an editor field for every setting the shipped operator apps use", () => {
+    const seeds = [explorerManagerSeed, kinovaManagerSeed] as unknown as { applications: ApplicationConfig[] }[];
+    // Settings the runtime derives or the seeds carry as dead weight, not things an author sets.
+    const NOT_AUTHORED = new Set(["axes", "binding", "mode_id"]);
+    const missing = new Set<string>();
+
+    for (const bundle of seeds) {
+      for (const application of bundle.applications) {
+        for (const screenConfig of application.screens) {
+          for (const widget of screenConfig.widgets) {
+            const contract = getWidgetSettingsContract(widget.kind);
+            if (!contract) continue;
+            const fields = new Set(contract.fields.map((field) => field.key));
+            for (const key of Object.keys(widget.settings ?? {})) {
+              if (!fields.has(key) && !NOT_AUTHORED.has(key)) {
+                missing.add(`${widget.kind}.${key}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    expect([...missing].sort()).toEqual([]);
   });
 });
