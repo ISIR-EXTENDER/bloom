@@ -12,6 +12,9 @@ import { densityFloorFor, glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
+  /** STOP is already reserved on this screen, so the palette says so instead of offering it twice. */
+  hasStopRegion?: boolean;
+  onAddStopRegion?: () => void;
   canvas?: CanvasSettings;
   deviceClass?: "desktop" | "tablet";
   glassScale?: number;
@@ -33,6 +36,8 @@ type BuilderInspectorProps = {
 
 export function BuilderInspector({
   availableWidgetDefinitions,
+  hasStopRegion = false,
+  onAddStopRegion,
   canvas,
   deviceClass = "tablet",
   glassScale = 1,
@@ -59,6 +64,8 @@ export function BuilderInspector({
         <WidgetPalette
           capabilities={runtimeCapabilities}
           definitions={availableWidgetDefinitions}
+          hasStopRegion={hasStopRegion}
+          onAddStopRegion={onAddStopRegion}
           onAddWidget={onAddWidget}
         />
       </BuilderInspectorPanel>
@@ -73,6 +80,8 @@ export function BuilderInspector({
         <WidgetPalette
           capabilities={runtimeCapabilities}
           definitions={availableWidgetDefinitions}
+          hasStopRegion={hasStopRegion}
+          onAddStopRegion={onAddStopRegion}
           onAddWidget={onAddWidget}
         />
       </BuilderInspectorPanel>
@@ -152,6 +161,8 @@ export function BuilderInspector({
       <WidgetPalette
         capabilities={runtimeCapabilities}
         definitions={availableWidgetDefinitions}
+        hasStopRegion={hasStopRegion}
+        onAddStopRegion={onAddStopRegion}
         onAddWidget={onAddWidget}
       />
     </BuilderInspectorPanel>
@@ -210,10 +221,14 @@ function WidgetList({
 function WidgetPalette({
   capabilities,
   definitions,
+  hasStopRegion,
+  onAddStopRegion,
   onAddWidget,
 }: {
   capabilities: readonly RuntimeCapability[] | null;
   definitions: readonly WidgetDefinition[];
+  hasStopRegion?: boolean;
+  onAddStopRegion?: () => void;
   onAddWidget: (definition: WidgetDefinition) => void;
 }) {
   return (
@@ -222,6 +237,29 @@ function WidgetPalette({
         <p className="eyebrow">Widget palette</p>
         <h3 id="builder-widget-palette-title">Add widgets</h3>
       </div>
+      {onAddStopRegion ? (
+        <div>
+          <h4 className="builder-widget-palette-category">Stop the robot</h4>
+          <div className="builder-widget-palette-grid">
+            {/* Robin, 2026-09-21: "je ne trouve pas le bouton stop dans le builder". It is placed like
+                any other control, and it reserves its box so nothing else can sit under it. */}
+            <button
+              aria-label={hasStopRegion ? "STOP is already on this screen" : "Add STOP"}
+              data-readiness={hasStopRegion ? "placed" : undefined}
+              disabled={hasStopRegion}
+              onClick={onAddStopRegion}
+              type="button"
+            >
+              <strong>STOP</strong>
+              <small className="builder-widget-palette-note">
+                {hasStopRegion
+                  ? "Already on this screen. Drag it on the canvas to move it."
+                  : "Reserves its box; the runtime draws it and latches in the backend."}
+              </small>
+            </button>
+          </div>
+        </div>
+      ) : null}
       {PALETTE_CATEGORIES.map(({ id, label }) => {
         const inCategory = definitions.filter((definition) => definition.category === id);
         if (inCategory.length === 0) {

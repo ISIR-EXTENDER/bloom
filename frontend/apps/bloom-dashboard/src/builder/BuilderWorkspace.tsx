@@ -17,8 +17,10 @@ import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/Configu
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
 import {
+  defaultStopRegion,
   explainLayoutRefusal,
   findUndersizedWidgets,
+  overlapsRegion,
   placeClearOfRegions,
   resolveBuilderPanel,
 } from "./builder-geometry";
@@ -148,6 +150,28 @@ export function BuilderWorkspace({
       definition.kind === "toggle" ? { ...definition, defaultSettings: gripperToggleSettings(robotName) } : definition;
     commitScreenChange(addWidgetToScreen(draftScreen, placed, { id: widgetId, layout }));
     setSelectedWidgetId(widgetId);
+    setLayoutNotice(null);
+  };
+
+  /**
+   * STOP, added from the palette like anything else.
+   *
+   * Robin could not find it in the Builder, and 28 shipped screens carry no stop region at all with
+   * no way to put one back. The runtime still draws it, so this reserves the box rather than placing
+   * a widget: that is what keeps every control clear of it and what makes the screen full-panel.
+   */
+  const addStopRegion = () => {
+    const region = defaultStopRegion(draftScreen.canvas);
+    const covered = draftScreen.widgets.find((widget) => overlapsRegion(widget.layout, [region]));
+    if (covered) {
+      setLayoutNotice(`STOP would land on ${covered.title}. Move it out of the bottom right corner, then add STOP.`);
+      return;
+    }
+
+    commitScreenChange({
+      ...draftScreen,
+      reserved_regions: [...(draftScreen.reserved_regions ?? []), region],
+    });
     setLayoutNotice(null);
   };
 
@@ -332,6 +356,8 @@ export function BuilderWorkspace({
           setLayoutNotice(null);
         }}
         runtimeCapabilities={runtimeCapabilities}
+        hasStopRegion={(draftScreen.reserved_regions ?? []).some((region) => region.id === "stop")}
+        onAddStopRegion={addStopRegion}
         onAddWidget={addWidget}
         onDuplicateWidget={duplicateSelectedWidget}
         onRemoveWidget={removeSelectedWidget}

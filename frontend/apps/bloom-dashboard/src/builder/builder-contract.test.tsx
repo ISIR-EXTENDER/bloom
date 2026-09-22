@@ -207,6 +207,42 @@ describe("the builder workspace", () => {
     expect([copy?.style.left, copy?.style.top]).toEqual(["0px", "326px"]);
   });
 
+  it("offers STOP in the palette for a screen that has none, and places it", () => {
+    // Robin, 2026-09-21: "je ne trouve pas le bouton stop dans le builder". 28 shipped screens carry
+    // no stop region and nothing could put one back.
+    const withoutStop: ScreenConfig = { ...bench, reserved_regions: [], widgets: [] };
+    renderWorkspace(withoutStop);
+
+    expect(screen.queryByRole("note")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Add STOP" }));
+
+    expect(screen.getByRole("button", { name: "Move the STOP region" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "STOP is already on this screen" })).toBeDisabled();
+  });
+
+  it("refuses to drop STOP on a control that is already there", () => {
+    // Silently reserving the box under a control would leave that control unreachable in the
+    // runtime, which draws STOP over it. The bench screen keeps the box clear by construction, so
+    // this puts something in the corner on purpose.
+    const covered: ScreenConfig = {
+      ...bench,
+      reserved_regions: [],
+      widgets: [
+        {
+          ...(bench.widgets[0] as ScreenConfig["widgets"][number]),
+          title: "Twist",
+          layout: { x: 0, y: 0, width: 1280, height: 676 },
+        },
+      ],
+    };
+    renderWorkspace(covered);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add STOP" }));
+
+    expect(screen.getByRole("alert").textContent).toContain("STOP would land on Twist");
+    expect(screen.getByRole("button", { name: "Add STOP" })).toBeEnabled();
+  });
+
   it("reports the screen's device class without offering to change it", () => {
     renderWorkspace(bench);
 
