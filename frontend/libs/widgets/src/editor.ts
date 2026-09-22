@@ -106,33 +106,6 @@ export function updateWidgetSettings(
   });
 }
 
-export function moveWidget(
-  screen: ScreenConfig,
-  widgetId: string,
-  position: Pick<WidgetLayout, "x" | "y">,
-  options: MoveWidgetOptions = {},
-): ScreenConfig {
-  return updateWidgetLayout(screen, widgetId, {
-    x: resolveLayoutValue(position.x, options.snapToGrid),
-    y: resolveLayoutValue(position.y, options.snapToGrid),
-  });
-}
-
-export function resizeWidget(
-  screen: ScreenConfig,
-  widgetId: string,
-  size: Pick<WidgetLayout, "height" | "width">,
-  options: ResizeWidgetOptions = {},
-): ScreenConfig {
-  const minWidth = options.minWidth ?? 1;
-  const minHeight = options.minHeight ?? 1;
-
-  return updateWidgetLayout(screen, widgetId, {
-    width: Math.max(minWidth, resolveLayoutValue(size.width, options.snapToGrid)),
-    height: Math.max(minHeight, resolveLayoutValue(size.height, options.snapToGrid)),
-  });
-}
-
 export function updateWidgetLayout(
   screen: ScreenConfig,
   widgetId: string,

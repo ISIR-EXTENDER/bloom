@@ -6,7 +6,7 @@ import stopControlSource from "./RuntimeStopControl.tsx?raw";
 import workspaceSource from "./RuntimeWorkspace.tsx?raw";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import statusChipSource from "./runtime-status-chip.ts?raw";
-import { getRuntimeStrings, pseudoLocalizeRuntimeStrings } from "./strings";
+import { getRuntimeStrings } from "./strings";
 
 describe("runtime string catalogs", () => {
   it("provides the same complete key tree for every supported language", () => {
@@ -56,13 +56,5 @@ describe("runtime string catalogs", () => {
     for (const literal of forbiddenLiterals) {
       expect(source).not.toContain(literal);
     }
-  });
-
-  it("creates a visibly bounded pseudo-locale with at least 35 percent expansion", () => {
-    const source = getRuntimeStrings("en").stop.resume;
-    const pseudo = pseudoLocalizeRuntimeStrings().stop.resume;
-    expect(pseudo.startsWith("[")).toBe(true);
-    expect(pseudo.endsWith("]")).toBe(true);
-    expect(pseudo.length).toBeGreaterThanOrEqual(Math.ceil(source.length * 1.35));
   });
 });

@@ -2,7 +2,6 @@ import type { WidgetActionIntent } from "@bloom/widgets";
 import { describe, expect, it, vi } from "vitest";
 import {
   createRosTopicPublishRequest,
-  createScalarTopicPublishRequest,
   createTeleopCommandRequest,
   createValueTopicPublishRequest,
   dispatchRuntimeActionIntent,
@@ -564,7 +563,7 @@ describe("runtime action dispatcher", () => {
 
   it("converts scalar value-change intents to topic publish requests", () => {
     expect(
-      createScalarTopicPublishRequest(
+      createValueTopicPublishRequest(
         createScalarValueIntent({
           topic: "/cmd/max_velocity",
           value: 1.2,
@@ -579,7 +578,7 @@ describe("runtime action dispatcher", () => {
 
   it("keeps scalar topic payload mapping in app configuration", () => {
     expect(
-      createScalarTopicPublishRequest(
+      createValueTopicPublishRequest(
         createScalarValueIntent({
           runtimeBinding: {
             adapter: "topic",

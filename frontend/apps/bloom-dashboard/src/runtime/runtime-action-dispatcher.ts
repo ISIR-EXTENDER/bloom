@@ -695,16 +695,6 @@ export function teleopContributionFromIntent(
   return null;
 }
 
-export function createScalarTopicPublishRequest(
-  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
-): RosTopicPublishRequest | null {
-  if (typeof intent.value !== "number" || !Number.isFinite(intent.value)) {
-    return null;
-  }
-
-  return createValueTopicPublishRequest(intent);
-}
-
 export function createValueTopicPublishRequest(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
 ): RosTopicPublishRequest | null {

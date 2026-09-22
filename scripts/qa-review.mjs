@@ -42,6 +42,15 @@ function listFiles(dir, predicate, acc = []) {
   return acc;
 }
 
+/**
+ * Exports kept on purpose although nothing in the app reaches them.
+ *
+ * The legacy importer turns extender_ui screens into Bloom configurations. It produced the Petanque
+ * and Sandbox seeds and has no entry point in the app, but it is the migration path off extender_ui
+ * and is not ours to retire. Anything not listed here is a gap.
+ */
+const KEPT_WITHOUT_A_CONSUMER = new Set(["legacyCanvasScreensToApplicationConfig", "resolveLegacyWidgetKind"]);
+
 // ---------------------------------------------------------------- dead exports
 function checkDeadExports() {
   const sources = [
@@ -60,14 +69,19 @@ function checkDeadExports() {
     }
   }
 
+  // Consumers are production files only. Counting tests as consumers hid sixteen exports that
+  // nothing but their own tests ever reached, including a second pseudo-localizer and a second
+  // move/resize pair that skipped the canvas clamp the Builder applies.
   const counts = new Map();
   for (const path of sources) {
+    if (/\.test\.tsx?$/.test(path)) continue;
     for (const token of readFileSync(path, "utf8").matchAll(/[A-Za-z_$][\w$]*/g)) {
       counts.set(token[0], (counts.get(token[0]) ?? 0) + 1);
     }
   }
 
   for (const [name, paths] of [...declared].sort()) {
+    if (KEPT_WITHOUT_A_CONSUMER.has(name)) continue;
     if ((counts.get(name) ?? 0) <= paths.length) {
       finding("dead-export", `${name} is exported by ${paths[0]} and referenced nowhere`);
     }

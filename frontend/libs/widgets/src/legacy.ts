@@ -99,20 +99,6 @@ function cloneRuntimePolicy(policy: RuntimeAdapterPolicy): RuntimeAdapterPolicy 
   };
 }
 
-export function legacyCanvasScreensToConfigurationBundle(
-  screens: readonly LegacyCanvasScreen[],
-  options: LegacyConfigurationBundleOptions = {},
-): ConfigurationBundle {
-  return {
-    metadata: {
-      schema_version: 1,
-      exported_at: options.exportedAt ?? new Date(0).toISOString(),
-      source: options.source ?? "extender_ui_legacy",
-    },
-    applications: [legacyCanvasScreensToApplicationConfig(screens, options.application)],
-  };
-}
-
 export function legacyCanvasWidgetToConfig(widget: LegacyCanvasWidget): WidgetConfig {
   return {
     id: widget.id,

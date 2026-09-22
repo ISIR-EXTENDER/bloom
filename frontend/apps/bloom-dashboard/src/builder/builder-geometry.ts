@@ -8,6 +8,7 @@ import type {
 } from "@bloom/api-client";
 import { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widget-renderers";
 import {
+  BENCH_RAIL,
   findSizeShortfall,
   primaryTargetFor,
   resolveCanvasPresetSize,
@@ -29,8 +30,9 @@ export { TOUCH_FLOOR_PX };
  */
 export function defaultStopRegion(canvas: CanvasSettings): ReservedRegion {
   const preset = resolveCanvasPresetSize(canvas);
-  const width = Math.min(338, Math.round(preset.width * 0.27));
-  const height = Math.min(252, Math.round(preset.height * 0.35));
+  // The bench rail's own box, so one screen's STOP is the same size as every other's.
+  const width = Math.min(BENCH_RAIL.stop.width, Math.round(preset.width * 0.27));
+  const height = Math.min(BENCH_RAIL.stop.height, Math.round(preset.height * 0.35));
   return {
     id: "stop",
     owner: "runtime-chrome",
@@ -117,15 +119,6 @@ export function overlapsRegion(layout: WidgetLayout, regions: readonly ReservedR
         region.y < layout.y + layout.height,
     ) ?? null
   );
-}
-
-/** A move or resize into a reserved region keeps the last legal layout: the region refuses the drop. */
-export function refuseReservedRegion(
-  proposed: WidgetLayout,
-  fallback: WidgetLayout,
-  regions: readonly ReservedRegion[] = [],
-): WidgetLayout {
-  return overlapsRegion(proposed, regions) ? fallback : proposed;
 }
 
 /** Why a layout cannot stand on this screen, or null when it sits inside the canvas and clear of every region. */

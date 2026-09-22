@@ -14,7 +14,6 @@ export * from "./cli-preview";
 export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
-export * from "./extensions";
 export * from "./gripper";
 export * from "./legacy";
 export * from "./min-size";
@@ -669,13 +668,6 @@ export function createDefaultWidgetRegistry(): WidgetRegistry {
   return createWidgetRegistry(DEFAULT_WIDGET_DEFINITIONS);
 }
 
-export function listWidgetDefinitionsByCategory(
-  registry: WidgetRegistry,
-  category: WidgetCategory,
-): WidgetDefinition[] {
-  return [...registry.values()].filter((definition) => definition.category === category);
-}
-
 export function snapLayoutValue(value: number, gridSize: number = WIDGET_LAYOUT_GRID_SIZE): number {
   if (gridSize <= 0) {
     return value;
@@ -773,10 +765,6 @@ export function resolveLegacyWidgetKind(kind: string): LegacyWidgetKindMapping {
       notes: `No legacy widget mapping is registered for kind "${kind}".`,
     }
   );
-}
-
-export function toBloomWidgetKind(kind: string): WidgetKind {
-  return resolveLegacyWidgetKind(kind).bloomKind;
 }
 
 export function renderWidgetDescriptor(

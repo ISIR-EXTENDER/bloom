@@ -14,7 +14,6 @@ import {
   duplicateApplicationInConfigurationBundle,
   duplicateScreenInApplication,
   removeScreenFromApplication,
-  replaceScreenInConfigurationBundle,
 } from "./configuration-editor";
 
 describe("duplicateApplicationInConfigurationBundle", () => {
@@ -203,42 +202,6 @@ describe("createUniqueId", () => {
 
   it("falls back to a screen id and increments existing ids", () => {
     expect(createUniqueId("!!!", ["screen", "screen-2"])).toBe("screen-3");
-  });
-});
-
-describe("replaceScreenInConfigurationBundle", () => {
-  it("replaces one screen while preserving the rest of the bundle", () => {
-    const replacementScreen: ScreenConfig = {
-      ...createScreen("main"),
-      title: "Updated main",
-      widgets: [
-        {
-          id: "button",
-          kind: "button",
-          title: "Start",
-          layout: { x: 16, y: 24, width: 120, height: 80 },
-          settings: {},
-        },
-      ],
-    };
-
-    const updatedBundle = replaceScreenInConfigurationBundle(createBundle(), "sandbox", replacementScreen);
-
-    expect(updatedBundle.applications[0]?.screens[0]).toEqual(replacementScreen);
-    expect(updatedBundle.applications[0]?.screens[1]).toEqual(createScreen("diagnostics"));
-    expect(updatedBundle.metadata).toEqual(createBundle().metadata);
-  });
-
-  it("fails explicitly when the application is missing", () => {
-    expect(() => replaceScreenInConfigurationBundle(createBundle(), "missing", createScreen("main"))).toThrow(
-      'Application "missing" was not found in the selected configuration.',
-    );
-  });
-
-  it("fails explicitly when the screen is missing", () => {
-    expect(() => replaceScreenInConfigurationBundle(createBundle(), "sandbox", createScreen("missing"))).toThrow(
-      'Screen "missing" was not found in application "sandbox".',
-    );
   });
 });
 

@@ -21,9 +21,6 @@ import {
   addWidgetToScreen,
   appendTopicEchoMessage,
   appendTopicPlotSample,
-  buildRosMessageCommandCliExample,
-  buildRosMessageToggleCliExample,
-  createAppExtensionRegistry,
   createDefaultWidgetRegistry,
   createWidgetActionIntent,
   createWidgetConfigFromDefinition,
@@ -31,8 +28,6 @@ import {
   DEFAULT_WIDGET_DEFINITIONS,
   deriveSliderStep,
   duplicateWidgetInScreen,
-  findMatchingRosMessageCommandPreset,
-  findMatchingRosMessageTogglePreset,
   formatTopicEchoValue,
   getDefaultRosMessageTogglePayloads,
   getRosMessageCommandPresetsByCategory,
@@ -40,29 +35,23 @@ import {
   gripperToggleSettings,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreensToApplicationConfig,
-  legacyCanvasScreensToConfigurationBundle,
   legacyCanvasScreenToConfig,
   legacyCanvasWidgetToConfig,
   legacyRectToLayout,
-  listWidgetDefinitionsByCategory,
-  moveWidget,
   normalizeWidgetSettings,
   ROS_MESSAGE_COMMAND_PRESETS,
   ROS_MESSAGE_TOGGLE_PRESETS,
   removeWidgetFromScreen,
   renderScreenDescriptors,
   renderWidgetDescriptor,
-  resizeWidget,
   resolveCanvasArtboardSize,
   resolveCanvasFitScale,
   resolveCanvasPresetSize,
   resolveFieldPath,
   resolveLegacyWidgetKind,
-  resolveWidgetAppExtension,
   snapLayoutValue,
   type TopicMessage,
   type TopicPlotSample,
-  toBloomWidgetKind,
   updateWidgetSettings,
   updateWidgetTitle,
   validateWidgetSettings,
@@ -71,6 +60,26 @@ import {
 } from "./index";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
+
+/** The legacy import is an application-level converter now; these tests still check a whole bundle. */
+function legacyBundleFrom(
+  screens: Parameters<typeof legacyCanvasScreensToApplicationConfig>[0],
+  options: { application?: unknown; exportedAt?: string; source?: string } = {},
+) {
+  return {
+    metadata: {
+      schema_version: 1,
+      exported_at: options.exportedAt ?? new Date(0).toISOString(),
+      source: options.source ?? "extender_ui_legacy",
+    },
+    applications: [
+      legacyCanvasScreensToApplicationConfig(
+        screens,
+        options.application as Parameters<typeof legacyCanvasScreensToApplicationConfig>[1],
+      ),
+    ],
+  };
+}
 const sampleScreen = sampleBundle.applications[0]?.screens[0] as ScreenConfig;
 const sampleWidget = sampleScreen.widgets[0];
 const contractWidgetKinds = widgetKindsContract.widget_kinds;
@@ -217,7 +226,9 @@ describe("widget capability metadata", () => {
   });
 
   it("groups widget definitions by category", () => {
-    const commandWidgets = listWidgetDefinitionsByCategory(createDefaultWidgetRegistry(), "command");
+    const commandWidgets = [...createDefaultWidgetRegistry().values()].filter(
+      (definition) => definition.category === "command",
+    );
 
     expect(commandWidgets.map((definition) => definition.kind).sort()).toEqual([
       "button",
@@ -958,50 +969,6 @@ describe("widget settings contracts", () => {
       }),
     });
   });
-
-  it("builds ROS CLI-style previews for typed toggle payloads", () => {
-    expect(
-      buildRosMessageToggleCliExample(
-        {
-          topic: "/petanque_state_machine/change_state",
-          messageType: "std_msgs/msg/String",
-          onPayload: "{data: 'activate_throw'}",
-          offPayload: "{data: 'teleop'}",
-        },
-        "on",
-      ),
-    ).toBe("ros2 topic pub -1 /petanque_state_machine/change_state std_msgs/msg/String \"{data: 'activate_throw'}\"");
-  });
-
-  it("builds ROS CLI-style previews for one-shot command payloads", () => {
-    expect(
-      buildRosMessageCommandCliExample({
-        topic: "/explorer/emergency_stop",
-        messageType: "std_msgs/msg/Bool",
-        payload: "{data: true}",
-      }),
-    ).toBe('ros2 topic pub -1 /explorer/emergency_stop std_msgs/msg/Bool "{data: true}"');
-  });
-
-  it("matches ROS message toggle presets from settings", () => {
-    expect(
-      findMatchingRosMessageTogglePreset({
-        messageType: "std_msgs/msg/String",
-        onPayload: "{data: 'activate_throw'}",
-        offPayload: "{data: 'teleop'}",
-      })?.id,
-    ).toBe("state-machine");
-  });
-
-  it("matches one-shot ROS message command presets from settings", () => {
-    expect(
-      findMatchingRosMessageCommandPreset({
-        messageType: "std_msgs/msg/String",
-        payload: "{data: 'activate_throw'}",
-        topic: "/petanque_state_machine/change_state",
-      })?.id,
-    ).toBe("state-machine-activate-throw");
-  });
 });
 
 describe("topic telemetry primitives", () => {
@@ -1076,15 +1043,15 @@ describe("topic telemetry primitives", () => {
 
 describe("legacy widget kind mapping", () => {
   it("maps reusable extender_ui widgets to Bloom generic kinds", () => {
-    expect(toBloomWidgetKind("joystick")).toBe("joystick");
-    expect(toBloomWidgetKind("slider")).toBe("slider");
-    expect(toBloomWidgetKind("button")).toBe("command-button");
-    expect(toBloomWidgetKind("text")).toBe("label");
-    expect(toBloomWidgetKind("stream-display")).toBe("camera");
-    expect(toBloomWidgetKind("curves")).toBe("plot");
-    expect(toBloomWidgetKind("logs")).toBe("event-log");
-    expect(toBloomWidgetKind("throw-draw")).toBe("gesture-pad");
-    expect(toBloomWidgetKind("topic-monitor")).toBe("topic-echo");
+    expect(resolveLegacyWidgetKind("joystick").bloomKind).toBe("joystick");
+    expect(resolveLegacyWidgetKind("slider").bloomKind).toBe("slider");
+    expect(resolveLegacyWidgetKind("button").bloomKind).toBe("command-button");
+    expect(resolveLegacyWidgetKind("text").bloomKind).toBe("label");
+    expect(resolveLegacyWidgetKind("stream-display").bloomKind).toBe("camera");
+    expect(resolveLegacyWidgetKind("curves").bloomKind).toBe("plot");
+    expect(resolveLegacyWidgetKind("logs").bloomKind).toBe("event-log");
+    expect(resolveLegacyWidgetKind("throw-draw").bloomKind).toBe("gesture-pad");
+    expect(resolveLegacyWidgetKind("topic-monitor").bloomKind).toBe("topic-echo");
   });
 
   it("marks ROS and device widgets as adapter-dependent", () => {
@@ -1218,7 +1185,7 @@ describe("legacy canvas configuration adapter", () => {
   });
 
   it("converts real legacy screens into a Bloom configuration bundle", () => {
-    const bundle = legacyCanvasScreensToConfigurationBundle([legacyConfigurationsScreen, legacySandboxScreen], {
+    const bundle = legacyBundleFrom([legacyConfigurationsScreen, legacySandboxScreen], {
       application: legacyPetanqueApplication,
       exportedAt: "2026-06-02T10:00:00.000Z",
     });
@@ -1256,7 +1223,7 @@ describe("legacy canvas configuration adapter", () => {
 
 describe("legacy migration integration", () => {
   it("round trips real legacy JSON through the frontend API client and widget registry", async () => {
-    const bundle = legacyCanvasScreensToConfigurationBundle([legacyConfigurationsScreen, legacySandboxScreen], {
+    const bundle = legacyBundleFrom([legacyConfigurationsScreen, legacySandboxScreen], {
       application: legacyPetanqueApplication,
       exportedAt: "2026-06-02T10:00:00.000Z",
     });
@@ -1274,77 +1241,6 @@ describe("legacy migration integration", () => {
     expect(descriptors).toHaveLength(12);
     expect(descriptors.some((descriptor) => descriptor.status === "unknown")).toBe(false);
     expect(descriptors.map((descriptor) => descriptor.widget.id)).toContain("widget-1777993123607-1d1c3");
-  });
-});
-
-describe("app widget extension points", () => {
-  it("creates app extension registries with unique ids and legacy widget ownership", () => {
-    expect(() =>
-      createAppExtensionRegistry([
-        {
-          id: "petanque",
-          label: "Petanque",
-          legacyWidgetKinds: ["throw-draw"],
-        },
-        {
-          id: "petanque-duplicate",
-          label: "Petanque duplicate",
-          legacyWidgetKinds: ["throw-draw"],
-        },
-      ]),
-    ).toThrow('Legacy widget kind "throw-draw" is already owned by app extension "petanque".');
-  });
-
-  it("resolves explicitly app-owned widgets through registered extensions", () => {
-    const registry = createAppExtensionRegistry([
-      {
-        id: "petanque",
-        label: "Petanque",
-        legacyWidgetKinds: ["drink", "throw-draw"],
-        rendererKey: "petanque.widgets",
-        runtimeAdapterKey: "petanque.runtime",
-      },
-    ]);
-    const widget = legacyCanvasWidgetToConfig({
-      id: "throw",
-      kind: "throw-draw",
-      label: "Throw draw",
-      appExtensionId: "petanque",
-    });
-
-    expect(resolveWidgetAppExtension(widget, registry)).toMatchObject({
-      status: "resolved",
-      legacyKind: "throw-draw",
-      extension: {
-        id: "petanque",
-        rendererKey: "petanque.widgets",
-        runtimeAdapterKey: "petanque.runtime",
-      },
-    });
-  });
-
-  it("uses explicit app extension ids instead of assuming legacy Petanque widgets are app-only", () => {
-    const registry = createAppExtensionRegistry();
-    const explicitAppWidget = legacyCanvasWidgetToConfig({
-      id: "drink",
-      kind: "drink",
-      label: "Drink",
-      appExtensionId: "petanque",
-    });
-    const genericWidget = legacyCanvasWidgetToConfig({
-      id: "throw",
-      kind: "throw-draw",
-      label: "Gesture draw",
-    });
-
-    expect(resolveWidgetAppExtension(explicitAppWidget, registry)).toEqual({
-      status: "missing",
-      legacyKind: "drink",
-      reason: 'No app extension registered for id "petanque".',
-    });
-    expect(resolveWidgetAppExtension(genericWidget, registry)).toEqual({
-      status: "none",
-    });
   });
 });
 
@@ -1395,18 +1291,6 @@ describe("widget editor operations", () => {
         messageType: "std_msgs/msg/Int32MultiArray",
         topic: "/ui/ros_toggle",
       },
-    });
-  });
-
-  it("moves and resizes widgets with optional grid snapping", () => {
-    const movedScreen = moveWidget(sampleScreen, "toggle", { x: 13, y: 19 }, { snapToGrid: true });
-    const resizedScreen = resizeWidget(movedScreen, "toggle", { width: 133, height: 77 }, { snapToGrid: true });
-
-    expect(resizedScreen.widgets[0]?.layout).toEqual({
-      x: 16,
-      y: 16,
-      width: 136,
-      height: 80,
     });
   });
 

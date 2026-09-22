@@ -1069,98 +1069,26 @@ export function getRosMessageCommandPresetsByCategory(): ReadonlyMap<
   return groups;
 }
 
+/**
+ * The payload pair a toggle gets when its message type changes.
+ *
+ * Reads the preset table rather than repeating it. The two used to be written out separately and
+ * agreed by hand, which is one edit away from a toggle that publishes the wrong thing.
+ */
 export function getDefaultRosMessageTogglePayloads(
   messageType: string,
 ): Pick<ToggleSettings, "offPayload" | "onPayload"> {
   const normalizedType = messageType.trim().toLowerCase();
-
-  if (normalizedType === "std_msgs/msg/bool") {
-    return {
-      onPayload: "{data: true}",
-      offPayload: "{data: false}",
-    };
+  const preset = ROS_MESSAGE_TOGGLE_PRESETS.find((candidate) => candidate.messageType.toLowerCase() === normalizedType);
+  if (preset) {
+    return { onPayload: preset.onPayload, offPayload: preset.offPayload };
   }
-  if (normalizedType === "std_msgs/msg/string") {
-    return {
-      onPayload: "{data: 'on'}",
-      offPayload: "{data: 'off'}",
-    };
+  // Uint8MultiArray carries the same digital-output shape as Int32MultiArray, and is not a preset
+  // of its own because nothing offers it as a choice.
+  if (normalizedType === "std_msgs/msg/uint8multiarray") {
+    return { onPayload: "{data: [13, 1]}", offPayload: "{data: [13, 0]}" };
   }
-  if (normalizedType === "std_msgs/msg/int32") {
-    return {
-      onPayload: "{data: 1}",
-      offPayload: "{data: 0}",
-    };
-  }
-  if (normalizedType === "std_msgs/msg/int32multiarray" || normalizedType === "std_msgs/msg/uint8multiarray") {
-    return {
-      onPayload: "{data: [13, 1]}",
-      offPayload: "{data: [13, 0]}",
-    };
-  }
-  if (normalizedType === "geometry_msgs/msg/vector3") {
-    return {
-      onPayload: "{x: 0.1, y: 0.0, z: 0.0}",
-      offPayload: "{x: 0.0, y: 0.0, z: 0.0}",
-    };
-  }
-  return {
-    onPayload: "{data: 1.0}",
-    offPayload: "{data: 0.0}",
-  };
-}
-
-export function buildRosMessageToggleCliExample(
-  settings: Pick<ToggleSettings, "messageType" | "offPayload" | "onPayload" | "topic">,
-  nextState: "off" | "on",
-): string {
-  const topic = settings.topic?.trim() || "/example/topic";
-  const messageType = settings.messageType?.trim() || "std_msgs/msg/Float64";
-  const payload = String(nextState === "on" ? settings.onPayload : settings.offPayload).replaceAll('"', '\\"');
-  return `ros2 topic pub -1 ${topic} ${messageType} "${payload}"`;
-}
-
-export function buildRosMessageCommandCliExample(
-  settings: Pick<CommandButtonSettings, "messageType" | "payload" | "topic">,
-): string {
-  const topic = settings.topic?.trim() || "/example/topic";
-  const messageType = settings.messageType?.trim() || "std_msgs/msg/Bool";
-  const payload = String(settings.payload ?? "{data: true}").replaceAll('"', '\\"');
-  return `ros2 topic pub -1 ${topic} ${messageType} "${payload}"`;
-}
-
-export function findMatchingRosMessageTogglePreset(
-  settings: Pick<ToggleSettings, "messageType" | "offPayload" | "onPayload">,
-): RosMessageTogglePreset | null {
-  const normalizedMessageType = settings.messageType?.trim().toLowerCase() ?? "";
-  const normalizedOnPayload = String(settings.onPayload).trim();
-  const normalizedOffPayload = String(settings.offPayload).trim();
-
-  return (
-    ROS_MESSAGE_TOGGLE_PRESETS.find(
-      (preset) =>
-        preset.messageType.trim().toLowerCase() === normalizedMessageType &&
-        preset.onPayload.trim() === normalizedOnPayload &&
-        preset.offPayload.trim() === normalizedOffPayload,
-    ) ?? null
-  );
-}
-
-export function findMatchingRosMessageCommandPreset(
-  settings: Pick<CommandButtonSettings, "messageType" | "payload" | "topic">,
-): RosMessageCommandPreset | null {
-  const normalizedMessageType = settings.messageType?.trim().toLowerCase() ?? "";
-  const normalizedPayload = String(settings.payload ?? "").trim();
-  const normalizedTopic = settings.topic?.trim() ?? "";
-
-  return (
-    ROS_MESSAGE_COMMAND_PRESETS.find(
-      (preset) =>
-        preset.messageType.trim().toLowerCase() === normalizedMessageType &&
-        preset.payload.trim() === normalizedPayload &&
-        preset.topic.trim() === normalizedTopic,
-    ) ?? null
-  );
+  return { onPayload: "{data: 1.0}", offPayload: "{data: 0.0}" };
 }
 
 function createContract<TSettings extends Record<string, unknown>>(

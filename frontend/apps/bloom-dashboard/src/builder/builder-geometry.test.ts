@@ -13,11 +13,11 @@ import bloomDebugConfiguration from "../../../../../backend/seed/applications/bl
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import kinovaManagerConfiguration from "../../../../../backend/seed/applications/kinova-manager.json";
 import {
+  explainLayoutRefusal,
   findUndersizedWidgets,
   glassPx,
   overlapsRegion,
   placeClearOfRegions,
-  refuseReservedRegion,
   resolveBuilderPanel,
   resolveDeviceClass,
   resolveNewScreenCanvas,
@@ -108,7 +108,9 @@ describe("builder geometry", () => {
     const intoStop = { x: 940, y: 420, width: 300, height: 120 };
 
     expect(overlapsRegion(intoStop, bench.reserved_regions)?.id).toBe("stop");
-    expect(refuseReservedRegion(intoStop, start, bench.reserved_regions)).toBe(start);
+    // The canvas and the inspector both ask this, and it says why rather than just refusing.
+    expect(explainLayoutRefusal(intoStop, bench)).toContain("STOP");
+    expect(explainLayoutRefusal(start, bench)).toBeNull();
     expect(overlapsRegion(placeClearOfRegions(intoStop, bench) ?? intoStop, bench.reserved_regions)).toBeNull();
   });
 
