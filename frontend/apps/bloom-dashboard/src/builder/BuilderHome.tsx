@@ -10,7 +10,7 @@ import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { describeApiError } from "../ui/api-error";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
-import { NEW_TABLET_CANVAS } from "./builder-geometry";
+import { defaultStopRegion, NEW_TABLET_CANVAS } from "./builder-geometry";
 import {
   type BuilderHomeSection,
   countLabel,
@@ -52,7 +52,7 @@ type PlaygroundActionState =
   | { screenId: string; status: "promoting" }
   | { message: string; status: "error" };
 
-type StarterScreenId = "blank" | "operator-control" | "debug-monitor";
+export type StarterScreenId = "blank" | "operator-control" | "debug-monitor";
 type CreateThemePresetId = "bloom-default" | "extender-ui" | "high-visibility";
 
 const CREATE_THEME_PRESETS: Record<CreateThemePresetId, ApplicationConfig["theme"]> = {
@@ -645,7 +645,8 @@ function createApplicationFromPlaygroundScreen(
   };
 }
 
-function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots: boolean): ScreenConfig {
+/** Exported for the test that keeps a starter honest about what it publishes. */
+export function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots: boolean): ScreenConfig {
   const onboardingWidgets = includeOnboardingSpots
     ? [
         {
@@ -667,6 +668,7 @@ function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots:
       id: "main",
       title: "Debug Monitor",
       canvas: { ...NEW_TABLET_CANVAS },
+      reserved_regions: [defaultStopRegion(NEW_TABLET_CANVAS)],
       widgets: [
         ...onboardingWidgets,
         {
@@ -692,6 +694,7 @@ function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots:
       id: "main",
       title: "Operator Controls",
       canvas: { ...NEW_TABLET_CANVAS },
+      reserved_regions: [defaultStopRegion(NEW_TABLET_CANVAS)],
       widgets: [
         ...onboardingWidgets,
         {
@@ -699,10 +702,16 @@ function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots:
           kind: "joystick",
           title: "Teleop",
           layout: { x: 72, y: 160, width: 300, height: 300 },
+          // The contract keys are snake_case. Written in camelCase these were dropped in normalization,
+          // so the starter quietly published to the default target instead of the one it named, and
+          // carried three dead keys. The default target is the right one, so name it.
           settings: {
-            modeId: "both",
-            runtimeBinding: { adapter: "teleop", value_mapping: { mode: 3, target_topic: "/teleop_cmd" } },
-            zeroOnRelease: true,
+            mode_id: "both",
+            runtime_binding: {
+              adapter: "teleop",
+              value_mapping: { mode: 3, target_topic: "/joystick_cartesian_command" },
+            },
+            zero_on_release: true,
           },
         },
         {
@@ -727,6 +736,7 @@ function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots:
     id: "main",
     title: "Main",
     canvas: { ...NEW_TABLET_CANVAS },
+    reserved_regions: [defaultStopRegion(NEW_TABLET_CANVAS)],
     widgets: onboardingWidgets,
   };
 }
