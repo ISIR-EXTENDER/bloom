@@ -58,6 +58,7 @@ function TopicEchoWidget({
   topic,
 }: WidgetRendererProps & { showDetails: boolean; topic: string }) {
   const word = (text: string) => localizeOperatorText(text, language);
+  const prettyPrint = getBooleanSetting(descriptor.widget.settings, "prettyPrint", true);
   const messages = data?.type === "topic-echo" ? data.messages : [];
   const [copyStatus, setCopyStatus] = useState<"copied" | "failed" | "idle">("idle");
   // The last message showing at Clear. A full buffer keeps its length, so a count would hide every newer message.
@@ -70,8 +71,8 @@ function TopicEchoWidget({
   const echoText =
     visibleMessages.length > 0
       ? showDetails
-        ? visibleMessages.map((message) => formatEchoMessage(message.value)).join("\n---\n")
-        : formatEchoMessage(latest?.value)
+        ? visibleMessages.map((message) => formatEchoMessage(message.value, prettyPrint)).join("\n---\n")
+        : formatEchoMessage(latest?.value, prettyPrint)
       : `\u2014\n\n${localizeEmptyEcho(descriptor.widget.title.toLowerCase(), language)}`;
   // The active frame restamps the echo live (joystick-lab.md); before any twist it is still the next one's frame.
   const frameId = controlState?.commandFrameId || readFrameId(latest?.value);
@@ -149,7 +150,7 @@ const SIGNED = (value: unknown) =>
     : String(value);
 
 /** Twists and joint states print the way an engineer reads them aloud; anything else prints as JSON. */
-export function formatEchoMessage(value: unknown): string {
+export function formatEchoMessage(value: unknown, prettyPrint = true): string {
   const twist = isRecord(value) && isRecord(value.twist) ? value.twist : value;
   if (isRecord(twist) && isRecord(twist.linear) && isRecord(twist.angular)) {
     const vector = (v: Record<string, unknown>) => `x ${SIGNED(v.x)}  y ${SIGNED(v.y)}  z ${SIGNED(v.z)}`;
@@ -161,7 +162,8 @@ export function formatEchoMessage(value: unknown): string {
     const positions = value.position.map((position) => SIGNED(position)).join("\n  ");
     return `name:\n  ${nameLine}\nposition:\n  ${positions}`;
   }
-  return formatTopicEchoValue(value, true) ?? "(empty message)";
+  // The author asked for this on the widget; it was a required field that changed nothing.
+  return formatTopicEchoValue(value, prettyPrint) ?? "(empty message)";
 }
 
 function readFrameId(value: unknown): string {

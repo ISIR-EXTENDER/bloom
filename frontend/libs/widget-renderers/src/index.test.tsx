@@ -7,6 +7,7 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { formatEchoMessage } from "./debug-renderers";
 import { GaugeWidget } from "./display-renderers";
 import {
   createWidgetRendererRegistry,
@@ -1896,5 +1897,16 @@ describe("a widget that cannot be drawn", () => {
 
     expect(screen.getByText("This control could not be drawn. It is sending nothing.")).toBeTruthy();
     expect(screen.getByRole("article", { name: "Speed Label" })).toBeTruthy();
+  });
+});
+
+describe("a topic echo's pretty print", () => {
+  // It is a required field in the Builder and it hardcoded pretty, so an author who turned it off
+  // watched nothing happen. A required setting that does nothing is the worst kind.
+  it("follows the setting the author chose", () => {
+    const value = { data: [13, 1] };
+
+    expect(formatEchoMessage(value, true)).toContain("\n");
+    expect(formatEchoMessage(value, false)).toBe('{"data":[13,1]}');
   });
 });
