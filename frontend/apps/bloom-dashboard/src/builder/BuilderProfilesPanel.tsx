@@ -200,7 +200,7 @@ export function BuilderProfilesPanel({
 
             <div className="builder-profile-actions">
               <span className="builder-profile-id">{profile.id}</span>
-              <button onClick={() => onRemoveProfile(profile.id)} type="button">
+              <button className="builder-secondary-action" onClick={() => onRemoveProfile(profile.id)} type="button">
                 Remove role
               </button>
             </div>
@@ -208,7 +208,7 @@ export function BuilderProfilesPanel({
         ))}
       </ul>
 
-      <button onClick={onAddProfile} type="button">
+      <button className="builder-secondary-action" onClick={onAddProfile} type="button">
         Add a role
       </button>
     </section>
