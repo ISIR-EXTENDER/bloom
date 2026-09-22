@@ -1545,6 +1545,26 @@ describe("widget runtime action intents", () => {
     });
   });
 
+  it("navigates on a target screen alone, without the legacy command string", () => {
+    // Petanque admin's two Home buttons name a screen and no command, so they published an empty
+    // message to /ui/navigation and stayed where they were.
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("button") as WidgetDefinition,
+          "live-back-home",
+          { settings: { icon: "home", targetScreenId: "default_home", topic: "/ui/navigation" } },
+        ),
+        { type: "press" },
+      ),
+    ).toEqual({
+      type: "screen-navigation",
+      widgetId: "live-back-home",
+      widgetKind: "button",
+      targetScreenId: "default_home",
+    });
+  });
+
   it("creates topic publish intents for one-shot ROS message command buttons", () => {
     expect(
       createWidgetActionIntent(

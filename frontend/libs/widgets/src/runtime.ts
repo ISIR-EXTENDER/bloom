@@ -189,7 +189,10 @@ function createCommandLikeIntent(
 
   const targetScreenId = getOptionalString(settings, "targetScreenId");
   const command = getOptionalString(settings, "command");
-  if (targetScreenId && command === "navigate_screen") {
+  // Naming a screen is unambiguous, so it is enough on its own. Requiring the `navigate_screen`
+  // string as well cost Petanque admin its two Home buttons, which publish to /ui/navigation and
+  // stay put.
+  if (targetScreenId) {
     return {
       type: "screen-navigation",
       widgetId: widget.id,
