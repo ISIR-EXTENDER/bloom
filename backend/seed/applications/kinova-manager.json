@@ -1475,7 +1475,7 @@
               "layout": {
                 "x": 14,
                 "y": 14,
-                "width": 596,
+                "width": 444,
                 "height": 24
               },
               "settings": {
@@ -1568,30 +1568,6 @@
                 "runtime_binding": {
                   "adapter": "teleop-frame",
                   "frame_id": "hybrid_frame"
-                },
-                "hide_title": true
-              }
-            },
-            {
-              "id": "lab-frame-ft",
-              "kind": "command-button",
-              "title": "Force sensor",
-              "layout": {
-                "x": 470,
-                "y": 46,
-                "width": 140,
-                "height": 88
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "lab-frame-ft",
-                "action_label": "Stamp commands in ft_frame",
-                "button_label": "Force sensor",
-                "cancellable": false,
-                "show_details": false,
-                "runtime_binding": {
-                  "adapter": "teleop-frame",
-                  "frame_id": "ft_frame"
                 },
                 "hide_title": true
               }

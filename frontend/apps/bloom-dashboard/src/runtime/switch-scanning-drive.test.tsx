@@ -140,16 +140,15 @@ describe("switch scanning on a drive screen", () => {
     render(<ScannedScreen onActionIntent={vi.fn()} screen={joystickLabScreen} />);
 
     const targets = [...document.querySelectorAll("button")].map((button) => button.getAttribute("aria-label"));
-    // The screen has 24 operator controls; the twist echo shows no inspection
+    // The screen has 23 operator controls; the twist echo shows no inspection
     // controls with details off. Center-reset buttons start disabled at zero
     // and join the scan automatically after either slider moves.
-    expect(targets).toHaveLength(24);
+    expect(targets).toHaveLength(23);
     expect(targets).toEqual(
       expect.arrayContaining([
         "Base",
         "Tool",
         "Hybrid",
-        "Force sensor",
         "Both",
         "Jaco",
         "Hold snake",
