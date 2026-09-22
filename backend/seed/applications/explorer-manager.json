@@ -337,20 +337,6 @@
                 "height": 384
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#7e967e",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
-                    "semantic": "translation"
-                  },
-                  "y": {
-                    "color": "#7e967e",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
-                    "semantic": "translation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "\u25b2 Forward",
@@ -392,20 +378,6 @@
                 "height": 384
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#c98a7e",
-                    "negative_label": "RX-",
-                    "positive_label": "RX+",
-                    "semantic": "rotation"
-                  },
-                  "y": {
-                    "color": "#c98a7e",
-                    "negative_label": "RY-",
-                    "positive_label": "RY+",
-                    "semantic": "rotation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "\u25b2 Tilt up",
@@ -673,20 +645,6 @@
                 "height": 346
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#7e967e",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
-                    "semantic": "translation"
-                  },
-                  "y": {
-                    "color": "#7e967e",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
-                    "semantic": "translation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "\u25b2 Forward",
@@ -728,20 +686,6 @@
                 "height": 346
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#c98a7e",
-                    "negative_label": "RX-",
-                    "positive_label": "RX+",
-                    "semantic": "rotation"
-                  },
-                  "y": {
-                    "color": "#c98a7e",
-                    "negative_label": "RY-",
-                    "positive_label": "RY+",
-                    "semantic": "rotation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "\u25b2 Tilt up",

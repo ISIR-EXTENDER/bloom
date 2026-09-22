@@ -80,8 +80,9 @@ function getJoystickLabelsFromAxisHints(
 }
 
 function getJoystickAxisHints(settings: Record<string, unknown>): JoystickSettings["axis_hints"] {
-  // Seeds name the block `axes`; the settings contract names it `axis_hints`.
-  const axisHints = isRecord(settings.axis_hints) ? settings.axis_hints : isRecord(settings.axes) ? settings.axes : {};
+  // One spelling. The seeds used to carry an `axes` block that normalization replaced before this
+  // could read it, so it said one thing and the screen drew another.
+  const axisHints = isRecord(settings.axis_hints) ? settings.axis_hints : {};
   const defaultSemantic = getStringSetting(settings, "binding", "joy") === "rot" ? "rotation" : "translation";
   const defaultColor = defaultSemantic === "rotation" ? "var(--bloom-axis-rotation)" : "var(--bloom-axis-translation)";
 

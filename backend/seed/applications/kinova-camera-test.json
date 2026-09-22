@@ -139,20 +139,6 @@
                 "height": 372
               },
               "settings": {
-                "axes": {
-                  "x": {
-                    "color": "#7e967e",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
-                    "semantic": "translation"
-                  },
-                  "y": {
-                    "color": "#7e967e",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
-                    "semantic": "translation"
-                  }
-                },
                 "deadzone": 0,
                 "labels": {
                   "top": "▲ Forward",

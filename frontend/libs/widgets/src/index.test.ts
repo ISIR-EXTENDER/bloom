@@ -7,7 +7,9 @@ import {
   type WidgetConfig,
 } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
+import explorerCameraTestSeed from "../../../../backend/seed/applications/explorer-camera-test.json";
 import explorerManagerSeed from "../../../../backend/seed/applications/explorer-manager.json";
+import kinovaCameraTestSeed from "../../../../backend/seed/applications/kinova-camera-test.json";
 import kinovaManagerSeed from "../../../../backend/seed/applications/kinova-manager.json";
 import legacyPetanqueApplication from "../../../../backend/tests/fixtures/legacy/application-play-petanque.json";
 import legacyConfigurationsScreen from "../../../../backend/tests/fixtures/legacy/configurations.json";
@@ -1896,9 +1898,13 @@ describe("authoring a shipped screen", () => {
   // the gripper's commanded-state readout, the operator speed segments -- so a shipped screen could be
   // read but not rebuilt.
   it("offers an editor field for every setting the shipped operator apps use", () => {
-    const seeds = [explorerManagerSeed, kinovaManagerSeed] as unknown as { applications: ApplicationConfig[] }[];
-    // Settings the runtime derives or the seeds carry as dead weight, not things an author sets.
-    const NOT_AUTHORED = new Set(["axes", "binding", "mode_id"]);
+    const seeds = [explorerManagerSeed, kinovaManagerSeed, explorerCameraTestSeed, kinovaCameraTestSeed] as unknown as {
+      applications: ApplicationConfig[];
+    }[];
+    // Settings the runtime derives rather than things an author sets. `axes` used to be here too:
+    // the seeds carried a block that normalization replaced before anything read it, so it was
+    // removed rather than exempted.
+    const NOT_AUTHORED = new Set(["binding", "mode_id"]);
     const missing = new Set<string>();
 
     for (const bundle of seeds) {
