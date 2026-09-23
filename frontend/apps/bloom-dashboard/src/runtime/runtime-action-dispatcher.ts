@@ -627,9 +627,21 @@ export function createTeleopCommandRequest(
   const valueMapping = getRecord(runtimeBinding.value_mapping);
   const mode = getOptionalNumber(valueMapping, "mode") ?? resolveTeleopMode(intent.modeId);
   const target = resolveTeleopTarget(valueMapping);
-  // The app-level frame wins so every axis on the virtual IHM shares one
-  // reference. Per-widget values remain a backwards-compatible fallback.
-  const frameId = commandFrameId.trim() || getOptionalString(valueMapping, "frame_id");
+  /*
+   * The frame a widget declares, resolved against everything else that is driving.
+   *
+   * ADR 0125 made the frame app-scoped so a composed twist could not mix interpretations, and left
+   * `value_mapping.frame_id` as a fallback the session frame always shadowed. Robin, 2026-09-23,
+   * asked whether the twist frame could be set per widget: it could be written and never reached.
+   *
+   * It is reachable now, because the invariant is narrower than it looked.
+   * `InputManager::commandInBaseFrame` rotates only the angular part by the frame and passes the
+   * linear part through untouched, so a translation pad in base and a rotation pad in the tool frame
+   * never contradict each other. The composer decides, and keeps the session frame when two widgets
+   * are turning the hand under different ones, which is the case that really cannot be honoured.
+   */
+  const widgetFrameId = getOptionalString(valueMapping, "frame_id") ?? "";
+  const sessionFrameId = commandFrameId.trim();
 
   const contribution = teleopContributionFromIntent(intent, runtimeBinding);
   if (!contribution) {
@@ -640,6 +652,7 @@ export function createTeleopCommandRequest(
   // that has not opted into axis mapping publishes exactly what it did before.
   if (!composer) {
     const twist = composeTwist([contribution]);
+    const frameId = widgetFrameId || sessionFrameId;
     return {
       type: "teleop_cmd",
       angular: twist.angular,
@@ -653,8 +666,9 @@ export function createTeleopCommandRequest(
 
   // cartesian_manager replaces the latest command per source rather than
   // accumulating it, so every publish has to carry the whole twist.
-  composer.contribute(intent.widgetId, contribution);
+  composer.contribute(intent.widgetId, contribution, widgetFrameId);
   const twist = composer.compose();
+  const frameId = composer.resolveFrame(sessionFrameId).frameId;
 
   return {
     type: "teleop_cmd",

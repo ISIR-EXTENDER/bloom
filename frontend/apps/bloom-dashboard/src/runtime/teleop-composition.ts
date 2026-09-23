@@ -279,17 +279,25 @@ export function composeTwist(contributions: Iterable<ComponentContribution>): Te
  */
 export class TeleopTwistComposer {
   private readonly contributions = new Map<string, ComponentContribution>();
+  private readonly frames = new Map<string, string>();
 
-  contribute(widgetId: string, contribution: ComponentContribution): void {
+  contribute(widgetId: string, contribution: ComponentContribution, frameId = ""): void {
     this.contributions.set(widgetId, contribution);
+    if (frameId) {
+      this.frames.set(widgetId, frameId);
+    } else {
+      this.frames.delete(widgetId);
+    }
   }
 
   release(widgetId: string): void {
     this.contributions.delete(widgetId);
+    this.frames.delete(widgetId);
   }
 
   clear(): void {
     this.contributions.clear();
+    this.frames.clear();
   }
 
   get activeWidgetIds(): string[] {
@@ -299,4 +307,43 @@ export class TeleopTwistComposer {
   compose(): TeleopTwist {
     return composeTwist(this.contributions.values());
   }
+
+  /**
+   * The frame the composed twist goes out in.
+   *
+   * One message carries one frame, so the question is which. `cartesian_manager` rotates only the
+   * angular part by it and passes the linear part through untouched, so only a widget that is
+   * turning the hand has a stake: a translation pad and a rotation pad can hold different frames
+   * without contradicting each other.
+   *
+   * A widget's own frame therefore wins while it is the only one turning. Two widgets turning under
+   * different frames cannot both be honoured in one message, so the session's frame is kept and the
+   * pair is named rather than one of them silently losing.
+   */
+  resolveFrame(sessionFrameId = ""): { frameId: string; conflicting: string[] } {
+    const declared = new Map<string, string>();
+    for (const [widgetId, contribution] of this.contributions) {
+      const frameId = this.frames.get(widgetId);
+      if (!frameId || !turnsTheHand(contribution)) {
+        continue;
+      }
+      declared.set(widgetId, frameId);
+    }
+
+    const distinct = new Set(declared.values());
+    if (distinct.size === 1) {
+      return { frameId: [...distinct][0] as string, conflicting: [] };
+    }
+    return {
+      frameId: sessionFrameId,
+      conflicting: distinct.size > 1 ? [...declared.keys()].sort() : [],
+    };
+  }
+}
+
+/** Whether a contribution moves any angular component, which is the only part a frame rotates. */
+function turnsTheHand(contribution: ComponentContribution): boolean {
+  return TWIST_COMPONENTS.some(
+    (component) => component.startsWith("angular_") && Math.abs(contribution[component] ?? 0) > 0,
+  );
 }

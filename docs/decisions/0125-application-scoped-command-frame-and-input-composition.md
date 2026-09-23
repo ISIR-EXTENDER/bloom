@@ -38,6 +38,27 @@ dispatcher accepts the change only when the composed twist is zero and the frame
 report. Unsupported frames remain visible and disabled. The kiosk bar, widgets, and gamepad all consume the same
 selected value, so this amendment preserves the decision's no-mixed-frames invariant.
 
+## 2026-09-23 Amendment — a widget may name its own frame
+
+Robin, at the bench: *"est-il possible de rendre paramétrable le `frame_id` du message twist ?"* He had set
+`value_mapping.frame_id` and watched it be ignored, because the session frame shadowed it in every case: an app always
+carries one, from `command_frame_id` if nothing else. The fallback this decision kept was unreachable.
+
+The no-mixed-frames invariant is narrower than it reads. `InputManager::commandInBaseFrame` rotates **only** the angular
+part by the frame and passes the linear part through untouched, so a translation pad in `base_link` and a rotation pad
+in `effector_frame` do not describe contradictory movement. The case that cannot be honoured is two widgets turning the
+hand under different frames, because one message carries one frame.
+
+So the precedence inverts, and the composer decides rather than the dispatcher:
+
+- A widget that declares a frame wins while it is the only one contributing an angular component.
+- Two widgets turning under different frames keep the session frame, and `resolveFrame` names them rather than letting
+  one silently lose.
+- A widget that declares none still follows the app frame and the `teleop-frame` buttons, unchanged.
+
+This makes a tool-frame rotation pad authorable beside a base-frame translation pad on one screen, which is what the
+bench asked for and what the manager has always been able to serve.
+
 ## Rationale
 
 `cartesian_manager` interprets angular velocity according to a known base, end-effector, or hybrid frame and does not do

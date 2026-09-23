@@ -379,13 +379,15 @@ describe("runtime action dispatcher", () => {
     });
   });
 
-  it("uses one app frame for every axis even when a widget carries an older frame", () => {
+  it("lets a widget's own frame win over the session's", () => {
+    // Robin, 2026-09-23, asked whether the twist frame could be set per widget. It could be written
+    // and the session frame always shadowed it, so it was never reached.
     const intent = createTeleopValueIntent({
       modeId: "rotation",
       runtimeBinding: {
         adapter: "teleop",
         value_mapping: {
-          frame_id: "ft_frame",
+          frame_id: "effector_frame",
           target_topic: "/joystick_cartesian_command",
         },
       },
@@ -393,8 +395,62 @@ describe("runtime action dispatcher", () => {
     });
 
     expect(createTeleopCommandRequest(intent, 3, undefined, "hybrid_frame")).toMatchObject({
-      frame_id: "hybrid_frame",
+      frame_id: "effector_frame",
     });
+  });
+
+  it("keeps the session frame when two widgets turn the hand under different ones", () => {
+    // One message carries one frame, so this is the case that genuinely cannot be honoured.
+    const composer = new TeleopTwistComposer();
+    const turning = (frameId: string, widgetId: string) =>
+      createTeleopValueIntent({
+        modeId: "rotation",
+        runtimeBinding: {
+          adapter: "teleop",
+          axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
+          value_mapping: { frame_id: frameId, target_topic: "/joystick_cartesian_command" },
+        },
+        value: { x: 0.25, y: 0 },
+        widgetId,
+      });
+
+    createTeleopCommandRequest(turning("effector_frame", "rot-a"), 1, composer, "base_link");
+    const second = createTeleopCommandRequest(turning("hybrid_frame", "rot-b"), 2, composer, "base_link");
+
+    expect(second).toMatchObject({ frame_id: "base_link" });
+    expect(composer.resolveFrame("base_link").conflicting).toEqual(["rot-a", "rot-b"]);
+  });
+
+  it("lets a translation pad in base sit beside a rotation pad in the tool frame", () => {
+    // The manager rotates only the angular part by the frame, so these do not contradict.
+    const composer = new TeleopTwistComposer();
+    const translation = createTeleopValueIntent({
+      modeId: "translation",
+      runtimeBinding: {
+        adapter: "teleop",
+        axis_mapping: { x: { component: "linear_x" }, y: { component: "linear_y" } },
+        value_mapping: { target_topic: "/joystick_cartesian_command" },
+      },
+      value: { x: 0.5, y: 0 },
+      widgetId: "pan",
+    });
+    const rotation = createTeleopValueIntent({
+      modeId: "rotation",
+      runtimeBinding: {
+        adapter: "teleop",
+        axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
+        value_mapping: { frame_id: "effector_frame", target_topic: "/joystick_cartesian_command" },
+      },
+      value: { x: 0.25, y: 0 },
+      widgetId: "tilt",
+    });
+
+    createTeleopCommandRequest(translation, 1, composer, "base_link");
+    const composed = createTeleopCommandRequest(rotation, 2, composer, "base_link");
+
+    expect(composed).toMatchObject({ frame_id: "effector_frame" });
+    expect(composed?.linear.x).toBeCloseTo(0.5);
+    expect(composed?.angular.x).toBeCloseTo(0.25);
   });
 
   it("omits frame_id entirely when no frame is bound, keeping the backend default", () => {
@@ -795,10 +851,12 @@ function createTeleopValueIntent(options: {
   modeId?: string;
   runtimeBinding?: unknown;
   value: { x: number; y: number };
+  /** Composition is keyed by widget, so two pads in one test need two ids. */
+  widgetId?: string;
 }): Extract<WidgetActionIntent, { type: "value-change" }> {
   return {
     type: "value-change",
-    widgetId: "joystick",
+    widgetId: options.widgetId ?? "joystick",
     widgetKind: "joystick",
     binding: "joy",
     modeId: options.modeId,
