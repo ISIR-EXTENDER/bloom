@@ -19,6 +19,8 @@ import { AxisMappingEditor } from "./AxisMappingEditor";
 import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderWidgetSettingsEditorProps = {
+  /** The app's teleop list, so a target the runtime will refuse is named before it goes live. */
+  allowedTeleopTargets?: readonly string[];
   canvas?: CanvasSettings;
   /** The fit scale of this screen's own device class, as the inspector measured it. */
   /** The floor this screen's device class is held to: the touch floor on a tablet, the mouse one on a desktop. */
@@ -113,6 +115,7 @@ function WidgetGlassSizeSummary({
 }
 
 export function BuilderWidgetSettingsEditor({
+  allowedTeleopTargets,
   canvas,
   floorPx = TOUCH_FLOOR_PX,
   panel = { height: 600, width: 1024 },
@@ -176,7 +179,7 @@ export function BuilderWidgetSettingsEditor({
         />
       </label>
 
-      <WidgetDestinationSummary destination={destination} />
+      <WidgetDestinationSummary allowedTeleopTargets={allowedTeleopTargets} destination={destination} widget={widget} />
       <WidgetCliPreview widget={widget} />
       <AxisMappingEditor onUpdateSettings={onUpdateSettings} widget={widget} />
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
@@ -214,12 +217,32 @@ export function BuilderWidgetSettingsEditor({
  * setting a topic and seeing no change has no way to tell whether the field is
  * ignored, the robot is disconnected, or they made a typo.
  */
-function WidgetDestinationSummary({ destination }: { destination: WidgetDestination | null }) {
+function WidgetDestinationSummary({
+  allowedTeleopTargets,
+  destination,
+  widget,
+}: {
+  allowedTeleopTargets?: readonly string[];
+  destination: WidgetDestination | null;
+  widget: WidgetConfig;
+}) {
   // Kinds whose data flow is not modelled get no panel at all. A guess here is
   // worse than silence: it is what made the inspector misleading to begin with.
   if (!destination) {
     return null;
   }
+
+  // Robin, 2026-09-23: "est-il possible de rendre paramétrable le nom du topic ? Lorsque l'on
+  // remplace /joystick_cartesian_command par autre chose, ça ne fonctionne plus." It is
+  // parameterisable; what stopped it is the app's own teleop list, which the runtime narrows the
+  // socket to. Nothing said so until the control was live and refused.
+  const teleopTarget =
+    destination.direction === "publishes" && resolveTeleopAdapter(widget.settings) ? (destination.topic ?? "") : "";
+  const outsidePolicy =
+    Boolean(teleopTarget) &&
+    Boolean(allowedTeleopTargets) &&
+    !allowedTeleopTargets?.includes("*") &&
+    !allowedTeleopTargets?.includes(teleopTarget);
 
   const label = destination.direction === "reads" ? "Reads from" : "Publishes to";
   const emptyLabel = destination.direction === "reads" ? "No topic set" : "Not configured";
@@ -237,8 +260,20 @@ function WidgetDestinationSummary({ destination }: { destination: WidgetDestinat
         <span className="builder-settings-destination-topic builder-settings-destination-none">{emptyLabel}</span>
       )}
       {destination.detail ? <p className="builder-settings-destination-summary">{destination.detail}</p> : null}
+      {outsidePolicy ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          This app does not allow teleop on {teleopTarget}, so the runtime will refuse it. Add it under App
+          configuration, Adapter guardrails, Teleop targets.
+        </p>
+      ) : null}
     </div>
   );
+}
+
+/** True when this widget contributes to the composed twist, which is what the teleop list governs. */
+function resolveTeleopAdapter(settings: Record<string, unknown>): boolean {
+  const binding = settings.runtime_binding;
+  return Boolean(binding && typeof binding === "object" && (binding as { adapter?: unknown }).adapter === "teleop");
 }
 
 function isSameJsonValue(left: unknown, right: unknown): boolean {

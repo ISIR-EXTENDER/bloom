@@ -2214,6 +2214,14 @@
   background: color-mix(in srgb, var(--bloom-error) 6%, transparent);
 }
 
+/* A target the runtime will refuse, said where the topic is set rather than when it goes live. */
+.builder-settings-destination-refusal {
+  margin: 6px 0 0;
+  color: var(--bloom-error);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .builder-settings-destination-summary {
   margin: 0;
   color: var(--bloom-ink-soft);

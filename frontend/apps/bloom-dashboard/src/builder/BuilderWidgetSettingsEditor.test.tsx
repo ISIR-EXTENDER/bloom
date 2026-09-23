@@ -13,7 +13,7 @@ import { densityFloorFor, resolveBuilderPanel } from "./builder-geometry";
  * editable Output topic beside a runtime binding that overrode it, with nothing
  * indicating which won.
  */
-function renderEditor(settings: Record<string, unknown>, kind = "slider") {
+function renderEditor(settings: Record<string, unknown>, kind = "slider", allowedTeleopTargets?: string[]) {
   const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
   const widget = {
     id: "drive-z",
@@ -23,7 +23,14 @@ function renderEditor(settings: Record<string, unknown>, kind = "slider") {
     settings,
   } as unknown as WidgetConfig;
 
-  render(<BuilderWidgetSettingsEditor onUpdateSettings={onUpdateSettings} onUpdateTitle={vi.fn()} widget={widget} />);
+  render(
+    <BuilderWidgetSettingsEditor
+      allowedTeleopTargets={allowedTeleopTargets}
+      onUpdateSettings={onUpdateSettings}
+      onUpdateTitle={vi.fn()}
+      widget={widget}
+    />,
+  );
   return onUpdateSettings;
 }
 
@@ -110,6 +117,25 @@ describe("settings the runtime ignores", () => {
     renderEditor({ command: "explorer.deploy", cancellable: true }, "command-button");
 
     expect(screen.getByText(/no progress or cancel surface/)).toBeTruthy();
+  });
+
+  it("names a teleop target this app will refuse, before the control is live", () => {
+    // Robin, 2026-09-23: "lorsque l'on remplace le topic par autre chose, ça ne fonctionne plus."
+    // The field is editable; the app's own teleop list is what the runtime narrows the socket to.
+    renderEditor(
+      { runtime_binding: { ...TELEOP_BINDING, value_mapping: { target_topic: "/my/own_command" } } },
+      "slider",
+      ["/joystick_cartesian_command"],
+    );
+
+    expect(screen.getByRole("alert").textContent).toContain("/my/own_command");
+    expect(screen.getByRole("alert").textContent).toContain("Adapter guardrails");
+  });
+
+  it("says nothing when the target is one the app allows", () => {
+    renderEditor({ runtime_binding: TELEOP_BINDING }, "slider", ["/joystick_cartesian_command"]);
+
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 
   it("leaves fields the runtime does use fully editable", () => {

@@ -356,6 +356,7 @@ export function BuilderWorkspace({
           setLayoutNotice(null);
         }}
         runtimeCapabilities={runtimeCapabilities}
+        allowedTeleopTargets={selectedWorkspace.application.runtime_policy.allowed_teleop_targets}
         hasStopRegion={(draftScreen.reserved_regions ?? []).some((region) => region.id === "stop")}
         onAddStopRegion={addStopRegion}
         onAddWidget={addWidget}
