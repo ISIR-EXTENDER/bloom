@@ -1754,14 +1754,14 @@ describe("App", () => {
     // Maintenance holds the robot: controls answer again only once it closes.
     fireEvent.click(screen.getByRole("button", { name: "Resume operating" }));
 
-    const modeToggle = screen.getByRole("button", { name: "Mode B1/B2: B1" });
+    // The shaping mode now goes to the manager, not to sandbox_controller's TeleopCommand enum.
+    const modeToggle = screen.getByRole("button", { name: "Shaping mode: Both" });
     fireEvent.click(modeToggle);
     await waitFor(() => expect(runtimeActionClient.publishRosTopic).toHaveBeenCalled());
     expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
       expect.objectContaining({
-        message_type: "std_msgs/msg/Int32",
-        payload: { data: 3 },
-        topic: "/cmd/mode",
+        message_type: "std_msgs/msg/String",
+        topic: "/mode_request",
       }),
     );
 
@@ -1834,14 +1834,13 @@ describe("App", () => {
     );
 
     selectRuntimeScreen("Snake Control");
-    const snakeModeToggle = screen.getByRole("button", { name: "Mode B1/B2: B2" });
+    const snakeModeToggle = screen.getByRole("button", { name: "Shaping mode: Both" });
     fireEvent.click(snakeModeToggle);
     await waitFor(() =>
       expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
         expect.objectContaining({
-          message_type: "std_msgs/msg/Int32",
-          payload: { data: 0 },
-          topic: "/cmd/mode",
+          message_type: "std_msgs/msg/String",
+          topic: "/mode_request",
         }),
       ),
     );
@@ -1851,18 +1850,19 @@ describe("App", () => {
     fireEvent.pointerUp(holdSnakeButton, { pointerId: 1 });
     await waitFor(() =>
       expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
+        // Hold to shape through the manager: press asks for snake, release returns to both.
         expect.objectContaining({
-          message_type: "std_msgs/msg/Bool",
-          payload_text: "{data: true}",
-          topic: "/snake_control/enable",
+          message_type: "std_msgs/msg/String",
+          topic: "/mode_request",
+          payload: { data: "geometric/snake" },
         }),
       ),
     );
     expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
       expect.objectContaining({
-        message_type: "std_msgs/msg/Bool",
-        payload_text: "{data: false}",
-        topic: "/snake_control/enable",
+        message_type: "std_msgs/msg/String",
+        topic: "/mode_request",
+        payload: { data: "geometric/both" },
       }),
     );
 

@@ -17,7 +17,7 @@
           "kind": "topic-publish",
           "description": "Set a conservative max velocity in the sandbox app.",
           "command": "set_safe_max_velocity",
-          "topic": "/cmd/max_velocity",
+          "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
           "message_type": "std_msgs/msg/Float64",
           "payload": {
             "data": 0.5
@@ -35,37 +35,16 @@
           "geometry_msgs/msg/TwistStamped",
           "std_msgs/msg/Bool",
           "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
           "std_msgs/msg/Int32",
           "std_msgs/msg/Int32MultiArray",
           "std_msgs/msg/String",
           "std_msgs/msg/UInt8MultiArray"
         ],
         "allowed_publish_topics": [
-          "/cmd/gripper",
-          "/cmd/joystick_rz",
-          "/cmd/joystick_z",
-          "/cmd/max_velocity",
-          "/cmd/mode",
+          "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+          "/gripper_controller/commands",
           "/mode_request",
-          "/sandbox/digital_output",
-          "/snake_control/enable",
-          "/teleop_config/angular_scale_x",
-          "/teleop_config/angular_scale_y",
-          "/teleop_config/angular_scale_z",
-          "/teleop_config/invert_angular_x",
-          "/teleop_config/invert_angular_y",
-          "/teleop_config/invert_angular_z",
-          "/teleop_config/invert_linear_x",
-          "/teleop_config/invert_linear_y",
-          "/teleop_config/invert_linear_z",
-          "/teleop_config/linear_scale_x",
-          "/teleop_config/linear_scale_y",
-          "/teleop_config/linear_scale_z",
-          "/teleop_config/reset_defaults",
-          "/teleop_config/rotation_gain",
-          "/teleop_config/save_profile",
-          "/teleop_config/swap_xy",
-          "/teleop_config/translation_gain",
           "/ui/visual_servoing/on",
           "/ui/visual_servoing/save"
         ],
@@ -83,9 +62,9 @@
           "/visual_servoing/velocity_command"
         ],
         "allowed_teleop_targets": [
-          "/joystick_cartesian_command",
-          "/teleop_cmd"
-        ]
+          "/joystick_cartesian_command"
+        ],
+        "command_frame_id": "base_link"
       },
       "theme": {
         "inspiration": {
@@ -128,17 +107,16 @@
                 "step": 0.01,
                 "returnToCenter": false,
                 "show_details": false,
-                "topic": "/cmd/max_velocity",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
                 "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
                   "adapter": "topic",
-                  "target": "/cmd/max_velocity",
+                  "target": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
                   "value_mapping": {
                     "field_path": "data",
                     "message_type": "std_msgs/msg/Float64"
                   }
-                },
-                "legacyKind": "max-velocity"
+                }
               }
             },
             {
@@ -240,7 +218,7 @@
             {
               "id": "sandbox-mode",
               "kind": "toggle",
-              "title": "Mode B1/B2",
+              "title": "Shaping mode",
               "layout": {
                 "x": 20,
                 "y": 109,
@@ -249,18 +227,13 @@
               },
               "settings": {
                 "initialValue": false,
-                "offLabel": "B1",
-                "onLabel": "B2",
-                "topic": "/cmd/mode",
-                "messageType": "std_msgs/msg/Int32",
-                "onPayload": {
-                  "data": 3
-                },
-                "offPayload": {
-                  "data": 0
-                },
-                "show_details": false,
-                "legacyKind": "mode-button"
+                "offLabel": "Both",
+                "onLabel": "Jaco",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "onPayload": "{data: 'geometric/jaco'}",
+                "offPayload": "{data: 'geometric/both'}",
+                "show_details": false
               }
             },
             {
@@ -274,7 +247,6 @@
                 "height": 124
               },
               "settings": {
-                "binding": "rz",
                 "direction": "horizontal",
                 "intent_label": "Yaw velocity",
                 "min": -1,
@@ -283,17 +255,19 @@
                 "unit": "rad/s",
                 "returnToCenter": true,
                 "show_details": false,
-                "topic": "/cmd/joystick_rz",
-                "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/cmd/joystick_rz",
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
                   "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "slider"
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
               }
             },
             {
@@ -307,7 +281,6 @@
                 "height": 422
               },
               "settings": {
-                "binding": "z",
                 "direction": "vertical",
                 "intent_label": "Vertical velocity",
                 "min": -1,
@@ -316,17 +289,19 @@
                 "unit": "m/s",
                 "returnToCenter": true,
                 "show_details": false,
-                "topic": "/cmd/joystick_z",
-                "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/cmd/joystick_z",
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
                   "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "slider"
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
               }
             },
             {
@@ -343,517 +318,11 @@
                 "initialValue": false,
                 "offLabel": "Closed",
                 "onLabel": "Open",
-                "topic": "/cmd/gripper",
-                "messageType": "std_msgs/msg/Bool",
-                "onPayload": "{data: true}",
-                "offPayload": "{data: false}",
-                "show_details": false,
-                "legacyKind": "gripper-control"
-              }
-            },
-            {
-              "id": "sandbox-toggle-output",
-              "kind": "toggle",
-              "title": "Digital Output",
-              "layout": {
-                "x": 1036,
-                "y": 2,
-                "width": 200,
-                "height": 120
-              },
-              "settings": {
-                "initialValue": false,
-                "offLabel": "Off",
-                "onLabel": "On",
-                "topic": "/sandbox/digital_output",
-                "messageType": "std_msgs/msg/Float64",
-                "onPayload": "{data: 1.0}",
-                "offPayload": "{data: 0.0}",
-                "show_details": false,
-                "legacyKind": "ros-message-toggle"
-              }
-            }
-          ]
-        },
-        {
-          "id": "sandbox_teleop_config",
-          "title": "Teleop Configuration",
-          "canvas": {
-            "preset_id": "native-1280x720",
-            "runtime_mode": "fit"
-          },
-          "widgets": [
-            {
-              "id": "sandbox-cfg-lin-gain",
-              "kind": "slider",
-              "title": "Translation Gain",
-              "layout": {
-                "x": 20,
-                "y": 94,
-                "width": 530,
-                "height": 157
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/translation_gain",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/translation_gain",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-ang-gain",
-              "kind": "slider",
-              "title": "Rotation Gain",
-              "layout": {
-                "x": 650,
-                "y": 94,
-                "width": 610,
-                "height": 152
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/rotation_gain",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/rotation_gain",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-lin-scale-x",
-              "kind": "slider",
-              "title": "Linear X",
-              "layout": {
-                "x": 20,
-                "y": 255,
-                "width": 530,
-                "height": 152
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/linear_scale_x",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/linear_scale_x",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-ang-scale-x",
-              "kind": "slider",
-              "title": "Angular X",
-              "layout": {
-                "x": 650,
-                "y": 255,
-                "width": 529,
-                "height": 152
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/angular_scale_x",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/angular_scale_x",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-lin-scale-y",
-              "kind": "slider",
-              "title": "Linear Y",
-              "layout": {
-                "x": 20,
-                "y": 407,
-                "width": 530,
-                "height": 152
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/linear_scale_y",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/linear_scale_y",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-ang-scale-y",
-              "kind": "slider",
-              "title": "Angular Y",
-              "layout": {
-                "x": 650,
-                "y": 417,
-                "width": 290,
-                "height": 141
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/angular_scale_y",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/angular_scale_y",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-lin-scale-z",
-              "kind": "slider",
-              "title": "Linear Z",
-              "layout": {
-                "x": 20,
-                "y": 560,
-                "width": 530,
-                "height": 144
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/linear_scale_z",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/linear_scale_z",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-ang-scale-z",
-              "kind": "slider",
-              "title": "Angular Z",
-              "layout": {
-                "x": 650,
-                "y": 567,
-                "width": 290,
-                "height": 145
-              },
-              "settings": {
-                "binding": "max_velocity",
-                "direction": "horizontal",
-                "min": 0.1,
-                "max": 2,
-                "step": 0.01,
-                "returnToCenter": false,
-                "show_details": false,
-                "topic": "/teleop_config/angular_scale_z",
-                "messageType": "std_msgs/msg/Float64",
-                "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/teleop_config/angular_scale_z",
-                  "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "max-velocity"
-              }
-            },
-            {
-              "id": "sandbox-cfg-swap-xy",
-              "kind": "command-button",
-              "title": "Swap XY",
-              "layout": {
-                "x": 650,
-                "y": 20,
-                "width": 170,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "toggle",
-                "button_label": "Swap XY",
-                "cancellable": false,
-                "command": "toggle",
-                "topic": "/teleop_config/swap_xy",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "toggle"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-save-explorer",
-              "kind": "command-button",
-              "title": "Save Explorer",
-              "layout": {
-                "x": 840,
-                "y": 20,
-                "width": 190,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "save",
-                "button_label": "Save Explorer",
-                "cancellable": false,
-                "command": "save",
-                "topic": "/teleop_config/save_profile",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "save"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-reset",
-              "kind": "command-button",
-              "title": "Reset",
-              "layout": {
-                "x": 1050,
-                "y": 20,
-                "width": 170,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "reset",
-                "button_label": "Reset",
-                "cancellable": false,
-                "command": "reset",
-                "topic": "/teleop_config/reset_defaults",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "reset"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-lin-x",
-              "kind": "command-button",
-              "title": "Invert Linear X",
-              "layout": {
-                "x": 560,
-                "y": 302,
-                "width": 70,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "toggle",
-                "button_label": "Invert Linear X",
-                "cancellable": false,
-                "command": "toggle",
-                "topic": "/teleop_config/invert_linear_x",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "toggle"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-lin-y",
-              "kind": "command-button",
-              "title": "Invert Linear Y",
-              "layout": {
-                "x": 560,
-                "y": 459,
-                "width": 70,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "toggle",
-                "button_label": "Invert Linear Y",
-                "cancellable": false,
-                "command": "toggle",
-                "topic": "/teleop_config/invert_linear_y",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "toggle"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-lin-z",
-              "kind": "command-button",
-              "title": "Invert Linear Z",
-              "layout": {
-                "x": 560,
-                "y": 603,
-                "width": 70,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "toggle",
-                "button_label": "Invert Linear Z",
-                "cancellable": false,
-                "command": "toggle",
-                "topic": "/teleop_config/invert_linear_z",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "toggle"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-ang-x",
-              "kind": "command-button",
-              "title": "Invert Angular X",
-              "layout": {
-                "x": 1190,
-                "y": 321,
-                "width": 70,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "toggle",
-                "button_label": "Invert Angular X",
-                "cancellable": false,
-                "command": "toggle",
-                "topic": "/teleop_config/invert_angular_x",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "toggle"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-ang-y",
-              "kind": "command-button",
-              "title": "Invert Angular Y",
-              "layout": {
-                "x": 950,
-                "y": 459,
-                "width": 70,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "toggle",
-                "button_label": "Invert Angular Y",
-                "cancellable": false,
-                "command": "toggle",
-                "topic": "/teleop_config/invert_angular_y",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "toggle"
-                },
-                "legacyKind": "button"
-              }
-            },
-            {
-              "id": "sandbox-cfg-ang-z",
-              "kind": "command-button",
-              "title": "Invert Angular Z",
-              "layout": {
-                "x": 950,
-                "y": 611,
-                "width": 70,
-                "height": 58
-              },
-              "settings": {
-                "action_feedback": "none",
-                "action_id": "",
-                "action_label": "toggle",
-                "button_label": "Invert Angular Z",
-                "cancellable": false,
-                "command": "toggle",
-                "topic": "/teleop_config/invert_angular_z",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "toggle"
-                },
-                "legacyKind": "button"
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [0.2]}",
+                "offPayload": "{data: [1.1]}",
+                "show_details": false
               }
             }
           ]
@@ -918,12 +387,11 @@
                 "initialValue": false,
                 "offLabel": "Closed",
                 "onLabel": "Open",
-                "topic": "/cmd/gripper",
-                "messageType": "std_msgs/msg/Bool",
-                "onPayload": "{data: true}",
-                "offPayload": "{data: false}",
-                "show_details": false,
-                "legacyKind": "gripper-control"
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [0.2]}",
+                "offPayload": "{data: [1.1]}",
+                "show_details": false
               }
             },
             {
@@ -990,12 +458,6 @@
                 "button_label": "Monitor",
                 "cancellable": false,
                 "command": "navigate_screen",
-                "topic": "/ui/navigation/visual_servoing_monitor",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "visual_servoing_monitor"
-                },
-                "legacyKind": "navigation-button",
                 "targetScreenId": "visual_servoing_monitor"
               }
             },
@@ -1019,17 +481,16 @@
                 "unit": "x",
                 "returnToCenter": false,
                 "show_details": false,
-                "topic": "/cmd/max_velocity",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
                 "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
                   "adapter": "topic",
-                  "target": "/cmd/max_velocity",
+                  "target": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
                   "value_mapping": {
                     "field_path": "data",
                     "message_type": "std_msgs/msg/Float64"
                   }
-                },
-                "legacyKind": "max-velocity"
+                }
               }
             },
             {
@@ -1043,7 +504,6 @@
                 "height": 390
               },
               "settings": {
-                "binding": "z",
                 "direction": "vertical",
                 "intent_label": "Vertical velocity",
                 "min": -1,
@@ -1052,17 +512,19 @@
                 "unit": "m/s",
                 "returnToCenter": true,
                 "show_details": false,
-                "topic": "/cmd/joystick_z",
-                "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/cmd/joystick_z",
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
                   "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "slider"
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
               }
             },
             {
@@ -1172,7 +634,6 @@
                 "height": 124
               },
               "settings": {
-                "binding": "rz",
                 "direction": "horizontal",
                 "intent_label": "Yaw velocity",
                 "min": -1,
@@ -1181,23 +642,25 @@
                 "unit": "rad/s",
                 "returnToCenter": true,
                 "show_details": false,
-                "topic": "/cmd/joystick_rz",
-                "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/cmd/joystick_rz",
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
                   "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
-                },
-                "legacyKind": "slider"
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
               }
             },
             {
               "id": "control-panel-mode",
               "kind": "toggle",
-              "title": "Mode B1/B2",
+              "title": "Shaping mode",
               "layout": {
                 "x": 590,
                 "y": 560,
@@ -1206,18 +669,13 @@
               },
               "settings": {
                 "initialValue": false,
-                "offLabel": "B1",
-                "onLabel": "B2",
-                "topic": "/cmd/mode",
-                "messageType": "std_msgs/msg/Int32",
-                "onPayload": {
-                  "data": 3
-                },
-                "offPayload": {
-                  "data": 0
-                },
-                "show_details": false,
-                "legacyKind": "mode-button"
+                "offLabel": "Both",
+                "onLabel": "Jaco",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "onPayload": "{data: 'geometric/jaco'}",
+                "offPayload": "{data: 'geometric/both'}",
+                "show_details": false
               }
             },
             {
@@ -1314,7 +772,7 @@
             {
               "id": "snake-mode-toggle",
               "kind": "toggle",
-              "title": "Mode B1/B2",
+              "title": "Shaping mode",
               "layout": {
                 "x": 180,
                 "y": 126,
@@ -1323,19 +781,14 @@
               },
               "settings": {
                 "initialValue": false,
-                "offLabel": "B1",
-                "onLabel": "B2",
-                "topic": "/cmd/mode",
-                "messageType": "std_msgs/msg/Int32",
-                "onPayload": {
-                  "data": 3
-                },
-                "offPayload": {
-                  "data": 0
-                },
+                "offLabel": "Both",
+                "onLabel": "Snake",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "onPayload": "{data: 'geometric/snake'}",
+                "offPayload": "{data: 'geometric/both'}",
                 "show_details": false,
-                "variant": "mode-segmented",
-                "legacyKind": "mode-button"
+                "variant": "mode-segmented"
               }
             },
             {
@@ -1354,16 +807,19 @@
                 "action_label": "press/release",
                 "button_label": "Hold Snake",
                 "cancellable": false,
-                "command": "momentary_ros_message",
-                "topic": "/snake_control/enable",
-                "messageType": "std_msgs/msg/Bool",
-                "payload": "{data: true}",
-                "releasedPayload": "{data: false}",
+                "command": "geometric/snake",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/snake"
+                },
+                "releasedPayload": {
+                  "data": "geometric/both"
+                },
                 "momentary": true,
                 "pressed_label": "Snake ON",
                 "released_label": "Snake OFF",
-                "variant": "snake-hold",
-                "legacyKind": "momentary-ros-message"
+                "variant": "snake-hold"
               }
             },
             {
@@ -1547,12 +1003,6 @@
                 "button_label": "Monitor",
                 "cancellable": false,
                 "command": "navigate_screen",
-                "topic": "/ui/navigation/visual_servoing_monitor",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "visual_servoing_monitor"
-                },
-                "legacyKind": "navigation-button",
                 "targetScreenId": "visual_servoing_monitor"
               }
             }
@@ -1600,12 +1050,6 @@
                 "button_label": "Control",
                 "cancellable": false,
                 "command": "navigate_screen",
-                "topic": "/ui/navigation/visual_servoing",
-                "messageType": "std_msgs/msg/String",
-                "payload": {
-                  "data": "visual_servoing"
-                },
-                "legacyKind": "navigation-button",
                 "targetScreenId": "visual_servoing",
                 "hide_title": true
               }

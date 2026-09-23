@@ -7,6 +7,9 @@ const fixturePath = resolve(process.argv[2] ?? "backend/seed/applications/sandbo
 const bundle = JSON.parse(readFileSync(fixturePath, "utf8"));
 const app = bundle.applications?.find((candidate) => candidate.id === "sandbox");
 
+/** qontrol_controller's own speed input, named as both robot configs name it. */
+const MAX_LINEAR_SPEED = "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed";
+
 const failures = [];
 const passed = [];
 
@@ -89,14 +92,47 @@ function requireTeleopJoystick(id, mode) {
   assert(`${id} teleop mode`, binding?.value_mapping?.mode === mode, `expected mode ${mode}`);
 }
 
-function requireModeToggle(id) {
+/**
+ * The shaping mode, as cartesian_manager names it.
+ *
+ * These were B1/B2 toggles publishing the old extender_msgs TeleopCommand enum (0 and 3) on
+ * /cmd/mode, which nothing in the ISIR stack has subscribed to since sandbox_controller was
+ * replaced. The manager takes a string on /mode_request instead.
+ */
+function requireGeometricToggle(id) {
   const found = requireWidget(id, "toggle");
   if (!found) return;
-  assert(`${id} starts in B1`, setting(found, "initialValue") === false, "initialValue must stay false");
-  assert(`${id} topic`, setting(found, "topic") === "/cmd/mode", `got ${setting(found, "topic")}`);
-  assert(`${id} message type`, setting(found, "messageType") === "std_msgs/msg/Int32", "expected Int32");
-  assert(`${id} B2 payload`, setting(found, "onPayload")?.data === 3, "onPayload.data must be 3");
-  assert(`${id} B1 payload`, setting(found, "offPayload")?.data === 0, "offPayload.data must be 0");
+  assert(`${id} starts off`, setting(found, "initialValue") === false, "initialValue must stay false");
+  assert(`${id} topic`, setting(found, "topic") === "/mode_request", `got ${setting(found, "topic")}`);
+  assert(`${id} message type`, setting(found, "messageType") === "std_msgs/msg/String", "expected String");
+  assert(
+    `${id} returns to geometric/both`,
+    String(setting(found, "offPayload")).includes("geometric/both"),
+    "off must request geometric/both",
+  );
+  assert(
+    `${id} requests a shaper`,
+    /geometric\/(jaco|snake)/.test(String(setting(found, "onPayload"))),
+    "on must request geometric/jaco or geometric/snake",
+  );
+}
+
+/** A slider that contributes one axis to the composed twist instead of publishing a scalar. */
+function requireTeleopAxis(id, component) {
+  const found = requireWidget(id, "slider");
+  if (!found) return;
+  const binding = setting(found, "runtime_binding");
+  assert(`${id} teleop adapter`, binding?.adapter === "teleop", `expected teleop adapter, got ${binding?.adapter}`);
+  assert(
+    `${id} teleop target`,
+    binding?.value_mapping?.target_topic === "/joystick_cartesian_command",
+    `expected /joystick_cartesian_command, got ${binding?.value_mapping?.target_topic}`,
+  );
+  assert(
+    `${id} drives ${component}`,
+    binding?.axis_mapping?.value?.component === component,
+    `expected ${component}, got ${binding?.axis_mapping?.value?.component}`,
+  );
 }
 
 function requirePolicyAllows(topic, kind = "publish") {
@@ -112,14 +148,7 @@ assert(
   "theme preset must be extender-ui",
 );
 
-for (const id of [
-  "sandbox_control",
-  "sandbox_teleop_config",
-  "control_panel",
-  "snake_control",
-  "visual_servoing",
-  "visual_servoing_monitor",
-]) {
+for (const id of ["sandbox_control", "control_panel", "snake_control", "visual_servoing", "visual_servoing_monitor"]) {
   assert(`screen ${id} exists`, Boolean(screen(id)), "missing screen");
 }
 
@@ -133,34 +162,43 @@ for (const [id, mode] of [
   requireTeleopJoystick(id, mode);
 }
 
-for (const [id, topic] of [
-  ["sandbox-max-velocity", "/cmd/max_velocity"],
-  ["control-panel-max-velocity", "/cmd/max_velocity"],
-  ["sandbox-z", "/cmd/joystick_z"],
-  ["control-panel-z", "/cmd/joystick_z"],
-  ["sandbox-rz", "/cmd/joystick_rz"],
-  ["control-panel-rz", "/cmd/joystick_rz"],
+// Max speed is a qontrol_controller input, not a sandbox_controller one.
+for (const id of ["sandbox-max-velocity", "control-panel-max-velocity"]) {
+  requireTopicWidget(id, "slider", MAX_LINEAR_SPEED, "std_msgs/msg/Float64");
+  requireTopicBinding(id, MAX_LINEAR_SPEED, "std_msgs/msg/Float64");
+}
+
+// The height and pivot sliders contribute axes to the composed twist rather than publishing a
+// scalar of their own, which is what cartesian_manager consumes.
+for (const [id, component] of [
+  ["sandbox-z", "linear_z"],
+  ["control-panel-z", "linear_z"],
+  ["sandbox-rz", "angular_z"],
+  ["control-panel-rz", "angular_z"],
 ]) {
-  requireTopicWidget(id, "slider", topic, "std_msgs/msg/Float64");
-  requireTopicBinding(id, topic, "std_msgs/msg/Float64");
+  requireTeleopAxis(id, component);
 }
 
 for (const id of ["sandbox-gripper", "control-panel-gripper"]) {
-  requireTopicWidget(id, "toggle", "/cmd/gripper", "std_msgs/msg/Bool");
+  requireTopicWidget(id, "toggle", "/gripper_controller/commands", "std_msgs/msg/Float64MultiArray");
 }
 
 for (const id of ["sandbox-mode", "control-panel-mode", "snake-mode-toggle"]) {
-  requireModeToggle(id);
+  requireGeometricToggle(id);
 }
 
 const snakeHold = requireWidget("snake-hold", "command-button");
 if (snakeHold) {
-  assert("snake hold topic", setting(snakeHold, "topic") === "/snake_control/enable", "expected snake enable topic");
-  assert("snake hold press payload", setting(snakeHold, "payload") === "{data: true}", "expected true press payload");
+  assert("snake hold topic", setting(snakeHold, "topic") === "/mode_request", "expected /mode_request");
+  assert(
+    "snake hold press payload",
+    setting(snakeHold, "payload")?.data === "geometric/snake",
+    "press must request geometric/snake",
+  );
   assert(
     "snake hold release payload",
-    setting(snakeHold, "releasedPayload") === "{data: false}",
-    "expected false release payload",
+    setting(snakeHold, "releasedPayload")?.data === "geometric/both",
+    "release must return to geometric/both",
   );
 }
 
@@ -208,17 +246,22 @@ for (const axis of ["x", "y", "z"]) {
 }
 
 for (const topic of [
-  "/cmd/gripper",
-  "/cmd/joystick_rz",
-  "/cmd/joystick_z",
-  "/cmd/max_velocity",
-  "/cmd/mode",
-  "/sandbox/digital_output",
-  "/snake_control/enable",
+  "/gripper_controller/commands",
+  MAX_LINEAR_SPEED,
+  "/mode_request",
   "/ui/visual_servoing/on",
   "/ui/visual_servoing/save",
 ]) {
   requirePolicyAllows(topic);
+}
+
+// Nothing in the ISIR stack subscribes to the sandbox_controller family any more.
+for (const topic of app?.runtime_policy?.allowed_publish_topics ?? []) {
+  assert(
+    `policy has retired ${topic}`,
+    !topic.startsWith("/cmd/") && !topic.startsWith("/teleop_config/") && !topic.startsWith("/sandbox/"),
+    "belongs to the previous architecture",
+  );
 }
 requirePolicyAllows("/joystick_cartesian_command", "teleop");
 requirePolicyAllows("/mode_request", "publish");

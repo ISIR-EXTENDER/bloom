@@ -70,14 +70,13 @@ describe("normalizeConfigurationBundle", () => {
     ).toThrow("newer than this Bloom build");
   });
 
-  it("keeps the Sandbox V0.0 six-screen runtime configuration intact", () => {
+  it("keeps the Sandbox V0.0 runtime configuration intact", () => {
     const normalizedBundle = normalizeConfigurationBundle(sandboxV0Configuration as unknown as ConfigurationBundle);
     const application = normalizedBundle.applications[0];
 
     expect(application?.name).toBe("Sandbox V0.0");
     expect(application?.screens.map((screen) => screen.id)).toEqual([
       "sandbox_control",
-      "sandbox_teleop_config",
       "control_panel",
       "snake_control",
       "visual_servoing",
@@ -92,10 +91,11 @@ describe("normalizeConfigurationBundle", () => {
     expect(controlPanel?.widgets.some((widget) => widget.kind === "unknown")).toBe(false);
     expect(controlPanel?.widgets.find((widget) => widget.id === "control-panel-mode")).toMatchObject({
       kind: "toggle",
+      // The shaping mode as cartesian_manager names it, not the old TeleopCommand enum.
       settings: {
-        offPayload: { data: 0 },
-        onPayload: { data: 3 },
-        topic: "/cmd/mode",
+        offPayload: "{data: 'geometric/both'}",
+        onPayload: "{data: 'geometric/jaco'}",
+        topic: "/mode_request",
       },
     });
     expect(
@@ -118,10 +118,10 @@ describe("normalizeConfigurationBundle", () => {
       kind: "command-button",
       settings: {
         momentary: true,
-        topic: "/snake_control/enable",
-        messageType: "std_msgs/msg/Bool",
-        payload: "{data: true}",
-        releasedPayload: "{data: false}",
+        topic: "/mode_request",
+        messageType: "std_msgs/msg/String",
+        payload: { data: "geometric/snake" },
+        releasedPayload: { data: "geometric/both" },
       },
     });
 
@@ -147,31 +147,11 @@ describe("normalizeConfigurationBundle", () => {
       "/visual_servoing/velocity_command:twist.linear.z",
     ]);
     expect(application?.runtime_policy.allowed_publish_topics).toEqual([
-      "/cmd/gripper",
-      "/cmd/joystick_rz",
-      "/cmd/joystick_z",
-      "/cmd/max_velocity",
-      "/cmd/mode",
+      // Only what the ISIR stack subscribes to: qontrol's speed input, ros2_control's gripper,
+      // the manager's mode request, and the two the visual servoing node reads.
+      "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+      "/gripper_controller/commands",
       "/mode_request",
-      "/sandbox/digital_output",
-      "/snake_control/enable",
-      "/teleop_config/angular_scale_x",
-      "/teleop_config/angular_scale_y",
-      "/teleop_config/angular_scale_z",
-      "/teleop_config/invert_angular_x",
-      "/teleop_config/invert_angular_y",
-      "/teleop_config/invert_angular_z",
-      "/teleop_config/invert_linear_x",
-      "/teleop_config/invert_linear_y",
-      "/teleop_config/invert_linear_z",
-      "/teleop_config/linear_scale_x",
-      "/teleop_config/linear_scale_y",
-      "/teleop_config/linear_scale_z",
-      "/teleop_config/reset_defaults",
-      "/teleop_config/rotation_gain",
-      "/teleop_config/save_profile",
-      "/teleop_config/swap_xy",
-      "/teleop_config/translation_gain",
       "/ui/visual_servoing/on",
       "/ui/visual_servoing/save",
     ]);

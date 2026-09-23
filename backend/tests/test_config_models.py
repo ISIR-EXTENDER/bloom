@@ -61,34 +61,33 @@ def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
 
     assert application.id == "sandbox"
     assert application.name == "Sandbox V0.0"
+    # sandbox_teleop_config is gone: it tuned sandbox_controller's scaling, and the equivalent knobs
+    # are cartesian_manager parameters, which Bloom cannot set until it has a parameter seam.
     assert [screen.id for screen in application.screens] == [
         "sandbox_control",
-        "sandbox_teleop_config",
         "control_panel",
         "snake_control",
         "visual_servoing",
         "visual_servoing_monitor",
     ]
-    assert application.runtime_policy.allowed_teleop_targets == (
-        "/joystick_cartesian_command",
-        "/teleop_cmd",
-    )
-    assert "/snake_control/enable" in application.runtime_policy.allowed_publish_topics
+    assert application.runtime_policy.allowed_teleop_targets == ("/joystick_cartesian_command",)
+    assert "/mode_request" in application.runtime_policy.allowed_publish_topics
     assert "/visual_servoing/velocity_command" in application.runtime_policy.allowed_recording_topics
 
     snake_screen = next(screen for screen in application.screens if screen.id == "snake_control")
     snake_hold = next(widget for widget in snake_screen.widgets if widget.id == "snake-hold")
     assert snake_hold.kind == WidgetKind.COMMAND_BUTTON
     assert snake_hold.settings["momentary"] is True
-    assert snake_hold.settings["topic"] == "/snake_control/enable"
-    assert snake_hold.settings["messageType"] == "std_msgs/msg/Bool"
-    assert snake_hold.settings["payload"] == "{data: true}"
-    assert snake_hold.settings["releasedPayload"] == "{data: false}"
+    # Hold-to-shape through the manager rather than a sandbox_controller enable flag.
+    assert snake_hold.settings["topic"] == "/mode_request"
+    assert snake_hold.settings["messageType"] == "std_msgs/msg/String"
+    assert snake_hold.settings["payload"] == {"data": "geometric/snake"}
+    assert snake_hold.settings["releasedPayload"] == {"data": "geometric/both"}
     snake_mode = next(widget for widget in snake_screen.widgets if widget.id == "snake-mode-toggle")
     assert snake_mode.kind == WidgetKind.TOGGLE
-    assert snake_mode.settings["offPayload"] == {"data": 0}
-    assert snake_mode.settings["onPayload"] == {"data": 3}
-    assert snake_mode.settings["topic"] == "/cmd/mode"
+    assert snake_mode.settings["offPayload"] == "{data: 'geometric/both'}"
+    assert snake_mode.settings["onPayload"] == "{data: 'geometric/snake'}"
+    assert snake_mode.settings["topic"] == "/mode_request"
 
     monitor_screen = next(screen for screen in application.screens if screen.id == "visual_servoing_monitor")
     monitor_topics = {
