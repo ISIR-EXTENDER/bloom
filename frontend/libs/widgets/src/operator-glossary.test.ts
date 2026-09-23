@@ -87,7 +87,8 @@ describe("the operator glossary", () => {
   // Words the operator apps put on screen must not reach an ES or FR session in English. Proper nouns are
   // named here rather than translated: an arm, a ROS type and a frame keep their names in every language.
   it("knows every display word the two operator apps ship", () => {
-    const KEEPS_ITS_NAME = new Set(["Jaco", "Twist", "Base", "Hybrid"]);
+    // Snake gain: Susana, 2026-09-24, the team's term in every language.
+    const KEEPS_ITS_NAME = new Set(["Jaco", "Twist", "Base", "Hybrid", "Snake gain"]);
     const untranslated: string[] = [];
 
     for (const bundle of [explorerManager, kinovaManager] as unknown as { applications: ApplicationConfig[] }[]) {
