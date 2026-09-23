@@ -29,12 +29,13 @@ SHARED_APP_IDS = {
     "kinova-manager",
     "petanque-admin",
     "sandbox",
+    "visual-servoing",
     "webcam-visualizer",
 }
 
 #: The apps that shipped before seeds carried a fingerprint, and so need a recorded one to be
 #: recognised as unedited. An app first shipped after stamps existed has never been unstamped.
-PRE_STAMP_APP_IDS = SHARED_APP_IDS - {"explorer-camera-test", "kinova-camera-test"}
+PRE_STAMP_APP_IDS = SHARED_APP_IDS - {"explorer-camera-test", "kinova-camera-test", "visual-servoing"}
 
 
 def test_shipped_bundles_are_present_and_valid() -> None:

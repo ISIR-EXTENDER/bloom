@@ -246,9 +246,9 @@ bloom/
 ## Shared Applications
 
 Every time the backend starts it imports the applications committed under
-`backend/seed/applications/` that the store is missing: Explorer Manager, Kinova Manager, Sandbox V0.0,
-Petanque admin, Bloom Debug, and the webcam visualizer. A fresh clone comes up
-with the same app library everyone else has.
+`backend/seed/applications/` that the store is missing: Explorer Manager, Kinova Manager, Visual servoing,
+Sandbox V0.0, Petanque admin, Bloom Debug, the camera test apps and the webcam visualizer. A fresh clone
+comes up with the same app library everyone else has.
 
 Your own store lives in `backend/data/`, which is not tracked. Seeding never
 overwrites an application you have edited, so screens you rearrange in the

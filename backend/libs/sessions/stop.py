@@ -17,6 +17,8 @@ from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAudi
 from libs.sessions.teleop import TeleopCommand, TeleopCommandGateway, TeleopVector3
 
 CANCEL_MODE_REQUEST = "behaviour/passthrough"
+#: input_interfaces' visual servoing node: its velocity output stays live while this is true.
+VISUAL_SERVOING_ON_TOPIC = "/ui/visual_servoing/on"
 DEFAULT_MODE_REQUEST_TOPIC = "/mode_request"
 DEFAULT_TELEOP_TARGET = "/joystick_cartesian_command"
 # sandbox_controller, on the legacy teleop_command backend.
@@ -122,10 +124,11 @@ class RuntimeStopController:
             # limit. Keeping the gate held makes this the last robot operation.
             zero_ok, zero_detail, zero_simulated = self._publish_zero_twists()
             cancel_ok, cancel_detail, cancel_simulated = self._publish_joint_target_cancel()
-            self._asserted = zero_ok and cancel_ok
-            self._simulated = zero_simulated or cancel_simulated
+            servo_ok, servo_detail, servo_simulated = self._publish_visual_servoing_off()
+            self._asserted = zero_ok and cancel_ok and servo_ok
+            self._simulated = zero_simulated or cancel_simulated or servo_simulated
             prefix = "Runtime stop engaged." if self._asserted else "Runtime stop latched, but ROS assertion failed."
-            detail = f"{prefix} {zero_detail} {cancel_detail}"
+            detail = f"{prefix} {zero_detail} {cancel_detail} {servo_detail}"
             self._detail = detail
             state = self._state_unlocked()
 
@@ -191,6 +194,19 @@ class RuntimeStopController:
             f"Joint-target cancel ({CANCEL_MODE_REQUEST}) {receipt.status} on {receipt.topic}.",
             receipt.status == "simulated",
         )
+
+    def _publish_visual_servoing_off(self) -> tuple[bool, str, bool]:
+        """The servoing node keeps commanding while its switch is on; STOP turns the switch off."""
+        request = RosPublishRequest(
+            topic=VISUAL_SERVOING_ON_TOPIC,
+            message_type="std_msgs/msg/Bool",
+            payload={"data": False},
+        )
+        try:
+            receipt = self._ros_publisher_gateway.publish(request)
+        except Exception as exc:  # noqa: BLE001
+            return False, f"Visual servoing off could not be published: {exc}", False
+        return True, f"Visual servoing off {receipt.status} on {receipt.topic}.", receipt.status == "simulated"
 
     def _rejection_reason_unlocked(self) -> str:
         return "Runtime stop is engaged. Hold the stop control to resume before commanding the robot."

@@ -6,7 +6,7 @@ usage() {
   cat <<'EOF'
 Drive Bloom end to end against a simulated Explorer or Kinova gen3.
 
-  scripts/ros-sim-e2e.sh --robot explorer|kinova [--out dir] [--reuse-stack]
+  scripts/ros-sim-e2e.sh --robot explorer|kinova [--scenario manager|visual-servoing] [--out dir] [--reuse-stack]
 
 Without --reuse-stack the script starts the cartesian_manager simulation on an isolated ROS domain, an API on a
 throwaway SQLite store and a dashboard on free ports, runs scripts/ros-sim-e2e-checks.mjs and tears everything down.
@@ -30,12 +30,17 @@ EXTENDER_SETUP_FILE=${EXTENDER_SETUP_FILE:-"${EXTENDER_WORKSPACE}/install/setup.
 STARTUP_TIMEOUT=${BLOOM_E2E_STARTUP_TIMEOUT:-120}
 
 ROBOT=""
+SCENARIO="manager"
 OUT_DIR=""
 REUSE_STACK=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --robot)
       ROBOT="${2:-}"
+      shift 2
+      ;;
+    --scenario)
+      SCENARIO="$2"
       shift 2
       ;;
     --out)
@@ -85,6 +90,7 @@ mkdir -p "${LOG_DIR}"
 LAUNCH_PID=""
 BRIDGE_PID=""
 API_PID=""
+VS_PID=""
 DASHBOARD_PID=""
 
 log() {
@@ -109,6 +115,7 @@ cleanup() {
   # Every process was started in its own group, so a group kill reaches npm's Vite and the launch's Gazebo too.
   stop_group "${DASHBOARD_PID}" dashboard
   stop_group "${API_PID}" api
+  stop_group "${VS_PID}" "visual servoing"
   stop_group "${BRIDGE_PID}" "clock bridge"
   stop_group "${LAUNCH_PID}" simulation
 }
@@ -238,6 +245,19 @@ else
   wait_for "qontrol to publish /ee_pose" "${STARTUP_TIMEOUT}" topic_has_sample /ee_pose
   log "simulation ready"
 
+  if [[ "${SCENARIO}" == "visual-servoing" ]]; then
+    # Robin's node, with its saved tag goals copied where a Save may rewrite them. The hand-eye file
+    # names the arm's frames; the Explorer one is a placeholder until the bench calibrates it.
+    VS_SHARE="$(ros2 pkg prefix visual_servoing)/share/visual_servoing/config"
+    cp "${VS_SHARE}/saved_tag_goals.yaml" "${OUT_DIR}/saved_tag_goals.yaml"
+    log "starting the visual servoing node"
+    ros2 run visual_servoing visual_servoing --ros-args -p lambda:=0.4 \
+      -p "yaml_path:=${OUT_DIR}/saved_tag_goals.yaml" \
+      -p "yaml_path_transform_EEtoCAM:=${VS_SHARE}/handeye_tf_${ROBOT}Cam.yaml" \
+      >"${LOG_DIR}/visual-servoing.log" 2>&1 &
+    VS_PID=$!
+  fi
+
   log "starting the API on port ${API_PORT}"
   (
     cd "${BLOOM_ROOT}/backend"
@@ -263,6 +283,8 @@ fi
 
 log "running checks against ${DASHBOARD_URL}; results in ${OUT_DIR}"
 status=0
-BLOOM_DASHBOARD_URL="${DASHBOARD_URL}" node "${BLOOM_ROOT}/scripts/ros-sim-e2e-checks.mjs" \
+CHECKS="ros-sim-e2e-checks.mjs"
+[[ "${SCENARIO}" == "visual-servoing" ]] && CHECKS="ros-sim-e2e-visual-servoing-checks.mjs"
+BLOOM_DASHBOARD_URL="${DASHBOARD_URL}" node "${BLOOM_ROOT}/scripts/${CHECKS}" \
   --robot "${ROBOT}" --out "${OUT_DIR}" || status=$?
 exit "${status}"

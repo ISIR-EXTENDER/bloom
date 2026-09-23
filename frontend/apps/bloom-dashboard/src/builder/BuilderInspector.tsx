@@ -13,6 +13,7 @@ import { densityFloorFor, glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
   allowedCommandFrameIds?: readonly string[];
+  allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
   /** STOP is already reserved on this screen, so the palette says so instead of offering it twice. */
   hasStopRegion?: boolean;
@@ -38,6 +39,7 @@ type BuilderInspectorProps = {
 
 export function BuilderInspector({
   allowedCommandFrameIds,
+  allowedParameters,
   allowedTeleopTargets,
   availableWidgetDefinitions,
   hasStopRegion = false,
@@ -147,6 +149,7 @@ export function BuilderInspector({
       </p>
       <BuilderWidgetSettingsEditor
         allowedCommandFrameIds={allowedCommandFrameIds}
+        allowedParameters={allowedParameters}
         allowedTeleopTargets={allowedTeleopTargets}
         canvas={canvas}
         floorPx={densityFloorFor(deviceClass)}

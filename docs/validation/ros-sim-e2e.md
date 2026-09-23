@@ -4,6 +4,10 @@
 stack in simulation, and checks every gesture where it lands: on the ROS graph. Nothing is mocked. It is the gate
 between the fixture and contract suites and a bench session with the arm.
 
+`--scenario visual-servoing` (or `npm run e2e:sim:servo -- --robot kinova`) drives the Visual servoing app
+instead, with the real `visual_servoing` node and synthetic tags and frames; see
+[the visual servoing flow record](2026-09-24-visual-servoing-flow.md).
+
 ## What It Proves
 
 For the chosen robot, with the API, dashboard, manager, qontrol and controllers all live:

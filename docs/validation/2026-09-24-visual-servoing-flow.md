@@ -1,0 +1,89 @@
+# Visual servoing flow: camera_interface review and the Bloom app
+
+Date: 2026-09-24
+
+Susana asked for a review of `camera_interface` and of how it closes the visual servoing gap, then
+a Bloom app and end-to-end tests that confirm Robin's flow: see the gripper, drive to a tag, save the
+view, let the servoing node bring the arm back. It has to work with a webcam and on the Explorer, not
+only with the Kinova camera.
+
+## What camera_interface closes
+
+`camera_interface` (input_interfaces, branch `feat/camera-interface` on the ssrpo fork) is one launch
+file that puts any camera on one set of names: `/camera/color/image_raw`, `/camera/color/camera_info`
+and `/camera/color/image_raw/compressed`, whatever the driver (`usb_cam` for the Explorer camera or
+any webcam, `camera_ros`, `kinova_vision` included rather than respawned, `none` for a camera already
+up). It also exports `apriltag_remappings()`, the two remaps `apriltag_detector` needs because it
+subscribes `/image_raw` and `/camera_info` absolutely.
+
+So it closes the **camera side** of the loop: any camera → the detector, and any camera → Bloom's
+camera widget, which reads the compressed convention topic on its own socket (ADR 0137). That is what
+"a webcam and the Explorer" needed on the image path, and it needs no change in Bloom.
+
+## What it does not close
+
+Two things stay open, neither of them Bloom's to fix alone:
+
+1. **The manager never reads the servoing output.** `visual_servoing.cpp` publishes
+   `/visual_servoing/velocity_command`; both manager configs name `/visual_servoing_cartesian_command`
+   as the servoing input and declare only `joystick` in `inputs.sources`. Either the node's output is
+   remapped onto the manager's name and the source declared, or the manager config points at the
+   node's topic. The e2e below records this as a skip, with the reason, until the team decides.
+2. **The node's frames were the Kinova gen3's.** `end_effector_link`, `camera_link` and `base_link`
+   were literals in the node, and the only hand-eye file is the Kinova camera's. The Explorer has no
+   `end_effector_link`. Fixed in this session on a fork branch of input_interfaces: the node now reads
+   `ee_frame`, `camera_frame` and `base_frame` from the hand-eye file (the Kinova file already carried
+   the first two), and `handeye_tf_explorerCam.yaml` plus `visual_servoing_explorerCam.launch.py`
+   give the Explorer its entry point. The Explorer file is a **placeholder** (camera at the tool
+   origin) until a hand-eye calibration is run on the bench; the numbers, not the wiring, are missing.
+   One detail worth knowing: the Explorer's tool frame in TF is `ft_frame`. The manager's
+   `effector_frame` is a command label it accepts in `header.frame_id`, not a frame anything
+   publishes, so a node that does TF lookups must name `ft_frame`.
+
+Also worth knowing: the node emits its velocity in the base frame at 30 Hz, saturated at 0.2 m/s,
+only while `/ui/visual_servoing/on` is true, and a zero twist while no tag is seen. Bloom's STOP now
+publishes `/ui/visual_servoing/on: false` when it latches, so a latched STOP also silences the node.
+
+## The Bloom app
+
+`backend/seed/applications/visual-servoing.json`, three full-panel screens with the reserved STOP
+region, contract `scripts/visual-servoing-app-contract.mjs`:
+
+| Screen | Role | What it holds |
+| --- | --- | --- |
+| Servo | Operator | Gripper camera (`/camera/color/image_raw/compressed`), the Visual servoing toggle (`/ui/visual_servoing/on`), Save this view (`/ui/visual_servoing/save`), the tag list, a servo output plot, and three nudge sliders. |
+| Approach | Bench | Gripper camera, Height, Translation and Rotation pads through `cartesian_manager`, the qontrol speed limits. |
+| Monitor | both | Tag detections, the velocity and error plot with its picker, the velocity strip. |
+
+The image pipeline stays in ROS: no raw image topic reaches a monitor or a recording, as the July
+contract requires.
+
+## End-to-end evidence
+
+`bash scripts/ros-sim-e2e.sh --robot kinova|explorer --scenario visual-servoing` starts the
+simulation, the **real** `visual_servoing` node with its saved tag goals, the API, the dashboard,
+and a probe that publishes a synthetic tag (id 2, a little off its saved pose) and a synthetic camera
+frame, since Gazebo has neither. Bloom, the manager and the node are real.
+
+| Check | Evidence |
+| --- | --- |
+| `library-opens-servo` | The app opens as Operator on `servo`, READY. |
+| `gripper-camera-shows-frames` | The camera widget renders frames from the convention topic. |
+| `tag-detections-reach-the-monitor` | The tag list shows id 2 from `/tag_detections`. |
+| `enable-reaches-the-node-and-it-answers` | The toggle publishes `on: true`; the node answers with a non-zero `/visual_servoing/velocity_command` and an error on `/visual_servoing/error_TAGtoTAGd`. |
+| `monitor-shows-the-servo-numbers` | Monitor's velocity strip shows the live numbers, then the app returns to Servo. |
+| `manager-reads-the-servo-velocity` | **Skipped**, with the reason: the manager does not subscribe to the node's topic. |
+| `save-writes-the-tag-goal` | Save publishes on `/ui/visual_servoing/save` and the node rewrites tag 2 in `saved_tag_goals.yaml`. |
+| `stop-switches-servoing-off` | STOP publishes `on: false`, the node goes quiet, the hold resumes. |
+| `approach-screen-drives-through-the-manager` | Opened as Bench, a Translation stroke reaches `/joystick_cartesian_command`. |
+
+Results on 2026-09-24, manager `d9a1fa5`, qontrol `91309cc`, visual_servoing from input_interfaces
+PR #34: **Kinova 9/9** (8 pass, 1 skip) and **Explorer 9/9** (8 pass, 1 skip). Each run leaves
+`results.json` and `screens/` under `/tmp/bloom-ros-sim-e2e-<robot>-<stamp>/`.
+
+## Still to do on the bench
+
+- Calibrate the Explorer hand-eye and replace the placeholder file.
+- Decide, upstream, how the manager reads the servoing output (topic name and declared source).
+- Run the flow with a real tag and `camera_interface driver:=usb_cam` on the Explorer, then
+  `driver:=kinova_vision` on the gen3; this record turns from simulation into hardware evidence then.

@@ -1,0 +1,923 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-09-24T09:00:00Z",
+    "source": "bloom-visual-servoing"
+  },
+  "applications": [
+    {
+      "id": "visual-servoing",
+      "name": "Visual servoing",
+      "description": "Robin's AprilTag flow on the current stack: approach a tag with the gripper camera in view, save the view as the target, then let the visual servoing node drive back to it. Camera on camera_interface's convention topic; the node's frames are the Kinova gen3's today.",
+      "lifecycle": "active",
+      "runtime_policy": {
+        "command_frame_id": "base_link",
+        "allowed_message_types": [
+          "geometry_msgs/msg/TwistStamped",
+          "std_msgs/msg/Bool",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": [
+          "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+          "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+          "/ui/visual_servoing/on",
+          "/ui/visual_servoing/save"
+        ],
+        "allowed_recording_topics": [
+          "/ee_pose",
+          "/joint_states",
+          "/joystick_cartesian_command",
+          "/tag_detections",
+          "/visual_servoing/error_TAGtoTAGd",
+          "/visual_servoing/velocity_command"
+        ],
+        "allowed_teleop_targets": [
+          "/joystick_cartesian_command"
+        ]
+      },
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#54718e",
+          "accent": "#d98841",
+          "background": "#f2f4f6",
+          "surface": "#fcfdfe"
+        }
+      },
+      "profiles": [
+        {
+          "id": "operator",
+          "name": "Operator",
+          "display_preset": "comfort",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "servo",
+          "motor_accessibility_preset": "default",
+          "audio_cues": false,
+          "deadzone": 0,
+          "repeat_guard_ms": 0,
+          "scan_period_ms": 1400
+        },
+        {
+          "id": "bench",
+          "name": "Bench",
+          "display_preset": "default",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "approach",
+          "motor_accessibility_preset": "default",
+          "audio_cues": false,
+          "deadzone": 0,
+          "repeat_guard_ms": 0,
+          "scan_period_ms": 1400
+        }
+      ],
+      "screens": [
+        {
+          "id": "servo",
+          "title": "Servo",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "servo-camera-label",
+              "kind": "label",
+              "title": "GRIPPER CAMERA — what the arm sees",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 600,
+                "height": 24
+              },
+              "settings": {
+                "text": "GRIPPER CAMERA — what the arm sees",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "servo-camera",
+              "kind": "camera",
+              "title": "Gripper camera",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 600,
+                "height": 388
+              },
+              "settings": {
+                "fitMode": "contain",
+                "showHeader": true,
+                "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "servo-control-label",
+              "kind": "label",
+              "title": "VISUAL SERVOING — requested, the node answers on its own topics",
+              "layout": {
+                "x": 626,
+                "y": 14,
+                "width": 290,
+                "height": 24
+              },
+              "settings": {
+                "text": "VISUAL SERVOING — requested, the node answers on its own topics",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "servo-enable",
+              "kind": "toggle",
+              "title": "Visual servoing",
+              "layout": {
+                "x": 626,
+                "y": 46,
+                "width": 290,
+                "height": 120
+              },
+              "settings": {
+                "initialValue": false,
+                "onLabel": "Servoing",
+                "offLabel": "Off",
+                "topic": "/ui/visual_servoing/on",
+                "messageType": "std_msgs/msg/Bool",
+                "onPayload": "{data: true}",
+                "offPayload": "{data: false}",
+                "show_details": false
+              }
+            },
+            {
+              "id": "servo-save",
+              "kind": "command-button",
+              "title": "Save tag as target",
+              "layout": {
+                "x": 626,
+                "y": 178,
+                "width": 290,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "save",
+                "button_label": "Save this view",
+                "cancellable": false,
+                "command": "save",
+                "topic": "/ui/visual_servoing/save",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "save"
+                },
+                "show_details": false
+              }
+            },
+            {
+              "id": "servo-tags",
+              "kind": "topic-echo",
+              "title": "Tag detections",
+              "layout": {
+                "x": 626,
+                "y": 294,
+                "width": 290,
+                "height": 140
+              },
+              "settings": {
+                "topic": "/tag_detections",
+                "messageType": "extender_msgs/msg/SharedControlGoalArray",
+                "fieldPath": "goal_array",
+                "maxMessages": 3,
+                "prettyPrint": true,
+                "show_details": false
+              }
+            },
+            {
+              "id": "servo-values-label",
+              "kind": "label",
+              "title": "SERVO OUTPUT — velocity now, error on Monitor",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SERVO OUTPUT — velocity now, error on Monitor",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "servo-drive-label",
+              "kind": "label",
+              "title": "NUDGE — three linear axes, before saving a view",
+              "layout": {
+                "x": 14,
+                "y": 446,
+                "width": 902,
+                "height": 24
+              },
+              "settings": {
+                "text": "NUDGE — three linear axes, before saving a view",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "servo-height",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 14,
+                "y": 478,
+                "width": 110,
+                "height": 184
+              },
+              "settings": {
+                "direction": "vertical",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "unit": "m/s",
+                "returnToCenter": true,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "servo-forward",
+              "kind": "slider",
+              "title": "Forward",
+              "layout": {
+                "x": 136,
+                "y": 478,
+                "width": 384,
+                "height": 184
+              },
+              "settings": {
+                "direction": "horizontal",
+                "intent_label": "Forward velocity",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "unit": "m/s",
+                "returnToCenter": true,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_x"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "servo-sideways",
+              "kind": "slider",
+              "title": "Sideways",
+              "layout": {
+                "x": 532,
+                "y": 478,
+                "width": 384,
+                "height": 184
+              },
+              "settings": {
+                "direction": "horizontal",
+                "intent_label": "Sideways velocity",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "unit": "m/s",
+                "returnToCenter": true,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_y"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "servo-plot",
+              "kind": "plot-board",
+              "title": "Servo output",
+              "layout": {
+                "x": 928,
+                "y": 46,
+                "width": 338,
+                "height": 352
+              },
+              "settings": {
+                "series": [
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Servo velocity X",
+                    "color": "#31493f",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.y",
+                    "label": "Servo velocity Y",
+                    "color": "#7e967e",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.z",
+                    "label": "Servo velocity Z",
+                    "color": "#536960",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Tag error X",
+                    "color": "#c98a7e",
+                    "unit": "m",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.y",
+                    "label": "Tag error Y",
+                    "color": "#8a7f5c",
+                    "unit": "m",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.z",
+                    "label": "Tag error Z",
+                    "color": "#6b7f8a",
+                    "unit": "m",
+                    "enabled": false
+                  }
+                ],
+                "history_seconds": 30,
+                "max_samples": 900,
+                "y_min": -0.3,
+                "y_max": 0.3,
+                "show_details": false
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        },
+        {
+          "id": "approach",
+          "title": "Approach",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "approach-camera-label",
+              "kind": "label",
+              "title": "GRIPPER CAMERA",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 420,
+                "height": 24
+              },
+              "settings": {
+                "text": "GRIPPER CAMERA",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "approach-camera",
+              "kind": "camera",
+              "title": "Gripper camera",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 420,
+                "height": 268
+              },
+              "settings": {
+                "fitMode": "contain",
+                "showHeader": true,
+                "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "approach-drive-label",
+              "kind": "label",
+              "title": "APPROACH THE TAG — three linear axes, three angular axes",
+              "layout": {
+                "x": 446,
+                "y": 14,
+                "width": 470,
+                "height": 24
+              },
+              "settings": {
+                "text": "APPROACH THE TAG — three linear axes, three angular axes",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "approach-speed-label",
+              "kind": "label",
+              "title": "SPEED LIMITS — CONTINUOUS",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SPEED LIMITS — CONTINUOUS",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "approach-max-linear",
+              "kind": "slider",
+              "title": "Max linear speed",
+              "layout": {
+                "x": 928,
+                "y": 46,
+                "width": 338,
+                "height": 132
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 0.1,
+                "step": 0.005,
+                "value": 0.05,
+                "unit": "m/s",
+                "show_details": false,
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64"
+              }
+            },
+            {
+              "id": "approach-max-angular",
+              "kind": "slider",
+              "title": "Max angular speed",
+              "layout": {
+                "x": 928,
+                "y": 190,
+                "width": 338,
+                "height": 132
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 0.8,
+                "step": 0.02,
+                "value": 0.4,
+                "unit": "rad/s",
+                "show_details": false,
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+                "messageType": "std_msgs/msg/Float64"
+              }
+            },
+            {
+              "id": "approach-height",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 14,
+                "y": 326,
+                "width": 110,
+                "height": 336
+              },
+              "settings": {
+                "direction": "vertical",
+                "intent_label": "Vertical velocity",
+                "min": -1,
+                "max": 1,
+                "step": 0.01,
+                "unit": "m/s",
+                "returnToCenter": true,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "approach-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 136,
+                "y": 326,
+                "width": 384,
+                "height": 336
+              },
+              "settings": {
+                "binding": "joy",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "both",
+                "labels": {
+                  "top": "▲ Forward",
+                  "right": "Right ▶",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#2563eb",
+                    "negative_label": "Left",
+                    "positive_label": "Right",
+                    "semantic": "translation"
+                  },
+                  "y": {
+                    "color": "#0ea5e9",
+                    "negative_label": "Back",
+                    "positive_label": "Forward",
+                    "semantic": "translation"
+                  }
+                },
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 3,
+                    "target_topic": "/joystick_cartesian_command"
+                  }
+                }
+              }
+            },
+            {
+              "id": "approach-rotation",
+              "kind": "joystick",
+              "title": "Rotation",
+              "layout": {
+                "x": 532,
+                "y": 326,
+                "width": 384,
+                "height": 336
+              },
+              "settings": {
+                "binding": "rot",
+                "deadzone": 0.1,
+                "publish_rate_hz": 30,
+                "zero_on_release": true,
+                "mode_id": "rotation",
+                "labels": {
+                  "top": "▲ Tilt up",
+                  "right": "Roll right ▶",
+                  "bottom": "▼ Tilt down",
+                  "left": "◀ Roll left"
+                },
+                "axis_hints": {
+                  "x": {
+                    "color": "#2563eb",
+                    "negative_label": "Roll left",
+                    "positive_label": "Roll right",
+                    "semantic": "rotation"
+                  },
+                  "y": {
+                    "color": "#0ea5e9",
+                    "negative_label": "Tilt down",
+                    "positive_label": "Tilt up",
+                    "semantic": "rotation"
+                  }
+                },
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "value_mapping": {
+                    "mode": 1,
+                    "target_topic": "/joystick_cartesian_command"
+                  }
+                }
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        },
+        {
+          "id": "monitor",
+          "title": "Monitor",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "widgets": [
+            {
+              "id": "monitor-tags-label",
+              "kind": "label",
+              "title": "APRILTAG DETECTIONS — id and pose in the camera frame",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 400,
+                "height": 24
+              },
+              "settings": {
+                "text": "APRILTAG DETECTIONS — id and pose in the camera frame",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "monitor-tags",
+              "kind": "topic-echo",
+              "title": "Tag detections",
+              "layout": {
+                "x": 14,
+                "y": 46,
+                "width": 400,
+                "height": 300
+              },
+              "settings": {
+                "topic": "/tag_detections",
+                "messageType": "extender_msgs/msg/SharedControlGoalArray",
+                "fieldPath": "goal_array",
+                "maxMessages": 6,
+                "prettyPrint": true,
+                "show_details": false
+              }
+            },
+            {
+              "id": "monitor-plot-label",
+              "kind": "label",
+              "title": "SERVO OUTPUT — velocity and tag error, 30 second window",
+              "layout": {
+                "x": 430,
+                "y": 14,
+                "width": 486,
+                "height": 24
+              },
+              "settings": {
+                "text": "SERVO OUTPUT — velocity and tag error, 30 second window",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "monitor-plot",
+              "kind": "plot-board",
+              "title": "Servo output",
+              "layout": {
+                "x": 430,
+                "y": 46,
+                "width": 486,
+                "height": 300
+              },
+              "settings": {
+                "series": [
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Servo velocity X",
+                    "color": "#31493f",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.y",
+                    "label": "Servo velocity Y",
+                    "color": "#7e967e",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.z",
+                    "label": "Servo velocity Z",
+                    "color": "#536960",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Tag error X",
+                    "color": "#c98a7e",
+                    "unit": "m",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.y",
+                    "label": "Tag error Y",
+                    "color": "#8a7f5c",
+                    "unit": "m",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.z",
+                    "label": "Tag error Z",
+                    "color": "#6b7f8a",
+                    "unit": "m",
+                    "enabled": true
+                  }
+                ],
+                "history_seconds": 30,
+                "max_samples": 900,
+                "y_min": -0.3,
+                "y_max": 0.3,
+                "show_details": false,
+                "picker": {
+                  "enabled": true,
+                  "persist_per_profile": true
+                }
+              }
+            },
+            {
+              "id": "monitor-values",
+              "kind": "value-strip",
+              "title": "Servo velocity",
+              "layout": {
+                "x": 14,
+                "y": 358,
+                "width": 902,
+                "height": 304
+              },
+              "settings": {
+                "series": [
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Servo velocity X",
+                    "color": "#31493f",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.y",
+                    "label": "Servo velocity Y",
+                    "color": "#7e967e",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.z",
+                    "label": "Servo velocity Z",
+                    "color": "#536960",
+                    "unit": "m/s",
+                    "enabled": true
+                  }
+                ],
+                "show_details": false
+              }
+            },
+            {
+              "id": "monitor-series-label",
+              "kind": "label",
+              "title": "SERIES — tap to plot",
+              "layout": {
+                "x": 928,
+                "y": 14,
+                "width": 338,
+                "height": 24
+              },
+              "settings": {
+                "text": "SERIES — tap to plot",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "monitor-picker",
+              "kind": "plot-picker",
+              "title": "Series",
+              "layout": {
+                "x": 928,
+                "y": 46,
+                "width": 338,
+                "height": 352
+              },
+              "settings": {
+                "plot_id": "monitor-plot",
+                "show_value": true,
+                "show_details": false
+              }
+            }
+          ],
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 928,
+              "y": 410,
+              "width": 338,
+              "height": 252
+            }
+          ]
+        }
+      ],
+      "action_presets": []
+    }
+  ]
+}

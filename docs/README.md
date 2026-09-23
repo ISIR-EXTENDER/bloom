@@ -31,6 +31,7 @@ One page per topic. These describe what Bloom does today.
 | [Accessibility plan](accessibility-plan.md) | The runtime accessibility contract, the motor and input profiles, and what is still open. |
 | [Release checklist](release-checklist.md) | What has to be true before tagging. Every step is a command. |
 | [Extender and Petanque validation](extender-petanque-validation.md) | The live acceptance procedure and what remains unvalidated on hardware. |
+| [Visual servoing flow](validation/2026-09-24-visual-servoing-flow.md) | camera_interface review, the Visual servoing app, and the simulated end-to-end run of Robin's AprilTag flow. |
 
 ## Open Work And Proposals
 
