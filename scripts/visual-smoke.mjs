@@ -36,7 +36,8 @@ const routes = [
   { name: "runtime", setup: showRuntime },
   { name: "supervisor-mirror", setup: showSupervisorMirror },
   { name: "runtime-tour", setup: showRuntimeTour },
-  { name: "runtime-sandbox-teleop-config", setup: (page) => showSandboxRuntimeScreen(page, "Teleop Configuration") },
+  // The teleop config screen left with the sandbox rebase: its knobs are cartesian_manager
+  // parameters now, which Bloom cannot set until it has a parameter seam.
   { name: "runtime-control-panel", setup: (page) => showSandboxRuntimeScreen(page, "Control Panel") },
   { name: "runtime-snake-control", setup: (page) => showSandboxRuntimeScreen(page, "Snake Control") },
   { name: "runtime-visual-servoing", setup: (page) => showSandboxRuntimeScreen(page, "Visual Servoing") },
