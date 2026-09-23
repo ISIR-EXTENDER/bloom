@@ -97,7 +97,7 @@ describe("widget renderer registry", () => {
     expect(framedWidget).toHaveAttribute("data-runtime-unavailable", "true");
     expect(framedWidget?.querySelector(".bloom-runtime-widget-content")).toHaveAttribute("inert");
     expect(screen.getByRole("note")).toHaveTextContent(
-      "Digital output unavailableNo ROS publisher is connected, so commands go nowhere.",
+      "UnavailableNo ROS publisher is connected, so commands go nowhere.",
     );
     expect(toggle).toBeInTheDocument();
     if (!toggle) {

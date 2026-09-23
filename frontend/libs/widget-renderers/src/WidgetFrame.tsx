@@ -51,7 +51,7 @@ export function WidgetFrame({ children, controlState, descriptor }: WidgetFrameP
       </div>
       {unavailable ? (
         <div className="bloom-runtime-widget-unavailable" role="note">
-          <strong>{widget.title} unavailable</strong>
+          <strong>Unavailable</strong>
           <span>{controlState?.disabledReason ?? "Required runtime connection is unavailable."}</span>
         </div>
       ) : null}
