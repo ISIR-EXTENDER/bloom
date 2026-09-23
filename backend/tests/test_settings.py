@@ -42,55 +42,43 @@ def test_default_settings_are_local() -> None:
 def test_default_runtime_allowlists_cover_extender_publish_topics() -> None:
     settings = Settings()
 
+    # The defaults carry exactly the current-architecture surface; the previous
+    # architecture's /cmd, /teleop_config and /ui topics left with the rebases.
     assert {
-        "/cmd/gripper",
-        "/cmd/mode",
-        "/cmd/joystick_rxry",
-        "/cmd/joystick_rz",
-        "/cmd/joystick_xy",
-        "/cmd/joystick_z",
-        "/cmd/max_velocity",
-        "/cmd/petanque/round",
+        "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+        "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
         "/gripper_controller/commands",
-        "/petanque/measure/request_image",
-        "/petanque/teleop/enabled",
-        "/petanque/throw/alpha",
-        "/petanque/throw/gesture",
+        "/mode_request",
         "/petanque_state_machine/change_state",
-        "/sandbox/digital_output",
-        "/snake_control/enable",
-        "/teleop_cmd",
-        "/teleop_config/angular_scale_x",
-        "/teleop_config/angular_scale_y",
-        "/teleop_config/angular_scale_z",
-        "/teleop_config/invert_angular_x",
-        "/teleop_config/invert_angular_y",
-        "/teleop_config/invert_angular_z",
-        "/teleop_config/invert_linear_x",
-        "/teleop_config/invert_linear_y",
-        "/teleop_config/invert_linear_z",
-        "/teleop_config/linear_scale_x",
-        "/teleop_config/linear_scale_y",
-        "/teleop_config/linear_scale_z",
-        "/teleop_config/reset_defaults",
-        "/teleop_config/rotation_gain",
-        "/teleop_config/save_profile",
-        "/teleop_config/swap_xy",
-        "/teleop_config/translation_gain",
-        "/ui/load_pose",
-        "/ui/navigation",
-        "/ui/navigation/visual_servoing",
-        "/ui/navigation/visual_servoing_monitor",
-        "/ui/robot_action",
-        "/ui/ros_toggle",
-        "/ui/save_pose",
         "/ui/visual_servoing/on",
         "/ui/visual_servoing/save",
-        "/visual_servoing/enabled",
-    }.issubset(settings.allowed_ros_publish_topics)
-    assert "geometry_msgs/msg/Vector3" in settings.allowed_ros_message_types
-    assert "std_msgs/msg/Float64MultiArray" in settings.allowed_ros_message_types
-    assert "std_msgs/msg/UInt8MultiArray" in settings.allowed_ros_message_types
+        # The namespace entry for builder-authored UI bridges (see below).
+        "/ui/",
+    } == set(settings.allowed_ros_publish_topics)
+    assert not any(topic.startswith("/cmd/") for topic in settings.allowed_ros_publish_topics)
+    assert "/teleop_cmd" not in settings.allowed_teleop_targets
+
+
+def test_the_ui_namespace_is_open_to_builder_authored_topics() -> None:
+    # Team request: an app authored in the builder may bridge its own UI topic
+    # (for example /ui/ros_toggle) without a backend edit. The /ui/ entry
+    # grants the namespace; robot-facing topics stay individually allowlisted.
+    from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
+
+    settings = Settings()
+    policy = RuntimeCommandPolicy(
+        allowed_message_types=settings.allowed_ros_message_types,
+        allowed_publish_topics=settings.allowed_ros_publish_topics,
+        allowed_teleop_targets=settings.allowed_teleop_targets,
+    )
+
+    policy.ensure_publish_allowed("/ui/ros_toggle", "std_msgs/msg/Int32MultiArray", {"data": [13, 1]})
+    policy.ensure_publish_allowed("/ui/my_new_bridge", "std_msgs/msg/Bool", {"data": True})
+
+    import pytest
+
+    with pytest.raises(RuntimeCommandPolicyError):
+        policy.ensure_publish_allowed("/cmd/gripper", "std_msgs/msg/Bool", {"data": True})
 
 
 def test_default_runtime_recording_allowlist_covers_seeded_runtime_apps() -> None:
@@ -98,15 +86,18 @@ def test_default_runtime_recording_allowlist_covers_seeded_runtime_apps() -> Non
 
     assert {
         "/joint_states",
+        "/petanque/measure/result_vectors",
         "/petanque_state_machine/change_state",
+        "/qontrol_explorer/effort_overload",
         "/rosout",
-        "/sandbox_controller/velocity_command",
         "/tag_detections",
         "/visual_servoing_cartesian_command",
-        "/teleop_cmd",
         "/visual_servoing/error_TAGtoTAGd",
         "/visual_servoing/velocity_command",
     }.issubset(settings.allowed_recording_topics)
+    # The previous architecture's feedback topics record nothing any more.
+    assert "/teleop_cmd" not in settings.allowed_recording_topics
+    assert "/sandbox_controller/velocity_command" not in settings.allowed_recording_topics
 
 
 def test_get_settings_is_cached() -> None:

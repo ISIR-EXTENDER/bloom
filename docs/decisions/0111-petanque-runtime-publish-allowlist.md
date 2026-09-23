@@ -31,6 +31,14 @@ The throw parameters live behind a ROS parameter service
 (`/petanque_throw/set_parameters`) that Bloom cannot reach without a parameter
 seam, so the app offers no throw tuning rather than publishing into silence.
 
+One namespace stays open by design. The team asked to wire new UI bridge
+topics from the builder without a backend edit (the `/ui/ros_toggle`
+digital-output bridge was the original case), so the backend publish allowlist
+carries the entry `/ui/`: an entry ending in `/` grants its namespace
+(`ensure_allowed` in `backend/libs/ros_adapters/safety.py`). Robot-facing
+topics stay individually allowlisted, and the app's own runtime policy must
+still name every topic it uses.
+
 The environment overrides from the original decision remain:
 `BLOOM_ALLOWED_ROS_PUBLISH_TOPICS`, `BLOOM_ALLOWED_ROS_MESSAGE_TYPES`,
 `BLOOM_ALLOWED_TELEOP_TARGETS`, `BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND`.

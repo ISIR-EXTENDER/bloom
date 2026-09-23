@@ -37,10 +37,7 @@ class Settings(BaseModel):
     # missing. Off for tests that assert on an empty store.
     seed_shared_applications: bool = Field(default=True)
     allowed_ros_message_types: tuple[str, ...] = (
-        "extender_msgs/msg/TeleopCommand",
-        "geometry_msgs/msg/Twist",
         "geometry_msgs/msg/TwistStamped",
-        "geometry_msgs/msg/Vector3",
         "sensor_msgs/msg/CompressedImage",
         "sensor_msgs/msg/JointState",
         "std_msgs/msg/Bool",
@@ -55,51 +52,17 @@ class Settings(BaseModel):
         # qontrol runtime speed limits, from cartesian_manager's explorer bringup.
         "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
         "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
-        "/cmd/gripper",
-        "/cmd/mode",
-        "/cmd/joystick_rxry",
-        "/cmd/joystick_rz",
-        "/cmd/joystick_xy",
-        "/cmd/joystick_z",
-        "/cmd/max_velocity",
-        "/cmd/petanque/round",
         "/gripper_controller/commands",
-        "/petanque/measure/request_image",
-        "/petanque/teleop/enabled",
-        "/petanque/throw/alpha",
-        "/petanque/throw/gesture",
-        "/petanque_state_machine/change_state",
-        "/sandbox/digital_output",
-        "/snake_control/enable",
-        "/teleop_cmd",
-        "/teleop_config/angular_scale_x",
-        "/teleop_config/angular_scale_y",
-        "/teleop_config/angular_scale_z",
-        "/teleop_config/invert_angular_x",
-        "/teleop_config/invert_angular_y",
-        "/teleop_config/invert_angular_z",
-        "/teleop_config/invert_linear_x",
-        "/teleop_config/invert_linear_y",
-        "/teleop_config/invert_linear_z",
-        "/teleop_config/linear_scale_x",
-        "/teleop_config/linear_scale_y",
-        "/teleop_config/linear_scale_z",
-        "/teleop_config/reset_defaults",
-        "/teleop_config/rotation_gain",
-        "/teleop_config/save_profile",
-        "/teleop_config/swap_xy",
-        "/teleop_config/translation_gain",
+        # cartesian_manager behaviours and shapers (geometric/*, behaviour/*).
         "/mode_request",
-        "/ui/load_pose",
-        "/ui/navigation",
-        "/ui/navigation/visual_servoing",
-        "/ui/navigation/visual_servoing_monitor",
-        "/ui/robot_action",
-        "/ui/ros_toggle",
-        "/ui/save_pose",
+        # apps-petanque's yasmin state machine.
+        "/petanque_state_machine/change_state",
+        # input_interfaces visual servoing node.
         "/ui/visual_servoing/on",
         "/ui/visual_servoing/save",
-        "/visual_servoing/enabled",
+        # The whole /ui/ namespace: apps authored in the builder may bridge
+        # their own UI topics (e.g. /ui/ros_toggle) without a backend edit.
+        "/ui/",
     )
     # Which arm this deployment drives, shown on the operator screen. One
     # backend instance serves one robot.
@@ -117,10 +80,7 @@ class Settings(BaseModel):
     # the manager silently discards. Set BLOOM_ROS_EE_FRAME_ID (or the whole
     # list with BLOOM_ALLOWED_COMMAND_FRAME_IDS) to offer the tool frame.
     allowed_command_frame_ids: tuple[str, ...] = ("base_link", "hybrid_frame")
-    allowed_teleop_targets: tuple[str, ...] = (
-        "/joystick_cartesian_command",
-        "/teleop_cmd",
-    )
+    allowed_teleop_targets: tuple[str, ...] = ("/joystick_cartesian_command",)
     # Trigger-style services the runtime may call. The fault reset is the
     # Kinova gen3's recovery path.
     allowed_ros_service_calls: tuple[str, ...] = ("/fault_controller/reset_fault",)
@@ -151,12 +111,8 @@ class Settings(BaseModel):
         # qontrol's estimated tip-force overload flag (force norm >= force_threshold).
         "/qontrol_explorer/effort_overload",
         "/rosout",
-        # Legacy sandbox_controller feedback, still used by the Petanque app.
-        # Remove when Petanque migrates off /teleop_cmd.
-        "/sandbox_controller/velocity_command",
         "/tag_detections",
         "/visual_servoing_cartesian_command",
-        "/teleop_cmd",
         "/visual_servoing/error_TAGtoTAGd",
         "/visual_servoing/velocity_command",
     )

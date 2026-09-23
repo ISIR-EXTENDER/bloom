@@ -164,7 +164,6 @@ describe("normalizeConfigurationBundle", () => {
       "/joystick_cartesian_command",
       "/mode_request",
       "/tag_detections",
-      "/teleop_cmd",
       "/visual_servoing/error_TAGtoTAGd",
       "/visual_servoing/velocity_command",
     ]);

@@ -124,7 +124,6 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
     # Every accepted target is zeroed: the latch cannot know which one a session was driving.
     assert [command.target for command in teleop_gateway.commands] == [
         "/joystick_cartesian_command",
-        "/teleop_cmd",
     ]
     for zero_command in teleop_gateway.commands:
         assert (zero_command.linear.x, zero_command.linear.y, zero_command.linear.z) == (0.0, 0.0, 0.0)
@@ -138,10 +137,16 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
 
 
 def test_stop_zeros_the_legacy_teleop_topic_on_the_teleop_command_backend() -> None:
+    # The rollback backend is opt-in now: its target left the defaults with the
+    # Sandbox and Petanque rebases, so a lab reviving it names it explicitly.
     teleop_gateway = RecordingTeleopGateway()
     client = TestClient(
         create_app(
-            Settings(environment="test", ros_command_backend="teleop_command"),
+            Settings(
+                environment="test",
+                ros_command_backend="teleop_command",
+                allowed_teleop_targets=("/teleop_cmd", "/joystick_cartesian_command"),
+            ),
             InMemoryConfigurationRepository(),
             ros_publisher_gateway=RecordingRosPublisherGateway(),
             teleop_command_gateway=teleop_gateway,
@@ -227,8 +232,8 @@ def test_engaging_stop_twice_reasserts_instead_of_failing() -> None:
     assert first.status_code == 200
     assert second.status_code == 200
     assert second.json()["stopped"] is True
-    # Two accepted teleop targets, zeroed once per engage.
-    assert len(teleop_gateway.commands) == 4
+    # Each accepted teleop target is zeroed once per engage.
+    assert len(teleop_gateway.commands) == 2
     assert len(ros_gateway.requests) == 2
 
 

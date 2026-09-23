@@ -41,6 +41,10 @@ class RuntimeCommandPolicy:
 def ensure_allowed(value: str, allowed_values: tuple[str, ...], label: str) -> None:
     if "*" in allowed_values or value in allowed_values:
         return
+    # An entry ending in "/" grants its namespace: "/ui/" lets an app author
+    # wire a new UI bridge topic from the builder without a backend edit.
+    if any(entry.endswith("/") and entry != "/" and value.startswith(entry) for entry in allowed_values):
+        return
     raise RuntimeCommandPolicyError(f"{label} '{value}' is not allowed by the runtime policy.")
 
 

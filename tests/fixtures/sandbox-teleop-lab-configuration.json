@@ -141,7 +141,7 @@
                 "max": 2,
                 "step": 0.01,
                 "returnToCenter": false,
-                "topic": "/cmd/max_velocity",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
                 "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
                   "adapter": "topic",
@@ -170,15 +170,19 @@
                 "max": 1,
                 "step": 0.01,
                 "returnToCenter": true,
-                "topic": "/cmd/joystick_z",
                 "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/cmd/joystick_z",
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
                   "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
                 }
               }
             },
@@ -199,15 +203,19 @@
                 "max": 1,
                 "step": 0.01,
                 "returnToCenter": true,
-                "topic": "/cmd/joystick_rz",
                 "messageType": "std_msgs/msg/Float64",
                 "runtime_binding": {
-                  "adapter": "topic",
-                  "target": "/cmd/joystick_rz",
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
                   "value_mapping": {
-                    "field_path": "data",
-                    "message_type": "std_msgs/msg/Float64"
-                  }
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
                 }
               }
             }
@@ -216,7 +224,7 @@
       ],
       "runtime_policy": {
         "allowed_message_types": ["std_msgs/msg/Float64"],
-        "allowed_publish_topics": ["/cmd/joystick_rz", "/cmd/joystick_z", "/cmd/max_velocity", "/mode_request"],
+        "allowed_publish_topics": ["/explorer_user_interfaces/rqt_armcontrol/max_linear_speed", "/mode_request"],
         "allowed_recording_topics": [
           "/cartesian_command",
           "/ee_pose",
@@ -224,10 +232,9 @@
           "/joint_states",
           "/joint_target_command",
           "/joystick_cartesian_command",
-          "/mode_request",
-          "/teleop_cmd"
+          "/mode_request"
         ],
-        "allowed_teleop_targets": ["/joystick_cartesian_command", "/teleop_cmd"]
+        "allowed_teleop_targets": ["/joystick_cartesian_command"]
       },
       "action_presets": [
         {
@@ -236,7 +243,7 @@
           "kind": "topic-publish",
           "description": "Set a conservative max velocity in the sandbox lab.",
           "command": "set_safe_max_velocity",
-          "topic": "/cmd/max_velocity",
+          "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
           "message_type": "std_msgs/msg/Float64",
           "payload": {
             "data": 0.5

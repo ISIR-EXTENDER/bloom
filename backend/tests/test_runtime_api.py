@@ -292,9 +292,9 @@ def test_robot_facing_http_commands_require_the_control_owner_session() -> None:
     )
     client = TestClient(app)
     request = {
-        "message_type": "std_msgs/msg/Int32",
-        "payload": {"data": 3},
-        "topic": "/cmd/mode",
+        "message_type": "std_msgs/msg/String",
+        "payload": {"data": "geometric/both"},
+        "topic": "/mode_request",
     }
 
     with client.websocket_connect("/api/v1/runtime/ws") as websocket:
@@ -419,7 +419,7 @@ def test_release_zeros_a_nondefault_target_even_when_stop_is_already_latched() -
                 "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
                 "mode": 3,
                 "seq": 1,
-                "target": "/teleop_cmd",
+                "target": "/joystick_cartesian_command",
             }
         )
         websocket.receive_json()
@@ -427,7 +427,7 @@ def test_release_zeros_a_nondefault_target_even_when_stop_is_already_latched() -
         websocket.send_json({"type": "release_control"})
         assert websocket.receive_json()["type"] == "control_state"
 
-    assert gateway.commands[-1].target == "/teleop_cmd"
+    assert gateway.commands[-1].target == "/joystick_cartesian_command"
     assert gateway.commands[-1].linear == TeleopVector3()
     assert gateway.commands[-1].angular == TeleopVector3()
 
@@ -593,7 +593,7 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
                 "linear": {"x": 0.1, "y": -0.2, "z": 0.0},
                 "mode": 4,
                 "seq": 42,
-                "target": "/teleop_cmd",
+                "target": "/joystick_cartesian_command",
             }
         )
         response = websocket.receive_json()
@@ -609,7 +609,7 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
             "mode": 4,
             "seq": 42,
             "status": "accepted",
-            "target": "/teleop_cmd",
+            "target": "/joystick_cartesian_command",
         },
         "session_id": connected["session_id"],
     }
@@ -619,7 +619,7 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
         linear=TeleopVector3(x=0.1, y=-0.2, z=0.0),
         mode=4,
         seq=42,
-        target="/teleop_cmd",
+        target="/joystick_cartesian_command",
     )
     assert gateway.commands[-1].linear == TeleopVector3()
 
@@ -672,7 +672,7 @@ def test_runtime_websocket_returns_errors_when_teleop_gateway_fails() -> None:
                 "type": "teleop_cmd",
                 "mode": 3,
                 "seq": 1,
-                "target": "/teleop_cmd",
+                "target": "/joystick_cartesian_command",
                 "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
                 "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
             }
@@ -686,7 +686,7 @@ def test_runtime_websocket_returns_errors_when_teleop_gateway_fails() -> None:
         "detail": "Teleop command could not be published.",
         "payload": {
             "message": "extender_msgs is required to publish teleop commands",
-            "target": "/teleop_cmd",
+            "target": "/joystick_cartesian_command",
         },
         "session_id": response["session_id"],
     }
@@ -746,7 +746,7 @@ def test_runtime_websocket_rejects_rate_limited_teleop_commands() -> None:
         "type": "teleop_cmd",
         "mode": 4,
         "seq": 1,
-        "target": "/teleop_cmd",
+        "target": "/joystick_cartesian_command",
         "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
         "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
@@ -767,7 +767,7 @@ def test_runtime_websocket_rejects_rate_limited_teleop_commands() -> None:
     record = audit_log.list_records()[0]
     assert record.channel == "websocket_teleop"
     assert record.status == "rejected"
-    assert record.target == "/teleop_cmd"
+    assert record.target == "/joystick_cartesian_command"
 
 
 def test_runtime_websocket_never_rate_limits_an_explicit_zero() -> None:
@@ -785,7 +785,7 @@ def test_runtime_websocket_never_rate_limits_an_explicit_zero() -> None:
         "type": "teleop_cmd",
         "mode": 4,
         "seq": 1,
-        "target": "/teleop_cmd",
+        "target": "/joystick_cartesian_command",
         "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
         "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
@@ -816,7 +816,7 @@ def test_runtime_audit_endpoint_lists_recent_records() -> None:
             detail="accepted for test",
             session_id="session-1",
             status="accepted",
-            target="/teleop_cmd",
+            target="/joystick_cartesian_command",
         )
     )
     client = TestClient(
@@ -839,7 +839,7 @@ def test_runtime_audit_endpoint_lists_recent_records() -> None:
         "repeats": 1,
         "session_id": audit_session_alias("session-1"),
         "status": "accepted",
-        "target": "/teleop_cmd",
+        "target": "/joystick_cartesian_command",
         "topic": "",
     }
 
@@ -1028,7 +1028,7 @@ def test_runtime_recording_start_and_stop_use_configured_gateway() -> None:
     start_response = client.post(
         "/api/v1/runtime/recordings",
         json={
-            "topics": ["/teleop_cmd", "/teleop_cmd", "/joint_states"],
+            "topics": ["/ee_pose", "/ee_pose", "/joint_states"],
             "output_folder": "data/recordings",
             "label": "sandbox debug",
         },
@@ -1041,14 +1041,14 @@ def test_runtime_recording_start_and_stop_use_configured_gateway() -> None:
         "output_folder": "data/recordings",
         "recording_id": "recording-1",
         "status": "recording",
-        "topics": ["/teleop_cmd", "/joint_states"],
+        "topics": ["/ee_pose", "/joint_states"],
     }
     assert stop_response.status_code == 200
     assert gateway.started_requests == [
         RuntimeRecordingRequest(
             label="sandbox debug",
             output_folder="data/recordings",
-            topics=("/teleop_cmd", "/joint_states"),
+            topics=("/ee_pose", "/joint_states"),
         )
     ]
     assert gateway.stopped_recording_ids == ["recording-1"]
@@ -1117,7 +1117,7 @@ def test_runtime_recording_reports_gateway_failures_as_service_unavailable() -> 
 
     response = client.post(
         "/api/v1/runtime/recordings",
-        json={"topics": ["/teleop_cmd"], "output_folder": "data/recordings"},
+        json={"topics": ["/ee_pose"], "output_folder": "data/recordings"},
     )
 
     assert response.status_code == 503

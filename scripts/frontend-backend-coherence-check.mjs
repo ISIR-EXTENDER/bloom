@@ -140,7 +140,10 @@ function assertPolicyIncludes(policy, key, value, label) {
 
 function assertBackendIncludes(key, value, label) {
   const values = backendPolicy[key] ?? [];
-  assert(label, values.includes(value), `${value} missing from backend ${key}`);
+  // An entry ending in "/" grants its namespace (safety.py ensure_allowed).
+  const allowed =
+    values.includes(value) || values.some((entry) => entry.endsWith("/") && entry !== "/" && value.startsWith(entry));
+  assert(label, allowed, `${value} missing from backend ${key}`);
 }
 
 const fixtureBundles = [];
