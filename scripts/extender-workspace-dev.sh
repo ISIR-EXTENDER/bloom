@@ -35,10 +35,16 @@ cleanup() {
   fi
 }
 
+# The address a phone on the same Wi-Fi actually reaches: the source of the default
+# route. `hostname -I` lists every interface, and on a machine with Docker the first
+# one is often a bridge, which would print a URL no device can open.
 discover_lan_ip() {
-  local addresses
-  addresses="$(hostname -I 2>/dev/null || true)"
-  printf '%s\n' "${addresses}" | awk '{ print $1 }'
+  local address
+  address="$(ip route get 1.1.1.1 2>/dev/null | awk '{ for (i = 1; i <= NF; i++) if ($i == "src") print $(i + 1) }')"
+  if [[ -z "${address}" ]]; then
+    address="$(hostname -I 2>/dev/null | awk '{ print $1 }')"
+  fi
+  printf '%s\n' "${address}"
 }
 
 trap cleanup EXIT INT TERM
