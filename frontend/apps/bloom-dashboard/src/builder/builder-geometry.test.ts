@@ -6,7 +6,7 @@ import type {
   ScreenConfig,
   WidgetConfig,
 } from "@bloom/api-client";
-import { INTERACTIVE_WIDGET_KINDS } from "@bloom/widgets";
+import { DEFAULT_WIDGET_DEFINITIONS, INTERACTIVE_WIDGET_KINDS, minSizeFor } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
 import bloomDebugConfiguration from "../../../../../backend/seed/applications/bloom-debug.json";
@@ -224,5 +224,22 @@ describe("shipped design screens", () => {
     );
 
     expect(undersized).toEqual([]);
+  });
+});
+
+describe("what the resize handle allows", () => {
+  /**
+   * Robin, 2026-09-23: "erreur de taille minimale 632x288 (c'est très grand)". The numbers read as
+   * absurd because the handle and the inspector consulted different tables: a joystick could be
+   * dragged to 160x160 and the inspector would then ask for 280x332.
+   */
+  it("offers a new widget at a size its own contract accepts", () => {
+    // Placing one already too small is the same contradiction seen from the other end.
+    for (const definition of DEFAULT_WIDGET_DEFINITIONS) {
+      const contract = minSizeFor(definition.kind, definition.defaultSettings);
+      if (!contract) continue;
+      expect(definition.defaultLayout.width, definition.kind).toBeGreaterThanOrEqual(contract[0]);
+      expect(definition.defaultLayout.height, definition.kind).toBeGreaterThanOrEqual(contract[1]);
+    }
   });
 });

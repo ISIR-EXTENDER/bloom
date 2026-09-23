@@ -136,6 +136,23 @@ describe("the builder canvas", () => {
     expect(frameOf().style.width).toBe(before);
   });
 
+  it("refuses to shrink a widget below its kind's contract", () => {
+    // Robin, 2026-09-23, on the minimums reading as absurd: the handle allowed 160x160 for a
+    // joystick and the inspector then asked for 280x332. One table now answers both.
+    render(<DraftCanvas source={bench} />);
+    const handle = screen.getByRole("button", { name: "Resize Translation widget" });
+    const frameOf = () => handle.closest("article") as HTMLElement;
+    const pixels = (value: string) => Number.parseInt(value, 10);
+
+    for (let step = 0; step < 40; step += 1) {
+      fireEvent.keyDown(handle, { key: "ArrowLeft" });
+      fireEvent.keyDown(handle, { key: "ArrowUp" });
+    }
+
+    expect(pixels(frameOf().style.width)).toBeGreaterThanOrEqual(280);
+    expect(pixels(frameOf().style.height)).toBeGreaterThanOrEqual(332);
+  });
+
   it("moves and resizes the selection from the keyboard", () => {
     render(<DraftCanvas source={bench} />);
     const frameOf = () =>

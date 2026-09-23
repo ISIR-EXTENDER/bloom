@@ -1,5 +1,5 @@
 import type { ScreenConfig, WidgetConfig, WidgetLayout } from "@bloom/api-client";
-import { findSizeShortfall, type WidgetRenderDescriptor } from "@bloom/widgets";
+import { findSizeShortfall, minSizeFor, type WidgetRenderDescriptor } from "@bloom/widgets";
 import type { ReactNode } from "react";
 import { ScreenArtboard, type ScreenArtboardLayout } from "../screen/ScreenArtboard";
 import { BuilderCanvasItem } from "./BuilderCanvasItem";
@@ -123,17 +123,30 @@ export function BuilderCanvas({
   );
 }
 
+/**
+ * What the resize handle may shrink a widget to.
+ *
+ * The contract table is the answer wherever it has one, because the handle used to read a second
+ * set of numbers on the widget definition and the two disagreed for eight kinds: a joystick could
+ * be dragged to 160x160 and the inspector would then say it needs 280x332. Robin met that at the
+ * bench and read it as the minimums being absurd, which they were, from the outside.
+ *
+ * It also depends on settings, which a fixed pair on the definition cannot express: a vertical
+ * slider and a horizontal one want opposite shapes.
+ */
 function resolveWidgetMinSize(descriptor: WidgetRenderDescriptor) {
-  if (descriptor.status === "resolved") {
-    return {
-      width: descriptor.definition.defaultLayout.minWidth,
-      height: descriptor.definition.defaultLayout.minHeight,
-    };
+  if (descriptor.status !== "resolved") {
+    return { width: 40, height: 40 };
+  }
+
+  const contract = minSizeFor(descriptor.widget.kind, descriptor.widget.settings);
+  if (contract) {
+    return { width: contract[0], height: contract[1] };
   }
 
   return {
-    width: 40,
-    height: 40,
+    width: descriptor.definition.defaultLayout.minWidth,
+    height: descriptor.definition.defaultLayout.minHeight,
   };
 }
 

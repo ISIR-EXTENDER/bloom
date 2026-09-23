@@ -160,10 +160,11 @@ describe("widget capability metadata", () => {
         runtime: true,
       },
       category: "input",
+      // The floor is the contract's, not a looser pair beside it: the resize handle reads this.
       defaultLayout: {
         height: 332,
-        minHeight: 160,
-        minWidth: 160,
+        minHeight: 332,
+        minWidth: 280,
         width: 280,
       },
       defaultSettings: {
