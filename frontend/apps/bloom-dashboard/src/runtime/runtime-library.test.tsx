@@ -159,7 +159,26 @@ describe("the runtime library", () => {
   });
 
   it("marks an archived app with the word and still lets it open", () => {
-    const handlers = renderLibrary();
+    // No shipped seed is archived since the Petanque rebase; build the case.
+    const archivedBundle = {
+      ...(petanqueAdminConfiguration as { applications: Record<string, unknown>[] }),
+      applications: (petanqueAdminConfiguration as { applications: Record<string, unknown>[] }).applications.map(
+        (app) => ({ ...app, lifecycle: "archived" }),
+      ),
+    };
+    const handlers = {
+      onOpenRuntimeApp: vi.fn(),
+      onOpenSupervisorApp: vi.fn(),
+      onProfilePreferenceChange: vi.fn(),
+    };
+    render(
+      <RuntimeHome
+        configurations={[loaded("petanque-admin", archivedBundle)]}
+        profilePreferences={{}}
+        recentRuntimeSelections={[]}
+        {...handlers}
+      />,
+    );
     const row = screen.getByRole("button", { name: "Petanque admin" });
 
     expect(row.querySelector('[data-state="archived"]')?.textContent).toBe("Archived");

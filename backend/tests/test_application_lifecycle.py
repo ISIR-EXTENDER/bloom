@@ -27,24 +27,13 @@ def test_archiving_does_not_change_anything_else() -> None:
     assert archived.model_dump(exclude={"lifecycle"}) == active.model_dump(exclude={"lifecycle"})
 
 
-def test_the_petanque_fixture_is_archived() -> None:
-    # Petanque is kept and runnable, but not maintained against the
-    # cartesian_manager architecture.
-    import json
-    from pathlib import Path
-
-    bundle = json.loads((Path(__file__).parents[1] / "seed" / "applications" / "petanque-admin.json").read_text())
-    applications = [ApplicationConfig.model_validate(app) for app in bundle["applications"]]
-
-    assert applications
-    assert all(app.lifecycle == "archived" for app in applications)
-
-
 def test_the_current_extender_apps_are_active() -> None:
+    # Petanque was archived while it still spoke the previous architecture; it
+    # is active again since the rebase onto cartesian_manager and apps-petanque.
     import json
     from pathlib import Path
 
-    for name in ("sandbox", "explorer-manager"):
+    for name in ("sandbox", "explorer-manager", "petanque-admin"):
         bundle = json.loads((Path(__file__).parents[1] / "seed" / "applications" / f"{name}.json").read_text())
         for app in bundle["applications"]:
             assert ApplicationConfig.model_validate(app).lifecycle == "active", name

@@ -619,16 +619,16 @@ def test_every_shipped_bundle_survives_a_round_trip(tmp_path) -> None:
 
 
 def test_an_archived_application_stays_archived(tmp_path) -> None:
-    from libs.config.json_io import load_configuration_file
-    from libs.config.seed import DEFAULT_SEED_DIR
-
+    # No shipped seed is archived any more, so the archived case is built here.
     repository = SQLiteConfigurationRepository(tmp_path / "lifecycle.db")
-    bundle = load_configuration_file(DEFAULT_SEED_DIR / "petanque-admin.json")
-    assert bundle.applications[0].lifecycle == "archived", "fixture no longer covers the archived case"
+    bundle = ConfigurationBundle(
+        metadata=ConfigurationMetadata(source="archived-case"),
+        applications=(ApplicationConfig(id="old", name="Old", lifecycle="archived"),),
+    )
 
-    repository.upsert("petanque-admin", bundle)
+    repository.upsert("old-app", bundle)
 
-    assert repository.get("petanque-admin").applications[0].lifecycle == "archived"
+    assert repository.get("old-app").applications[0].lifecycle == "archived"
 
 
 def make_reserved_region_bundle() -> ConfigurationBundle:

@@ -141,6 +141,8 @@ class Settings(BaseModel):
         "/joint_target_command",
         "/joystick_cartesian_command",
         "/mode_request",
+        # The measure bridge's ball/target vectors, JSON in a String.
+        "/petanque/measure/result_vectors",
         "/petanque_state_machine/change_state",
         # The joint command the QP controller writes. Against /joint_states it is tracking error,
         # and it is the only visible sign of a QP that stopped solving: the controller has no else

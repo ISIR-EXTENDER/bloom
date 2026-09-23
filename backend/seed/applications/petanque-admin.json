@@ -8,14 +8,14 @@
     {
       "id": "app-petanque-admin",
       "name": "Petanque admin",
-      "description": "Legacy home screen: default_control. Archived: kept and runnable as the reference for the Petanque workflow, but not maintained against the cartesian_manager architecture and not a release gate.",
-      "lifecycle": "archived",
+      "description": "Legacy Petanque workflow rebased onto the current stack: teleop through cartesian_manager, match states through apps-petanque's state machine, measure results from the tablet bridge topics. Home screen: default_control.",
+      "lifecycle": "active",
       "action_presets": [
         {
           "id": "petanque-activate-throw",
           "name": "Activate throw",
           "kind": "topic-publish",
-          "description": "Trigger the Petanque state machine throw state.",
+          "description": "Arm the throwing controller through the Petanque state machine.",
           "command": "activate_throw",
           "topic": "/petanque_state_machine/change_state",
           "message_type": "std_msgs/msg/String",
@@ -30,12 +30,14 @@
           "id": "petanque-gripper-open",
           "name": "Open gripper",
           "kind": "topic-publish",
-          "description": "Open the Petanque gripper through the configured Boolean command topic.",
+          "description": "Open the Explorer gripper through the position controller.",
           "command": "open_gripper",
-          "topic": "/cmd/gripper",
-          "message_type": "std_msgs/msg/Bool",
+          "topic": "/gripper_controller/commands",
+          "message_type": "std_msgs/msg/Float64MultiArray",
           "payload": {
-            "data": true
+            "data": [
+              0.2
+            ]
           },
           "payload_text": "",
           "tags": [
@@ -45,40 +47,35 @@
         }
       ],
       "runtime_policy": {
+        "command_frame_id": "base_link",
         "allowed_message_types": [
+          "geometry_msgs/msg/TwistStamped",
+          "sensor_msgs/msg/JointState",
           "std_msgs/msg/Bool",
           "std_msgs/msg/Float64",
           "std_msgs/msg/Float64MultiArray",
-          "std_msgs/msg/Int32MultiArray",
           "std_msgs/msg/String"
         ],
         "allowed_publish_topics": [
-          "/cmd/gripper",
-          "/cmd/joystick_rxry",
-          "/cmd/joystick_rz",
-          "/cmd/joystick_xy",
-          "/cmd/joystick_z",
-          "/cmd/max_velocity",
-          "/cmd/petanque/round",
-          "/petanque/measure/request_image",
-          "/petanque/teleop/enabled",
-          "/petanque/throw/alpha",
-          "/petanque/throw/gesture",
+          "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+          "/gripper_controller/commands",
+          "/mode_request",
           "/petanque_state_machine/change_state",
-          "/ui/load_pose",
-          "/ui/navigation",
-          "/ui/save_pose",
-          "/visual_servoing/enabled"
+          "/ui/visual_servoing/on",
+          "/ui/visual_servoing/save"
         ],
         "allowed_recording_topics": [
+          "/ee_pose",
+          "/ee_velocity",
           "/joint_states",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/petanque/measure/result_vectors",
           "/petanque_state_machine/change_state",
-          "/rosout",
-          "/sandbox_controller/velocity_command",
-          "/teleop_cmd"
+          "/rosout"
         ],
         "allowed_teleop_targets": [
-          "/teleop_cmd"
+          "/joystick_cartesian_command"
         ]
       },
       "theme": {
@@ -115,15 +112,27 @@
                 "height": 78
               },
               "settings": {
-                "binding": "rz",
-                "topic": "/cmd/joystick_rz",
                 "direction": "horizontal",
+                "intent_label": "Yaw velocity",
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "showLabel": true,
-                "labelAlign": "left",
-                "showTopicInfo": false
+                "unit": "rad/s",
+                "returnToCenter": true,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "rotation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
               }
             },
             {
@@ -133,17 +142,31 @@
               "layout": {
                 "x": 8,
                 "y": 176,
-                "width": 74,
+                "width": 104,
                 "height": 330
               },
               "settings": {
-                "binding": "z",
-                "topic": "/cmd/joystick_z",
                 "direction": "vertical",
+                "intent_label": "Vertical velocity",
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "showTopicInfo": false
+                "unit": "m/s",
+                "returnToCenter": true,
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                }
               }
             },
             {
@@ -151,9 +174,9 @@
               "kind": "joystick",
               "title": "Translation",
               "layout": {
-                "x": 86,
+                "x": 120,
                 "y": 98,
-                "width": 489,
+                "width": 455,
                 "height": 489
               },
               "settings": {
@@ -165,10 +188,9 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 3,
-                    "target_topic": "/teleop_cmd"
+                    "target_topic": "/joystick_cartesian_command"
                   }
                 },
-                "topic": "/cmd/joystick_xy",
                 "color": "#4a9eff",
                 "deadzone": 0.1,
                 "diskSize": 90,
@@ -200,10 +222,9 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 1,
-                    "target_topic": "/teleop_cmd"
+                    "target_topic": "/joystick_cartesian_command"
                   }
                 },
-                "topic": "/cmd/joystick_rxry",
                 "color": "#f97316",
                 "deadzone": 0.1,
                 "diskSize": 90,
@@ -227,10 +248,15 @@
                 "height": 106
               },
               "settings": {
-                "topic": "/cmd/max_velocity",
+                "direction": "horizontal",
+                "intent_label": "Max linear speed",
                 "min": 0,
-                "max": 2,
-                "step": 0.01
+                "max": 1,
+                "step": 0.01,
+                "unit": "m/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64",
+                "show_details": false
               }
             },
             {
@@ -238,19 +264,19 @@
               "kind": "toggle",
               "title": "Gripper Control",
               "layout": {
-                "x": 1088,
-                "y": 135,
-                "width": 240,
+                "x": 1080,
+                "y": 156,
+                "width": 200,
                 "height": 149
               },
               "settings": {
-                "topic": "/cmd/gripper",
-                "messageType": "std_msgs/msg/Bool",
-                "onLabel": "Closed",
-                "offLabel": "Open",
-                "onPayload": "{data: true}",
-                "offPayload": "{data: false}",
                 "initialValue": false,
+                "offLabel": "Closed",
+                "onLabel": "Open",
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [0.2]}",
+                "offPayload": "{data: [1.1]}",
                 "show_details": false
               }
             },
@@ -259,33 +285,27 @@
               "kind": "command-button",
               "title": "Load Home",
               "layout": {
-                "x": 1060,
+                "x": 1080,
                 "y": 40,
-                "width": 145,
-                "height": 56
+                "width": 200,
+                "height": 104
               },
               "settings": {
-                "topic": "/ui/load_pose",
-                "messageType": "std_msgs/msg/String",
-                "payload": "{data: 'home'}",
+                "action_feedback": "none",
+                "action_id": "positions-home",
+                "action_label": "Request behaviour/joint_target/home",
                 "button_label": "Load home",
-                "poseName": "home",
-                "icon": "home"
-              }
-            },
-            {
-              "id": "plot-8",
-              "kind": "plot",
-              "title": "Plot",
-              "layout": {
-                "x": 248,
-                "y": 80,
-                "width": 504,
-                "height": 256
-              },
-              "settings": {
-                "historySeconds": 10,
-                "showLegend": true
+                "cancellable": false,
+                "command": "behaviour/joint_target/home",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/joint_target/home"
+                },
+                "show_details": false,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5
               }
             }
           ]
@@ -309,7 +329,6 @@
                 "height": 64
               },
               "settings": {
-                "topic": "/ui/text/live/title",
                 "text": "Live Teleop",
                 "fontSize": 30,
                 "align": "left"
@@ -322,29 +341,17 @@
               "layout": {
                 "x": 32,
                 "y": 112,
-                "width": 700,
+                "width": 640,
                 "height": 430
               },
               "settings": {
-                "topic": "/ui/stream/camera",
-                "source": "camera",
-                "streamUrl": "webrtc://localhost:8001/stream"
-              }
-            },
-            {
-              "id": "live-rviz",
-              "kind": "camera",
-              "title": "RViz Stream",
-              "layout": {
-                "x": 752,
-                "y": 112,
-                "width": 460,
-                "height": 260
-              },
-              "settings": {
-                "topic": "/ui/stream/rviz",
-                "source": "rviz",
-                "streamUrl": "webrtc://localhost:8001/rviz"
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
+                "webcamPicker": false
               }
             },
             {
@@ -352,10 +359,10 @@
               "kind": "joystick",
               "title": "Translation",
               "layout": {
-                "x": 752,
-                "y": 392,
-                "width": 220,
-                "height": 220
+                "x": 684,
+                "y": 112,
+                "width": 280,
+                "height": 332
               },
               "settings": {
                 "binding": "joy",
@@ -366,10 +373,9 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 3,
-                    "target_topic": "/teleop_cmd"
+                    "target_topic": "/joystick_cartesian_command"
                   }
                 },
-                "topic": "/cmd/joystick_xy",
                 "color": "#4a9eff",
                 "deadzone": 0.1,
                 "diskSize": 78,
@@ -386,10 +392,10 @@
               "kind": "joystick",
               "title": "Rotation",
               "layout": {
-                "x": 992,
-                "y": 392,
-                "width": 220,
-                "height": 220
+                "x": 976,
+                "y": 112,
+                "width": 280,
+                "height": 332
               },
               "settings": {
                 "binding": "rot",
@@ -400,10 +406,9 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 1,
-                    "target_topic": "/teleop_cmd"
+                    "target_topic": "/joystick_cartesian_command"
                   }
                 },
-                "topic": "/cmd/joystick_rxry",
                 "color": "#f97316",
                 "deadzone": 0.1,
                 "diskSize": 78,
@@ -417,18 +422,23 @@
             },
             {
               "id": "live-back-home",
-              "kind": "button",
+              "kind": "command-button",
               "title": "Home",
               "layout": {
                 "x": 32,
-                "y": 560,
+                "y": 554,
                 "width": 160,
-                "height": 52
+                "height": 88
               },
               "settings": {
-                "topic": "/ui/navigation",
-                "targetScreenId": "default_home",
-                "icon": "home"
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "navigate_screen",
+                "button_label": "Teleop controls",
+                "cancellable": false,
+                "command": "navigate_screen",
+                "targetScreenId": "default_control",
+                "hide_title": true
               }
             }
           ]
@@ -531,11 +541,12 @@
                 "height": 430
               },
               "settings": {
-                "source": "stream-url",
-                "streamUrl": "webrtc://localhost:8001/stream",
                 "fitMode": "cover",
                 "showHeader": true,
                 "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
                 "webcamPicker": false
               }
             },
@@ -550,11 +561,12 @@
                 "height": 270
               },
               "settings": {
-                "source": "stream-url",
-                "streamUrl": "/petanque/measure/result_image/compressed",
                 "fitMode": "contain",
                 "showHeader": true,
                 "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/petanque/measure/result_image/compressed",
                 "webcamPicker": false
               }
             }
@@ -595,13 +607,13 @@
                 "height": 130
               },
               "settings": {
-                "topic": "/visual_servoing/enabled",
-                "messageType": "std_msgs/msg/Bool",
+                "initialValue": false,
                 "onLabel": "Enabled",
                 "offLabel": "Disabled",
+                "topic": "/ui/visual_servoing/on",
+                "messageType": "std_msgs/msg/Bool",
                 "onPayload": "{data: true}",
                 "offPayload": "{data: false}",
-                "initialValue": false,
                 "show_details": false
               }
             },
@@ -616,11 +628,12 @@
                 "height": 330
               },
               "settings": {
-                "source": "stream-url",
-                "streamUrl": "webrtc://localhost:8001/stream",
                 "fitMode": "cover",
                 "showHeader": true,
                 "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
                 "webcamPicker": false
               }
             },
@@ -635,10 +648,35 @@
                 "height": 220
               },
               "settings": {
-                "topic": "/visual_servoing/error",
-                "messageType": "std_msgs/msg/Float64",
-                "fieldPath": "data",
-                "unit": "px",
+                "topic": "/visual_servoing/error_TAGtoTAGd",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.x",
+                "unit": "m",
+                "show_details": false
+              }
+            },
+            {
+              "id": "visual-servoing-save",
+              "kind": "command-button",
+              "title": "Save Tag",
+              "layout": {
+                "x": 920,
+                "y": 364,
+                "width": 300,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "save",
+                "button_label": "Save Tag",
+                "cancellable": false,
+                "command": "save",
+                "topic": "/ui/visual_servoing/save",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "save"
+                },
                 "show_details": false
               }
             }
@@ -740,30 +778,47 @@
                 "x": 40,
                 "y": 124,
                 "width": 220,
-                "height": 88
+                "height": 104
               },
               "settings": {
-                "topic": "/ui/load_pose",
+                "action_feedback": "none",
+                "action_id": "positions-home",
+                "action_label": "Request behaviour/joint_target/home",
+                "button_label": "Load home",
+                "cancellable": false,
+                "command": "behaviour/joint_target/home",
+                "topic": "/mode_request",
                 "messageType": "std_msgs/msg/String",
-                "payload": "{data: 'home'}",
-                "button_label": "Load home"
+                "payload": {
+                  "data": "behaviour/joint_target/home"
+                },
+                "show_details": false,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5
               }
             },
             {
-              "id": "poses-save-current",
-              "kind": "command-button",
-              "title": "Current pose",
+              "id": "poses-library",
+              "kind": "position-library",
+              "title": "Saved poses",
               "layout": {
-                "x": 288,
-                "y": 124,
-                "width": 220,
-                "height": 88
+                "x": 40,
+                "y": 248,
+                "width": 480,
+                "height": 360
               },
               "settings": {
-                "topic": "/ui/save_pose",
-                "messageType": "std_msgs/msg/String",
-                "payload": "{data: 'current'}",
-                "button_label": "Save current"
+                "jointStateTopic": "/joint_states",
+                "jointNames": [
+                  "joint_1",
+                  "joint_2",
+                  "joint_3",
+                  "joint_4",
+                  "joint_5",
+                  "joint_6"
+                ],
+                "show_details": false
               }
             },
             {
@@ -806,60 +861,100 @@
                 "height": 64
               },
               "settings": {
-                "topic": "/ui/text/petanque/title",
                 "text": "Petanque",
                 "fontSize": 30,
                 "align": "left"
               }
             },
             {
-              "id": "petanque-score",
-              "kind": "label",
-              "title": "Score",
+              "id": "petanque-state",
+              "kind": "topic-echo",
+              "title": "State",
               "layout": {
                 "x": 40,
                 "y": 112,
                 "width": 280,
-                "height": 146
+                "height": 200
               },
               "settings": {
-                "topic": "/ui/text/petanque/score",
-                "text": "Team A: 0\nTeam B: 0",
-                "fontSize": 22
+                "topic": "/petanque_state_machine/change_state",
+                "messageType": "std_msgs/msg/String",
+                "fieldPath": "data",
+                "maxMessages": 10,
+                "prettyPrint": false,
+                "show_details": false
+              }
+            },
+            {
+              "id": "petanque-flow-label",
+              "kind": "label",
+              "title": "Match flow",
+              "layout": {
+                "x": 340,
+                "y": 112,
+                "width": 180,
+                "height": 24
+              },
+              "settings": {
+                "text": "MATCH FLOW",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
               }
             },
             {
               "id": "petanque-start",
               "kind": "command-button",
-              "title": "Start Round",
+              "title": "Go to start",
               "layout": {
                 "x": 340,
-                "y": 112,
+                "y": 144,
                 "width": 180,
-                "height": 52
+                "height": 88
               },
               "settings": {
-                "topic": "/cmd/petanque/round",
+                "action_feedback": "none",
+                "action_id": "petanque-go_to_start",
+                "action_label": "Request go_to_start",
+                "button_label": "Go to start",
+                "cancellable": false,
+                "command": "go_to_start",
+                "topic": "/petanque_state_machine/change_state",
                 "messageType": "std_msgs/msg/String",
-                "payload": "{data: 'start'}",
-                "button_label": "Start"
+                "payload": {
+                  "data": "go_to_start"
+                },
+                "show_details": false,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5,
+                "hide_title": true
               }
             },
             {
               "id": "petanque-stop",
               "kind": "command-button",
-              "title": "Stop Round",
+              "title": "Stop",
               "layout": {
                 "x": 340,
-                "y": 176,
+                "y": 544,
                 "width": 180,
-                "height": 52
+                "height": 88
               },
               "settings": {
-                "topic": "/cmd/petanque/round",
+                "action_feedback": "none",
+                "action_id": "petanque-stop",
+                "action_label": "Request stop",
+                "button_label": "Stop",
+                "cancellable": false,
+                "command": "stop",
+                "topic": "/petanque_state_machine/change_state",
                 "messageType": "std_msgs/msg/String",
-                "payload": "{data: 'stop'}",
-                "button_label": "Stop"
+                "payload": {
+                  "data": "stop"
+                },
+                "show_details": false,
+                "hide_title": true
               }
             },
             {
@@ -867,31 +962,127 @@
               "kind": "camera",
               "title": "Camera Stream",
               "layout": {
-                "x": 550,
+                "x": 560,
                 "y": 112,
-                "width": 670,
+                "width": 660,
                 "height": 430
               },
               "settings": {
-                "topic": "/ui/stream/camera",
-                "source": "camera",
-                "streamUrl": "webrtc://localhost:8001/stream"
+                "fitMode": "cover",
+                "showHeader": true,
+                "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
+                "webcamPicker": false
               }
             },
             {
               "id": "petanque-back-home",
-              "kind": "button",
+              "kind": "command-button",
               "title": "Home",
               "layout": {
                 "x": 40,
-                "y": 560,
+                "y": 544,
                 "width": 160,
-                "height": 52
+                "height": 88
               },
               "settings": {
-                "topic": "/ui/navigation",
-                "targetScreenId": "default_home",
-                "icon": "home"
+                "action_feedback": "none",
+                "action_id": "",
+                "action_label": "navigate_screen",
+                "button_label": "Teleop controls",
+                "cancellable": false,
+                "command": "navigate_screen",
+                "targetScreenId": "default_control",
+                "hide_title": true
+              }
+            },
+            {
+              "id": "petanque-activate-throw",
+              "kind": "command-button",
+              "title": "Activate throw",
+              "layout": {
+                "x": 340,
+                "y": 244,
+                "width": 180,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "petanque-activate_throw",
+                "action_label": "Request activate_throw",
+                "button_label": "Activate throw",
+                "cancellable": false,
+                "command": "activate_throw",
+                "topic": "/petanque_state_machine/change_state",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "activate_throw"
+                },
+                "show_details": false,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "petanque-throw",
+              "kind": "command-button",
+              "title": "Throw",
+              "layout": {
+                "x": 340,
+                "y": 344,
+                "width": 180,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "petanque-throw",
+                "action_label": "Request throw",
+                "button_label": "Throw",
+                "cancellable": false,
+                "command": "throw",
+                "topic": "/petanque_state_machine/change_state",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "throw"
+                },
+                "show_details": false,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "petanque-pick-up",
+              "kind": "command-button",
+              "title": "Pick up",
+              "layout": {
+                "x": 340,
+                "y": 444,
+                "width": 180,
+                "height": 88
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "petanque-pick_up",
+                "action_label": "Request pick_up",
+                "button_label": "Pick up",
+                "cancellable": false,
+                "command": "pick_up",
+                "topic": "/petanque_state_machine/change_state",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "pick_up"
+                },
+                "show_details": false,
+                "confirm_press": true,
+                "confirm_label": "Press again to move",
+                "confirm_timeout_seconds": 5,
+                "hide_title": true
               }
             }
           ]
@@ -931,52 +1122,15 @@
                 "height": 110
               },
               "settings": {
-                "topic": "/cmd/max_velocity",
-                "messageType": "std_msgs/msg/Float64",
                 "direction": "horizontal",
-                "min": 0,
-                "max": 2,
-                "step": 0.01,
-                "show_details": true
-              }
-            },
-            {
-              "id": "teleop-config-throw-alpha",
-              "kind": "slider",
-              "title": "Throw alpha",
-              "layout": {
-                "x": 40,
-                "y": 280,
-                "width": 520,
-                "height": 110
-              },
-              "settings": {
-                "topic": "/petanque/throw/alpha",
-                "messageType": "std_msgs/msg/Float64",
-                "direction": "horizontal",
+                "intent_label": "Max linear speed",
                 "min": 0,
                 "max": 1,
                 "step": 0.01,
+                "unit": "m/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64",
                 "show_details": true
-              }
-            },
-            {
-              "id": "teleop-config-throw-gesture",
-              "kind": "gesture-pad",
-              "title": "Throw gesture",
-              "layout": {
-                "x": 40,
-                "y": 424,
-                "width": 520,
-                "height": 220
-              },
-              "settings": {
-                "command": "petanque.throw.preview",
-                "topic": "/petanque/throw/gesture",
-                "messageType": "std_msgs/msg/String",
-                "angleLabel": "Angle",
-                "powerLabel": "Power",
-                "show_details": false
               }
             },
             {
@@ -990,13 +1144,13 @@
                 "height": 130
               },
               "settings": {
-                "topic": "/petanque/teleop/enabled",
-                "messageType": "std_msgs/msg/Bool",
+                "initialValue": false,
                 "onLabel": "Teleop",
-                "offLabel": "Observe",
-                "onPayload": "{data: true}",
-                "offPayload": "{data: false}",
-                "initialValue": true,
+                "offLabel": "Idle",
+                "topic": "/petanque_state_machine/change_state",
+                "messageType": "std_msgs/msg/String",
+                "onPayload": "{data: 'teleop'}",
+                "offPayload": "{data: 'stop'}",
                 "show_details": false
               }
             }
@@ -1037,9 +1191,9 @@
                 "height": 230
               },
               "settings": {
-                "topic": "/sandbox_controller/velocity_command",
-                "messageType": "geometry_msgs/msg/Twist",
-                "fieldPath": "linear.x",
+                "topic": "/ee_velocity",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.x",
                 "unit": "m/s",
                 "show_details": false
               }
@@ -1055,70 +1209,11 @@
                 "height": 230
               },
               "settings": {
-                "topic": "/sandbox_controller/velocity_command",
-                "messageType": "geometry_msgs/msg/Twist",
-                "fieldPath": "linear.z",
+                "topic": "/ee_velocity",
+                "messageType": "geometry_msgs/msg/TwistStamped",
+                "fieldPath": "twist.linear.z",
                 "unit": "m/s",
                 "show_details": false
-              }
-            }
-          ]
-        },
-        {
-          "id": "configurations",
-          "title": "Configuration",
-          "canvas": {
-            "preset_id": "hd",
-            "runtime_mode": "fit"
-          },
-          "widgets": [
-            {
-              "id": "configuration-title",
-              "kind": "label",
-              "title": "Title",
-              "layout": {
-                "x": 40,
-                "y": 32,
-                "width": 420,
-                "height": 72
-              },
-              "settings": {
-                "text": "Configuration",
-                "fontSize": 32,
-                "align": "left"
-              }
-            },
-            {
-              "id": "configuration-note",
-              "kind": "label",
-              "title": "Note",
-              "layout": {
-                "x": 40,
-                "y": 124,
-                "width": 620,
-                "height": 150
-              },
-              "settings": {
-                "text": "This screen keeps operator-facing configuration shortcuts. Use the builder for deeper app edits.",
-                "fontSize": 22,
-                "align": "left"
-              }
-            },
-            {
-              "id": "configuration-request-image",
-              "kind": "command-button",
-              "title": "Request image",
-              "layout": {
-                "x": 700,
-                "y": 124,
-                "width": 240,
-                "height": 92
-              },
-              "settings": {
-                "topic": "/petanque/measure/request_image",
-                "messageType": "std_msgs/msg/String",
-                "payload": "{data: 'capture'}",
-                "button_label": "Capture"
               }
             }
           ]
@@ -1150,7 +1245,7 @@
             {
               "id": "debug-teleop",
               "kind": "topic-echo",
-              "title": "Teleop commands",
+              "title": "Teleop command",
               "layout": {
                 "x": 40,
                 "y": 124,
@@ -1158,8 +1253,8 @@
                 "height": 360
               },
               "settings": {
-                "topic": "/teleop_cmd",
-                "messageType": "extender_msgs/msg/TeleopCommand",
+                "topic": "/joystick_cartesian_command",
+                "messageType": "geometry_msgs/msg/TwistStamped",
                 "fieldPath": "",
                 "maxMessages": 30,
                 "prettyPrint": true,

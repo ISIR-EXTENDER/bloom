@@ -1479,8 +1479,8 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Teleop settings screen builder" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Teleop settings" })).toBeVisible();
-    expect(screen.getAllByText("Throw gesture").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Gesture pad").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Max velocity").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Teleop mode").length).toBeGreaterThan(0);
   });
 
   it("dispatches sequenced teleop commands from migrated petanque joysticks", async () => {
@@ -1513,7 +1513,7 @@ describe("App", () => {
         linear: { x: expect.any(Number), y: 0, z: 0 },
         mode: 3,
         seq: expect.any(Number),
-        target: "/teleop_cmd",
+        target: "/joystick_cartesian_command",
       }),
     );
     expect(runtimeActionClient.sendTeleopCommand).toHaveBeenLastCalledWith(
@@ -1556,13 +1556,13 @@ describe("App", () => {
           angular: { x: expect.any(Number), y: 0, z: 0 },
           linear: { x: 0, y: 0, z: 0 },
           mode: 1,
-          target: "/teleop_cmd",
+          target: "/joystick_cartesian_command",
         }),
       ),
     );
   });
 
-  it("dispatches migrated petanque gesture pads as ROS topic publishes", async () => {
+  it("drives the petanque state machine from the teleop mode toggle", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     render(
       <App
@@ -1582,17 +1582,15 @@ describe("App", () => {
     await screen.findByRole("region", { name: "Runtime application" });
     selectRuntimeScreen("Teleop settings");
 
-    const gesturePad = await screen.findByRole("button", { name: "Throw gesture: choose trajectory gesture" });
-    fireEvent.pointerDown(gesturePad, { clientX: 120, clientY: 120, pointerId: 1 });
+    const modeToggle = await screen.findByRole("button", { name: "Teleop mode: Idle" });
+    fireEvent.click(modeToggle);
 
     await waitFor(() => expect(runtimeActionClient.publishRosTopic).toHaveBeenCalled());
     expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
       expect.objectContaining({
         message_type: "std_msgs/msg/String",
-        payload: expect.objectContaining({
-          data: expect.stringContaining("angleDegrees"),
-        }),
-        topic: "/petanque/throw/gesture",
+        payload_text: "{data: 'teleop'}",
+        topic: "/petanque_state_machine/change_state",
       }),
     );
   });
@@ -1957,7 +1955,7 @@ describe("App", () => {
     expect(screen.getByText((_, element) => element?.textContent === "272 × 192")).toBeVisible();
   });
 
-  it("renders real legacy toggle settings when optional payload fields are missing", async () => {
+  it("renders the migrated gripper toggle settings in the builder", async () => {
     render(
       <App
         configurationClient={createConfigurationClient({
@@ -1972,9 +1970,9 @@ describe("App", () => {
     await openPetanqueScreenBuilder("default_control");
     fireEvent.click(await screen.findByRole("button", { name: "Select and move Gripper Control widget" }));
 
-    expect(screen.getByLabelText("Output topic")).toHaveValue("/cmd/gripper");
-    expect(screen.getByLabelText("ON payload")).toHaveValue("{data: true}");
-    expect(screen.getByLabelText("OFF payload")).toHaveValue("{data: false}");
+    expect(screen.getByLabelText("Output topic")).toHaveValue("/gripper_controller/commands");
+    expect(screen.getByLabelText("ON payload")).toHaveValue("{data: [0.2]}");
+    expect(screen.getByLabelText("OFF payload")).toHaveValue("{data: [1.1]}");
   });
 
   it("opens the webcam visualizer demo app with a camera viewer screen", async () => {
@@ -2203,6 +2201,7 @@ const TEST_READY_COMMAND_TOPICS = [
   "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
   "/gripper_controller/commands",
   "/mode_request",
+  "/petanque_state_machine/change_state",
   "/petanque/measure/request_image",
   "/petanque/teleop/enabled",
   "/petanque/throw/alpha",
