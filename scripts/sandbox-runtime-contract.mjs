@@ -266,6 +266,22 @@ for (const topic of app?.runtime_policy?.allowed_publish_topics ?? []) {
 requirePolicyAllows("/joystick_cartesian_command", "teleop");
 requirePolicyAllows("/mode_request", "publish");
 
+// tools/hub documents /hub/digital_output as [pin, state, ...]; pin 13 is the board's own LED.
+const hubOutput = widget("sandbox-hub-output")?.widget;
+assert("hub output toggle exists", Boolean(hubOutput), "missing sandbox-hub-output");
+assert("hub output topic", setting(hubOutput, "topic") === "/hub/digital_output", "expected /hub/digital_output");
+assert(
+  "hub output type",
+  setting(hubOutput, "messageType") === "std_msgs/msg/Float32MultiArray",
+  "hub.py subscribes Float32MultiArray",
+);
+assert(
+  "hub output on payload",
+  /\[\s*13\s*,\s*1\s*\]/.test(String(setting(hubOutput, "onPayload"))),
+  "expected [13, 1]",
+);
+requirePolicyAllows("/hub/digital_output", "publish");
+
 if (failures.length > 0) {
   console.error("Sandbox runtime contract failed:");
   for (const failure of failures) {

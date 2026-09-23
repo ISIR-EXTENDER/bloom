@@ -168,6 +168,23 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
     return null;
   }
 
+  if (adapter === "parameter") {
+    // Not a topic at all: the value goes to the node's own parameter service and takes effect at once.
+    const node = typeof valueMapping.node === "string" ? valueMapping.node : "";
+    const parameter = typeof valueMapping.parameter === "string" ? valueMapping.parameter : "";
+    const reason = "A parameter binding sets a node parameter; it publishes no message.";
+    return {
+      direction: "publishes",
+      topic: node && parameter ? `${node} ${parameter}` : null,
+      source: "runtime-binding",
+      detail: "Sets this parameter live through the node's parameter service.",
+      inertSettings: [
+        { key: "topic", reason },
+        { key: "messageType", reason },
+      ],
+    };
+  }
+
   if (adapter === "teleop") {
     // A teleop widget contributes an axis to a twist that several widgets
     // compose together. There is one destination for the whole composed twist,

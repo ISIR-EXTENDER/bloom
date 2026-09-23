@@ -460,6 +460,65 @@ describe("App", () => {
     window.history.replaceState(null, "", "#/");
   });
 
+  it("sets a manager parameter from the bench Snake gain slider", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "explorer-manager": explorerManagerConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["explorer-manager"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openRuntimeApp("Explorer Manager", "Bench");
+    await screen.findByRole("region", { name: "Runtime application" });
+
+    const slider = await screen.findByRole("slider", { name: "Snake gain" });
+    slider.focus();
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+
+    await waitFor(() =>
+      expect(runtimeActionClient.setRosParameter).toHaveBeenCalledWith({
+        node: "/cartesian_manager",
+        name: "shapers.snake.gain",
+        value: 3.1,
+      }),
+    );
+  });
+
+  it("offers practice on the first entry and remembers the answer", async () => {
+    const configurationClient = createConfigurationClient({
+      bundles: {
+        "explorer-manager": explorerManagerConfiguration as unknown as ConfigurationBundle,
+      },
+      ids: ["explorer-manager"],
+    });
+    const { unmount } = render(<App configurationClient={configurationClient} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openRuntimeApp("Explorer Manager", "Bench");
+    await screen.findByRole("region", { name: "Runtime application" });
+
+    // The tour used to hide behind the maintenance hold; the offer sits in the bar on the first entry.
+    const offer = await screen.findByRole("group", { name: "First time here?" });
+    fireEvent.click(within(offer).getByRole("button", { name: "Practice first" }));
+    expect(await screen.findByRole("region", { name: "Practice this app" })).toBeVisible();
+    unmount();
+
+    window.history.replaceState(null, "", "#/runtime");
+    render(<App configurationClient={configurationClient} />);
+    expect(await screen.findByRole("button", { name: "Explorer Manager" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Open as Bench" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+
+    expect(screen.queryByRole("group", { name: "First time here?" })).not.toBeInTheDocument();
+    window.history.replaceState(null, "", "#/");
+  });
+
   it("remembers the last role on this device and marks it without launching it", async () => {
     const configurationClient = createConfigurationClient({
       bundles: {
@@ -2188,6 +2247,7 @@ const TEST_READY_COMMAND_TOPICS = [
   "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
   "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
   "/gripper_controller/commands",
+  "/hub/digital_output",
   "/mode_request",
   "/petanque_state_machine/change_state",
   // The /ui/ namespace stays open for builder-authored bridges.
@@ -2217,6 +2277,10 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
           status: "published",
           detail: "Published.",
         }) as const,
+    ),
+    setRosParameter: vi.fn(async (request) => ({ ...request, status: "set", detail: "Parameter set." }) as const),
+    getRosParameters: vi.fn(async (node: string, names: readonly string[]) =>
+      names.map((name) => ({ node, name, value: null })),
     ),
     listRosTopics: vi.fn(async () => [
       { name: "/camera/image_raw", message_type: "sensor_msgs/msg/Image" },

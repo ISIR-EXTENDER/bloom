@@ -43,15 +43,9 @@ read-only Supervisor mirror, plots, topic inspection, audit records, and shared 
 
 ## Watch It Run
 
-<p align="center">
-  <a href="docs/assets/demo/bloom-demo.mp4"><img src="docs/assets/readme/demo-poster.png" alt="Play the five-minute Bloom walkthrough" width="80%" /></a>
-</p>
-
-**[Watch the five-minute walkthrough](docs/assets/demo/bloom-demo.mp4).** It creates an app and a screen in the
-Builder, opens Explorer Manager as Operator, drives the arm, sends it home, switches frames in Joystick Lab, changes
-Settings to Spanish, latches and resumes STOP, and reads live joint states and the Jacobian in Bloom Debug. Nothing is
-mocked: it runs against `cartesian_manager`, `qontrol_controller` and the Explorer Gazebo simulation. The camera scene
-uses a synthetic feed.
+The walkthrough video is being re-recorded for 0.3.0, once cartesian_manager PR #11 lands and Bloom's tablet
+commands move to `/tablet_cartesian_command`. The 0.2.0 recordings were removed rather than left to show screens
+that no longer exist. `npm run record:demo` produces the new one from a seeded ROS-enabled runtime.
 
 ## Quickstart
 
@@ -192,6 +186,11 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
   table shared by the resize handle and the inspector.
 - A Builder end-to-end harness (`npm run e2e:builder`) that authors an app through the UI, saves it through
   the real API, opens it in the runtime and latches STOP.
+- Live tuning through node parameters: a slider bound to `<node>:<parameter>` sets it through the node's own
+  parameter service, allowlisted on both sides. Snake gain ships on Drive · Bench and the throw shape on
+  Petanque; `e2e:sim` proves a slider press reaches `cartesian_manager`.
+- Practice offered on the first entry to an app, saved poses that survive an API restart, and a scan switch that
+  shares the STOP region instead of taking canvas height.
 
 Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs
 validation with the intended device. Browser reduced-motion preferences work; the equivalent saved profile setting

@@ -243,6 +243,24 @@ async function benchSession() {
     if (!opened) {
       return;
     }
+    await check(page, "snake-gain-parameter-sets", async () => {
+      // The live-tuning seam end to end: a slider press reaches the manager's own parameter service.
+      const before = await rosParameter("/cartesian_manager", "shapers.snake.gain");
+      const slider = page.getByRole("slider", { name: "Snake gain" });
+      await slider.focus();
+      await page.keyboard.press("ArrowRight");
+      const deadline = Date.now() + 8000;
+      let after = before;
+      while (Date.now() < deadline) {
+        after = await rosParameter("/cartesian_manager", "shapers.snake.gain");
+        if (after !== before) {
+          break;
+        }
+        await page.waitForTimeout(250);
+      }
+      assert(after !== before, `shapers.snake.gain stayed at ${before}`);
+      return `shapers.snake.gain ${before} -> ${after}`;
+    });
     await check(page, "bench-and-operator-publish-same-twist", async () => {
       const gesture = await driveAndMeasure(page, "bench");
       assert(gestures.operator, "no operator gesture to compare with");
@@ -500,6 +518,22 @@ try:
 except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
     pass
 `;
+}
+
+/** `ros2 param get` in the harness environment; the value line reads "Double value is: 3.0". */
+function rosParameter(node, name) {
+  return new Promise((resolveValue, reject) => {
+    const child = spawn("ros2", ["param", "get", node, name], { stdio: ["ignore", "pipe", "pipe"] });
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", () => {
+      const match = /value is: (.+)$/m.exec(output);
+      resolveValue(match ? match[1].trim() : output.trim());
+    });
+  });
 }
 
 async function startRosProbe() {

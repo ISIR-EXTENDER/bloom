@@ -51,7 +51,8 @@ describe("builder geometry", () => {
       (widget) => widget.kind === "slider" && widget.settings.variant !== "segments" && !widget.settings.returnToCenter,
     );
 
-    expect(limits.map((widget) => widget.title)).toEqual(["Max linear speed", "Max angular speed"]);
+    // Snake gain is a parameter slider (ADR 0139): same thumb, same floor, no topic.
+    expect(limits.map((widget) => widget.title)).toEqual(["Max linear speed", "Max angular speed", "Snake gain"]);
     for (const limit of limits) {
       expect(resolvePrimaryTarget(limit)).toBe(56);
       expect(glassPx(limit, panel.glassScale)).toBe(TOUCH_FLOOR_PX);

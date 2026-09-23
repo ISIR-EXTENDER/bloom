@@ -34,6 +34,9 @@ export type RuntimeStrings = {
     localOnly: string;
     movementFallback: string;
     moveBody: (controlName: string, directionLabel: string, count: number) => string;
+    offerAria: string;
+    offerDismiss: string;
+    offerStart: string;
     practice: string;
     progress: (complete: number, total: number) => string;
     screenBody: (applicationName: string, screenTitle: string) => string;

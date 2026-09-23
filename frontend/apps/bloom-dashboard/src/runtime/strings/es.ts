@@ -36,6 +36,9 @@ export const esRuntimeStrings: RuntimeStrings = {
     disconnected: "Controles de práctica desconectados de los comandos del robot",
     localOnly: "Práctica local - nada aquí puede controlar el robot",
     movementFallback: "control de movimiento",
+    offerAria: "¿Primera vez aquí?",
+    offerDismiss: "Ahora no",
+    offerStart: "Practicar primero",
     moveBody: (controlName, directionLabel, count) =>
       `Usa ${directionLabel} en ${controlName} dos veces. Movimiento ${Math.min(count, 2)} de 2.`,
     practice: "Práctica guiada",

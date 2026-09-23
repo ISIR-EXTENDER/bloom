@@ -58,6 +58,8 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
     listRuntimeCapabilities: apiClient.listRuntimeCapabilities.bind(apiClient),
     dispatchRuntimeAction: apiClient.dispatchRuntimeAction.bind(apiClient),
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),
+    setRosParameter: apiClient.setRosParameter.bind(apiClient),
+    getRosParameters: apiClient.getRosParameters.bind(apiClient),
     claimRuntimeControl: runtimeWebSocketClient.claimRuntimeControl,
     releaseRuntimeControl: runtimeWebSocketClient.releaseRuntimeControl,
     resumeRuntimeStop: apiClient.resumeRuntimeStop.bind(apiClient),

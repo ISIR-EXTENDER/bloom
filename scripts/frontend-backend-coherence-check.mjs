@@ -32,6 +32,7 @@ const backendPolicy = {
   allowed_publish_topics: readSettingsTuple("allowed_ros_publish_topics"),
   allowed_recording_topics: readSettingsTuple("allowed_recording_topics"),
   allowed_teleop_targets: readSettingsTuple("allowed_teleop_targets"),
+  allowed_parameters: readSettingsTuple("allowed_ros_parameters"),
 };
 
 const failures = [];
@@ -116,6 +117,10 @@ function isTeleopWidget(widget) {
 }
 
 function isPublishingWidget(widget) {
+  // A parameter binding sets a node parameter through its service: no topic, no message type.
+  if (getRuntimeBinding(widget).adapter === "parameter") {
+    return false;
+  }
   if (widget.kind === "command-button" && getString(getSetting(widget, "targetScreenId"))) {
     return false;
   }
@@ -168,6 +173,26 @@ for (const { pair, bundle } of fixtureBundles) {
     }
     const appPolicy = app.runtime_policy ?? {};
 
+    for (const parameter of appPolicy.allowed_parameters ?? []) {
+      assertBackendIncludes(
+        "allowed_parameters",
+        parameter,
+        `${pair.id}/${app.id} backend allows parameter ${parameter}`,
+      );
+    }
+    for (const widget of widgets(app)) {
+      const binding = widget.settings?.runtime_binding;
+      if (binding?.adapter !== "parameter") {
+        continue;
+      }
+      const target = `${binding.value_mapping?.node}:${binding.value_mapping?.parameter}`;
+      assertPolicyIncludes(
+        appPolicy,
+        "allowed_parameters",
+        target,
+        `${pair.id}/${app.id}/${widget.id} app policy allows parameter ${target}`,
+      );
+    }
     for (const target of appPolicy.allowed_teleop_targets ?? []) {
       assertBackendIncludes(
         "allowed_teleop_targets",

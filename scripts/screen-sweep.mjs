@@ -44,17 +44,10 @@ const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
  */
 const KNOWN_GAPS = [
   {
-    apps: ["explorer-manager", "kinova-manager"],
-    profiles: ["one-switch"],
-    rules: ["touch-floor"],
-    reason:
-      "the scan profile puts a 100 px SWITCH strip inside the canvas shell, so the same artboard fits at 0.67 instead of 0.80 and every target drops under the floor at 1024x600. Scanning needs its own layout, or a strip that does not take canvas height.",
-  },
-  {
     apps: ["sandbox", "app-petanque-admin"],
-    rules: ["touch-floor", "target-claim", "stop-covers"],
+    rules: ["touch-floor", "target-claim"],
     reason:
-      "these screens declare no reserved region, so the canvas carries the 44 px kiosk bar inside its own fit (0.75 at 1024x600, not 0.80) and STOP floats in the corner over whatever is under it. The one fix is to author them full-panel with a reserved STOP region, which is a layout decision per screen.",
+      "these screens declare no reserved region, so the canvas carries the 44 px kiosk bar inside its own fit (0.75 at 1024x600, not 0.80). The corner STOP is their accepted placement: it may cover a display, never a control, and the stop-covers rule holds that line.",
   },
   {
     apps: ["app-petanque-admin"],
@@ -394,6 +387,15 @@ function checkNothingOverlaps(visit, measured) {
       continue;
     }
     for (const card of cards) {
+      // A corner STOP on a screen with no reserved region may sit over a display; it may never sit over
+      // a control, because a covered control is one the hand cannot reach and the sweep cannot measure.
+      if (
+        chrome.rule === "stop-covers" &&
+        measured.stop?.placement === "corner" &&
+        !INTERACTIVE_WIDGET_KINDS.has(card.kind)
+      ) {
+        continue;
+      }
       const area = intersect(chrome.box, card.box);
       if (area) {
         problems.push({ detail: `${chrome.name} over ${card.id} (${area.width}×${area.height})`, rule: chrome.rule });
@@ -470,7 +472,7 @@ function checkTargetsMeetTheFloor(visit, measured) {
     if (!INTERACTIVE_WIDGET_KINDS.has(widget.kind)) {
       continue;
     }
-    const target = primaryTargetFor(widget.kind, widget.settings, widget.layout);
+    const target = primaryTargetFor(widget.kind, widget.settings, widget.layout, claimed);
     if (target === null) {
       continue;
     }

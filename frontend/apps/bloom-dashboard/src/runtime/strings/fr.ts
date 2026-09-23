@@ -36,6 +36,9 @@ export const frRuntimeStrings: RuntimeStrings = {
     disconnected: "Commandes d'entraînement déconnectées des commandes du robot",
     localOnly: "Entraînement local - rien ici ne peut commander le robot",
     movementFallback: "commande de mouvement",
+    offerAria: "Première fois ici ?",
+    offerDismiss: "Pas maintenant",
+    offerStart: "S'entraîner d'abord",
     moveBody: (controlName, directionLabel, count) =>
       `Utilisez ${directionLabel} sur ${controlName} deux fois. Mouvement ${Math.min(count, 2)} sur 2.`,
     practice: "Entraînement guidé",

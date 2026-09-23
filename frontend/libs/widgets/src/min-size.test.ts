@@ -158,3 +158,18 @@ describe("the pad recipe", () => {
     expect(BENCH_RAIL.stop.x + BENCH_RAIL.stop.width).toBe(BENCH_RAIL.rail.right);
   });
 });
+
+describe("primaryTargetFor and the role's touch target", () => {
+  it("grows a titled button and a toggle to the role's target when the card has room", () => {
+    const roomy = { width: 200, height: 160 };
+    expect(primaryTargetFor("toggle", {}, roomy, 64)).toBe(64);
+    expect(primaryTargetFor("command-button", {}, roomy, 64)).toBe(64);
+    // Compact roles never shrink the control under the 56 px the renderer keeps.
+    expect(primaryTargetFor("toggle", {}, roomy, 40)).toBe(56);
+  });
+
+  it("is bounded by the card: the title row and padding come off first", () => {
+    expect(primaryTargetFor("toggle", {}, { width: 200, height: 80 }, 64)).toBe(48);
+    expect(primaryTargetFor("command-button", { hide_title: true }, { width: 140, height: 88 }, 64)).toBe(56);
+  });
+});

@@ -121,7 +121,7 @@ export type JoystickAxisHint = {
 };
 
 export type JoystickRuntimeBinding = {
-  adapter: "custom" | "teleop" | "topic";
+  adapter: "custom" | "parameter" | "teleop" | "topic";
   target: string;
   value_mapping?: Record<string, unknown>;
 };
@@ -1598,8 +1598,20 @@ function validateJoystickRuntimeBinding(value: unknown): WidgetSettingsValidatio
   }
 
   const errors: WidgetSettingsValidationError[] = [];
-  if (typeof value.adapter !== "string" || !["custom", "teleop", "topic"].includes(value.adapter)) {
-    errors.push({ field: "runtime_binding.adapter", message: "adapter must be one of: custom, teleop, topic" });
+  if (typeof value.adapter !== "string" || !["custom", "parameter", "teleop", "topic"].includes(value.adapter)) {
+    errors.push({
+      field: "runtime_binding.adapter",
+      message: "adapter must be one of: custom, parameter, teleop, topic",
+    });
+  }
+  if (value.adapter === "parameter") {
+    const mapping = isRecord(value.value_mapping) ? value.value_mapping : {};
+    if (typeof mapping.node !== "string" || !mapping.node.startsWith("/")) {
+      errors.push({ field: "runtime_binding.value_mapping.node", message: "node must be a ROS node name" });
+    }
+    if (typeof mapping.parameter !== "string" || mapping.parameter.trim().length === 0) {
+      errors.push({ field: "runtime_binding.value_mapping.parameter", message: "parameter is required" });
+    }
   }
   if (typeof value.target !== "string" || value.target.trim().length === 0) {
     errors.push({ field: "runtime_binding.target", message: "target is required" });

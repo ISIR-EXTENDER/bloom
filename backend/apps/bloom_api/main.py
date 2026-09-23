@@ -22,6 +22,7 @@ from libs.ros_adapters import (
 from libs.ros_adapters.camera_frames import CameraFrameGateway, NoopCameraFrameGateway
 from libs.ros_adapters.camera_streams import CameraStreamGateway, NoopCameraStreamGateway
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
+from libs.ros_adapters.parameters import NoopRosParameterGateway, RosParameterGateway
 from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
@@ -37,6 +38,7 @@ from libs.sessions import (
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
+from libs.sessions.positions import PositionStore, SQLitePositionStore
 from libs.sessions.stop import DEFAULT_TELEOP_TARGET, LEGACY_TELEOP_TARGET
 from libs.sessions.topics import is_live_subscription_gateway
 
@@ -47,12 +49,14 @@ def create_app(
     camera_frame_gateway: CameraFrameGateway | None = None,
     camera_stream_gateway: CameraStreamGateway | None = None,
     ros_publisher_gateway: RosPublisherGateway | None = None,
+    ros_parameter_gateway: RosParameterGateway | None = None,
     ros_service_gateway: RosServiceGateway | None = None,
     ros_topic_catalog_gateway: RosTopicCatalogGateway | None = None,
     runtime_topic_subscription_gateway: RuntimeTopicSubscriptionGateway | None = None,
     runtime_audit_log: RuntimeAuditLog | None = None,
     runtime_command_policy: RuntimeCommandPolicy | None = None,
     runtime_command_rate_limiter: RuntimeCommandRateLimiter | None = None,
+    position_store: PositionStore | None = None,
     runtime_recording_gateway: RuntimeRecordingGateway | None = None,
     runtime_stop_controller: RuntimeStopController | None = None,
     teleop_command_gateway: TeleopCommandGateway | None = None,
@@ -66,10 +70,15 @@ def create_app(
 
     app.state.settings = app_settings
     app.state.configuration_repository = configuration_repository or create_app_configuration_repository(app_settings)
+    # Poses persist beside the configurations; a test that injects its own repository keeps them in memory.
+    app.state.position_store = position_store or (
+        create_position_store(app_settings) if configuration_repository is None else None
+    )
     app.state.camera_frame_gateway = camera_frame_gateway or NoopCameraFrameGateway()
     app.state.camera_stream_gateway = camera_stream_gateway or NoopCameraStreamGateway()
     app.state.ros_publisher_gateway = ros_publisher_gateway or NoopRosPublisherGateway()
     app.state.ros_service_gateway = ros_service_gateway or NoopRosServiceGateway()
+    app.state.ros_parameter_gateway = ros_parameter_gateway or NoopRosParameterGateway()
     app.state.ros_topic_catalog_gateway = ros_topic_catalog_gateway or NoopRosTopicCatalogGateway()
     subscription_gateway = runtime_topic_subscription_gateway or NoopRuntimeTopicSubscriptionGateway()
     if is_live_subscription_gateway(subscription_gateway):
@@ -80,6 +89,7 @@ def create_app(
     app.state.runtime_audit_log = runtime_audit_log or InMemoryRuntimeAuditLog()
     app.state.runtime_command_policy = runtime_command_policy or RuntimeCommandPolicy(
         allowed_message_types=app_settings.allowed_ros_message_types,
+        allowed_parameters=app_settings.allowed_ros_parameters,
         allowed_publish_topics=app_settings.allowed_ros_publish_topics,
         allowed_recording_topics=app_settings.allowed_recording_topics,
         allowed_service_calls=app_settings.allowed_ros_service_calls,
@@ -131,6 +141,12 @@ def install_cors(app: FastAPI, settings: Settings) -> None:
         allow_methods=["DELETE", "GET", "OPTIONS", "POST", "PUT"],
         allow_origins=list(settings.cors_allowed_origins),
     )
+
+
+def create_position_store(settings: Settings) -> PositionStore | None:
+    if settings.configuration_storage != "sqlite":
+        return None
+    return SQLitePositionStore(settings.configuration_database_path)
 
 
 def create_app_configuration_repository(settings: Settings) -> ConfigurationRepository:

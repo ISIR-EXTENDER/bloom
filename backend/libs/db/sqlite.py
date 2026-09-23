@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 #: How long a statement waits for another connection's write before giving up.
 #: The CLI holds a write for the length of a seed, which is longer than the
@@ -445,6 +445,24 @@ def _migrate_to_v7(connection: sqlite3.Connection) -> None:
                 )
 
 
+def _migrate_to_v8(connection: sqlite3.Connection) -> None:
+    # Poses captured at runtime used to live in the API process and die with it.
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS saved_positions (
+            config_id TEXT NOT NULL,
+            app_id TEXT NOT NULL,
+            position INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            joint_names_json TEXT NOT NULL,
+            positions_json TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            PRIMARY KEY (config_id, app_id, name)
+        )
+        """
+    )
+
+
 MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (1, _migrate_to_v1),
     (2, _migrate_to_v2),
@@ -453,4 +471,5 @@ MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (5, _migrate_to_v5),
     (6, _migrate_to_v6),
     (7, _migrate_to_v7),
+    (8, _migrate_to_v8),
 )

@@ -220,6 +220,7 @@ end turns the hand left (`+angular.z`). This sign is verified on the ROS wire, n
 | Jaco | Requests `geometric/jaco`. |
 | Hold snake | Requests `geometric/snake` while pressed and `geometric/both` on release. A pointer holds it; keyboard, switch scanning, and dwell latch it instead, and the next activation releases it. An unattended latch releases itself after 15 seconds. |
 | Gripper | Explorer publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. Kinova publishes close `[0.8]` and open `[0.0]`, the Robotiq 85 knuckle joint's range. The button names what it will do (**Close gripper**); the card header names the commanded state. |
+| Live tuning | A slider bound to a node parameter (Snake gain on Drive · Bench, the throw shape on Petanque's Teleop settings) sets it through the node's own parameter service and opens on the value the node holds. Owner-only and audited; allowed while STOP is latched, because a gain is configuration, not motion (ADR 0139). |
 | Speed limits | Bench sliders start at the configured controller limits; Operator segments offer Slow, Medium, and Fast (Explorer 0.08 / 0.15 / 0.30, Kinova 0.025 / 0.05 / 0.10). Both publish linear/angular limits to `qontrol_controller` and are disabled when the ROS graph has no subscriber. |
 
 The four Cartesian widgets are composed into one complete 6-DoF twist. Releasing one source clears only its
@@ -261,11 +262,9 @@ Clear and Copy words and its empty line follow the profile's language, and the e
 message text keeps its own line breaks and scrolls. The echo helps verify the command leaving Bloom; it is not
 controller feedback or proof of robot motion.
 
-The README includes a [live Joystick Lab capture](assets/screenshots/11-joystick-lab.png) and a
-[five-minute walkthrough](assets/demo/bloom-demo.mp4) recorded against the Explorer Gazebo simulation: the Builder, both
-Drive layouts, Positions, Robot feedback, Joystick Lab, Settings, STOP, Bloom Debug and the camera. It is simulation
-evidence without physical hardware acceptance; Kinova follows the same flow with its own frame allowlist, and
-`npm run e2e:sim` checks both robots' command paths on the ROS graph.
+The README includes a [live Joystick Lab capture](assets/screenshots/11-joystick-lab.png); the walkthrough video is
+re-recorded after the 0.3.0 tag. It is simulation evidence without physical hardware acceptance; Kinova follows the
+same flow with its own frame allowlist, and `npm run e2e:sim` checks both robots' command paths on the ROS graph.
 
 ## Physical Gamepad
 

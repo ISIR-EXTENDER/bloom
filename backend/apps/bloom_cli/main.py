@@ -36,6 +36,7 @@ from libs.config.seed import (
     strip_seed_fingerprint,
 )
 from libs.ros_adapters import RclpyRosServiceGateway, RclpyRosTopicCatalogGateway
+from libs.ros_adapters.parameters import RclpyRosParameterGateway
 from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
 from libs.ros_adapters.rclpy_topic_streams import RclpyRuntimeTopicSubscriptionGateway
 
@@ -120,6 +121,7 @@ def run_ros_api(
     try:
         app = create_app(
             ros_publisher_gateway=RclpyRosPublisherGateway(node),
+            ros_parameter_gateway=RclpyRosParameterGateway(node),
             ros_service_gateway=RclpyRosServiceGateway(node),
             ros_topic_catalog_gateway=RclpyRosTopicCatalogGateway(node),
             runtime_topic_subscription_gateway=RclpyRuntimeTopicSubscriptionGateway(node),

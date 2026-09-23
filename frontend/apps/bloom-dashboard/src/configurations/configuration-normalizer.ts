@@ -153,6 +153,7 @@ function normalizeRuntimePolicy(policy: PartialRuntimeAdapterPolicy | undefined)
       policy?.allowed_recording_topics,
       DEFAULT_RUNTIME_POLICY.allowed_recording_topics,
     ),
+    allowed_parameters: asStringArray(policy?.allowed_parameters, DEFAULT_RUNTIME_POLICY.allowed_parameters ?? []),
     allowed_service_calls: asStringArray(policy?.allowed_service_calls, DEFAULT_RUNTIME_POLICY.allowed_service_calls),
     allowed_teleop_targets: asStringArray(
       policy?.allowed_teleop_targets,

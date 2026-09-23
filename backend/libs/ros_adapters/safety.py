@@ -20,6 +20,8 @@ class RuntimeCommandPolicy:
     allowed_recording_topics: tuple[str, ...] = ()
     allowed_service_calls: tuple[str, ...] = ()
     allowed_service_types: tuple[str, ...] = ()
+    #: "<node>:<parameter>" pairs a runtime may set live.
+    allowed_parameters: tuple[str, ...] = ()
 
     def ensure_publish_allowed(self, topic: str, message_type: str, payload: dict[str, Any]) -> None:
         ensure_allowed(topic, self.allowed_publish_topics, "ROS topic")
@@ -32,6 +34,9 @@ class RuntimeCommandPolicy:
     def ensure_service_allowed(self, service: str, service_type: str) -> None:
         ensure_allowed(service, self.allowed_service_calls, "ROS service")
         ensure_allowed(service_type, self.allowed_service_types, "ROS service type")
+
+    def ensure_parameter_allowed(self, node: str, name: str) -> None:
+        ensure_allowed(f"{node}:{name}", self.allowed_parameters, "ROS parameter")
 
     def ensure_recording_topics_allowed(self, topics: tuple[str, ...]) -> None:
         for topic in topics:
@@ -64,5 +69,9 @@ def validate_minimum_payload_shape(message_type: str, payload: dict[str, Any]) -
         raise RuntimePayloadShapeError("std_msgs/msg/Int32 payload field 'data' must be an integer.")
     if message_type == "std_msgs/msg/String" and not isinstance(data, str):
         raise RuntimePayloadShapeError("std_msgs/msg/String payload field 'data' must be a string.")
-    if message_type in {"std_msgs/msg/Int32MultiArray", "std_msgs/msg/UInt8MultiArray"} and not isinstance(data, list):
+    if message_type in {
+        "std_msgs/msg/Float32MultiArray",
+        "std_msgs/msg/Int32MultiArray",
+        "std_msgs/msg/UInt8MultiArray",
+    } and not isinstance(data, list):
         raise RuntimePayloadShapeError(f"{message_type} payload field 'data' must be a list.")

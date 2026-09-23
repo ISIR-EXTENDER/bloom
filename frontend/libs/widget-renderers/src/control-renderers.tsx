@@ -35,6 +35,7 @@ function resolveStepTargetPreset(motorPreset: WidgetRendererProps["motorPreset"]
 }
 
 export function SliderWidget({
+  controlState,
   descriptor,
   language,
   motorPreset,
@@ -59,6 +60,13 @@ export function SliderWidget({
   const configuredValue = getNumberSetting(sliderSettings, "value", 0);
   const defaultValue = clamp(returnToCenter ? 0 : configuredValue, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
+  const readBackValue = controlState?.value;
+  // A parameter slider opens on what the node holds, not on the seed's guess.
+  useEffect(() => {
+    if (typeof readBackValue === "number" && Number.isFinite(readBackValue)) {
+      setCurrentValue(clamp(readBackValue, min, max));
+    }
+  }, [readBackValue, min, max]);
   // Counts operator input, so the attention window restarts on input only.
   const [inputRevision, setInputRevision] = useState(0);
   const formattedValue = formatSliderValue(currentValue, step, unit);

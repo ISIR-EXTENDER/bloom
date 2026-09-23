@@ -22,6 +22,7 @@ type BuilderWidgetSettingsEditorProps = {
   /** The frames this robot accepts, for a pad that turns the hand in its own. */
   allowedCommandFrameIds?: readonly string[];
   /** The app's teleop list, so a target the runtime will refuse is named before it goes live. */
+  allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
   canvas?: CanvasSettings;
   /** The fit scale of this screen's own device class, as the inspector measured it. */
@@ -118,6 +119,7 @@ function WidgetGlassSizeSummary({
 
 export function BuilderWidgetSettingsEditor({
   allowedCommandFrameIds,
+  allowedParameters,
   allowedTeleopTargets,
   canvas,
   floorPx = TOUCH_FLOOR_PX,
@@ -182,7 +184,12 @@ export function BuilderWidgetSettingsEditor({
         />
       </label>
 
-      <WidgetDestinationSummary allowedTeleopTargets={allowedTeleopTargets} destination={destination} widget={widget} />
+      <WidgetDestinationSummary
+        allowedParameters={allowedParameters}
+        allowedTeleopTargets={allowedTeleopTargets}
+        destination={destination}
+        widget={widget}
+      />
       <WidgetCliPreview widget={widget} />
       <AxisMappingEditor
         allowedCommandFrameIds={allowedCommandFrameIds}
@@ -225,10 +232,12 @@ export function BuilderWidgetSettingsEditor({
  * ignored, the robot is disconnected, or they made a typo.
  */
 function WidgetDestinationSummary({
+  allowedParameters,
   allowedTeleopTargets,
   destination,
   widget,
 }: {
+  allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
   destination: WidgetDestination | null;
   widget: WidgetConfig;
@@ -251,7 +260,14 @@ function WidgetDestinationSummary({
     !allowedTeleopTargets?.includes("*") &&
     !allowedTeleopTargets?.includes(teleopTarget);
 
-  const label = destination.direction === "reads" ? "Reads from" : "Publishes to";
+  const parameterTarget = resolveParameterTarget(widget.settings);
+  const parameterOutsidePolicy =
+    Boolean(parameterTarget) &&
+    Boolean(allowedParameters) &&
+    !allowedParameters?.includes("*") &&
+    !allowedParameters?.includes(parameterTarget);
+
+  const label = destination.direction === "reads" ? "Reads from" : parameterTarget ? "Sets parameter" : "Publishes to";
   const emptyLabel = destination.direction === "reads" ? "No topic set" : "Not configured";
 
   return (
@@ -273,8 +289,28 @@ function WidgetDestinationSummary({
           configuration, Adapter guardrails, Teleop targets.
         </p>
       ) : null}
+      {parameterOutsidePolicy ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          This app does not allow setting {parameterTarget}, so the runtime will refuse it. Add it under App
+          configuration, Adapter guardrails, Parameters.
+        </p>
+      ) : null}
     </div>
   );
+}
+
+/** "<node>:<parameter>" for a parameter binding, which is what the parameter list governs. */
+function resolveParameterTarget(settings: Record<string, unknown>): string {
+  const binding = settings.runtime_binding;
+  if (!binding || typeof binding !== "object" || (binding as { adapter?: unknown }).adapter !== "parameter") {
+    return "";
+  }
+  const mapping = (binding as { value_mapping?: unknown }).value_mapping;
+  if (!mapping || typeof mapping !== "object") {
+    return "";
+  }
+  const { node, parameter } = mapping as { node?: unknown; parameter?: unknown };
+  return typeof node === "string" && typeof parameter === "string" ? `${node}:${parameter}` : "";
 }
 
 /** True when this widget contributes to the composed twist, which is what the teleop list governs. */

@@ -76,6 +76,11 @@
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
+        ],
+        "allowed_parameters": [
+          "/petanque_throw:alpha",
+          "/petanque_throw:total_duration",
+          "/petanque_throw:angle_between_start_and_finish"
         ]
       },
       "theme": {
@@ -1152,6 +1157,90 @@
                 "onPayload": "{data: 'teleop'}",
                 "offPayload": "{data: 'stop'}",
                 "show_details": false
+              }
+            },
+            {
+              "id": "teleop-config-throw-alpha",
+              "kind": "slider",
+              "title": "Throw alpha",
+              "layout": {
+                "x": 40,
+                "y": 254,
+                "width": 520,
+                "height": 118
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 0.5,
+                "step": 0.005,
+                "value": 0.005,
+                "unit": "rad",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/petanque_throw",
+                    "parameter": "alpha"
+                  }
+                }
+              }
+            },
+            {
+              "id": "teleop-config-throw-duration",
+              "kind": "slider",
+              "title": "Throw duration",
+              "layout": {
+                "x": 40,
+                "y": 384,
+                "width": 520,
+                "height": 118
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0.5,
+                "max": 5,
+                "step": 0.1,
+                "value": 2,
+                "unit": "s",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/petanque_throw",
+                    "parameter": "total_duration"
+                  }
+                }
+              }
+            },
+            {
+              "id": "teleop-config-throw-angle",
+              "kind": "slider",
+              "title": "Throw finish angle",
+              "layout": {
+                "x": 40,
+                "y": 514,
+                "width": 520,
+                "height": 118
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": -1.57,
+                "max": 1.57,
+                "step": 0.05,
+                "value": 0,
+                "unit": "rad",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/petanque_throw",
+                    "parameter": "angle_between_start_and_finish"
+                  }
+                }
               }
             }
           ]

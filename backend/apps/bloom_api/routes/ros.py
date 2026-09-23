@@ -24,6 +24,7 @@ from libs.ros_adapters import (
     SafeRosPublishError,
     publish_with_runtime_policy,
 )
+from libs.ros_adapters.parameters import RosParameterGateway, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
 from libs.sessions import (
@@ -75,6 +76,44 @@ class RosTopicPublishRequest(BaseModel):
         if any(character.isspace() for character in normalized_message_type):
             raise ValueError("ROS message type must not contain whitespace")
         return normalized_message_type
+
+
+class RosParameterSetRequest(BaseModel):
+    node: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    value: bool | int | float | str
+
+    @field_validator("node")
+    @classmethod
+    def _validate_node(cls, node: str) -> str:
+        if not node.startswith("/"):
+            raise ValueError("node must be a fully qualified ROS node name")
+        return node
+
+    @field_validator("name")
+    @classmethod
+    def _validate_name(cls, name: str) -> str:
+        if name.strip() != name or any(character.isspace() for character in name):
+            raise ValueError("parameter name must not contain spaces")
+        return name
+
+
+class RosParameterSetResponse(BaseModel):
+    node: str
+    name: str
+    value: bool | int | float | str
+    status: str
+    detail: str
+
+
+class RosParameterReadingResponse(BaseModel):
+    node: str
+    name: str
+    value: bool | int | float | str | None
+
+
+class RosParameterListResponse(BaseModel):
+    parameters: tuple[RosParameterReadingResponse, ...]
 
 
 class RosServiceCallRequest(BaseModel):
@@ -242,6 +281,81 @@ def publish_ros_topic(
 
 def get_ros_service_gateway(request: Request) -> RosServiceGateway:
     return request.app.state.ros_service_gateway
+
+
+def get_ros_parameter_gateway(request: Request) -> RosParameterGateway:
+    return request.app.state.ros_parameter_gateway
+
+
+@router.get("/parameters", response_model=RosParameterListResponse)
+def read_ros_parameters(
+    request: Request,
+    node: str,
+    names: str,
+    _principal: BloomPrincipal = Depends(require_observer),
+) -> RosParameterListResponse:
+    """Current values of allowlisted parameters, so a tuning control opens on what the node holds."""
+    policy = get_runtime_command_policy(request)
+    wanted = tuple(name for name in names.split(",") if name)
+    for name in wanted:
+        try:
+            policy.ensure_parameter_allowed(node, name)
+        except RuntimeCommandPolicyError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
+    try:
+        readings = get_ros_parameter_gateway(request).get(node, wanted)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return RosParameterListResponse(
+        parameters=tuple(RosParameterReadingResponse(node=r.node, name=r.name, value=r.value) for r in readings)
+    )
+
+
+@router.post("/parameters/set", response_model=RosParameterSetResponse)
+def set_ros_parameter(
+    request: Request,
+    set_request: RosParameterSetRequest,
+    _principal: BloomPrincipal = Depends(require_runtime_owner),
+) -> RosParameterSetResponse:
+    """Live tuning. Allowed while STOP is latched: a gain is configuration, not motion."""
+    audit_log = get_runtime_audit_log(request)
+    target = f"{set_request.node}:{set_request.name}"
+
+    def record(status: str, detail: str) -> None:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_parameter",
+                detail=detail,
+                message_type=type(set_request.value).__name__,
+                status="accepted" if status == "accepted" else "rejected",
+                target=target,
+            )
+        )
+
+    try:
+        get_runtime_command_policy(request).ensure_parameter_allowed(set_request.node, set_request.name)
+    except RuntimeCommandPolicyError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    try:
+        get_runtime_command_rate_limiter(request).ensure_allowed(f"http_ros_parameter:{target}")
+    except RuntimeRateLimitError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    try:
+        receipt = execute_as_runtime_owner(
+            request,
+            lambda: get_ros_parameter_gateway(request).set(
+                RosParameterRequest(node=set_request.node, name=set_request.name, value=set_request.value)
+            ),
+        )
+    except RuntimeError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    record("accepted", receipt.detail)
+    return RosParameterSetResponse(
+        node=receipt.node, name=receipt.name, value=receipt.value, status=receipt.status, detail=receipt.detail
+    )
 
 
 @router.post("/services/call", response_model=RosServiceCallResponse)

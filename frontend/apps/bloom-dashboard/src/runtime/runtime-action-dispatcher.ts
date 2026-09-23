@@ -1,6 +1,7 @@
 import {
   type BloomApiClient,
   BloomApiError,
+  type RosParameterSetRequest,
   type RosTopicPublishRequest,
   type RuntimeActionPreset,
   type RuntimeAdapterPolicy,
@@ -108,6 +109,8 @@ export type RuntimeTopicSampleMessage = {
 export type RuntimeLinkState = "connecting" | "connected" | "disconnected";
 
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
+  setRosParameter?: BloomApiClient["setRosParameter"];
+  getRosParameters?: BloomApiClient["getRosParameters"];
   addRuntimeControlStateListener?: (listener: (state: RuntimeControlState | null) => void) => () => void;
   addRuntimeLinkStateListener?: (listener: (state: RuntimeLinkState) => void) => () => void;
   addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;
@@ -522,6 +525,23 @@ async function dispatchTeleopValueIntent(
     }
   }
 
+  const parameterRequest = createValueParameterRequest(intent);
+  if (parameterRequest) {
+    const policyError = validateParameterRequest(parameterRequest, options.runtimePolicy);
+    if (policyError) {
+      return { intent, status: "blocked", detail: policyError };
+    }
+    if (!client.setRosParameter) {
+      return { intent, status: "unsupported", detail: "Parameter intents need an API client before they can be sent." };
+    }
+    try {
+      const response = await client.setRosParameter(parameterRequest);
+      return { intent, status: response.status === "set" ? "published" : response.status, detail: response.detail };
+    } catch (error: unknown) {
+      return { intent, status: "failed", detail: getErrorMessage(error) };
+    }
+  }
+
   const topicRequest = createValueTopicPublishRequest(intent);
   if (topicRequest) {
     const policyError = validateTopicPublishRequest(topicRequest, options.runtimePolicy);
@@ -706,6 +726,39 @@ export function teleopContributionFromIntent(
     return contributionFromAxisMap(declared, { value: intent.value }, deadZone);
   }
 
+  return null;
+}
+
+/**
+ * A scalar bound to a node parameter: the live-tuning seam. cartesian_manager rereads its parameters
+ * every tick, so a gain moves the moment the service answers; nothing here is a motion command.
+ */
+export function createValueParameterRequest(
+  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
+): RosParameterSetRequest | null {
+  const runtimeBinding = getRecord(intent.runtimeBinding);
+  if (getOptionalString(runtimeBinding, "adapter") !== "parameter") {
+    return null;
+  }
+  const valueMapping = getRecord(runtimeBinding.value_mapping);
+  const node = getOptionalString(valueMapping, "node");
+  const name = getOptionalString(valueMapping, "parameter");
+  if (!node || !name || typeof intent.value !== "number" || !Number.isFinite(intent.value)) {
+    return null;
+  }
+  return { node, name, value: intent.value };
+}
+
+export function validateParameterRequest(
+  request: RosParameterSetRequest,
+  policy: RuntimeAdapterPolicy | undefined,
+): string | null {
+  if (!policy) {
+    return null;
+  }
+  if (!isAllowedByPolicy(`${request.node}:${request.name}`, policy.allowed_parameters ?? [])) {
+    return `Parameter "${request.node}:${request.name}" is not allowed by this app runtime policy.`;
+  }
   return null;
 }
 

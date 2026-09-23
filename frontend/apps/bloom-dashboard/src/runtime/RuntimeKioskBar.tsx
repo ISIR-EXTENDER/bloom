@@ -77,6 +77,8 @@ export type RuntimeKioskBarProps = {
   onOpenSettings: () => void;
   onOpenSupervisor: () => void;
   onOpenTour: () => void;
+  /** The first-entry practice offer; null once answered or once the tour has been walked. */
+  tourOffer?: { onAccept: () => void; onDismiss: () => void } | null;
   onReload?: () => void;
   onSuspendTeleop: () => void;
   onSwitchProfile?: (profileId: string) => void;
@@ -103,6 +105,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     onSuspendTeleop,
     onMaintenanceOpenChange,
     language = "en",
+    tourOffer = null,
   } = props;
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
@@ -163,6 +166,17 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
             </strong>
             <span>{commandFeedback.detail}</span>
           </span>
+        ) : null}
+        {tourOffer ? (
+          <fieldset className="runtime-kiosk-tour-offer">
+            <legend className="sr-only">{strings.tour.offerAria}</legend>
+            <button onClick={tourOffer.onAccept} type="button">
+              {strings.tour.offerStart}
+            </button>
+            <button aria-label={strings.tour.offerDismiss} onClick={tourOffer.onDismiss} type="button">
+              ×
+            </button>
+          </fieldset>
         ) : null}
         <span className="runtime-kiosk-spacer" />
         <span className="runtime-kiosk-role" data-role={resolveRuntimeRole(profile)}>

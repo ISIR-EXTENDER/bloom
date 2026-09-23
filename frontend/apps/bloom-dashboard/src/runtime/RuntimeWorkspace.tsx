@@ -13,6 +13,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getBloomApiBaseUrl, getBloomApiKey } from "../configurations/configuration-client";
 import { ScreenArtboard } from "../screen/ScreenArtboard";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import {
+  dismissGuidedTourOffer,
+  guidedTourProgressKey,
+  isGuidedTourOfferDismissed,
+  loadGuidedTourProgress,
+} from "../ui/guided-tour-progress";
 import { BloomDebugPanel } from "./BloomDebugPanel";
 import { resolveCameraStreamTargets, useCameraStreams } from "./camera-stream";
 import {
@@ -44,6 +50,7 @@ import { type HeldTopicSubscriptions, planTopicSubscriptions } from "./topic-sub
 import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
+import { useParameterReadings } from "./use-parameter-readings";
 import { usePositionLibrary } from "./use-position-library";
 import { findRuntimeRegion, findStopRegion, type RegionRect, useReservedRegionRect } from "./use-reserved-region-rect";
 import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
@@ -137,6 +144,17 @@ export function RuntimeWorkspace({
   const workspaceRef = useRef<HTMLElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  // Offered once per app on this device: the tour was only reachable behind the maintenance hold,
+  // so a first-time operator had to find a hold gesture to learn the hold gesture.
+  const tourKey = guidedTourProgressKey("runtime", selection.configId, selection.appId);
+  const [tourOfferAnswered, setTourOfferAnswered] = useState(true);
+  useEffect(() => {
+    setTourOfferAnswered(isGuidedTourOfferDismissed(tourKey) || loadGuidedTourProgress(tourKey).length > 0);
+  }, [tourKey]);
+  const answerTourOffer = () => {
+    dismissGuidedTourOffer(tourKey);
+    setTourOfferAnswered(true);
+  };
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   // Read synchronously by the intent gate: a held control's next tick must not beat the re-render that holds it.
   const motionHeldRef = useRef(false);
@@ -204,7 +222,8 @@ export function RuntimeWorkspace({
   useEffect(() => {
     setCommandFrameId(defaultCommandFrameId);
   }, [application.id, baseRuntimeProfile.id, defaultCommandFrameId]);
-  const controlStateByWidgetId = useMemo(
+  const parameterReadings = useParameterReadings(screen, runtimeActionClient);
+  const baseControlStateByWidgetId = useMemo(
     () =>
       createRuntimeControlStateByWidgetId(screen, runtimeModeState, {
         activeCommandFrameId: commandFrameId,
@@ -230,6 +249,13 @@ export function RuntimeWorkspace({
       topicStatuses,
     ],
   );
+  const controlStateByWidgetId = useMemo(() => {
+    const merged = { ...baseControlStateByWidgetId };
+    for (const [widgetId, value] of Object.entries(parameterReadings)) {
+      merged[widgetId] = { ...merged[widgetId], value };
+    }
+    return merged;
+  }, [baseControlStateByWidgetId, parameterReadings]);
   const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
   const screenHasPositionLibrary = screen.widgets.some((widget) => widget.kind === "position-library");
   const positionLibrary = usePositionLibrary(runtimeActionClient, screenHasPositionLibrary, {
@@ -712,6 +738,18 @@ export function RuntimeWorkspace({
           holdMotion();
           setTourOpen(true);
         }}
+        tourOffer={
+          tourOfferAnswered
+            ? null
+            : {
+                onAccept: () => {
+                  answerTourOffer();
+                  holdMotion();
+                  setTourOpen(true);
+                },
+                onDismiss: answerTourOffer,
+              }
+        }
         onSelectScreen={(screenId) => {
           onSuspendTeleop();
           onSelectionChange({ ...selection, screenId });
@@ -784,7 +822,7 @@ export function RuntimeWorkspace({
           </div>
         </div>
 
-        {scanning.index >= 0 ? (
+        {scanning.index >= 0 && !stopRect ? (
           <div className="runtime-switch-bar">
             <button
               className="runtime-switch-bar-button"
@@ -807,10 +845,48 @@ export function RuntimeWorkspace({
           />
         ) : null}
 
-        {renderStopControl(stopRect)}
+        {scanning.index >= 0 && stopRect ? (
+          <>
+            {renderStopControl(splitStopRegion(stopRect).stop)}
+            <button
+              className="runtime-switch-bar-button"
+              data-placement="region"
+              data-scan-switch=""
+              onClick={scanning.activateCurrent}
+              style={splitStopRegion(stopRect).scanSwitch}
+              type="button"
+            >
+              {strings.scan.button}
+            </button>
+            <p aria-live="polite" className="sr-only" role="status">
+              {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
+            </p>
+          </>
+        ) : (
+          renderStopControl(stopRect)
+        )}
       </div>
     </section>
   );
+}
+
+/**
+ * Scanning on a full-panel screen: the switch shares the reserved STOP region instead of taking a strip
+ * of canvas height, so the artboard keeps its fit and no target drops under the floor. STOP stays on
+ * top, the larger half; the switch takes the rest.
+ */
+function splitStopRegion(region: RegionRect): { scanSwitch: RegionRect; stop: RegionRect } {
+  const gap = 8;
+  const stopHeight = Math.round((region.height - gap) * 0.55);
+  return {
+    stop: { ...region, height: stopHeight },
+    scanSwitch: {
+      left: region.left,
+      top: region.top + stopHeight + gap,
+      width: region.width,
+      height: region.height - gap - stopHeight,
+    },
+  };
 }
 
 const EMPTY_PROFILE_OVERRIDES: RuntimeProfileOverrides = {};

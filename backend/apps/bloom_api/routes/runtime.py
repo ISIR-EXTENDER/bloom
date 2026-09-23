@@ -93,6 +93,7 @@ from libs.sessions.positions import (
     JointPose,
     PositionLibrary,
     PositionLibraryError,
+    library_backed_by,
     render_joint_targets_yaml,
 )
 from libs.sessions.teleop_runtime import build_teleop_ack, to_teleop_command
@@ -655,7 +656,13 @@ def find_position_library(request: Request, config_id: str = "", app_id: str = "
     across Explorer and Kinova let a six-joint Explorer pose appear in a Kinova
     export, where the same numbers mean different angles.
     """
-    return position_libraries(request).get(f"{config_id}:{app_id}")
+    libraries = position_libraries(request)
+    key = f"{config_id}:{app_id}"
+    store = getattr(request.app.state, "position_store", None)
+    if key not in libraries and store is not None and (config_id or app_id):
+        # After an API restart the map is empty but the store is not.
+        libraries[key] = library_backed_by(store, config_id, app_id)
+    return libraries.get(key)
 
 
 def get_position_library_for_write(request: Request, config_id: str = "", app_id: str = "") -> PositionLibrary:
@@ -667,7 +674,11 @@ def get_position_library_for_write(request: Request, config_id: str = "", app_id
             bundle = None
         if bundle is None or all(application.id != app_id for application in bundle.applications):
             raise HTTPException(status_code=404, detail=f"no application '{app_id}' in configuration '{config_id}'")
-    return position_libraries(request).setdefault(f"{config_id}:{app_id}", PositionLibrary())
+    libraries = position_libraries(request)
+    key = f"{config_id}:{app_id}"
+    if key not in libraries:
+        libraries[key] = library_backed_by(getattr(request.app.state, "position_store", None), config_id, app_id)
+    return libraries[key]
 
 
 def position_libraries(request: Request) -> dict[str, PositionLibrary]:

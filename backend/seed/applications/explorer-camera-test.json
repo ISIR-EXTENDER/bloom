@@ -35,8 +35,7 @@
           "/joint_states",
           "/joint_target_command",
           "/joystick_cartesian_command",
-          "/mode_request",
-          "/visual_servoing_cartesian_command"
+          "/mode_request"
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"

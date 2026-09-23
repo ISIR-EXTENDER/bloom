@@ -34,6 +34,7 @@
           "extender_msgs/msg/SharedControlGoalArray",
           "geometry_msgs/msg/TwistStamped",
           "std_msgs/msg/Bool",
+          "std_msgs/msg/Float32MultiArray",
           "std_msgs/msg/Float64",
           "std_msgs/msg/Float64MultiArray",
           "std_msgs/msg/Int32",
@@ -44,6 +45,7 @@
         "allowed_publish_topics": [
           "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
           "/gripper_controller/commands",
+          "/hub/digital_output",
           "/mode_request",
           "/ui/visual_servoing/on",
           "/ui/visual_servoing/save"
@@ -321,6 +323,27 @@
                 "messageType": "std_msgs/msg/Float64MultiArray",
                 "onPayload": "{data: [0.2]}",
                 "offPayload": "{data: [1.1]}",
+                "show_details": false
+              }
+            },
+            {
+              "id": "sandbox-hub-output",
+              "kind": "toggle",
+              "title": "Digital output",
+              "layout": {
+                "x": 1036,
+                "y": 2,
+                "width": 200,
+                "height": 120
+              },
+              "settings": {
+                "initialValue": false,
+                "offLabel": "Pin 13 off",
+                "onLabel": "Pin 13 on",
+                "topic": "/hub/digital_output",
+                "messageType": "std_msgs/msg/Float32MultiArray",
+                "onPayload": "{data: [13, 1]}",
+                "offPayload": "{data: [13, 0]}",
                 "show_details": false
               }
             }

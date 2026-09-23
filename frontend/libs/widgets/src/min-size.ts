@@ -67,10 +67,12 @@ export type PrimaryTargetSettings = MinSizeSettings & { returnToCenter?: unknown
  * declares no target, which is also what makes it non-interactive.
  */
 const PRIMARY_TARGET: Readonly<
-  Record<string, (settings: PrimaryTargetSettings, layout: PrimaryTargetLayout) => number>
+  Record<string, (settings: PrimaryTargetSettings, layout: PrimaryTargetLayout, targetPx: number) => number>
 > = {
-  "command-button": (settings, layout) =>
-    settings.hide_title === true ? layout.height - 32 : Math.min(56, layout.height - 32),
+  // The renderer grows the button to the role's touch target (runtime-app.css, --runtime-control-touch-target)
+  // as far as the card allows, so the contract reports that rather than a flat 56.
+  "command-button": (settings, layout, targetPx) =>
+    settings.hide_title === true ? layout.height - 32 : Math.min(Math.max(56, targetPx), layout.height - 32),
   "gesture-pad": (_settings, layout) => Math.min(layout.width, layout.height),
   // The knob of the pad the renderer draws, not of the card: the title row and the readouts come off
   // the edge first, so a card measured whole reports a target the hand never meets.
@@ -80,7 +82,7 @@ const PRIMARY_TARGET: Readonly<
     return padGeometry(resolveJoystickControlSize(layout.width, layout.height, { placement, showDetails })).knob;
   },
   slider: (settings) => (settings.variant === "segments" || settings.returnToCenter === true ? 64 : 56),
-  toggle: () => 56,
+  toggle: (_settings, layout, targetPx) => Math.min(Math.max(56, targetPx), layout.height - 32),
 };
 
 /** The kinds the touch floor and the overlap rule apply to: the ones that declare a target. */
@@ -103,13 +105,17 @@ export const PROFILE_TARGET_PX: Readonly<Record<DisplayPreset, number>> = {
   "high-visibility": 64,
 };
 
-/** The target for a widget as configured, or null for a kind that is not something to hit. */
+/**
+ * The target for a widget as configured, or null for a kind that is not something to hit. `targetPx` is
+ * the role's touch target (PROFILE_TARGET_PX): a button or toggle grows to it when the card has room.
+ */
 export function primaryTargetFor(
   kind: string,
   settings: PrimaryTargetSettings,
   layout: PrimaryTargetLayout,
+  targetPx: number = PROFILE_TARGET_PX.default,
 ): number | null {
-  return PRIMARY_TARGET[kind]?.(settings, layout) ?? null;
+  return PRIMARY_TARGET[kind]?.(settings, layout, targetPx) ?? null;
 }
 
 export type WidgetSizeShortfall = { minimum: WidgetMinSize; width: number; height: number };

@@ -71,11 +71,13 @@
           "/joint_target_command",
           "/joystick_cartesian_command",
           "/mode_request",
-          "/qontrol_explorer/effort_overload",
-          "/visual_servoing_cartesian_command"
+          "/qontrol_explorer/effort_overload"
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
+        ],
+        "allowed_parameters": [
+          "/cartesian_manager:shapers.snake.gain"
         ]
       },
       "theme": {
@@ -302,7 +304,7 @@
                 "x": 14,
                 "y": 146,
                 "width": 110,
-                "height": 384
+                "height": 340
               },
               "settings": {
                 "max": 1,
@@ -335,7 +337,7 @@
                 "x": 136,
                 "y": 146,
                 "width": 384,
-                "height": 384
+                "height": 340
               },
               "settings": {
                 "deadzone": 0,
@@ -376,7 +378,7 @@
                 "x": 532,
                 "y": 146,
                 "width": 384,
-                "height": 384
+                "height": 340
               },
               "settings": {
                 "deadzone": 0,
@@ -488,6 +490,34 @@
                 "labels": {
                   "negative": "↶ Turn left",
                   "positive": "Turn right ↷"
+                }
+              }
+            },
+            {
+              "id": "bench-snake-gain",
+              "kind": "slider",
+              "title": "Snake gain",
+              "layout": {
+                "x": 14,
+                "y": 498,
+                "width": 506,
+                "height": 176
+              },
+              "settings": {
+                "direction": "horizontal",
+                "min": 0,
+                "max": 10,
+                "step": 0.1,
+                "value": 3,
+                "unit": "",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "shapers.snake.gain"
+                  }
                 }
               }
             }
@@ -1291,16 +1321,6 @@
                     "emphasis": false
                   },
                   {
-                    "topic": "/visual_servoing_cartesian_command",
-                    "message_type": "geometry_msgs/msg/TwistStamped",
-                    "field_path": "twist.linear.x",
-                    "label": "Visual servoing",
-                    "color": "#c98a7e",
-                    "unit": "norm",
-                    "enabled": true,
-                    "emphasis": false
-                  },
-                  {
                     "topic": "/cartesian_command",
                     "message_type": "geometry_msgs/msg/TwistStamped",
                     "field_path": "twist.linear.x",
@@ -1378,7 +1398,13 @@
               "settings": {
                 "plot_id": "sources-plot",
                 "show_value": true,
-                "show_details": false
+                "show_details": false,
+                "unavailable": [
+                  {
+                    "label": "Visual servoing",
+                    "note": "not read by the manager yet: its config declares only the joystick source, and the servoing node publishes /visual_servoing/velocity_command"
+                  }
+                ]
               }
             }
           ],

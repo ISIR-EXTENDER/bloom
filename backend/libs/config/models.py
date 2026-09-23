@@ -145,6 +145,8 @@ class RuntimeAdapterPolicy(BloomModel):
     allowed_publish_topics: tuple[str, ...] = Field(default_factory=tuple)
     allowed_recording_topics: tuple[str, ...] = Field(default_factory=tuple)
     allowed_service_calls: tuple[str, ...] = Field(default_factory=tuple)
+    #: "<node>:<parameter>" pairs this app's controls may set live.
+    allowed_parameters: tuple[str, ...] = Field(default_factory=tuple)
     #: An app that says nothing gets the manager's own command topic, so a screen authored in the
     #: Builder can drive the robot the moment it is opened. Declaring an empty list still means "this
     #: app drives nothing", which is how Bloom Debug and the webcam viewer say so. Whatever is here is

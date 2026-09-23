@@ -1153,6 +1153,39 @@
   white-space: nowrap;
 }
 
+/* The first-entry practice offer: two quiet targets in the bar, gone once answered. */
+.runtime-kiosk-tour-offer {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  align-items: stretch;
+  min-height: 32px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 34%, var(--bloom-border));
+  border-radius: 8px;
+  background: var(--bloom-surface-container);
+}
+
+.runtime-kiosk-tour-offer button {
+  min-width: 32px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bloom-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.runtime-kiosk-tour-offer button:first-child {
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+}
+
 .runtime-kiosk-command-feedback {
   display: flex;
   min-width: 0;
@@ -1738,6 +1771,15 @@
 
 .runtime-app-workspace[data-runtime-scanning="true"] .runtime-stop-control {
   bottom: 112px;
+}
+
+/* Inside the reserved STOP region (splitStopRegion): sized by the region, not by the strip. */
+.runtime-switch-bar-button[data-placement="region"] {
+  position: absolute;
+  z-index: 50;
+  width: auto;
+  min-height: 0;
+  border-radius: var(--bloom-radius-card);
 }
 
 @media (max-width: 520px) {

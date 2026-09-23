@@ -25,6 +25,8 @@ const GLOSSARY: Record<string, { es: string; fr: string }> = {
   commanded: { es: "ordenado", fr: "commandé" },
   Height: { es: "Altura", fr: "Hauteur" },
   Pivot: { es: "Pivote", fr: "Pivot" },
+  "Snake gain": { es: "Ganancia Snake", fr: "Gain Snake" },
+  "Snake shaping gain": { es: "Ganancia de modelado Snake", fr: "Gain de mise en forme Snake" },
   Translation: { es: "Traslación", fr: "Translation" },
   Rotation: { es: "Rotación", fr: "Rotation" },
   Up: { es: "Subir", fr: "Monter" },

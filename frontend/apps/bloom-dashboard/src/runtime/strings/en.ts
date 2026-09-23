@@ -36,6 +36,9 @@ export const enRuntimeStrings: RuntimeStrings = {
     disconnected: "Practice controls disconnected from robot commands",
     localOnly: "Local practice - nothing here can command the robot",
     movementFallback: "movement control",
+    offerAria: "First time here?",
+    offerDismiss: "Not now",
+    offerStart: "Practice first",
     moveBody: (controlName, directionLabel, count) =>
       `Use ${directionLabel} on ${controlName} twice. Practice movement ${Math.min(count, 2)} of 2.`,
     practice: "Guided practice",

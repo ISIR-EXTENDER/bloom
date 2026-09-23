@@ -1,3 +1,4 @@
+import { DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -914,3 +915,50 @@ function createVectorValueIntent(options: {
     value: options.value,
   };
 }
+
+describe("parameter bindings", () => {
+  const sliderIntent = (value: number, node = "/cartesian_manager", parameter = "shapers.snake.gain") =>
+    ({
+      type: "value-change",
+      widgetId: "snake-gain",
+      widgetKind: "slider",
+      value,
+      runtimeBinding: { adapter: "parameter", target: "parameter", value_mapping: { node, parameter } },
+    }) as Parameters<typeof dispatchRuntimeActionIntent>[1];
+
+  it("sets the node parameter through the API client and reports it as published", async () => {
+    const setRosParameter = vi.fn(async (request) => ({
+      ...request,
+      status: "set" as const,
+      detail: "Parameter set.",
+    }));
+    const client = { publishRosTopic: vi.fn(), setRosParameter } as unknown as RuntimeActionClient;
+
+    const result = await dispatchRuntimeActionIntent(client, sliderIntent(4.5), {
+      runtimePolicy: { ...DEFAULT_RUNTIME_POLICY, allowed_parameters: ["/cartesian_manager:shapers.snake.gain"] },
+    });
+
+    expect(setRosParameter).toHaveBeenCalledWith({
+      node: "/cartesian_manager",
+      name: "shapers.snake.gain",
+      value: 4.5,
+    });
+    expect(result.status).toBe("published");
+  });
+
+  it("is blocked by the app policy before anything reaches the client", async () => {
+    const setRosParameter = vi.fn();
+    const client = { publishRosTopic: vi.fn(), setRosParameter } as unknown as RuntimeActionClient;
+
+    const result = await dispatchRuntimeActionIntent(
+      client,
+      sliderIntent(1, "/cartesian_manager", "frames.base_frame"),
+      {
+        runtimePolicy: { ...DEFAULT_RUNTIME_POLICY, allowed_parameters: ["/cartesian_manager:shapers.snake.gain"] },
+      },
+    );
+
+    expect(setRosParameter).not.toHaveBeenCalled();
+    expect(result.status).toBe("blocked");
+  });
+});

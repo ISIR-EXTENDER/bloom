@@ -80,6 +80,8 @@ export type WidgetActionIntentHandler = (
 ) => WidgetActionOutcome | undefined | Promise<WidgetActionOutcome | undefined>;
 
 export type WidgetControlState = {
+  /** A value read back from the robot side (a live node parameter); the control shows it. */
+  value?: number;
   disabled?: boolean;
   disabledReason?: string;
   /** The backend cannot serve this widget; keep it visible, inert, and explained. */

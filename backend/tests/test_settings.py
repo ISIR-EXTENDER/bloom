@@ -48,6 +48,7 @@ def test_default_runtime_allowlists_cover_extender_publish_topics() -> None:
         "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
         "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
         "/gripper_controller/commands",
+        "/hub/digital_output",
         "/mode_request",
         "/petanque_state_machine/change_state",
         "/ui/visual_servoing/on",

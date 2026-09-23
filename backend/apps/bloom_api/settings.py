@@ -41,6 +41,8 @@ class Settings(BaseModel):
         "sensor_msgs/msg/CompressedImage",
         "sensor_msgs/msg/JointState",
         "std_msgs/msg/Bool",
+        # tools/hub takes [pin, state, ...] as floats on /hub/digital_output.
+        "std_msgs/msg/Float32MultiArray",
         "std_msgs/msg/Float64",
         "std_msgs/msg/Float64MultiArray",
         "std_msgs/msg/Int32",
@@ -53,6 +55,8 @@ class Settings(BaseModel):
         "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
         "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
         "/gripper_controller/commands",
+        # tools/hub's Arduino bridge: data [pin, state, pin, state, ...].
+        "/hub/digital_output",
         # cartesian_manager behaviours and shapers (geometric/*, behaviour/*).
         "/mode_request",
         # apps-petanque's yasmin state machine.
@@ -81,6 +85,20 @@ class Settings(BaseModel):
     # list with BLOOM_ALLOWED_COMMAND_FRAME_IDS) to offer the tool frame.
     allowed_command_frame_ids: tuple[str, ...] = ("base_link", "hybrid_frame")
     allowed_teleop_targets: tuple[str, ...] = ("/joystick_cartesian_command",)
+    # Live tuning through the nodes' own parameter services, as "<node>:<parameter>".
+    # cartesian_manager rereads these every tick; joint targets, inputs and frames
+    # stay startup-only (PR #11) and are deliberately absent.
+    allowed_ros_parameters: tuple[str, ...] = (
+        "/cartesian_manager:shapers.snake.gain",
+        "/cartesian_manager:shapers.jaco.min_radius",
+        "/cartesian_manager:shapers.jaco.max_angular_velocity",
+        "/cartesian_manager:rate_limiter.max_linear_acceleration",
+        "/cartesian_manager:rate_limiter.max_angular_acceleration",
+        # apps-petanque's throw trajectory, the tuning the Petanque app lost when it left the old backend.
+        "/petanque_throw:alpha",
+        "/petanque_throw:total_duration",
+        "/petanque_throw:angle_between_start_and_finish",
+    )
     # Trigger-style services the runtime may call. The fault reset is the
     # Kinova gen3's recovery path.
     allowed_ros_service_calls: tuple[str, ...] = ("/fault_controller/reset_fault",)
@@ -237,6 +255,10 @@ class Settings(BaseModel):
             allowed_teleop_targets=_read_tuple_env(
                 "BLOOM_ALLOWED_TELEOP_TARGETS",
                 cls.model_fields["allowed_teleop_targets"].default,
+            ),
+            allowed_ros_parameters=_read_tuple_env(
+                "BLOOM_ALLOWED_ROS_PARAMETERS",
+                cls.model_fields["allowed_ros_parameters"].default,
             ),
             ros_ee_frame_id=os.getenv(
                 "BLOOM_ROS_EE_FRAME_ID",

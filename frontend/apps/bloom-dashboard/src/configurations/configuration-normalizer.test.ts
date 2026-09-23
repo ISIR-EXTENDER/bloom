@@ -151,6 +151,7 @@ describe("normalizeConfigurationBundle", () => {
       // the manager's mode request, and the two the visual servoing node reads.
       "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
       "/gripper_controller/commands",
+      "/hub/digital_output",
       "/mode_request",
       "/ui/visual_servoing/on",
       "/ui/visual_servoing/save",

@@ -20,9 +20,14 @@ refuses to start unless
 
 from __future__ import annotations
 
+import json
 import threading
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
+from pathlib import Path
+from typing import Protocol
+
+from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
 
 
 class PositionLibraryError(ValueError):
@@ -51,10 +56,19 @@ class JointPose:
 
 @dataclass
 class PositionLibrary:
-    """Ordered, name-unique collection of poses for one application."""
+    """Ordered, name-unique collection of poses for one application.
+
+    `on_change` receives the whole list after every mutation, under the lock, so
+    a store can write it through without reasoning about partial updates.
+    """
 
     poses: list[JointPose] = field(default_factory=list)
+    on_change: Callable[[list[JointPose]], None] | None = field(default=None, repr=False, compare=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+
+    def _changed(self) -> None:
+        if self.on_change is not None:
+            self.on_change(list(self.poses))
 
     def save(self, pose: JointPose) -> JointPose:
         """Add a pose, or replace one with the same name in place.
@@ -67,8 +81,10 @@ class PositionLibrary:
             for index, existing in enumerate(self.poses):
                 if existing.name == pose.name:
                     self.poses[index] = pose
+                    self._changed()
                     return pose
             self.poses.append(pose)
+            self._changed()
             return pose
 
     def remove(self, name: str) -> bool:
@@ -76,6 +92,7 @@ class PositionLibrary:
             for index, existing in enumerate(self.poses):
                 if existing.name == name:
                     del self.poses[index]
+                    self._changed()
                     return True
             return False
 
@@ -95,6 +112,7 @@ class PositionLibrary:
                 if existing.name == name:
                     renamed = replace(existing, name=new_name)
                     self.poses[index] = renamed
+                    self._changed()
                     return renamed
             raise PositionLibraryError(f"no saved position named '{name}'")
 
@@ -112,6 +130,75 @@ class PositionLibrary:
             raise PositionLibraryError(
                 f"'{pose.name}' uses joints {list(pose.joint_names)} but the library uses {list(expected)}"
             )
+
+
+class PositionStore(Protocol):
+    """Where a library's poses outlive the API process."""
+
+    def load(self, config_id: str, app_id: str) -> list[JointPose]:
+        raise NotImplementedError
+
+    def replace(self, config_id: str, app_id: str, poses: list[JointPose]) -> None:
+        raise NotImplementedError
+
+
+class SQLitePositionStore:
+    """Poses in the configuration database, one row per pose, replaced as a whole per library."""
+
+    def __init__(self, database_path: str | Path) -> None:
+        self.database_path = Path(database_path)
+        with sqlite_connection(self.database_path) as connection:
+            apply_sqlite_migrations(connection)
+
+    def load(self, config_id: str, app_id: str) -> list[JointPose]:
+        with sqlite_connection(self.database_path) as connection:
+            rows = connection.execute(
+                "SELECT name, joint_names_json, positions_json, description FROM saved_positions"
+                " WHERE config_id = ? AND app_id = ? ORDER BY position",
+                (config_id, app_id),
+            ).fetchall()
+        return [
+            JointPose(
+                name=str(row["name"]),
+                joint_names=tuple(str(joint) for joint in json.loads(row["joint_names_json"])),
+                positions=tuple(float(value) for value in json.loads(row["positions_json"])),
+                description=str(row["description"]),
+            )
+            for row in rows
+        ]
+
+    def replace(self, config_id: str, app_id: str, poses: list[JointPose]) -> None:
+        with sqlite_connection(self.database_path) as connection:
+            connection.execute("BEGIN")
+            connection.execute("DELETE FROM saved_positions WHERE config_id = ? AND app_id = ?", (config_id, app_id))
+            connection.executemany(
+                "INSERT INTO saved_positions"
+                " (config_id, app_id, position, name, joint_names_json, positions_json, description)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [
+                    (
+                        config_id,
+                        app_id,
+                        index,
+                        pose.name,
+                        json.dumps(list(pose.joint_names)),
+                        json.dumps(list(pose.positions)),
+                        pose.description,
+                    )
+                    for index, pose in enumerate(poses)
+                ],
+            )
+            connection.commit()
+
+
+def library_backed_by(store: PositionStore | None, config_id: str, app_id: str) -> PositionLibrary:
+    """A library hydrated from the store, writing every change back through it."""
+    if store is None:
+        return PositionLibrary()
+    return PositionLibrary(
+        poses=store.load(config_id, app_id),
+        on_change=lambda poses: store.replace(config_id, app_id, poses),
+    )
 
 
 def render_joint_targets_yaml(poses: Iterable[JointPose], indent: str = "      ") -> str:

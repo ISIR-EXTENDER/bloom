@@ -363,6 +363,7 @@ export function BuilderWorkspace({
         }}
         runtimeCapabilities={runtimeCapabilities}
         allowedCommandFrameIds={commandFrameIds}
+        allowedParameters={selectedWorkspace.application.runtime_policy.allowed_parameters ?? []}
         allowedTeleopTargets={selectedWorkspace.application.runtime_policy.allowed_teleop_targets}
         hasStopRegion={(draftScreen.reserved_regions ?? []).some((region) => region.id === "stop")}
         onAddStopRegion={addStopRegion}

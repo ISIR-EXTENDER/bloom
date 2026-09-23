@@ -127,6 +127,8 @@ export type RuntimeAdapterPolicy = {
   /** Shared rotation frame for every Cartesian command; empty uses the backend default. */
   command_frame_id?: string;
   allowed_message_types: string[];
+  /** "<node>:<parameter>" pairs this app's controls may set live. */
+  allowed_parameters?: string[];
   allowed_publish_topics: string[];
   allowed_recording_topics: string[];
   /** Trigger-style ROS services this app may call. */
@@ -150,6 +152,7 @@ export type RuntimeActionPreset = {
 export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
   command_frame_id: "",
   allowed_message_types: [],
+  allowed_parameters: [],
   allowed_publish_topics: [],
   allowed_recording_topics: [],
   allowed_service_calls: [],
@@ -366,6 +369,28 @@ export type SavedPositionExportResponse = {
   /** The joint_targets block to paste into the manager's parameters. */
   yaml: string;
   target_names: string[];
+};
+
+export type RosParameterValue = boolean | number | string;
+
+export type RosParameterSetRequest = {
+  node: string;
+  name: string;
+  value: RosParameterValue;
+};
+
+export type RosParameterSetResponse = {
+  node: string;
+  name: string;
+  value: RosParameterValue;
+  status: "set" | "simulated";
+  detail: string;
+};
+
+export type RosParameterReading = {
+  node: string;
+  name: string;
+  value: RosParameterValue | null;
 };
 
 export type RosServiceCallRequest = {
@@ -594,6 +619,20 @@ export class BloomApiClient {
 
   exportSavedPositions(scope?: SavedPositionScope): Promise<SavedPositionExportResponse> {
     return this.request<SavedPositionExportResponse>(`/api/v1/runtime/positions/export${savedPositionQuery(scope)}`);
+  }
+
+  setRosParameter(request: RosParameterSetRequest): Promise<RosParameterSetResponse> {
+    return this.request<RosParameterSetResponse>("/api/v1/ros/parameters/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getRosParameters(node: string, names: readonly string[]): Promise<RosParameterReading[]> {
+    const query = `node=${encodeURIComponent(node)}&names=${encodeURIComponent(names.join(","))}`;
+    const response = await this.request<{ parameters: RosParameterReading[] }>(`/api/v1/ros/parameters?${query}`);
+    return response.parameters;
   }
 
   callRosService(request: RosServiceCallRequest): Promise<RosServiceCallResponse> {
