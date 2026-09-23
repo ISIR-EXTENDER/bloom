@@ -9,7 +9,7 @@ import {
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import bloomDebugConfiguration from "../../../../backend/seed/applications/bloom-debug.json";
-import explorerUserTestsConfiguration from "../../../../backend/seed/applications/explorer-user-tests.json";
+import explorerManagerConfiguration from "../../../../backend/seed/applications/explorer-manager.json";
 import migratedPetanqueAdminConfiguration from "../../../../backend/seed/applications/petanque-admin.json";
 import sandboxV0Configuration from "../../../../backend/seed/applications/sandbox.json";
 import webcamVisualizerConfiguration from "../../../../backend/seed/applications/webcam-visualizer.json";
@@ -444,17 +444,17 @@ describe("App", () => {
   it("remembers the last role on this device and marks it without launching it", async () => {
     const configurationClient = createConfigurationClient({
       bundles: {
-        "explorer-user-tests": explorerUserTestsConfiguration as unknown as ConfigurationBundle,
+        "explorer-manager": explorerManagerConfiguration as unknown as ConfigurationBundle,
       },
-      ids: ["explorer-user-tests"],
+      ids: ["explorer-manager"],
     });
     const { unmount } = render(<App configurationClient={configurationClient} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Explorer User Tests" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Explorer Manager" }));
     // No role remembered yet: opening is an explicit choice.
     expect(screen.getByRole("button", { name: "Choose a role to open" })).toBeDisabled();
-    await openRuntimeApp("Explorer User Tests", "Large tactile targets");
+    await openRuntimeApp("Explorer Manager", "Bench");
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
     unmount();
@@ -462,11 +462,11 @@ describe("App", () => {
     window.history.replaceState(null, "", "#/runtime");
     render(<App configurationClient={configurationClient} />);
 
-    expect(await screen.findByRole("button", { name: "Explorer User Tests" })).toHaveAttribute("aria-pressed", "true");
-    const remembered = screen.getByRole("button", { name: "Large tactile targets" });
+    expect(await screen.findByRole("button", { name: "Explorer Manager" })).toHaveAttribute("aria-pressed", "true");
+    const remembered = screen.getByRole("button", { name: "Bench" });
     expect(remembered).toHaveAttribute("aria-pressed", "true");
     expect(remembered.textContent).toContain("last used");
-    expect(screen.getByRole("button", { name: "Open as Large tactile targets" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Open as Bench" })).toBeEnabled();
     expect(screen.queryByRole("region", { name: "Runtime application" })).not.toBeInTheDocument();
   });
 
@@ -582,73 +582,6 @@ describe("App", () => {
     expect(await screen.findByText("latest 0.42 m/s")).toBeVisible();
     expect(await screen.findByText("2 live joints")).toBeVisible();
     expect(await screen.findByText("Controller warning: velocity limit active")).toBeVisible();
-  });
-
-  it("launches the Explorer user-test candidate app from runtime", async () => {
-    render(
-      <App
-        configurationClient={createConfigurationClient({
-          bundles: {
-            "explorer-user-tests": explorerUserTestsConfiguration as unknown as ConfigurationBundle,
-          },
-          ids: ["explorer-user-tests"],
-        })}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
-
-    expect(await screen.findByRole("button", { name: "Explorer User Tests" })).toBeVisible();
-    await openRuntimeApp("Explorer User Tests");
-
-    expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
-    expect(screen.getByRole("heading", { level: 2, name: "Explorer User Tests" })).toBeVisible();
-    expect(screen.getByText("Mode-aware joystick")).toBeVisible();
-    expect(screen.getByText("Control feedback")).toBeVisible();
-    selectRuntimeScreen("Explorer saved positions");
-    expect(screen.getByText("Save current pose")).toBeVisible();
-    expect(screen.getByText("Saved position status")).toBeVisible();
-    selectRuntimeScreen("Explorer safety zones");
-    expect(screen.getByRole("button", { name: "Enable" })).toBeVisible();
-    expect(screen.getByText("Constraint confidence")).toBeVisible();
-    selectRuntimeScreen("Explorer drink mode");
-    expect(screen.getByRole("button", { name: "Start" })).toBeVisible();
-    expect(screen.getByText("Task feedback")).toBeVisible();
-    selectRuntimeScreen("Explorer favorites");
-    expect(screen.getByRole("article", { name: "Favorite mode Command button" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-    expect(screen.getByText("Favorite feedback")).toBeVisible();
-    expect(screen.queryByRole("region", { name: "Empty screen" })).not.toBeInTheDocument();
-  });
-
-  it("lists Explorer user-test screens as reusable builder candidates", async () => {
-    render(
-      <App
-        configurationClient={createConfigurationClient({
-          bundles: {
-            "explorer-user-tests": explorerUserTestsConfiguration as unknown as ConfigurationBundle,
-          },
-          ids: ["explorer-user-tests"],
-        })}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
-    fireEvent.change(await screen.findByRole("searchbox", { name: "Find a screen" }), {
-      target: { value: "explorer" },
-    });
-
-    expect(screen.getByRole("heading", { level: 3, name: "Control screens" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit Explorer Control Modes screen" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit Explorer Saved Positions screen" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit Explorer Safety Zones screen" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit Explorer Drink Mode screen" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit Explorer Favorites screen" })).toBeVisible();
-    expect(screen.getByRole("heading", { level: 3, name: "Debug monitors" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Preview Explorer Debug Console screen runtime" })).toBeVisible();
   });
 
   it("links runtime users back to app and screen editing", async () => {
@@ -2087,12 +2020,6 @@ describe("App", () => {
       configId: "bloom-debug",
       heading: "Bloom Debug",
       visibleCopy: "Jacobian",
-    },
-    {
-      bundle: explorerUserTestsConfiguration as unknown as ConfigurationBundle,
-      configId: "explorer-user-tests",
-      heading: "Explorer User Tests",
-      visibleCopy: "Mode-aware joystick",
     },
     {
       bundle: webcamVisualizerConfiguration as unknown as ConfigurationBundle,

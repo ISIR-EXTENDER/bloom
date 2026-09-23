@@ -22,7 +22,7 @@ from libs.sessions import (
 )
 
 JPEG_MARKERS = b"\xff\xd8\xff\xd9"
-EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
+EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-manager.json"
 
 
 class RecordingRosPublisherGateway:
@@ -85,7 +85,7 @@ def create_stop_test_client(
     return TestClient(
         create_app(
             Settings(environment="test"),
-            InMemoryConfigurationRepository({"explorer-user-tests": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
+            InMemoryConfigurationRepository({"explorer-manager": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
             ros_publisher_gateway=ros_publisher_gateway,
             runtime_audit_log=audit_log,
             teleop_command_gateway=teleop_gateway,
@@ -278,9 +278,9 @@ def test_runtime_actions_are_rejected_while_stopped() -> None:
     response = client.post(
         "/api/v1/runtime/actions",
         json={
-            "app_id": "explorer-user-tests",
-            "command": "explorer.deploy",
-            "config_id": "explorer-user-tests",
+            "app_id": "explorer-manager",
+            "command": "behaviour/passthrough",
+            "config_id": "explorer-manager",
         },
     )
 
@@ -421,9 +421,9 @@ def test_runtime_action_checks_stop_again_at_the_publish_gate() -> None:
     response = client.post(
         "/api/v1/runtime/actions",
         json={
-            "app_id": "explorer-user-tests",
-            "command": "explorer.deploy",
-            "config_id": "explorer-user-tests",
+            "app_id": "explorer-manager",
+            "command": "behaviour/passthrough",
+            "config_id": "explorer-manager",
         },
     )
 

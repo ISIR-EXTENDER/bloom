@@ -43,13 +43,6 @@ const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
  */
 const KNOWN_GAPS = [
   {
-    apps: ["explorer-user-tests"],
-    profiles: ["large-targets"],
-    rules: ["target-claim"],
-    reason:
-      "the high-visibility role claims 64 px, but a toggle's target is a fixed 56 and a command button's caps at 56 (min-size.ts). No layout can meet the claim; either the table or the claim has to move.",
-  },
-  {
     apps: ["explorer-manager", "kinova-manager"],
     profiles: ["one-switch"],
     rules: ["touch-floor"],
@@ -57,7 +50,7 @@ const KNOWN_GAPS = [
       "the scan profile puts a 100 px SWITCH strip inside the canvas shell, so the same artboard fits at 0.67 instead of 0.80 and every target drops under the floor at 1024x600. Scanning needs its own layout, or a strip that does not take canvas height.",
   },
   {
-    apps: ["sandbox", "explorer-user-tests", "app-petanque-admin"],
+    apps: ["sandbox", "app-petanque-admin"],
     rules: ["touch-floor", "target-claim", "stop-covers"],
     reason:
       "these screens declare no reserved region, so the canvas carries the 44 px kiosk bar inside its own fit (0.75 at 1024x600, not 0.80) and STOP floats in the corner over whatever is under it. The one fix is to author them full-panel with a reserved STOP region, which is a layout decision per screen.",
@@ -70,7 +63,7 @@ const KNOWN_GAPS = [
       "the six axis-invert buttons are 70x58: 26 px of target and a title that clips. Growing them puts the right-hand pair under the corner STOP, and a reserved region turns the screen full-panel so its own bottom row falls off the artboard. The screen needs re-authoring for the 1280x676 body, which is a layout decision; it is a bench configuration screen, off the operator path.",
   },
   {
-    apps: ["explorer-user-tests", "app-petanque-admin"],
+    apps: ["app-petanque-admin"],
     rules: ["overlap", "artboard", "clipped-text"],
     reason:
       "rows too tight for the cards they hold: a card grows past its authored height (ADR 0132) into its neighbour or past the artboard, and Petanque's 74 px Z column is 30 under the vertical-slider minimum, so its title gets no width. Both apps are off the lab operator path (a study scenario set and an archived app) and the rows need re-spacing, not a nudge.",

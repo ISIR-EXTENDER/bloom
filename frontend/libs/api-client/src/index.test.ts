@@ -204,9 +204,9 @@ describe("Bloom API client", () => {
 
   it("dispatches saved runtime action presets through the backend", async () => {
     const responsePayload = {
-      app_id: "explorer-user-tests",
+      app_id: "explorer-manager",
       command: "explorer.deploy",
-      config_id: "explorer-user-tests",
+      config_id: "explorer-manager",
       detail: "Published /ui/robot_action.",
       message_type: "std_msgs/msg/String",
       preset_id: "explorer-deploy",
@@ -214,9 +214,9 @@ describe("Bloom API client", () => {
       topic: "/ui/robot_action",
     };
     const requestPayload = {
-      app_id: "explorer-user-tests",
+      app_id: "explorer-manager",
       command: "explorer.deploy",
-      config_id: "explorer-user-tests",
+      config_id: "explorer-manager",
     };
     const fetcher = createJsonFetcher(responsePayload);
     const client = createBloomApiClient({ fetcher });

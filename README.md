@@ -241,7 +241,7 @@ bloom/
 
 Every time the backend starts it imports the applications committed under
 `backend/seed/applications/` that the store is missing: Explorer Manager, Kinova Manager, Sandbox V0.0,
-Explorer User Tests, Petanque admin, Bloom Debug, and the webcam visualizer. A fresh clone comes up
+Petanque admin, Bloom Debug, and the webcam visualizer. A fresh clone comes up
 with the same app library everyone else has.
 
 Your own store lives in `backend/data/`, which is not tracked. Seeding never

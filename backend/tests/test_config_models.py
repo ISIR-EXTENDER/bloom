@@ -33,7 +33,6 @@ APP_CONFIGURATION_FIXTURE_PATHS = (
     SEED_DIR / "bloom-debug.json",
     FIXTURE_DIR / "sandbox-teleop-lab-configuration.json",
     SEED_DIR / "sandbox.json",
-    SEED_DIR / "explorer-user-tests.json",
 )
 
 

@@ -25,7 +25,6 @@ SHARED_APP_IDS = {
     "bloom-debug",
     "explorer-camera-test",
     "explorer-manager",
-    "explorer-user-tests",
     "kinova-camera-test",
     "kinova-manager",
     "petanque-admin",

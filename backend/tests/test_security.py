@@ -100,7 +100,7 @@ def test_the_audit_log_never_hands_out_the_owner_session() -> None:
 
 
 def test_an_observer_opens_an_app_to_mirror_it() -> None:
-    seed = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
+    seed = Path(__file__).parents[1] / "seed" / "applications" / "explorer-manager.json"
     client = make_secure_client(InMemoryConfigurationRepository({"explorer": load_configuration_file(seed)}))
 
     assert client.get("/api/v1/configurations", headers=OBSERVER).status_code == 200

@@ -242,8 +242,8 @@ describe("runtime action dispatcher", () => {
             tags: ["explorer"],
           },
         ],
-        appId: "explorer-user-tests",
-        configId: "explorer-user-tests",
+        appId: "explorer-manager",
+        configId: "explorer-manager",
         runtimePolicy: {
           allowed_message_types: ["std_msgs/msg/String"],
           allowed_publish_topics: ["/ui/robot_action"],
@@ -256,17 +256,17 @@ describe("runtime action dispatcher", () => {
       status: "published",
       detail: "Published /ui/robot_action.",
       request: {
-        app_id: "explorer-user-tests",
+        app_id: "explorer-manager",
         command: "explorer.deploy",
-        config_id: "explorer-user-tests",
+        config_id: "explorer-manager",
         preset_id: "explorer-deploy",
         type: "runtime_action",
       },
     });
     expect(client.dispatchRuntimeAction).toHaveBeenCalledWith({
-      app_id: "explorer-user-tests",
+      app_id: "explorer-manager",
       command: "explorer.deploy",
-      config_id: "explorer-user-tests",
+      config_id: "explorer-manager",
       preset_id: "explorer-deploy",
     });
     expect(client.publishRosTopic).not.toHaveBeenCalled();

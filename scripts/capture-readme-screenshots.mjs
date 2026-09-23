@@ -28,7 +28,6 @@ const only = onlyArgumentIndex >= 0 ? new Set((args[onlyArgumentIndex + 1] ?? ""
 const capturedApplicationIds = [
   "bloom-debug",
   "explorer-manager",
-  "explorer-user-tests",
   "kinova-manager",
   "petanque-admin",
   "sandbox",

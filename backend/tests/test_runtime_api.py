@@ -32,7 +32,7 @@ from libs.sessions import (
     parse_runtime_client_message,
 )
 
-EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-user-tests.json"
+EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-manager.json"
 BLOOM_DEBUG_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "bloom-debug.json"
 
 
@@ -850,45 +850,47 @@ def test_runtime_action_dispatches_saved_explorer_adapters_through_ros_policy() 
     client = TestClient(
         create_app(
             Settings(environment="test"),
-            InMemoryConfigurationRepository({"explorer-user-tests": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
+            InMemoryConfigurationRepository({"explorer-manager": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
             ros_publisher_gateway=gateway,
             runtime_audit_log=audit_log,
         )
     )
 
     expected_requests = [
-        ("explorer.deploy", "/ui/robot_action", "std_msgs/msg/String", {"data": "deploy"}),
-        ("explorer.repli", "/ui/robot_action", "std_msgs/msg/String", {"data": "repli"}),
-        ("explorer.pose.load.home", "/ui/load_pose", "std_msgs/msg/String", {"data": "home"}),
-        ("explorer.favorite.mode.both", "/cmd/mode", "std_msgs/msg/Int32", {"data": 3}),
-        ("close_gripper", "/gripper_controller/commands", "std_msgs/msg/Float64MultiArray", {"data": [0.8]}),
+        (
+            "behaviour/passthrough",
+            "/mode_request",
+            "std_msgs/msg/String",
+            {"data": "behaviour/passthrough"},
+        ),
+        ("geometric/both", "/mode_request", "std_msgs/msg/String", {"data": "geometric/both"}),
     ]
 
     responses = [
         client.post(
             "/api/v1/runtime/actions",
             json={
-                "app_id": "explorer-user-tests",
+                "app_id": "explorer-manager",
                 "command": command,
-                "config_id": "explorer-user-tests",
+                "config_id": "explorer-manager",
             },
         )
         for command, _, _, _ in expected_requests
     ]
 
-    assert [response.status_code for response in responses] == [200, 200, 200, 200, 200]
+    assert [response.status_code for response in responses] == [200, 200]
     assert [(request.topic, request.message_type, request.payload) for request in gateway.requests] == [
         (topic, message_type, payload) for _, topic, message_type, payload in expected_requests
     ]
     assert responses[0].json() | {"detail": ""} == {
-        "app_id": "explorer-user-tests",
-        "command": "explorer.deploy",
-        "config_id": "explorer-user-tests",
+        "app_id": "explorer-manager",
+        "command": "behaviour/passthrough",
+        "config_id": "explorer-manager",
         "detail": "",
         "message_type": "std_msgs/msg/String",
-        "preset_id": "explorer-deploy",
+        "preset_id": "manager-release",
         "status": "published",
-        "topic": "/ui/robot_action",
+        "topic": "/mode_request",
     }
     assert all(record.channel == "http_ros_publish" for record in audit_log.list_records())
 
@@ -898,7 +900,7 @@ def test_runtime_action_dispatch_can_resolve_by_preset_id() -> None:
     client = TestClient(
         create_app(
             Settings(environment="test"),
-            InMemoryConfigurationRepository({"explorer-user-tests": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
+            InMemoryConfigurationRepository({"explorer-manager": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
             ros_publisher_gateway=gateway,
         )
     )
@@ -906,19 +908,19 @@ def test_runtime_action_dispatch_can_resolve_by_preset_id() -> None:
     response = client.post(
         "/api/v1/runtime/actions",
         json={
-            "app_id": "explorer-user-tests",
-            "config_id": "explorer-user-tests",
-            "preset_id": "explorer-pose-load-meal",
+            "app_id": "explorer-manager",
+            "config_id": "explorer-manager",
+            "preset_id": "manager-neutral",
         },
     )
 
     assert response.status_code == 200
-    assert response.json()["command"] == "explorer.pose.load.meal"
+    assert response.json()["command"] == "geometric/both"
     assert gateway.requests == [
         RosPublishRequest(
             message_type="std_msgs/msg/String",
-            payload={"data": "meal"},
-            topic="/ui/load_pose",
+            payload={"data": "geometric/both"},
+            topic="/mode_request",
         )
     ]
 
@@ -928,7 +930,7 @@ def test_runtime_action_dispatch_rejects_commands_not_backed_by_saved_presets() 
     client = TestClient(
         create_app(
             Settings(environment="test"),
-            InMemoryConfigurationRepository({"explorer-user-tests": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
+            InMemoryConfigurationRepository({"explorer-manager": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
             ros_publisher_gateway=gateway,
         )
     )
@@ -936,9 +938,9 @@ def test_runtime_action_dispatch_rejects_commands_not_backed_by_saved_presets() 
     response = client.post(
         "/api/v1/runtime/actions",
         json={
-            "app_id": "explorer-user-tests",
+            "app_id": "explorer-manager",
             "command": "explorer.unsaved.command",
-            "config_id": "explorer-user-tests",
+            "config_id": "explorer-manager",
         },
     )
 
@@ -970,7 +972,7 @@ def test_runtime_action_dispatch_rejects_app_policy_before_ros_publish() -> None
     client = TestClient(
         create_app(
             Settings(environment="test"),
-            InMemoryConfigurationRepository({"explorer-user-tests": blocked_bundle}),
+            InMemoryConfigurationRepository({"explorer-manager": blocked_bundle}),
             ros_publisher_gateway=gateway,
             runtime_audit_log=audit_log,
         )
@@ -979,9 +981,9 @@ def test_runtime_action_dispatch_rejects_app_policy_before_ros_publish() -> None
     response = client.post(
         "/api/v1/runtime/actions",
         json={
-            "app_id": "explorer-user-tests",
+            "app_id": "explorer-manager",
             "command": "explorer.policy.escape",
-            "config_id": "explorer-user-tests",
+            "config_id": "explorer-manager",
         },
     )
 
@@ -1232,7 +1234,7 @@ def test_an_app_keeps_the_teleop_target_it_declares() -> None:
 
     with client.websocket_connect("/api/v1/runtime/ws") as websocket:
         websocket.receive_json()
-        websocket.send_json({"type": "app_context", "app_id": "explorer-user-tests", "config_id": "explorer"})
+        websocket.send_json({"type": "app_context", "app_id": "explorer-manager", "config_id": "explorer"})
         websocket.receive_json()
         websocket.send_json(teleop_command())
         acknowledged = websocket.receive_json()

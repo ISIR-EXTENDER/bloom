@@ -67,17 +67,10 @@ describe("a shipped command button's command", () => {
    * have no preset at all, and inventing the legacy UI's payloads would be guessing at a robot
    * contract. Deciding their fate is a study-design question.
    */
-  const UNRESOLVED = new Set([
-    "disable-safety-zone",
-    "reset-safety-zone",
-    "start-drink-mode",
-    "pause-drink-mode",
-    "complete-drink-mode",
-  ]);
 
   it("names a preset that exists, in every shipped app", async () => {
     const seeds = await Promise.all(
-      ["explorer-manager", "kinova-manager", "explorer-user-tests", "explorer-camera-test", "kinova-camera-test"].map(
+      ["explorer-manager", "kinova-manager", "explorer-camera-test", "kinova-camera-test"].map(
         async (id) => [id, (await import(`../../../../../backend/seed/applications/${id}.json`)).default] as const,
       ),
     );
@@ -101,7 +94,7 @@ describe("a shipped command button's command", () => {
               presetIds.has(settings.presetId) ||
               commands.has(settings.command) ||
               Boolean(settings.targetScreenId);
-            if (!routed && settings.command && !UNRESOLVED.has(widget.id)) {
+            if (!routed && settings.command) {
               dangling.push(`${seedId}/${widget.id} → ${settings.command}`);
             }
           }
