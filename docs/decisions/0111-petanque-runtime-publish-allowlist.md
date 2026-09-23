@@ -1,42 +1,43 @@
 # 0111 - Petanque Runtime Publish Allowlist
 
+Rewritten 2026-09-23: the original decision widened the backend defaults with
+the previous architecture's Petanque topics (`/petanque/throw/*`,
+`/visual_servoing/enabled`, `/ui/save_pose`, ...). The rebase retired those,
+and this record now states the current policy.
+
 ## Context
 
-Bloom enforces two runtime publish guardrails before a ROS command reaches the robot:
-
-- app-level `runtime_policy` entries stored in configuration bundles;
-- backend-level allowlists loaded from `Settings`.
-
-The migrated Petanque app already declared the topics it needs, but the backend defaults still only covered a smaller
-Sandbox-focused subset. That could make a correctly configured Petanque button or toggle fail at the backend boundary
-during robot tests.
+Bloom enforces two runtime publish guardrails before a ROS command reaches the
+robot: app-level `runtime_policy` entries in the configuration bundle, and
+backend-level allowlists in `Settings`. Both must name a topic for a control to
+publish it.
 
 ## Decision
 
-Extend the backend default publish allowlist to include the Petanque command topics already declared by the migrated app:
+The Petanque app declares, and the backend defaults allow, exactly the
+current-architecture surface:
 
-- `/petanque/measure/request_image`
-- `/petanque/teleop/enabled`
-- `/petanque/throw/alpha`
-- `/petanque/throw/gesture`
-- `/ui/save_pose`
-- `/visual_servoing/enabled`
+- `/joystick_cartesian_command` as the teleop target;
+- `/petanque_state_machine/change_state` for apps-petanque's yasmin state
+  machine (teleop, go_to_start, activate_throw, throw, pick_up, stop);
+- `/mode_request` for the manager behaviours (home is
+  `behaviour/joint_target/home`);
+- `/gripper_controller/commands` and
+  `/explorer_user_interfaces/rqt_armcontrol/max_linear_speed` for qontrol;
+- `/ui/visual_servoing/on` and `/ui/visual_servoing/save` for the
+  input_interfaces visual servoing node.
 
-Also include `std_msgs/msg/Float64MultiArray` in the default message-type allowlist for migrated legacy controls.
+The throw parameters live behind a ROS parameter service
+(`/petanque_throw/set_parameters`) that Bloom cannot reach without a parameter
+seam, so the app offers no throw tuning rather than publishing into silence.
 
-Expose backend runtime policy allowlists through environment variables so lab sessions can adjust topic/message coverage
-without patching code:
-
-- `BLOOM_ALLOWED_ROS_PUBLISH_TOPICS`
-- `BLOOM_ALLOWED_ROS_MESSAGE_TYPES`
-- `BLOOM_ALLOWED_TELEOP_TARGETS`
-- `BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND`
+The environment overrides from the original decision remain:
+`BLOOM_ALLOWED_ROS_PUBLISH_TOPICS`, `BLOOM_ALLOWED_ROS_MESSAGE_TYPES`,
+`BLOOM_ALLOWED_TELEOP_TARGETS`, `BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND`.
 
 ## Consequences
 
-- Petanque runtime widgets can pass both the app policy and backend safety policy without requiring local environment
-  overrides for the standard lab workflow.
-- The backend still rejects unknown robot topics by default; this is not a wildcard policy.
-- New robot-facing topics should be added deliberately to the app policy and backend settings together.
-- Temporary lab-specific policies can be supplied at launch time, but deployment documentation should keep them explicit
-  and narrow.
+- A correctly configured Petanque control passes both guardrails on the
+  standard lab bringup with no environment overrides.
+- The backend still rejects unknown robot topics by default; new topics are
+  added deliberately to the app policy and backend settings together.

@@ -2,7 +2,13 @@
 
 ## Status
 
-Accepted.
+Superseded on 2026-09-23: the Explorer User Tests app was removed. Its
+provenance traced to the ORTHOPUS partner prototype and the pre-Bloom
+`extender_ui` topics (`/ui/load_pose`, `/ui/robot_action`), none of which the
+current ISIR architecture carries, so the cleanup decision ("clean everything
+not carried by cartesian_manager, visual servoing or the repos in today's
+architecture") retired it. The `event-log` widget foundation this record also
+introduced remains in Bloom core.
 
 ## Context
 

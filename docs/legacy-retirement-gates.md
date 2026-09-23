@@ -12,9 +12,9 @@ that old repositories must be deleted before live robot acceptance is complete.
 | Bloom | Builder, app store, operator kiosk, accessible inputs, runtime policy, and ROS adapter surface. | Active IHM; all new IHM work belongs here. |
 | `extender_ui` | Historical behavior/configuration reference and emergency UI rollback. | Legacy. Keep available during the acceptance window; do not add new product features. |
 | `input_interfaces/tablet_interface` | Existing ROS/input implementation and parity reference for physical controls. | Compatibility/fallback implementation until the equivalent Bloom paths are accepted on hardware. Its status is separate from the `extender_ui` product decision. |
-| Petanque app packages | Petanque runtime, messages, state machine, and camera behavior. | Still active only if Petanque remains an expected workflow. Bloom's Petanque app is archived and stays on the legacy command path. |
+| Petanque app packages | Petanque runtime, messages, state machine, and camera behavior. | Active: `apps-petanque` is part of the current workspace, and Bloom's Petanque app was rebased onto `cartesian_manager` and its state machine on 2026-09-23. |
 | Extender low-level ROS packages | Controllers, robot interfaces, simulation, hardware, and messages. | Active dependencies, not replaced or made legacy by Bloom. |
-| `sandbox_controller` and `/teleop_cmd` | Old control contract, still used by archived Petanque/rollback. | Legacy adapter path. `cartesian_manager` and `/joystick_cartesian_command` are the current default. |
+| `sandbox_controller` and `/teleop_cmd` | Old control contract, kept as a rollback reference. | Legacy adapter path with no shipped Bloom consumer since the Sandbox and Petanque rebases. `cartesian_manager` and `/joystick_cartesian_command` are the current default. |
 
 ## Gates For Removing A Legacy Path
 
@@ -24,7 +24,7 @@ decision after these gates:
 - the corresponding Bloom workflow is accepted on the target tablet and robot/simulation;
 - STOP, release-to-zero, command frame, and relevant assistive inputs have live evidence;
 - any unique configuration is imported, published, or intentionally discarded;
-- Petanque ownership is decided so `/teleop_cmd` is not removed while still required;
+- Petanque ownership is decided (done 2026-09-23: maintained, rebased onto the current architecture);
 - rollback launch instructions and a final known-good reference are recorded;
 - the team agrees on the transition window and archive location.
 

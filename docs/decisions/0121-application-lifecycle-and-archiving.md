@@ -1,6 +1,10 @@
 # 0121 - Application lifecycle and archiving
 
 Date: 2026-09-02
+Amended 2026-09-23: Petanque was rebased onto the current architecture and is
+active again, so it no longer serves as the archived example. The mechanism
+stands unchanged; the shipped seeds currently contain no archived app, and the
+archived path is covered by tests that build the state directly.
 
 ## Context
 
@@ -20,14 +24,17 @@ release conversation re-litigated whether its 60% parity was a blocker.
 to `active`.
 
 **Archived** means kept and still runnable, but not maintained against the
-current robot architecture and not a release gate. Petanque is archived.
+current robot architecture and not a release gate. Petanque held this state
+from 2026-09-02 until its rebase on 2026-09-23.
 
 Archiving changes four things:
 
 - The app is labelled in the runtime library, so an operator opening it knows
   what they have.
-- Its parity check asserts the **legacy** contract it was built for, including
-  `/teleop_cmd`, and says so at the top of the script.
+- Its parity check asserts the contract it was built for, and says so at the
+  top of the script. (While Petanque was archived, that meant the legacy
+  `/teleop_cmd` contract; since the rebase the same script asserts the
+  current-architecture wiring.)
 - The coherence check reports it as archived and still validates it against its
   own declared policy. Archiving means it keeps working, not that it stops being
   checked.
@@ -57,6 +64,6 @@ way would hide a live app from its operator.
 
 ## What archiving does not mean
 
-It is not a retirement gate. `docs/legacy-retirement-gates.md` still governs when
-something may be removed. Petanque still needs an explicit maintain, validate,
-or retire decision before its legacy command path can disappear.
+It is not a retirement gate. `docs/legacy-retirement-gates.md` still governs
+when something may be removed. Petanque's own decision landed on 2026-09-23:
+maintain, by rebasing it onto cartesian_manager and apps-petanque.

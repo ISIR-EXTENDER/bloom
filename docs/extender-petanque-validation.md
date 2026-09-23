@@ -233,18 +233,19 @@ curl -s -X POST http://127.0.0.1:8000/api/v1/ros/topics/publish \
 
 ## Petanque Validation
 
-Validate against the legacy Petanque flow before marking the Petanque UI path as covered:
+Validate against the rebased Petanque flow before marking the Petanque UI path as covered:
 
-- `npm run validation:petanque-parity` passes against the tracked migrated fixture.
+- `npm run validation:petanque-parity` passes against the tracked fixture (it asserts the
+  current-architecture wiring since 2026-09-23).
 - Petanque app opens from Bloom runtime library.
-- Petanque teleop joysticks publish `/teleop_cmd` through the Bloom runtime adapter. Petanque intentionally stays on
-  the legacy path; only Sandbox and Explorer moved to `cartesian_manager`.
-- Camera/stream widgets show the expected feed or a clear connection state.
-- State-machine command buttons publish the configured command payloads.
+- Petanque teleop joysticks and axis sliders compose `/joystick_cartesian_command` through the
+  Bloom runtime adapter, like Sandbox and the Manager apps.
+- Camera widgets show the Explorer color stream and the measure result image, or a clear
+  connection state.
+- The match-flow buttons publish the apps-petanque state machine commands on
+  `/petanque_state_machine/change_state`, with a confirm on every motion state.
 - Petanque command topics pass both app-level runtime policy and backend runtime allowlists.
-- Petanque gesture/trajectory controls emit the configured generic intents.
 - Bloom Debug can inspect Petanque topics while the app runs.
-- Legacy PlayPetanque behavior remains available until the Bloom flow is accepted.
 
 ## Tablet UX Acceptance
 

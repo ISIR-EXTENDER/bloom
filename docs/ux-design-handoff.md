@@ -156,8 +156,8 @@ kiosk height. Change the shared value only through an explicit design/architectu
   backend constants.
 - Add authoritative mode feedback when `cartesian_manager` publishes it. Bloom currently shows last requested, not
   confirmed controller state.
-- Decide Petanque's future. Its Bloom application is archived and still uses `/teleop_cmd`; either validate and maintain
-  that path or retire the workflow deliberately.
+- Petanque's future was decided on 2026-09-23: maintained, rebased onto `cartesian_manager` and the
+  apps-petanque state machine, and active again.
 - Add a concrete non-ROS transport only when a real non-ROS project needs one; keep the ROS-free backend path healthy.
 
 ## Live Validation Still Required
@@ -174,7 +174,7 @@ kiosk height. Change the shared value only through an explicit design/architectu
 - Supervisor mirror readability on the intended second display and confirmation that operator ownership language is
   understood; no command handover is implemented.
 - Robin visual-servoing camera/tag behavior and an opt-in rosbag capture from Bloom Debug.
-- Petanque only if the archived workflow is still expected to run.
+- Petanque as a supported workflow app since its rebase.
 
 Record completed sessions under `docs/validation/`. A fixture, browser, or bench result must not be promoted to a live
 hardware claim.
