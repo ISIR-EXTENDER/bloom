@@ -15,6 +15,7 @@ import {
   launchBrowser,
   loadSeedConfigurations,
   startDashboardServer,
+  TABLET_EMULATION,
 } from "./lib/runtime-harness.mjs";
 
 /** device-classes.md: each class authored at one panel, checked at the others. */
@@ -221,6 +222,7 @@ function navigableScreens(application, profileId) {
 async function runVisit(browser, baseUrl, visit) {
   const context = await browser.newContext({
     viewport: { width: visit.viewport.width, height: visit.viewport.height },
+    ...(visit.deviceClass === "tablet" ? TABLET_EMULATION : {}),
   });
   try {
     const selection = { appId: visit.application.id, configId: visit.configId, screenId: visit.screen.id };

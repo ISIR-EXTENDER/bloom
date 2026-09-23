@@ -8,6 +8,7 @@ import {
   loadSeedConfigurationsByPath,
   repoRoot,
   startDashboardServer,
+  TABLET_EMULATION,
 } from "./lib/runtime-harness.mjs";
 
 const configurationFixturePaths = {
@@ -85,7 +86,10 @@ try {
 
   try {
     for (const viewport of viewports) {
-      const page = await browser.newPage({ viewport });
+      const page = await browser.newPage({
+        viewport: { width: viewport.width, height: viewport.height },
+        ...TABLET_EMULATION,
+      });
       await installConfigurationMocks(page, configurations);
       await installRuntimeWebSocketMock(page);
 
@@ -275,7 +279,7 @@ async function captureRuntimeLocales(browser) {
   ];
 
   for (const locale of locales) {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, ...TABLET_EMULATION });
     await installConfigurationMocks(page, configurations);
     await installRuntimeWebSocketMock(page);
     await showExplorerRuntimeScreen(page, null);

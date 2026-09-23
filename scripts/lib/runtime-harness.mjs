@@ -40,6 +40,18 @@ export async function launchBrowser() {
 }
 
 /** The dashboard on its own port, with the API unset so every request falls to the page mocks. */
+/** The lab panels are Android tablets, not desktop windows: touch, a dense
+ * screen and a tablet UA. The real panel's scale and UA can be set from the
+ * environment once measured; these are the defaults until then. */
+export const TABLET_EMULATION = {
+  deviceScaleFactor: Number(process.env.BLOOM_TABLET_DEVICE_SCALE ?? "2"),
+  hasTouch: true,
+  isMobile: true,
+  userAgent:
+    process.env.BLOOM_TABLET_USER_AGENT ??
+    "Mozilla/5.0 (Linux; Android 14; Tablet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+};
+
 export function startDashboardServer(port) {
   const baseUrl = `http://127.0.0.1:${port}`;
   const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
