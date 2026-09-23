@@ -143,7 +143,30 @@ export function explainLayoutRefusal(layout: WidgetLayout, screen: ScreenConfig)
  * The first grid position, reading on from the proposed one and then wrapping to the top, where a widget sits inside
  * the canvas and clear of every reserved region; null when nowhere fits, so the caller can refuse and say why.
  */
+/** A layout moved clear of the reserved regions, scanning the canvas on a 24 px grid. */
 export function placeClearOfRegions(layout: WidgetLayout, screen: ScreenConfig): WidgetLayout | null {
+  return findFreePlacement(layout, screen, []);
+}
+
+/**
+ * Where a widget added from the palette lands: clear of the regions, and of what is already there.
+ *
+ * Separate from `placeClearOfRegions` because a duplicate wants the opposite: a copy belongs beside
+ * its original, overlapping it, not flung to the first free corner.
+ *
+ * A canvas with no free space still places, on top, because refusing to add a widget because the
+ * screen is busy would be worse than an overlap the author can drag apart.
+ */
+export function placeClearOfWidgets(layout: WidgetLayout, screen: ScreenConfig): WidgetLayout | null {
+  const occupied = screen.widgets.map((widget) => widget.layout);
+  return findFreePlacement(layout, screen, occupied) ?? findFreePlacement(layout, screen, []);
+}
+
+function findFreePlacement(
+  layout: WidgetLayout,
+  screen: ScreenConfig,
+  occupied: readonly WidgetLayout[],
+): WidgetLayout | null {
   const { artboard } = resolveBuilderPanel(screen);
   const regions = screen.reserved_regions ?? [];
   const lastX = artboard.width - layout.width;
@@ -158,12 +181,21 @@ export function placeClearOfRegions(layout: WidgetLayout, screen: ScreenConfig):
   for (const [index, y] of rows.entries()) {
     for (let x = index === 0 && y === startY ? startX : 0; x <= lastX; x += 24) {
       const candidate = { ...layout, x, y };
-      if (!overlapsRegion(candidate, regions)) {
+      if (!overlapsRegion(candidate, regions) && !occupied.some((taken) => boxesOverlap(candidate, taken))) {
         return candidate;
       }
     }
   }
   return null;
+}
+
+function boxesOverlap(left: WidgetLayout, right: WidgetLayout): boolean {
+  return (
+    left.x < right.x + right.width &&
+    right.x < left.x + left.width &&
+    left.y < right.y + right.height &&
+    right.y < left.y + left.height
+  );
 }
 
 export type ReviewRule = { detail: string; id: string; passed: boolean; title: string };

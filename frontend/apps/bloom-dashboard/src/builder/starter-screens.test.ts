@@ -1,4 +1,4 @@
-import { normalizeWidgetSettings } from "@bloom/widgets";
+import { minSizeFor, normalizeWidgetSettings } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
 import { createStarterScreen, type StarterScreenId } from "./BuilderHome";
@@ -26,5 +26,28 @@ describe("the starter screens", () => {
     // Written in camelCase these keys were dropped, and the starter published somewhere it never named.
     expect(binding.value_mapping?.target_topic).toBe("/joystick_cartesian_command");
     expect(Object.keys(joystick?.settings ?? {})).not.toContain("runtimeBinding");
+  });
+});
+
+describe("what a starter screen greets an author with", () => {
+  /**
+   * The builder-e2e harness found this on its first real run: creating a guided app and opening it
+   * showed "2 widgets below their minimum" before the author had touched anything.
+   */
+  it("places nothing below its own contract", () => {
+    const below: string[] = [];
+    for (const starterId of ["blank", "operator-control", "debug-monitor"] as const) {
+      for (const widget of createStarterScreen(starterId, true).widgets) {
+        const minimum = minSizeFor(widget.kind, widget.settings);
+        if (!minimum) continue;
+        if (widget.layout.width < minimum[0] || widget.layout.height < minimum[1]) {
+          below.push(
+            `${starterId}/${widget.id} ${widget.layout.width}x${widget.layout.height} < ${minimum[0]}x${minimum[1]}`,
+          );
+        }
+      }
+    }
+
+    expect(below, below.join("\n")).toEqual([]);
   });
 });

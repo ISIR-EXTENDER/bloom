@@ -22,6 +22,7 @@ import {
   findUndersizedWidgets,
   overlapsRegion,
   placeClearOfRegions,
+  placeClearOfWidgets,
   resolveBuilderPanel,
 } from "./builder-geometry";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
@@ -138,7 +139,9 @@ export function BuilderWorkspace({
   };
 
   const addWidget = (definition: WidgetDefinition) => {
-    const layout = placeClearOfRegions(createNewWidgetLayout(draftScreen, definition), draftScreen);
+    // Clear of what is already on the screen, not only of the regions: five widgets from the palette
+    // used to land in one heap, stepping 24 px each, which for a 280 px joystick is not a layout.
+    const layout = placeClearOfWidgets(createNewWidgetLayout(draftScreen, definition), draftScreen);
     if (!layout) {
       setLayoutNotice(
         `A ${definition.displayName} does not fit anywhere on this canvas clear of the reserved regions. Make room first.`,

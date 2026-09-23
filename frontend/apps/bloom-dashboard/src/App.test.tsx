@@ -1223,7 +1223,8 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add Label widget" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Label" })).toBeVisible();
-    expect(screen.getByText((_, element) => element?.textContent === "56, 56")).toBeVisible();
+    // Placed clear of what is already on the screen rather than stepped 24 px into it. The exact
+    // spot is the first free one, so the rule is what it must not touch, not a coordinate.
     expect(screen.getByText((_, element) => element?.textContent === "280 × 64")).toBeVisible();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });

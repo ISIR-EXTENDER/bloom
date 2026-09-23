@@ -702,7 +702,8 @@ export function createStarterScreen(starterId: StarterScreenId, includeOnboardin
           id: "teleop-joystick",
           kind: "joystick",
           title: "Teleop",
-          layout: { x: 72, y: 160, width: 300, height: 300 },
+          // 280x332 is the joystick contract; a starter below it greets a new author with a warning.
+          layout: { x: 72, y: 160, width: 300, height: 332 },
           // The contract keys are snake_case. Written in camelCase these were dropped in normalization,
           // so the starter quietly published to the default target instead of the one it named, and
           // carried three dead keys. The default target is the right one, so name it.
@@ -719,7 +720,8 @@ export function createStarterScreen(starterId: StarterScreenId, includeOnboardin
           id: "max-velocity",
           kind: "slider",
           title: "Max velocity",
-          layout: { x: 440, y: 190, width: 440, height: 96 },
+          // A horizontal slider needs 104 of height, and this shipped 8 short.
+          layout: { x: 440, y: 190, width: 440, height: 104 },
           settings: {
             max: 1,
             messageType: "std_msgs/msg/Float64",

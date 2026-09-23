@@ -18,6 +18,7 @@ import {
   glassPx,
   overlapsRegion,
   placeClearOfRegions,
+  placeClearOfWidgets,
   resolveBuilderPanel,
   resolveDeviceClass,
   resolveNewScreenCanvas,
@@ -224,6 +225,53 @@ describe("shipped design screens", () => {
     );
 
     expect(undersized).toEqual([]);
+  });
+});
+
+describe("where a new widget lands", () => {
+  /**
+   * The builder-e2e harness clicked five palette entries the way an author would and got a heap in
+   * the corner: placement stepped 24 px per widget, which for a 280 px joystick overlaps almost
+   * completely.
+   */
+  it("keeps a widget added from the palette clear of the ones already there", () => {
+    const roomy: ScreenConfig = {
+      ...screenById("manager_drive_bench"),
+      reserved_regions: [],
+      widgets: [
+        {
+          ...(screenById("manager_drive_bench").widgets[0] as ScreenConfig["widgets"][number]),
+          layout: { x: 32, y: 32, width: 300, height: 300 },
+        },
+      ],
+    };
+    const placed = placeClearOfWidgets({ x: 32, y: 32, width: 280, height: 332 }, roomy);
+    if (!placed) throw new Error("nothing was placed");
+
+    for (const widget of roomy.widgets) {
+      const overlaps =
+        placed.x < widget.layout.x + widget.layout.width &&
+        widget.layout.x < placed.x + placed.width &&
+        placed.y < widget.layout.y + widget.layout.height &&
+        widget.layout.y < placed.y + placed.height;
+      expect(overlaps, `${widget.id} at ${widget.layout.x},${widget.layout.y}`).toBe(false);
+    }
+  });
+
+  it("still places on a full canvas rather than refusing to add anything", () => {
+    // Refusing because the screen is busy would be worse than an overlap the author can drag apart.
+    const full: ScreenConfig = {
+      ...screenById("manager_drive_bench"),
+      reserved_regions: [],
+      widgets: [
+        {
+          ...(screenById("manager_drive_bench").widgets[0] as ScreenConfig["widgets"][number]),
+          layout: { x: 0, y: 0, width: 1280, height: 676 },
+        },
+      ],
+    };
+
+    expect(placeClearOfWidgets({ x: 0, y: 0, width: 280, height: 332 }, full)).not.toBeNull();
   });
 });
 
