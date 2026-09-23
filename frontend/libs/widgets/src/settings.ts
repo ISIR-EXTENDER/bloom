@@ -912,7 +912,7 @@ export type RosMessageCommandPreset = {
   label: string;
   description: string;
   buttonLabel: string;
-  category: "bridge" | "motion" | "safety" | "saved-preset" | "state-machine" | "utility";
+  category: "bridge" | "motion" | "state-machine" | "utility";
   command: string;
   messageType: string;
   payload: string;
@@ -991,17 +991,6 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
     topic: "/petanque_state_machine/change_state",
   },
   {
-    id: "emergency-stop-bool",
-    label: "Emergency stop",
-    description: "Publish a boolean stop request on a safety topic.",
-    buttonLabel: "Stop",
-    category: "safety",
-    command: "emergency_stop",
-    messageType: "std_msgs/msg/Bool",
-    payload: "{data: true}",
-    topic: "/explorer/emergency_stop",
-  },
-  {
     id: "trigger-bool",
     label: "Trigger action",
     description: "Publish a one-shot boolean trigger to any configured topic.",
@@ -1024,37 +1013,26 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
     topic: "/ui/ros_toggle",
   },
   {
-    id: "saved-position-save-current",
-    label: "Save current position",
-    description: "Capture the current robot pose through an app-specific saved-position adapter.",
-    buttonLabel: "Save pose",
-    category: "saved-preset",
-    command: "saved_position.save_current",
+    id: "manager-joint-target-home",
+    label: "Manager joint target",
+    description: "Request a joint target the manager loaded at start (behaviour/joint_target/<name>).",
+    buttonLabel: "Send Home",
+    category: "motion",
+    command: "behaviour/joint_target/home",
     messageType: "std_msgs/msg/String",
-    payload: "{data: 'save_current'}",
-    topic: "/explorer/saved_position/command",
+    payload: "{data: 'behaviour/joint_target/home'}",
+    topic: "/mode_request",
   },
   {
-    id: "saved-position-replay-selected",
-    label: "Replay saved position",
-    description: "Request replay of the selected saved pose without a dedicated Explorer widget.",
-    buttonLabel: "Replay pose",
-    category: "saved-preset",
-    command: "saved_position.replay_selected",
-    messageType: "std_msgs/msg/String",
-    payload: "{data: 'replay_selected'}",
-    topic: "/explorer/saved_position/command",
-  },
-  {
-    id: "saved-position-cancel-motion",
-    label: "Cancel saved-position motion",
-    description: "Cancel an in-progress saved-position motion through the same generic command contract.",
+    id: "manager-cancel-behaviour",
+    label: "Cancel manager behaviour",
+    description: "Return the manager to passthrough, cancelling an in-progress joint target.",
     buttonLabel: "Cancel motion",
     category: "motion",
-    command: "saved_position.cancel_motion",
+    command: "behaviour/passthrough",
     messageType: "std_msgs/msg/String",
-    payload: "{data: 'cancel_motion'}",
-    topic: "/explorer/saved_position/command",
+    payload: "{data: 'behaviour/passthrough'}",
+    topic: "/mode_request",
   },
 ];
 

@@ -615,7 +615,7 @@ export function BuilderAppConfig({
                 <input
                   {...getTouchEditingProps("text")}
                   onChange={(event) => setNewPreset({ ...newPreset, command: event.target.value })}
-                  placeholder="emergency_stop"
+                  placeholder="behaviour/joint_target/home"
                   type="text"
                   value={newPreset.command}
                 />
@@ -625,7 +625,7 @@ export function BuilderAppConfig({
                 <input
                   {...getTouchEditingProps("text")}
                   onChange={(event) => setNewPreset({ ...newPreset, topic: event.target.value })}
-                  placeholder="/explorer/emergency_stop"
+                  placeholder="/mode_request"
                   type="text"
                   value={newPreset.topic}
                 />
@@ -1148,8 +1148,6 @@ function formatPresetCategory(category: RosMessageCommandPreset["category"]): st
   return {
     bridge: "Bridge commands",
     motion: "Motion commands",
-    safety: "Safety commands",
-    "saved-preset": "Saved presets",
     "state-machine": "State machines",
     utility: "Utility commands",
   }[category];

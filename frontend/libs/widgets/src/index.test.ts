@@ -936,37 +936,37 @@ describe("widget settings contracts", () => {
     expect(ROS_MESSAGE_COMMAND_PRESETS.map((preset) => preset.id)).toEqual(
       expect.arrayContaining([
         "state-machine-activate-throw",
-        "emergency-stop-bool",
         "digital-output-on",
-        "saved-position-save-current",
-        "saved-position-replay-selected",
-        "saved-position-cancel-motion",
+        "manager-joint-target-home",
+        "manager-cancel-behaviour",
       ]),
     );
+    // No preset offers a fake safety button: STOP is chrome, never a widget.
+    expect(ROS_MESSAGE_COMMAND_PRESETS.map((preset) => preset.category)).not.toContain("safety");
     expect(
       getRosMessageCommandPresetsByCategory()
-        .get("saved-preset")
+        .get("motion")
         ?.map((preset) => preset.id),
-    ).toEqual(["saved-position-save-current", "saved-position-replay-selected"]);
+    ).toEqual(["manager-joint-target-home", "manager-cancel-behaviour"]);
 
     expect(
       normalizeWidgetSettings("command-button", {
-        button_label: "Stop",
-        command: "emergency_stop",
-        messageType: "std_msgs/msg/Bool",
-        payload: "{data: true}",
-        presetId: "emergency-stop-bool",
-        topic: "/explorer/emergency_stop",
+        button_label: "Send Home",
+        command: "behaviour/joint_target/home",
+        messageType: "std_msgs/msg/String",
+        payload: "{data: 'behaviour/joint_target/home'}",
+        presetId: "manager-joint-target-home",
+        topic: "/mode_request",
       }),
     ).toEqual({
       success: true,
       settings: expect.objectContaining({
-        button_label: "Stop",
-        command: "emergency_stop",
-        messageType: "std_msgs/msg/Bool",
-        payload: "{data: true}",
-        presetId: "emergency-stop-bool",
-        topic: "/explorer/emergency_stop",
+        button_label: "Send Home",
+        command: "behaviour/joint_target/home",
+        messageType: "std_msgs/msg/String",
+        payload: "{data: 'behaviour/joint_target/home'}",
+        presetId: "manager-joint-target-home",
+        topic: "/mode_request",
       }),
     });
   });

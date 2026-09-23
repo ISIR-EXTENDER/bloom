@@ -788,7 +788,7 @@ describe("App", () => {
 
     await openAppConfig();
     fireEvent.change(screen.getByLabelText("Allowed publish topics"), {
-      target: { value: "/teleop_cmd\n/explorer/emergency_stop\n/teleop_cmd" },
+      target: { value: "/mode_request\n/ui/my_bridge\n/mode_request" },
     });
     fireEvent.change(screen.getByLabelText("Allowed message types"), {
       target: { value: "std_msgs/msg/Bool\nstd_msgs/msg/String" },
@@ -796,12 +796,12 @@ describe("App", () => {
     fireEvent.change(screen.getByLabelText("Allowed service calls"), {
       target: { value: "/fault_controller/reset_fault" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Add Emergency stop preset from library" }));
-    fireEvent.change(screen.getByLabelText("Preset name"), { target: { value: "Emergency stop" } });
-    fireEvent.change(screen.getByLabelText("Command"), { target: { value: "emergency_stop" } });
-    fireEvent.change(screen.getByLabelText("Topic"), { target: { value: "/explorer/emergency_stop" } });
-    fireEvent.change(screen.getByLabelText("Message type"), { target: { value: "std_msgs/msg/Bool" } });
-    fireEvent.change(screen.getByLabelText("Payload"), { target: { value: "{data: true}" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add Manager joint target preset from library" }));
+    fireEvent.change(screen.getByLabelText("Preset name"), { target: { value: "Go home" } });
+    fireEvent.change(screen.getByLabelText("Command"), { target: { value: "behaviour/joint_target/home" } });
+    fireEvent.change(screen.getByLabelText("Topic"), { target: { value: "/mode_request" } });
+    fireEvent.change(screen.getByLabelText("Message type"), { target: { value: "std_msgs/msg/String" } });
+    fireEvent.change(screen.getByLabelText("Payload"), { target: { value: "{data: 'behaviour/joint_target/home'}" } });
     fireEvent.click(screen.getByRole("button", { name: "Add preset" }));
     fireEvent.click(screen.getByRole("button", { name: "Sync publish guardrails from presets" }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
@@ -812,10 +812,7 @@ describe("App", () => {
 
     const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
-    expect(savedApplication?.runtime_policy.allowed_publish_topics).toEqual([
-      "/teleop_cmd",
-      "/explorer/emergency_stop",
-    ]);
+    expect(savedApplication?.runtime_policy.allowed_publish_topics).toEqual(["/mode_request", "/ui/my_bridge"]);
     expect(savedApplication?.runtime_policy.allowed_message_types).toEqual([
       "std_msgs/msg/Bool",
       "std_msgs/msg/String",
@@ -823,21 +820,21 @@ describe("App", () => {
     expect(savedApplication?.runtime_policy.allowed_service_calls).toEqual(["/fault_controller/reset_fault"]);
     expect(savedApplication?.action_presets).toEqual([
       expect.objectContaining({
-        id: "emergency-stop-bool",
-        command: "emergency_stop",
-        message_type: "std_msgs/msg/Bool",
-        name: "Emergency stop",
-        payload_text: "{data: true}",
-        tags: ["safety", "library"],
-        topic: "/explorer/emergency_stop",
+        id: "manager-joint-target-home",
+        command: "behaviour/joint_target/home",
+        message_type: "std_msgs/msg/String",
+        name: "Manager joint target",
+        payload_text: "{data: 'behaviour/joint_target/home'}",
+        tags: ["motion", "library"],
+        topic: "/mode_request",
       }),
       expect.objectContaining({
-        id: "emergency-stop",
-        command: "emergency_stop",
-        message_type: "std_msgs/msg/Bool",
-        name: "Emergency stop",
-        payload_text: "{data: true}",
-        topic: "/explorer/emergency_stop",
+        id: "go-home",
+        command: "behaviour/joint_target/home",
+        message_type: "std_msgs/msg/String",
+        name: "Go home",
+        payload_text: "{data: 'behaviour/joint_target/home'}",
+        topic: "/mode_request",
       }),
     ]);
   });

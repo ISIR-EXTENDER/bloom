@@ -209,8 +209,8 @@ New Extender IHM work belongs in Bloom. The remaining work is explicit:
    `v1.0.0` and `tablet_interface/v1.0.0`, and their READMEs point here.
 4. Retain generic web/ROS boundaries so Bloom can serve robots beyond Extender.
 
-Low-level Extender ROS packages remain active dependencies. The archived Petanque path keeps its explicit legacy
-adapter until its future is decided.
+Low-level Extender ROS packages remain active dependencies. Petanque's future was decided on 2026-09-23: the app
+was rebased onto `cartesian_manager` and the `apps-petanque` state machine, and is active again.
 
 ## Design Language
 
