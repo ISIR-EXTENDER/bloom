@@ -181,21 +181,19 @@ textarea {
 
 .landing-photo {
   display: flex;
-  align-items: flex-end;
   min-height: 420px;
   margin: 0;
-  padding: 20px;
+  overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 14%, transparent);
   border-radius: var(--bloom-radius-panel);
-  background: repeating-linear-gradient(-45deg, var(--bloom-surface-container) 0 14px, var(--bloom-surface) 14px 28px);
+  background: var(--bloom-surface-container);
 }
 
-.landing-photo figcaption {
-  max-width: 380px;
-  color: var(--bloom-ink-soft);
-  font-family: var(--bloom-font-mono);
-  font-size: 13px;
-  line-height: 1.5;
+.landing-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
 }
 
 .landing-shortcuts {

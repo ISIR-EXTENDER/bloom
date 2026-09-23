@@ -1,4 +1,4 @@
-import { mkdir, readFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isDeepStrictEqual } from "node:util";
@@ -168,6 +168,14 @@ try {
   }
 } finally {
   await browser.close();
+}
+
+// The landing hero shows the same Drive capture; keep it in step with the README.
+if (captured.includes("runtime-explorer-drive")) {
+  await copyFile(
+    shot("runtime-explorer-drive"),
+    resolve(repoRoot, "frontend/apps/bloom-dashboard/public/landing-drive.png"),
+  );
 }
 
 console.log(`Captured ${captured.length} screenshots in ${outputDir}`);

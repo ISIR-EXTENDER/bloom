@@ -49,9 +49,12 @@ export function LandingPage({ onOpenView }: LandingPageProps) {
             <BloomButton onClick={() => onOpenView("help")}>Get started</BloomButton>
           </div>
         </div>
-        {/* Awaiting a photograph of the arm in use with a person; the placeholder says what belongs here. */}
-        <figure className="landing-photo" data-placeholder="true">
-          <figcaption>the arm in use, in a real room, with a person — not a product shot of a tablet</figcaption>
+        {/* A real capture of the product, refreshed by scripts/capture-readme-screenshots.mjs. */}
+        <figure className="landing-photo">
+          <img
+            alt="The Explorer Manager Drive screen: joysticks, speed segments and the STOP rail."
+            src="/landing-drive.png"
+          />
         </figure>
       </section>
 
