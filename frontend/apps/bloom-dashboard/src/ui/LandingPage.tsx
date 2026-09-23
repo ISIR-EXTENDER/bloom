@@ -8,6 +8,18 @@ type LandingPageProps = {
 
 const DOCS_URL = "https://github.com/ISIR-EXTENDER/bloom/tree/main/docs";
 
+/**
+ * Straight to a robot, for someone who just arrived and does not know where to look.
+ *
+ * Real links, not buttons: the same address works as a bookmark on the tablet's home screen. They
+ * land on the runtime library with the app focused; opening a role stays the person's own press.
+ */
+const SHORTCUTS = [
+  { hash: "#/runtime/open/explorer-manager/explorer-manager", title: "Explorer", body: "Drive the Explorer arm" },
+  { hash: "#/runtime/open/kinova-manager/kinova-manager", title: "Kinova", body: "Drive the Kinova gen3" },
+  { hash: "#/runtime/open/bloom-debug/bloom-debug", title: "Debug", body: "Watch topics, joints and the Jacobian" },
+];
+
 const PROMISES = [
   { title: "Reach", body: "One panel, laid out for the person using it — not for the axes the arm happens to have." },
   {
@@ -41,6 +53,18 @@ export function LandingPage({ onOpenView }: LandingPageProps) {
         <figure className="landing-photo" data-placeholder="true">
           <figcaption>the arm in use, in a real room, with a person — not a product shot of a tablet</figcaption>
         </figure>
+      </section>
+
+      <section aria-label="Go straight to a robot" className="landing-shortcuts">
+        <p className="eyebrow">Already at the bench?</p>
+        <div className="landing-shortcut-row">
+          {SHORTCUTS.map((shortcut) => (
+            <a className="landing-shortcut" href={shortcut.hash} key={shortcut.title}>
+              <strong>{shortcut.title}</strong>
+              <span>{shortcut.body}</span>
+            </a>
+          ))}
+        </div>
       </section>
 
       <section aria-label="What Bloom is for" className="landing-promises">

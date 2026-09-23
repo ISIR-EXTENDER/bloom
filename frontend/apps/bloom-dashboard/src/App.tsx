@@ -78,10 +78,11 @@ export function App({
   const [builderMode, setBuilderMode] = useState<BuilderMode>(initialRoute.builderMode);
   const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>(initialRoute.runtimeMode);
   const [supervisorTarget, setSupervisorTarget] = useState(initialRoute.supervisorTarget);
+  const [libraryTarget, setLibraryTarget] = useState(initialRoute.libraryTarget);
   const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
   const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
-  const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}:${supervisorTarget?.configId ?? ""}:${supervisorTarget?.appId ?? ""}`;
+  const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}:${supervisorTarget?.configId ?? ""}:${supervisorTarget?.appId ?? ""}:${libraryTarget?.appId ?? ""}`;
   // The library is a kiosk screen too (design 5a): its own bar, no product navigation.
   const isRuntimeSessionView = activeView === "runtime";
   const isRuntimeOperationView = activeView === "runtime" && runtimeMode === "app";
@@ -99,6 +100,7 @@ export function App({
       setBuilderMode(route.builderMode);
       setRuntimeMode(route.runtimeMode);
       setSupervisorTarget(route.supervisorTarget);
+      setLibraryTarget(route.libraryTarget);
     };
 
     window.addEventListener("hashchange", syncRouteFromBrowserHistory);
@@ -360,6 +362,7 @@ export function App({
     setBuilderMode(route.builderMode);
     setRuntimeMode(route.runtimeMode);
     setSupervisorTarget(route.supervisorTarget);
+    setLibraryTarget(route.libraryTarget);
   }
 
   function navigateToRoute(route: BloomRoute) {
@@ -412,6 +415,7 @@ export function App({
                 onOpenBuilderHome={() => navigateToRoute(builderModeRoute("home"))}
                 onOpenHelp={() => handleProductViewChange("help")}
                 onOpenLanding={() => handleProductViewChange("landing")}
+                libraryTarget={libraryTarget}
                 onOpenRuntimeApp={openRuntimeApp}
                 onOpenSupervisorApp={openSupervisorApp}
                 onOpenSupervisorWindow={openSupervisorWindow}

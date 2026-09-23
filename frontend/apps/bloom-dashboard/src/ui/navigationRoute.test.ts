@@ -41,3 +41,20 @@ describe("navigationRoute", () => {
     expect(routeToHash(productViewRoute("help"))).toBe("#/help");
   });
 });
+
+describe("the library shortcut route", () => {
+  // The landing shortcuts and a tablet bookmark both land on the library with one app focused.
+  // Opening a role stays the person's own press: the route never launches anything.
+  it("parses a focused library entry and round-trips it", () => {
+    const route = parseBloomRoute("#/runtime/open/explorer-manager/explorer-manager");
+
+    expect(route.activeView).toBe("runtime");
+    expect(route.runtimeMode).toBe("home");
+    expect(route.libraryTarget).toEqual({ configId: "explorer-manager", appId: "explorer-manager" });
+    expect(routeToHash(route)).toBe("#/runtime/open/explorer-manager/explorer-manager");
+  });
+
+  it("falls back to the landing on a malformed target", () => {
+    expect(parseBloomRoute("#/runtime/open/only-one-part")).toEqual(DEFAULT_BLOOM_ROUTE);
+  });
+});

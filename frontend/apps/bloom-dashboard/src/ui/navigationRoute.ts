@@ -8,9 +8,16 @@ export type SupervisorRouteTarget = {
   configId: string;
 };
 
+/** An app the runtime library opens focused on, for the landing shortcuts and device bookmarks. */
+export type LibraryRouteTarget = {
+  appId: string;
+  configId: string;
+};
+
 export type BloomRoute = {
   activeView: ProductView;
   builderMode: BuilderRouteMode;
+  libraryTarget: LibraryRouteTarget | null;
   runtimeMode: RuntimeRouteMode;
   supervisorTarget: SupervisorRouteTarget | null;
 };
@@ -18,12 +25,29 @@ export type BloomRoute = {
 export const DEFAULT_BLOOM_ROUTE: BloomRoute = {
   activeView: "landing",
   builderMode: "home",
+  libraryTarget: null,
   runtimeMode: "home",
   supervisorTarget: null,
 };
 
 export function parseBloomRoute(hash: string): BloomRoute {
   const normalizedHash = hash.replace(/^#/, "").replace(/^\/?/, "/");
+  const libraryMatch = normalizedHash.match(/^\/runtime\/open\/([^/]+)\/([^/]+)$/);
+  if (libraryMatch) {
+    const configId = tryDecodeRoutePart(libraryMatch[1]);
+    const appId = tryDecodeRoutePart(libraryMatch[2]);
+    if (!configId || !appId) {
+      return DEFAULT_BLOOM_ROUTE;
+    }
+    // The library, focused on one app; opening a role stays the person's own press.
+    return {
+      ...DEFAULT_BLOOM_ROUTE,
+      activeView: "runtime",
+      runtimeMode: "home",
+      libraryTarget: { configId, appId },
+    };
+  }
+
   const supervisorMatch = normalizedHash.match(/^\/runtime\/supervisor\/([^/]+)\/([^/]+)$/);
   if (supervisorMatch) {
     const configId = tryDecodeRoutePart(supervisorMatch[1]);
@@ -79,6 +103,9 @@ export function routeToHash(route: BloomRoute): string {
   if (route.activeView === "runtime") {
     if (route.runtimeMode === "supervisor" && route.supervisorTarget) {
       return `#/runtime/supervisor/${encodeURIComponent(route.supervisorTarget.configId)}/${encodeURIComponent(route.supervisorTarget.appId)}`;
+    }
+    if (route.runtimeMode === "home" && route.libraryTarget) {
+      return `#/runtime/open/${encodeURIComponent(route.libraryTarget.configId)}/${encodeURIComponent(route.libraryTarget.appId)}`;
     }
     return route.runtimeMode === "home" ? "#/runtime" : "#/runtime/app";
   }

@@ -198,6 +198,45 @@ textarea {
   line-height: 1.5;
 }
 
+.landing-shortcuts {
+  display: grid;
+  gap: 10px;
+}
+
+.landing-shortcut-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* A door, not a paragraph: the 44 px floor applies to the landing too. */
+.landing-shortcut {
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  padding: 18px 22px;
+  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 22%, transparent);
+  border-radius: var(--bloom-radius-panel);
+  background: var(--bloom-surface);
+  color: var(--bloom-ink);
+  text-decoration: none;
+}
+
+.landing-shortcut:hover,
+.landing-shortcut:focus-visible {
+  border-color: var(--bloom-primary);
+  background: color-mix(in srgb, var(--bloom-primary-container) 40%, var(--bloom-surface));
+}
+
+.landing-shortcut strong {
+  font-size: 1.05rem;
+}
+
+.landing-shortcut span {
+  color: var(--bloom-ink-soft);
+  font-size: 0.85rem;
+}
+
 .landing-promises {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

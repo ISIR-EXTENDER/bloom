@@ -12,6 +12,8 @@ import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 
 type RuntimeHomeProps = {
   configurations: readonly LoadedConfiguration[];
+  /** An app to focus first, from a landing shortcut or a device bookmark; a press stays the person's. */
+  libraryTarget?: { appId: string; configId: string } | null;
   onOpenBuilderHome?: () => void;
   onOpenHelp?: () => void;
   onOpenLanding?: () => void;
@@ -85,6 +87,7 @@ export function describeProfile(profile: UserProfile, strings: RuntimeStrings): 
 
 export function RuntimeHome({
   configurations,
+  libraryTarget,
   onOpenBuilderHome,
   onOpenHelp,
   onOpenLanding,
@@ -101,7 +104,12 @@ export function RuntimeHome({
   const [selectedKey, setSelectedKey] = useState<string>();
   const [chosenRoles, setChosenRoles] = useState<Record<string, string>>({});
   const [menuOpen, setMenuOpen] = useState(false);
-  const selected = apps.find((app) => app.key === selectedKey) ?? apps.find((app) => app.key === recentKey) ?? apps[0];
+  const targetKey = libraryTarget ? runtimePreferenceKey(libraryTarget) : "";
+  const selected =
+    apps.find((app) => app.key === selectedKey) ??
+    apps.find((app) => app.key === targetKey) ??
+    apps.find((app) => app.key === recentKey) ??
+    apps[0];
   const remembered = selected ? rememberedProfileId(selected.application, profilePreferences[selected.key]) : "";
   const chosen = selected ? (chosenRoles[selected.key] ?? remembered) : "";
   const chosenProfile = selected?.application.profiles.find((profile) => profile.id === chosen);

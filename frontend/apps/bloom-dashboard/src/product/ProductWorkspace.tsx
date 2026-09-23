@@ -24,6 +24,8 @@ export type RuntimeMode = "app" | "home" | "supervisor";
 type ProductWorkspaceProps = {
   activeView: Exclude<ProductView, "landing">;
   builderMode: BuilderMode;
+  /** An app the library opens focused on, from a landing shortcut or a bookmark. */
+  libraryTarget?: { appId: string; configId: string } | null;
   onBackToRuntimeHome: () => void;
   onChangeBuilderMode: (mode: BuilderMode) => void;
   onCreateApplication: (configId: string, application: ApplicationConfig) => Promise<void>;
@@ -82,6 +84,7 @@ type ProductWorkspaceProps = {
 export function ProductWorkspace({
   activeView,
   builderMode,
+  libraryTarget,
   onBackToRuntimeHome,
   onChangeBuilderMode,
   onCreateApplication,
@@ -169,6 +172,7 @@ export function ProductWorkspace({
     return (
       <RuntimeHome
         configurations={state.configurations}
+        libraryTarget={libraryTarget}
         onOpenBuilderHome={onOpenBuilderHome}
         onOpenHelp={onOpenHelp}
         onOpenLanding={onOpenLanding}

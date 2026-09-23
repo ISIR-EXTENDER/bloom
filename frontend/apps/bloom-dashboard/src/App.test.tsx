@@ -441,6 +441,25 @@ describe("App", () => {
     openWindow.mockRestore();
   });
 
+  it("focuses the app a landing shortcut names, without launching it", async () => {
+    // The landing cards and a tablet bookmark share this route. Opening stays the person's press.
+    window.history.replaceState(null, "", "#/runtime/open/explorer-manager/explorer-manager");
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            "explorer-manager": explorerManagerConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["explorer-manager"],
+        })}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: "Explorer Manager" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("region", { name: "Runtime application" })).not.toBeInTheDocument();
+    window.history.replaceState(null, "", "#/");
+  });
+
   it("remembers the last role on this device and marks it without launching it", async () => {
     const configurationClient = createConfigurationClient({
       bundles: {
