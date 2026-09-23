@@ -660,8 +660,8 @@
               "kind": "command-button",
               "title": "Save Tag",
               "layout": {
-                "x": 920,
-                "y": 364,
+                "x": 40,
+                "y": 274,
                 "width": 300,
                 "height": 104
               },
@@ -965,7 +965,7 @@
                 "x": 560,
                 "y": 112,
                 "width": 660,
-                "height": 430
+                "height": 320
               },
               "settings": {
                 "fitMode": "cover",

@@ -1262,9 +1262,10 @@
   padding: 10px;
   border: none;
   border-radius: 18px;
-  background: var(--bloom-surface);
-  color: var(--bloom-error);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--bloom-error) 30%, transparent);
+  /* Design system 10: filled error, a control at a glance — and no shadow to
+     bleed past the panel's rounded corner. */
+  background: var(--bloom-error);
+  color: var(--bloom-on-error);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1302,8 +1303,8 @@
 }
 
 .runtime-stop-control[data-stopped="true"] {
-  background: var(--bloom-error);
-  color: var(--bloom-error-container);
+  background: var(--bloom-ink);
+  color: var(--bloom-surface);
   font-size: 16px;
 }
 
