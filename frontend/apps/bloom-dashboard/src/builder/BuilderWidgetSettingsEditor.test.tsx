@@ -119,6 +119,54 @@ describe("settings the runtime ignores", () => {
     expect(screen.getByText(/no progress or cancel surface/)).toBeTruthy();
   });
 
+  it("offers a frame only on a pad that turns the hand, since only rotation is rotated", () => {
+    // Robin, 2026-09-23: "est-il possible de rendre paramétrable le frame_id du message twist ?"
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
+    const widget = {
+      id: "tilt",
+      kind: "joystick",
+      title: "Rotation",
+      layout: { x: 0, y: 0, width: 320, height: 400 },
+      settings: {
+        runtime_binding: {
+          adapter: "teleop",
+          axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
+          value_mapping: { target_topic: "/joystick_cartesian_command" },
+        },
+      },
+    } as unknown as WidgetConfig;
+
+    render(
+      <BuilderWidgetSettingsEditor
+        allowedCommandFrameIds={["base_link", "effector_frame"]}
+        onUpdateSettings={onUpdateSettings}
+        onUpdateTitle={vi.fn()}
+        widget={widget}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Turns in"), { target: { value: "effector_frame" } });
+
+    const next = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect((next.runtime_binding as Record<string, Record<string, unknown>>).value_mapping.frame_id).toBe(
+      "effector_frame",
+    );
+  });
+
+  it("keeps the frame out of a pad that only translates", () => {
+    renderEditor(
+      {
+        runtime_binding: {
+          adapter: "teleop",
+          axis_mapping: { value: { component: "linear_z" } },
+          value_mapping: { target_topic: "/joystick_cartesian_command" },
+        },
+      },
+      "slider",
+    );
+
+    expect(screen.queryByLabelText("Turns in")).toBeNull();
+  });
+
   it("names a teleop target this app will refuse, before the control is live", () => {
     // Robin, 2026-09-23: "lorsque l'on remplace le topic par autre chose, ça ne fonctionne plus."
     // The field is editable; the app's own teleop list is what the runtime narrows the socket to.

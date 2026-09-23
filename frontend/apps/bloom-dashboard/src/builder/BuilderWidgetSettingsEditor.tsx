@@ -19,6 +19,8 @@ import { AxisMappingEditor } from "./AxisMappingEditor";
 import { glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
 type BuilderWidgetSettingsEditorProps = {
+  /** The frames this robot accepts, for a pad that turns the hand in its own. */
+  allowedCommandFrameIds?: readonly string[];
   /** The app's teleop list, so a target the runtime will refuse is named before it goes live. */
   allowedTeleopTargets?: readonly string[];
   canvas?: CanvasSettings;
@@ -115,6 +117,7 @@ function WidgetGlassSizeSummary({
 }
 
 export function BuilderWidgetSettingsEditor({
+  allowedCommandFrameIds,
   allowedTeleopTargets,
   canvas,
   floorPx = TOUCH_FLOOR_PX,
@@ -181,7 +184,11 @@ export function BuilderWidgetSettingsEditor({
 
       <WidgetDestinationSummary allowedTeleopTargets={allowedTeleopTargets} destination={destination} widget={widget} />
       <WidgetCliPreview widget={widget} />
-      <AxisMappingEditor onUpdateSettings={onUpdateSettings} widget={widget} />
+      <AxisMappingEditor
+        allowedCommandFrameIds={allowedCommandFrameIds}
+        onUpdateSettings={onUpdateSettings}
+        widget={widget}
+      />
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (

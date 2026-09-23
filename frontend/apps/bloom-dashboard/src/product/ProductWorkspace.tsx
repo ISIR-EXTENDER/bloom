@@ -317,6 +317,7 @@ function BuilderProductWorkspace({
 
   return (
     <BuilderWorkspace
+      commandFrameIds={runtimeCapabilityReport?.command_frame_ids}
       robotName={runtimeCapabilityReport?.robot_name}
       runtimeCapabilities={runtimeCapabilities}
       configurations={state.configurations}

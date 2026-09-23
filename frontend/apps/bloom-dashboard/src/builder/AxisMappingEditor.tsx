@@ -35,9 +35,12 @@ function readBinding(widget: WidgetConfig): Record<string, AxisBinding> {
  * Robin hit exactly this on the bench: the axes were wrong and the way to correct them was invisible.
  */
 export function AxisMappingEditor({
+  allowedCommandFrameIds,
   onUpdateSettings,
   widget,
 }: {
+  /** The frames this robot accepts, as the backend reports them. */
+  allowedCommandFrameIds?: readonly string[];
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   widget: WidgetConfig;
 }) {
@@ -53,6 +56,25 @@ export function AxisMappingEditor({
   }
 
   const mapping = readBinding(widget);
+
+  const valueMapping =
+    typeof (runtimeBinding as Record<string, unknown>).value_mapping === "object" &&
+    (runtimeBinding as Record<string, unknown>).value_mapping !== null
+      ? ((runtimeBinding as Record<string, unknown>).value_mapping as Record<string, unknown>)
+      : {};
+  const widgetFrameId = typeof valueMapping.frame_id === "string" ? valueMapping.frame_id : "";
+  const turnsTheHand = Object.values(mapping).some((binding) => binding.component?.startsWith("angular_"));
+
+  const updateFrame = (frameId: string) => {
+    const base = runtimeBinding as Record<string, unknown>;
+    const nextValueMapping = { ...valueMapping };
+    if (frameId) {
+      nextValueMapping.frame_id = frameId;
+    } else {
+      delete nextValueMapping.frame_id;
+    }
+    onUpdateSettings({ ...widget.settings, runtime_binding: { ...base, value_mapping: nextValueMapping } });
+  };
 
   const update = (axisKey: string, patch: AxisBinding) => {
     const base = runtimeBinding as Record<string, unknown>;
@@ -71,6 +93,22 @@ export function AxisMappingEditor({
   return (
     <fieldset className="builder-axis-mapping">
       <legend>What this moves</legend>
+      {turnsTheHand ? (
+        <div className="builder-axis-row">
+          <label>
+            {/* The frame rotates only the angular part, so it is offered where a pad turns the hand. */}
+            <span>Turns in</span>
+            <select onChange={(event) => updateFrame(event.target.value)} value={widgetFrameId}>
+              <option value="">The app's frame</option>
+              {(allowedCommandFrameIds ?? []).map((frameId) => (
+                <option key={frameId} value={frameId}>
+                  {frameId}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
       {axes.map((axis) => {
         const binding = mapping[axis.key] ?? {};
         return (
