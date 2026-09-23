@@ -55,14 +55,15 @@ describe("telemetry subscriptions", () => {
 
     expect(client.subscribeRuntimeTopic).not.toHaveBeenCalled();
     setLink("connected");
-    // Six topics the screen reads, plus /qontrol_controller/commands for tracking error.
-    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(7));
+    // Six topics the screen reads, plus /qontrol_controller/commands for tracking
+    // error and /qontrol_explorer/effort_overload for the tip-force flag.
+    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(8));
 
     setLink("disconnected");
     setLink("connecting");
     setLink("connected");
-    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(14));
+    await waitFor(() => expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(16));
     await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(14);
+    expect(client.subscribeRuntimeTopic).toHaveBeenCalledTimes(16);
   });
 });

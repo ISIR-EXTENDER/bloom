@@ -24,6 +24,7 @@
           "/mode_request",
           "/petanque_state_machine/change_state",
           "/qontrol_controller/commands",
+          "/qontrol_explorer/effort_overload",
           "/rosout",
           "/teleop_cmd"
         ],
@@ -181,6 +182,14 @@
                     "label": "joint_2 commanded",
                     "unit": "rad",
                     "enabled": true
+                  },
+                  {
+                    "topic": "/qontrol_explorer/effort_overload",
+                    "message_type": "std_msgs/msg/Bool",
+                    "field_path": "data",
+                    "label": "Effort overload",
+                    "unit": "flag",
+                    "enabled": false
                   }
                 ],
                 "history_seconds": 30,

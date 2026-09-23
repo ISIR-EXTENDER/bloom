@@ -148,6 +148,8 @@ class Settings(BaseModel):
         # and it is the only visible sign of a QP that stopped solving: the controller has no else
         # branch on a failed solve and publishes no fault.
         "/qontrol_controller/commands",
+        # qontrol's estimated tip-force overload flag (force norm >= force_threshold).
+        "/qontrol_explorer/effort_overload",
         "/rosout",
         # Legacy sandbox_controller feedback, still used by the Petanque app.
         # Remove when Petanque migrates off /teleop_cmd.

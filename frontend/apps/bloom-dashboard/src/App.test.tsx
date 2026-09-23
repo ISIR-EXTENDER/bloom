@@ -1861,7 +1861,7 @@ describe("App", () => {
     expect(screen.getByText("No Jacobian received on /ee_jac.")).toBeVisible();
 
     // One subscription per topic: the table, matrix and raw echo, plus the plot series they do not already cover.
-    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(7));
+    await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledTimes(8));
     const subscribe = runtimeActionClient.subscribeRuntimeTopic;
     if (!subscribe) throw new Error("Missing subscribe client.");
     expect(
@@ -1880,6 +1880,8 @@ describe("App", () => {
       // error, and a flat line while a twist is going out is the only visible sign of a QP that
       // stopped solving: qontrol_velocity_controller has no else branch and no fault topic.
       "/qontrol_controller/commands",
+      // qontrol's estimated tip-force overload flag.
+      "/qontrol_explorer/effort_overload",
     ]);
   });
 

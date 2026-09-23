@@ -86,6 +86,7 @@
           "/joint_target_command",
           "/joystick_cartesian_command",
           "/mode_request",
+          "/qontrol_explorer/effort_overload",
           "/visual_servoing_cartesian_command"
         ],
         "allowed_teleop_targets": [
@@ -154,7 +155,7 @@
       "screens": [
         {
           "id": "manager_drive_bench",
-          "title": "Drive \u00b7 Bench",
+          "title": "Drive · Bench",
           "canvas": {
             "preset_id": "native-1280x720",
             "runtime_mode": "fit"
@@ -173,7 +174,7 @@
             {
               "id": "bench-mode-label",
               "kind": "label",
-              "title": "SHAPING MODE \u2014 requested, the manager never confirms",
+              "title": "SHAPING MODE — requested, the manager never confirms",
               "layout": {
                 "x": 14,
                 "y": 14,
@@ -181,7 +182,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SHAPING MODE \u2014 requested, the manager never confirms",
+                "text": "SHAPING MODE — requested, the manager never confirms",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -213,7 +214,7 @@
             {
               "id": "bench-speed-label",
               "kind": "label",
-              "title": "SPEED LIMITS \u2014 CONTINUOUS",
+              "title": "SPEED LIMITS — CONTINUOUS",
               "layout": {
                 "x": 928,
                 "y": 14,
@@ -221,7 +222,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SPEED LIMITS \u2014 CONTINUOUS",
+                "text": "SPEED LIMITS — CONTINUOUS",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -357,10 +358,10 @@
               "settings": {
                 "deadzone": 0,
                 "labels": {
-                  "top": "\u25b2 Forward",
-                  "bottom": "\u25bc Back",
-                  "left": "\u25c0 Left",
-                  "right": "Right \u25b6"
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -398,10 +399,10 @@
               "settings": {
                 "deadzone": 0,
                 "labels": {
-                  "top": "\u25b2 Tilt up",
-                  "bottom": "\u25bc Tilt down",
-                  "left": "\u25c0 Roll left",
-                  "right": "Roll right \u25b6"
+                  "top": "▲ Tilt up",
+                  "bottom": "▼ Tilt down",
+                  "left": "◀ Roll left",
+                  "right": "Roll right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -503,8 +504,8 @@
                   "axis_deadzone": 0.2
                 },
                 "labels": {
-                  "negative": "\u21b6 Turn left",
-                  "positive": "Turn right \u21b7"
+                  "negative": "↶ Turn left",
+                  "positive": "Turn right ↷"
                 }
               }
             },
@@ -529,7 +530,7 @@
         },
         {
           "id": "manager_drive_operator",
-          "title": "Drive \u00b7 Operator",
+          "title": "Drive · Operator",
           "canvas": {
             "preset_id": "native-1280x720",
             "runtime_mode": "fit"
@@ -581,7 +582,7 @@
             {
               "id": "op-move-label",
               "kind": "label",
-              "title": "MOVE THE HAND \u2014 three linear axes",
+              "title": "MOVE THE HAND — three linear axes",
               "layout": {
                 "x": 290,
                 "y": 14,
@@ -589,7 +590,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "MOVE THE HAND \u2014 three linear axes",
+                "text": "MOVE THE HAND — three linear axes",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -598,7 +599,7 @@
             {
               "id": "op-aim-label",
               "kind": "label",
-              "title": "AIM THE HAND \u2014 three angular axes",
+              "title": "AIM THE HAND — three angular axes",
               "layout": {
                 "x": 738,
                 "y": 14,
@@ -606,7 +607,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "AIM THE HAND \u2014 three angular axes",
+                "text": "AIM THE HAND — three angular axes",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -682,10 +683,10 @@
               "settings": {
                 "deadzone": 0,
                 "labels": {
-                  "top": "\u25b2 Forward",
-                  "bottom": "\u25bc Back",
-                  "left": "\u25c0 Left",
-                  "right": "Right \u25b6"
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -723,10 +724,10 @@
               "settings": {
                 "deadzone": 0,
                 "labels": {
-                  "top": "\u25b2 Tilt up",
-                  "bottom": "\u25bc Tilt down",
-                  "left": "\u25c0 Roll left",
-                  "right": "Roll right \u25b6"
+                  "top": "▲ Tilt up",
+                  "bottom": "▼ Tilt down",
+                  "left": "◀ Roll left",
+                  "right": "Roll right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -877,8 +878,8 @@
                   "axis_deadzone": 0.2
                 },
                 "labels": {
-                  "negative": "\u21b6 Turn left",
-                  "positive": "Turn right \u21b7"
+                  "negative": "↶ Turn left",
+                  "positive": "Turn right ↷"
                 }
               }
             },
@@ -953,7 +954,7 @@
             {
               "id": "positions-poses-label",
               "kind": "label",
-              "title": "SAVED POSES \u2014 dispatched once; the manager reports no progress",
+              "title": "SAVED POSES — dispatched once; the manager reports no progress",
               "layout": {
                 "x": 14,
                 "y": 14,
@@ -961,7 +962,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SAVED POSES \u2014 dispatched once; the manager reports no progress",
+                "text": "SAVED POSES — dispatched once; the manager reports no progress",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -970,7 +971,7 @@
             {
               "id": "positions-sent-label",
               "kind": "label",
-              "title": "WHAT WAS SENT \u2014 /joint_target_command",
+              "title": "WHAT WAS SENT — /joint_target_command",
               "layout": {
                 "x": 928,
                 "y": 14,
@@ -978,7 +979,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "WHAT WAS SENT \u2014 /joint_target_command",
+                "text": "WHAT WAS SENT — /joint_target_command",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1077,7 +1078,7 @@
             {
               "id": "feedback-plot-label",
               "kind": "label",
-              "title": "LIVE FROM THE ROBOT \u2014 30 second window",
+              "title": "LIVE FROM THE ROBOT — 30 second window",
               "layout": {
                 "x": 14,
                 "y": 14,
@@ -1085,7 +1086,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "LIVE FROM THE ROBOT \u2014 30 second window",
+                "text": "LIVE FROM THE ROBOT — 30 second window",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1137,6 +1138,14 @@
                     "label": "Height",
                     "color": "#536960",
                     "unit": "m",
+                    "enabled": false
+                  },
+                  {
+                    "topic": "/qontrol_explorer/effort_overload",
+                    "message_type": "std_msgs/msg/Bool",
+                    "field_path": "data",
+                    "label": "Effort overload",
+                    "unit": "flag",
                     "enabled": false
                   }
                 ],
@@ -1190,6 +1199,14 @@
                     "label": "Height",
                     "unit": "m",
                     "color": "#536960"
+                  },
+                  {
+                    "topic": "/qontrol_explorer/effort_overload",
+                    "message_type": "std_msgs/msg/Bool",
+                    "field_path": "data",
+                    "label": "Effort overload",
+                    "unit": "flag",
+                    "enabled": false
                   }
                 ],
                 "show_details": false
@@ -1198,7 +1215,7 @@
             {
               "id": "feedback-series-label",
               "kind": "label",
-              "title": "SERIES \u2014 tap to plot",
+              "title": "SERIES — tap to plot",
               "layout": {
                 "x": 928,
                 "y": 14,
@@ -1206,7 +1223,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SERIES \u2014 tap to plot",
+                "text": "SERIES — tap to plot",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1233,11 +1250,11 @@
                   },
                   {
                     "label": "Manipulability",
-                    "note": "moved to Bloom Debug \u2014 /ee_jac"
+                    "note": "moved to Bloom Debug — /ee_jac"
                   },
                   {
                     "label": "Fault",
-                    "note": "moved to Bloom Debug \u2014 /fault_controller/internal_fault"
+                    "note": "moved to Bloom Debug — /fault_controller/internal_fault"
                   }
                 ]
               }
@@ -1265,7 +1282,7 @@
             {
               "id": "sources-plot-label",
               "kind": "label",
-              "title": "cartesian_manager SUMS EVERY ACTIVATED INPUT \u2014 COMPARE THEM HERE",
+              "title": "cartesian_manager SUMS EVERY ACTIVATED INPUT — COMPARE THEM HERE",
               "layout": {
                 "x": 14,
                 "y": 14,
@@ -1273,7 +1290,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "cartesian_manager SUMS EVERY ACTIVATED INPUT \u2014 COMPARE THEM HERE",
+                "text": "cartesian_manager SUMS EVERY ACTIVATED INPUT — COMPARE THEM HERE",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1362,7 +1379,7 @@
             {
               "id": "sources-series-label",
               "kind": "label",
-              "title": "SOURCES \u2014 tap to plot",
+              "title": "SOURCES — tap to plot",
               "layout": {
                 "x": 928,
                 "y": 14,
@@ -1370,7 +1387,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SOURCES \u2014 tap to plot",
+                "text": "SOURCES — tap to plot",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1415,7 +1432,7 @@
             {
               "id": "lab-frame-label",
               "kind": "label",
-              "title": "COMMAND FRAME \u2014 stamped on every twist",
+              "title": "COMMAND FRAME — stamped on every twist",
               "layout": {
                 "x": 14,
                 "y": 14,
@@ -1423,7 +1440,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "COMMAND FRAME \u2014 stamped on every twist",
+                "text": "COMMAND FRAME — stamped on every twist",
                 "fontSize": 12,
                 "align": "left"
               }
@@ -1431,7 +1448,7 @@
             {
               "id": "lab-mode-label",
               "kind": "label",
-              "title": "SHAPING MODE \u2014 requested, never confirmed",
+              "title": "SHAPING MODE — requested, never confirmed",
               "layout": {
                 "x": 622,
                 "y": 14,
@@ -1439,7 +1456,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SHAPING MODE \u2014 requested, never confirmed",
+                "text": "SHAPING MODE — requested, never confirmed",
                 "fontSize": 12,
                 "align": "left"
               }
@@ -1660,10 +1677,10 @@
                 },
                 "deadzone": 0,
                 "labels": {
-                  "top": "\u25b2 Forward",
-                  "bottom": "\u25bc Back",
-                  "left": "\u25c0 Left",
-                  "right": "Right \u25b6"
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -1715,10 +1732,10 @@
                 },
                 "deadzone": 0,
                 "labels": {
-                  "top": "\u25b2 Tilt up",
-                  "bottom": "\u25bc Tilt down",
-                  "left": "\u25c0 Roll left",
-                  "right": "Roll right \u25b6"
+                  "top": "▲ Tilt up",
+                  "bottom": "▼ Tilt down",
+                  "left": "◀ Roll left",
+                  "right": "Roll right ▶"
                 },
                 "mode_id": "both",
                 "publish_rate_hz": 30,
@@ -1746,7 +1763,7 @@
             {
               "id": "lab-sent-label",
               "kind": "label",
-              "title": "SENT \u2014 /joystick_cartesian_command",
+              "title": "SENT — /joystick_cartesian_command",
               "layout": {
                 "x": 928,
                 "y": 146,
@@ -1754,7 +1771,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SENT \u2014 /joystick_cartesian_command",
+                "text": "SENT — /joystick_cartesian_command",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1836,8 +1853,8 @@
                   "axis_deadzone": 0.2
                 },
                 "labels": {
-                  "negative": "\u21b6 Turn left",
-                  "positive": "Turn right \u21b7"
+                  "negative": "↶ Turn left",
+                  "positive": "Turn right ↷"
                 }
               }
             }
