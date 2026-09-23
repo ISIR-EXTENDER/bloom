@@ -50,6 +50,14 @@ body:
         - Not sure
     validations:
       required: true
+  - type: input
+    id: bench
+    attributes:
+      label: Robot and app
+      description: Which robot (Explorer, Kinova, simulation, none) and which app and screen you were on.
+      placeholder: "Explorer (real arm), Explorer Manager, Drive · Operator"
+    validations:
+      required: false
   - type: textarea
     id: context
     attributes:

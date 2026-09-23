@@ -186,6 +186,12 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
 - Role-based layouts: a profile names the screen it opens, and Drive ships as Bench and Operator.
 - Widget cards built to the design system: minimum sizes that grow rather than clip, reserved regions for STOP,
   multi-series plot boards and pickers, a joint table, and a Jacobian with manipulability.
+- A ROS camera path on its own socket: a camera widget can watch a compressed image topic, such as a gripper
+  camera brought up by `camera_interface`, without touching the telemetry stream.
+- STOP placeable from the Builder palette, a palette grouped by what each widget is for, and one minimum-size
+  table shared by the resize handle and the inspector.
+- A Builder end-to-end harness (`npm run e2e:builder`) that authors an app through the UI, saves it through
+  the real API, opens it in the runtime and latches STOP.
 
 Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs
 validation with the intended device. Browser reduced-motion preferences work; the equivalent saved profile setting
@@ -199,7 +205,8 @@ New Extender IHM work belongs in Bloom. The remaining work is explicit:
    deliberate handover only if supervisors are later allowed to command.
 2. Validate the Bloom IHM on the target tablets, assistive inputs and robots. The simulations are covered by
    `npm run e2e:sim`, and visual servoing has been driven from Bloom on the new architecture.
-3. Keep `extender_ui` rollback artifacts until the relevant live sessions are accepted.
+3. `extender_ui` and `tablet_interface` are retired: their last supported releases are tagged
+   `v1.0.0` and `tablet_interface/v1.0.0`, and their READMEs point here.
 4. Retain generic web/ROS boundaries so Bloom can serve robots beyond Extender.
 
 Low-level Extender ROS packages remain active dependencies. The archived Petanque path keeps its explicit legacy
@@ -384,14 +391,16 @@ export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```bash
 # cartesian_manager (default) or teleop_command for the legacy rollback path
 export BLOOM_ROS_COMMAND_BACKEND=cartesian_manager
-# A frame the manager knows: base_link, ft_frame/effector_frame, or hybrid_frame
+# A frame the manager knows: base_link, effector_frame, or hybrid_frame
 export BLOOM_ROS_COMMAND_FRAME_ID=base_link
 ```
 
 Since `cartesian_manager` PR #6, `frame_id` selects the frame the rotation part
-is interpreted in: `base_link` is summed directly, `ft_frame` or
-`effector_frame` is rotated into base with the live pose, and `hybrid_frame`
-uses the manager's hybrid pose. The linear component follows the manager's base
+is interpreted in: `base_link` is summed directly, `effector_frame` is rotated
+into base with the live pose, and `hybrid_frame` uses the manager's hybrid
+pose. Both arms name their end-effector frame `effector_frame`. A rotation pad
+may also name its own frame in the Builder; two pads turning under different
+frames keep the app's. The linear component follows the manager's base
 convention. An unknown frame is rejected by Bloom when outside its deployment
 allowlist and skipped by the manager if it reaches it. There is no general TF
 lookup.
@@ -473,6 +482,20 @@ node --version   # v24.x
 ```
 
 Node 26 becomes LTS on 28 October 2026; move `.nvmrc` then.
+
+## Reporting A Bug
+
+Found something broken, confusing, or missing? Open a GitHub issue rather than a message or an email: issues
+survive holidays, hold the discussion in one place, and nothing gets fixed twice.
+
+1. Open <https://github.com/ISIR-EXTENDER/bloom/issues> and press **New issue**.
+2. Pick **Bug report** (or **Accessibility issue** / **Feature request**). The form asks for everything a fix
+   needs; short answers are fine, French is fine.
+3. The two lines that save the most time: **what you did and what happened instead**, and **which robot, app
+   and screen you were on** (real arm or simulation). A photo of the screen counts as a log.
+
+If the arm did something unsafe, stop the session first and say so in the title. For a security concern,
+follow `SECURITY.md` instead of opening a public issue.
 
 ## Documentation
 
