@@ -1,3 +1,4 @@
+import { isRecord } from "@bloom/widgets";
 import {
   normalizeRuntimeProfileOverrides,
   type RuntimeProfileOverrides,
@@ -145,8 +146,4 @@ function isWorkspaceSelection(value: unknown): value is WorkspaceSelection {
     typeof value.screenId === "string" &&
     value.screenId.length > 0
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }

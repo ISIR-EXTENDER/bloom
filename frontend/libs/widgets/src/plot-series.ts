@@ -1,4 +1,5 @@
 import { resolveFieldPath, type TopicMessage } from "./telemetry";
+import { isRecord } from "./values";
 
 /** The design system's series ramp (design-system §05). A seed colour naming one of these keeps its slot. */
 export const SERIES_RAMP = ["#31493f", "#7e967e", "#c98a7e", "#536960", "#8a7f5c", "#6b7f8a", "#8a6b7f", "#5c7d6b"];
@@ -155,8 +156,4 @@ export function readTwistMagnitude(message: unknown): number | undefined {
 
 function readString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

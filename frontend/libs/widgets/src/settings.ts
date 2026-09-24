@@ -1,4 +1,5 @@
 import type { WidgetKind } from "@bloom/api-client";
+import { isRecord } from "./values";
 
 export const MAX_JOYSTICK_PUBLISH_RATE_HZ = 30;
 
@@ -1692,10 +1693,6 @@ function isSameJson(left: unknown, right: unknown): boolean {
     return keys.length === Object.keys(right).length && keys.every((key) => isSameJson(left[key], right[key]));
   }
   return left === right;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isStringArray(value: unknown): value is string[] {

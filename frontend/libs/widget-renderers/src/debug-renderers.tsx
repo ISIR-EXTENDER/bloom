@@ -1,4 +1,10 @@
-import { formatTopicEchoValue, localizeEmptyEcho, localizeOperatorText, type TopicMessage } from "@bloom/widgets";
+import {
+  formatTopicEchoValue,
+  isRecord,
+  localizeEmptyEcho,
+  localizeOperatorText,
+  type TopicMessage,
+} from "@bloom/widgets";
 import { useState } from "react";
 import { formatAge } from "./display-renderers";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
@@ -171,10 +177,6 @@ function readFrameId(value: unknown): string {
     return value.header.frame_id;
   }
   return "";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function TopicPlotWidget({

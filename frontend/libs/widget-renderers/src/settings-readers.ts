@@ -1,4 +1,4 @@
-import { type JoystickSettings, MAX_JOYSTICK_PUBLISH_RATE_HZ } from "@bloom/widgets";
+import { isRecord, type JoystickSettings, MAX_JOYSTICK_PUBLISH_RATE_HZ } from "@bloom/widgets";
 import type { JoystickLabels } from "./JoystickPrimitive";
 
 export type ResolvedJoystickBinding = {
@@ -121,8 +121,4 @@ function getJoystickAxisHint(
 
 function isJoystickAxisSemantic(value: string): value is JoystickSettings["axis_hints"]["x"]["semantic"] {
   return ["custom", "rotation", "translation", "vertical"].includes(value);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

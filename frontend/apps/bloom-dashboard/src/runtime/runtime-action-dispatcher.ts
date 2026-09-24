@@ -7,7 +7,7 @@ import {
   type RuntimeAdapterPolicy,
   type RuntimeControlState,
 } from "@bloom/api-client";
-import { resolveTeleopFrameId, type Vector2Value, type WidgetActionIntent } from "@bloom/widgets";
+import { isRecord, resolveTeleopFrameId, type Vector2Value, type WidgetActionIntent } from "@bloom/widgets";
 import {
   type ComponentContribution,
   composeTwist,
@@ -972,10 +972,6 @@ function isPublishableValue(value: unknown): value is number | Record<string, un
 
 function normalizeMessageType(messageType: string): string {
   return messageType.trim().toLowerCase();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function getRecord(value: unknown): Record<string, unknown> {

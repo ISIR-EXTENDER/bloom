@@ -1,4 +1,4 @@
-import { normalizeWidgetSettings } from "@bloom/widgets";
+import { isRecord, normalizeWidgetSettings } from "@bloom/widgets";
 import { type CSSProperties, useState } from "react";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
@@ -357,10 +357,6 @@ function isEventLogSeverity(value: string): value is EventLogEntry["severity"] {
 
 function readString(value: unknown, fallback: string): string {
   return typeof value === "string" ? value.trim() : fallback;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function clamp(value: number, min: number, max: number): number {

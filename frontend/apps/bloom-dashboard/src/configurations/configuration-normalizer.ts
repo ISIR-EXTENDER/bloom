@@ -20,6 +20,7 @@ import {
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
 } from "@bloom/api-client";
+import { isRecord } from "@bloom/widgets";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
   applications?: PartialApplicationConfig[];
@@ -311,10 +312,6 @@ function asStringArray(value: unknown, fallback: string[]): string[] {
     return fallback;
   }
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isCanvasPresetId(value: unknown): value is CanvasPresetId {

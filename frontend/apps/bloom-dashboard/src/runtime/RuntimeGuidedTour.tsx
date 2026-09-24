@@ -1,5 +1,5 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
-import { localizeOperatorText } from "@bloom/widgets";
+import { isRecord, localizeOperatorText } from "@bloom/widgets";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -331,8 +331,4 @@ function resolveStepBody(
     return strings.tour.moveBody(movement.controlName, movement.directionLabel, moveCount);
   }
   return strings.tour.steps[stepId].body;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

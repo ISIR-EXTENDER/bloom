@@ -1,3 +1,4 @@
+import { isRecord } from "@bloom/widgets";
 import { useCallback, useState } from "react";
 
 import { runtimePreferenceKey } from "../runtime/runtime-profile-overrides";
@@ -92,8 +93,4 @@ function normalizeProgress(value: unknown): GuidedTourProgress {
       return normalized.length > 0 ? [[key, normalized]] : [];
     }),
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

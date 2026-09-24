@@ -1,3 +1,4 @@
+import { isRecord } from "./values";
 /** Readings Bloom Debug shows as tables: a row-major Jacobian and per-joint states. Nothing here invents a value. */
 
 export type JacobianReading = { columns: number; rows: number; values: readonly number[] };
@@ -129,8 +130,4 @@ function determinant(matrix: number[][]): number {
 function finiteOrNull(value: unknown): number | null {
   const number = Number(value);
   return value !== undefined && value !== null && Number.isFinite(number) ? number : null;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

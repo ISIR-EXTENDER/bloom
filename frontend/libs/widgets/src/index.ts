@@ -23,6 +23,7 @@ export * from "./plot-series";
 export * from "./runtime";
 export * from "./settings";
 export * from "./telemetry";
+export * from "./values";
 export * from "./widget-destination";
 export * from "./widget-readiness";
 

@@ -1,4 +1,5 @@
 import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
+import { isRecord } from "@bloom/widgets";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 
@@ -84,8 +85,4 @@ function copyFiniteNumber<Key extends "deadzone" | "dwellMs" | "fontScale" | "re
   if (typeof value === "number" && Number.isFinite(value)) {
     target[key] = value;
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

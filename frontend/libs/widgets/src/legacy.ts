@@ -10,6 +10,7 @@ import type {
 } from "@bloom/api-client";
 import { DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 import { DEFAULT_CANVAS_SETTINGS } from "./canvas-defaults";
+import { isRecord } from "./values";
 
 export type LegacyCanvasScreen = {
   id?: string;
@@ -238,8 +239,4 @@ function stringOrFallback(value: unknown, fallback: string): string {
 
 function numberOrFallback(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
