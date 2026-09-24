@@ -1,0 +1,641 @@
+{
+  "metadata": {
+    "schema_version": 1,
+    "exported_at": "2026-09-24T17:00:00Z",
+    "source": "bloom:widget-lab"
+  },
+  "applications": [
+    {
+      "id": "widget-lab",
+      "name": "Widget Lab",
+      "description": "Every widget kind on the palette, bound to the simulation's topics, so each one is proven end to end.",
+      "lifecycle": "active",
+      "action_presets": [],
+      "runtime_policy": {
+        "command_frame_id": "base_link",
+        "allowed_message_types": [
+          "geometry_msgs/msg/PoseStamped",
+          "geometry_msgs/msg/TwistStamped",
+          "sensor_msgs/msg/JointState",
+          "std_msgs/msg/Float64",
+          "std_msgs/msg/Float64MultiArray",
+          "std_msgs/msg/String"
+        ],
+        "allowed_publish_topics": [
+          "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed",
+          "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+          "/gripper_controller/commands",
+          "/mode_request",
+          "/ui/widget_lab/gesture"
+        ],
+        "allowed_recording_topics": [
+          "/cartesian_command",
+          "/ee_jac",
+          "/ee_pose",
+          "/ee_velocity",
+          "/joint_states",
+          "/joint_target_command",
+          "/joystick_cartesian_command",
+          "/mode_request",
+          "/qontrol_explorer/effort_overload"
+        ],
+        "allowed_teleop_targets": [
+          "/joystick_cartesian_command"
+        ],
+        "allowed_parameters": [
+          "/cartesian_manager:shapers.snake.gain"
+        ]
+      },
+      "theme": {
+        "inspiration": {
+          "moodboard_image_uri": "",
+          "reference_url": ""
+        },
+        "preset_id": "bloom-default",
+        "palette": {
+          "primary": "#7f967e",
+          "accent": "#d9a441",
+          "background": "#f7f1e6",
+          "surface": "#fffdf7"
+        }
+      },
+      "profiles": [
+        {
+          "id": "lab",
+          "name": "Lab",
+          "display_preset": "default",
+          "font_scale": 1,
+          "app_theme_preset_id": "bloom-default",
+          "preferred_control_layout_id": "lab-controls",
+          "motor_accessibility_preset": "default",
+          "audio_cues": false,
+          "deadzone": 0,
+          "repeat_guard_ms": 0,
+          "scan_period_ms": 1400
+        }
+      ],
+      "screens": [
+        {
+          "id": "lab-controls",
+          "title": "Controls",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 1064,
+              "y": 194,
+              "width": 202,
+              "height": 468
+            }
+          ],
+          "widgets": [
+            {
+              "id": "lab-title",
+              "kind": "label",
+              "title": "Widget Lab",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 540,
+                "height": 64
+              },
+              "settings": {
+                "text": "Every control on the palette, driven in simulation",
+                "fontSize": 22,
+                "align": "left"
+              }
+            },
+            {
+              "id": "lab-translation",
+              "kind": "joystick",
+              "title": "Translation",
+              "layout": {
+                "x": 14,
+                "y": 90,
+                "width": 300,
+                "height": 332
+              },
+              "settings": {
+                "deadzone": 0,
+                "labels": {
+                  "top": "▲ Forward",
+                  "bottom": "▼ Back",
+                  "left": "◀ Left",
+                  "right": "Right ▶"
+                },
+                "mode_id": "both",
+                "publish_rate_hz": 30,
+                "show_details": false,
+                "zero_on_release": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "translation",
+                  "value_mapping": {
+                    "mode": 0,
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_y"
+                    },
+                    "y": {
+                      "component": "linear_x",
+                      "scale": -1
+                    }
+                  },
+                  "axis_deadzone": 0.2
+                }
+              }
+            },
+            {
+              "id": "lab-height",
+              "kind": "slider",
+              "title": "Height",
+              "layout": {
+                "x": 326,
+                "y": 90,
+                "width": 110,
+                "height": 346
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "vertical",
+                "show_details": false,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "linear_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "linear_z"
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                },
+                "title_placement": "above"
+              }
+            },
+            {
+              "id": "lab-gesture",
+              "kind": "gesture-pad",
+              "title": "Gesture",
+              "layout": {
+                "x": 448,
+                "y": 90,
+                "width": 300,
+                "height": 280
+              },
+              "settings": {
+                "command": "",
+                "topic": "/ui/widget_lab/gesture",
+                "messageType": "std_msgs/msg/String",
+                "angleLabel": "Angle",
+                "powerLabel": "Power",
+                "show_details": false
+              }
+            },
+            {
+              "id": "lab-gripper",
+              "kind": "toggle",
+              "title": "Gripper",
+              "layout": {
+                "x": 760,
+                "y": 90,
+                "width": 292,
+                "height": 120
+              },
+              "settings": {
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "initialValue": false,
+                "show_details": false,
+                "topic": "/gripper_controller/commands",
+                "messageType": "std_msgs/msg/Float64MultiArray",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}",
+                "onStateLabel": "closed",
+                "offStateLabel": "open"
+              }
+            },
+            {
+              "id": "lab-hold-snake",
+              "kind": "command-button",
+              "title": "Snake",
+              "layout": {
+                "x": 760,
+                "y": 222,
+                "width": 292,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-hold-snake",
+                "action_label": "Hold for snake",
+                "button_label": "Hold snake",
+                "cancellable": false,
+                "command": "geometric/snake",
+                "momentary": true,
+                "pressed_label": "SNAKE ON",
+                "released_label": "Hold snake",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/snake"
+                },
+                "releasedPayload": {
+                  "data": "geometric/both"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-jaco",
+              "kind": "command-button",
+              "title": "Jaco",
+              "layout": {
+                "x": 760,
+                "y": 338,
+                "width": 292,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-jaco",
+                "action_label": "Request geometric/jaco",
+                "button_label": "Jaco",
+                "cancellable": false,
+                "command": "geometric/jaco",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "geometric/jaco"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-max-speed",
+              "kind": "slider",
+              "title": "Max speed",
+              "layout": {
+                "x": 14,
+                "y": 448,
+                "width": 420,
+                "height": 132
+              },
+              "settings": {
+                "max": 0.3,
+                "min": 0,
+                "step": 0.015,
+                "value": 0.15,
+                "direction": "horizontal",
+                "show_details": false,
+                "unit": "m/s",
+                "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+                "messageType": "std_msgs/msg/Float64",
+                "variant": "segments",
+                "segment_labels": [
+                  "Slow",
+                  "Medium",
+                  "Fast"
+                ],
+                "segment_values": [
+                  0.08,
+                  0.15,
+                  0.3
+                ]
+              }
+            },
+            {
+              "id": "lab-pivot",
+              "kind": "slider",
+              "title": "Pivot",
+              "layout": {
+                "x": 448,
+                "y": 434,
+                "width": 300,
+                "height": 146
+              },
+              "settings": {
+                "max": 1,
+                "min": -1,
+                "step": 0.01,
+                "value": 0,
+                "direction": "horizontal",
+                "show_details": false,
+                "returnToCenter": true,
+                "runtime_binding": {
+                  "adapter": "teleop",
+                  "target": "angular_z",
+                  "axis_mapping": {
+                    "value": {
+                      "component": "angular_z",
+                      "scale": -1
+                    }
+                  },
+                  "value_mapping": {
+                    "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_deadzone": 0.2
+                },
+                "labels": {
+                  "negative": "↶ Turn left",
+                  "positive": "Turn right ↷"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "lab-readers",
+          "title": "Readers",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 1064,
+              "y": 194,
+              "width": 202,
+              "height": 468
+            }
+          ],
+          "widgets": [
+            {
+              "id": "lab-gauge",
+              "kind": "gauge",
+              "title": "Height above base",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 280,
+                "height": 180
+              },
+              "settings": {
+                "min": 0,
+                "max": 1,
+                "value": 0,
+                "topic": "/ee_pose",
+                "messageType": "geometry_msgs/msg/PoseStamped",
+                "fieldPath": "pose.position.z",
+                "show_details": false,
+                "unit": "m"
+              }
+            },
+            {
+              "id": "lab-topic-plot",
+              "kind": "topic-plot",
+              "title": "Hand x",
+              "layout": {
+                "x": 306,
+                "y": 14,
+                "width": 380,
+                "height": 180
+              },
+              "settings": {
+                "topic": "/ee_pose",
+                "messageType": "geometry_msgs/msg/PoseStamped",
+                "fieldPath": "pose.position.x",
+                "show_details": false,
+                "historySeconds": 30,
+                "maxSamples": 300,
+                "unit": "m",
+                "variant": "area"
+              }
+            },
+            {
+              "id": "lab-plot",
+              "kind": "plot",
+              "title": "Hand y",
+              "layout": {
+                "x": 698,
+                "y": 14,
+                "width": 354,
+                "height": 260
+              },
+              "settings": {
+                "topic": "/ee_pose",
+                "messageType": "geometry_msgs/msg/PoseStamped",
+                "fieldPath": "pose.position.y",
+                "historySeconds": 30,
+                "maxSamples": 300,
+                "samples": [],
+                "showLegend": true,
+                "show_details": false,
+                "unit": "m",
+                "variant": "line"
+              }
+            },
+            {
+              "id": "lab-echo",
+              "kind": "topic-echo",
+              "title": "Mode requests",
+              "layout": {
+                "x": 14,
+                "y": 206,
+                "width": 300,
+                "height": 200
+              },
+              "settings": {
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "fieldPath": "",
+                "maxMessages": 20,
+                "prettyPrint": true,
+                "show_details": false
+              }
+            },
+            {
+              "id": "lab-events",
+              "kind": "event-log",
+              "title": "Mode log",
+              "layout": {
+                "x": 326,
+                "y": 206,
+                "width": 360,
+                "height": 200
+              },
+              "settings": {
+                "entries": [],
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "fieldPath": "data",
+                "maxEntries": 20,
+                "severityFilter": [
+                  "info",
+                  "warning",
+                  "error",
+                  "success"
+                ],
+                "showTimestamps": true,
+                "show_details": false
+              }
+            },
+            {
+              "id": "lab-ping",
+              "kind": "command-button",
+              "title": "Ping",
+              "layout": {
+                "x": 698,
+                "y": 286,
+                "width": 354,
+                "height": 104
+              },
+              "settings": {
+                "action_feedback": "none",
+                "action_id": "lab-ping",
+                "action_label": "Request behaviour/passthrough",
+                "button_label": "Ping passthrough",
+                "cancellable": false,
+                "command": "behaviour/passthrough",
+                "topic": "/mode_request",
+                "messageType": "std_msgs/msg/String",
+                "payload": {
+                  "data": "behaviour/passthrough"
+                },
+                "show_details": false,
+                "hide_title": true
+              }
+            },
+            {
+              "id": "lab-strip",
+              "kind": "value-strip",
+              "title": "Hand position",
+              "layout": {
+                "x": 14,
+                "y": 418,
+                "width": 672,
+                "height": 140
+              },
+              "settings": {
+                "series": [
+                  {
+                    "topic": "/ee_pose",
+                    "message_type": "geometry_msgs/msg/PoseStamped",
+                    "field_path": "pose.position.x",
+                    "label": "x",
+                    "unit": "m",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/ee_pose",
+                    "message_type": "geometry_msgs/msg/PoseStamped",
+                    "field_path": "pose.position.y",
+                    "label": "y",
+                    "unit": "m",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/ee_pose",
+                    "message_type": "geometry_msgs/msg/PoseStamped",
+                    "field_path": "pose.position.z",
+                    "label": "z",
+                    "unit": "m",
+                    "enabled": true
+                  }
+                ],
+                "show_details": false
+              }
+            }
+          ]
+        },
+        {
+          "id": "lab-robot",
+          "title": "Robot",
+          "canvas": {
+            "preset_id": "native-1280x720",
+            "runtime_mode": "fit"
+          },
+          "reserved_regions": [
+            {
+              "id": "stop",
+              "owner": "runtime-chrome",
+              "x": 1064,
+              "y": 194,
+              "width": 202,
+              "height": 468
+            }
+          ],
+          "widgets": [
+            {
+              "id": "lab-positions",
+              "kind": "position-library",
+              "title": "Saved poses",
+              "layout": {
+                "x": 14,
+                "y": 14,
+                "width": 480,
+                "height": 360
+              },
+              "settings": {
+                "jointStateTopic": "/joint_states",
+                "jointNames": [
+                  "joint_1",
+                  "joint_2",
+                  "joint_3",
+                  "joint_4",
+                  "joint_5",
+                  "joint_6"
+                ],
+                "show_details": false
+              }
+            },
+            {
+              "id": "lab-camera",
+              "kind": "camera",
+              "title": "Camera",
+              "layout": {
+                "x": 14,
+                "y": 386,
+                "width": 360,
+                "height": 260
+              },
+              "settings": {
+                "fitMode": "contain",
+                "showHeader": true,
+                "showStatus": true,
+                "source": "ros-topic",
+                "streamUrl": "",
+                "topic": "/camera/color/image_raw/compressed",
+                "webcamPicker": false
+              }
+            },
+            {
+              "id": "lab-robot-3d",
+              "kind": "robot-3d",
+              "title": "Robot",
+              "layout": {
+                "x": 506,
+                "y": 14,
+                "width": 546,
+                "height": 420
+              },
+              "settings": {
+                "description": "The running robot, from its own description.",
+                "jointStateTopic": "/joint_states",
+                "modelSource": "extension",
+                "robotModelUrl": "",
+                "showAxes": true
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

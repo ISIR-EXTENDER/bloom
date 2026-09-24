@@ -23,6 +23,7 @@ DRIVE_LAYOUTS = ("manager_drive_bench", "manager_drive_operator")
 
 SHARED_APP_IDS = {
     "bloom-debug",
+    "widget-lab",
     "explorer-camera-test",
     "explorer-manager",
     "kinova-camera-test",
@@ -35,7 +36,7 @@ SHARED_APP_IDS = {
 
 #: The apps that shipped before seeds carried a fingerprint, and so need a recorded one to be
 #: recognised as unedited. An app first shipped after stamps existed has never been unstamped.
-PRE_STAMP_APP_IDS = SHARED_APP_IDS - {"explorer-camera-test", "kinova-camera-test", "visual-servoing"}
+PRE_STAMP_APP_IDS = SHARED_APP_IDS - {"explorer-camera-test", "kinova-camera-test", "visual-servoing", "widget-lab"}
 
 
 def test_shipped_bundles_are_present_and_valid() -> None:

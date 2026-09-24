@@ -7,7 +7,7 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { chromium } from "@playwright/test";
+import { chromium, expect } from "@playwright/test";
 import {
   addPaletteWidgets,
   configureHoldButton,
@@ -78,7 +78,9 @@ const {
   maxLinearSpeed: MAX_LINEAR,
   mode: MODE,
   jointTarget: JOINT_TARGET,
+  cameraImage: CAMERA,
 } = STACK;
+const GESTURE = "/ui/widget_lab/gesture";
 const MIN_DISPLACEMENT_M = 0.03;
 const MIN_ROTATION_RAD = 0.05;
 /**
@@ -108,6 +110,7 @@ try {
   await benchSession();
   await debugSession();
   await authoredSession();
+  await labSession();
 } finally {
   await browser.close();
   ros.stop();
@@ -427,6 +430,138 @@ async function authoredSession() {
   }
 }
 
+/** Widget Lab: every kind the palette offers, each bound to the simulation, each pressed or read once. */
+async function labSession() {
+  const { context, page } = await newPage({ width: 1280, height: 720 });
+  try {
+    const opened = await check(page, "lab-opens", async () => {
+      await openRuntimeApp(page, dashboardUrl, { appName: "Widget Lab", layoutId: "lab-controls" });
+      await shot(page, "lab-controls");
+      return "Widget Lab, lab-controls, READY";
+    });
+    if (!opened) {
+      return;
+    }
+
+    await check(page, "lab-label-joystick-and-height", async () => {
+      await page.getByText("Every control on the palette, driven in simulation").waitFor();
+      const start = await ros.waitFor(POSE, () => true, { since: Date.now() });
+      let since = Date.now();
+      const release = await pressJoystick(page, page.getByRole("application", { name: "Translation" }), { x: 0, y: 2 });
+      await page.waitForTimeout(robot.driveHoldMs);
+      await release();
+      const held = ros.since(TWIST, since).filter((message) => !isZeroTwist(message.data));
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      await page.waitForTimeout(800);
+      const moved = distance(start.position, ros.latest(POSE).data.position);
+      const back = await pressJoystick(page, page.getByRole("application", { name: "Translation" }), { x: 0, y: -2 });
+      await page.waitForTimeout(robot.driveHoldMs);
+      await back();
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      since = Date.now();
+      const up = await pressSliderEnd(page, "Height", "positive");
+      await page.waitForTimeout(400);
+      await up();
+      const lifted = ros.since(TWIST, since).some((message) => message.data.linear.z > 0.5);
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      assert(
+        held.length > 0 && moved > MIN_DISPLACEMENT_M,
+        `joystick: ${held.length} twists, moved ${(moved * 100).toFixed(1)} cm`,
+      );
+      assert(lifted, "Height's top end put no +linear.z on the wire");
+      return `label shown; joystick moved the hand ${(moved * 100).toFixed(1)} cm; Height sent +linear.z`;
+    });
+
+    await check(page, "lab-gesture-pad-publishes", async () => {
+      const pad = page.getByRole("button", { name: /^Gesture: choose trajectory gesture/ });
+      const box = await pad.boundingBox();
+      const since = Date.now();
+      await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * 0.75, box.y + box.height * 0.3, { steps: 6 });
+      await page.mouse.up();
+      const gesture = await ros.waitFor(GESTURE, (data) => data.data.includes("angleDegrees"), { since });
+      const parsed = JSON.parse(gesture.data);
+      assert(Number.isFinite(parsed.angleDegrees) && Number.isFinite(parsed.power), `gesture ${gesture.data}`);
+      return `${GESTURE} <- ${gesture.data}`;
+    });
+
+    await check(page, "lab-gripper-jaco-and-hold", async () => {
+      let since = Date.now();
+      await page.getByRole("button", { name: /^Gripper: Close gripper/ }).click();
+      // The lab ships the Explorer's values on both robots; the shipped app's check holds each robot to its own.
+      const closed = await ros.waitFor(GRIPPER, (data) => data.data.length > 0, { since });
+      since = Date.now();
+      await page.getByRole("button", { name: "Jaco" }).click();
+      await ros.waitFor(MODE, (data) => data.data === "geometric/jaco", { since });
+      since = Date.now();
+      await hold(page, page.getByRole("button", { name: "Hold snake" }), 600);
+      await ros.waitFor(MODE, (data) => data.data === "geometric/both", { since });
+      const modes = ros.since(MODE, since).map((message) => message.data.data);
+      assert(modes.includes("geometric/snake"), `mode requests ${modes.join(" -> ")}`);
+      return `gripper ${JSON.stringify(closed.data)}; Jaco -> geometric/jaco; hold -> ${modes.join(" -> ")}`;
+    });
+
+    await check(page, "lab-speed-and-pivot", async () => {
+      const subscribers = ros.subscribers(MAX_LINEAR);
+      let speed = "no subscriber, Slow not asserted";
+      if (subscribers.length > 0) {
+        const since = Date.now();
+        await page.getByRole("group", { name: "Max speed" }).getByRole("button", { exact: true, name: "Slow" }).click();
+        const slow = await ros.waitFor(MAX_LINEAR, (data) => near(data.data, 0.08), { since });
+        speed = `Slow ${slow.data} m/s`;
+      }
+      const since = Date.now();
+      const release = await pressSliderEnd(page, "Pivot", "negative");
+      await page.waitForTimeout(400);
+      await release();
+      const turned = ros.since(TWIST, since).some((message) => message.data.angular.z > 0.5);
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      assert(turned, "Pivot's left end put no +angular.z on the wire");
+      return `${speed}; Pivot left -> +angular.z`;
+    });
+
+    await check(page, "lab-readers-show-live-values", async () => {
+      await openScreen(page, "Readers", "lab-readers");
+      const meter = page.locator('.bloom-gauge-widget[data-live="true"] meter');
+      await meter.waitFor({ timeout: 10000 });
+      const height = Number(await meter.getAttribute("value"));
+      await page.locator(".bloom-topic-plot[data-sample-count]").waitFor({ timeout: 10000 });
+      await page.waitForTimeout(1500);
+      const samples = Number(await page.locator(".bloom-topic-plot").getAttribute("data-sample-count"));
+      await page.locator('.bloom-plot-widget[data-live="true"]').waitFor({ timeout: 10000 });
+      const strip = page.getByRole("list", { name: "Hand position" });
+      await strip.waitFor({ timeout: 10000 });
+      const numbers = (await strip.allTextContents()).join(" ").match(/[+-−]?\d+\.\d+/g) ?? [];
+      const since = Date.now();
+      await page.getByRole("button", { name: "Ping passthrough" }).click();
+      await ros.waitFor(MODE, (data) => data.data === "behaviour/passthrough", { since });
+      await page.locator(".bloom-topic-echo", { hasText: "behaviour/passthrough" }).waitFor({ timeout: 10000 });
+      await page.locator("li.bloom-event-log-entry", { hasText: "behaviour/passthrough" }).waitFor({ timeout: 10000 });
+      await shot(page, "lab-readers");
+      assert(height > 0, `gauge reads ${height}`);
+      assert(samples > 0, `topic plot has ${samples} samples`);
+      assert(numbers.length >= 3, `value strip shows ${numbers.join(" ")}`);
+      return `gauge ${height.toFixed(3)} m, topic plot ${samples} samples, plot live, strip ${numbers.slice(0, 3).join(" ")}, echo and log show behaviour/passthrough`;
+    });
+
+    await check(page, "lab-positions-and-camera", async () => {
+      await openScreen(page, "Robot", "lab-robot");
+      const capture = page.getByRole("button", { name: "Capture the robot's current pose" });
+      await capture.waitFor({ timeout: 10000 });
+      await expect(capture).toBeEnabled({ timeout: 10000 });
+      await capture.click();
+      const saved = page.getByRole("list", { name: "Saved poses" }).locator("li");
+      await saved.first().waitFor({ timeout: 10000 });
+      await page.locator("img.bloom-camera-image").waitFor({ timeout: 15000 });
+      await shot(page, "lab-robot");
+      return `${await saved.count()} pose captured; camera shows a frame from ${CAMERA}`;
+    });
+  } finally {
+    await context.close();
+  }
+}
+
 // ---- Gestures ----
 
 /** Full forward deflection, so both layouts clamp to the same twist, then the same stroke back. */
@@ -655,7 +790,7 @@ function probeSource() {
 import json, sys, time, rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, TwistStamped
-from sensor_msgs.msg import JointState
+from sensor_msgs.msg import CompressedImage, JointState
 from std_msgs.msg import Float64, Float64MultiArray, String
 
 rclpy.init()
@@ -681,6 +816,17 @@ node.create_subscription(Float64MultiArray, "${GRIPPER}", lambda m: emit("${GRIP
 node.create_subscription(Float64, "${MAX_LINEAR}", lambda m: emit("${MAX_LINEAR}", {"data": m.data}), 10)
 node.create_subscription(String, "${MODE}", lambda m: emit("${MODE}", {"data": m.data}), 10)
 node.create_subscription(JointState, "${JOINT_TARGET}", lambda m: emit("${JOINT_TARGET}", {"name": list(m.name), "position": list(m.position)}, 0.1), 10)
+node.create_subscription(String, "${GESTURE}", lambda m: emit("${GESTURE}", {"data": m.data}), 10)
+
+# A 1x1 PNG at 2 Hz, so a camera widget bound to the topic has a frame to show.
+frame = CompressedImage()
+frame.format = "png"
+frame.data = bytes.fromhex("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63f8cfc0f01f0005000301b7a72a220000000049454e44ae426082")
+camera = node.create_publisher(CompressedImage, "${CAMERA}", 10)
+def publish_frame():
+    frame.header.stamp = node.get_clock().now().to_msg()
+    camera.publish(frame)
+node.create_timer(0.5, publish_frame)
 
 def graph():
     names = sorted({info.node_name for info in node.get_subscriptions_info_by_topic("${MAX_LINEAR}") if info.node_name != node.get_name()})
