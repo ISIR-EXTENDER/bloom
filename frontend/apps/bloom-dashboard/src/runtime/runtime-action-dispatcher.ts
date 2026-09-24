@@ -9,10 +9,13 @@ import {
 } from "@bloom/api-client";
 import {
   asRecord,
+  asTopic,
   isRecord,
   readOptionalNumber,
   readOptionalString,
+  readValueMappingTopic,
   resolveTeleopFrameId,
+  TELEOP_DEFAULT_TARGET,
   type Vector2Value,
   type WidgetActionIntent,
 } from "@bloom/widgets";
@@ -654,7 +657,7 @@ export function createTeleopCommandRequest(
 
   const valueMapping = asRecord(runtimeBinding.value_mapping);
   const mode = readOptionalNumber(valueMapping.mode) ?? resolveTeleopMode(intent.modeId);
-  const target = resolveTeleopTarget(valueMapping);
+  const target = readValueMappingTopic(valueMapping) ?? TELEOP_DEFAULT_TARGET;
   /*
    * The frame a widget declares, resolved against everything else that is driving.
    *
@@ -780,7 +783,7 @@ export function createValueTopicPublishRequest(
   const runtimeBinding = asRecord(intent.runtimeBinding);
   const valueMapping = asRecord(runtimeBinding.value_mapping);
   const adapter = readOptionalString(runtimeBinding.adapter);
-  const topic = resolveValueTopic(intent, runtimeBinding, valueMapping);
+  const topic = readValueMappingTopic(valueMapping) ?? asTopic(runtimeBinding.target) ?? asTopic(intent.topic);
   if (!topic || (adapter && adapter !== "topic")) {
     return null;
   }
@@ -872,29 +875,6 @@ function resolveTeleopMode(modeId: string | undefined): number {
     return 4;
   }
   return 3;
-}
-
-function resolveTeleopTarget(valueMapping: Record<string, unknown>): string {
-  const topic = readOptionalString(valueMapping.target_topic) ?? readOptionalString(valueMapping.topic);
-  if (topic?.startsWith("/")) {
-    return topic;
-  }
-  // cartesian_manager input. The legacy /teleop_cmd path is reachable by
-  // configuring target_topic explicitly on the widget binding.
-  return "/joystick_cartesian_command";
-}
-
-function resolveValueTopic(
-  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
-  runtimeBinding: Record<string, unknown>,
-  valueMapping: Record<string, unknown>,
-): string | null {
-  const topic =
-    readOptionalString(valueMapping.target_topic) ??
-    readOptionalString(valueMapping.topic) ??
-    readOptionalString(runtimeBinding.target) ??
-    intent.topic;
-  return topic?.startsWith("/") ? topic : null;
 }
 
 function createValuePayload(

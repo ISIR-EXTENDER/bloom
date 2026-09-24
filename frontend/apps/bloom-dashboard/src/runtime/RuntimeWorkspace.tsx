@@ -6,7 +6,13 @@ import type {
   WidgetConfig,
 } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import { appendTopicEchoMessage, appendTopicPlotSample, getNumberSetting, readOptionalString } from "@bloom/widgets";
+import {
+  appendTopicEchoMessage,
+  appendTopicPlotSample,
+  getNumberSetting,
+  readOptionalString,
+  resolveSubscriptionTopic,
+} from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -1063,21 +1069,7 @@ function appendRuntimeTopicSample(
  * subscription rule instead of a copy of it. See `widget-destination.ts`.
  */
 export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefined {
-  if (widget.kind === "robot-3d" || widget.kind === "position-library") {
-    return readOptionalString(widget.settings.jointStateTopic) ?? "/joint_states";
-  }
-  if (
-    widget.kind === "gauge" ||
-    widget.kind === "event-log" ||
-    widget.kind === "jacobian" ||
-    widget.kind === "joint-table" ||
-    widget.kind === "plot" ||
-    widget.kind === "topic-echo" ||
-    widget.kind === "topic-plot"
-  ) {
-    return readOptionalString(widget.settings.topic);
-  }
-  return undefined;
+  return resolveSubscriptionTopic(widget.kind, widget.settings) ?? undefined;
 }
 
 function resolveWidgetRuntimeMessageType(widget: WidgetConfig): string {

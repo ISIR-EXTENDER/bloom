@@ -51,12 +51,8 @@ export type WidgetDestination = {
   inertSettings: InertSetting[];
 };
 
-/**
- * The manager input a teleop widget falls back to.
- *
- * Mirrors `resolveTeleopTarget` in the runtime dispatcher.
- */
-const TELEOP_DEFAULT_TARGET = "/joystick_cartesian_command";
+/** The manager input a teleop widget falls back to; the legacy /teleop_cmd path needs an explicit target_topic. */
+export const TELEOP_DEFAULT_TARGET = "/joystick_cartesian_command";
 
 /**
  * What the legacy `binding` setting still does, per kind.
@@ -100,37 +96,54 @@ const ACTION_CONTRACT_SETTINGS: InertSetting[] = [
   { key: "cancellable", reason: ACTION_CONTRACT_INERT },
 ];
 
-/** Mirrors `resolveWidgetRuntimeTopic` in `RuntimeWorkspace`. */
 const READING_KINDS = new Set(["event-log", "gauge", "jacobian", "joint-table", "plot", "topic-echo", "topic-plot"]);
+const JOINT_STATE_KINDS = new Set(["position-library", "robot-3d"]);
 const PUBLISHING_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
 const ROBOT_3D_DEFAULT_TOPIC = "/joint_states";
 
-function asTopic(value: unknown): string | null {
+/** A ROS topic path, or null: without the leading slash it is not one. */
+export function asTopic(value: unknown): string | null {
   return typeof value === "string" && value.startsWith("/") ? value : null;
 }
 
+/** The topic a binding's value mapping names, target_topic before topic. */
+export function readValueMappingTopic(valueMapping: Record<string, unknown>): string | null {
+  return asTopic(valueMapping.target_topic) ?? asTopic(valueMapping.topic);
+}
+
+/**
+ * The topic a reading widget subscribes to, and what the runtime subscribes: the joint state topic
+ * for the robot views (a default stands in), the widget's own topic otherwise, null for a kind that
+ * reads nothing.
+ */
+export function resolveSubscriptionTopic(kind: string, settings: Record<string, unknown>): string | null {
+  if (JOINT_STATE_KINDS.has(kind)) {
+    return asTopic(settings.jointStateTopic) ?? ROBOT_3D_DEFAULT_TOPIC;
+  }
+  return READING_KINDS.has(kind) ? asTopic(settings.topic) : null;
+}
+
 function resolveReadSource(kind: string, settings: Record<string, unknown>): WidgetDestination {
-  if (kind === "robot-3d" || kind === "position-library") {
+  const topic = resolveSubscriptionTopic(kind, settings);
+  if (JOINT_STATE_KINDS.has(kind)) {
     const modelSettings = kind === "robot-3d" ? ROBOT_MODEL_SETTINGS : [];
-    const configured = asTopic(settings.jointStateTopic);
-    return configured
+    return asTopic(settings.jointStateTopic)
       ? {
           direction: "reads",
-          topic: configured,
+          topic,
           source: "input-topic",
           detail: null,
           inertSettings: modelSettings,
         }
       : {
           direction: "reads",
-          topic: ROBOT_3D_DEFAULT_TOPIC,
+          topic,
           source: "widget-default",
           detail: "The default when no joint state topic is set.",
           inertSettings: modelSettings,
         };
   }
 
-  const topic = asTopic(settings.topic);
   return topic
     ? {
         direction: "reads",
@@ -152,7 +165,7 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
   const runtimeBinding = asRecord(settings.runtime_binding);
   const valueMapping = asRecord(runtimeBinding.value_mapping);
   const adapter = typeof runtimeBinding.adapter === "string" ? runtimeBinding.adapter : "";
-  const bindingTopic = asTopic(valueMapping.target_topic) ?? asTopic(valueMapping.topic);
+  const bindingTopic = readValueMappingTopic(valueMapping);
   const legacy: InertSetting[] = [
     ...(kind === "slider" ? [{ key: "binding", reason: LEGACY_BINDING_INERT_ON_SLIDER }] : []),
     ...(kind === "command-button" ? ACTION_CONTRACT_SETTINGS : []),
@@ -258,7 +271,7 @@ export function resolveWidgetDestination(
 ): WidgetDestination | null {
   const widgetSettings = asRecord(settings);
 
-  if (kind === "robot-3d" || kind === "position-library" || READING_KINDS.has(kind)) {
+  if (JOINT_STATE_KINDS.has(kind) || READING_KINDS.has(kind)) {
     return resolveReadSource(kind, widgetSettings);
   }
   if (PUBLISHING_KINDS.has(kind)) {
