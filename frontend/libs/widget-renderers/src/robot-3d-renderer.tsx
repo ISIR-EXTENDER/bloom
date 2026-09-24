@@ -85,18 +85,18 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
             />
           </Suspense>
         ) : null}
-        {canDraw && robotModel && status.model === "ready" ? (
-          <button
-            aria-label="Frame the robot"
-            className="bloom-robot-3d-fit"
-            onClick={() => setFitRequest((count) => count + 1)}
-            type="button"
-          >
-            Frame
-          </button>
-        ) : null}
         {note ? <p className="bloom-robot-3d-note">{note}</p> : null}
       </div>
+      {canDraw && robotModel && status.model === "ready" ? (
+        <button
+          aria-label="Frame the robot"
+          className="bloom-robot-3d-fit"
+          onClick={() => setFitRequest((count) => count + 1)}
+          type="button"
+        >
+          Frame
+        </button>
+      ) : null}
       <strong className="bloom-display-source">
         {snapshot ? summarizeJointState(snapshot.value, status.joints) : "Waiting for joint states"}
         {markerTopic ? ` · markers ${markerTopic}` : ""}

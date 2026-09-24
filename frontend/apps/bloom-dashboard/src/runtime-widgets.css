@@ -1782,6 +1782,7 @@
 }
 
 .bloom-robot-3d-widget {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
@@ -1822,10 +1823,11 @@
   text-align: center;
 }
 
+/* A sibling of the stage, not a child: children of an image role are hidden from assistive technology. */
 .bloom-robot-3d-fit {
   position: absolute;
-  top: 10px;
   right: 10px;
+  bottom: 44px;
   min-height: 36px;
   padding: 0 14px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 24%, transparent);

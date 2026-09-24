@@ -42,6 +42,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **The runtime applies a frame's samples in one state update.** Every sample used to re-render the whole
   runtime; now what arrived within about 16 ms lands together, newest last, and a hidden tab keeps only the
   newest six hundred. Measured on the Widget Lab Robot screen: 28% to 23% of a core.
+- The Frame button of the 3D view sits beside the stage rather than inside its image role, where assistive
+  technology could not reach it.
 - **The robot description answers 304** to an unchanged robot, and meshes carry a five-minute cache header, so
   the view's ten-second poll costs a hash and a reload does not fetch every mesh again.
 - **Bloom Debug has a Robot view screen**: the 3D robot view with `/ee_pose`, `/joint_target_command` and
