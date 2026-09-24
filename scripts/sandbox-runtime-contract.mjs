@@ -175,5 +175,8 @@ assert(
   "expected [13, 1]",
 );
 requirePolicyAllows(STACK.hubOutput);
+// hub.py publishes each Arduino line as [pin, value]; Snake Control shows both input topics raw.
+requireTopicWidget("snake-hub-digital-input", "topic-echo", STACK.hubDigitalInput, "std_msgs/msg/Float32MultiArray");
+requireTopicWidget("snake-hub-analog-input", "topic-echo", STACK.hubAnalogInput, "std_msgs/msg/Float32MultiArray");
 
 finish();

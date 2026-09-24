@@ -875,6 +875,44 @@
                   }
                 }
               }
+            },
+            {
+              "id": "snake-hub-digital-input",
+              "kind": "topic-echo",
+              "title": "Hub digital inputs [pin, state]",
+              "layout": {
+                "x": 20,
+                "y": 244,
+                "width": 380,
+                "height": 280
+              },
+              "settings": {
+                "topic": "/hub/digital_input",
+                "messageType": "std_msgs/msg/Float32MultiArray",
+                "fieldPath": "data",
+                "maxMessages": 5,
+                "prettyPrint": false,
+                "show_details": false
+              }
+            },
+            {
+              "id": "snake-hub-analog-input",
+              "kind": "topic-echo",
+              "title": "Hub analog inputs [pin, value]",
+              "layout": {
+                "x": 880,
+                "y": 244,
+                "width": 380,
+                "height": 280
+              },
+              "settings": {
+                "topic": "/hub/analogic_input",
+                "messageType": "std_msgs/msg/Float32MultiArray",
+                "fieldPath": "data",
+                "maxMessages": 5,
+                "prettyPrint": false,
+                "show_details": false
+              }
             }
           ]
         },

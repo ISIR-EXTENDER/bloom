@@ -9,6 +9,8 @@ export const STACK = {
   eePose: "/ee_pose",
   eeVelocity: "/ee_velocity",
   gripper: "/gripper_controller/commands",
+  hubAnalogInput: "/hub/analogic_input",
+  hubDigitalInput: "/hub/digital_input",
   hubOutput: "/hub/digital_output",
   jointStates: "/joint_states",
   jointTarget: "/joint_target_command",
