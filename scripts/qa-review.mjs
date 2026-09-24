@@ -60,7 +60,8 @@ function checkDeadExports() {
 
   const declared = new Map();
   for (const path of sources) {
-    if (/\.test\.tsx?$/.test(path)) continue;
+    // Test scaffolding exists for the tests; only they ever import it.
+    if (/\.test\.tsx?$/.test(path) || path.includes("/test-support/")) continue;
     const text = readFileSync(path, "utf8");
     const pattern = /^export (?:async )?function (\w+)|^export const (\w+)|^export class (\w+)/gm;
     for (const match of text.matchAll(pattern)) {
