@@ -2022,18 +2022,6 @@
   }
 }
 
-.builder-settings-style-capabilities {
-  display: grid;
-  gap: 4px;
-  padding: 10px 12px;
-  border: 1px dashed color-mix(in srgb, var(--bloom-primary) 32%, var(--bloom-border));
-  border-radius: 14px;
-  color: var(--bloom-muted);
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
-.builder-settings-style-capabilities p,
 .builder-settings-error {
   margin: 0;
 }

@@ -153,11 +153,6 @@ textarea {
   font-size: 0.78rem;
 }
 
-.main-application-grid {
-  max-width: 1180px;
-  margin: 0 auto;
-}
-
 /* Landing (design 7b). */
 .landing {
   display: grid;
@@ -284,9 +279,7 @@ textarea {
 }
 
 .configuration-panel,
-.workspace-panel,
-.canvas-panel,
-.runtime-panel {
+.workspace-panel {
   border: 1px solid var(--bloom-border);
   border-radius: 32px;
   background: var(--bloom-panel);
@@ -330,9 +323,7 @@ h1 {
 }
 
 .configuration-panel h2,
-.workspace-panel h2,
-.canvas-heading h2,
-.runtime-panel h2 {
+.workspace-panel h2 {
   margin: 0;
   color: var(--bloom-ink);
   font-size: 1.45rem;
@@ -469,14 +460,6 @@ h1 {
   line-height: 1.55;
 }
 
-.step-card {
-  min-height: 168px;
-  padding: 24px;
-  box-shadow: none;
-}
-
-.step-card p,
-.runtime-panel p,
 .configuration-status {
   color: var(--bloom-ink-soft);
   line-height: 1.55;
@@ -500,16 +483,7 @@ h1 {
   color: var(--bloom-warning);
 }
 
-.main-application-grid {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-.workspace-panel,
-.canvas-panel,
-.runtime-panel {
+.workspace-panel {
   padding: 24px;
 }
 
@@ -559,128 +533,4 @@ h1 {
 .screen-list-item[aria-current="true"] {
   border-color: color-mix(in srgb, var(--bloom-primary) 44%, transparent);
   background: var(--bloom-primary-container);
-}
-
-.canvas-panel {
-  min-width: 0;
-}
-
-.canvas-heading {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.canvas-heading small {
-  color: var(--bloom-muted);
-}
-
-.canvas-viewport {
-  overflow: auto;
-  padding: 16px;
-  border: 1px solid var(--bloom-border);
-  border-radius: 24px;
-  background: var(--bloom-surface-container);
-}
-
-.screen-preview-artboard {
-  position: relative;
-  min-height: 440px;
-  overflow: hidden;
-  border: 1px solid rgba(63, 78, 70, 0.2);
-  border-radius: 22px;
-  background:
-    linear-gradient(to right, rgba(127, 159, 110, 0.16) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(127, 159, 110, 0.16) 1px, transparent 1px), var(--bloom-surface-container-low);
-  background-size: 24px 24px;
-}
-
-.screen-preview-artboard[data-canvas-mode="runtime"] {
-  background:
-    radial-gradient(circle at top right, rgba(127, 159, 110, 0.18), transparent 32%),
-    linear-gradient(to right, rgba(127, 159, 110, 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(127, 159, 110, 0.1) 1px, transparent 1px), var(--bloom-surface-container-low);
-  background-size:
-    auto,
-    24px 24px,
-    24px 24px;
-}
-
-.runtime-panel {
-  grid-column: 2;
-}
-
-.runtime-empty {
-  margin: 18px 0 0;
-  padding: 16px;
-  border: 1px dashed var(--bloom-border);
-  border-radius: 16px;
-  background: var(--bloom-surface-container-high);
-}
-
-.runtime-intent-list {
-  display: grid;
-  gap: 12px;
-  margin: 18px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.runtime-intent-list li {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--bloom-border);
-  border-radius: 16px;
-  background: var(--bloom-surface-container-low);
-}
-
-.runtime-intent-header {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.runtime-intent-header span {
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: var(--bloom-surface-container-high);
-  color: var(--bloom-muted);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.runtime-intent-header span[data-runtime-status="published"] {
-  background: var(--bloom-primary-container);
-  color: var(--bloom-primary);
-}
-
-.runtime-intent-header span[data-runtime-status="simulated"] {
-  background: color-mix(in srgb, var(--bloom-secondary-container) 80%, white);
-  color: var(--bloom-secondary);
-}
-
-.runtime-intent-header span[data-runtime-status="failed"] {
-  background: color-mix(in srgb, var(--bloom-error-container) 80%, white);
-  color: var(--bloom-error);
-}
-
-.runtime-intent-detail {
-  margin: 0;
-  color: var(--bloom-ink-soft);
-  font-size: 0.88rem;
-}
-
-.runtime-intent-list code {
-  max-height: 160px;
-  overflow: auto;
-  color: var(--bloom-ink-soft);
-  font-family: var(--bloom-font-mono);
-  font-size: 0.78rem;
-  white-space: pre-wrap;
 }
