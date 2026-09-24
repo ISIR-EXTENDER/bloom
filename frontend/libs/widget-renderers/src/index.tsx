@@ -1,11 +1,11 @@
 import type { WidgetKind } from "@bloom/api-client";
 import { localizeWidget, type WidgetRenderDescriptor } from "@bloom/widgets";
-import type { ReactNode } from "react";
+import { type ComponentType, memo, type ReactNode } from "react";
 import { DEFAULT_WIDGET_RENDERERS } from "./default-registry";
 import { UnknownWidget } from "./fallback-renderers";
 import type {
   ScreenRendererOptions,
-  WidgetRenderer,
+  WidgetRendererProps,
   WidgetRendererRegistration,
   WidgetRendererRegistry,
 } from "./types";
@@ -28,16 +28,25 @@ export type {
 export function createWidgetRendererRegistry(
   registrations: readonly WidgetRendererRegistration[] = DEFAULT_WIDGET_RENDERERS,
 ): WidgetRendererRegistry {
-  const registry = new Map<WidgetKind, WidgetRenderer>();
+  const registry = new Map<WidgetKind, ComponentType<WidgetRendererProps>>();
 
   for (const registration of registrations) {
     if (registry.has(registration.kind)) {
       throw new Error(`Duplicate widget renderer for kind "${registration.kind}".`);
     }
-    registry.set(registration.kind, registration.render);
+    // Memoized once here, so a sample for one widget re-renders that widget and not the whole screen.
+    registry.set(registration.kind, memo(registration.render as ComponentType<WidgetRendererProps>));
   }
 
   return registry;
+}
+
+/** The registry every screen shares when none is given: building one per widget per frame was the default. */
+let defaultRegistry: WidgetRendererRegistry | null = null;
+
+function sharedWidgetRendererRegistry(): WidgetRendererRegistry {
+  defaultRegistry ??= createWidgetRendererRegistry();
+  return defaultRegistry;
 }
 
 export function renderWidgetDescriptor(
@@ -49,7 +58,7 @@ export function renderWidgetDescriptor(
     return renderUnknown({ descriptor });
   }
 
-  const registry = options.registry ?? createWidgetRendererRegistry();
+  const registry = options.registry ?? sharedWidgetRendererRegistry();
   const renderer = registry.get(descriptor.definition.kind);
   if (!renderer) {
     return (

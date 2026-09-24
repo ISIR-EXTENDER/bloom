@@ -1,7 +1,7 @@
 import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { getBloomApiBaseUrl, getBloomApiKey } from "../configurations/configuration-client";
 import { ScreenArtboard } from "../screen/ScreenArtboard";
@@ -202,6 +202,10 @@ export function RuntimeWorkspace({
   const commandFrameError =
     commandFrameUnavailable && commandFrameId ? strings.kiosk.frameNotOnRobot(commandFrameId) : null;
   const topicStatuses = useTopicStatuses(runtimeActionClient.listRosTopicStatus);
+  const conditioning = useMemo(
+    () => ({ deadzone: runtimeProfile.deadzone, repeatGuardMs: runtimeProfile.repeatGuardMs }),
+    [runtimeProfile.deadzone, runtimeProfile.repeatGuardMs],
+  );
   const robotModel = useMemo(() => createRobotModelSource(runtimeActionClient), [runtimeActionClient]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new app starts a new frame-selection session.
   useEffect(() => {
@@ -420,6 +424,11 @@ export function RuntimeWorkspace({
       },
     });
   };
+
+  // A new function identity each render would re-render every widget; the ref keeps the newest handler.
+  const actionIntentRef = useRef(handleRuntimeActionIntent);
+  actionIntentRef.current = handleRuntimeActionIntent;
+  const stableActionIntent = useCallback<WidgetActionIntentHandler>((intent) => actionIntentRef.current(intent), []);
 
   // Opening an app, closing Settings or the tour, and changing screen from
   // maintenance all replace the view; focus follows it to the named region
@@ -695,16 +704,13 @@ export function RuntimeWorkspace({
               className="runtime-app-artboard"
               renderEmptyState={(emptyScreen) => <RuntimeComingSoonMessage screen={emptyScreen} strings={strings} />}
               rendererOptions={{
-                conditioning: {
-                  deadzone: runtimeProfile.deadzone,
-                  repeatGuardMs: runtimeProfile.repeatGuardMs,
-                },
+                conditioning,
                 controlStateByWidgetId,
                 dataByWidgetId: effectiveDataByWidgetId,
                 language: runtimeProfile.language,
                 motorPreset: runtimeProfile.motorAccessibilityPreset,
                 neutralRevision: teleopNeutralRevision,
-                onActionIntent: handleRuntimeActionIntent,
+                onActionIntent: stableActionIntent,
                 robotModel,
               }}
               screen={screen}

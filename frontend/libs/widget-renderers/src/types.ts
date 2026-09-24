@@ -7,7 +7,7 @@ import type {
   WidgetActionIntent,
   WidgetRenderDescriptor,
 } from "@bloom/widgets";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 
 export type SavedPositionEntry = {
   name: string;
@@ -164,7 +164,8 @@ export type WidgetRendererRegistration = {
   render: WidgetRenderer;
 };
 
-export type WidgetRendererRegistry = ReadonlyMap<WidgetKind, WidgetRenderer>;
+/** Registered renderers are memoized, so the map holds components rather than plain functions. */
+export type WidgetRendererRegistry = ReadonlyMap<WidgetKind, ComponentType<WidgetRendererProps>>;
 
 export type ScreenRendererOptions = {
   conditioning?: SignalConditioning;

@@ -8,6 +8,7 @@ import {
   type WidgetRenderDescriptor,
 } from "@bloom/widgets";
 import type { CSSProperties, ReactNode } from "react";
+import { useMemo } from "react";
 
 const widgetRegistry = createDefaultWidgetRegistry();
 
@@ -35,7 +36,8 @@ export function ScreenArtboard({
   testId,
 }: ScreenArtboardProps) {
   const layout = resolveScreenArtboardLayout(screen);
-  const descriptors = renderScreenDescriptors(screen, widgetRegistry);
+  // Rebuilt only when the screen or the registry changes: a fresh descriptor per frame defeats every memo below.
+  const descriptors = useMemo(() => renderScreenDescriptors(screen, widgetRegistry), [screen]);
   const mergedStyle: CSSProperties = {
     height: `${layout.artboardSize.height}px`,
     width: `${layout.artboardSize.width}px`,
