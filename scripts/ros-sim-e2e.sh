@@ -211,6 +211,12 @@ else
     echo "A cartesian_manager already runs on ROS_DOMAIN_ID=${ROS_DOMAIN_ID}; pick another BLOOM_E2E_ROS_DOMAIN_ID." >&2
     exit 1
   fi
+  if [[ "${SCENARIO}" == "visual-servoing" && "${ROBOT}" != "kinova" ]]; then
+    # The servoing node names the gen3's frames in code; the Explorer waits for the node change
+    # Robin will review (ssrpo/input_interfaces, feat/visual-servoing-frames).
+    echo "--scenario visual-servoing runs on kinova today: the visual_servoing node names the gen3's frames." >&2
+    exit 1
+  fi
   if [[ "${ROBOT}" == "kinova" ]] && ! ros2 pkg prefix kortex_description >/dev/null 2>&1; then
     echo "kortex_description is not on AMENT_PREFIX_PATH. See docs/validation/ros-sim-e2e.md > Prerequisites." >&2
     exit 1
@@ -246,14 +252,13 @@ else
   log "simulation ready"
 
   if [[ "${SCENARIO}" == "visual-servoing" ]]; then
-    # Robin's node, with its saved tag goals copied where a Save may rewrite them. The hand-eye file
-    # names the arm's frames; the Explorer one is a placeholder until the bench calibrates it.
+    # Robin's node, unchanged, with its saved tag goals copied where a Save may rewrite them.
     VS_SHARE="$(ros2 pkg prefix visual_servoing)/share/visual_servoing/config"
     cp "${VS_SHARE}/saved_tag_goals.yaml" "${OUT_DIR}/saved_tag_goals.yaml"
     log "starting the visual servoing node"
     ros2 run visual_servoing visual_servoing --ros-args -p lambda:=0.4 \
       -p "yaml_path:=${OUT_DIR}/saved_tag_goals.yaml" \
-      -p "yaml_path_transform_EEtoCAM:=${VS_SHARE}/handeye_tf_${ROBOT}Cam.yaml" \
+      -p "yaml_path_transform_EEtoCAM:=${VS_SHARE}/handeye_tf_kinovaCam.yaml" \
       >"${LOG_DIR}/visual-servoing.log" 2>&1 &
     VS_PID=$!
   fi

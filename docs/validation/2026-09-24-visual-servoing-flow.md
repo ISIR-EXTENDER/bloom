@@ -29,16 +29,15 @@ Two things stay open, neither of them Bloom's to fix alone:
    as the servoing input and declare only `joystick` in `inputs.sources`. Either the node's output is
    remapped onto the manager's name and the source declared, or the manager config points at the
    node's topic. The e2e below records this as a skip, with the reason, until the team decides.
-2. **The node's frames were the Kinova gen3's.** `end_effector_link`, `camera_link` and `base_link`
-   were literals in the node, and the only hand-eye file is the Kinova camera's. The Explorer has no
-   `end_effector_link`. Fixed in this session on a fork branch of input_interfaces: the node now reads
-   `ee_frame`, `camera_frame` and `base_frame` from the hand-eye file (the Kinova file already carried
-   the first two), and `handeye_tf_explorerCam.yaml` plus `visual_servoing_explorerCam.launch.py`
-   give the Explorer its entry point. The Explorer file is a **placeholder** (camera at the tool
-   origin) until a hand-eye calibration is run on the bench; the numbers, not the wiring, are missing.
-   One detail worth knowing: the Explorer's tool frame in TF is `ft_frame`. The manager's
-   `effector_frame` is a command label it accepts in `header.frame_id`, not a frame anything
-   publishes, so a node that does TF lookups must name `ft_frame`.
+2. **The node's frames are the Kinova gen3's.** `end_effector_link`, `camera_link` and `base_link`
+   are literals in the node, and the only hand-eye file is the Kinova camera's. The Explorer has no
+   `end_effector_link`, so the node aborts on it. A proposal that reads `ee_frame`, `camera_frame`
+   and `base_frame` from the hand-eye file (the Kinova file already carries the first two) and adds
+   an Explorer entry point sits on the ssrpo fork of input_interfaces, branch
+   `feat/visual-servoing-frames`; its PR was closed on purpose and Susana will take it up with Robin
+   after his tests, since the node is his. Two facts for that discussion: the Explorer's tool frame
+   in TF is `ft_frame` (the manager's `effector_frame` is a command label, not a published frame),
+   and the Explorer hand-eye transform still has to be calibrated on the bench.
 
 Also worth knowing: the node emits its velocity in the base frame at 30 Hz, saturated at 0.2 m/s,
 only while `/ui/visual_servoing/on` is true, and a zero twist while no tag is seen. Bloom's STOP now
@@ -60,8 +59,8 @@ contract requires.
 
 ## End-to-end evidence
 
-`bash scripts/ros-sim-e2e.sh --robot kinova|explorer --scenario visual-servoing` starts the
-simulation, the **real** `visual_servoing` node with its saved tag goals, the API, the dashboard,
+`npm run e2e:sim:servo -- --robot kinova` starts the simulation, the **real** `visual_servoing`
+node, unchanged, with its saved tag goals, the API, the dashboard,
 and a probe that publishes a synthetic tag (id 2, a little off its saved pose) and a synthetic camera
 frame, since Gazebo has neither. Bloom, the manager and the node are real.
 
@@ -77,13 +76,15 @@ frame, since Gazebo has neither. Bloom, the manager and the node are real.
 | `stop-switches-servoing-off` | STOP publishes `on: false`, the node goes quiet, the hold resumes. |
 | `approach-screen-drives-through-the-manager` | Opened as Bench, a Translation stroke reaches `/joystick_cartesian_command`. |
 
-Results on 2026-09-24, manager `d9a1fa5`, qontrol `91309cc`, visual_servoing from input_interfaces
-PR #34: **Kinova 9/9** (8 pass, 1 skip) and **Explorer 9/9** (8 pass, 1 skip). Each run leaves
-`results.json` and `screens/` under `/tmp/bloom-ros-sim-e2e-<robot>-<stamp>/`.
+Results on 2026-09-24, manager `d9a1fa5`, qontrol `91309cc`, the team's `visual_servoing`:
+**Kinova 9/9** (8 pass, 1 skip). The scenario refuses the Explorer today, out loud, because the node
+names the gen3's frames; with the proposal branch above it also reached 9/9 on the Explorer, which is
+the evidence for that discussion. Each run leaves `results.json` and `screens/` under
+`/tmp/bloom-ros-sim-e2e-<robot>-<stamp>/`.
 
 ## Still to do on the bench
 
-- Calibrate the Explorer hand-eye and replace the placeholder file.
-- Decide, upstream, how the manager reads the servoing output (topic name and declared source).
+- Robin: the node's frames from its hand-eye file, then an Explorer hand-eye calibration.
+- Close the loop on the servoing side: publish where the manager listens and declare the source.
 - Run the flow with a real tag and `camera_interface driver:=usb_cam` on the Explorer, then
   `driver:=kinova_vision` on the gen3; this record turns from simulation into hardware evidence then.
