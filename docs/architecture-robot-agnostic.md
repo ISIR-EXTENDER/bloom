@@ -60,7 +60,7 @@ spread across both sides:
 | `backend/apps/bloom_api/settings.py` | a ~45-topic Extender/Petanque allowlist as the default |
 | `backend/libs/ros_adapters/actuators.py` | gripper open/close constants copied from `tablet_interface` |
 | `backend/libs/ros_adapters/mode_request.py` | `/mode_request` and the manager's mode grammar |
-| `backend/apps/bloom_api/routes/runtime.py` | endpoints that emit YAML for `explorer_params.yaml` |
+| `backend/apps/bloom_api/routes/runtime_positions.py` | endpoints that emit YAML for `explorer_params.yaml` |
 
 The same topic string is written in at least four places. That is the real
 measure of the problem: not that a robot profile is missing, but that there is

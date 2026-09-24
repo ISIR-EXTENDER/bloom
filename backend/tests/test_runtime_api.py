@@ -5,7 +5,8 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from apps.bloom_api.main import create_app
-from apps.bloom_api.routes.runtime import audit_session_alias, build_runtime_ack
+from apps.bloom_api.routes.runtime import audit_session_alias
+from apps.bloom_api.routes.runtime_socket import build_runtime_ack
 from apps.bloom_api.settings import Settings
 from libs.config import (
     ApplicationConfig,
