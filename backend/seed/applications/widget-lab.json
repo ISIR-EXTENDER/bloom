@@ -628,6 +628,8 @@
               "settings": {
                 "jointStateTopic": "/joint_states",
                 "markerTopic": "/widget_lab/markers",
+                "targetJointTopic": "/widget_lab/target",
+                "poseTopic": "/ee_pose",
                 "eeLink": "",
                 "showAxes": true,
                 "modelSource": "extension",

@@ -83,6 +83,7 @@ const {
 } = STACK;
 const GESTURE = "/ui/widget_lab/gesture";
 const MARKERS = "/widget_lab/markers";
+const TARGET = "/widget_lab/target";
 const MIN_DISPLACEMENT_M = 0.03;
 const MIN_ROTATION_RAD = 0.05;
 /**
@@ -590,6 +591,16 @@ async function labSession() {
       return `URDF from the API with ${links} links and ${meshes} meshes; 5 markers on ${MARKERS}, the tool label on ${seen.tool}, plus ${seen.mesh} drawn and expired`;
     });
 
+    await check(page, "lab-robot-3d-shows-the-target-and-the-pose", async () => {
+      const stage = page.locator('[aria-label="Robot 3D view"]');
+      await page.locator('[aria-label="Robot 3D view"][data-pose="shown"]').waitFor({ timeout: 10000 });
+      await page.locator('[aria-label="Robot 3D view"][data-target="shown"]').waitFor({ timeout: 10000 });
+      await shot(page, "lab-robot-3d-target");
+      await page.locator('[aria-label="Robot 3D view"][data-target="none"]').waitFor({ timeout: 10000 });
+      const joints = await stage.getAttribute("data-joints");
+      return `/ee_pose drawn as a triad; the target on ${TARGET} drawn while it lasts and gone on the empty one; ${joints}`;
+    });
+
     await check(page, "lab-robot-3d-draws-the-commanded-motion", async () => {
       const stage = page.locator('[aria-label="Robot 3D view"]');
       const release = await pressSliderEnd(page, "Height", "positive");
@@ -598,7 +609,11 @@ async function labSession() {
       await release();
       await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
       await page.locator('[aria-label="Robot 3D view"][data-command="still"]').waitFor({ timeout: 5000 });
-      return `arrow while Height was held (${await stage.getAttribute("data-links")} links), gone on release`;
+      // Reported about once a second; the count itself proves joint states moved the model.
+      await page.waitForTimeout(1500);
+      const updates = Number(await stage.getAttribute("data-joint-updates"));
+      assert(updates > 1, `${updates} joint state(s) moved the model while Height was held`);
+      return `arrow while Height was held (${await stage.getAttribute("data-links")} links), gone on release; ${updates} joint states moved the model`;
     });
   } finally {
     await context.close();
@@ -939,6 +954,26 @@ def publish_mesh_marker():
     mesh.lifetime.sec = 3
     markers.publish(MarkerArray(markers=[mesh]))
 node.create_timer(6.0, publish_mesh_marker)
+
+# A joint target on the lab's own topic, every joint 0.3 rad from where it is, four seconds on and four off:
+# the view draws it as a translucent robot and drops it on the empty JointState the manager sends to cancel.
+joint_names = []
+def on_joint_states(m):
+    joint_names[:] = list(m.name)
+    joint_positions[:] = list(m.position)
+joint_positions = []
+node.create_subscription(JointState, "/joint_states", on_joint_states, 10)
+target = node.create_publisher(JointState, "${TARGET}", 10)
+target_phase = {"on": False}
+def publish_target():
+    target_phase["on"] = not target_phase["on"]
+    message = JointState()
+    message.header.stamp = node.get_clock().now().to_msg()
+    if target_phase["on"] and joint_names:
+        message.name = list(joint_names)
+        message.position = [p + 0.3 for p in joint_positions]
+    target.publish(message)
+node.create_timer(4.0, publish_target)
 
 def graph():
     names = sorted({info.node_name for info in node.get_subscriptions_info_by_topic("${MAX_LINEAR}") if info.node_name != node.get_name()})

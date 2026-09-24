@@ -46,3 +46,8 @@ The web app never carries a robot. The API serves the one that runs:
   three seconds until the robot is up, follows a new description within ten, and draws the commanded
   angular part as an arc. Still absent: TF frames outside the URDF, interactive markers, and line width
   (WebGL draws every line one pixel wide).
+- 2026-09-24, night: a joint target topic draws the target as a translucent twin of the robot, and a pose
+  topic draws a `PoseStamped` as a triad, so the manager's `/ee_pose` can be checked against the model's tool
+  without rviz. The description route answers 304 to an unchanged robot; the runtime socket forwards at most
+  30 samples a second per topic. The benchmark against rviz is in
+  [2026-09-24-3d-view-vs-rviz.md](../validation/2026-09-24-3d-view-vs-rviz.md).

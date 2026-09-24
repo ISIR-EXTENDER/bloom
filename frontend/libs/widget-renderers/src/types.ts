@@ -53,6 +53,10 @@ export type WidgetDataSnapshot =
       value: unknown;
       /** The newest MarkerArray on the widget's marker topic, when it names one. */
       markers?: unknown;
+      /** The newest JointState on the widget's joint target topic: where a target is sending the robot. */
+      target?: unknown;
+      /** The newest PoseStamped on the widget's pose topic. */
+      pose?: unknown;
       /** The twist the runtime is sending right now, absent when it is not driving. */
       command?: CommandedTwist;
     }

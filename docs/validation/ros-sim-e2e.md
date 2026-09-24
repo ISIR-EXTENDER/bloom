@@ -31,7 +31,8 @@ For the chosen robot, with the API, dashboard, manager, qontrol and controllers 
 | `authored-buttons-reach-the-manager` | The authored app opens in the runtime and its two controls put their payloads on `/mode_request`: `geometric/jaco` from the toggle, `geometric/snake` then `geometric/both` from the hold button. The Builder harness (`npm run e2e:builder`, no ROS) authors the same two controls and proves they render inert with the reason. |
 | `lab-opens`, `lab-label-joystick-and-height`, `lab-gesture-pad-publishes`, `lab-gripper-jaco-and-hold`, `lab-speed-and-pivot`, `lab-readers-show-live-values`, `lab-positions-and-camera` | The shipped Widget Lab app, one screen of controls and two of readers, so every kind the palette offers is bound to the simulation and pressed or read: label, joystick, Height slider, gesture pad (a JSON gesture on `/ui/widget_lab/gesture`), gripper toggle, Jaco button, Hold snake, speed segments, Pivot; gauge, topic plot, plot, value strip, topic echo and event log fed by `/ee_pose` and a Ping on `/mode_request`; a captured pose in the position library and a frame in the camera widget from the probe's `CompressedImage` publisher; the Robot screen is desktop-class, opened at 1920×1080, since the 3D view refuses a tablet screen. |
 | `lab-robot-3d-draws-the-running-model` | The 3D robot view fetches the URDF the API serves from the manager's `robot_state_publisher`, resolves its meshes through the API, drives it with `/joint_states`, and draws what the probe publishes on `/widget_lab/markers`: an arrow, a sphere, a line strip with a colour per point, a text label attached to the robot's last link (no marker may be left unplaced), a cube list, and every six seconds the robot's own first mesh as a `MESH_RESOURCE` marker with a three-second lifetime, which must arrive, draw and expire. |
-| `lab-robot-3d-draws-the-commanded-motion` | With Height held on the Robot screen the 3D view reports `data-command="moving"` and draws the arrow; on release it reads `still` once the zero twist is out. |
+| `lab-robot-3d-shows-the-target-and-the-pose` | `/ee_pose` is drawn as a triad, and the joint target the probe publishes on `/widget_lab/target` four seconds on and four off is drawn as a translucent robot while it lasts and gone on the empty joint state. |
+| `lab-robot-3d-draws-the-commanded-motion` | With Height held on the Robot screen the 3D view reports `data-command="moving"` and draws the arrow; on release it reads `still` once the zero twist is out, and the view's count of joint states that moved the model is above one, so a model stuck at the URDF's zero pose fails the run. |
 | `bloom-debug-receives-samples` | Bloom Debug fills the joint table from `/joint_states` and renders `/ee_jac` as a 6 by N Jacobian (6 on Explorer, 7 on Kinova). |
 
 Screenshots of each screen go to `<out>/screens`, per-check results to `<out>/results.json`, and process logs to
@@ -181,3 +182,14 @@ and the marker to expire. Explorer 27/27: 21 links, 15 meshes, the label on `lef
 mesh drawn from its `file://` share path with the URDF's 0.001 scale and gone after its lifetime. Kinova 27/27 on
 qontrol `a6382c1`: 19 links, 17 meshes, the label on `robotiq_85_right_finger_tip_link`, the gen3 base mesh by
 `package://kortex_description` drawn and expired.
+
+### Amended 2026-09-24, later: targets, poses, and a model that had stopped moving
+
+The probe publishes a joint target on `/widget_lab/target` four seconds on and four off, and the Robot screen
+names `/ee_pose` as its pose topic. `lab-robot-3d-shows-the-target-and-the-pose` requires the pose drawn, the
+target drawn as a translucent twin while it lasts and gone on the empty joint state. The commanded-motion check
+now also requires the view's count of joint states that moved the model to be above one. That assertion earned
+its place the same night: a redraw-skip that compared a never-seen joint against NaN left the model at the URDF's
+zero pose, both robots passed 28/28 regardless, and the screenshot showed the twin lying where the real arm was
+while the model stood upright. With the fix: Explorer 28/28, 60 joint states moved the model while Height was
+held; Kinova 28/28 on qontrol `a6382c1`, 10 (the gen3 moves at 5 cm/s).

@@ -488,8 +488,13 @@ topic named in the widget draws every marker kind rviz does (arrow, cube, sphere
 sphere lists, points, text, a mesh by `package://` through the same API route, triangle list), with per-point colours,
 lifetimes, and the delete actions. A marker whose frame names a link or joint of the robot moves with it; any other
 frame is drawn at the base, and the status counts it as unplaced. An axes triad sits on the tool link, and `Show every
-link frame` adds one on each link the way rviz's TF display does. Orbit with a drag, zoom with a pinch or the wheel,
-double-click to frame the robot again. While the runtime drives, a blue arrow from the tool shows the commanded linear
+link frame` adds one on each link the way rviz's TF display does. A `Joint target topic` (`/joint_target_command` by
+default, the manager's) draws the target as a translucent blue copy of the robot for as long as the target stands;
+the empty joint state the manager sends to cancel takes it away. A `Pose topic` draws a `PoseStamped` as a triad in
+the frame it names: `/ee_pose` beside the model's own tool triad shows at a glance whether the manager's frames and
+the description agree. The line under the view says how many of the model's joints the joint state drives, so an
+arm that publishes fewer joints than its description declares is not drawn silently. Orbit with a drag, zoom with
+a pinch or the wheel, double-click or press Frame to frame the robot again. While the runtime drives, a blue arrow from the tool shows the commanded linear
 motion, full scale at 35 cm, and a blue arc around the tool shows the angular part in the frame the twist names, half a
 turn at full scale; both disappear with the last zero twist. It belongs on desktop screens only: the palette refuses it
 on a tablet screen, the review checklist says so, and a tablet-class screen that carries one anyway shows the note

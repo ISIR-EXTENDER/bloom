@@ -28,16 +28,37 @@ export function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): Ru
       },
     ];
   });
-  const markerRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] => {
-    const topic = resolveMarkerTopic(widget);
-    return topic
-      ? [{ type: "subscribe_topic", topic, message_type: MARKER_ARRAY_TYPE, field_path: "", widget_id: widget.id }]
-      : [];
-  });
-  return [...widgetRequests, ...markerRequests, ...createSeriesSubscriptionRequests(screen, widgetRequests)];
+  const viewRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] =>
+    resolveRobotViewTopics(widget).map((extra) => ({
+      type: "subscribe_topic",
+      topic: extra.topic,
+      message_type: extra.messageType,
+      field_path: "",
+      widget_id: widget.id,
+    })),
+  );
+  return [...widgetRequests, ...viewRequests, ...createSeriesSubscriptionRequests(screen, widgetRequests)];
 }
 
-const MARKER_ARRAY_TYPE = "visualization_msgs/msg/MarkerArray";
+/** What a 3D robot view reads beside its joint states, each kept under its own field of the snapshot. */
+const ROBOT_VIEW_TOPICS = [
+  { field: "markers", messageType: "visualization_msgs/msg/MarkerArray", setting: "markerTopic" },
+  { field: "target", messageType: "sensor_msgs/msg/JointState", setting: "targetJointTopic" },
+  { field: "pose", messageType: "geometry_msgs/msg/PoseStamped", setting: "poseTopic" },
+] as const;
+
+type RobotViewTopic = { field: (typeof ROBOT_VIEW_TOPICS)[number]["field"]; messageType: string; topic: string };
+
+/** The extra topics a 3D robot view names, when it names them. */
+export function resolveRobotViewTopics(widget: WidgetConfig): RobotViewTopic[] {
+  if (widget.kind !== "robot-3d") {
+    return [];
+  }
+  return ROBOT_VIEW_TOPICS.flatMap((extra) => {
+    const topic = readOptionalString(widget.settings[extra.setting]);
+    return topic?.startsWith("/") ? [{ field: extra.field, messageType: extra.messageType, topic }] : [];
+  });
+}
 
 /** The twist the runtime is sending, on every 3D robot view of the screen, so it can draw the commanded motion. */
 export function withRobotCommand(
@@ -69,15 +90,6 @@ export function withRobotCommand(
   return next;
 }
 
-/** The marker topic a 3D robot view names, when it names one. */
-function resolveMarkerTopic(widget: WidgetConfig): string | null {
-  if (widget.kind !== "robot-3d") {
-    return null;
-  }
-  const topic = readOptionalString(widget.settings.markerTopic);
-  return topic?.startsWith("/") ? topic : null;
-}
-
 export function appendRuntimeTopicSample(
   currentData: Readonly<Record<string, WidgetDataSnapshot>>,
   screen: ScreenConfig,
@@ -99,15 +111,23 @@ export function appendRuntimeTopicSample(
       }
       continue;
     }
-    if (widget.kind === "robot-3d" && resolveMarkerTopic(widget) === sample.payload.topic) {
+    const viewTopic =
+      widget.kind === "robot-3d"
+        ? resolveRobotViewTopics(widget).find((extra) => extra.topic === sample.payload.topic)
+        : undefined;
+    if (viewTopic && resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {
       const current = currentData[widget.id];
       nextData = nextData ?? { ...currentData };
       nextData[widget.id] = {
-        receivedAt: current?.type === "robot-3d" ? current.receivedAt : topicMessage.receivedAt,
-        topic: current?.type === "robot-3d" ? current.topic : (resolveWidgetRuntimeTopic(widget) ?? ""),
-        type: "robot-3d",
-        value: current?.type === "robot-3d" ? current.value : undefined,
-        markers: topicMessage.value,
+        ...(current?.type === "robot-3d"
+          ? current
+          : {
+              receivedAt: topicMessage.receivedAt,
+              topic: resolveWidgetRuntimeTopic(widget) ?? "",
+              type: "robot-3d" as const,
+              value: undefined,
+            }),
+        [viewTopic.field]: topicMessage.value,
       };
       continue;
     }
@@ -199,11 +219,11 @@ export function appendRuntimeTopicSample(
       const current = currentData[widget.id];
       nextData = nextData ?? { ...currentData };
       nextData[widget.id] = {
+        ...(current?.type === "robot-3d" ? current : {}),
         receivedAt: topicMessage.receivedAt,
         topic: topicMessage.topic,
         type: "robot-3d",
         value: topicMessage.value,
-        markers: current?.type === "robot-3d" ? current.markers : undefined,
       };
     }
 

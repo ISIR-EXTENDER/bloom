@@ -6,6 +6,7 @@ import { createDefaultWidgetRegistry, renderScreenDescriptors } from "@bloom/wid
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { renderWidgetDescriptor } from "./index";
+import { summarizeJointState } from "./robot-3d-renderer";
 
 const robotScreen: ScreenConfig = {
   id: "robot",
@@ -84,6 +85,18 @@ describe("the 3D robot view", () => {
     expect(stage.getAttribute("data-command")).toBe("moving");
     expect(stage.getAttribute("data-markers-unplaced")).toBe("0");
     expect(stage.getAttribute("data-markers-loading")).toBe("0");
+    expect(stage.getAttribute("data-target")).toBe("none");
+    expect(stage.getAttribute("data-pose")).toBe("none");
+    expect(stage.getAttribute("data-joints")).toBe("0/0");
+    // Framing needs a drawn robot.
+    expect(screen.queryByRole("button", { name: "Frame the robot" })).toBeNull();
+  });
+
+  it("says how many of the model's joints the state drives, when not all of them", () => {
+    expect(summarizeJointState({ name: ["a", "b"], position: [0, 0] }, { driven: 2, total: 2 })).toBe("2 live joints");
+    expect(summarizeJointState({ name: ["a", "b"], position: [0, 0] }, { driven: 2, total: 7 })).toBe(
+      "2 live joints, 2 of the model's 7 driven",
+    );
   });
 
   it("draws nothing on a tablet-class screen, whatever the runtime offers", () => {

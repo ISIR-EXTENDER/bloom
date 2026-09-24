@@ -17,18 +17,34 @@ const screen: ScreenConfig = {
       kind: "robot-3d",
       title: "Robot",
       layout: { x: 0, y: 0, width: 546, height: 420 },
-      settings: { jointStateTopic: "/joint_states", markerTopic: "/goal_markers", showAxes: true },
+      settings: {
+        jointStateTopic: "/joint_states",
+        markerTopic: "/goal_markers",
+        poseTopic: "/ee_pose",
+        showAxes: true,
+        targetJointTopic: "/joint_target_command",
+      },
     },
   ],
 };
 
 describe("a 3D robot view's subscriptions", () => {
-  it("asks for the joint states and the marker array", () => {
+  it("asks for the joint states, the marker array, the joint target and the pose", () => {
     const requests = createRuntimeTopicSubscriptionRequests(screen);
     expect(requests.map((request) => [request.topic, request.message_type])).toEqual([
       ["/joint_states", "sensor_msgs/msg/JointState"],
       ["/goal_markers", "visualization_msgs/msg/MarkerArray"],
+      ["/joint_target_command", "sensor_msgs/msg/JointState"],
+      ["/ee_pose", "geometry_msgs/msg/PoseStamped"],
     ]);
+  });
+
+  it("asks for nothing extra when the view names no extra topic", () => {
+    const bare: ScreenConfig = {
+      ...screen,
+      widgets: [{ ...screen.widgets[0], settings: { jointStateTopic: "/joint_states", showAxes: true } } as never],
+    };
+    expect(createRuntimeTopicSubscriptionRequests(bare).map((request) => request.topic)).toEqual(["/joint_states"]);
   });
 
   it("keeps the newest of each beside the other", () => {
@@ -50,6 +66,32 @@ describe("a 3D robot view's subscriptions", () => {
     expect(snapshot.value).toEqual(joints);
     expect(snapshot.markers).toEqual(markers);
     expect(snapshot.topic).toBe("/joint_states");
+    const target = { name: ["j1"], position: [1.5] };
+    const pose = { header: { frame_id: "base_link" }, pose: { position: { x: 0.3, y: 0, z: 0.5 } } };
+    const afterTarget = appendRuntimeTopicSample(afterMarkers, screen, {
+      type: "topic_sample",
+      payload: { received_at: "t3", topic: "/joint_target_command", value: target, widget_id: "view" },
+    } as never);
+    const afterPose = appendRuntimeTopicSample(afterTarget, screen, {
+      type: "topic_sample",
+      payload: { received_at: "t4", topic: "/ee_pose", value: pose, widget_id: "view" },
+    } as never);
+    const full = afterPose.view;
+    if (full?.type !== "robot-3d") {
+      throw new Error("not a robot-3d snapshot");
+    }
+    expect(full).toMatchObject({ value: joints, markers, target, pose, receivedAt: "t1" });
+    // A new joint state keeps everything else.
+    const later = appendRuntimeTopicSample(afterPose, screen, {
+      type: "topic_sample",
+      payload: {
+        received_at: "t5",
+        topic: "/joint_states",
+        value: { name: ["j1"], position: [0.6] },
+        widget_id: "view",
+      },
+    } as never).view;
+    expect(later).toMatchObject({ target, pose, markers, receivedAt: "t5" });
   });
 });
 
