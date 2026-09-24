@@ -1,8 +1,8 @@
 import type { WidgetConfig } from "@bloom/api-client";
 import { findInertSetting, resolveWidgetDestination } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
-import { resolveWidgetRuntimeTopic } from "../runtime/RuntimeWorkspace";
 import { createTeleopCommandRequest, createValueTopicPublishRequest } from "../runtime/runtime-action-dispatcher";
+import { resolveWidgetRuntimeTopic } from "../runtime/runtime-topic-data";
 
 /**
  * The inspector's explanation is only worth showing if it matches what the

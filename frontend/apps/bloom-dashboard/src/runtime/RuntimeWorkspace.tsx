@@ -1,18 +1,5 @@
-import type {
-  ApplicationConfig,
-  RosTopicStatus,
-  RuntimeCapabilityReport,
-  ScreenConfig,
-  WidgetConfig,
-} from "@bloom/api-client";
-import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import {
-  appendTopicEchoMessage,
-  appendTopicPlotSample,
-  getNumberSetting,
-  readOptionalString,
-  resolveSubscriptionTopic,
-} from "@bloom/widgets";
+import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
+import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -27,23 +14,13 @@ import {
 } from "../ui/guided-tour-progress";
 import { BloomDebugPanel } from "./BloomDebugPanel";
 import { resolveCameraStreamTargets, useCameraStreams } from "./camera-stream";
-import {
-  appendSeriesSample,
-  applyPlotSelections,
-  createSeriesSubscriptionRequests,
-  isSeriesWidget,
-  usePlotSelections,
-} from "./plot-series-data";
+import { applyPlotSelections, usePlotSelections } from "./plot-series-data";
 import { RuntimeGuidedTour } from "./RuntimeGuidedTour";
 import { RuntimeKioskBar, resolveRuntimeRole } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
 import { RuntimeSettingsPanel } from "./RuntimeSettingsPanel";
 import { RuntimeStopControl } from "./RuntimeStopControl";
-import type {
-  RuntimeActionClient,
-  RuntimeTopicSampleMessage,
-  RuntimeTopicSubscriptionRequest,
-} from "./runtime-action-dispatcher";
+import type { RuntimeActionClient, RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
 import { isFullPanelScreen, resolveRuntimeArtboardSize, resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
 import { isRuntimeMotionHeld, resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
@@ -52,7 +29,6 @@ import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopA
 import { resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
-import { type HeldTopicSubscriptions, planTopicSubscriptions } from "./topic-subscriptions";
 import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
@@ -63,13 +39,11 @@ import type { RuntimeActionFeedback } from "./use-runtime-action-dispatcher";
 import { useRuntimeControl } from "./use-runtime-control";
 import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
+import { useRuntimeTopicData } from "./use-runtime-topic-data";
+import { useViewportSize } from "./use-runtime-viewport";
 import { useStoppedControls } from "./use-stopped-controls";
 import { useSwitchScanning } from "./use-switch-scanning";
-
-type RuntimeViewportSize = {
-  height: number;
-  width: number;
-};
+import { useTopicStatuses } from "./use-topic-statuses";
 
 type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
   allowedCommandFrameIds?: readonly string[];
@@ -165,7 +139,7 @@ export function RuntimeWorkspace({
   // Read synchronously by the intent gate: a held control's next tick must not beat the re-render that holds it.
   const motionHeldRef = useRef(false);
   const motionHeld = isRuntimeMotionHeld({ maintenanceOpen, settingsOpen, tourOpen });
-  const [viewportSize, setViewportSize] = useState<RuntimeViewportSize>(() => getWindowViewportSize());
+  const viewportSize = useViewportSize(canvasViewportRef, !settingsOpen && !tourOpen);
   const fullPanel = isFullPanelScreen(screen);
   const artboardSize = useMemo(() => resolveRuntimeArtboardSize(screen), [screen]);
   const canvasFit = useMemo(
@@ -221,9 +195,7 @@ export function RuntimeWorkspace({
   );
   const commandFrameError =
     commandFrameUnavailable && commandFrameId ? strings.kiosk.frameNotOnRobot(commandFrameId) : null;
-  const [topicStatuses, setTopicStatuses] = useState<readonly RosTopicStatus[] | null | undefined>(() =>
-    runtimeActionClient.listRosTopicStatus ? null : undefined,
-  );
+  const topicStatuses = useTopicStatuses(runtimeActionClient.listRosTopicStatus);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new app starts a new frame-selection session.
   useEffect(() => {
     setCommandFrameId(defaultCommandFrameId);
@@ -262,7 +234,14 @@ export function RuntimeWorkspace({
     }
     return merged;
   }, [baseControlStateByWidgetId, parameterReadings]);
-  const [dataByWidgetId, setDataByWidgetId] = useState<Record<string, WidgetDataSnapshot>>({});
+  const runtimeLink = useRuntimeLinkState(runtimeActionClient);
+  const dataByWidgetId = useRuntimeTopicData({
+    onTopicSample,
+    onTopicSubscriptionRequest,
+    runtimeActionClient,
+    runtimeLink,
+    screen,
+  });
   const screenHasPositionLibrary = screen.widgets.some((widget) => widget.kind === "position-library");
   const positionLibrary = usePositionLibrary(runtimeActionClient, screenHasPositionLibrary, {
     appId: selection.appId,
@@ -312,7 +291,6 @@ export function RuntimeWorkspace({
       .catch(() => undefined);
   }, [runtimeActionClient, selection.appId, selection.configId]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
-  const runtimeLink = useRuntimeLinkState(runtimeActionClient);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
@@ -418,102 +396,6 @@ export function RuntimeWorkspace({
     });
   };
 
-  useEffect(() => {
-    if (settingsOpen || tourOpen) {
-      return;
-    }
-    const viewport = canvasViewportRef.current;
-    if (!viewport) {
-      return;
-    }
-
-    const updateViewportSize = () => {
-      setViewportSize(measureViewportSize(viewport));
-    };
-
-    updateViewportSize();
-
-    const resizeObserver = new ResizeObserver(updateViewportSize);
-    resizeObserver.observe(viewport);
-    window.addEventListener("resize", updateViewportSize);
-
-    return () => {
-      resizeObserver.disconnect();
-      window.removeEventListener("resize", updateViewportSize);
-    };
-  }, [settingsOpen, tourOpen]);
-
-  useEffect(() => {
-    const listRosTopicStatus = runtimeActionClient.listRosTopicStatus;
-    if (!listRosTopicStatus) {
-      setTopicStatuses(undefined);
-      return;
-    }
-
-    let cancelled = false;
-    setTopicStatuses(null);
-    const refresh = () => {
-      listRosTopicStatus()
-        .then((nextStatuses) => {
-          if (!cancelled) {
-            setTopicStatuses(nextStatuses);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setTopicStatuses(null);
-          }
-        });
-    };
-
-    refresh();
-    const timer = window.setInterval(refresh, 2000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [runtimeActionClient.listRosTopicStatus]);
-
-  // A client that reports no link at all (previews, tests) subscribes once; a reporting one once per open socket.
-  const topicSubscriptionsReady = !runtimeActionClient.addRuntimeLinkStateListener || runtimeLink.state === "connected";
-  const heldTopicSubscriptionsRef = useRef<{ connectionCount?: number; held: HeldTopicSubscriptions }>({
-    connectionCount: -1,
-    held: new Map(),
-  });
-  const unsubscribeRuntimeTopic = runtimeActionClient.unsubscribeRuntimeTopic;
-  useEffect(() => {
-    if (!onTopicSubscriptionRequest || !topicSubscriptionsReady) {
-      return;
-    }
-
-    // A reconnected socket is a new session with no subscriptions, so the
-    // screen has to ask again or the telemetry stays blank behind a READY chip.
-    const previous = heldTopicSubscriptionsRef.current;
-    const connectionCount = runtimeLink.connectionCount;
-    const plan = planTopicSubscriptions(
-      previous.connectionCount === connectionCount ? previous.held : new Map(),
-      createRuntimeTopicSubscriptionRequests(screen),
-      Boolean(unsubscribeRuntimeTopic),
-    );
-    heldTopicSubscriptionsRef.current = { connectionCount, held: plan.held };
-    for (const request of plan.unsubscribe) {
-      unsubscribeRuntimeTopic?.({
-        type: "unsubscribe_topic",
-        topic: request.topic,
-        widget_id: request.widget_id,
-      }).catch(() => undefined);
-    }
-    for (const request of plan.subscribe) {
-      onTopicSubscriptionRequest(request);
-    }
-  }, [
-    onTopicSubscriptionRequest,
-    runtimeLink.connectionCount,
-    topicSubscriptionsReady,
-    screen,
-    unsubscribeRuntimeTopic,
-  ]);
-
   // Opening an app, closing Settings or the tour, and changing screen from
   // maintenance all replace the view; focus follows it to the named region
   // instead of dropping to <body>.
@@ -531,56 +413,38 @@ export function RuntimeWorkspace({
     }
     previousScreenIdRef.current = screen.id;
     onSuspendTeleop();
-    setDataByWidgetId({});
   }, [onSuspendTeleop, screen.id]);
-
-  useEffect(() => {
-    if (settingsOpen || tourOpen) {
-      onSuspendTeleop();
-    }
-  }, [onSuspendTeleop, settingsOpen, tourOpen]);
-
-  useEffect(() => {
-    if (stopped) {
-      onSuspendTeleop();
-    }
-  }, [onSuspendTeleop, stopped]);
-
-  useEffect(() => {
-    if (commandFrameUnavailable) {
-      onSuspendTeleop();
-    }
-  }, [commandFrameUnavailable, onSuspendTeleop]);
-
-  // A command composed while this session owned control must not survive
-  // losing it. The release zeros that arrive meanwhile are refused by the gate,
-  // so without this a reclaim would stream a joystick the operator let go of.
-  useEffect(() => {
-    if (runtimeControlBlocked) {
-      onSuspendTeleop();
-    }
-  }, [onSuspendTeleop, runtimeControlBlocked]);
 
   // An unavailable control swallows its own pointer release, so a held stick
   // would stay composed and resume streaming once the controller came back.
   const teleopControlUnavailable = screen.widgets.some(
     (widget) => usesTeleopAdapter(widget) && controlStateByWidgetId[widget.id]?.unavailable === true,
   );
+  // Whatever takes the operator's hands off the controls also drops the composed twist: a sheet
+  // over the canvas, STOP, a frame the robot lacks, losing control (the release zeros that arrive
+  // meanwhile are refused by the gate, so a reclaim would stream a stick already let go of), or a
+  // teleop control that went unavailable. Each reason re-runs this on its own, so one arriving
+  // while another already holds still drops a twist composed in between; suspending twice is a no-op.
   useEffect(() => {
-    if (teleopControlUnavailable) {
+    if (
+      settingsOpen ||
+      tourOpen ||
+      stopped ||
+      commandFrameUnavailable ||
+      runtimeControlBlocked ||
+      teleopControlUnavailable
+    ) {
       onSuspendTeleop();
     }
-  }, [onSuspendTeleop, teleopControlUnavailable]);
-
-  useEffect(() => {
-    if (!onTopicSample) {
-      return;
-    }
-
-    return onTopicSample((sample) => {
-      setDataByWidgetId((currentData) => appendRuntimeTopicSample(currentData, screen, sample));
-    });
-  }, [onTopicSample, screen]);
+  }, [
+    commandFrameUnavailable,
+    onSuspendTeleop,
+    runtimeControlBlocked,
+    settingsOpen,
+    stopped,
+    teleopControlUnavailable,
+    tourOpen,
+  ]);
 
   // STOP stays live over settings and the tour: a joint-target move keeps running behind them.
   const renderStopControl = (region: RegionRect | null) =>
@@ -910,244 +774,6 @@ function resolvePublishRateHz(screen: ScreenConfig): number {
       : [],
   );
   return rates.length > 0 ? Math.min(DEFAULT_PUBLISH_RATE_HZ, Math.max(...rates)) : DEFAULT_PUBLISH_RATE_HZ;
-}
-
-function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTopicSubscriptionRequest[] {
-  const widgetRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] => {
-    const topic = resolveWidgetRuntimeTopic(widget);
-    if (!topic?.startsWith("/")) {
-      return [];
-    }
-
-    return [
-      {
-        type: "subscribe_topic",
-        topic,
-        message_type: resolveWidgetRuntimeMessageType(widget),
-        field_path: resolveWidgetRuntimeFieldPath(widget),
-        widget_id: widget.id,
-      },
-    ];
-  });
-  return [...widgetRequests, ...createSeriesSubscriptionRequests(screen, widgetRequests)];
-}
-
-function appendRuntimeTopicSample(
-  currentData: Readonly<Record<string, WidgetDataSnapshot>>,
-  screen: ScreenConfig,
-  sample: RuntimeTopicSampleMessage,
-): Record<string, WidgetDataSnapshot> {
-  let nextData: Record<string, WidgetDataSnapshot> | null = null;
-  const topicMessage = {
-    receivedAt: sample.payload.received_at,
-    topic: sample.payload.topic,
-    value: sample.payload.value,
-  };
-
-  for (const widget of screen.widgets) {
-    if (isSeriesWidget(widget)) {
-      const series = appendSeriesSample(currentData[widget.id], widget, topicMessage);
-      if (series) {
-        nextData = nextData ?? { ...currentData };
-        nextData[widget.id] = series;
-      }
-      continue;
-    }
-    if (resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {
-      continue;
-    }
-
-    if (widget.kind === "topic-echo") {
-      nextData = nextData ?? { ...currentData };
-      const currentWidgetData = currentData[widget.id];
-      const currentMessages = currentWidgetData?.type === "topic-echo" ? currentWidgetData.messages : [];
-      nextData[widget.id] = {
-        type: "topic-echo",
-        messages: appendTopicEchoMessage(currentMessages, topicMessage, {
-          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "",
-          maxMessages: getNumberSetting(widget.settings, "maxMessages", 100),
-        }),
-      };
-    }
-
-    // Tables read only the newest message.
-    if (widget.kind === "joint-table" || widget.kind === "jacobian") {
-      nextData = nextData ?? { ...currentData };
-      nextData[widget.id] = { type: "topic-echo", messages: [topicMessage] };
-    }
-
-    if (widget.kind === "event-log") {
-      nextData = nextData ?? { ...currentData };
-      const currentWidgetData = currentData[widget.id];
-      const currentMessages = currentWidgetData?.type === "event-log" ? currentWidgetData.messages : [];
-      nextData[widget.id] = {
-        type: "event-log",
-        messages: appendTopicEchoMessage(currentMessages, topicMessage, {
-          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "",
-          maxMessages: getNumberSetting(widget.settings, "maxEntries", 20),
-        }),
-      };
-    }
-
-    if (widget.kind === "topic-plot") {
-      nextData = nextData ?? { ...currentData };
-      const currentWidgetData = currentData[widget.id];
-      const currentSamples = currentWidgetData?.type === "topic-plot" ? currentWidgetData.samples : [];
-      nextData[widget.id] = {
-        type: "topic-plot",
-        samples: appendTopicPlotSample(currentSamples, topicMessage, {
-          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "data",
-          historySeconds: getNumberSetting(widget.settings, "historySeconds", 30),
-          maxSamples: getNumberSetting(widget.settings, "maxSamples", 500),
-        }),
-      };
-    }
-
-    if (widget.kind === "gauge") {
-      const samples = appendTopicPlotSample([], topicMessage, {
-        fieldPath: readOptionalString(widget.settings.fieldPath) ?? "data",
-        historySeconds: 1,
-        maxSamples: 1,
-      });
-      const latestSample = samples.at(-1);
-      if (!latestSample) {
-        continue;
-      }
-
-      nextData = nextData ?? { ...currentData };
-      nextData[widget.id] = {
-        receivedAt: topicMessage.receivedAt,
-        topic: topicMessage.topic,
-        type: "gauge",
-        value: latestSample.value,
-      };
-    }
-
-    if (widget.kind === "plot") {
-      nextData = nextData ?? { ...currentData };
-      const currentWidgetData = currentData[widget.id];
-      const currentSamples = currentWidgetData?.type === "plot" ? currentWidgetData.samples : [];
-      nextData[widget.id] = {
-        type: "plot",
-        samples: appendTopicPlotSample(currentSamples, topicMessage, {
-          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "data",
-          historySeconds: getNumberSetting(widget.settings, "historySeconds", 30),
-          maxSamples: getNumberSetting(widget.settings, "maxSamples", 500),
-        }),
-      };
-    }
-
-    if (widget.kind === "robot-3d") {
-      nextData = nextData ?? { ...currentData };
-      nextData[widget.id] = {
-        receivedAt: topicMessage.receivedAt,
-        topic: topicMessage.topic,
-        type: "robot-3d",
-        value: topicMessage.value,
-      };
-    }
-
-    if (widget.kind === "position-library") {
-      const joints = readJointStateSample(topicMessage.value, readJointNamesSetting(widget.settings));
-      if (joints) {
-        nextData = nextData ?? { ...currentData };
-        const existing = currentData[widget.id];
-        nextData[widget.id] = {
-          ...(existing?.type === "position-library" ? existing : { type: "position-library", saved: [] }),
-          type: "position-library",
-          joints: { ...joints, receivedAt: topicMessage.receivedAt },
-        };
-      }
-    }
-  }
-
-  return nextData ?? { ...currentData };
-}
-
-/**
- * Exported so the builder's destination panel can be tested against the real
- * subscription rule instead of a copy of it. See `widget-destination.ts`.
- */
-export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefined {
-  return resolveSubscriptionTopic(widget.kind, widget.settings) ?? undefined;
-}
-
-function resolveWidgetRuntimeMessageType(widget: WidgetConfig): string {
-  if (widget.kind === "robot-3d" || widget.kind === "position-library") {
-    return "sensor_msgs/msg/JointState";
-  }
-  return readOptionalString(widget.settings.messageType) ?? "";
-}
-
-function resolveWidgetRuntimeFieldPath(widget: WidgetConfig): string {
-  if (widget.kind === "gauge" || widget.kind === "plot" || widget.kind === "topic-plot") {
-    return readOptionalString(widget.settings.fieldPath) ?? "data";
-  }
-  return readOptionalString(widget.settings.fieldPath) ?? "";
-}
-
-function readJointNamesSetting(settings: Record<string, unknown>): string[] {
-  const raw = settings.jointNames;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw.filter((name): name is string => typeof name === "string" && name.trim().length > 0);
-}
-
-function readJointStateSample(value: unknown, orderedNames: string[]): { names: string[]; positions: number[] } | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  const names = Array.isArray(record.name) ? record.name.map(String) : [];
-  const positions = Array.isArray(record.position) ? record.position.map(Number) : [];
-  if (names.length === 0 || names.length !== positions.length) {
-    return null;
-  }
-  if (orderedNames.length === 0) {
-    return { names, positions };
-  }
-  // Filter and order to the configured joints; a sample missing one is
-  // incomplete and must not be capturable.
-  const lookup = new Map(names.map((name, index) => [name, positions[index] as number]));
-  const ordered: number[] = [];
-  for (const name of orderedNames) {
-    const position = lookup.get(name);
-    if (position === undefined || !Number.isFinite(position)) {
-      return null;
-    }
-    ordered.push(position);
-  }
-  return { names: orderedNames, positions: ordered };
-}
-
-function measureViewportSize(viewport: HTMLDivElement): RuntimeViewportSize {
-  const style = window.getComputedStyle(viewport);
-  const horizontalPadding = readCssPixelValue(style.paddingLeft) + readCssPixelValue(style.paddingRight);
-  const verticalPadding = readCssPixelValue(style.paddingTop) + readCssPixelValue(style.paddingBottom);
-  const windowSize = getWindowViewportSize();
-
-  return {
-    height: Math.max(1, (viewport.clientHeight || windowSize.height) - verticalPadding),
-    width: Math.max(1, (viewport.clientWidth || windowSize.width) - horizontalPadding),
-  };
-}
-
-function getWindowViewportSize(): RuntimeViewportSize {
-  if (typeof window === "undefined") {
-    return { height: 1, width: 1 };
-  }
-
-  return {
-    height: Math.max(1, window.innerHeight),
-    width: Math.max(1, window.innerWidth),
-  };
-}
-
-function readCssPixelValue(value: string): number {
-  const parsedValue = Number.parseFloat(value);
-
-  return Number.isFinite(parsedValue) ? parsedValue : 0;
 }
 
 function RuntimeComingSoonMessage({ screen, strings }: { screen: ScreenConfig; strings: RuntimeStrings }) {
