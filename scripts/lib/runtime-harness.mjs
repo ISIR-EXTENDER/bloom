@@ -3,6 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
+import { STACK } from "./stack-topics.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -115,13 +116,13 @@ export function startDashboardServer(port) {
 
 export const DEFAULT_TOPIC_STATUS = [
   {
-    name: "/joystick_cartesian_command",
+    name: STACK.twist,
     message_type: "geometry_msgs/msg/TwistStamped",
     publisher_count: 1,
     subscription_count: 1,
   },
-  { name: "/mode_request", message_type: "std_msgs/msg/String", publisher_count: 1, subscription_count: 1 },
-  { name: "/joint_states", message_type: "sensor_msgs/msg/JointState", publisher_count: 1, subscription_count: 0 },
+  { name: STACK.mode, message_type: "std_msgs/msg/String", publisher_count: 1, subscription_count: 1 },
+  { name: STACK.jointStates, message_type: "sensor_msgs/msg/JointState", publisher_count: 1, subscription_count: 0 },
   {
     name: "/cartesian_command",
     message_type: "geometry_msgs/msg/TwistStamped",
@@ -129,7 +130,7 @@ export const DEFAULT_TOPIC_STATUS = [
     subscription_count: 0,
   },
   {
-    name: "/visual_servoing/velocity_command",
+    name: STACK.servoVelocity,
     message_type: "geometry_msgs/msg/TwistStamped",
     publisher_count: 1,
     subscription_count: 0,

@@ -21,6 +21,7 @@ import {
   skip,
 } from "./lib/e2e-checks.mjs";
 import { startRosProbe } from "./lib/ros-probe.mjs";
+import { STACK } from "./lib/stack-topics.mjs";
 
 const args = process.argv.slice(2);
 const readArg = (flag) => readArgument(args, flag);
@@ -29,13 +30,15 @@ const robotKey = readArg("--robot") ?? "kinova";
 const outputDir = resolve(readArg("--out") ?? `/tmp/bloom-ros-sim-e2e-${robotKey}-visual-servoing`);
 const screenDir = resolve(outputDir, "screens");
 
-const ON = "/ui/visual_servoing/on";
-const SAVE = "/ui/visual_servoing/save";
-const VELOCITY = "/visual_servoing/velocity_command";
-const ERROR = "/visual_servoing/error_TAGtoTAGd";
-const TAGS = "/tag_detections";
-const CAMERA = "/camera/color/image_raw/compressed";
-const MANAGER_INPUT = "/visual_servoing_cartesian_command";
+const {
+  servoOn: ON,
+  servoSave: SAVE,
+  servoVelocity: VELOCITY,
+  servoError: ERROR,
+  tagDetections: TAGS,
+  cameraImage: CAMERA,
+  servoManagerInput: MANAGER_INPUT,
+} = STACK;
 // A tag the node already knows (config/saved_tag_goals.yaml), seen a little off its saved pose.
 const SEEN_TAG = { id: 2, position: [0.05, 0.02, 0.25] };
 

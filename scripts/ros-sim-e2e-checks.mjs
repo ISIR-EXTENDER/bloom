@@ -22,6 +22,7 @@ import {
   waitReady,
 } from "./lib/e2e-checks.mjs";
 import { startRosProbe } from "./lib/ros-probe.mjs";
+import { STACK } from "./lib/stack-topics.mjs";
 
 const args = process.argv.slice(2);
 const readArg = (flag) => readArgument(args, flag);
@@ -56,12 +57,14 @@ if (!robot) {
   process.exit(2);
 }
 
-const TWIST = "/joystick_cartesian_command";
-const POSE = "/ee_pose";
-const GRIPPER = "/gripper_controller/commands";
-const MAX_LINEAR = "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed";
-const MODE = "/mode_request";
-const JOINT_TARGET = "/joint_target_command";
+const {
+  twist: TWIST,
+  eePose: POSE,
+  gripper: GRIPPER,
+  maxLinearSpeed: MAX_LINEAR,
+  mode: MODE,
+  jointTarget: JOINT_TARGET,
+} = STACK;
 const MIN_DISPLACEMENT_M = 0.03;
 
 await mkdir(screenDir, { recursive: true });

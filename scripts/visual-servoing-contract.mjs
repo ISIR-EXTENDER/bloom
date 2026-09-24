@@ -1,47 +1,15 @@
 #!/usr/bin/env node
 
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { openContract } from "./lib/seed-contract.mjs";
+import { STACK } from "./lib/stack-topics.mjs";
 
-const fixturePath = resolve(process.argv[2] ?? "backend/seed/applications/sandbox.json");
-const bundle = JSON.parse(readFileSync(fixturePath, "utf8"));
-const app = bundle.applications?.find((candidate) => candidate.id === "sandbox");
-const failures = [];
-const passed = [];
+const { app, assert, finish, requirePolicyAllows, screen, setting, widgets } = openContract({
+  name: "Visual-servoing contract",
+  appId: "sandbox",
+  defaultPath: "backend/seed/applications/sandbox.json",
+});
 
-function ok(label) {
-  passed.push(label);
-}
-
-function fail(label, detail) {
-  failures.push(`${label}: ${detail}`);
-}
-
-function assert(label, condition, detail = "expected condition to be true") {
-  if (condition) {
-    ok(label);
-  } else {
-    fail(label, detail);
-  }
-}
-
-function widgets() {
-  return (app?.screens ?? []).flatMap((screen) =>
-    (screen.widgets ?? []).map((widget) => ({
-      screen,
-      widget,
-    })),
-  );
-}
-
-function widget(id) {
-  return widgets().find((entry) => entry.widget.id === id)?.widget ?? null;
-}
-
-function setting(id, key) {
-  return widget(id)?.settings?.[key];
-}
-
+/** Every topic the given kinds read, one entry per series on a plot board. */
 function topicsForKinds(kinds) {
   return widgets()
     .filter((entry) => kinds.includes(entry.widget.kind))
@@ -62,11 +30,7 @@ function topicsForKinds(kinds) {
 assert("sandbox app exists", Boolean(app), "missing sandbox app");
 
 for (const screenId of ["control_panel", "visual_servoing", "visual_servoing_monitor"]) {
-  assert(
-    `screen ${screenId} exists`,
-    Boolean(app?.screens?.some((screen) => screen.id === screenId)),
-    "missing visual-servoing screen",
-  );
+  assert(`screen ${screenId} exists`, Boolean(screen(screenId)), "missing visual-servoing screen");
 }
 
 for (const id of ["control-panel-camera", "servo-camera"]) {
@@ -80,19 +44,19 @@ assert(
   setting("control-panel-camera", "topic") === "/camera/play_petanque",
 );
 assert("AprilTag RViz panel is not a browser webcam", setting("servo-rviz", "source") === "placeholder");
-assert("AprilTag RViz panel points at detections", setting("servo-rviz", "topic") === "/tag_detections");
+assert("AprilTag RViz panel points at detections", setting("servo-rviz", "topic") === STACK.tagDetections);
 
-assert("visual-servoing enable topic", setting("servo-enable", "topic") === "/ui/visual_servoing/on");
-assert("visual-servoing save topic", setting("servo-save", "topic") === "/ui/visual_servoing/save");
+assert("visual-servoing enable topic", setting("servo-enable", "topic") === STACK.servoOn);
+assert("visual-servoing save topic", setting("servo-save", "topic") === STACK.servoSave);
 
-assert("AprilTag monitor topic", setting("servo-topic-monitor-1", "topic") === "/tag_detections");
+assert("AprilTag monitor topic", setting("servo-topic-monitor-1", "topic") === STACK.tagDetections);
 assert(
   "AprilTag monitor message",
   setting("servo-topic-monitor-1", "messageType") === "extender_msgs/msg/SharedControlGoalArray",
 );
 
 const servoSeries = (setting("servo-output-plot", "series") ?? []).map((entry) => `${entry.topic}:${entry.field_path}`);
-for (const topic of ["/visual_servoing/velocity_command", "/visual_servoing/error_TAGtoTAGd"]) {
+for (const topic of [STACK.servoVelocity, STACK.servoError]) {
   for (const axis of ["x", "y", "z"]) {
     assert(`servo output plots ${topic} ${axis}`, servoSeries.includes(`${topic}:twist.linear.${axis}`));
   }
@@ -107,36 +71,19 @@ for (const forbiddenTopic of ["/image_raw", "/camera_info"]) {
   );
 }
 
-const recordingTopics = app?.runtime_policy?.allowed_recording_topics ?? [];
-for (const requiredTopic of [
-  "/tag_detections",
-  "/visual_servoing/velocity_command",
-  "/visual_servoing/error_TAGtoTAGd",
-]) {
-  assert(`recording policy includes ${requiredTopic}`, recordingTopics.includes(requiredTopic));
+for (const topic of [STACK.tagDetections, STACK.servoVelocity, STACK.servoError]) {
+  requirePolicyAllows(topic, "recording");
 }
 for (const forbiddenTopic of ["/image_raw", "/camera_info"]) {
   assert(
     `recording policy avoids ${forbiddenTopic}`,
-    !recordingTopics.includes(forbiddenTopic),
+    !(app?.runtime_policy?.allowed_recording_topics ?? []).includes(forbiddenTopic),
     `${forbiddenTopic} should not be recorded by the default visual-servoing monitor preset`,
   );
 }
 
-const publishTopics = app?.runtime_policy?.allowed_publish_topics ?? [];
-for (const topic of ["/ui/visual_servoing/on", "/ui/visual_servoing/save"]) {
-  assert(`publish policy includes ${topic}`, publishTopics.includes(topic));
+for (const topic of [STACK.servoOn, STACK.servoSave]) {
+  requirePolicyAllows(topic);
 }
 
-if (failures.length > 0) {
-  console.error("Visual-servoing contract failed:");
-  for (const failure of failures) {
-    console.error(`- ${failure}`);
-  }
-  process.exit(1);
-}
-
-for (const label of passed) {
-  console.log(`ok: ${label}`);
-}
-console.log(`Visual-servoing contract passed for ${fixturePath}`);
+finish();

@@ -10,6 +10,7 @@ import {
   startDashboardServer,
   TABLET_EMULATION,
 } from "./lib/runtime-harness.mjs";
+import { STACK } from "./lib/stack-topics.mjs";
 
 const configurationFixturePaths = {
   "bloom-debug": resolve(repoRoot, "backend/seed/applications/bloom-debug.json"),
@@ -132,7 +133,7 @@ async function mockRuntimeDebugApi(page) {
       json: {
         topics: [
           {
-            name: "/joystick_cartesian_command",
+            name: STACK.twist,
             message_type: "geometry_msgs/msg/TwistStamped",
             publisher_count: 1,
             subscription_count: 1,
@@ -154,7 +155,7 @@ async function mockRuntimeDebugApi(page) {
       contentType: "application/json",
       json: {
         topics: [
-          { name: "/joystick_cartesian_command", message_type: "geometry_msgs/msg/TwistStamped" },
+          { name: STACK.twist, message_type: "geometry_msgs/msg/TwistStamped" },
           { name: "/cmd/max_velocity", message_type: "std_msgs/msg/Float64" },
         ],
       },
