@@ -78,6 +78,8 @@ class Settings(BaseModel):
     # frames.ee_frame: effector_frame on both arms since cartesian_manager d9a1fa5.
     # Empty means nobody has said, and Bloom then offers no tool frame at all.
     ros_ee_frame_id: str = ""
+    # The node whose robot_description parameter the 3D robot view draws.
+    ros_robot_description_node: str = "/robot_state_publisher"
     # The frames cartesian_manager accepts as rotation references. base_link and
     # hybrid_frame exist in every manager config; the end-effector frame differs
     # per robot, and advertising both robots' names let an operator pick a frame
@@ -266,6 +268,10 @@ class Settings(BaseModel):
             ros_ee_frame_id=os.getenv(
                 "BLOOM_ROS_EE_FRAME_ID",
                 cls.model_fields["ros_ee_frame_id"].default,
+            ),
+            ros_robot_description_node=os.getenv(
+                "BLOOM_ROS_ROBOT_DESCRIPTION_NODE",
+                cls.model_fields["ros_robot_description_node"].default,
             ),
             allowed_command_frame_ids=_read_tuple_env(
                 "BLOOM_ALLOWED_COMMAND_FRAME_IDS",

@@ -23,6 +23,7 @@ from libs.ros_adapters.camera_frames import CameraFrameGateway, NoopCameraFrameG
 from libs.ros_adapters.camera_streams import CameraStreamGateway, NoopCameraStreamGateway
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
 from libs.ros_adapters.parameters import NoopRosParameterGateway, RosParameterGateway
+from libs.ros_adapters.robot_model import NoopRobotModelGateway, RobotModelGateway
 from libs.ros_adapters.safety import RuntimeCommandPolicy
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
@@ -50,6 +51,7 @@ def create_app(
     camera_stream_gateway: CameraStreamGateway | None = None,
     ros_publisher_gateway: RosPublisherGateway | None = None,
     ros_parameter_gateway: RosParameterGateway | None = None,
+    robot_model_gateway: RobotModelGateway | None = None,
     ros_service_gateway: RosServiceGateway | None = None,
     ros_topic_catalog_gateway: RosTopicCatalogGateway | None = None,
     runtime_topic_subscription_gateway: RuntimeTopicSubscriptionGateway | None = None,
@@ -79,6 +81,7 @@ def create_app(
     app.state.ros_publisher_gateway = ros_publisher_gateway or NoopRosPublisherGateway()
     app.state.ros_service_gateway = ros_service_gateway or NoopRosServiceGateway()
     app.state.ros_parameter_gateway = ros_parameter_gateway or NoopRosParameterGateway()
+    app.state.robot_model_gateway = robot_model_gateway or NoopRobotModelGateway()
     app.state.ros_topic_catalog_gateway = ros_topic_catalog_gateway or NoopRosTopicCatalogGateway()
     subscription_gateway = runtime_topic_subscription_gateway or NoopRuntimeTopicSubscriptionGateway()
     if is_live_subscription_gateway(subscription_gateway):

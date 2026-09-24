@@ -190,6 +190,8 @@ export BLOOM_ALLOWED_TELEOP_TARGETS='/joystick_cartesian_command'
 export BLOOM_ROBOT_NAME='Explorer'
 export BLOOM_ROS_COMMAND_FRAME_ID='base_link'
 export BLOOM_ALLOWED_COMMAND_FRAME_IDS='base_link,effector_frame,hybrid_frame'
+# The node whose robot_description the 3D robot view draws, with its meshes served from the package share.
+export BLOOM_ROS_ROBOT_DESCRIPTION_NODE='/robot_state_publisher'
 export BLOOM_ALLOWED_ROS_SERVICE_CALLS='/fault_controller/reset_fault'
 export BLOOM_ALLOWED_ROS_SERVICE_TYPES='example_interfaces/srv/Trigger,std_srvs/srv/Trigger'
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60

@@ -39,6 +39,7 @@ from libs.ros_adapters import RclpyRosServiceGateway, RclpyRosTopicCatalogGatewa
 from libs.ros_adapters.parameters import RclpyRosParameterGateway
 from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
 from libs.ros_adapters.rclpy_topic_streams import RclpyRuntimeTopicSubscriptionGateway
+from libs.ros_adapters.robot_model import RclpyRobotModelGateway
 
 cli = typer.Typer(
     name="bloom",
@@ -119,9 +120,11 @@ def run_ros_api(
     spin_thread = Thread(target=executor.spin, daemon=True)
     spin_thread.start()
     try:
+        parameter_gateway = RclpyRosParameterGateway(node)
         app = create_app(
             ros_publisher_gateway=RclpyRosPublisherGateway(node),
-            ros_parameter_gateway=RclpyRosParameterGateway(node),
+            ros_parameter_gateway=parameter_gateway,
+            robot_model_gateway=RclpyRobotModelGateway(parameter_gateway, get_settings().ros_robot_description_node),
             ros_service_gateway=RclpyRosServiceGateway(node),
             ros_topic_catalog_gateway=RclpyRosTopicCatalogGateway(node),
             runtime_topic_subscription_gateway=RclpyRuntimeTopicSubscriptionGateway(node),
