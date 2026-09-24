@@ -36,11 +36,14 @@ function readBinding(widget: WidgetConfig): Record<string, AxisBinding> {
  */
 export function AxisMappingEditor({
   allowedCommandFrameIds,
+  allowedTeleopTargets,
   onUpdateSettings,
   widget,
 }: {
   /** The frames this robot accepts, as the backend reports them. */
   allowedCommandFrameIds?: readonly string[];
+  /** The teleop topics this app allows; the author may still name another. */
+  allowedTeleopTargets?: readonly string[];
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   widget: WidgetConfig;
 }) {
@@ -63,15 +66,17 @@ export function AxisMappingEditor({
       ? ((runtimeBinding as Record<string, unknown>).value_mapping as Record<string, unknown>)
       : {};
   const widgetFrameId = typeof valueMapping.frame_id === "string" ? valueMapping.frame_id : "";
+  const targetTopic = typeof valueMapping.target_topic === "string" ? valueMapping.target_topic : "";
   const turnsTheHand = Object.values(mapping).some((binding) => binding.component?.startsWith("angular_"));
+  const targetListId = `${widget.id}-teleop-targets`;
 
-  const updateFrame = (frameId: string) => {
+  const updateValueMapping = (key: "frame_id" | "target_topic", value: string) => {
     const base = runtimeBinding as Record<string, unknown>;
     const nextValueMapping = { ...valueMapping };
-    if (frameId) {
-      nextValueMapping.frame_id = frameId;
+    if (value) {
+      nextValueMapping[key] = value;
     } else {
-      delete nextValueMapping.frame_id;
+      delete nextValueMapping[key];
     }
     onUpdateSettings({ ...widget.settings, runtime_binding: { ...base, value_mapping: nextValueMapping } });
   };
@@ -93,12 +98,30 @@ export function AxisMappingEditor({
   return (
     <fieldset className="builder-axis-mapping">
       <legend>What this moves</legend>
+      <div className="builder-axis-row">
+        <label>
+          {/* Robin, 2026-09-24: one pad drives the manager, another may drive something else. */}
+          <span>Topic</span>
+          <input
+            list={targetListId}
+            onChange={(event) => updateValueMapping("target_topic", event.target.value.trim())}
+            placeholder="The app's teleop topic"
+            type="text"
+            value={targetTopic}
+          />
+          <datalist id={targetListId}>
+            {(allowedTeleopTargets ?? []).map((target) => (
+              <option key={target} value={target} />
+            ))}
+          </datalist>
+        </label>
+      </div>
       {turnsTheHand ? (
         <div className="builder-axis-row">
           <label>
             {/* The frame rotates only the angular part, so it is offered where a pad turns the hand. */}
             <span>Turns in</span>
-            <select onChange={(event) => updateFrame(event.target.value)} value={widgetFrameId}>
+            <select onChange={(event) => updateValueMapping("frame_id", event.target.value)} value={widgetFrameId}>
               <option value="">The app's frame</option>
               {(allowedCommandFrameIds ?? []).map((frameId) => (
                 <option key={frameId} value={frameId}>

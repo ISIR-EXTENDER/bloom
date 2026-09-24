@@ -152,6 +152,28 @@ describe("settings the runtime ignores", () => {
     );
   });
 
+  it("lets the author name the topic a pad publishes to", () => {
+    // Robin, 2026-09-24: "est-il possible de rendre paramétrable le nom du topic utilisé ?"
+    const onUpdateSettings = renderEditor({ runtime_binding: TELEOP_BINDING }, "slider", [
+      "/joystick_cartesian_command",
+      "/other_cartesian_command",
+    ]);
+    const topic = screen.getByLabelText("Topic") as HTMLInputElement;
+    expect(topic.value).toBe("/joystick_cartesian_command");
+
+    fireEvent.change(topic, { target: { value: "/other_cartesian_command" } });
+    const next = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect((next.runtime_binding as Record<string, Record<string, unknown>>).value_mapping.target_topic).toBe(
+      "/other_cartesian_command",
+    );
+
+    fireEvent.change(topic, { target: { value: "" } });
+    const cleared = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(
+      (cleared.runtime_binding as Record<string, Record<string, unknown>>).value_mapping.target_topic,
+    ).toBeUndefined();
+  });
+
   it("keeps the frame out of a pad that only translates", () => {
     renderEditor(
       {

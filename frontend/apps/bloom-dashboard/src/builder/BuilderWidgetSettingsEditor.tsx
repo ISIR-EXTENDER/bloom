@@ -109,6 +109,7 @@ export function BuilderWidgetSettingsEditor({
       <WidgetCliPreview widget={widget} />
       <AxisMappingEditor
         allowedCommandFrameIds={allowedCommandFrameIds}
+        allowedTeleopTargets={allowedTeleopTargets}
         onUpdateSettings={onUpdateSettings}
         widget={widget}
       />
