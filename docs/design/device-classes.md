@@ -67,6 +67,7 @@ earned by the audience, not granted by the screen size.
 | Supervisor mirror | yes | |
 | Builder | already desktop | needs the density scale documented here |
 | Drive · Operator | tablet only | the accessible layout is a touch panel on a chair |
+| 3D robot view (the widget) | **only** | WebGL and meshes are a desk's work; the palette refuses it on a tablet screen and the runtime shows a note instead |
 
 ## STOP per class
 

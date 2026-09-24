@@ -149,7 +149,9 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 460, height: 320, minWidth: 280, minHeight: 220 },
     runtimeRequirements: ["data-source"],
     maturity: "ready",
-    maturityNote: "Draws the URDF the API serves, driven by joint states; a MarkerArray topic draws targets and paths.",
+    maturityNote:
+      "Draws the URDF the API serves, driven by joint states; a MarkerArray topic draws targets and paths. Desktop screens only.",
+    deviceClasses: ["desktop"],
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor"]),
   },

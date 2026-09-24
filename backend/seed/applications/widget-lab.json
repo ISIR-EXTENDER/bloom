@@ -558,17 +558,17 @@
           "id": "lab-robot",
           "title": "Robot",
           "canvas": {
-            "preset_id": "native-1280x720",
+            "preset_id": "full-hd",
             "runtime_mode": "fit"
           },
           "reserved_regions": [
             {
               "id": "stop",
               "owner": "runtime-chrome",
-              "x": 1064,
-              "y": 194,
-              "width": 202,
-              "height": 468
+              "x": 1486,
+              "y": 878,
+              "width": 420,
+              "height": 144
             }
           ],
           "widgets": [
@@ -580,7 +580,7 @@
                 "x": 14,
                 "y": 14,
                 "width": 480,
-                "height": 360
+                "height": 400
               },
               "settings": {
                 "jointStateTopic": "/joint_states",
@@ -601,9 +601,9 @@
               "title": "Camera",
               "layout": {
                 "x": 14,
-                "y": 386,
-                "width": 360,
-                "height": 260
+                "y": 438,
+                "width": 480,
+                "height": 400
               },
               "settings": {
                 "fitMode": "contain",
@@ -620,10 +620,10 @@
               "kind": "robot-3d",
               "title": "Robot",
               "layout": {
-                "x": 506,
+                "x": 510,
                 "y": 14,
-                "width": 546,
-                "height": 420
+                "width": 1396,
+                "height": 846
               },
               "settings": {
                 "jointStateTopic": "/joint_states",

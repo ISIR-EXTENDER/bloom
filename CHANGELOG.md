@@ -11,6 +11,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Changed
+
+- **The 3D robot view is desktop-only.** A widget kind can name the device classes it runs on; the palette
+  refuses the view on a tablet screen, the review checklist reports one that slipped in, and a tablet-class
+  screen shows a note instead of a scene. The view renders on demand rather than every frame.
+
 ## [0.3.0] - 2026-09-24
 
 Validation status, stated plainly: every behaviour below is proven against the Explorer Gazebo simulation

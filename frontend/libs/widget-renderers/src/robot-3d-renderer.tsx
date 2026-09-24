@@ -15,14 +15,17 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
   const showAxes = getBooleanSetting(settings, "showAxes", true);
   const [status, setStatus] = useState<SceneStatus>({ model: "loading", links: 0, markers: 0, meshes: 0 });
   const snapshot = data?.type === "robot-3d" ? data : undefined;
-  const canDraw = typeof window !== "undefined" && "WebGLRenderingContext" in window && Boolean(robotModel);
-  const note = !robotModel
-    ? "No robot model source in this runtime."
-    : !canDraw
-      ? "This browser cannot draw 3D."
-      : status.model === "unavailable"
-        ? "The API has no robot description. Start the robot, then reopen the screen."
-        : null;
+  const desktop = descriptor.context.deviceClass !== "tablet";
+  const canDraw = desktop && typeof window !== "undefined" && "WebGLRenderingContext" in window && Boolean(robotModel);
+  const note = !desktop
+    ? "Desktop screens only."
+    : !robotModel
+      ? "No robot model source in this runtime."
+      : !canDraw
+        ? "This browser cannot draw 3D."
+        : status.model === "unavailable"
+          ? "The API has no robot description. Start the robot, then reopen the screen."
+          : null;
 
   return (
     <div className="bloom-robot-3d-widget">

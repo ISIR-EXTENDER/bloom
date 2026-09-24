@@ -1,4 +1,5 @@
 import type { WidgetKind, WidgetLayout } from "@bloom/api-client";
+import type { DeviceClass } from "./canvas";
 
 /** What a widget kind promises the palette, the inspector and the runtime. */
 export type WidgetCategory = "command" | "device" | "display" | "feedback" | "input" | "unknown";
@@ -71,7 +72,17 @@ export type WidgetDefinition = {
   /** Set when maturity is `preview`: what it does not do yet. */
   maturityNote?: string;
   availability: WidgetAvailability;
+  /** The device classes this kind runs on; absent means every class. */
+  deviceClasses?: readonly DeviceClass[];
   editor: WidgetEditorCapabilities;
 };
 
 export type WidgetRegistry = ReadonlyMap<WidgetKind, WidgetDefinition>;
+
+/** Whether a kind belongs on a screen of this class; a kind that names no class belongs on every one. */
+export function widgetFitsDeviceClass(
+  definition: Pick<WidgetDefinition, "deviceClasses">,
+  deviceClass: DeviceClass | undefined,
+): boolean {
+  return !definition.deviceClasses || !deviceClass || definition.deviceClasses.includes(deviceClass);
+}

@@ -20,9 +20,10 @@ const WITHOUT_ROS: RuntimeCapability[] = [
 ];
 const WITH_ROS: RuntimeCapability[] = WITHOUT_ROS.map((capability) => ({ ...capability, available: true }));
 
-function renderPalette(capabilities: readonly RuntimeCapability[] | null) {
+function renderPalette(capabilities: readonly RuntimeCapability[] | null, deviceClass?: "desktop" | "tablet") {
   render(
     <BuilderInspector
+      deviceClass={deviceClass}
       availableWidgetDefinitions={Array.from(createDefaultWidgetRegistry().values()).filter(
         (definition) => definition.kind !== "unknown",
       )}
@@ -78,8 +79,25 @@ describe("with ROS attached", () => {
     expect(screen.queryByText("Not connected")).toBeNull();
   });
 
+  it("refuses the 3D robot view on a tablet screen, and says why", () => {
+    renderPalette(WITH_ROS, "tablet");
+
+    const button = paletteButton("3D robot view");
+    expect(button.getAttribute("data-readiness")).toBe("unavailable");
+    expect(button.hasAttribute("disabled")).toBe(true);
+    expect(button.getAttribute("aria-label")).toMatch(/Desktop screens only/);
+    expect(paletteButton("Joystick").hasAttribute("disabled")).toBe(false);
+  });
+
+  it("offers the 3D robot view on a desktop screen", () => {
+    renderPalette(WITH_ROS, "desktop");
+
+    expect(paletteButton("3D robot view").hasAttribute("disabled")).toBe(false);
+  });
+
   it("marks the 3D robot view ready now that the API serves the robot's own description", () => {
-    renderPalette(WITH_ROS);
+    // A palette without a class is a tablet screen's; the view is ready where it belongs.
+    renderPalette(WITH_ROS, "desktop");
 
     // A ready card carries no readiness badge at all.
     expect(paletteButton("3D robot view").getAttribute("data-readiness")).toBeNull();

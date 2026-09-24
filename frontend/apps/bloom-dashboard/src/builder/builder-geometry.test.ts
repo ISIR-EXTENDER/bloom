@@ -153,6 +153,34 @@ describe("builder geometry", () => {
     );
   });
 
+  it("refuses a desktop-only kind on a tablet screen", () => {
+    const tabletScreen = explorer.screens.find((screen) => screen.id === "manager_drive_operator");
+    if (!tabletScreen) throw new Error("no operator screen");
+    const withView: ApplicationConfig = {
+      ...explorer,
+      screens: explorer.screens.map((screen) =>
+        screen.id === tabletScreen.id
+          ? {
+              ...screen,
+              widgets: [
+                ...screen.widgets,
+                {
+                  id: "view",
+                  kind: "robot-3d",
+                  title: "Robot",
+                  layout: { x: 14, y: 570, width: 546, height: 420 },
+                  settings: { jointStateTopic: "/joint_states", showAxes: true },
+                },
+              ],
+            }
+          : screen,
+      ),
+    };
+    const rule = reviewScreens(withView).find((candidate) => candidate.id === "device-class");
+    expect(rule?.passed).toBe(false);
+    expect(rule?.detail).toBe("Robot on Drive · Operator runs on desktop screens only.");
+  });
+
   it("passes the review rules on the manager seed and names the first failure", () => {
     expect(reviewScreens(explorer).filter((rule) => !rule.passed)).toEqual([]);
 

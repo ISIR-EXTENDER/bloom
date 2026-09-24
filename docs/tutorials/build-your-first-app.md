@@ -110,7 +110,7 @@ a topic has to be allowed in both. The deployment variables are in
 
 Press **Review checklist** in the app configuration header. It is greyed out until the app is saved.
 
-The checklist is derived from the saved application, not from a form you fill in. It walks eleven steps and each one
+The checklist is derived from the saved application, not from a form you fill in. It walks twelve steps and each one
 either passes or tells you what to do:
 
 1. Start from the panel, not the desktop.

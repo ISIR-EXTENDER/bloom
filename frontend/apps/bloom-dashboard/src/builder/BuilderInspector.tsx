@@ -5,6 +5,7 @@ import {
   resolveWidgetReadiness,
   type WidgetCategory,
   type WidgetDefinition,
+  widgetFitsDeviceClass,
 } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
@@ -68,6 +69,7 @@ export function BuilderInspector({
           Pick a widget to place it on the canvas, then drag to move it and use the corner handle to resize.
         </p>
         <WidgetPalette
+          deviceClass={deviceClass}
           capabilities={runtimeCapabilities}
           definitions={availableWidgetDefinitions}
           hasStopRegion={hasStopRegion}
@@ -84,6 +86,7 @@ export function BuilderInspector({
         <p className="builder-inspector-copy">Choose a widget on the canvas or in the screen list to inspect it.</p>
         <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={null} widgets={widgets} />
         <WidgetPalette
+          deviceClass={deviceClass}
           capabilities={runtimeCapabilities}
           definitions={availableWidgetDefinitions}
           hasStopRegion={hasStopRegion}
@@ -168,6 +171,7 @@ export function BuilderInspector({
         </button>
       </div>
       <WidgetPalette
+        deviceClass={deviceClass}
         capabilities={runtimeCapabilities}
         definitions={availableWidgetDefinitions}
         hasStopRegion={hasStopRegion}
@@ -230,12 +234,14 @@ function WidgetList({
 function WidgetPalette({
   capabilities,
   definitions,
+  deviceClass,
   hasStopRegion,
   onAddStopRegion,
   onAddWidget,
 }: {
   capabilities: readonly RuntimeCapability[] | null;
   definitions: readonly WidgetDefinition[];
+  deviceClass?: "desktop" | "tablet";
   hasStopRegion?: boolean;
   onAddStopRegion?: () => void;
   onAddWidget: (definition: WidgetDefinition) => void;
@@ -279,7 +285,10 @@ function WidgetPalette({
             <h4 className="builder-widget-palette-category">{label}</h4>
             <div className="builder-widget-palette-grid">
               {inCategory.map((definition) => {
-                const readiness = resolveWidgetReadiness(definition, capabilities);
+                const fitsClass = widgetFitsDeviceClass(definition, deviceClass);
+                const readiness = fitsClass
+                  ? resolveWidgetReadiness(definition, capabilities)
+                  : { state: "unavailable" as const, note: "Desktop screens only." };
                 // A widget that cannot work here stays in the palette, marked. Hiding
                 // it would leave someone hunting for a widget that used to be there.
                 return (
@@ -290,13 +299,14 @@ function WidgetPalette({
                         : `Add ${definition.displayName} widget`
                     }
                     data-readiness={readiness.state === "ready" ? undefined : readiness.state}
+                    disabled={!fitsClass}
                     key={definition.kind}
                     onClick={() => onAddWidget(definition)}
                     type="button"
                   >
                     <strong>{definition.displayName}</strong>
                     {readiness.state === "unavailable" ? (
-                      <em className="builder-widget-palette-flag">Not connected</em>
+                      <em className="builder-widget-palette-flag">{fitsClass ? "Not connected" : "Desktop only"}</em>
                     ) : null}
                     {readiness.state === "preview" ? <em className="builder-widget-palette-flag">Preview</em> : null}
                     {readiness.note ? <small className="builder-widget-palette-note">{readiness.note}</small> : null}

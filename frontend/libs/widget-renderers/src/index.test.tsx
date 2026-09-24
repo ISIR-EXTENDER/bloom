@@ -1694,10 +1694,7 @@ const plotBarsScreen: ScreenConfig = {
 const robot3dScreen: ScreenConfig = {
   id: "robot",
   title: "Robot",
-  canvas: {
-    preset_id: "hd",
-    runtime_mode: "fit",
-  },
+  canvas: { preset_id: "full-hd", runtime_mode: "fit" },
   widgets: [
     {
       id: "explorer-model",

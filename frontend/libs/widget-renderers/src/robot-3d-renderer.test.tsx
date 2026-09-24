@@ -10,7 +10,7 @@ import { renderWidgetDescriptor } from "./index";
 const robotScreen: ScreenConfig = {
   id: "robot",
   title: "Robot",
-  canvas: { preset_id: "hd", runtime_mode: "fit" },
+  canvas: { preset_id: "full-hd", runtime_mode: "fit" },
   widgets: [
     {
       id: "view",
@@ -39,6 +39,20 @@ function renderView(options: Parameters<typeof renderWidgetDescriptor>[1]) {
 }
 
 describe("the 3D robot view", () => {
+  it("draws nothing on a tablet-class screen, whatever the runtime offers", () => {
+    const tabletScreen: ScreenConfig = {
+      ...robotScreen,
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+    };
+    const descriptor = renderScreenDescriptors(tabletScreen, createDefaultWidgetRegistry())[0];
+    if (descriptor?.status !== "resolved") {
+      throw new Error("the fixture did not resolve");
+    }
+    render(renderWidgetDescriptor(descriptor, { robotModel: { asset: async () => null, load: async () => null } }));
+    expect(screen.getByText("Desktop screens only.")).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Robot 3D view" }).getAttribute("data-model")).toBe("unavailable");
+  });
+
   it("says so when the runtime hands it no robot model source", () => {
     renderView({});
     expect(screen.getByText("No robot model source in this runtime.")).toBeTruthy();

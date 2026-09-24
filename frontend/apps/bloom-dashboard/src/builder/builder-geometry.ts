@@ -9,11 +9,14 @@ import type {
 import { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widget-renderers";
 import {
   BENCH_RAIL,
+  createDefaultWidgetRegistry,
   findSizeShortfall,
   primaryTargetFor,
   resolveCanvasPresetSize,
+  resolveDeviceClass,
   TOUCH_FLOOR_PX,
   type WidgetSizeShortfall,
+  widgetFitsDeviceClass,
 } from "@bloom/widgets";
 
 import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
@@ -51,16 +54,19 @@ export function densityFloorFor(deviceClass: DeviceClass): number {
   return deviceClass === "desktop" ? DESKTOP_DENSITY_FLOOR_PX : TOUCH_FLOOR_PX;
 }
 
-export type DeviceClass = "desktop" | "tablet";
+import type { DeviceClass } from "@bloom/widgets";
+
+export type { DeviceClass };
+export { resolveDeviceClass };
+
+/** The shipped kinds, for the rules that need what a kind declares about itself. */
+const WIDGET_DEFINITIONS = createDefaultWidgetRegistry();
 
 /** Each class is checked at its smallest panel (device-classes.md): what an author ships must work there. */
 const CHECKED_PANEL: Record<DeviceClass, { height: number; width: number }> = {
   desktop: { height: 900, width: 1440 },
   tablet: { height: 600, width: 1024 },
 };
-
-/** Only the 1920×1080 presets are desktop. `hd` is 1280×720 and `wide-tablet` 1820×720: both tablet. */
-const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
 
 /** The canvas a new tablet screen starts on: the 1280×720 panel the device switch and shipped screens use. */
 export const NEW_TABLET_CANVAS: CanvasSettings = { preset_id: "native-1280x720", runtime_mode: "fit" };
@@ -69,10 +75,6 @@ export const NEW_TABLET_CANVAS: CanvasSettings = { preset_id: "native-1280x720",
 export function resolveNewScreenCanvas(application: Pick<ApplicationConfig, "screens">): CanvasSettings {
   const first = application.screens[0];
   return first && resolveDeviceClass(first) === "desktop" ? { ...first.canvas } : { ...NEW_TABLET_CANVAS };
-}
-
-export function resolveDeviceClass(screen: Pick<ScreenConfig, "canvas">): DeviceClass {
-  return DESKTOP_PRESETS.has(screen.canvas.preset_id) ? "desktop" : "tablet";
 }
 
 /** The canvas an author places widgets on, and the scale it reaches the glass at on the class's smallest panel. */
@@ -225,6 +227,13 @@ export function reviewScreens(
   );
   const policyDrift = pair ? findPolicyDrift(application, pair) : [];
 
+  const misplaced = application.screens.flatMap((screen) => {
+    const deviceClass = resolveDeviceClass(screen);
+    return screen.widgets
+      .filter((widget) => !widgetFitsDeviceClass(WIDGET_DEFINITIONS.get(widget.kind) ?? {}, deviceClass))
+      .map((widget) => ({ screen, widget }));
+  });
+
   return [
     {
       id: "minimum",
@@ -234,6 +243,15 @@ export function reviewScreens(
         undersized.length === 0
           ? "No widget is smaller than its kind needs."
           : `${undersized[0]?.widget.title} on ${undersized[0]?.screen.title} needs ${undersized[0]?.shortfall.minimum.join("×")}${undersized.length > 1 ? `, and ${undersized.length - 1} more` : ""}.`,
+    },
+    {
+      id: "device-class",
+      title: "Every widget belongs on its screen's device class",
+      passed: misplaced.length === 0,
+      detail:
+        misplaced.length === 0
+          ? "No widget sits on a class its kind does not run on."
+          : `${misplaced[0]?.widget.title} on ${misplaced[0]?.screen.title} runs on desktop screens only${misplaced.length > 1 ? `, and ${misplaced.length - 1} more` : ""}.`,
     },
     {
       id: "symmetry",

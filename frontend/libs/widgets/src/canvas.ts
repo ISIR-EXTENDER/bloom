@@ -1,4 +1,4 @@
-import type { CanvasPresetId, CanvasSettings, WidgetConfig } from "@bloom/api-client";
+import type { CanvasPresetId, CanvasSettings, ScreenConfig, WidgetConfig } from "@bloom/api-client";
 
 /** The canvas presets and how a screen fits a viewport. */
 export type CanvasPreset = {
@@ -7,6 +7,15 @@ export type CanvasPreset = {
   width: number;
   height: number;
 };
+
+export type DeviceClass = "desktop" | "tablet";
+
+/** Only the 1920×1080 presets are desktop; `hd` is 1280×720 and `wide-tablet` 1820×720, both tablet. */
+const DESKTOP_PRESETS = new Set(["full-hd", "local-screen"]);
+
+export function resolveDeviceClass(screen: Pick<ScreenConfig, "canvas">): DeviceClass {
+  return DESKTOP_PRESETS.has(screen.canvas.preset_id) ? "desktop" : "tablet";
+}
 
 export type ViewportSize = {
   width: number;

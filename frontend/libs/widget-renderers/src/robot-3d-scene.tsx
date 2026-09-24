@@ -71,6 +71,7 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
   const onStatusRef = useRef(onStatus);
   onStatusRef.current = onStatus;
   const meshReport = useRef<{ meshes: number; meshError?: string }>({ meshes: 0 });
+  const invalidateRef = useRef<(() => void) | null>(null);
 
   // The stage: renderer, camera, lights, grid, and the robot once it is parsed.
   useEffect(() => {
@@ -106,15 +107,28 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     };
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resize);
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => {
+            resize();
+            invalidate();
+          });
     observer?.observe(container);
     resize();
-    const tick = () => {
-      controls.update();
+    // On demand, never a loop: a still robot costs nothing, and reduced motion has nothing to reduce.
+    const render = () => {
+      frame = 0;
       renderer.render(scene, camera);
-      frame = requestAnimationFrame(tick);
     };
-    tick();
+    const invalidate = () => {
+      if (!frame) {
+        frame = requestAnimationFrame(render);
+      }
+    };
+    invalidateRef.current = invalidate;
+    controls.addEventListener("change", invalidate);
+    invalidate();
 
     loadRobot(robotModel)
       .then((loaded) => {
@@ -133,6 +147,7 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
             return;
           }
           fitCamera(loaded.robot, camera, controls);
+          invalidate();
           setRobot(loaded.robot);
           meshReport.current = { meshes: loaded.meshes.count(), meshError: loaded.meshes.firstError() };
           onStatusRef.current({
@@ -151,6 +166,8 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
 
     return () => {
       disposed = true;
+      invalidateRef.current = null;
+      controls.removeEventListener("change", invalidate);
       cancelAnimationFrame(frame);
       observer?.disconnect();
       controls.dispose();
@@ -171,8 +188,10 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
     }
     const axes = new AxesHelper(0.12);
     target.add(axes);
+    invalidateRef.current?.();
     return () => {
       target.remove(axes);
+      invalidateRef.current?.();
     };
   }, [robot, eeLink, showAxes]);
 
@@ -191,6 +210,7 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
       }
     });
     robot.setJointValues(values);
+    invalidateRef.current?.();
   }, [robot, jointState]);
 
   // Markers, as rviz reads them: by namespace and id, in the frame they name when it is a link.
@@ -201,6 +221,7 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
     for (const marker of markers) {
       applyMarker(robot, markerGroup.current, markerObjects.current, marker);
     }
+    invalidateRef.current?.();
     onStatusRef.current({
       model: "ready",
       links: Object.keys(robot.links).length,

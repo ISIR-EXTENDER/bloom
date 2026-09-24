@@ -1,9 +1,12 @@
 import type { ScreenConfig, WidgetConfig } from "@bloom/api-client";
+import { type DeviceClass, resolveDeviceClass } from "./canvas";
 import type { WidgetDefinition, WidgetRegistry } from "./widget-definition";
 
 /** A screen's widgets paired with their definitions, or the reason one has none. */
 export type WidgetRenderContext = {
   screenId: string;
+  /** The class of the screen being rendered, when the caller knows it. */
+  deviceClass?: DeviceClass;
 };
 
 export type WidgetRenderDescriptor =
@@ -47,6 +50,7 @@ export function renderScreenDescriptors(screen: ScreenConfig, registry: WidgetRe
   return screen.widgets.map((widget) =>
     renderWidgetDescriptor(widget, registry, {
       screenId: screen.id,
+      deviceClass: resolveDeviceClass(screen),
     }),
   );
 }

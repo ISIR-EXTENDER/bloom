@@ -433,7 +433,8 @@ async function authoredSession() {
 
 /** Widget Lab: every kind the palette offers, each bound to the simulation, each pressed or read once. */
 async function labSession() {
-  const { context, page } = await newPage({ width: 1280, height: 720 });
+  // Desktop size: the Robot screen is desktop-class, and the 3D view refuses a tablet screen.
+  const { context, page } = await newPage({ width: 1920, height: 1080 });
   try {
     const opened = await check(page, "lab-opens", async () => {
       await openRuntimeApp(page, dashboardUrl, { appName: "Widget Lab", layoutId: "lab-controls" });

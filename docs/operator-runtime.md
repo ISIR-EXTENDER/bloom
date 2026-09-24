@@ -485,6 +485,9 @@ the ament index of the environment the API runs in. `/joint_states` drives the j
 topic named in the widget draws arrows, shapes, lines, points and text the way rviz does, in the frame each marker names
 when it is a link of the robot and in the base frame otherwise; an axes triad sits on the tool link. It is the place to
 draw targets, directions and trajectories without leaving Bloom for rviz. Orbit with a drag, zoom with a pinch or the wheel.
+It belongs on desktop screens only: the palette refuses it on a tablet screen, the review checklist says so, and a
+tablet-class screen that carries one anyway shows the note instead of a scene, so a tablet or phone never pays for
+WebGL. It renders on demand, so a still robot costs nothing and reduced motion has nothing to reduce.
 
 **Bloom Debug** is a desktop app authored at 1920×1080. Its three header cards — Robot preflight, Topic catalog,
 Runtime audit — are runtime chrome drawn inside the screen's `debug-status` reserved region, not widgets, so no author
