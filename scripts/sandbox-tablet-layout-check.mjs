@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 
-import { spawn } from "node:child_process";
-import { mkdir, readFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { chromium } from "@playwright/test";
+import { mkdir } from "node:fs/promises";
+import { resolve } from "node:path";
+import {
+  assertNoHorizontalOverflow,
+  installConfigurationMocks,
+  installRuntimeWebSocketMock,
+  launchBrowser,
+  loadSeedConfigurationsByPath,
+  seedApplicationsDir,
+  startDashboardServer,
+} from "./lib/runtime-harness.mjs";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(__dirname, "..");
-const dashboardRoot = resolve(repoRoot, "frontend/apps/bloom-dashboard");
 const outputDir = process.env.BLOOM_TABLET_LAYOUT_OUTPUT_DIR ?? resolve("/tmp", "bloom-sandbox-tablet-layout");
 const port = Number(process.env.BLOOM_TABLET_LAYOUT_PORT ?? "5179");
-const baseUrl = `http://127.0.0.1:${port}`;
-const sandboxConfiguration = JSON.parse(
-  await readFile(resolve(repoRoot, "backend/seed/applications/sandbox.json"), "utf8"),
-);
+const configurations = await loadSeedConfigurationsByPath({ sandbox: resolve(seedApplicationsDir, "sandbox.json") });
 
 const checks = [
   {
@@ -63,10 +63,10 @@ const checks = [
     assertions: async (page) => {
       await assertFramesInsideViewport(page, "Visual Servoing Monitor");
       await assertNoFrameOverlap(page, "Visual Servoing Monitor");
-      await assertVisibleBox(page, ".bloom-topic-plot-widget", {
-        label: "Visual-servoing plots",
-        minHeight: 40,
-        minWidth: 80,
+      await assertVisibleBox(page, ".bloom-plot-board", {
+        label: "Servo output plot",
+        minHeight: 280,
+        minWidth: 480,
       });
     },
   },
@@ -74,42 +74,21 @@ const checks = [
 
 await mkdir(outputDir, { recursive: true });
 
-const server = spawn("npm", ["run", "dev", "--", "--host", "127.0.0.1", "--port", String(port), "--strictPort"], {
-  cwd: dashboardRoot,
-  detached: true,
-  env: { ...process.env, VITE_BLOOM_API_URL: "" },
-  stdio: ["ignore", "pipe", "pipe"],
-});
-
-let serverExitError;
-server.on("exit", (code, signal) => {
-  if (code !== null && code !== 0) {
-    serverExitError = new Error(`Bloom dashboard dev server exited with code ${code}.`);
-    return;
-  }
-  if (signal) {
-    serverExitError = new Error(`Bloom dashboard dev server exited with signal ${signal}.`);
-  }
-});
-server.stdout.on("data", (chunk) => process.stdout.write(chunk));
-server.stderr.on("data", (chunk) => process.stderr.write(chunk));
+const server = startDashboardServer(port);
 
 try {
-  await waitForServer(baseUrl);
+  await server.ready();
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage({ viewport: { height: 600, width: 1024 } });
-    await mockApi(page);
-    await mockRuntimeWebSocket(page);
+    await installConfigurationMocks(page, configurations);
+    await installRuntimeWebSocketMock(page);
 
     for (const check of checks) {
       await showSandboxRuntimeScreen(page, check.screen);
+      await page.screenshot({ fullPage: false, path: resolve(outputDir, `${check.name}-1024x600.png`) });
       await assertNoHorizontalOverflow(page, check.screen);
       await check.assertions(page);
-      await page.screenshot({
-        fullPage: false,
-        path: resolve(outputDir, `${check.name}-1024x600.png`),
-      });
       console.log(`ok: ${check.screen} tablet layout`);
     }
     await page.close();
@@ -117,249 +96,13 @@ try {
     await browser.close();
   }
 } finally {
-  await stopServer();
+  await server.stop();
 }
 
 console.log(`Sandbox tablet layout screenshots captured in ${outputDir}`);
 
-async function launchBrowser() {
-  try {
-    return await chromium.launch({ channel: "chrome" });
-  } catch {
-    return chromium.launch();
-  }
-}
-
-async function waitForServer(url) {
-  const startedAt = Date.now();
-  while (Date.now() - startedAt < 20_000) {
-    if (serverExitError) throw serverExitError;
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Vite is still starting.
-    }
-    await new Promise((resolveTimeout) => setTimeout(resolveTimeout, 250));
-  }
-  throw new Error(`Timed out waiting for ${url}`);
-}
-
-async function stopServer() {
-  if (!server.pid || server.killed) return;
-  try {
-    process.kill(-server.pid, "SIGTERM");
-  } catch {
-    return;
-  }
-  await new Promise((resolveTimeout) => setTimeout(resolveTimeout, 500));
-  try {
-    process.kill(-server.pid, "SIGKILL");
-  } catch {
-    // The server already stopped after SIGTERM.
-  }
-}
-
-async function mockApi(page) {
-  await page.route("**/api/v1/configurations", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      json: { configuration_ids: ["sandbox"] },
-      status: 200,
-    });
-  });
-  await page.route("**/api/v1/configurations/sandbox", async (route) => {
-    await route.fulfill({ contentType: "application/json", json: sandboxConfiguration, status: 200 });
-  });
-  await page.route("**/api/v1/ros/topics/status", async (route) => {
-    await route.fulfill({
-      contentType: "application/json",
-      json: {
-        topics: [
-          {
-            message_type: "extender_msgs/msg/TeleopCommand",
-            name: "/joystick_cartesian_command",
-            publisher_count: 1,
-            subscription_count: 1,
-          },
-          {
-            message_type: "geometry_msgs/msg/TwistStamped",
-            name: "/visual_servoing/velocity_command",
-            publisher_count: 1,
-            subscription_count: 0,
-          },
-        ],
-      },
-      status: 200,
-    });
-  });
-  await page.route("**/api/v1/runtime/control", async (route) => {
-    const sessionId = route.request().headers()["x-bloom-runtime-session"] ?? "";
-    await route.fulfill({
-      contentType: "application/json",
-      json: {
-        active_sessions: 1,
-        detail: "This runtime session owns robot control.",
-        is_owner: true,
-        owner_present: true,
-        session_id: sessionId,
-      },
-      status: 200,
-    });
-  });
-}
-
-async function mockRuntimeWebSocket(page) {
-  await page.addInitScript(() => {
-    class BloomTabletLayoutWebSocket extends EventTarget {
-      static CONNECTING = 0;
-      static OPEN = 1;
-      static CLOSING = 2;
-      static CLOSED = 3;
-
-      readyState = BloomTabletLayoutWebSocket.CONNECTING;
-
-      constructor(url) {
-        super();
-        this.url = url;
-        this.sessionId = `tablet-layout-${Date.now()}-${Math.random()}`;
-        window.setTimeout(() => {
-          this.readyState = BloomTabletLayoutWebSocket.OPEN;
-          this.dispatchEvent(new Event("open"));
-          window.setTimeout(() => {
-            this.dispatchEvent(
-              new MessageEvent("message", {
-                data: JSON.stringify({
-                  active_sessions: 1,
-                  payload: {
-                    active_sessions: 1,
-                    is_owner: false,
-                    owner_present: false,
-                    session_id: this.sessionId,
-                  },
-                  session_id: this.sessionId,
-                  type: "session_connected",
-                }),
-              }),
-            );
-          }, 0);
-        }, 0);
-      }
-
-      close() {
-        this.readyState = BloomTabletLayoutWebSocket.CLOSED;
-        this.dispatchEvent(new CloseEvent("close"));
-      }
-
-      send(data) {
-        const message = parseRuntimeCommand(data);
-        if (message?.type === "claim_control" || message?.type === "release_control") {
-          const isOwner = message.type === "claim_control";
-          window.setTimeout(() => {
-            this.dispatchEvent(
-              new MessageEvent("message", {
-                data: JSON.stringify({
-                  detail: isOwner
-                    ? "This runtime session owns robot control."
-                    : "No runtime session owns robot control.",
-                  payload: {
-                    active_sessions: 1,
-                    is_owner: isOwner,
-                    owner_present: isOwner,
-                    session_id: this.sessionId,
-                  },
-                  session_id: this.sessionId,
-                  type: "control_state",
-                }),
-              }),
-            );
-          }, 0);
-          return;
-        }
-        if (message?.type === "app_context") {
-          window.setTimeout(() => {
-            this.dispatchEvent(
-              new MessageEvent("message", {
-                data: JSON.stringify({
-                  detail: "Runtime commands are now limited to what this app allows.",
-                  payload: {
-                    allowed_teleop_targets: ["/joystick_cartesian_command", "/teleop_cmd"],
-                    app_id: message.app_id,
-                    config_id: message.config_id,
-                  },
-                  session_id: this.sessionId,
-                  type: "app_context_ack",
-                }),
-              }),
-            );
-          }, 0);
-          return;
-        }
-        if (message?.type === "ping") {
-          // The keepalive is a request like any other, and replies match by position.
-          window.setTimeout(() => {
-            this.dispatchEvent(
-              new MessageEvent("message", {
-                data: JSON.stringify({
-                  detail: "Runtime session is alive.",
-                  payload: {},
-                  session_id: this.sessionId,
-                  type: "pong",
-                }),
-              }),
-            );
-          }, 0);
-          return;
-        }
-        if (message?.type === "unsubscribe_topic") {
-          window.setTimeout(() => {
-            this.dispatchEvent(
-              new MessageEvent("message", {
-                data: JSON.stringify({
-                  detail: `Unsubscribed from ${message.topic}.`,
-                  payload: { removed: true, topic: message.topic, widget_id: message.widget_id },
-                  type: "unsubscription_ack",
-                }),
-              }),
-            );
-          }, 0);
-          return;
-        }
-        if (message?.type !== "subscribe_topic") return;
-        window.setTimeout(() => {
-          this.dispatchEvent(
-            new MessageEvent("message", {
-              data: JSON.stringify({
-                detail: `Subscribed to ${message.topic}.`,
-                payload: {
-                  field_path: message.field_path ?? "",
-                  message_type: message.message_type ?? "",
-                  topic: message.topic,
-                  widget_id: message.widget_id,
-                },
-                type: "subscription_ack",
-              }),
-            }),
-          );
-        }, 0);
-      }
-    }
-
-    function parseRuntimeCommand(data) {
-      if (typeof data !== "string") return null;
-      try {
-        return JSON.parse(data);
-      } catch {
-        return null;
-      }
-    }
-
-    window.WebSocket = BloomTabletLayoutWebSocket;
-  });
-}
-
 async function showSandboxRuntimeScreen(page, screenName) {
-  await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.goto(server.baseUrl, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
   await openRuntimeApp(page, "Sandbox V0.0");
 
@@ -382,20 +125,6 @@ async function holdForMaintenance(page) {
   await page.waitForTimeout(1700);
   await page.mouse.up();
   await page.getByRole("dialog", { name: "Maintenance" }).waitFor();
-}
-
-async function assertNoHorizontalOverflow(page, label) {
-  const overflow = await page.evaluate(() => ({
-    bodyClientWidth: document.body.clientWidth,
-    bodyScrollWidth: document.body.scrollWidth,
-    documentClientWidth: document.documentElement.clientWidth,
-    documentScrollWidth: document.documentElement.scrollWidth,
-  }));
-  const bodyOverflow = overflow.bodyScrollWidth - overflow.bodyClientWidth;
-  const documentOverflow = overflow.documentScrollWidth - overflow.documentClientWidth;
-  if (bodyOverflow > 2 || documentOverflow > 2) {
-    throw new Error(`${label} has horizontal overflow: body=${bodyOverflow}px, document=${documentOverflow}px`);
-  }
 }
 
 async function assertFramesInsideViewport(page, label) {
