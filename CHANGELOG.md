@@ -39,6 +39,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **The runtime socket forwards at most 30 samples a second per topic** (`BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ`,
   0 for every sample): the newest each interval, and a stream that stops still ends on its last value. The
   Kinova simulation publishes `/joint_states` at 200 Hz, which was 200 JSON frames a second to every viewer.
+- **A sample reaches only the widgets that read its topic.** Every sample used to walk every widget on the
+  screen and re-resolve each one's topic from its settings; the screen now carries an index built once.
+- **One shared, memoized renderer registry.** Rendering a widget built a fresh registry of every widget kind,
+  so a twenty-widget screen built twenty registries per frame. There is one now, its renderers are memoized,
+  and the descriptors, the conditioning and the action handler are stable, so a sample re-renders the widget
+  it feeds instead of the whole screen.
 - **The runtime applies a frame's samples in one state update.** Every sample used to re-render the whole
   runtime; now what arrived within about 16 ms lands together, newest last, and a hidden tab keeps only the
   newest six hundred. Measured on the Widget Lab Robot screen: 28% to 23% of a core.
@@ -57,6 +63,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A widget that watches a command could swallow it.** The dispatcher called its listeners inside the send
+  path without a guard, so a listener that threw would have stopped the twist reaching the arm. The arm comes
+  first: a broken observer now loses its drawing, never the command.
 - A cylinder marker stood along y instead of z: the marker's pose overwrote the rotation that stood it up.
 - Arrow markers were sized by invented proportions; they now follow rviz (shaft and head diameters from
   `scale`, a 23% head unless `scale.z` says otherwise).

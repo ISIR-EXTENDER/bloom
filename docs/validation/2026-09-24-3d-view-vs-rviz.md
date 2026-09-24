@@ -79,10 +79,26 @@ CPU on the laptop", rviz wins. That is not the question Bloom answers.
   throttle halved the browser's CPU and memory and cut the socket to a quarter. The view's own share is small:
   it renders on demand and skips a still robot.
 
-Of the remaining 28%, part was the runtime's React re-render on each of the 64 frames. The runtime now applies
-everything that arrived within a frame in one state update, which took the same measurement to 22.6% of a core
-with memory unchanged at 610 MB; the rest is the browser's own baseline and the widgets' work. Both were runtime
-changes, not view changes, and every reading widget on every tablet gets them.
+Of the remaining 28%, most was the runtime re-rendering itself. Three changes followed, none of them in the 3D
+view: everything that arrives within a frame lands in one state update; a sample reaches only the widgets that
+read its topic, through an index built once per screen, instead of walking every widget and re-resolving its
+settings; and the renderer registry, which was being rebuilt for every widget on every frame, is now shared and
+its renderers memoized, so a sample re-renders the widget it feeds rather than the screen. Every reading widget
+on every tablet gets all three.
+
+Measured after all three, same screen and method:
+
+| | Bloom's 3D view (whole browser) | rviz2 |
+| --- | --- | --- |
+| CPU, robot still | 19.7% of one core | 3.2% |
+| Memory (proportional set size) | 586 MB | 128 MB |
+| What reaches the viewer | 64 socket frames a second, 0.38 Mbit/s | unchanged |
+
+Across the night the browser went from 71% of a core and 1.33 GB to 19.7% and 586 MB, for the same screen
+drawing the same robot: a little under four times less CPU and a little over half the memory. rviz is still an
+order of magnitude cheaper, and the gap that remains is the browser's own baseline plus the work the rest of
+the runtime does. The point of the exercise was never to beat rviz on the laptop; it was to find out what
+Bloom was spending, and three of the four findings had nothing to do with the 3D view at all.
 
 
 ## What rviz still does that the view does not
