@@ -60,8 +60,13 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         if (!sendTeleopCommand) {
           return Promise.reject(new Error("Teleop client is gone."));
         }
+        // Whoever watches a command must never be able to stop it: the arm comes first, the drawing after.
         for (const listener of teleopCommandListeners.current) {
-          listener(request);
+          try {
+            listener(request);
+          } catch {
+            // A listener that throws loses its arrow, not the command.
+          }
         }
         return sendTeleopCommand(request);
       },

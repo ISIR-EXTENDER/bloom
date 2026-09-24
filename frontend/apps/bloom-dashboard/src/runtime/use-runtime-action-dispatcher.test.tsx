@@ -106,6 +106,33 @@ describe("runtime teleop suspension", () => {
     });
   });
 
+  it("sends the command even when a listener throws", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    const after: RuntimeTeleopCommandRequest[] = [];
+    act(() => {
+      result.current.addTeleopCommandListener(() => {
+        throw new Error("the view broke");
+      });
+      result.current.addTeleopCommandListener((request) => after.push(request));
+      result.current.dispatch({
+        type: "value-change",
+        binding: "joy",
+        modeId: "translation",
+        publishRateHz: 30,
+        runtimeBinding: { adapter: "teleop", target: "translation" },
+        value: { x: 0, y: 1 },
+        widgetId: "translation",
+        widgetKind: "joystick",
+        zeroOnRelease: true,
+      });
+    });
+    await act(() => vi.advanceTimersByTimeAsync(40));
+
+    // The arm comes first: a broken observer loses its drawing, never the command.
+    expect(sent.length).toBeGreaterThan(0);
+    expect(after.length).toBe(sent.length);
+  });
+
   it("tells a listener each twist it sends, until the listener leaves", async () => {
     const { result } = renderHook(() => useRuntimeActionDispatcher(client));
     const heard: RuntimeTeleopCommandRequest[] = [];
