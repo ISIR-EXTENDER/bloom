@@ -191,6 +191,9 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
   Petanque; `e2e:sim` proves a slider press reaches `cartesian_manager`.
 - Practice offered on the first entry to an app, saved poses that survive an API restart, and a scan switch that
   shares the STOP region instead of taking canvas height.
+- A 3D robot view that stands in for rviz while a simulation runs: the API serves the running robot's description
+  and meshes, the view draws every rviz marker kind, joint targets as a translucent twin, a pose topic as a triad,
+  and the runtime's own commanded motion; it keeps asking for the robot until the launch is up. Desktop screens only.
 
 Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs
 validation with the intended device. Browser reduced-motion preferences cover the little that moves; nothing on the

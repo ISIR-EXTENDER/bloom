@@ -31,8 +31,21 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **The 3D robot view draws the commanded motion**: a blue arrow from the tool along the linear part of the
   twist the runtime is sending, and an arc around the axis of the angular part in the frame the twist
   names, gone with the last zero. The simulation run watches the arrow appear while Height is held.
-- The Widget Lab probe publishes one marker of each kind, and the simulation check requires the tool label
-  to sit on the robot's last link and the mesh marker to arrive, draw and expire.
+- **The 3D robot view shows targets and poses.** A `Joint target topic` (the manager's
+  `/joint_target_command` by default) draws the target as a translucent copy of the robot until the empty
+  joint state cancels it; a `Pose topic` draws a `PoseStamped` as a triad in its frame, so `/ee_pose` beside
+  the model's tool shows whether the manager's frames agree with the description. A Frame button and the
+  line under the view, which says how many of the model's joints the joint state drives.
+- **The runtime socket forwards at most 30 samples a second per topic** (`BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ`,
+  0 for every sample): the newest each interval, and a stream that stops still ends on its last value. The
+  Kinova simulation publishes `/joint_states` at 200 Hz, which was 200 JSON frames a second to every viewer.
+- **The robot description answers 304** to an unchanged robot, and meshes carry a five-minute cache header, so
+  the view's ten-second poll costs a hash and a reload does not fetch every mesh again.
+- **Bloom Debug has a Robot view screen**: the 3D robot view with `/ee_pose`, `/joint_target_command` and
+  `/goal_markers`, an echo of `/ee_pose` and a log of mode requests, so the laptop needs no rviz beside Bloom.
+- The Widget Lab probe publishes one marker of each kind, and a joint target four seconds on and four off; the
+  simulation checks require the tool label on the robot's last link, the mesh marker to arrive, draw and
+  expire, `/ee_pose` drawn, and the target drawn then gone.
 
 ### Fixed
 

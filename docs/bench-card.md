@@ -75,6 +75,17 @@ the dashboard under any other name, or a port Vite moved to, is refused until th
 **Running both arms** means two API processes: different ports, and their own `BLOOM_ROBOT_NAME` and
 `BLOOM_ROS_EE_FRAME_ID`. One backend instance serves one robot.
 
+**Watching the arm in Bloom instead of rviz.** Widget Lab's Robot screen (a desktop screen; the palette refuses the 3D
+view on a tablet) draws the robot the manager runs with: the API reads `robot_description` from
+`/robot_state_publisher` on its own domain (`BLOOM_ROS_ROBOT_DESCRIPTION_NODE` to change the node) and serves the
+meshes itself, so the laptop needs no rviz and no mesh files of its own. Open it before or after the launch: the
+view asks again every three seconds until the description exists. Anything a node publishes as a
+`visualization_msgs/msg/MarkerArray` on `/widget_lab/markers` is drawn on the robot as rviz would draw it; a blue
+arrow and arc show what the runtime is commanding. Double-click the view or press Frame to frame the robot again.
+The Robot screen also draws `/ee_pose` as a triad: if it sits on the model's tool triad, the manager's frames and
+the description agree, which is the check in section 4 made visible. A joint target such as Load home shows as a
+translucent copy of the robot until the manager cancels it.
+
 ## 4. Check the frames before anything moves
 
 The manager does no TF lookup and silently skips an unknown frame, so this is the fastest class of failure to
@@ -150,6 +161,7 @@ Work through these deliberately; none of them can be tested any other way.
 | Reset fault (Kinova) | The simulation launch never spawns `fault_controller`, so this has never been exercised at all. It is the gen3's recovery path. |
 | Bloom Debug joint table | A real arm publishes a different joint set than the simulation did. |
 | The tablet, gamepad or switch | Together, on the device, with the profile the operator will actually use. |
+| The 3D view against the real arm | Simulation publishes every joint, gripper included; a real arm may publish fewer, and a joint the description has but the driver does not stays where the URDF puts it. Compare the drawn pose with the arm once before trusting the view. |
 
 ## 8. Known-absent — do not chase these
 

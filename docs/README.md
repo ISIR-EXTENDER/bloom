@@ -32,6 +32,7 @@ One page per topic. These describe what Bloom does today.
 | [Release checklist](release-checklist.md) | What has to be true before tagging. Every step is a command. |
 | [Extender and Petanque validation](extender-petanque-validation.md) | The live acceptance procedure and what remains unvalidated on hardware. |
 | [Visual servoing flow](validation/2026-09-24-visual-servoing-flow.md) | camera_interface review, the Visual servoing app, and the simulated end-to-end run of Robin's AprilTag flow. |
+| [The 3D view against rviz](validation/2026-09-24-3d-view-vs-rviz.md) | Why Bloom draws the robot itself: what embedding rviz would mean, and the measured cost of each on the same simulation. |
 
 ## Open Work And Proposals
 
