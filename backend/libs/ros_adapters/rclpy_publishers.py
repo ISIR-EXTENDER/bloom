@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from libs.ros_adapters.messages import resolve_message_class
 from libs.ros_adapters.publishers import RosPublishReceipt, RosPublishRequest
 
 
@@ -33,22 +34,7 @@ class RclpyRosPublisherGateway:
         )
 
     def _get_message_class(self, message_type: str) -> type:
-        message_cls = self._message_classes.get(message_type)
-        if message_cls is not None:
-            return message_cls
-
-        try:
-            from rosidl_runtime_py.utilities import get_message
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("rosidl_runtime_py is required to publish ROS messages") from exc
-
-        try:
-            message_cls = get_message(message_type)
-        except (AttributeError, ModuleNotFoundError, ValueError) as exc:
-            raise ValueError(f"Unsupported ROS message type: {message_type}") from exc
-
-        self._message_classes[message_type] = message_cls
-        return message_cls
+        return resolve_message_class(message_type, self._message_classes, "publish ROS messages")
 
     def _ensure_publisher(self, topic: str, message_type: str, message_cls: type) -> Any:
         cache_key = (topic, message_type)

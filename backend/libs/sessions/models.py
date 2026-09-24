@@ -27,11 +27,10 @@ class RuntimeAppContextMessage(RuntimeModel):
     app_id: str = Field(min_length=1, max_length=128)
 
 
-class RuntimeSubscribeTopicMessage(RuntimeModel):
-    type: Literal["subscribe_topic"]
+class RuntimeTopicMessage(RuntimeModel):
+    """A widget naming a topic: the topic is absolute and the widget id trimmed."""
+
     topic: str = Field(min_length=1)
-    message_type: str = ""
-    field_path: str = ""
     widget_id: str = ""
 
     @field_validator("topic")
@@ -50,22 +49,16 @@ class RuntimeSubscribeTopicMessage(RuntimeModel):
         return value.strip()
 
 
-class RuntimeUnsubscribeTopicMessage(RuntimeModel):
+class RuntimeSubscribeTopicMessage(RuntimeTopicMessage):
+    type: Literal["subscribe_topic"]
+    message_type: str = ""
+    field_path: str = ""
+
+
+class RuntimeUnsubscribeTopicMessage(RuntimeTopicMessage):
     """Drops the subscription the same widget_id and topic opened."""
 
     type: Literal["unsubscribe_topic"]
-    topic: str = Field(min_length=1)
-    widget_id: str = ""
-
-    @field_validator("topic")
-    @classmethod
-    def topic_must_be_absolute(cls, value: str) -> str:
-        return RuntimeSubscribeTopicMessage.topic_must_be_absolute(value)
-
-    @field_validator("widget_id")
-    @classmethod
-    def normalize_widget_id(cls, value: str) -> str:
-        return value.strip()
 
 
 class RuntimeVector3Message(RuntimeModel):

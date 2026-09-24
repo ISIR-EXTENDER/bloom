@@ -5,6 +5,11 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from apps.bloom_api.routes.runtime_common import (
+    get_runtime_audit_log,
+    get_runtime_command_policy,
+    get_runtime_command_rate_limiter,
+)
 from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
@@ -26,11 +31,9 @@ from libs.ros_adapters import (
 )
 from libs.ros_adapters.parameters import RosParameterGateway, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
-from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
+from libs.ros_adapters.safety import RuntimeCommandPolicyError
 from libs.sessions import (
-    RuntimeAuditLog,
     RuntimeAuditRecord,
-    RuntimeCommandRateLimiter,
     RuntimeRateLimitError,
     RuntimeStoppedError,
 )
@@ -182,18 +185,6 @@ def get_ros_publisher_gateway(request: Request) -> RosPublisherGateway:
 
 def get_ros_topic_catalog_gateway(request: Request) -> RosTopicCatalogGateway:
     return request.app.state.ros_topic_catalog_gateway
-
-
-def get_runtime_audit_log(request: Request) -> RuntimeAuditLog:
-    return request.app.state.runtime_audit_log
-
-
-def get_runtime_command_policy(request: Request) -> RuntimeCommandPolicy:
-    return request.app.state.runtime_command_policy
-
-
-def get_runtime_command_rate_limiter(request: Request) -> RuntimeCommandRateLimiter:
-    return request.app.state.runtime_command_rate_limiter
 
 
 @router.get("/topics", response_model=RosTopicListResponse)

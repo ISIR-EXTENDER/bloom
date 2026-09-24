@@ -5,6 +5,7 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from libs.ros_adapters.messages import resolve_message_class
 from libs.sessions.topics import RuntimeTopicSample, RuntimeTopicSampleCallback, RuntimeTopicSubscription
 
 logger = logging.getLogger(__name__)
@@ -84,22 +85,7 @@ class RclpyRuntimeTopicSubscriptionGateway:
         raise RuntimeError(f"Cannot subscribe to {topic}: message type is required or topic is not available.")
 
     def _get_message_class(self, message_type: str) -> type:
-        message_cls = self._message_classes.get(message_type)
-        if message_cls is not None:
-            return message_cls
-
-        try:
-            from rosidl_runtime_py.utilities import get_message
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("rosidl_runtime_py is required to subscribe to ROS topics") from exc
-
-        try:
-            message_cls = get_message(message_type)
-        except (AttributeError, ModuleNotFoundError, ValueError) as exc:
-            raise ValueError(f"Unsupported ROS message type: {message_type}") from exc
-
-        self._message_classes[message_type] = message_cls
-        return message_cls
+        return resolve_message_class(message_type, self._message_classes, "subscribe to ROS topics")
 
 
 def to_jsonable_ros_message(message: Any) -> Any:
