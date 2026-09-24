@@ -301,6 +301,25 @@ class RuntimeControlStateResponse(BaseModel):
     owner_moving: bool = False
 
 
+def runtime_error(
+    session_id: str, detail: str, payload: dict[str, Any] | None = None, **fields: Any
+) -> RuntimeServerMessage:
+    """The answer to a request the runtime refuses; the socket stays open."""
+    return RuntimeServerMessage(
+        type="runtime_error",
+        detail=detail,
+        session_id=session_id,
+        **({"payload": payload} if payload is not None else {}),
+        **fields,
+    )
+
+
+def audited_rejection(audit_log: RuntimeAuditLog, status_code: int, **record: Any) -> HTTPException:
+    """Record a refused request and hand back the HTTP error to raise for it."""
+    audit_log.record(RuntimeAuditRecord(status="rejected", **record))
+    return HTTPException(status_code=status_code, detail=record["detail"])
+
+
 @router.get("/control", response_model=RuntimeControlStateResponse)
 def get_runtime_control_state(
     request: Request,
@@ -378,20 +397,18 @@ def dispatch_runtime_action(
     stop_controller = get_runtime_stop_controller(request)
     stop_reason = stop_controller.rejection_reason()
     if stop_reason is not None:
-        get_runtime_audit_log(request).record(
-            RuntimeAuditRecord(
-                channel="runtime_action",
-                detail=stop_reason,
-                payload_summary={
-                    "app_id": action_request.app_id,
-                    "config_id": action_request.config_id,
-                    "preset_id": action_request.preset_id,
-                },
-                status="rejected",
-                target=action_request.command or action_request.preset_id,
-            )
+        raise audited_rejection(
+            get_runtime_audit_log(request),
+            409,
+            channel="runtime_action",
+            detail=stop_reason,
+            payload_summary={
+                "app_id": action_request.app_id,
+                "config_id": action_request.config_id,
+                "preset_id": action_request.preset_id,
+            },
+            target=action_request.command or action_request.preset_id,
         )
-        raise HTTPException(status_code=409, detail=stop_reason)
 
     repository = get_configuration_repository(request)
     try:
@@ -473,17 +490,15 @@ def dispatch_service_call_preset(
     audit_log = get_runtime_audit_log(request)
 
     def reject(status_code: int, detail: str) -> HTTPException:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="runtime_action",
-                detail=detail,
-                message_type=preset.message_type,
-                status="rejected",
-                target=preset.command or preset.id,
-                topic=preset.topic,
-            )
+        return audited_rejection(
+            audit_log,
+            status_code,
+            channel="runtime_action",
+            detail=detail,
+            message_type=preset.message_type,
+            target=preset.command or preset.id,
+            topic=preset.topic,
         )
-        return HTTPException(status_code=status_code, detail=detail)
 
     if not preset.topic or not preset.message_type:
         raise reject(422, "service-call preset needs a service name in `topic` and a type in `message_type`")
@@ -785,21 +800,22 @@ def publish_camera_frame(
     audit_log = get_runtime_audit_log(request)
     gateway = get_camera_frame_gateway(request)
 
+    def reject(status_code: int, detail: str) -> HTTPException:
+        return audited_rejection(
+            audit_log,
+            status_code,
+            channel="http_camera_frame",
+            detail=detail,
+            message_type="sensor_msgs/msg/CompressedImage",
+            topic=payload.topic,
+        )
+
     # The allowlist runs first: counting an unknown topic would let any string
     # in a request body create a rate-limit bucket that is never collected.
     try:
         policy.ensure_publish_allowed(payload.topic, "sensor_msgs/msg/CompressedImage", {})
     except RuntimeCommandPolicyError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_camera_frame",
-                detail=str(exc),
-                message_type="sensor_msgs/msg/CompressedImage",
-                status="rejected",
-                topic=payload.topic,
-            )
-        )
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+        raise reject(403, str(exc)) from exc
 
     # Frames are megabytes each. Without a limit a camera widget stuck in a
     # retry loop would saturate the backend and the ROS graph, so this is rate
@@ -807,30 +823,12 @@ def publish_camera_frame(
     try:
         get_runtime_command_rate_limiter(request).ensure_allowed(f"http_camera_frame:{payload.topic}")
     except RuntimeRateLimitError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_camera_frame",
-                detail=str(exc),
-                message_type="sensor_msgs/msg/CompressedImage",
-                status="rejected",
-                topic=payload.topic,
-            )
-        )
-        raise HTTPException(status_code=429, detail=str(exc)) from exc
+        raise reject(429, str(exc)) from exc
 
     try:
         frame = decode_image_data_url(payload.image_data_url)
     except CameraFrameError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_camera_frame",
-                detail=str(exc),
-                message_type="sensor_msgs/msg/CompressedImage",
-                status="rejected",
-                topic=payload.topic,
-            )
-        )
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise reject(422, str(exc)) from exc
 
     stop_controller = get_runtime_stop_controller(request)
     try:
@@ -839,16 +837,7 @@ def publish_camera_frame(
             lambda: stop_controller.execute_if_running(lambda: gateway.publish(payload.topic, frame, payload.frame_id)),
         )
     except RuntimeStoppedError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="http_camera_frame",
-                detail=str(exc),
-                message_type="sensor_msgs/msg/CompressedImage",
-                status="rejected",
-                topic=payload.topic,
-            )
-        )
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        raise reject(409, str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -886,33 +875,29 @@ def start_runtime_recording(
     recording_request: RuntimeRecordingStartRequest,
     _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RuntimeRecordingResponse:
-    if recording_request.output_folder not in get_allowed_recording_output_folders(request):
-        get_runtime_audit_log(request).record(
-            RuntimeAuditRecord(
-                channel="runtime_recording",
-                detail="Recording output folder is not allowed.",
-                payload_summary={"topic_count": len(recording_request.topics)},
-                status="rejected",
-                target=recording_request.output_folder,
-            )
+    audit_log = get_runtime_audit_log(request)
+
+    def reject(status_code: int, detail: str, topic: str = "") -> HTTPException:
+        return audited_rejection(
+            audit_log,
+            status_code,
+            channel="runtime_recording",
+            detail=detail,
+            payload_summary={"topic_count": len(recording_request.topics)},
+            target=recording_request.output_folder,
+            topic=topic,
         )
-        raise HTTPException(status_code=403, detail="Recording output folder is not allowed.")
+
+    if recording_request.output_folder not in get_allowed_recording_output_folders(request):
+        raise reject(403, "Recording output folder is not allowed.")
 
     policy = get_runtime_command_policy(request)
     try:
         policy.ensure_recording_topics_allowed(recording_request.topics)
     except RuntimeCommandPolicyError as exc:
-        get_runtime_audit_log(request).record(
-            RuntimeAuditRecord(
-                channel="runtime_recording",
-                detail=str(exc),
-                payload_summary={"topic_count": len(recording_request.topics)},
-                status="rejected",
-                target=recording_request.output_folder,
-                topic=find_rejected_recording_topic(recording_request.topics, policy.allowed_recording_topics),
-            )
-        )
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+        raise reject(
+            403, str(exc), find_rejected_recording_topic(recording_request.topics, policy.allowed_recording_topics)
+        ) from exc
 
     gateway = get_runtime_recording_gateway(request)
     try:
@@ -927,17 +912,8 @@ def start_runtime_recording(
             ),
         )
     except RuntimeError as exc:
-        get_runtime_audit_log(request).record(
-            RuntimeAuditRecord(
-                channel="runtime_recording",
-                detail=str(exc),
-                payload_summary={"topic_count": len(recording_request.topics)},
-                status="rejected",
-                target=recording_request.output_folder,
-            )
-        )
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
-    get_runtime_audit_log(request).record(
+        raise reject(503, str(exc)) from exc
+    audit_log.record(
         RuntimeAuditRecord(
             channel="runtime_recording",
             detail=receipt.detail,
@@ -988,12 +964,11 @@ async def runtime_websocket(websocket: WebSocket) -> None:
         session = manager.connect(read_only=not principal.is_operator)
     except RuntimeSessionLimitError as exc:
         await websocket.send_json(
-            RuntimeServerMessage(
-                type="runtime_error",
+            runtime_error(
+                "",
+                "Runtime session refused: this robot already has enough connections.",
+                {"code": "session_limit", "message": str(exc)},
                 active_sessions=manager.active_session_count,
-                detail="Runtime session refused: this robot already has enough connections.",
-                payload={"code": "session_limit", "message": str(exc)},
-                session_id="",
             ).model_dump()
         )
         await websocket.close(code=1013, reason="Too many runtime sessions.")
@@ -1037,12 +1012,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     payload = receive_task.result()
                 except (JSONDecodeError, KeyError, UnicodeDecodeError) as exc:
                     await websocket.send_json(
-                        RuntimeServerMessage(
-                            type="runtime_error",
-                            detail="Invalid runtime message.",
-                            payload={"message": str(exc)},
-                            session_id=session.id,
-                        ).model_dump()
+                        runtime_error(session.id, "Invalid runtime message.", {"message": str(exc)}).model_dump()
                     )
                     receive_task = asyncio.create_task(websocket.receive_json())
                     continue
@@ -1199,12 +1169,7 @@ async def handle_runtime_client_payload(
         message = parse_runtime_client_message(payload)
     except ValidationError as exc:
         await websocket.send_json(
-            RuntimeServerMessage(
-                type="runtime_error",
-                detail="Invalid runtime message.",
-                payload={"message": str(exc)},
-                session_id=session.id,
-            ).model_dump()
+            runtime_error(session.id, "Invalid runtime message.", {"message": str(exc)}).model_dump()
         )
         return
 
@@ -1221,11 +1186,10 @@ async def handle_runtime_client_payload(
         # record carries nothing, and writing one per message let a read-only key push the operator's
         # own records out of a 500-entry log in about a second. The socket still answers.
         await websocket.send_json(
-            RuntimeServerMessage(
-                type="runtime_error",
-                detail="Runtime command rejected: this session is read-only.",
-                payload={"code": "observer_read_only", "message": detail},
-                session_id=session.id,
+            runtime_error(
+                session.id,
+                "Runtime command rejected: this session is read-only.",
+                {"code": "observer_read_only", "message": detail},
             ).model_dump()
         )
         return
@@ -1235,59 +1199,11 @@ async def handle_runtime_client_payload(
         return
 
     if isinstance(message, RuntimeClaimControlMessage):
-        snapshot = (
-            manager.claim_control(session)
-            if websocket.app.state.settings.runtime_control_required
-            else get_runtime_control_snapshot(websocket, manager, session.id)
-        )
-        record_runtime_control(audit_log, session.id, snapshot.is_owner, runtime_control_detail(snapshot))
-        await websocket.send_json(build_runtime_control_message(snapshot).model_dump())
+        await websocket.send_json(claim_runtime_control(websocket, session, manager, audit_log).model_dump())
         return
 
     if isinstance(message, RuntimeReleaseControlMessage):
-        release_started = (
-            manager.begin_control_release(session) if websocket.app.state.settings.runtime_control_required else False
-        )
-        if release_started:
-            try:
-                await run_runtime_thread(manager.wait_for_control_operations, session)
-                await run_runtime_thread(
-                    neutralize_runtime_session,
-                    manager,
-                    session,
-                    get_teleop_command_gateway(websocket),
-                    get_runtime_stop_controller(websocket),
-                    audit_log,
-                )
-            # wait_for_control_operations raises ValueError when the lease moved on mid-release, which is
-            # exactly the case this path exists to answer; catching RuntimeError alone tore the socket down.
-            except (RuntimeError, ValueError) as exc:
-                try:
-                    await run_runtime_thread(get_runtime_stop_controller(websocket).engage)
-                except RuntimeStopAssertionError:
-                    pass
-                snapshot = manager.finish_control_release(session)
-                record_runtime_control(audit_log, session.id, False, str(exc))
-                await websocket.send_json(
-                    RuntimeServerMessage(
-                        type="runtime_error",
-                        detail="Robot control could not be released safely.",
-                        payload={
-                            **asdict(snapshot),
-                            "code": "control_release_failed",
-                            "message": str(exc),
-                        },
-                        session_id=session.id,
-                    ).model_dump()
-                )
-                return
-        snapshot = (
-            manager.finish_control_release(session)
-            if release_started
-            else get_runtime_control_snapshot(websocket, manager, session.id)
-        )
-        record_runtime_control(audit_log, session.id, True, "Robot control released.")
-        await websocket.send_json(build_runtime_control_message(snapshot).model_dump())
+        await websocket.send_json((await release_runtime_control(websocket, session, manager, audit_log)).model_dump())
         return
 
     owns_control = True
@@ -1297,11 +1213,10 @@ async def handle_runtime_client_payload(
         detail = "Another runtime session owns robot control."
         record_runtime_control(audit_log, session.id, False, detail)
         await websocket.send_json(
-            RuntimeServerMessage(
-                type="runtime_error",
-                detail="Teleop command rejected: this session does not own control.",
-                payload={"code": "control_not_owned", "message": detail, "target": message.target},
-                session_id=session.id,
+            runtime_error(
+                session.id,
+                "Teleop command rejected: this session does not own control.",
+                {"code": "control_not_owned", "message": detail, "target": message.target},
             ).model_dump()
         )
         return
@@ -1324,6 +1239,59 @@ async def handle_runtime_client_payload(
     await websocket.send_json(response.model_dump())
 
 
+def claim_runtime_control(
+    websocket: WebSocket, session: RuntimeSession, manager: RuntimeSessionManager, audit_log: RuntimeAuditLog
+) -> RuntimeServerMessage:
+    snapshot = (
+        manager.claim_control(session)
+        if websocket.app.state.settings.runtime_control_required
+        else get_runtime_control_snapshot(websocket, manager, session.id)
+    )
+    record_runtime_control(audit_log, session.id, snapshot.is_owner, runtime_control_detail(snapshot))
+    return build_runtime_control_message(snapshot)
+
+
+async def release_runtime_control(
+    websocket: WebSocket, session: RuntimeSession, manager: RuntimeSessionManager, audit_log: RuntimeAuditLog
+) -> RuntimeServerMessage:
+    """Let go of the lease once the arm is at rest; if it cannot be, STOP wins and the client hears why."""
+    release_started = (
+        manager.begin_control_release(session) if websocket.app.state.settings.runtime_control_required else False
+    )
+    if release_started:
+        try:
+            await run_runtime_thread(manager.wait_for_control_operations, session)
+            await run_runtime_thread(
+                neutralize_runtime_session,
+                manager,
+                session,
+                get_teleop_command_gateway(websocket),
+                get_runtime_stop_controller(websocket),
+                audit_log,
+            )
+        # wait_for_control_operations raises ValueError when the lease moved on mid-release, which is
+        # exactly the case this path exists to answer; catching RuntimeError alone tore the socket down.
+        except (RuntimeError, ValueError) as exc:
+            try:
+                await run_runtime_thread(get_runtime_stop_controller(websocket).engage)
+            except RuntimeStopAssertionError:
+                pass
+            snapshot = manager.finish_control_release(session)
+            record_runtime_control(audit_log, session.id, False, str(exc))
+            return runtime_error(
+                session.id,
+                "Robot control could not be released safely.",
+                {**asdict(snapshot), "code": "control_release_failed", "message": str(exc)},
+            )
+    snapshot = (
+        manager.finish_control_release(session)
+        if release_started
+        else get_runtime_control_snapshot(websocket, manager, session.id)
+    )
+    record_runtime_control(audit_log, session.id, True, "Robot control released.")
+    return build_runtime_control_message(snapshot)
+
+
 def apply_runtime_app_context(
     websocket: WebSocket,
     session: RuntimeSession,
@@ -1337,11 +1305,10 @@ def apply_runtime_app_context(
     """
     application = find_runtime_application(websocket, message.config_id, message.app_id)
     if application is None:
-        return RuntimeServerMessage(
-            type="runtime_error",
-            detail="Runtime app context was refused: no such application.",
-            payload={"code": "app_context_unknown", "app_id": message.app_id, "config_id": message.config_id},
-            session_id=session.id,
+        return runtime_error(
+            session.id,
+            "Runtime app context was refused: no such application.",
+            {"code": "app_context_unknown", "app_id": message.app_id, "config_id": message.config_id},
         )
 
     socket_policy.policy = narrow_policy_to_application(get_runtime_command_policy(websocket), application)
@@ -1525,14 +1492,13 @@ def build_runtime_ack(
                 subscription_key not in topic_subscription_handles
                 and len(topic_subscription_handles) >= MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION
             ):
-                return RuntimeServerMessage(
-                    type="runtime_error",
-                    detail="Topic subscription could not be started.",
-                    payload={
+                return runtime_error(
+                    session_id,
+                    "Topic subscription could not be started.",
+                    {
                         "message": f"a session may hold at most {MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION} subscriptions",
                         "topic": message.topic,
                     },
-                    session_id=session_id,
                 )
             try:
                 handle = topic_subscription_gateway.subscribe(
@@ -1544,11 +1510,10 @@ def build_runtime_ack(
                     on_topic_sample,
                 )
             except (RuntimeError, ValueError) as exc:
-                return RuntimeServerMessage(
-                    type="runtime_error",
-                    detail="Topic subscription could not be started.",
-                    payload={"message": str(exc), "topic": message.topic},
-                    session_id=session_id,
+                return runtime_error(
+                    session_id,
+                    "Topic subscription could not be started.",
+                    {"message": str(exc), "topic": message.topic},
                 )
             previous = topic_subscription_handles.pop(subscription_key, None)
             if previous is not None:
@@ -1585,7 +1550,7 @@ def build_runtime_ack(
             allowed_frame_ids=allowed_frame_ids,
         )
 
-    return RuntimeServerMessage(type="runtime_error", detail="Unsupported runtime message.", session_id=session_id)
+    return runtime_error(session_id, "Unsupported runtime message.")
 
 
 def topic_subscription_key(widget_id: str, topic: str) -> str:
