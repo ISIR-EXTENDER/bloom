@@ -2,7 +2,9 @@
 
 > Filed as delivered on 17 Sep 2026. Paths below are the handoff's own: `design/` is now `docs/design/`,
 > `prototypes/` is `docs/design/prototypes/`, and ADRs 0131 and 0132 were renumbered 0132 and 0133 because 0131 was
-> already taken. The build is tracked in `implementation-plan.md`.
+> already taken. The build is tracked in `implementation-plan.md`. `control-renderers.tsx` was split on 2026-09-24 into
+> `joystick-renderer.tsx`, `slider-renderer.tsx` and `gesture-pad-renderer.tsx`; the joystick's default colour in §3 is
+> the `--bloom-axis-translation` token in `JoystickPrimitive.tsx`.
 
 ## Overview
 

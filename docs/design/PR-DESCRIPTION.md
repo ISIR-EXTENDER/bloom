@@ -3,6 +3,9 @@
 Closes the geometry findings from the 2026-09-17 Drive review. Full trace in
 `docs/design/reviews/2026-09-17-drive.md`.
 
+> Kept as filed. `control-renderers.tsx` was split on 2026-09-24; the joystick's default colour is now the
+> `--bloom-axis-translation` token in `JoystickPrimitive.tsx`.
+
 ## Why
 
 We shipped a clipped gripper card on both robots and no test failed. `drive-gripper` was authored
