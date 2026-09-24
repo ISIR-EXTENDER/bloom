@@ -360,10 +360,11 @@
                   },
                   "axis_mapping": {
                     "x": {
-                      "component": "linear_x"
+                      "component": "linear_y"
                     },
                     "y": {
-                      "component": "linear_y"
+                      "component": "linear_x",
+                      "scale": -1
                     }
                   },
                   "axis_deadzone": 0.2
@@ -401,10 +402,10 @@
                   },
                   "axis_mapping": {
                     "x": {
-                      "component": "angular_x"
+                      "component": "angular_y"
                     },
                     "y": {
-                      "component": "angular_y"
+                      "component": "angular_x"
                     }
                   },
                   "axis_deadzone": 0.2
@@ -696,10 +697,11 @@
                   },
                   "axis_mapping": {
                     "x": {
-                      "component": "linear_x"
+                      "component": "linear_y"
                     },
                     "y": {
-                      "component": "linear_y"
+                      "component": "linear_x",
+                      "scale": -1
                     }
                   },
                   "axis_deadzone": 0.2
@@ -737,10 +739,10 @@
                   },
                   "axis_mapping": {
                     "x": {
-                      "component": "angular_x"
+                      "component": "angular_y"
                     },
                     "y": {
-                      "component": "angular_y"
+                      "component": "angular_x"
                     }
                   },
                   "axis_deadzone": 0.2
@@ -1693,10 +1695,11 @@
                   },
                   "axis_mapping": {
                     "x": {
-                      "component": "linear_x"
+                      "component": "linear_y"
                     },
                     "y": {
-                      "component": "linear_y"
+                      "component": "linear_x",
+                      "scale": -1
                     }
                   },
                   "axis_deadzone": 0.2
@@ -1748,10 +1751,10 @@
                   },
                   "axis_mapping": {
                     "x": {
-                      "component": "angular_x"
+                      "component": "angular_y"
                     },
                     "y": {
-                      "component": "angular_y"
+                      "component": "angular_x"
                     }
                   },
                   "axis_deadzone": 0.2

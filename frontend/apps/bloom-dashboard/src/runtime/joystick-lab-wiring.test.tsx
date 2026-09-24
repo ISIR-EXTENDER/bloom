@@ -85,7 +85,7 @@ describe("the Explorer Manager joystick lab", () => {
     fireEvent.keyDown(translation, { key: "ArrowRight" });
     fireEvent.keyDown(translation, { key: "ArrowRight" });
     await waitFor(() =>
-      expect(runtimeActionClient.sendTeleopCommand.mock.calls.some(([request]) => request.linear.x > 0)).toBe(true),
+      expect(runtimeActionClient.sendTeleopCommand.mock.calls.some(([request]) => request.linear.y > 0)).toBe(true),
     );
     await waitFor(() => expect(toolFrame()).toBeDisabled());
     expect(toolFrame()).toHaveAccessibleDescription("Release controls.");

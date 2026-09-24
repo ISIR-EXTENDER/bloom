@@ -19,6 +19,11 @@ machines behind assistive input. Each fix carries the test that reproduces it.
 
 **Motion and safety**
 
+- **The Explorer's joysticks drive the axes the arm was driven on.** The seed carried
+  `extender_ui`'s unconfigured mapping; the profile validated on the Explorer swaps X and
+  Y and inverts linear X, so Forward now commands base −x and Right base +y, Tilt up
+  `angular.x` and Roll right `angular.y`. The simulation run holds each word of every Drive
+  control and checks the hand moves along that base axis.
 - **A refused teleop command no longer rides on the ones that follow.** The
   composed twist was built before the command was judged, so a stick bound to a
   target the deployment forbids left its last push in the sum. The operator let

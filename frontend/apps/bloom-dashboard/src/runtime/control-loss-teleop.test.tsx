@@ -86,11 +86,11 @@ describe("losing control while a joystick is held", () => {
     await waitFor(() => expect(client.claimRuntimeControl).toHaveBeenCalled());
     await waitFor(() => expect(document.querySelector("[data-runtime-control='owned']")).not.toBeNull());
 
-    // Operator pushes the translation joystick right.
+    // Operator pushes the translation joystick right, which the Explorer maps to base +y.
     fireEvent.keyDown(translation, { key: "ArrowRight" });
     fireEvent.keyDown(translation, { key: "ArrowRight" });
     fireEvent.keyDown(translation, { key: "ArrowRight" });
-    await waitFor(() => expect(sent.some((r) => r.linear.x > 0)).toBe(true));
+    await waitFor(() => expect(sent.some((r) => r.linear.y > 0)).toBe(true));
 
     // The socket drops: the client reports no control state.
     owner = false;
@@ -120,7 +120,7 @@ describe("losing control while a joystick is held", () => {
     const afterReclaim = sent.slice(sentBefore);
     expect(afterReclaim.length).toBeGreaterThan(0);
     // Nothing after the reclaim may carry the joystick released during the outage.
-    expect(afterReclaim.every((request) => request.linear.x === 0)).toBe(true);
+    expect(afterReclaim.every((request) => request.linear.y === 0)).toBe(true);
     // And once the slider is back at rest the stream settles on a true zero.
     const last = sent.at(-1);
     expect(last?.linear).toEqual({ x: 0, y: 0, z: 0 });

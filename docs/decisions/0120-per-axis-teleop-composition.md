@@ -87,3 +87,14 @@ Bloom now supports the local B1/B2 axis-map swap and verifies parity against the
 physical mapper. A browser gamepad can also contribute to the same composer; its
 release clears only that source. Every contribution uses the runtime session's
 effective command frame, initialized from app policy, so composition cannot mix frame interpretations.
+
+## 2026-09-24 Amendment
+
+The Explorer Manager joysticks carried the identity mapping (`x` to `linear_x`, `y` to
+`linear_y`, the same for angular), which is `extender_ui`'s unconfigured default. The
+profile that was driven on the Explorer, saved from `extender_ui`'s Sandbox teleop config,
+swaps X and Y and inverts linear X. The seed now carries that profile: pad `x` to `linear_y`,
+pad `y` to `linear_x` with `scale: -1`, rotation `x` to `angular_y` and `y` to `angular_x`.
+The Kinova seed keeps the identity, which is what `extender_ui` had for it. The simulation
+harness checks each word against the base axis it drives, so a change to either table is a
+seed edit verified in simulation before an arm sees it.

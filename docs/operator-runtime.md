@@ -213,8 +213,8 @@ yaws positively about the base z axis ([record](validation/ros-sim-e2e.md)); not
 
 | Control | Runtime behavior |
 | --- | --- |
-| Translation joystick | Contributes `linear.x` and `linear.y`. |
-| Rotation joystick | Contributes `angular.x` and `angular.y`. |
+| Translation joystick | Contributes `linear.x` and `linear.y`; which base axis each word drives is the robot's, see below. |
+| Rotation joystick | Contributes `angular.x` and `angular.y`; same. |
 | Height slider | Contributes `linear.z` and returns to zero on release. |
 | Pivot slider | Contributes `angular.z` and returns to zero on release. |
 | Neutral | Requests `geometric/both`. |
@@ -223,6 +223,22 @@ yaws positively about the base z axis ([record](validation/ros-sim-e2e.md)); not
 | Gripper | Explorer publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. Kinova publishes close `[0.8]` and open `[0.0]`, the Robotiq 85 knuckle joint's range. The button names what it will do (**Close gripper**); the card header names the commanded state. |
 | Live tuning | A slider or toggle bound to a node parameter (Snake gain on Drive · Bench, the throw shape on Petanque's Teleop settings, the manager's input gates on Visual servoing · Approach) sets it through the node's own parameter service and opens on the value the node holds. Owner-only and audited; allowed while STOP is latched, because a gain is configuration, not motion (ADR 0139). |
 | Speed limits | Bench sliders start at the configured controller limits; Operator segments offer Slow, Medium, and Fast (Explorer 0.08 / 0.15 / 0.30, Kinova 0.025 / 0.05 / 0.10). Both publish linear/angular limits to `qontrol_controller` and are disabled when the ROS graph has no subscriber. |
+
+What each word drives in the base frame is the seed's `axis_mapping`, one per robot. The Explorer's is the profile
+saved from `extender_ui`'s Sandbox teleop config and driven on the arm (swap X/Y, invert linear X); the Kinova's is
+that app's unconfigured default, not yet driven on the gen3:
+
+| Word | Explorer | Kinova |
+| --- | --- | --- |
+| Forward / Back | `linear.x` −1 / +1 | `linear.y` +1 / −1 |
+| Right / Left | `linear.y` +1 / −1 | `linear.x` +1 / −1 |
+| Up / Down | `linear.z` +1 / −1 | same |
+| Tilt up / down | `angular.x` +1 / −1 | `angular.y` +1 / −1 |
+| Roll right / left | `angular.y` +1 / −1 | `angular.x` +1 / −1 |
+| Turn left / right | `angular.z` +1 / −1 | same |
+
+`npm run e2e:sim` holds each word and checks the simulated hand moves along that base axis
+([record](validation/ros-sim-e2e.md)). Flipping a sign or swapping an axis is a seed edit, verified the same way.
 
 The four Cartesian widgets are composed into one complete 6-DoF twist. Releasing one source clears only its
 contribution. The runtime continues publishing the composed value so `cartesian_manager` can enforce its source timeout.

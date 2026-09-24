@@ -56,8 +56,8 @@ describe("step preset after STOP and resume", () => {
     await openRuntimeApp("Explorer Manager");
     const forward = (await screen.findAllByRole("button", { name: /Forward, one step/ }))[0];
     fireEvent.click(forward);
-    await waitFor(() => expect(sent.some((r) => r.linear.y > 0)).toBe(true));
-    const stepFromRest = sent.at(-1)?.linear.y ?? Number.NaN;
+    await waitFor(() => expect(sent.some((r) => r.linear.x < 0)).toBe(true));
+    const stepFromRest = sent.at(-1)?.linear.x ?? Number.NaN;
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Stop the robot" }));
     await waitFor(() => expect(screen.getByRole("button", { name: /resume/i })).toBeTruthy());
@@ -71,6 +71,6 @@ describe("step preset after STOP and resume", () => {
     fireEvent.click(forward);
     await waitFor(() => expect(sent.length).toBeGreaterThan(mark));
     // One tap after resume must move exactly as far as one tap from rest.
-    expect(sent[mark]?.linear.y).toBeCloseTo(stepFromRest);
+    expect(sent[mark]?.linear.x).toBeCloseTo(stepFromRest);
   }, 20000);
 });
