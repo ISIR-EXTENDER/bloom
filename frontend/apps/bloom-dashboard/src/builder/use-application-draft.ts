@@ -32,8 +32,8 @@ import {
   parseLines,
   type ThemeInspiration,
 } from "./app-config-model";
-import { createStarterProfile } from "./BuilderHome";
 import { defaultStopRegion, resolveNewScreenCanvas } from "./builder-geometry";
+import { createStarterProfile } from "./builder-starters";
 
 type ApplicationDraftOptions = {
   application: ApplicationConfig;

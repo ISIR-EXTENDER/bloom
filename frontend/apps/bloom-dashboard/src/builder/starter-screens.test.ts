@@ -1,7 +1,7 @@
 import { minSizeFor, normalizeWidgetSettings } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
-import { createStarterScreen, type StarterScreenId } from "./BuilderHome";
+import { createStarterScreen, type StarterScreenId } from "./builder-starters";
 
 const STARTERS: StarterScreenId[] = ["blank", "operator-control", "debug-monitor"];
 

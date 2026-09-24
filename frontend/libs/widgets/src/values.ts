@@ -40,3 +40,13 @@ export function getBooleanSetting(settings: Record<string, unknown>, key: string
   const value = settings[key];
   return typeof value === "boolean" ? value : fallback;
 }
+
+export function readStringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+export function readNumberList(value: unknown): number[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is number => typeof item === "number" && Number.isFinite(item))
+    : [];
+}

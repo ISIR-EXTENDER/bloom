@@ -1,5 +1,6 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import type { CSSProperties } from "react";
+import { slugifyId } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
 
@@ -198,13 +199,7 @@ export function createNewApplicationName(applications: readonly ApplicationConfi
 }
 
 export function slugify(value: string): string {
-  return (
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "bloom-app"
-  );
+  return slugifyId(value) || "bloom-app";
 }
 
 export function formatScreenTitle(title: string): string {

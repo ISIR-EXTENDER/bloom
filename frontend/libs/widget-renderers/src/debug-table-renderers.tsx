@@ -6,7 +6,7 @@ import {
   yoshikawaManipulability,
 } from "@bloom/widgets";
 import { type CSSProperties, useRef } from "react";
-import { formatSignedValue } from "./control-renderers";
+import { formatSignedValue } from "./readouts";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
 

@@ -8,7 +8,7 @@ import {
   resolvePlotVerdict,
 } from "@bloom/widgets";
 import type { CSSProperties } from "react";
-import { formatSignedValue } from "./control-renderers";
+import { formatSignedValue } from "./readouts";
 import type { PlotSeriesSnapshot, WidgetRendererProps } from "./types";
 import { STALE_VALUE_AFTER_MS, useNow } from "./use-now";
 

@@ -7,7 +7,8 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CommandLikeWidget } from "./action-renderers";
-import { JoystickWidget, SliderWidget } from "./control-renderers";
+import { JoystickWidget } from "./joystick-renderer";
+import { SliderWidget } from "./slider-renderer";
 
 class ResizeObserverMock {
   observe() {}

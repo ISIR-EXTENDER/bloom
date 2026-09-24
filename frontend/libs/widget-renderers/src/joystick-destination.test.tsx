@@ -3,9 +3,9 @@
  */
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-
-import { JoystickWidget, SliderWidget } from "./control-renderers";
 import { normalizeJoystickVector } from "./JoystickPrimitive";
+import { JoystickWidget } from "./joystick-renderer";
+import { SliderWidget } from "./slider-renderer";
 
 /**
  * With `show_details` on, the joystick prints a strip of runtime facts so an

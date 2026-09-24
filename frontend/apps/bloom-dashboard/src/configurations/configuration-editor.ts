@@ -165,7 +165,7 @@ export function ensureUniqueId(id: string, takenIds: ReadonlySet<string>): strin
   return candidateId;
 }
 
-function slugifyId(value: string): string {
+export function slugifyId(value: string): string {
   return value
     .trim()
     .toLowerCase()
