@@ -80,8 +80,12 @@ def test_only_meshes_inside_the_share_are_resolved(tmp_path: Path) -> None:
     (share / "package.xml").write_text("<package/>")
     resolver = lambda name: share  # noqa: E731
 
-    assert resolve_package_asset("pkg", "robot.stl", resolver) == share.resolve() / "robot.stl"
+    assert resolve_package_asset("pkg", "robot.stl", resolver) == share / "robot.stl"
     assert resolve_package_asset("pkg", "../secret.stl", resolver) is None
+    assert resolve_package_asset("pkg", "meshes/../../secret.stl", resolver) is None
+    # A symlink-installed workspace links each mesh into the source tree; the share vouches for it.
+    (share / "linked.stl").symlink_to(tmp_path / "secret.stl")
+    assert resolve_package_asset("pkg", "linked.stl", resolver) == share / "linked.stl"
     assert resolve_package_asset("pkg", "package.xml", resolver) is None
     assert resolve_package_asset("pkg", "/etc/passwd", resolver) is None
 

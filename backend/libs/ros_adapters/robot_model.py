@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
@@ -64,9 +65,10 @@ def resolve_package_asset(
     share = share_directory(package)
     if share is None:
         return None
-    root = share.resolve()
-    candidate = (root / relative_path).resolve()
-    if root not in candidate.parents or not candidate.is_file():
+    # Containment is judged on the path as named, before any symlink: a symlink-installed workspace
+    # links every mesh into the source tree, and the share directory vouches for what it links to.
+    candidate = Path(os.path.normpath(share / relative_path))
+    if share not in candidate.parents or not candidate.is_file():
         return None
     return candidate
 
