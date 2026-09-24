@@ -12,6 +12,7 @@ export type Robot3dSettings = {
   hide_title?: boolean;
   description: string;
   eeLink: string;
+  frameAxes?: boolean;
   jointStateTopic: string;
   markerTopic: string;
   modelSource: "extension" | "urdf-url";
@@ -43,7 +44,8 @@ export const robot3dContract = createContract(
     { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
     { key: "markerTopic", label: "Marker topic (visualization_msgs/msg/MarkerArray)", type: "text", required: false },
     { key: "eeLink", label: "Tool link for the axes", type: "text", required: false },
-    { key: "showAxes", label: "Show axes", type: "boolean", required: true },
+    { key: "showAxes", label: "Show the tool axes", type: "boolean", required: true },
+    { key: "frameAxes", label: "Show every link frame", type: "boolean", required: false },
     { key: "description", label: "Description", type: "text", required: false },
     { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
   ],
@@ -59,6 +61,7 @@ function validateRobot3dSettings(settings: Record<string, unknown>): WidgetSetti
     ...validateString(settings, "markerTopic", { allowEmpty: true }),
     ...validateString(settings, "eeLink", { allowEmpty: true }),
     ...validateBoolean(settings, "showAxes"),
+    ...(settings.frameAxes === undefined ? [] : validateBoolean(settings, "frameAxes")),
     ...validateString(settings, "description", { allowEmpty: true }),
   ];
   if (

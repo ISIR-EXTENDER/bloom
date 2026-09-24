@@ -1,5 +1,6 @@
 import { getBooleanSetting, getStringSetting, hidesTitle } from "@bloom/widgets";
 import { lazy, Suspense, useState } from "react";
+import { isMoving } from "./robot-3d-command";
 import type { WidgetRendererProps } from "./types";
 
 const RobotScene = lazy(() => import("./robot-3d-scene"));
@@ -13,10 +14,18 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
   const markerTopic = getStringSetting(settings, "markerTopic", "");
   const eeLink = getStringSetting(settings, "eeLink", "");
   const showAxes = getBooleanSetting(settings, "showAxes", true);
-  const [status, setStatus] = useState<SceneStatus>({ model: "loading", links: 0, markers: 0, meshes: 0 });
+  const frameAxes = getBooleanSetting(settings, "frameAxes", false);
+  const [status, setStatus] = useState<SceneStatus>({
+    model: "loading",
+    links: 0,
+    loading: 0,
+    markers: 0,
+    meshes: 0,
+    unplaced: 0,
+  });
   const snapshot = data?.type === "robot-3d" ? data : undefined;
   const command = snapshot?.command;
-  const moving = Boolean(command && Math.hypot(command.linear.x, command.linear.y, command.linear.z) > 0.05);
+  const moving = isMoving(command);
   const desktop = descriptor.context.deviceClass !== "tablet";
   const canDraw = desktop && typeof window !== "undefined" && "WebGLRenderingContext" in window && Boolean(robotModel);
   const note = !desktop
@@ -26,7 +35,7 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
       : !canDraw
         ? "This browser cannot draw 3D."
         : status.model === "unavailable"
-          ? "The API has no robot description. Start the robot, then reopen the screen."
+          ? "No robot description from the API yet. Launch the robot; the view keeps asking."
           : null;
 
   return (
@@ -43,6 +52,8 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
         data-command={moving ? "moving" : "still"}
         data-links={status.links}
         data-markers={status.markers}
+        data-markers-loading={status.loading}
+        data-markers-unplaced={status.unplaced}
         data-mesh-error={status.meshError}
         data-meshes={status.meshes}
         data-model={canDraw && robotModel ? status.model : "unavailable"}
@@ -53,6 +64,7 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
             <RobotScene
               eeLink={eeLink}
               command={moving ? command : undefined}
+              frameAxes={frameAxes}
               jointState={asJointState(snapshot?.value)}
               markers={asMarkers(snapshot?.markers)}
               onStatus={setStatus}

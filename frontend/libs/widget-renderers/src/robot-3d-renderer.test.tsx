@@ -62,6 +62,30 @@ describe("the 3D robot view", () => {
     expect(screen.getByRole("img", { name: "Robot 3D view" }).getAttribute("data-command")).toBe("still");
   });
 
+  it("counts a pure rotation as driving, and starts with nothing unplaced or loading", () => {
+    const descriptor = renderScreenDescriptors(robotScreen, createDefaultWidgetRegistry())[0];
+    if (descriptor?.status !== "resolved") {
+      throw new Error("the fixture did not resolve");
+    }
+    render(
+      renderWidgetDescriptor(descriptor, {
+        dataByWidgetId: {
+          view: {
+            receivedAt: "t",
+            topic: "/joint_states",
+            type: "robot-3d",
+            value: undefined,
+            command: { angular: { x: 0, y: 0, z: 0.6 }, linear: { x: 0, y: 0, z: 0 }, frameId: "effector_frame" },
+          },
+        },
+      }),
+    );
+    const stage = screen.getByRole("img", { name: "Robot 3D view" });
+    expect(stage.getAttribute("data-command")).toBe("moving");
+    expect(stage.getAttribute("data-markers-unplaced")).toBe("0");
+    expect(stage.getAttribute("data-markers-loading")).toBe("0");
+  });
+
   it("draws nothing on a tablet-class screen, whatever the runtime offers", () => {
     const tabletScreen: ScreenConfig = {
       ...robotScreen,

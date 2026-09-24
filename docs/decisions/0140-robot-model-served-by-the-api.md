@@ -38,3 +38,11 @@ The web app never carries a robot. The API serves the one that runs:
 - 2026-09-24, later: the runtime tells the view each twist it sends, and the view draws the commanded linear
   motion as an arrow from the tool; the view is desktop-only by definition. Still absent: TF frames outside the
   URDF and interactive markers, each a marker topic away.
+- 2026-09-24, evening: the view is meant to stand in for rviz while a simulation runs. It draws every
+  marker kind rviz does (arrow, cube, sphere, cylinder, line strip and list, cube and sphere lists,
+  points, text, mesh resource through the same API route, triangle list), with per-point colours,
+  lifetimes and the delete actions; a frame that names a link or joint of the robot attaches there and
+  any other is drawn at the base and counted as unplaced. It keeps asking for the description every
+  three seconds until the robot is up, follows a new description within ten, and draws the commanded
+  angular part as an arc. Still absent: TF frames outside the URDF, interactive markers, and line width
+  (WebGL draws every line one pixel wide).

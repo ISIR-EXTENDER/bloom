@@ -19,8 +19,32 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
-- **The 3D robot view draws the commanded motion**: a blue arrow from the tool along the twist the runtime is
-  sending, gone with the last zero. The simulation run watches it appear while Height is held.
+- **The 3D robot view stands in for rviz while a simulation runs.** It draws every marker kind rviz does:
+  arrow, cube, sphere, cylinder, line strip and list, cube and sphere lists, points, text, a mesh by
+  `package://` through the API, and triangle lists, with per-point colours, lifetimes, and the delete
+  actions. A marker frame that names a link or joint of the robot attaches there; any other frame draws at
+  the base and the view counts it as unplaced. A `Show every link frame` setting puts a triad on each link,
+  the way rviz's TF display does. Double-click refits the camera.
+- **The view keeps asking for the robot.** Without a description it retries every three seconds, so Bloom
+  can be open before the simulation launches; with one, it follows a new description within ten seconds,
+  so relaunching with the other robot redraws it. A lost WebGL context comes back on its own.
+- **The 3D robot view draws the commanded motion**: a blue arrow from the tool along the linear part of the
+  twist the runtime is sending, and an arc around the axis of the angular part in the frame the twist
+  names, gone with the last zero. The simulation run watches the arrow appear while Height is held.
+- The Widget Lab probe publishes one marker of each kind, and the simulation check requires the tool label
+  to sit on the robot's last link and the mesh marker to arrive, draw and expire.
+
+### Fixed
+
+- A cylinder marker stood along y instead of z: the marker's pose overwrote the rotation that stood it up.
+- Arrow markers were sized by invented proportions; they now follow rviz (shaft and head diameters from
+  `scale`, a 23% head unless `scale.z` says otherwise).
+- Every twist and every marker array rebuilt three.js objects without freeing the old ones: twenty twists
+  a second leaked a material each. The arrow is now one object moved on each twist, markers whose shape did
+  not change are moved rather than rebuilt, and what is removed is disposed.
+- A marker with alpha zero drew opaque; as in rviz, it is now invisible.
+- The mesh cache fetches a file the URDF names several times once, and an absolute mesh path under a
+  workspace that itself lives in a directory called `share` resolves to the right package.
 
 ### Changed
 

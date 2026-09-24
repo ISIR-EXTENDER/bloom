@@ -479,15 +479,22 @@ Command sources also states which input is driving, judged on the whole twist ra
   that shows values. The newest sample stops at the right edge instead of drawing past it.
 
 **The 3D robot view** draws the robot the manager runs with: the API serves the `robot_description` parameter of
-`robot_state_publisher` (`BLOOM_ROS_ROBOT_DESCRIPTION_NODE`) and the meshes it names as `package://`, resolved through
-the ament index of the environment the API runs in. `/joint_states` drives the joints; a `visualization_msgs/msg/MarkerArray`
-topic named in the widget draws arrows, shapes, lines, points and text the way rviz does, in the frame each marker names
-when it is a link of the robot and in the base frame otherwise; an axes triad sits on the tool link. It is the place to
-draw targets, directions and trajectories without leaving Bloom for rviz. Orbit with a drag, zoom with a pinch or the wheel.
-While the runtime drives, a blue arrow from the tool shows the commanded linear motion, full scale at 35 cm; it
-disappears with the last zero twist. It belongs on desktop screens only: the palette refuses it on a tablet screen, the review checklist says so, and a
-tablet-class screen that carries one anyway shows the note instead of a scene, so a tablet or phone never pays for
-WebGL. It renders on demand, so a still robot costs nothing and reduced motion has nothing to reduce.
+`robot_state_publisher` (`BLOOM_ROS_ROBOT_DESCRIPTION_NODE`) and the meshes it names, by `package://` or by the absolute
+share path xacro writes, resolved through the ament index of the environment the API runs in. `/joint_states` drives the
+joints. Without a description the view asks again every three seconds, so Bloom can be open before the simulation
+launches; with one it checks every ten seconds and redraws when the description changes, so relaunching with the other
+robot needs no reload. It is meant to stand in for rviz while a simulation runs: a `visualization_msgs/msg/MarkerArray`
+topic named in the widget draws every marker kind rviz does (arrow, cube, sphere, cylinder, line strip and list, cube and
+sphere lists, points, text, a mesh by `package://` through the same API route, triangle list), with per-point colours,
+lifetimes, and the delete actions. A marker whose frame names a link or joint of the robot moves with it; any other
+frame is drawn at the base, and the status counts it as unplaced. An axes triad sits on the tool link, and `Show every
+link frame` adds one on each link the way rviz's TF display does. Orbit with a drag, zoom with a pinch or the wheel,
+double-click to frame the robot again. While the runtime drives, a blue arrow from the tool shows the commanded linear
+motion, full scale at 35 cm, and a blue arc around the tool shows the angular part in the frame the twist names, half a
+turn at full scale; both disappear with the last zero twist. It belongs on desktop screens only: the palette refuses it
+on a tablet screen, the review checklist says so, and a tablet-class screen that carries one anyway shows the note
+instead of a scene, so a tablet or phone never pays for WebGL. It renders on demand, so a still robot costs nothing.
+What it does not do: TF frames outside the URDF, interactive markers, and line width, which WebGL draws one pixel wide.
 
 **Bloom Debug** is a desktop app authored at 1920×1080. Its three header cards — Robot preflight, Topic catalog,
 Runtime audit — are runtime chrome drawn inside the screen's `debug-status` reserved region, not widgets, so no author
