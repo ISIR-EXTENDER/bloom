@@ -47,7 +47,7 @@ const KNOWN_GAPS = [
     apps: ["sandbox", "app-petanque-admin"],
     rules: ["touch-floor", "target-claim"],
     reason:
-      "these screens declare no reserved region, so the canvas carries the 44 px kiosk bar inside its own fit (0.75 at 1024x600, not 0.80). The corner STOP is their accepted placement: it may cover a display, never a control, and the stop-covers rule holds that line.",
+      "decided 2026-09-24: these screens stay as designed, corner STOP and no reserved region, so the canvas carries the 44 px kiosk bar inside its own fit (0.75 at 1024x600, not 0.80) and a few targets read 40 px there. The corner STOP may cover a display, never a control, and the stop-covers rule holds that line.",
   },
   {
     apps: ["app-petanque-admin"],
