@@ -506,7 +506,7 @@ Runtime audit — are runtime chrome drawn inside the screen's `debug-status` re
 can place or resize them. Below them sit the plot board and picker, a joint table, a Jacobian with its manipulability
 row, and the raw topic echo. The joint table and the Jacobian read **not reported** when joint limits or `/ee_jac` are
 missing, manipulability is compared against this session's best rather than a guessed threshold, and a value under 0.01
-is shown in exponent form rather than rounding to `0.000`. Every list scrolls inside its own card.
+is shown in exponent form rather than rounding to `0.000`. Every list scrolls inside its own card. A second screen, Robot view, carries the 3D robot view with `/ee_pose` as a triad, `/joint_target_command` as a translucent twin and `/goal_markers` as its marker topic, beside an echo of `/ee_pose` and a log of mode requests: the rviz of a simulation run, on the laptop.
 
 ## Recording And Diagnostics
 
