@@ -20,6 +20,7 @@ export type {
   WidgetActionOutcome,
   WidgetControlState,
   WidgetDataSnapshot,
+  WidgetRendererRegistration,
 } from "./types";
 
 export function createWidgetRendererRegistry(
