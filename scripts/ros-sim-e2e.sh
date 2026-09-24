@@ -99,8 +99,9 @@ log() {
 
 stop_group() {
   local pid="$1" name="$2"
+  # A bare return would carry the failed run's status into the EXIT trap and, under set -e, end it here.
   if [[ -z "${pid}" ]] || ! kill -0 -- "-${pid}" 2>/dev/null; then
-    return
+    return 0
   fi
   log "stopping ${name}"
   kill -INT -- "-${pid}" 2>/dev/null || true
