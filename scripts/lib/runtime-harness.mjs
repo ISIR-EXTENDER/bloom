@@ -213,6 +213,11 @@ export async function installConfigurationMocks(
     await route.fulfill({ contentType: "application/json", json: { positions }, status: 200 });
   });
 
+  // A parameter control opens on what the node holds; here nothing does, so it keeps its seed value.
+  await page.route("**/api/v1/ros/parameters**", async (route) => {
+    await route.fulfill({ contentType: "application/json", json: { parameters: [] }, status: 200 });
+  });
+
   await page.route("**/api/v1/runtime/stop", async (route) => {
     await route.fulfill({
       contentType: "application/json",
@@ -252,6 +257,26 @@ export async function installRuntimeWebSocketMock(page) {
         super();
         this.url = url;
         this.sessionId = `bloom-harness-${Date.now()}-${Math.random()}`;
+        // The camera client assigns onmessage/onclose; an EventTarget only knows addEventListener.
+        for (const type of ["close", "error", "message", "open"]) {
+          let handler = null;
+          Object.defineProperty(this, `on${type}`, {
+            get: () => handler,
+            set: (next) => {
+              if (handler) {
+                this.removeEventListener(type, handler);
+              }
+              handler = next;
+              if (next) {
+                this.addEventListener(type, next);
+              }
+            },
+          });
+        }
+        if (String(url).includes("/api/v1/runtime/camera")) {
+          this.openAsCameraStream();
+          return;
+        }
         window.setTimeout(() => {
           this.readyState = BloomHarnessWebSocket.OPEN;
           this.dispatchEvent(new Event("open"));
@@ -278,6 +303,29 @@ export async function installRuntimeWebSocketMock(page) {
       close() {
         this.readyState = BloomHarnessWebSocket.CLOSED;
         this.dispatchEvent(new CloseEvent("close"));
+      }
+
+      /**
+       * A camera socket answers with one 4:3 frame, the shape a lab webcam sends: a card that
+       * grows with the image instead of holding its box only shows once a frame is on it.
+       */
+      openAsCameraStream() {
+        window.setTimeout(() => {
+          this.readyState = BloomHarnessWebSocket.OPEN;
+          this.dispatchEvent(new Event("open"));
+          this.reply({ type: "camera_stream_opened", connected: true });
+          const canvas = document.createElement("canvas");
+          canvas.width = 640;
+          canvas.height = 480;
+          const context = canvas.getContext("2d");
+          context.fillStyle = "#2f8f5b";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            if (blob && this.readyState === BloomHarnessWebSocket.OPEN) {
+              this.dispatchEvent(new MessageEvent("message", { data: blob }));
+            }
+          }, "image/png");
+        }, 0);
       }
 
       send(data) {
