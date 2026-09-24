@@ -30,7 +30,7 @@ For the chosen robot, with the API, dashboard, manager, qontrol and controllers 
 | `builder-authors-a-ros-toggle-and-a-hold-button` | A new app is created through the Builder UI, a toggle and a command button are added from the palette and configured from the inspector alone (topic, message type, labels, ON/OFF and pressed/released payloads), and the screen is saved through the API. |
 | `authored-buttons-reach-the-manager` | The authored app opens in the runtime and its two controls put their payloads on `/mode_request`: `geometric/jaco` from the toggle, `geometric/snake` then `geometric/both` from the hold button. The Builder harness (`npm run e2e:builder`, no ROS) authors the same two controls and proves they render inert with the reason. |
 | `lab-opens`, `lab-label-joystick-and-height`, `lab-gesture-pad-publishes`, `lab-gripper-jaco-and-hold`, `lab-speed-and-pivot`, `lab-readers-show-live-values`, `lab-positions-and-camera` | The shipped Widget Lab app, one screen of controls and two of readers, so every kind the palette offers is bound to the simulation and pressed or read: label, joystick, Height slider, gesture pad (a JSON gesture on `/ui/widget_lab/gesture`), gripper toggle, Jaco button, Hold snake, speed segments, Pivot; gauge, topic plot, plot, value strip, topic echo and event log fed by `/ee_pose` and a Ping on `/mode_request`; a captured pose in the position library and a frame in the camera widget from the probe's `CompressedImage` publisher; the Robot screen is desktop-class, opened at 1920×1080, since the 3D view refuses a tablet screen. |
-| `lab-robot-3d-draws-the-running-model` | The 3D robot view fetches the URDF the API serves from the manager's `robot_state_publisher`, resolves its `package://` meshes through the API, drives it with `/joint_states`, and draws the two markers the probe publishes on `/widget_lab/markers` as a `MarkerArray`. |
+| `lab-robot-3d-draws-the-running-model` | The 3D robot view fetches the URDF the API serves from the manager's `robot_state_publisher`, resolves its meshes through the API, drives it with `/joint_states`, and draws what the probe publishes on `/widget_lab/markers`: an arrow, a sphere, a line strip with a colour per point, a text label attached to the robot's last link (no marker may be left unplaced), a cube list, and every six seconds the robot's own first mesh as a `MESH_RESOURCE` marker with a three-second lifetime, which must arrive, draw and expire. |
 | `lab-robot-3d-draws-the-commanded-motion` | With Height held on the Robot screen the 3D view reports `data-command="moving"` and draws the arrow; on release it reads `still` once the zero twist is out. |
 | `bloom-debug-receives-samples` | Bloom Debug fills the joint table from `/joint_states` and renders `/ee_jac` as a 6 by N Jacobian (6 on Explorer, 7 on Kinova). |
 
@@ -170,3 +170,14 @@ Findings from these runs, none blocking:
   edge.
 - The Kinova launch declares `fault_controller` in `kinova_params.yaml` but never spawns it, so
   `/fault_controller/reset_fault` does not exist in simulation.
+
+### Amended 2026-09-24: the 3D view as the rviz of a simulation run
+
+The Widget Lab probe now publishes one marker of every kind the view draws, reads the robot's first mesh and its
+last link from the latched `/robot_description` topic, labels that link and, every six seconds, publishes the mesh
+as a `MESH_RESOURCE` marker that lives three seconds. `lab-robot-3d-draws-the-running-model` requires every marker
+placed on a frame the robot knows (`data-markers-unplaced="0"`), the mesh file to arrive (`data-markers-loading="0"`)
+and the marker to expire. Explorer 27/27: 21 links, 15 meshes, the label on `left_finger_last_phalanx`, the base
+mesh drawn from its `file://` share path with the URDF's 0.001 scale and gone after its lifetime. Kinova 27/27 on
+qontrol `a6382c1`: 19 links, 17 meshes, the label on `robotiq_85_right_finger_tip_link`, the gen3 base mesh by
+`package://kortex_description` drawn and expired.

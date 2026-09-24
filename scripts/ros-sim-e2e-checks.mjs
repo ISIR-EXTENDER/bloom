@@ -563,20 +563,31 @@ async function labSession() {
     await check(page, "lab-robot-3d-draws-the-running-model", async () => {
       const stage = page.getByRole("img", { name: "Robot 3D view" });
       await page.locator('[aria-label="Robot 3D view"][data-model="ready"]').waitFor({ timeout: 30000 });
-      const deadline = Date.now() + 10000;
-      while (Number(await stage.getAttribute("data-markers")) < 2 && Date.now() < deadline) {
-        await page.waitForTimeout(250);
-      }
-      const links = Number(await stage.getAttribute("data-links"));
-      const meshes = Number(await stage.getAttribute("data-meshes"));
+      const attribute = async (name) => Number(await stage.getAttribute(name));
+      const until = async (name, predicate, timeoutMs) => {
+        const deadline = Date.now() + timeoutMs;
+        while (!predicate(await attribute(name))) {
+          assert(Date.now() < deadline, `${name} stayed at ${await attribute(name)}`);
+          await page.waitForTimeout(200);
+        }
+      };
+      // The five markers the probe keeps: arrow, sphere, coloured line strip, a label on the tool link, a cube list.
+      await until("data-markers", (count) => count >= 5, 10000);
+      const links = await attribute("data-links");
+      const meshes = await attribute("data-meshes");
       const meshError = await stage.getAttribute("data-mesh-error");
-      const markerCount = Number(await stage.getAttribute("data-markers"));
-      await page.waitForTimeout(1000);
-      await shot(page, "lab-robot-3d");
       assert(links > robot.joints, `${links} links drawn for ${robot.joints} joints`);
       assert(meshes > 0, `no mesh drawn for ${links} links${meshError ? `: ${meshError}` : ""}`);
-      assert(markerCount === 2, `${markerCount} markers drawn, the probe publishes 2 on ${MARKERS}`);
-      return `URDF from the API with ${links} links and ${meshes} meshes, ${markerCount} markers from ${MARKERS}`;
+      assert((await attribute("data-markers-unplaced")) === 0, "a marker's frame was not found on the robot");
+      // The sixth is the robot's own mesh, alive three seconds every six: it must arrive, draw, and go.
+      const seen = ros.latest("/robot_description")?.data;
+      assert(seen?.mesh, "the probe saw no mesh in /robot_description");
+      await until("data-markers", (count) => count === 6, 8000);
+      await until("data-markers-loading", (count) => count === 0, 5000);
+      await page.waitForTimeout(500);
+      await shot(page, "lab-robot-3d");
+      await until("data-markers", (count) => count === 5, 5000);
+      return `URDF from the API with ${links} links and ${meshes} meshes; 5 markers on ${MARKERS}, the tool label on ${seen.tool}, plus ${seen.mesh} drawn and expired`;
     });
 
     await check(page, "lab-robot-3d-draws-the-commanded-motion", async () => {
@@ -821,7 +832,8 @@ function probeSource() {
   return `
 import json, sys, time, rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped, TwistStamped
+from geometry_msgs.msg import Point, PoseStamped, TwistStamped
+from std_msgs.msg import ColorRGBA
 from sensor_msgs.msg import CompressedImage, JointState
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import Float64, Float64MultiArray, String
@@ -861,32 +873,72 @@ def publish_frame():
     camera.publish(frame)
 node.create_timer(0.5, publish_frame)
 
-# Two markers in the base frame, the shapes the shared-control rviz config draws on /goal_markers.
+# What robot_state_publisher latched: the first mesh the URDF names, its scale, and its last link.
+from rclpy.qos import DurabilityPolicy, QoSProfile
+import re
+description = {"mesh": None, "scale": 1.0, "tool": None}
+def on_description(m):
+    tag = re.search(r'<mesh\\b[^>]*>', m.data)
+    if tag:
+        filename = re.search(r'filename="([^"]+)"', tag.group(0))
+        scale = re.search(r'scale="([^"]+)"', tag.group(0))
+        description["mesh"] = filename.group(1) if filename else None
+        description["scale"] = float(scale.group(1).split()[0]) if scale else 1.0
+    links = re.findall(r'<link\\s+name="([^"]+)"', m.data)
+    description["tool"] = links[-1] if links else None
+    emit("/robot_description", dict(description))
+node.create_subscription(String, "/robot_description", on_description, QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
+
+# Markers of every kind the view draws: the shared-control rviz shapes, a coloured trajectory, a label on
+# the tool link, a cube list, and every six seconds the robot's own first mesh for three seconds.
 markers = node.create_publisher(MarkerArray, "${MARKERS}", 10)
+def make(kind, index, frame="base_link"):
+    marker = Marker()
+    marker.header.frame_id = frame
+    marker.header.stamp = node.get_clock().now().to_msg()
+    marker.ns = "lab"
+    marker.id = index
+    marker.type = kind
+    marker.action = Marker.ADD
+    marker.pose.orientation.w = 1.0
+    marker.color.r, marker.color.g, marker.color.b, marker.color.a = 0.85, 0.55, 0.2, 1.0
+    return marker
 def publish_markers():
     array = MarkerArray()
     for index, kind in enumerate((Marker.ARROW, Marker.SPHERE)):
-        marker = Marker()
-        marker.header.frame_id = "base_link"
-        marker.header.stamp = node.get_clock().now().to_msg()
-        marker.ns = "lab"
-        marker.id = index
-        marker.type = kind
-        marker.action = Marker.ADD
-        marker.pose.position.x = 0.3
-        marker.pose.position.y = 0.1 * index
-        marker.pose.position.z = 0.4
-        marker.pose.orientation.w = 1.0
-        marker.scale.x = 0.15
-        marker.scale.y = 0.03
-        marker.scale.z = 0.03
-        marker.color.r = 0.85
-        marker.color.g = 0.55
-        marker.color.b = 0.2
-        marker.color.a = 1.0
+        marker = make(kind, index)
+        marker.pose.position.x, marker.pose.position.y, marker.pose.position.z = 0.3, 0.1 * index, 0.4
+        marker.scale.x, marker.scale.y, marker.scale.z = 0.15, 0.03, 0.03
         array.markers.append(marker)
+    path = make(Marker.LINE_STRIP, 2)
+    path.scale.x = 0.01
+    for step in range(8):
+        point = Point(x=0.2 + 0.04 * step, y=-0.2, z=0.5 + 0.02 * (step % 2))
+        path.points.append(point)
+        path.colors.append(ColorRGBA(r=0.2, g=0.3 + 0.1 * step, b=0.9, a=1.0))
+    array.markers.append(path)
+    label = make(Marker.TEXT_VIEW_FACING, 3, description["tool"] or "base_link")
+    label.text = "tool"
+    label.scale.z = 0.05
+    label.pose.position.z = 0.08
+    array.markers.append(label)
+    cubes = make(Marker.CUBE_LIST, 4)
+    cubes.scale.x = cubes.scale.y = cubes.scale.z = 0.03
+    cubes.points.extend(Point(x=0.4, y=0.25, z=0.1 + 0.06 * step) for step in range(3))
+    array.markers.append(cubes)
     markers.publish(array)
 node.create_timer(1.0, publish_markers)
+def publish_mesh_marker():
+    if not description["mesh"]:
+        return
+    mesh = make(Marker.MESH_RESOURCE, 5)
+    mesh.mesh_resource = description["mesh"]
+    mesh.pose.position.x, mesh.pose.position.y, mesh.pose.position.z = 0.45, -0.3, 0.2
+    mesh.scale.x = mesh.scale.y = mesh.scale.z = description["scale"]
+    mesh.color.r, mesh.color.g, mesh.color.b, mesh.color.a = 0.25, 0.45, 0.85, 0.7
+    mesh.lifetime.sec = 3
+    markers.publish(MarkerArray(markers=[mesh]))
+node.create_timer(6.0, publish_mesh_marker)
 
 def graph():
     names = sorted({info.node_name for info in node.get_subscriptions_info_by_topic("${MAX_LINEAR}") if info.node_name != node.get_name()})
