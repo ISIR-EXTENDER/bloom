@@ -39,6 +39,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **The runtime socket forwards at most 30 samples a second per topic** (`BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ`,
   0 for every sample): the newest each interval, and a stream that stops still ends on its last value. The
   Kinova simulation publishes `/joint_states` at 200 Hz, which was 200 JSON frames a second to every viewer.
+- **The runtime applies a frame's samples in one state update.** Every sample used to re-render the whole
+  runtime; now what arrived within about 16 ms lands together, newest last, and a hidden tab keeps only the
+  newest six hundred. Measured on the Widget Lab Robot screen: 28% to 23% of a core.
 - **The robot description answers 304** to an unchanged robot, and meshes carry a five-minute cache header, so
   the view's ten-second poll costs a hash and a reload does not fetch every mesh again.
 - **Bloom Debug has a Robot view screen**: the 3D robot view with `/ee_pose`, `/joint_target_command` and

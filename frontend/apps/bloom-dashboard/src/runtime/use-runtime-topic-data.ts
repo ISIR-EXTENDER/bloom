@@ -1,7 +1,11 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import type { WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { useEffect, useRef, useState } from "react";
-import type { RuntimeActionClient, RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
+import type {
+  RuntimeActionClient,
+  RuntimeTopicSampleMessage,
+  RuntimeTopicSubscriptionRequest,
+} from "./runtime-action-dispatcher";
 import { appendRuntimeTopicSample, createRuntimeTopicSubscriptionRequests } from "./runtime-topic-data";
 import { type HeldTopicSubscriptions, planTopicSubscriptions } from "./topic-subscriptions";
 import type { useRuntimeLinkState } from "./use-runtime-link-state";
@@ -13,6 +17,11 @@ type RuntimeTopicDataOptions = {
   runtimeLink: ReturnType<typeof useRuntimeLinkState>;
   screen: ScreenConfig;
 };
+
+/** About one screen frame. */
+const SAMPLE_BATCH_MS = 16;
+/** Samples kept while a batch waits; beyond it the oldest go, which only a hidden tab reaches. */
+const SAMPLE_QUEUE_LIMIT = 600;
 
 /** What the screen's reading widgets hold: subscribed per topic while the socket is up, cleared on a new screen. */
 export function useRuntimeTopicData({
@@ -78,9 +87,33 @@ export function useRuntimeTopicData({
       return;
     }
 
-    return onTopicSample((sample) => {
-      setDataByWidgetId((currentData) => appendRuntimeTopicSample(currentData, screen, sample));
+    // One state update per frame for everything that arrived, not one per sample: sixty samples a
+    // second re-rendered the whole runtime sixty times. A hidden tab's timer runs about once a second,
+    // and the queue keeps only the newest samples so it cannot grow without bound meanwhile.
+    const queue: RuntimeTopicSampleMessage[] = [];
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const flush = () => {
+      timer = undefined;
+      const batch = queue.splice(0);
+      if (batch.length === 0) {
+        return;
+      }
+      setDataByWidgetId((currentData) =>
+        batch.reduce((data, sample) => appendRuntimeTopicSample(data, screen, sample), currentData),
+      );
+    };
+    const stop = onTopicSample((sample) => {
+      queue.push(sample);
+      if (queue.length > SAMPLE_QUEUE_LIMIT) {
+        queue.splice(0, queue.length - SAMPLE_QUEUE_LIMIT);
+      }
+      timer ??= setTimeout(flush, SAMPLE_BATCH_MS);
     });
+    return () => {
+      clearTimeout(timer);
+      queue.length = 0;
+      stop();
+    };
   }, [onTopicSample, screen]);
 
   return dataByWidgetId;
