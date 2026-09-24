@@ -68,6 +68,7 @@ from libs.sessions import (
     parse_runtime_client_message,
 )
 from libs.sessions.teleop_runtime import build_teleop_ack, to_teleop_command
+from libs.sessions.topic_sample_throttle import TopicSampleThrottle
 from libs.sessions.topics import is_live_subscription_gateway
 
 logger = logging.getLogger(__name__)
@@ -97,6 +98,12 @@ async def runtime_websocket(websocket: WebSocket) -> None:
         return
     event_loop = asyncio.get_running_loop()
     topic_samples: asyncio.Queue[RuntimeTopicSample] = asyncio.Queue(maxsize=100)
+    # A display cannot use more than a few dozen samples a second per topic; the wire should not carry more.
+    sample_throttle = TopicSampleThrottle(
+        event_loop,
+        websocket.app.state.settings.runtime_topic_max_rate_hz,
+        lambda sample: enqueue_topic_sample(topic_samples, sample),
+    )
     # Keyed by widget and topic: a screen that subscribes again replaces its own
     # handle instead of stacking a second subscription on the same topic.
     topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle] = {}
@@ -144,7 +151,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     manager,
                     payload,
                     event_loop,
-                    topic_samples,
+                    sample_throttle,
                     topic_subscription_handles,
                     principal,
                     socket_policy,
@@ -158,6 +165,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         pass
     finally:
+        sample_throttle.close()
         # Whatever the handover does, the rclpy subscriptions and both tasks have to go: a lease that moved on
         # while this socket was closing used to raise here and leak them for the life of the process.
         try:
@@ -206,7 +214,7 @@ async def handle_runtime_client_payload(
     manager: RuntimeSessionManager,
     payload: dict,
     event_loop: asyncio.AbstractEventLoop,
-    topic_samples: asyncio.Queue[RuntimeTopicSample],
+    sample_throttle: TopicSampleThrottle,
     topic_subscription_handles: dict[str, RuntimeTopicSubscriptionHandle],
     principal: BloomPrincipal,
     socket_policy: RuntimeSocketPolicy,
@@ -277,7 +285,7 @@ async def handle_runtime_client_payload(
         audit_log,
         socket_policy.policy,
         get_runtime_command_rate_limiter(websocket),
-        lambda sample: event_loop.call_soon_threadsafe(enqueue_topic_sample, topic_samples, sample),
+        lambda sample: event_loop.call_soon_threadsafe(sample_throttle.offer, sample),
         topic_subscription_handles,
         get_runtime_stop_controller(websocket),
         get_allowed_command_frame_ids(websocket),

@@ -114,6 +114,8 @@ class Settings(BaseModel):
     # The browser coalesces the complete twist to at most 30 Hz. Keep a 2x
     # margin for timing jitter while retaining a hard server-side ceiling.
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
+    # Per topic, per socket: the newest sample each interval. Zero forwards every sample.
+    runtime_topic_max_rate_hz: int = Field(default=30, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
         "/cartesian_command",
         # qontrol's Jacobian, for the manipulability view in Bloom Debug.
@@ -322,6 +324,10 @@ class Settings(BaseModel):
             runtime_command_rate_limit_per_second=_read_int_env(
                 "BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND",
                 cls.model_fields["runtime_command_rate_limit_per_second"].default,
+            ),
+            runtime_topic_max_rate_hz=_read_int_env(
+                "BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ",
+                cls.model_fields["runtime_topic_max_rate_hz"].default,
             ),
             service_name=os.getenv("BLOOM_SERVICE_NAME", cls.model_fields["service_name"].default),
             theme_asset_dir=Path(os.getenv("BLOOM_THEME_ASSET_DIR", str(cls.model_fields["theme_asset_dir"].default))),

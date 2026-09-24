@@ -195,6 +195,8 @@ export BLOOM_ROS_ROBOT_DESCRIPTION_NODE='/robot_state_publisher'
 export BLOOM_ALLOWED_ROS_SERVICE_CALLS='/fault_controller/reset_fault'
 export BLOOM_ALLOWED_ROS_SERVICE_TYPES='example_interfaces/srv/Trigger,std_srvs/srv/Trigger'
 export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
+# The newest sample per topic, this many times a second at most, on each runtime socket; 0 forwards every one.
+export BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ=30
 export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
 
