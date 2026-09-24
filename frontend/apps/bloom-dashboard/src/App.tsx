@@ -305,6 +305,7 @@ export function App({
                 onSaveBuilderScreen={applicationActions.saveScreen}
                 onSelectionChange={setSelection}
                 onTeleopContribution={runtimeActions.contributeTeleop}
+                onTeleopCommand={runtimeActions.addTeleopCommandListener}
                 onTopicSample={runtimeActionClient.addRuntimeTopicSampleListener}
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onUploadThemeAsset={applicationActions.uploadThemeAsset}

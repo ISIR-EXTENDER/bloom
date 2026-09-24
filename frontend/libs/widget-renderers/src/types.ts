@@ -53,6 +53,8 @@ export type WidgetDataSnapshot =
       value: unknown;
       /** The newest MarkerArray on the widget's marker topic, when it names one. */
       markers?: unknown;
+      /** The twist the runtime is sending right now, absent when it is not driving. */
+      command?: CommandedTwist;
     }
   | {
       samples: readonly TopicPlotSample[];
@@ -102,6 +104,13 @@ export type WidgetControlState = {
    */
   selection?: "selected" | "unselected";
   toggleState?: "off" | "on";
+};
+
+/** A twist the runtime is sending: unit scale, linear in the base frame, angular in the named frame. */
+export type CommandedTwist = {
+  angular: { x: number; y: number; z: number };
+  frameId?: string;
+  linear: { x: number; y: number; z: number };
 };
 
 /** Where the 3D robot view gets the running robot's description and the meshes it names. */

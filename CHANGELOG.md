@@ -11,6 +11,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Added
+
+- **The 3D robot view draws the commanded motion**: a blue arrow from the tool along the twist the runtime is
+  sending, gone with the last zero. The simulation run watches it appear while Height is held.
+
 ### Changed
 
 - **The 3D robot view is desktop-only.** A widget kind can name the device classes it runs on; the palette

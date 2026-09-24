@@ -60,6 +60,7 @@ type ProductWorkspaceProps = {
   onSaveApplication: (application: ApplicationConfig) => Promise<void>;
   onSaveBuilderScreen: (screen: ScreenConfig) => Promise<void>;
   onSelectionChange: (selection: WorkspaceSelection) => void;
+  onTeleopCommand?: ReturnType<typeof useRuntimeActionDispatcher>["addTeleopCommandListener"];
   onTeleopContribution: ReturnType<typeof useRuntimeActionDispatcher>["contributeTeleop"];
   onTopicSample: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
@@ -104,6 +105,7 @@ export function ProductWorkspace({
   onSaveApplication,
   onSaveBuilderScreen,
   onSelectionChange,
+  onTeleopCommand,
   onTeleopContribution,
   onTopicSample,
   onTopicSubscriptionRequest,
@@ -229,6 +231,7 @@ export function ProductWorkspace({
         onRuntimeProfileOverridesChange(selection, profileId, overrides)
       }
       onSelectionChange={onSelectionChange}
+      onTeleopCommand={onTeleopCommand}
       onTeleopContribution={onTeleopContribution}
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}

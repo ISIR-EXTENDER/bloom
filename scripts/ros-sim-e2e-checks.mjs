@@ -578,6 +578,17 @@ async function labSession() {
       assert(markerCount === 2, `${markerCount} markers drawn, the probe publishes 2 on ${MARKERS}`);
       return `URDF from the API with ${links} links and ${meshes} meshes, ${markerCount} markers from ${MARKERS}`;
     });
+
+    await check(page, "lab-robot-3d-draws-the-commanded-motion", async () => {
+      const stage = page.locator('[aria-label="Robot 3D view"]');
+      const release = await pressSliderEnd(page, "Height", "positive");
+      await page.locator('[aria-label="Robot 3D view"][data-command="moving"]').waitFor({ timeout: 5000 });
+      await shot(page, "lab-robot-3d-command");
+      await release();
+      await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+      await page.locator('[aria-label="Robot 3D view"][data-command="still"]').waitFor({ timeout: 5000 });
+      return `arrow while Height was held (${await stage.getAttribute("data-links")} links), gone on release`;
+    });
   } finally {
     await context.close();
   }

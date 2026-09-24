@@ -14,6 +14,7 @@ import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
 export type {
+  CommandedTwist,
   PlotSeriesSnapshot,
   RobotModelSource,
   ScreenRendererOptions,

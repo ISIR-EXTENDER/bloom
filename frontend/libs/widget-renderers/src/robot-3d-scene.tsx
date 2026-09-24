@@ -36,12 +36,14 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ColladaLoader } from "three/examples/jsm/loaders/ColladaLoader.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import URDFLoader, { type URDFRobot } from "urdf-loader";
-import type { RobotModelSource } from "./types";
+import type { CommandedTwist, RobotModelSource } from "./types";
 
 export type JointStateSample = { name?: unknown; position?: unknown };
 export type MarkerSample = Record<string, unknown>;
 
 type RobotSceneProps = {
+  /** The twist being sent, to draw where the hand is being asked to go. */
+  command?: CommandedTwist;
   eeLink: string;
   jointState?: JointStateSample;
   markers?: readonly MarkerSample[];
@@ -59,11 +61,22 @@ export type SceneStatus = {
 };
 
 const ROBOT_COLOR = new Color("#7e967e");
+const COMMAND_COLOR = new Color("#3b6fd1");
+/** A full-scale twist draws this long; the manager sets the real speed downstream. */
+const COMMAND_ARROW_METRES = 0.35;
 const MARKER_ACTION_DELETE = 2;
 const MARKER_ACTION_DELETE_ALL = 3;
 
 /** The running robot in three.js: its URDF from the API, its meshes by package, its joints from ROS. */
-export default function RobotScene({ eeLink, jointState, markers, onStatus, robotModel, showAxes }: RobotSceneProps) {
+export default function RobotScene({
+  command,
+  eeLink,
+  jointState,
+  markers,
+  onStatus,
+  robotModel,
+  showAxes,
+}: RobotSceneProps) {
   const mount = useRef<HTMLDivElement>(null);
   const [robot, setRobot] = useState<URDFRobot | null>(null);
   const markerGroup = useRef(new Group());
@@ -194,6 +207,29 @@ export default function RobotScene({ eeLink, jointState, markers, onStatus, robo
       invalidateRef.current?.();
     };
   }, [robot, eeLink, showAxes]);
+
+  // The commanded linear motion, as an arrow from the tool in the base frame: where the hand is asked to go.
+  useEffect(() => {
+    if (!robot || !command) {
+      return;
+    }
+    const links = Object.keys(robot.links);
+    const tool = robot.links[eeLink] ?? robot.links[links.at(-1) ?? ""];
+    if (!tool) {
+      return;
+    }
+    robot.updateMatrixWorld(true);
+    const origin = robot.worldToLocal(tool.getWorldPosition(new Vector3()));
+    const direction = new Vector3(command.linear.x, command.linear.y, command.linear.z);
+    const length = COMMAND_ARROW_METRES * Math.min(1, direction.length());
+    const arrow = new ArrowHelper(direction.normalize(), origin, length, COMMAND_COLOR, length * 0.3, length * 0.15);
+    robot.add(arrow);
+    invalidateRef.current?.();
+    return () => {
+      robot.remove(arrow);
+      invalidateRef.current?.();
+    };
+  }, [robot, command, eeLink]);
 
   // Joint states drive the model; a name the URDF does not know is ignored.
   useEffect(() => {

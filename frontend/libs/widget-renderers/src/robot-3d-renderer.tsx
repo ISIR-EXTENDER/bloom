@@ -15,6 +15,8 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
   const showAxes = getBooleanSetting(settings, "showAxes", true);
   const [status, setStatus] = useState<SceneStatus>({ model: "loading", links: 0, markers: 0, meshes: 0 });
   const snapshot = data?.type === "robot-3d" ? data : undefined;
+  const command = snapshot?.command;
+  const moving = Boolean(command && Math.hypot(command.linear.x, command.linear.y, command.linear.z) > 0.05);
   const desktop = descriptor.context.deviceClass !== "tablet";
   const canDraw = desktop && typeof window !== "undefined" && "WebGLRenderingContext" in window && Boolean(robotModel);
   const note = !desktop
@@ -38,6 +40,7 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
       <div
         aria-label={`${descriptor.widget.title} 3D view`}
         className="bloom-robot-3d-stage"
+        data-command={moving ? "moving" : "still"}
         data-links={status.links}
         data-markers={status.markers}
         data-mesh-error={status.meshError}
@@ -49,6 +52,7 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
           <Suspense fallback={<p className="bloom-robot-3d-note">Loading the 3D view.</p>}>
             <RobotScene
               eeLink={eeLink}
+              command={moving ? command : undefined}
               jointState={asJointState(snapshot?.value)}
               markers={asMarkers(snapshot?.markers)}
               onStatus={setStatus}

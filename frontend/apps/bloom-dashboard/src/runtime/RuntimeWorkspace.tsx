@@ -25,7 +25,9 @@ import type { RuntimeActionClient, RuntimeTopicSubscriptionRequest } from "./run
 import { isFullPanelScreen, resolveRuntimeArtboardSize, resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
 import { isRuntimeMotionHeld, resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
+import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
+import { withRobotCommand } from "./runtime-topic-data";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopAdapter } from "./runtimeModeState";
 import { resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
@@ -55,6 +57,8 @@ type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "run
 
 type RuntimeWorkspaceProps = {
   /** Feeds a non-widget input source into the composed twist. */
+  /** Subscribes to each twist the runtime sends, for the widgets that draw the commanded motion. */
+  onTeleopCommand?: (listener: (request: RuntimeTeleopCommandRequest) => void) => () => void;
   onTeleopContribution?: (
     sourceId: string,
     contribution: ComponentContribution | null,
@@ -107,6 +111,7 @@ export function RuntimeWorkspace({
   onProfileOverridesChange,
   onSelectionChange,
   onSuspendTeleop,
+  onTeleopCommand,
   onTeleopContribution,
   onTopicSample,
   onTopicSubscriptionRequest,
@@ -253,8 +258,25 @@ export function RuntimeWorkspace({
   // Camera frames arrive on their own socket, never on the one the operator steers by.
   const cameraTargets = useMemo(() => resolveCameraStreamTargets(screen), [screen]);
   const cameraFrames = useCameraStreams(cameraTargets, getBloomApiBaseUrl(), getBloomApiKey());
+  const screenHasRobotView = screen.widgets.some((widget) => widget.kind === "robot-3d");
+  const [commandTwist, setCommandTwist] = useState<RuntimeTeleopCommandRequest | null>(null);
+  useEffect(() => {
+    if (!screenHasRobotView || !onTeleopCommand) {
+      return;
+    }
+    return onTeleopCommand(setCommandTwist);
+  }, [onTeleopCommand, screenHasRobotView]);
+  useEffect(() => {
+    if (!teleopActive) {
+      setCommandTwist(null);
+    }
+  }, [teleopActive]);
   const effectiveDataByWidgetId = useMemo(() => {
-    const merged = { ...applyPlotSelections(screen, dataByWidgetId, plotSelections.selections), ...cameraFrames };
+    const merged = withRobotCommand(
+      { ...applyPlotSelections(screen, dataByWidgetId, plotSelections.selections), ...cameraFrames },
+      screen,
+      commandTwist,
+    );
     if (!screenHasPositionLibrary) {
       return merged;
     }
@@ -280,6 +302,7 @@ export function RuntimeWorkspace({
     return merged;
   }, [
     cameraFrames,
+    commandTwist,
     dataByWidgetId,
     plotSelections.selections,
     positionLibrary.state,

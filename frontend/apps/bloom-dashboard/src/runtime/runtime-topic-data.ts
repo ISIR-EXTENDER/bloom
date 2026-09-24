@@ -9,6 +9,7 @@ import {
 } from "@bloom/widgets";
 import { appendSeriesSample, createSeriesSubscriptionRequests, isSeriesWidget } from "./plot-series-data";
 import type { RuntimeTopicSampleMessage, RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
+import type { RuntimeVector3 } from "./runtime-protocol";
 
 export function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): RuntimeTopicSubscriptionRequest[] {
   const widgetRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] => {
@@ -37,6 +38,36 @@ export function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): Ru
 }
 
 const MARKER_ARRAY_TYPE = "visualization_msgs/msg/MarkerArray";
+
+/** The twist the runtime is sending, on every 3D robot view of the screen, so it can draw the commanded motion. */
+export function withRobotCommand(
+  data: Readonly<Record<string, WidgetDataSnapshot>>,
+  screen: ScreenConfig,
+  command: { angular: RuntimeVector3; frame_id?: string; linear: RuntimeVector3 } | null,
+): Record<string, WidgetDataSnapshot> {
+  const views = screen.widgets.filter((widget) => widget.kind === "robot-3d");
+  if (views.length === 0) {
+    return { ...data };
+  }
+  const next = { ...data };
+  for (const widget of views) {
+    const current = data[widget.id];
+    const base =
+      current?.type === "robot-3d"
+        ? current
+        : {
+            receivedAt: "",
+            topic: resolveWidgetRuntimeTopic(widget) ?? "",
+            type: "robot-3d" as const,
+            value: undefined,
+          };
+    next[widget.id] = {
+      ...base,
+      command: command ? { angular: command.angular, frameId: command.frame_id, linear: command.linear } : undefined,
+    };
+  }
+  return next;
+}
 
 /** The marker topic a 3D robot view names, when it names one. */
 function resolveMarkerTopic(widget: WidgetConfig): string | null {

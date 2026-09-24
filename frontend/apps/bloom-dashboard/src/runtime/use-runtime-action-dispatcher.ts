@@ -9,6 +9,7 @@ import {
   type RuntimeActionDispatchResult,
   type RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
+import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
 import { type ComponentContribution, isZeroTwist, TeleopTwistComposer } from "./teleop-composition";
 import { TeleopRateGate } from "./teleop-rate-gate";
 import { TeleopStreamPump } from "./teleop-stream";
@@ -49,6 +50,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const externalSourcesAwaitingNeutral = useRef(new Set<string>());
   const clientRef = useRef(client);
   clientRef.current = client;
+  // Whoever draws the commanded motion, such as the 3D robot view, hears each twist as it goes out.
+  const teleopCommandListeners = useRef(new Set<(request: RuntimeTeleopCommandRequest) => void>());
   const teleopRateGate = useRef<TeleopRateGate | null>(null);
   if (teleopRateGate.current === null) {
     teleopRateGate.current = new TeleopRateGate({
@@ -57,10 +60,19 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         if (!sendTeleopCommand) {
           return Promise.reject(new Error("Teleop client is gone."));
         }
+        for (const listener of teleopCommandListeners.current) {
+          listener(request);
+        }
         return sendTeleopCommand(request);
       },
     });
   }
+  const addTeleopCommandListener = useCallback((listener: (request: RuntimeTeleopCommandRequest) => void) => {
+    teleopCommandListeners.current.add(listener);
+    return () => {
+      teleopCommandListeners.current.delete(listener);
+    };
+  }, []);
   // Keeps the composed twist alive past the manager's 0.2s input timeout.
   const teleopPump = useRef<TeleopStreamPump | null>(null);
   if (teleopPump.current === null) {
@@ -230,6 +242,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   }, [suspendTeleop]);
 
   return {
+    addTeleopCommandListener,
     clearFeedback,
     contributeTeleop,
     dispatch,

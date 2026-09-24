@@ -106,6 +106,49 @@ describe("runtime teleop suspension", () => {
     });
   });
 
+  it("tells a listener each twist it sends, until the listener leaves", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    const heard: RuntimeTeleopCommandRequest[] = [];
+    let stop: (() => void) | undefined;
+    act(() => {
+      stop = result.current.addTeleopCommandListener((request) => heard.push(request));
+      result.current.dispatch({
+        type: "value-change",
+        binding: "joy",
+        modeId: "translation",
+        publishRateHz: 30,
+        runtimeBinding: { adapter: "teleop", target: "translation" },
+        value: { x: 0, y: 1 },
+        widgetId: "translation",
+        widgetKind: "joystick",
+        zeroOnRelease: true,
+      });
+    });
+    await act(() => vi.advanceTimersByTimeAsync(40));
+
+    expect(heard.length).toBe(sent.length);
+    expect(heard.at(-1)?.linear).toEqual(sent.at(-1)?.linear);
+
+    act(() => stop?.());
+    const before = heard.length;
+    act(() => {
+      result.current.dispatch({
+        type: "value-change",
+        binding: "joy",
+        modeId: "translation",
+        publishRateHz: 30,
+        runtimeBinding: { adapter: "teleop", target: "translation" },
+        value: { x: 0.5, y: 0 },
+        widgetId: "translation",
+        widgetKind: "joystick",
+        zeroOnRelease: true,
+      });
+    });
+    await act(() => vi.advanceTimersByTimeAsync(40));
+    expect(heard.length).toBe(before);
+    expect(sent.length).toBeGreaterThan(before);
+  });
+
   it("coalesces rapid widget updates before they reach the WebSocket client", async () => {
     const { result } = renderHook(() => useRuntimeActionDispatcher(client));
 

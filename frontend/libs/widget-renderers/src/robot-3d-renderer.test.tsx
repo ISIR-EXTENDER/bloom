@@ -39,6 +39,29 @@ function renderView(options: Parameters<typeof renderWidgetDescriptor>[1]) {
 }
 
 describe("the 3D robot view", () => {
+  it("says whether the runtime is driving, from the twist it carries", () => {
+    const descriptor = renderScreenDescriptors(robotScreen, createDefaultWidgetRegistry())[0];
+    if (descriptor?.status !== "resolved") {
+      throw new Error("the fixture did not resolve");
+    }
+    const { rerender } = render(
+      renderWidgetDescriptor(descriptor, {
+        dataByWidgetId: {
+          view: {
+            receivedAt: "t",
+            topic: "/joint_states",
+            type: "robot-3d",
+            value: undefined,
+            command: { angular: { x: 0, y: 0, z: 0 }, linear: { x: 0, y: 0.8, z: 0 } },
+          },
+        },
+      }),
+    );
+    expect(screen.getByRole("img", { name: "Robot 3D view" }).getAttribute("data-command")).toBe("moving");
+    rerender(renderWidgetDescriptor(descriptor, {}));
+    expect(screen.getByRole("img", { name: "Robot 3D view" }).getAttribute("data-command")).toBe("still");
+  });
+
   it("draws nothing on a tablet-class screen, whatever the runtime offers", () => {
     const tabletScreen: ScreenConfig = {
       ...robotScreen,

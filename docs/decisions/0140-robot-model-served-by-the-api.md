@@ -35,5 +35,6 @@ The web app never carries a robot. The API serves the one that runs:
 - A model URL setting stays inert: the view draws the API's robot, not a file someone uploaded.
 - Widget Lab's `lab-robot-3d-draws-the-running-model` requires links, drawn meshes and the probe's two
   markers, so a description the API cannot serve, or a mesh route that answers 404, fails the run.
-- What the view cannot do yet: TF frames outside the URDF, interactive markers, and the operator's own
-  commanded twist drawn as an arrow. Each is a marker topic away, or a small change to the widget.
+- 2026-09-24, later: the runtime tells the view each twist it sends, and the view draws the commanded linear
+  motion as an arrow from the tool; the view is desktop-only by definition. Still absent: TF frames outside the
+  URDF and interactive markers, each a marker topic away.
