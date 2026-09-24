@@ -1,4 +1,11 @@
-import { isRecord, type JoystickSettings, MAX_JOYSTICK_PUBLISH_RATE_HZ } from "@bloom/widgets";
+import {
+  getBooleanSetting,
+  getNumberSetting,
+  getStringSetting,
+  isRecord,
+  type JoystickSettings,
+  MAX_JOYSTICK_PUBLISH_RATE_HZ,
+} from "@bloom/widgets";
 import type { JoystickLabels } from "./JoystickPrimitive";
 
 export type ResolvedJoystickBinding = {
@@ -11,21 +18,6 @@ export type ResolvedJoystickBinding = {
   runtimeTarget: string;
   zeroOnRelease: boolean;
 };
-
-export function getStringSetting(settings: Record<string, unknown>, key: string, fallback: string): string {
-  const value = settings[key];
-  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
-}
-
-export function getNumberSetting(settings: Record<string, unknown>, key: string, fallback: number): number {
-  const value = settings[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-export function getBooleanSetting(settings: Record<string, unknown>, key: string, fallback: boolean): boolean {
-  const value = settings[key];
-  return typeof value === "boolean" ? value : fallback;
-}
 
 export function getJoystickLabels(settings: Record<string, unknown>): JoystickLabels {
   const labels = settings.labels;

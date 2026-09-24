@@ -20,7 +20,7 @@ import {
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
 } from "@bloom/api-client";
-import { isRecord } from "@bloom/widgets";
+import { isRecord, readNumber, readString } from "@bloom/widgets";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
   applications?: PartialApplicationConfig[];
@@ -90,20 +90,20 @@ export function normalizeConfigurationBundle(bundle: ConfigurationBundle): Confi
   return {
     metadata: {
       schema_version: normalizeSchemaVersion(partialBundle.metadata?.schema_version),
-      exported_at: asString(partialBundle.metadata?.exported_at, new Date(0).toISOString()),
-      source: asString(partialBundle.metadata?.source, "unknown"),
+      exported_at: readString(partialBundle.metadata?.exported_at, new Date(0).toISOString()),
+      source: readString(partialBundle.metadata?.source, "unknown"),
     },
     applications: (partialBundle.applications ?? []).map(normalizeApplication),
   };
 }
 
 function normalizeApplication(application: PartialApplicationConfig, index: number): ApplicationConfig {
-  const id = asString(application.id, `application-${index + 1}`);
+  const id = readString(application.id, `application-${index + 1}`);
 
   return {
     id,
-    name: asString(application.name, id),
-    description: asString(application.description, ""),
+    name: readString(application.name, id),
+    description: readString(application.description, ""),
     // An unknown or missing value normalizes to "active": a configuration
     // written before archiving existed describes an app still being carried
     // forward, and mislabelling one as archived would hide it from its operator.
@@ -124,19 +124,19 @@ function normalizeActionPresets(presets: PartialRuntimeActionPreset[] | undefine
   const usedIds = new Set<string>();
   return presets.map((preset, index) => {
     const fallbackId = `preset-${index + 1}`;
-    const id = createUniquePresetId(asString(preset.id, fallbackId), usedIds);
+    const id = createUniquePresetId(readString(preset.id, fallbackId), usedIds);
     usedIds.add(id);
 
     return {
       id,
-      name: asString(preset.name, id),
-      kind: asString(preset.kind, "topic-publish"),
-      description: asString(preset.description, ""),
-      command: asString(preset.command, ""),
-      topic: asString(preset.topic, ""),
-      message_type: asString(preset.message_type, ""),
+      name: readString(preset.name, id),
+      kind: readString(preset.kind, "topic-publish"),
+      description: readString(preset.description, ""),
+      command: readString(preset.command, ""),
+      topic: readString(preset.topic, ""),
+      message_type: readString(preset.message_type, ""),
       payload: isJsonLike(preset.payload) ? preset.payload : null,
-      payload_text: asString(preset.payload_text, ""),
+      payload_text: readString(preset.payload_text, ""),
       tags: asStringArray(preset.tags, []),
     };
   });
@@ -144,7 +144,7 @@ function normalizeActionPresets(presets: PartialRuntimeActionPreset[] | undefine
 
 function normalizeRuntimePolicy(policy: PartialRuntimeAdapterPolicy | undefined): RuntimeAdapterPolicy {
   return {
-    command_frame_id: asString(policy?.command_frame_id, DEFAULT_RUNTIME_POLICY.command_frame_id ?? ""),
+    command_frame_id: readString(policy?.command_frame_id, DEFAULT_RUNTIME_POLICY.command_frame_id ?? ""),
     allowed_message_types: asStringArray(policy?.allowed_message_types, DEFAULT_RUNTIME_POLICY.allowed_message_types),
     allowed_publish_topics: asStringArray(
       policy?.allowed_publish_topics,
@@ -209,29 +209,29 @@ function isJsonLike(value: unknown): boolean {
 function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): ApplicationTheme {
   return {
     inspiration: {
-      moodboard_image_uri: asString(
+      moodboard_image_uri: readString(
         theme?.inspiration?.moodboard_image_uri,
         DEFAULT_THEME_INSPIRATION.moodboard_image_uri,
       ),
-      reference_url: asString(theme?.inspiration?.reference_url, DEFAULT_THEME_INSPIRATION.reference_url),
+      reference_url: readString(theme?.inspiration?.reference_url, DEFAULT_THEME_INSPIRATION.reference_url),
     },
-    preset_id: asString(theme?.preset_id, DEFAULT_APPLICATION_THEME.preset_id),
+    preset_id: readString(theme?.preset_id, DEFAULT_APPLICATION_THEME.preset_id),
     palette: {
-      accent: asColorString(theme?.palette?.accent, DEFAULT_APPLICATION_THEME.palette.accent),
-      background: asColorString(theme?.palette?.background, DEFAULT_APPLICATION_THEME.palette.background),
-      primary: asColorString(theme?.palette?.primary, DEFAULT_APPLICATION_THEME.palette.primary),
-      surface: asColorString(theme?.palette?.surface, DEFAULT_APPLICATION_THEME.palette.surface),
+      accent: readString(theme?.palette?.accent, DEFAULT_APPLICATION_THEME.palette.accent),
+      background: readString(theme?.palette?.background, DEFAULT_APPLICATION_THEME.palette.background),
+      primary: readString(theme?.palette?.primary, DEFAULT_APPLICATION_THEME.palette.primary),
+      surface: readString(theme?.palette?.surface, DEFAULT_APPLICATION_THEME.palette.surface),
     },
   };
 }
 
 function normalizeScreen(screen: PartialScreenConfig, index: number): ScreenConfig {
-  const id = asString(screen.id, `screen-${index + 1}`);
+  const id = readString(screen.id, `screen-${index + 1}`);
   const reservedRegions = normalizeReservedRegions(screen.reserved_regions);
 
   return {
     id,
-    title: asString(screen.title, id),
+    title: readString(screen.title, id),
     canvas: normalizeCanvas(screen.canvas),
     widgets: (screen.widgets ?? []).map((widget, widgetIndex) => normalizeWidget(widget, widgetIndex)),
     ...(reservedRegions.length > 0 ? { reserved_regions: reservedRegions } : {}),
@@ -274,13 +274,13 @@ function normalizeCanvas(canvas: Partial<CanvasSettings> | undefined): CanvasSet
 }
 
 function normalizeWidget(widget: PartialWidgetConfig, index: number): WidgetConfig {
-  const id = asString(widget.id, `widget-${index + 1}`);
+  const id = readString(widget.id, `widget-${index + 1}`);
   const kind = isWidgetKind(widget.kind) ? widget.kind : "unknown";
 
   return {
     id,
     kind,
-    title: asString(widget.title, id),
+    title: readString(widget.title, id),
     layout: normalizeWidgetLayout(widget.layout),
     settings: isRecord(widget.settings) ? widget.settings : {},
   };
@@ -288,23 +288,11 @@ function normalizeWidget(widget: PartialWidgetConfig, index: number): WidgetConf
 
 function normalizeWidgetLayout(layout: Partial<WidgetLayout> | undefined): WidgetLayout {
   return {
-    x: asNumber(layout?.x, DEFAULT_WIDGET_LAYOUT.x),
-    y: asNumber(layout?.y, DEFAULT_WIDGET_LAYOUT.y),
-    width: asNumber(layout?.width, DEFAULT_WIDGET_LAYOUT.width),
-    height: asNumber(layout?.height, DEFAULT_WIDGET_LAYOUT.height),
+    x: readNumber(layout?.x, DEFAULT_WIDGET_LAYOUT.x),
+    y: readNumber(layout?.y, DEFAULT_WIDGET_LAYOUT.y),
+    width: readNumber(layout?.width, DEFAULT_WIDGET_LAYOUT.width),
+    height: readNumber(layout?.height, DEFAULT_WIDGET_LAYOUT.height),
   };
-}
-
-function asString(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
-}
-
-function asNumber(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function asColorString(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
 }
 
 function asStringArray(value: unknown, fallback: string[]): string[] {

@@ -1,5 +1,5 @@
 import { resolveFieldPath, type TopicMessage } from "./telemetry";
-import { isRecord } from "./values";
+import { isRecord, readString } from "./values";
 
 /** The design system's series ramp (design-system §05). A seed colour naming one of these keeps its slot. */
 export const SERIES_RAMP = ["#31493f", "#7e967e", "#c98a7e", "#536960", "#8a7f5c", "#6b7f8a", "#8a6b7f", "#5c7d6b"];
@@ -38,12 +38,12 @@ export function readPlotSeries(settings: Record<string, unknown>): PlotSeriesCon
     if (!isRecord(entry)) {
       return [];
     }
-    const topic = readString(entry.topic);
-    const fieldPath = readString(entry.field_path) || readString(entry.fieldPath);
+    const topic = readString(entry.topic, "");
+    const fieldPath = readString(entry.field_path, "") || readString(entry.fieldPath, "");
     if (!topic.startsWith("/") || !fieldPath) {
       return [];
     }
-    const color = readString(entry.color).toLowerCase();
+    const color = readString(entry.color, "").toLowerCase();
     const rampIndex = SERIES_RAMP.indexOf(color);
     return [
       {
@@ -51,11 +51,11 @@ export function readPlotSeries(settings: Record<string, unknown>): PlotSeriesCon
         enabled: entry.enabled !== false,
         fieldPath,
         key: plotSeriesKey(topic, fieldPath),
-        label: readString(entry.label) || fieldPath,
-        messageType: readString(entry.message_type) || readString(entry.messageType),
+        label: readString(entry.label, "") || fieldPath,
+        messageType: readString(entry.message_type, "") || readString(entry.messageType, ""),
         rampIndex: rampIndex >= 0 ? rampIndex : index,
         topic,
-        unit: readString(entry.unit),
+        unit: readString(entry.unit, ""),
       },
     ];
   });
@@ -64,8 +64,8 @@ export function readPlotSeries(settings: Record<string, unknown>): PlotSeriesCon
 export function readPlotUnavailable(settings: Record<string, unknown>): PlotUnavailableEntry[] {
   const raw = Array.isArray(settings.unavailable) ? settings.unavailable : [];
   return raw.flatMap((entry) =>
-    isRecord(entry) && readString(entry.label)
-      ? [{ label: readString(entry.label), note: readString(entry.note) }]
+    isRecord(entry) && readString(entry.label, "")
+      ? [{ label: readString(entry.label, ""), note: readString(entry.note, "") }]
       : [],
   );
 }
@@ -152,8 +152,4 @@ export function readTwistMagnitude(message: unknown): number | undefined {
     isRecord(vector) ? [vector.x, vector.y, vector.z].filter((part): part is number => Number.isFinite(part)) : [],
   );
   return Math.hypot(...components);
-}
-
-function readString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
 }

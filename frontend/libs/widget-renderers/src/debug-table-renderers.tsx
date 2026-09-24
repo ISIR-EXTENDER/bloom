@@ -1,7 +1,12 @@
-import { readJacobian, readJointLimits, readJointStates, yoshikawaManipulability } from "@bloom/widgets";
+import {
+  getStringSetting,
+  readJacobian,
+  readJointLimits,
+  readJointStates,
+  yoshikawaManipulability,
+} from "@bloom/widgets";
 import { type CSSProperties, useRef } from "react";
 import { formatSignedValue } from "./control-renderers";
-import { getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
 

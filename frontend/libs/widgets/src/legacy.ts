@@ -10,7 +10,7 @@ import type {
 } from "@bloom/api-client";
 import { DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 import { DEFAULT_CANVAS_SETTINGS } from "./canvas-defaults";
-import { isRecord } from "./values";
+import { isRecord, readNumber, readString } from "./values";
 
 export type LegacyCanvasScreen = {
   id?: string;
@@ -57,8 +57,8 @@ const DEFAULT_LEGACY_WIDGET_LAYOUT: WidgetLayout = {
 };
 
 export function legacyCanvasScreenToConfig(screen: LegacyCanvasScreen): ScreenConfig {
-  const id = stringOrFallback(screen.id, stringOrFallback(screen.name, "legacy-screen"));
-  const title = stringOrFallback(screen.title, stringOrFallback(screen.label, stringOrFallback(screen.name, id)));
+  const id = readString(screen.id, readString(screen.name, "legacy-screen"));
+  const title = readString(screen.title, readString(screen.label, readString(screen.name, id)));
 
   return {
     id,
@@ -74,13 +74,13 @@ export function legacyCanvasScreensToApplicationConfig(
 ): ApplicationConfig {
   const convertedScreens = screens.map(legacyCanvasScreenToConfig);
   const orderedScreens = orderScreensByLegacyApplication(convertedScreens, application.screenIds);
-  const id = stringOrFallback(application.id, "legacy-application");
+  const id = readString(application.id, "legacy-application");
   const homeScreenDescription = application.homeScreenId ? `Home screen: ${application.homeScreenId}` : "";
 
   return {
     id,
-    name: stringOrFallback(application.name, id),
-    description: stringOrFallback(application.description, homeScreenDescription),
+    name: readString(application.name, id),
+    description: readString(application.description, homeScreenDescription),
     action_presets: [],
     runtime_policy: cloneRuntimePolicy(DEFAULT_RUNTIME_POLICY),
     theme: DEFAULT_APPLICATION_THEME,
@@ -103,8 +103,8 @@ function cloneRuntimePolicy(policy: RuntimeAdapterPolicy): RuntimeAdapterPolicy 
 export function legacyCanvasWidgetToConfig(widget: LegacyCanvasWidget): WidgetConfig {
   return {
     id: widget.id,
-    kind: legacyKindToBloomKind(stringOrFallback(widget.kind, "unknown")),
-    title: stringOrFallback(widget.title, stringOrFallback(widget.label, widget.id)),
+    kind: legacyKindToBloomKind(readString(widget.kind, "unknown")),
+    title: readString(widget.title, readString(widget.label, widget.id)),
     layout: legacyRectToLayout(widget.rect),
     settings: legacyWidgetSettingsToConfig(widget),
   };
@@ -174,20 +174,20 @@ function legacyRectToLayout(rect: Record<string, unknown> | undefined): WidgetLa
     return { ...DEFAULT_LEGACY_WIDGET_LAYOUT };
   }
   return {
-    x: numberOrFallback(rect.x, DEFAULT_LEGACY_WIDGET_LAYOUT.x),
-    y: numberOrFallback(rect.y, DEFAULT_LEGACY_WIDGET_LAYOUT.y),
-    width: numberOrFallback(rect.w ?? rect.width, DEFAULT_LEGACY_WIDGET_LAYOUT.width),
-    height: numberOrFallback(rect.h ?? rect.height, DEFAULT_LEGACY_WIDGET_LAYOUT.height),
+    x: readNumber(rect.x, DEFAULT_LEGACY_WIDGET_LAYOUT.x),
+    y: readNumber(rect.y, DEFAULT_LEGACY_WIDGET_LAYOUT.y),
+    width: readNumber(rect.w ?? rect.width, DEFAULT_LEGACY_WIDGET_LAYOUT.width),
+    height: readNumber(rect.h ?? rect.height, DEFAULT_LEGACY_WIDGET_LAYOUT.height),
   };
 }
 
 function legacyWidgetSettingsToConfig(widget: LegacyCanvasWidget): Record<string, unknown> {
-  const legacyKind = stringOrFallback(widget.kind, "unknown");
+  const legacyKind = readString(widget.kind, "unknown");
   if (legacyKind === "momentary-ros-message") {
     return {
       ...copyLegacyWidgetSettings(widget),
       legacyKind,
-      button_label: stringOrFallback(widget.label, widget.id),
+      button_label: readString(widget.label, widget.id),
       command: "momentary_ros_message",
       momentary: true,
       payload: widget.pressedPayload ?? "{data: true}",
@@ -201,10 +201,10 @@ function legacyWidgetSettingsToConfig(widget: LegacyCanvasWidget): Record<string
       legacyKind,
       fieldPath: "",
       maxMessages: 20,
-      messageType: stringOrFallback(firstTopic?.messageType, ""),
+      messageType: readString(firstTopic?.messageType, ""),
       prettyPrint: true,
       show_details: widget.showDetails === true,
-      topic: stringOrFallback(firstTopic?.topic, stringOrFallback(widget.topic, "")),
+      topic: readString(firstTopic?.topic, readString(widget.topic, "")),
     };
   }
   return {
@@ -231,12 +231,4 @@ function isCanvasPresetId(value: unknown): value is CanvasSettings["preset_id"] 
 
 function isRuntimeCanvasMode(value: unknown): value is CanvasSettings["runtime_mode"] {
   return value === "left" || value === "center" || value === "fit" || value === "operator-fit";
-}
-
-function stringOrFallback(value: unknown, fallback: string): string {
-  return typeof value === "string" && value.length > 0 ? value : fallback;
-}
-
-function numberOrFallback(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }

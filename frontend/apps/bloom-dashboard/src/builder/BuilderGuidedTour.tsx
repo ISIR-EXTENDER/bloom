@@ -1,5 +1,5 @@
 import type { ApplicationConfig, WidgetConfig } from "@bloom/api-client";
-import { INTERACTIVE_WIDGET_KINDS, resolveWidgetDestination } from "@bloom/widgets";
+import { asRecord, INTERACTIVE_WIDGET_KINDS, resolveWidgetDestination } from "@bloom/widgets";
 import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -408,8 +408,4 @@ function downloadApplication(application: ApplicationConfig): void {
   anchor.href = url;
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }

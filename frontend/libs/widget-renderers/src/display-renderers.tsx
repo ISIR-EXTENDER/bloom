@@ -1,7 +1,14 @@
-import { isRecord, normalizeWidgetSettings } from "@bloom/widgets";
+import {
+  getBooleanSetting,
+  getNumberSetting,
+  getStringSetting,
+  isRecord,
+  normalizeWidgetSettings,
+  readOptionalNumber,
+  readString,
+} from "@bloom/widgets";
 import { type CSSProperties, useState } from "react";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
-import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
 
@@ -176,8 +183,8 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const yBounds = resolvePlotBounds(
     values,
-    readOptionalNumberSetting(descriptor.widget.settings.yMin),
-    readOptionalNumberSetting(descriptor.widget.settings.yMax),
+    readOptionalNumber(descriptor.widget.settings.yMin),
+    readOptionalNumber(descriptor.widget.settings.yMax),
   );
   const path = createSparklinePath(values, 220, 82, yBounds);
   const bars = createPlotBars(values, 220, 82, yBounds);
@@ -265,10 +272,6 @@ function readPlotVariant(value: unknown): PlotVariant {
   return typeof value === "string" && PLOT_VARIANTS.includes(value as PlotVariant) ? (value as PlotVariant) : "area";
 }
 
-function readOptionalNumberSetting(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
 function readNumberArraySetting(value: unknown): number[] | null {
   if (!Array.isArray(value)) {
     return null;
@@ -353,10 +356,6 @@ function readSeverity(value: unknown): EventLogEntry["severity"] {
 
 function isEventLogSeverity(value: string): value is EventLogEntry["severity"] {
   return EVENT_LOG_SEVERITIES.includes(value as EventLogEntry["severity"]);
-}
-
-function readString(value: unknown, fallback: string): string {
-  return typeof value === "string" ? value.trim() : fallback;
 }
 
 function clamp(value: number, min: number, max: number): number {

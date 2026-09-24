@@ -1,9 +1,15 @@
-import { createWidgetActionIntent, localizeOperatorText, type WidgetActionIntent } from "@bloom/widgets";
+import {
+  createWidgetActionIntent,
+  getBooleanSetting,
+  getNumberSetting,
+  getStringSetting,
+  localizeOperatorText,
+  type WidgetActionIntent,
+} from "@bloom/widgets";
 
 const MOMENTARY_HOLD_EXPIRY_MS = 15000;
 
 import { type PointerEvent, useEffect, useId, useRef, useState } from "react";
-import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
 export function CommandLikeWidget({

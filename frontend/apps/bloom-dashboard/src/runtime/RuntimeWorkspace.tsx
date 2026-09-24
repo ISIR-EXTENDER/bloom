@@ -6,7 +6,7 @@ import type {
   WidgetConfig,
 } from "@bloom/api-client";
 import type { WidgetActionIntentHandler, WidgetDataSnapshot } from "@bloom/widget-renderers";
-import { appendTopicEchoMessage, appendTopicPlotSample } from "@bloom/widgets";
+import { appendTopicEchoMessage, appendTopicPlotSample, getNumberSetting, readOptionalString } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -958,8 +958,8 @@ function appendRuntimeTopicSample(
       nextData[widget.id] = {
         type: "topic-echo",
         messages: appendTopicEchoMessage(currentMessages, topicMessage, {
-          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "",
-          maxMessages: readNumberSetting(widget.settings, "maxMessages", 100),
+          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "",
+          maxMessages: getNumberSetting(widget.settings, "maxMessages", 100),
         }),
       };
     }
@@ -977,8 +977,8 @@ function appendRuntimeTopicSample(
       nextData[widget.id] = {
         type: "event-log",
         messages: appendTopicEchoMessage(currentMessages, topicMessage, {
-          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "",
-          maxMessages: readNumberSetting(widget.settings, "maxEntries", 20),
+          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "",
+          maxMessages: getNumberSetting(widget.settings, "maxEntries", 20),
         }),
       };
     }
@@ -990,16 +990,16 @@ function appendRuntimeTopicSample(
       nextData[widget.id] = {
         type: "topic-plot",
         samples: appendTopicPlotSample(currentSamples, topicMessage, {
-          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "data",
-          historySeconds: readNumberSetting(widget.settings, "historySeconds", 30),
-          maxSamples: readNumberSetting(widget.settings, "maxSamples", 500),
+          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "data",
+          historySeconds: getNumberSetting(widget.settings, "historySeconds", 30),
+          maxSamples: getNumberSetting(widget.settings, "maxSamples", 500),
         }),
       };
     }
 
     if (widget.kind === "gauge") {
       const samples = appendTopicPlotSample([], topicMessage, {
-        fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "data",
+        fieldPath: readOptionalString(widget.settings.fieldPath) ?? "data",
         historySeconds: 1,
         maxSamples: 1,
       });
@@ -1024,9 +1024,9 @@ function appendRuntimeTopicSample(
       nextData[widget.id] = {
         type: "plot",
         samples: appendTopicPlotSample(currentSamples, topicMessage, {
-          fieldPath: readStringSetting(widget.settings, "fieldPath") ?? "data",
-          historySeconds: readNumberSetting(widget.settings, "historySeconds", 30),
-          maxSamples: readNumberSetting(widget.settings, "maxSamples", 500),
+          fieldPath: readOptionalString(widget.settings.fieldPath) ?? "data",
+          historySeconds: getNumberSetting(widget.settings, "historySeconds", 30),
+          maxSamples: getNumberSetting(widget.settings, "maxSamples", 500),
         }),
       };
     }
@@ -1064,7 +1064,7 @@ function appendRuntimeTopicSample(
  */
 export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefined {
   if (widget.kind === "robot-3d" || widget.kind === "position-library") {
-    return readStringSetting(widget.settings, "jointStateTopic") ?? "/joint_states";
+    return readOptionalString(widget.settings.jointStateTopic) ?? "/joint_states";
   }
   if (
     widget.kind === "gauge" ||
@@ -1075,7 +1075,7 @@ export function resolveWidgetRuntimeTopic(widget: WidgetConfig): string | undefi
     widget.kind === "topic-echo" ||
     widget.kind === "topic-plot"
   ) {
-    return readStringSetting(widget.settings, "topic");
+    return readOptionalString(widget.settings.topic);
   }
   return undefined;
 }
@@ -1084,14 +1084,14 @@ function resolveWidgetRuntimeMessageType(widget: WidgetConfig): string {
   if (widget.kind === "robot-3d" || widget.kind === "position-library") {
     return "sensor_msgs/msg/JointState";
   }
-  return readStringSetting(widget.settings, "messageType") ?? "";
+  return readOptionalString(widget.settings.messageType) ?? "";
 }
 
 function resolveWidgetRuntimeFieldPath(widget: WidgetConfig): string {
   if (widget.kind === "gauge" || widget.kind === "plot" || widget.kind === "topic-plot") {
-    return readStringSetting(widget.settings, "fieldPath") ?? "data";
+    return readOptionalString(widget.settings.fieldPath) ?? "data";
   }
-  return readStringSetting(widget.settings, "fieldPath") ?? "";
+  return readOptionalString(widget.settings.fieldPath) ?? "";
 }
 
 function readJointNamesSetting(settings: Record<string, unknown>): string[] {
@@ -1127,16 +1127,6 @@ function readJointStateSample(value: unknown, orderedNames: string[]): { names: 
     ordered.push(position);
   }
   return { names: orderedNames, positions: ordered };
-}
-
-function readStringSetting(settings: Record<string, unknown>, key: string): string | undefined {
-  const value = settings[key];
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
-}
-
-function readNumberSetting(settings: Record<string, unknown>, key: string, fallback: number): number {
-  const value = settings[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
 function measureViewportSize(viewport: HTMLDivElement): RuntimeViewportSize {

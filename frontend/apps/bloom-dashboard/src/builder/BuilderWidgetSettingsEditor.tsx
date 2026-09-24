@@ -7,6 +7,7 @@ import {
   getWidgetSettingsContract,
   INTERACTIVE_WIDGET_KINDS,
   normalizeWidgetSettings,
+  readOptionalNumber,
   resolveCanvasFitScale,
   resolveCanvasPresetSize,
   resolveWidgetDestination,
@@ -144,8 +145,8 @@ export function BuilderWidgetSettingsEditor({
     }
     // Step follows the range (~20 increments); a direct step edit overrides.
     if (widget.kind === "slider" && (field.key === "min" || field.key === "max")) {
-      const min = readFiniteNumber(nextSettings.min ?? effectiveSettings.min);
-      const max = readFiniteNumber(nextSettings.max ?? effectiveSettings.max);
+      const min = readOptionalNumber(nextSettings.min ?? effectiveSettings.min);
+      const max = readOptionalNumber(nextSettings.max ?? effectiveSettings.max);
       if (min !== undefined && max !== undefined && max !== min) {
         nextSettings.step = deriveSliderStep(min, max);
       }
@@ -476,10 +477,6 @@ function isParsableJson(rawValue: string): boolean {
 function draftMatchesValue(draft: string, value: unknown): boolean {
   const parsed = parseJsonLikeValue(draft);
   return JSON.stringify(parsed) === JSON.stringify(value ?? "");
-}
-
-function readFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function coerceFieldValue(field: WidgetSettingField, rawValue: string | boolean): unknown {

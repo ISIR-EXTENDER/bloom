@@ -7,7 +7,15 @@ import {
   type RuntimeAdapterPolicy,
   type RuntimeControlState,
 } from "@bloom/api-client";
-import { isRecord, resolveTeleopFrameId, type Vector2Value, type WidgetActionIntent } from "@bloom/widgets";
+import {
+  asRecord,
+  isRecord,
+  readOptionalNumber,
+  readOptionalString,
+  resolveTeleopFrameId,
+  type Vector2Value,
+  type WidgetActionIntent,
+} from "@bloom/widgets";
 import {
   type ComponentContribution,
   composeTwist,
@@ -639,13 +647,13 @@ export function createTeleopCommandRequest(
   composer?: TeleopTwistComposer,
   commandFrameId = "",
 ): RuntimeTeleopCommandRequest | null {
-  const runtimeBinding = getRecord(intent.runtimeBinding);
-  if (getOptionalString(runtimeBinding, "adapter") !== "teleop") {
+  const runtimeBinding = asRecord(intent.runtimeBinding);
+  if (readOptionalString(runtimeBinding.adapter) !== "teleop") {
     return null;
   }
 
-  const valueMapping = getRecord(runtimeBinding.value_mapping);
-  const mode = getOptionalNumber(valueMapping, "mode") ?? resolveTeleopMode(intent.modeId);
+  const valueMapping = asRecord(runtimeBinding.value_mapping);
+  const mode = readOptionalNumber(valueMapping.mode) ?? resolveTeleopMode(intent.modeId);
   const target = resolveTeleopTarget(valueMapping);
   /*
    * The frame a widget declares, resolved against everything else that is driving.
@@ -660,7 +668,7 @@ export function createTeleopCommandRequest(
    * never contradict each other. The composer decides, and keeps the session frame when two widgets
    * are turning the hand under different ones, which is the case that really cannot be honoured.
    */
-  const widgetFrameId = getOptionalString(valueMapping, "frame_id") ?? "";
+  const widgetFrameId = readOptionalString(valueMapping.frame_id) ?? "";
   const sessionFrameId = commandFrameId.trim();
 
   const contribution = teleopContributionFromIntent(intent, runtimeBinding);
@@ -736,13 +744,13 @@ export function teleopContributionFromIntent(
 export function createValueParameterRequest(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
 ): RosParameterSetRequest | null {
-  const runtimeBinding = getRecord(intent.runtimeBinding);
-  if (getOptionalString(runtimeBinding, "adapter") !== "parameter") {
+  const runtimeBinding = asRecord(intent.runtimeBinding);
+  if (readOptionalString(runtimeBinding.adapter) !== "parameter") {
     return null;
   }
-  const valueMapping = getRecord(runtimeBinding.value_mapping);
-  const node = getOptionalString(valueMapping, "node");
-  const name = getOptionalString(valueMapping, "parameter");
+  const valueMapping = asRecord(runtimeBinding.value_mapping);
+  const node = readOptionalString(valueMapping.node);
+  const name = readOptionalString(valueMapping.parameter);
   if (!node || !name || typeof intent.value !== "number" || !Number.isFinite(intent.value)) {
     return null;
   }
@@ -769,23 +777,23 @@ export function createValueTopicPublishRequest(
     return null;
   }
 
-  const runtimeBinding = getRecord(intent.runtimeBinding);
-  const valueMapping = getRecord(runtimeBinding.value_mapping);
-  const adapter = getOptionalString(runtimeBinding, "adapter");
+  const runtimeBinding = asRecord(intent.runtimeBinding);
+  const valueMapping = asRecord(runtimeBinding.value_mapping);
+  const adapter = readOptionalString(runtimeBinding.adapter);
   const topic = resolveValueTopic(intent, runtimeBinding, valueMapping);
   if (!topic || (adapter && adapter !== "topic")) {
     return null;
   }
 
   const messageType =
-    getOptionalString(valueMapping, "message_type") ??
-    getOptionalString(valueMapping, "messageType") ??
+    readOptionalString(valueMapping.message_type) ??
+    readOptionalString(valueMapping.messageType) ??
     intent.messageType ??
     (typeof intent.value === "number" ? "std_msgs/msg/Float64" : undefined);
   if (!messageType) {
     return null;
   }
-  const fieldPath = getOptionalString(valueMapping, "field_path") ?? getOptionalString(valueMapping, "field") ?? "data";
+  const fieldPath = readOptionalString(valueMapping.field_path) ?? readOptionalString(valueMapping.field) ?? "data";
 
   return {
     topic,
@@ -867,7 +875,7 @@ function resolveTeleopMode(modeId: string | undefined): number {
 }
 
 function resolveTeleopTarget(valueMapping: Record<string, unknown>): string {
-  const topic = getOptionalString(valueMapping, "target_topic") ?? getOptionalString(valueMapping, "topic");
+  const topic = readOptionalString(valueMapping.target_topic) ?? readOptionalString(valueMapping.topic);
   if (topic?.startsWith("/")) {
     return topic;
   }
@@ -882,9 +890,9 @@ function resolveValueTopic(
   valueMapping: Record<string, unknown>,
 ): string | null {
   const topic =
-    getOptionalString(valueMapping, "target_topic") ??
-    getOptionalString(valueMapping, "topic") ??
-    getOptionalString(runtimeBinding, "target") ??
+    readOptionalString(valueMapping.target_topic) ??
+    readOptionalString(valueMapping.topic) ??
+    readOptionalString(runtimeBinding.target) ??
     intent.topic;
   return topic?.startsWith("/") ? topic : null;
 }
@@ -972,20 +980,6 @@ function isPublishableValue(value: unknown): value is number | Record<string, un
 
 function normalizeMessageType(messageType: string): string {
   return messageType.trim().toLowerCase();
-}
-
-function getRecord(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : {};
-}
-
-function getOptionalNumber(source: Record<string, unknown>, key: string): number | undefined {
-  const value = source[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function getOptionalString(source: Record<string, unknown>, key: string): string | undefined {
-  const value = source[key];
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 function getErrorMessage(error: unknown): string {

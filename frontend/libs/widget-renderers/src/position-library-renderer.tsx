@@ -1,5 +1,5 @@
+import { getBooleanSetting } from "@bloom/widgets";
 import { useEffect, useRef, useState } from "react";
-import { getBooleanSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
 

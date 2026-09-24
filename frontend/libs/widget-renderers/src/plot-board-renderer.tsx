@@ -1,7 +1,14 @@
-import { type PlotVerdict, readPlotSeries, readPlotUnavailable, resolvePlotVerdict } from "@bloom/widgets";
+import {
+  getBooleanSetting,
+  getNumberSetting,
+  getStringSetting,
+  type PlotVerdict,
+  readPlotSeries,
+  readPlotUnavailable,
+  resolvePlotVerdict,
+} from "@bloom/widgets";
 import { type CSSProperties, useEffect, useState } from "react";
 import { formatSignedValue } from "./control-renderers";
-import { getBooleanSetting, getNumberSetting, getStringSetting } from "./settings-readers";
 import type { PlotSeriesSnapshot, WidgetRendererProps } from "./types";
 import { STALE_VALUE_AFTER_MS, useNow } from "./use-now";
 

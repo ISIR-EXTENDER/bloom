@@ -1,5 +1,6 @@
 import type { WidgetConfig, WidgetKind } from "@bloom/api-client";
 import { normalizeWidgetSettings } from "./settings";
+import { readOptionalNumber } from "./values";
 
 export type ToggleState = "off" | "on";
 
@@ -320,7 +321,7 @@ function createVectorInputIntent(
     value: event.value,
     ...withOptional("binding", getOptionalString(settings, "binding")),
     ...withOptional("modeId", getOptionalString(settings, "mode_id")),
-    ...withOptional("publishRateHz", getOptionalNumber(settings, "publish_rate_hz")),
+    ...withOptional("publishRateHz", readOptionalNumber(settings.publish_rate_hz)),
     ...withOptional("runtimeBinding", settings.runtime_binding),
     ...withOptional("zeroOnRelease", getOptionalBoolean(settings, "zero_on_release")),
   };
@@ -420,11 +421,6 @@ function getOptionalString(settings: Record<string, unknown>, key: string): stri
   }
   const trimmedValue = value.trim();
   return trimmedValue.length > 0 ? trimmedValue : undefined;
-}
-
-function getOptionalNumber(settings: Record<string, unknown>, key: string): number | undefined {
-  const value = settings[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function getOptionalBoolean(settings: Record<string, unknown>, key: string): boolean | undefined {

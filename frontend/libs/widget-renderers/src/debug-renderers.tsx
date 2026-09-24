@@ -1,14 +1,16 @@
 import {
   formatTopicEchoValue,
+  getBooleanSetting,
+  getStringSetting,
   isRecord,
   localizeEmptyEcho,
   localizeOperatorText,
+  readOptionalNumber,
   type TopicMessage,
 } from "@bloom/widgets";
 import { useState } from "react";
 import { formatAge } from "./display-renderers";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
-import { getBooleanSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
 
@@ -193,8 +195,8 @@ function TopicPlotWidget({
   const unit = getStringSetting(descriptor.widget.settings, "unit", "");
   const yBounds = resolvePlotBounds(
     values,
-    readOptionalNumberSetting(descriptor.widget.settings.yMin),
-    readOptionalNumberSetting(descriptor.widget.settings.yMax),
+    readOptionalNumber(descriptor.widget.settings.yMin),
+    readOptionalNumber(descriptor.widget.settings.yMax),
   );
   const path = createSparklinePath(values, 220, 82, yBounds);
   const bars = createPlotBars(values, 220, 82, yBounds);
@@ -249,10 +251,6 @@ function formatLatestSample(value: number, unit: string): string {
     ? value.toString()
     : value.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
   return unit ? `${formattedValue} ${unit}` : formattedValue;
-}
-
-function readOptionalNumberSetting(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function readTopicPlotVariant(value: unknown): TopicPlotVariant {

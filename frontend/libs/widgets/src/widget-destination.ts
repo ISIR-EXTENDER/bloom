@@ -1,3 +1,4 @@
+import { asRecord } from "./values";
 /**
  * Where a widget's data actually flows, and which settings have no effect.
  *
@@ -103,10 +104,6 @@ const ACTION_CONTRACT_SETTINGS: InertSetting[] = [
 const READING_KINDS = new Set(["event-log", "gauge", "jacobian", "joint-table", "plot", "topic-echo", "topic-plot"]);
 const PUBLISHING_KINDS = new Set(["command-button", "gesture-pad", "joystick", "slider", "toggle"]);
 const ROBOT_3D_DEFAULT_TOPIC = "/joint_states";
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
-}
 
 function asTopic(value: unknown): string | null {
   return typeof value === "string" && value.startsWith("/") ? value : null;

@@ -1,3 +1,4 @@
+import { readOptionalString } from "./values";
 import { resolveWidgetDestination } from "./widget-destination";
 
 /**
@@ -20,7 +21,7 @@ export function buildCliPreview(
     return null;
   }
 
-  const messageType = readString(settings?.messageType) ?? readString(settings?.message_type);
+  const messageType = readOptionalString(settings?.messageType) ?? readOptionalString(settings?.message_type);
   if (!messageType) {
     return null;
   }
@@ -31,10 +32,6 @@ export function buildCliPreview(
   }
 
   return `ros2 topic pub -1 ${destination.topic} ${messageType} "${body.replaceAll('"', '\\"')}"`;
-}
-
-function readString(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 /** Payloads are held either as ROS text ("{data: [1.1]}") or as a real object. */

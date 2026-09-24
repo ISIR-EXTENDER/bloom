@@ -1,5 +1,5 @@
+import { getBooleanSetting, getStringSetting } from "@bloom/widgets";
 import { useEffect, useRef, useState } from "react";
-import { getBooleanSetting, getStringSetting } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 
 export function CameraWidget({ data, descriptor }: WidgetRendererProps) {
