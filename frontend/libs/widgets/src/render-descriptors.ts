@@ -23,7 +23,7 @@ export type WidgetRenderDescriptor =
       reason: string;
     };
 
-export function renderWidgetDescriptor(
+export function resolveWidgetDescriptor(
   widget: WidgetConfig,
   registry: WidgetRegistry,
   context: WidgetRenderContext,
@@ -48,7 +48,7 @@ export function renderWidgetDescriptor(
 
 export function renderScreenDescriptors(screen: ScreenConfig, registry: WidgetRegistry): WidgetRenderDescriptor[] {
   return screen.widgets.map((widget) =>
-    renderWidgetDescriptor(widget, registry, {
+    resolveWidgetDescriptor(widget, registry, {
       screenId: screen.id,
       deviceClass: resolveDeviceClass(screen),
     }),

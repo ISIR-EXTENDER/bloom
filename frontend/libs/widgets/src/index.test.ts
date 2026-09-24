@@ -40,12 +40,12 @@ import {
   ROS_MESSAGE_TOGGLE_PRESETS,
   removeWidgetFromScreen,
   renderScreenDescriptors,
-  renderWidgetDescriptor,
   resolveCanvasArtboardSize,
   resolveCanvasFitScale,
   resolveCanvasPresetSize,
   resolveFieldPath,
   resolveLegacyWidgetKind,
+  resolveWidgetDescriptor,
   snapLayoutValue,
   type TopicMessage,
   type TopicPlotSample,
@@ -102,7 +102,7 @@ describe("widget registry foundation", () => {
   it("resolves registered widgets from the shared configuration fixture", () => {
     const registry = createDefaultWidgetRegistry();
 
-    const descriptor = renderWidgetDescriptor(sampleWidget, registry, { screenId: sampleScreen.id });
+    const descriptor = resolveWidgetDescriptor(sampleWidget, registry, { screenId: sampleScreen.id });
 
     expect(descriptor).toMatchObject({
       status: "resolved",
@@ -123,7 +123,7 @@ describe("widget registry foundation", () => {
   it("returns a safe descriptor for unknown widgets", () => {
     const registry = createWidgetRegistry();
 
-    const descriptor = renderWidgetDescriptor(sampleWidget, registry, { screenId: sampleScreen.id });
+    const descriptor = resolveWidgetDescriptor(sampleWidget, registry, { screenId: sampleScreen.id });
 
     expect(descriptor).toEqual({
       status: "unknown",
