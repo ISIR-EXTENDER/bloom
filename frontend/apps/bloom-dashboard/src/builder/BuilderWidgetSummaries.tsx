@@ -76,16 +76,18 @@ export function WidgetGlassSizeSummary({
 
   return (
     <div className="builder-glass-size" data-below-floor={belowFloor ? "true" : "false"}>
-      <p className="builder-inspector-copy">
-        On the {panel.width}×{panel.height} panel: <strong>{`${glassWidth} × ${glassHeight} px`}</strong> of glass
-        (scale {scale.toFixed(2)}).
-      </p>
       {belowFloor ? (
+        // The target comes first: the card's size below it was read as "the minimum I must reach".
         <p className="builder-glass-size-warning" role="alert">
           Its target is {target} px, below the {floorPx}px floor for this panel. The size tokens are honest; the fit
           scale discounts them — make the control larger instead of trusting the authored size.
         </p>
       ) : null}
+      <p className="builder-inspector-copy">
+        On the {panel.width}×{panel.height} panel {belowFloor ? "the card itself is" : ":"}{" "}
+        <strong>{`${glassWidth} × ${glassHeight} px`}</strong> of glass (scale {scale.toFixed(2)})
+        {belowFloor ? "; the target inside it is what is short." : "."}
+      </p>
     </div>
   );
 }

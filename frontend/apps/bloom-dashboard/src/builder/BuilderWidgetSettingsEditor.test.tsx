@@ -216,6 +216,15 @@ describe("settings the runtime ignores", () => {
   });
 });
 
+describe("a kind Bloom does not know", () => {
+  it("names the kind and says where it came from, instead of a settings message", () => {
+    // Robin's sheet: "This widget does not expose configuration settings yet", on a Button he could not place.
+    renderEditor({}, "rosbag-control");
+    expect(screen.getByText(/does not know the kind "rosbag-control"/)).toBeTruthy();
+    expect(screen.getByText(/replace it with a widget from the palette/)).toBeTruthy();
+  });
+});
+
 describe("reading widgets in the inspector", () => {
   afterEach(cleanup);
 

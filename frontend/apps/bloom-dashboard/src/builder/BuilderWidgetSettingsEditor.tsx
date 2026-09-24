@@ -116,7 +116,12 @@ export function BuilderWidgetSettingsEditor({
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (
-        <p className="builder-inspector-copy">This widget does not expose configurable settings yet.</p>
+        // Only a kind Bloom does not know reaches here, which is an import's doing, not the author's.
+        <p className="builder-inspector-copy">
+          {contract.kind === "unknown"
+            ? `Bloom does not know the kind "${widget.kind}". It came from an import; replace it with a widget from the palette.`
+            : "This widget has no settings."}
+        </p>
       ) : (
         contract.fields.map((field) => (
           <BuilderSettingsField
