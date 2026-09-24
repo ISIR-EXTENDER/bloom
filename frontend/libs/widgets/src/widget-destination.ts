@@ -82,8 +82,9 @@ const ACTION_CONTRACT_INERT = "Nothing reads this yet: there is no progress or c
 const GESTURE_COMMAND_INERT =
   "Nothing reads this on a gesture pad. The output topic and message type below are what publish.";
 
-/** `robot-3d` draws a joint-state summary; no code fetches a model, which its palette note also says. */
-const ROBOT_MODEL_INERT = "Nothing loads a model yet, so this widget draws a joint-state summary instead.";
+/** `robot-3d` draws the API's robot description; a model URL is not fetched. */
+const ROBOT_MODEL_INERT =
+  "The view draws the running robot from the API's robot description; a model URL is not fetched.";
 
 const ROBOT_MODEL_SETTINGS: InertSetting[] = [
   { key: "modelSource", reason: ROBOT_MODEL_INERT },

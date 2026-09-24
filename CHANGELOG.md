@@ -11,6 +11,17 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Added
+
+- **The 3D robot view draws the running robot.** The API serves the manager's `robot_description` and the
+  meshes it names (`GET /api/v1/ros/robot-model`, `/assets/<package>/<path>`), the widget renders it with
+  three.js, drives it from `/joint_states`, and draws a `MarkerArray` topic the way rviz does: targets,
+  directions and paths without leaving Bloom. `BLOOM_ROS_ROBOT_DESCRIPTION_NODE` names the node that holds
+  the description.
+- **Widget Lab**, a shipped app that places every kind the palette offers, bound to the simulation's topics;
+  `npm run e2e:sim` presses or reads each one on both robots.
+- **Any card can hide its title**, and the Builder's axis editor names the topic a pad or slider publishes to.
+
 ### Fixed
 
 Found by an audit of the seams the test suites do not reach: concurrency and

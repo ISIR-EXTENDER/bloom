@@ -1,0 +1,85 @@
+import { getBooleanSetting, getStringSetting, hidesTitle } from "@bloom/widgets";
+import { lazy, Suspense, useState } from "react";
+import type { WidgetRendererProps } from "./types";
+
+const RobotScene = lazy(() => import("./robot-3d-scene"));
+
+import type { SceneStatus } from "./robot-3d-scene";
+
+/** The running robot from its own description, its joints from ROS, and markers as rviz reads them. */
+export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererProps) {
+  const settings = descriptor.widget.settings;
+  const jointStateTopic = getStringSetting(settings, "jointStateTopic", "/joint_states");
+  const markerTopic = getStringSetting(settings, "markerTopic", "");
+  const eeLink = getStringSetting(settings, "eeLink", "");
+  const showAxes = getBooleanSetting(settings, "showAxes", true);
+  const [status, setStatus] = useState<SceneStatus>({ model: "loading", links: 0, markers: 0, meshes: 0 });
+  const snapshot = data?.type === "robot-3d" ? data : undefined;
+  const canDraw = typeof window !== "undefined" && "WebGLRenderingContext" in window && Boolean(robotModel);
+  const note = !robotModel
+    ? "No robot model source in this runtime."
+    : !canDraw
+      ? "This browser cannot draw 3D."
+      : status.model === "unavailable"
+        ? "The API has no robot description. Start the robot, then reopen the screen."
+        : null;
+
+  return (
+    <div className="bloom-robot-3d-widget">
+      {hidesTitle(settings) ? null : (
+        <header className="bloom-display-header">
+          <strong>{descriptor.widget.title}</strong>
+          <span>{jointStateTopic}</span>
+        </header>
+      )}
+      <div
+        aria-label={`${descriptor.widget.title} 3D view`}
+        className="bloom-robot-3d-stage"
+        data-links={status.links}
+        data-markers={status.markers}
+        data-mesh-error={status.meshError}
+        data-meshes={status.meshes}
+        data-model={canDraw && robotModel ? status.model : "unavailable"}
+        role="img"
+      >
+        {canDraw && robotModel ? (
+          <Suspense fallback={<p className="bloom-robot-3d-note">Loading the 3D view.</p>}>
+            <RobotScene
+              eeLink={eeLink}
+              jointState={asJointState(snapshot?.value)}
+              markers={asMarkers(snapshot?.markers)}
+              onStatus={setStatus}
+              robotModel={robotModel}
+              showAxes={showAxes}
+            />
+          </Suspense>
+        ) : null}
+        {note ? <p className="bloom-robot-3d-note">{note}</p> : null}
+      </div>
+      <strong className="bloom-display-source">
+        {snapshot ? summarizeJointState(snapshot.value) : "Waiting for joint states"}
+        {markerTopic ? ` · markers ${markerTopic}` : ""}
+      </strong>
+    </div>
+  );
+}
+
+function asJointState(value: unknown): { name?: unknown; position?: unknown } | undefined {
+  return typeof value === "object" && value !== null ? (value as { name?: unknown; position?: unknown }) : undefined;
+}
+
+function asMarkers(value: unknown): readonly Record<string, unknown>[] | undefined {
+  const markers = typeof value === "object" && value !== null ? (value as { markers?: unknown }).markers : undefined;
+  return Array.isArray(markers) ? (markers as Record<string, unknown>[]) : undefined;
+}
+
+export function summarizeJointState(value: unknown): string {
+  const state = asJointState(value);
+  const names = Array.isArray(state?.name) ? state.name : [];
+  const positions = Array.isArray(state?.position) ? state.position : [];
+  if (names.length === 0 && positions.length === 0) {
+    return "Live joint state received";
+  }
+  const count = Math.max(names.length, positions.length);
+  return count === 1 ? "1 live joint" : `${count} live joints`;
+}

@@ -11,15 +11,19 @@ import {
 export type Robot3dSettings = {
   hide_title?: boolean;
   description: string;
+  eeLink: string;
   jointStateTopic: string;
+  markerTopic: string;
   modelSource: "extension" | "urdf-url";
   robotModelUrl: string;
   showAxes: boolean;
 };
 
 export const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
-  description: "Optional 3D robot visualization extension.",
+  description: "",
+  eeLink: "",
   jointStateTopic: "/joint_states",
+  markerTopic: "",
   modelSource: "extension",
   robotModelUrl: "",
   showAxes: true,
@@ -28,7 +32,6 @@ export const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
 export const robot3dContract = createContract(
   "robot-3d",
   [
-    // Not required: nothing fetches a model, which the palette's maturity note already says.
     {
       key: "modelSource",
       label: "Model source",
@@ -38,6 +41,8 @@ export const robot3dContract = createContract(
     },
     { key: "robotModelUrl", label: "Robot model URL", type: "text", required: false },
     { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
+    { key: "markerTopic", label: "Marker topic (visualization_msgs/msg/MarkerArray)", type: "text", required: false },
+    { key: "eeLink", label: "Tool link for the axes", type: "text", required: false },
     { key: "showAxes", label: "Show axes", type: "boolean", required: true },
     { key: "description", label: "Description", type: "text", required: false },
     { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
@@ -51,6 +56,8 @@ function validateRobot3dSettings(settings: Record<string, unknown>): WidgetSetti
     ...validateOneOf(settings, "modelSource", ["extension", "urdf-url"]),
     ...validateString(settings, "robotModelUrl", { allowEmpty: true }),
     ...validateString(settings, "jointStateTopic"),
+    ...validateString(settings, "markerTopic", { allowEmpty: true }),
+    ...validateString(settings, "eeLink", { allowEmpty: true }),
     ...validateBoolean(settings, "showAxes"),
     ...validateString(settings, "description", { allowEmpty: true }),
   ];

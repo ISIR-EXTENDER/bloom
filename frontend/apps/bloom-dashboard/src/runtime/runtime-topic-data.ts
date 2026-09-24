@@ -27,7 +27,24 @@ export function createRuntimeTopicSubscriptionRequests(screen: ScreenConfig): Ru
       },
     ];
   });
-  return [...widgetRequests, ...createSeriesSubscriptionRequests(screen, widgetRequests)];
+  const markerRequests = screen.widgets.flatMap((widget): RuntimeTopicSubscriptionRequest[] => {
+    const topic = resolveMarkerTopic(widget);
+    return topic
+      ? [{ type: "subscribe_topic", topic, message_type: MARKER_ARRAY_TYPE, field_path: "", widget_id: widget.id }]
+      : [];
+  });
+  return [...widgetRequests, ...markerRequests, ...createSeriesSubscriptionRequests(screen, widgetRequests)];
+}
+
+const MARKER_ARRAY_TYPE = "visualization_msgs/msg/MarkerArray";
+
+/** The marker topic a 3D robot view names, when it names one. */
+function resolveMarkerTopic(widget: WidgetConfig): string | null {
+  if (widget.kind !== "robot-3d") {
+    return null;
+  }
+  const topic = readOptionalString(widget.settings.markerTopic);
+  return topic?.startsWith("/") ? topic : null;
 }
 
 export function appendRuntimeTopicSample(
@@ -49,6 +66,18 @@ export function appendRuntimeTopicSample(
         nextData = nextData ?? { ...currentData };
         nextData[widget.id] = series;
       }
+      continue;
+    }
+    if (widget.kind === "robot-3d" && resolveMarkerTopic(widget) === sample.payload.topic) {
+      const current = currentData[widget.id];
+      nextData = nextData ?? { ...currentData };
+      nextData[widget.id] = {
+        receivedAt: current?.type === "robot-3d" ? current.receivedAt : topicMessage.receivedAt,
+        topic: current?.type === "robot-3d" ? current.topic : (resolveWidgetRuntimeTopic(widget) ?? ""),
+        type: "robot-3d",
+        value: current?.type === "robot-3d" ? current.value : undefined,
+        markers: topicMessage.value,
+      };
       continue;
     }
     if (resolveWidgetRuntimeTopic(widget) !== sample.payload.topic) {
@@ -136,12 +165,14 @@ export function appendRuntimeTopicSample(
     }
 
     if (widget.kind === "robot-3d") {
+      const current = currentData[widget.id];
       nextData = nextData ?? { ...currentData };
       nextData[widget.id] = {
         receivedAt: topicMessage.receivedAt,
         topic: topicMessage.topic,
         type: "robot-3d",
         value: topicMessage.value,
+        markers: current?.type === "robot-3d" ? current.markers : undefined,
       };
     }
 

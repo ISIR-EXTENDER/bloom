@@ -2,12 +2,13 @@ import { CommandLikeWidget, LabelWidget, ToggleWidget } from "./action-renderers
 import { CameraWidget } from "./camera-renderer";
 import { TopicDebugWidget } from "./debug-renderers";
 import { JacobianWidget, JointTableWidget } from "./debug-table-renderers";
-import { EventLogWidget, GaugeWidget, PlotWidget, Robot3dWidget } from "./display-renderers";
+import { EventLogWidget, GaugeWidget, PlotWidget } from "./display-renderers";
 import { PlaceholderWidget } from "./fallback-renderers";
 import { GesturePadWidget } from "./gesture-pad-renderer";
 import { JoystickWidget } from "./joystick-renderer";
 import { PlotBoardWidget, PlotPickerWidget, ValueStripWidget } from "./plot-board-renderer";
 import { PositionLibraryWidget } from "./position-library-renderer";
+import { Robot3dWidget } from "./robot-3d-renderer";
 import { SliderWidget } from "./slider-renderer";
 import type { WidgetRendererRegistration } from "./types";
 

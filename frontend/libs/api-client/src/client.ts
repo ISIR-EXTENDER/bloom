@@ -5,6 +5,7 @@ import type {
   ConfigurationListResponse,
   ReusableScreen,
   ReusableScreensResponse,
+  RobotModelResponse,
   RosParameterReading,
   RosParameterSetRequest,
   RosParameterSetResponse,
@@ -173,6 +174,20 @@ export class BloomApiClient {
    * Used by the builder to say what a widget can and cannot do here, instead of
    * offering everything and letting the ROS-dependent ones fail in silence.
    */
+  async readRobotModel(): Promise<RobotModelResponse> {
+    return this.request<RobotModelResponse>("/api/v1/ros/robot-model");
+  }
+
+  /** A mesh the URDF names as package://<package>/<path>, or null when the API has none. */
+  async readRobotModelAsset(packageName: string, assetPath: string): Promise<ArrayBuffer | null> {
+    const path = assetPath.split("/").map(encodeURIComponent).join("/");
+    const response = await this.fetcher(
+      `${this.baseUrl}/api/v1/ros/robot-model/assets/${encodeURIComponent(packageName)}/${path}`,
+      this.withRequestHeaders({}),
+    );
+    return response.ok ? response.arrayBuffer() : null;
+  }
+
   async listRuntimeCapabilities(): Promise<RuntimeCapabilityReport> {
     return this.request<RuntimeCapabilitiesResponse>("/api/v1/capabilities");
   }

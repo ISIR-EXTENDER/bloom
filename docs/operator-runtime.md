@@ -479,6 +479,13 @@ Command sources also states which input is driving, judged on the whole twist ra
 - A reading with no new sample for three seconds dims and is marked **stale** in the value strip and in a picker row
   that shows values. The newest sample stops at the right edge instead of drawing past it.
 
+**The 3D robot view** draws the robot the manager runs with: the API serves the `robot_description` parameter of
+`robot_state_publisher` (`BLOOM_ROS_ROBOT_DESCRIPTION_NODE`) and the meshes it names as `package://`, resolved through
+the ament index of the environment the API runs in. `/joint_states` drives the joints; a `visualization_msgs/msg/MarkerArray`
+topic named in the widget draws arrows, shapes, lines, points and text the way rviz does, in the frame each marker names
+when it is a link of the robot and in the base frame otherwise; an axes triad sits on the tool link. It is the place to
+draw targets, directions and trajectories without leaving Bloom for rviz. Orbit with a drag, zoom with a pinch or the wheel.
+
 **Bloom Debug** is a desktop app authored at 1920×1080. Its three header cards — Robot preflight, Topic catalog,
 Runtime audit — are runtime chrome drawn inside the screen's `debug-status` reserved region, not widgets, so no author
 can place or resize them. Below them sit the plot board and picker, a joint table, a Jacobian with its manipulability

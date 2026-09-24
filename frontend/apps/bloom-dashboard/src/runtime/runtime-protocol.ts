@@ -111,6 +111,8 @@ export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   listRosTopics?: BloomApiClient["listRosTopics"];
   listRuntimeAuditRecords?: BloomApiClient["listRuntimeAuditRecords"];
   listRuntimeCapabilities?: BloomApiClient["listRuntimeCapabilities"];
+  readRobotModel?: BloomApiClient["readRobotModel"];
+  readRobotModelAsset?: BloomApiClient["readRobotModelAsset"];
   resumeRuntimeStop?: BloomApiClient["resumeRuntimeStop"];
   claimRuntimeControl?: () => Promise<RuntimeControlState>;
   releaseRuntimeControl?: () => Promise<RuntimeControlState>;

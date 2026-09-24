@@ -626,11 +626,13 @@
                 "height": 420
               },
               "settings": {
-                "description": "The running robot, from its own description.",
                 "jointStateTopic": "/joint_states",
+                "markerTopic": "/widget_lab/markers",
+                "eeLink": "",
+                "showAxes": true,
                 "modelSource": "extension",
                 "robotModelUrl": "",
-                "showAxes": true
+                "description": ""
               }
             }
           ]

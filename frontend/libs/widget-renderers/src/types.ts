@@ -51,6 +51,8 @@ export type WidgetDataSnapshot =
       topic: string;
       type: "robot-3d";
       value: unknown;
+      /** The newest MarkerArray on the widget's marker topic, when it names one. */
+      markers?: unknown;
     }
   | {
       samples: readonly TopicPlotSample[];
@@ -102,6 +104,14 @@ export type WidgetControlState = {
   toggleState?: "off" | "on";
 };
 
+/** Where the 3D robot view gets the running robot's description and the meshes it names. */
+export type RobotModelSource = {
+  /** The URDF text, or null when the API has none to give. */
+  load: () => Promise<string | null>;
+  /** The bytes behind a `package://<package>/<path>` URI, or null. */
+  asset: (uri: string) => Promise<ArrayBuffer | null>;
+};
+
 /** Per-profile input conditioning, applied before a widget's own settings. */
 export type SignalConditioning = {
   /** Overrides the widget's dead zone when above zero. */
@@ -125,6 +135,7 @@ export type WidgetRendererProps = {
    */
   neutralRevision?: number;
   onActionIntent?: WidgetActionIntentHandler;
+  robotModel?: RobotModelSource;
 };
 
 export type UnknownWidgetRendererProps = {
@@ -152,4 +163,5 @@ export type ScreenRendererOptions = {
   onActionIntent?: WidgetActionIntentHandler;
   renderUnknown?: UnknownWidgetRenderer;
   registry?: WidgetRendererRegistry;
+  robotModel?: RobotModelSource;
 };

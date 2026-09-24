@@ -313,6 +313,12 @@ export type RuntimeCapability = {
   detail: string;
 };
 
+export type RobotModelResponse = {
+  node: string;
+  status: "ready" | "unavailable";
+  urdf: string | null;
+};
+
 export type RuntimeCapabilitiesResponse = {
   capabilities: RuntimeCapability[];
   command_frame_id: string;

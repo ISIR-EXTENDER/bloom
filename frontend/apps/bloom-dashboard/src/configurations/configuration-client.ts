@@ -56,6 +56,8 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
     listRosTopics: apiClient.listRosTopics.bind(apiClient),
     listRuntimeAuditRecords: apiClient.listRuntimeAuditRecords.bind(apiClient),
     listRuntimeCapabilities: apiClient.listRuntimeCapabilities.bind(apiClient),
+    readRobotModel: apiClient.readRobotModel.bind(apiClient),
+    readRobotModelAsset: apiClient.readRobotModelAsset.bind(apiClient),
     dispatchRuntimeAction: apiClient.dispatchRuntimeAction.bind(apiClient),
     publishRosTopic: apiClient.publishRosTopic.bind(apiClient),
     setRosParameter: apiClient.setRosParameter.bind(apiClient),

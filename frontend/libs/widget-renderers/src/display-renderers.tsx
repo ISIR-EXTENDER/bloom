@@ -5,7 +5,6 @@ import {
   getStringSetting,
   hidesTitle,
   isRecord,
-  normalizeWidgetSettings,
   readOptionalNumber,
   readString,
 } from "@bloom/widgets";
@@ -242,42 +241,6 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
   );
 }
 
-export function Robot3dWidget({ data, descriptor }: WidgetRendererProps) {
-  const normalizedSettings = normalizeWidgetSettings("robot-3d", descriptor.widget.settings);
-  const settings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
-  const jointStateTopic = getStringSetting(settings, "jointStateTopic", "/joint_states");
-  const description = getStringSetting(settings, "description", "3D robot visualization extension point.");
-  const showAxes = getBooleanSetting(settings, "showAxes", true);
-  const liveSummary = data?.type === "robot-3d" ? summarizeJointState(data.value) : "Waiting for joint states";
-
-  return (
-    <div className="bloom-robot-3d-widget">
-      {hidesTitle(descriptor.widget.settings) ? null : (
-        <header className="bloom-display-header">
-          <strong>{descriptor.widget.title}</strong>
-          <span>{jointStateTopic}</span>
-        </header>
-      )}
-      <div className="bloom-robot-3d-stage" aria-label={`${descriptor.widget.title} placeholder`} role="img">
-        {showAxes ? (
-          <div className="bloom-robot-3d-axes" aria-hidden="true">
-            <span data-axis="x">X</span>
-            <span data-axis="y">Y</span>
-            <span data-axis="z">Z</span>
-          </div>
-        ) : null}
-        <div className="bloom-robot-3d-arm" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </div>
-      </div>
-      <p>{description}</p>
-      <strong className="bloom-display-source">{liveSummary}</strong>
-    </div>
-  );
-}
-
 function readPlotVariant(value: unknown): PlotVariant {
   return typeof value === "string" && PLOT_VARIANTS.includes(value as PlotVariant) ? (value as PlotVariant) : "area";
 }
@@ -378,11 +341,4 @@ function formatShortTimestamp(value: string): string {
     return value;
   }
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
-function summarizeJointState(value: unknown): string {
-  if (isRecord(value) && Array.isArray(value.name)) {
-    return value.name.length === 1 ? "1 live joint" : `${value.name.length} live joints`;
-  }
-  return "Live joint state received";
 }

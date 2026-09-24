@@ -21,11 +21,11 @@ describe("with the backend fully wired", () => {
     expect(resolveWidgetReadiness(definition("joystick"), WITH_ROS).state).toBe("ready");
   });
 
-  it("still calls the 3D robot view a preview, because that is about the widget", () => {
+  it("calls the 3D robot view ready, with the note saying what it draws", () => {
     const readiness = resolveWidgetReadiness(definition("robot-3d"), WITH_ROS);
 
-    expect(readiness.state).toBe("preview");
-    expect(readiness.note).toMatch(/not a 3D model/);
+    expect(readiness.state).toBe("ready");
+    expect(readiness.note).toMatch(/URDF the API serves/);
   });
 });
 

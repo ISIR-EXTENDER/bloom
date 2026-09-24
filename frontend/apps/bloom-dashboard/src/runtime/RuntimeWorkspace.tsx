@@ -20,6 +20,7 @@ import { RuntimeKioskBar, resolveRuntimeRole } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
 import { RuntimeSettingsPanel } from "./RuntimeSettingsPanel";
 import { RuntimeStopControl } from "./RuntimeStopControl";
+import { createRobotModelSource } from "./robot-model-source";
 import type { RuntimeActionClient, RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
 import { isFullPanelScreen, resolveRuntimeArtboardSize, resolveRuntimeCanvasFit } from "./runtime-canvas-fit";
 import { isRuntimeMotionHeld, resolveRuntimeIntentRefusal } from "./runtime-intent-gate";
@@ -196,6 +197,7 @@ export function RuntimeWorkspace({
   const commandFrameError =
     commandFrameUnavailable && commandFrameId ? strings.kiosk.frameNotOnRobot(commandFrameId) : null;
   const topicStatuses = useTopicStatuses(runtimeActionClient.listRosTopicStatus);
+  const robotModel = useMemo(() => createRobotModelSource(runtimeActionClient), [runtimeActionClient]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new app starts a new frame-selection session.
   useEffect(() => {
     setCommandFrameId(defaultCommandFrameId);
@@ -680,6 +682,7 @@ export function RuntimeWorkspace({
                 motorPreset: runtimeProfile.motorAccessibilityPreset,
                 neutralRevision: teleopNeutralRevision,
                 onActionIntent: handleRuntimeActionIntent,
+                robotModel,
               }}
               screen={screen}
               style={{

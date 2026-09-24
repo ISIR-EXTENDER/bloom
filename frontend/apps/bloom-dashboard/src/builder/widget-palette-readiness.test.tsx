@@ -78,10 +78,11 @@ describe("with ROS attached", () => {
     expect(screen.queryByText("Not connected")).toBeNull();
   });
 
-  it("still marks the 3D robot view a preview, which is about the widget not the backend", () => {
+  it("marks the 3D robot view ready now that the API serves the robot's own description", () => {
     renderPalette(WITH_ROS);
 
-    expect(paletteButton("3D robot view").getAttribute("data-readiness")).toBe("preview");
+    // A ready card carries no readiness badge at all.
+    expect(paletteButton("3D robot view").getAttribute("data-readiness")).toBeNull();
   });
 });
 

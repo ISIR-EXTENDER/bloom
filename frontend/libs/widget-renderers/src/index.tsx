@@ -15,6 +15,7 @@ import { WidgetFrame } from "./WidgetFrame";
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
 export type {
   PlotSeriesSnapshot,
+  RobotModelSource,
   ScreenRendererOptions,
   WidgetActionIntentHandler,
   WidgetActionOutcome,
@@ -73,6 +74,7 @@ export function renderWidgetDescriptor(
       controlState={options.controlStateByWidgetId?.[descriptor.widget.id]}
       data={options.dataByWidgetId?.[descriptor.widget.id]}
       descriptor={localized}
+      robotModel={options.robotModel}
       language={options.language}
       motorPreset={options.motorPreset}
       neutralRevision={options.neutralRevision}

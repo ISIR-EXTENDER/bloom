@@ -203,10 +203,8 @@ describe("widget capability metadata", () => {
         showAxes: true,
       },
       displayName: "3D robot view",
-      // `robot-model-source` was dropped: nothing implemented it, and the
-      // widget draws a joint-state summary rather than loading a model, which
-      // is what `preview` now says out loud.
-      maturity: "preview",
+      // The view draws the URDF the API serves, so it is ready rather than a preview.
+      maturity: "ready",
       runtimeRequirements: ["data-source"],
     });
   });

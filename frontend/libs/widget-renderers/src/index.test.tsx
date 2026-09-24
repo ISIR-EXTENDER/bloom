@@ -1053,15 +1053,15 @@ describe("widget renderer registry", () => {
     expect(container.querySelector(".bloom-plot-widget")).toHaveAttribute("data-variant", "bars");
   });
 
-  it("renders robot 3d extension placeholders without looking empty", () => {
+  it("renders the robot 3d view with its topic and says what it is missing", () => {
     const descriptor = renderScreenDescriptors(robot3dScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing robot 3d descriptor.");
 
     render(<div>{renderWidgetDescriptor(descriptor)}</div>);
 
-    expect(screen.getByLabelText("Explorer model placeholder")).toBeVisible();
+    expect(screen.getByLabelText("Explorer model 3D view")).toBeVisible();
     expect(screen.getByText("/joint_states")).toBeVisible();
-    expect(screen.getByText("URDF adapter coming next.")).toBeVisible();
+    expect(screen.getByText("No robot model source in this runtime.")).toBeVisible();
   });
 
   it("renders robot 3d joint-state readiness from widget data snapshots", () => {
