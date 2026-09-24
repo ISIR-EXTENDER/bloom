@@ -3,8 +3,8 @@
  */
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWidgetDescriptor } from "./index";
 import { summarizeJointState } from "./robot-3d-renderer";
 
@@ -90,6 +90,33 @@ describe("the 3D robot view", () => {
     expect(stage.getAttribute("data-joints")).toBe("0/0");
     // Framing needs a drawn robot.
     expect(screen.queryByRole("button", { name: "Frame the robot" })).toBeNull();
+  });
+
+  it("marks the view stale when joint states stop arriving, and says for how long", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-24T22:00:10Z"));
+    try {
+      const descriptor = renderScreenDescriptors(robotScreen, createDefaultWidgetRegistry())[0];
+      if (descriptor?.status !== "resolved") {
+        throw new Error("the fixture did not resolve");
+      }
+      render(
+        renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            view: { receivedAt: "2026-09-24T22:00:09Z", topic: "/joint_states", type: "robot-3d", value: undefined },
+          },
+        }),
+      );
+      const stage = screen.getByRole("img", { name: "Robot 3D view" });
+      expect(stage.getAttribute("data-stale")).toBe("false");
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+      // The seconds ride on the attribute; the note itself needs a drawable stage, which jsdom has not.
+      expect(stage.getAttribute("data-stale")).toBe("5");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("says how many of the model's joints the state drives, when not all of them", () => {

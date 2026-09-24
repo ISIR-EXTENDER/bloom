@@ -44,6 +44,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   newest six hundred. Measured on the Widget Lab Robot screen: 28% to 23% of a core.
 - The Frame button of the 3D view sits beside the stage rather than inside its image role, where assistive
   technology could not reach it.
+- **The 3D view says when joint states stop.** After three seconds without one the stage dims and a note says
+  for how long; the robot is drawn where it last was, never as live. The camera fit now frames the robot from its
+  projected extents instead of its bounding sphere, so the arm fills the view.
 - **The robot description answers 304** to an unchanged robot, and meshes carry a five-minute cache header, so
   the view's ten-second poll costs a hash and a reload does not fetch every mesh again.
 - **Bloom Debug has a Robot view screen**: the 3D robot view with `/ee_pose`, `/joint_target_command` and

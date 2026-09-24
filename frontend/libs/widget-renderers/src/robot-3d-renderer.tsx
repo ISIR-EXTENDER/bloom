@@ -1,5 +1,5 @@
 import { getBooleanSetting, getStringSetting, hidesTitle } from "@bloom/widgets";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { isMoving } from "./robot-3d-command";
 import type { WidgetRendererProps } from "./types";
 
@@ -29,6 +29,7 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
   });
   const [fitRequest, setFitRequest] = useState(0);
   const snapshot = data?.type === "robot-3d" ? data : undefined;
+  const staleSeconds = useStaleSeconds(snapshot?.receivedAt);
   const command = snapshot?.command;
   const moving = isMoving(command);
   const desktop = descriptor.context.deviceClass !== "tablet";
@@ -55,6 +56,7 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
         aria-label={`${descriptor.widget.title} 3D view`}
         className="bloom-robot-3d-stage"
         data-command={moving ? "moving" : "still"}
+        data-stale={staleSeconds ?? "false"}
         data-links={status.links}
         data-markers={status.markers}
         data-markers-loading={status.loading}
@@ -86,6 +88,11 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
           </Suspense>
         ) : null}
         {note ? <p className="bloom-robot-3d-note">{note}</p> : null}
+        {!note && staleSeconds !== null ? (
+          <p className="bloom-robot-3d-note bloom-robot-3d-stale" role="status">
+            No joint state for {staleSeconds} s. The robot is drawn where it last was.
+          </p>
+        ) : null}
       </div>
       {canDraw && robotModel && status.model === "ready" ? (
         <button
@@ -107,6 +114,28 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
 
 function asJointState(value: unknown): { name?: unknown; position?: unknown } | undefined {
   return typeof value === "object" && value !== null ? (value as { name?: unknown; position?: unknown }) : undefined;
+}
+
+/** How long since the joint state last arrived, once that is longer than a robot goes quiet for; null while fresh. */
+const STALE_AFTER_MS = 3000;
+
+function useStaleSeconds(receivedAt: string | undefined): number | null {
+  const [stale, setStale] = useState<number | null>(null);
+  useEffect(() => {
+    const at = receivedAt ? Date.parse(receivedAt) : Number.NaN;
+    if (!Number.isFinite(at)) {
+      setStale(null);
+      return;
+    }
+    const check = () => {
+      const age = Date.now() - at;
+      setStale(age >= STALE_AFTER_MS ? Math.round(age / 1000) : null);
+    };
+    check();
+    const timer = setInterval(check, 1000);
+    return () => clearInterval(timer);
+  }, [receivedAt]);
+  return stale;
 }
 
 function asPose(value: unknown): { header?: unknown; pose?: unknown } | undefined {

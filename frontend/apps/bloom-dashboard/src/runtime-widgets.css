@@ -1823,6 +1823,21 @@
   text-align: center;
 }
 
+/* Over the stage, not instead of it: the last pose stays visible, and the note says how old it is. */
+.bloom-robot-3d-stale {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bloom-surface) 92%, white);
+  color: var(--bloom-warning-ink, var(--bloom-ink));
+  font-weight: 700;
+}
+
+.bloom-robot-3d-stage:not([data-stale="false"]) .bloom-robot-3d-canvas {
+  opacity: 0.55;
+}
+
 /* A sibling of the stage, not a child: children of an image role are hidden from assistive technology. */
 .bloom-robot-3d-fit {
   position: absolute;

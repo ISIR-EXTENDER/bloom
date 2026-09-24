@@ -494,7 +494,8 @@ the empty joint state the manager sends to cancel takes it away. A `Pose topic` 
 the frame it names: `/ee_pose` beside the model's own tool triad shows at a glance whether the manager's frames and
 the description agree. The line under the view says how many of the model's joints the joint state drives, so an
 arm that publishes fewer joints than its description declares is not drawn silently. Orbit with a drag, zoom with
-a pinch or the wheel, double-click or press Frame to frame the robot again. While the runtime drives, a blue arrow from the tool shows the commanded linear
+a pinch or the wheel, double-click or press Frame to frame the robot again. When no joint state has arrived for three
+seconds the stage dims and a note says for how long: the robot is drawn where it last was, never as live. While the runtime drives, a blue arrow from the tool shows the commanded linear
 motion, full scale at 35 cm, and a blue arc around the tool shows the angular part in the frame the twist names, half a
 turn at full scale; both disappear with the last zero twist. It belongs on desktop screens only: the palette refuses it
 on a tablet screen, the review checklist says so, and a tablet-class screen that carries one anyway shows the note
