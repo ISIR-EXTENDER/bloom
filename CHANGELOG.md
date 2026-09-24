@@ -11,6 +11,15 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-24
+
+Validation status, stated plainly: every behaviour below is proven against the Explorer Gazebo simulation
+and the Kinova mock hardware (`npm run e2e:sim`, 26 and 25 checks), and the Builder harness proves what Bloom
+accepts and stores without ROS. The only hardware evidence is still Robin's bench session of 2026-09-21 on the
+Explorer. The Pivot sign and the six Drive directions are verified from the slider to the simulated arm, not on
+an arm; the Explorer's mapping is the one that was driven on the arm with `extender_ui`, the Kinova's has never
+been; the Kinova has no Go home while `cartesian_manager#10` is open.
+
 ### Added
 
 - **The 3D robot view draws the running robot.** The API serves the manager's `robot_description` and the
@@ -21,6 +30,23 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **Widget Lab**, a shipped app that places every kind the palette offers, bound to the simulation's topics;
   `npm run e2e:sim` presses or reads each one on both robots.
 - **Any card can hide its title**, and the Builder's axis editor names the topic a pad or slider publishes to.
+- **The simulation run holds every Drive word** (Forward, Right, Up, Tilt up, Roll right, Turn left) and checks
+  the simulated hand moves along that base axis, names the Explorer's two known deviations, and proves that a
+  toggle and a hold button configured entirely from the Builder's inspector put their payloads on the manager's
+  topic. `qa:review` and the Builder harness run in CI.
+- **`GET /api/v1/ros/robot-model`** and its `/assets` route, observer-readable, refused outside the package share
+  and past the mesh suffixes.
+
+### Changed
+
+- **The Explorer's joysticks drive the axes the arm was driven on.** Forward is base −x, Right base +y, Tilt up
+  `angular.x`, Roll right `angular.y`, the profile saved from `extender_ui`'s Sandbox teleop config and driven on
+  the arm. Breaking for an operator used to the 0.2.0 seed, where Forward moved base +y. A shipped copy that was
+  never edited is replaced on the next API start; an edited copy keeps its mapping, and the Builder's axis editor
+  shows what each stick moves.
+- Widgets, settings, the runtime dispatcher, the runtime routes and the dashboard's App are split into modules
+  with the same names and behaviour; the shared helpers (`clamp`, layout snapping, error wording, the WebSocket
+  URL, unique ids) each exist once.
 
 ### Fixed
 

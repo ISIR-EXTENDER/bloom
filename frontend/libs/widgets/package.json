@@ -1,7 +1,7 @@
 {
   "name": "@bloom/widgets",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -10,7 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bloom/api-client": "0.2.0"
+    "@bloom/api-client": "0.3.0"
   },
   "devDependencies": {
     "typescript": "~7.0.2",
