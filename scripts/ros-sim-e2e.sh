@@ -208,8 +208,11 @@ else
     echo "A Gazebo simulation is already running. Stop it, or drive that stack with --reuse-stack." >&2
     exit 1
   fi
-  if ros2 node list --no-daemon 2>/dev/null | grep -qx "/cartesian_manager"; then
-    echo "A cartesian_manager already runs on ROS_DOMAIN_ID=${ROS_DOMAIN_ID}; pick another BLOOM_E2E_ROS_DOMAIN_ID." >&2
+  # A node left over from an earlier run still latches its robot description, and the launch's controller
+  # manager would load that robot instead of this one.
+  leftover_nodes=$(ros2 node list --no-daemon 2>/dev/null | tr '\n' ' ')
+  if [[ -n "${leftover_nodes}" ]]; then
+    echo "ROS_DOMAIN_ID=${ROS_DOMAIN_ID} is not empty (${leftover_nodes}); stop those nodes or pick another BLOOM_E2E_ROS_DOMAIN_ID." >&2
     exit 1
   fi
   if [[ "${SCENARIO}" == "visual-servoing" && "${ROBOT}" != "kinova" ]]; then
