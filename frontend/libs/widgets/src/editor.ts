@@ -1,6 +1,8 @@
 import type { ScreenConfig, WidgetConfig, WidgetLayout } from "@bloom/api-client";
 import type { WidgetDefinition } from "./index";
+import { snapLayoutValue, WIDGET_LAYOUT_GRID_SIZE } from "./layout-grid";
 import { normalizeWidgetSettings } from "./settings";
+import { cloneSettings } from "./settings/validation";
 
 export type AddWidgetOptions = {
   id: string;
@@ -14,8 +16,6 @@ export type DuplicateWidgetOptions = {
   offset?: Pick<WidgetLayout, "x" | "y">;
   title?: string;
 };
-
-const EDITOR_GRID_SIZE = 8;
 
 export function addWidgetToScreen(
   screen: ScreenConfig,
@@ -140,11 +140,11 @@ function assertUniqueWidgetId(screen: ScreenConfig, widgetId: string): void {
   }
 }
 
-function resolveLayoutValue(value: number, snapToGrid = false): number {
-  return snapToGrid ? snapLayoutValue(value, EDITOR_GRID_SIZE) : value;
+function _resolveLayoutValue(value: number, snapToGrid = false): number {
+  return snapToGrid ? snapLayoutValue(value, WIDGET_LAYOUT_GRID_SIZE) : value;
 }
 
-function createWidgetConfigFromDefinition(
+export function createWidgetConfigFromDefinition(
   definition: WidgetDefinition,
   id: string,
   overrides: Partial<Pick<WidgetConfig, "layout" | "settings" | "title">> = {},
@@ -175,15 +175,4 @@ function createWidgetConfigFromDefinition(
     },
     settings: normalizedSettings.success ? normalizedSettings.settings : { ...definition.defaultSettings },
   };
-}
-
-function snapLayoutValue(value: number, gridSize: number): number {
-  if (gridSize <= 0) {
-    return value;
-  }
-  return Math.round(value / gridSize) * gridSize;
-}
-
-function cloneSettings(settings: Record<string, unknown>): Record<string, unknown> {
-  return JSON.parse(JSON.stringify(settings)) as Record<string, unknown>;
 }

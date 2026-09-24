@@ -1,7 +1,6 @@
 import type { ApplicationConfig, RuntimeLanguage, UserProfile } from "@bloom/api-client";
 import { PROFILE_TARGET_PX } from "@bloom/widgets";
 import { useEffect, useState } from "react";
-
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
@@ -9,6 +8,7 @@ import type { RuntimeProfileOverrides } from "./runtime-profile-overrides";
 import { runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveInitialScreen } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
+import { useWindowViewportSize } from "./use-runtime-viewport";
 
 type RuntimeHomeProps = {
   configurations: readonly LoadedConfiguration[];
@@ -116,7 +116,7 @@ export function RuntimeHome({
   const language = resolveLibraryLanguage(selected, chosenProfile, profileOverrides);
   const strings = useRuntimeStrings(language);
   const words = strings.library;
-  const viewport = useViewportSize();
+  const viewport = useWindowViewportSize();
 
   useEffect(() => {
     if (!menuOpen) {
@@ -312,21 +312,6 @@ export function RuntimeHome({
 }
 
 /** The device class follows the window, so a resized or rotated screen does not keep reporting the old one. */
-function useViewportSize() {
-  const [size, setSize] = useState(readViewportSize);
-  useEffect(() => {
-    const update = () => setSize(readViewportSize());
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-  return size;
-}
-
-function readViewportSize() {
-  return typeof window === "undefined"
-    ? { height: 720, width: 1280 }
-    : { height: window.innerHeight, width: window.innerWidth };
-}
 
 function classSummary(app: LibraryApp, strings: RuntimeStrings): string {
   const classes = strings.library.classes;

@@ -1,5 +1,6 @@
 import type { ApplicationConfig, ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
 import { useCallback, useEffect, useState } from "react";
+import { describeApiError } from "../ui/api-error";
 
 import type { ConfigurationClient } from "./configuration-client";
 import { type LoadedConfiguration, loadConfigurations } from "./configuration-loader";
@@ -97,7 +98,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
       })
       .catch((error: unknown) => {
         if (isCurrent) {
-          setState({ status: "error", message: getErrorMessage(error) });
+          setState({ status: "error", message: describeApiError(error, "Bloom could not load configurations.") });
         }
       });
 
@@ -107,11 +108,4 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
   }, [client, deleteApplication, saveApplication, saveConfiguration, saveScreen]);
 
   return state;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Bloom could not load configurations.";
 }

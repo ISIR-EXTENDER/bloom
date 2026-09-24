@@ -7,7 +7,7 @@ import {
   readPlotUnavailable,
   resolvePlotVerdict,
 } from "@bloom/widgets";
-import { type CSSProperties, useEffect, useState } from "react";
+import type { CSSProperties } from "react";
 import { formatSignedValue } from "./control-renderers";
 import type { PlotSeriesSnapshot, WidgetRendererProps } from "./types";
 import { STALE_VALUE_AFTER_MS, useNow } from "./use-now";

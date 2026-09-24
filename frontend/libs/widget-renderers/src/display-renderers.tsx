@@ -1,4 +1,5 @@
 import {
+  clamp,
   getBooleanSetting,
   getNumberSetting,
   getStringSetting,
@@ -356,10 +357,6 @@ function readSeverity(value: unknown): EventLogEntry["severity"] {
 
 function isEventLogSeverity(value: string): value is EventLogEntry["severity"] {
   return EVENT_LOG_SEVERITIES.includes(value as EventLogEntry["severity"]);
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 function formatNumber(value: number): string {

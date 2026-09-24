@@ -1,4 +1,5 @@
 import {
+  clamp,
   getBooleanSetting,
   getNumberSetting,
   getStringSetting,
@@ -49,10 +50,6 @@ export function resolveJoystickBinding(settings: Record<string, unknown>): Resol
     runtimeTarget: getStringSetting(runtimeBinding, "target", getStringSetting(settings, "binding", "input")),
     zeroOnRelease: getBooleanSetting(settings, "zero_on_release", true),
   };
-}
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
 }
 
 function getJoystickLabelsFromAxisHints(

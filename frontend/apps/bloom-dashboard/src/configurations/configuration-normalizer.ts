@@ -1,13 +1,11 @@
 import type {
   ApplicationConfig,
   ApplicationTheme,
-  CanvasPresetId,
   CanvasSettings,
   ConfigurationBundle,
   ReservedRegion,
   RuntimeActionPreset,
   RuntimeAdapterPolicy,
-  RuntimeCanvasMode,
   ScreenConfig,
   WidgetConfig,
   WidgetKind,
@@ -19,8 +17,11 @@ import {
   DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
+  isCanvasPresetId,
+  isRuntimeCanvasMode,
 } from "@bloom/api-client";
 import { isRecord, readNumber, readString } from "@bloom/widgets";
+import { ensureUniqueId } from "./configuration-editor";
 
 type PartialConfigurationBundle = Partial<Omit<ConfigurationBundle, "applications" | "metadata">> & {
   applications?: PartialApplicationConfig[];
@@ -53,16 +54,6 @@ type PartialWidgetConfig = Partial<Omit<WidgetConfig, "layout">> & {
   layout?: Partial<WidgetLayout>;
 };
 
-const CANVAS_PRESET_IDS = new Set<CanvasPresetId>([
-  "native-1024x600",
-  "native-1280x720",
-  "hd",
-  "tablet",
-  "wide-tablet",
-  "full-hd",
-  "local-screen",
-]);
-const RUNTIME_CANVAS_MODES = new Set<RuntimeCanvasMode>(["left", "center", "fit", "operator-fit"]);
 // The canonical list, not a copy: a private copy silently downgraded any
 // newer kind to "unknown" at load time.
 const WIDGET_KINDS = new Set<WidgetKind>(CANONICAL_WIDGET_KINDS);
@@ -124,7 +115,7 @@ function normalizeActionPresets(presets: PartialRuntimeActionPreset[] | undefine
   const usedIds = new Set<string>();
   return presets.map((preset, index) => {
     const fallbackId = `preset-${index + 1}`;
-    const id = createUniquePresetId(readString(preset.id, fallbackId), usedIds);
+    const id = ensureUniqueId(readString(preset.id, fallbackId), usedIds);
     usedIds.add(id);
 
     return {
@@ -177,20 +168,6 @@ function normalizeSchemaVersion(value: unknown): number {
     );
   }
   return value;
-}
-
-function createUniquePresetId(id: string, usedIds: ReadonlySet<string>): string {
-  if (!usedIds.has(id)) {
-    return id;
-  }
-
-  let suffix = 2;
-  let nextId = `${id}-${suffix}`;
-  while (usedIds.has(nextId)) {
-    suffix += 1;
-    nextId = `${id}-${suffix}`;
-  }
-  return nextId;
 }
 
 function isJsonLike(value: unknown): boolean {
@@ -300,14 +277,6 @@ function asStringArray(value: unknown, fallback: string[]): string[] {
     return fallback;
   }
   return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-}
-
-function isCanvasPresetId(value: unknown): value is CanvasPresetId {
-  return typeof value === "string" && CANVAS_PRESET_IDS.has(value as CanvasPresetId);
-}
-
-function isRuntimeCanvasMode(value: unknown): value is RuntimeCanvasMode {
-  return typeof value === "string" && RUNTIME_CANVAS_MODES.has(value as RuntimeCanvasMode);
 }
 
 function isWidgetKind(value: unknown): value is WidgetKind {

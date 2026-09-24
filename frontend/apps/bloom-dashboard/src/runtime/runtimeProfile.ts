@@ -1,4 +1,5 @@
 import type { ApplicationConfig, DisplayPreset, RuntimeLanguage, UserProfile } from "@bloom/api-client";
+import { clamp } from "@bloom/widgets";
 
 import type { RuntimeProfileOverrides } from "./runtime-profile-overrides";
 
@@ -146,7 +147,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
 }
 
 function clampRange(value: number | undefined, min: number, max: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : min;
+  return typeof value === "number" && Number.isFinite(value) ? clamp(value, min, max) : min;
 }
 
 function clampFontScale(value: number): number {

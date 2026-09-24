@@ -35,7 +35,6 @@ import {
   gripperToggleSettings,
   LEGACY_WIDGET_KIND_MAPPINGS,
   legacyCanvasScreensToApplicationConfig,
-  legacyRectToLayout,
   normalizeWidgetSettings,
   ROS_MESSAGE_COMMAND_PRESETS,
   ROS_MESSAGE_TOGGLE_PRESETS,
@@ -56,7 +55,7 @@ import {
   WIDGET_SETTINGS_CONTRACTS,
   type WidgetDefinition,
 } from "./index";
-import { legacyCanvasScreenToConfig, legacyCanvasWidgetToConfig } from "./legacy";
+import { legacyCanvasScreenToConfig, legacyCanvasWidgetToConfig, legacyRectToLayout } from "./legacy";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
 

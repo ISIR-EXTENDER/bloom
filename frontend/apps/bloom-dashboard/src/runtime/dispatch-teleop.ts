@@ -1,6 +1,7 @@
 import type { RuntimeAdapterPolicy } from "@bloom/api-client";
 import {
   asRecord,
+  clamp,
   isRecord,
   readOptionalNumber,
   readOptionalString,
@@ -344,22 +345,18 @@ function normalizeTeleopJoystickVector(value: Vector2Value): RuntimeVector3 {
   const magnitude = Math.hypot(x, y);
 
   if (magnitude <= 1) {
-    return { x: clampSignedUnit(x), y: clampSignedUnit(y), z: 0 };
+    return { x: clamp(x, -1, 1), y: clamp(y, -1, 1), z: 0 };
   }
 
   return {
-    x: clampSignedUnit(x / magnitude),
-    y: clampSignedUnit(y / magnitude),
+    x: clamp(x / magnitude, -1, 1),
+    y: clamp(y / magnitude, -1, 1),
     z: 0,
   };
 }
 
 function toFiniteTeleopAxis(value: number): number {
   return Number.isFinite(value) ? value : 0;
-}
-
-function clampSignedUnit(value: number): number {
-  return Math.max(-1, Math.min(1, value));
 }
 
 export function isVector2Value(value: unknown): value is Vector2Value {

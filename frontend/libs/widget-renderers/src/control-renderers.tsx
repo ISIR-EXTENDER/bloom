@@ -1,4 +1,5 @@
 import {
+  clamp,
   createWidgetActionIntent,
   getBooleanSetting,
   getNumberSetting,
@@ -12,7 +13,7 @@ import {
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from "react";
 import { bindArrowToWord, JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
-import { clamp, resolveJoystickBinding } from "./settings-readers";
+import { resolveJoystickBinding } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
 import { useSettledAnnouncement } from "./use-settled-announcement";
 

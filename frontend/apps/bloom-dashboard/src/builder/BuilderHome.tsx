@@ -252,7 +252,10 @@ export function BuilderHome({
                               await onDuplicateApplication(configuration.id, application.id);
                               setAppActionState({ status: "idle" });
                             } catch (error) {
-                              setAppActionState({ status: "error", message: getErrorMessage(error) });
+                              setAppActionState({
+                                status: "error",
+                                message: describeApiError(error, "Bloom could not create this app."),
+                              });
                             }
                           }}
                           type="button"
@@ -289,7 +292,10 @@ export function BuilderHome({
                                   setPendingDeleteApplicationId(null);
                                   setAppActionState({ status: "idle" });
                                 } catch (error) {
-                                  setAppActionState({ status: "error", message: getErrorMessage(error) });
+                                  setAppActionState({
+                                    status: "error",
+                                    message: describeApiError(error, "Bloom could not create this app."),
+                                  });
                                 }
                               }}
                               type="button"
@@ -372,7 +378,10 @@ export function BuilderHome({
                   await onCreateApplication(firstConfiguration.id, application);
                   setCreateState({ status: "idle" });
                 } catch (error) {
-                  setCreateState({ status: "error", message: getErrorMessage(error) });
+                  setCreateState({
+                    status: "error",
+                    message: describeApiError(error, "Bloom could not create this app."),
+                  });
                 }
               }}
               type="button"
@@ -547,7 +556,10 @@ export function BuilderHome({
                         );
                         setPlaygroundActionState({ status: "idle" });
                       } catch (error) {
-                        setPlaygroundActionState({ status: "error", message: getErrorMessage(error) });
+                        setPlaygroundActionState({
+                          status: "error",
+                          message: describeApiError(error, "Bloom could not create this app."),
+                        });
                       }
                     }}
                     type="button"
@@ -786,8 +798,4 @@ function ScreenLibraryPreview({ screen, type }: { screen: ScreenConfig; type: Sc
       </span>
     </div>
   );
-}
-
-function getErrorMessage(error: unknown): string {
-  return describeApiError(error, "Bloom could not create this app.");
 }

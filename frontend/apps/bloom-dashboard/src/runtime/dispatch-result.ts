@@ -1,10 +1,6 @@
-import {
-  BloomApiError,
-  type RosTopicPublishRequest,
-  type RuntimeActionPreset,
-  type RuntimeAdapterPolicy,
-} from "@bloom/api-client";
-import { isRecord, type WidgetActionIntent } from "@bloom/widgets";
+import type { RosTopicPublishRequest, RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
+import type { WidgetActionIntent } from "@bloom/widgets";
+import { describeApiError } from "../ui/api-error";
 import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
 import type { TeleopTwistComposer } from "./teleop-composition";
 
@@ -78,34 +74,5 @@ export function isAllowedByPolicy(value: string, allowedValues: readonly string[
 }
 
 export function getErrorMessage(error: unknown): string {
-  if (error instanceof BloomApiError) {
-    // Surface the response body's reason, not just the status code.
-    const detail = readBloomApiErrorDetail(error.responseText);
-    return detail ? `${error.message} ${detail}` : error.message;
-  }
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Runtime action failed.";
-}
-
-function readBloomApiErrorDetail(responseText: string): string {
-  if (!responseText) {
-    return "";
-  }
-  try {
-    const parsed = JSON.parse(responseText) as { detail?: unknown };
-    if (typeof parsed.detail === "string") {
-      return parsed.detail;
-    }
-    if (Array.isArray(parsed.detail)) {
-      return parsed.detail
-        .map((entry) => (isRecord(entry) && typeof entry.msg === "string" ? entry.msg : ""))
-        .filter(Boolean)
-        .join("; ");
-    }
-  } catch {
-    return responseText.slice(0, 200);
-  }
-  return "";
+  return describeApiError(error, "Runtime action failed.");
 }

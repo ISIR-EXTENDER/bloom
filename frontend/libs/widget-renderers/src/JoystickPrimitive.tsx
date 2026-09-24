@@ -1,4 +1,4 @@
-import { padGeometry } from "@bloom/widgets";
+import { clamp, padGeometry } from "@bloom/widgets";
 import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
@@ -322,18 +322,15 @@ export function normalizeJoystickVector(vector: JoystickVector, deadzone: number
   }
 
   if (rawMagnitude <= 1) {
-    return { x: clamp(vector.x), y: clamp(vector.y) };
+    return { x: clampUnit(vector.x), y: clampUnit(vector.y) };
   }
 
   return {
-    x: clamp(vector.x / rawMagnitude),
-    y: clamp(vector.y / rawMagnitude),
+    x: clampUnit(vector.x / rawMagnitude),
+    y: clampUnit(vector.y / rawMagnitude),
   };
 }
 
-function clamp(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-  return Math.min(1, Math.max(-1, value));
+function clampUnit(value: number): number {
+  return clamp(Number.isFinite(value) ? value : 0, -1, 1);
 }

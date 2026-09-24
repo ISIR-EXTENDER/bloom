@@ -145,19 +145,21 @@ export function moveScreenBeforeInApplication(
 }
 
 export function createUniqueId(preferredId: string, existingIds: readonly string[]): string {
-  const baseId = slugifyId(preferredId) || "screen";
-  const takenIds = new Set(existingIds);
+  return ensureUniqueId(slugifyId(preferredId) || "screen", new Set(existingIds));
+}
 
-  if (!takenIds.has(baseId)) {
-    return baseId;
+/** `id`, or `id-2`, `id-3`... until it is not taken. */
+export function ensureUniqueId(id: string, takenIds: ReadonlySet<string>): string {
+  if (!takenIds.has(id)) {
+    return id;
   }
 
   let suffix = 2;
-  let candidateId = `${baseId}-${suffix}`;
+  let candidateId = `${id}-${suffix}`;
 
   while (takenIds.has(candidateId)) {
     suffix += 1;
-    candidateId = `${baseId}-${suffix}`;
+    candidateId = `${id}-${suffix}`;
   }
 
   return candidateId;

@@ -3,7 +3,6 @@ import { BLOOM_THEME_PRESETS, type BloomThemePresetId } from "@bloom/ui";
 import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { createUniqueId } from "../configurations/configuration-editor";
-import { describeApiError } from "../ui/api-error";
 
 export type AppSaveState =
   | { status: "idle" }
@@ -177,19 +176,10 @@ export function createRuntimePresetFromLibraryPreset(
 }
 
 export function createUniquePresetId(name: string, presets: readonly RuntimeActionPreset[]): string {
-  const baseId = createUniqueId(name, []);
-  const usedIds = new Set(presets.map((preset) => preset.id));
-  if (!usedIds.has(baseId)) {
-    return baseId;
-  }
-
-  let suffix = 2;
-  let nextId = `${baseId}-${suffix}`;
-  while (usedIds.has(nextId)) {
-    suffix += 1;
-    nextId = `${baseId}-${suffix}`;
-  }
-  return nextId;
+  return createUniqueId(
+    name,
+    presets.map((preset) => preset.id),
+  );
 }
 
 export function mergeUniqueRuntimePolicyValues(
@@ -221,8 +211,4 @@ export function parseLines(value: string): string[] {
         .filter(Boolean),
     ),
   ];
-}
-
-export function getErrorMessage(error: unknown): string {
-  return describeApiError(error, "Bloom could not save this app configuration.");
 }

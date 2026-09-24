@@ -6,6 +6,7 @@ import type {
   RuntimeRecordingStartRequest,
 } from "@bloom/api-client";
 import { type ReactNode, useState } from "react";
+import { describeApiError } from "../ui/api-error";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
 type BloomDebugPanelProps = {
@@ -35,7 +36,7 @@ export function BloomDebugPanel({ client, region = null }: BloomDebugPanelProps)
       );
       setStatus(nextTopics.length > 0 ? `${nextTopics.length} topics available.` : "No live topics discovered yet.");
     } catch (error) {
-      setStatus(getErrorMessage(error));
+      setStatus(describeApiError(error, "Bloom Debug action failed."));
     }
   };
 
@@ -50,7 +51,7 @@ export function BloomDebugPanel({ client, region = null }: BloomDebugPanelProps)
       setAuditRecords(records);
       setStatus(records.length > 0 ? `${records.length} audit records loaded.` : "No runtime audit records yet.");
     } catch (error) {
-      setStatus(getErrorMessage(error));
+      setStatus(describeApiError(error, "Bloom Debug action failed."));
     }
   };
 
@@ -75,7 +76,7 @@ export function BloomDebugPanel({ client, region = null }: BloomDebugPanelProps)
       setStatus(receipt.detail);
       await loadAudit();
     } catch (error) {
-      setStatus(getErrorMessage(error));
+      setStatus(describeApiError(error, "Bloom Debug action failed."));
     }
   };
 
@@ -90,7 +91,7 @@ export function BloomDebugPanel({ client, region = null }: BloomDebugPanelProps)
       setStatus(receipt.detail);
       await loadAudit();
     } catch (error) {
-      setStatus(getErrorMessage(error));
+      setStatus(describeApiError(error, "Bloom Debug action failed."));
     }
   };
 
@@ -321,11 +322,4 @@ function toggleTopic(currentTopics: readonly string[], topic: string): string[] 
   return currentTopics.includes(topic)
     ? currentTopics.filter((candidate) => candidate !== topic)
     : [...currentTopics, topic];
-}
-
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return "Bloom Debug action failed.";
 }

@@ -124,7 +124,7 @@ export function BuilderWorkspace({
       await onSaveScreenDraft(draftScreen);
       setSaveState({ status: "saved" });
     } catch (error) {
-      setSaveState({ status: "error", message: getErrorMessage(error) });
+      setSaveState({ status: "error", message: describeApiError(error, "Bloom could not save this builder draft.") });
     }
   };
 
@@ -260,7 +260,7 @@ export function BuilderWorkspace({
       commitScreenChange(updateWidgetSettings(draftScreen, selectedWidget.id, settings));
       return null;
     } catch (error) {
-      return getErrorMessage(error);
+      return describeApiError(error, "Bloom could not save this builder draft.");
     }
   };
 
@@ -399,10 +399,6 @@ function DraftSaveStatus({ state }: { state: DraftSaveState }) {
       {state.status === "saving" ? "Saving draft..." : "All changes saved."}
     </p>
   );
-}
-
-function getErrorMessage(error: unknown): string {
-  return describeApiError(error, "Bloom could not save this builder draft.");
 }
 
 function createNewWidgetLayout(screen: ScreenConfig, definition: WidgetDefinition) {

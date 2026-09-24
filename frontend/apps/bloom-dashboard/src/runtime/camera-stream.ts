@@ -1,6 +1,7 @@
 import type { ScreenConfig } from "@bloom/api-client";
 import type { WidgetDataSnapshot } from "@bloom/widget-renderers";
 import { useEffect, useState } from "react";
+import { resolveWebSocketProtocols, resolveWebSocketUrl } from "./websocket-url";
 
 /**
  * One socket per camera widget, separate from the runtime socket.
@@ -27,32 +28,11 @@ export function resolveCameraStreamTargets(screen: ScreenConfig): CameraStreamTa
   return targets;
 }
 
-export function resolveCameraStreamUrl(
-  apiBaseUrl: string,
-  topic: string,
-  origin = globalThis.location?.origin ?? "",
-  apiKey = "",
-): string {
-  const fallback = origin || "http://localhost:8000";
-  const url = new URL(apiBaseUrl || fallback, fallback);
-  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  url.pathname = "/api/v1/runtime/camera";
-  url.search = "";
-  url.hash = "";
-  url.searchParams.set("topic", topic);
-  if (apiKey && !isSubprotocolToken(apiKey)) {
-    url.searchParams.set("api_key", apiKey);
-  }
-  return url.toString();
+export function resolveCameraStreamUrl(apiBaseUrl: string, topic: string, origin?: string, apiKey = ""): string {
+  return resolveWebSocketUrl(apiBaseUrl, "/api/v1/runtime/camera", { apiKey, origin, query: { topic } });
 }
 
-export function resolveCameraStreamProtocols(apiKey = ""): string[] | undefined {
-  return apiKey && isSubprotocolToken(apiKey) ? ["bloom.runtime.v1", `bloom.api-key.${apiKey}`] : undefined;
-}
-
-function isSubprotocolToken(value: string): boolean {
-  return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(value);
-}
+export const resolveCameraStreamProtocols = resolveWebSocketProtocols;
 
 export function useCameraStreams(
   targets: readonly CameraStreamTarget[],

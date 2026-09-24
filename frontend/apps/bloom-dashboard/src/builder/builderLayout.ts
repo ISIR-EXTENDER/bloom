@@ -1,5 +1,5 @@
 import type { WidgetLayout } from "@bloom/api-client";
-import { WIDGET_LAYOUT_GRID_SIZE } from "@bloom/widgets";
+import { clamp, snapLayoutValue } from "@bloom/widgets";
 
 export type BuilderCanvasSize = {
   height: number;
@@ -23,8 +23,8 @@ export function moveWidgetLayout(
 ): WidgetLayout {
   return {
     ...layout,
-    x: clampLayoutValue(snapLayoutValue(layout.x + delta.dx), 0, Math.max(0, canvasSize.width - layout.width)),
-    y: clampLayoutValue(snapLayoutValue(layout.y + delta.dy), 0, Math.max(0, canvasSize.height - layout.height)),
+    x: clamp(snapLayoutValue(layout.x + delta.dx), 0, Math.max(0, canvasSize.width - layout.width)),
+    y: clamp(snapLayoutValue(layout.y + delta.dy), 0, Math.max(0, canvasSize.height - layout.height)),
   };
 }
 
@@ -39,8 +39,8 @@ export function resizeWidgetLayout(
 
   return {
     ...layout,
-    width: clampLayoutValue(snapLayoutValue(layout.width + delta.dx), minSize.width, maxWidth),
-    height: clampLayoutValue(snapLayoutValue(layout.height + delta.dy), minSize.height, maxHeight),
+    width: clamp(snapLayoutValue(layout.width + delta.dx), minSize.width, maxWidth),
+    height: clamp(snapLayoutValue(layout.height + delta.dy), minSize.height, maxHeight),
   };
 }
 
@@ -78,14 +78,6 @@ export function resolveElementScale(startNode: HTMLElement): number {
   }
 
   return Number.isFinite(scale) && scale > 0 ? scale : 1;
-}
-
-function snapLayoutValue(value: number): number {
-  return Math.round(value / WIDGET_LAYOUT_GRID_SIZE) * WIDGET_LAYOUT_GRID_SIZE;
-}
-
-function clampLayoutValue(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
 }
 
 function parseTransformValues(transform: string, prefix: string): number[] {

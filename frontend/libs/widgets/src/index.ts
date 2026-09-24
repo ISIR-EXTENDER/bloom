@@ -7,7 +7,7 @@ import type {
   WidgetLayout,
 } from "@bloom/api-client";
 import { gripperToggleSettings } from "./gripper";
-import { getDefaultWidgetSettings, normalizeWidgetSettings } from "./settings";
+import { getDefaultWidgetSettings } from "./settings";
 
 export * from "./canvas-defaults";
 export * from "./cli-preview";
@@ -15,8 +15,10 @@ export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
 export * from "./gripper";
+export * from "./layout-grid";
 export { legacyCanvasScreensToApplicationConfig } from "./legacy";
 export * from "./min-size";
+export * from "./numbers";
 export * from "./operator-glossary";
 export * from "./pad-geometry";
 export * from "./plot-series";
@@ -133,7 +135,6 @@ export type LegacyWidgetRect = {
   height?: number;
 };
 
-export const WIDGET_LAYOUT_GRID_SIZE = 8;
 const CANVAS_WIDGET_EDGE_PADDING = 24;
 
 const CANVAS_PRESETS: readonly CanvasPreset[] = [
@@ -654,13 +655,6 @@ export function createDefaultWidgetRegistry(): WidgetRegistry {
   return createWidgetRegistry(DEFAULT_WIDGET_DEFINITIONS);
 }
 
-export function snapLayoutValue(value: number, gridSize: number = WIDGET_LAYOUT_GRID_SIZE): number {
-  if (gridSize <= 0) {
-    return value;
-  }
-  return Math.round(value / gridSize) * gridSize;
-}
-
 function getCanvasPreset(presetId: CanvasPresetId): CanvasPreset {
   return CANVAS_PRESETS.find((preset) => preset.id === presetId) ?? CANVAS_PRESETS[0];
 }
@@ -699,46 +693,6 @@ export function resolveCanvasFitScale(
     return 1;
   }
   return Math.min(viewportSize.width / canvasSize.width, viewportSize.height / canvasSize.height);
-}
-
-export function legacyRectToLayout(rect: LegacyWidgetRect | null | undefined): WidgetLayout {
-  if (!rect) {
-    return { ...DEFAULT_WIDGET_LAYOUT };
-  }
-  return {
-    x: rect.x ?? DEFAULT_WIDGET_LAYOUT.x,
-    y: rect.y ?? DEFAULT_WIDGET_LAYOUT.y,
-    width: rect.w ?? rect.width ?? DEFAULT_WIDGET_LAYOUT.width,
-    height: rect.h ?? rect.height ?? DEFAULT_WIDGET_LAYOUT.height,
-  };
-}
-
-export function createWidgetConfigFromDefinition(
-  definition: WidgetDefinition,
-  id: string,
-  overrides: Partial<Pick<WidgetConfig, "layout" | "settings" | "title">> = {},
-): WidgetConfig {
-  const normalizedSettings = normalizeWidgetSettings(definition.kind, overrides.settings ?? {});
-  if (!normalizedSettings.success) {
-    throw new Error(
-      `Invalid settings for widget kind "${definition.kind}": ${normalizedSettings.errors
-        .map((error) => `${error.field}: ${error.message}`)
-        .join("; ")}`,
-    );
-  }
-
-  return {
-    id,
-    kind: definition.kind,
-    title: overrides.title ?? definition.defaultTitle,
-    layout: overrides.layout ?? {
-      x: 0,
-      y: 0,
-      width: definition.defaultLayout.width,
-      height: definition.defaultLayout.height,
-    },
-    settings: normalizedSettings.settings,
-  };
 }
 
 export function resolveLegacyWidgetKind(kind: string): LegacyWidgetKindMapping {

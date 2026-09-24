@@ -1,5 +1,6 @@
 import type { ApplicationConfig, RosTopicStatus } from "@bloom/api-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { describeApiError } from "../ui/api-error";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 import { createRuntimeRobotStatus, type RuntimeModeState, type RuntimeRobotStatus } from "./runtimeModeState";
 import { enRuntimeStrings } from "./strings/en";
@@ -49,7 +50,7 @@ export function RuntimeRobotStatusPanel({
       setStatusDetail(strings.topicsLoaded(nextTopicStatuses.length));
     } catch (error) {
       setApiStatus("unavailable");
-      setStatusDetail(getErrorMessage(error, strings.refreshFailed));
+      setStatusDetail(describeApiError(error, strings.refreshFailed));
     }
   }, [client, strings]);
 
@@ -167,11 +168,4 @@ function resolveTopicStatusLabel(
     return strings.notChecked;
   }
   return topicStatus.requirement === "publisher" ? strings.noPublisher : strings.noSubscriber;
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  return fallback;
 }

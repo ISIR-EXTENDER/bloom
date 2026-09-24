@@ -1,14 +1,18 @@
 import type {
   ApplicationConfig,
   CanvasSettings,
-  ConfigurationBundle,
   RuntimeAdapterPolicy,
   ScreenConfig,
   WidgetConfig,
   WidgetKind,
   WidgetLayout,
 } from "@bloom/api-client";
-import { DEFAULT_APPLICATION_THEME, DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
+import {
+  DEFAULT_APPLICATION_THEME,
+  DEFAULT_RUNTIME_POLICY,
+  isCanvasPresetId,
+  isRuntimeCanvasMode,
+} from "@bloom/api-client";
 import { DEFAULT_CANVAS_SETTINGS } from "./canvas-defaults";
 import { isRecord, readNumber, readString } from "./values";
 
@@ -163,7 +167,7 @@ function legacyKindToBloomKind(kind: string): WidgetKind {
   return mapping[kind] ?? "unknown";
 }
 
-function legacyRectToLayout(rect: Record<string, unknown> | undefined): WidgetLayout {
+export function legacyRectToLayout(rect: Record<string, unknown> | undefined): WidgetLayout {
   if (!rect) {
     return { ...DEFAULT_LEGACY_WIDGET_LAYOUT };
   }
@@ -218,20 +222,4 @@ function legacyWidgetSettingsToConfig(widget: LegacyCanvasWidget): Record<string
 
 function copyLegacyWidgetSettings(widget: LegacyCanvasWidget): Record<string, unknown> {
   return Object.fromEntries(Object.entries(widget).filter(([key]) => !WIDGET_CONFIG_KEYS.has(key)));
-}
-
-function isCanvasPresetId(value: unknown): value is CanvasSettings["preset_id"] {
-  return (
-    value === "native-1024x600" ||
-    value === "native-1280x720" ||
-    value === "hd" ||
-    value === "tablet" ||
-    value === "wide-tablet" ||
-    value === "full-hd" ||
-    value === "local-screen"
-  );
-}
-
-function isRuntimeCanvasMode(value: unknown): value is CanvasSettings["runtime_mode"] {
-  return value === "left" || value === "center" || value === "fit" || value === "operator-fit";
 }

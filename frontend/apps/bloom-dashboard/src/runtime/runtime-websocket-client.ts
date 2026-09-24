@@ -13,6 +13,7 @@ import type {
   RuntimeTopicUnsubscriptionRequest,
   RuntimeTopicUnsubscriptionResponse,
 } from "./runtime-action-dispatcher";
+import { resolveWebSocketProtocols, resolveWebSocketUrl } from "./websocket-url";
 
 type WebSocketEventMap = {
   close: Event;
@@ -408,31 +409,11 @@ function parseRuntimeControlState(data: unknown): RuntimeControlState | null {
   };
 }
 
-export function resolveRuntimeWebSocketUrl(
-  apiBaseUrl: string,
-  origin = globalThis.location?.origin ?? "",
-  apiKey = "",
-): string {
-  const baseUrl = new URL(apiBaseUrl || origin || "http://localhost:8000", origin || "http://localhost:8000");
-  baseUrl.protocol = baseUrl.protocol === "https:" ? "wss:" : "ws:";
-  baseUrl.pathname = "/api/v1/runtime/ws";
-  baseUrl.search = "";
-  baseUrl.hash = "";
-  // Only a key that cannot travel as a subprotocol falls back to the query, which access logs record.
-  if (apiKey && !isSubprotocolToken(apiKey)) {
-    baseUrl.searchParams.set("api_key", apiKey);
-  }
-  return baseUrl.toString();
+export function resolveRuntimeWebSocketUrl(apiBaseUrl: string, origin?: string, apiKey = ""): string {
+  return resolveWebSocketUrl(apiBaseUrl, "/api/v1/runtime/ws", { apiKey, origin });
 }
 
-/** A handshake takes no custom headers, but it does carry offered subprotocols. */
-export function resolveRuntimeWebSocketProtocols(apiKey = ""): string[] | undefined {
-  return apiKey && isSubprotocolToken(apiKey) ? ["bloom.runtime.v1", `bloom.api-key.${apiKey}`] : undefined;
-}
-
-function isSubprotocolToken(value: string): boolean {
-  return /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/.test(value);
-}
+export const resolveRuntimeWebSocketProtocols = resolveWebSocketProtocols;
 
 /** A frame off the socket, or null when it is not a string or not a JSON object. */
 function parseFrame(data: unknown): Record<string, unknown> | null {

@@ -18,6 +18,7 @@ import {
   reorderScreenInApplication,
   updateProfileInApplication,
 } from "../configurations/configuration-editor";
+import { describeApiError } from "../ui/api-error";
 import {
   ACCEPTED_MOODBOARD_IMAGE_TYPES,
   type AppSaveState,
@@ -26,7 +27,6 @@ import {
   createRuntimePresetFromLibraryPreset,
   createUniquePresetId,
   DEFAULT_THEME_INSPIRATION,
-  getErrorMessage,
   MAX_MOODBOARD_IMAGE_BYTES,
   mergeUniqueRuntimePolicyValues,
   parseLines,
@@ -84,7 +84,10 @@ export function useApplicationDraft({
       await onSaveApplication(draft);
       setSaveState({ status: "saved" });
     } catch (error) {
-      setSaveState({ status: "error", message: getErrorMessage(error) });
+      setSaveState({
+        status: "error",
+        message: describeApiError(error, "Bloom could not save this app configuration."),
+      });
     }
   };
 
@@ -250,7 +253,7 @@ export function useApplicationDraft({
     try {
       updateThemeInspiration({ moodboard_image_uri: await onUploadThemeAsset(file) });
     } catch (error) {
-      setThemeInspirationError(getErrorMessage(error));
+      setThemeInspirationError(describeApiError(error, "Bloom could not save this app configuration."));
     }
   };
 

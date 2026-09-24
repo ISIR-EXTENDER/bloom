@@ -1,5 +1,6 @@
 import type { RuntimeControlState } from "@bloom/api-client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { describeApiError } from "../ui/api-error";
 
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
@@ -52,7 +53,7 @@ export function useRuntimeControl(
         setState(nextState);
       }
     } catch (claimError) {
-      setError(getErrorMessage(claimError));
+      setError(describeApiError(claimError, "Bloom could not claim robot control."));
     } finally {
       setClaiming(false);
     }
@@ -123,8 +124,4 @@ export function useRuntimeControl(
   }, [claim, client]);
 
   return { claim, claiming, error, state, supported };
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Bloom could not claim robot control.";
 }

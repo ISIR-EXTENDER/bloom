@@ -46,6 +46,17 @@ function measureViewportSize(viewport: HTMLDivElement): RuntimeViewportSize {
   };
 }
 
+/** The window's size, followed through resizes. */
+export function useWindowViewportSize(): RuntimeViewportSize {
+  const [size, setSize] = useState(getWindowViewportSize);
+  useEffect(() => {
+    const update = () => setSize(getWindowViewportSize());
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return size;
+}
+
 function getWindowViewportSize(): RuntimeViewportSize {
   if (typeof window === "undefined") {
     return { height: 1, width: 1 };

@@ -38,16 +38,29 @@ export type WidgetLayout = {
   height: number;
 };
 
-export type CanvasPresetId =
-  | "native-1024x600"
-  | "native-1280x720"
-  | "hd"
-  | "tablet"
-  | "wide-tablet"
-  | "full-hd"
-  | "local-screen";
+export const CANVAS_PRESET_IDS = [
+  "native-1024x600",
+  "native-1280x720",
+  "hd",
+  "tablet",
+  "wide-tablet",
+  "full-hd",
+  "local-screen",
+] as const;
 
-export type RuntimeCanvasMode = "left" | "center" | "fit" | "operator-fit";
+export type CanvasPresetId = (typeof CANVAS_PRESET_IDS)[number];
+
+export const RUNTIME_CANVAS_MODES = ["left", "center", "fit", "operator-fit"] as const;
+
+export type RuntimeCanvasMode = (typeof RUNTIME_CANVAS_MODES)[number];
+
+export function isCanvasPresetId(value: unknown): value is CanvasPresetId {
+  return typeof value === "string" && (CANVAS_PRESET_IDS as readonly string[]).includes(value);
+}
+
+export function isRuntimeCanvasMode(value: unknown): value is RuntimeCanvasMode {
+  return typeof value === "string" && (RUNTIME_CANVAS_MODES as readonly string[]).includes(value);
+}
 
 export type CanvasSettings = {
   preset_id: CanvasPresetId;
