@@ -16,6 +16,7 @@ For the chosen robot, with the API, dashboard, manager, qontrol and controllers 
 | --- | --- |
 | `library-opens-operator`, `library-opens-bench` | The library opens the app as Operator and as Bench, lands on `manager_drive_operator` / `manager_drive_bench`, and the kiosk reads `READY`. |
 | `translation-moves-ee-pose` | A held Translation stroke streams non-zero twists on `/joystick_cartesian_command`, `/ee_pose` moves more than 3 cm, and release publishes a zero twist. The same stroke back returns the arm. |
+| `pivot-left-turns-hand-left` | Pivot held at its left end streams `+angular.z` with zero linear parts, and `/ee_pose` yaws about the base z axis in the positive sense by more than 0.05 rad, with no rotation about x or y. |
 | `bench-and-operator-publish-same-twist` | The same full-deflection gesture publishes the same twist and frame from both layouts. |
 | `gripper-toggle-publishes` | The toggle publishes the robot's own values on `/gripper_controller/commands`: Explorer close `[1.1]` / open `[0.2]`, Kinova close `[0.8]` / open `[0.0]`. |
 | `speed-segment-publishes` | Slow and Medium publish their values on `max_linear_speed`. Skipped when nothing but the probe subscribes. |
@@ -105,6 +106,15 @@ Both robots ran self-contained, each starting its own simulation, API and dashbo
 - **Explorer**, including the two launch workarounds applied by the script: 12/12 checks passed. Go home published the
   `home` joint target from `explorer_params.yaml`, Release returned `behaviour/passthrough`, Bloom Debug showed 12
   joint rows and a 6x6 Jacobian, and Translation moved `/ee_pose` 14.2 cm in an 800 ms stroke.
+
+### Amended 2026-09-24: the Pivot sign
+
+A fourteenth check, `pivot-left-turns-hand-left`, ran on both robots. The wire carried `base_link` angular
+`(0, 0, 0.988)` with zero linear parts, and the hand yawed about the base z axis in the positive sense: 0.131 rad on
+Explorer in Gazebo over its 800 ms hold, 0.999 rad on Kinova over its 2.5 s hold (qontrol at `a6382c1`, see
+[the 7-dof task note](2026-09-24-kinova-qontrol-7dof-task.md)). The rotation had no x or y component on either robot.
+So the sign is verified from the slider to the simulated arm; what the operator calls left still depends on where
+they sit relative to the base frame, which only the bench can settle. 14/14 on both robots.
 
 Findings from these runs, none blocking:
 

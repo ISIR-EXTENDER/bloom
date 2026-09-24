@@ -130,8 +130,9 @@ If STOP does not assert, treat that as a failure of the software path and use th
 
 **Do this before anything else moves**, at the slowest speed segment, with a hand on the hardware stop.
 
-Bloom publishes Pivot's left end as `+angular.z`, meaning the hand turns **left**. That sign has been verified on
-the ROS wire and never on an arm. Nudge Pivot left and watch the hand.
+Bloom publishes Pivot's left end as `+angular.z`, meaning the hand turns **left**. That sign is verified on the ROS
+wire and on both simulated arms, whose hand yaws positively about the base z axis; never on an arm, and whether
+that reads as left from the operator's seat is the bench's call. Nudge Pivot left and watch the hand.
 
 - Turns left — the sign is correct. Record it.
 - Turns right — stop, and record it. The sign is inverted and the operator guide's claim is wrong.
@@ -142,7 +143,7 @@ Work through these deliberately; none of them can be tested any other way.
 
 | Check | Why it needs hardware |
 | --- | --- |
-| Pivot sign | Above. Never observed on an arm. |
+| Pivot sign | Above. Verified in simulation about the base z axis, never observed on an arm. |
 | Gripper values | Explorer publishes close `[1.1]` / open `[0.2]`; Kinova close `[0.8]` / open `[0.0]`. The Kinova values are unverified on the Robotiq 2F-85, and the jaws actually close this time. |
 | Neutral, Jaco, momentary Snake | Shaping modes against the real controller chain. |
 | Speed limits | The simulation check skips when nothing subscribes. On hardware qontrol should subscribe, so a skip here is a red flag. |

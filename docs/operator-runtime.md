@@ -208,7 +208,8 @@ messages for the same gesture:
   **Slow / Medium / Fast** speed segments, larger targets, and the same STOP region.
 
 Height is vertical next to Translation (linear axes); Pivot is horizontal under Rotation (angular axes). Pivot's left
-end turns the hand left (`+angular.z`). This sign is verified on the ROS wire, not yet on hardware.
+end turns the hand left (`+angular.z`). The sign is verified on the ROS wire and on both simulated arms, whose hand
+yaws positively about the base z axis ([record](validation/ros-sim-e2e.md)); not yet on hardware.
 
 | Control | Runtime behavior |
 | --- | --- |

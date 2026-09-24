@@ -65,6 +65,7 @@ const {
   jointTarget: JOINT_TARGET,
 } = STACK;
 const MIN_DISPLACEMENT_M = 0.03;
+const MIN_ROTATION_RAD = 0.05;
 
 await mkdir(screenDir, { recursive: true });
 const ros = await startRosProbe({ source: probeSource(), readyTopic: POSE });
@@ -108,6 +109,8 @@ async function operatorSession() {
       gestures.operator = gesture.twist;
       return gesture.summary;
     });
+
+    await check(page, "pivot-left-turns-hand-left", async () => pivotAndMeasure(page));
 
     await check(page, "gripper-toggle-publishes", async () => {
       const close = page.getByRole("button", { name: /^Gripper: Close gripper/ });
@@ -352,6 +355,55 @@ async function driveAndMeasure(page, label) {
   };
 }
 
+/** Pivot's left end is +angular.z on the wire, and the hand must yaw the same way about the base z axis. */
+async function pivotAndMeasure(page) {
+  const track = page
+    .getByRole("slider", { name: "Pivot" })
+    .locator('xpath=ancestor::*[contains(@class, "bloom-axis-slider")]')
+    .locator(".bloom-axis-track");
+  const box = await track.boundingBox();
+  const start = await ros.waitFor(POSE, () => true, { since: Date.now() });
+  const since = Date.now();
+  await page.mouse.move(box.x + 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(robot.driveHoldMs);
+  const held = ros.since(TWIST, since).filter((message) => !isZeroTwist(message.data));
+  await shot(page, "drive-pivot-left");
+  const releasedAt = Date.now();
+  await page.mouse.up();
+  assert(held.length > 0, `no non-zero ${TWIST} while Pivot was held`);
+  const wire = held.at(-1).data;
+  assert(
+    wire.angular.z > 0.5 && Math.hypot(wire.linear.x, wire.linear.y, wire.linear.z) < 1e-6,
+    `wire ${fmtTwist(wire)}`,
+  );
+  await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: releasedAt, timeoutMs: 2000 });
+  await page.waitForTimeout(800);
+  const end = ros.latest(POSE).data;
+  const turned = rotationVector(start.orientation, end.orientation);
+  assert(
+    turned.z > MIN_ROTATION_RAD && Math.abs(turned.z) > 0.7 * Math.hypot(turned.x, turned.y, turned.z),
+    `hand turned ${fmtVector(turned)} rad about base axes, expected +z > ${MIN_ROTATION_RAD}`,
+  );
+  return `wire ${fmtTwist(wire)}; hand yawed ${turned.z.toFixed(3)} rad about base z (${fmtVector(turned)})`;
+}
+
+/** The rotation that takes orientation `from` to `to`, as an axis-angle vector in the base frame. */
+function rotationVector(from, to) {
+  const c = { x: -from.x, y: -from.y, z: -from.z, w: from.w };
+  const a = to;
+  const q = {
+    w: a.w * c.w - a.x * c.x - a.y * c.y - a.z * c.z,
+    x: a.w * c.x + a.x * c.w + a.y * c.z - a.z * c.y,
+    y: a.w * c.y - a.x * c.z + a.y * c.w + a.z * c.x,
+    z: a.w * c.z + a.x * c.y - a.y * c.x + a.z * c.w,
+  };
+  const sine = Math.hypot(q.x, q.y, q.z);
+  const angle = 2 * Math.atan2(sine, q.w);
+  const scale = sine > 1e-9 ? angle / sine : 0;
+  return { x: q.x * scale, y: q.y * scale, z: q.z * scale };
+}
+
 async function pressJoystick(page, locator, deflection) {
   const box = await locator.boundingBox();
   const radius = Math.min(box.width, box.height) / 2;
@@ -441,7 +493,10 @@ def emit(topic, data, period=0.0):
 def vector(v):
     return {"x": v.x, "y": v.y, "z": v.z}
 
-node.create_subscription(PoseStamped, "${POSE}", lambda m: emit("${POSE}", {"position": vector(m.pose.position)}, 0.05), 10)
+def quaternion(q):
+    return {"x": q.x, "y": q.y, "z": q.z, "w": q.w}
+
+node.create_subscription(PoseStamped, "${POSE}", lambda m: emit("${POSE}", {"position": vector(m.pose.position), "orientation": quaternion(m.pose.orientation)}, 0.05), 10)
 node.create_subscription(TwistStamped, "${TWIST}", lambda m: emit("${TWIST}", {"frame_id": m.header.frame_id, "linear": vector(m.twist.linear), "angular": vector(m.twist.angular)}), 50)
 node.create_subscription(Float64MultiArray, "${GRIPPER}", lambda m: emit("${GRIPPER}", {"data": list(m.data)}), 10)
 node.create_subscription(Float64, "${MAX_LINEAR}", lambda m: emit("${MAX_LINEAR}", {"data": m.data}), 10)
