@@ -12,10 +12,12 @@ builds:
 | `91309cc` (tip: `9a818f8` adds a 7-dof task to keep joint 3 straight) | 1.0 cm, 11/13 |
 
 Bloom publishes the same 80 twists in both runs; the difference is the controller's response. The
-new secondary task competes with the Cartesian task in simulation. `/qontrol_explorer/effort_overload`
+controller solves a constrained QP, so a new task changes the solution rather than adding to it, and
+the outcome need not be deterministic; three runs on the tip gave 1.0 cm each, one on `a6382c1` gave
+11.9 cm. This is a behaviour change to understand, not a bug to report. `/qontrol_explorer/effort_overload`
 also reads `true` for the whole run in Gazebo (estimated tip force above the 10 N `force_threshold`),
 which the controller publishes but does not act on.
 
-For Mégane: is the reduced Cartesian velocity on the gen3 intended with the joint-3 task, and is the
-overload estimate meaningful in simulation? Until then the Kinova manager scenario reports the two
-displacement checks as failed on the tip; the check keeps its 3 cm floor on purpose.
+For Mégane: is the reduced Cartesian velocity on the gen3 the expected price of the joint-3 task, and
+is the overload estimate meaningful in simulation? Until then the Kinova manager scenario reports the
+two displacement checks as failed on the tip, and the check keeps its 3 cm floor so the answer shows.
