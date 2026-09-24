@@ -6,14 +6,24 @@
  *
  *   BLOOM_DASHBOARD_URL=... node scripts/ros-sim-e2e-visual-servoing-checks.mjs --robot explorer|kinova [--out dir]
  */
-import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createInterface } from "node:readline";
 import { chromium } from "@playwright/test";
+import {
+  assert,
+  createChecks,
+  fmtVector,
+  hold,
+  isZeroTwist,
+  newPage as newBrowserPage,
+  openRuntimeApp,
+  readArg as readArgument,
+  skip,
+} from "./lib/e2e-checks.mjs";
+import { startRosProbe } from "./lib/ros-probe.mjs";
 
 const args = process.argv.slice(2);
-const readArg = (flag) => (args.includes(flag) ? args[args.indexOf(flag) + 1] : undefined);
+const readArg = (flag) => readArgument(args, flag);
 const dashboardUrl = process.env.BLOOM_DASHBOARD_URL ?? "http://127.0.0.1:5173";
 const robotKey = readArg("--robot") ?? "kinova";
 const outputDir = resolve(readArg("--out") ?? `/tmp/bloom-ros-sim-e2e-${robotKey}-visual-servoing`);
@@ -26,15 +36,17 @@ const ERROR = "/visual_servoing/error_TAGtoTAGd";
 const TAGS = "/tag_detections";
 const CAMERA = "/camera/color/image_raw/compressed";
 const MANAGER_INPUT = "/visual_servoing_cartesian_command";
-//: A tag the node already knows (config/saved_tag_goals.yaml), seen a little off its saved pose.
+// A tag the node already knows (config/saved_tag_goals.yaml), seen a little off its saved pose.
 const SEEN_TAG = { id: 2, position: [0.05, 0.02, 0.25] };
 
 await mkdir(screenDir, { recursive: true });
-const ros = await startRosProbe();
-const results = [];
-let shotIndex = 0;
+const ros = await startRosProbe({ source: probeSource(), readyTopic: "probe" });
 
 const browser = await chromium.launch({ channel: "chrome" }).catch(() => chromium.launch());
+const { check, results, shot } = createChecks({ screenDir, prefix: `${robotKey}-`, recover });
+const newPage = (viewport) => newBrowserPage(browser, viewport);
+const openApp = (page, appName, roleName, layoutId) =>
+  openRuntimeApp(page, dashboardUrl, { appName, roleName, layoutId });
 try {
   await servoSession();
 } finally {
@@ -167,26 +179,6 @@ async function servoSession() {
 
 // ---- Helpers ----
 
-async function newPage(viewport) {
-  const context = await browser.newContext({ deviceScaleFactor: 1, viewport });
-  const page = await context.newPage();
-  page.on("pageerror", (error) => console.error(`page error: ${error.message}`));
-  return { context, page };
-}
-
-async function openApp(page, appName, roleName, layoutId) {
-  await page.goto(dashboardUrl, { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "Runtime: Operate and inspect" }).click();
-  await page.getByRole("button", { exact: true, name: appName }).click();
-  const roles = page.locator(".runtime-library-roles");
-  if (roleName) {
-    await roles.getByRole("button", { exact: true, name: roleName }).click();
-  }
-  await page.locator(".runtime-library-open").click();
-  await page.locator(`[data-testid="runtime-artboard"][data-screen-id="${layoutId}"]`).waitFor({ timeout: 15000 });
-  await page.getByRole("status").filter({ hasText: /READY/ }).first().waitFor({ timeout: 20000 });
-}
-
 async function switchScreen(page, title) {
   const dialog = page.getByRole("dialog", { name: "Maintenance" });
   await hold(page, page.getByRole("button", { name: "Hold to open maintenance" }), 1700);
@@ -194,56 +186,20 @@ async function switchScreen(page, title) {
   await dialog.waitFor({ state: "hidden" });
 }
 
-async function hold(page, locator, milliseconds) {
-  const box = await locator.boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(milliseconds);
-  await page.mouse.up();
-}
-
-async function shot(page, name) {
-  shotIndex += 1;
-  const file = `${String(shotIndex).padStart(2, "0")}-${robotKey}-${name}.png`;
-  await page.screenshot({ path: resolve(screenDir, file) }).catch(() => undefined);
-}
-
-function skip(reason) {
-  throw Object.assign(new Error(reason), { skipped: true });
-}
-
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
+/** Leave the runtime usable for the next check: release the pointer, resume STOP, close maintenance. */
+async function recover(page) {
+  await page.mouse.up().catch(() => undefined);
+  const resume = page.getByRole("button", { name: "Hold for one second to resume" });
+  if (await resume.isVisible().catch(() => false)) {
+    await hold(page, resume, 1300).catch(() => undefined);
   }
-}
-
-async function check(page, name, run) {
-  try {
-    const detail = await run();
-    results.push({ detail, name, status: "pass" });
-    console.log(`PASS ${name}: ${detail}`);
-    return true;
-  } catch (error) {
-    const detail = error instanceof Error ? error.message.split("\n")[0] : String(error);
-    if (error?.skipped) {
-      results.push({ detail, name, status: "skip" });
-      console.log(`SKIP ${name}: ${detail}`);
-      return true;
-    }
-    results.push({ detail, name, status: "fail" });
-    console.error(`FAIL ${name}: ${detail}`);
-    await shot(page, `${name}.failed`);
-    return false;
+  const dialog = page.getByRole("dialog", { name: "Maintenance" });
+  if (await dialog.isVisible().catch(() => false)) {
+    await dialog
+      .getByRole("button", { name: /^Resume operating/ })
+      .click()
+      .catch(() => undefined);
   }
-}
-
-function isZeroTwist(twist) {
-  return [twist.linear, twist.angular].every((v) => Math.abs(v.x) + Math.abs(v.y) + Math.abs(v.z) < 1e-9);
-}
-
-function fmtVector(v) {
-  return `(${[v.x, v.y, v.z].map((value) => value.toFixed(3)).join(", ")})`;
 }
 
 // ---- ROS side: the synthetic camera and tag, and the listeners ----
@@ -319,61 +275,4 @@ try:
 except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
     pass
 `;
-}
-
-async function startRosProbe() {
-  const child = spawn("python3", ["-u", "-c", probeSource()], { stdio: ["ignore", "pipe", "inherit"] });
-  const messages = new Map();
-  let subscribers = {};
-  createInterface({ input: child.stdout }).on("line", (line) => {
-    let parsed;
-    try {
-      parsed = JSON.parse(line);
-    } catch {
-      return;
-    }
-    if (parsed.subscribers) {
-      subscribers = parsed.subscribers;
-      return;
-    }
-    const list = messages.get(parsed.topic) ?? [];
-    list.push({ data: parsed.data, t: Date.now() });
-    if (list.length > 4000) {
-      list.splice(0, list.length - 4000);
-    }
-    messages.set(parsed.topic, list);
-  });
-  const exited = new Promise((resolvePromise) => child.on("exit", resolvePromise));
-
-  const probe = {
-    since: (topic, time) => (messages.get(topic) ?? []).filter((message) => message.t >= time),
-    stop: () => child.kill("SIGINT"),
-    subscribers: (topic) => subscribers[topic] ?? [],
-    async waitFor(topic, predicate, { since = 0, timeoutMs = 5000 } = {}) {
-      const deadline = Date.now() + timeoutMs;
-      while (Date.now() < deadline) {
-        const found = probe.since(topic, since).find((message) => predicate(message.data));
-        if (found) {
-          return found.data;
-        }
-        await new Promise((resolvePromise) => setTimeout(resolvePromise, 50));
-      }
-      const seen = probe
-        .since(topic, since)
-        .slice(-3)
-        .map((message) => JSON.stringify(message.data));
-      throw new Error(`timed out after ${timeoutMs} ms on ${topic}; last seen: ${seen.join(" ") || "nothing"}`);
-    },
-  };
-  const ready = await Promise.race([
-    probe.waitFor("probe", () => true, { timeoutMs: 30000 }).then(() => true),
-    exited.then(() => false),
-  ]).catch(() => false);
-  if (!ready) {
-    child.kill("SIGKILL");
-    console.error(`The probe did not start on ROS_DOMAIN_ID=${process.env.ROS_DOMAIN_ID ?? 0}; is ROS sourced?`);
-    process.exit(1);
-  }
-  await new Promise((resolvePromise) => setTimeout(resolvePromise, 1500));
-  return probe;
 }

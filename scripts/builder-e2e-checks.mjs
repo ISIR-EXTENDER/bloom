@@ -13,17 +13,17 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium, expect } from "@playwright/test";
+import { assert, createChecks, readArg as readArgument } from "./lib/e2e-checks.mjs";
 
 const args = process.argv.slice(2);
-const readArg = (flag) => (args.includes(flag) ? args[args.indexOf(flag) + 1] : undefined);
+const readArg = (flag) => readArgument(args, flag);
 const dashboardUrl = process.env.BLOOM_DASHBOARD_URL ?? "http://127.0.0.1:5173";
 const apiUrl = process.env.BLOOM_API_URL ?? "http://127.0.0.1:8000";
 const outputDir = resolve(readArg("--out") ?? "/tmp/bloom-builder-e2e");
 const screenDir = resolve(outputDir, "screens");
 
 const APP_NAME = `E2E Drive ${Date.now()}`;
-const results = [];
-let shotIndex = 0;
+const { check, results, shot } = createChecks({ screenDir });
 
 await mkdir(screenDir, { recursive: true });
 
@@ -193,31 +193,4 @@ async function readStop(page) {
   const response = await page.request.get(`${apiUrl}/api/v1/runtime/stop`);
   assert(response.ok(), `GET /runtime/stop returned ${response.status()}`);
   return response.json();
-}
-
-async function shot(page, name) {
-  shotIndex += 1;
-  await page
-    .screenshot({ path: resolve(screenDir, `${String(shotIndex).padStart(2, "0")}-${name}.png`) })
-    .catch(() => undefined);
-}
-
-function assert(condition, message) {
-  if (!condition) {
-    throw new Error(message);
-  }
-}
-
-async function check(page, name, run) {
-  try {
-    const detail = await run();
-    results.push({ name, status: "pass", detail });
-    console.log(`  ok   ${name}${detail ? ` — ${detail}` : ""}`);
-    return true;
-  } catch (error) {
-    results.push({ name, status: "fail", detail: error.message });
-    console.log(`  FAIL ${name} — ${error.message}`);
-    await shot(page, `fail-${name}`);
-    return false;
-  }
 }
