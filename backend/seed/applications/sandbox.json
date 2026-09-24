@@ -164,8 +164,7 @@
                     "mode": 1,
                     "target_topic": "/joystick_cartesian_command"
                   }
-                },
-                "legacyKind": "joystick"
+                }
               }
             },
             {
@@ -212,8 +211,7 @@
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
                   }
-                },
-                "legacyKind": "joystick"
+                }
               }
             },
             {
@@ -370,8 +368,7 @@
               "settings": {
                 "text": "Control Panel",
                 "fontSize": 28,
-                "align": "left",
-                "legacyKind": "text"
+                "align": "left"
               }
             },
             {
@@ -391,8 +388,7 @@
                 "showHeader": true,
                 "showStatus": true,
                 "webcamPicker": true,
-                "topic": "/camera/play_petanque",
-                "legacyKind": "stream-display"
+                "topic": "/camera/play_petanque"
               }
             },
             {
@@ -434,8 +430,7 @@
                 "messageType": "std_msgs/msg/Bool",
                 "onPayload": "{data: true}",
                 "offPayload": "{data: false}",
-                "show_details": false,
-                "legacyKind": "ros-message-toggle"
+                "show_details": false
               }
             },
             {
@@ -459,8 +454,7 @@
                 "messageType": "std_msgs/msg/String",
                 "payload": {
                   "data": "save"
-                },
-                "legacyKind": "button"
+                }
               }
             },
             {
@@ -593,8 +587,7 @@
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
                   }
-                },
-                "legacyKind": "joystick"
+                }
               }
             },
             {
@@ -641,8 +634,7 @@
                     "mode": 1,
                     "target_topic": "/joystick_cartesian_command"
                   }
-                },
-                "legacyKind": "joystick"
+                }
               }
             },
             {
@@ -716,9 +708,7 @@
                 "fieldPath": "",
                 "maxMessages": 20,
                 "prettyPrint": true,
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "control-panel-servo-telemetry"
+                "show_details": false
               }
             },
             {
@@ -737,9 +727,7 @@
                 "fieldPath": "",
                 "maxMessages": 20,
                 "prettyPrint": true,
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "control-panel-servo-telemetry"
+                "show_details": false
               }
             },
             {
@@ -758,9 +746,7 @@
                 "fieldPath": "",
                 "maxMessages": 20,
                 "prettyPrint": true,
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "control-panel-servo-telemetry"
+                "show_details": false
               }
             }
           ]
@@ -787,8 +773,7 @@
                 "text": "Snake Control",
                 "fontSize": 28,
                 "align": "left",
-                "variant": "screen-title",
-                "legacyKind": "text"
+                "variant": "screen-title"
               }
             },
             {
@@ -888,8 +873,7 @@
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
                   }
-                },
-                "legacyKind": "joystick"
+                }
               }
             }
           ]
@@ -915,8 +899,7 @@
               "settings": {
                 "text": "Visual Servoing",
                 "fontSize": 28,
-                "align": "left",
-                "legacyKind": "text"
+                "align": "left"
               }
             },
             {
@@ -936,8 +919,7 @@
                 "showHeader": true,
                 "showStatus": true,
                 "webcamPicker": false,
-                "topic": "/tag_detections",
-                "legacyKind": "stream-display"
+                "topic": "/tag_detections"
               }
             },
             {
@@ -957,8 +939,7 @@
                 "showHeader": true,
                 "showStatus": true,
                 "webcamPicker": true,
-                "topic": "/image_raw",
-                "legacyKind": "stream-display"
+                "topic": "/image_raw"
               }
             },
             {
@@ -979,8 +960,7 @@
                 "messageType": "std_msgs/msg/Bool",
                 "onPayload": "{data: true}",
                 "offPayload": "{data: false}",
-                "show_details": false,
-                "legacyKind": "ros-message-toggle"
+                "show_details": false
               }
             },
             {
@@ -1004,8 +984,7 @@
                 "messageType": "std_msgs/msg/String",
                 "payload": {
                   "data": "save"
-                },
-                "legacyKind": "button"
+                }
               }
             },
             {
@@ -1051,8 +1030,7 @@
               "settings": {
                 "text": "Visual Servoing Monitor",
                 "fontSize": 28,
-                "align": "left",
-                "legacyKind": "text"
+                "align": "left"
               }
             },
             {
@@ -1092,9 +1070,7 @@
                 "fieldPath": "",
                 "maxMessages": 20,
                 "prettyPrint": true,
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "servo-topic-monitor"
+                "show_details": false
               }
             },
             {

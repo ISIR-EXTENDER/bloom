@@ -15,7 +15,7 @@ export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
 export * from "./gripper";
-export * from "./legacy";
+export { legacyCanvasScreensToApplicationConfig } from "./legacy";
 export * from "./min-size";
 export * from "./operator-glossary";
 export * from "./pad-geometry";
