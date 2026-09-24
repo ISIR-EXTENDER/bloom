@@ -79,9 +79,10 @@ CPU on the laptop", rviz wins. That is not the question Bloom answers.
   throttle halved the browser's CPU and memory and cut the socket to a quarter. The view's own share is small:
   it renders on demand and skips a still robot.
 
-The remaining 28% is the runtime's React re-render on each of the 64 frames and the browser's own baseline;
-batching samples per animation frame is the next step if a bench needs it, and it is a runtime change, not a
-view change.
+Of the remaining 28%, part was the runtime's React re-render on each of the 64 frames. The runtime now applies
+everything that arrived within a frame in one state update, which took the same measurement to 22.6% of a core
+with memory unchanged at 610 MB; the rest is the browser's own baseline and the widgets' work. Both were runtime
+changes, not view changes, and every reading widget on every tablet gets them.
 
 
 ## What rviz still does that the view does not

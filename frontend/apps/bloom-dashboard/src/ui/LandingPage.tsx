@@ -17,7 +17,11 @@ const DOCS_URL = "https://github.com/ISIR-EXTENDER/bloom/tree/main/docs";
 const SHORTCUTS = [
   { hash: "#/runtime/open/explorer-manager/explorer-manager", title: "Explorer", body: "Drive the Explorer arm" },
   { hash: "#/runtime/open/kinova-manager/kinova-manager", title: "Kinova", body: "Drive the Kinova gen3" },
-  { hash: "#/runtime/open/bloom-debug/bloom-debug", title: "Debug", body: "Watch topics, joints and the Jacobian" },
+  {
+    hash: "#/runtime/open/bloom-debug/bloom-debug",
+    title: "Debug",
+    body: "Watch topics, joints, the Jacobian and the robot in 3D",
+  },
 ];
 
 const PROMISES = [
