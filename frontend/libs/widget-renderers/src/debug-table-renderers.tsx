@@ -1,5 +1,6 @@
 import {
   getStringSetting,
+  hidesTitle,
   readJacobian,
   readJointLimits,
   readJointStates,
@@ -26,10 +27,12 @@ export function JointTableWidget({ data, descriptor }: WidgetRendererProps) {
 
   return (
     <div className="bloom-joint-table bloom-info-card" data-stale={stale ? "true" : undefined}>
-      <header className="bloom-widget-head">
-        <strong>{descriptor.widget.title}</strong>
-        <span className="bloom-widget-readout">{stale ? `${topic} · stale` : topic}</span>
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <span className="bloom-widget-readout">{stale ? `${topic} · stale` : topic}</span>
+        </header>
+      )}
       {rows.length === 0 ? (
         <p className="bloom-debug-empty">Waiting for {topic}.</p>
       ) : (
@@ -97,13 +100,15 @@ export function JacobianWidget({ data, descriptor }: WidgetRendererProps) {
 
   return (
     <div className="bloom-jacobian bloom-info-card">
-      <header className="bloom-widget-head">
-        <strong>{descriptor.widget.title}</strong>
-        <span className="bloom-widget-readout">
-          {topic}
-          {jacobian ? ` · ${jacobian.rows}×${jacobian.columns}` : ""}
-        </span>
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <span className="bloom-widget-readout">
+            {topic}
+            {jacobian ? ` · ${jacobian.rows}×${jacobian.columns}` : ""}
+          </span>
+        </header>
+      )}
       {jacobian ? (
         <>
           <table

@@ -10,6 +10,7 @@ import {
 } from "./validation";
 
 export type ToggleSettings = {
+  hide_title?: boolean;
   offLabel: string;
   initialValue: boolean;
   messageType?: string;
@@ -45,6 +46,7 @@ export const toggleContract = createContract(
     { key: "onStateLabel", label: "State when ON", type: "text", required: false },
     { key: "offStateLabel", label: "State when OFF", type: "text", required: false },
     { key: "layout", label: "Layout", type: "select", required: false, options: ["card", "inline"] },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],
   TOGGLE_DEFAULT_SETTINGS,

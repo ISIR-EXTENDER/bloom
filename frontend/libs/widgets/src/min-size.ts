@@ -7,6 +7,9 @@ export type WidgetMinSize = readonly [width: number, height: number];
  * Minimum size per widget kind at scale 1.0, derived from what each renderer draws (ADR 0132,
  * docs/design/widget-min-size.md). The builder inspector, the review checklist and the seed validator read this one table.
  */
+/** The title line and the gap under it, per docs/design/widget-min-size.md. */
+const HIDDEN_TITLE_PX = 32;
+
 export const WIDGET_MIN_SIZE: Readonly<Record<string, { off: WidgetMinSize; on: WidgetMinSize }>> = {
   joystick: { off: [280, 332], on: [320, 400] },
   "slider:vertical": { off: [104, 284], on: [130, 312] },
@@ -52,11 +55,14 @@ function minSizeKey(kind: string, settings: MinSizeSettings = {}): string {
 
 /** The minimum for a widget as configured, or null for a kind without a declared minimum. */
 export function minSizeFor(kind: string, settings: MinSizeSettings = {}): WidgetMinSize | null {
-  const entry = WIDGET_MIN_SIZE[minSizeKey(kind, settings)];
+  const key = minSizeKey(kind, settings);
+  const entry = WIDGET_MIN_SIZE[key];
   if (!entry) {
     return null;
   }
-  return settings.show_details === true ? entry.on : entry.off;
+  const size = settings.show_details === true ? entry.on : entry.off;
+  // A hidden title gives back the title and its gap; the grouped rows already did.
+  return settings.hide_title === true && !key.endsWith(":grouped") ? [size[0], size[1] - HIDDEN_TITLE_PX] : size;
 }
 
 export type PrimaryTargetLayout = { height: number; width: number };

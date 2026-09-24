@@ -1,4 +1,4 @@
-import { getBooleanSetting } from "@bloom/widgets";
+import { getBooleanSetting, hidesTitle } from "@bloom/widgets";
 import { useEffect, useRef, useState } from "react";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
@@ -72,7 +72,7 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
 
   return (
     <div className="bloom-position-library bloom-info-card" data-show-details={showDetails ? "true" : "false"}>
-      {showDetails ? (
+      {showDetails && !hidesTitle(descriptor.widget.settings) ? (
         <header className="bloom-widget-head">
           <strong>{descriptor.widget.title}</strong>
           <span className="bloom-widget-readout">

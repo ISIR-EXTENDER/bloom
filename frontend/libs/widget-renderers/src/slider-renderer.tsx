@@ -4,6 +4,7 @@ import {
   getBooleanSetting,
   getNumberSetting,
   getStringSetting,
+  hidesTitle,
   localizeOperatorText,
   normalizeWidgetSettings,
   readNumberList,
@@ -169,14 +170,16 @@ export function SliderWidget({
         data-motor-preset={stepPreset}
         data-show-details={showDetails ? "true" : "false"}
       >
-        <header className="bloom-control-header">
-          <strong>
-            {descriptor.widget.title}
-            {/* The space is read: without it a screen reader says "Max speedm/s". */}
-            {unit ? <small className="bloom-control-unit"> {unit}</small> : null}
-          </strong>
-          <span>{STEP_TARGET_HINTS[stepPreset]}</span>
-        </header>
+        {hidesTitle(descriptor.widget.settings) ? null : (
+          <header className="bloom-control-header">
+            <strong>
+              {descriptor.widget.title}
+              {/* The space is read: without it a screen reader says "Max speedm/s". */}
+              {unit ? <small className="bloom-control-unit"> {unit}</small> : null}
+            </strong>
+            <span>{STEP_TARGET_HINTS[stepPreset]}</span>
+          </header>
+        )}
         <fieldset aria-label={`${descriptor.widget.title} step controls`} className="bloom-slider-stepper">
           <button
             aria-label={`Increase ${descriptor.widget.title} by ${step}`}
@@ -238,10 +241,12 @@ export function SliderWidget({
         data-show-details={showDetails ? "true" : "false"}
         data-slider-kind="segments"
       >
-        <header className="bloom-widget-head">
-          <strong>{descriptor.widget.title}</strong>
-          <output className="bloom-widget-readout">{formattedValue}</output>
-        </header>
+        {hidesTitle(descriptor.widget.settings) ? null : (
+          <header className="bloom-widget-head">
+            <strong>{descriptor.widget.title}</strong>
+            <output className="bloom-widget-readout">{formattedValue}</output>
+          </header>
+        )}
         <fieldset aria-label={descriptor.widget.title} className="bloom-segments">
           {segmentValues.map((value, index) => {
             const selected = Math.abs(value - currentValue) < 1e-9;
@@ -271,12 +276,14 @@ export function SliderWidget({
         data-show-details={showDetails ? "true" : "false"}
         data-slider-kind="limit"
       >
-        <header className="bloom-widget-head">
-          <strong>{descriptor.widget.title}</strong>
-          <output aria-live="polite" className="bloom-widget-readout">
-            {formattedValue}
-          </output>
-        </header>
+        {hidesTitle(descriptor.widget.settings) ? null : (
+          <header className="bloom-widget-head">
+            <strong>{descriptor.widget.title}</strong>
+            <output aria-live="polite" className="bloom-widget-readout">
+              {formattedValue}
+            </output>
+          </header>
+        )}
         {intentLabel ? <p className={showDetails ? "bloom-control-intent" : "sr-only"}>{intentLabel}</p> : null}
         <SliderPrimitive.Root className="bloom-limit-slider" data-orientation={orientation} {...radixHandlers}>
           <SliderPrimitive.Track className="bloom-limit-track">
@@ -312,7 +319,7 @@ export function SliderWidget({
       data-slider-kind="motion"
       data-title-placement={placement}
     >
-      {placement === "above" ? (
+      {placement === "above" && !hidesTitle(descriptor.widget.settings) ? (
         <header className="bloom-widget-head">
           <strong>{descriptor.widget.title}</strong>
           <output aria-live="off" className="bloom-widget-readout">

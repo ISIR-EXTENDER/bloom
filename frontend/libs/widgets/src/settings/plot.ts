@@ -12,6 +12,7 @@ import {
 } from "./validation";
 
 export type PlotSettings = {
+  hide_title?: boolean;
   fieldPath: string;
   historySeconds: number;
   maxSamples: number;
@@ -48,6 +49,7 @@ export const plotContract = createContract(
     { key: "historySeconds", label: "History duration", type: "number", required: true },
     { key: "maxSamples", label: "Maximum samples", type: "number", required: true },
     { key: "showLegend", label: "Show legend", type: "boolean", required: true },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
     { key: "samples", label: "Preview samples", type: "json", required: true },
     { key: "variant", label: "Variant", type: "select", required: true, options: ["area", "bars", "sparkline"] },

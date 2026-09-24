@@ -2,6 +2,7 @@ import {
   getBooleanSetting,
   getNumberSetting,
   getStringSetting,
+  hidesTitle,
   type PlotVerdict,
   readPlotSeries,
   readPlotUnavailable,
@@ -35,19 +36,21 @@ export function PlotBoardWidget({ data, descriptor }: WidgetRendererProps) {
 
   return (
     <div className="bloom-plot-board bloom-info-card">
-      <header className="bloom-widget-head">
-        <div className="bloom-plot-board-title">
-          <strong>{descriptor.widget.title}</strong>
-          <span className="bloom-widget-readout">
-            {plotted.length} series · −{historySeconds} s → now
-          </span>
-        </div>
-        {verdict ? (
-          <output aria-live="polite" className="bloom-plot-board-verdict" data-verdict={verdict.kind}>
-            {formatVerdict(verdict)}
-          </output>
-        ) : null}
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-widget-head">
+          <div className="bloom-plot-board-title">
+            <strong>{descriptor.widget.title}</strong>
+            <span className="bloom-widget-readout">
+              {plotted.length} series · −{historySeconds} s → now
+            </span>
+          </div>
+          {verdict ? (
+            <output aria-live="polite" className="bloom-plot-board-verdict" data-verdict={verdict.kind}>
+              {formatVerdict(verdict)}
+            </output>
+          ) : null}
+        </header>
+      )}
       <div className="bloom-plot-board-area">
         <svg
           aria-label={`${descriptor.widget.title}: ${plotted.map((entry) => entry.label).join(", ") || "no series selected"}`}

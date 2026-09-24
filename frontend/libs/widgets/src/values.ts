@@ -50,3 +50,8 @@ export function readNumberList(value: unknown): number[] {
     ? value.filter((item): item is number => typeof item === "number" && Number.isFinite(item))
     : [];
 }
+
+/** Whether a card draws its title; a hidden one still names the widget for assistive tech. */
+export function hidesTitle(settings: Record<string, unknown> | undefined): boolean {
+  return settings?.hide_title === true;
+}

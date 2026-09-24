@@ -1,6 +1,7 @@
 import { createContract, fail, succeed, validateBoolean, validateString } from "./validation";
 
 export type JacobianSettings = {
+  hide_title?: boolean;
   messageType: string;
   show_details: boolean;
   topic: string;
@@ -17,6 +18,7 @@ export const jacobianContract = createContract(
   [
     { key: "topic", label: "Jacobian topic", type: "text", required: true },
     { key: "messageType", label: "Message type", type: "text", required: false },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],
   JACOBIAN_DEFAULT_SETTINGS,

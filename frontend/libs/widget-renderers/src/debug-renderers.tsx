@@ -2,6 +2,7 @@ import {
   formatTopicEchoValue,
   getBooleanSetting,
   getStringSetting,
+  hidesTitle,
   isRecord,
   localizeEmptyEcho,
   localizeOperatorText,
@@ -106,10 +107,12 @@ function TopicEchoWidget({
 
   return (
     <div className="bloom-topic-debug-widget bloom-info-card" data-show-details={showDetails ? "true" : "false"}>
-      <header className="bloom-widget-head">
-        <strong>{descriptor.widget.title}</strong>
-        <span className="bloom-widget-readout">{headerNote}</span>
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <span className="bloom-widget-readout">{headerNote}</span>
+        </header>
+      )}
       {showDetails ? (
         <div className="bloom-topic-debug-actions">
           <span className="bloom-widget-topic">{topic}</span>

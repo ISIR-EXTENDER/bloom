@@ -3,6 +3,7 @@ import {
   getBooleanSetting,
   getNumberSetting,
   getStringSetting,
+  hidesTitle,
   localizeOperatorText,
   type WidgetActionIntent,
 } from "@bloom/widgets";
@@ -367,14 +368,16 @@ export function ToggleWidget({
       data-narrow={descriptor.widget.layout.width < 260 ? "true" : undefined}
       data-state={isOn ? "active" : "inactive"}
     >
-      <header className="bloom-widget-head bloom-toggle-head">
-        <strong>{descriptor.widget.title}</strong>
-        {stateText ? (
-          <span className="bloom-toggle-state" id={stateTextId}>
-            {stateText}
-          </span>
-        ) : null}
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-widget-head bloom-toggle-head">
+          <strong>{descriptor.widget.title}</strong>
+          {stateText ? (
+            <span className="bloom-toggle-state" id={stateTextId}>
+              {stateText}
+            </span>
+          ) : null}
+        </header>
+      )}
       <button
         aria-describedby={stateText ? stateTextId : undefined}
         aria-pressed={labelsAreActions ? undefined : isOn}

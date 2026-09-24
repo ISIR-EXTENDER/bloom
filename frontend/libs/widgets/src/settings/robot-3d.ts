@@ -9,6 +9,7 @@ import {
 } from "./validation";
 
 export type Robot3dSettings = {
+  hide_title?: boolean;
   description: string;
   jointStateTopic: string;
   modelSource: "extension" | "urdf-url";
@@ -39,6 +40,7 @@ export const robot3dContract = createContract(
     { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
     { key: "showAxes", label: "Show axes", type: "boolean", required: true },
     { key: "description", label: "Description", type: "text", required: false },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
   ],
   ROBOT_3D_DEFAULT_SETTINGS,
   validateRobot3dSettings,

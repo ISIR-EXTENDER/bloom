@@ -37,7 +37,8 @@ describe("the widget minimum-size contract", () => {
     expect(minSizeFor("command-button", { hide_title: true, show_details: true })).toEqual([140, 88]);
     expect(minSizeFor("slider", { direction: "vertical" })).toEqual([104, 284]);
     expect(minSizeFor("slider", {})).toEqual([260, 104]);
-    expect(minSizeFor("joystick", { hide_title: true })).toEqual([280, 332]);
+    expect(minSizeFor("joystick", { hide_title: true })).toEqual([280, 300]);
+    expect(minSizeFor("gauge", { hide_title: true, show_details: true })).toEqual([320, 208]);
     expect(minSizeFor("camera", {})).toBeNull();
   });
 

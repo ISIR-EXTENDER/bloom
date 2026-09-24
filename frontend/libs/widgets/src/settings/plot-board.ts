@@ -10,6 +10,7 @@ import {
 } from "./validation";
 
 export type PlotBoardSettings = {
+  hide_title?: boolean;
   history_seconds: number;
   max_samples: number;
   picker: { enabled: boolean; persist_per_profile: boolean };
@@ -47,6 +48,7 @@ export const plotBoardContract = createContract(
     { key: "y_max", label: "Y maximum", type: "number", required: true },
     { key: "y_fit_data", label: "Widen Y range to fit data", type: "boolean", required: false },
     { key: "picker", label: "Picker", type: "json", required: false },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],
   PLOT_BOARD_DEFAULT_SETTINGS,

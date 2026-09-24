@@ -6,6 +6,8 @@ Stated at scale 1.0, in the same units as `widget.layout`. Derived from what eac
 A card's fixed overhead is `32` (padding) `+ 24` (title) `+ 8` (gap) = **64 px** before the control
 gets a pixel. A readout adds `28`. `show_details` adds a `30 px` detail strip and an `18 px` topic
 line, and the topic line is usually what sets the minimum **width**.
+`hide_title` gives the title and its gap back: 32 px off the height of any kind, unless the kind has its own
+grouped row below, which already accounts for it.
 
 | kind | details off | details on | why | in the tree before this change |
 | --- | --- | --- | --- | --- |

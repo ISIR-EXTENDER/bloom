@@ -8,6 +8,7 @@ import {
 } from "./validation";
 
 export type PlotPickerSettings = {
+  hide_title?: boolean;
   plot_id: string;
   show_details: boolean;
   show_unavailable: boolean;
@@ -30,6 +31,7 @@ export const plotPickerContract = createContract(
     { key: "show_value", label: "Show live values", type: "boolean", required: false },
     { key: "show_unavailable", label: "Show moved series", type: "boolean", required: false },
     { key: "unavailable", label: "Moved series (label, note)", type: "json", required: false },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],
   PLOT_PICKER_DEFAULT_SETTINGS,

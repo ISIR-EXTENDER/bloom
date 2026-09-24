@@ -3,6 +3,7 @@ import {
   getBooleanSetting,
   getNumberSetting,
   getStringSetting,
+  hidesTitle,
   isRecord,
   normalizeWidgetSettings,
   readOptionalNumber,
@@ -53,12 +54,14 @@ export function EventLogWidget({ data, descriptor }: WidgetRendererProps) {
 
   return (
     <div className="bloom-event-log-widget bloom-info-card">
-      <header className="bloom-widget-head">
-        <strong>{descriptor.widget.title}</strong>
-        <span className="bloom-widget-readout">
-          {topic ? `${topic}${newestFirst ? " \u00b7 newest first" : ""}` : formatEventCount(entries.length)}
-        </span>
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-widget-head">
+          <strong>{descriptor.widget.title}</strong>
+          <span className="bloom-widget-readout">
+            {topic ? `${topic}${newestFirst ? " \u00b7 newest first" : ""}` : formatEventCount(entries.length)}
+          </span>
+        </header>
+      )}
       <ol className="bloom-event-log-list">
         {entries.map((entry) => {
           const note = readString(notes[entry.summary], "") || (showDetails ? entry.detail : "");
@@ -120,10 +123,12 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
 
   return (
     <div className="bloom-gauge-widget" data-live={live ? "true" : "false"}>
-      <header className="bloom-display-header">
-        <strong>{descriptor.widget.title}</strong>
-        <span>{showDetails && hasSample ? data.topic : unit || "Gauge"}</span>
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-display-header">
+          <strong>{descriptor.widget.title}</strong>
+          <span>{showDetails && hasSample ? data.topic : unit || "Gauge"}</span>
+        </header>
+      )}
       <meter
         aria-label={`${descriptor.widget.title}: ${formatNumber(value)}${unit ? ` ${unit}` : ""}`}
         className="sr-only"
@@ -193,23 +198,25 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
 
   return (
     <div className="bloom-plot-widget" data-live={live ? "true" : "false"} data-variant={variant}>
-      <header className="bloom-display-header">
-        <strong>{descriptor.widget.title}</strong>
-        {showLegend ? (
-          <span>{liveSamples.length > 0 ? `${liveSamples.length} samples` : `${historySeconds}s history`}</span>
-        ) : null}
-        {allowFreeze ? (
-          <button
-            aria-pressed={isFrozen}
-            className="bloom-plot-freeze"
-            data-frozen={isFrozen ? "true" : undefined}
-            onClick={handleFreezeToggle}
-            type="button"
-          >
-            {isFrozen ? "Live" : "Freeze"}
-          </button>
-        ) : null}
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-display-header">
+          <strong>{descriptor.widget.title}</strong>
+          {showLegend ? (
+            <span>{liveSamples.length > 0 ? `${liveSamples.length} samples` : `${historySeconds}s history`}</span>
+          ) : null}
+          {allowFreeze ? (
+            <button
+              aria-pressed={isFrozen}
+              className="bloom-plot-freeze"
+              data-frozen={isFrozen ? "true" : undefined}
+              onClick={handleFreezeToggle}
+              type="button"
+            >
+              {isFrozen ? "Live" : "Freeze"}
+            </button>
+          ) : null}
+        </header>
+      )}
       <svg aria-label={`${descriptor.widget.title} plot`} className="bloom-plot-sparkline" viewBox="0 0 220 82">
         <title>{descriptor.widget.title}</title>
         <path className="bloom-plot-gridline" d="M0 20 H220 M0 41 H220 M0 62 H220" />
@@ -245,10 +252,12 @@ export function Robot3dWidget({ data, descriptor }: WidgetRendererProps) {
 
   return (
     <div className="bloom-robot-3d-widget">
-      <header className="bloom-display-header">
-        <strong>{descriptor.widget.title}</strong>
-        <span>{jointStateTopic}</span>
-      </header>
+      {hidesTitle(descriptor.widget.settings) ? null : (
+        <header className="bloom-display-header">
+          <strong>{descriptor.widget.title}</strong>
+          <span>{jointStateTopic}</span>
+        </header>
+      )}
       <div className="bloom-robot-3d-stage" aria-label={`${descriptor.widget.title} placeholder`} role="img">
         {showAxes ? (
           <div className="bloom-robot-3d-axes" aria-hidden="true">

@@ -11,6 +11,7 @@ import {
 } from "./validation";
 
 export type EventLogSettings = {
+  hide_title?: boolean;
   entries: unknown[];
   fieldPath: string;
   maxEntries: number;
@@ -51,6 +52,7 @@ export const eventLogContract = createContract(
     { key: "newest_first", label: "Newest first", type: "boolean", required: false },
     // The map that turns a raw mode string into operator language on Command sources.
     { key: "notes", label: "Notes per value", type: "json", required: false },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],
   EVENT_LOG_DEFAULT_SETTINGS,

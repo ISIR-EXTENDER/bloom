@@ -13,6 +13,7 @@ import {
 } from "./validation";
 
 export type SliderSettings = {
+  hide_title?: boolean;
   binding?: string;
   direction: "horizontal" | "vertical";
   intent_label: string;
@@ -64,6 +65,7 @@ export const sliderContract = createContract(
       required: false,
       options: ["above", "overlay"],
     },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
     { key: "topic", label: "Output topic", type: "text", required: false },
     { key: "messageType", label: "ROS message type", type: "text", required: false },

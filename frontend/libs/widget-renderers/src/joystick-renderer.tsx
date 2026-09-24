@@ -3,6 +3,7 @@ import {
   createWidgetActionIntent,
   getBooleanSetting,
   getNumberSetting,
+  hidesTitle,
   normalizeWidgetSettings,
   resolveJoystickControlSize,
   resolveTitlePlacement,
@@ -168,7 +169,7 @@ export function JoystickWidget({
       data-show-details={showDetails ? "true" : "false"}
       data-title-placement={placement}
     >
-      {placement === "above" ? (
+      {placement === "above" && !hidesTitle(descriptor.widget.settings) ? (
         <header className="bloom-widget-head">
           <strong>{descriptor.widget.title}</strong>
           <output aria-live="off" className="bloom-widget-readout">

@@ -10,6 +10,7 @@ import {
 } from "./validation";
 
 export type GaugeSettings = {
+  hide_title?: boolean;
   fieldPath: string;
   max: number;
   messageType: string;
@@ -40,6 +41,7 @@ export const gaugeContract = createContract(
     { key: "topic", label: "Input topic", type: "text", required: false },
     { key: "messageType", label: "Message type", type: "text", required: false },
     { key: "fieldPath", label: "Field path", type: "text", required: false },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
     { key: "unit", label: "Unit", type: "text", required: false },
   ],

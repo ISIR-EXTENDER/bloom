@@ -1,6 +1,7 @@
 import { createContract, validateBoolean, validateString, type WidgetSettingsValidationResult } from "./validation";
 
 export type PositionLibrarySettings = {
+  hide_title?: boolean;
   /** Capture filter and order; empty captures every joint in the sample. */
   jointNames: string[];
   jointStateTopic: string;
@@ -18,6 +19,7 @@ export const positionLibraryContract = createContract(
   [
     { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
     { key: "jointNames", label: "Joint names (capture order)", type: "json", required: false },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],
   POSITION_LIBRARY_DEFAULT_SETTINGS,

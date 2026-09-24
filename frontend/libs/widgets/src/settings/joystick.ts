@@ -31,6 +31,7 @@ export type JoystickRuntimeBinding = {
 };
 
 export type JoystickSettings = {
+  hide_title?: boolean;
   binding?: "joy" | "rot";
   axis_hints: {
     x: JoystickAxisHint;
@@ -89,6 +90,7 @@ export const joystickContract = createContract(
     { key: "binding", label: "Legacy binding", type: "select", required: false, options: ["joy", "rot"] },
     { key: "deadzone", label: "Deadzone", type: "number", required: true },
     { key: "publish_rate_hz", label: "Publish rate", type: "number", required: true },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
     { key: "zero_on_release", label: "Zero on release", type: "boolean", required: true },
     { key: "labels", label: "Axis labels", type: "json", required: true },

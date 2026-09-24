@@ -9,6 +9,7 @@ import {
 } from "./validation";
 
 export type TopicEchoSettings = {
+  hide_title?: boolean;
   fieldPath: string;
   maxMessages: number;
   messageType: string;
@@ -34,6 +35,7 @@ export const topicEchoContract = createContract(
     { key: "fieldPath", label: "Field path", type: "text", required: false },
     { key: "maxMessages", label: "Max messages", type: "number", required: true },
     { key: "prettyPrint", label: "Pretty print", type: "boolean", required: true },
+    { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],
   TOPIC_ECHO_DEFAULT_SETTINGS,
