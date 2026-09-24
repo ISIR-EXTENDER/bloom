@@ -6,10 +6,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, model_validator
 
+from apps.bloom_api.routes.configuration_bundles import get_configuration_repository
 from apps.bloom_api.routes.runtime_camera import router as camera_router
 from apps.bloom_api.routes.runtime_common import (
     audited_rejection,
-    get_configuration_repository,
     get_ros_publisher_gateway,
     get_runtime_audit_log,
     get_runtime_command_policy,

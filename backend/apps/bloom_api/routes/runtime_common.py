@@ -13,7 +13,6 @@ from apps.bloom_api.settings import Settings
 from libs.config import (
     ApplicationConfig,
     ConfigurationNotFoundError,
-    ConfigurationRepository,
 )
 from libs.ros_adapters import (
     RosPublisherGateway,
@@ -95,10 +94,6 @@ def get_runtime_recording_gateway(request: Request) -> RuntimeRecordingGateway:
 
 def get_ros_publisher_gateway(request: Request) -> RosPublisherGateway:
     return request.app.state.ros_publisher_gateway
-
-
-def get_configuration_repository(request: Request) -> ConfigurationRepository:
-    return request.app.state.configuration_repository
 
 
 def get_allowed_recording_output_folders(request: Request) -> tuple[str, ...]:
