@@ -175,8 +175,8 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
 - JSON and SQLite configuration storage, tracked seed applications, import/export, audit, and recording hooks.
 - ROS 2 integration for `cartesian_manager`, generic topic publishing, service calls, and topic discovery.
 - One 30 Hz latest-value teleop stream across every active control, with neutral commands sent immediately.
-- Frontend, backend, security, contract, and visual checks in CI, plus an end-to-end run against the Explorer and
-  Kinova simulations that checks each effect on the ROS graph.
+- Frontend, backend, security, contract, visual and Builder end-to-end checks in CI, plus an end-to-end run against
+  the Explorer and Kinova simulations that checks each effect on the ROS graph.
 - Role-based layouts: a profile names the screen it opens, and Drive ships as Bench and Operator.
 - Widget cards built to the design system: minimum sizes that grow rather than clip, reserved regions for STOP,
   multi-series plot boards and pickers, a joint table, and a Jacobian with manipulability.
@@ -428,13 +428,15 @@ Run everything CI runs, in CI's order, before pushing:
 npm run verify
 ```
 
-It lints and tests the backend, then lints, builds and tests the frontend, audits dependencies, and runs the visual
-gate. It warns when the working tree is dirty, because a push only carries what is committed. The individual steps are:
+It lints and tests the backend, then lints, builds and tests the frontend, checks the app contracts and the
+repository invariants, audits dependencies, and runs the visual gate. It warns when the working tree is dirty, because a push only carries what is committed. The individual steps are:
 
 ```bash
 npm run check          # Biome lint and format
 npm run build
 npm run test
+npm run check:contracts
+npm run qa:review
 npm run visual:smoke
 cd backend
 make lint              # ruff lint and format check; `make format` applies formatting

@@ -77,6 +77,50 @@ jobs:
       - name: Check app contracts and version carriers
         run: npm run check:contracts
 
+      - name: Check repository invariants
+        run: npm run qa:review
+
+  builder:
+    name: Builder end-to-end
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Author, save and run an app through the real API
+        run: npm run e2e:builder
+
+      - name: Upload captures on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: builder-e2e-captures
+          path: /tmp/bloom-builder-e2e
+          if-no-files-found: ignore
+
   visual:
     name: Visual
     runs-on: ubuntu-latest

@@ -33,6 +33,8 @@ npm run test
 
 echo "==> app contracts and version carriers"
 npm run check:contracts
+echo "==> repository invariants"
+npm run qa:review
 
 echo "==> dependency audits"
 npm run audit:security
