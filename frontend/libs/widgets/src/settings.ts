@@ -35,8 +35,6 @@ export type WidgetSettingsValidationResult<TSettings extends Record<string, unkn
       errors: WidgetSettingsValidationError[];
     };
 
-export type ButtonSettings = Record<string, never>;
-
 export type CameraSettings = {
   fitMode: "contain" | "cover";
   showHeader: boolean;
@@ -274,8 +272,6 @@ export type Robot3dSettings = {
 
 export type UnknownWidgetSettings = Record<string, unknown>;
 
-const BUTTON_DEFAULT_SETTINGS: ButtonSettings = {};
-
 const CAMERA_DEFAULT_SETTINGS: CameraSettings = {
   fitMode: "contain",
   showHeader: true,
@@ -486,7 +482,6 @@ const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
 const UNKNOWN_DEFAULT_SETTINGS: UnknownWidgetSettings = {};
 
 export const WIDGET_SETTINGS_CONTRACTS: Readonly<Record<WidgetKind, WidgetSettingsContract>> = {
-  button: createContract("button", [], BUTTON_DEFAULT_SETTINGS, validateButtonSettings),
   camera: createContract(
     "camera",
     [
@@ -1082,10 +1077,6 @@ function createContract<TSettings extends Record<string, unknown>>(
     defaultSettings,
     validate,
   };
-}
-
-function validateButtonSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<ButtonSettings> {
-  return succeed(settings as ButtonSettings);
 }
 
 function validateCameraSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<CameraSettings> {

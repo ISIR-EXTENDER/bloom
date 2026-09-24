@@ -148,7 +148,6 @@ export function classifyScreen(screen: ScreenConfig): ScreenLibraryType {
   if (
     widgetKinds.has("joystick") ||
     widgetKinds.has("slider") ||
-    widgetKinds.has("button") ||
     widgetKinds.has("command-button") ||
     widgetKinds.has("toggle") ||
     includesAny(screenText, ["control", "drive", "teleop", "command"])

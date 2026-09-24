@@ -130,7 +130,7 @@ export function createWidgetActionIntent(widget: WidgetConfig, event: WidgetActi
     );
   }
 
-  if (widget.kind === "button" || widget.kind === "command-button") {
+  if (widget.kind === "command-button") {
     return createCommandLikeIntent(widget, event, normalizedSettings.settings);
   }
   if (widget.kind === "toggle") {

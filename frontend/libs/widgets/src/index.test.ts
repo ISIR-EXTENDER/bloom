@@ -231,11 +231,7 @@ describe("widget capability metadata", () => {
       (definition) => definition.category === "command",
     );
 
-    expect(commandWidgets.map((definition) => definition.kind).sort()).toEqual([
-      "button",
-      "command-button",
-      "position-library",
-    ]);
+    expect(commandWidgets.map((definition) => definition.kind).sort()).toEqual(["command-button", "position-library"]);
   });
 
   it("creates widget configs from capability defaults", () => {
@@ -345,7 +341,6 @@ describe("canvas layout foundation", () => {
 describe("widget settings contracts", () => {
   it("provides settings contracts for every Bloom widget kind", () => {
     expect(Object.keys(WIDGET_SETTINGS_CONTRACTS).sort()).toEqual([
-      "button",
       "camera",
       "command-button",
       "event-log",
@@ -1453,7 +1448,7 @@ describe("widget runtime action intents", () => {
     expect(
       createWidgetActionIntent(
         createWidgetConfigFromDefinition(
-          createDefaultWidgetRegistry().get("button") as WidgetDefinition,
+          createDefaultWidgetRegistry().get("command-button") as WidgetDefinition,
           "live-back-home",
           { settings: { icon: "home", targetScreenId: "default_home", topic: "/ui/navigation" } },
         ),
@@ -1462,7 +1457,7 @@ describe("widget runtime action intents", () => {
     ).toEqual({
       type: "screen-navigation",
       widgetId: "live-back-home",
-      widgetKind: "button",
+      widgetKind: "command-button",
       targetScreenId: "default_home",
     });
   });

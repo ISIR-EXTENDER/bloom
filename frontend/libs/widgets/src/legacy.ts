@@ -146,7 +146,7 @@ function legacyKindToBloomKind(kind: string): WidgetKind {
     "max-velocity": "slider",
     "momentary-ros-message": "command-button",
     "mode-button": "command-button",
-    "navigation-button": "button",
+    "navigation-button": "command-button",
     plot: "plot",
     "ros-message-toggle": "toggle",
     "rosbag-control": "command-button",
@@ -186,6 +186,15 @@ function legacyWidgetSettingsToConfig(widget: LegacyCanvasWidget): Record<string
       momentary: true,
       payload: widget.pressedPayload ?? "{data: true}",
       releasedPayload: widget.releasedPayload ?? "{data: false}",
+    };
+  }
+  if (legacyKind === "navigation-button") {
+    return {
+      ...copyLegacyWidgetSettings(widget),
+      legacyKind,
+      button_label: readString(widget.label, widget.id),
+      command: "navigate_screen",
+      targetScreenId: readString(widget.targetScreenId, ""),
     };
   }
   if (legacyKind === "topic-monitor") {

@@ -45,7 +45,7 @@ type RuntimeTopicRequirement = Pick<RuntimeTopicStatusSummary, "label" | "requir
 
 const MODE_REQUEST_TOPIC = "/mode_request";
 const WIDGET_REGISTRY = createDefaultWidgetRegistry();
-const TOPIC_COMMAND_WIDGET_KINDS = new Set(["button", "command-button", "gesture-pad", "slider", "toggle"]);
+const TOPIC_COMMAND_WIDGET_KINDS = new Set(["command-button", "gesture-pad", "slider", "toggle"]);
 
 const DEFAULT_MODE_STATE: RuntimeModeState = {
   mode: "b1",

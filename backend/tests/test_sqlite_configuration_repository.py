@@ -691,6 +691,54 @@ def test_v7_migration_writes_no_regions_when_the_stored_bundle_holds_a_non_list(
     assert screen.reserved_regions == ()
 
 
+def test_v9_migration_turns_stored_button_widgets_into_command_buttons(tmp_path: Path) -> None:
+    database_path = tmp_path / "bloom.db"
+    bundle = ConfigurationBundle(
+        metadata=ConfigurationMetadata(source="test"),
+        applications=(
+            ApplicationConfig(
+                id="legacy",
+                name="Legacy",
+                screens=(
+                    ScreenConfig(
+                        id="home",
+                        title="Home",
+                        widgets=(
+                            WidgetConfig(
+                                id="back-home",
+                                kind="command-button",
+                                title="Home",
+                                layout=WidgetLayout(),
+                                settings={"targetScreenId": "home", "topic": "/ui/navigation"},
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    )
+    SQLiteConfigurationRepository(database_path).upsert("legacy", bundle)
+    with sqlite_connection(database_path) as connection:
+        payload = json.loads(connection.execute("SELECT bundle_json FROM configuration_bundles").fetchone()[0])
+        payload["applications"][0]["screens"][0]["widgets"][0]["kind"] = "button"
+        connection.execute("UPDATE configuration_bundles SET bundle_json = ?", (json.dumps(payload),))
+        connection.execute("UPDATE configuration_widgets SET kind = 'button'")
+        connection.execute("DELETE FROM schema_migrations WHERE version >= 9")
+        connection.commit()
+
+    widget = SQLiteConfigurationRepository(database_path).get("legacy").applications[0].screens[0].widgets[0]
+
+    assert widget.kind == "command-button"
+    assert widget.settings == {
+        "button_label": "Home",
+        "command": "navigate_screen",
+        "targetScreenId": "home",
+        "topic": "/ui/navigation",
+    }
+    with sqlite_connection(database_path) as connection:
+        assert connection.execute("SELECT kind FROM configuration_widgets").fetchone()[0] == "command-button"
+
+
 def test_reads_succeed_while_another_connection_holds_a_write_transaction(tmp_path: Path) -> None:
     database_path = tmp_path / "bloom.db"
     bundle = make_schema_upgrade_bundle()

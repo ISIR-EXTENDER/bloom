@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 #: How long a statement waits for another connection's write before giving up.
 #: The CLI holds a write for the length of a seed, which is longer than the
@@ -463,6 +463,65 @@ def _migrate_to_v8(connection: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_to_v9(connection: sqlite3.Connection) -> None:
+    # The generic "button" kind only ever came from legacy navigation buttons; a command button navigates.
+    for config_id, payload in _load_bundle_payloads(connection).items():
+        changed = False
+        for application in _application_payloads(config_id, payload).values():
+            for widget in _widget_payloads(application):
+                if widget.get("kind") == "button":
+                    widget["kind"] = "command-button"
+                    widget["settings"] = _navigation_button_settings(widget.get("settings"), widget.get("title"))
+                    changed = True
+        if changed:
+            connection.execute(
+                "UPDATE configuration_bundles SET bundle_json = ? WHERE config_id = ?",
+                (_dump_json(payload), config_id),
+            )
+
+    rows = connection.execute(
+        """
+        SELECT config_id, app_id, screen_id, widget_id, title, settings_json
+        FROM configuration_widgets
+        WHERE kind = 'button'
+        """
+    ).fetchall()
+    for row in rows:
+        settings = json.loads(str(row["settings_json"]))
+        connection.execute(
+            """
+            UPDATE configuration_widgets
+            SET kind = 'command-button', settings_json = ?
+            WHERE config_id = ? AND app_id = ? AND screen_id = ? AND widget_id = ?
+            """,
+            (
+                _dump_json(_navigation_button_settings(settings, str(row["title"]))),
+                row["config_id"],
+                row["app_id"],
+                row["screen_id"],
+                row["widget_id"],
+            ),
+        )
+
+
+def _widget_payloads(application: dict[str, Any]) -> list[dict[str, Any]]:
+    screens = application.get("screens", [])
+    widgets: list[dict[str, Any]] = []
+    for screen in screens if isinstance(screens, list) else []:
+        candidates = screen.get("widgets", []) if isinstance(screen, dict) else []
+        widgets.extend(widget for widget in candidates if isinstance(widget, dict))
+    return widgets
+
+
+def _navigation_button_settings(settings: Any, title: Any) -> dict[str, Any]:
+    settings = dict(settings) if isinstance(settings, dict) else {}
+    target = settings.get("targetScreenId")
+    if isinstance(target, str) and target:
+        settings.setdefault("button_label", str(title or ""))
+        settings.setdefault("command", "navigate_screen")
+    return settings
+
+
 MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (1, _migrate_to_v1),
     (2, _migrate_to_v2),
@@ -472,4 +531,5 @@ MIGRATIONS: tuple[tuple[int, Callable[[sqlite3.Connection], None]], ...] = (
     (6, _migrate_to_v6),
     (7, _migrate_to_v7),
     (8, _migrate_to_v8),
+    (9, _migrate_to_v9),
 )

@@ -369,7 +369,7 @@ OPERATOR_CANVAS_SIZES = {
     "hd": (1280, 720),
 }
 
-INTERACTIVE_WIDGET_KINDS = {"button", "command-button", "gesture-pad", "joystick", "slider", "toggle"}
+INTERACTIVE_WIDGET_KINDS = {"command-button", "gesture-pad", "joystick", "slider", "toggle"}
 
 
 def test_operator_screens_fit_their_canvas_and_controls_do_not_overlap() -> None:

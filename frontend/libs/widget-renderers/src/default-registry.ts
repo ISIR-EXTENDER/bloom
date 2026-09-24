@@ -10,7 +10,6 @@ import { PositionLibraryWidget } from "./position-library-renderer";
 import type { WidgetRendererRegistration } from "./types";
 
 export const DEFAULT_WIDGET_RENDERERS: readonly WidgetRendererRegistration[] = [
-  { kind: "button", render: CommandLikeWidget },
   { kind: "command-button", render: CommandLikeWidget },
   { kind: "event-log", render: EventLogWidget },
   { kind: "label", render: LabelWidget },

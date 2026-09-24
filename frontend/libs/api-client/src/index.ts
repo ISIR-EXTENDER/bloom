@@ -1,5 +1,4 @@
 export const WIDGET_KINDS = [
-  "button",
   "camera",
   "command-button",
   "event-log",

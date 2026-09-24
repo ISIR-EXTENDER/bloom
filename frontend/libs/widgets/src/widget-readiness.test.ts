@@ -62,7 +62,7 @@ describe("with no ROS attached", () => {
   });
 
   it("leaves widgets that need nothing alone", () => {
-    for (const kind of ["label", "button", "camera"]) {
+    for (const kind of ["label", "camera"]) {
       expect(resolveWidgetReadiness(definition(kind), WITHOUT_ROS).state).toBe("ready");
     }
   });

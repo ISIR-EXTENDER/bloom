@@ -168,6 +168,15 @@ def _with_legacy_widget_settings(legacy_kind: str, title: str, settings: dict[st
             "releasedPayload": settings.get("releasedPayload", "{data: false}"),
         }
 
+    if legacy_kind == "navigation-button":
+        return {
+            **settings,
+            "button_label": title,
+            "command": "navigate_screen",
+            "legacyKind": legacy_kind,
+            "targetScreenId": str(settings.get("targetScreenId", "")),
+        }
+
     if legacy_kind == "topic-monitor":
         first_topic = _first_topic_monitor_entry(settings.get("topics"))
         return {
@@ -217,7 +226,7 @@ def _map_widget_kind(kind: str) -> WidgetKind:
         "max-velocity": WidgetKind.SLIDER,
         "momentary-ros-message": WidgetKind.COMMAND_BUTTON,
         "mode-button": WidgetKind.COMMAND_BUTTON,
-        "navigation-button": WidgetKind.BUTTON,
+        "navigation-button": WidgetKind.COMMAND_BUTTON,
         "plot": WidgetKind.PLOT,
         "rosbag-control": WidgetKind.COMMAND_BUTTON,
         "ros-message-toggle": WidgetKind.TOGGLE,

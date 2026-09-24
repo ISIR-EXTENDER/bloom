@@ -200,21 +200,6 @@ function createDefaultEditorCapabilities(styleFields: WidgetStyleCapability[] = 
 
 export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
   {
-    kind: "button",
-    displayName: "Button",
-    category: "command",
-    description:
-      "Legacy generic button, kept so Petanque admin still renders. Command button does the same and is authorable.",
-    defaultTitle: "Button",
-    defaultSettings: getDefaultWidgetSettings("button"),
-    defaultLayout: { width: 160, height: 56, minWidth: 120, minHeight: 48 },
-    runtimeRequirements: ["none"],
-    maturity: "ready",
-    // Its contract has no fields, so the palette offered a control nothing could configure.
-    availability: { editor: false, runtime: true },
-    editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor", "textColor"]),
-  },
-  {
     kind: "camera",
     displayName: "Camera",
     category: "display",
@@ -525,10 +510,10 @@ export const LEGACY_WIDGET_KIND_MAPPINGS: Readonly<Record<LegacyWidgetKind, Lega
   },
   "navigation-button": {
     legacyKind: "navigation-button",
-    bloomKind: "button",
+    bloomKind: "command-button",
     compatibility: "renamed",
     displayName: "Navigation button",
-    notes: "Can become a generic button once screen routing is owned by Bloom.",
+    notes: "A command button that navigates to its target screen.",
   },
   "navigation-bar": {
     legacyKind: "navigation-bar",
