@@ -1,12 +1,7 @@
-/**
- * @vitest-environment jsdom
- */
-import type { ConfigurationBundle } from "@bloom/api-client";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-
-import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
+import { explorerManagerClient } from "../test-support/configuration-client";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
@@ -19,14 +14,7 @@ import type { RuntimeActionClient } from "./runtime-action-dispatcher";
  * catches an intent that never reaches the mode reducer.
  */
 function createConfigurationClient() {
-  const bundle = explorerManagerConfiguration as unknown as ConfigurationBundle;
-  return {
-    listConfigurations: vi.fn(async () => ["explorer-manager"]),
-    getConfiguration: vi.fn(async (): Promise<ConfigurationBundle> => structuredClone(bundle)),
-    upsertConfiguration: vi.fn(async (_id: string, next: ConfigurationBundle) => structuredClone(next)),
-    upsertApplication: vi.fn(async (): Promise<ConfigurationBundle> => structuredClone(bundle)),
-    deleteApplication: vi.fn(async (): Promise<ConfigurationBundle> => structuredClone(bundle)),
-  } as never;
+  return explorerManagerClient();
 }
 
 const pressedState = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");

@@ -1,12 +1,8 @@
-/**
- * @vitest-environment jsdom
- */
-import type { ConfigurationBundle } from "@bloom/api-client";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-
 import bloomDebugConfiguration from "../../../../../backend/seed/applications/bloom-debug.json";
 import { App } from "../App";
+import { seededConfigurationClient } from "../test-support/configuration-client";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient, RuntimeLinkState } from "./runtime-action-dispatcher";
 
@@ -18,12 +14,7 @@ class ResizeObserverMock {
 globalThis.ResizeObserver = ResizeObserverMock as never;
 
 function configurationClient() {
-  const bundle = bloomDebugConfiguration as unknown as ConfigurationBundle;
-  return {
-    listConfigurations: vi.fn(async () => ["bloom-debug"]),
-    getConfiguration: vi.fn(async (): Promise<ConfigurationBundle> => structuredClone(bundle)),
-    upsertConfiguration: vi.fn(async (_id: string, next: ConfigurationBundle) => structuredClone(next)),
-  } as never;
+  return seededConfigurationClient("bloom-debug", bloomDebugConfiguration);
 }
 
 describe("telemetry subscriptions", () => {

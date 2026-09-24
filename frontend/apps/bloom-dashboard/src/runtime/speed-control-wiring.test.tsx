@@ -1,13 +1,12 @@
 /**
  * @vitest-environment jsdom
  */
-import type { ConfigurationBundle, RosTopicStatus } from "@bloom/api-client";
+import type { RosTopicStatus } from "@bloom/api-client";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-
-import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import { App } from "../App";
+import { explorerManagerClient } from "../test-support/configuration-client";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
@@ -15,18 +14,12 @@ const LINEAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_linear_
 const ANGULAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed";
 
 function createConfigurationClient() {
-  const bundle = structuredClone(explorerManagerConfiguration) as unknown as ConfigurationBundle;
-  // The continuous limits live on the bench layout; the operator's are segments.
-  for (const profile of bundle.applications[0]?.profiles ?? []) {
-    profile.preferred_control_layout_id = "manager_drive_bench";
-  }
-  return {
-    listConfigurations: vi.fn(async () => ["explorer-manager"]),
-    getConfiguration: vi.fn(async (): Promise<ConfigurationBundle> => structuredClone(bundle)),
-    upsertConfiguration: vi.fn(async (_id: string, next: ConfigurationBundle) => structuredClone(next)),
-    upsertApplication: vi.fn(async (): Promise<ConfigurationBundle> => structuredClone(bundle)),
-    deleteApplication: vi.fn(async (): Promise<ConfigurationBundle> => structuredClone(bundle)),
-  } as never;
+  return explorerManagerClient((bundle) => {
+    // The continuous limits live on the bench layout; the operator's are segments.
+    for (const profile of bundle.applications[0]?.profiles ?? []) {
+      profile.preferred_control_layout_id = "manager_drive_bench";
+    }
+  });
 }
 
 function readyTopic(name: string, messageType: string): RosTopicStatus {
