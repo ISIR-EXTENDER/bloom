@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+import hashlib
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -18,18 +20,25 @@ def get_robot_model_gateway(request: Request) -> RobotModelGateway:
     return request.app.state.robot_model_gateway
 
 
+# Meshes change when a package is rebuilt, not while a session runs.
+ASSET_CACHE_CONTROL = "private, max-age=300"
+
+
 @router.get("", response_model=RobotModelResponse)
 def read_robot_model(
     request: Request,
+    response: Response,
     _principal: BloomPrincipal = Depends(require_observer),
-) -> RobotModelResponse:
+) -> RobotModelResponse | Response:
     """The URDF the robot runs with, so the 3D view draws this robot and not a shipped copy."""
     urdf = get_robot_model_gateway(request).description()
-    return RobotModelResponse(
-        node=request.app.state.settings.ros_robot_description_node,
-        status="ready" if urdf else "unavailable",
-        urdf=urdf,
-    )
+    node = request.app.state.settings.ros_robot_description_node
+    # The view asks again every few seconds; an unchanged robot costs a hash, not the whole description.
+    etag = f'"{hashlib.sha256((urdf or "").encode()).hexdigest()[:32]}"'
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers={"ETag": etag})
+    response.headers["ETag"] = etag
+    return RobotModelResponse(node=node, status="ready" if urdf else "unavailable", urdf=urdf)
 
 
 @router.get("/assets/{package}/{asset_path:path}")
@@ -43,4 +52,8 @@ def read_robot_model_asset(
     path = get_robot_model_gateway(request).asset(package, asset_path)
     if path is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="robot model asset not found")
-    return FileResponse(path, media_type=ASSET_CONTENT_TYPES[path.suffix.lower()])
+    return FileResponse(
+        path,
+        media_type=ASSET_CONTENT_TYPES[path.suffix.lower()],
+        headers={"Cache-Control": ASSET_CACHE_CONTROL},
+    )

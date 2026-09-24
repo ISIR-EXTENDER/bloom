@@ -391,3 +391,22 @@ function createJsonFetcher(payload: unknown): typeof fetch {
       }),
   );
 }
+
+describe("readRobotModel", () => {
+  it("sends the last tag back and keeps the cached robot on a 304", async () => {
+    const body = { node: "/robot_state_publisher", status: "ready", urdf: "<robot/>" };
+    const fetcher = vi.fn(async (_url: string, init?: RequestInit) => {
+      const sent = new Headers(init?.headers);
+      if (sent.get("If-None-Match") === '"abc"') {
+        return new Response(null, { status: 304, headers: { ETag: '"abc"' } });
+      }
+      return new Response(JSON.stringify(body), { status: 200, headers: { ETag: '"abc"' } });
+    });
+    const client = createBloomApiClient({ baseUrl: "http://localhost:8000", fetcher: fetcher as never });
+    expect(await client.readRobotModel()).toEqual(body);
+    expect(await client.readRobotModel()).toEqual(body);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const second = new Headers((fetcher.mock.calls[1] as [string, RequestInit])[1].headers);
+    expect(second.get("If-None-Match")).toBe('"abc"');
+  });
+});

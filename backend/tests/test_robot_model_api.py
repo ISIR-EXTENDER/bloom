@@ -56,6 +56,18 @@ def test_the_running_description_is_served(tmp_path: Path) -> None:
     assert response.json()["urdf"] == URDF
 
 
+def test_an_unchanged_description_answers_not_modified(tmp_path: Path) -> None:
+    client = make_client(FakeRobotModelGateway(tmp_path))
+    first = client.get("/api/v1/ros/robot-model")
+    etag = first.headers["etag"]
+    assert etag.startswith('"')
+    again = client.get("/api/v1/ros/robot-model", headers={"If-None-Match": etag})
+    assert again.status_code == 304
+    assert again.headers["etag"] == etag
+    # No robot at all has its own tag, so the view sees the change when one appears.
+    assert make_client().get("/api/v1/ros/robot-model").headers["etag"] != etag
+
+
 def test_a_mesh_is_served_from_the_package_share(tmp_path: Path) -> None:
     (tmp_path / "meshes" / "visual").mkdir(parents=True)
     (tmp_path / "meshes" / "visual" / "link1.dae").write_text("<COLLADA/>")
@@ -63,6 +75,7 @@ def test_a_mesh_is_served_from_the_package_share(tmp_path: Path) -> None:
     response = client.get("/api/v1/ros/robot-model/assets/explorer_description/meshes/visual/link1.dae")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("model/vnd.collada+xml")
+    assert response.headers["cache-control"] == "private, max-age=300"
     assert response.text == "<COLLADA/>"
 
 

@@ -174,8 +174,27 @@ export class BloomApiClient {
    * Used by the builder to say what a widget can and cannot do here, instead of
    * offering everything and letting the ROS-dependent ones fail in silence.
    */
+  /** The running robot's description; an unchanged one answers 304 and costs nothing but the tag. */
   async readRobotModel(): Promise<RobotModelResponse> {
-    return this.request<RobotModelResponse>("/api/v1/ros/robot-model");
+    const cached = this.robotModel;
+    const response = await this.fetcher(
+      `${this.baseUrl}/api/v1/ros/robot-model`,
+      this.withRequestHeaders({ headers: cached ? { "If-None-Match": cached.etag } : {} }),
+    );
+    if (response.status === 304 && cached) {
+      return cached.response;
+    }
+    if (!response.ok) {
+      throw new BloomApiError(
+        `Bloom API request failed with status ${response.status}`,
+        response.status,
+        await response.text(),
+      );
+    }
+    const body = (await response.json()) as RobotModelResponse;
+    const etag = response.headers.get("etag");
+    this.robotModel = etag ? { etag, response: body } : null;
+    return body;
   }
 
   /** A mesh the URDF names as package://<package>/<path>, or null when the API has none. */
@@ -288,6 +307,8 @@ export class BloomApiClient {
       { method: "POST" },
     );
   }
+
+  private robotModel: { etag: string; response: RobotModelResponse } | null = null;
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const response = await this.fetcher(`${this.baseUrl}${path}`, this.withRequestHeaders(init));
