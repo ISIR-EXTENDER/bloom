@@ -184,6 +184,12 @@ If the arm does not move but `/joystick_cartesian_command` does, the problem is 
 controllers. If neither topic carries anything, check that the kiosk bar reads `READY` rather than `NOT IN CONTROL` —
 another browser tab may still own the robot.
 
+**Watch the arm in Bloom rather than rviz.** On the laptop, open **Bloom Debug** and switch to its **Robot view**
+screen (hold **⋯** for 1.5 seconds, then pick the screen): the robot the manager runs with, drawn from the description
+the API serves, moving with `/joint_states`, with `/ee_pose` as a small triad on the tool, a joint target such as
+Load home as a translucent copy, and any `visualization_msgs/msg/MarkerArray` on `/goal_markers` drawn as rviz would.
+Open it before the launch if you like: it asks again every three seconds until the robot is up.
+
 ### 9. Check the same things a machine checks
 
 The end-to-end suite drives both robots in a real browser against the real manager and verifies every gesture on the
