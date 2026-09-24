@@ -34,6 +34,10 @@
         ],
         "allowed_teleop_targets": [
           "/joystick_cartesian_command"
+        ],
+        "allowed_parameters": [
+          "/cartesian_manager:inputs.joystick.enabled",
+          "/cartesian_manager:inputs.visual_servoing.enabled"
         ]
       },
       "theme": {
@@ -474,15 +478,15 @@
             {
               "id": "approach-drive-label",
               "kind": "label",
-              "title": "APPROACH THE TAG — three linear axes, three angular axes",
+              "title": "APPROACH THE TAG — LINEAR AND ANGULAR AXES",
               "layout": {
                 "x": 446,
-                "y": 14,
+                "y": 294,
                 "width": 470,
                 "height": 24
               },
               "settings": {
-                "text": "APPROACH THE TAG — three linear axes, three angular axes",
+                "text": "APPROACH THE TAG — LINEAR AND ANGULAR AXES",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -503,6 +507,73 @@
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
+              }
+            },
+            {
+              "id": "approach-inputs-label",
+              "kind": "label",
+              "title": "MANAGER INPUTS — which sources the manager sums",
+              "layout": {
+                "x": 446,
+                "y": 14,
+                "width": 470,
+                "height": 24
+              },
+              "settings": {
+                "text": "MANAGER INPUTS — which sources the manager sums",
+                "fontSize": 12,
+                "align": "left",
+                "show_details": false
+              }
+            },
+            {
+              "id": "approach-joystick-input",
+              "kind": "toggle",
+              "title": "Joystick input",
+              "layout": {
+                "x": 446,
+                "y": 46,
+                "width": 226,
+                "height": 120
+              },
+              "settings": {
+                "initialValue": true,
+                "onLabel": "Summed",
+                "offLabel": "Ignored",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "inputs.joystick.enabled"
+                  }
+                }
+              }
+            },
+            {
+              "id": "approach-servo-input",
+              "kind": "toggle",
+              "title": "Servo input",
+              "layout": {
+                "x": 684,
+                "y": 46,
+                "width": 226,
+                "height": 120
+              },
+              "settings": {
+                "initialValue": true,
+                "onLabel": "Summed",
+                "offLabel": "Ignored",
+                "show_details": false,
+                "runtime_binding": {
+                  "adapter": "parameter",
+                  "target": "parameter",
+                  "value_mapping": {
+                    "node": "/cartesian_manager",
+                    "parameter": "inputs.visual_servoing.enabled"
+                  }
+                }
               }
             },
             {

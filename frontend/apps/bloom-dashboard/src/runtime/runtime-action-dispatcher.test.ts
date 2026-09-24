@@ -946,6 +946,45 @@ describe("parameter bindings", () => {
     expect(result.status).toBe("published");
   });
 
+  it("sets a boolean parameter from a toggle", async () => {
+    const setRosParameter = vi.fn(async (request) => ({
+      ...request,
+      status: "set" as const,
+      detail: "Parameter set.",
+    }));
+    const client = { publishRosTopic: vi.fn(), setRosParameter } as unknown as RuntimeActionClient;
+
+    const result = await dispatchRuntimeActionIntent(
+      client,
+      {
+        type: "toggle-state",
+        widgetId: "servo-input",
+        widgetKind: "toggle",
+        nextState: "off",
+        value: false,
+        payload: undefined,
+        runtimeBinding: {
+          adapter: "parameter",
+          target: "parameter",
+          value_mapping: { node: "/cartesian_manager", parameter: "inputs.visual_servoing.enabled" },
+        },
+      },
+      {
+        runtimePolicy: {
+          ...DEFAULT_RUNTIME_POLICY,
+          allowed_parameters: ["/cartesian_manager:inputs.visual_servoing.enabled"],
+        },
+      },
+    );
+
+    expect(setRosParameter).toHaveBeenCalledWith({
+      node: "/cartesian_manager",
+      name: "inputs.visual_servoing.enabled",
+      value: false,
+    });
+    expect(result.status).toBe("published");
+  });
+
   it("is blocked by the app policy before anything reaches the client", async () => {
     const setRosParameter = vi.fn();
     const client = { publishRosTopic: vi.fn(), setRosParameter } as unknown as RuntimeActionClient;

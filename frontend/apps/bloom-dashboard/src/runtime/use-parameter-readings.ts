@@ -5,7 +5,7 @@ import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
 type ParameterBinding = { node: string; parameter: string; widgetId: string };
 
-/** The parameter sliders on a screen, so they can open on what the node holds. */
+/** The parameter sliders and toggles on a screen, so they can open on what the node holds. */
 function resolveParameterBindings(screen: ScreenConfig): ParameterBinding[] {
   return screen.widgets.flatMap((widget) => {
     const binding = widget.settings?.runtime_binding;
@@ -25,8 +25,11 @@ function resolveParameterBindings(screen: ScreenConfig): ParameterBinding[] {
  * Live values for the screen's parameter bindings, read once per screen open. A value the node does
  * not hold, or a backend without ROS, leaves the slider on its seed value; nothing is invented.
  */
-export function useParameterReadings(screen: ScreenConfig, client: RuntimeActionClient): Record<string, number> {
-  const [readings, setReadings] = useState<Record<string, number>>({});
+export function useParameterReadings(
+  screen: ScreenConfig,
+  client: RuntimeActionClient,
+): Record<string, boolean | number> {
+  const [readings, setReadings] = useState<Record<string, boolean | number>>({});
   const getRosParameters = client.getRosParameters;
 
   useEffect(() => {
@@ -49,17 +52,17 @@ export function useParameterReadings(screen: ScreenConfig, client: RuntimeAction
           if (cancelled) {
             return;
           }
-          const next: Record<string, number> = {};
+          const next: Record<string, boolean | number> = {};
           for (const reading of values) {
             const binding = nodeBindings.find((candidate) => candidate.parameter === reading.name);
-            if (binding && typeof reading.value === "number") {
+            if (binding && (typeof reading.value === "number" || typeof reading.value === "boolean")) {
               next[binding.widgetId] = reading.value;
             }
           }
           setReadings((current) => ({ ...current, ...next }));
         })
         .catch(() => {
-          // The slider keeps its seed value; the set path reports its own refusal.
+          // The control keeps its seed value; the set path reports its own refusal.
         });
     }
     return () => {

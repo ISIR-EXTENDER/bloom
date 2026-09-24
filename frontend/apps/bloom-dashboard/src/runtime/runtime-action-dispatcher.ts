@@ -231,11 +231,39 @@ export async function dispatchRuntimeActionIntent(
     return dispatchCommandIntent(client, intent, options);
   }
 
+  if (intent.type === "toggle-state") {
+    const request = createParameterRequest(intent.runtimeBinding, intent.value);
+    if (request) {
+      return dispatchParameterRequest(client, intent, request, options);
+    }
+  }
+
   return {
     intent,
     status: "unsupported",
     detail: `Runtime intent "${intent.type}" is not connected to a backend adapter yet.`,
   };
+}
+
+async function dispatchParameterRequest(
+  client: RuntimeActionClient,
+  intent: WidgetActionIntent,
+  request: RosParameterSetRequest,
+  options: RuntimeActionDispatchOptions,
+): Promise<RuntimeActionDispatchResult> {
+  const policyError = validateParameterRequest(request, options.runtimePolicy);
+  if (policyError) {
+    return { intent, status: "blocked", detail: policyError };
+  }
+  if (!client.setRosParameter) {
+    return { intent, status: "unsupported", detail: "Parameter intents need an API client before they can be sent." };
+  }
+  try {
+    const response = await client.setRosParameter(request);
+    return { intent, status: response.status === "set" ? "published" : response.status, detail: response.detail };
+  } catch (error: unknown) {
+    return { intent, status: "failed", detail: getErrorMessage(error) };
+  }
 }
 
 async function dispatchCommandIntent(
@@ -536,21 +564,9 @@ async function dispatchTeleopValueIntent(
     }
   }
 
-  const parameterRequest = createValueParameterRequest(intent);
+  const parameterRequest = createParameterRequest(intent.runtimeBinding, intent.value);
   if (parameterRequest) {
-    const policyError = validateParameterRequest(parameterRequest, options.runtimePolicy);
-    if (policyError) {
-      return { intent, status: "blocked", detail: policyError };
-    }
-    if (!client.setRosParameter) {
-      return { intent, status: "unsupported", detail: "Parameter intents need an API client before they can be sent." };
-    }
-    try {
-      const response = await client.setRosParameter(parameterRequest);
-      return { intent, status: response.status === "set" ? "published" : response.status, detail: response.detail };
-    } catch (error: unknown) {
-      return { intent, status: "failed", detail: getErrorMessage(error) };
-    }
+    return dispatchParameterRequest(client, intent, parameterRequest, options);
   }
 
   const topicRequest = createValueTopicPublishRequest(intent);
@@ -744,20 +760,19 @@ function teleopContributionFromIntent(
  * A scalar bound to a node parameter: the live-tuning seam. cartesian_manager rereads its parameters
  * every tick, so a gain moves the moment the service answers; nothing here is a motion command.
  */
-function createValueParameterRequest(
-  intent: Extract<WidgetActionIntent, { type: "value-change" }>,
-): RosParameterSetRequest | null {
-  const runtimeBinding = asRecord(intent.runtimeBinding);
+function createParameterRequest(binding: unknown, value: unknown): RosParameterSetRequest | null {
+  const runtimeBinding = asRecord(binding);
   if (readOptionalString(runtimeBinding.adapter) !== "parameter") {
     return null;
   }
   const valueMapping = asRecord(runtimeBinding.value_mapping);
   const node = readOptionalString(valueMapping.node);
   const name = readOptionalString(valueMapping.parameter);
-  if (!node || !name || typeof intent.value !== "number" || !Number.isFinite(intent.value)) {
+  const scalar = typeof value === "boolean" ? value : readOptionalNumber(value);
+  if (!node || !name || scalar === undefined) {
     return null;
   }
-  return { node, name, value: intent.value };
+  return { node, name, value: scalar };
 }
 
 function validateParameterRequest(

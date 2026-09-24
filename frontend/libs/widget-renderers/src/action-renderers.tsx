@@ -289,6 +289,12 @@ export function ToggleWidget({
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const variant = getStringSetting(descriptor.widget.settings, "variant", "");
   const [localIsOn, setLocalIsOn] = useState(getBooleanSetting(descriptor.widget.settings, "initialValue", false));
+  const readBackValue = controlState?.value;
+  useEffect(() => {
+    if (typeof readBackValue === "boolean") {
+      setLocalIsOn(readBackValue);
+    }
+  }, [readBackValue]);
   const allowToggle = useRepeatGuard(conditioning?.repeatGuardMs);
   const controlledToggleState = controlState?.toggleState;
   const isOn = controlledToggleState ? controlledToggleState === "on" : localIsOn;

@@ -186,7 +186,7 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
   table shared by the resize handle and the inspector.
 - A Builder end-to-end harness (`npm run e2e:builder`) that authors an app through the UI, saves it through
   the real API, opens it in the runtime and latches STOP.
-- Live tuning through node parameters: a slider bound to `<node>:<parameter>` sets it through the node's own
+- Live tuning through node parameters: a slider or toggle bound to `<node>:<parameter>` sets it through the node's own
   parameter service, allowlisted on both sides. Snake gain ships on Drive · Bench and the throw shape on
   Petanque; `e2e:sim` proves a slider press reaches `cartesian_manager`.
 - Practice offered on the first entry to an app, saved poses that survive an API restart, and a scan switch that

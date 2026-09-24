@@ -5,7 +5,6 @@
  *
  * Needs a sourced ROS environment on the simulation's ROS_DOMAIN_ID. scripts/ros-sim-e2e.sh sets all of this up.
  */
-import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
@@ -21,7 +20,7 @@ import {
   skip,
   waitReady,
 } from "./lib/e2e-checks.mjs";
-import { startRosProbe } from "./lib/ros-probe.mjs";
+import { rosParameter, startRosProbe } from "./lib/ros-probe.mjs";
 import { STACK } from "./lib/stack-topics.mjs";
 
 const args = process.argv.slice(2);
@@ -462,21 +461,6 @@ except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
 }
 
 /** `ros2 param get` in the harness environment; the value line reads "Double value is: 3.0". */
-function rosParameter(node, name) {
-  return new Promise((resolveValue, reject) => {
-    const child = spawn("ros2", ["param", "get", node, name], { stdio: ["ignore", "pipe", "pipe"] });
-    let output = "";
-    child.stdout.on("data", (chunk) => {
-      output += chunk;
-    });
-    child.on("error", reject);
-    child.on("close", () => {
-      const match = /value is: (.+)$/m.exec(output);
-      resolveValue(match ? match[1].trim() : output.trim());
-    });
-  });
-}
-
 function twistDifference(a, b) {
   return Math.max(
     ...["linear", "angular"].flatMap((part) => ["x", "y", "z"].map((axis) => Math.abs(a[part][axis] - b[part][axis]))),

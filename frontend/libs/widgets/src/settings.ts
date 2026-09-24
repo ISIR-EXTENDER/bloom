@@ -1399,6 +1399,9 @@ function validateToggleSettings(settings: Record<string, unknown>): WidgetSettin
   if ("presetId" in settings && settings.presetId !== undefined) {
     errors.push(...validateString(settings, "presetId", { allowEmpty: true }));
   }
+  if ("runtime_binding" in settings && settings.runtime_binding !== undefined) {
+    errors.push(...validateJoystickRuntimeBinding(settings.runtime_binding));
+  }
   if (!isJsonSerializable(settings.onPayload)) {
     errors.push({ field: "onPayload", message: "onPayload must be JSON serializable" });
   }

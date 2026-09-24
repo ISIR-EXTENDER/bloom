@@ -61,6 +61,24 @@ for (const axis of ["x", "y", "z"]) {
   );
 }
 
+// The manager's input gates, live parameters on the Approach screen.
+for (const [id, parameter] of [
+  ["approach-joystick-input", "inputs.joystick.enabled"],
+  ["approach-servo-input", "inputs.visual_servoing.enabled"],
+]) {
+  const binding = setting(id, "runtime_binding");
+  assert(`${id} is a parameter toggle`, binding?.adapter === "parameter", `got ${binding?.adapter}`);
+  assert(
+    `${id} sets ${parameter}`,
+    binding?.value_mapping?.parameter === parameter,
+    `got ${binding?.value_mapping?.parameter}`,
+  );
+  assert(
+    `policy allows /cartesian_manager:${parameter}`,
+    (app?.runtime_policy?.allowed_parameters ?? []).includes(`/cartesian_manager:${parameter}`),
+  );
+}
+
 // Approach drives through the manager like every other app.
 assert("approach translation is teleop", setting("approach-translation", "runtime_binding")?.adapter === "teleop");
 assert(

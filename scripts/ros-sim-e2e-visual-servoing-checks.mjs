@@ -20,7 +20,7 @@ import {
   readArg as readArgument,
   skip,
 } from "./lib/e2e-checks.mjs";
-import { startRosProbe } from "./lib/ros-probe.mjs";
+import { rosParameter, startRosProbe } from "./lib/ros-probe.mjs";
 import { STACK } from "./lib/stack-topics.mjs";
 
 const args = process.argv.slice(2);
@@ -177,6 +177,25 @@ async function servoSession() {
     const twist = await ros.waitFor("/joystick_cartesian_command", (data) => !isZeroTwist(data), { since });
     await shot(page, "approach");
     return `translation pad -> /joystick_cartesian_command linear ${fmtVector(twist.linear)}`;
+  });
+
+  await check(page, "servo-input-gate-sets-the-manager-parameter", async () => {
+    // The manager's own gate on the servoing source, flipped from the Approach screen.
+    const parameter = "inputs.visual_servoing.enabled";
+    const before = await rosParameter("/cartesian_manager", parameter);
+    await page.getByRole("button", { name: /^Servo input/ }).click();
+    const deadline = Date.now() + 8000;
+    let after = before;
+    while (Date.now() < deadline) {
+      after = await rosParameter("/cartesian_manager", parameter);
+      if (after !== before) {
+        break;
+      }
+      await page.waitForTimeout(250);
+    }
+    assert(after !== before, `${parameter} stayed at ${before}`);
+    await page.getByRole("button", { name: /^Servo input/ }).click();
+    return `${parameter} ${before} -> ${after}, then back`;
   });
 }
 

@@ -70,6 +70,7 @@ export type WidgetActionIntent =
   | {
       nextState: ToggleState;
       payload: unknown;
+      runtimeBinding?: unknown;
       type: "toggle-state";
       value: boolean;
       widgetId: string;
@@ -250,6 +251,7 @@ function createToggleIntent(
     nextState: event.nextState,
     value: event.nextState === "on",
     payload,
+    ...withOptional("runtimeBinding", settings.runtime_binding),
   };
 }
 

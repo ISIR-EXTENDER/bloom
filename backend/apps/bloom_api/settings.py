@@ -89,6 +89,9 @@ class Settings(BaseModel):
     # cartesian_manager rereads these every tick; joint targets, inputs and frames
     # stay startup-only (PR #11) and are deliberately absent.
     allowed_ros_parameters: tuple[str, ...] = (
+        # Which sources the manager sums; a live gate on the joystick and the visual servoing node.
+        "/cartesian_manager:inputs.joystick.enabled",
+        "/cartesian_manager:inputs.visual_servoing.enabled",
         "/cartesian_manager:shapers.snake.gain",
         "/cartesian_manager:shapers.jaco.min_radius",
         "/cartesian_manager:shapers.jaco.max_angular_velocity",

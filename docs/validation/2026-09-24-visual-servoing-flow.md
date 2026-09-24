@@ -51,7 +51,7 @@ region, contract `scripts/visual-servoing-app-contract.mjs`:
 | Screen | Role | What it holds |
 | --- | --- | --- |
 | Servo | Operator | Gripper camera (`/camera/color/image_raw/compressed`), the Visual servoing toggle (`/ui/visual_servoing/on`), Save this view (`/ui/visual_servoing/save`), the tag list, a servo output plot, and three nudge sliders. |
-| Approach | Bench | Gripper camera, Height, Translation and Rotation pads through `cartesian_manager`, the qontrol speed limits. |
+| Approach | Bench | Gripper camera, the manager's input gates (`inputs.joystick.enabled`, `inputs.visual_servoing.enabled` as live parameters), Height, Translation and Rotation pads through `cartesian_manager`, the qontrol speed limits. |
 | Monitor | both | Tag detections, the velocity and error plot with its picker, the velocity strip. |
 
 The image pipeline stays in ROS: no raw image topic reaches a monitor or a recording, as the July
@@ -75,6 +75,7 @@ frame, since Gazebo has neither. Bloom, the manager and the node are real.
 | `save-writes-the-tag-goal` | Save publishes on `/ui/visual_servoing/save` and the node rewrites tag 2 in `saved_tag_goals.yaml`. |
 | `stop-switches-servoing-off` | STOP publishes `on: false`, the node goes quiet, the hold resumes. |
 | `approach-screen-drives-through-the-manager` | Opened as Bench, a Translation stroke reaches `/joystick_cartesian_command`. |
+| `servo-input-gate-sets-the-manager-parameter` | The Servo input toggle flips `inputs.visual_servoing.enabled` on the manager, then back. |
 
 Results on 2026-09-24, manager `d9a1fa5`, qontrol `91309cc`, the team's `visual_servoing`:
 **Kinova 9/9** (8 pass, 1 skip). The scenario refuses the Explorer today, out loud, because the node

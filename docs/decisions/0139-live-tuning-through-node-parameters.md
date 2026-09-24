@@ -28,6 +28,9 @@ Bloom gains a parameter seam, gated like everything else that reaches the robot:
 - **Widgets.** A slider with `runtime_binding.adapter = "parameter"` and `value_mapping.{node, parameter}`
   sets the parameter on every value change and opens on the value the node holds, read once per screen.
   The Builder's destination panel says "Sets parameter" and warns when the pair is outside the app policy.
+- **2026-09-24.** Toggles bind boolean parameters the same way: the manager's `inputs.joystick.enabled`
+  and `inputs.visual_servoing.enabled` gates sit on the Visual servoing app's Approach screen, so an
+  operator can hand the arm to the servoing node, or take it back, without restarting the manager.
 - **Shipped.** Snake gain on both Managers' Drive · Bench; the three throw parameters on Petanque's
   Teleop settings. `e2e:sim` proves the path against the live manager: a slider press changes
   `ros2 param get /cartesian_manager shapers.snake.gain`.

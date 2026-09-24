@@ -1593,6 +1593,24 @@ describe("widget runtime action intents", () => {
     });
   });
 
+  it("carries a toggle's parameter binding on its state intent", () => {
+    const runtime_binding = {
+      adapter: "parameter",
+      target: "parameter",
+      value_mapping: { node: "/cartesian_manager", parameter: "inputs.joystick.enabled" },
+    };
+    expect(
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("toggle") as WidgetDefinition,
+          "joystick-input",
+          { settings: { initialValue: true, runtime_binding } },
+        ),
+        { type: "toggle", nextState: "off" },
+      ),
+    ).toMatchObject({ type: "toggle-state", value: false, runtimeBinding: runtime_binding });
+  });
+
   it("creates scalar, vector, and gesture value-change intents for input widgets", () => {
     expect(
       createWidgetActionIntent(

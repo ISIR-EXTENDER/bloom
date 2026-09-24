@@ -8,6 +8,22 @@ import { createInterface } from "node:readline";
 
 const KEPT_PER_TOPIC = 4000;
 
+/** One `ros2 param get`, as the CLI prints it: the value after "value is:", or the whole answer. */
+export function rosParameter(node, name) {
+  return new Promise((resolveValue, reject) => {
+    const child = spawn("ros2", ["param", "get", node, name], { stdio: ["ignore", "pipe", "pipe"] });
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", () => {
+      const match = /value is: (.+)$/m.exec(output);
+      resolveValue(match ? match[1].trim() : output.trim());
+    });
+  });
+}
+
 export async function startRosProbe({ source, readyTopic, readyTimeoutMs = 30000, settleMs = 1500 }) {
   const child = spawn("python3", ["-u", "-c", source], { stdio: ["ignore", "pipe", "inherit"] });
   const messages = new Map();
