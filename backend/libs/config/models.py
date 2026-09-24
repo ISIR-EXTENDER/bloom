@@ -69,7 +69,6 @@ class MotorAccessibilityPreset(str, Enum):
     LARGE_TARGETS = "large-targets"
     #: Pads keep their value on release; an explicit zero control releases.
     LATCH = "latch"
-    REDUCED_MOTION = "reduced-motion"
     #: A highlight walks the controls; any switch fires the lit one.
     SCAN = "scan"
     #: Tap-to-increment targets instead of sustained dragging.

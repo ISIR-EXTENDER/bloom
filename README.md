@@ -193,8 +193,9 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
   shares the STOP region instead of taking canvas height.
 
 Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs
-validation with the intended device. Browser reduced-motion preferences work; the equivalent saved profile setting
-still needs wiring. Track these and the current design review in [the UX design handoff](docs/ux-design-handoff.md).
+validation with the intended device. Browser reduced-motion preferences cover the little that moves; nothing on the
+operating surface animates, so there is no profile setting for it. Track these and the current design review in
+[the UX design handoff](docs/ux-design-handoff.md).
 
 ## Product Status
 

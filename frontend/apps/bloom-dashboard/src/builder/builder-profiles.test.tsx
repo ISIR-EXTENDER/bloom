@@ -98,8 +98,7 @@ describe("authoring roles", () => {
     expect(screen.getByLabelText("Scan step (ms)")).toBeTruthy();
   });
 
-  // `reduced-motion` is accepted by the model and changes nothing, so offering it would be a control
-  // that does nothing -- the exact thing this whole pass is removing.
+  // `reduced-motion` left the model on 2026-09-24; a value that changed nothing must never come back as a choice.
   it("does not offer a preset the runtime ignores", () => {
     render(
       <BuilderProfilesPanel

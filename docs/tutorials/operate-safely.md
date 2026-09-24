@@ -149,8 +149,6 @@ The full command sequence is in
 
 - Single-switch directional teleoperation and combined scan-plus-dwell pass their tests but have not been validated
   with the intended devices.
-- The `reduced-motion` profile value is not wired. The browser's own setting is honored, and the operating surface
-  animates nothing in any case.
 - Spanish and French wording, STOP and the resume hold above all, still needs a native speaker's review before
   participant use.
 - Saved poses live in the API process and are lost when it restarts. Export them before stopping it.

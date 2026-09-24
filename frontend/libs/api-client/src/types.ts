@@ -110,7 +110,6 @@ export type MotorAccessibilityPreset =
   | "dwell"
   | "large-targets"
   | "latch"
-  | "reduced-motion"
   | "scan"
   | "step";
 

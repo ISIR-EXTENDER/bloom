@@ -21,7 +21,6 @@ const MOTOR_ACCESSIBILITY_PRESETS = new Set<UserProfile["motor_accessibility_pre
   "dwell",
   "large-targets",
   "latch",
-  "reduced-motion",
   "scan",
   "step",
 ]);

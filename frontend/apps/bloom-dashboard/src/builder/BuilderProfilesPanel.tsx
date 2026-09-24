@@ -9,7 +9,7 @@ import type { ApplicationConfig, UserProfile } from "@bloom/api-client";
  * the controls lives here, so without it the scanning and one-switch story could not be authored at all.
  */
 
-/** Only the presets the runtime actually branches on; `reduced-motion` is accepted and does nothing. */
+/** Every preset the model accepts; each one changes how the runtime behaves. */
 const MOTOR_PRESETS: readonly { id: UserProfile["motor_accessibility_preset"]; label: string }[] = [
   { id: "default", label: "Touch and drag" },
   { id: "large-targets", label: "Touch, larger targets" },

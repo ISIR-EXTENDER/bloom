@@ -11,6 +11,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Breaking
+
+- **The `reduced-motion` motor preset is gone.** It was accepted and changed nothing; a profile that still carries it
+  is refused at import. Nothing on the operating surface animates and the browser's `prefers-reduced-motion` covers
+  the chrome that does.
+
 ### Added
 
 - **The 3D robot view draws the commanded motion**: a blue arrow from the tool along the twist the runtime is

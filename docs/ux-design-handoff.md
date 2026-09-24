@@ -53,7 +53,7 @@ supervisor roles.
 | 4. Target size is discounted by fit | Partial | Builder reports the selected widget's size on the smallest panel of its device class, and the review checklist measures every control on every screen there and names the first below 44 px; runtime Maintenance reports authored geometry and actual scale below 1.0. | No prevention or reflow once a canvas is fit-scaled. |
 | 5. Silent overlap | Partial | Maintained operator seeds and Sandbox validation reject overlapping interactive controls. | Generic immediate collision feedback in the builder. |
 | 6. Adapter-language axis labels | Delivered | Pads use operator direction words; technical axes remain in details. | Validate vocabulary per app with operators. |
-| 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Runtime Settings now changes and safely previews the supported interaction values; under `scan`, both operation and Settings are scannable. | `reduced-motion`, edge layout, and validation with the intended devices remain. |
+| 7. Motor preset was a no-op | Partial | Step, latch, independently enabled dwell, large targets, assisted touch, per-axis dead zone, repeat guard, and a 15-second held-value timeout exist. Runtime Settings now changes and safely previews the supported interaction values; under `scan`, both operation and Settings are scannable. | Edge layout and validation with the intended devices remain. |
 | 8. Muted contrast failed | Delivered | Token corrected and semantic contrast tests expanded. | Review in real lab lighting. |
 | 9. Contributor-oriented onboarding | Partial | Builder and Runtime are distinct; each runtime app has a persistent, action-based local practice tour, and Builder has an twelve-check review. The library marks the role used last on this device and preselects it, but never opens by itself. | Automatic first-launch offer of the practice tour. |
 | 10. Builder cannot see tablet | Partial | The canvas is panel-true at the screen's own class, `1280x720` tablet or `1920x1080` desktop, with the class named above it; the glass chip and the review's touch step measure at the class's smallest panel. | Switching a canvas between device frames, and a live whole-screen touch view rather than a checklist step. |
@@ -83,8 +83,9 @@ supervisor roles.
   check. The current inspector check covers one widget at one target.
 - **Validate all input modes.** Step, latch, scan, dwell, keyboard, gamepad, large targets, audio, and conditioning are
   implemented. Suitability for a person's device, reach, hearing, and fatigue is not established by unit tests.
-- **Resolve reduced motion.** Browser `prefers-reduced-motion` works, but selecting the profile value itself has no
-  independent effect.
+- ~~**Resolve reduced motion.**~~ Decided 2026-09-24: the reserved profile value is removed, not wired. Nothing on the
+  operating surface animates and the 3D robot view draws on demand; the browser preference covers the chrome that
+  does move.
 - **Finish eyes-off operation.** Review fixed control placement between screens, decide on a latch-state cue, and test
   while the operator watches the arm rather than the display.
 - **Validate command-frame language.** Define the operator-facing frame name and installation workflow for egocentric
