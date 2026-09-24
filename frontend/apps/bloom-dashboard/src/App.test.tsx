@@ -1800,8 +1800,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Monitor" }));
     // The kiosk bar carries no screen name, so arriving is proven by what the
     // destination screen renders rather than by a label about it.
-    expect(screen.getByText("Velocity X")).toBeVisible();
-    expect(screen.getByText("Error Z")).toBeVisible();
+    expect(screen.getByText("Servo output")).toBeVisible();
     expect(runtimeActionClient.publishRosTopic).not.toHaveBeenCalledWith(
       expect.objectContaining({ topic: "/ui/navigation/visual_servoing_monitor" }),
     );
@@ -1828,7 +1827,8 @@ describe("App", () => {
       },
       type: "topic_sample",
     });
-    expect(await screen.findByText("0.25 m/s")).toBeVisible();
+    // The board draws a line per series once samples arrive: the three linear axes of the twist.
+    await waitFor(() => expect(document.querySelectorAll(".bloom-plot-board-line")).toHaveLength(3));
 
     fireEvent.click(screen.getByRole("button", { name: "Control" }));
     expect(await screen.findByText("Camera Preview")).toBeVisible();
@@ -1886,7 +1886,7 @@ describe("App", () => {
 
     selectRuntimeScreen("Visual Servoing Monitor");
     expect(await screen.findByText("AprilTag detections")).toBeVisible();
-    expect(screen.getByText("Velocity X")).toBeVisible();
+    expect(screen.getByText("Servo output")).toBeVisible();
     await waitFor(() => expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalled());
     expect(runtimeActionClient.subscribeRuntimeTopic).toHaveBeenCalledWith(
       expect.objectContaining({

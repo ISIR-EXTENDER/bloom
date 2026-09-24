@@ -94,9 +94,10 @@ def test_sandbox_v0_fixture_matches_extender_runtime_contract() -> None:
     }
     assert monitor_topics == {"/tag_detections"}
     monitor_plot_fields = {
-        f"{widget.settings['topic']}:{widget.settings['fieldPath']}"
+        f"{series['topic']}:{series['field_path']}"
         for widget in monitor_screen.widgets
-        if widget.kind == WidgetKind.TOPIC_PLOT
+        if widget.kind == WidgetKind.PLOT_BOARD
+        for series in widget.settings["series"]
     }
     assert monitor_plot_fields == {
         "/visual_servoing/error_TAGtoTAGd:twist.linear.x",

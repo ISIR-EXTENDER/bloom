@@ -45,12 +45,17 @@ function setting(id, key) {
 function topicsForKinds(kinds) {
   return widgets()
     .filter((entry) => kinds.includes(entry.widget.kind))
-    .map((entry) => ({
-      id: entry.widget.id,
-      kind: entry.widget.kind,
-      screenId: entry.screen.id,
-      topic: entry.widget.settings?.topic,
-    }))
+    .flatMap((entry) => {
+      const topics = Array.isArray(entry.widget.settings?.series)
+        ? entry.widget.settings.series.map((series) => series.topic)
+        : [entry.widget.settings?.topic];
+      return topics.map((topic) => ({
+        id: entry.widget.id,
+        kind: entry.widget.kind,
+        screenId: entry.screen.id,
+        topic,
+      }));
+    })
     .filter((entry) => typeof entry.topic === "string" && entry.topic.length > 0);
 }
 
@@ -86,17 +91,14 @@ assert(
   setting("servo-topic-monitor-1", "messageType") === "extender_msgs/msg/SharedControlGoalArray",
 );
 
-for (const axis of ["x", "y", "z"]) {
-  assert(
-    `velocity ${axis} topic`,
-    setting(`servo-velocity-linear-${axis}`, "topic") === "/visual_servoing/velocity_command",
-  );
-  assert(`velocity ${axis} field`, setting(`servo-velocity-linear-${axis}`, "fieldPath") === `twist.linear.${axis}`);
-  assert(`error ${axis} topic`, setting(`servo-error-linear-${axis}`, "topic") === "/visual_servoing/error_TAGtoTAGd");
-  assert(`error ${axis} field`, setting(`servo-error-linear-${axis}`, "fieldPath") === `twist.linear.${axis}`);
+const servoSeries = (setting("servo-output-plot", "series") ?? []).map((entry) => `${entry.topic}:${entry.field_path}`);
+for (const topic of ["/visual_servoing/velocity_command", "/visual_servoing/error_TAGtoTAGd"]) {
+  for (const axis of ["x", "y", "z"]) {
+    assert(`servo output plots ${topic} ${axis}`, servoSeries.includes(`${topic}:twist.linear.${axis}`));
+  }
 }
 
-const monitorTopics = topicsForKinds(["topic-echo", "topic-plot"]);
+const monitorTopics = topicsForKinds(["topic-echo", "topic-plot", "plot-board"]);
 for (const forbiddenTopic of ["/image_raw", "/camera_info"]) {
   assert(
     `UI monitors avoid ${forbiddenTopic}`,

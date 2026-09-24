@@ -1098,141 +1098,78 @@
               }
             },
             {
-              "id": "servo-velocity-linear-x",
-              "kind": "topic-plot",
-              "title": "Velocity X",
+              "id": "servo-output-plot",
+              "kind": "plot-board",
+              "title": "Servo output",
               "layout": {
                 "x": 430,
                 "y": 100,
-                "width": 390,
-                "height": 190
+                "width": 830,
+                "height": 610
               },
               "settings": {
-                "topic": "/visual_servoing/velocity_command",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "twist.linear.x",
-                "historySeconds": 30,
-                "maxSamples": 500,
-                "variant": "area",
-                "unit": "m/s",
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "servo-topic-monitor"
-              }
-            },
-            {
-              "id": "servo-velocity-linear-y",
-              "kind": "topic-plot",
-              "title": "Velocity Y",
-              "layout": {
-                "x": 430,
-                "y": 310,
-                "width": 390,
-                "height": 190
-              },
-              "settings": {
-                "topic": "/visual_servoing/velocity_command",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "twist.linear.y",
-                "historySeconds": 30,
-                "maxSamples": 500,
-                "variant": "area",
-                "unit": "m/s",
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "servo-topic-monitor"
-              }
-            },
-            {
-              "id": "servo-velocity-linear-z",
-              "kind": "topic-plot",
-              "title": "Velocity Z",
-              "layout": {
-                "x": 430,
-                "y": 520,
-                "width": 390,
-                "height": 190
-              },
-              "settings": {
-                "topic": "/visual_servoing/velocity_command",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "twist.linear.z",
-                "historySeconds": 30,
-                "maxSamples": 500,
-                "variant": "area",
-                "unit": "m/s",
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "servo-topic-monitor"
-              }
-            },
-            {
-              "id": "servo-error-linear-x",
-              "kind": "topic-plot",
-              "title": "Error X",
-              "layout": {
-                "x": 850,
-                "y": 100,
-                "width": 390,
-                "height": 190
-              },
-              "settings": {
-                "topic": "/visual_servoing/error_TAGtoTAGd",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "twist.linear.x",
-                "historySeconds": 30,
-                "maxSamples": 500,
-                "variant": "area",
-                "unit": "m",
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "servo-topic-monitor"
-              }
-            },
-            {
-              "id": "servo-error-linear-y",
-              "kind": "topic-plot",
-              "title": "Error Y",
-              "layout": {
-                "x": 850,
-                "y": 310,
-                "width": 390,
-                "height": 190
-              },
-              "settings": {
-                "topic": "/visual_servoing/error_TAGtoTAGd",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "twist.linear.y",
-                "historySeconds": 30,
-                "maxSamples": 500,
-                "variant": "area",
-                "unit": "m",
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "servo-topic-monitor"
-              }
-            },
-            {
-              "id": "servo-error-linear-z",
-              "kind": "topic-plot",
-              "title": "Error Z",
-              "layout": {
-                "x": 850,
-                "y": 520,
-                "width": 390,
-                "height": 190
-              },
-              "settings": {
-                "topic": "/visual_servoing/error_TAGtoTAGd",
-                "messageType": "geometry_msgs/msg/TwistStamped",
-                "fieldPath": "twist.linear.z",
-                "historySeconds": 30,
-                "maxSamples": 500,
-                "variant": "area",
-                "unit": "m",
-                "show_details": false,
-                "legacyKind": "topic-monitor",
-                "sourceTopicMonitorId": "servo-topic-monitor"
+                "series": [
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Velocity X",
+                    "color": "#31493f",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.y",
+                    "label": "Velocity Y",
+                    "color": "#7e967e",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/velocity_command",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.z",
+                    "label": "Velocity Z",
+                    "color": "#536960",
+                    "unit": "m/s",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.x",
+                    "label": "Tag error X",
+                    "color": "#c98a7e",
+                    "unit": "m",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.y",
+                    "label": "Tag error Y",
+                    "color": "#8a7f5c",
+                    "unit": "m",
+                    "enabled": true
+                  },
+                  {
+                    "topic": "/visual_servoing/error_TAGtoTAGd",
+                    "message_type": "geometry_msgs/msg/TwistStamped",
+                    "field_path": "twist.linear.z",
+                    "label": "Tag error Z",
+                    "color": "#6b7f8a",
+                    "unit": "m",
+                    "enabled": true
+                  }
+                ],
+                "history_seconds": 30,
+                "max_samples": 900,
+                "y_min": -0.3,
+                "y_max": 0.3,
+                "y_fit_data": true,
+                "show_details": false
               }
             }
           ]

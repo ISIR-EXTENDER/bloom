@@ -230,19 +230,15 @@ requireTopicWidget(
   "extender_msgs/msg/SharedControlGoalArray",
 );
 
-for (const axis of ["x", "y", "z"]) {
-  requireTopicWidget(
-    `servo-velocity-linear-${axis}`,
-    "topic-plot",
-    "/visual_servoing/velocity_command",
-    "geometry_msgs/msg/TwistStamped",
-  );
-  requireTopicWidget(
-    `servo-error-linear-${axis}`,
-    "topic-plot",
-    "/visual_servoing/error_TAGtoTAGd",
-    "geometry_msgs/msg/TwistStamped",
-  );
+const servoPlot = requireWidget("servo-output-plot", "plot-board");
+const servoSeries = (setting(servoPlot, "series") ?? []).map(
+  (entry) => `${entry.topic}:${entry.message_type}:${entry.field_path}`,
+);
+for (const topic of ["/visual_servoing/velocity_command", "/visual_servoing/error_TAGtoTAGd"]) {
+  for (const axis of ["x", "y", "z"]) {
+    const expected = `${topic}:geometry_msgs/msg/TwistStamped:twist.linear.${axis}`;
+    assert(`servo output plots ${topic} ${axis}`, servoSeries.includes(expected), `missing ${expected}`);
+  }
 }
 
 for (const topic of [

@@ -135,8 +135,9 @@ describe("normalizeConfigurationBundle", () => {
     expect(monitorEchoTopics).toEqual(["/tag_detections"]);
 
     const monitorPlotFields = monitorScreen?.widgets
-      .filter((widget) => widget.kind === "topic-plot")
-      .map((widget) => `${widget.settings.topic}:${widget.settings.fieldPath}`)
+      .filter((widget) => widget.kind === "plot-board")
+      .flatMap((widget) => widget.settings.series as Array<{ topic: string; field_path: string }>)
+      .map((series) => `${series.topic}:${series.field_path}`)
       .sort();
     expect(monitorPlotFields).toEqual([
       "/visual_servoing/error_TAGtoTAGd:twist.linear.x",
