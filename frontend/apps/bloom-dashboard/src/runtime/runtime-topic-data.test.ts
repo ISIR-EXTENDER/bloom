@@ -147,3 +147,56 @@ describe("the commanded twist on a 3D robot view", () => {
     expect(only?.type === "robot-3d" && only.command?.linear.x).toBe(1);
   });
 });
+
+describe("the screen's topic index", () => {
+  const busy: ScreenConfig = {
+    ...screen,
+    widgets: [
+      screen.widgets[0] as never,
+      {
+        id: "gauge",
+        kind: "gauge",
+        title: "Height",
+        layout: { x: 0, y: 0, width: 200, height: 200 },
+        settings: { topic: "/height", messageType: "std_msgs/msg/Float64", fieldPath: "data", min: 0, max: 1 },
+      },
+      {
+        id: "board",
+        kind: "plot-board",
+        title: "Board",
+        layout: { x: 0, y: 0, width: 400, height: 300 },
+        settings: {
+          series: [
+            {
+              key: "z",
+              label: "Z",
+              topic: "/ee_pose",
+              messageType: "geometry_msgs/msg/PoseStamped",
+              fieldPath: "pose.position.z",
+            },
+          ],
+        },
+      },
+    ],
+  };
+
+  function sampleOn(topic: string, value: unknown) {
+    return { type: "topic_sample", payload: { received_at: "t", topic, value, widget_id: "" } } as never;
+  }
+
+  it("delivers a sample only to the widgets that read its topic", () => {
+    const data = appendRuntimeTopicSample({}, busy, sampleOn("/height", { data: 0.5 }));
+    expect(Object.keys(data)).toEqual(["gauge"]);
+  });
+
+  it("reaches a series widget by one of its series topics, and the 3D view by its extra topics", () => {
+    const plotted = appendRuntimeTopicSample({}, busy, sampleOn("/ee_pose", { pose: { position: { z: 0.4 } } }));
+    // The 3D view names /ee_pose as its pose topic and the board plots it: both, and nothing else.
+    expect(Object.keys(plotted).sort()).toEqual(["board", "view"]);
+  });
+
+  it("gives an unread topic nothing to do", () => {
+    const untouched = appendRuntimeTopicSample({}, busy, sampleOn("/nobody", { data: 1 }));
+    expect(untouched).toEqual({});
+  });
+});

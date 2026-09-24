@@ -15,6 +15,11 @@ export function isSeriesWidget(widget: WidgetConfig): boolean {
   return SERIES_KINDS.has(widget.kind);
 }
 
+/** Every topic a series widget reads, for the screen's topic index. */
+export function seriesTopics(widget: WidgetConfig): string[] {
+  return isSeriesWidget(widget) ? readPlotSeries(widget.settings).map((series) => series.topic) : [];
+}
+
 /**
  * One subscription per topic. Samples carry the whole message and each series reads its own field, so a second
  * subscription to the same topic would only deliver every sample twice.

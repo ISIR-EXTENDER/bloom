@@ -7,7 +7,7 @@ import {
   readOptionalString,
   resolveSubscriptionTopic,
 } from "@bloom/widgets";
-import { appendSeriesSample, createSeriesSubscriptionRequests, isSeriesWidget } from "./plot-series-data";
+import { appendSeriesSample, createSeriesSubscriptionRequests, isSeriesWidget, seriesTopics } from "./plot-series-data";
 import type { RuntimeTopicSampleMessage, RuntimeTopicSubscriptionRequest } from "./runtime-action-dispatcher";
 import type { RuntimeVector3 } from "./runtime-protocol";
 
@@ -90,6 +90,42 @@ export function withRobotCommand(
   return next;
 }
 
+const NO_WIDGETS: readonly WidgetConfig[] = [];
+const screenTopicIndexes = new WeakMap<ScreenConfig, Map<string, WidgetConfig[]>>();
+
+/**
+ * Which widgets can answer a topic, built once per screen. A sample used to walk every widget on the screen
+ * and re-resolve its topic from its settings; at sixty samples a second on a twenty-widget screen that was the
+ * runtime's warmest loop.
+ */
+function widgetsForTopic(screen: ScreenConfig, topic: string): readonly WidgetConfig[] {
+  let index = screenTopicIndexes.get(screen);
+  if (!index) {
+    index = new Map<string, WidgetConfig[]>();
+    for (const widget of screen.widgets) {
+      for (const widgetTopic of widgetTopics(widget)) {
+        const known = index.get(widgetTopic);
+        if (known) {
+          known.push(widget);
+        } else {
+          index.set(widgetTopic, [widget]);
+        }
+      }
+    }
+    screenTopicIndexes.set(screen, index);
+  }
+  return index.get(topic) ?? NO_WIDGETS;
+}
+
+/** Every topic one widget answers: its own, its series', and a 3D view's markers, target and pose. */
+function widgetTopics(widget: WidgetConfig): string[] {
+  if (isSeriesWidget(widget)) {
+    return seriesTopics(widget);
+  }
+  const own = resolveWidgetRuntimeTopic(widget);
+  return [...(own ? [own] : []), ...resolveRobotViewTopics(widget).map((extra) => extra.topic)];
+}
+
 export function appendRuntimeTopicSample(
   currentData: Readonly<Record<string, WidgetDataSnapshot>>,
   screen: ScreenConfig,
@@ -102,7 +138,7 @@ export function appendRuntimeTopicSample(
     value: sample.payload.value,
   };
 
-  for (const widget of screen.widgets) {
+  for (const widget of widgetsForTopic(screen, sample.payload.topic)) {
     if (isSeriesWidget(widget)) {
       const series = appendSeriesSample(currentData[widget.id], widget, topicMessage);
       if (series) {
