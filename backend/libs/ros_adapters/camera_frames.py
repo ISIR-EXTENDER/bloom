@@ -20,6 +20,8 @@ import binascii
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from libs.ros_adapters.spin import spin_node_once
+
 #: Formats a browser canvas actually produces.
 SUPPORTED_IMAGE_FORMATS = ("jpeg", "png", "webp")
 
@@ -114,7 +116,7 @@ class RclpyCameraFrameGateway:
         publisher = self._ensure_publisher(topic)
         publisher.publish(self._to_ros_message(frame, frame_id))
         if self._flush_after_publish:
-            self._flush_once()
+            spin_node_once(self._node, "publish camera frames")
 
     def _ensure_publisher(self, topic: str) -> Any:
         publisher = self._publishers.get(topic)
@@ -133,13 +135,6 @@ class RclpyCameraFrameGateway:
         message.format = frame.image_format
         message.data = frame.image_bytes
         return message
-
-    def _flush_once(self) -> None:
-        try:
-            import rclpy
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("rclpy is required to publish camera frames") from exc
-        rclpy.spin_once(self._node, timeout_sec=0.05)
 
     @staticmethod
     def _get_compressed_image_class() -> type:

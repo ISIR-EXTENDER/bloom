@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from libs.ros_adapters.spin import spin_node_once
 from libs.sessions.teleop import TeleopCommand, TeleopPublishReceipt
 
 
@@ -19,7 +20,7 @@ class RclpyTeleopCommandGateway:
         message = self._to_ros_message(command)
         publisher.publish(message)
         if self._flush_after_publish:
-            self._flush_once()
+            spin_node_once(self._node, "publish teleop commands")
         return TeleopPublishReceipt(
             detail="Teleop command published.",
             status="accepted",
@@ -35,14 +36,6 @@ class RclpyTeleopCommandGateway:
         publisher = self._node.create_publisher(message_cls, target, self._qos_profile)
         self._publishers[target] = publisher
         return publisher
-
-    def _flush_once(self) -> None:
-        try:
-            import rclpy
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("rclpy is required to publish teleop commands") from exc
-
-        rclpy.spin_once(self._node, timeout_sec=0.05)
 
     @staticmethod
     def _to_ros_message(command: TeleopCommand) -> Any:

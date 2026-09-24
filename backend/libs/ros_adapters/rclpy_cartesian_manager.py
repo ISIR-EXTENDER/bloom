@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 from typing import Any
 
+from libs.ros_adapters.spin import spin_node_once
 from libs.sessions.teleop import TeleopCommand, TeleopPublishReceipt
 
 DEFAULT_COMMAND_FRAME_ID = "base_link"
@@ -50,7 +51,7 @@ class RclpyCartesianManagerGateway:
         publisher = self._ensure_publisher(command.target)
         publisher.publish(self._to_ros_message(command))
         if self._flush_after_publish:
-            self._flush_once()
+            spin_node_once(self._node, "publish Cartesian commands")
         frame_id = command.frame_id or self._command_frame_id
         return TeleopPublishReceipt(
             detail=f"Cartesian command published in frame '{frame_id or '<manager default>'}'.",
@@ -67,14 +68,6 @@ class RclpyCartesianManagerGateway:
         publisher = self._node.create_publisher(self._get_twist_stamped_message_class(), target, self._qos_profile)
         self._publishers[target] = publisher
         return publisher
-
-    def _flush_once(self) -> None:
-        try:
-            import rclpy
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("rclpy is required to publish Cartesian commands") from exc
-
-        rclpy.spin_once(self._node, timeout_sec=0.05)
 
     def _to_ros_message(self, command: TeleopCommand) -> Any:
         message_cls = self._get_twist_stamped_message_class()
