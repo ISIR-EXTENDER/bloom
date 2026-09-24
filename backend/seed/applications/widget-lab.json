@@ -438,7 +438,7 @@
                 "showLegend": true,
                 "show_details": false,
                 "unit": "m",
-                "variant": "line"
+                "variant": "sparkline"
               }
             },
             {
