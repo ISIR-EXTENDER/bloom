@@ -1,6 +1,6 @@
 # Bloom Documentation
 
-Everything in `docs/`, and what each page is for. Reviewed 2026-09-17, for 0.2.0.
+Everything in `docs/`, and what each page is for. Reviewed 2026-09-24, for 0.3.0.
 
 ## Start Here
 
