@@ -39,6 +39,9 @@ const ROBOTS = {
     gripper: { close: [1.1], open: [0.2] },
     speed: { slow: 0.08, medium: 0.15 },
     goHome: true,
+    // Named rather than tuned around: from the home pose a +angular.y command turns the hand about
+    // (-x, +y) at ~72%, run after run. The wire is right; the compromise is qontrol's at that pose.
+    offAxis: ["Roll right"],
   },
   kinova: {
     app: "Kinova Manager",
@@ -48,6 +51,8 @@ const ROBOTS = {
     gripper: { close: [0.8], open: [0.0] },
     speed: { slow: 0.025, medium: 0.05 },
     goHome: false,
+    // Mock hardware starts the gen3 fully upright, where Up has nowhere to go.
+    settle: { control: "Height", end: "negative" },
   },
 };
 const robot = ROBOTS[robotKey];
@@ -66,6 +71,18 @@ const {
 } = STACK;
 const MIN_DISPLACEMENT_M = 0.03;
 const MIN_ROTATION_RAD = 0.05;
+/**
+ * One end of each Drive control, as the operator reads it. The wire must carry one unit component and the
+ * simulated hand must move along that component in the base frame; which base axis a word drives is the
+ * seed's axis_mapping, reported here so it can be tuned against the arm.
+ */
+const DRIVE_GESTURES = [
+  { word: "Forward", control: "Translation", pad: { x: 0, y: 2 } },
+  { word: "Right", control: "Translation", pad: { x: 2, y: 0 } },
+  { word: "Up", control: "Height", end: "positive" },
+  { word: "Tilt up", control: "Rotation", pad: { x: 0, y: 2 } },
+  { word: "Roll right", control: "Rotation", pad: { x: 2, y: 0 } },
+];
 
 await mkdir(screenDir, { recursive: true });
 const ros = await startRosProbe({ source: probeSource(), readyTopic: POSE });
@@ -111,6 +128,27 @@ async function operatorSession() {
     });
 
     await check(page, "pivot-left-turns-hand-left", async () => pivotAndMeasure(page));
+
+    await check(page, "drive-controls-move-the-hand-as-labelled", async () => {
+      if (robot.settle) {
+        const release = await pressSliderEnd(page, robot.settle.control, robot.settle.end);
+        await page.waitForTimeout(robot.driveHoldMs);
+        await release();
+        await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+        await page.waitForTimeout(800);
+      }
+      const rows = [];
+      for (const gesture of DRIVE_GESTURES) {
+        rows.push(await driveGestureAndMeasure(page, gesture));
+      }
+      const table = rows.map((row) => row.summary).join("; ");
+      const known = new Set(robot.offAxis ?? []);
+      const unexpected = rows.filter((row) => !row.ok && !known.has(row.word)).map((row) => row.word);
+      const healed = rows.filter((row) => row.ok && known.has(row.word)).map((row) => row.word);
+      assert(unexpected.length === 0, `${unexpected.join(", ")} did not follow the wire: ${table}`);
+      assert(healed.length === 0, `${healed.join(", ")} now follows the wire; drop it from offAxis: ${table}`);
+      return table;
+    });
 
     await check(page, "gripper-toggle-publishes", async () => {
       const close = page.getByRole("button", { name: /^Gripper: Close gripper/ });
@@ -353,6 +391,80 @@ async function driveAndMeasure(page, label) {
     summary: `${held.length} twists over ${robot.driveHoldMs} ms, ${POSE} moved ${(displacement * 100).toFixed(1)} cm, zero on release`,
     twist: held.at(-1).data,
   };
+}
+
+async function driveGestureAndMeasure(page, gesture) {
+  const start = await ros.waitFor(POSE, () => true, { since: Date.now() });
+  const since = Date.now();
+  const release = gesture.pad
+    ? await pressJoystick(page, page.getByRole("application", { name: gesture.control }), gesture.pad)
+    : await pressSliderEnd(page, gesture.control, gesture.end);
+  await page.waitForTimeout(robot.driveHoldMs);
+  const held = ros.since(TWIST, since).filter((message) => !isZeroTwist(message.data));
+  const releasedAt = Date.now();
+  await release();
+  assert(held.length > 0, `${gesture.word}: no non-zero ${TWIST} while ${gesture.control} was held`);
+  const wire = held.at(-1).data;
+  await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: releasedAt, timeoutMs: 2000 });
+  await page.waitForTimeout(800);
+  const end = ros.latest(POSE).data;
+  const components = [...axes(wire.linear, "linear"), ...axes(wire.angular, "angular")].filter(
+    (c) => Math.abs(c.value) > 1e-6,
+  );
+  assert(components.length === 1 && Math.abs(components[0].value) > 0.5, `${gesture.word}: wire ${fmtTwist(wire)}`);
+  const [component] = components;
+  const moved =
+    component.part === "linear"
+      ? subtract(end.position, start.position)
+      : rotationVector(start.orientation, end.orientation);
+  const floor = component.part === "linear" ? MIN_DISPLACEMENT_M : MIN_ROTATION_RAD;
+  const magnitude = Math.hypot(moved.x, moved.y, moved.z);
+  const along = (moved[component.axis] * Math.sign(component.value)) / magnitude;
+  const ok = magnitude > floor && along > 0.9;
+  // the stroke back, so the next gesture starts near the same pose
+  const back = gesture.pad
+    ? await pressJoystick(page, page.getByRole("application", { name: gesture.control }), {
+        x: -gesture.pad.x,
+        y: -gesture.pad.y,
+      })
+    : await pressSliderEnd(page, gesture.control, gesture.end === "positive" ? "negative" : "positive");
+  await page.waitForTimeout(robot.driveHoldMs);
+  await back();
+  await ros.waitFor(TWIST, (data) => isZeroTwist(data), { since: Date.now(), timeoutMs: 2000 });
+  const unit = component.part === "linear" ? "m" : "rad";
+  const sign = component.value > 0 ? "+" : "-";
+  return {
+    ok,
+    summary: `${gesture.word} -> ${component.part}.${component.axis} ${sign}1 -> hand ${fmtVector(moved)} ${unit} in base from ${fmtVector(start.position)}, ${(along * 100).toFixed(0)}% along${ok ? "" : " (off)"}`,
+    word: gesture.word,
+  };
+}
+
+async function pressSliderEnd(page, name, end) {
+  const root = page.getByRole("slider", { name }).locator('xpath=ancestor::*[contains(@class, "bloom-axis-slider")]');
+  const track = root.locator(".bloom-axis-track");
+  const vertical = (await root.getAttribute("data-orientation")) === "vertical";
+  const box = await track.boundingBox();
+  const point = vertical
+    ? { x: box.x + box.width / 2, y: end === "positive" ? box.y + 2 : box.y + box.height - 2 }
+    : { x: end === "positive" ? box.x + box.width - 2 : box.x + 2, y: box.y + box.height / 2 };
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  let released = false;
+  return async () => {
+    if (!released) {
+      released = true;
+      await page.mouse.up();
+    }
+  };
+}
+
+function axes(vector, part) {
+  return ["x", "y", "z"].map((axis) => ({ axis, part, value: vector[axis] }));
+}
+
+function subtract(a, b) {
+  return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z };
 }
 
 /** Pivot's left end is +angular.z on the wire, and the hand must yaw the same way about the base z axis. */

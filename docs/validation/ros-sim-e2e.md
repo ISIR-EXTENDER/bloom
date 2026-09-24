@@ -17,6 +17,7 @@ For the chosen robot, with the API, dashboard, manager, qontrol and controllers 
 | `library-opens-operator`, `library-opens-bench` | The library opens the app as Operator and as Bench, lands on `manager_drive_operator` / `manager_drive_bench`, and the kiosk reads `READY`. |
 | `translation-moves-ee-pose` | A held Translation stroke streams non-zero twists on `/joystick_cartesian_command`, `/ee_pose` moves more than 3 cm, and release publishes a zero twist. The same stroke back returns the arm. |
 | `pivot-left-turns-hand-left` | Pivot held at its left end streams `+angular.z` with zero linear parts, and `/ee_pose` yaws about the base z axis in the positive sense by more than 0.05 rad, with no rotation about x or y. |
+| `drive-controls-move-the-hand-as-labelled` | One end of each Drive control (Forward, Right, Up, Tilt up, Roll right): the wire carries one unit component and the hand moves along that base axis, more than 3 cm or 0.05 rad and more than 90% along it, each followed by the stroke back. A robot may name a word that is known not to follow, and the check says so when it starts to. The Kinova settles down first, because mock hardware starts it fully upright. |
 | `bench-and-operator-publish-same-twist` | The same full-deflection gesture publishes the same twist and frame from both layouts. |
 | `gripper-toggle-publishes` | The toggle publishes the robot's own values on `/gripper_controller/commands`: Explorer close `[1.1]` / open `[0.2]`, Kinova close `[0.8]` / open `[0.0]`. |
 | `speed-segment-publishes` | Slow and Medium publish their values on `max_linear_speed`. Skipped when nothing but the probe subscribes. |
@@ -115,6 +116,31 @@ Explorer in Gazebo over its 800 ms hold, 0.999 rad on Kinova over its 2.5 s hold
 [the 7-dof task note](2026-09-24-kinova-qontrol-7dof-task.md)). The rotation had no x or y component on either robot.
 So the sign is verified from the slider to the simulated arm; what the operator calls left still depends on where
 they sit relative to the base frame, which only the bench can settle. 14/14 on both robots.
+
+### Amended 2026-09-24: every Drive word, and the Explorer's mapping
+
+The Explorer Manager joysticks carried `extender_ui`'s unconfigured identity mapping. The profile driven on the
+Explorer, saved from `extender_ui`'s Sandbox teleop config, swaps X and Y and inverts linear X; the seed now
+carries it (ADR 0120, amended). A fifteenth check, `drive-controls-move-the-hand-as-labelled`, holds one end of
+each Drive control and measures the hand in the base frame, from the pose it started at:
+
+| Word | Explorer (Gazebo, 800 ms) | Kinova (mock hardware, 2.5 s, qontrol `a6382c1`) |
+| --- | --- | --- |
+| Forward | `linear.x` −1: hand (−0.091, −0.002, 0.001) m, 100% along | `linear.y` +1: hand (0.000, 0.137, 0.000) m, 100% |
+| Right | `linear.y` +1: (0.031, 0.075, 0.009) m, 92% | `linear.x` +1: (0.130, −0.015, 0.000) m, 99% |
+| Up | `linear.z` +1: (0.000, −0.023, 0.075) m, 96% | `linear.z` +1: (−0.012, 0.003, 0.109) m, 99% |
+| Tilt up | `angular.x` +1: (0.186, 0.000, 0.000) rad, 100% | `angular.y` +1: (0.001, 1.093, 0.000) rad, 100% |
+| Roll right | `angular.y` +1: (−0.122, 0.127, 0.005) rad, **72%** | `angular.x` +1: (1.053, −0.077, −0.044) rad, 100% |
+
+The Kinova is settled 2.5 s downward first: mock hardware starts the gen3 fully upright, where Up had nowhere to go
+(1.5 cm, mostly sideways). The Explorer's Roll right is the one word that does not follow the wire: from its home
+pose, 16 cm out and 21 cm up from the base, a +`angular.y` command turns the hand about (−x, +y), run after run,
+while the wire is exactly `angular.y`. That is qontrol's compromise at that pose, not the mapping, and the check
+names it (`offAxis`) instead of failing every Explorer run on it; it will say so the day it starts to follow.
+Before the seed change the identity mapping showed the same kind of thing on Right (+x): 3 cm, mostly −y.
+
+What simulation cannot settle is which base axis is "forward" from the operator's seat; the Explorer mapping is
+the one that was driven on the arm, the Kinova's has never been. 15/15 on both robots.
 
 Findings from these runs, none blocking:
 
