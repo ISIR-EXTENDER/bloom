@@ -55,7 +55,7 @@ import {
   WIDGET_SETTINGS_CONTRACTS,
   type WidgetDefinition,
 } from "./index";
-import { legacyCanvasScreenToConfig, legacyCanvasWidgetToConfig, legacyRectToLayout } from "./legacy";
+import { legacyCanvasScreenToConfig, legacyRectToLayout } from "./legacy";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
 

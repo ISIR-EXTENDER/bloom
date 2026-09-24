@@ -1553,6 +1553,7 @@
 /* The scan highlight: a ring the operator can see from across a lit room,
    not a subtle tint. Shape carries it too, so colour alone never does. */
 [data-scan-lit] {
+  /* biome-ignore lint/complexity/noImportantStyles: the ring must beat every widget's own outline */
   outline: 4px solid var(--bloom-primary) !important;
   outline-offset: 3px;
   border-radius: 12px;

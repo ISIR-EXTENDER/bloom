@@ -2082,10 +2082,8 @@
   font-weight: 700;
 }
 
-.builder-profile-check {
-  display: flex !important;
-  flex: 1 1 220px;
-  gap: 8px;
+.builder-profile-row .builder-profile-check {
+  display: flex;
   align-items: center;
 }
 

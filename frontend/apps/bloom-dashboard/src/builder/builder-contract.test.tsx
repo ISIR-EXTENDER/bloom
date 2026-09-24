@@ -278,14 +278,18 @@ describe("a draft while a save is in flight", () => {
   it("keeps an edit the author made while the request was out", () => {
     function Harness({ source }: { source: ScreenConfig }) {
       const draft = useBuilderScreenDraft(source);
+      const target = bench.widgets[0];
+      if (!target) {
+        throw new Error("the bench fixture has no widget to nudge");
+      }
       return (
         <div>
           <span data-testid="top">{draft.draftScreen.widgets[0]?.layout.y}</span>
           <span data-testid="dirty">{String(draft.isDirty)}</span>
           <button
             onClick={() =>
-              draft.commitWidgetLayout(bench.widgets[0]!.id, bench.widgets[0]!.layout, {
-                ...bench.widgets[0]!.layout,
+              draft.commitWidgetLayout(target.id, target.layout, {
+                ...target.layout,
                 y: 168,
               })
             }

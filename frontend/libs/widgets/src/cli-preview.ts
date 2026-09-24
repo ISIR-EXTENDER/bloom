@@ -17,7 +17,7 @@ export function buildCliPreview(
   payload: unknown,
 ): string | null {
   const destination = resolveWidgetDestination(kind, settings);
-  if (!destination || destination.direction !== "publishes" || !destination.topic) {
+  if (destination?.direction !== "publishes" || !destination.topic) {
     return null;
   }
 

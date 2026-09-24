@@ -587,7 +587,11 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Practice tour" }));
     expect(screen.getByRole("region", { name: "Practice this app" })).toBeVisible();
 
-    vi.mocked(runtimeActionClient.sendTeleopCommand!).mockClear();
+    const sendTeleopCommand = runtimeActionClient.sendTeleopCommand;
+    if (!sendTeleopCommand) {
+      throw new Error("the test client has no teleop command");
+    }
+    vi.mocked(sendTeleopCommand).mockClear();
     vi.mocked(runtimeActionClient.publishRosTopic).mockClear();
     fireEvent.click(screen.getByRole("button", { name: "I've seen it" }));
     fireEvent.click(screen.getByRole("button", { name: "Forward" }));
