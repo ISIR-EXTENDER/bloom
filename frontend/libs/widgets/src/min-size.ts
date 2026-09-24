@@ -39,7 +39,7 @@ export type MinSizeSettings = {
   title_placement?: unknown;
 };
 
-export function minSizeKey(kind: string, settings: MinSizeSettings = {}): string {
+function minSizeKey(kind: string, settings: MinSizeSettings = {}): string {
   const base = kind === "slider" ? `slider:${settings.direction === "vertical" ? "vertical" : "horizontal"}` : kind;
   if (kind === "toggle" && settings.layout === "inline") {
     return "toggle:inline";

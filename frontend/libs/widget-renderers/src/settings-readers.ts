@@ -19,7 +19,7 @@ export type ResolvedJoystickBinding = {
   zeroOnRelease: boolean;
 };
 
-export function getJoystickLabels(settings: Record<string, unknown>): JoystickLabels {
+function getJoystickLabels(settings: Record<string, unknown>): JoystickLabels {
   const labels = settings.labels;
   if (!isRecord(labels)) {
     return { bottom: "Y-", left: "X-", right: "X+", top: "Y+" };

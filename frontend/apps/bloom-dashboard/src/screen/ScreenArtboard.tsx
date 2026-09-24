@@ -62,7 +62,7 @@ export function ScreenArtboard({
   );
 }
 
-export function resolveScreenArtboardLayout(screen: ScreenConfig) {
+function resolveScreenArtboardLayout(screen: ScreenConfig) {
   return {
     artboardSize: resolveCanvasArtboardSize(screen.widgets, screen.canvas),
     isEmpty: screen.widgets.length === 0,

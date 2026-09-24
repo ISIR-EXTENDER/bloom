@@ -13,22 +13,13 @@ import { WidgetBoundary } from "./WidgetBoundary";
 import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
-export { resolveDecimalPlaces } from "./control-renderers";
-export type { JoystickLabels, JoystickPrimitiveProps, JoystickVector } from "./JoystickPrimitive";
-export { JoystickPrimitive, normalizeJoystickVector } from "./JoystickPrimitive";
 export type {
   PlotSeriesSnapshot,
   ScreenRendererOptions,
-  UnknownWidgetRenderer,
-  UnknownWidgetRendererProps,
   WidgetActionIntentHandler,
   WidgetActionOutcome,
   WidgetControlState,
   WidgetDataSnapshot,
-  WidgetRenderer,
-  WidgetRendererProps,
-  WidgetRendererRegistration,
-  WidgetRendererRegistry,
 } from "./types";
 
 export function createWidgetRendererRegistry(

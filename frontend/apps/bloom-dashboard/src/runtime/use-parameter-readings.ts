@@ -6,7 +6,7 @@ import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 type ParameterBinding = { node: string; parameter: string; widgetId: string };
 
 /** The parameter sliders on a screen, so they can open on what the node holds. */
-export function resolveParameterBindings(screen: ScreenConfig): ParameterBinding[] {
+function resolveParameterBindings(screen: ScreenConfig): ParameterBinding[] {
   return screen.widgets.flatMap((widget) => {
     const binding = widget.settings?.runtime_binding;
     if (!binding || typeof binding !== "object" || (binding as { adapter?: unknown }).adapter !== "parameter") {

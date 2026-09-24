@@ -38,12 +38,6 @@ export type LegacyCanvasWidget = {
   [key: string]: unknown;
 };
 
-export type LegacyConfigurationBundleOptions = {
-  application?: LegacyApplication;
-  exportedAt?: string;
-  source?: string;
-};
-
 const WIDGET_CONFIG_KEYS = new Set(["id", "kind", "label", "rect", "title"]);
 // The legacy importer and the widget library must agree on what an unspecified
 // canvas means, so this is the shared constant rather than a second copy of the
@@ -110,7 +104,7 @@ export function legacyCanvasWidgetToConfig(widget: LegacyCanvasWidget): WidgetCo
   };
 }
 
-export function legacyCanvasSettingsToConfig(canvas: Record<string, unknown> | undefined): CanvasSettings {
+function legacyCanvasSettingsToConfig(canvas: Record<string, unknown> | undefined): CanvasSettings {
   if (!canvas) {
     return { ...DEFAULT_LEGACY_CANVAS_SETTINGS };
   }

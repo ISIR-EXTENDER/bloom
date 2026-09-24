@@ -20,7 +20,7 @@ export type ScreenLibraryItem = {
   type: ScreenLibraryType;
 };
 
-export const SCREEN_LIBRARY_GROUPS: readonly {
+const SCREEN_LIBRARY_GROUPS: readonly {
   description: string;
   label: string;
   type: ScreenLibraryType;

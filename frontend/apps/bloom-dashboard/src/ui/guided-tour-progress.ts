@@ -24,7 +24,7 @@ export function loadGuidedTourProgress(tourKey: string): string[] {
   }
 }
 
-export function saveGuidedTourStep(tourKey: string, stepId: string): string[] {
+function saveGuidedTourStep(tourKey: string, stepId: string): string[] {
   const progress = loadAllGuidedTourProgress();
   const completed = Array.from(new Set([...(progress[tourKey] ?? []), stepId]));
   progress[tourKey] = completed;

@@ -60,7 +60,7 @@ export function resolveFieldPath(value: unknown, path: string): unknown {
   }, value);
 }
 
-export function parseFieldPath(path: string): FieldPathSegment[] {
+function parseFieldPath(path: string): FieldPathSegment[] {
   return path
     .trim()
     .split(".")

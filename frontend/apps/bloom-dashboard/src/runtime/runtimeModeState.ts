@@ -102,7 +102,7 @@ export function applyRuntimeModeIntent(
  * Mirrors `parameter_parsing.cpp` and the backend's
  * `normalize_mode_request_payload`.
  */
-export function normalizeModeRequest(value: string): string {
+function normalizeModeRequest(value: string): string {
   return value.trim().toLowerCase().replaceAll("-", "_");
 }
 

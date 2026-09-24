@@ -9,7 +9,7 @@ export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switc
  * Controls that open every cycle, ahead of the screen, wherever they are drawn.
  * STOP carries it: last in a 23-target cycle it was 31 s away at 1400 ms.
  */
-export const SCAN_PRIORITY_SELECTOR = `${SCAN_TARGET_SELECTOR}[data-scan-priority]`;
+const SCAN_PRIORITY_SELECTOR = `${SCAN_TARGET_SELECTOR}[data-scan-priority]`;
 
 export type SwitchScanningOptions = {
   /** Fires the lit target; without one the target is clicked. */

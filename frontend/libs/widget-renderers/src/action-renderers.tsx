@@ -261,7 +261,7 @@ export function LabelWidget({ descriptor }: WidgetRendererProps) {
 }
 
 /** Drops a repeat activation of the same control inside the guard window. */
-export function useRepeatGuard(repeatGuardMs: number | undefined) {
+function useRepeatGuard(repeatGuardMs: number | undefined) {
   const lastFiredRef = useRef(0);
   return () => {
     if (!repeatGuardMs) {

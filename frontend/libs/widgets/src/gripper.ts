@@ -7,20 +7,20 @@ import type { ToggleSettings } from "./settings";
  * `/gripper_controller/commands`, the same contract `tablet_interface` publishes. The two arms travel
  * different distances, so the pair of numbers is per robot and nothing else about the command changes.
  */
-export const GRIPPER_COMMAND_TOPIC = "/gripper_controller/commands";
-export const GRIPPER_MESSAGE_TYPE = "std_msgs/msg/Float64MultiArray";
+const GRIPPER_COMMAND_TOPIC = "/gripper_controller/commands";
+const GRIPPER_MESSAGE_TYPE = "std_msgs/msg/Float64MultiArray";
 
 type GripperCalibration = { closed: number; open: number };
 
 /** Explorer matches tablet_interface; the Kinova pair is the Robotiq 85 knuckle joint's own range. */
-export const GRIPPER_CALIBRATIONS: Readonly<Record<string, GripperCalibration>> = {
+const GRIPPER_CALIBRATIONS: Readonly<Record<string, GripperCalibration>> = {
   explorer: { closed: 1.1, open: 0.2 },
   kinova: { closed: 0.8, open: 0.0 },
 };
 
 const DEFAULT_CALIBRATION = GRIPPER_CALIBRATIONS.explorer as GripperCalibration;
 
-export function gripperCalibrationFor(robotName: string | undefined): GripperCalibration {
+function gripperCalibrationFor(robotName: string | undefined): GripperCalibration {
   return GRIPPER_CALIBRATIONS[(robotName ?? "").trim().toLowerCase()] ?? DEFAULT_CALIBRATION;
 }
 

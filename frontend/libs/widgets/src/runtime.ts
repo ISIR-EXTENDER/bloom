@@ -23,37 +23,6 @@ export type RuntimeActionContract = {
   label: string;
 };
 
-export type RuntimeActionProgress = {
-  current?: number;
-  detail?: string;
-  percent?: number;
-  total?: number;
-};
-
-export type RuntimeActionLifecycleStatus =
-  | "accepted"
-  | "cancel-requested"
-  | "cancelled"
-  | "failed"
-  | "progress"
-  | "running"
-  | "succeeded";
-
-export type RuntimeActionLifecycleEvent = {
-  actionId: string;
-  detail?: string;
-  progress?: RuntimeActionProgress;
-  status: RuntimeActionLifecycleStatus;
-  widgetId?: string;
-};
-
-export type RuntimeActionCancelIntent = {
-  actionId: string;
-  reason?: string;
-  type: "action-cancel";
-  widgetId?: string;
-};
-
 export type WidgetActionEvent =
   | {
       type: "press";

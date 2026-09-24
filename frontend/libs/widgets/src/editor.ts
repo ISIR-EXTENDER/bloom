@@ -15,16 +15,6 @@ export type DuplicateWidgetOptions = {
   title?: string;
 };
 
-export type MoveWidgetOptions = {
-  snapToGrid?: boolean;
-};
-
-export type ResizeWidgetOptions = {
-  minHeight?: number;
-  minWidth?: number;
-  snapToGrid?: boolean;
-};
-
 const EDITOR_GRID_SIZE = 8;
 
 export function addWidgetToScreen(

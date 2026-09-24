@@ -710,7 +710,7 @@ export function createTeleopCommandRequest(
 }
 
 /** Map one widget intent onto twist components, honouring `axis_mapping`. */
-export function teleopContributionFromIntent(
+function teleopContributionFromIntent(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
   runtimeBinding: Record<string, unknown>,
 ): ComponentContribution | null {
@@ -741,7 +741,7 @@ export function teleopContributionFromIntent(
  * A scalar bound to a node parameter: the live-tuning seam. cartesian_manager rereads its parameters
  * every tick, so a gain moves the moment the service answers; nothing here is a motion command.
  */
-export function createValueParameterRequest(
+function createValueParameterRequest(
   intent: Extract<WidgetActionIntent, { type: "value-change" }>,
 ): RosParameterSetRequest | null {
   const runtimeBinding = asRecord(intent.runtimeBinding);
@@ -757,7 +757,7 @@ export function createValueParameterRequest(
   return { node, name, value: intent.value };
 }
 
-export function validateParameterRequest(
+function validateParameterRequest(
   request: RosParameterSetRequest,
   policy: RuntimeAdapterPolicy | undefined,
 ): string | null {

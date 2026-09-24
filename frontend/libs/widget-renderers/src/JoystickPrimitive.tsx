@@ -282,7 +282,7 @@ export function bindArrowToWord(label: string): string {
   return trimmed;
 }
 
-export function clampToUnitDisk(vector: JoystickVector): JoystickVector {
+function clampToUnitDisk(vector: JoystickVector): JoystickVector {
   const magnitude = Math.hypot(vector.x, vector.y);
   if (magnitude <= 1) {
     return vector;

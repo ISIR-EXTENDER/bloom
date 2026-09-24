@@ -8,7 +8,7 @@ import { type MutableRefObject, useCallback, useRef } from "react";
  * as a plain click, which a hold ignores. Such a control listens for this event
  * and calls `preventDefault()`; everything else is clicked as before.
  */
-export const ASSISTIVE_ACTIVATE_EVENT = "bloom-assistive-activate";
+const ASSISTIVE_ACTIVATE_EVENT = "bloom-assistive-activate";
 
 export function activateAssistively(target: HTMLElement): void {
   const handled = !target.dispatchEvent(new CustomEvent(ASSISTIVE_ACTIVATE_EVENT, { cancelable: true }));

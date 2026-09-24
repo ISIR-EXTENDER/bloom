@@ -14,7 +14,7 @@ const AXES_BY_KIND: Readonly<Record<string, readonly { key: string; label: strin
 
 type AxisBinding = { component?: string; scale?: number };
 
-export function axesForKind(kind: string): readonly { key: string; label: string }[] {
+function axesForKind(kind: string): readonly { key: string; label: string }[] {
   return AXES_BY_KIND[kind] ?? [];
 }
 

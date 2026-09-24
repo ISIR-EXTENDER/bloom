@@ -134,9 +134,9 @@ export type LegacyWidgetRect = {
 };
 
 export const WIDGET_LAYOUT_GRID_SIZE = 8;
-export const CANVAS_WIDGET_EDGE_PADDING = 24;
+const CANVAS_WIDGET_EDGE_PADDING = 24;
 
-export const CANVAS_PRESETS: readonly CanvasPreset[] = [
+const CANVAS_PRESETS: readonly CanvasPreset[] = [
   { id: "native-1024x600", label: "Native Tablet (1024x600)", width: 1024, height: 600 },
   { id: "native-1280x720", label: "Native Operator Panel (1280x720)", width: 1280, height: 720 },
   { id: "hd", label: "HD (1280x720)", width: 1280, height: 720 },
@@ -189,7 +189,7 @@ export type WidgetDefinition = {
 
 export type WidgetRegistry = ReadonlyMap<WidgetKind, WidgetDefinition>;
 
-export function createDefaultEditorCapabilities(styleFields: WidgetStyleCapability[] = []): WidgetEditorCapabilities {
+function createDefaultEditorCapabilities(styleFields: WidgetStyleCapability[] = []): WidgetEditorCapabilities {
   return {
     movable: true,
     resizable: true,
@@ -676,7 +676,7 @@ export function snapLayoutValue(value: number, gridSize: number = WIDGET_LAYOUT_
   return Math.round(value / gridSize) * gridSize;
 }
 
-export function getCanvasPreset(presetId: CanvasPresetId): CanvasPreset {
+function getCanvasPreset(presetId: CanvasPresetId): CanvasPreset {
   return CANVAS_PRESETS.find((preset) => preset.id === presetId) ?? CANVAS_PRESETS[0];
 }
 
