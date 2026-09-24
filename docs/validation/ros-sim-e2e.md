@@ -20,12 +20,15 @@ For the chosen robot, with the API, dashboard, manager, qontrol and controllers 
 | `drive-controls-move-the-hand-as-labelled` | One end of each Drive control (Forward, Right, Up, Tilt up, Roll right): the wire carries one unit component and the hand moves along that base axis, more than 3 cm or 0.05 rad and more than 90% along it, each followed by the stroke back. A robot may name a word that is known not to follow, and the check says so when it starts to. The Kinova settles down first, because mock hardware starts it fully upright. |
 | `bench-and-operator-publish-same-twist` | The same full-deflection gesture publishes the same twist and frame from both layouts. |
 | `gripper-toggle-publishes` | The toggle publishes the robot's own values on `/gripper_controller/commands`: Explorer close `[1.1]` / open `[0.2]`, Kinova close `[0.8]` / open `[0.0]`. |
+| `snake-hold-publishes-pressed-and-released` | The momentary command button end to end: `geometric/snake` on `/mode_request` while Hold snake is held, `geometric/both` on release. |
 | `speed-segment-publishes` | Slow and Medium publish their values on `max_linear_speed`. Skipped when nothing but the probe subscribes. |
 | `stop-latches-and-hold-resumes` | STOP latches in the backend (`GET /api/v1/runtime/stop` reads stopped and asserted), publishes a zero twist and `behaviour/passthrough`, Translation stays inert while stopped, and the one-second hold resumes. |
 | `maintenance-holds-zeros` | Opening maintenance while a keyboard drive is held zeroes the twist, and nothing non-zero reaches ROS while it is open. |
 | `joystick-lab-stamps-hybrid-frame` | After Hybrid is selected, the twist on ROS carries `header.frame_id: hybrid_frame`. |
 | `positions-go-home-and-release` | Explorer: the first Go home press only arms it, the second publishes `behaviour/joint_target/home` and the manager publishes `/joint_target_command`; Release publishes `behaviour/passthrough`. Kinova: no Go home is offered (cartesian_manager#10), Release still returns passthrough. |
 | `robot-feedback-plots` | Robot feedback plots live series and the value strip shows numbers. |
+| `builder-authors-a-ros-toggle-and-a-hold-button` | A new app is created through the Builder UI, a toggle and a command button are added from the palette and configured from the inspector alone (topic, message type, labels, ON/OFF and pressed/released payloads), and the screen is saved through the API. |
+| `authored-buttons-reach-the-manager` | The authored app opens in the runtime and its two controls put their payloads on `/mode_request`: `geometric/jaco` from the toggle, `geometric/snake` then `geometric/both` from the hold button. The Builder harness (`npm run e2e:builder`, no ROS) authors the same two controls and proves they render inert with the reason. |
 | `bloom-debug-receives-samples` | Bloom Debug fills the joint table from `/joint_states` and renders `/ee_jac` as a 6 by N Jacobian (6 on Explorer, 7 on Kinova). |
 
 Screenshots of each screen go to `<out>/screens`, per-check results to `<out>/results.json`, and process logs to
@@ -141,6 +144,16 @@ Before the seed change the identity mapping showed the same kind of thing on Rig
 
 What simulation cannot settle is which base axis is "forward" from the operator's seat; the Explorer mapping is
 the one that was driven on the arm, the Kinova's has never been. 15/15 on both robots.
+
+### Amended 2026-09-24: what an author builds reaches the graph
+
+Robin's sheet asked whether a button can be configured entirely from the Builder. Three checks now answer with
+the arm running: the shipped Hold snake publishes `geometric/snake` while held and `geometric/both` on release;
+a session creates an app through the Builder, adds a toggle and a command button from the palette, fills every
+field in the inspector (topic `/mode_request`, `std_msgs/msg/String`, labels, ON/OFF and pressed/released
+payloads), saves it through the API, opens it in the runtime and presses both: the manager receives
+`geometric/jaco`, then `geometric/snake` and `geometric/both`. Explorer 18/18 on 2026-09-24. Without ROS, the
+Builder harness authors the same controls and proves the runtime renders them inert and says why.
 
 Findings from these runs, none blocking:
 

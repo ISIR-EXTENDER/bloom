@@ -51,7 +51,10 @@ export async function openRuntimeApp(page, dashboardUrl, { appName, roleName, la
     await roles.getByRole("button").first().click();
   }
   await page.locator(".runtime-library-open").click();
-  await page.locator(`[data-testid="runtime-artboard"][data-screen-id="${layoutId}"]`).waitFor({ timeout: 15000 });
+  const artboard = layoutId
+    ? page.locator(`[data-testid="runtime-artboard"][data-screen-id="${layoutId}"]`)
+    : page.locator('[data-testid="runtime-artboard"]');
+  await artboard.waitFor({ timeout: 15000 });
   await waitReady(page);
 }
 

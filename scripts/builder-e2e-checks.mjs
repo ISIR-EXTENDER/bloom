@@ -13,6 +13,16 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium, expect } from "@playwright/test";
+import {
+  addPaletteWidgets,
+  configureHoldButton,
+  configureRosToggle,
+  createGuidedApp,
+  HOLD_BUTTON,
+  openScreenBuilder,
+  ROS_TOGGLE,
+  saveScreenDraft,
+} from "./lib/builder-authoring.mjs";
 import { assert, createChecks, readArg as readArgument } from "./lib/e2e-checks.mjs";
 
 const args = process.argv.slice(2);
@@ -46,14 +56,7 @@ async function authorAndDrive() {
 
   try {
     const created = await check(page, "builder-creates-an-app", async () => {
-      await page.goto(dashboardUrl, { waitUntil: "networkidle" });
-      await page.getByRole("button", { name: "Builder: Compose screens" }).click();
-      await page.getByRole("button", { exact: true, name: "Apps" }).click();
-      await page.getByLabel("New app name").fill(APP_NAME);
-      await page.getByLabel("Starter screen").selectOption("operator-control");
-      await page.getByRole("button", { name: "Create guided app" }).click();
-      // Creating drops straight into the new app's configuration rather than back to the library.
-      await page.getByRole("heading", { name: APP_NAME }).waitFor({ timeout: 20000 });
+      await createGuidedApp(page, dashboardUrl, APP_NAME);
       await shot(page, "app-created");
       return `${APP_NAME} is open in app configuration`;
     });
@@ -70,21 +73,12 @@ async function authorAndDrive() {
 
     await check(page, "screen-opens-in-the-builder", async () => {
       await openScreenBuilder(page);
-      await page.locator(".builder-widget-palette").first().waitFor({ timeout: 20000 });
       await shot(page, "screen-builder");
       return "the canvas and the palette are up";
     });
 
     await check(page, "palette-adds-every-command-family", async () => {
-      const added = [];
-      for (const name of ["Joystick", "Slider", "Toggle", "Command button", "Label"]) {
-        const button = page.getByRole("button", { name: new RegExp(`^Add ${name} widget`) });
-        if ((await button.count()) === 0) {
-          continue;
-        }
-        await button.first().click();
-        added.push(name);
-      }
+      const added = await addPaletteWidgets(page, ["Joystick", "Slider", "Toggle", "Command button", "Label"]);
       assert(added.length >= 4, `only added ${added.join(", ")}`);
       await shot(page, "widgets-added");
       return added.join(", ");
@@ -112,20 +106,28 @@ async function authorAndDrive() {
       return "the Builder reports none below their minimum";
     });
 
-    await check(page, "draft-saves-through-the-api", async () => {
-      const save = page.getByRole("button", { name: /^Save changes$/ });
-      await save.waitFor({ timeout: 10000 });
-      assert(await save.isEnabled(), "Save changes is disabled on a dirty draft");
-      await save.click();
-      // Waiting for the word "Saved" read a status left over from saving the app a moment earlier,
-      // so the fetch below sometimes raced the screen save and saw three widgets instead of eight.
-      // Save disables itself once the draft is clean, which is the only signal tied to this save.
-      await expect(save).toBeDisabled({ timeout: 20000 });
+    await check(page, "inspector-configures-a-ros-toggle-and-a-hold-button", async () => {
+      // Robin's autonomy: every field of a ROS button from the inspector, no backend edit.
+      await configureRosToggle(page, ROS_TOGGLE);
+      await configureHoldButton(page, HOLD_BUTTON);
+      await shot(page, "inspector-ros-buttons");
+      return "a toggle on /mode_request with ON/OFF payloads, a hold button with pressed/released payloads";
+    });
 
+    await check(page, "draft-saves-through-the-api", async () => {
+      await saveScreenDraft(page);
       const application = await fetchApplication(page);
       const widgets = application.screens.flatMap((screen) => screen.widgets ?? []);
       assert(widgets.length >= 4, `the stored screen has ${widgets.length} widget(s)`);
-      return `${widgets.length} widget(s) stored`;
+      const toggle = widgets.find((widget) => widget.kind === "toggle");
+      const hold = widgets.find((widget) => widget.kind === "command-button");
+      assert(toggle?.settings.topic === "/mode_request", `stored toggle ${JSON.stringify(toggle?.settings)}`);
+      assert(hold?.settings.momentary === true, `stored button ${JSON.stringify(hold?.settings)}`);
+      assert(
+        JSON.stringify(hold.settings.releasedPayload) === JSON.stringify(HOLD_BUTTON.releasedPayload),
+        `release payload ${JSON.stringify(hold.settings.releasedPayload)}`,
+      );
+      return `${widgets.length} widget(s) stored, the toggle and the hold button with their payloads`;
     });
 
     await check(page, "authored-app-opens-in-the-runtime", async () => {
@@ -140,6 +142,18 @@ async function authorAndDrive() {
       await page.locator('[data-testid="runtime-artboard"]').waitFor({ timeout: 20000 });
       await shot(page, "runtime");
       return "the authored app is operating";
+    });
+
+    await check(page, "authored-buttons-are-gated-without-ros", async () => {
+      // No ROS here, so nothing subscribes: the runtime must say so rather than pretend to publish.
+      // scripts/ros-sim-e2e.sh authors the same two controls and presses them against the manager.
+      const gated = (kind) => page.locator(`article[data-widget-kind="${kind}"][data-runtime-unavailable="true"]`);
+      await gated("toggle").waitFor({ timeout: 15000 });
+      await gated("command-button").waitFor({ timeout: 15000 });
+      await expect(gated("toggle")).toContainText("Jaco off");
+      await expect(gated("command-button")).toContainText("Hold snake e2e");
+      await expect(gated("command-button").getByRole("note")).toContainText("No ROS node subscribes to /mode_request");
+      return "both authored controls render inert, and say why";
     });
 
     await check(page, "stop-latches-in-the-backend", async () => {
@@ -158,18 +172,6 @@ async function authorAndDrive() {
 }
 
 // ---- Helpers ----
-
-async function openScreenBuilder(page) {
-  // "Open builder" is disabled while the app draft is dirty, which it is right after creation.
-  const save = page.getByRole("button", { name: /^Save app$/ });
-  if ((await save.count()) > 0 && (await save.first().isEnabled())) {
-    await save.first().click();
-  }
-  const open = page.getByRole("button", { name: /screen builder$/ }).first();
-  await open.waitFor({ timeout: 20000 });
-  await open.scrollIntoViewIfNeeded();
-  await open.click();
-}
 
 async function fetchApplication(page) {
   const list = await page.request.get(`${apiUrl}/api/v1/configurations`);
