@@ -39,13 +39,15 @@ DASHBOARD_URL="http://127.0.0.1:${DASHBOARD_PORT}"
 
 cleanup() {
   local status=$?
-  [[ -n "${DASHBOARD_PID:-}" ]] && kill "${DASHBOARD_PID}" 2>/dev/null || true
-  [[ -n "${API_PID:-}" ]] && kill "${API_PID}" 2>/dev/null || true
+  # Each server runs in its own process group, so the kill reaches npm's Vite and uv's Python too.
+  [[ -n "${DASHBOARD_PID:-}" ]] && kill -- "-${DASHBOARD_PID}" 2>/dev/null || true
+  [[ -n "${API_PID:-}" ]] && kill -- "-${API_PID}" 2>/dev/null || true
   wait 2>/dev/null || true
   exit "${status}"
 }
 trap cleanup EXIT INT TERM
 
+set -m
 log "starting the API on port ${API_PORT}"
 (
   cd "${BLOOM_ROOT}/backend"
@@ -66,6 +68,7 @@ log "starting the dashboard on port ${DASHBOARD_PORT}"
     --host 127.0.0.1 --port "${DASHBOARD_PORT}" --strictPort
 ) >"${LOG_DIR}/dashboard.log" 2>&1 &
 DASHBOARD_PID=$!
+set +m
 
 wait_for "the API" "${STARTUP_TIMEOUT}" http_ok "http://127.0.0.1:${API_PORT}/api/v1/health"
 wait_for "the dashboard" "${STARTUP_TIMEOUT}" http_ok "${DASHBOARD_URL}"
