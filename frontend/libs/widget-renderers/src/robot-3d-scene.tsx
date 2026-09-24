@@ -27,7 +27,7 @@ import {
   numberOf,
   vector,
 } from "./robot-3d-markers";
-import { createMeshCache, parseRobot, resolveRobotFrame, resolveToolLink } from "./robot-3d-model";
+import { createMeshCache, fitDistance, parseRobot, resolveRobotFrame, resolveToolLink } from "./robot-3d-model";
 import type { CommandedTwist, RobotModelSource } from "./types";
 
 export type JointStateSample = { name?: unknown; position?: unknown };
@@ -554,8 +554,9 @@ function fitCamera(root: Object3D, camera: PerspectiveCamera, controls: OrbitCon
   const center = box.getCenter(new Vector3());
   const size = box.getSize(new Vector3()).length();
   controls.target.copy(center);
-  // Far enough for the bounding sphere at a 45 degree field of view, from the front-right and a little above.
-  camera.position.copy(center).add(new Vector3(0.8, 0.55, 0.8).normalize().multiplyScalar(size * 1.3));
+  // From the front-right and a little above, as close as the whole robot fits in this view.
+  const direction = new Vector3(0.8, 0.55, 0.8).normalize();
+  camera.position.copy(center).addScaledVector(direction, fitDistance(box, direction, camera.fov, camera.aspect));
   camera.near = size / 100;
   camera.far = size * 20;
   camera.updateProjectionMatrix();

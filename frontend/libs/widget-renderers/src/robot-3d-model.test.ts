@@ -1,9 +1,16 @@
 /**
  * @vitest-environment jsdom
  */
-import { Group, Mesh } from "three";
+import { Box3, Group, Mesh, Vector3 } from "three";
 import { describe, expect, it, vi } from "vitest";
-import { createMeshCache, parseMesh, parseRobot, resolveRobotFrame, resolveToolLink } from "./robot-3d-model";
+import {
+  createMeshCache,
+  fitDistance,
+  parseMesh,
+  parseRobot,
+  resolveRobotFrame,
+  resolveToolLink,
+} from "./robot-3d-model";
 import type { RobotModelSource } from "./types";
 
 /** A binary STL with one triangle. */
@@ -83,5 +90,29 @@ describe("the parsed robot", () => {
     expect(resolveRobotFrame(robot, "map")).toBeNull();
     expect(resolveToolLink(robot, "upper")).toBe(robot.links.upper);
     expect(resolveToolLink(robot, "")).toBe(robot.links.tool);
+  });
+});
+
+describe("the camera fit", () => {
+  const cube = new Box3(new Vector3(-0.5, -0.5, -0.5), new Vector3(0.5, 0.5, 0.5));
+
+  it("stands where a unit cube fills a square 90 degree view, plus its margin", () => {
+    // Half-height 0.5 against tan(45) = 1, plus the half-depth in front: 1.0, times the margin.
+    expect(fitDistance(cube, new Vector3(0, 0, 1), 90, 1)).toBeCloseTo(1.08, 5);
+  });
+
+  it("backs off for a narrower field of view and for a wide box in a tall view", () => {
+    expect(fitDistance(cube, new Vector3(0, 0, 1), 45, 1)).toBeGreaterThan(
+      fitDistance(cube, new Vector3(0, 0, 1), 90, 1),
+    );
+    const wide = new Box3(new Vector3(-2, -0.5, -0.5), new Vector3(2, 0.5, 0.5));
+    expect(fitDistance(wide, new Vector3(0, 0, 1), 90, 0.5)).toBeCloseTo(
+      (2 / Math.tan(Math.atan(0.5)) + 0.5) * 1.08,
+      5,
+    );
+  });
+
+  it("looks straight down without losing its bearings", () => {
+    expect(Number.isFinite(fitDistance(cube, new Vector3(0, 1, 0), 45, 16 / 9))).toBe(true);
   });
 });

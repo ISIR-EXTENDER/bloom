@@ -1,4 +1,4 @@
-import { Color, Group, LoadingManager, Mesh, MeshStandardMaterial, type Object3D } from "three";
+import { type Box3, Color, Group, LoadingManager, Mesh, MeshStandardMaterial, type Object3D, Vector3 } from "three";
 import { ColladaLoader } from "three/examples/jsm/loaders/ColladaLoader.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
@@ -133,4 +133,42 @@ export function resolveRobotFrame(robot: URDFRobot, frameId: string): Object3D |
 export function resolveToolLink(robot: URDFRobot, eeLink: string): Object3D | null {
   const names = Object.keys(robot.links);
   return robot.links[eeLink] ?? robot.links[names.at(-1) ?? ""] ?? null;
+}
+
+/**
+ * How far a camera looking along `direction` (from the box's centre towards the camera) must stand for the
+ * box to fill the view: the corners projected on the view's axes, against both fields of view, plus the
+ * depth in front of the centre, with a small margin.
+ */
+export function fitDistance(box: Box3, direction: Vector3, verticalFovDegrees: number, aspect: number): number {
+  const centre = box.getCenter(new Vector3());
+  const toCamera = direction.clone().normalize();
+  const up = Math.abs(toCamera.y) > 0.99 ? new Vector3(0, 0, 1) : new Vector3(0, 1, 0);
+  const right = new Vector3().crossVectors(up, toCamera).normalize();
+  const trueUp = new Vector3().crossVectors(toCamera, right);
+  let halfWidth = 0;
+  let halfHeight = 0;
+  let depth = 0;
+  for (const corner of boxCorners(box)) {
+    const offset = corner.sub(centre);
+    halfWidth = Math.max(halfWidth, Math.abs(offset.dot(right)));
+    halfHeight = Math.max(halfHeight, Math.abs(offset.dot(trueUp)));
+    depth = Math.max(depth, offset.dot(toCamera));
+  }
+  const halfVertical = (verticalFovDegrees * Math.PI) / 360;
+  const halfHorizontal = Math.atan(Math.tan(halfVertical) * aspect);
+  const distance = Math.max(halfHeight / Math.tan(halfVertical), halfWidth / Math.tan(halfHorizontal)) + depth;
+  return distance * 1.08;
+}
+
+function boxCorners(box: Box3): Vector3[] {
+  const corners: Vector3[] = [];
+  for (const x of [box.min.x, box.max.x]) {
+    for (const y of [box.min.y, box.max.y]) {
+      for (const z of [box.min.z, box.max.z]) {
+        corners.push(new Vector3(x, y, z));
+      }
+    }
+  }
+  return corners;
 }
