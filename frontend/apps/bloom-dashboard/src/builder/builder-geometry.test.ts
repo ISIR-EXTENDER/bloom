@@ -379,3 +379,43 @@ describe("switching a screen between tablet and desktop", () => {
     expect(result.screen?.widgets[0]?.layout).toEqual({ x: 30, y: 60, width: 600, height: 300 });
   });
 });
+
+describe("placing on a busy screen", () => {
+  const tablet = { preset_id: "native-1280x720", runtime_mode: "fit" } as ScreenConfig["canvas"];
+  const block = (id: string, x: number, width: number): WidgetConfig =>
+    ({ id, kind: "label", title: id, layout: { x, y: 0, width, height: 676 }, settings: {} }) as WidgetConfig;
+
+  it("tries the kind's minimum size before landing on another widget", () => {
+    // 300 px free on the right: a 340 px slider does not fit, its 260 px minimum does.
+    const busy: ScreenConfig = {
+      id: "b",
+      title: "B",
+      canvas: tablet,
+      reserved_regions: [],
+      widgets: [block("a", 0, 980)],
+    };
+    const placed = placeClearOfWidgets({ x: 0, y: 0, width: 340, height: 132 }, busy, [260, 104]);
+
+    expect(placed).toMatchObject({ width: 260, height: 104 });
+    expect(placed && placed.x >= 980).toBe(true);
+  });
+
+  it("fails the review while one widget sits on another", () => {
+    const application = {
+      ...explorer,
+      screens: [
+        {
+          id: "b",
+          title: "Busy",
+          canvas: tablet,
+          reserved_regions: [],
+          widgets: [block("a", 0, 600), block("b", 300, 600)],
+        },
+      ],
+    } as ApplicationConfig;
+
+    const rule = reviewScreens(application).find((candidate) => candidate.id === "overlap");
+    expect(rule?.passed).toBe(false);
+    expect(rule?.detail).toMatch(/b covers a on Busy/);
+  });
+});

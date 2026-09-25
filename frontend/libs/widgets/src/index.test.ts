@@ -46,9 +46,11 @@ import {
   resolveFieldPath,
   resolveLegacyWidgetKind,
   resolveWidgetDescriptor,
+  resolveWidgetDestination,
   snapLayoutValue,
   type TopicMessage,
   type TopicPlotSample,
+  translationPadSettings,
   updateWidgetSettings,
   updateWidgetTitle,
   validateWidgetSettings,
@@ -167,10 +169,10 @@ describe("widget capability metadata", () => {
       },
       defaultSettings: {
         binding: "joy",
-        deadzone: 0.1,
+        deadzone: 0,
         show_details: false,
       },
-      defaultTitle: "Joystick",
+      defaultTitle: "Translation",
       displayName: "Joystick",
       editor: {
         movable: true,
@@ -245,8 +247,8 @@ describe("widget capability metadata", () => {
       layout: {
         x: 0,
         y: 0,
-        width: 120,
-        height: 284,
+        width: 340,
+        height: 132,
       },
       settings: {
         direction: "vertical",
@@ -890,7 +892,7 @@ describe("widget settings contracts", () => {
     ).toThrow('Invalid settings for widget kind "slider": step: step must be greater than or equal to 0');
   });
 
-  it("adds every palette widget from its defaults, leaving a topic or plot to name unset", () => {
+  it("adds every palette widget from its defaults, wired to the manager contract", () => {
     const registry = createDefaultWidgetRegistry();
     const palette = [...registry.values()].filter((definition) => definition.availability.editor);
 
@@ -899,8 +901,22 @@ describe("widget settings contracts", () => {
       expect(() => addWidgetToScreen(empty, definition, { id: definition.kind }), definition.kind).not.toThrow();
     }
     const topicPlot = registry.get("topic-plot") as WidgetDefinition;
-    expect(addWidgetToScreen(empty, topicPlot, { id: "plot" }).widgets[0]?.settings.topic).toBe("");
+    expect(addWidgetToScreen(empty, topicPlot, { id: "plot" }).widgets[0]?.settings.topic).toBe("/ee_pose");
     expect(() => addWidgetToScreen(empty, topicPlot, { id: "plot", settings: {} })).toThrow("topic: topic is required");
+  });
+
+  it("places every sending or reading widget with somewhere to send or read, except the app-specific ones", () => {
+    const empty = { ...sampleScreen, widgets: [] };
+    const unwired = [...createDefaultWidgetRegistry().values()]
+      .filter((definition) => definition.availability.editor)
+      .filter((definition) => {
+        const widget = addWidgetToScreen(empty, definition, { id: definition.kind }).widgets[0];
+        return widget && resolveWidgetDestination(widget.kind, widget.settings)?.source === "unset";
+      })
+      .map((definition) => definition.kind);
+
+    // A gesture pad is a game's input; it has no manager topic to arrive on.
+    expect(unwired).toEqual(["gesture-pad"]);
   });
 
   it("offers nothing in the palette that has no settings to fill in", () => {
@@ -1777,12 +1793,50 @@ describe("a toggle straight from the palette", () => {
   });
 
   it("gives each arm its own travel", () => {
-    expect(gripperToggleSettings("Explorer").onPayload).toBe("{data: [0.2]}");
-    expect(gripperToggleSettings("Explorer").offPayload).toBe("{data: [1.1]}");
-    expect(gripperToggleSettings("Kinova").onPayload).toBe("{data: [0]}");
-    expect(gripperToggleSettings("Kinova").offPayload).toBe("{data: [0.8]}");
+    expect(gripperToggleSettings("Explorer").onPayload).toBe("{data: [1.1]}");
+    expect(gripperToggleSettings("Explorer").offPayload).toBe("{data: [0.2]}");
+    expect(gripperToggleSettings("Kinova").onPayload).toBe("{data: [0.8]}");
+    expect(gripperToggleSettings("Kinova").offPayload).toBe("{data: [0]}");
     // An unknown or absent robot falls back to the arm this stack was built for.
-    expect(gripperToggleSettings(undefined).offPayload).toBe("{data: [1.1]}");
+    expect(gripperToggleSettings(undefined).onPayload).toBe("{data: [1.1]}");
+  });
+
+  // Off, the button reads "Close gripper"; the press turns it on and the state reads "closed". It used to
+  // send the open value for that press, and the Manager seeds, which close on it, disagreed.
+  const seedToggle = (id: string) => {
+    const bundle = (id === "explorer-manager" ? explorerManagerSeed : kinovaManagerSeed) as unknown as {
+      applications: ApplicationConfig[];
+    };
+    const toggle = bundle.applications[0]?.screens
+      .flatMap((screen) => screen.widgets)
+      .find((widget) => widget.kind === "toggle" && widget.settings.topic === "/gripper_controller/commands");
+    return toggle?.settings as Record<string, unknown>;
+  };
+
+  it("places this arm's Translation pad, with the Manager apps' words and axes", () => {
+    for (const robot of ["explorer", "kinova"]) {
+      const bundle = (robot === "explorer" ? explorerManagerSeed : kinovaManagerSeed) as unknown as {
+        applications: ApplicationConfig[];
+      };
+      const seedPad = bundle.applications[0]?.screens
+        .find((screen) => screen.id === "manager_drive_operator")
+        ?.widgets.find((widget) => widget.title === "Translation")?.settings as Record<string, unknown>;
+      const placed = translationPadSettings(robot);
+      const binding = (settings: Record<string, unknown>) => settings.runtime_binding as Record<string, unknown>;
+      expect(placed.labels).toEqual(seedPad.labels);
+      expect(binding(placed).axis_mapping).toEqual(binding(seedPad).axis_mapping);
+      expect(binding(placed).value_mapping).toEqual(binding(seedPad).value_mapping);
+    }
+  });
+
+  it("closes on the press that says Close gripper, as the Manager apps do", () => {
+    for (const robot of ["explorer", "kinova"]) {
+      const seed = seedToggle(`${robot}-manager`);
+      const placed = gripperToggleSettings(robot) as unknown as Record<string, unknown>;
+      expect(placed.offLabel).toBe("Close gripper");
+      expect(placed.onStateLabel).toBe("closed");
+      expect(placed.onPayload).toBe(seed.onPayload);
+    }
   });
 });
 

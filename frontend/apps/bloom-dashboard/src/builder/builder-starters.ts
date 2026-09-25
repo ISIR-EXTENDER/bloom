@@ -7,6 +7,7 @@ import {
   type ScreenConfig,
   type UserProfile,
 } from "@bloom/api-client";
+import { gripperToggleSettings, PALETTE_WIRING, translationPadSettings } from "@bloom/widgets";
 import { ensureUniqueId } from "../configurations/configuration-editor";
 import { defaultStopRegion, NEW_TABLET_CANVAS } from "./builder-geometry";
 import { createNewApplicationName, slugify } from "./builderHomeModel";
@@ -63,10 +64,11 @@ export function createDefaultWizardState(applications: readonly ApplicationConfi
 export function createGuidedApplication(
   wizard: CreateWizardState,
   existingApplications: readonly ApplicationConfig[],
+  robotName?: string,
 ): ApplicationConfig {
   const name = wizard.name.trim() || createNewApplicationName(existingApplications);
   const id = ensureUniqueId(slugify(name), new Set(existingApplications.map((application) => application.id)));
-  const screen = createStarterScreen(wizard.starterId, wizard.includeOnboardingSpots);
+  const screen = createStarterScreen(wizard.starterId, wizard.includeOnboardingSpots, robotName);
 
   return {
     id,
@@ -127,7 +129,11 @@ export function createApplicationFromPlaygroundScreen(
 }
 
 /** Exported for the test that keeps a starter honest about what it publishes. */
-export function createStarterScreen(starterId: StarterScreenId, includeOnboardingSpots: boolean): ScreenConfig {
+export function createStarterScreen(
+  starterId: StarterScreenId,
+  includeOnboardingSpots: boolean,
+  robotName?: string,
+): ScreenConfig {
   const onboardingWidgets = includeOnboardingSpots
     ? [
         {
@@ -157,14 +163,18 @@ export function createStarterScreen(starterId: StarterScreenId, includeOnboardin
           kind: "topic-echo",
           title: "Topic echo",
           layout: { x: 48, y: 152, width: 520, height: 240 },
-          settings: { fieldPath: "", maxMessages: 40, messageType: "", prettyPrint: true, topic: "/teleop_cmd" },
+          settings: { ...PALETTE_WIRING["topic-echo"]?.settings, maxMessages: 40, prettyPrint: true },
         },
         {
           id: "runtime-events",
           kind: "event-log",
-          title: "Runtime events",
+          title: "Mode requests",
           layout: { x: 608, y: 152, width: 540, height: 240 },
-          settings: { entries: [], maxEntries: 6, severityFilter: ["success", "info", "warning", "error"] },
+          settings: {
+            ...PALETTE_WIRING["event-log"]?.settings,
+            maxEntries: 6,
+            severityFilter: ["success", "info", "warning", "error"],
+          },
         },
       ],
     };
@@ -181,35 +191,26 @@ export function createStarterScreen(starterId: StarterScreenId, includeOnboardin
         {
           id: "teleop-joystick",
           kind: "joystick",
-          title: "Teleop",
+          title: "Translation",
           // 280x332 is the joystick contract; a starter below it greets a new author with a warning.
           layout: { x: 72, y: 160, width: 300, height: 332 },
-          // The contract keys are snake_case. Written in camelCase these were dropped in normalization,
-          // so the starter quietly published to the default target instead of the one it named, and
-          // carried three dead keys. The default target is the right one, so name it.
-          settings: {
-            mode_id: "both",
-            runtime_binding: {
-              adapter: "teleop",
-              value_mapping: { mode: 3, target_topic: "/joystick_cartesian_command" },
-            },
-            zero_on_release: true,
-          },
+          // The Manager apps' pad for this arm: its words and its axes, so up moves the hand forward.
+          settings: translationPadSettings(robotName),
         },
         {
           id: "max-velocity",
           kind: "slider",
-          title: "Max velocity",
-          // A horizontal slider needs 104 of height, and this shipped 8 short.
-          layout: { x: 440, y: 190, width: 440, height: 104 },
-          settings: {
-            max: 1,
-            messageType: "std_msgs/msg/Float64",
-            min: 0,
-            step: 0.05,
-            topic: "/cmd/max_velocity",
-            value: 0.3,
-          },
+          // It published to /cmd/max_velocity, which nothing on either arm reads: the first touch failed.
+          title: PALETTE_WIRING.slider?.title ?? "Max linear speed",
+          layout: { x: 440, y: 190, width: 440, height: 132 },
+          settings: { ...PALETTE_WIRING.slider?.settings },
+        },
+        {
+          id: "gripper",
+          kind: "toggle",
+          title: "Gripper",
+          layout: { x: 440, y: 360, width: 220, height: 120 },
+          settings: gripperToggleSettings(robotName),
         },
       ],
     };

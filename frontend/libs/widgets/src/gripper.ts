@@ -35,11 +35,12 @@ export function gripperToggleSettings(robotName?: string): ToggleSettings {
   return {
     initialValue: false,
     messageType: GRIPPER_MESSAGE_TYPE,
+    // On is the closed state: pressing "Close gripper" turns it on and commands the closed value, as the Manager seeds do.
     offLabel: "Close gripper",
-    offPayload: `{data: [${calibration.closed}]}`,
+    offPayload: `{data: [${calibration.open}]}`,
     offStateLabel: "open",
     onLabel: "Open gripper",
-    onPayload: `{data: [${calibration.open}]}`,
+    onPayload: `{data: [${calibration.closed}]}`,
     onStateLabel: "closed",
     show_details: false,
     topic: GRIPPER_COMMAND_TOPIC,

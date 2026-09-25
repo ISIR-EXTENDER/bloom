@@ -147,7 +147,11 @@ async function authorAndDrive() {
     await check(page, "authored-buttons-are-gated-without-ros", async () => {
       // No ROS here, so nothing subscribes: the runtime must say so rather than pretend to publish.
       // scripts/ros-sim-e2e.sh authors the same two controls and presses them against the manager.
-      const gated = (kind) => page.locator(`article[data-widget-kind="${kind}"][data-runtime-unavailable="true"]`);
+      // The starter brings its own gripper toggle, so each is found by the words this harness gave it.
+      const gated = (kind) =>
+        page
+          .locator(`article[data-widget-kind="${kind}"][data-runtime-unavailable="true"]`)
+          .filter({ hasText: kind === "toggle" ? "Jaco off" : "Hold snake e2e" });
       await gated("toggle").waitFor({ timeout: 15000 });
       await gated("command-button").waitFor({ timeout: 15000 });
       await expect(gated("toggle")).toContainText("Jaco off");

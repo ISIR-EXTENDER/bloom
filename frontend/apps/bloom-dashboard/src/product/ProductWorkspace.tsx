@@ -288,6 +288,7 @@ function BuilderProductWorkspace({
         configurations={state.configurations}
         onPublishConfiguration={state.publish}
         onTakeShippedConfiguration={state.takeShipped}
+        robotName={runtimeCapabilityReport?.robot_name}
         shareStatus={state.shareStatus}
         onCreateApplication={onCreateApplication}
         onDeleteApplication={onDeleteApplication}

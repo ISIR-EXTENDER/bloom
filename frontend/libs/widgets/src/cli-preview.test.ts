@@ -8,7 +8,7 @@ describe("the command line a control is equivalent to", () => {
     const settings = gripperToggleSettings("Explorer") as unknown as Record<string, unknown>;
 
     expect(buildCliPreview("toggle", settings, settings.onPayload)).toBe(
-      'ros2 topic pub -1 /gripper_controller/commands std_msgs/msg/Float64MultiArray "{data: [0.2]}"',
+      'ros2 topic pub -1 /gripper_controller/commands std_msgs/msg/Float64MultiArray "{data: [1.1]}"',
     );
   });
 

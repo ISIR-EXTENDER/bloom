@@ -91,6 +91,22 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A widget placed from the palette arrives working.** Placement read the contract's defaults and ignored the
+  catalog's, so the gripper toggle and every other preset never reached a screen. Each palette widget now
+  arrives wired to the manager contract both arms share, as the shipped apps use it: the joystick is this arm's
+  Translation pad (Forward, Back, Left, Right, with the Explorer's swapped axes), the toggle its gripper, the
+  slider qontrol's speed limit, the command button the Neutral mode, and the gauge, plots, echo, event log,
+  plot board and value strip read the hand's pose or the mode requests. A series picker placed beside a plot
+  board drives it. Only the gesture pad, a game's input, still asks for its topic.
+- **The gripper toggle closed on "Open gripper".** Off, the button reads "Close gripper" and the press turns it
+  on; the placed toggle sent the open value for that press. It now closes, as the Manager apps do.
+- **The starters work on the robot.** "Operator controls" drove a slider on `/cmd/max_velocity`, which nothing
+  reads, and "Debug monitor" echoed `/teleop_cmd`, the retired stack's topic. They now use the speed limit and
+  the hand's pose, and the operator starter adds this arm's pad and gripper.
+- **A crowded screen no longer hides a control silently.** A widget that finds no free space tries its kind's
+  minimum size first; placed on top of another anyway, the Builder says which, and the review checklist gains
+  "No widget sits on another".
+
 - **A joystick may drive any input the manager declares, with nothing to configure.** The API reads the input
   topics from cartesian_manager's own parameters, live, instead of a fixed list, so the visual servoing input or a
   renamed joystick input works as soon as the manager has it. `BLOOM_ALLOWED_TELEOP_TARGETS` now only adds topics

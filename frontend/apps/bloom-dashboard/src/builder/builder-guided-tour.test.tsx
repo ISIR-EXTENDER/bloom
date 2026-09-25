@@ -143,7 +143,7 @@ describe("the builder review checklist", () => {
     expect(callbacks.onPreviewRuntime).toHaveBeenCalledWith(selection);
     expect(loadGuidedTourProgress(tourKey)).toContain("profile");
 
-    fireEvent.click(screen.getByRole("button", { name: /12Ship it to the tablet/ }));
+    fireEvent.click(screen.getByRole("button", { name: /13Ship it to the tablet/ }));
     fireEvent.click(screen.getByRole("button", { name: "Export reviewed app" }));
 
     expect(URL.createObjectURL).toHaveBeenCalledOnce();
@@ -252,7 +252,7 @@ describe("the builder review checklist", () => {
     renderTour();
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /11Test as the person, not as youComplete/ })).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /12Test as the person, not as youComplete/ })).toBeTruthy(),
     );
   });
 });

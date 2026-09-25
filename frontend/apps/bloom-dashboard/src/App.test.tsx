@@ -1242,14 +1242,14 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
-  it("adds a topic plot from the palette and asks for its topic", async () => {
+  it("adds a topic plot from the palette already reading the hand", async () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     await openDefaultScreenBuilder();
     fireEvent.click(await screen.findByRole("button", { name: /^Add Topic plot widget/ }));
 
-    expect(screen.getByRole("heading", { level: 2, name: "Topic plot" })).toBeVisible();
-    expect(screen.getByText("This widget receives nothing until you set a topic.")).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Hand x" })).toBeVisible();
+    expect(screen.queryByText("This widget receives nothing until you set a topic.")).toBeNull();
   });
 
   it("duplicates the selected builder widget", async () => {

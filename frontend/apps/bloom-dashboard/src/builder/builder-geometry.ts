@@ -219,9 +219,38 @@ export function placeClearOfRegions(layout: WidgetLayout, screen: ScreenConfig):
  * A canvas with no free space still places, on top, because refusing to add a widget because the
  * screen is busy would be worse than an overlap the author can drag apart.
  */
-export function placeClearOfWidgets(layout: WidgetLayout, screen: ScreenConfig): WidgetLayout | null {
+export function placeClearOfWidgets(
+  layout: WidgetLayout,
+  screen: ScreenConfig,
+  minimum?: readonly [number, number] | null,
+): WidgetLayout | null {
   const occupied = screen.widgets.map((widget) => widget.layout);
-  return findFreePlacement(layout, screen, occupied) ?? findFreePlacement(layout, screen, []);
+  const smallest = minimum ? { ...layout, width: minimum[0], height: minimum[1] } : null;
+  // At its own size, then at its kind's minimum, and only then on top of something.
+  return (
+    findFreePlacement(layout, screen, occupied) ??
+    (smallest ? findFreePlacement(smallest, screen, occupied) : null) ??
+    findFreePlacement(layout, screen, [])
+  );
+}
+
+/** The first widget a layout sits on, if any: a control under another cannot be pressed at runtime. */
+export function findOverlappedWidget(
+  layout: WidgetLayout,
+  screen: ScreenConfig,
+  exceptId?: string,
+): WidgetConfig | null {
+  return screen.widgets.find((widget) => widget.id !== exceptId && boxesOverlap(layout, widget.layout)) ?? null;
+}
+
+function findOverlaps(screen: ScreenConfig): [WidgetConfig, WidgetConfig][] {
+  const pairs: [WidgetConfig, WidgetConfig][] = [];
+  screen.widgets.forEach((widget, index) => {
+    for (const other of screen.widgets.slice(index + 1)) {
+      if (boxesOverlap(widget.layout, other.layout)) pairs.push([widget, other]);
+    }
+  });
+  return pairs;
 }
 
 function findFreePlacement(
@@ -287,6 +316,8 @@ export function reviewScreens(
   );
   const policyDrift = pair ? findPolicyDrift(application, pair) : [];
 
+  const overlapping = application.screens.flatMap((screen) => findOverlaps(screen).map((pair) => ({ pair, screen })));
+
   const misplaced = application.screens.flatMap((screen) => {
     const deviceClass = resolveDeviceClass(screen);
     return screen.widgets
@@ -303,6 +334,15 @@ export function reviewScreens(
         undersized.length === 0
           ? "No widget is smaller than its kind needs."
           : `${undersized[0]?.widget.title} on ${undersized[0]?.screen.title} needs ${undersized[0]?.shortfall.minimum.join("×")}${undersized.length > 1 ? `, and ${undersized.length - 1} more` : ""}.`,
+    },
+    {
+      id: "overlap",
+      title: "No widget sits on another",
+      passed: overlapping.length === 0,
+      detail:
+        overlapping.length === 0
+          ? "Every widget can be reached: none covers another."
+          : `${overlapping[0]?.pair[1].title} covers ${overlapping[0]?.pair[0].title} on ${overlapping[0]?.screen.title}, which cannot be pressed under it${overlapping.length > 1 ? `, and ${overlapping.length - 1} more` : ""}.`,
     },
     {
       id: "device-class",

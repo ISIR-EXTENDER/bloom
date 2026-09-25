@@ -149,7 +149,8 @@ export function createWidgetConfigFromDefinition(
   id: string,
   overrides: Partial<Pick<WidgetConfig, "layout" | "settings" | "title">> = {},
 ): WidgetConfig {
-  const normalizedSettings = normalizeWidgetSettings(definition.kind, overrides.settings ?? {});
+  // The definition's own defaults, not only the contract's: a palette widget arrives wired.
+  const normalizedSettings = normalizeWidgetSettings(definition.kind, overrides.settings ?? definition.defaultSettings);
   // A palette widget starts with its topic or plot_id unset; the inspector asks for it. Anything else invalid throws.
   const onlyUnsetNames =
     !normalizedSettings.success &&

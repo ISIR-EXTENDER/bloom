@@ -37,6 +37,8 @@ type BuilderHomeProps = {
   shareStatus?: Record<string, ShareStatus>;
   onPublishConfiguration?: (configId: string) => Promise<{ path: string; alreadyPublished: boolean }>;
   onTakeShippedConfiguration?: (configId: string) => Promise<unknown>;
+  /** The arm this Bloom drives, so a starter's pad and gripper match it. */
+  robotName?: string;
 };
 
 type ShareActionState =
@@ -86,6 +88,7 @@ export function BuilderHome({
   shareStatus = {},
   onPublishConfiguration,
   onTakeShippedConfiguration,
+  robotName,
 }: BuilderHomeProps) {
   const [shareAction, setShareAction] = useState<ShareActionState>({ status: "idle" });
   const firstConfiguration = configurations[0];
@@ -386,7 +389,11 @@ export function BuilderHome({
                 if (!firstConfiguration) {
                   return;
                 }
-                const application = createGuidedApplication(createWizard, firstConfiguration.bundle.applications);
+                const application = createGuidedApplication(
+                  createWizard,
+                  firstConfiguration.bundle.applications,
+                  robotName,
+                );
                 setCreateState({ status: "creating" });
                 try {
                   await onCreateApplication(firstConfiguration.id, application);

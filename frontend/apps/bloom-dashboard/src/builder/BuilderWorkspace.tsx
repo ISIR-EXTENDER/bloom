@@ -4,7 +4,9 @@ import {
   createDefaultWidgetRegistry,
   duplicateWidgetInScreen,
   gripperToggleSettings,
+  minSizeFor,
   removeWidgetFromScreen,
+  translationPadSettings,
   updateWidgetSettings,
   updateWidgetTitle,
   type WidgetDefinition,
@@ -19,6 +21,7 @@ import { BuilderInspector } from "./BuilderInspector";
 import {
   defaultStopRegion,
   explainLayoutRefusal,
+  findOverlappedWidget,
   findUndersizedWidgets,
   overlapsRegion,
   placeClearOfRegions,
@@ -144,7 +147,11 @@ export function BuilderWorkspace({
   const addWidget = (definition: WidgetDefinition) => {
     // Clear of what is already on the screen, not only of the regions: five widgets from the palette
     // used to land in one heap, stepping 24 px each, which for a 280 px joystick is not a layout.
-    const layout = placeClearOfWidgets(createNewWidgetLayout(draftScreen, definition), draftScreen);
+    const layout = placeClearOfWidgets(
+      createNewWidgetLayout(draftScreen, definition),
+      draftScreen,
+      minSizeFor(definition.kind, definition.defaultSettings),
+    );
     if (!layout) {
       setLayoutNotice(
         `A ${definition.displayName} does not fit anywhere on this canvas clear of the reserved regions. Make room first.`,
@@ -155,11 +162,24 @@ export function BuilderWorkspace({
     const widgetId = createUniqueWidgetId(draftScreen, definition.kind);
     // A toggle is placed wired to the gripper, and the two arms travel different distances. Giving it
     // the other arm's numbers would be a control that looks right and closes on nothing.
+    // A series picker drives a plot board; placed beside one, it drives that one.
+    const board = draftScreen.widgets.find((widget) => widget.kind === "plot-board");
     const placed =
-      definition.kind === "toggle" ? { ...definition, defaultSettings: gripperToggleSettings(robotName) } : definition;
+      definition.kind === "toggle"
+        ? { ...definition, defaultSettings: gripperToggleSettings(robotName) }
+        : definition.kind === "joystick"
+          ? { ...definition, defaultSettings: translationPadSettings(robotName) }
+          : definition.kind === "plot-picker" && board
+            ? { ...definition, defaultSettings: { ...definition.defaultSettings, plot_id: board.id } }
+            : definition;
+    const covered = findOverlappedWidget(layout, draftScreen);
     commitScreenChange(addWidgetToScreen(draftScreen, placed, { id: widgetId, layout }));
     setSelectedWidgetId(widgetId);
-    setLayoutNotice(null);
+    setLayoutNotice(
+      covered
+        ? `No free space left: ${definition.displayName} was placed over ${covered.title}. Drag it clear, or it cannot be pressed at runtime.`
+        : null,
+    );
   };
 
   /**

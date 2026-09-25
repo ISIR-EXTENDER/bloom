@@ -113,6 +113,7 @@ try {
   await benchSession();
   await debugSession();
   await authoredSession();
+  await freshAppSession();
   await labSession();
 } finally {
   await browser.close();
@@ -426,6 +427,53 @@ async function authoredSession() {
       );
       await shot(page, "authored-runtime");
       return `toggle -> ${on.data}; hold -> ${modes.join(" -> ")}`;
+    });
+  } finally {
+    await context.close();
+  }
+}
+
+/** A new app as Susana asked for it on 2026-09-25: the starter and the palette as placed, nothing typed, the arm moves. */
+async function freshAppSession() {
+  const { context, page } = await newPage({ width: 1600, height: 1000 });
+  const appName = `Fresh ${Date.now()}`;
+  try {
+    const built = await check(page, "a-new-app-arrives-wired", async () => {
+      await createGuidedApp(page, dashboardUrl, appName);
+      await openScreenBuilder(page);
+      const added = await addPaletteWidgets(page, ["Command button", "Gauge"]);
+      assert(added.length === 2, `only added ${added.join(", ")}`);
+      await saveScreenDraft(page);
+      await shot(page, "fresh-screen");
+      return `${appName}: the starter's pad, speed and gripper, and ${added.join(" and ")} from the palette, untouched`;
+    });
+    if (!built) {
+      return;
+    }
+
+    await check(page, "a-new-app-drives-the-arm", async () => {
+      await openRuntimeApp(page, dashboardUrl, { appName });
+      const unavailable = await page.locator("[data-runtime-unavailable='true']").count();
+      assert(unavailable === 0, `${unavailable} widget(s) marked unavailable`);
+      const drive = await driveAndMeasure(page, "fresh");
+
+      let since = Date.now();
+      await page.getByRole("button", { name: /Close gripper/ }).click();
+      await ros.waitFor(GRIPPER, (data) => data.data[0] === robot.gripper.close[0], { since });
+
+      since = Date.now();
+      await page.getByRole("slider", { name: /Max linear speed/ }).focus();
+      await page.keyboard.press("ArrowRight");
+      const speed = await ros.waitFor(MAX_LINEAR, () => true, { since });
+
+      since = Date.now();
+      await page.locator("[data-widget-kind='command-button'] button").first().click();
+      await ros.waitFor(MODE, (data) => data.data === "geometric/both", { since });
+
+      const gauge = await page.locator("[data-widget-kind='gauge']").innerText();
+      assert(/\d\.\d/.test(gauge) && !/no source/i.test(gauge), `gauge reads "${gauge.replace(/\s+/g, " ")}"`);
+      await shot(page, "fresh-runtime");
+      return `${drive.summary}; gripper ${robot.gripper.close[0]}; speed ${speed.data.toFixed(3)}; Neutral; gauge live`;
     });
   } finally {
     await context.close();
