@@ -38,6 +38,13 @@ class FakeParameterGateway:
         return tuple(RosParameterReading(node=node, name=name, value=self.value) for name in names)
 
 
+class AbsentNodeParameterGateway:
+    """What the rclpy gateway raises when the node is not on the graph."""
+
+    def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
+        raise RuntimeError(f"Node {node} does not offer its parameter services.")
+
+
 def make_client(gateway=None) -> TestClient:
     return TestClient(
         create_app(Settings(environment="test"), InMemoryConfigurationRepository(), robot_model_gateway=gateway)
@@ -111,3 +118,9 @@ def test_the_rclpy_gateway_reads_the_parameter_once_per_call() -> None:
 
     assert RclpyRobotModelGateway(FakeParameterGateway(None), "/rsp").description() is None
     assert RclpyRobotModelGateway(FakeParameterGateway("   "), "/rsp").description() is None
+
+
+def test_a_robot_that_is_not_running_is_unavailable_rather_than_an_error() -> None:
+    """The view polls this route until the robot appears; a launch that has not happened is not a fault."""
+    gateway = RclpyRobotModelGateway(AbsentNodeParameterGateway(), "/robot_state_publisher")
+    assert gateway.description() is None

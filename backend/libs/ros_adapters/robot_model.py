@@ -48,7 +48,12 @@ class RclpyRobotModelGateway:
         self._node_name = node_name
 
     def description(self) -> str | None:
-        readings = self._parameters.get(self._node_name, ("robot_description",))
+        try:
+            readings = self._parameters.get(self._node_name, ("robot_description",))
+        except RuntimeError:
+            # The node is not there: the robot is down, or not up yet. That is the unavailable state the
+            # view polls for, not a fault, and the view asks again every few seconds until it appears.
+            return None
         value = readings[0].value if readings else None
         return value if isinstance(value, str) and value.strip() else None
 

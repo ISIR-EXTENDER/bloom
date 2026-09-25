@@ -63,6 +63,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A robot that is not running reads as unavailable, not as a server error.** With the ROS adapters attached
+  and no robot launched, the robot-model route raised because `/robot_state_publisher` offers no parameter
+  services, so the 3D view's poll filled the API log with 500s every three seconds. It reports the state the
+  view is waiting for instead.
+
 - **A pull that adds a dependency no longer breaks the launcher.** `scripts/extender-workspace-dev.sh` installs
   when `package-lock.json` is newer than the last install, so a stale `node_modules` cannot surface as Vite
   failing to resolve an import. Robin lost a bench morning to exactly that, with `three`.
@@ -86,6 +91,7 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   workspace that itself lives in a directory called `share` resolves to the right package.
 
 ### Changed
+
 
 - **The 3D robot view is desktop-only.** A widget kind can name the device classes it runs on; the palette
   refuses the view on a tablet screen, the review checklist reports one that slipped in, and a tablet-class
