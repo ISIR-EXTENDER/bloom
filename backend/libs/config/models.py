@@ -133,6 +133,8 @@ class UserProfile(BloomModel):
     dwell_enabled: bool = False
     #: How long a pointer must rest on a control before activating it.
     dwell_ms: int = Field(default=1000, ge=400, le=4000)
+    #: A tap opens maintenance instead of the hold; for roles that are not driving.
+    menu_on_tap: bool = False
 
 
 class RuntimeAdapterPolicy(BloomModel):

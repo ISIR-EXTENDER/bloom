@@ -124,7 +124,8 @@ role is one more, and becomes the new default for that device.
 ## On every device
 
 - **Tablet**, for operating. The screen fills the display like a kiosk: there are no menus to wander into, and
-  settings sit behind a deliberate long press, so a stray touch cannot change them.
+  settings sit behind a deliberate long press, so a stray touch cannot change them. Engineers' roles open the same
+  menu with a tap.
 - **Laptop or desktop**, for building and understanding. The Builder, the debugging tools and the 3D robot view live
   here, and Bloom keeps the 3D view off tablets and phones so it never slows the screen someone is driving with.
 - **A second screen**, for supervising. The supervisor mirror shows what the robot is doing and who has control, and

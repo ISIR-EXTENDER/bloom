@@ -45,6 +45,7 @@
       "profiles": [
         {
           "id": "bench",
+          "menu_on_tap": true,
           "name": "Bench",
           "display_preset": "compact",
           "font_scale": 1,

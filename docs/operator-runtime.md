@@ -51,6 +51,12 @@ The 44 px bar reads, left to right: app name, screen title, a status chip, the c
 role pill, and the **⋯** maintenance hold, drawn as a fill on the button itself. Under scanning **⋯** is part of the
 scan set, and selecting it opens maintenance at once: a switch cannot hold anything down, and waiting out the scan
 cycle is already the deliberate act the 1.5 s hold asks a pointer for. The pointer and keyboard hold is unchanged.
+A tap released too early says to keep holding.
+
+A role that does not drive can skip the hold: with **A tap opens the menu** set in the Builder's role editor
+(`menu_on_tap`), a tap on **⋯** opens maintenance, and the screen title becomes a button that opens it on the screen
+list. Opening maintenance still holds the robot at zeros, and **Switch role** keeps its own hold. The shipped
+**Bench** and **Lab** roles use it; **Operator** and **One switch** keep the hold.
 
 | Chip | Meaning |
 | --- | --- |

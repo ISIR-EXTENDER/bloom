@@ -134,6 +134,8 @@ export type UserProfile = {
   dwell_enabled?: boolean;
   /** How long a pointer must rest on a control before it activates. */
   dwell_ms?: number;
+  /** A tap opens maintenance instead of the 1.5 s hold; for roles that are not driving. */
+  menu_on_tap?: boolean;
 };
 
 export type RuntimeAdapterPolicy = {

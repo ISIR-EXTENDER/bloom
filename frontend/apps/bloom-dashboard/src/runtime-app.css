@@ -918,6 +918,32 @@
   white-space: nowrap;
 }
 
+/* On roles that open the menu with a tap, the screen name is the way to the other screens. */
+button.runtime-kiosk-screen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 22%, transparent);
+  border-radius: 9px;
+  background: var(--bloom-surface);
+  color: var(--bloom-ink);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button.runtime-kiosk-screen::after {
+  content: "▾";
+  color: var(--bloom-muted);
+}
+
+button.runtime-kiosk-screen:hover,
+button.runtime-kiosk-screen:focus-visible {
+  border-color: var(--bloom-primary);
+}
+
 /* Round dot while ready, square when anything holds the robot. */
 .runtime-kiosk-status {
   display: inline-flex;

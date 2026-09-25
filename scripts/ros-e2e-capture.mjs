@@ -194,7 +194,7 @@ async function openBuilderReview(page) {
 }
 
 async function holdForMaintenance(page) {
-  const button = page.getByRole("button", { name: "Hold to open maintenance" });
+  const button = page.locator(".runtime-kiosk-maintenance");
   const box = await button.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();

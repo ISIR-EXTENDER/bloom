@@ -110,6 +110,8 @@ export const enRuntimeStrings: RuntimeStrings = {
     home: "Home",
     maintenance: "Maintenance",
     maintenanceAria: "Hold to open maintenance",
+    menuAria: "Open maintenance",
+    screenMenuAria: (screen) => `${screen}: open the screen list`,
     holdHint: "Keep holding ⋯ to open the menu",
     maintenanceHelp: "Motion is stopped while maintenance is open. Return controls to neutral before resuming.",
     referenceFrameTitle: "Reference frame for operator commands",

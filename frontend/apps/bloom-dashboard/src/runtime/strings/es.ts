@@ -110,6 +110,8 @@ export const esRuntimeStrings: RuntimeStrings = {
     home: "Inicio",
     maintenance: "Mantenimiento",
     maintenanceAria: "Mantener para abrir mantenimiento",
+    menuAria: "Abrir mantenimiento",
+    screenMenuAria: (screen) => `${screen}: abrir la lista de pantallas`,
     holdHint: "Mantén ⋯ pulsado para abrir el menú",
     maintenanceHelp:
       "El movimiento se detiene mientras el mantenimiento está abierto. Devuelve los controles a posición neutra antes de reanudar.",

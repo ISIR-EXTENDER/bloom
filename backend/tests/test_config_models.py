@@ -275,6 +275,11 @@ def test_user_profile_language_defaults_to_english_and_accepts_french() -> None:
     assert UserProfile(id="french", name="French", language="fr").language == RuntimeLanguage.FRENCH
 
 
+def test_a_role_keeps_the_maintenance_hold_unless_it_asks_for_a_tap() -> None:
+    assert UserProfile(id="operator", name="Operator").menu_on_tap is False
+    assert UserProfile(id="bench", name="Bench", menu_on_tap=True).menu_on_tap is True
+
+
 def test_user_profile_allows_dwell_alongside_scanning() -> None:
     profile = UserProfile(
         id="scan-dwell-operator",

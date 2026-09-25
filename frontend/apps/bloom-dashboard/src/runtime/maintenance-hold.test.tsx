@@ -67,7 +67,8 @@ describe("maintenance holds the robot, and STOP outranks it (plan §8.3)", () =>
     }
     await waitFor(() => expect(sent.some((request) => !isZero(request))).toBe(true));
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Hold to open maintenance" }));
+    // Bench opens maintenance with a tap; the robot must be held at zeros all the same.
+    fireEvent.click(screen.getByRole("button", { name: "Open maintenance" }));
     await screen.findByRole("dialog", { name: "Maintenance" }, { timeout: 3000 });
 
     await waitFor(() => expect(sent.at(-1) && isZero(sent.at(-1) as RuntimeTeleopCommandRequest)).toBe(true));

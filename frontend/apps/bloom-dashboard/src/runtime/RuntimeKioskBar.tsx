@@ -32,7 +32,8 @@ export type RuntimeStatusChip = {
 
 export type RuntimeLinkFact = "connected" | "connecting" | "down" | null;
 
-export type RuntimeProfileSummary = { id: string; layoutId: string; name: string };
+/** `menuOnTap` roles open maintenance with a tap; the others need the hold. */
+export type RuntimeProfileSummary = { id: string; layoutId: string; menuOnTap?: boolean; name: string };
 
 export type RuntimeKioskBarProps = {
   application: ApplicationConfig;
@@ -144,6 +145,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
   // A switch cannot hold anything down: selecting this button under scanning is
   // itself the slow, deliberate act the hold asks a pointer for.
   const maintenanceRef = useAssistiveActivation<HTMLButtonElement>(openMaintenance, maintenanceButtonRef);
+  const menuOnTap = profile.menuOnTap === true;
   const rate = held
     ? strings.kiosk.rateZerosHeld
     : publishing
@@ -155,7 +157,19 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
       <header className="runtime-kiosk-bar">
         {/* Level 2: level 1 belongs to the app configuration page. */}
         <h2 className="runtime-kiosk-app">{application.name}</h2>
-        <span className="runtime-kiosk-screen">{localizeOperatorText(screen.title, language)}</span>
+        {menuOnTap ? (
+          <button
+            aria-label={strings.kiosk.screenMenuAria(localizeOperatorText(screen.title, language))}
+            className="runtime-kiosk-screen"
+            data-menu="true"
+            onClick={openMaintenance}
+            type="button"
+          >
+            {localizeOperatorText(screen.title, language)}
+          </button>
+        ) : (
+          <span className="runtime-kiosk-screen">{localizeOperatorText(screen.title, language)}</span>
+        )}
         {statusChip ? (
           <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
             <span aria-hidden="true" className="runtime-kiosk-status-dot" />
@@ -201,33 +215,48 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         <span className="runtime-kiosk-role" data-role={resolveRuntimeRole(profile)}>
           {localizeOperatorText(profile.name, language)}
         </span>
-        <button
-          aria-label={strings.kiosk.maintenanceAria}
-          className="runtime-kiosk-maintenance"
-          data-assistive-maintenance=""
-          onBlur={holdProgress.cancel}
-          onKeyDown={(event) => {
-            if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
-              pressMaintenance();
-            }
-          }}
-          onKeyUp={releaseMaintenance}
-          onPointerCancel={holdProgress.cancel}
-          onPointerDown={pressMaintenance}
-          onPointerLeave={holdProgress.cancel}
-          onPointerUp={releaseMaintenance}
-          ref={maintenanceRef}
-          type="button"
-        >
-          <span
-            aria-hidden="true"
-            className="runtime-kiosk-hold"
-            style={{ transform: `scaleX(${holdProgress.value})` }}
-          />
-          <span aria-hidden="true" className="runtime-kiosk-dots">
-            ⋯
-          </span>
-        </button>
+        {menuOnTap ? (
+          <button
+            aria-label={strings.kiosk.menuAria}
+            className="runtime-kiosk-maintenance"
+            data-assistive-maintenance=""
+            onClick={openMaintenance}
+            ref={maintenanceRef}
+            type="button"
+          >
+            <span aria-hidden="true" className="runtime-kiosk-dots">
+              ⋯
+            </span>
+          </button>
+        ) : (
+          <button
+            aria-label={strings.kiosk.maintenanceAria}
+            className="runtime-kiosk-maintenance"
+            data-assistive-maintenance=""
+            onBlur={holdProgress.cancel}
+            onKeyDown={(event) => {
+              if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
+                pressMaintenance();
+              }
+            }}
+            onKeyUp={releaseMaintenance}
+            onPointerCancel={holdProgress.cancel}
+            onPointerDown={pressMaintenance}
+            onPointerLeave={holdProgress.cancel}
+            onPointerUp={releaseMaintenance}
+            ref={maintenanceRef}
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              className="runtime-kiosk-hold"
+              style={{ transform: `scaleX(${holdProgress.value})` }}
+            />
+            <span aria-hidden="true" className="runtime-kiosk-dots">
+              ⋯
+            </span>
+          </button>
+        )}
         {holdHint ? (
           <span className="runtime-kiosk-hold-hint" role="status">
             {strings.kiosk.holdHint}

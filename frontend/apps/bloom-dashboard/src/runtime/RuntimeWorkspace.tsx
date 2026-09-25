@@ -612,6 +612,7 @@ export function RuntimeWorkspace({
         profile={{
           id: baseRuntimeProfile.id,
           layoutId: profileLayoutId(application, baseRuntimeProfile.id),
+          menuOnTap: application.profiles.find((candidate) => candidate.id === baseRuntimeProfile.id)?.menu_on_tap,
           name: runtimeProfile.name,
         }}
         profiles={application.profiles.map((candidate) => ({

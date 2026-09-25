@@ -73,6 +73,8 @@ export type RuntimeStrings = {
     home: string;
     maintenance: string;
     maintenanceAria: string;
+    menuAria: string;
+    screenMenuAria: (screen: string) => string;
     holdHint: string;
     maintenanceHelp: string;
     referenceFrameTitle: string;

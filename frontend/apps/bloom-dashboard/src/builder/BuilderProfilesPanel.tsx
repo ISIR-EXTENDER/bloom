@@ -196,6 +196,14 @@ export function BuilderProfilesPanel({
                 />
                 <span>Sound on stop and link loss</span>
               </label>
+              <label className="builder-profile-check">
+                <input
+                  checked={profile.menu_on_tap === true}
+                  onChange={(event) => onUpdateProfile(profile.id, { menu_on_tap: event.target.checked })}
+                  type="checkbox"
+                />
+                <span>A tap opens the menu (no hold); for roles that do not drive</span>
+              </label>
             </div>
 
             <div className="builder-profile-actions">

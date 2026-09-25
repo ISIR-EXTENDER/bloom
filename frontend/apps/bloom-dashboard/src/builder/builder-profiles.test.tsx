@@ -98,6 +98,23 @@ describe("authoring roles", () => {
     expect(screen.getByLabelText("Scan step (ms)")).toBeTruthy();
   });
 
+  it("lets a role that does not drive open the menu with a tap", () => {
+    const onUpdateProfile = vi.fn();
+    render(
+      <BuilderProfilesPanel
+        application={application}
+        onAddProfile={vi.fn()}
+        onRemoveProfile={vi.fn()}
+        onUpdateProfile={onUpdateProfile}
+      />,
+    );
+
+    const tap = screen.getByLabelText(/A tap opens the menu/) as HTMLInputElement;
+    expect(tap.checked).toBe(false);
+    fireEvent.click(tap);
+    expect(onUpdateProfile).toHaveBeenCalledWith("operator", { menu_on_tap: true });
+  });
+
   // `reduced-motion` left the model on 2026-09-24; a value that changed nothing must never come back as a choice.
   it("does not offer a preset the runtime ignores", () => {
     render(

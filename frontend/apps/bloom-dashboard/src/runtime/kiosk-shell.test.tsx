@@ -404,3 +404,33 @@ describe("maintenance", () => {
     expect(isOpen()).toBe(false);
   });
 });
+
+describe("a role that opens the menu with a tap", () => {
+  afterEach(cleanup);
+  const bench = { id: "bench", layoutId: "drive_bench", menuOnTap: true, name: "Bench" };
+
+  it("opens maintenance from a tap on ⋯, still holding the robot at zeros", () => {
+    const handlers = renderBar({ profile: bench });
+
+    fireEvent.click(screen.getByRole("button", { name: "Open maintenance" }));
+
+    expect(isOpen()).toBe(true);
+    expect(handlers.onSuspendTeleop).toHaveBeenCalledOnce();
+  });
+
+  it("makes the screen name the way to the other screens", () => {
+    const handlers = renderBar({ profile: bench });
+
+    fireEvent.click(screen.getByRole("button", { name: "Drive: open the screen list" }));
+    fireEvent.click(screen.getByRole("button", { name: "Positions" }));
+
+    expect(handlers.onSelectScreen).toHaveBeenCalledWith("positions");
+  });
+
+  it("keeps the hold for a driving role", () => {
+    renderBar();
+
+    expect(screen.queryByRole("button", { name: "Open maintenance" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /open the screen list/ })).toBeNull();
+  });
+});

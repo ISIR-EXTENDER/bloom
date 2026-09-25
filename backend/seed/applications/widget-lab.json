@@ -62,6 +62,7 @@
       "profiles": [
         {
           "id": "lab",
+          "menu_on_tap": true,
           "name": "Lab",
           "display_preset": "default",
           "font_scale": 1,

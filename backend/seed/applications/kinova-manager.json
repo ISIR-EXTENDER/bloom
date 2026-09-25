@@ -127,6 +127,7 @@
         },
         {
           "id": "bench",
+          "menu_on_tap": true,
           "name": "Bench",
           "display_preset": "default",
           "font_scale": 1,

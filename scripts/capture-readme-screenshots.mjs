@@ -278,7 +278,7 @@ function applyApiDefaults(application) {
 }
 
 async function selectRuntimeScreen(page, screenTitle) {
-  const maintenanceButton = page.getByRole("button", { name: "Hold to open maintenance" });
+  const maintenanceButton = page.locator(".runtime-kiosk-maintenance");
   const box = await maintenanceButton.boundingBox();
   if (!box) {
     throw new Error("Maintenance button has no visible bounds");

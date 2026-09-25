@@ -203,7 +203,7 @@ async function servoSession() {
 
 async function switchScreen(page, title) {
   const dialog = page.getByRole("dialog", { name: "Maintenance" });
-  await hold(page, page.getByRole("button", { name: "Hold to open maintenance" }), 1700);
+  await hold(page, page.locator(".runtime-kiosk-maintenance"), 1700);
   await dialog.getByRole("navigation", { name: "Switch runtime screen" }).getByRole("button", { name: title }).click();
   await dialog.waitFor({ state: "hidden" });
 }

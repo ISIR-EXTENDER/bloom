@@ -19,6 +19,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Bench and Lab open the menu with a tap.** A role option, `menu_on_tap` ("A tap opens the menu" in the Builder),
+  lets a role that does not drive open maintenance from a tap on "⋯" or on the screen title, which then reads as a
+  button to the screen list. Opening it still holds the robot at zeros and switching role keeps its hold. The
+  shipped Bench and Lab roles use it; Operator and One switch keep the 1.5 s hold.
+
 - **The runtime teaches its own hidden gestures.** A tap on "⋯" that is too short now says to keep holding, the
   maintenance sheet lists the app's screens first under a **Screens** heading, and the 3D view says "Drag to turn ·
   wheel to zoom" until the first drag on that device.
