@@ -200,7 +200,6 @@ export const frRuntimeStrings: RuntimeStrings = {
     openAsLabel: "Ouvrir en tant que",
     openAs: (role) => `Ouvrir en tant que ${role}`,
     open: "Ouvrir",
-    chooseRole: "Choisissez un rôle pour ouvrir",
     screens: (count) => (count === 1 ? "1 écran" : `${count} écrans`),
     classes: {
       tablet: "Tablette",

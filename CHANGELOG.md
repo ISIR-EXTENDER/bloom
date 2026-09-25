@@ -94,6 +94,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
+- **The runtime library always offers a role**, so an app is one press from opening: the role this device
+  opened last, then Operator, then whatever the app lists first. Pressing another role opens as that one and
+  is what the device remembers next time. The disabled "Choose a role to open" state is gone.
 
 - **The 3D robot view is desktop-only.** A widget kind can name the device classes it runs on; the palette
   refuses the view on a tablet screen, the review checklist reports one that slipped in, and a tablet-class

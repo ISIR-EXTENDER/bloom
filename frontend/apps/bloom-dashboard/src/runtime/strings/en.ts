@@ -198,7 +198,6 @@ export const enRuntimeStrings: RuntimeStrings = {
     openAsLabel: "Open as",
     openAs: (role) => `Open as ${role}`,
     open: "Open",
-    chooseRole: "Choose a role to open",
     screens: (count) => (count === 1 ? "1 screen" : `${count} screens`),
     classes: {
       tablet: "Tablet",

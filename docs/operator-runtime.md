@@ -15,7 +15,10 @@ first. It is this contract in the order the work happens.
 1. Start the Bloom API and dashboard. For an Extender lab session, use
    `scripts/extender-workspace-dev.sh` from the repository root.
 2. Open **Runtime**. The library lists the apps on this robot; select one to see its roles in the right rail.
-3. Choose a role and press **Open as <role>**. The role opens the screen its profile names.
+3. Press **Open as <role>**. A role is offered so the app is always one press from opening: the one this
+   device opened last, then Operator, then whatever the app lists first. Pressing another role first opens as
+   that one instead, and that choice is what the device remembers next time. The role opens the screen its
+   profile names.
 4. Confirm the kiosk bar names the expected application, screen, link state, command frame, and role before moving a
    control.
 5. Use **STOP** immediately if the command path or motion is not what you expect.

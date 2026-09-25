@@ -161,7 +161,6 @@ export type RuntimeStrings = {
     archived: string;
     brand: string;
     builder: string;
-    chooseRole: string;
     classes: Record<"both" | "desktop" | "desktopOnly" | "tablet" | "tabletOnly", string>;
     deviceDesktop: (width: number, height: number) => string;
     deviceTablet: (width: number, height: number) => string;

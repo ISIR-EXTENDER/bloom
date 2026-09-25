@@ -200,7 +200,6 @@ export const esRuntimeStrings: RuntimeStrings = {
     openAsLabel: "Abrir como",
     openAs: (role) => `Abrir como ${role}`,
     open: "Abrir",
-    chooseRole: "Elige un rol para abrir",
     screens: (count) => (count === 1 ? "1 pantalla" : `${count} pantallas`),
     classes: {
       tablet: "Tableta",

@@ -9,7 +9,7 @@ import explorerManagerConfiguration from "../../../../../backend/seed/applicatio
 import petanqueAdminConfiguration from "../../../../../backend/seed/applications/petanque-admin.json";
 import sandboxConfiguration from "../../../../../backend/seed/applications/sandbox.json";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
-import { collectLibraryApps, describeProfile, RuntimeHome, rememberedProfileId } from "./RuntimeHome";
+import { collectLibraryApps, describeProfile, initialProfileId, RuntimeHome, rememberedProfileId } from "./RuntimeHome";
 import { getRuntimeStrings } from "./strings";
 
 function loaded(id: string, bundle: unknown): LoadedConfiguration {
@@ -114,10 +114,11 @@ describe("the runtime library", () => {
     expect(menu.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("makes the first launch an explicit choice, then opens the chosen role's layout", () => {
+  it("offers a role on the first launch, and opens the one chosen instead", () => {
     const handlers = renderLibrary();
 
-    expect((screen.getByRole("button", { name: "Choose a role to open" }) as HTMLButtonElement).disabled).toBe(true);
+    // Nothing remembered on this device: Operator is offered, so the app is one press from opening.
+    expect(screen.getByRole("button", { name: "Open as Operator" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Bench" }));
     fireEvent.click(screen.getByRole("button", { name: "Open as Bench" }));
 
@@ -143,6 +144,23 @@ describe("the runtime library", () => {
     expect(rememberedProfileId(app, "")).toBe("");
     expect(rememberedProfileId(app, "retired-profile")).toBe("");
     expect(rememberedProfileId(app, "bench")).toBe("bench");
+  });
+
+  it("starts on the role this device used last, then Operator, then whatever the app offers first", () => {
+    const app = configurations[0]?.bundle.applications[0];
+    if (!app) throw new Error("Missing app.");
+    const template = app.profiles[0];
+    if (!template) throw new Error("Missing profile.");
+    const roles = (...ids: string[]) => ({ ...app, profiles: ids.map((id) => ({ ...template, id, name: id })) });
+    const manager = roles("operator", "bench", "one-switch");
+    expect(initialProfileId(manager, "one-switch")).toBe("one-switch");
+    // Nothing remembered: Operator, not the first in the list.
+    expect(initialProfileId(manager, undefined)).toBe("operator");
+    // One role is not a choice worth asking for.
+    expect(initialProfileId(roles("bench"), undefined)).toBe("bench");
+    // No Operator: the first role offered, so there is always something to open.
+    expect(initialProfileId(roles("bench", "one-switch"), undefined)).toBe("bench");
+    expect(initialProfileId(roles(), undefined)).toBe("");
   });
 
   it("says an app declares no profiles instead of inventing roles, and opens its first screen", () => {

@@ -71,6 +71,20 @@ export function rememberedProfileId(application: ApplicationConfig, stored: stri
   return application.profiles.some((profile) => profile.id === stored) ? (stored as string) : "";
 }
 
+/**
+ * The role the library starts on, so an app is always one press from opening: the role this device used last,
+ * then Operator, which is the narrower surface of the two an app usually offers, then whatever it offers
+ * first. The roles stay on screen, so opening as another one is a press away and is then remembered.
+ */
+export function initialProfileId(application: ApplicationConfig, stored: string | undefined): string {
+  const remembered = rememberedProfileId(application, stored);
+  if (remembered) {
+    return remembered;
+  }
+  const operator = application.profiles.find((profile) => profile.id === "operator");
+  return operator?.id ?? application.profiles[0]?.id ?? "";
+}
+
 export function describeProfile(profile: UserProfile, strings: RuntimeStrings): string {
   const words = strings.library.tagline;
   const bench = profile.id === "bench" || profile.preferred_control_layout_id.endsWith("_bench");
@@ -110,7 +124,7 @@ export function RuntimeHome({
     apps.find((app) => app.key === targetKey) ??
     apps.find((app) => app.key === recentKey) ??
     apps[0];
-  const remembered = selected ? rememberedProfileId(selected.application, profilePreferences[selected.key]) : "";
+  const remembered = selected ? initialProfileId(selected.application, profilePreferences[selected.key]) : "";
   const chosen = selected ? (chosenRoles[selected.key] ?? remembered) : "";
   const chosenProfile = selected?.application.profiles.find((profile) => profile.id === chosen);
   const language = resolveLibraryLanguage(selected, chosenProfile, profileOverrides);
@@ -130,10 +144,8 @@ export function RuntimeHome({
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
-  const needsRole = Boolean(selected && selected.application.profiles.length > 0 && !chosenProfile);
-
   const open = () => {
-    if (!selected || needsRole) {
+    if (!selected) {
       return;
     }
     const { application, configuration } = selected;
@@ -275,8 +287,8 @@ export function RuntimeHome({
                 <p className="runtime-library-note">{words.noProfiles}</p>
               )}
             </div>
-            <button className="runtime-library-open" disabled={needsRole} onClick={open} type="button">
-              {needsRole ? words.chooseRole : chosenProfile ? words.openAs(chosenProfile.name) : words.open}
+            <button className="runtime-library-open" onClick={open} type="button">
+              {chosenProfile ? words.openAs(chosenProfile.name) : words.open}
             </button>
             <button
               aria-label={words.supervisorAria(selected.application.name)}

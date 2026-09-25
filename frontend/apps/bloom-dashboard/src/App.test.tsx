@@ -530,8 +530,8 @@ describe("App", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
     fireEvent.click(await screen.findByRole("button", { name: "Explorer Manager" }));
-    // No role remembered yet: opening is an explicit choice.
-    expect(screen.getByRole("button", { name: "Choose a role to open" })).toBeDisabled();
+    // Nothing remembered on this device: Operator is offered, and Bench is one press away.
+    expect(screen.getByRole("button", { name: "Open as Operator" })).toBeEnabled();
     await openRuntimeApp("Explorer Manager", "Bench");
 
     expect(await screen.findByRole("region", { name: "Runtime application" })).toBeVisible();
