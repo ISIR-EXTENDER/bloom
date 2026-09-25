@@ -1,6 +1,6 @@
 import type { ApplicationConfig, RuntimeLanguage, ScreenConfig } from "@bloom/api-client";
 import { localizeOperatorText } from "@bloom/widgets";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useAssistiveActivation } from "./assistive-activation";
 import { RuntimeMaintenanceSheet } from "./RuntimeMaintenanceSheet";
 import type { RuntimeFitWarning } from "./runtime-canvas-fit";
@@ -13,6 +13,7 @@ import { useHoldGesture } from "./use-hold-gesture";
  */
 
 const MAINTENANCE_HOLD_MS = 1500;
+const HOLD_HINT_MS = 2600;
 
 /** Word + color + dot shape carry the same message; never color alone. */
 export type RuntimeStatusChipTone =
@@ -117,6 +118,29 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     maintenanceButtonRef.current?.focus();
   };
   const holdProgress = useHoldGesture(MAINTENANCE_HOLD_MS, openMaintenance);
+  // A tap on ⋯ used to do nothing visible, so nobody learnt that it opens when held. Released early, it says so.
+  const pressedAt = useRef<number | null>(null);
+  const [holdHint, setHoldHint] = useState(false);
+  useEffect(() => {
+    if (!holdHint) {
+      return;
+    }
+    const timer = setTimeout(() => setHoldHint(false), HOLD_HINT_MS);
+    return () => clearTimeout(timer);
+  }, [holdHint]);
+  const pressMaintenance = () => {
+    pressedAt.current = Date.now();
+    setHoldHint(false);
+    holdProgress.start();
+  };
+  const releaseMaintenance = () => {
+    const heldFor = pressedAt.current === null ? null : Date.now() - pressedAt.current;
+    pressedAt.current = null;
+    holdProgress.cancel();
+    if (heldFor !== null && heldFor < MAINTENANCE_HOLD_MS) {
+      setHoldHint(true);
+    }
+  };
   // A switch cannot hold anything down: selecting this button under scanning is
   // itself the slow, deliberate act the hold asks a pointer for.
   const maintenanceRef = useAssistiveActivation<HTMLButtonElement>(openMaintenance, maintenanceButtonRef);
@@ -184,14 +208,14 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
           onBlur={holdProgress.cancel}
           onKeyDown={(event) => {
             if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
-              holdProgress.start();
+              pressMaintenance();
             }
           }}
-          onKeyUp={holdProgress.cancel}
+          onKeyUp={releaseMaintenance}
           onPointerCancel={holdProgress.cancel}
-          onPointerDown={holdProgress.start}
+          onPointerDown={pressMaintenance}
           onPointerLeave={holdProgress.cancel}
-          onPointerUp={holdProgress.cancel}
+          onPointerUp={releaseMaintenance}
           ref={maintenanceRef}
           type="button"
         >
@@ -204,6 +228,11 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
             ⋯
           </span>
         </button>
+        {holdHint ? (
+          <span className="runtime-kiosk-hold-hint" role="status">
+            {strings.kiosk.holdHint}
+          </span>
+        ) : null}
       </header>
 
       {maintenanceOpen ? (

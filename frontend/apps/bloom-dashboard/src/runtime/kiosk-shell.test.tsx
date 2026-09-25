@@ -160,6 +160,28 @@ describe("the maintenance hold", () => {
     expect(isOpen()).toBe(false);
   });
 
+  it("teaches the hold when a tap is too short, then lets the hint go", () => {
+    renderBar();
+
+    hold(120);
+    fireEvent.pointerUp(maintenanceButton());
+
+    expect(screen.getByText(/Keep holding/).getAttribute("role")).toBe("status");
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(screen.queryByText(/Keep holding/)).toBeNull();
+  });
+
+  it("gives no hint after a hold that opened maintenance", () => {
+    renderBar();
+
+    hold(1600);
+    fireEvent.pointerUp(maintenanceButton());
+
+    expect(screen.queryByText(/Keep holding/)).toBeNull();
+  });
+
   it("ignores a hold released before 1.5s", () => {
     renderBar();
 
@@ -221,6 +243,17 @@ describe("maintenance", () => {
 
     expect(handlers.onSelectScreen).toHaveBeenCalledWith("positions");
     expect(isOpen()).toBe(false);
+  });
+
+  it("lists the screens before anything else", () => {
+    renderBar();
+    hold(1600);
+
+    const dialog = screen.getByRole("dialog");
+    const screens = screen.getByRole("navigation", { name: "Switch runtime screen" });
+    const facts = dialog.querySelector("dl") as Element;
+    expect(screens.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Screens" })).toBeTruthy();
   });
 
   it("reads six facts without offering to set them", () => {

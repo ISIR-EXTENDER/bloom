@@ -73,11 +73,13 @@ export type RuntimeStrings = {
     home: string;
     maintenance: string;
     maintenanceAria: string;
+    holdHint: string;
     maintenanceHelp: string;
     referenceFrameTitle: string;
     settings: string;
     supervisorMirror: string;
     switchScreen: string;
+    screens: string;
     rate: (hz: number) => string;
     ratePublishing: (hz: number) => string;
     rateZerosHeld: string;

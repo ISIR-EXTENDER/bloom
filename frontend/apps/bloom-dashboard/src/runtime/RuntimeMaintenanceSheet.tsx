@@ -143,6 +143,23 @@ export function RuntimeMaintenanceSheet({
 
         {/* Only the middle scrolls: Close and Resume operating stay on screen at any height. */}
         <div className="runtime-maintenance-body">
+          {application.screens.length > 1 ? (
+            <>
+              <h3 className="runtime-maintenance-group">{strings.kiosk.screens}</h3>
+              <nav aria-label={strings.kiosk.switchScreen} className="runtime-maintenance-screens">
+                {application.screens.map((candidate) => (
+                  <button
+                    aria-current={candidate.id === screen.id ? "page" : undefined}
+                    key={candidate.id}
+                    onClick={closeAnd(() => onSelectScreen(candidate.id))}
+                    type="button"
+                  >
+                    {localizeOperatorText(candidate.title, language)}
+                  </button>
+                ))}
+              </nav>
+            </>
+          ) : null}
           <dl className="runtime-maintenance-facts">
             <Fact
               label={facts.link}
@@ -245,20 +262,6 @@ export function RuntimeMaintenanceSheet({
           ) : null}
 
           <h3 className="runtime-maintenance-group">{strings.kiosk.more}</h3>
-          {application.screens.length > 1 ? (
-            <nav aria-label={strings.kiosk.switchScreen} className="runtime-maintenance-screens">
-              {application.screens.map((candidate) => (
-                <button
-                  aria-current={candidate.id === screen.id ? "page" : undefined}
-                  key={candidate.id}
-                  onClick={closeAnd(() => onSelectScreen(candidate.id))}
-                  type="button"
-                >
-                  {localizeOperatorText(candidate.title, language)}
-                </button>
-              ))}
-            </nav>
-          ) : null}
           <div className="runtime-maintenance-tools">
             <button onClick={closeAnd(onOpenTour)} type="button">
               {strings.settings.practiceTour}

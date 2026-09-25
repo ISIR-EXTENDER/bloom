@@ -1840,6 +1840,19 @@
   opacity: 0.55;
 }
 
+.bloom-robot-3d-gesture-hint {
+  position: absolute;
+  bottom: 44px;
+  left: 10px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface) 92%, white);
+  color: var(--bloom-ink-soft);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
 /* A sibling of the stage, not a child: children of an image role are hidden from assistive technology. */
 .bloom-robot-3d-fit {
   position: absolute;

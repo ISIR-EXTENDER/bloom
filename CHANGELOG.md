@@ -19,6 +19,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **The runtime teaches its own hidden gestures.** A tap on "⋯" that is too short now says to keep holding, the
+  maintenance sheet lists the app's screens first under a **Screens** heading, and the 3D view says "Drag to turn ·
+  wheel to zoom" until the first drag on that device.
+
 - **A new six-minute walkthrough video**, recorded against the Explorer simulation: a screen built and a control
   configured with no code, the three roles, driving, STOP, the live plots, and the arm moving in the 3D view.
 

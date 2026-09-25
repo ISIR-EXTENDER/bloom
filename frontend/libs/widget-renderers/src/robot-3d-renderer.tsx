@@ -28,6 +28,12 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
     updates: 0,
   });
   const [fitRequest, setFitRequest] = useState(0);
+  const [gestureHint, setGestureHint] = useState(() => !readGestureHintSeen());
+  const dismissGestureHint = () => {
+    if (!gestureHint) return;
+    setGestureHint(false);
+    rememberGestureHintSeen();
+  };
   const snapshot = data?.type === "robot-3d" ? data : undefined;
   const staleSeconds = useStaleSeconds(snapshot?.receivedAt);
   const command = snapshot?.command;
@@ -68,6 +74,8 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
         data-mesh-error={status.meshError}
         data-meshes={status.meshes}
         data-model={canDraw && robotModel ? status.model : "unavailable"}
+        onPointerDown={dismissGestureHint}
+        onWheel={dismissGestureHint}
         role="img"
       >
         {canDraw && robotModel ? (
@@ -94,6 +102,9 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
           </p>
         ) : null}
       </div>
+      {gestureHint && canDraw && robotModel && status.model === "ready" ? (
+        <p className="bloom-robot-3d-gesture-hint">Drag to turn · wheel to zoom</p>
+      ) : null}
       {canDraw && robotModel && status.model === "ready" ? (
         <button
           aria-label="Frame the robot"
@@ -110,6 +121,25 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
       </strong>
     </div>
   );
+}
+
+// Shown until the first drag or wheel on this device; storage may be blocked, so it fails open.
+const GESTURE_HINT_KEY = "bloom.robot3d.gestureHintSeen";
+
+function readGestureHintSeen(): boolean {
+  try {
+    return window.localStorage.getItem(GESTURE_HINT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function rememberGestureHintSeen() {
+  try {
+    window.localStorage.setItem(GESTURE_HINT_KEY, "1");
+  } catch {
+    // The hint then comes back on the next load, which is harmless.
+  }
 }
 
 function asJointState(value: unknown): { name?: unknown; position?: unknown } | undefined {

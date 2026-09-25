@@ -889,6 +889,7 @@
 
 /* The kiosk bar (design 1b, §10): status only, one hold to leave it. */
 .runtime-kiosk-bar {
+  position: relative;
   box-sizing: border-box;
   flex: 0 0 44px;
   height: 44px;
@@ -1635,3 +1636,20 @@
 /* The scan ring and the dwell ring change in one step and never animate, so there is nothing here for
    prefers-reduced-motion to switch off. The transitions Bloom does draw are in App.css and builder.css,
    and each one honours the preference beside its own rule. */
+
+/* Shown after a tap on ⋯ that was too short: floats under the button, so nothing in the bar moves. */
+.runtime-kiosk-hold-hint {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 12px;
+  z-index: 30;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--bloom-color-forest);
+  color: var(--bloom-surface);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
