@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from functools import partial
 from typing import Any
 
@@ -81,7 +81,9 @@ def get_camera_frame_gateway(connection: Request | WebSocket):
 
 
 def get_runtime_command_policy(connection: Request | WebSocket) -> RuntimeCommandPolicy:
-    return connection.app.state.runtime_command_policy
+    policy = connection.app.state.runtime_command_policy
+    directory = getattr(connection.app.state, "teleop_target_directory", None)
+    return policy if directory is None else replace(policy, allowed_teleop_targets=directory.targets())
 
 
 def get_runtime_command_rate_limiter(connection: Request | WebSocket) -> RuntimeCommandRateLimiter:
@@ -127,6 +129,15 @@ class RuntimeSocketPolicy:
     """What this socket may command: the deployment policy until an app narrows it."""
 
     policy: RuntimeCommandPolicy
+    application: ApplicationConfig | None = None
+
+    def current(self, connection: Request | WebSocket) -> RuntimeCommandPolicy:
+        """Recomputed per command, so a manager input that appears after the tablet connected is accepted."""
+        deployment = get_runtime_command_policy(connection)
+        self.policy = (
+            deployment if self.application is None else narrow_policy_to_application(deployment, self.application)
+        )
+        return self.policy
 
 
 def narrow_policy_to_application(

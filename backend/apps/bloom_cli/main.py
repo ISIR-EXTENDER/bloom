@@ -130,6 +130,7 @@ def run_ros_api(
         )
         app.state.camera_frame_gateway = create_camera_frame_gateway(node)
         app.state.camera_stream_gateway = create_camera_stream_gateway(node)
+        app.state.teleop_target_directory.start()
         uvicorn.run(app, host=host, port=port, reload=False)
     finally:
         executor.shutdown()

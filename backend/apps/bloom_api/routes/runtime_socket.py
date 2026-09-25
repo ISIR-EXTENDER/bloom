@@ -25,7 +25,6 @@ from apps.bloom_api.routes.runtime_common import (
     get_runtime_stop_controller,
     get_runtime_topic_subscription_gateway,
     get_teleop_command_gateway,
-    narrow_policy_to_application,
     record_runtime_control,
     run_runtime_thread,
     runtime_control_detail,
@@ -283,7 +282,7 @@ async def handle_runtime_client_payload(
         get_teleop_command_gateway(websocket),
         get_runtime_topic_subscription_gateway(websocket),
         audit_log,
-        socket_policy.policy,
+        socket_policy.current(websocket),
         get_runtime_command_rate_limiter(websocket),
         lambda sample: event_loop.call_soon_threadsafe(sample_throttle.offer, sample),
         topic_subscription_handles,
@@ -367,7 +366,8 @@ def apply_runtime_app_context(
             {"code": "app_context_unknown", "app_id": message.app_id, "config_id": message.config_id},
         )
 
-    socket_policy.policy = narrow_policy_to_application(get_runtime_command_policy(websocket), application)
+    socket_policy.application = application
+    socket_policy.current(websocket)
     return RuntimeServerMessage(
         type="app_context_ack",
         detail=f"Runtime commands are now limited to what '{application.name}' allows.",

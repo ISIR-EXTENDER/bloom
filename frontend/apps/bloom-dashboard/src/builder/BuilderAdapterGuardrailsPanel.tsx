@@ -93,11 +93,15 @@ export function BuilderAdapterGuardrailsPanel({
             rows={3}
             value={formatLines(policy[field] as readonly string[])}
           />
+          {field === "allowed_teleop_targets" && runtimeCapabilityReport?.teleop_targets?.length ? (
+            <small className="builder-inline-hint">
+              This robot's manager listens on {runtimeCapabilityReport.teleop_targets.join(", ")}.
+            </small>
+          ) : null}
           {field === "allowed_teleop_targets" && refusedTeleopTargets.length > 0 ? (
             <p className="builder-inline-error" role="alert">
-              This robot's Bloom server does not allow teleop on {refusedTeleopTargets.join(", ")}, so a joystick sent
-              there is refused. The app can only narrow the server's list: add the topic to BLOOM_ALLOWED_TELEOP_TARGETS
-              where the server runs, then restart it.
+              Nothing on this robot takes a joystick on {refusedTeleopTargets.join(", ")}: the manager does not listen
+              there, so a joystick sent there is refused.
             </p>
           ) : null}
         </label>

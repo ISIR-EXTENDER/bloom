@@ -58,5 +58,5 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
         command_frame_id=settings.ros_command_frame_id if supports_command_frames else "",
         command_frame_ids=list(settings.allowed_command_frame_ids) if supports_command_frames else [],
         robot_name=settings.robot_name,
-        teleop_targets=list(settings.allowed_teleop_targets),
+        teleop_targets=list(request.app.state.teleop_target_directory.targets()),
     )

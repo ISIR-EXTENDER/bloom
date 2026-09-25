@@ -133,7 +133,7 @@ export function WidgetDestinationSummary({
     !allowedTeleopTargets?.includes(teleopTarget);
 
   // Robin, 2026-09-25: added a topic to the app's list, picked it here, then got "Command failed". The
-  // server's own list (BLOOM_ALLOWED_TELEOP_TARGETS) did not have it, and nothing said so.
+  // server's list, the manager's own inputs, did not have it, and nothing said so.
   const serverRefuses =
     Boolean(teleopTarget) &&
     Boolean(serverTeleopTargets) &&
@@ -171,8 +171,8 @@ export function WidgetDestinationSummary({
       ) : null}
       {serverRefuses ? (
         <p className="builder-settings-destination-refusal" role="alert">
-          This robot's Bloom server does not allow teleop on {teleopTarget}, so the runtime will refuse it whatever the
-          app allows. Add it to BLOOM_ALLOWED_TELEOP_TARGETS where the server runs, then restart it.
+          Nothing on this robot takes a joystick on {teleopTarget}, so the runtime will refuse it. The manager listens
+          on {serverTeleopTargets?.join(", ")}.
         </p>
       ) : null}
       {parameterOutsidePolicy ? (

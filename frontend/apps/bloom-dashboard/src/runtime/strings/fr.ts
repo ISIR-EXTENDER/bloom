@@ -103,7 +103,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     teleopTargetNotInApp: (topic) =>
       `Cette app n'autorise pas la conduite sur ${topic}. Ajoutez-le dans Configuration de l'app, Garde-fous de l'adaptateur, Cibles de téléopération.`,
     teleopTargetRefusedByServer: (topic) =>
-      `Le serveur Bloom de ce robot n'autorise pas la conduite sur ${topic}. Ajoutez-le à BLOOM_ALLOWED_TELEOP_TARGETS là où tourne le serveur ; la liste de l'app ne suffit pas.`,
+      `Rien sur ce robot ne reçoit de joystick sur ${topic} : le manager du robot n'écoute pas ce topic.`,
     frameUnavailableOnRobot: "Indisponible sur ce robot.",
     gamepad: "manette",
     help: "Aide",

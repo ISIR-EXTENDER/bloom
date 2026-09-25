@@ -31,9 +31,11 @@ function summary(serverTeleopTargets?: string[]) {
 }
 
 describe("the inspector on a joystick's topic", () => {
-  it("warns when the robot's server refuses the topic the app allows", () => {
+  it("warns when nothing on the robot takes the topic, and names what the manager listens on", () => {
     summary(["/joystick_cartesian_command"]);
-    expect(screen.getByRole("alert").textContent).toContain("BLOOM_ALLOWED_TELEOP_TARGETS");
+    const alert = screen.getByRole("alert").textContent ?? "";
+    expect(alert).toContain("Nothing on this robot takes a joystick on /tablet_cmd");
+    expect(alert).toContain("The manager listens on /joystick_cartesian_command");
   });
 
   it("stays quiet when the server allows it, or has not said", () => {

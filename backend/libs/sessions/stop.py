@@ -60,14 +60,15 @@ class RuntimeStopController:
         teleop_target: str = DEFAULT_TELEOP_TARGET,
         mode_request_topic: str = DEFAULT_MODE_REQUEST_TOPIC,
         on_asserted: Callable[[str], None] | None = None,
-        teleop_targets: Sequence[str] | None = None,
+        teleop_targets: Sequence[str] | Callable[[], Sequence[str]] | None = None,
     ) -> None:
         self._teleop_gateway = teleop_gateway
         self._ros_publisher_gateway = ros_publisher_gateway
         self._audit_log = audit_log
         self._teleop_target = teleop_target
         # Every target the deployment accepts is zeroed: a session may have been driving any of them.
-        self._teleop_targets = tuple(dict.fromkeys([teleop_target, *(teleop_targets or ())]))
+        # A callable is read at each STOP, since the manager's inputs can change while Bloom runs.
+        self._teleop_targets_source = teleop_targets
         self._mode_request_topic = mode_request_topic
         # Told the zeroed target once both assertions publish, so session state can follow.
         self._on_asserted = on_asserted
@@ -135,11 +136,16 @@ class RuntimeStopController:
         self._record("accepted" if state.asserted else "rejected", detail)
         # The session state follows the zeros whether or not both assertions published: those targets were told.
         if self._on_asserted is not None:
-            for target in self._teleop_targets:
+            for target in self._teleop_targets():
                 self._on_asserted(target)
         if not state.asserted:
             raise RuntimeStopAssertionError(state)
         return state
+
+    def _teleop_targets(self) -> tuple[str, ...]:
+        source = self._teleop_targets_source
+        extra = source() if callable(source) else (source or ())
+        return tuple(dict.fromkeys([self._teleop_target, *extra]))
 
     def resume(self) -> RuntimeStopState:
         """Clear the latch; publishes nothing."""
@@ -159,7 +165,7 @@ class RuntimeStopController:
         published: list[str] = []
         failures: list[str] = []
         simulated = False
-        for target in self._teleop_targets:
+        for target in self._teleop_targets():
             command = TeleopCommand(
                 angular=TeleopVector3(),
                 linear=TeleopVector3(),

@@ -25,6 +25,7 @@ from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
 from libs.ros_adapters.parameters import NoopRosParameterGateway, RosParameterGateway
 from libs.ros_adapters.robot_model import NoopRobotModelGateway, RobotModelGateway
 from libs.ros_adapters.safety import RuntimeCommandPolicy
+from libs.ros_adapters.teleop_targets import TeleopTargetDirectory
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
     NoopRuntimeRecordingGateway,
@@ -99,6 +100,13 @@ def create_app(
         allowed_service_types=app_settings.allowed_ros_service_types,
         allowed_teleop_targets=app_settings.allowed_teleop_targets,
     )
+    # The manager's input topics, read from its parameters; the ROS launcher starts the reads.
+    app.state.teleop_target_directory = TeleopTargetDirectory(
+        app.state.runtime_command_policy.allowed_teleop_targets,
+        app.state.ros_parameter_gateway,
+        () if app_settings.ros_command_backend == "teleop_command" else app_settings.teleop_target_parameters,
+        app_settings.teleop_target_refresh_sec,
+    )
     app.state.runtime_command_rate_limiter = runtime_command_rate_limiter or RuntimeCommandRateLimiter(
         max_commands_per_second=app_settings.runtime_command_rate_limit_per_second
     )
@@ -113,7 +121,7 @@ def create_app(
         teleop_target=(
             LEGACY_TELEOP_TARGET if app_settings.ros_command_backend == "teleop_command" else DEFAULT_TELEOP_TARGET
         ),
-        teleop_targets=app_settings.allowed_teleop_targets,
+        teleop_targets=app.state.teleop_target_directory.targets,
         on_asserted=app.state.runtime_session_manager.record_runtime_stop,
     )
     app.state.http_rate_limit_buckets = {}

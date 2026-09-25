@@ -103,7 +103,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     teleopTargetNotInApp: (topic) =>
       `Esta app no permite conducir en ${topic}. Añádelo en Configuración de la app, Protecciones del adaptador, Destinos de teleoperación.`,
     teleopTargetRefusedByServer: (topic) =>
-      `El servidor Bloom de este robot no permite conducir en ${topic}. Añádelo a BLOOM_ALLOWED_TELEOP_TARGETS donde se ejecuta el servidor; la lista de la app no basta.`,
+      `Nada en este robot recibe un joystick en ${topic}: el manager del robot no escucha ahí.`,
     frameUnavailableOnRobot: "No disponible en este robot.",
     gamepad: "mando",
     help: "Ayuda",

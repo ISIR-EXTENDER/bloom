@@ -57,6 +57,7 @@ test suites.
 | `BLOOM_PUBLIC_HOST` | first address from `hostname -I` | Address printed for another device when the frontend uses a wildcard bind. |
 | `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
 | `BLOOM_SEED_SHARED_APPLICATIONS` | `true` | Import and upgrade shipped applications at API start. |
+| `BLOOM_TELEOP_TARGET_PARAMETERS` | manager `topics.*_command` | `<node>:<parameter>` pairs naming the manager's input topics a joystick may drive. |
 | `BLOOM_SEED_DIR` | `backend/seed/applications` | Where the shared applications live; the Builder's **Share** writes here. |
 | `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |
@@ -183,9 +184,12 @@ keep output folders relative, and never use a wildcard publish policy for a robo
 
 The app configuration should remain the first guardrail, but lab sessions can also tune the backend runtime policy
 without editing code. The two layers intersect: an app can only narrow what the server allows, never widen it. A
-joystick pointed at a topic the app lists but `BLOOM_ALLOWED_TELEOP_TARGETS` does not is refused, so add a new teleop
-topic here as well as in the app, then restart the API. The Builder warns about exactly that gap, and the runtime marks
-such a joystick unavailable, with the reason, before anyone presses it.
+joystick may drive any input cartesian_manager declares: the API reads the input topic names from the manager's
+parameters (`BLOOM_TELEOP_TARGET_PARAMETERS`, by default `topics.joystick_command` and `topics.visual_servoing_command`
+on `/cartesian_manager`) every few seconds, so renaming or adding a manager input needs nothing on the Bloom side.
+`BLOOM_ALLOWED_TELEOP_TARGETS` only adds topics beyond those, and keeps the manager's default while it is not up yet.
+A joystick pointed at a topic nothing on the robot takes is refused; the Builder names the manager's inputs, and the
+runtime marks such a joystick unavailable, with the reason, before anyone presses it.
 
 ```bash
 export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/explorer_user_interfaces/rqt_armcontrol/max_angular_speed,/explorer_user_interfaces/rqt_armcontrol/max_linear_speed,/gripper_controller/commands,/mode_request'

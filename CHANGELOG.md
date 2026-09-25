@@ -91,6 +91,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A joystick may drive any input the manager declares, with nothing to configure.** The API reads the input
+  topics from cartesian_manager's own parameters, live, instead of a fixed list, so the visual servoing input or a
+  renamed joystick input works as soon as the manager has it. `BLOOM_ALLOWED_TELEOP_TARGETS` now only adds topics
+  beyond the manager's. STOP zeroes every input the manager declares. A topic nothing listens on is still refused,
+  and the Builder and runtime now say so by naming the manager's inputs instead of pointing at a variable.
 - **A joystick on a topic the server refuses now says so before it is pressed.** An app could list a teleop topic
   that the server's `BLOOM_ALLOWED_TELEOP_TARGETS` did not, the Builder offered it, and the first press answered
   "Command failed". The capabilities response now carries the server's list; the Builder warns in the joystick's

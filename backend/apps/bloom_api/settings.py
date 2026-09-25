@@ -90,7 +90,15 @@ class Settings(BaseModel):
     # the manager silently discards. Set BLOOM_ROS_EE_FRAME_ID (or the whole
     # list with BLOOM_ALLOWED_COMMAND_FRAME_IDS) to offer the tool frame.
     allowed_command_frame_ids: tuple[str, ...] = ("base_link", "hybrid_frame")
+    # Topics a joystick may drive beyond the manager's own inputs. The manager's declared default stays here so
+    # driving works before its parameters are first read.
     allowed_teleop_targets: tuple[str, ...] = ("/joystick_cartesian_command",)
+    # "<node>:<parameter>" pairs naming the manager's input topics; read live, so the manager decides its inputs.
+    teleop_target_parameters: tuple[str, ...] = (
+        "/cartesian_manager:topics.joystick_command",
+        "/cartesian_manager:topics.visual_servoing_command",
+    )
+    teleop_target_refresh_sec: float = Field(default=5.0, gt=0)
     # Live tuning through the nodes' own parameter services, as "<node>:<parameter>".
     # cartesian_manager rereads these every tick; joint targets, inputs and frames
     # stay startup-only (PR #11) and are deliberately absent.
@@ -267,6 +275,10 @@ class Settings(BaseModel):
             allowed_teleop_targets=_read_tuple_env(
                 "BLOOM_ALLOWED_TELEOP_TARGETS",
                 cls.model_fields["allowed_teleop_targets"].default,
+            ),
+            teleop_target_parameters=_read_tuple_env(
+                "BLOOM_TELEOP_TARGET_PARAMETERS",
+                cls.model_fields["teleop_target_parameters"].default,
             ),
             allowed_ros_parameters=_read_tuple_env(
                 "BLOOM_ALLOWED_ROS_PARAMETERS",
