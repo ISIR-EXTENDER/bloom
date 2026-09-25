@@ -63,6 +63,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A pull that adds a dependency no longer breaks the launcher.** `scripts/extender-workspace-dev.sh` installs
+  when `package-lock.json` is newer than the last install, so a stale `node_modules` cannot surface as Vite
+  failing to resolve an import. Robin lost a bench morning to exactly that, with `three`.
+
 - **A widget that watches a command could swallow it.** The dispatcher called its listeners inside the send
   path without a guard, so a listener that threw would have stopped the twist reaching the arm. The arm comes
   first: a broken observer now loses its drawing, never the command.

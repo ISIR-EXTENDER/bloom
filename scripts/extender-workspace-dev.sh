@@ -86,6 +86,9 @@ echo "Starting Bloom API with ROS adapters..."
 ) &
 API_PID="$!"
 
+# A pull that adds a dependency leaves node_modules behind, and Vite then reports it as unresolved code.
+node "${BLOOM_ROOT}/scripts/install-if-stale.mjs"
+
 if ! node "${BLOOM_ROOT}/scripts/check-node-version.mjs"; then
   echo "warning: the dashboard still starts, but tests will not run here. See README > Tooling." >&2
 fi

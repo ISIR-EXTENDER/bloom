@@ -33,6 +33,11 @@ Leave it running.
 
 ## 3. Start Bloom
 
+**After any `git pull`, the launcher installs what the pull added.** If you start the dashboard some other way
+and Vite says it cannot resolve an import such as `three`, nothing is wrong with the code: `node_modules` is a
+version behind. Run `npm install` in the Bloom repository and start again.
+
+
 The API joins whatever `ROS_DOMAIN_ID` its shell was sourced into, and it reads its settings once at startup, so
 **the environment has to be right before the process starts**. One API process per robot.
 

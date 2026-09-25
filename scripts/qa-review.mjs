@@ -20,6 +20,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { installIsStale } from "./install-if-stale.mjs";
 
 const findings = [];
 const notes = [];
@@ -176,6 +177,27 @@ function checkShebangsAreFirst() {
   notes.push("checked script shebangs");
 }
 
+// ------------------------------------------------- the stale-install guard works
+function checkStaleInstallGuard() {
+  // Robin lost a bench morning to a pull that added `three`: Vite reported the missing install as
+  // unresolvable code. The dev script now installs when the lockfile is newer than the last install.
+  const cases = [
+    ["a lockfile newer than the install is stale", installIsStale(2000, 1000), true],
+    ["an install newer than the lockfile is fresh", installIsStale(1000, 2000), false],
+    ["no install at all is stale", installIsStale(1000, null), true],
+    ["no lockfile is nothing to judge", installIsStale(null, null), false],
+  ];
+  for (const [description, actual, expected] of cases) {
+    if (actual !== expected) {
+      finding("stale-install-guard", `install-if-stale is wrong: ${description}`);
+    }
+  }
+  if (!readFileSync("scripts/extender-workspace-dev.sh", "utf8").includes("install-if-stale.mjs")) {
+    finding("stale-install-guard", "the workspace dev script no longer runs the stale-install guard");
+  }
+  notes.push("checked the stale-install guard");
+}
+
 // ------------------------------------------------------------ version agreement
 function checkVersionAgreement() {
   try {
@@ -208,6 +230,7 @@ checkFixtureCoverage();
 checkDuplicatedPreferenceKeys();
 checkBuildInfoIsNeverCommitted();
 checkShebangsAreFirst();
+checkStaleInstallGuard();
 checkVersionAgreement();
 checkArchivedAppsDeclared();
 
