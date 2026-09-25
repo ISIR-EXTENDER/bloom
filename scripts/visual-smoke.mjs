@@ -114,6 +114,7 @@ try {
       await page.close();
     }
 
+    await assertTwoFingerDrive(browser);
     await captureRuntimeLocales(browser);
     await captureDesktopDebug(browser);
     await captureBuilderCanvas(browser);
@@ -268,6 +269,49 @@ async function holdForMaintenance(page) {
   await page.waitForTimeout(1700);
   await page.mouse.up();
   await page.getByRole("dialog", { name: /Maintenance|Mantenimiento/ }).waitFor();
+}
+
+/** The tablet drives with two thumbs: one on Translation and one on Rotation must reach the twist together. */
+async function assertTwoFingerDrive(browser) {
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, ...TABLET_EMULATION });
+  try {
+    await installConfigurationMocks(page, configurations);
+    await installRuntimeWebSocketMock(page);
+    await showExplorerRuntimeScreen(page, null);
+    const centre = async (name) => {
+      const box = await page.getByRole("application", { name }).boundingBox();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2, r: Math.min(box.width, box.height) / 2 };
+    };
+    const translation = await centre("Translation");
+    const rotation = await centre("Rotation");
+    const fingers = (reach) => [
+      { id: 1, x: translation.x, y: translation.y - reach * translation.r },
+      { id: 2, x: rotation.x + reach * rotation.r, y: rotation.y },
+    ];
+    const cdp = await page.context().newCDPSession(page);
+    await page.evaluate(() => {
+      window.__bloomTeleopSent = [];
+    });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: fingers(0) });
+    for (let step = 1; step <= 8; step += 1) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: fingers(step / 10) });
+      await page.waitForTimeout(40);
+    }
+    await page.waitForTimeout(400);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await page.waitForTimeout(400);
+    const sent = await page.evaluate(() => window.__bloomTeleopSent ?? []);
+    const norm = (vector) => Math.hypot(vector?.x ?? 0, vector?.y ?? 0, vector?.z ?? 0);
+    const together = sent.filter((message) => norm(message.linear) > 0.1 && norm(message.angular) > 0.1);
+    const last = sent.at(-1);
+    if (together.length === 0 || !last || norm(last.linear) + norm(last.angular) !== 0) {
+      throw new Error(
+        `Two fingers did not drive together: ${together.length} of ${sent.length} twists carried both, last ${JSON.stringify(last)}`,
+      );
+    }
+  } finally {
+    await page.close();
+  }
 }
 
 async function captureRuntimeLocales(browser) {

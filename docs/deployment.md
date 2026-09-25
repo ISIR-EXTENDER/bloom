@@ -64,7 +64,7 @@ test suites.
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |
 | `BLOOM_APP_NAME`, `BLOOM_SERVICE_NAME`, `BLOOM_APP_DESCRIPTION` | Bloom defaults | Names reported by the API and its OpenAPI page. |
 | `BLOOM_APP_VERSION` | the release version | Version the API reports. Leave it unset, or it hides the real version. |
-| `BLOOM_APPLY_TABLET_TOUCH_MAP` | `auto` | `auto` maps the tablet's touch when it is plugged in, `1` always runs `scripts/extender-tablet-touch-map.sh`, `0` never does. A failed mapping never stops Bloom. |
+| `BLOOM_APPLY_TABLET_TOUCH_MAP` | `auto` | Keeps the tablet's touch mapped while Bloom runs (`extender-tablet-touch-map.sh --watch`): plugged in late, replugged, or remapped by the desktop. `0` turns it off. Log: `backend/data/tablet-touch.log`. |
 | `DISPLAY_MODE` | empty | Optional tablet display mode passed to the touch-map helper, for example `1280x720`. |
 | `LOGICAL_DISPLAY_SIZE` | empty | Optional scaled tablet workspace, for example `1820x720`. |
 | `APPLY_DISPLAY_MODE` | `0` | Set to `1` to apply `DISPLAY_MODE` before remapping touch. |
@@ -325,6 +325,21 @@ entries that touch the mapping. Three things changed with 24.04 and GNOME 46 tha
 - **Two autostart entries racing.** One autostart entry that maps before the display mode changes leaves a matrix
   computed on the old geometry. Keep a single entry, the one `--install-autostart` writes.
 
+### Rehearse Without The Tablet
+
+`scripts/virtual-touchscreen.py` creates a virtual touchscreen with the tablet's USB id, runs the helper the way it
+runs for the real one, touches five points and checks that the X pointer lands on the same spots of
+`DISPLAY_OUTPUT`. It needs root for `/dev/uinput`, and every touch is a click, so run it before opening Bloom:
+
+```bash
+sudo -E scripts/virtual-touchscreen.py                        # the tablet on HDMI-1
+sudo -E DISPLAY_OUTPUT=eDP-1 scripts/virtual-touchscreen.py   # the laptop screen, with no tablet at all
+```
+
+It checks the mapping chain (kernel, libinput, matrix, screen coordinates), not the physical panel's calibration.
+`npm run test:scripts` covers the helper's logic, including a tablet replugged while `--watch` runs, against a fake
+`xinput`; `npm run visual:smoke` drives Translation and Rotation with two fingers at once.
+
 ### Symptoms To Watch
 
 - Pointer and touch positions feel offset from visual controls.
@@ -420,8 +435,8 @@ Install it with the current Extender tablet layout:
 ./scripts/extender-tablet-touch-map.sh --install-autostart
 ```
 
-It maps once, at login. A tablet plugged in later is mapped when Bloom's launcher starts (`BLOOM_APPLY_TABLET_TOUCH_MAP`
-is `auto`), and `--gnome` lets GNOME keep the mapping itself at every hotplug.
+It maps once, at login. While Bloom's launcher runs, `--watch` keeps the mapping: a tablet plugged in late or
+replugged, or a matrix the desktop overwrote, is mapped again within two seconds. `--gnome` lets GNOME keep it too.
 
 This is the preferred low-maintenance option when the only recurring issue is touch mapping after reconnect or reboot.
 

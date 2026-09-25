@@ -96,6 +96,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **The tablet's touch follows it while Bloom runs.** `extender-tablet-touch-map.sh --watch`, started by the
+  launcher, maps it again within two seconds when it is plugged in late, replugged, or its matrix is overwritten by
+  the desktop. `scripts/virtual-touchscreen.py` rehearses the mapping with a virtual touchscreen carrying the tablet's
+  USB id; `npm run test:scripts` tests the helper against a fake `xinput`, and the visual smoke now drives
+  Translation and Rotation with two fingers at once.
 - **The launcher maps the tablet's touch whenever it is plugged in.** The mapping used to run once at login, so a
   tablet plugged in later, or remapped by GNOME, had to be fixed by hand. `BLOOM_APPLY_TABLET_TOUCH_MAP` now defaults
   to `auto`, a failed mapping never stops Bloom, and the documented default keeps the tablet's own display mode

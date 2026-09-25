@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# A stand-in for xrandr: prints $FAKE_X11/xrandr and records any change it is asked for.
+echo "xrandr $*" >>"${FAKE_X11}/calls"
+[[ "${1:-}" == "--query" || $# -eq 0 ]] && cat "${FAKE_X11}/xrandr"
+exit 0

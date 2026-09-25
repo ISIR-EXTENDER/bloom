@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo "gnome-shell $*" >>"${FAKE_X11}/calls"

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo "gdbus $*" >>"${FAKE_X11}/calls"

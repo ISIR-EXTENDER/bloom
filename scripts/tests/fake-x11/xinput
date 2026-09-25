@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# A stand-in for xinput over $FAKE_X11/devices: one "id|name|role|vendor,product|touch|matrix" line per device.
+set -euo pipefail
+devices="${FAKE_X11}/devices"
+touch "${devices}"
+echo "xinput $*" >>"${FAKE_X11}/calls"
+field() { awk -F'|' -v id="$1" -v f="$2" '$1 == id { print $f }' "${devices}"; }
+case "${1:-}" in
+  list)
+    case "${2:-}" in
+      --id-only) cut -d'|' -f1 "${devices}" ;;
+      --name-only) cut -d'|' -f2 "${devices}" ;;
+      --long)
+        id="${3#pointer:}"
+        echo "$(field "${id}" 2)	id=${id}	[slave  $(field "${id}" 3)  (2)]"
+        [[ "$(field "${id}" 5)" == "touch" ]] && echo "		Touch mode: direct"
+        exit 0
+        ;;
+      *) awk -F'|' '{ print $2 "\tid=" $1 "\t[slave  " $3 "  (2)]" }' "${devices}" ;;
+    esac
+    ;;
+  list-props)
+    id="${2#pointer:}"
+    [[ -n "$(field "${id}" 1)" ]] || exit 1
+    echo "Device '$(field "${id}" 2)':"
+    echo "	Coordinate Transformation Matrix (191):	$(field "${id}" 6 | sed 's/ /, /g')"
+    echo "	Device Product ID (310):	$(field "${id}" 4 | sed 's/,/, /')"
+    ;;
+  set-prop)
+    id="${2#pointer:}"
+    shift 3
+    matrix="$*"
+    awk -F'|' -v OFS='|' -v id="${id}" -v m="${matrix}" '$1 == id { $6 = m } { print }' "${devices}" >"${devices}.new"
+    mv "${devices}.new" "${devices}"
+    ;;
+esac

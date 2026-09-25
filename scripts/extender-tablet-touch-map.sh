@@ -21,6 +21,8 @@ DRY_RUN=0
 INSTALL_AUTOSTART=0
 DIAGNOSE=0
 GNOME_MAPPING=0
+WATCH=0
+WATCH_INTERVAL_SECONDS=${WATCH_INTERVAL_SECONDS:-"2"}
 TOUCH_IDS=()
 
 usage() {
@@ -54,6 +56,7 @@ Examples:
   $(basename "$0") --install-autostart
   $(basename "$0") --diagnose     # read-only: what the session, screens and touch devices look like
   $(basename "$0") --gnome        # also tell GNOME which monitor the touchscreen belongs to
+  $(basename "$0") --watch        # keep mapping it: replugged, moved, or its matrix overwritten
 EOF
 }
 
@@ -73,6 +76,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --gnome)
       GNOME_MAPPING=1
+      ;;
+    --watch)
+      WATCH=1
       ;;
     -h | --help)
       usage
@@ -292,16 +298,15 @@ create_display_mode_if_needed() {
   fi
 }
 
-apply_exact_touch_matrix() {
+exact_touch_matrix() {
   local screen_geometry output_geometry screen_width screen_height output_width output_height output_x output_y
-  local matrix
 
   screen_geometry="$(read_screen_geometry)"
   output_geometry="$(read_output_geometry)"
 
   if [[ -z "${screen_geometry}" || -z "${output_geometry}" ]]; then
     echo "Could not read screen/output geometry for exact touch mapping." >&2
-    exit 1
+    return 1
   fi
 
   screen_width="${screen_geometry%%x*}"
@@ -313,8 +318,7 @@ apply_exact_touch_matrix() {
   output_x="${output_geometry%%+*}"
   output_y="${output_geometry##*+}"
 
-  matrix="$(
-    awk \
+  awk \
       -v output_width="${output_width}" \
       -v screen_width="${screen_width}" \
       -v output_x="${output_x}" \
@@ -328,9 +332,11 @@ apply_exact_touch_matrix() {
           output_height / screen_height,
           output_y / screen_height
       }'
-  )"
+}
 
-  local id
+apply_exact_touch_matrix() {
+  local matrix id
+  matrix="$(exact_touch_matrix)" || exit 1
   for id in "${TOUCH_IDS[@]}"; do
     # shellcheck disable=SC2086
     run xinput set-prop "${id}" "Coordinate Transformation Matrix" ${matrix}
@@ -350,6 +356,37 @@ fi
 if [[ "${DIAGNOSE}" == "1" ]]; then
   diagnose
   exit 0
+fi
+
+# The matrix a device carries now, as numbers, to compare with the one it should carry.
+current_touch_matrix() {
+  xinput list-props "$1" 2>/dev/null |
+    awk -F':' '/Coordinate Transformation Matrix/ { gsub(/[ \t,]+/, " ", $2); print $2 }'
+}
+
+matrices_match() {
+  awk -v a="$1" -v b="$2" 'BEGIN {
+    n = split(a, x, " "); m = split(b, y, " ")
+    if (n != 9 || m != 9) exit 1
+    for (i = 1; i <= 9; i++) if ((x[i] - y[i]) > 0.001 || (y[i] - x[i]) > 0.001) exit 1
+  }'
+}
+
+# Replugged, moved or overwritten by the desktop: each shows up as a device whose matrix is not the expected one.
+if [[ "${WATCH}" == "1" ]]; then
+  echo "Watching for ${TOUCH_USB_ID} on '${DISPLAY_OUTPUT}' every ${WATCH_INTERVAL_SECONDS}s."
+  while true; do
+    if resolve_display_output && resolve_touch_device && expected="$(exact_touch_matrix 2>/dev/null)"; then
+      for id in "${TOUCH_IDS[@]}"; do
+        if ! matrices_match "$(current_touch_matrix "${id}")" "${expected}"; then
+          # shellcheck disable=SC2086
+          run xinput set-prop "${id}" "Coordinate Transformation Matrix" ${expected} &&
+            echo "Mapped touchscreen ${id} to '${DISPLAY_OUTPUT}'."
+        fi
+      done
+    fi
+    sleep "${WATCH_INTERVAL_SECONDS}"
+  done
 fi
 
 # Written before the hardware check, so it can be installed with the tablet unplugged.

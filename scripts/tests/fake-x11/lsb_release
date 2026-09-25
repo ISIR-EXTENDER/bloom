@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+echo "lsb_release $*" >>"${FAKE_X11}/calls"

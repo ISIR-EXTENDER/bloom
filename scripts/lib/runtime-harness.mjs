@@ -333,6 +333,10 @@ export async function installRuntimeWebSocketMock(page) {
         if (!message) {
           return;
         }
+        if (message.type === "teleop_cmd") {
+          // Kept so a check can read what the runtime would have sent the manager.
+          window.__bloomTeleopSent = [...(window.__bloomTeleopSent ?? []), message];
+        }
         if (message.type === "claim_control" || message.type === "release_control") {
           this.acknowledgeControl(message.type === "claim_control");
           return;

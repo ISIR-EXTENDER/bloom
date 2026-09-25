@@ -39,6 +39,7 @@ BLOOM_CAMERA_LOG=${BLOOM_CAMERA_LOG:-"${BLOOM_ROOT}/backend/data/camera.log"}
 API_PID=""
 FRONTEND_PID=""
 CAMERA_PID=""
+TOUCH_PID=""
 
 source_extender_workspace() {
   # ROS/colcon setup hooks are not guaranteed to be nounset-safe.
@@ -57,6 +58,10 @@ cleanup() {
 
   if [[ -n "${API_PID}" ]]; then
     kill -- "-${API_PID}" 2>/dev/null || true
+  fi
+
+  if [[ -n "${TOUCH_PID}" ]]; then
+    kill -- "-${TOUCH_PID}" 2>/dev/null || true
   fi
 
   if [[ -n "${CAMERA_PID}" ]]; then
@@ -134,13 +139,6 @@ if [[ ! -f "${EXTENDER_SETUP_FILE}" ]]; then
   exit 1
 fi
 
-tablet_plugged_in() {
-  command -v lsusb >/dev/null 2>&1 && lsusb -d "${TOUCH_USB_ID:-27c0:0818}" >/dev/null 2>&1
-}
-if [[ "${BLOOM_APPLY_TABLET_TOUCH_MAP}" == "1" ]] || { [[ "${BLOOM_APPLY_TABLET_TOUCH_MAP}" == "auto" ]] && tablet_plugged_in; }; then
-  "${BLOOM_ROOT}/scripts/extender-tablet-touch-map.sh" ||
-    echo "Tablet touch mapping failed; run scripts/extender-tablet-touch-map.sh --diagnose." >&2
-fi
 
 if [[ "${BLOOM_FRONTEND_HOST}" == "0.0.0.0" || "${BLOOM_FRONTEND_HOST}" == "::" ]]; then
   if [[ -z "${BLOOM_PUBLIC_HOST}" ]]; then
@@ -163,6 +161,13 @@ set -m
 
 source_extender_workspace
 start_camera
+
+# The tablet's touch follows it while Bloom runs: plugged in late, replugged, or remapped by the desktop.
+if [[ "${BLOOM_APPLY_TABLET_TOUCH_MAP}" != "0" && -n "${DISPLAY:-}" ]] && command -v xinput >/dev/null 2>&1; then
+  mkdir -p "${BLOOM_ROOT}/backend/data"
+  "${BLOOM_ROOT}/scripts/extender-tablet-touch-map.sh" --watch >"${BLOOM_ROOT}/backend/data/tablet-touch.log" 2>&1 &
+  TOUCH_PID="$!"
+fi
 
 echo "Starting Bloom API with ROS adapters..."
 (
