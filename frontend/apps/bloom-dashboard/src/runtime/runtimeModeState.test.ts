@@ -500,3 +500,60 @@ describe("runtime ROS subscriber gating", () => {
     expect(state["max-linear-speed"]).toBeUndefined();
   });
 });
+
+describe("a joystick on a topic the server refuses", () => {
+  // Robin, 2026-09-25: added a topic to the app, pointed a joystick at it, got "Command failed" on the first press.
+  const joystick = (topic?: string) => ({
+    id: "stick",
+    kind: "joystick",
+    title: "Stick",
+    layout: { x: 0, y: 0, width: 200, height: 200 },
+    settings: {
+      runtime_binding: {
+        adapter: "teleop",
+        target: "translation",
+        ...(topic ? { value_mapping: { target_topic: topic } } : {}),
+      },
+    },
+  });
+  const screen = (topic?: string) =>
+    ({
+      id: "drive",
+      title: "Drive",
+      canvas: { preset_id: "hd", runtime_mode: "fit" },
+      widgets: [joystick(topic)],
+    }) as never;
+  const reasons = {
+    app: (topic: string) => `app refuses ${topic}`,
+    server: (topic: string) => `server refuses ${topic}`,
+  };
+  const states = (topic: string | undefined, app: string[], effective: string[] | null) =>
+    createRuntimeControlStateByWidgetId(screen(topic), createDefaultRuntimeModeState(), {
+      teleopTargets: { app, effective, reasons },
+    });
+
+  it("is unavailable before it is pressed, and says the server is why", () => {
+    const state = states(
+      "/tablet_cmd",
+      ["/joystick_cartesian_command", "/tablet_cmd"],
+      ["/joystick_cartesian_command"],
+    );
+    expect(state.stick).toMatchObject({
+      disabled: true,
+      unavailable: true,
+      disabledReason: "server refuses /tablet_cmd",
+    });
+  });
+
+  it("says the app is why when the app's own list leaves the topic out", () => {
+    const state = states("/tablet_cmd", ["/joystick_cartesian_command"], ["/joystick_cartesian_command"]);
+    expect(state.stick?.disabledReason).toBe("app refuses /tablet_cmd");
+  });
+
+  it("stays live on an allowed topic, on the manager's input by default, and before the server has answered", () => {
+    expect(states("/tablet_cmd", ["/tablet_cmd"], ["/tablet_cmd"]).stick).toBeUndefined();
+    expect(states(undefined, ["/joystick_cartesian_command"], ["/joystick_cartesian_command"]).stick).toBeUndefined();
+    expect(states("/tablet_cmd", ["/tablet_cmd"], null).stick).toBeUndefined();
+    expect(states("/tablet_cmd", ["*"], ["*"]).stick).toBeUndefined();
+  });
+});

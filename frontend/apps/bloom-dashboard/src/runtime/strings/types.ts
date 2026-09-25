@@ -65,6 +65,8 @@ export type RuntimeStrings = {
     fitTitle: string;
     frameNotOnRobot: (frameId: string) => string;
     frameReleaseControls: string;
+    teleopTargetNotInApp: (topic: string) => string;
+    teleopTargetRefusedByServer: (topic: string) => string;
     frameUnavailableOnRobot: string;
     gamepad: string;
     help: string;

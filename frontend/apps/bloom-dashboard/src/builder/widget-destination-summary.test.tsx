@@ -1,0 +1,46 @@
+/**
+ * @vitest-environment jsdom
+ */
+import type { WidgetConfig } from "@bloom/api-client";
+import { resolveWidgetDestination } from "@bloom/widgets";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { WidgetDestinationSummary } from "./BuilderWidgetSummaries";
+
+afterEach(cleanup);
+
+const joystick: WidgetConfig = {
+  id: "stick",
+  kind: "joystick",
+  title: "Stick",
+  layout: { x: 0, y: 0, width: 200, height: 200 },
+  settings: {
+    runtime_binding: { adapter: "teleop", target: "translation", value_mapping: { target_topic: "/tablet_cmd" } },
+  },
+};
+
+function summary(serverTeleopTargets?: string[]) {
+  render(
+    <WidgetDestinationSummary
+      allowedTeleopTargets={["/joystick_cartesian_command", "/tablet_cmd"]}
+      destination={resolveWidgetDestination(joystick.kind, joystick.settings)}
+      serverTeleopTargets={serverTeleopTargets}
+      widget={joystick}
+    />,
+  );
+}
+
+describe("the inspector on a joystick's topic", () => {
+  it("warns when the robot's server refuses the topic the app allows", () => {
+    summary(["/joystick_cartesian_command"]);
+    expect(screen.getByRole("alert").textContent).toContain("BLOOM_ALLOWED_TELEOP_TARGETS");
+  });
+
+  it("stays quiet when the server allows it, or has not said", () => {
+    summary(["/joystick_cartesian_command", "/tablet_cmd"]);
+    expect(screen.queryByRole("alert")).toBeNull();
+    cleanup();
+    summary(undefined);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});

@@ -31,6 +31,7 @@ import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 type BuilderWorkspaceProps = {
   /** The frames this robot accepts, so a pad can be told to turn in one of them. */
   commandFrameIds?: readonly string[];
+  serverTeleopTargets?: readonly string[];
   configurations: readonly LoadedConfiguration[];
   /** Names the arm this deployment drives, so a gripper arrives with that arm's own travel. */
   robotName?: string;
@@ -60,6 +61,7 @@ const CHECKED_PANEL_BY_CLASS = {
 
 export function BuilderWorkspace({
   commandFrameIds,
+  serverTeleopTargets,
   configurations,
   robotName,
   runtimeCapabilities,
@@ -365,6 +367,7 @@ export function BuilderWorkspace({
         allowedCommandFrameIds={commandFrameIds}
         allowedParameters={selectedWorkspace.application.runtime_policy.allowed_parameters ?? []}
         allowedTeleopTargets={selectedWorkspace.application.runtime_policy.allowed_teleop_targets}
+        serverTeleopTargets={serverTeleopTargets}
         hasStopRegion={(draftScreen.reserved_regions ?? []).some((region) => region.id === "stop")}
         onAddStopRegion={addStopRegion}
         onAddWidget={addWidget}

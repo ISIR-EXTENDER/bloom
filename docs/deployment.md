@@ -181,7 +181,10 @@ keep output folders relative, and never use a wildcard publish policy for a robo
 ## Runtime ROS Policy Variables
 
 The app configuration should remain the first guardrail, but lab sessions can also tune the backend runtime policy
-without editing code:
+without editing code. The two layers intersect: an app can only narrow what the server allows, never widen it. A
+joystick pointed at a topic the app lists but `BLOOM_ALLOWED_TELEOP_TARGETS` does not is refused, so add a new teleop
+topic here as well as in the app, then restart the API. The Builder warns about exactly that gap, and the runtime marks
+such a joystick unavailable, with the reason, before anyone presses it.
 
 ```bash
 export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/explorer_user_interfaces/rqt_armcontrol/max_angular_speed,/explorer_user_interfaces/rqt_armcontrol/max_linear_speed,/gripper_controller/commands,/mode_request'

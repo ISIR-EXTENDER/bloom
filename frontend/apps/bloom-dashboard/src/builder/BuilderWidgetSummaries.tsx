@@ -104,11 +104,14 @@ export function WidgetDestinationSummary({
   allowedParameters,
   allowedTeleopTargets,
   destination,
+  serverTeleopTargets,
   widget,
 }: {
   allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
   destination: WidgetDestination | null;
+  /** What this robot's server allows; the app's list can only narrow it. */
+  serverTeleopTargets?: readonly string[];
   widget: WidgetConfig;
 }) {
   // Kinds whose data flow is not modelled get no panel at all. A guess here is
@@ -128,6 +131,14 @@ export function WidgetDestinationSummary({
     Boolean(allowedTeleopTargets) &&
     !allowedTeleopTargets?.includes("*") &&
     !allowedTeleopTargets?.includes(teleopTarget);
+
+  // Robin, 2026-09-25: added a topic to the app's list, picked it here, then got "Command failed". The
+  // server's own list (BLOOM_ALLOWED_TELEOP_TARGETS) did not have it, and nothing said so.
+  const serverRefuses =
+    Boolean(teleopTarget) &&
+    Boolean(serverTeleopTargets) &&
+    !serverTeleopTargets?.includes("*") &&
+    !serverTeleopTargets?.includes(teleopTarget);
 
   const parameterTarget = resolveParameterTarget(widget.settings);
   const parameterOutsidePolicy =
@@ -156,6 +167,12 @@ export function WidgetDestinationSummary({
         <p className="builder-settings-destination-refusal" role="alert">
           This app does not allow teleop on {teleopTarget}, so the runtime will refuse it. Add it under App
           configuration, Adapter guardrails, Teleop targets.
+        </p>
+      ) : null}
+      {serverRefuses ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          This robot's Bloom server does not allow teleop on {teleopTarget}, so the runtime will refuse it whatever the
+          app allows. Add it to BLOOM_ALLOWED_TELEOP_TARGETS where the server runs, then restart it.
         </p>
       ) : null}
       {parameterOutsidePolicy ? (

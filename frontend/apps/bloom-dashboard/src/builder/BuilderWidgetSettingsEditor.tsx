@@ -22,6 +22,7 @@ type BuilderWidgetSettingsEditorProps = {
   /** The app's teleop list, so a target the runtime will refuse is named before it goes live. */
   allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
+  serverTeleopTargets?: readonly string[];
   canvas?: CanvasSettings;
   /** The fit scale of this screen's own device class, as the inspector measured it. */
   /** The floor this screen's device class is held to: the touch floor on a tablet, the mouse one on a desktop. */
@@ -37,6 +38,7 @@ export function BuilderWidgetSettingsEditor({
   allowedCommandFrameIds,
   allowedParameters,
   allowedTeleopTargets,
+  serverTeleopTargets,
   canvas,
   floorPx = TOUCH_FLOOR_PX,
   panel = { height: 600, width: 1024 },
@@ -104,6 +106,7 @@ export function BuilderWidgetSettingsEditor({
         allowedParameters={allowedParameters}
         allowedTeleopTargets={allowedTeleopTargets}
         destination={destination}
+        serverTeleopTargets={serverTeleopTargets}
         widget={widget}
       />
       <WidgetCliPreview widget={widget} />

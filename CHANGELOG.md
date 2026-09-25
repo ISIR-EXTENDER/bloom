@@ -66,6 +66,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A joystick on a topic the server refuses now says so before it is pressed.** An app could list a teleop topic
+  that the server's `BLOOM_ALLOWED_TELEOP_TARGETS` did not, the Builder offered it, and the first press answered
+  "Command failed". The capabilities response now carries the server's list; the Builder warns in the joystick's
+  inspector and under the app's teleop targets; and the runtime marks such a joystick unavailable, with the reason
+  and what to change, from the list the server acknowledged for the app.
+
 - **The one-switch pads printed their readout as `x 0.00y 0.00`**, and a screen reader heard it run together too.
   The two values now read, and are spoken, apart.
 - The runtime library still said "Choosing is deliberate" after roles gained a default; it now says the app opens in

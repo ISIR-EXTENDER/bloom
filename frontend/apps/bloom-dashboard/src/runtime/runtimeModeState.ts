@@ -4,8 +4,10 @@ import {
   createDefaultWidgetRegistry,
   describeUnavailableWidgetRuntime,
   type RuntimeCapability,
+  readValueMappingTopic,
   resolveTeleopFrameId,
   resolveWidgetReadiness,
+  TELEOP_DEFAULT_TARGET,
   type WidgetActionIntent,
 } from "@bloom/widgets";
 
@@ -155,6 +157,15 @@ export function createRuntimeControlStateByWidgetId(
     frameReasons?: { releaseControls: string; unavailableOnRobot: string };
     runtimeCapabilities?: readonly RuntimeCapability[] | null;
     teleopActive?: boolean;
+    /**
+     * Where a joystick may publish: the app's own list, and what the server acknowledged for this app (its own
+     * list narrowed by the app's). Null until the server has answered.
+     */
+    teleopTargets?: {
+      app: readonly string[];
+      effective: readonly string[] | null;
+      reasons: { app: (topic: string) => string; server: (topic: string) => string };
+    };
     topicStatuses?: readonly RosTopicStatus[] | null;
   } = {},
 ): Record<string, WidgetControlState> {
@@ -205,6 +216,13 @@ export function createRuntimeControlStateByWidgetId(
       }
     }
 
+    // A joystick pointed at a topic the server will refuse is dead before anyone touches it; say so now,
+    // not with "Command failed" on the first press.
+    const refusal = options.teleopTargets && describeTeleopTargetRefusal(widget, options.teleopTargets);
+    if (refusal) {
+      controlState = { ...controlState, disabled: true, disabledReason: refusal, unavailable: true };
+    }
+
     if (options.commandFrameError && usesTeleopAdapter(widget)) {
       controlState = {
         ...controlState,
@@ -240,6 +258,30 @@ export function createRuntimeControlStateByWidgetId(
   }
 
   return controlStateByWidgetId;
+}
+
+/** The topic a teleop widget publishes on: its own, or the manager's input by default. */
+export function resolveTeleopTargetTopic(widget: WidgetConfig): string | null {
+  if (!usesTeleopAdapter(widget)) {
+    return null;
+  }
+  const binding = widget.settings.runtime_binding as Record<string, unknown>;
+  const valueMapping = binding.value_mapping;
+  const mapping =
+    typeof valueMapping === "object" && valueMapping !== null ? (valueMapping as Record<string, unknown>) : {};
+  return readValueMappingTopic(mapping) ?? TELEOP_DEFAULT_TARGET;
+}
+
+function describeTeleopTargetRefusal(
+  widget: WidgetConfig,
+  targets: NonNullable<Parameters<typeof createRuntimeControlStateByWidgetId>[2]>["teleopTargets"],
+): string | null {
+  const topic = resolveTeleopTargetTopic(widget);
+  if (!topic || !targets?.effective || targets.effective.includes("*") || targets.effective.includes(topic)) {
+    return null;
+  }
+  const appAllows = targets.app.includes("*") || targets.app.includes(topic);
+  return appAllows ? targets.reasons.server(topic) : targets.reasons.app(topic);
 }
 
 export function usesTeleopAdapter(widget: WidgetConfig): boolean {

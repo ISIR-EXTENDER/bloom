@@ -27,6 +27,8 @@ class RuntimeCapabilitiesResponse(BaseModel):
     command_frame_id: str
     # Frames cartesian_manager accepts as rotation references.
     command_frame_ids: list[str]
+    # Topics this server lets a joystick drive (BLOOM_ALLOWED_TELEOP_TARGETS); an app's own list can only narrow it.
+    teleop_targets: list[str] = []
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -56,4 +58,5 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
         command_frame_id=settings.ros_command_frame_id if supports_command_frames else "",
         command_frame_ids=list(settings.allowed_command_frame_ids) if supports_command_frames else [],
         robot_name=settings.robot_name,
+        teleop_targets=list(settings.allowed_teleop_targets),
     )

@@ -28,6 +28,10 @@ export function BuilderAdapterGuardrailsPanel({
   runtimeCapabilityReport,
 }: BuilderAdapterGuardrailsPanelProps) {
   const selectedCommandFrameId = policy.command_frame_id ?? "";
+  const refusedTeleopTargets = teleopTargetsTheServerRefuses(
+    policy.allowed_teleop_targets,
+    runtimeCapabilityReport?.teleop_targets,
+  );
   const supportedCommandFrameIds = runtimeCapabilityReport?.command_frame_ids;
   const commandFrameIds = Array.from(
     new Set([...(supportedCommandFrameIds ?? []), ...(selectedCommandFrameId ? [selectedCommandFrameId] : [])]),
@@ -89,8 +93,26 @@ export function BuilderAdapterGuardrailsPanel({
             rows={3}
             value={formatLines(policy[field] as readonly string[])}
           />
+          {field === "allowed_teleop_targets" && refusedTeleopTargets.length > 0 ? (
+            <p className="builder-inline-error" role="alert">
+              This robot's Bloom server does not allow teleop on {refusedTeleopTargets.join(", ")}, so a joystick sent
+              there is refused. The app can only narrow the server's list: add the topic to BLOOM_ALLOWED_TELEOP_TARGETS
+              where the server runs, then restart it.
+            </p>
+          ) : null}
         </label>
       ))}
     </section>
   );
+}
+
+/** Topics the app lists that the server's own teleop list does not, when the server has said what it allows. */
+export function teleopTargetsTheServerRefuses(
+  appTargets: readonly string[],
+  serverTargets: readonly string[] | undefined,
+): string[] {
+  if (!serverTargets || serverTargets.includes("*")) {
+    return [];
+  }
+  return appTargets.filter((target) => target !== "*" && !serverTargets.includes(target));
 }

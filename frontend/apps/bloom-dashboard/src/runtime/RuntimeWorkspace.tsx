@@ -211,6 +211,24 @@ export function RuntimeWorkspace({
   useEffect(() => {
     setCommandFrameId(defaultCommandFrameId);
   }, [application.id, baseRuntimeProfile.id, defaultCommandFrameId]);
+  // The socket knows only the deployment policy until it is told which app it runs. Its answer is where a
+  // joystick may publish for this app, which the control states need to mark a refused one before it is pressed.
+  const [effectiveTeleopTargets, setEffectiveTeleopTargets] = useState<readonly string[] | null>(null);
+  useEffect(() => {
+    let current = true;
+    setEffectiveTeleopTargets(null);
+    runtimeActionClient
+      .setRuntimeAppContext?.({ app_id: selection.appId, config_id: selection.configId })
+      .then((ack) => {
+        if (current) {
+          setEffectiveTeleopTargets(ack?.payload?.allowed_teleop_targets ?? null);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [runtimeActionClient, selection.appId, selection.configId]);
   const parameterReadings = useParameterReadings(screen, runtimeActionClient);
   const baseControlStateByWidgetId = useMemo(
     () =>
@@ -224,11 +242,18 @@ export function RuntimeWorkspace({
         },
         runtimeCapabilities: runtimeCapabilityReport?.capabilities ?? null,
         teleopActive,
+        teleopTargets: {
+          app: application.runtime_policy.allowed_teleop_targets,
+          effective: effectiveTeleopTargets,
+          reasons: { app: strings.kiosk.teleopTargetNotInApp, server: strings.kiosk.teleopTargetRefusedByServer },
+        },
         topicStatuses,
       }),
     [
+      application.runtime_policy.allowed_teleop_targets,
       commandFrameId,
       commandFrameError,
+      effectiveTeleopTargets,
       allowedCommandFrameIds,
       runtimeCapabilityReport?.capabilities,
       runtimeModeState,
@@ -313,12 +338,6 @@ export function RuntimeWorkspace({
     screen,
     screenHasPositionLibrary,
   ]);
-  // The socket knows only the deployment policy until it is told which app it runs.
-  useEffect(() => {
-    runtimeActionClient
-      .setRuntimeAppContext?.({ app_id: selection.appId, config_id: selection.configId })
-      .catch(() => undefined);
-  }, [runtimeActionClient, selection.appId, selection.configId]);
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;

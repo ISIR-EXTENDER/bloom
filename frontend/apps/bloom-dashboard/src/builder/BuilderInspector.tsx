@@ -16,6 +16,7 @@ type BuilderInspectorProps = {
   allowedCommandFrameIds?: readonly string[];
   allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
+  serverTeleopTargets?: readonly string[];
   /** STOP is already reserved on this screen, so the palette says so instead of offering it twice. */
   hasStopRegion?: boolean;
   onAddStopRegion?: () => void;
@@ -42,6 +43,7 @@ export function BuilderInspector({
   allowedCommandFrameIds,
   allowedParameters,
   allowedTeleopTargets,
+  serverTeleopTargets,
   availableWidgetDefinitions,
   hasStopRegion = false,
   onAddStopRegion,
@@ -154,6 +156,7 @@ export function BuilderInspector({
         allowedCommandFrameIds={allowedCommandFrameIds}
         allowedParameters={allowedParameters}
         allowedTeleopTargets={allowedTeleopTargets}
+        serverTeleopTargets={serverTeleopTargets}
         canvas={canvas}
         floorPx={densityFloorFor(deviceClass)}
         panel={panel}

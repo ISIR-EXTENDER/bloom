@@ -63,3 +63,10 @@ def test_every_capability_explains_itself(test_settings: Settings) -> None:
     assert payload["capabilities"], "no capabilities reported"
     for entry in payload["capabilities"]:
         assert entry["detail"].strip(), f"{entry['id']} has no explanation"
+
+
+def test_the_server_says_which_topics_a_joystick_may_drive(test_settings: Settings) -> None:
+    """An app can add a teleop topic the server refuses; the builder can only warn if it knows the server's list."""
+    client = TestClient(create_app(test_settings.model_copy(update={"allowed_teleop_targets": ("/a", "/b")})))
+
+    assert client.get("/api/v1/capabilities").json()["teleop_targets"] == ["/a", "/b"]

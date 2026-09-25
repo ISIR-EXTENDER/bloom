@@ -100,6 +100,10 @@ export const frRuntimeStrings: RuntimeStrings = {
     frameNotOnRobot: (frameId) =>
       `Le repère de commande « ${frameId} » n'est pas disponible sur ce robot. Choisissez un repère disponible avant de bouger.`,
     frameReleaseControls: "Relâchez les commandes.",
+    teleopTargetNotInApp: (topic) =>
+      `Cette app n'autorise pas la conduite sur ${topic}. Ajoutez-le dans Configuration de l'app, Garde-fous de l'adaptateur, Cibles de téléopération.`,
+    teleopTargetRefusedByServer: (topic) =>
+      `Le serveur Bloom de ce robot n'autorise pas la conduite sur ${topic}. Ajoutez-le à BLOOM_ALLOWED_TELEOP_TARGETS là où tourne le serveur ; la liste de l'app ne suffit pas.`,
     frameUnavailableOnRobot: "Indisponible sur ce robot.",
     gamepad: "manette",
     help: "Aide",

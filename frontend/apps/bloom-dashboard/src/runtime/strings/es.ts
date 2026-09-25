@@ -100,6 +100,10 @@ export const esRuntimeStrings: RuntimeStrings = {
     frameNotOnRobot: (frameId) =>
       `El marco de comando "${frameId}" no está disponible en este robot. Elija un marco disponible antes de moverlo.`,
     frameReleaseControls: "Suelte los controles.",
+    teleopTargetNotInApp: (topic) =>
+      `Esta app no permite conducir en ${topic}. Añádelo en Configuración de la app, Protecciones del adaptador, Destinos de teleoperación.`,
+    teleopTargetRefusedByServer: (topic) =>
+      `El servidor Bloom de este robot no permite conducir en ${topic}. Añádelo a BLOOM_ALLOWED_TELEOP_TARGETS donde se ejecuta el servidor; la lista de la app no basta.`,
     frameUnavailableOnRobot: "No disponible en este robot.",
     gamepad: "mando",
     help: "Ayuda",

@@ -325,6 +325,7 @@ function BuilderProductWorkspace({
   return (
     <BuilderWorkspace
       commandFrameIds={runtimeCapabilityReport?.command_frame_ids}
+      serverTeleopTargets={runtimeCapabilityReport?.teleop_targets}
       robotName={runtimeCapabilityReport?.robot_name}
       runtimeCapabilities={runtimeCapabilities}
       configurations={state.configurations}

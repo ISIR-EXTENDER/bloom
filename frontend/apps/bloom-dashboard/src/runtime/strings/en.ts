@@ -100,6 +100,10 @@ export const enRuntimeStrings: RuntimeStrings = {
     frameNotOnRobot: (frameId) =>
       `Command frame "${frameId}" is not available on this robot. Select an available frame before moving.`,
     frameReleaseControls: "Release controls.",
+    teleopTargetNotInApp: (topic) =>
+      `This app does not allow driving on ${topic}. Add it under App configuration, Adapter guardrails, Teleop targets.`,
+    teleopTargetRefusedByServer: (topic) =>
+      `This robot's Bloom server does not allow driving on ${topic}. Add it to BLOOM_ALLOWED_TELEOP_TARGETS where the server runs; the app's own list is not enough.`,
     frameUnavailableOnRobot: "Unavailable on this robot.",
     gamepad: "gamepad",
     help: "Help",

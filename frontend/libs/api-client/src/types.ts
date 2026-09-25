@@ -325,6 +325,8 @@ export type RuntimeCapabilitiesResponse = {
   command_frame_ids?: string[];
   /** Which arm this backend drives; empty when the deployment has not said. */
   robot_name?: string;
+  /** Topics this server lets a joystick drive; an app's own teleop list can only narrow it. */
+  teleop_targets?: string[];
 };
 
 /** Capabilities plus the frame operator commands are stamped with. */
