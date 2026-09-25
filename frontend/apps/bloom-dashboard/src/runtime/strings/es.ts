@@ -210,7 +210,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     },
     archived: "Archivada",
     active: "activa",
-    roleNote: "El último rol usado está marcado. Elegir es deliberado.",
+    roleNote: "Se abre con el último rol usado en este dispositivo. Elige otro para abrir con ese.",
     lastUsed: "último usado",
     noProfiles: "Esta app no declara perfiles, así que abre con los valores por defecto.",
     tagline: {

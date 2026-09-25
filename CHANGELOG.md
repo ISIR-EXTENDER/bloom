@@ -63,6 +63,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **The one-switch pads printed their readout as `x 0.00y 0.00`**, and a screen reader heard it run together too.
+  The two values now read, and are spoken, apart.
+- The runtime library still said "Choosing is deliberate" after roles gained a default; it now says the app opens in
+  the role last used on the device, in all three languages.
+
 - **A robot that is not running reads as unavailable, not as a server error.** With the ROS adapters attached
   and no robot launched, the robot-model route raised because `/robot_state_publisher` offers no parameter
   services, so the 3D view's poll filled the API log with 500s every three seconds. It reports the state the

@@ -208,7 +208,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     },
     archived: "Archived",
     active: "active",
-    roleNote: "Last role used is marked. Choosing is deliberate.",
+    roleNote: "Opens as the role used last on this device. Pick another to open as that one.",
     lastUsed: "last used",
     noProfiles: "This app declares no profiles, so it opens with runtime defaults.",
     tagline: {
