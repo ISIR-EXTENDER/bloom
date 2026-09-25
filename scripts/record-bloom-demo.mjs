@@ -83,7 +83,7 @@ await rm(frameDirectory, { force: true, recursive: true });
 
 async function landing() {
   await page.goto(`${dashboardUrl}/#/`, { waitUntil: "networkidle" });
-  await caption("Bloom", "Robot interfaces for the Extender, built without web code");
+  await caption("Bloom", "The control screen for an assistive robot arm, built without code");
   await moveTo(size.width * 0.3, size.height * 0.45, 900);
   await pause(3500);
   await scroll(900);
@@ -148,7 +148,13 @@ async function createScreen() {
   await click(page.getByRole("button", { name: "Add Command button widget" }));
   await pause(900);
   await drag(page.getByRole("button", { name: /^Select and move .* widget$/ }).last(), [{ dx: 640, dy: 120 }]);
-  await pause(1500);
+  await pause(1200);
+  await caption("Builder", "Say what a control does: where it sends, and what. No code.");
+  await typeInto("Button label", "Jaco mode");
+  await typeInto("Output topic", "/mode_request");
+  await typeInto("ROS message type", "std_msgs/msg/String");
+  await typeInto("Payload", '{"data": "geometric/jaco"}');
+  await pause(2500);
   await click(page.getByRole("button", { name: "Save changes" }));
   await pause(2000);
   await snapshot("screen-built");
@@ -161,6 +167,13 @@ async function driveExplorer() {
   await pause(1500);
   await click(page.getByRole("button", { exact: true, name: "Explorer Manager" }));
   await pause(1200);
+  await caption("Roles", "One app, a screen for each person: the operator, the engineer, a one-switch user");
+  for (const role of ["Operator", "Bench", "One switch"]) {
+    const button = page.locator(".runtime-library-roles button").filter({ hasText: role }).first();
+    const box = await centerOf(button);
+    await moveTo(box.x, box.y, 700);
+    await pause(1300);
+  }
   await click(page.locator(".runtime-library-roles button").filter({ hasText: "Operator" }).first());
   await pause(900);
   await click(page.locator(".runtime-library-open"));
@@ -297,6 +310,25 @@ async function bloomDebug() {
   await pause(4000);
   await snapshot("bloom-debug");
   await mover;
+  await openScreen("Robot view");
+  const drawing = startRosMover(16);
+  await caption("Robot view", "The robot in 3D as it moves, drawn from its own description");
+  const stage = page.locator('[aria-label="Robot 3D view"][data-model="ready"]');
+  await stage.waitFor({ timeout: 30000 });
+  // Closer, then around: the view is a scene to look into, not a picture.
+  const middle = await centerOf(stage);
+  await moveTo(middle.x, middle.y + 60, 900);
+  await pause(1500);
+  await scroll(-900);
+  await pause(2500);
+  await caption("Robot view", "Drag to look around, wheel to come closer");
+  await drag(stage, [
+    { dx: 220, dy: 0, ms: 1600 },
+    { dx: 120, dy: -40, ms: 1200 },
+  ]);
+  await pause(6000);
+  await snapshot("robot-view");
+  await drawing;
 }
 
 async function camera() {
@@ -326,6 +358,19 @@ async function closing() {
 }
 
 // ---- Helpers ----
+
+async function typeInto(label, text) {
+  const field = page
+    .locator("label.builder-settings-field", { has: page.locator("span", { hasText: new RegExp(`^${label}$`) }) })
+    .locator("input, textarea")
+    .first();
+  await field.scrollIntoViewIfNeeded();
+  await click(field);
+  await page.keyboard.press("ControlOrMeta+A");
+  await page.keyboard.type(text, { delay: 55 });
+  await page.keyboard.press("Tab");
+  await pause(500);
+}
 
 async function openScreen(title) {
   await openMaintenance();

@@ -95,7 +95,7 @@ if (readArgument("--poster")) {
       .caption .eyebrow { color: ${palette.pollen}; margin-bottom: 10px; }
     </style>
     <img src="${await dataUrl(readArgument("--poster"))}"><div class="veil"></div><div class="play"></div>
-    <div class="caption"><div class="eyebrow">Walkthrough · 5 min · live Explorer simulation</div>
+    <div class="caption"><div class="eyebrow">Walkthrough · 6 min · live Explorer simulation</div>
     <div class="display">From an empty screen to a moving arm</div></div>`,
   });
 }
