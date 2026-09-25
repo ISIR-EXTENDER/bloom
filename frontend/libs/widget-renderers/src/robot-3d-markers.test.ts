@@ -132,6 +132,23 @@ describe("marker shapes, as rviz sizes them", () => {
     expect(text.scale.x).toBeGreaterThan(0.2);
   });
 
+  it("draws a marker whose per-point colours override its own unset colour", () => {
+    const points = [
+      { x: 0, y: 0, z: 0 },
+      { x: 1, y: 0, z: 0 },
+    ];
+    // rviz: a populated colors array overrides the color field, alpha included.
+    const coloured = buildMarkerShape(
+      marker({ type: 4, points, colors: [COLOR, COLOR], color: { r: 0, g: 0, b: 0, a: 0 } }),
+    ) as Line;
+    expect(coloured.visible).toBe(true);
+    // Drawn, not merely present: an opacity carried over from the unset colour would be invisible.
+    const material = coloured.material as { opacity: number; transparent: boolean; vertexColors: boolean };
+    expect(material.opacity).toBe(1);
+    expect(material.transparent).toBe(false);
+    expect(material.vertexColors).toBe(true);
+  });
+
   it("hides a marker with alpha zero instead of drawing it opaque", () => {
     expect(buildMarkerShape(marker({ color: { ...COLOR, a: 0 } }))?.visible).toBe(false);
     expect(buildMarkerShape(marker({ color: { r: 1, g: 1, b: 1 } }))?.visible).toBe(true);

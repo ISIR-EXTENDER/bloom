@@ -270,12 +270,13 @@ function applyPose(object: Object3D, marker: MarkerSample): void {
 export function buildMarkerShape(marker: MarkerSample): Object3D | null {
   const type = numberOf(marker.type);
   const scale = vector(marker.scale, 0);
-  const material = markerMaterial(marker);
   const points = Array.isArray(marker.points) ? marker.points.map((point) => vector(point, 0)) : [];
   const colors = pointColors(marker, points.length);
+  const material = markerMaterial(marker, colors !== null);
   const object = shapeOf(type, scale, material, points, colors, marker);
-  if (object && markerAlpha(marker) === 0) {
-    // As in rviz: an alpha of zero is a marker nobody can see, not one drawn opaque by accident.
+  // As in rviz: an alpha of zero is a marker nobody can see, not one drawn opaque by accident. Per-point
+  // colours override the marker's own colour entirely, so its unset alpha must not hide them.
+  if (object && colors === null && markerAlpha(marker) === 0) {
     object.visible = false;
   }
   return object;
@@ -481,9 +482,10 @@ function textSprite(text: string, height: number, color: Color, opacity: number)
   return sprite;
 }
 
-function markerMaterial(marker: MarkerSample): MeshStandardMaterial {
+/** Per-point colours override the marker's own colour entirely, alpha included, as they do in rviz. */
+function markerMaterial(marker: MarkerSample, perPointColors = false): MeshStandardMaterial {
   const record = asRecord(marker.color);
-  const opacity = markerAlpha(marker);
+  const opacity = perPointColors ? 1 : markerAlpha(marker);
   return new MeshStandardMaterial({
     color: new Color(numberOf(record.r), numberOf(record.g), numberOf(record.b)),
     opacity,

@@ -72,7 +72,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - Every twist and every marker array rebuilt three.js objects without freeing the old ones: twenty twists
   a second leaked a material each. The arrow is now one object moved on each twist, markers whose shape did
   not change are moved rather than rebuilt, and what is removed is disposed.
-- A marker with alpha zero drew opaque; as in rviz, it is now invisible.
+- A marker with alpha zero drew opaque; as in rviz, it is now invisible. A marker that gives a colour per
+  point is drawn whatever its own colour says, because per-point colours override it, alpha included: a
+  coloured trajectory published without a marker colour used to be invisible twice over, hidden and then
+  fully transparent.
 - The mesh cache fetches a file the URDF names several times once, and an absolute mesh path under a
   workspace that itself lives in a directory called `share` resolves to the right package.
 
