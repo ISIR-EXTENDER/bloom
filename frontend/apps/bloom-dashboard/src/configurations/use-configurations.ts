@@ -52,8 +52,13 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
   }, []);
 
   const refreshShareStatus = useCallback(async () => {
-    // Sharing is a courtesy on top of saving: a server that cannot say leaves the badges off.
-    const shareStatus = await client.getShareStatus().catch(() => ({}));
+    // Sharing is a courtesy on top of saving: a server, or a client, that cannot say leaves the badges off.
+    let shareStatus: Record<string, ShareStatus> = {};
+    try {
+      shareStatus = await client.getShareStatus();
+    } catch {
+      return;
+    }
     setState((currentState) => (currentState.status === "ready" ? { ...currentState, shareStatus } : currentState));
   }, [client]);
 
