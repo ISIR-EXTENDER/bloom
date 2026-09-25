@@ -65,7 +65,8 @@ class VirtualTouchscreen:
     def _emit(self, event_type: int, code: int, value: int) -> None:
         os.write(self.fd, struct.pack("llHHi", 0, 0, event_type, code, value))
 
-    def tap(self, x: float, y: float) -> None:
+    def tap(self, x: float, y: float) -> tuple[int, int]:
+        """Touch, read where the pointer is while the finger is still down, and lift."""
         ax, ay = round(x * RANGE), round(y * RANGE)
         for event_type, code, value in (
             (EV_ABS, ABS_MT_SLOT, 0),
@@ -79,12 +80,14 @@ class VirtualTouchscreen:
         ):
             self._emit(event_type, code, value)
         time.sleep(0.15)
+        position = pointer_position()
         for event_type, code, value in (
             (EV_ABS, ABS_MT_TRACKING_ID, -1),
             (EV_KEY, BTN_TOUCH, 0),
             (EV_SYN, 0, 0),
         ):
             self._emit(event_type, code, value)
+        return position
 
     def close(self) -> None:
         fcntl.ioctl(self.fd, UI_DEV_DESTROY)
@@ -128,13 +131,18 @@ def main() -> int:
         width, height, x0, y0 = output_geometry()
         failures = 0
         for px, py in POINTS:
-            screen.tap(px, py)
-            time.sleep(0.2)
-            got = pointer_position()
             want = (round(x0 + px * (width - 1)), round(y0 + py * (height - 1)))
-            ok = abs(got[0] - want[0]) <= TOLERANCE_PX and abs(got[1] - want[1]) <= TOLERANCE_PX
-            failures += not ok
-            print(f"{'ok  ' if ok else 'FAIL'} touch ({px:.2f}, {py:.2f}) -> pointer {got}, expected {want} on {OUTPUT}")
+            on_target = lambda got: abs(got[0] - want[0]) <= TOLERANCE_PX and abs(got[1] - want[1]) <= TOLERANCE_PX  # noqa: E731
+            got = screen.tap(px, py)
+            verdict = "ok  "
+            if not on_target(got):
+                # A mouse or touchpad moved in between is not the mapping; a second touch tells them apart.
+                time.sleep(0.3)
+                got = screen.tap(px, py)
+                verdict = "ok (retried)" if on_target(got) else "FAIL"
+            failures += verdict == "FAIL"
+            print(f"{verdict} touch ({px:.2f}, {py:.2f}) -> pointer {got}, expected {want} on {OUTPUT}")
+            time.sleep(0.2)
         print("Touch mapping verified." if failures == 0 else f"{failures} touch(es) landed off target.")
         return 1 if failures else 0
     finally:
