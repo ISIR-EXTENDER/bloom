@@ -15,6 +15,8 @@ type PushMode = "drag" | "latch" | "step";
 type RuntimeSettingsPanelProps = {
   applicationName: string;
   baseProfile: ResolvedRuntimeProfile;
+  /** The connected pad's name, or null when none is attached. */
+  gamepadName?: string | null;
   onClose: () => void;
   onSave: (overrides: RuntimeProfileOverrides) => void;
   overrides: RuntimeProfileOverrides;
@@ -38,6 +40,7 @@ const PUSH_PRESETS: Record<PushMode, UserProfile["motor_accessibility_preset"]> 
  * live on this screen and reach the profile on "Save and resume"; "Discard changes" or Escape leaves without saving.
  */
 export function RuntimeSettingsPanel({
+  gamepadName = null,
   applicationName,
   baseProfile,
   onClose,
@@ -283,6 +286,11 @@ export function RuntimeSettingsPanel({
                 </p>
               </>
             ) : null}
+          </div>
+          <h3 className="runtime-settings-group">{strings.settings.inputs}</h3>
+          <div className="runtime-settings-card runtime-settings-inputs">
+            <p>{strings.settings.inputsKeyboard}</p>
+            <p data-gamepad={gamepadName ? "connected" : "none"}>{strings.settings.inputsGamepad(gamepadName)}</p>
           </div>
           <button
             className="runtime-settings-save"

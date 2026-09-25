@@ -298,3 +298,28 @@ describe("runtime settings", () => {
     expect(loadRuntimeUserPreferences().profileOverrides["config:app:profile"]).toBeUndefined();
   });
 });
+
+describe("the keyboard and gamepad card", () => {
+  it("says how to drive without touch, and how to attach a pad when none is there", () => {
+    renderSettings();
+
+    expect(screen.getByText(/arrow keys drive/)).toBeTruthy();
+    expect(screen.getByText(/No gamepad connected/)).toBeTruthy();
+  });
+
+  it("names the pad once one is connected", () => {
+    render(
+      <RuntimeSettingsPanel
+        applicationName="Explorer Manager"
+        baseProfile={defaultProfile}
+        gamepadName="Xbox Wireless Controller"
+        onClose={vi.fn()}
+        onSave={vi.fn()}
+        overrides={{}}
+        runtimeRole="operator"
+      />,
+    );
+
+    expect(screen.getByText(/Gamepad connected: Xbox Wireless Controller/)).toBeTruthy();
+  });
+});

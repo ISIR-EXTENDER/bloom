@@ -944,6 +944,16 @@ button.runtime-kiosk-screen:focus-visible {
   border-color: var(--bloom-primary);
 }
 
+.runtime-kiosk-gamepad {
+  flex: 0 0 auto;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 22%, transparent);
+  border-radius: 9px;
+  color: var(--bloom-primary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 /* Round dot while ready, square when anything holds the robot. */
 .runtime-kiosk-status {
   display: inline-flex;

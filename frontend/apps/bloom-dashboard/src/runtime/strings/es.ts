@@ -110,6 +110,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     home: "Inicio",
     maintenance: "Mantenimiento",
     maintenanceAria: "Mantener para abrir mantenimiento",
+    gamepadChip: "Mando",
     menuAria: "Abrir mantenimiento",
     screenMenuAria: (screen) => `${screen}: abrir la lista de pantallas`,
     holdHint: "Mantén ⋯ pulsado para abrir el menú",
@@ -269,6 +270,12 @@ export const esRuntimeStrings: RuntimeStrings = {
     increase: (label) => `Aumentar ${label}`,
     value: (label) => `Valor de ${label}`,
     tryIt: "Pruébalo — no se envía nada",
+    inputs: "Teclado y mando",
+    inputsKeyboard: "Tab pasa de un control a otro. En un pad, las flechas conducen y Escape suelta.",
+    inputsGamepad: (name) =>
+      name
+        ? `Mando conectado: ${name}. El stick izquierdo mueve la mano y el derecho la gira.`
+        : "Ningún mando conectado. Conecta uno y pulsa cualquier botón; el stick izquierdo mueve la mano y el derecho la gira.",
     tryTitle: "Prueba una pulsación",
     tryIdle: "Pulsa para probar. No se envía nada.",
     tryPressed: (count) => `Pulsado ${count} ${count === 1 ? "vez" : "veces"}. No se envió nada.`,

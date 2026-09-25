@@ -110,6 +110,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     home: "Accueil",
     maintenance: "Maintenance",
     maintenanceAria: "Maintenir pour ouvrir la maintenance",
+    gamepadChip: "Manette",
     menuAria: "Ouvrir la maintenance",
     screenMenuAria: (screen) => `${screen} : ouvrir la liste des écrans`,
     holdHint: "Maintenez ⋯ appuyé pour ouvrir le menu",
@@ -270,6 +271,12 @@ export const frRuntimeStrings: RuntimeStrings = {
     increase: (label) => `Augmenter ${label}`,
     value: (label) => `Valeur de ${label}`,
     tryIt: "Essayez — rien n'est envoyé",
+    inputs: "Clavier et manette",
+    inputsKeyboard: "Tab passe d’une commande à l’autre. Sur un pavé, les flèches pilotent et Échap relâche.",
+    inputsGamepad: (name) =>
+      name
+        ? `Manette connectée : ${name}. Le stick gauche déplace la main, le stick droit la fait tourner.`
+        : "Aucune manette connectée. Branchez-en une et appuyez sur un bouton ; le stick gauche déplace la main, le stick droit la fait tourner.",
     tryTitle: "Essayez un appui",
     tryIdle: "Appuyez pour essayer. Rien n'est envoyé.",
     tryPressed: (count) => `Appuyé ${count} fois. Rien n'a été envoyé.`,

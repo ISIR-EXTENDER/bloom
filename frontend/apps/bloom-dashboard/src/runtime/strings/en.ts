@@ -110,6 +110,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     home: "Home",
     maintenance: "Maintenance",
     maintenanceAria: "Hold to open maintenance",
+    gamepadChip: "Gamepad",
     menuAria: "Open maintenance",
     screenMenuAria: (screen) => `${screen}: open the screen list`,
     holdHint: "Keep holding ⋯ to open the menu",
@@ -266,6 +267,12 @@ export const enRuntimeStrings: RuntimeStrings = {
     increase: (label) => `Increase ${label}`,
     value: (label) => `${label} value`,
     tryIt: "Try it — nothing is sent",
+    inputs: "Keyboard and gamepad",
+    inputsKeyboard: "Tab moves between controls. On a pad, the arrow keys drive and Escape lets go.",
+    inputsGamepad: (name) =>
+      name
+        ? `Gamepad connected: ${name}. The left stick moves the hand, the right stick turns it.`
+        : "No gamepad connected. Plug one in and press any button; the left stick moves the hand, the right stick turns it.",
     tryTitle: "Try a press",
     tryIdle: "Press to try. Nothing is sent.",
     tryPressed: (count) => `Pressed ${count} ${count === 1 ? "time" : "times"}. Nothing was sent.`,

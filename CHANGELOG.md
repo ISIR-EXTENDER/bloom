@@ -19,6 +19,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **The widget palette has a search box.** It matches a widget's name, kind, description and category, ignoring
+  case and accents; "3d" finds the robot view and "stop" finds STOP.
+- **Keyboard and gamepad are no longer a secret.** Settings has a "Keyboard and gamepad" card that says how to drive
+  without touch and whether a pad is connected, and the kiosk bar shows a **Gamepad** chip while one is.
+
 - **Bench and Lab open the menu with a tap.** A role option, `menu_on_tap` ("A tap opens the menu" in the Builder),
   lets a role that does not drive open maintenance from a tap on "⋯" or on the screen title, which then reads as a
   button to the screen list. Opening it still holds the robot at zeros and switching role keeps its hold. The

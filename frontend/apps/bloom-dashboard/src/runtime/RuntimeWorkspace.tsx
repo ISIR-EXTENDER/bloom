@@ -531,6 +531,7 @@ export function RuntimeWorkspace({
         <RuntimeSettingsPanel
           applicationName={application.name}
           baseProfile={baseRuntimeProfile}
+          gamepadName={gamepad.connected ? gamepad.id : null}
           key={profileOverrideKey}
           onClose={() => setSettingsOpen(false)}
           onSave={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}

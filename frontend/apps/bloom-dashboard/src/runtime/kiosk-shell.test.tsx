@@ -434,3 +434,19 @@ describe("a role that opens the menu with a tap", () => {
     expect(screen.queryByRole("button", { name: /open the screen list/ })).toBeNull();
   });
 });
+
+describe("the gamepad chip", () => {
+  afterEach(cleanup);
+
+  it("shows while a pad is connected and names it on hover", () => {
+    renderBar({ gamepadName: "Xbox Wireless Controller" });
+
+    expect(screen.getByText("Gamepad").getAttribute("title")).toBe("Xbox Wireless Controller");
+  });
+
+  it("is absent without a pad", () => {
+    renderBar();
+
+    expect(screen.queryByText("Gamepad")).toBeNull();
+  });
+});

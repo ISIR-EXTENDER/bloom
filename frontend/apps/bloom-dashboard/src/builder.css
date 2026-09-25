@@ -1916,6 +1916,31 @@
 }
 
 /* The heading the cards used to print on themselves, said once for the group instead. */
+.builder-widget-palette-search {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 10px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 18%, var(--bloom-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 88%, white);
+  color: var(--bloom-ink);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.builder-widget-palette-search:focus-visible {
+  border-color: color-mix(in srgb, var(--bloom-primary) 58%, var(--bloom-border));
+  outline: 4px solid color-mix(in srgb, var(--bloom-primary) 18%, transparent);
+  outline-offset: 2px;
+}
+
+.builder-widget-palette-empty {
+  margin: 12px 0 0;
+  color: var(--bloom-muted);
+  font-size: 0.9rem;
+}
+
 .builder-widget-palette-category {
   margin: 14px 0 6px;
   color: var(--bloom-muted);

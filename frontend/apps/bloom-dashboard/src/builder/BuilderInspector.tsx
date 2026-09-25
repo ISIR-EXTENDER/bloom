@@ -7,7 +7,7 @@ import {
   type WidgetDefinition,
   widgetFitsDeviceClass,
 } from "@bloom/widgets";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
 import { densityFloorFor, glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
 
@@ -249,13 +249,35 @@ function WidgetPalette({
   onAddStopRegion?: () => void;
   onAddWidget: (definition: WidgetDefinition) => void;
 }) {
+  const [query, setQuery] = useState("");
+  const terms = searchTerms(query);
+  const showStop = onAddStopRegion && matchesSearch(terms, ["STOP", "Stop the robot", "emergency"]);
+  const matching = definitions.filter((definition) =>
+    matchesSearch(terms, [
+      definition.displayName,
+      definition.kind,
+      definition.description,
+      PALETTE_CATEGORIES.find((category) => category.id === definition.category)?.label ?? "",
+    ]),
+  );
   return (
     <section className="builder-widget-palette" aria-labelledby="builder-widget-palette-title">
       <div>
         <p className="eyebrow">Widget palette</p>
         <h3 id="builder-widget-palette-title">Add widgets</h3>
       </div>
-      {onAddStopRegion ? (
+      <input
+        aria-label="Search widgets"
+        className="builder-widget-palette-search"
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search: joystick, camera, 3D…"
+        type="search"
+        value={query}
+      />
+      {!showStop && matching.length === 0 ? (
+        <p className="builder-widget-palette-empty">No widget matches “{query.trim()}”.</p>
+      ) : null}
+      {showStop ? (
         <div>
           <h4 className="builder-widget-palette-category">Stop the robot</h4>
           <div className="builder-widget-palette-grid">
@@ -279,7 +301,7 @@ function WidgetPalette({
         </div>
       ) : null}
       {PALETTE_CATEGORIES.map(({ id, label }) => {
-        const inCategory = definitions.filter((definition) => definition.category === id);
+        const inCategory = matching.filter((definition) => definition.category === id);
         if (inCategory.length === 0) {
           return null;
         }
@@ -337,6 +359,23 @@ const PALETTE_CATEGORIES: readonly { id: WidgetCategory; label: string }[] = [
   { id: "feedback", label: "Read the data" },
   { id: "device", label: "Devices" },
 ];
+
+function searchTerms(query: string): string[] {
+  return foldForSearch(query).split(/\s+/).filter(Boolean);
+}
+
+/** Every term must appear in one of the fields; case and accents are ignored. */
+export function matchesSearch(terms: readonly string[], fields: readonly string[]): boolean {
+  const haystack = foldForSearch(fields.join(" "));
+  return terms.every((term) => haystack.includes(term));
+}
+
+function foldForSearch(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
 
 function BuilderInspectorPanel({
   children,

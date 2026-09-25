@@ -73,6 +73,7 @@ export type RuntimeStrings = {
     home: string;
     maintenance: string;
     maintenanceAria: string;
+    gamepadChip: string;
     menuAria: string;
     screenMenuAria: (screen: string) => string;
     holdHint: string;
@@ -225,6 +226,9 @@ export type RuntimeStrings = {
     tryForward: string;
     tryIdle: string;
     tryIt: string;
+    inputs: string;
+    inputsKeyboard: string;
+    inputsGamepad: (name: string | null) => string;
     tryPressed: (count: number) => string;
     tryReadout: (targetPx: number, fontScale: string, timing: string) => string;
     tryTitle: string;

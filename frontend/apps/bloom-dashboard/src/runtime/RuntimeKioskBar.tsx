@@ -103,6 +103,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     onMaintenanceOpenChange,
     language = "en",
     tourOffer = null,
+    gamepadName = null,
   } = props;
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
@@ -184,6 +185,11 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         <span className="runtime-kiosk-rate" data-held={held ? "true" : undefined}>
           {rate}
         </span>
+        {gamepadName ? (
+          <span className="runtime-kiosk-gamepad" title={gamepadName}>
+            {strings.kiosk.gamepadChip}
+          </span>
+        ) : null}
         {commandFeedback ? (
           <span
             aria-label={`${

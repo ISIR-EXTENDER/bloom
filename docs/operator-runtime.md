@@ -47,8 +47,8 @@ opens **Drive · Bench**. To change role mid-session, open Maintenance and hold 
 
 ### Kiosk Bar
 
-The 44 px bar reads, left to right: app name, screen title, a status chip, the command frame, the publish rate, the
-role pill, and the **⋯** maintenance hold, drawn as a fill on the button itself. Under scanning **⋯** is part of the
+The 44 px bar reads, left to right: app name, screen title, a status chip, the command frame, the publish rate, a
+**Gamepad** chip while a pad is connected, the role pill, and the **⋯** maintenance hold, drawn as a fill on the button itself. Under scanning **⋯** is part of the
 scan set, and selecting it opens maintenance at once: a switch cannot hold anything down, and waiting out the scan
 cycle is already the deliberate act the 1.5 s hold asks a pointer for. The pointer and keyboard hold is unchanged.
 A tap released too early says to keep holding.
