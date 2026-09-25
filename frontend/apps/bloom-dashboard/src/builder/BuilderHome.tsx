@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ScreenConfig, ShareStatus } from "@bloom/api-client";
 import { useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { describeApiError } from "../ui/api-error";
@@ -33,6 +33,36 @@ type BuilderHomeProps = {
   onOpenApplication: (selection: WorkspaceSelection) => void;
   onOpenScreenBuilder: (selection: WorkspaceSelection) => void;
   onPreviewScreenRuntime: (selection: WorkspaceSelection) => void;
+  /** Where each configuration stands against the shipped one; a server that cannot say leaves it empty. */
+  shareStatus?: Record<string, ShareStatus>;
+  onPublishConfiguration?: (configId: string) => Promise<{ path: string; alreadyPublished: boolean }>;
+  onTakeShippedConfiguration?: (configId: string) => Promise<unknown>;
+};
+
+type ShareActionState =
+  | { status: "idle" }
+  | { configId: string; status: "publishing" | "taking" }
+  | { configId: string; status: "published"; path: string; alreadyPublished: boolean }
+  | { message: string; status: "error" };
+
+/** What the badge says, and what the one button under it does. Statuses with nothing to do show nothing. */
+const SHARE_BADGES: Partial<Record<ShareStatus, { label: string; action: "publish" | "take" | null; hint: string }>> = {
+  edited: {
+    action: "publish",
+    hint: "Edited on this machine. Share writes the file the team gets on clone; commit it afterwards.",
+    label: "Edited here",
+  },
+  local: {
+    action: "publish",
+    hint: "Only on this machine. Share writes the file the team gets on clone; commit it afterwards.",
+    label: "Not shared",
+  },
+  outdated: {
+    action: "take",
+    hint: "The repository has a newer version and nobody edited this copy.",
+    label: "Update available",
+  },
+  shared: { action: null, hint: "Same as the version in the repository.", label: "Shared" },
 };
 
 type CreateState = { status: "idle" } | { status: "creating" } | { status: "error"; message: string };
@@ -53,7 +83,11 @@ export function BuilderHome({
   onOpenApplication,
   onOpenScreenBuilder,
   onPreviewScreenRuntime,
+  shareStatus = {},
+  onPublishConfiguration,
+  onTakeShippedConfiguration,
 }: BuilderHomeProps) {
+  const [shareAction, setShareAction] = useState<ShareActionState>({ status: "idle" });
   const firstConfiguration = configurations[0];
   const [createState, setCreateState] = useState<CreateState>({ status: "idle" });
   const [appActionState, setAppActionState] = useState<AppActionState>({ status: "idle" });
@@ -168,6 +202,14 @@ export function BuilderHome({
                       <small>
                         {countLabel(application.screens.length, "screen")} · {configuration.id}
                       </small>
+                      <ShareBadge
+                        configId={configuration.id}
+                        onPublish={onPublishConfiguration}
+                        onTakeShipped={onTakeShippedConfiguration}
+                        setState={setShareAction}
+                        state={shareAction}
+                        status={shareStatus[configuration.id]}
+                      />
                       <div className="builder-app-card-actions">
                         <button
                           aria-label={`Open ${application.name} app`}
@@ -270,6 +312,18 @@ export function BuilderHome({
                 })
               )}
             </div>
+            {shareAction.status === "error" ? (
+              <p className="builder-save-status builder-save-status-error" role="alert">
+                {shareAction.message}
+              </p>
+            ) : null}
+            {shareAction.status === "published" ? (
+              <p className="builder-save-status" role="status">
+                {shareAction.alreadyPublished
+                  ? `${shareAction.configId} already matches ${shareAction.path}; nothing to commit.`
+                  : `Written to ${shareAction.path}. Commit that file to share it with the team.`}
+              </p>
+            ) : null}
             {appActionState.status === "error" ? (
               <p className="builder-save-status builder-save-status-error" role="alert">
                 {appActionState.message}
@@ -571,5 +625,65 @@ function ScreenLibraryPreview({ screen, type }: { screen: ScreenConfig; type: Sc
         )}
       </span>
     </div>
+  );
+}
+
+function ShareBadge({
+  configId,
+  onPublish,
+  onTakeShipped,
+  setState,
+  state,
+  status,
+}: {
+  configId: string;
+  onPublish?: (configId: string) => Promise<{ path: string; alreadyPublished: boolean }>;
+  onTakeShipped?: (configId: string) => Promise<unknown>;
+  setState: (state: ShareActionState) => void;
+  state: ShareActionState;
+  status: ShareStatus | undefined;
+}) {
+  const badge = status ? SHARE_BADGES[status] : undefined;
+  if (!badge) {
+    return null;
+  }
+  const busy = (state.status === "publishing" || state.status === "taking") && state.configId === configId;
+  const run = async (kind: "publishing" | "taking", action: () => Promise<unknown>) => {
+    setState({ configId, status: kind });
+    try {
+      const result = await action();
+      setState(
+        kind === "publishing" && result && typeof result === "object" && "path" in result
+          ? { configId, status: "published", ...(result as { path: string; alreadyPublished: boolean }) }
+          : { status: "idle" },
+      );
+    } catch (error) {
+      setState({ message: describeApiError(error, "Bloom could not share this app."), status: "error" });
+    }
+  };
+  return (
+    <p className="builder-app-card-share" data-share={status} title={badge.hint}>
+      <span>{badge.label}</span>
+      {badge.action === "publish" && onPublish ? (
+        <button
+          aria-label={`Share ${configId} with the team`}
+          disabled={busy}
+          onClick={() => run("publishing", () => onPublish(configId))}
+          type="button"
+        >
+          {busy ? "Sharing…" : "Share"}
+        </button>
+      ) : null}
+      {badge.action === "take" && onTakeShipped ? (
+        <button
+          aria-label={`Update ${configId} to the shipped version`}
+          disabled={busy}
+          onClick={() => run("taking", () => onTakeShipped(configId))}
+          type="button"
+        >
+          {busy ? "Updating…" : "Update"}
+        </button>
+      ) : null}
+    </p>
   );
 }

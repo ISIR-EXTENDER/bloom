@@ -32,8 +32,9 @@ import logging
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
+from typing import Literal
 
-from libs.config.json_io import configuration_to_dict, load_configuration_file
+from libs.config.json_io import configuration_to_dict, load_configuration_file, save_configuration_file
 from libs.config.models import ConfigurationBundle
 from libs.config.repository import ConfigurationRepository
 
@@ -192,3 +193,68 @@ def adopt_file_configurations(
         repository.upsert(path.stem, load_configuration_file(path))
         adopted.append(path.stem)
     return tuple(adopted)
+
+
+#: Where a stored app stands against the shipped one, as `bloom config status` and the Builder show it.
+ShareStatus = Literal["deleted", "edited", "local", "missing", "outdated", "shared"]
+
+
+def configuration_share_status(
+    repository: ConfigurationRepository, seed_dir: Path | str = DEFAULT_SEED_DIR
+) -> dict[str, ShareStatus]:
+    stored = set(repository.list_ids())
+    shipped = set(available_seed_ids(seed_dir))
+    deleted = set(repository.deleted_ids())
+    statuses: dict[str, ShareStatus] = {}
+    for config_id in sorted(stored | shipped):
+        if config_id not in stored:
+            statuses[config_id] = "deleted" if config_id in deleted else "missing"
+        elif config_id not in shipped:
+            statuses[config_id] = "local"
+        else:
+            stored_bundle = repository.get(config_id)
+            shipped_bundle = load_configuration_file(Path(seed_dir) / f"{config_id}.json")
+            # Compare content, not the stamp: a seeded copy carries a fingerprint the shipped file does not.
+            if configuration_fingerprint(stored_bundle) == configuration_fingerprint(shipped_bundle):
+                statuses[config_id] = "shared"
+            elif is_unedited_seed_copy(stored_bundle, config_id):
+                statuses[config_id] = "outdated"
+            else:
+                statuses[config_id] = "edited"
+    return statuses
+
+
+def restore_shipped_configuration(
+    repository: ConfigurationRepository, config_id: str, seed_dir: Path | str = DEFAULT_SEED_DIR
+) -> ConfigurationBundle:
+    """Replace the stored copy with the shipped one, discarding local edits. Raises FileNotFoundError."""
+    source = Path(seed_dir) / f"{config_id}.json"
+    if not source.is_file():
+        raise FileNotFoundError(source)
+    return repository.upsert(config_id, stamp_seed_fingerprint(load_configuration_file(source)))
+
+
+@dataclass(frozen=True)
+class PublishOutcome:
+    destination: Path
+    already_published: bool
+
+
+def publish_configuration(
+    repository: ConfigurationRepository, config_id: str, seed_dir: Path | str = DEFAULT_SEED_DIR
+) -> PublishOutcome:
+    """Write a stored app out as a shared one, for someone to commit. Raises ConfigurationNotFoundError."""
+    bundle = repository.get(config_id)
+    destination = Path(seed_dir) / f"{config_id}.json"
+    # Rewriting an unchanged app would only reorder keys and spell out defaults.
+    already_published = destination.is_file() and configuration_fingerprint(
+        load_configuration_file(destination)
+    ) == configuration_fingerprint(bundle)
+    if not already_published:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        # The stamp records where a store copy came from; a shipped file is the source, so it carries none.
+        save_configuration_file(strip_seed_fingerprint(bundle), destination)
+    # Stamped only once the file is really there: a stamp claimed before a failed write let the next
+    # seed run throw the operator's edits away.
+    repository.upsert(config_id, stamp_seed_fingerprint(bundle))
+    return PublishOutcome(destination=destination, already_published=already_published)

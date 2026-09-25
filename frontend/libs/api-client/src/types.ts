@@ -70,6 +70,18 @@ export type CanvasSettings = {
 };
 
 /** A screen area the runtime draws chrome in, such as STOP; no widget may be placed there. */
+/** Where a stored app stands against the one shipped in the repository. */
+export type ShareStatus = "deleted" | "edited" | "local" | "missing" | "outdated" | "shared";
+
+export type ShareStatusResponse = {
+  statuses: Record<string, ShareStatus>;
+};
+
+export type PublishResponse = {
+  path: string;
+  already_published: boolean;
+};
+
 export type ReservedRegion = {
   id: string;
   owner: "runtime-chrome";

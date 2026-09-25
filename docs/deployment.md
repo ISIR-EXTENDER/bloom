@@ -57,6 +57,7 @@ test suites.
 | `BLOOM_PUBLIC_HOST` | first address from `hostname -I` | Address printed for another device when the frontend uses a wildcard bind. |
 | `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
 | `BLOOM_SEED_SHARED_APPLICATIONS` | `true` | Import and upgrade shipped applications at API start. |
+| `BLOOM_SEED_DIR` | `backend/seed/applications` | Where the shared applications live; the Builder's **Share** writes here. |
 | `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |
 | `BLOOM_APP_NAME`, `BLOOM_SERVICE_NAME`, `BLOOM_APP_DESCRIPTION` | Bloom defaults | Names reported by the API and its OpenAPI page. |

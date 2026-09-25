@@ -19,6 +19,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **The Builder says whether an app is shared.** Each app card carries **Shared**, **Update available**, **Edited
+  here** or **Not shared**, with **Update** to take the shipped version and **Share** to write the file to commit,
+  the way `config status`, `config seed` and `config publish` do on the CLI. Three API routes back it:
+  `GET /configurations/share-status`, `POST /configurations/{id}/take-shipped` and
+  `POST /configurations/{id}/publish`. `BLOOM_SEED_DIR` names the shared applications directory.
+
 - **A screen can be made for a tablet or a desktop, and switched later.** Creating a screen asks what it is made
   for, the screen builder has **Switch to desktop** / **Switch to tablet** next to the device reading, and the
   palette offers the switch when a widget is Desktop only. Widgets scale together so the layout holds; STOP never

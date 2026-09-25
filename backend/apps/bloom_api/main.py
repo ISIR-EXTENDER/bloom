@@ -169,7 +169,7 @@ def create_app_configuration_repository(settings: Settings) -> ConfigurationRepo
         # left alone: it is this machine's own work. An id nobody edited is
         # brought up to the shipped version, so an installation seeded once
         # does not keep the app it first saw forever.
-        seed_configurations(repository)
+        seed_configurations(repository, seed_dir=settings.seed_dir)
     return repository
 
 

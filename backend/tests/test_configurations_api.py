@@ -1,9 +1,11 @@
 import base64
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
@@ -541,3 +543,73 @@ def test_the_same_image_in_two_configurations_keeps_a_row_each(
 
     assert uris[0] != uris[1]
     assert sorted(row["uri"] for row in rows) == sorted(uris)
+
+
+def _sharing_client(tmp_path: Path) -> tuple[TestClient, Path]:
+    seed_dir = tmp_path / "seed"
+    seed_dir.mkdir()
+    (seed_dir / "sandbox.json").write_text(SHARED_FIXTURE_PATH.read_text())
+    settings = Settings(
+        environment="test",
+        configuration_database_path=tmp_path / "bloom.db",
+        configuration_storage="sqlite",
+        seed_dir=seed_dir,
+        seed_shared_applications=True,
+    )
+    return TestClient(create_app(settings)), seed_dir
+
+
+def _edit_sandbox(client: TestClient) -> None:
+    bundle = client.get("/api/v1/configurations/sandbox").json()
+    bundle["applications"][0]["name"] = "Sandbox, edited here"
+    assert client.put("/api/v1/configurations/sandbox", json=bundle).status_code == 200
+
+
+def test_the_builder_can_tell_a_shipped_app_from_one_edited_here(tmp_path) -> None:
+    client, _ = _sharing_client(tmp_path)
+    assert client.get("/api/v1/configurations/share-status").json() == {"statuses": {"sandbox": "shared"}}
+
+    _edit_sandbox(client)
+
+    assert client.get("/api/v1/configurations/share-status").json() == {"statuses": {"sandbox": "edited"}}
+
+
+def test_sharing_an_edited_app_writes_the_file_to_commit(tmp_path) -> None:
+    client, seed_dir = _sharing_client(tmp_path)
+    _edit_sandbox(client)
+
+    response = client.post("/api/v1/configurations/sandbox/publish")
+
+    assert response.status_code == 200
+    assert response.json() == {"path": "seed/sandbox.json", "already_published": False}
+    assert "Sandbox, edited here" in (seed_dir / "sandbox.json").read_text()
+    assert client.get("/api/v1/configurations/share-status").json() == {"statuses": {"sandbox": "shared"}}
+    assert client.post("/api/v1/configurations/sandbox/publish").json()["already_published"] is True
+
+
+def test_taking_the_shipped_version_discards_local_edits(tmp_path) -> None:
+    client, _ = _sharing_client(tmp_path)
+    _edit_sandbox(client)
+
+    response = client.post("/api/v1/configurations/sandbox/take-shipped")
+
+    assert response.status_code == 200
+    assert response.json()["applications"][0]["name"] != "Sandbox, edited here"
+    assert client.get("/api/v1/configurations/share-status").json() == {"statuses": {"sandbox": "shared"}}
+    assert client.post("/api/v1/configurations/nothing-shipped/take-shipped").status_code == 404
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root writes through a read-only mode")
+def test_a_server_that_cannot_write_shared_apps_says_how_to_share_instead(tmp_path) -> None:
+    client, seed_dir = _sharing_client(tmp_path)
+    _edit_sandbox(client)
+    seed_dir.chmod(0o500)
+    (seed_dir / "sandbox.json").chmod(0o400)
+    try:
+        response = client.post("/api/v1/configurations/sandbox/publish")
+    finally:
+        seed_dir.chmod(0o700)
+        (seed_dir / "sandbox.json").chmod(0o600)
+
+    assert response.status_code == 409
+    assert "bloom config publish sandbox" in response.json()["detail"]

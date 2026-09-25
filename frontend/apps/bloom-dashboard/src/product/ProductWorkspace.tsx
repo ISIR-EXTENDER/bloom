@@ -286,6 +286,9 @@ function BuilderProductWorkspace({
     return (
       <BuilderHome
         configurations={state.configurations}
+        onPublishConfiguration={state.publish}
+        onTakeShippedConfiguration={state.takeShipped}
+        shareStatus={state.shareStatus}
         onCreateApplication={onCreateApplication}
         onDeleteApplication={onDeleteApplication}
         onDuplicateApplication={onDuplicateApplication}

@@ -926,6 +926,46 @@
   font-weight: 800;
 }
 
+.builder-app-card-share {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.builder-app-card-share span {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bloom-primary) 12%, transparent);
+  color: var(--bloom-primary);
+}
+
+.builder-app-card-share[data-share="outdated"] span {
+  background: color-mix(in srgb, var(--bloom-color-pollen) 55%, transparent);
+  color: var(--bloom-ink);
+}
+
+.builder-app-card-share[data-share="edited"] span,
+.builder-app-card-share[data-share="local"] span {
+  background: color-mix(in srgb, var(--bloom-accent) 30%, transparent);
+  color: var(--bloom-ink);
+}
+
+.builder-app-card-share button {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 30%, var(--bloom-border));
+  border-radius: 8px;
+  background: var(--bloom-surface);
+  color: var(--bloom-primary);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .builder-app-card-actions {
   display: flex;
   flex-wrap: wrap;

@@ -451,6 +451,11 @@ uv run python -m apps.bloom_cli.main config seed --force explorer-manager
 uv run python -m apps.bloom_cli.main config publish explorer-manager
 ```
 
+The Builder's app cards carry the same status as a badge, with **Update** (take the shipped version) and **Share**
+(write the file to commit) next to it; the API serves it at `GET /api/v1/configurations/share-status`, and the
+actions are `POST .../{id}/take-shipped` and `POST .../{id}/publish`. A server whose seed directory is read-only
+answers 409 to publish and names the CLI command to run on a clone instead. `BLOOM_SEED_DIR` moves the directory.
+
 Use `config status` before assuming a local runtime matches the committed application. It reports `shared` when the
 store matches the shipped bundle, `outdated` when this machine never edited its copy and a newer version ships, and
 `edited` when the local copy is someone's own work, `local` for an app that ships nowhere, `missing` for a shipped app

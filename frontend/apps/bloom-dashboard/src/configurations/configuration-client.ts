@@ -10,7 +10,10 @@ export type ConfigurationClient = Pick<
   BloomApiClient,
   | "deleteApplication"
   | "getConfiguration"
+  | "getShareStatus"
   | "listConfigurations"
+  | "publishConfiguration"
+  | "takeShippedConfiguration"
   | "upsertApplication"
   | "upsertConfiguration"
   | "upsertScreen"

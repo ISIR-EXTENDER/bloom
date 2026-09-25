@@ -29,6 +29,12 @@ from libs.config import (
     upsert_application,
     upsert_screen,
 )
+from libs.config.seed import (
+    ShareStatus,
+    configuration_share_status,
+    publish_configuration,
+    restore_shipped_configuration,
+)
 
 router = APIRouter(prefix="/configurations", tags=["configurations"])
 T = TypeVar("T")
@@ -50,6 +56,16 @@ class ReusableScreenResponse(BaseModel):
 
 class ReusableScreensResponse(BaseModel):
     screens: list[ReusableScreenResponse]
+
+
+class ShareStatusResponse(BaseModel):
+    statuses: dict[str, ShareStatus]
+
+
+class PublishResponse(BaseModel):
+    #: Relative to the seed directory's repository, for the "commit this file" message.
+    path: str
+    already_published: bool
 
 
 @dataclass
@@ -92,6 +108,59 @@ def list_configurations(
 ) -> ConfigurationListResponse:
     repository = get_configuration_repository(request)
     return ConfigurationListResponse(configuration_ids=repository.list_ids())
+
+
+# Declared before /{config_id}, which would otherwise take "share-status" as an id.
+@router.get("/share-status", response_model=ShareStatusResponse)
+def get_share_status(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_observer),
+) -> ShareStatusResponse:
+    repository = get_configuration_repository(request)
+    return ShareStatusResponse(statuses=configuration_share_status(repository, request.app.state.settings.seed_dir))
+
+
+@router.post("/{config_id}/take-shipped", response_model=ConfigurationBundle)
+@serialized_per_configuration
+def take_shipped_configuration(
+    config_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
+) -> ConfigurationBundle:
+    repository = get_configuration_repository(request)
+    previous_bundle = try_get_configuration_bundle(config_id, request)
+    try:
+        restored = restore_shipped_configuration(repository, config_id, request.app.state.settings.seed_dir)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="no shipped version of this app") from exc
+    cleanup_unreferenced_theme_assets(config_id, previous_bundle, restored, request)
+    return restored
+
+
+@router.post("/{config_id}/publish", response_model=PublishResponse)
+@serialized_per_configuration
+def publish_shared_configuration(
+    config_id: str,
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_admin),
+) -> PublishResponse:
+    seed_dir = request.app.state.settings.seed_dir
+    try:
+        outcome = publish_configuration(get_configuration_repository(request), config_id, seed_dir)
+    except ConfigurationNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="configuration not found") from exc
+    except OSError as exc:
+        # A deployed server's seed directory is often read-only; the CLI on a clone is the way then.
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"this server cannot write shared apps ({exc.strerror}); "
+                f"run bloom config publish {config_id} on a clone"
+            ),
+        ) from exc
+    return PublishResponse(
+        path=f"{seed_dir.name}/{outcome.destination.name}", already_published=outcome.already_published
+    )
 
 
 @router.get("/{config_id}", response_model=ConfigurationBundle)

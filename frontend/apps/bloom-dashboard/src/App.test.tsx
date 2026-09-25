@@ -5,6 +5,7 @@ import {
   DEFAULT_APPLICATION_THEME,
   DEFAULT_RUNTIME_POLICY,
   type ScreenConfig,
+  type ShareStatus,
 } from "@bloom/api-client";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -2150,7 +2151,13 @@ describe("App", () => {
 });
 
 function createConfigurationClient(
-  options: { bundles?: Record<string, ConfigurationBundle>; ids?: string[]; error?: Error; saveError?: Error } = {},
+  options: {
+    bundles?: Record<string, ConfigurationBundle>;
+    ids?: string[];
+    error?: Error;
+    saveError?: Error;
+    shareStatus?: Record<string, ShareStatus>;
+  } = {},
 ) {
   const ids = options.ids ?? ["sandbox"];
   const storedBundles = new Map(
@@ -2240,6 +2247,13 @@ function createConfigurationClient(
       bundle.applications = bundle.applications.filter((application) => application.id !== applicationId);
       storedBundles.set(id, bundle);
     }),
+    getShareStatus: vi.fn(async () => options.shareStatus ?? {}),
+    takeShippedConfiguration: vi.fn(async (id: string): Promise<ConfigurationBundle> => {
+      const bundle = structuredClone(createConfigurationBundle(id));
+      storedBundles.set(id, bundle);
+      return bundle;
+    }),
+    publishConfiguration: vi.fn(async (_id: string) => ({ already_published: false, path: "applications/x.json" })),
   } satisfies ConfigurationClient;
 }
 

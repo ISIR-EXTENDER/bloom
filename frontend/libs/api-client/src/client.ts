@@ -3,6 +3,7 @@ import type {
   ApplicationListResponse,
   ConfigurationBundle,
   ConfigurationListResponse,
+  PublishResponse,
   ReusableScreen,
   ReusableScreensResponse,
   RobotModelResponse,
@@ -32,6 +33,8 @@ import type {
   SavedPositionListResponse,
   SavedPositionScope,
   ScreenConfig,
+  ShareStatus,
+  ShareStatusResponse,
   ThemeAssetUploadRequest,
   ThemeAssetUploadResponse,
 } from "./types";
@@ -133,6 +136,23 @@ export class BloomApiClient {
       )}/screens/${encodeURIComponent(screenId)}`,
       { method: "DELETE" },
     );
+  }
+
+  async getShareStatus(): Promise<Record<string, ShareStatus>> {
+    const response = await this.request<ShareStatusResponse>("/api/v1/configurations/share-status");
+    return response.statuses;
+  }
+
+  takeShippedConfiguration(configId: string): Promise<ConfigurationBundle> {
+    return this.request<ConfigurationBundle>(`/api/v1/configurations/${encodeURIComponent(configId)}/take-shipped`, {
+      method: "POST",
+    });
+  }
+
+  publishConfiguration(configId: string): Promise<PublishResponse> {
+    return this.request<PublishResponse>(`/api/v1/configurations/${encodeURIComponent(configId)}/publish`, {
+      method: "POST",
+    });
   }
 
   async deleteConfiguration(configId: string): Promise<void> {

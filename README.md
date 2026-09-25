@@ -459,8 +459,9 @@ uv run python -m apps.bloom_cli.main config seed
 uv run python -m apps.bloom_cli.main config seed --force explorer-manager
 ```
 
-To share an app you have built or changed, publish it and commit the file it
-writes:
+The Builder shows the same thing on each app's card: **Update available** with an **Update** button when the
+repository moved on and nobody edited the copy, **Edited here** or **Not shared** with a **Share** button that writes
+the file for you to commit, and **Shared** when the two match. From a terminal, the CLI does the same:
 
 ```bash
 uv run python -m apps.bloom_cli.main config publish explorer-manager

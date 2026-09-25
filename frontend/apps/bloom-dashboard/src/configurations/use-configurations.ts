@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ConfigurationBundle, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, ConfigurationBundle, ScreenConfig, ShareStatus } from "@bloom/api-client";
 import { useCallback, useEffect, useState } from "react";
 import { describeApiError } from "../ui/api-error";
 
@@ -10,6 +10,8 @@ type SaveConfiguration = (configId: string, bundle: ConfigurationBundle) => Prom
 type SaveApplication = (configId: string, application: ApplicationConfig) => Promise<LoadedConfiguration>;
 type SaveScreen = (configId: string, applicationId: string, screen: ScreenConfig) => Promise<LoadedConfiguration>;
 type DeleteApplication = (configId: string, applicationId: string) => Promise<LoadedConfiguration>;
+type TakeShipped = (configId: string) => Promise<LoadedConfiguration>;
+type Publish = (configId: string) => Promise<{ path: string; alreadyPublished: boolean }>;
 
 export type ConfigurationLoadState =
   | { status: "loading" }
@@ -20,6 +22,10 @@ export type ConfigurationLoadState =
       saveApplication: SaveApplication;
       saveConfiguration: SaveConfiguration;
       saveScreen: SaveScreen;
+      /** Where each configuration stands against the shipped one; empty until the server answers. */
+      shareStatus: Record<string, ShareStatus>;
+      takeShipped: TakeShipped;
+      publish: Publish;
     }
   | { status: "error"; message: string };
 
@@ -45,28 +51,40 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     return savedConfiguration;
   }, []);
 
+  const refreshShareStatus = useCallback(async () => {
+    // Sharing is a courtesy on top of saving: a server that cannot say leaves the badges off.
+    const shareStatus = await client.getShareStatus().catch(() => ({}));
+    setState((currentState) => (currentState.status === "ready" ? { ...currentState, shareStatus } : currentState));
+  }, [client]);
+
   const saveConfiguration = useCallback<SaveConfiguration>(
     async (configId, bundle) => {
       const savedBundle = normalizeConfigurationBundle(await client.upsertConfiguration(configId, bundle));
-      return updateSavedConfiguration(configId, savedBundle);
+      const saved = updateSavedConfiguration(configId, savedBundle);
+      void refreshShareStatus();
+      return saved;
     },
-    [client, updateSavedConfiguration],
+    [client, refreshShareStatus, updateSavedConfiguration],
   );
 
   const saveApplication = useCallback<SaveApplication>(
     async (configId, application) => {
       const savedBundle = normalizeConfigurationBundle(await client.upsertApplication(configId, application));
-      return updateSavedConfiguration(configId, savedBundle);
+      const saved = updateSavedConfiguration(configId, savedBundle);
+      void refreshShareStatus();
+      return saved;
     },
-    [client, updateSavedConfiguration],
+    [client, refreshShareStatus, updateSavedConfiguration],
   );
 
   const saveScreen = useCallback<SaveScreen>(
     async (configId, applicationId, screen) => {
       const savedBundle = normalizeConfigurationBundle(await client.upsertScreen(configId, applicationId, screen));
-      return updateSavedConfiguration(configId, savedBundle);
+      const saved = updateSavedConfiguration(configId, savedBundle);
+      void refreshShareStatus();
+      return saved;
     },
-    [client, updateSavedConfiguration],
+    [client, refreshShareStatus, updateSavedConfiguration],
   );
 
   const deleteApplication = useCallback<DeleteApplication>(
@@ -74,9 +92,30 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
       await client.deleteApplication(configId, applicationId);
 
       const savedBundle = normalizeConfigurationBundle(await client.getConfiguration(configId));
-      return updateSavedConfiguration(configId, savedBundle);
+      const saved = updateSavedConfiguration(configId, savedBundle);
+      void refreshShareStatus();
+      return saved;
     },
-    [client, updateSavedConfiguration],
+    [client, refreshShareStatus, updateSavedConfiguration],
+  );
+
+  const takeShipped = useCallback<TakeShipped>(
+    async (configId) => {
+      const savedBundle = normalizeConfigurationBundle(await client.takeShippedConfiguration(configId));
+      const saved = updateSavedConfiguration(configId, savedBundle);
+      await refreshShareStatus();
+      return saved;
+    },
+    [client, refreshShareStatus, updateSavedConfiguration],
+  );
+
+  const publish = useCallback<Publish>(
+    async (configId) => {
+      const response = await client.publishConfiguration(configId);
+      await refreshShareStatus();
+      return { alreadyPublished: response.already_published, path: response.path };
+    },
+    [client, refreshShareStatus],
   );
 
   useEffect(() => {
@@ -93,7 +132,11 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
             saveApplication,
             saveConfiguration,
             saveScreen,
+            shareStatus: {},
+            takeShipped,
+            publish,
           });
+          void refreshShareStatus();
         }
       })
       .catch((error: unknown) => {
@@ -105,7 +148,16 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     return () => {
       isCurrent = false;
     };
-  }, [client, deleteApplication, saveApplication, saveConfiguration, saveScreen]);
+  }, [
+    client,
+    deleteApplication,
+    saveApplication,
+    saveConfiguration,
+    saveScreen,
+    takeShipped,
+    publish,
+    refreshShareStatus,
+  ]);
 
   return state;
 }

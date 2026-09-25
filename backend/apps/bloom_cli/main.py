@@ -28,13 +28,11 @@ from libs.config import (
 from libs.config.seed import (
     DEFAULT_SEED_DIR,
     adopt_file_configurations,
-    available_seed_ids,
-    configuration_fingerprint,
-    is_unedited_seed_copy,
+    configuration_share_status,
     seed_configurations,
-    stamp_seed_fingerprint,
     strip_seed_fingerprint,
 )
+from libs.config.seed import publish_configuration as publish_configuration_to_seed
 from libs.ros_adapters import RclpyRosServiceGateway, RclpyRosTopicCatalogGateway
 from libs.ros_adapters.parameters import RclpyRosParameterGateway
 from libs.ros_adapters.rclpy_publishers import RclpyRosPublisherGateway
@@ -217,28 +215,16 @@ def configuration_status(
 ) -> None:
     """Show which applications differ from the version committed to the repo."""
     repository = open_configuration_repository(storage, configuration_dir, database_path)
-    stored = set(repository.list_ids())
-    shipped = set(available_seed_ids(seed_dir))
-    deleted = set(repository.deleted_ids())
-
-    for config_id in sorted(stored | shipped):
-        if config_id not in stored and config_id in deleted:
-            typer.echo(f"deleted   {config_id} (run: bloom config seed --force {config_id} to restore it)")
-        elif config_id not in stored:
-            typer.echo(f"missing   {config_id} (run: bloom config seed)")
-        elif config_id not in shipped:
-            typer.echo(f"local     {config_id} (run: bloom config publish {config_id} to share it)")
-        else:
-            stored_bundle = repository.get(config_id)
-            shipped_bundle = load_configuration_file(Path(seed_dir) / f"{config_id}.json")
-            # Compare content, not the seed stamp: a seeded copy carries a
-            # fingerprint the shipped file does not, and that is not an edit.
-            if configuration_fingerprint(stored_bundle) == configuration_fingerprint(shipped_bundle):
-                typer.echo(f"shared    {config_id}")
-            elif is_unedited_seed_copy(stored_bundle, config_id):
-                typer.echo(f"outdated  {config_id} (run: bloom config seed to take the shipped version)")
-            else:
-                typer.echo(f"edited    {config_id} (run: bloom config publish {config_id} to share your changes)")
+    hints = {
+        "deleted": " (run: bloom config seed --force {id} to restore it)",
+        "missing": " (run: bloom config seed)",
+        "local": " (run: bloom config publish {id} to share it)",
+        "outdated": " (run: bloom config seed to take the shipped version)",
+        "edited": " (run: bloom config publish {id} to share your changes)",
+        "shared": "",
+    }
+    for config_id, share_status in configuration_share_status(repository, seed_dir).items():
+        typer.echo(f"{share_status:<9} {config_id}{hints[share_status].format(id=config_id)}")
 
 
 @config_cli.command("publish")
@@ -256,31 +242,15 @@ def publish_configuration(
     """
     repository = open_configuration_repository(storage, configuration_dir, database_path)
     try:
-        bundle = repository.get(config_id)
+        outcome = publish_configuration_to_seed(repository, config_id, seed_dir)
     except ConfigurationNotFoundError:
         known = ", ".join(repository.list_ids()) or "none"
         raise typer.BadParameter(f"No configuration {config_id!r} in this store. Available: {known}") from None
 
-    destination = Path(seed_dir) / f"{config_id}.json"
-    # Rewriting an unchanged app would only reorder keys and spell out defaults.
-    already_published = destination.is_file() and configuration_fingerprint(
-        load_configuration_file(destination)
-    ) == configuration_fingerprint(bundle)
-    if not already_published:
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        # The stamp records where a store copy came from; a shipped file is the
-        # source, so it carries none.
-        save_configuration_file(strip_seed_fingerprint(bundle), destination)
-
-    # Stamped only once the file is really there. The stamp says "this copy is the shipped one", which
-    # lets the next seed run replace it; claiming that before a write that then failed threw the
-    # operator's edits away on the next API start.
-    repository.upsert(config_id, stamp_seed_fingerprint(bundle))
-
-    if already_published:
-        typer.echo(f"{config_id} already matches {destination}; nothing to commit.")
+    if outcome.already_published:
+        typer.echo(f"{config_id} already matches {outcome.destination}; nothing to commit.")
         return
-    typer.echo(f"Published {config_id} to {destination}")
+    typer.echo(f"Published {config_id} to {outcome.destination}")
     typer.echo("Commit that file to share it with the team.")
 
 

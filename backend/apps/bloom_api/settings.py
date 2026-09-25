@@ -5,6 +5,8 @@ from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from libs.config.seed import DEFAULT_SEED_DIR
+
 T = TypeVar("T", bound=str)
 MIN_PRODUCTION_API_KEY_LENGTH = 32
 
@@ -36,6 +38,8 @@ class Settings(BaseModel):
     # Import the bundles in backend/seed/applications that this store is
     # missing. Off for tests that assert on an empty store.
     seed_shared_applications: bool = Field(default=True)
+    #: Where the shared applications live; the Builder's "Share" writes here for someone to commit.
+    seed_dir: Path = Field(default=DEFAULT_SEED_DIR)
     allowed_ros_message_types: tuple[str, ...] = (
         "geometry_msgs/msg/TwistStamped",
         "sensor_msgs/msg/CompressedImage",
@@ -221,6 +225,7 @@ class Settings(BaseModel):
             app_version=os.getenv("BLOOM_APP_VERSION", cls.model_fields["app_version"].default),
             auth_enabled=_read_bool_env("BLOOM_AUTH_ENABLED", default=False),
             seed_shared_applications=_read_bool_env("BLOOM_SEED_SHARED_APPLICATIONS", default=True),
+            seed_dir=Path(os.getenv("BLOOM_SEED_DIR", str(DEFAULT_SEED_DIR))),
             configuration_database_path=Path(
                 os.getenv(
                     "BLOOM_CONFIGURATION_DATABASE_PATH",
