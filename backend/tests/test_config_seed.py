@@ -252,6 +252,32 @@ def test_explorer_speed_sliders_target_topics_qontrol_reads() -> None:
         assert all(settings["messageType"] == "std_msgs/msg/Float64" for settings in speed_settings.values())
 
 
+#: qontrol takes these as absolute speeds with no clamp of its own; the Manager apps validated these ceilings.
+SPEED_CEILINGS = {
+    "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed": 0.3,
+    "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed": 0.8,
+}
+
+
+def test_no_shipped_speed_slider_can_ask_for_more_than_the_manager_apps_do() -> None:
+    # Sandbox and Petanque kept a 0..1 slider from the gain era, which qontrol read as up to 1 m/s.
+    too_fast = []
+    for config_id in available_seed_ids():
+        bundle = load_configuration_file(DEFAULT_SEED_DIR / f"{config_id}.json")
+        for application in bundle.applications:
+            for screen in application.screens:
+                for widget in screen.widgets:
+                    ceiling = SPEED_CEILINGS.get(str(widget.settings.get("topic", "")))
+                    if (
+                        widget.kind.value == "slider"
+                        and ceiling is not None
+                        and widget.settings.get("max", 0) > ceiling
+                    ):
+                        too_fast.append(f"{config_id}/{widget.id}: max {widget.settings['max']}")
+
+    assert too_fast == []
+
+
 def test_cartesian_manager_monitors_use_its_twist_stamped_command_type() -> None:
     """A wrong type leaves an apparently healthy topic widget permanently empty."""
     checked = 0

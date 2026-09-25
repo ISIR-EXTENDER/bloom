@@ -96,6 +96,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **Sandbox and Petanque speed sliders stop at 0.3 m/s.** They kept a 0..1 range from when the value was a gain;
+  qontrol reads it as an absolute speed with no clamp of its own, so the top of the slider asked for 1 m/s. A seed test
+  now refuses a shipped speed slider past the range the Manager apps validated.
+
 - **The launcher starts and stops cleanly.** A Ctrl-C while it is still starting now stops it instead of only the
   step it was on; a camera_interface install without a robot's camera file no longer stops Bloom; the startup banner
   says whether the camera and the tablet watcher really started; a dashboard bound to one LAN address allows that
