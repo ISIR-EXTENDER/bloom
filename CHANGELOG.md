@@ -71,6 +71,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   "Command failed". The capabilities response now carries the server's list; the Builder warns in the joystick's
   inspector and under the app's teleop targets; and the runtime marks such a joystick unavailable, with the reason
   and what to change, from the list the server acknowledged for the app.
+- **STOP can be dragged on the Builder canvas.** Every reserved region let the pointer through, the movable STOP
+  one included, so the palette's "drag it on the canvas" could only be done with arrow keys. It now follows the
+  pointer and saves the move once, on release, as a single undo step.
 
 - **The one-switch pads printed their readout as `x 0.00y 0.00`**, and a screen reader heard it run together too.
   The two values now read, and are spoken, apart.

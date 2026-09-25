@@ -2041,8 +2041,16 @@
 }
 
 /* Placed, never removed: it takes focus and moves, and says which it is. */
+/* Other reserved regions let the pointer through; STOP is movable, so it has to receive it. */
 .builder-canvas-region[data-movable="true"] {
   cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.builder-canvas-region[data-dragging="true"] {
+  cursor: grabbing;
+  opacity: 0.85;
 }
 
 .builder-canvas-region[data-movable="true"]:focus-visible {

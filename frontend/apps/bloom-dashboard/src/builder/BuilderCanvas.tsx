@@ -1,9 +1,10 @@
 import type { ScreenConfig, WidgetConfig, WidgetLayout } from "@bloom/api-client";
 import { findSizeShortfall, minSizeFor, type WidgetRenderDescriptor } from "@bloom/widgets";
-import type { ReactNode } from "react";
+import { type ReactNode, type PointerEvent as ReactPointerEvent, useState } from "react";
 import { ScreenArtboard, type ScreenArtboardLayout } from "../screen/ScreenArtboard";
 import { BuilderCanvasItem } from "./BuilderCanvasItem";
 import { explainLayoutRefusal, KIOSK_BAR_HEIGHT, overlapsRegion, resolveBuilderPanel } from "./builder-geometry";
+import { resolveElementScale } from "./builderLayout";
 
 type BuilderCanvasProps = {
   /** Moves the box STOP is drawn in. It can be placed, never removed. */
@@ -25,6 +26,48 @@ export function BuilderCanvas({
 }: BuilderCanvasProps) {
   const { artboard: artboardSize, glassScale } = resolveBuilderPanel(screen);
   const regions = screen.reserved_regions ?? [];
+  // Where STOP is while it is being dragged; saved once on release, so one drag is one undo step.
+  const [dragging, setDragging] = useState<{ id: string; x: number; y: number } | null>(null);
+
+  const startRegionDrag = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+    region: { id: string; x: number; y: number; width: number; height: number },
+  ) => {
+    if (event.button && event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const scale = resolveElementScale(event.currentTarget);
+    const start = { x: event.clientX, y: event.clientY };
+    const clamp = (dx: number, dy: number) => ({
+      id: region.id,
+      x: Math.max(0, Math.min(artboardSize.width - region.width, Math.round(region.x + dx / scale))),
+      y: Math.max(0, Math.min(artboardSize.height - region.height, Math.round(region.y + dy / scale))),
+    });
+    let last = clamp(0, 0);
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = "grabbing";
+    const move = (moveEvent: PointerEvent) => {
+      last = clamp(moveEvent.clientX - start.x, moveEvent.clientY - start.y);
+      setDragging(last);
+    };
+    const finish = (commit: boolean) => () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", cancel);
+      document.body.style.cursor = previousCursor;
+      setDragging(null);
+      if (commit && (last.x !== region.x || last.y !== region.y)) {
+        onMoveReservedRegion?.(region.id, { x: last.x, y: last.y });
+      }
+    };
+    const release = finish(true);
+    const cancel = finish(false);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", cancel);
+  };
 
   const renderEditableWidgetFrame = (descriptor: WidgetRenderDescriptor, content: ReactNode) => (
     <BuilderCanvasItem
@@ -71,10 +114,11 @@ export function BuilderCanvas({
                     x: Math.max(0, Math.min(artboardSize.width - region.width, region.x + dx)),
                     y: Math.max(0, Math.min(artboardSize.height - region.height, region.y + dy)),
                   });
+                const at = dragging?.id === region.id ? dragging : region;
                 const box = {
                   height: `${region.height}px`,
-                  left: `${region.x}px`,
-                  top: `${region.y}px`,
+                  left: `${at.x}px`,
+                  top: `${at.y}px`,
                   width: `${region.width}px`,
                 };
                 // The runtime draws STOP; an author places the box it goes in, and cannot remove it.
@@ -95,6 +139,8 @@ export function BuilderCanvas({
                     className="builder-canvas-region"
                     data-movable="true"
                     key={region.id}
+                    data-dragging={dragging?.id === region.id ? "true" : undefined}
+                    onPointerDown={(event) => startRegionDrag(event, region)}
                     onKeyDown={(event) => {
                       const step = event.shiftKey ? 16 : 2;
                       if (event.key === "ArrowLeft") nudge(-step, 0);
