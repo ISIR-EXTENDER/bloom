@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="docs/assets/readme/hero.png" alt="Bloom: give the gesture back. A tablet showing the Explorer Manager Drive screen with its STOP rail." width="100%" />
+  <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom" width="460" />
 </p>
+
+<h3 align="center">Give the gesture back.</h3>
 
 <p align="center">
   <a href="https://github.com/ISIR-EXTENDER/bloom/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ISIR-EXTENDER/bloom/actions/workflows/ci.yml/badge.svg" /></a>
@@ -12,40 +14,164 @@
 
 <p align="center">
   <a href="#why-bloom">Why Bloom</a> ·
-  <a href="#watch-it-run">Watch it run</a> ·
+  <a href="#build-a-screen-without-code">Builder</a> ·
+  <a href="#one-app-the-right-screen-for-each-person">Roles</a> ·
+  <a href="#on-every-device">Devices</a> ·
+  <a href="#see-the-robot-not-just-the-controls">3D view</a> ·
+  <a href="#apps-you-can-open-today">Apps</a> ·
   <a href="#quickstart">Quickstart</a> ·
-  <a href="#tutorials">Tutorials</a> ·
-  <a href="#preview">Preview</a> ·
-  <a href="#design-language">Design language</a> ·
   <a href="#documentation">Documentation</a>
 </p>
 
-Bloom builds accessible web interfaces for robots and runs them in a focused kiosk. Compose screens visually, open the
-saved app as a role on a tablet or desktop, and reach the robot through a policy-checked backend that keeps ROS at the
-adapter boundary.
+Bloom is the control screen for an assistive robot arm.
 
-**Bloom is the active Extender operator interface (IHM).** `extender_ui` is legacy and remains only as a behaviour
-reference and emergency rollback during live acceptance.
+When someone cannot use their own arms, a robot arm, often mounted on their wheelchair, can reach, grip and bring
+things to them. What that person needs is a way to tell the arm where to go that suits how they move: a finger on a
+tablet, a gamepad, or one large button. Bloom is that way.
+
+The team around them builds the screen by dragging joysticks, buttons and sliders onto a page, with no code to
+write. The person opens it on a tablet and drives the arm. A large STOP is always on screen, only one screen can
+command the robot at a time, and the arm only does what the lab has allowed.
+
+<p align="center">
+  <img src="docs/assets/screenshots/runtime-explorer-drive.png" alt="Explorer Manager's Drive screen for the operator: speed in three steps, height, translation and rotation pads with the direction written on them, a gripper button and a tall red STOP." width="100%" />
+</p>
 
 ## Why Bloom
 
-Extender's older interfaces coupled screen layout, input devices, ROS transport, and one robot. Bloom replaces that
-pattern with one configurable interface system:
+- **No code to build a screen.** Drag a joystick onto a page, choose what it moves, save. Every screen in this
+  repository was made the same way, in the same editor.
+- **Shaped around the person, not the robot.** Large targets, tap-by-tap steps instead of dragging, a single switch
+  that walks the controls one at a time, or resting on a button to press it. Each person gets the layout and the
+  input that fit them.
+- **Safe by design.** STOP is on every screen, and no control can cover it. Once pressed it holds on the server,
+  even if the tablet reloads, until someone deliberately resumes. Only one screen drives the robot at a time, and
+  the server only sends what the lab has approved.
+- **Runs on what you already have.** A web browser on a tablet, a laptop or a desktop, with touch, a keyboard, a
+  gamepad or a switch. There is nothing to install on the tablet.
+- **You see what the robot is doing.** Live plots, joint readings, cameras, and the robot itself drawn in 3D as it
+  moves, without opening a separate engineering tool.
+- **One design, several robots.** Apps for the Explorer and Kinova Gen3 arms ship ready to use, and Bloom talks to
+  the robot through ROS 2, so the next robot does not need a new interface.
+- **In English, Spanish and French** on every operating screen.
 
-- **Build** reusable robot screens, controls, themes, profiles, and safety policies in the visual Builder.
-- **Operate** the saved application in a focused Runtime with one explicit control owner, guarded maintenance,
-  diagnostics, and a latched STOP.
-- **Connect** it through FastAPI and WebSockets to ROS 2 or another machine adapter without putting transport code in
-  the frontend.
+## Build a screen without code
 
-Explorer Manager and Kinova Manager ship ready to run. The same model also provides accessible input profiles, a
-read-only Supervisor mirror, plots, topic inspection, audit records, and shared JSON/SQLite configuration.
+The Builder is where screens are made. Pick a widget from the palette, a joystick, a button, a slider, a toggle, a
+camera, a plot or the robot in 3D, and drop it on the canvas. Then say what it does in the inspector: which part of
+the robot it talks to, what it sends when pressed and when released, and what it is called on screen. The inspector
+even shows the same command as it would be typed in a terminal, so an engineer can check it at a glance.
 
-## Watch It Run
+<p align="center">
+  <img src="docs/assets/screenshots/builder-inspector.png" alt="The Builder with Explorer Manager's operator Drive screen on the canvas and the gripper toggle selected. The inspector shows its topic, message type, labels and the payloads it sends, next to the equivalent terminal commands." width="100%" />
+</p>
 
-The walkthrough video is being re-recorded for 0.3.0, once cartesian_manager PR #11 lands and Bloom's tablet
-commands move to `/tablet_cartesian_command`. The 0.2.0 recordings were removed rather than left to show screens
-that no longer exist. `npm run record:demo` produces the new one from a seeded ROS-enabled runtime.
+The canvas previews the exact tablet or desktop the screen is for, keeps the space where STOP will sit, and warns
+when a button would be too small to press reliably on the real panel. A review checklist walks through what is
+left to check before anyone drives with the screen. Twenty kinds of widget are ready to use, from joysticks and
+toggles to cameras, live plots and the 3D robot view.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/builder-screen-library.png" alt="The screen library, where every screen of every app can be found and reused." width="100%" /></td>
+    <td width="50%"><img src="docs/assets/screenshots/app-configuration.png" alt="An app's configuration: its theme, its roles and what it may send to the robot." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Every screen in one library</b>, ready to reuse in another app.</td>
+    <td align="center"><b>Each app has its own look, roles and limits</b> on what it may send.</td>
+  </tr>
+</table>
+
+## One app, the right screen for each person
+
+An app can open in more than one way. Each way is a **role**: the same robot and the same safety, with a screen
+made for a different person.
+
+- **Operator**, for the person driving the arm. Fewer, larger controls, and speed chosen in three steps rather than
+  set on a slider.
+- **Bench**, for the engineer beside the robot. Continuous sliders for the speed limits and the controller's tuning,
+  for testing and adjusting.
+- **One switch**, for someone who presses a single button. A highlight moves from control to control, starting with
+  STOP, and the switch presses whatever is lit.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/runtime-explorer-drive.png" alt="Drive for the operator: speed in Slow, Medium and Fast steps, large pads and a tall STOP." width="100%" /></td>
+    <td width="50%"><img src="docs/assets/screenshots/runtime-explorer-drive-bench.png" alt="Drive for the bench: the same pads with continuous speed sliders and a controller gain slider." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Operator</b>: large controls, speed in three steps.</td>
+    <td align="center"><b>Bench</b>: the same robot, with continuous tuning.</td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/assets/screenshots/runtime-explorer-one-switch.png" alt="Drive for a one-switch user: every control becomes a set of step buttons, and a large SWITCH button beside STOP presses whichever control is highlighted." width="100%" />
+</p>
+
+Bloom opens each app in the role last used on that device, so getting back to work is one press. Choosing another
+role is one more, and becomes the new default for that device.
+
+## On every device
+
+- **Tablet**, for operating. The screen fills the display like a kiosk: there are no menus to wander into, and
+  settings sit behind a deliberate long press, so a stray touch cannot change them.
+- **Laptop or desktop**, for building and understanding. The Builder, the debugging tools and the 3D robot view live
+  here, and Bloom keeps the 3D view off tablets and phones so it never slows the screen someone is driving with.
+- **A second screen**, for supervising. The supervisor mirror shows what the robot is doing and who has control, and
+  cannot command anything at all.
+- **Any input.** Touch, mouse, keyboard, a gamepad, a single switch, or resting on a target until it presses.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/runtime-library.png" alt="The runtime library listing every app on this robot, whether it is made for a tablet or a desktop, and the role it will open in." width="100%" /></td>
+    <td width="50%"><img src="docs/assets/screenshots/runtime-supervisor.png" alt="The supervisor mirror: which app runs, which robot, whether STOP is engaged, and every robot topic marked live, with no controls at all." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Every app on this robot</b>, and the device each one is made for.</td>
+    <td align="center"><b>The supervisor mirror</b>: all the status, none of the controls.</td>
+  </tr>
+</table>
+
+## See the robot, not just the controls
+
+Bloom draws the robot as it moves, from the robot's own description, with the goals, paths and targets a program
+sends drawn on top of it: the view engineers usually open a separate tool for. It also shows where the arm is
+being asked to go while someone drives, and says plainly when the robot's data stops arriving.
+
+<p align="center">
+  <img src="docs/assets/screenshots/runtime-robot-3d-view.png" alt="Bloom Debug's Robot view: the Kinova arm drawn in 3D with a goal sphere and the path to it, next to a live readout of the hand's position and a log of the modes requested." width="100%" />
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/runtime-explorer-feedback.png" alt="Robot feedback: a 30-second live plot of the robot's values, with the series picked by tap." width="100%" /></td>
+    <td width="50%"><img src="docs/assets/screenshots/runtime-widget-lab-robot.png" alt="Widget Lab's Robot screen: the 3D view with markers, a camera feed and saved poses." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Live plots</b> of any robot value, picked with a tap.</td>
+    <td align="center"><b>The 3D view with a camera</b> and poses saved from the robot.</td>
+  </tr>
+</table>
+
+## Apps you can open today
+
+Every app below ships with Bloom, so a fresh copy opens with the same library everyone else has.
+
+| App | What it is for | Roles |
+| --- | --- | --- |
+| **Explorer Manager** | Drive the Explorer arm: move and aim the hand, open and close the gripper, go to saved positions, follow the robot's feedback. | Operator, Bench, One switch |
+| **Kinova Manager** | The same, for the Kinova Gen3 arm. | Operator, Bench, One switch |
+| **Visual servoing** | Show the gripper camera a printed tag, save that view as the target, and let the arm find its own way back to it. | Operator, Bench |
+| **Bloom Debug** | For engineers on a laptop: live plots, joint readings, the robot in 3D and every topic's status. | Bench |
+| **Widget Lab** | Every widget Bloom offers, connected to a real or simulated robot, as a live catalogue. | Lab |
+| **Petanque admin** | The pétanque game with the robot: drive the throw, follow the match and measure the result. | |
+| **Sandbox V0.0** | The earlier Extender tablet app, rebuilt in Bloom. | |
+| **Explorer and Kinova camera test** | Drive with the gripper camera on screen, to check the camera before adding it to an app. | Bench |
+| **Webcam visualizer** | Check a camera screen in the browser, with no robot needed. | |
+
+An app you build or change can be shared the same way, as one file committed to this repository; see
+[Shared applications](#shared-applications).
 
 ## Quickstart
 
@@ -135,37 +261,63 @@ server-side `backend/data/bloom.db`, so a Builder save is visible after another 
 this development server. The [deployment guide](docs/deployment.md#same-wi-fi-access) covers verification, custom
 ports, firewall rules and database operations.
 
-## Preview
-
-| Builder | Explorer Manager | The robot in 3D |
-| --- | --- | --- |
-| ![Bloom screen builder](docs/assets/screenshots/builder-screen-canvas.png) | ![Explorer Manager Drive screen](docs/assets/screenshots/runtime-explorer-drive.png) | ![Bloom Debug drawing the running robot, a goal and the path to it](docs/assets/screenshots/runtime-robot-3d-view.png) |
+## More screens
 
 <details>
-<summary>More product and runtime screens</summary>
+<summary>The rest of Bloom, screen by screen</summary>
 
-| Home | Screen library | Runtime library |
-| --- | --- | --- |
-| ![Bloom landing page](docs/assets/screenshots/landing-page.png) | ![Bloom screen library](docs/assets/screenshots/builder-screen-library.png) | ![Bloom runtime app library](docs/assets/screenshots/runtime-library.png) |
-
-| Kinova Manager | Widget Lab, Robot screen | App configuration |
-| --- | --- | --- |
-| ![Kinova Manager Drive screen](docs/assets/screenshots/runtime-kinova-drive.png) | ![Widget Lab Robot screen with the 3D view, a camera and a saved pose](docs/assets/screenshots/runtime-widget-lab-robot.png) | ![Bloom app configuration](docs/assets/screenshots/app-configuration.png) |
-
-| Positions | Robot feedback | Joystick Lab |
-| --- | --- | --- |
-| ![Explorer Manager positions](docs/assets/screenshots/runtime-explorer-positions.png) | ![Explorer Manager robot feedback](docs/assets/screenshots/runtime-explorer-feedback.png) | ![Explorer Manager Joystick Lab](docs/assets/screenshots/11-joystick-lab.png) |
-
-| Command sources | Bloom Debug | Camera |
-| --- | --- | --- |
-| ![Explorer Manager command sources](docs/assets/screenshots/runtime-explorer-command-sources.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) | ![Webcam visualizer](docs/assets/screenshots/runtime-camera.png) |
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/landing-page.png" alt="Bloom's home page." width="100%" /></td>
+    <td width="50%"><img src="docs/assets/screenshots/builder-home.png" alt="The Builder's starting point: build an app, a screen or a theme." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Home</b></td>
+    <td align="center"><b>Builder home</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/builder-screen-canvas.png" alt="The Builder canvas with Bloom Debug's topic monitor laid out on a desktop artboard." width="100%" /></td>
+    <td><img src="docs/assets/screenshots/runtime-kinova-drive.png" alt="Kinova Manager's Drive screen for the operator." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>A desktop screen in the Builder</b></td>
+    <td align="center"><b>Kinova Manager</b>, Drive for the operator</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/runtime-explorer-positions.png" alt="Positions: go to a named position, or capture the current one." width="100%" /></td>
+    <td><img src="docs/assets/screenshots/runtime-explorer-command-sources.png" alt="Command sources: every input driving the robot, and the command it is sent." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Positions</b>, named and captured</td>
+    <td align="center"><b>Command sources</b>, everything driving the arm</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/11-joystick-lab.png" alt="Joystick Lab: try each command frame and watch the command it produces." width="100%" /></td>
+    <td><img src="docs/assets/screenshots/runtime-bloom-debug.png" alt="Bloom Debug's topic monitor: plots, joint table, Jacobian and raw messages." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Joystick Lab</b>, frames side by side</td>
+    <td align="center"><b>Bloom Debug</b>, the engineer's monitor</td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/runtime-live-teleop.png" alt="Sandbox V0.0, the earlier Extender tablet app rebuilt in Bloom." width="100%" /></td>
+    <td><img src="docs/assets/screenshots/runtime-camera.png" alt="The webcam visualizer showing a camera feed in the browser." width="100%" /></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Sandbox V0.0</b>, rebuilt in Bloom</td>
+    <td align="center"><b>Webcam visualizer</b></td>
+  </tr>
+</table>
 
 </details>
 
-The general preview set is captured from the ROS bench, so a control whose topic has no subscriber there reads as
-unavailable. The Joystick Lab image, the two 3D robot views and the walkthrough use a live ROS graph: the 3D view
-draws the robot the API serves, so without one it shows its note instead of a scene. Refresh the general set from a running dashboard and
-isolated seeded backend with:
+### Refreshing the screenshots
+
+The screenshots on this page are taken against a live simulated robot, so every control reads as connected:
+`npm run capture:readme` runs against a dashboard whose API was started with `api run-ros` beside the Explorer
+simulation, and the Kinova Manager image beside the Kinova one. Without a robot, controls read as unavailable, which
+is accurate but says little about the product. The two 3D robot views need a running robot for the same reason, and
+[the media record](docs/validation/2026-09-16-explorer-tutorial-media.md) says how each was taken.
 
 ```bash
 npx playwright install chromium

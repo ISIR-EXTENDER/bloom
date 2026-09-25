@@ -83,3 +83,18 @@ start first so the pose reads. `npm run capture:readme` leaves both alone, since
 
 Taking them found a defect: a marker that gives a colour per point was hidden when its own `color.a` was unset,
 where rviz draws it because `colors` overrides `color`. Fixed, with a test, before the capture was kept.
+
+## Amended 2026-09-25: the README set, recaptured against live robots
+
+The README now opens with the Bloom logo and presents the product for someone meeting it for the first time: the
+Builder, the roles, the devices, the 3D view and the apps that ship. Every screenshot was recaptured with
+`npm run capture:readme` against a dashboard whose API ran `api run-ros` beside the Explorer simulation, and the
+Kinova Manager image beside the Kinova simulation, so no control reads as unavailable. Five images are new:
+`builder-inspector` (the gripper toggle's topic and payloads on Explorer Manager's operator Drive),
+`runtime-explorer-drive-bench` and `runtime-explorer-one-switch` (the same Drive in two more roles), and
+`runtime-supervisor`.
+
+Recapturing found three things. The capture script's own guard had refused to run since the `allowed_parameters`
+policy field was added, because it filled in every API default but that one. The runtime library still said
+"Choosing is deliberate" after roles gained a default. And the one-switch pads printed their readout as
+`x 0.00y 0.00`, which a screen reader also heard run together. All three are fixed.
