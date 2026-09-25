@@ -37,7 +37,7 @@ function renderEditor(settings: Record<string, unknown>, kind = "slider", allowe
 const TELEOP_BINDING = {
   adapter: "teleop",
   axis_mapping: { value: { component: "linear_z" } },
-  value_mapping: { target_topic: "/joystick_cartesian_command" },
+  value_mapping: { target_topic: "/tablet_cartesian_command" },
 };
 
 describe("widget destination summary", () => {
@@ -46,7 +46,7 @@ describe("widget destination summary", () => {
   it("states the destination for a teleop widget", () => {
     renderEditor({ runtime_binding: TELEOP_BINDING });
 
-    expect(screen.getByText("/joystick_cartesian_command")).toBeTruthy();
+    expect(screen.getByText("/tablet_cartesian_command")).toBeTruthy();
     expect(screen.getByText(/One axis of a twist several widgets share/)).toBeTruthy();
     expect(screen.getByText("Publishes to")).toBeTruthy();
   });
@@ -131,7 +131,7 @@ describe("settings the runtime ignores", () => {
         runtime_binding: {
           adapter: "teleop",
           axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
-          value_mapping: { target_topic: "/joystick_cartesian_command" },
+          value_mapping: { target_topic: "/tablet_cartesian_command" },
         },
       },
     } as unknown as WidgetConfig;
@@ -155,11 +155,11 @@ describe("settings the runtime ignores", () => {
   it("lets the author name the topic a pad publishes to", () => {
     // Robin, 2026-09-24: "est-il possible de rendre paramétrable le nom du topic utilisé ?"
     const onUpdateSettings = renderEditor({ runtime_binding: TELEOP_BINDING }, "slider", [
-      "/joystick_cartesian_command",
+      "/tablet_cartesian_command",
       "/other_cartesian_command",
     ]);
     const topic = screen.getByLabelText("Topic") as HTMLInputElement;
-    expect(topic.value).toBe("/joystick_cartesian_command");
+    expect(topic.value).toBe("/tablet_cartesian_command");
 
     fireEvent.change(topic, { target: { value: "/other_cartesian_command" } });
     const next = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
@@ -180,7 +180,7 @@ describe("settings the runtime ignores", () => {
         runtime_binding: {
           adapter: "teleop",
           axis_mapping: { value: { component: "linear_z" } },
-          value_mapping: { target_topic: "/joystick_cartesian_command" },
+          value_mapping: { target_topic: "/tablet_cartesian_command" },
         },
       },
       "slider",
@@ -195,7 +195,7 @@ describe("settings the runtime ignores", () => {
     renderEditor(
       { runtime_binding: { ...TELEOP_BINDING, value_mapping: { target_topic: "/my/own_command" } } },
       "slider",
-      ["/joystick_cartesian_command"],
+      ["/tablet_cartesian_command"],
     );
 
     expect(screen.getByRole("alert").textContent).toContain("/my/own_command");
@@ -203,7 +203,7 @@ describe("settings the runtime ignores", () => {
   });
 
   it("says nothing when the target is one the app allows", () => {
-    renderEditor({ runtime_binding: TELEOP_BINDING }, "slider", ["/joystick_cartesian_command"]);
+    renderEditor({ runtime_binding: TELEOP_BINDING }, "slider", ["/tablet_cartesian_command"]);
 
     expect(screen.queryByRole("alert")).toBeNull();
   });
@@ -229,7 +229,7 @@ describe("reading widgets in the inspector", () => {
   afterEach(cleanup);
 
   it("says a topic echo reads, never that it publishes", () => {
-    renderEditor({ topic: "/joystick_cartesian_command" }, "topic-echo");
+    renderEditor({ topic: "/tablet_cartesian_command" }, "topic-echo");
 
     expect(screen.getByText("Reads from")).toBeTruthy();
     expect(screen.queryByText("Publishes to")).toBeNull();
@@ -492,7 +492,7 @@ describe("what a teleop control moves", () => {
       settings: {
         runtime_binding: {
           adapter: "teleop",
-          value_mapping: { target_topic: "/joystick_cartesian_command" },
+          value_mapping: { target_topic: "/tablet_cartesian_command" },
           axis_mapping: { x: { component: "linear_x" }, y: { component: "linear_y" } },
         },
       },
@@ -520,7 +520,7 @@ describe("what a teleop control moves", () => {
       settings: {
         runtime_binding: {
           adapter: "teleop",
-          value_mapping: { target_topic: "/joystick_cartesian_command" },
+          value_mapping: { target_topic: "/tablet_cartesian_command" },
           axis_mapping: { value: { component: "angular_z" } },
         },
       },

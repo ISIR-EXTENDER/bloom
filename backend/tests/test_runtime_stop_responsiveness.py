@@ -127,7 +127,7 @@ def test_a_slow_service_call_does_not_freeze_other_sockets() -> None:
                         "linear": {"x": 0.2, "y": 0, "z": 0},
                         "angular": {"x": 0, "y": 0, "z": 0},
                         "seq": 1,
-                        "target": "/joystick_cartesian_command",
+                        "target": "/tablet_cartesian_command",
                     }
                 )
             )

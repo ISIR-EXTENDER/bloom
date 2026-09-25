@@ -123,7 +123,7 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
 
     # Every accepted target is zeroed: the latch cannot know which one a session was driving.
     assert [command.target for command in teleop_gateway.commands] == [
-        "/joystick_cartesian_command",
+        "/tablet_cartesian_command",
     ]
     for zero_command in teleop_gateway.commands:
         assert (zero_command.linear.x, zero_command.linear.y, zero_command.linear.z) == (0.0, 0.0, 0.0)
@@ -149,7 +149,7 @@ def test_stop_zeros_the_legacy_teleop_topic_on_the_teleop_command_backend() -> N
             Settings(
                 environment="test",
                 ros_command_backend="teleop_command",
-                allowed_teleop_targets=("/teleop_cmd", "/joystick_cartesian_command"),
+                allowed_teleop_targets=("/teleop_cmd", "/tablet_cartesian_command"),
             ),
             InMemoryConfigurationRepository(),
             ros_publisher_gateway=RecordingRosPublisherGateway(),
@@ -158,7 +158,7 @@ def test_stop_zeros_the_legacy_teleop_topic_on_the_teleop_command_backend() -> N
     )
 
     assert client.post("/api/v1/runtime/stop").status_code == 200
-    assert [command.target for command in teleop_gateway.commands] == ["/teleop_cmd", "/joystick_cartesian_command"]
+    assert [command.target for command in teleop_gateway.commands] == ["/teleop_cmd", "/tablet_cartesian_command"]
 
 
 def test_camera_frames_are_refused_while_stopped() -> None:
@@ -478,7 +478,7 @@ def test_the_mirror_follows_generic_mode_publishes_and_stop() -> None:
                 "frame_id": "hybrid_frame",
                 "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
                 "seq": 1,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
             }
         )
         assert websocket.receive_json()["type"] == "teleop_ack"

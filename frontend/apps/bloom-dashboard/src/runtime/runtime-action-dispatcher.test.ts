@@ -48,7 +48,7 @@ describe("runtime action dispatcher", () => {
     const movement = createTeleopValueIntent({
       runtimeBinding: {
         adapter: "teleop",
-        value_mapping: { target_topic: "/joystick_cartesian_command" },
+        value_mapping: { target_topic: "/tablet_cartesian_command" },
       },
       value: { x: 0.25, y: 0 },
     });
@@ -61,7 +61,7 @@ describe("runtime action dispatcher", () => {
           allowed_publish_topics: [],
           allowed_recording_topics: [],
           allowed_service_calls: [],
-          allowed_teleop_targets: ["/joystick_cartesian_command"],
+          allowed_teleop_targets: ["/tablet_cartesian_command"],
         },
       }),
     ).resolves.toMatchObject({ request: { frame_id: "effector_frame" }, status: "accepted" });
@@ -344,7 +344,7 @@ describe("runtime action dispatcher", () => {
       runtimeBinding: {
         adapter: "teleop",
         value_mapping: {
-          target_topic: "/joystick_cartesian_command",
+          target_topic: "/tablet_cartesian_command",
         },
       },
       value: { x: 0.25, y: -0.5 },
@@ -356,7 +356,7 @@ describe("runtime action dispatcher", () => {
       linear: { x: 0.25, y: -0.5, z: 0 },
       mode: 2,
       seq: 7,
-      target: "/joystick_cartesian_command",
+      target: "/tablet_cartesian_command",
     });
   });
 
@@ -367,7 +367,7 @@ describe("runtime action dispatcher", () => {
         adapter: "teleop",
         value_mapping: {
           frame_id: "ft_frame",
-          target_topic: "/joystick_cartesian_command",
+          target_topic: "/tablet_cartesian_command",
         },
       },
       value: { x: 0.25, y: 0 },
@@ -376,7 +376,7 @@ describe("runtime action dispatcher", () => {
     expect(createTeleopCommandRequest(intent, 3)).toMatchObject({
       type: "teleop_cmd",
       frame_id: "ft_frame",
-      target: "/joystick_cartesian_command",
+      target: "/tablet_cartesian_command",
     });
   });
 
@@ -389,7 +389,7 @@ describe("runtime action dispatcher", () => {
         adapter: "teleop",
         value_mapping: {
           frame_id: "effector_frame",
-          target_topic: "/joystick_cartesian_command",
+          target_topic: "/tablet_cartesian_command",
         },
       },
       value: { x: 0.25, y: 0 },
@@ -409,7 +409,7 @@ describe("runtime action dispatcher", () => {
         runtimeBinding: {
           adapter: "teleop",
           axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
-          value_mapping: { frame_id: frameId, target_topic: "/joystick_cartesian_command" },
+          value_mapping: { frame_id: frameId, target_topic: "/tablet_cartesian_command" },
         },
         value: { x: 0.25, y: 0 },
         widgetId,
@@ -430,7 +430,7 @@ describe("runtime action dispatcher", () => {
       runtimeBinding: {
         adapter: "teleop",
         axis_mapping: { x: { component: "linear_x" }, y: { component: "linear_y" } },
-        value_mapping: { target_topic: "/joystick_cartesian_command" },
+        value_mapping: { target_topic: "/tablet_cartesian_command" },
       },
       value: { x: 0.5, y: 0 },
       widgetId: "pan",
@@ -440,7 +440,7 @@ describe("runtime action dispatcher", () => {
       runtimeBinding: {
         adapter: "teleop",
         axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
-        value_mapping: { frame_id: "effector_frame", target_topic: "/joystick_cartesian_command" },
+        value_mapping: { frame_id: "effector_frame", target_topic: "/tablet_cartesian_command" },
       },
       value: { x: 0.25, y: 0 },
       widgetId: "tilt",
@@ -459,7 +459,7 @@ describe("runtime action dispatcher", () => {
       modeId: "translation",
       runtimeBinding: {
         adapter: "teleop",
-        value_mapping: { target_topic: "/joystick_cartesian_command" },
+        value_mapping: { target_topic: "/tablet_cartesian_command" },
       },
       value: { x: 0.25, y: 0 },
     });
@@ -551,7 +551,7 @@ describe("runtime action dispatcher", () => {
         linear: { x: 0.2, y: 0.3, z: 0 },
         mode: 2,
         seq: 42,
-        target: "/joystick_cartesian_command",
+        target: "/tablet_cartesian_command",
       },
     });
     expect(client.sendTeleopCommand).toHaveBeenCalledOnce();
@@ -609,9 +609,9 @@ describe("runtime action dispatcher", () => {
       }),
     ).resolves.toMatchObject({
       status: "blocked",
-      detail: 'Teleop target "/joystick_cartesian_command" is not allowed by this app runtime policy.',
+      detail: 'Teleop target "/tablet_cartesian_command" is not allowed by this app runtime policy.',
       request: {
-        target: "/joystick_cartesian_command",
+        target: "/tablet_cartesian_command",
         type: "teleop_cmd",
       },
     });
@@ -820,7 +820,7 @@ describe("a refused teleop command", () => {
       allowed_publish_topics: [],
       allowed_recording_topics: [],
       allowed_service_calls: [],
-      allowed_teleop_targets: ["/joystick_cartesian_command"],
+      allowed_teleop_targets: ["/tablet_cartesian_command"],
     };
 
     const refused = {
@@ -835,7 +835,7 @@ describe("a refused teleop command", () => {
     ).resolves.toMatchObject({ status: "blocked" });
 
     const allowed = createTeleopValueIntent({
-      runtimeBinding: { adapter: "teleop", value_mapping: { target_topic: "/joystick_cartesian_command" } },
+      runtimeBinding: { adapter: "teleop", value_mapping: { target_topic: "/tablet_cartesian_command" } },
       value: { x: 0, y: 0.5 },
     });
     const result = await dispatchRuntimeActionIntent(client, allowed, {

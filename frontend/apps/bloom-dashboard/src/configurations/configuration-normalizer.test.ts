@@ -163,7 +163,7 @@ describe("normalizeConfigurationBundle", () => {
       "/ee_velocity",
       "/joint_states",
       "/joint_target_command",
-      "/joystick_cartesian_command",
+      "/tablet_cartesian_command",
       "/mode_request",
       "/tag_detections",
       "/visual_servoing/error_TAGtoTAGd",

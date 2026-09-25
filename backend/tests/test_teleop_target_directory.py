@@ -8,10 +8,12 @@ from libs.ros_adapters.teleop_targets import TeleopTargetDirectory
 from libs.sessions import InMemoryRuntimeAuditLog
 from libs.sessions.teleop import TeleopCommand, TeleopPublishReceipt
 
-MANAGER_INPUTS = (
-    "/cartesian_manager:topics.joystick_command",
-    "/cartesian_manager:topics.visual_servoing_command",
-)
+MANAGER = "/cartesian_manager"
+TOPICS = {
+    "topics.joystick_command": "/joystick_cartesian_command",
+    "topics.tablet_command": "/tablet_cartesian_command",
+    "topics.visual_servoing_command": "/visual_servoing_cartesian_command",
+}
 
 
 class RecordingTeleopGateway:
@@ -26,13 +28,19 @@ class RecordingTeleopGateway:
 
 
 class ManagerParameters:
-    """The manager's input topics as its parameter service reports them; None while it is not running."""
+    """The manager's declared sources and their topics; None while it is not running."""
 
-    def __init__(self, topics: dict[str, str] | None) -> None:
-        self.topics = topics
+    def __init__(self, sources: list[str] | None, topics: dict[str, str] | None = None) -> None:
+        self.sources = sources
+        self.topics = TOPICS if topics is None else topics
+
+    def get_string_list(self, node: str, name: str) -> tuple[str, ...] | None:
+        if self.sources is None:
+            raise RuntimeError(f"Node {node} does not offer its parameter services.")
+        return tuple(self.sources) if name == "inputs.sources" else None
 
     def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
-        if self.topics is None:
+        if self.sources is None:
             raise RuntimeError(f"Node {node} does not offer its parameter services.")
         return tuple(RosParameterReading(node=node, name=name, value=self.topics.get(name)) for name in names)
 
@@ -40,34 +48,43 @@ class ManagerParameters:
         raise NotImplementedError
 
 
-def test_the_manager_says_which_topics_a_joystick_may_drive() -> None:
-    parameters = ManagerParameters(
-        {"topics.joystick_command": "/lab_joystick", "topics.visual_servoing_command": "/lab_servo"}
-    )
-    directory = TeleopTargetDirectory(("/joystick_cartesian_command",), parameters, MANAGER_INPUTS)
+def test_only_the_inputs_the_manager_declares_are_offered() -> None:
+    directory = TeleopTargetDirectory((), ManagerParameters(["joystick", "tablet"]), MANAGER)
 
     directory.refresh()
 
-    assert directory.targets() == ("/joystick_cartesian_command", "/lab_joystick", "/lab_servo")
+    # visual_servoing has a topic but is not a declared source, so the manager does not read it.
+    assert directory.targets() == ("/joystick_cartesian_command", "/tablet_cartesian_command")
+
+
+def test_a_renamed_input_is_followed() -> None:
+    parameters = ManagerParameters(["tablet"], {"topics.tablet_command": "/lab_tablet"})
+    directory = TeleopTargetDirectory(("/tablet_cartesian_command",), parameters, MANAGER)
+
+    directory.refresh()
+
+    assert directory.targets() == ("/tablet_cartesian_command", "/lab_tablet")
 
 
 def test_a_manager_that_is_not_up_leaves_the_default_and_keeps_what_it_last_said() -> None:
     parameters = ManagerParameters(None)
-    directory = TeleopTargetDirectory(("/joystick_cartesian_command",), parameters, MANAGER_INPUTS)
+    directory = TeleopTargetDirectory(("/tablet_cartesian_command",), parameters, MANAGER)
 
     directory.refresh()
-    assert directory.targets() == ("/joystick_cartesian_command",)
+    assert directory.targets() == ("/tablet_cartesian_command",)
 
-    parameters.topics = {"topics.joystick_command": "/joystick_cartesian_command"}
+    parameters.sources = ["joystick", "tablet"]
     directory.refresh()
-    parameters.topics = None
+    parameters.sources = None
     directory.refresh()
-    assert directory.targets() == ("/joystick_cartesian_command",)
+    assert directory.targets() == ("/tablet_cartesian_command", "/joystick_cartesian_command")
 
 
 def test_nothing_but_a_topic_name_is_taken_from_the_manager() -> None:
-    parameters = ManagerParameters({"topics.joystick_command": "", "topics.visual_servoing_command": "relative"})
-    directory = TeleopTargetDirectory((), parameters, MANAGER_INPUTS)
+    parameters = ManagerParameters(
+        ["joystick", "tablet"], {"topics.joystick_command": "", "topics.tablet_command": "x"}
+    )
+    directory = TeleopTargetDirectory((), parameters, MANAGER)
 
     directory.refresh()
 
@@ -97,31 +114,26 @@ def _teleop(target: str) -> dict:
     }
 
 
-def test_every_manager_input_is_accepted_and_zeroed_by_stop_with_nothing_to_configure() -> None:
+def test_every_declared_input_is_accepted_and_zeroed_by_stop_and_no_other() -> None:
     recording_teleop_gateway = RecordingTeleopGateway()
-    parameters = ManagerParameters(
-        {
-            "topics.joystick_command": "/joystick_cartesian_command",
-            "topics.visual_servoing_command": "/visual_servoing_cartesian_command",
-        }
-    )
-    client = _client(parameters, recording_teleop_gateway)
+    client = _client(ManagerParameters(["joystick", "tablet"]), recording_teleop_gateway)
 
     assert client.get("/api/v1/capabilities").json()["teleop_targets"] == [
+        "/tablet_cartesian_command",
         "/joystick_cartesian_command",
-        "/visual_servoing_cartesian_command",
     ]
     with client.websocket_connect("/api/v1/runtime/ws") as websocket:
         websocket.receive_json()
-        websocket.send_json(_teleop("/visual_servoing_cartesian_command"))
+        websocket.send_json(_teleop("/tablet_cartesian_command"))
         assert websocket.receive_json()["type"] == "teleop_ack"
-        websocket.send_json(_teleop("/somewhere_else"))
+        # Declared a topic, but not a source: the manager would not read it.
+        websocket.send_json(_teleop("/visual_servoing_cartesian_command"))
         assert websocket.receive_json()["type"] == "runtime_error"
 
     recording_teleop_gateway.commands.clear()
     client.post("/api/v1/runtime/stop")
     zeroed = {command.target for command in recording_teleop_gateway.commands}
-    assert {"/joystick_cartesian_command", "/visual_servoing_cartesian_command"} <= zeroed
+    assert {"/tablet_cartesian_command", "/joystick_cartesian_command"} <= zeroed
 
 
 def test_an_input_the_manager_adds_while_a_tablet_is_connected_is_accepted() -> None:
@@ -131,7 +143,8 @@ def test_an_input_the_manager_adds_while_a_tablet_is_connected_is_accepted() -> 
 
     with client.websocket_connect("/api/v1/runtime/ws") as websocket:
         websocket.receive_json()
-        parameters.topics = {"topics.joystick_command": "/lab_joystick"}
+        parameters.sources = ["tablet"]
+        parameters.topics = {"topics.tablet_command": "/lab_tablet"}
         client.app.state.teleop_target_directory.refresh()
-        websocket.send_json(_teleop("/lab_joystick"))
+        websocket.send_json(_teleop("/lab_tablet"))
         assert websocket.receive_json()["type"] == "teleop_ack"

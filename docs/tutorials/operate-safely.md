@@ -136,7 +136,7 @@ missing button.
 
 - The bar names the expected app, screen, frame, role and link state, and the sheet the expected profile, device class
   and publish rate.
-- `/joystick_cartesian_command` has the publisher and subscriber you expect.
+- `/tablet_cartesian_command` has the publisher and subscriber you expect.
 - `/cartesian_command` returns to zero when you release a control.
 - STOP latches across a reload and across a second runtime client.
 - The tablet, any gamepad, and the accessibility profile the operator will use have been tested together, on the

@@ -166,21 +166,21 @@ In another sourced terminal, watch what left Bloom and what the manager did with
 ```bash
 source /opt/ros/jazzy/setup.bash
 source /path/to/extender_workspace/install/setup.bash
-ros2 topic echo /joystick_cartesian_command
+ros2 topic echo /tablet_cartesian_command
 ros2 topic echo /cartesian_command
 ```
 
 Both should carry a non-zero twist while you hold the pad and return to zero when you release. The path is:
 
 ```text
-browser control -> Bloom WebSocket -> ROS adapter -> /joystick_cartesian_command
+browser control -> Bloom WebSocket -> ROS adapter -> /tablet_cartesian_command
                 -> cartesian_manager -> /cartesian_command
 ```
 
 **How to tell it worked:** the arm moves in Gazebo or RViz, `/cartesian_command` returns to zero on release, and the
 publish rate in the kiosk bar reads `publishing · N Hz` while you hold and `zeros held` after.
 
-If the arm does not move but `/joystick_cartesian_command` does, the problem is below Bloom: check the manager and the
+If the arm does not move but `/tablet_cartesian_command` does, the problem is below Bloom: check the manager and the
 controllers. If neither topic carries anything, check that the kiosk bar reads `READY` rather than `NOT IN CONTROL` —
 another browser tab may still own the robot.
 

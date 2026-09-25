@@ -2,7 +2,7 @@
 
 ``cartesian_manager`` replaced ``sandbox_controller`` as the Extender control
 layer. It expects ``geometry_msgs/msg/TwistStamped`` on an input topic, by
-default ``/joystick_cartesian_command``, rather than the Extender-specific
+default ``/tablet_cartesian_command``, rather than the Extender-specific
 ``extender_msgs/msg/TeleopCommand`` on ``/teleop_cmd``.
 
 The frame matters more than anything else here. ``cartesian_manager`` accepts

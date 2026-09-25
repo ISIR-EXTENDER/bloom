@@ -28,7 +28,7 @@ Click any widget to place it. It lands clear of the others and of STOP, and it a
 
 | Widget | Arrives |
 | --- | --- |
-| Joystick | This arm's **Translation** pad: Forward, Back, Left, Right, on `/joystick_cartesian_command` |
+| Joystick | This arm's **Translation** pad: Forward, Back, Left, Right, on `/tablet_cartesian_command` |
 | Toggle | The **Gripper**, with this arm's values |
 | Slider | **Max linear speed**, qontrol's limit |
 | Command button | **Neutral**, the `geometric/both` mode request |

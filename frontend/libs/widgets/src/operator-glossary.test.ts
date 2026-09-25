@@ -24,9 +24,7 @@ describe("the operator glossary", () => {
   });
 
   it("translates the words of a topic label and never the topic", () => {
-    expect(localizeOperatorText("SENT — /joystick_cartesian_command", "es")).toBe(
-      "ENVIADO — /joystick_cartesian_command",
-    );
+    expect(localizeOperatorText("SENT — /tablet_cartesian_command", "es")).toBe("ENVIADO — /tablet_cartesian_command");
     expect(localizeOperatorText("WHAT WAS SENT — /joint_target_command", "fr")).toBe(
       "CE QUI A ÉTÉ ENVOYÉ — /joint_target_command",
     );

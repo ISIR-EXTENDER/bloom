@@ -57,7 +57,7 @@ describe("runtime mode state", () => {
           subscription_count: 1,
         },
         {
-          name: "/joystick_cartesian_command",
+          name: "/tablet_cartesian_command",
           message_type: "extender_msgs/msg/TeleopCommand",
           publisher_count: 1,
           subscription_count: 0,
@@ -67,7 +67,7 @@ describe("runtime mode state", () => {
       expect.arrayContaining([
         expect.objectContaining({ topic: "/mode_request", status: "ready", statusLabel: "Ready" }),
         expect.objectContaining({
-          topic: "/joystick_cartesian_command",
+          topic: "/tablet_cartesian_command",
           status: "waiting",
           statusLabel: "No subscriber",
         }),
@@ -131,7 +131,7 @@ function createSandboxApp(): ApplicationConfig {
       allowed_publish_topics: ["/mode_request", "/robot/max_linear_speed"],
       allowed_recording_topics: [],
       allowed_service_calls: [],
-      allowed_teleop_targets: ["/joystick_cartesian_command"],
+      allowed_teleop_targets: ["/tablet_cartesian_command"],
     },
     theme: {
       inspiration: { moodboard_image_uri: "", reference_url: "" },
@@ -335,7 +335,7 @@ describe("runtime command-frame controls", () => {
           kind: "topic-echo",
           title: "Twist",
           layout: { x: 0, y: 0, width: 338, height: 216 },
-          settings: { messageType: "geometry_msgs/msg/TwistStamped", topic: "/joystick_cartesian_command" },
+          settings: { messageType: "geometry_msgs/msg/TwistStamped", topic: "/tablet_cartesian_command" },
         },
         {
           id: "joints",
@@ -533,11 +533,7 @@ describe("a joystick on a topic the server refuses", () => {
     });
 
   it("is unavailable before it is pressed, and says the server is why", () => {
-    const state = states(
-      "/tablet_cmd",
-      ["/joystick_cartesian_command", "/tablet_cmd"],
-      ["/joystick_cartesian_command"],
-    );
+    const state = states("/tablet_cmd", ["/tablet_cartesian_command", "/tablet_cmd"], ["/tablet_cartesian_command"]);
     expect(state.stick).toMatchObject({
       disabled: true,
       unavailable: true,
@@ -546,13 +542,13 @@ describe("a joystick on a topic the server refuses", () => {
   });
 
   it("says the app is why when the app's own list leaves the topic out", () => {
-    const state = states("/tablet_cmd", ["/joystick_cartesian_command"], ["/joystick_cartesian_command"]);
+    const state = states("/tablet_cmd", ["/tablet_cartesian_command"], ["/tablet_cartesian_command"]);
     expect(state.stick?.disabledReason).toBe("app refuses /tablet_cmd");
   });
 
   it("stays live on an allowed topic, on the manager's input by default, and before the server has answered", () => {
     expect(states("/tablet_cmd", ["/tablet_cmd"], ["/tablet_cmd"]).stick).toBeUndefined();
-    expect(states(undefined, ["/joystick_cartesian_command"], ["/joystick_cartesian_command"]).stick).toBeUndefined();
+    expect(states(undefined, ["/tablet_cartesian_command"], ["/tablet_cartesian_command"]).stick).toBeUndefined();
     expect(states("/tablet_cmd", ["/tablet_cmd"], null).stick).toBeUndefined();
     expect(states("/tablet_cmd", ["*"], ["*"]).stick).toBeUndefined();
   });

@@ -1,5 +1,5 @@
 import type { RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import { resolveTeleopFrameId, type WidgetActionIntent } from "@bloom/widgets";
+import { resolveTeleopFrameId, TELEOP_DEFAULT_TARGET, type WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dispatchRuntimeActionIntent,
@@ -205,7 +205,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       syncTeleopActive();
       teleopPump.current?.noteExternalContribution({
         frame_id: commandFrameId,
-        target: "/joystick_cartesian_command",
+        target: TELEOP_DEFAULT_TARGET,
         mode: 0,
       });
     },

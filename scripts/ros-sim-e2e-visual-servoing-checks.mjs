@@ -174,9 +174,9 @@ async function servoSession() {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.2, { steps: 8 });
     await page.waitForTimeout(600);
     await page.mouse.up();
-    const twist = await ros.waitFor("/joystick_cartesian_command", (data) => !isZeroTwist(data), { since });
+    const twist = await ros.waitFor(STACK.twist, (data) => !isZeroTwist(data), { since });
     await shot(page, "approach");
-    return `translation pad -> /joystick_cartesian_command linear ${fmtVector(twist.linear)}`;
+    return `translation pad -> ${STACK.twist} linear ${fmtVector(twist.linear)}`;
   });
 
   await check(page, "servo-input-gate-sets-the-manager-parameter", async () => {
@@ -253,7 +253,7 @@ node.create_subscription(Bool, "${ON}", lambda m: emit("${ON}", {"data": bool(m.
 node.create_subscription(String, "${SAVE}", lambda m: emit("${SAVE}", {"data": m.data}), 10)
 node.create_subscription(TwistStamped, "${VELOCITY}", lambda m: emit("${VELOCITY}", {"linear": vector(m.twist.linear), "angular": vector(m.twist.angular)}, 0.05), 10)
 node.create_subscription(TwistStamped, "${ERROR}", lambda m: emit("${ERROR}", {"linear": vector(m.twist.linear), "angular": vector(m.twist.angular)}, 0.05), 10)
-node.create_subscription(TwistStamped, "/joystick_cartesian_command", lambda m: emit("/joystick_cartesian_command", {"linear": vector(m.twist.linear), "angular": vector(m.twist.angular)}), 50)
+node.create_subscription(TwistStamped, "${STACK.twist}", lambda m: emit("${STACK.twist}", {"linear": vector(m.twist.linear), "angular": vector(m.twist.angular)}), 50)
 
 # A 16x16 PNG (solid green) is enough for the widget to decode and show.
 def png_frame():

@@ -143,7 +143,7 @@ export async function dispatchTeleopFrameIntent(
     linear: { x: 0, y: 0, z: 0 },
     mode: 0,
     seq: options.teleopSequence ?? 0,
-    target: "/joystick_cartesian_command",
+    target: TELEOP_DEFAULT_TARGET,
   };
   const policyError = validateTeleopCommandRequest(request, options.runtimePolicy);
   if (policyError) {

@@ -119,7 +119,7 @@ Validate from the runtime library:
   - Launch Petanque admin runtime when the Petanque stack is available
 
 Useful ROS checks:
-  ros2 topic echo /joystick_cartesian_command
+  ros2 topic echo /tablet_cartesian_command
   ros2 topic echo /cmd/mode
   ros2 topic echo /snake_control/enable
   ros2 topic echo /ui/visual_servoing/on

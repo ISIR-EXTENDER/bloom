@@ -3,7 +3,7 @@
  * Petanque runtime contract.
  *
  * Petanque admin is the legacy Petanque workflow rebased onto the current
- * architecture: teleop composes a TwistStamped on /joystick_cartesian_command
+ * architecture: teleop composes a TwistStamped on /tablet_cartesian_command
  * for cartesian_manager, match flow speaks apps-petanque's state machine on
  * /petanque_state_machine/change_state, and the measure results arrive on the
  * tablet bridge's compressed-image topics. This check asserts that wiring, and
@@ -66,10 +66,16 @@ function requireRosCamera(id, topic) {
   assert(`${id} source`, setting(id, "source") === "ros-topic", `expected ros-topic, got ${setting(id, "source")}`);
 }
 
+// settings.py may name a topic through a constant from libs/manager_contract.py.
+const contractNames = [
+  ...readFileSync(resolve("backend/libs/manager_contract.py"), "utf8").matchAll(/^([A-Z_]+) = "([^"]+)"$/gm),
+];
+
 function requireBackendDefault(value, label) {
+  const constant = contractNames.find((match) => match[2] === value)?.[1];
   assert(
     `backend default allows ${label}`,
-    backendSettings.includes(`"${value}"`),
+    backendSettings.includes(`"${value}"`) || (constant !== undefined && backendSettings.includes(constant)),
     `${value} missing from settings.py`,
   );
 }

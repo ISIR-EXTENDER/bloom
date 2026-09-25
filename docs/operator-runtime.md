@@ -281,7 +281,7 @@ composed twist is non-zero, all frame buttons are disabled with **Release contro
 reinterpret motion already in progress. The kiosk bar updates immediately, and the next widget or gamepad command uses
 the selected frame.
 
-Under **SENT — /joystick_cartesian_command**, the **Twist** echo subscribes to that topic and prints the latest
+Under **SENT — /tablet_cartesian_command**, the **Twist** echo subscribes to that topic and prints the latest
 `twist` with signed two-decimal linear and angular rows. Its header names the frame the session is stamping, so it is
 readable before anything has been sent; once a message arrives the frame comes from the message itself. Its Pause,
 Clear and Copy words and its empty line follow the profile's language, and the empty line wraps inside the card, while
@@ -316,14 +316,12 @@ mapping must be checked with the actual controller before a session.
 > `linear_z` where the table above reads it as `angular.x`, so the same push means different things to the two
 > readers.
 >
-> They also share one channel. `joystick_mapper` publishes to `/joystick_cartesian_command`, the topic Bloom
-> teleop uses, and `cartesian_manager` keeps one command per input source and *replaces* it rather than summing,
-> so whichever published last wins — a centred physical stick still streams zeros over Bloom's twist at `/joy`
-> rate. Summing happens between different sources, not within one.
+> They are two sources: Bloom publishes to the manager's tablet input, `/tablet_cartesian_command`, and
+> `joystick_mapper` to `/joystick_cartesian_command`. `cartesian_manager` sums its sources, so one stick read by
+> both adds the same push twice.
 >
 > Before a session, either close Bloom's browser on the machine the stick is plugged into, or stop
-> `joystick_mapper`. `ros2 topic info /joystick_cartesian_command --verbose` lists both publishers when both are
-> running, and the kiosk bar shows a gamepad chip whenever Bloom can see a pad.
+> `joystick_mapper`. The kiosk bar shows a gamepad chip whenever Bloom can see a pad.
 
 ## Accessibility Profiles
 
@@ -533,7 +531,7 @@ Before a robot session, verify:
 
 - the kiosk bar reports the expected app, screen, frame, role, and link state, and the maintenance sheet the expected
   profile, device class and publish rate;
-- `/joystick_cartesian_command` has the expected publisher/subscriber graph;
+- `/tablet_cartesian_command` has the expected publisher/subscriber graph;
 - the manager output `/cartesian_command` returns to zero when controls are released;
 - valid mode requests reach `/mode_request`, while invalid requests are rejected and audited;
 - STOP latches across a reload or second runtime client;

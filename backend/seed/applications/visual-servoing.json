@@ -27,13 +27,13 @@
         "allowed_recording_topics": [
           "/ee_pose",
           "/joint_states",
-          "/joystick_cartesian_command",
+          "/tablet_cartesian_command",
           "/tag_detections",
           "/visual_servoing/error_TAGtoTAGd",
           "/visual_servoing/velocity_command"
         ],
         "allowed_teleop_targets": [
-          "/joystick_cartesian_command"
+          "/tablet_cartesian_command"
         ],
         "allowed_parameters": [
           "/cartesian_manager:inputs.joystick.enabled",
@@ -271,7 +271,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -305,7 +305,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -339,7 +339,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -649,7 +649,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -697,7 +697,7 @@
                   "target": "translation",
                   "value_mapping": {
                     "mode": 3,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   }
                 }
               }
@@ -744,7 +744,7 @@
                   "target": "rotation",
                   "value_mapping": {
                     "mode": 1,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   }
                 }
               }

@@ -261,7 +261,7 @@ def test_cartesian_manager_monitors_use_its_twist_stamped_command_type() -> None
         for application in bundle.applications:
             for screen in application.screens:
                 for widget in screen.widgets:
-                    if widget.settings.get("topic") != "/joystick_cartesian_command":
+                    if widget.settings.get("topic") != "/tablet_cartesian_command":
                         continue
                     assert widget.settings.get("messageType") == "geometry_msgs/msg/TwistStamped", (
                         f"{config_id}/{screen.id}/{widget.id} subscribes with the wrong cartesian_manager type"
@@ -323,7 +323,7 @@ def test_manager_drive_screen_is_a_complete_virtual_joystick(config_id: str, scr
 
     for widget_id in ("drive-translation", "drive-rotation", "drive-z", "drive-rz"):
         value_mapping = widgets[widget_id].settings["runtime_binding"].get("value_mapping", {})
-        assert value_mapping["target_topic"] == "/joystick_cartesian_command"
+        assert value_mapping["target_topic"] == "/tablet_cartesian_command"
 
 
 # Settings a role may change (ADR 0133 rule 3); everything else must reach the manager unchanged.

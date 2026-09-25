@@ -34,11 +34,11 @@
           "/ee_velocity",
           "/joint_states",
           "/joint_target_command",
-          "/joystick_cartesian_command",
+          "/tablet_cartesian_command",
           "/mode_request"
         ],
         "allowed_teleop_targets": [
-          "/joystick_cartesian_command"
+          "/tablet_cartesian_command"
         ],
         "allowed_service_calls": [
           "/fault_controller/reset_fault"
@@ -155,7 +155,7 @@
                   "target": "translation",
                   "value_mapping": {
                     "mode": 0,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_mapping": {
                     "x": {
@@ -196,7 +196,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -251,7 +251,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SENT — /joystick_cartesian_command",
+                "text": "SENT — /tablet_cartesian_command",
                 "fontSize": 12,
                 "align": "left"
               }
@@ -272,7 +272,7 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "prettyPrint": true,
                 "show_details": false,
-                "topic": "/joystick_cartesian_command"
+                "topic": "/tablet_cartesian_command"
               }
             }
           ]

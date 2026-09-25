@@ -26,5 +26,5 @@ export const STACK = {
   servoSave: "/ui/visual_servoing/save",
   servoVelocity: "/visual_servoing/velocity_command",
   tagDetections: "/tag_detections",
-  twist: "/joystick_cartesian_command",
+  twist: "/tablet_cartesian_command",
 };

@@ -20,7 +20,7 @@
           "/ee_pose",
           "/ee_velocity",
           "/joint_states",
-          "/joystick_cartesian_command",
+          "/tablet_cartesian_command",
           "/mode_request",
           "/petanque_state_machine/change_state",
           "/qontrol_controller/commands",

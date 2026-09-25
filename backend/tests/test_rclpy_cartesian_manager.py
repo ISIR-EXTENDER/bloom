@@ -56,7 +56,7 @@ class FakeTime:
         self.nanosec = 0
 
 
-def make_command(target: str = "/joystick_cartesian_command") -> TeleopCommand:
+def make_command(target: str = "/tablet_cartesian_command") -> TeleopCommand:
     return TeleopCommand(
         angular=TeleopVector3(x=0.0, y=0.0, z=0.3),
         linear=TeleopVector3(x=0.1, y=-0.2, z=0.0),
@@ -73,7 +73,7 @@ def test_gateway_publishes_stamped_twist(monkeypatch) -> None:
 
     receipt = gateway.publish(make_command())
 
-    published = node.publishers["/joystick_cartesian_command"].messages[0]
+    published = node.publishers["/tablet_cartesian_command"].messages[0]
     assert receipt.status == "accepted"
     assert receipt.frame_id == "base_link"
     assert published.twist.linear.x == 0.1
@@ -90,7 +90,7 @@ def test_gateway_stamps_the_configured_frame(monkeypatch) -> None:
 
     gateway.publish(make_command())
 
-    published = node.publishers["/joystick_cartesian_command"].messages[0]
+    published = node.publishers["/tablet_cartesian_command"].messages[0]
     assert published.header.frame_id == "base_link"
 
 
@@ -102,7 +102,7 @@ def test_gateway_supports_empty_frame(monkeypatch) -> None:
 
     gateway.publish(make_command())
 
-    assert node.publishers["/joystick_cartesian_command"].messages[0].header.frame_id == ""
+    assert node.publishers["/tablet_cartesian_command"].messages[0].header.frame_id == ""
 
 
 def test_gateway_does_not_publish_extender_specific_messages(monkeypatch) -> None:
@@ -124,7 +124,7 @@ def test_publish_reuses_one_publisher_per_topic(monkeypatch) -> None:
     gateway.publish(make_command())
     gateway.publish(make_command())
 
-    assert len(node.publishers["/joystick_cartesian_command"].messages) == 2
+    assert len(node.publishers["/tablet_cartesian_command"].messages) == 2
 
 
 def install_fake_ros_messages(monkeypatch, include_extender_msgs: bool = True) -> None:

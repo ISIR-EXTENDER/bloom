@@ -53,7 +53,7 @@ spread across both sides:
 
 | Where | What is baked in |
 | --- | --- |
-| `runtime-action-dispatcher.ts` | `/joystick_cartesian_command` as the teleop default; mode names mapped to the integers 1–4 |
+| `runtime-action-dispatcher.ts` | `/tablet_cartesian_command` as the teleop default; mode names mapped to the integers 1–4 |
 | `widget-destination.ts` | the same teleop default, and `/joint_states` |
 | `widgets/src/settings.ts` | both topics again, in default widget settings |
 | `runtimeModeState.ts` | robot modes typed as `"b1" \| "b2"`; a fixed five-topic Extender list forced into every app's status panel |
@@ -77,7 +77,7 @@ robot_profile:
   id: extender-cartesian-manager
   transport: ros2            # or: none, websocket, http
   teleop:
-    target: /joystick_cartesian_command
+    target: /tablet_cartesian_command
     message_type: geometry_msgs/msg/TwistStamped
     frame_id: base_link      # known base, end-effector, or hybrid rotation frame
   mode:

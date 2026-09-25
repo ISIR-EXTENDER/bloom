@@ -68,14 +68,14 @@
           "/ee_pose",
           "/ee_velocity",
           "/joint_states",
-          "/joystick_cartesian_command",
+          "/tablet_cartesian_command",
           "/mode_request",
           "/petanque/measure/result_vectors",
           "/petanque_state_machine/change_state",
           "/rosout"
         ],
         "allowed_teleop_targets": [
-          "/joystick_cartesian_command"
+          "/tablet_cartesian_command"
         ],
         "allowed_parameters": [
           "/petanque_throw:alpha",
@@ -134,7 +134,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -168,7 +168,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -193,7 +193,7 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 3,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   }
                 },
                 "color": "#4a9eff",
@@ -227,7 +227,7 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 1,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   }
                 },
                 "color": "#f97316",
@@ -378,7 +378,7 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 3,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   }
                 },
                 "color": "#4a9eff",
@@ -411,7 +411,7 @@
                   "adapter": "teleop",
                   "value_mapping": {
                     "mode": 1,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   }
                 },
                 "color": "#f97316",
@@ -1342,7 +1342,7 @@
                 "height": 360
               },
               "settings": {
-                "topic": "/joystick_cartesian_command",
+                "topic": "/tablet_cartesian_command",
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "fieldPath": "",
                 "maxMessages": 30,

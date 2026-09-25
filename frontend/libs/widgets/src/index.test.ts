@@ -589,7 +589,7 @@ describe("widget settings contracts", () => {
       axis_mapping: { x: { component: "linear_y" }, y: { component: "linear_z" } },
       frame_id: "ft_frame",
       target: "both",
-      value_mapping: { mode: 3, target_topic: "/joystick_cartesian_command" },
+      value_mapping: { mode: 3, target_topic: "/tablet_cartesian_command" },
     };
 
     for (const binding of ["joy", "rot"]) {
@@ -1899,7 +1899,7 @@ describe("what the Builder says a pad moves", () => {
       runtime_binding: {
         adapter: "teleop",
         target: "rotation",
-        value_mapping: { mode: 0, target_topic: "/joystick_cartesian_command" },
+        value_mapping: { mode: 0, target_topic: "/tablet_cartesian_command" },
         axis_mapping: { x: { component: "angular_x" }, y: { component: "angular_y" } },
       },
     };

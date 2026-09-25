@@ -33,7 +33,7 @@ function createRuntimeActionClient() {
       readyTopic(ANGULAR_SPEED_TOPIC, "std_msgs/msg/Float64"),
       readyTopic("/gripper_controller/commands", "std_msgs/msg/Float64MultiArray"),
       readyTopic("/mode_request", "std_msgs/msg/String"),
-      readyTopic("/joystick_cartesian_command", "geometry_msgs/msg/TwistStamped"),
+      readyTopic("/tablet_cartesian_command", "geometry_msgs/msg/TwistStamped"),
     ]),
     listRuntimeCapabilities: vi.fn(async () => ({
       capabilities: [

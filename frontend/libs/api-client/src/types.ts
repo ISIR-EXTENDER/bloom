@@ -176,6 +176,9 @@ export type RuntimeActionPreset = {
   tags: string[];
 };
 
+/** Bloom's own input on cartesian_manager, summed with the physical joystick and visual servoing. */
+export const TABLET_COMMAND_TOPIC = "/tablet_cartesian_command";
+
 export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
   command_frame_id: "",
   allowed_message_types: [],
@@ -187,7 +190,7 @@ export const DEFAULT_RUNTIME_POLICY: RuntimeAdapterPolicy = {
   // topic, so a screen authored here can drive the robot as soon as it is opened; an app that declares
   // an empty list still drives nothing. Kept identical so an app made through the API and one made in
   // the builder do not start life different.
-  allowed_teleop_targets: ["/joystick_cartesian_command"],
+  allowed_teleop_targets: [TABLET_COMMAND_TOPIC],
 };
 
 export const DEFAULT_ACTION_PRESETS: RuntimeActionPreset[] = [];

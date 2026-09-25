@@ -1,3 +1,4 @@
+import { TABLET_COMMAND_TOPIC } from "@bloom/api-client";
 import { isRecord } from "../values";
 import {
   createContract,
@@ -76,7 +77,7 @@ export const JOYSTICK_DEFAULT_SETTINGS: JoystickSettings = {
     target: "both",
     value_mapping: {
       mode: 3,
-      target_topic: "/joystick_cartesian_command",
+      target_topic: TABLET_COMMAND_TOPIC,
     },
   },
   show_details: false,

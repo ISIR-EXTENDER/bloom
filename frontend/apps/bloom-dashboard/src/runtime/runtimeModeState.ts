@@ -57,7 +57,7 @@ const DEFAULT_MODE_STATE: RuntimeModeState = {
 };
 
 const RUNTIME_TOPIC_REQUIREMENTS: RuntimeTopicRequirement[] = [
-  { label: "Teleop", requirement: "subscriber", topic: "/joystick_cartesian_command" },
+  { label: "Teleop", requirement: "subscriber", topic: TELEOP_DEFAULT_TARGET },
   { label: "Mode", requirement: "subscriber", topic: "/mode_request" },
   { label: "Joints", requirement: "publisher", topic: "/joint_states" },
   { label: "Controller", requirement: "publisher", topic: "/cartesian_command" },

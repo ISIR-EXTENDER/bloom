@@ -18,7 +18,7 @@ const application = {
   description: "",
   lifecycle: "active",
   action_presets: [],
-  runtime_policy: { allowed_teleop_targets: ["/joystick_cartesian_command"] },
+  runtime_policy: { allowed_teleop_targets: ["/tablet_cartesian_command"] },
   theme: { preset_id: "bloom-default" },
   screens: [
     { id: "drive", title: "Drive", canvas: {}, reserved_regions: [], widgets: [] },

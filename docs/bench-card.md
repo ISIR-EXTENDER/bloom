@@ -125,7 +125,7 @@ axis 2 as `linear_z`, Bloom's default reads it as `angular.x`.
 **Pick one.** Either stop `joystick_mapper`, or close Bloom's browser on the machine the stick is plugged into.
 
 ```bash
-ros2 topic info /joystick_cartesian_command --verbose   # two publishers means both are live
+ros2 topic info /joystick_cartesian_command --verbose   # a publisher means joystick_mapper is live
 ```
 
 The kiosk bar shows a gamepad chip whenever Bloom can see a pad. If a Z push produces rotation, this is why.
@@ -194,7 +194,7 @@ If the operator is new to Bloom, the practice tour is worth five minutes first: 
 Isolate outside the web stack before debugging it:
 
 ```bash
-ros2 topic pub --times 12 --rate 10 /joystick_cartesian_command geometry_msgs/msg/TwistStamped \
+ros2 topic pub --times 12 --rate 10 /tablet_cartesian_command geometry_msgs/msg/TwistStamped \
   "{header: {frame_id: 'base_link'}, twist: {linear: {x: 0.2, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}}"
 ```
 

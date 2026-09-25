@@ -339,7 +339,7 @@ describe("runtime WebSocket client", () => {
         linear: { x: 0.1, y: 0, z: 0 },
         mode: 0,
         seq: 1,
-        target: "/joystick_cartesian_command",
+        target: "/tablet_cartesian_command",
         type: "teleop_cmd",
       });
       await flushPromises();
@@ -376,7 +376,7 @@ describe("runtime WebSocket client", () => {
         linear: { x: 0.1, y: 0, z: 0 },
         mode: 0,
         seq: 1,
-        target: "/joystick_cartesian_command",
+        target: "/tablet_cartesian_command",
         type: "teleop_cmd",
       });
       await flushPromises();
@@ -407,7 +407,7 @@ describe("runtime WebSocket client", () => {
       linear: { x: 0.1, y: 0, z: 0 },
       mode: 0,
       seq: 1,
-      target: "/joystick_cartesian_command",
+      target: "/tablet_cartesian_command",
       type: "teleop_cmd",
     });
     await flushPromises();

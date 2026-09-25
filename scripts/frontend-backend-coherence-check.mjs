@@ -27,6 +27,13 @@ const configurationPairs = [
 ];
 
 const backendSettings = readFileSync(resolve("backend/apps/bloom_api/settings.py"), "utf8");
+// Names settings.py imports from libs/manager_contract.py, resolved so a tuple may use them.
+const contractConstants = Object.fromEntries(
+  [...readFileSync(resolve("backend/libs/manager_contract.py"), "utf8").matchAll(/^([A-Z_]+) = "([^"]+)"$/gm)].map(
+    (match) => [match[1], match[2]],
+  ),
+);
+
 const backendPolicy = {
   allowed_message_types: readSettingsTuple("allowed_ros_message_types"),
   allowed_publish_topics: readSettingsTuple("allowed_ros_publish_topics"),
@@ -59,12 +66,18 @@ function readJson(path) {
 }
 
 function readSettingsTuple(fieldName) {
-  const pattern = new RegExp(`${fieldName}: tuple\\[str, \\.\\.\\.\\] = \\(([\\s\\S]*?)\\n    \\)`);
+  // One line, as `(A,)`, or several, closed at the field's own indentation.
+  const pattern = new RegExp(
+    `${fieldName}: tuple\\[str, \\.\\.\\.\\] = \\((.*?)\\)\\n|${fieldName}: tuple\\[str, \\.\\.\\.\\] = \\(\\n([\\s\\S]*?)\\n    \\)`,
+  );
   const match = backendSettings.match(pattern);
   if (!match) {
     throw new Error(`Could not read ${fieldName} from backend settings.py`);
   }
-  return [...match[1].matchAll(/"([^"]+)"/g)].map((item) => item[1]);
+  const body = match[1] ?? match[2];
+  return [...body.matchAll(/"([^"]+)"|\b([A-Z_]{3,})\b/g)]
+    .map((item) => item[1] ?? contractConstants[item[2]])
+    .filter(Boolean);
 }
 
 function widgets(app) {

@@ -104,7 +104,7 @@ def create_app(
     app.state.teleop_target_directory = TeleopTargetDirectory(
         app.state.runtime_command_policy.allowed_teleop_targets,
         app.state.ros_parameter_gateway,
-        () if app_settings.ros_command_backend == "teleop_command" else app_settings.teleop_target_parameters,
+        "" if app_settings.ros_command_backend == "teleop_command" else app_settings.teleop_input_node,
         app_settings.teleop_target_refresh_sec,
     )
     app.state.runtime_command_rate_limiter = runtime_command_rate_limiter or RuntimeCommandRateLimiter(

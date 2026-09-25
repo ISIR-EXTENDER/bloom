@@ -52,7 +52,7 @@ describe("plot series", () => {
   it("keeps a seed colour's ramp slot and falls back to order", () => {
     const series = readPlotSeries({
       series: [
-        { topic: "/joystick_cartesian_command", field_path: "twist.linear.x", label: "This tablet", color: "#7E967E" },
+        { topic: "/tablet_cartesian_command", field_path: "twist.linear.x", label: "This tablet", color: "#7E967E" },
         { topic: "/cartesian_command", field_path: "twist.linear.x", color: "#123456", emphasis: true },
         { topic: "no-slash", field_path: "data" },
         { topic: "/ee_pose", fieldPath: "pose.position.z", enabled: false },
@@ -64,7 +64,7 @@ describe("plot series", () => {
       ["twist.linear.x", 1, true, true],
       ["pose.position.z", 3, false, false],
     ]);
-    expect(series[0]?.key).toBe(plotSeriesKey("/joystick_cartesian_command", "twist.linear.x"));
+    expect(series[0]?.key).toBe(plotSeriesKey("/tablet_cartesian_command", "twist.linear.x"));
   });
 
   it("reads the entries that moved elsewhere", () => {

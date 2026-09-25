@@ -166,6 +166,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
+- **Bloom drives the manager's tablet input.** Its controls publish to `/tablet_cartesian_command`, the input
+  cartesian_manager#11 adds for the tablet, so the manager sums them with the physical joystick and visual servoing
+  instead of letting whichever published last win on one channel. Only inputs the manager lists in `inputs.sources`
+  are offered, so a topic it declares but does not read is refused; `BLOOM_TELEOP_TARGET_PARAMETERS` becomes
+  `BLOOM_TELEOP_INPUT_NODE`. STOP zeroes every declared input, the tablet one included. Needs cartesian_manager#11.
+
 - **The runtime library always offers a role**, so an app is one press from opening: the role this device
   opened last, then Operator, then whatever the app lists first. Pressing another role opens as that one and
   is what the device remembers next time. The disabled "Choose a role to open" state is gone.

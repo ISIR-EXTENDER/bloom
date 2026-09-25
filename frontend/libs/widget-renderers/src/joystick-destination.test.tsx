@@ -16,7 +16,7 @@ import { SliderWidget } from "./slider-renderer";
  * On the Drive screen, where the joysticks carry a teleop runtime binding with
  * no `target`, that printed "translation" and "rotation" in a slot that reads
  * as a topic, while the joysticks were publishing to
- * `/joystick_cartesian_command`.
+ * `/tablet_cartesian_command`.
  */
 function renderJoystick(settings: Record<string, unknown>) {
   render(
@@ -56,7 +56,7 @@ describe("the joystick runtime detail strip", () => {
 
     // The target is the strip's last slot; "translation" still belongs in the
     // mode and axis-summary slots, so only this one must be a topic.
-    expect(targetSlot()).toBe("/joystick_cartesian_command");
+    expect(targetSlot()).toBe("/tablet_cartesian_command");
   });
 
   it("prefers the binding's explicit target topic when it has one", () => {

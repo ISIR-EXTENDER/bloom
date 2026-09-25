@@ -2,6 +2,8 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator, model_validator
 
+from libs.manager_contract import TABLET_COMMAND_TOPIC
+
 
 class RuntimeModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -76,7 +78,7 @@ class RuntimeTeleopCommandMessage(RuntimeModel):
     angular: RuntimeVector3Message = Field(default_factory=RuntimeVector3Message)
     linear: RuntimeVector3Message = Field(default_factory=RuntimeVector3Message)
     seq: int = Field(default=0, ge=0)
-    target: str = Field(default="/joystick_cartesian_command", min_length=1)
+    target: str = Field(default=TABLET_COMMAND_TOPIC, min_length=1)
 
     @model_validator(mode="before")
     @classmethod

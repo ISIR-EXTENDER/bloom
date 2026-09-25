@@ -197,7 +197,7 @@ def test_runtime_control_is_exclusive_and_requires_explicit_handover() -> None:
         "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
         "mode": 3,
         "seq": 1,
-        "target": "/joystick_cartesian_command",
+        "target": "/tablet_cartesian_command",
     }
 
     with client.websocket_connect("/api/v1/runtime/ws") as owner:
@@ -354,7 +354,7 @@ def test_disconnect_latches_stop_when_the_owner_cannot_be_neutralized() -> None:
                 "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
                 "mode": 3,
                 "seq": 1,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
             }
         )
         assert websocket.receive_json()["type"] == "teleop_ack"
@@ -385,7 +385,7 @@ def test_failed_explicit_release_latches_stop_and_relinquishes_control() -> None
                 "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
                 "mode": 3,
                 "seq": 1,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
             }
         )
         websocket.receive_json()
@@ -420,7 +420,7 @@ def test_release_zeros_a_nondefault_target_even_when_stop_is_already_latched() -
                 "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
                 "mode": 3,
                 "seq": 1,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
             }
         )
         websocket.receive_json()
@@ -428,7 +428,7 @@ def test_release_zeros_a_nondefault_target_even_when_stop_is_already_latched() -
         websocket.send_json({"type": "release_control"})
         assert websocket.receive_json()["type"] == "control_state"
 
-    assert gateway.commands[-1].target == "/joystick_cartesian_command"
+    assert gateway.commands[-1].target == "/tablet_cartesian_command"
     assert gateway.commands[-1].linear == TeleopVector3()
     assert gateway.commands[-1].angular == TeleopVector3()
 
@@ -594,7 +594,7 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
                 "linear": {"x": 0.1, "y": -0.2, "z": 0.0},
                 "mode": 4,
                 "seq": 42,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
             }
         )
         response = websocket.receive_json()
@@ -610,7 +610,7 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
             "mode": 4,
             "seq": 42,
             "status": "accepted",
-            "target": "/joystick_cartesian_command",
+            "target": "/tablet_cartesian_command",
         },
         "session_id": connected["session_id"],
     }
@@ -620,7 +620,7 @@ def test_runtime_websocket_accepts_teleop_commands() -> None:
         linear=TeleopVector3(x=0.1, y=-0.2, z=0.0),
         mode=4,
         seq=42,
-        target="/joystick_cartesian_command",
+        target="/tablet_cartesian_command",
     )
     assert gateway.commands[-1].linear == TeleopVector3()
 
@@ -642,7 +642,7 @@ def test_runtime_websocket_keeps_legacy_axes_alias_for_teleop_commands() -> None
 
     assert response["payload"]["linear"] == {"x": 0.1, "y": -0.2, "z": 0.0}
     assert response["payload"]["status"] == "simulated"
-    assert response["payload"]["target"] == "/joystick_cartesian_command"
+    assert response["payload"]["target"] == "/tablet_cartesian_command"
 
 
 def test_runtime_websocket_rejects_out_of_range_teleop_modes() -> None:
@@ -673,7 +673,7 @@ def test_runtime_websocket_returns_errors_when_teleop_gateway_fails() -> None:
                 "type": "teleop_cmd",
                 "mode": 3,
                 "seq": 1,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
                 "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
                 "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
             }
@@ -687,7 +687,7 @@ def test_runtime_websocket_returns_errors_when_teleop_gateway_fails() -> None:
         "detail": "Teleop command could not be published.",
         "payload": {
             "message": "extender_msgs is required to publish teleop commands",
-            "target": "/joystick_cartesian_command",
+            "target": "/tablet_cartesian_command",
         },
         "session_id": response["session_id"],
     }
@@ -747,7 +747,7 @@ def test_runtime_websocket_rejects_rate_limited_teleop_commands() -> None:
         "type": "teleop_cmd",
         "mode": 4,
         "seq": 1,
-        "target": "/joystick_cartesian_command",
+        "target": "/tablet_cartesian_command",
         "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
         "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
@@ -768,7 +768,7 @@ def test_runtime_websocket_rejects_rate_limited_teleop_commands() -> None:
     record = audit_log.list_records()[0]
     assert record.channel == "websocket_teleop"
     assert record.status == "rejected"
-    assert record.target == "/joystick_cartesian_command"
+    assert record.target == "/tablet_cartesian_command"
 
 
 def test_runtime_websocket_never_rate_limits_an_explicit_zero() -> None:
@@ -786,7 +786,7 @@ def test_runtime_websocket_never_rate_limits_an_explicit_zero() -> None:
         "type": "teleop_cmd",
         "mode": 4,
         "seq": 1,
-        "target": "/joystick_cartesian_command",
+        "target": "/tablet_cartesian_command",
         "linear": {"x": 0.1, "y": 0.0, "z": 0.0},
         "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
     }
@@ -817,7 +817,7 @@ def test_runtime_audit_endpoint_lists_recent_records() -> None:
             detail="accepted for test",
             session_id="session-1",
             status="accepted",
-            target="/joystick_cartesian_command",
+            target="/tablet_cartesian_command",
         )
     )
     client = TestClient(
@@ -840,7 +840,7 @@ def test_runtime_audit_endpoint_lists_recent_records() -> None:
         "repeats": 1,
         "session_id": audit_session_alias("session-1"),
         "status": "accepted",
-        "target": "/joystick_cartesian_command",
+        "target": "/tablet_cartesian_command",
         "topic": "",
     }
 
@@ -1174,7 +1174,7 @@ def test_a_teleop_stream_is_one_audit_record_with_a_count() -> None:
                 detail="Cartesian command published in frame 'base_link'.",
                 session_id="session-1",
                 status="accepted",
-                target="/joystick_cartesian_command",
+                target="/tablet_cartesian_command",
             )
         )
 
@@ -1184,7 +1184,7 @@ def test_a_teleop_stream_is_one_audit_record_with_a_count() -> None:
     assert stop.channel == "runtime_stop"
 
 
-def teleop_command(target: str = "/joystick_cartesian_command") -> dict:
+def teleop_command(target: str = "/tablet_cartesian_command") -> dict:
     return {
         "type": "teleop_cmd",
         "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
@@ -1241,7 +1241,7 @@ def test_an_app_keeps_the_teleop_target_it_declares() -> None:
         acknowledged = websocket.receive_json()
 
     assert acknowledged["type"] == "teleop_ack"
-    assert {command.target for command in gateway.commands} == {"/joystick_cartesian_command"}
+    assert {command.target for command in gateway.commands} == {"/tablet_cartesian_command"}
 
 
 def test_a_socket_that_names_no_app_keeps_the_deployment_policy() -> None:
@@ -1418,7 +1418,7 @@ def test_a_disconnect_zeros_a_moving_target_without_the_control_lease() -> None:
                 "linear": {"x": 1.0, "y": 0.0, "z": 0.0},
                 "mode": 3,
                 "seq": 1,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
             }
         )
         websocket.receive_json()
@@ -1471,6 +1471,6 @@ def test_a_freshly_created_app_can_drive_the_robot() -> None:
         websocket.send_json(teleop_command())
         acknowledged = websocket.receive_json()
 
-    assert context["payload"]["allowed_teleop_targets"] == ["/joystick_cartesian_command"]
+    assert context["payload"]["allowed_teleop_targets"] == ["/tablet_cartesian_command"]
     assert acknowledged["type"] == "teleop_ack", acknowledged
-    assert gateway.commands[0].target == "/joystick_cartesian_command"
+    assert gateway.commands[0].target == "/tablet_cartesian_command"
