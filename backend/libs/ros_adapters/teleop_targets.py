@@ -45,7 +45,7 @@ class TeleopTargetDirectory:
                 logger.debug("Teleop targets: %s did not answer (%s).", node, exc)
                 continue
             answered = True
-            found.extend(r.value for r in readings if isinstance(r.value, str) and r.value.startswith("/"))
+            found.extend(r.value for r in readings if is_topic_name(r.value))
         if answered:
             self._discovered = tuple(dict.fromkeys(found))
 
@@ -62,6 +62,11 @@ class TeleopTargetDirectory:
         while not self._stop.is_set():
             self.refresh()
             self._stop.wait(self._refresh_sec)
+
+
+def is_topic_name(value: object) -> bool:
+    """One topic, never a namespace or a wildcard: the allowlist reads a trailing `/` as a whole namespace."""
+    return isinstance(value, str) and value.startswith("/") and not value.endswith("/") and "*" not in value
 
 
 def _group_by_node(sources: Sequence[str]) -> dict[str, tuple[str, ...]]:

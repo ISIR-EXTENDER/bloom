@@ -11,7 +11,7 @@ type SaveApplication = (configId: string, application: ApplicationConfig) => Pro
 type SaveScreen = (configId: string, applicationId: string, screen: ScreenConfig) => Promise<LoadedConfiguration>;
 type DeleteApplication = (configId: string, applicationId: string) => Promise<LoadedConfiguration>;
 type TakeShipped = (configId: string) => Promise<LoadedConfiguration>;
-type Publish = (configId: string) => Promise<{ path: string; alreadyPublished: boolean }>;
+type Publish = (configId: string) => Promise<{ path: string; alreadyPublished: boolean; warnings: string[] }>;
 
 export type ConfigurationLoadState =
   | { status: "loading" }
@@ -118,7 +118,7 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     async (configId) => {
       const response = await client.publishConfiguration(configId);
       await refreshShareStatus();
-      return { alreadyPublished: response.already_published, path: response.path };
+      return { alreadyPublished: response.already_published, path: response.path, warnings: response.warnings ?? [] };
     },
     [client, refreshShareStatus],
   );

@@ -135,3 +135,23 @@ def test_an_input_the_manager_adds_while_a_tablet_is_connected_is_accepted() -> 
         client.app.state.teleop_target_directory.refresh()
         websocket.send_json(_teleop("/lab_joystick"))
         assert websocket.receive_json()["type"] == "teleop_ack"
+
+
+def test_a_namespace_or_a_wildcard_is_never_taken_as_a_topic() -> None:
+    parameters = ManagerParameters({"topics.joystick_command": "/ui/", "topics.visual_servoing_command": "/any*"})
+    directory = TeleopTargetDirectory((), parameters, MANAGER_INPUTS)
+
+    directory.refresh()
+
+    assert directory.targets() == ()
+
+
+def test_stop_zeroes_topics_and_skips_permissions_that_are_not_topics() -> None:
+    gateway = RecordingTeleopGateway()
+    settings = Settings(environment="test", allowed_teleop_targets=("/joystick_cartesian_command", "/ui/", "*"))
+    client = TestClient(create_app(settings, InMemoryConfigurationRepository(), teleop_command_gateway=gateway))
+
+    response = client.post("/api/v1/runtime/stop")
+
+    assert response.status_code == 200
+    assert {command.target for command in gateway.commands} == {"/joystick_cartesian_command"}

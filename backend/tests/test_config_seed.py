@@ -582,3 +582,85 @@ def test_a_deleted_shipped_app_stays_deleted_until_forced(tmp_path: Path, storag
     seed_configurations(open_store(), force_ids={"petanque-admin"})
     assert "petanque-admin" in open_store().list_ids()
     assert open_store().deleted_ids() == []
+
+
+def _seed_dir_with(tmp_path: Path, *app_ids: str) -> Path:
+    directory = tmp_path / "seed"
+    directory.mkdir()
+    for app_id in app_ids:
+        (directory / f"{app_id}.json").write_text((DEFAULT_SEED_DIR / f"{app_id}.json").read_text())
+    return directory
+
+
+def _renamed(bundle: ConfigurationBundle, name: str) -> ConfigurationBundle:
+    [application] = bundle.applications
+    return bundle.model_copy(update={"applications": (application.model_copy(update={"name": name}),)})
+
+
+def test_a_copy_shared_from_here_survives_its_file_being_discarded(tmp_path: Path) -> None:
+    # Share writes into the working tree; a `git checkout .` before committing brought the old file back, and the
+    # next API start replaced the store copy with it, taking the edits along.
+    seed_dir = _seed_dir_with(tmp_path, "sandbox")
+    original = (seed_dir / "sandbox.json").read_text()
+    repository = InMemoryConfigurationRepository()
+    seed_configurations(repository, seed_dir=seed_dir)
+    repository.upsert("sandbox", _renamed(repository.get("sandbox"), "Sandbox, shared from here"))
+    seed.publish_configuration(repository, "sandbox", seed_dir)
+
+    (seed_dir / "sandbox.json").write_text(original)
+    seed_configurations(repository, seed_dir=seed_dir)
+
+    assert repository.get("sandbox").applications[0].name == "Sandbox, shared from here"
+    assert seed.configuration_share_status(repository, seed_dir)["sandbox"] == "outdated"
+
+
+def test_sharing_a_copy_the_repository_has_moved_past_is_refused(tmp_path: Path) -> None:
+    seed_dir = _seed_dir_with(tmp_path, "sandbox")
+    repository = InMemoryConfigurationRepository()
+    seed_configurations(repository, seed_dir=seed_dir)
+    newer = _renamed(load_configuration_file(seed_dir / "sandbox.json"), "Sandbox, newer upstream")
+    seed.save_configuration_file(newer, seed_dir / "sandbox.json")
+
+    with pytest.raises(seed.NewerSharedVersionError):
+        seed.publish_configuration(repository, "sandbox", seed_dir)
+    assert "newer upstream" in (seed_dir / "sandbox.json").read_text()
+
+
+def test_a_broken_shipped_file_neither_stops_seeding_nor_blanks_every_status(tmp_path: Path) -> None:
+    seed_dir = _seed_dir_with(tmp_path, "sandbox", "bloom-debug")
+    repository = InMemoryConfigurationRepository()
+    seed_configurations(repository, seed_dir=seed_dir)
+    (seed_dir / "bloom-debug.json").write_text("<<<<<<< HEAD\n{")
+
+    outcome = seed_configurations(repository, seed_dir=seed_dir)
+    statuses = seed.configuration_share_status(repository, seed_dir)
+
+    assert "bloom-debug" in outcome.skipped
+    assert statuses == {"sandbox": "shared"}
+
+
+def test_a_shared_file_is_written_whole_or_not_at_all(tmp_path: Path) -> None:
+    target = tmp_path / "app.json"
+    seed.save_configuration_file(load_configuration_file(DEFAULT_SEED_DIR / "sandbox.json"), target)
+
+    assert load_configuration_file(target).applications
+    assert [path.name for path in tmp_path.iterdir()] == ["app.json"]
+
+
+def test_sharing_an_app_with_uploaded_theme_images_says_they_stay_here(tmp_path: Path) -> None:
+    seed_dir = _seed_dir_with(tmp_path, "sandbox")
+    repository = InMemoryConfigurationRepository()
+    seed_configurations(repository, seed_dir=seed_dir)
+    bundle = repository.get("sandbox")
+    [application] = bundle.applications
+    inspiration = application.theme.inspiration.model_copy(
+        update={"moodboard_image_uri": "/api/v1/configurations/sandbox/theme-assets/board.png"}
+    )
+    theme = application.theme.model_copy(update={"inspiration": inspiration})
+    repository.upsert(
+        "sandbox", bundle.model_copy(update={"applications": (application.model_copy(update={"theme": theme}),)})
+    )
+
+    outcome = seed.publish_configuration(repository, "sandbox", seed_dir)
+
+    assert outcome.warnings and "theme images" in outcome.warnings[0]

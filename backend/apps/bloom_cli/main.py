@@ -26,7 +26,7 @@ from libs.config import (
     save_configuration_file,
 )
 from libs.config.seed import (
-    DEFAULT_SEED_DIR,
+    NewerSharedVersionError,
     adopt_file_configurations,
     configuration_share_status,
     seed_configurations,
@@ -133,6 +133,8 @@ def run_ros_api(
         app.state.teleop_target_directory.start()
         uvicorn.run(app, host=host, port=port, reload=False)
     finally:
+        if "app" in locals():
+            app.state.teleop_target_directory.stop()
         executor.shutdown()
         spin_thread.join(timeout=2.0)
         node.destroy_node()
@@ -186,7 +188,9 @@ def seed_shared_applications(
     storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to write to."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
-    seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
+    seed_dir: Path | None = typer.Option(
+        None, "--seed-dir", help="Directory of shipped bundles; BLOOM_SEED_DIR by default."
+    ),
 ) -> None:
     """Import the shared applications this store is missing.
 
@@ -195,7 +199,7 @@ def seed_shared_applications(
     edited is updated to the shipped version.
     """
     repository = open_configuration_repository(storage, configuration_dir, database_path)
-    outcome = seed_configurations(repository, seed_dir=seed_dir, force_ids=frozenset(force))
+    outcome = seed_configurations(repository, seed_dir=seed_dir or get_settings().seed_dir, force_ids=frozenset(force))
 
     for config_id in outcome.imported:
         typer.echo(f"Imported {config_id}")
@@ -212,7 +216,9 @@ def configuration_status(
     storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to inspect."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
-    seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
+    seed_dir: Path | None = typer.Option(
+        None, "--seed-dir", help="Directory of shipped bundles; BLOOM_SEED_DIR by default."
+    ),
 ) -> None:
     """Show which applications differ from the version committed to the repo."""
     repository = open_configuration_repository(storage, configuration_dir, database_path)
@@ -224,7 +230,7 @@ def configuration_status(
         "edited": " (run: bloom config publish {id} to share your changes)",
         "shared": "",
     }
-    for config_id, share_status in configuration_share_status(repository, seed_dir).items():
+    for config_id, share_status in configuration_share_status(repository, seed_dir or get_settings().seed_dir).items():
         typer.echo(f"{share_status:<9} {config_id}{hints[share_status].format(id=config_id)}")
 
 
@@ -234,7 +240,9 @@ def publish_configuration(
     storage: ConfigurationStorageKind | None = typer.Option(None, "--storage", help="Storage backend to read from."),
     configuration_dir: Path | None = typer.Option(None, "--configuration-dir", help="JSON configuration directory."),
     database_path: Path | None = typer.Option(None, "--database-path", help="SQLite database path."),
-    seed_dir: Path = typer.Option(DEFAULT_SEED_DIR, "--seed-dir", help="Directory of shipped bundles."),
+    seed_dir: Path | None = typer.Option(
+        None, "--seed-dir", help="Directory of shipped bundles; BLOOM_SEED_DIR by default."
+    ),
 ) -> None:
     """Write a local configuration back out as a shared application.
 
@@ -243,10 +251,14 @@ def publish_configuration(
     """
     repository = open_configuration_repository(storage, configuration_dir, database_path)
     try:
-        outcome = publish_configuration_to_seed(repository, config_id, seed_dir)
+        outcome = publish_configuration_to_seed(repository, config_id, seed_dir or get_settings().seed_dir)
     except ConfigurationNotFoundError:
         known = ", ".join(repository.list_ids()) or "none"
         raise typer.BadParameter(f"No configuration {config_id!r} in this store. Available: {known}") from None
+    except NewerSharedVersionError as exc:
+        raise typer.BadParameter(f"{exc} Run: bloom config seed --force {config_id}") from None
+    for warning in outcome.warnings:
+        typer.echo(f"warning: {warning}", err=True)
 
     if outcome.already_published:
         typer.echo(f"{config_id} already matches {outcome.destination}; nothing to commit.")

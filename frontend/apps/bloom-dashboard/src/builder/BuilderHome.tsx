@@ -35,7 +35,9 @@ type BuilderHomeProps = {
   onPreviewScreenRuntime: (selection: WorkspaceSelection) => void;
   /** Where each configuration stands against the shipped one; a server that cannot say leaves it empty. */
   shareStatus?: Record<string, ShareStatus>;
-  onPublishConfiguration?: (configId: string) => Promise<{ path: string; alreadyPublished: boolean }>;
+  onPublishConfiguration?: (
+    configId: string,
+  ) => Promise<{ path: string; alreadyPublished: boolean; warnings?: string[] }>;
   onTakeShippedConfiguration?: (configId: string) => Promise<unknown>;
   /** The arm this Bloom drives, so a starter's pad and gripper match it. */
   robotName?: string;
@@ -44,7 +46,7 @@ type BuilderHomeProps = {
 type ShareActionState =
   | { status: "idle" }
   | { configId: string; status: "publishing" | "taking" }
-  | { configId: string; status: "published"; path: string; alreadyPublished: boolean }
+  | { configId: string; status: "published"; path: string; alreadyPublished: boolean; warnings?: string[] }
   | { message: string; status: "error" };
 
 /** What the badge says, and what the one button under it does. Statuses with nothing to do show nothing. */
@@ -325,6 +327,7 @@ export function BuilderHome({
                 {shareAction.alreadyPublished
                   ? `${shareAction.configId} already matches ${shareAction.path}; nothing to commit.`
                   : `Written to ${shareAction.path}. Commit that file to share it with the team.`}
+                {shareAction.warnings?.length ? ` ${shareAction.warnings.join(" ")}` : ""}
               </p>
             ) : null}
             {appActionState.status === "error" ? (
@@ -644,7 +647,7 @@ function ShareBadge({
   status,
 }: {
   configId: string;
-  onPublish?: (configId: string) => Promise<{ path: string; alreadyPublished: boolean }>;
+  onPublish?: (configId: string) => Promise<{ path: string; alreadyPublished: boolean; warnings?: string[] }>;
   onTakeShipped?: (configId: string) => Promise<unknown>;
   setState: (state: ShareActionState) => void;
   state: ShareActionState;
@@ -661,7 +664,11 @@ function ShareBadge({
       const result = await action();
       setState(
         kind === "publishing" && result && typeof result === "object" && "path" in result
-          ? { configId, status: "published", ...(result as { path: string; alreadyPublished: boolean }) }
+          ? {
+              configId,
+              status: "published",
+              ...(result as { path: string; alreadyPublished: boolean; warnings?: string[] }),
+            }
           : { status: "idle" },
       );
     } catch (error) {

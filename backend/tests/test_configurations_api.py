@@ -581,7 +581,7 @@ def test_sharing_an_edited_app_writes_the_file_to_commit(tmp_path) -> None:
     response = client.post("/api/v1/configurations/sandbox/publish")
 
     assert response.status_code == 200
-    assert response.json() == {"path": "seed/sandbox.json", "already_published": False}
+    assert response.json() == {"path": "seed/sandbox.json", "already_published": False, "warnings": []}
     assert "Sandbox, edited here" in (seed_dir / "sandbox.json").read_text()
     assert client.get("/api/v1/configurations/share-status").json() == {"statuses": {"sandbox": "shared"}}
     assert client.post("/api/v1/configurations/sandbox/publish").json()["already_published"] is True

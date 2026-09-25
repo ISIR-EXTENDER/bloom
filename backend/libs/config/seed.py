@@ -74,7 +74,11 @@ def _full_dump_fingerprint(bundle: ConfigurationBundle) -> str:
 def _fingerprint(payload: dict) -> str:
     metadata = payload.get("metadata")
     if isinstance(metadata, dict):
-        metadata = {key: value for key, value in metadata.items() if key not in ("exported_at", "seed_fingerprint")}
+        metadata = {
+            key: value
+            for key, value in metadata.items()
+            if key not in ("exported_at", "seed_fingerprint", "published_here")
+        }
         payload = {**payload, "metadata": metadata}
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
@@ -86,7 +90,9 @@ def stamp_seed_fingerprint(bundle: ConfigurationBundle) -> ConfigurationBundle:
 
 
 def strip_seed_fingerprint(bundle: ConfigurationBundle) -> ConfigurationBundle:
-    return bundle.model_copy(update={"metadata": bundle.metadata.model_copy(update={"seed_fingerprint": ""})})
+    return bundle.model_copy(
+        update={"metadata": bundle.metadata.model_copy(update={"seed_fingerprint": "", "published_here": False})}
+    )
 
 
 def is_unedited_seed_copy(stored: ConfigurationBundle, config_id: str = "") -> bool:
@@ -137,7 +143,13 @@ def seed_configurations(
         if config_id in deleted and config_id not in forced:
             skipped.append(config_id)
             continue
-        shipped = stamp_seed_fingerprint(load_configuration_file(directory / f"{config_id}.json"))
+        try:
+            shipped = stamp_seed_fingerprint(load_configuration_file(directory / f"{config_id}.json"))
+        except Exception:
+            # A malformed or merge-conflicted shipped file must not keep the API from starting.
+            logger.exception("Shipped configuration %s could not be read; skipping it.", config_id)
+            skipped.append(config_id)
+            continue
         if config_id not in existing or config_id in forced:
             repository.upsert(config_id, shipped)
             imported.append(config_id)
@@ -150,7 +162,7 @@ def seed_configurations(
             logger.exception("Stored configuration %s could not be read; leaving it untouched.", config_id)
             skipped.append(config_id)
             continue
-        if not is_unedited_seed_copy(stored, config_id):
+        if stored.metadata.published_here or not is_unedited_seed_copy(stored, config_id):
             skipped.append(config_id)
             continue
         if stored.metadata.seed_fingerprint == shipped.metadata.seed_fingerprint:
@@ -212,8 +224,13 @@ def configuration_share_status(
         elif config_id not in shipped:
             statuses[config_id] = "local"
         else:
-            stored_bundle = repository.get(config_id)
-            shipped_bundle = load_configuration_file(Path(seed_dir) / f"{config_id}.json")
+            try:
+                stored_bundle = repository.get(config_id)
+                shipped_bundle = load_configuration_file(Path(seed_dir) / f"{config_id}.json")
+            except Exception:
+                # One unreadable bundle leaves that card without a badge, not every card.
+                logger.exception("Share status of %s could not be read.", config_id)
+                continue
             # Compare content, not the stamp: a seeded copy carries a fingerprint the shipped file does not.
             if configuration_fingerprint(stored_bundle) == configuration_fingerprint(shipped_bundle):
                 statuses[config_id] = "shared"
@@ -234,10 +251,16 @@ def restore_shipped_configuration(
     return repository.upsert(config_id, stamp_seed_fingerprint(load_configuration_file(source)))
 
 
+class NewerSharedVersionError(RuntimeError):
+    """The repository holds a newer version than the copy asked to be shared."""
+
+
 @dataclass(frozen=True)
 class PublishOutcome:
     destination: Path
     already_published: bool
+    #: Why a teammate may not see the app as it looks here, such as theme images kept on this machine.
+    warnings: tuple[str, ...] = ()
 
 
 def publish_configuration(
@@ -245,6 +268,8 @@ def publish_configuration(
 ) -> PublishOutcome:
     """Write a stored app out as a shared one, for someone to commit. Raises ConfigurationNotFoundError."""
     bundle = repository.get(config_id)
+    if configuration_share_status(repository, seed_dir).get(config_id) == "outdated":
+        raise NewerSharedVersionError(f"{config_id} has a newer shared version; update to it before sharing.")
     destination = Path(seed_dir) / f"{config_id}.json"
     # Rewriting an unchanged app would only reorder keys and spell out defaults.
     already_published = destination.is_file() and configuration_fingerprint(
@@ -256,5 +281,13 @@ def publish_configuration(
         save_configuration_file(strip_seed_fingerprint(bundle), destination)
     # Stamped only once the file is really there: a stamp claimed before a failed write let the next
     # seed run throw the operator's edits away.
-    repository.upsert(config_id, stamp_seed_fingerprint(bundle))
-    return PublishOutcome(destination=destination, already_published=already_published)
+    stamped = stamp_seed_fingerprint(bundle)
+    repository.upsert(
+        config_id, stamped.model_copy(update={"metadata": stamped.metadata.model_copy(update={"published_here": True})})
+    )
+    warnings = (
+        ("Uploaded theme images stay on this machine; teammates will see the theme without them.",)
+        if "/theme-assets/" in json.dumps(configuration_to_dict(bundle))
+        else ()
+    )
+    return PublishOutcome(destination=destination, already_published=already_published, warnings=warnings)

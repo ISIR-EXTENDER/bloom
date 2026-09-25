@@ -299,6 +299,9 @@ class ConfigurationMetadata(BloomModel):
     #: Equal to the stored content's own fingerprint means nobody edited it,
     #: which is what makes an automatic upgrade safe.
     seed_fingerprint: str = ""
+    #: This machine published this copy as the shared app: seeding never replaces it on its own, since the
+    #: file it wrote may not be committed yet.
+    published_here: bool = False
 
     @field_validator("schema_version")
     @classmethod

@@ -123,7 +123,9 @@ class RuntimeStopController:
 
             # Straight through the gateways: not blockable by policy or rate
             # limit. Keeping the gate held makes this the last robot operation.
-            zero_ok, zero_detail, zero_simulated = self._publish_zero_twists()
+            # Read once: a refresh between the zeros and the session bookkeeping would mark an unzeroed topic zeroed.
+            targets = self._teleop_targets()
+            zero_ok, zero_detail, zero_simulated = self._publish_zero_twists(targets)
             cancel_ok, cancel_detail, cancel_simulated = self._publish_joint_target_cancel()
             servo_ok, servo_detail, servo_simulated = self._publish_visual_servoing_off()
             self._asserted = zero_ok and cancel_ok and servo_ok
@@ -136,7 +138,7 @@ class RuntimeStopController:
         self._record("accepted" if state.asserted else "rejected", detail)
         # The session state follows the zeros whether or not both assertions published: those targets were told.
         if self._on_asserted is not None:
-            for target in self._teleop_targets():
+            for target in targets:
                 self._on_asserted(target)
         if not state.asserted:
             raise RuntimeStopAssertionError(state)
@@ -145,7 +147,12 @@ class RuntimeStopController:
     def _teleop_targets(self) -> tuple[str, ...]:
         source = self._teleop_targets_source
         extra = source() if callable(source) else (source or ())
-        return tuple(dict.fromkeys([self._teleop_target, *extra]))
+        # A wildcard or namespace entry is a permission, not a topic that can carry a zero.
+        return tuple(
+            target
+            for target in dict.fromkeys([self._teleop_target, *extra])
+            if target.startswith("/") and not target.endswith("/") and "*" not in target
+        )
 
     def resume(self) -> RuntimeStopState:
         """Clear the latch; publishes nothing."""
@@ -160,12 +167,12 @@ class RuntimeStopController:
         self._record("accepted", "Runtime stop resumed by operator hold.")
         return state
 
-    def _publish_zero_twists(self) -> tuple[bool, str, bool]:
+    def _publish_zero_twists(self, targets: tuple[str, ...]) -> tuple[bool, str, bool]:
         """Every accepted target, because the latch cannot know which one a session was driving."""
         published: list[str] = []
         failures: list[str] = []
         simulated = False
-        for target in self._teleop_targets():
+        for target in targets:
             command = TeleopCommand(
                 angular=TeleopVector3(),
                 linear=TeleopVector3(),

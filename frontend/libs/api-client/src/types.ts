@@ -80,6 +80,8 @@ export type ShareStatusResponse = {
 export type PublishResponse = {
   path: string;
   already_published: boolean;
+  /** Why a teammate may not see the app as it looks here, such as theme images kept on this machine. */
+  warnings?: string[];
 };
 
 export type ReservedRegion = {

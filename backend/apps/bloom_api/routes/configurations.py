@@ -30,6 +30,7 @@ from libs.config import (
     upsert_screen,
 )
 from libs.config.seed import (
+    NewerSharedVersionError,
     ShareStatus,
     configuration_share_status,
     publish_configuration,
@@ -66,6 +67,7 @@ class PublishResponse(BaseModel):
     #: Relative to the seed directory's repository, for the "commit this file" message.
     path: str
     already_published: bool
+    warnings: list[str] = []
 
 
 @dataclass
@@ -149,6 +151,8 @@ def publish_shared_configuration(
         outcome = publish_configuration(get_configuration_repository(request), config_id, seed_dir)
     except ConfigurationNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="configuration not found") from exc
+    except NewerSharedVersionError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except OSError as exc:
         # A deployed server's seed directory is often read-only; the CLI on a clone is the way then.
         raise HTTPException(
@@ -159,7 +163,9 @@ def publish_shared_configuration(
             ),
         ) from exc
     return PublishResponse(
-        path=f"{seed_dir.name}/{outcome.destination.name}", already_published=outcome.already_published
+        path=f"{seed_dir.name}/{outcome.destination.name}",
+        already_published=outcome.already_published,
+        warnings=list(outcome.warnings),
     )
 
 

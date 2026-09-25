@@ -71,6 +71,8 @@ class RclpyRosParameterGateway:
         self._wait_for_service_sec = wait_for_service_sec
         self._response_timeout_sec = response_timeout_sec
         self._clients: dict[tuple[str, str], Any] = {}
+        # The HTTP routes, the robot model and the teleop directory share these clients from different threads.
+        self._clients_lock = threading.Lock()
 
     def set(self, request: RosParameterRequest) -> RosParameterReceipt:
         from rcl_interfaces.msg import Parameter
@@ -98,6 +100,11 @@ class RclpyRosParameterGateway:
         message = GetParameters.Request()
         message.names = list(names)
         response = self._call(client, message, node)
+        if len(response.values) != len(names):
+            # A node answers nothing at all when one name is undeclared, so ask each name on its own.
+            if len(names) == 1:
+                return (RosParameterReading(node=node, name=names[0], value=None),)
+            return tuple(reading for name in names for reading in self.get(node, (name,)))
         readings = []
         for name, value in zip(names, response.values, strict=True):
             python_value = parameter_value_to_python(value)
@@ -112,10 +119,11 @@ class RclpyRosParameterGateway:
 
     def _client(self, node: str, service: str, service_cls: Any) -> Any:
         key = (node, service)
-        client = self._clients.get(key)
-        if client is None:
-            client = self._node.create_client(service_cls, f"{node}/{service}")
-            self._clients[key] = client
+        with self._clients_lock:
+            client = self._clients.get(key)
+            if client is None:
+                client = self._node.create_client(service_cls, f"{node}/{service}")
+                self._clients[key] = client
         return client
 
     def _call(self, client: Any, message: Any, node: str) -> Any:

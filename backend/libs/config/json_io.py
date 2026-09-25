@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +23,10 @@ def load_configuration_file(path: str | Path) -> ConfigurationBundle:
 def save_configuration_file(bundle: ConfigurationBundle, path: str | Path, *, indent: int = 2) -> None:
     config_path = Path(path)
     config_path.parent.mkdir(parents=True, exist_ok=True)
-    config_path.write_text(f"{dump_configuration_json(bundle, indent=indent)}\n", encoding="utf-8")
+    # Written beside and swapped in, so an interrupted write never leaves a truncated bundle behind.
+    partial = config_path.with_name(f".{config_path.name}.partial")
+    partial.write_text(f"{dump_configuration_json(bundle, indent=indent)}\n", encoding="utf-8")
+    os.replace(partial, config_path)
 
 
 def configuration_to_dict(bundle: ConfigurationBundle) -> dict[str, Any]:

@@ -96,6 +96,16 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **Sharing an app can no longer lose the work behind it.** A copy shared from this machine is marked, so an API
+  start never replaces it with an older shared file (a `git checkout .` before committing used to do exactly that);
+  sharing a copy the repository has moved past is refused with 409 until it is updated; shared files are written
+  whole or not at all; one malformed shared file no longer stops the API or blanks every Builder badge; and sharing
+  an app whose theme uses uploaded images says those images stay on this machine. `bloom config` follows
+  `BLOOM_SEED_DIR`.
+- **Sturdier teleop plumbing.** A node that lacks one requested parameter no longer hides all its inputs, the
+  parameter clients are created under a lock, the discovery thread stops with the API, a namespace or wildcard is
+  never taken as a topic, and STOP reads its targets once and skips entries that are permissions rather than topics.
+
 - **The tablet's touch follows it while Bloom runs.** `extender-tablet-touch-map.sh --watch`, started by the
   launcher, maps it again within two seconds when it is plugged in late, replugged, or its matrix is overwritten by
   the desktop. `scripts/virtual-touchscreen.py` rehearses the mapping with a virtual touchscreen carrying the tablet's
