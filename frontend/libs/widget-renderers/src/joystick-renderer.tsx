@@ -298,8 +298,7 @@ function StepZoneJoystick({
         </button>
       </fieldset>
       <output aria-live="polite" className="bloom-control-vector-readout">
-        <span>x {currentVector.x.toFixed(2)}</span>
-        <span>y {currentVector.y.toFixed(2)}</span>
+        <span>x {currentVector.x.toFixed(2)}</span> <span>y {currentVector.y.toFixed(2)}</span>
       </output>
     </div>
   );

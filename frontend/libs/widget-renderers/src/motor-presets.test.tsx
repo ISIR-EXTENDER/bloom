@@ -64,6 +64,8 @@ describe("step zones", () => {
       { x: 0, y: 0.5 },
       { x: 0.25, y: 0.5 },
     ]);
+    // Read aloud and on screen as two values, not "0.25y 0.50".
+    expect(document.querySelector(".bloom-control-vector-readout")?.textContent).toBe("x 0.25 y 0.50");
   });
 
   it("clamps the stepped vector to unit range", () => {
