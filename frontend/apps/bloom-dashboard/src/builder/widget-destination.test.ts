@@ -39,7 +39,7 @@ describe("teleop widgets", () => {
     runtime_binding: {
       adapter: "teleop",
       axis_mapping: { value: { component: "linear_z" } },
-      value_mapping: { target_topic: "/joystick_cartesian_command" },
+      value_mapping: { target_topic: "/tablet_cartesian_command" },
     },
   };
 
@@ -47,7 +47,7 @@ describe("teleop widgets", () => {
     const destination = resolveWidgetDestination("joystick", settings);
     const request = createTeleopCommandRequest(valueChangeIntent(settings) as never);
 
-    expect(destination?.topic).toBe("/joystick_cartesian_command");
+    expect(destination?.topic).toBe("/tablet_cartesian_command");
     expect(destination?.source).toBe("runtime-binding");
     expect(request?.target).toBe(destination?.topic);
   });
@@ -142,12 +142,12 @@ describe("plain publishing widgets", () => {
 /**
  * A feedback widget subscribes; it never publishes. Describing one as
  * publishing would be the same class of mistake this panel exists to fix, and
- * would be a loud one on a screen echoing `/joystick_cartesian_command`.
+ * would be a loud one on a screen echoing `/tablet_cartesian_command`.
  */
 describe("reading widgets", () => {
   for (const kind of ["topic-echo", "topic-plot", "gauge", "plot", "event-log"]) {
     it(`says ${kind} reads rather than publishes, and the runtime subscribes there`, () => {
-      const settings = { topic: "/joystick_cartesian_command", messageType: "geometry_msgs/msg/TwistStamped" };
+      const settings = { topic: "/tablet_cartesian_command", messageType: "geometry_msgs/msg/TwistStamped" };
       const destination = resolveWidgetDestination(kind, settings);
 
       expect(destination?.direction).toBe("reads");

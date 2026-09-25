@@ -10,7 +10,7 @@
  * Composition has to happen here rather than being left to the manager.
  * `InputManager::setCommand` *replaces* the latest command for a source and only
  * sums *across* sources, so if each widget published its own twist to
- * `/joystick_cartesian_command`, the last one to publish would erase the others:
+ * `/tablet_cartesian_command`, the last one to publish would erase the others:
  * a Z slider would wipe out the translation joystick.
  *
  * The manager also drops a source whose command is older than its `timeout_sec`

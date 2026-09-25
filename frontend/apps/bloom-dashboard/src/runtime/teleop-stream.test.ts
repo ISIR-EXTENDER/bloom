@@ -11,7 +11,7 @@ function widgetRequest(overrides: Partial<RuntimeTeleopCommandRequest> = {}): Ru
     linear: { x: 0, y: 0, z: 0.5 },
     mode: 0,
     seq: 1,
-    target: "/joystick_cartesian_command",
+    target: "/tablet_cartesian_command",
     ...overrides,
   };
 }
@@ -55,7 +55,7 @@ describe("the teleop stream pump", () => {
     expect(sent[0]).toMatchObject({
       linear: { x: 0, y: 0, z: 0.5 },
       mode: 0,
-      target: "/joystick_cartesian_command",
+      target: "/tablet_cartesian_command",
     });
     expect(new Set(sent.map((request) => request.seq)).size).toBe(sent.length);
     pump.stop();
@@ -164,7 +164,7 @@ describe("the teleop stream pump", () => {
       frame_id: "base_link",
       linear: { x: 0, y: 0, z: 0 },
       mode: 2,
-      target: "/joystick_cartesian_command",
+      target: "/tablet_cartesian_command",
     });
   });
 });
@@ -192,11 +192,11 @@ describe("a non-widget source", () => {
       },
     });
 
-    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target: "/joystick_cartesian_command" });
+    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target: "/tablet_cartesian_command" });
     await vi.advanceTimersByTimeAsync(120);
 
     expect(sent.length).toBeGreaterThan(0);
-    expect(sent[0]).toMatchObject({ linear: { x: 0.6, y: 0, z: 0 }, target: "/joystick_cartesian_command" });
+    expect(sent[0]).toMatchObject({ linear: { x: 0.6, y: 0, z: 0 }, target: "/tablet_cartesian_command" });
     pump.stop();
   });
 
@@ -214,7 +214,7 @@ describe("a non-widget source", () => {
     pump.noteExternalContribution({
       frame_id: "hybrid_frame",
       mode: 0,
-      target: "/joystick_cartesian_command",
+      target: "/tablet_cartesian_command",
     });
     await vi.advanceTimersByTimeAsync(120);
 
@@ -234,7 +234,7 @@ describe("a non-widget source", () => {
     });
 
     pump.noteDispatched(widgetRequest({ target: "/custom_teleop", mode: 3 }), "sent");
-    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target: "/joystick_cartesian_command" });
+    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target: "/tablet_cartesian_command" });
     await vi.advanceTimersByTimeAsync(120);
 
     expect(sent.at(-1)).toMatchObject({ frame_id: "hybrid_frame", mode: 3, target: "/custom_teleop" });
@@ -253,7 +253,7 @@ describe("a non-widget source", () => {
     });
 
     pump.noteDispatched(widgetRequest({ frame_id: "ft_frame" }), "sent");
-    pump.noteExternalContribution({ mode: 0, target: "/joystick_cartesian_command" });
+    pump.noteExternalContribution({ mode: 0, target: "/tablet_cartesian_command" });
     await vi.advanceTimersByTimeAsync(120);
 
     expect(sent.at(-1)).toMatchObject({ frame_id: "ft_frame" });

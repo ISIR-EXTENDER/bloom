@@ -18,7 +18,7 @@ describe("cartesian_manager widget defaults", () => {
       runtime_binding?: { value_mapping?: Record<string, unknown> };
     };
 
-    expect(settings.runtime_binding?.value_mapping?.target_topic).toBe("/joystick_cartesian_command");
+    expect(settings.runtime_binding?.value_mapping?.target_topic).toBe("/tablet_cartesian_command");
   });
 
   it("does not leave any retired topic in the default widget settings", () => {

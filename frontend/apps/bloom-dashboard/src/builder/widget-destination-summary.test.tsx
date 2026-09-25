@@ -22,7 +22,7 @@ const joystick: WidgetConfig = {
 function summary(serverTeleopTargets?: string[]) {
   render(
     <WidgetDestinationSummary
-      allowedTeleopTargets={["/joystick_cartesian_command", "/tablet_cmd"]}
+      allowedTeleopTargets={["/tablet_cartesian_command", "/tablet_cmd"]}
       destination={resolveWidgetDestination(joystick.kind, joystick.settings)}
       serverTeleopTargets={serverTeleopTargets}
       widget={joystick}
@@ -32,14 +32,14 @@ function summary(serverTeleopTargets?: string[]) {
 
 describe("the inspector on a joystick's topic", () => {
   it("warns when nothing on the robot takes the topic, and names what the manager listens on", () => {
-    summary(["/joystick_cartesian_command"]);
+    summary(["/tablet_cartesian_command"]);
     const alert = screen.getByRole("alert").textContent ?? "";
     expect(alert).toContain("Nothing on this robot takes a joystick on /tablet_cmd");
-    expect(alert).toContain("The manager listens on /joystick_cartesian_command");
+    expect(alert).toContain("The manager listens on /tablet_cartesian_command");
   });
 
   it("stays quiet when the server allows it, or has not said", () => {
-    summary(["/joystick_cartesian_command", "/tablet_cmd"]);
+    summary(["/tablet_cartesian_command", "/tablet_cmd"]);
     expect(screen.queryByRole("alert")).toBeNull();
     cleanup();
     summary(undefined);

@@ -105,7 +105,7 @@ describe("the echo's header note", () => {
           messages: [
             {
               receivedAt: new Date(Date.now() - 600_000).toISOString(),
-              topic: "/joystick_cartesian_command",
+              topic: "/tablet_cartesian_command",
               value: { twist: { linear: { x: 0.4 } } },
             },
           ],

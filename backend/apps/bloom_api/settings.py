@@ -6,6 +6,7 @@ from typing import Literal, TypeVar
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from libs.config.seed import DEFAULT_SEED_DIR
+from libs.manager_contract import MANAGER_NODE, TABLET_COMMAND_TOPIC
 
 T = TypeVar("T", bound=str)
 MIN_PRODUCTION_API_KEY_LENGTH = 32
@@ -92,12 +93,9 @@ class Settings(BaseModel):
     allowed_command_frame_ids: tuple[str, ...] = ("base_link", "hybrid_frame")
     # Topics a joystick may drive beyond the manager's own inputs. The manager's declared default stays here so
     # driving works before its parameters are first read.
-    allowed_teleop_targets: tuple[str, ...] = ("/joystick_cartesian_command",)
-    # "<node>:<parameter>" pairs naming the manager's input topics; read live, so the manager decides its inputs.
-    teleop_target_parameters: tuple[str, ...] = (
-        "/cartesian_manager:topics.joystick_command",
-        "/cartesian_manager:topics.visual_servoing_command",
-    )
+    allowed_teleop_targets: tuple[str, ...] = (TABLET_COMMAND_TOPIC,)
+    # The node whose declared inputs a joystick may drive: `inputs.sources`, each on `topics.<source>_command`.
+    teleop_input_node: str = MANAGER_NODE
     teleop_target_refresh_sec: float = Field(default=5.0, gt=0)
     # Live tuning through the nodes' own parameter services, as "<node>:<parameter>".
     # cartesian_manager rereads these every tick; joint targets, inputs and frames
@@ -138,6 +136,7 @@ class Settings(BaseModel):
         "/joint_target_command",
         "/joystick_cartesian_command",
         "/mode_request",
+        TABLET_COMMAND_TOPIC,
         # The measure bridge's ball/target vectors, JSON in a String.
         "/petanque/measure/result_vectors",
         "/petanque_state_machine/change_state",
@@ -276,10 +275,7 @@ class Settings(BaseModel):
                 "BLOOM_ALLOWED_TELEOP_TARGETS",
                 cls.model_fields["allowed_teleop_targets"].default,
             ),
-            teleop_target_parameters=_read_tuple_env(
-                "BLOOM_TELEOP_TARGET_PARAMETERS",
-                cls.model_fields["teleop_target_parameters"].default,
-            ),
+            teleop_input_node=os.getenv("BLOOM_TELEOP_INPUT_NODE", MANAGER_NODE),
             allowed_ros_parameters=_read_tuple_env(
                 "BLOOM_ALLOWED_ROS_PARAMETERS",
                 cls.model_fields["allowed_ros_parameters"].default,

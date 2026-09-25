@@ -137,7 +137,7 @@ def test_an_observer_watches_the_socket_but_cannot_drive_it() -> None:
                 "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
                 "mode": 0,
                 "seq": 1,
-                "target": "/joystick_cartesian_command",
+                "target": "/tablet_cartesian_command",
             }
         )
         refused_command = websocket.receive_json()

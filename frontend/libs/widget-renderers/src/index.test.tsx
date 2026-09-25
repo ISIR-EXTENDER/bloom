@@ -506,7 +506,7 @@ describe("widget renderer registry", () => {
         target: "both",
         value_mapping: {
           mode: 3,
-          target_topic: "/joystick_cartesian_command",
+          target_topic: "/tablet_cartesian_command",
         },
       },
       type: "value-change",
@@ -533,7 +533,7 @@ describe("widget renderer registry", () => {
     expect(screen.getAllByText("both")).toHaveLength(1);
     expect(screen.getByText("translation / translation")).toBeVisible();
     expect(screen.getByText("30 Hz")).toBeVisible();
-    expect(screen.getByText("/joystick_cartesian_command")).toBeVisible();
+    expect(screen.getByText("/tablet_cartesian_command")).toBeVisible();
     expect(document.querySelector(".bloom-widget-head .bloom-widget-readout")).toHaveTextContent("x +0.00 y +0.00");
   });
 

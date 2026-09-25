@@ -135,7 +135,7 @@ same policy, payload, rate-limit, and audit path.
 
 The details the robot side observes are preserved deliberately: joystick values stay normalized to the unit-disk
 contract, teleop uses the runtime WebSocket `teleop_cmd` contract against configured targets such as
-`/joystick_cartesian_command`, several widgets and a physical gamepad compose one 6-DoF twist with per-axis scaled dead
+`/tablet_cartesian_command`, several widgets and a physical gamepad compose one 6-DoF twist with per-axis scaled dead
 zones and release-to-zero, and one effective Cartesian command frame stamps every contribution.
 
 ## Runtime Composition

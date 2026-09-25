@@ -21,7 +21,7 @@ const application = {
     allowed_publish_topics: [],
     allowed_recording_topics: [],
     allowed_service_calls: [],
-    allowed_teleop_targets: ["/joystick_cartesian_command"],
+    allowed_teleop_targets: ["/tablet_cartesian_command"],
   },
   theme: {
     inspiration: { moodboard_image_uri: "", reference_url: "" },
@@ -53,7 +53,7 @@ const application = {
           settings: {
             runtime_binding: {
               adapter: "teleop",
-              value_mapping: { target_topic: "/joystick_cartesian_command" },
+              value_mapping: { target_topic: "/tablet_cartesian_command" },
             },
           },
         },

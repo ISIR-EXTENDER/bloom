@@ -1574,7 +1574,7 @@ describe("App", () => {
         linear: { x: expect.any(Number), y: 0, z: 0 },
         mode: 3,
         seq: expect.any(Number),
-        target: "/joystick_cartesian_command",
+        target: "/tablet_cartesian_command",
       }),
     );
     expect(runtimeActionClient.sendTeleopCommand).toHaveBeenLastCalledWith(
@@ -1617,7 +1617,7 @@ describe("App", () => {
           angular: { x: expect.any(Number), y: 0, z: 0 },
           linear: { x: 0, y: 0, z: 0 },
           mode: 1,
-          target: "/joystick_cartesian_command",
+          target: "/tablet_cartesian_command",
         }),
       ),
     );
@@ -1690,7 +1690,7 @@ describe("App", () => {
     expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: 3,
-        target: "/joystick_cartesian_command",
+        target: "/tablet_cartesian_command",
       }),
     );
   });
@@ -1884,7 +1884,7 @@ describe("App", () => {
       expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalledWith(
         expect.objectContaining({
           mode: 3,
-          target: "/joystick_cartesian_command",
+          target: "/tablet_cartesian_command",
         }),
       ),
     );
@@ -1968,7 +1968,7 @@ describe("App", () => {
       fireEvent.click(within(screen.getByRole("region", { name: card })).getByRole("button", { name: "Show" }));
     }
 
-    expect(await screen.findByLabelText(/\/joystick_cartesian_command/)).toBeChecked();
+    expect(await screen.findByLabelText(/\/tablet_cartesian_command/)).toBeChecked();
     expect(screen.getByLabelText(/\/joint_states/)).toBeChecked();
     expect(screen.getByText("Robot preflight")).toBeVisible();
     expect(screen.getByText("Teleop command")).toBeVisible();
@@ -1982,7 +1982,7 @@ describe("App", () => {
     expect(runtimeActionClient.startRuntimeRecording).toHaveBeenCalledWith({
       label: "Bloom Debug recording",
       output_folder: "data/recordings",
-      topics: ["/joystick_cartesian_command", "/cartesian_command", "/joint_states"],
+      topics: ["/tablet_cartesian_command", "/cartesian_command", "/joint_states"],
     });
     expect(await screen.findByRole("button", { name: "Stop recording" })).toBeVisible();
 
@@ -2302,7 +2302,7 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
     ),
     listRosTopics: vi.fn(async () => [
       { name: "/camera/image_raw", message_type: "sensor_msgs/msg/Image" },
-      { name: "/joystick_cartesian_command", message_type: "geometry_msgs/msg/TwistStamped" },
+      { name: "/tablet_cartesian_command", message_type: "geometry_msgs/msg/TwistStamped" },
       { name: "/cartesian_command", message_type: "geometry_msgs/msg/TwistStamped" },
       { name: "/joint_states", message_type: "sensor_msgs/msg/JointState" },
     ]),
@@ -2314,7 +2314,7 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         subscription_count: 0,
       },
       {
-        name: "/joystick_cartesian_command",
+        name: "/tablet_cartesian_command",
         message_type: "geometry_msgs/msg/TwistStamped",
         publisher_count: 1,
         subscription_count: 1,
@@ -2376,7 +2376,7 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
       output_folder: "data/recordings",
       recording_id: recordingId,
       status: "stopped" as const,
-      topics: ["/joystick_cartesian_command", "/cartesian_command", "/joint_states"],
+      topics: ["/tablet_cartesian_command", "/cartesian_command", "/joint_states"],
     })),
     subscribeRuntimeTopic: vi.fn(async (request) => ({
       detail: `Subscribed to ${request.topic}.`,

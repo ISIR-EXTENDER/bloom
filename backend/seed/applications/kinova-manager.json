@@ -84,12 +84,12 @@
           "/ee_velocity",
           "/joint_states",
           "/joint_target_command",
-          "/joystick_cartesian_command",
+          "/tablet_cartesian_command",
           "/mode_request",
           "/qontrol_explorer/effort_overload"
         ],
         "allowed_teleop_targets": [
-          "/joystick_cartesian_command"
+          "/tablet_cartesian_command"
         ],
         "allowed_service_calls": [
           "/fault_controller/reset_fault"
@@ -342,7 +342,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -375,7 +375,7 @@
                   "target": "translation",
                   "value_mapping": {
                     "mode": 0,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_mapping": {
                     "x": {
@@ -416,7 +416,7 @@
                   "target": "rotation",
                   "value_mapping": {
                     "mode": 0,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_mapping": {
                     "x": {
@@ -502,7 +502,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 },
@@ -694,7 +694,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 },
@@ -728,7 +728,7 @@
                   "target": "translation",
                   "value_mapping": {
                     "mode": 0,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_mapping": {
                     "x": {
@@ -769,7 +769,7 @@
                   "target": "rotation",
                   "value_mapping": {
                     "mode": 0,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_mapping": {
                     "x": {
@@ -904,7 +904,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 },
@@ -1340,7 +1340,7 @@
               "settings": {
                 "series": [
                   {
-                    "topic": "/joystick_cartesian_command",
+                    "topic": "/tablet_cartesian_command",
                     "message_type": "geometry_msgs/msg/TwistStamped",
                     "field_path": "twist.linear.x",
                     "label": "Command topic",
@@ -1671,7 +1671,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 }
@@ -1718,7 +1718,7 @@
                   "target": "translation",
                   "value_mapping": {
                     "mode": 0,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_mapping": {
                     "x": {
@@ -1773,7 +1773,7 @@
                   "target": "rotation",
                   "value_mapping": {
                     "mode": 0,
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_mapping": {
                     "x": {
@@ -1790,7 +1790,7 @@
             {
               "id": "lab-sent-label",
               "kind": "label",
-              "title": "SENT — /joystick_cartesian_command",
+              "title": "SENT — /tablet_cartesian_command",
               "layout": {
                 "x": 928,
                 "y": 146,
@@ -1798,7 +1798,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SENT — /joystick_cartesian_command",
+                "text": "SENT — /tablet_cartesian_command",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
@@ -1820,7 +1820,7 @@
                 "messageType": "geometry_msgs/msg/TwistStamped",
                 "prettyPrint": true,
                 "show_details": false,
-                "topic": "/joystick_cartesian_command"
+                "topic": "/tablet_cartesian_command"
               }
             },
             {
@@ -1875,7 +1875,7 @@
                     }
                   },
                   "value_mapping": {
-                    "target_topic": "/joystick_cartesian_command"
+                    "target_topic": "/tablet_cartesian_command"
                   },
                   "axis_deadzone": 0.2
                 },

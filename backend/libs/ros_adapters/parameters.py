@@ -48,6 +48,10 @@ class RosParameterGateway(Protocol):
     def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
         raise NotImplementedError
 
+    def get_string_list(self, node: str, name: str) -> tuple[str, ...] | None:
+        """A string-array parameter, or None when the node does not declare it."""
+        raise NotImplementedError
+
 
 class NoopRosParameterGateway:
     """Safe default for environments where ROS is not attached to Bloom."""
@@ -63,6 +67,9 @@ class NoopRosParameterGateway:
 
     def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
         return tuple(RosParameterReading(node=node, name=name, value=None) for name in names)
+
+    def get_string_list(self, node: str, name: str) -> tuple[str, ...] | None:
+        return None
 
 
 class RclpyRosParameterGateway:
@@ -109,6 +116,19 @@ class RclpyRosParameterGateway:
                 )
             )
         return tuple(readings)
+
+    def get_string_list(self, node: str, name: str) -> tuple[str, ...] | None:
+        from rcl_interfaces.srv import GetParameters
+        from rclpy.parameter import parameter_value_to_python
+
+        client = self._client(node, "get_parameters", GetParameters)
+        message = GetParameters.Request()
+        message.names = [name]
+        [value] = self._call(client, message, node).values
+        python_value = parameter_value_to_python(value)
+        if isinstance(python_value, list | tuple) and all(isinstance(item, str) for item in python_value):
+            return tuple(python_value)
+        return None
 
     def _client(self, node: str, service: str, service_cls: Any) -> Any:
         key = (node, service)

@@ -57,7 +57,7 @@ test suites.
 | `BLOOM_PUBLIC_HOST` | first address from `hostname -I` | Address printed for another device when the frontend uses a wildcard bind. |
 | `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
 | `BLOOM_SEED_SHARED_APPLICATIONS` | `true` | Import and upgrade shipped applications at API start. |
-| `BLOOM_TELEOP_TARGET_PARAMETERS` | manager `topics.*_command` | `<node>:<parameter>` pairs naming the manager's input topics a joystick may drive. |
+| `BLOOM_TELEOP_INPUT_NODE` | `/cartesian_manager` | The node whose declared inputs (`inputs.sources`, `topics.<source>_command`) a joystick may drive. |
 | `BLOOM_CAMERA` | `auto` | `scripts/extender-workspace-dev.sh` only: the camera `camera_interface` starts; `none` skips it, or name a driver (`usb_cam`, `camera_ros`, `kinova_vision`). |
 | `BLOOM_SEED_DIR` | `backend/seed/applications` | Where the shared applications live; the Builder's **Share** writes here. |
 | `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
@@ -153,7 +153,7 @@ real rosbag process management explicitly:
 
 ```bash
 export BLOOM_RUNTIME_RECORDING_GATEWAY=rosbag
-export BLOOM_ALLOWED_RECORDING_TOPICS='/cartesian_command,/joystick_cartesian_command,/mode_request,/joint_states,/ee_jac,/ee_pose,/ee_velocity,/tag_detections,/visual_servoing/velocity_command'
+export BLOOM_ALLOWED_RECORDING_TOPICS='/cartesian_command,/tablet_cartesian_command,/joystick_cartesian_command,/mode_request,/joint_states,/ee_jac,/ee_pose,/ee_velocity,/tag_detections,/visual_servoing/velocity_command'
 export BLOOM_ALLOWED_RECORDING_OUTPUT_FOLDERS='data/recordings'
 export BLOOM_RUNTIME_RECORDING_BASE_DIRECTORY="$PWD/backend"
 export BLOOM_RUNTIME_RECORDING_EXECUTABLE=ros2
@@ -185,17 +185,19 @@ keep output folders relative, and never use a wildcard publish policy for a robo
 
 The app configuration should remain the first guardrail, but lab sessions can also tune the backend runtime policy
 without editing code. The two layers intersect: an app can only narrow what the server allows, never widen it. A
-joystick may drive any input cartesian_manager declares: the API reads the input topic names from the manager's
-parameters (`BLOOM_TELEOP_TARGET_PARAMETERS`, by default `topics.joystick_command` and `topics.visual_servoing_command`
-on `/cartesian_manager`) every few seconds, so renaming or adding a manager input needs nothing on the Bloom side.
-`BLOOM_ALLOWED_TELEOP_TARGETS` only adds topics beyond those, and keeps the manager's default while it is not up yet.
+joystick may drive any input cartesian_manager declares: every few seconds the API reads the manager's
+`inputs.sources` and each source's `topics.<source>_command` (on `BLOOM_TELEOP_INPUT_NODE`, `/cartesian_manager`), so
+renaming or adding a manager input needs nothing on the Bloom side, and an input it does not declare is refused.
+Bloom's own controls publish to the manager's tablet input, `/tablet_cartesian_command`, which the manager sums with
+the physical joystick and visual servoing. `BLOOM_ALLOWED_TELEOP_TARGETS` only adds topics beyond the declared inputs,
+and keeps the tablet input while the manager is not up yet.
 A joystick pointed at a topic nothing on the robot takes is refused; the Builder names the manager's inputs, and the
 runtime marks such a joystick unavailable, with the reason, before anyone presses it.
 
 ```bash
 export BLOOM_ALLOWED_ROS_PUBLISH_TOPICS='/explorer_user_interfaces/rqt_armcontrol/max_angular_speed,/explorer_user_interfaces/rqt_armcontrol/max_linear_speed,/gripper_controller/commands,/mode_request'
 export BLOOM_ALLOWED_ROS_MESSAGE_TYPES='std_msgs/msg/Float64,std_msgs/msg/Float64MultiArray,std_msgs/msg/String'
-export BLOOM_ALLOWED_TELEOP_TARGETS='/joystick_cartesian_command'
+export BLOOM_ALLOWED_TELEOP_TARGETS='/tablet_cartesian_command'
 export BLOOM_ROBOT_NAME='Explorer'
 export BLOOM_ROS_COMMAND_FRAME_ID='base_link'
 export BLOOM_ALLOWED_COMMAND_FRAME_IDS='base_link,effector_frame,hybrid_frame'
@@ -469,7 +471,7 @@ Before a robot-facing Bloom session or release:
   built in the workspace on the Jazzy baseline;
 - start Bloom with `scripts/extender-workspace-dev.sh`;
 - verify ROS graph diagnostics in Bloom Debug or with `GET /api/v1/ros/topics/status` for
-  `/joystick_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`;
+  `/tablet_cartesian_command`, `/cartesian_command`, `/joint_states`, and `/ee_velocity`;
 - open **Explorer Manager** or **Kinova Manager** in runtime, as Operator and as Bench;
 - confirm the kiosk bar names the expected app, screen, frame and role, and the maintenance sheet the expected link,
   profile and device class. The robot name is no longer in the bar; read it on the supervisor mirror or from

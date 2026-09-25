@@ -10,7 +10,7 @@ import { renderWidgetDescriptor } from "./index";
 import type { PlotSeriesSnapshot } from "./types";
 
 const series = [
-  { topic: "/joystick_cartesian_command", field_path: "twist.linear.x", label: "This tablet", color: "#7e967e" },
+  { topic: "/tablet_cartesian_command", field_path: "twist.linear.x", label: "This tablet", color: "#7e967e" },
   {
     topic: "/visual_servoing_cartesian_command",
     field_path: "twist.linear.x",
@@ -120,7 +120,7 @@ describe("the plot board", () => {
 
     expect(document.querySelector('[data-edge="top"]')?.textContent).toBe("+2.7");
     expect(document.querySelector('[data-edge="bottom"]')?.textContent).toBe("−1.0");
-    const line = document.querySelector<SVGPathElement>('[data-series="/joystick_cartesian_command#twist.linear.x"]');
+    const line = document.querySelector<SVGPathElement>('[data-series="/tablet_cartesian_command#twist.linear.x"]');
     // Not pinned to the top edge at y = 0.
     expect(Number(line?.getAttribute("d")?.split(" ")[1])).toBeGreaterThan(40);
   });

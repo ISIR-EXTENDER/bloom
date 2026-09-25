@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TypeVar
 
+from libs.manager_contract import TABLET_COMMAND_TOPIC
 from libs.ros_adapters.publishers import RosPublisherGateway, RosPublishRequest
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
 from libs.sessions.teleop import TeleopCommand, TeleopCommandGateway, TeleopVector3
@@ -20,7 +21,7 @@ CANCEL_MODE_REQUEST = "behaviour/passthrough"
 #: input_interfaces' visual servoing node: its velocity output stays live while this is true.
 VISUAL_SERVOING_ON_TOPIC = "/ui/visual_servoing/on"
 DEFAULT_MODE_REQUEST_TOPIC = "/mode_request"
-DEFAULT_TELEOP_TARGET = "/joystick_cartesian_command"
+DEFAULT_TELEOP_TARGET = TABLET_COMMAND_TOPIC
 # sandbox_controller, on the legacy teleop_command backend.
 LEGACY_TELEOP_TARGET = "/teleop_cmd"
 

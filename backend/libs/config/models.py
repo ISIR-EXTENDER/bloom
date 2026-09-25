@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from libs.manager_contract import TABLET_COMMAND_TOPIC
+
 CURRENT_CONFIGURATION_SCHEMA_VERSION = 1
 
 
@@ -151,7 +153,7 @@ class RuntimeAdapterPolicy(BloomModel):
     #: Builder can drive the robot the moment it is opened. Declaring an empty list still means "this
     #: app drives nothing", which is how Bloom Debug and the webcam viewer say so. Whatever is here is
     #: still intersected with the deployment's own allowlist, so this can only ever narrow.
-    allowed_teleop_targets: tuple[str, ...] = ("/joystick_cartesian_command",)
+    allowed_teleop_targets: tuple[str, ...] = (TABLET_COMMAND_TOPIC,)
 
     @field_validator("command_frame_id")
     @classmethod

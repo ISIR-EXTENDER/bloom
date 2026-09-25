@@ -1,4 +1,5 @@
 import { getDefaultWidgetSettings } from "./settings";
+import { TELEOP_DEFAULT_TARGET } from "./widget-destination";
 
 /**
  * Which way a translation pad moves each arm, as the Manager apps drive it.
@@ -26,7 +27,7 @@ export function translationPadSettings(robotName?: string): Record<string, unkno
     runtime_binding: {
       adapter: "teleop",
       target: "translation",
-      value_mapping: { mode: 0, target_topic: "/joystick_cartesian_command" },
+      value_mapping: { mode: 0, target_topic: TELEOP_DEFAULT_TARGET },
       axis_mapping: axes,
       axis_deadzone: 0.2,
     },

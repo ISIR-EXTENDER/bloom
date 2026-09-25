@@ -24,7 +24,7 @@ describe("the starter screens", () => {
     if (!normalized.success) return;
     const binding = normalized.settings.runtime_binding as { value_mapping?: { target_topic?: string } };
     // Written in camelCase these keys were dropped, and the starter published somewhere it never named.
-    expect(binding.value_mapping?.target_topic).toBe("/joystick_cartesian_command");
+    expect(binding.value_mapping?.target_topic).toBe("/tablet_cartesian_command");
     expect(Object.keys(joystick?.settings ?? {})).not.toContain("runtimeBinding");
   });
 });

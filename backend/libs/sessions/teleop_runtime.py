@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from libs.manager_contract import TABLET_COMMAND_TOPIC
 from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
 from libs.sessions.models import RuntimeServerMessage, RuntimeTeleopCommandMessage
@@ -48,7 +49,7 @@ def build_teleop_ack(
     policy = command_policy or RuntimeCommandPolicy(
         allowed_message_types=("*",),
         allowed_publish_topics=("*",),
-        allowed_teleop_targets=("/joystick_cartesian_command", "/teleop_cmd"),
+        allowed_teleop_targets=(TABLET_COMMAND_TOPIC, "/teleop_cmd"),
     )
 
     try:

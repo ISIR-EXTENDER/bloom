@@ -19,29 +19,29 @@ def test_idle_keys_are_forgotten_once_the_map_fills() -> None:
     assert len(limiter.tracked_keys) == MAX_TRACKED_KEYS
 
     clock.now = 2.0
-    limiter.ensure_allowed("websocket_teleop:/joystick_cartesian_command")
+    limiter.ensure_allowed("websocket_teleop:/tablet_cartesian_command")
 
-    assert limiter.tracked_keys == ("websocket_teleop:/joystick_cartesian_command",)
+    assert limiter.tracked_keys == ("websocket_teleop:/tablet_cartesian_command",)
 
 
 def test_a_key_still_inside_its_window_survives_the_sweep() -> None:
     clock = MovableClock()
     limiter = RuntimeCommandRateLimiter(max_commands_per_second=10, clock=clock)
-    limiter.ensure_allowed("websocket_teleop:/joystick_cartesian_command")
+    limiter.ensure_allowed("websocket_teleop:/tablet_cartesian_command")
 
     clock.now = 0.5
     for index in range(MAX_TRACKED_KEYS):
         limiter.ensure_allowed(f"websocket_teleop:/made/up/{index}")
 
-    assert "websocket_teleop:/joystick_cartesian_command" in limiter.tracked_keys
+    assert "websocket_teleop:/tablet_cartesian_command" in limiter.tracked_keys
 
 
 def test_a_swept_key_starts_counting_again_from_nothing() -> None:
     clock = MovableClock()
     limiter = RuntimeCommandRateLimiter(max_commands_per_second=1, clock=clock)
-    limiter.ensure_allowed("websocket_teleop:/joystick_cartesian_command")
+    limiter.ensure_allowed("websocket_teleop:/tablet_cartesian_command")
 
     clock.now = 2.0
-    limiter.ensure_allowed("websocket_teleop:/joystick_cartesian_command")
+    limiter.ensure_allowed("websocket_teleop:/tablet_cartesian_command")
 
-    assert limiter.tracked_keys == ("websocket_teleop:/joystick_cartesian_command",)
+    assert limiter.tracked_keys == ("websocket_teleop:/tablet_cartesian_command",)

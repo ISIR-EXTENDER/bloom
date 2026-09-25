@@ -177,7 +177,7 @@ def test_the_snapshot_reports_what_the_controlling_session_is_doing() -> None:
             linear=TeleopVector3(x=0.2),
             mode=0,
             seq=1,
-            target="/joystick_cartesian_command",
+            target="/tablet_cartesian_command",
         ),
     )
     manager.record_mode_request(owner.id, "geometric/snake")
@@ -199,7 +199,7 @@ def test_a_released_command_stops_reading_as_movement() -> None:
         linear=TeleopVector3(x=0.2),
         mode=0,
         seq=1,
-        target="/joystick_cartesian_command",
+        target="/tablet_cartesian_command",
     )
     manager.record_teleop_command(owner, moving)
     manager.record_teleop_command(
@@ -227,7 +227,7 @@ def moving_command(frame_id: str = "hybrid_frame") -> TeleopCommand:
         linear=TeleopVector3(x=0.2),
         mode=0,
         seq=1,
-        target="/joystick_cartesian_command",
+        target="/tablet_cartesian_command",
     )
 
 
@@ -238,7 +238,7 @@ def test_stop_ends_the_mirrored_motion_and_mode() -> None:
     manager.record_teleop_command(owner, moving_command())
     manager.record_mode_request(owner.id, "geometric/both")
 
-    manager.record_runtime_stop("/joystick_cartesian_command")
+    manager.record_runtime_stop("/tablet_cartesian_command")
 
     seen = manager.control_snapshot("")
     assert seen.owner_moving is False

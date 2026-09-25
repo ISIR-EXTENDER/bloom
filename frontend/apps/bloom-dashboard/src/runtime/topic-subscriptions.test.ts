@@ -12,16 +12,16 @@ const request = (widgetId: string, topic: string): RuntimeTopicSubscriptionReque
 });
 
 const feedback = [request("feedback-plot", "/ee_velocity"), request("feedback-plot", "/cartesian_command")];
-const sources = [request("sources-plot", "/joystick_cartesian_command"), request("sources-plot", "/cartesian_command")];
+const sources = [request("sources-plot", "/tablet_cartesian_command"), request("sources-plot", "/cartesian_command")];
 
 describe("topic subscriptions across screens", () => {
   it("keeps a topic both screens plot and drops the one the new screen does not", () => {
     const opened = planTopicSubscriptions(new Map(), feedback, true);
     const switched = planTopicSubscriptions(opened.held, sources, true);
 
-    expect(switched.subscribe.map((entry) => entry.topic)).toEqual(["/joystick_cartesian_command"]);
+    expect(switched.subscribe.map((entry) => entry.topic)).toEqual(["/tablet_cartesian_command"]);
     expect(switched.unsubscribe).toEqual([request("feedback-plot", "/ee_velocity")]);
-    expect([...switched.held.keys()].sort()).toEqual(["/cartesian_command", "/joystick_cartesian_command"]);
+    expect([...switched.held.keys()].sort()).toEqual(["/cartesian_command", "/tablet_cartesian_command"]);
     // The kept subscription is still the one the backend knows, under its original widget id.
     expect(switched.held.get("/cartesian_command")?.widget_id).toBe("feedback-plot:/cartesian_command");
   });
@@ -38,7 +38,7 @@ describe("topic subscriptions across screens", () => {
     const back = planTopicSubscriptions(switched.held, feedback, false);
 
     expect(switched.unsubscribe).toEqual([]);
-    expect(switched.subscribe.map((entry) => entry.topic)).toEqual(["/joystick_cartesian_command"]);
+    expect(switched.subscribe.map((entry) => entry.topic)).toEqual(["/tablet_cartesian_command"]);
     expect(back.subscribe).toEqual([]);
   });
 });

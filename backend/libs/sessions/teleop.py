@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal, Protocol
 
+from libs.manager_contract import TABLET_COMMAND_TOPIC
+
 TeleopPublishStatus = Literal["accepted", "simulated"]
 
 
@@ -19,7 +21,7 @@ class TeleopCommand:
     linear: TeleopVector3
     mode: int
     seq: int
-    target: str = "/joystick_cartesian_command"
+    target: str = TABLET_COMMAND_TOPIC
     #: Rotation frame for cartesian_manager; empty uses the configured default.
     frame_id: str = ""
 

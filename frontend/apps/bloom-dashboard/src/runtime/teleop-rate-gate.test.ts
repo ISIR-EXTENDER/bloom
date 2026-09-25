@@ -10,7 +10,7 @@ function command(seq: number, linearX = seq / 100): RuntimeTeleopCommandRequest 
     linear: { x: linearX, y: 0, z: 0 },
     mode: 0,
     seq,
-    target: "/joystick_cartesian_command",
+    target: "/tablet_cartesian_command",
   };
 }
 

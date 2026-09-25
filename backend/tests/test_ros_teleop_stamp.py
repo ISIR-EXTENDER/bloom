@@ -47,7 +47,7 @@ def build_message(monkeypatch, frame_id: str = "", linear_x: float = 0.1, angula
         linear=TeleopVector3(x=linear_x),
         mode=0,
         seq=1,
-        target="/joystick_cartesian_command",
+        target="/tablet_cartesian_command",
     )
     return gateway._to_ros_message(command)
 

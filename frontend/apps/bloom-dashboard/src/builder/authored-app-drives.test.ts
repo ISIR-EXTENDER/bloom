@@ -32,7 +32,7 @@ describe("an app as the Builder creates it", () => {
         widgetKind: "joystick",
         binding: "joy",
         publishRateHz: 30,
-        runtimeBinding: { adapter: "teleop", value_mapping: { target_topic: "/joystick_cartesian_command" } },
+        runtimeBinding: { adapter: "teleop", value_mapping: { target_topic: "/tablet_cartesian_command" } },
         value: { x: 0.25, y: 0 },
         zeroOnRelease: true,
       },

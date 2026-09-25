@@ -5,6 +5,7 @@ import type {
   RuntimeRecordingResponse,
   RuntimeRecordingStartRequest,
 } from "@bloom/api-client";
+import { TELEOP_DEFAULT_TARGET } from "@bloom/widgets";
 import { type ReactNode, useState } from "react";
 import { describeApiError } from "../ui/api-error";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
@@ -259,12 +260,12 @@ type RobotPreflightRow = RobotPreflightTopic & {
 };
 
 const ROBOT_PREFLIGHT_TOPICS: RobotPreflightTopic[] = [
-  { label: "Teleop command", requirement: "subscriber", topic: "/joystick_cartesian_command" },
+  { label: "Teleop command", requirement: "subscriber", topic: TELEOP_DEFAULT_TARGET },
   { label: "Joint states", requirement: "publisher", topic: "/joint_states" },
   { label: "Controller feedback", requirement: "publisher", topic: "/cartesian_command" },
 ];
 
-const DEFAULT_RECORDING_TOPIC_NAMES = ["/joystick_cartesian_command", "/cartesian_command", "/joint_states"];
+const DEFAULT_RECORDING_TOPIC_NAMES = [TELEOP_DEFAULT_TARGET, "/cartesian_command", "/joint_states"];
 
 async function loadDebugTopics(client: RuntimeActionClient): Promise<DebugTopic[]> {
   if (client.listRosTopicStatus) {

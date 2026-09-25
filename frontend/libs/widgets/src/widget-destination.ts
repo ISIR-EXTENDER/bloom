@@ -1,3 +1,4 @@
+import { TABLET_COMMAND_TOPIC } from "@bloom/api-client";
 import { asRecord } from "./values";
 /**
  * Where a widget's data actually flows, and which settings have no effect.
@@ -52,7 +53,7 @@ export type WidgetDestination = {
 };
 
 /** The manager input a teleop widget falls back to; the legacy /teleop_cmd path needs an explicit target_topic. */
-export const TELEOP_DEFAULT_TARGET = "/joystick_cartesian_command";
+export const TELEOP_DEFAULT_TARGET = TABLET_COMMAND_TOPIC;
 
 /**
  * What the legacy `binding` setting still does, per kind.
