@@ -312,6 +312,32 @@ Verified target state:
 - `HDMI-1`: `1820x720+1920+0` using physical `1280x720` plus `--scale-from 1820x720`
 - Touch matrix for `HID 27c0:0818`: approximately `0.4866 0 0.5134 / 0 0.6667 0 / 0 0 1`
 
+### After The Move To Ubuntu 24.04
+
+Start any tablet session that misbehaves with the read-only diagnosis, and keep its output:
+
+```bash
+./scripts/extender-tablet-touch-map.sh --diagnose
+```
+
+It prints the session type, the outputs and their geometry, every xinput device from the touch controller
+(`TOUCH_USB_ID`, `27c0:0818`) with its role and current matrix, GNOME's own touchscreen mapping, and the autostart
+entries that touch the mapping. Three things changed with 24.04 and GNOME 46 that can each break the old one-liner:
+
+- **One controller, several devices.** Newer kernels expose one HID controller as several xinput devices. The
+  helper now finds the direct-touch pointer by its USB id and maps it by device id, so a name shared by two devices
+  cannot make `xinput` refuse.
+- **GNOME maps touchscreens too.** On a display change it can put its own matrix back over the one `xinput` set.
+  `--gnome` tells GNOME which monitor the touchscreen belongs to (the tablet's EDID identity, read from Mutter), so it
+  keeps the mapping through hotplug and mode changes:
+
+  ```bash
+  DISPLAY_OUTPUT=HDMI-1 ./scripts/extender-tablet-touch-map.sh --gnome
+  ```
+
+- **Two autostart entries racing.** One autostart entry that maps before the display mode changes leaves a matrix
+  computed on the old geometry. Keep a single entry, the one `--install-autostart` writes.
+
 ### Symptoms To Watch
 
 - Pointer and touch positions feel offset from visual controls.

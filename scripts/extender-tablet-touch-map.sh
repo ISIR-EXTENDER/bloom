@@ -2,6 +2,8 @@
 set -euo pipefail
 
 TOUCH_DEVICE=${TOUCH_DEVICE:-"HID 27c0:0818"}
+# vendor:product of the touch controller; finds it however xinput names or splits it.
+TOUCH_USB_ID=${TOUCH_USB_ID:-"27c0:0818"}
 TOUCH_DEVICE_PATTERN=${TOUCH_DEVICE_PATTERN:-"${TOUCH_DEVICE}"}
 DISPLAY_OUTPUT=${DISPLAY_OUTPUT:-"HDMI-1"}
 DISPLAY_MODE=${DISPLAY_MODE:-""}
@@ -17,15 +19,19 @@ WAIT_SECONDS=${WAIT_SECONDS:-"10"}
 RETRY_INTERVAL_SECONDS=${RETRY_INTERVAL_SECONDS:-"1"}
 DRY_RUN=0
 INSTALL_AUTOSTART=0
+DIAGNOSE=0
+GNOME_MAPPING=0
+TOUCH_IDS=()
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [--dry-run] [--apply-display-mode] [--install-autostart]
+Usage: $(basename "$0") [--dry-run] [--apply-display-mode] [--install-autostart] [--gnome] [--diagnose]
 
 Maps the Extender touchscreen to the target display output.
 
 Environment:
-  TOUCH_DEVICE          Exact xinput device name. Default: HID 27c0:0818
+  TOUCH_USB_ID          Touch controller vendor:product, matched first. Default: 27c0:0818
+  TOUCH_DEVICE          Exact xinput device name, used when no device has TOUCH_USB_ID. Default: HID 27c0:0818
   TOUCH_DEVICE_PATTERN  Fallback grep pattern when TOUCH_DEVICE is not found.
   DISPLAY_OUTPUT        xrandr output to map to. Default: HDMI-1
   DISPLAY_MODE          Optional xrandr mode, for example 1920x1080.
@@ -46,6 +52,8 @@ Examples:
   DISPLAY_MODE=1920x1080 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_LEFT_OF=eDP-1 $(basename "$0")
   DISPLAY_MODE=1280x720 LOGICAL_DISPLAY_SIZE=1820x720 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_RIGHT_OF=eDP-1 $(basename "$0")
   $(basename "$0") --install-autostart
+  $(basename "$0") --diagnose     # read-only: what the session, screens and touch devices look like
+  $(basename "$0") --gnome        # also tell GNOME which monitor the touchscreen belongs to
 EOF
 }
 
@@ -59,6 +67,12 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-autostart)
       INSTALL_AUTOSTART=1
+      ;;
+    --diagnose)
+      DIAGNOSE=1
+      ;;
+    --gnome)
+      GNOME_MAPPING=1
       ;;
     -h | --help)
       usage
@@ -111,18 +125,74 @@ resolve_display_output() {
   xrandr --query | grep -q "^${DISPLAY_OUTPUT} connected"
 }
 
+usb_id_as_decimal() {
+  local vendor="${TOUCH_USB_ID%%:*}" product="${TOUCH_USB_ID##*:}"
+  printf '%d, %d' "0x${vendor}" "0x${product}"
+}
+
+# Every direct-touch pointer from the controller, by id: one controller can show up as several
+# xinput devices, and a name shared by two of them makes xinput refuse to pick.
 resolve_touch_device() {
-  if xinput list --name-only | grep -Fxq "${TOUCH_DEVICE}"; then
+  local id wanted
+  TOUCH_IDS=()
+  wanted="$(usb_id_as_decimal)"
+  for id in $(xinput list --id-only); do
+    if xinput list-props "${id}" 2>/dev/null | grep -q "Device Product ID ([0-9]*):[[:space:]]*${wanted}$" &&
+      xinput list --long "${id}" 2>/dev/null | grep -q "Touch mode: direct"; then
+      TOUCH_IDS+=("${id}")
+    fi
+  done
+  if ((${#TOUCH_IDS[@]} > 0)); then
     return 0
   fi
 
-  resolved_touch_device="$(xinput list --name-only | grep -E "${TOUCH_DEVICE_PATTERN}" | head -n 1 || true)"
-  if [[ -n "${resolved_touch_device}" ]]; then
-    TOUCH_DEVICE="${resolved_touch_device}"
+  local name
+  name="$(xinput list --name-only | grep -Fx "${TOUCH_DEVICE}" | head -n 1 || true)"
+  [[ -n "${name}" ]] || name="$(xinput list --name-only | grep -E "${TOUCH_DEVICE_PATTERN}" | head -n 1 || true)"
+  if [[ -n "${name}" ]]; then
+    TOUCH_DEVICE="${name}"
+    TOUCH_IDS=("pointer:${name}")
     return 0
   fi
-
   return 1
+}
+
+# The monitor's EDID identity as Mutter reports it, for GNOME's own touchscreen mapping.
+monitor_identity() {
+  gdbus call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig \
+    --method org.gnome.Mutter.DisplayConfig.GetCurrentState 2>/dev/null |
+    grep -oE "\\(\\('${DISPLAY_OUTPUT}', '[^']*', '[^']*', '[^']*'\\)" | head -n 1 |
+    sed -E "s/^\\(\\('[^']*', /[/; s/\\)$/]/"
+}
+
+gnome_touchscreen_path() {
+  echo "org.gnome.desktop.peripherals.touchscreen:/org/gnome/desktop/peripherals/touchscreens/${TOUCH_USB_ID}/"
+}
+
+diagnose() {
+  local id
+  echo "== Session"
+  echo "XDG_SESSION_TYPE=${XDG_SESSION_TYPE:-unset} DISPLAY=${DISPLAY:-unset}"
+  (lsb_release -ds; gnome-shell --version; uname -r) 2>/dev/null
+  echo "== Screen and outputs"
+  xrandr --query | grep -E "^Screen|[[:space:]]connected"
+  echo "== Devices from ${TOUCH_USB_ID}"
+  for id in $(xinput list --id-only); do
+    if xinput list-props "${id}" 2>/dev/null | grep -q "Device Product ID ([0-9]*):[[:space:]]*$(usb_id_as_decimal)$"; then
+      echo "id=${id} $(paste <(xinput list --id-only) <(xinput list --name-only) | awk -F'\t' -v id="${id}" '$1 == id { print $2 }')"
+      xinput list --long "${id}" | grep -E "slave|master|Touch mode" | sed 's/^/  /'
+      xinput list-props "${id}" | grep -E "Coordinate Transformation Matrix|Device Node" | sed 's/^/  /'
+    fi
+  done
+  echo "== Devices named like '${TOUCH_DEVICE_PATTERN}'"
+  xinput list | grep -E "${TOUCH_DEVICE_PATTERN}" || echo "  none"
+  echo "== GNOME touchscreen mapping"
+  gsettings get "$(gnome_touchscreen_path)" output 2>&1 | sed 's/^/  output = /'
+  echo "  ${DISPLAY_OUTPUT} identity: $(monitor_identity || true)"
+  echo "== Autostart entries"
+  grep -l -i -E "touch|xinput" "${HOME}"/.config/autostart/*.desktop 2>/dev/null | sed 's/^/  /' || echo "  none"
+  echo "== Browser"
+  (google-chrome --version || chromium --version) 2>/dev/null
 }
 
 wait_for_hardware() {
@@ -260,8 +330,11 @@ apply_exact_touch_matrix() {
       }'
   )"
 
-  # shellcheck disable=SC2086
-  run xinput set-prop "${TOUCH_DEVICE}" "Coordinate Transformation Matrix" ${matrix}
+  local id
+  for id in "${TOUCH_IDS[@]}"; do
+    # shellcheck disable=SC2086
+    run xinput set-prop "${id}" "Coordinate Transformation Matrix" ${matrix}
+  done
 }
 
 if ! command -v xrandr >/dev/null 2>&1; then
@@ -272,6 +345,11 @@ fi
 if ! command -v xinput >/dev/null 2>&1; then
   echo "xinput is required to map the touchscreen to an output." >&2
   exit 1
+fi
+
+if [[ "${DIAGNOSE}" == "1" ]]; then
+  diagnose
+  exit 0
 fi
 
 if ! wait_for_hardware; then
@@ -358,7 +436,18 @@ fi
 if [[ "${USE_EXACT_TOUCH_MATRIX}" == "1" ]]; then
   apply_exact_touch_matrix
 else
-  run xinput map-to-output "${TOUCH_DEVICE}" "${DISPLAY_OUTPUT}"
+  for id in "${TOUCH_IDS[@]}"; do
+    run xinput map-to-output "${id}" "${DISPLAY_OUTPUT}"
+  done
+fi
+
+if [[ "${GNOME_MAPPING}" == "1" ]]; then
+  identity="$(monitor_identity)"
+  if [[ -z "${identity}" ]]; then
+    echo "GNOME did not report a monitor on '${DISPLAY_OUTPUT}'; its touchscreen mapping is unchanged." >&2
+  else
+    run gsettings set "$(gnome_touchscreen_path)" output "${identity}"
+  fi
 fi
 
 if [[ "${INSTALL_AUTOSTART}" == "1" ]]; then
@@ -366,7 +455,7 @@ if [[ "${INSTALL_AUTOSTART}" == "1" ]]; then
 fi
 
 if [[ "${DRY_RUN}" == "1" ]]; then
-  echo "Touchscreen '${TOUCH_DEVICE}' would be mapped to '${DISPLAY_OUTPUT}'."
+  echo "Touchscreen ${TOUCH_IDS[*]} would be mapped to '${DISPLAY_OUTPUT}'."
 else
-  echo "Mapped touchscreen '${TOUCH_DEVICE}' to '${DISPLAY_OUTPUT}'."
+  echo "Mapped touchscreen ${TOUCH_IDS[*]} to '${DISPLAY_OUTPUT}'."
 fi

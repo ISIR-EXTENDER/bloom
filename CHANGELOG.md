@@ -96,6 +96,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **The tablet touch helper survives Ubuntu 24.04.** `scripts/extender-tablet-touch-map.sh` finds the touchscreen by
+  its USB id and maps every direct-touch device it exposes by id, instead of one name xinput may share between two
+  devices. `--diagnose` prints what the session, screens and touch devices look like, read-only, and `--gnome` tells
+  GNOME which monitor the touchscreen belongs to so a display change does not undo the mapping.
+
 - **The Explorer camera test app drives the Explorer's way.** Its Translation pad carried the identity mapping, so
   Forward moved the hand along +y; it now uses the Explorer's axes, as Explorer Manager does. A horizontal Height
   slider read "Left" and "Right"; a slider on the height axis now reads Down and Up however it is laid out.
