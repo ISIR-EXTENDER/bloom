@@ -98,3 +98,13 @@ Recapturing found three things. The capture script's own guard had refused to ru
 policy field was added, because it filled in every API default but that one. The runtime library still said
 "Choosing is deliberate" after roles gained a default. And the one-switch pads printed their readout as
 `x 0.00y 0.00`, which a screen reader also heard run together. All three are fixed.
+
+## Amended 2026-09-25: the walkthrough, recorded again
+
+`docs/assets/demo/bloom-demo.mp4` is back, recorded with `npm run record:demo` against the Explorer simulation
+through `api run-ros`: 6 min 18 s, 1920x1080, H.264 in `yuv420p` at 30 frames a second, 13.5 MB. The recorder gained
+three scenes for what shipped since the last take: a command button configured field by field in the inspector,
+the three roles Explorer Manager opens in, and Bloom Debug's Robot view, zoomed and turned while the arm moves. A
+contact sheet sampled every 30 seconds was checked for blank frames, stale overlays and scenes that failed to
+load. The poster is a frame from the 3D scene, cropped so the arm sits clear of the play button, and rendered with
+`node scripts/render-readme-art.mjs --poster`.

@@ -16,6 +16,7 @@
 </p>
 
 <p align="center">
+  <a href="docs/assets/demo/bloom-demo.mp4">Watch it</a> ·
   <a href="#why-bloom">Why Bloom</a> ·
   <a href="#build-a-screen-without-code">Builder</a> ·
   <a href="#one-app-the-right-screen-for-each-person">Roles</a> ·
@@ -37,7 +38,12 @@ write. The person opens it on a tablet and drives the arm. A large STOP is alway
 command the robot at a time, and the arm only does what the lab has allowed.
 
 <p align="center">
-  <img src="docs/assets/screenshots/runtime-explorer-drive.png" alt="Explorer Manager's Drive screen for the operator: speed in three steps, height, translation and rotation pads with the direction written on them, a gripper button and a tall red STOP." width="100%" />
+  <a href="docs/assets/demo/bloom-demo.mp4"><img src="docs/assets/readme/demo-poster.png" alt="Play the six-minute Bloom walkthrough: the Explorer arm drawn in 3D, from an empty screen to a moving arm." width="100%" /></a>
+</p>
+
+<p align="center">
+  <b><a href="docs/assets/demo/bloom-demo.mp4">Watch the six-minute walkthrough</a></b>: build a screen with no code,
+  open it as a role, drive the Explorer arm in simulation, press STOP, and watch the arm move in 3D.
 </p>
 
 ## Why Bloom
@@ -340,6 +346,12 @@ npm run record:demo -- --camera feed.y4m
 ```
 
 The recorder uses Playwright and `ffmpeg`; install Chromium with the command above and provide `ffmpeg` on `PATH`.
+The poster above the video is rendered from one of its frames, and the logo from the app's own:
+
+```bash
+node scripts/render-readme-art.mjs --poster frame.png
+uv run --no-project --with pillow --with numpy python scripts/render-readme-logo.py
+```
 
 ## What Ships Today
 

@@ -19,6 +19,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **A new six-minute walkthrough video**, recorded against the Explorer simulation: a screen built and a control
+  configured with no code, the three roles, driving, STOP, the live plots, and the arm moving in the 3D view.
+
 - **The 3D robot view stands in for rviz while a simulation runs.** It draws every marker kind rviz does:
   arrow, cube, sphere, cylinder, line strip and list, cube and sphere lists, points, text, a mesh by
   `package://` through the API, and triangle lists, with per-point colours, lifetimes, and the delete
