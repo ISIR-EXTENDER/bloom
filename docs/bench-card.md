@@ -52,7 +52,7 @@ BLOOM_ROS_EE_FRAME_ID=effector_frame \
 scripts/extender-workspace-dev.sh
 ```
 
-For Kinova, change the last two values:
+For Kinova, change `BLOOM_ROBOT_NAME`:
 
 ```bash
 BLOOM_ROBOT_NAME=Kinova \
@@ -71,20 +71,19 @@ silently discards, which looks exactly like a broken web stack.
 **Driving from a tablet** — bind the dashboard to the network so the launcher allows the tablet's origin:
 
 ```bash
-LAN_IP="$(hostname -I | awk '{print $1}')"
-
 BLOOM_API_HOST=127.0.0.1 \
 BLOOM_FRONTEND_HOST=0.0.0.0 \
-BLOOM_PUBLIC_HOST="${LAN_IP}" \
 scripts/extender-workspace-dev.sh
 ```
 
-Open the printed `http://<lan-ip>:5173` on the tablet. The runtime socket refuses a page whose origin it does not
-know; the launcher allows the loopback origins and `http://<BLOOM_PUBLIC_HOST>:<port>` for you. A device reaching
-the dashboard under any other name, or a port Vite moved to, is refused until that origin is added.
+Open the printed `http://<lan-ip>:5173` on the tablet. The launcher finds the address a device on the Wi-Fi reaches
+(the default route's source, not a Docker bridge) and allows that origin for you. A device reaching the dashboard
+under any other name is refused until that origin is added to `BLOOM_CORS_ALLOWED_ORIGINS`.
 
-**Running both arms** means two API processes: different ports, and their own `BLOOM_ROBOT_NAME` and
-`BLOOM_ROS_EE_FRAME_ID`. One backend instance serves one robot.
+**Running both arms** means two launcher runs: each with its own `BLOOM_ROBOT_NAME`, `BLOOM_API_PORT` and
+`BLOOM_FRONTEND_PORT` (Vite never moves port on its own), and `BLOOM_CAMERA=none` plus
+`BLOOM_APPLY_TABLET_TOUCH_MAP=0` on the second one so a single camera driver and a single touch watcher run. One backend
+instance serves one robot.
 
 **Watching the arm in Bloom instead of rviz.** Bloom Debug's Robot view screen, like Widget Lab's Robot screen
 (desktop screens; the palette refuses the 3D view on a tablet), draws the robot the manager runs with: the API reads

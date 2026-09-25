@@ -96,6 +96,16 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **The launcher starts and stops cleanly.** A Ctrl-C while it is still starting now stops it instead of only the
+  step it was on; a camera_interface install without a robot's camera file no longer stops Bloom; the startup banner
+  says whether the camera and the tablet watcher really started; a dashboard bound to one LAN address allows that
+  address's origin. The touch helper's `--gnome` and `--diagnose` no longer stop halfway, its autostart entry keeps a
+  custom tablet id, and `--watch` names the connected outputs when the watched one is missing. The dependency check
+  now also runs from a path with a space or through a symlink.
+- **Docs match the launcher and the kiosk.** Same-Wi-Fi recipes let the launcher find the address, running both arms
+  lists every setting that must differ, the Kinova setup changes only `BLOOM_ROBOT_NAME`, Maintenance opens on its
+  Screens, and the tutorials describe the app page Bloom opens after creating an app.
+
 - **Sharing an app can no longer lose the work behind it.** A copy shared from this machine is marked, so an API
   start never replaces it with an older shared file (a `git checkout .` before committing used to do exactly that);
   sharing a copy the repository has moved past is refused with 409 until it is updated; shared files are written

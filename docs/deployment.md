@@ -15,10 +15,11 @@ scripts/extender-workspace-dev.sh
 The script:
 
 - sources the Extender ROS workspace setup file;
+- starts the robot's camera through `camera_interface` (`BLOOM_CAMERA`);
+- keeps the tablet's touch mapped while it runs (`BLOOM_APPLY_TABLET_TOUCH_MAP`);
 - starts the Bloom API with ROS publisher, teleop, and topic-stream adapters;
 - starts the Bloom dashboard through Vite;
-- optionally applies the HMTECH touchscreen mapping;
-- stops both processes when the terminal exits.
+- stops all of them on Ctrl-C or when the terminal closes, and says which ones it started.
 
 ### One API process
 
@@ -47,14 +48,14 @@ test suites.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `EXTENDER_WORKSPACE` | `extender_workspace` next to this repository | ROS workspace root. |
+| `EXTENDER_WORKSPACE` | `extender_workspace` next to this repository, or the nearest built one above it | ROS workspace root. |
 | `EXTENDER_SETUP_FILE` | `$EXTENDER_WORKSPACE/install/setup.bash` | Setup file to source before starting ROS adapters. |
 | `BLOOM_API_HOST` | `127.0.0.1` | API bind host. |
 | `BLOOM_API_PORT` | `8000` | API port. |
 | `BLOOM_FRONTEND_HOST` | `127.0.0.1` | Dashboard dev-server host. |
 | `BLOOM_FRONTEND_PORT` | `5173` | Dashboard dev-server port. |
 | `BLOOM_API_PROXY_TARGET` | `http://127.0.0.1:$BLOOM_API_PORT` | Server-side Vite target for HTTP and WebSocket API traffic. |
-| `BLOOM_PUBLIC_HOST` | first address from `hostname -I` | Address printed for another device when the frontend uses a wildcard bind. |
+| `BLOOM_PUBLIC_HOST` | the default route's source address, or the bound LAN address | Address a device on the Wi-Fi reaches, printed and allowed as an origin. |
 | `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
 | `BLOOM_SEED_SHARED_APPLICATIONS` | `true` | Import and upgrade shipped applications at API start. |
 | `BLOOM_TELEOP_TARGET_PARAMETERS` | manager `topics.*_command` | `<node>:<parameter>` pairs naming the manager's input topics a joystick may drive. |
@@ -65,10 +66,7 @@ test suites.
 | `BLOOM_APP_NAME`, `BLOOM_SERVICE_NAME`, `BLOOM_APP_DESCRIPTION` | Bloom defaults | Names reported by the API and its OpenAPI page. |
 | `BLOOM_APP_VERSION` | the release version | Version the API reports. Leave it unset, or it hides the real version. |
 | `BLOOM_APPLY_TABLET_TOUCH_MAP` | `auto` | Keeps the tablet's touch mapped while Bloom runs (`extender-tablet-touch-map.sh --watch`): plugged in late, replugged, or remapped by the desktop. `0` turns it off. Log: `backend/data/tablet-touch.log`. |
-| `DISPLAY_MODE` | empty | Optional tablet display mode passed to the touch-map helper, for example `1280x720`. |
-| `LOGICAL_DISPLAY_SIZE` | empty | Optional scaled tablet workspace, for example `1820x720`. |
-| `APPLY_DISPLAY_MODE` | `0` | Set to `1` to apply `DISPLAY_MODE` before remapping touch. |
-| `PLACE_OUTPUT_RIGHT_OF` | empty | Optional laptop output to place to the left of the tablet, for example `eDP-1`. |
+| `DISPLAY_MODE`, `APPLY_DISPLAY_MODE`, `LOGICAL_DISPLAY_SIZE`, `PLACE_OUTPUT_RIGHT_OF` | empty, `0` | For `scripts/extender-tablet-touch-map.sh` run on its own; the launcher's watcher keeps the tablet's own mode. |
 
 Current Extender tablet setup maps touch only and keeps the mode the tablet comes up in:
 
@@ -81,11 +79,8 @@ scripts/extender-workspace-dev.sh
 For a phone or tablet on the same trusted network, expose the dashboard while keeping FastAPI on loopback:
 
 ```bash
-LAN_IP="$(hostname -I | awk '{print $1}')"
-
 BLOOM_API_HOST=127.0.0.1 \
 BLOOM_FRONTEND_HOST=0.0.0.0 \
-BLOOM_PUBLIC_HOST="${LAN_IP}" \
 scripts/extender-workspace-dev.sh
 ```
 
@@ -96,7 +91,7 @@ custom API port stays aligned automatically; for a separately hosted API, set `B
 The API refuses a runtime WebSocket from a browser page whose origin it does not know, so the phone's page origin must
 be allowed. Unless `BLOOM_CORS_ALLOWED_ORIGINS` is already set, the launcher allows the loopback dashboard origins and
 `http://<BLOOM_PUBLIC_HOST>:<frontend port>` before it starts the API. A device reaching the dashboard under another
-name, or a port Vite moved to, is refused until that origin is added.
+name is refused until that origin is added.
 
 Verify from the host and then from the phone:
 
@@ -351,11 +346,12 @@ It checks the mapping chain (kernel, libinput, matrix, screen coordinates), not 
 
 1. Connect HDMI and micro-USB touch cable.
 2. Run `xrandr --query` and confirm the active output name, currently `HDMI-1`.
-3. Run `xinput list` and confirm the touchscreen device name, currently `HID 27c0:0818`.
-4. Apply the mapping:
+3. Run `./scripts/extender-tablet-touch-map.sh --diagnose` and confirm it lists a direct-touch device from
+   `27c0:0818`.
+4. Apply the mapping (Bloom's launcher does this for you while it runs):
 
    ```bash
-   xinput map-to-output "HID 27c0:0818" HDMI-1
+   ./scripts/extender-tablet-touch-map.sh
    ```
 
 5. Open a Bloom Manager app and verify both joysticks, Z/RZ sliders, mode controls, gripper, and fixed STOP under touch.
@@ -386,10 +382,11 @@ Preview the command without changing the current session:
 ./scripts/extender-tablet-touch-map.sh --dry-run
 ```
 
-Override names if Linux reports a different device or output:
+Override the controller or output if the tablet differs (`TOUCH_USB_ID` is `vendor:product` from `lsusb`;
+`TOUCH_DEVICE` is only a fallback name):
 
 ```bash
-TOUCH_DEVICE="HID 27c0:0818" DISPLAY_OUTPUT="HDMI-1" ./scripts/extender-tablet-touch-map.sh
+TOUCH_USB_ID=27c0:0818 DISPLAY_OUTPUT=HDMI-1 ./scripts/extender-tablet-touch-map.sh
 ```
 
 If the HDMI output comes back with the wrong resolution, the same helper can apply the display mode before remapping the
@@ -419,17 +416,11 @@ If the tablet uses a desktop session, add `~/.config/autostart/extender-tablet-t
 [Desktop Entry]
 Type=Application
 Name=Extender tablet touch mapping
-Exec=/home/susana/workspace/extender/bloom/scripts/extender-tablet-touch-map.sh
+Exec=/path/to/bloom/scripts/extender-tablet-touch-map.sh
 X-GNOME-Autostart-enabled=true
 ```
 
 The helper can install this entry automatically:
-
-```bash
-./scripts/extender-tablet-touch-map.sh --install-autostart
-```
-
-Install it with the current Extender tablet layout:
 
 ```bash
 ./scripts/extender-tablet-touch-map.sh --install-autostart
@@ -452,7 +443,7 @@ After=graphical-session.target
 [Service]
 Type=oneshot
 Environment=DISPLAY=:0
-ExecStart=/home/susana/workspace/extender/bloom/scripts/extender-tablet-touch-map.sh
+ExecStart=/path/to/bloom/scripts/extender-tablet-touch-map.sh
 
 [Install]
 WantedBy=default.target

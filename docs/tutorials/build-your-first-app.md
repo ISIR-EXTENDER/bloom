@@ -17,7 +17,8 @@ app**:
   **Debug monitor** reads the hand's pose and the mode requests instead; **Blank canvas** places nothing.
 - **Design preset** — **Extender light**, **Bloom garden**, or **High visibility**.
 
-Press **Create guided app**. It appears in **Available apps** with an **Operator** role that opens its screen.
+Press **Create guided app**. Bloom opens the new app's page; it also appears in **Available apps**, with an
+**Operator** role that opens its screen.
 
 ## 2. Add widgets
 
@@ -49,7 +50,7 @@ Press **Save changes**.
 
 ## 3. Run the review checklist
 
-Back on the app page, press **Review checklist**. It is derived from the saved app and each step says what to fix,
+Press **Back to app config**, then **Review checklist**. It is derived from the saved app and each step says what to fix,
 with a button that jumps there: minimum sizes, no widget on another, device class, pads in a row, profiles, the
 command frame, allowed topics, a preview as the person, and the export.
 

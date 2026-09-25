@@ -17,7 +17,7 @@ what this backend serves; each row shows its screens, the device classes it was 
 badge when it is no longer maintained.
 
 Select an app. The **Open as** rail on the right shows one card per role. The role used last on this device is marked
-**last used** and preselected, but nothing opens until you press **Open as <role>**. Choosing is deliberate.
+**last used** and preselected, so **Open as <role>** gets you back to work in one press.
 
 The shipped Manager apps offer three roles:
 
@@ -83,13 +83,14 @@ publishes zero for every teleop target it was tracking before it releases the le
 
 ## Maintenance
 
-Hold **⋯** for 1.5 seconds. Motion is held while the sheet is open, under a **Robot held at zeros** badge: a joystick
+Hold **⋯** for 1.5 seconds; on the **Bench** and **Lab** roles a tap is enough, and on those the screen name opens the
+same sheet. Motion is held while the sheet is open, under a **Robot held at zeros** badge: a joystick
 still held under the sheet does not resume motion when the zero goes out.
 
-The sheet lists six read-only facts — link, publish rate, command frame, profile and its layout, device class, and the
-application — and four actions: **Settings**, **Switch role**, **Reload this app**, **Exit to library**. A **More**
-group below holds the other screens (**Positions**, **Robot feedback**, **Command sources**, **Joystick lab**), the
-practice tour, the supervisor mirror, the Builder shortcuts, Help, Home, and the EN/ES/FR selector. Only that group
+The sheet opens on the app's **Screens** (**Drive**, **Positions**, **Robot feedback**, and so on), then six read-only
+facts — link, publish rate, command frame, profile and its layout, device class, and the application — and four
+actions: **Settings**, **Switch role**, **Reload this app**, **Exit to library**. A **More** group holds the practice
+tour, the supervisor mirror, the Builder shortcuts, Help, Home, and the EN/ES/FR selector. Only that group
 scrolls, so **Close** and **Resume operating** stay reachable.
 
 Nothing in the sheet changes what the app sends. Resuming closes it and publishing restarts at once.
@@ -116,7 +117,8 @@ progress.
 
 ## Practice first
 
-Hold Maintenance and choose **Practice tour**, or open it from Settings. It replaces the live artboard and suspends
+Open Maintenance and choose **Practice tour** under **More**, or accept the **Practice first** offer in the bar on a
+first visit. It replaces the live artboard and suspends
 teleop; its controls change local state only and reach no robot. Five checks introduce the screen, use the app's own
 movement label, rehearse STOP and the held resume, rehearse the Maintenance hold, and return to operation.
 

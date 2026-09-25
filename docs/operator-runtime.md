@@ -34,8 +34,7 @@ surface and does not claim that scaling is safe.
 
 Each row shows the app's screens, the device classes it was authored for, and an **Archived** badge when it is no
 longer maintained. The rail shows one card per profile with a short tagline. The role used last on this device is
-marked **last used** and preselected, but nothing opens until the operator presses **Open as <role>**: choosing a role
-is deliberate. An app that declares no profiles says so and opens with runtime defaults. The supervisor mirror is a
+marked **last used** and preselected, and **Open as <role>** opens it in one press. An app that declares no profiles says so and opens with runtime defaults. The supervisor mirror is a
 secondary action under the open button. The former **Auto** choice is gone; a stored `Auto` reads as no role
 remembered. A **This device** note in the rail names the class this browser counts as, its floor and its input. The
 app opened last is preselected once its configuration loads, and Escape closes the library menu.
@@ -435,7 +434,7 @@ are rejected by Bloom when outside the allowlist and skipped by the manager if t
 The default allowlist is `base_link` and `hybrid_frame`, which every manager config has. Set `BLOOM_ROS_EE_FRAME_ID`
 to the served robot's end-effector frame, `effector_frame` on both arms since cartesian_manager d9a1fa5 moved
 Explorer off `ft_frame`, to offer it too.
-An Explorer backend that advertised `effector_frame` accepted commands the manager then discarded without a word. One
+Before that change, an Explorer backend that advertised `effector_frame` had its commands discarded without a word. One
 backend instance represents one robot and can name it with `BLOOM_ROBOT_NAME`.
 
 ## Shared Applications And Local State

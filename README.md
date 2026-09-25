@@ -262,7 +262,6 @@ To open Bloom from a phone or tablet on the same trusted network, keep the API o
 
 ```bash
 BLOOM_FRONTEND_HOST=0.0.0.0 \
-BLOOM_PUBLIC_HOST="$(hostname -I | awk '{print $1}')" \
 scripts/extender-workspace-dev.sh
 ```
 
@@ -483,12 +482,13 @@ or `deleted`. The [operator guide](docs/operator-runtime.md#shared-applications-
 useful overrides:
 
 - `EXTENDER_WORKSPACE` or `EXTENDER_SETUP_FILE` selects the ROS workspace to source. The default is an
-  `extender_workspace` checkout next to this repository.
+  `extender_workspace` checkout next to this repository, or the nearest built workspace above it.
 - `BLOOM_API_HOST` / `BLOOM_API_PORT` and `BLOOM_FRONTEND_HOST` / `BLOOM_FRONTEND_PORT` change the listening addresses.
 - `BLOOM_API_PROXY_TARGET` overrides Vite's server-side API target; the launcher derives it from `BLOOM_API_PORT` by
   default.
-- `BLOOM_PUBLIC_HOST` controls the same-Wi-Fi URL printed for wildcard frontend binds.
-- `BLOOM_APPLY_TABLET_TOUCH_MAP=1` applies the target tablet's touch mapping before startup.
+- `BLOOM_PUBLIC_HOST` overrides the same-Wi-Fi address the launcher finds for a wildcard or LAN bind.
+- `BLOOM_CAMERA` picks the camera `camera_interface` starts (`auto` from `BLOOM_ROBOT_NAME`, `none`, or a driver).
+- `BLOOM_APPLY_TABLET_TOUCH_MAP=0` stops the launcher keeping the tablet's touch mapped; it follows it by default.
 
 To run only the ROS-enabled API:
 
@@ -588,7 +588,7 @@ export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```bash
 # cartesian_manager (default) or teleop_command for the legacy rollback path
 export BLOOM_ROS_COMMAND_BACKEND=cartesian_manager
-# A frame the manager knows: base_link, effector_frame, or hybrid_frame
+# A frame the manager knows: base_link or hybrid_frame, or effector_frame once BLOOM_ROS_EE_FRAME_ID names it
 export BLOOM_ROS_COMMAND_FRAME_ID=base_link
 ```
 

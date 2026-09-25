@@ -122,3 +122,31 @@ test("follows the tablet while Bloom runs: plugged in late, overwritten, unplugg
     process.kill(-watcher.pid, "SIGTERM");
   }
 });
+
+test("maps the touch and says so when GNOME reports no monitor for --gnome", () => {
+  const dir = fakeX11([[12, "HID 27c0:0818", "pointer", TABLET, "touch", IDENTITY]]);
+
+  const result = run(dir, ["--gnome"]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assertMatrix(matrixOf(dir, 12), TABLET_MATRIX);
+  assert.match(result.stderr, /GNOME did not report a monitor on 'HDMI-1'/);
+});
+
+test("says which outputs are connected when the one it watches is not", async () => {
+  const dir = fakeX11([]);
+  const watcher = spawn("bash", [SCRIPT, "--watch"], {
+    env: environment(dir, { DISPLAY_OUTPUT: "HDMI-2" }),
+    detached: true,
+  });
+  let output = "";
+  watcher.stdout.on("data", (chunk) => {
+    output += chunk;
+  });
+  try {
+    await wait(500);
+    assert.match(output, /'HDMI-2' is not connected; connected outputs: eDP-1 HDMI-1/);
+  } finally {
+    process.kill(-watcher.pid, "SIGTERM");
+  }
+});

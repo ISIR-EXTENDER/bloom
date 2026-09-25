@@ -59,8 +59,8 @@ Visit <http://127.0.0.1:5173>. You should land on a page headed **Give the gestu
 **Open Builder** and **Get started**, and a top navigation of **Home**, **Builder**, **Runtime** and **Help**.
 
 Choose **Open Runtime**. The left column, **Apps on this robot**, lists the shipped applications: Explorer Manager,
-Kinova Manager, Sandbox V0.0, Petanque admin, Bloom Debug, the webcam visualizer, and one camera test app per
-robot. Select **Explorer Manager**, choose **Operator** in the **Open as** rail, and press **Open as Operator**.
+Kinova Manager, Visual servoing, Widget Lab, Sandbox V0.0, Petanque admin, Bloom Debug, the webcam visualizer, and one
+camera test app per robot. Select **Explorer Manager**, choose **Operator** in the **Open as** rail, and press **Open as Operator**.
 
 You are now in the kiosk. The 44 px bar across the top reads the app name, the screen title, a status chip, the command
 frame, the publish rate and the role. Controls that need a ROS seam the backend does not have are visible but inert and
@@ -132,7 +132,7 @@ BLOOM_ROS_EE_FRAME_ID=effector_frame \
 scripts/extender-workspace-dev.sh
 ```
 
-For Kinova, change the last two values:
+For Kinova, change `BLOOM_ROBOT_NAME`:
 
 ```bash
 EXTENDER_WORKSPACE=/path/to/extender_workspace \

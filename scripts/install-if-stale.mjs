@@ -27,7 +27,8 @@ export function installIsStale(lockfileMs, installedMs) {
   return installedMs === null || installedMs < lockfileMs;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// import.meta.main, not a file:// comparison: a path with a space or through a symlink never matched it.
+if (import.meta.main) {
   const lockfile = modifiedAt("package-lock.json");
   const installed = modifiedAt("node_modules/.package-lock.json");
   if (!installIsStale(lockfile, installed)) {

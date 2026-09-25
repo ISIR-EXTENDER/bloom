@@ -120,7 +120,7 @@ install_autostart() {
 [Desktop Entry]
 Type=Application
 Name=Extender tablet touch mapping
-Exec=/usr/bin/env DISPLAY_OUTPUT=${DISPLAY_OUTPUT} DISPLAY_MODE=${DISPLAY_MODE} DISPLAY_RATE=${DISPLAY_RATE} APPLY_DISPLAY_MODE=${APPLY_DISPLAY_MODE} CREATE_DISPLAY_MODE=${CREATE_DISPLAY_MODE} LOGICAL_DISPLAY_SIZE=${LOGICAL_DISPLAY_SIZE} PLACE_OUTPUT_LEFT_OF=${PLACE_OUTPUT_LEFT_OF} PLACE_OUTPUT_RIGHT_OF=${PLACE_OUTPUT_RIGHT_OF} USE_EXACT_TOUCH_MATRIX=${USE_EXACT_TOUCH_MATRIX} DISPLAY_SETTLE_SECONDS=${DISPLAY_SETTLE_SECONDS} ${script_path}
+Exec=/usr/bin/env TOUCH_USB_ID=${TOUCH_USB_ID} "TOUCH_DEVICE=${TOUCH_DEVICE}" "TOUCH_DEVICE_PATTERN=${TOUCH_DEVICE_PATTERN}" WAIT_SECONDS=${WAIT_SECONDS} DISPLAY_OUTPUT=${DISPLAY_OUTPUT} DISPLAY_MODE=${DISPLAY_MODE} DISPLAY_RATE=${DISPLAY_RATE} APPLY_DISPLAY_MODE=${APPLY_DISPLAY_MODE} CREATE_DISPLAY_MODE=${CREATE_DISPLAY_MODE} LOGICAL_DISPLAY_SIZE=${LOGICAL_DISPLAY_SIZE} PLACE_OUTPUT_LEFT_OF=${PLACE_OUTPUT_LEFT_OF} PLACE_OUTPUT_RIGHT_OF=${PLACE_OUTPUT_RIGHT_OF} USE_EXACT_TOUCH_MATRIX=${USE_EXACT_TOUCH_MATRIX} DISPLAY_SETTLE_SECONDS=${DISPLAY_SETTLE_SECONDS} "${script_path}"
 X-GNOME-Autostart-enabled=true
 EOF
 
@@ -193,12 +193,12 @@ diagnose() {
   echo "== Devices named like '${TOUCH_DEVICE_PATTERN}'"
   xinput list | grep -E "${TOUCH_DEVICE_PATTERN}" || echo "  none"
   echo "== GNOME touchscreen mapping"
-  gsettings get "$(gnome_touchscreen_path)" output 2>&1 | sed 's/^/  output = /'
+  { gsettings get "$(gnome_touchscreen_path)" output 2>&1 || true; } | sed 's/^/  output = /'
   echo "  ${DISPLAY_OUTPUT} identity: $(monitor_identity || true)"
   echo "== Autostart entries"
   grep -l -i -E "touch|xinput" "${HOME}"/.config/autostart/*.desktop 2>/dev/null | sed 's/^/  /' || echo "  none"
   echo "== Browser"
-  (google-chrome --version || chromium --version) 2>/dev/null
+  (google-chrome --version || chromium --version) 2>/dev/null || echo "  no Chrome or Chromium found"
 }
 
 wait_for_hardware() {
@@ -375,7 +375,16 @@ matrices_match() {
 # Replugged, moved or overwritten by the desktop: each shows up as a device whose matrix is not the expected one.
 if [[ "${WATCH}" == "1" ]]; then
   echo "Watching for ${TOUCH_USB_ID} on '${DISPLAY_OUTPUT}' every ${WATCH_INTERVAL_SECONDS}s."
+  output_missing_said=0
   while true; do
+    if ! resolve_display_output; then
+      if [[ "${output_missing_said}" == "0" ]]; then
+        echo "'${DISPLAY_OUTPUT}' is not connected; connected outputs: $(xrandr --query | awk '$2 == "connected" { printf "%s ", $1 }')"
+        output_missing_said=1
+      fi
+    else
+      output_missing_said=0
+    fi
     if resolve_display_output && resolve_touch_device && expected="$(exact_touch_matrix 2>/dev/null)"; then
       for id in "${TOUCH_IDS[@]}"; do
         if ! matrices_match "$(current_touch_matrix "${id}")" "${expected}"; then
@@ -488,7 +497,7 @@ else
 fi
 
 if [[ "${GNOME_MAPPING}" == "1" ]]; then
-  identity="$(monitor_identity)"
+  identity="$(monitor_identity || true)"
   if [[ -z "${identity}" ]]; then
     echo "GNOME did not report a monitor on '${DISPLAY_OUTPUT}'; its touchscreen mapping is unchanged." >&2
   else
