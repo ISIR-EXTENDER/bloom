@@ -166,7 +166,7 @@ Work through these deliberately; none of them can be tested any other way.
 | Reset fault (Kinova) | The simulation launch never spawns `fault_controller`, so this has never been exercised at all. It is the gen3's recovery path. |
 | Bloom Debug joint table | A real arm publishes a different joint set than the simulation did. |
 | The tablet, gamepad or switch | Together, on the device, with the profile the operator will actually use. |
-| The 3D view against the real arm | Simulation publishes every joint, gripper included; a real arm may publish fewer, and a joint the description has but the driver does not stays where the URDF puts it. Compare the drawn pose with the arm once before trusting the view. |
+| The 3D view against the real arm | The description and meshes are identical to the simulated ones, checked offline, so the robot draws the same. What is unproven is `/joint_states`: simulation publishes every joint, gripper included, and a real arm may publish fewer. A joint the driver does not report stays where the URDF puts it, and the line under the view says how many of the model's joints are driven. Compare the drawn pose with the arm once before trusting it. |
 
 ## 8. Known-absent — do not chase these
 

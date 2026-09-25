@@ -193,3 +193,27 @@ its place the same night: a redraw-skip that compared a never-seen joint against
 zero pose, both robots passed 28/28 regardless, and the screenshot showed the twin lying where the real arm was
 while the model stood upright. With the fix: Explorer 28/28, 60 joint states moved the model while Height was
 held; Kinova 28/28 on qontrol `a6382c1`, 10 (the gen3 moves at 5 cm/s).
+
+### Amended 2026-09-25: the 3D view on hardware, checked without an arm
+
+The view draws whatever `robot_state_publisher` holds, so the question before a bench is whether the hardware
+launch publishes a different robot from the simulated one. It does not. Both launches were expanded offline and
+compared:
+
+| | Kinova, `use_fake_hardware` true vs false | Explorer, `simulation:=true` vs `false` |
+| --- | --- | --- |
+| Links | 19, identical | 21, identical |
+| Kinematic joints | 18, identical | 20, identical |
+| Visual meshes | 17, identical | 15, identical |
+
+Everything that differs sits inside `<ros2_control>` and `<gazebo>` tags, which the view never reads: the robot
+IP, the CAN port, the fake-hardware flags and the gripper's bus parameters. Every mesh the hardware URDFs name
+resolves through the API's own resolver and is a file on disk: 17 of 17 for the Kinova as `package://`, 13 of 13
+for the Explorer as an absolute `file://` share path. Both forms are now in the dashboard resolver's tests with
+the real strings. Neither hardware launch namespaces or renames `robot_state_publisher`, so the default
+`BLOOM_ROS_ROBOT_DESCRIPTION_NODE` holds.
+
+What is still unproven on an arm, and cannot be proven without one: that the driver publishes `/joint_states`
+for every joint the description declares. Simulation publishes all of them; a real arm may publish fewer, and a
+joint it does not report stays where the URDF puts it. The view says so, in the line under it, rather than
+drawing a pose it cannot support.

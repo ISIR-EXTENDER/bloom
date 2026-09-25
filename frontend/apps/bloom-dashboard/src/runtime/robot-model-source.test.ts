@@ -32,6 +32,19 @@ describe("resolvePackageAsset", () => {
     });
   });
 
+  it("reads the mesh paths the two hardware launches actually produce", () => {
+    // Taken from the URDFs `use_fake_hardware:=false` and `simulation:=false` generate, 2026-09-25.
+    expect(resolvePackageAsset("package://kortex_description/arms/gen3/7dof/meshes/base_link.dae")).toEqual({
+      packageName: "kortex_description",
+      path: "arms/gen3/7dof/meshes/base_link.dae",
+    });
+    expect(
+      resolvePackageAsset(
+        "file:///home/lab/ws/install/explorer_description/share/explorer_description/meshes/visual/base_link_POC2.dae",
+      ),
+    ).toEqual({ packageName: "explorer_description", path: "meshes/visual/base_link_POC2.dae" });
+  });
+
   it("refuses what names no package or no file", () => {
     expect(resolvePackageAsset("package://arm")).toBeNull();
     expect(resolvePackageAsset("/tmp/a.stl")).toBeNull();
