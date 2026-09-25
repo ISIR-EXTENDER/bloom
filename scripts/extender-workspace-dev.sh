@@ -2,7 +2,26 @@
 set -euo pipefail
 
 BLOOM_ROOT=${BLOOM_ROOT:-"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"}
-EXTENDER_WORKSPACE=${EXTENDER_WORKSPACE:-"$(dirname "${BLOOM_ROOT}")/extender_workspace"}
+# Bloom sits beside the ROS workspace on some machines and inside its `src/` on others, so the workspace is
+# found rather than assumed: the sibling first, then the nearest ancestor that has been built.
+find_extender_workspace() {
+  local sibling="$(dirname "${BLOOM_ROOT}")/extender_workspace"
+  if [[ -f "${sibling}/install/setup.bash" ]]; then
+    printf '%s\n' "${sibling}"
+    return 0
+  fi
+  local candidate="${BLOOM_ROOT}"
+  while [[ "${candidate}" != "/" ]]; do
+    if [[ -f "${candidate}/install/setup.bash" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+    candidate="$(dirname "${candidate}")"
+  done
+  printf '%s\n' "${sibling}"
+}
+
+EXTENDER_WORKSPACE=${EXTENDER_WORKSPACE:-"$(find_extender_workspace)"}
 EXTENDER_SETUP_FILE=${EXTENDER_SETUP_FILE:-"${EXTENDER_WORKSPACE}/install/setup.bash"}
 BLOOM_API_HOST=${BLOOM_API_HOST:-"127.0.0.1"}
 BLOOM_API_PORT=${BLOOM_API_PORT:-"8000"}
@@ -51,7 +70,8 @@ trap cleanup EXIT INT TERM
 
 if [[ ! -f "${EXTENDER_SETUP_FILE}" ]]; then
   echo "Extender setup file not found: ${EXTENDER_SETUP_FILE}" >&2
-  echo "Build the ROS workspace first, or set EXTENDER_SETUP_FILE to the correct setup.bash." >&2
+  echo "Looked beside Bloom and up from ${BLOOM_ROOT} for a workspace with install/setup.bash." >&2
+  echo "Build the ROS workspace first, or set EXTENDER_WORKSPACE to its root." >&2
   exit 1
 fi
 

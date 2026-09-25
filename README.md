@@ -88,6 +88,23 @@ attached; that is expected in this quickstart and still lets you inspect the ful
 
 To go from here to a moving arm, follow [Getting started](docs/tutorials/getting-started.md).
 
+### Running Bloom against a robot
+
+With the Extender ROS workspace built and a robot or its simulation already launched, one script starts both
+halves of Bloom against it:
+
+```bash
+scripts/extender-workspace-dev.sh
+```
+
+It sources the ROS workspace, starts the API with its ROS adapters and the dashboard, prints the URL to open, and
+stops both on Ctrl-C. It finds the workspace whether Bloom sits beside it or inside its `src/`; set
+`EXTENDER_WORKSPACE` to the workspace root if it lives somewhere else. After a `git pull` it installs whatever the
+pull added, so a dependency added upstream cannot surface as Vite failing to resolve an import.
+
+For a tablet, and for the per-robot environment, see the [bench card](docs/bench-card.md), which is the one page to
+have open during a session with hardware.
+
 ## Tutorials
 
 Three walkthroughs in [`docs/tutorials/`](docs/tutorials/), in the order a newcomer needs them:

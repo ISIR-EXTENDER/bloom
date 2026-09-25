@@ -67,6 +67,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   and no robot launched, the robot-model route raised because `/robot_state_publisher` offers no parameter
   services, so the 3D view's poll filled the API log with 500s every three seconds. It reports the state the
   view is waiting for instead.
+- **The launcher finds the ROS workspace whether Bloom sits beside it or inside its `src/`.** It assumed a
+  sibling, which is only one of the two layouts in use, and failed on the other before it started anything.
 
 - **A pull that adds a dependency no longer breaks the launcher.** `scripts/extender-workspace-dev.sh` installs
   when `package-lock.json` is newer than the last install, so a stale `node_modules` cannot surface as Vite
