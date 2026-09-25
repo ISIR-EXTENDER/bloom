@@ -38,7 +38,7 @@ write. The person opens it on a tablet and drives the arm. A large STOP is alway
 command the robot at a time, and the arm only does what the lab has allowed.
 
 <p align="center">
-  <a href="docs/assets/demo/bloom-demo.mp4"><img src="docs/assets/readme/demo-poster.png" alt="Play the six-minute Bloom walkthrough: the Explorer arm drawn in 3D, from an empty screen to a moving arm." width="100%" /></a>
+  <a href="docs/assets/demo/bloom-demo.mp4"><img src="docs/assets/readme/bloom-highlights.gif" alt="Bloom in twenty seconds: a joystick placed and a button configured in the Builder with no code, the roles an app opens in, the Explorer arm driven from its operator screen, live plots, and the arm turning in 3D. Click for the full walkthrough." width="100%" /></a>
 </p>
 
 <p align="center">
@@ -346,10 +346,11 @@ npm run record:demo -- --camera feed.y4m
 ```
 
 The recorder uses Playwright and `ffmpeg`; install Chromium with the command above and provide `ffmpeg` on `PATH`.
-The poster above the video is rendered from one of its frames, and the logo from the app's own:
+The looping highlights at the top of this page are cut from the walkthrough, and the logo is rendered from the app's
+own; rerun both after a new recording or a new logo:
 
 ```bash
-node scripts/render-readme-art.mjs --poster frame.png
+scripts/render-readme-highlights.sh
 uv run --no-project --with pillow --with numpy python scripts/render-readme-logo.py
 ```
 

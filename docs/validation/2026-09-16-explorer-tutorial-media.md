@@ -106,5 +106,7 @@ through `api run-ros`: 6 min 18 s, 1920x1080, H.264 in `yuv420p` at 30 frames a 
 three scenes for what shipped since the last take: a command button configured field by field in the inspector,
 the three roles Explorer Manager opens in, and Bloom Debug's Robot view, zoomed and turned while the arm moves. A
 contact sheet sampled every 30 seconds was checked for blank frames, stale overlays and scenes that failed to
-load. The poster is a frame from the 3D scene, cropped so the arm sits clear of the play button, and rendered with
-`node scripts/render-readme-art.mjs --poster`.
+load. The README opens on a 19-second loop cut from it, six moments at 2.4 times speed and 2.5 MB, which plays inline
+where the video cannot and links to it; `scripts/render-readme-highlights.sh` holds the cut list. The STOP moment
+was left out because the recorder has switched the interface to Spanish by then, which reads as an error out of
+context.
