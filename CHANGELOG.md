@@ -19,6 +19,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **The launcher starts the gripper camera.** `scripts/extender-workspace-dev.sh` now brings up the robot's camera
+  through `camera_interface` (input_interfaces#35) on `/camera/color/image_raw/compressed`, picked from
+  `BLOOM_ROBOT_NAME`: the Explorer's USB camera or the first webcam, or the Kinova's integrated camera. Nothing to run
+  in another terminal, and Ctrl-C stops it with the rest. `BLOOM_CAMERA` overrides the choice.
+
 - **The Builder says whether an app is shared.** Each app card carries **Shared**, **Update available**, **Edited
   here** or **Not shared**, with **Update** to take the shipped version and **Share** to write the file to commit,
   the way `config status`, `config seed` and `config publish` do on the CLI. Three API routes back it:
@@ -90,6 +95,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   expire, `/ee_pose` drawn, and the target drawn then gone.
 
 ### Fixed
+
+- **The Explorer camera test app drives the Explorer's way.** Its Translation pad carried the identity mapping, so
+  Forward moved the hand along +y; it now uses the Explorer's axes, as Explorer Manager does. A horizontal Height
+  slider read "Left" and "Right"; a slider on the height axis now reads Down and Up however it is laid out.
 
 - **A widget placed from the palette arrives working.** Placement read the contract's defaults and ignored the
   catalog's, so the gripper toggle and every other preset never reached a screen. Each palette widget now

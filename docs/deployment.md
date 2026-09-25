@@ -58,6 +58,7 @@ test suites.
 | `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
 | `BLOOM_SEED_SHARED_APPLICATIONS` | `true` | Import and upgrade shipped applications at API start. |
 | `BLOOM_TELEOP_TARGET_PARAMETERS` | manager `topics.*_command` | `<node>:<parameter>` pairs naming the manager's input topics a joystick may drive. |
+| `BLOOM_CAMERA` | `auto` | `scripts/extender-workspace-dev.sh` only: the camera `camera_interface` starts; `none` skips it, or name a driver (`usb_cam`, `camera_ros`, `kinova_vision`). |
 | `BLOOM_SEED_DIR` | `backend/seed/applications` | Where the shared applications live; the Builder's **Share** writes here. |
 | `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |

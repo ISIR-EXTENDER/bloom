@@ -30,9 +30,14 @@ BLOOM_FRONTEND_PORT=${BLOOM_FRONTEND_PORT:-"5173"}
 BLOOM_API_PROXY_TARGET=${BLOOM_API_PROXY_TARGET:-"http://127.0.0.1:${BLOOM_API_PORT}"}
 BLOOM_PUBLIC_HOST=${BLOOM_PUBLIC_HOST:-""}
 BLOOM_APPLY_TABLET_TOUCH_MAP=${BLOOM_APPLY_TABLET_TOUCH_MAP:-"0"}
+# auto picks the robot's camera through camera_interface; none skips it; or name a driver: usb_cam, camera_ros, kinova_vision.
+BLOOM_CAMERA=${BLOOM_CAMERA:-"auto"}
+BLOOM_CAMERA_TOPIC="/camera/color/image_raw/compressed"
+BLOOM_CAMERA_LOG=${BLOOM_CAMERA_LOG:-"${BLOOM_ROOT}/backend/data/camera.log"}
 
 API_PID=""
 FRONTEND_PID=""
+CAMERA_PID=""
 
 source_extender_workspace() {
   # ROS/colcon setup hooks are not guaranteed to be nounset-safe.
@@ -52,6 +57,59 @@ cleanup() {
   if [[ -n "${API_PID}" ]]; then
     kill -- "-${API_PID}" 2>/dev/null || true
   fi
+
+  if [[ -n "${CAMERA_PID}" ]]; then
+    kill -INT -- "-${CAMERA_PID}" 2>/dev/null || true
+  fi
+}
+
+# The robot's camera on the topic Bloom's camera widgets read. A missing camera never stops Bloom.
+start_camera() {
+  [[ "${BLOOM_CAMERA}" == "none" ]] && return 0
+  if ! ros2 pkg prefix camera_interface >/dev/null 2>&1; then
+    echo "Camera: camera_interface is not built in ${EXTENDER_WORKSPACE}; skipping it."
+    return 0
+  fi
+  if ros2 topic list --no-daemon 2>/dev/null | grep -qx "${BLOOM_CAMERA_TOPIC}"; then
+    echo "Camera: ${BLOOM_CAMERA_TOPIC} is already published; not starting another."
+    return 0
+  fi
+
+  local config driver="${BLOOM_CAMERA}" params=""
+  config="$(ros2 pkg prefix camera_interface)/share/camera_interface/config"
+  if [[ "${driver}" == "auto" ]]; then
+    case "${BLOOM_ROBOT_NAME:-}" in
+      [Kk]inova) driver="kinova_vision" ;;
+      [Ee]xplorer) driver="usb_cam" params="${config}/explorer_camera.yaml" ;;
+      *) driver="usb_cam" params="${config}/usb_camera.yaml" ;;
+    esac
+  elif [[ "${driver}" == "usb_cam" ]]; then
+    params="${config}/usb_camera.yaml"
+  fi
+
+  if [[ -n "${params}" ]]; then
+    local device
+    device="$(awk '/video_device:/ { print $2 }' "${params}")"
+    if [[ -n "${device}" && ! -e "${device}" ]]; then
+      echo "Camera: ${device} is not plugged in; using the first webcam instead."
+      params="${config}/usb_camera.yaml"
+      device="$(awk '/video_device:/ { print $2 }' "${params}")"
+      if [[ ! -e "${device}" ]]; then
+        echo "Camera: no webcam at ${device}; skipping it."
+        return 0
+      fi
+    fi
+  fi
+  if [[ "${driver}" == "kinova_vision" ]] && ! ros2 pkg prefix kinova_vision >/dev/null 2>&1; then
+    echo "Camera: kinova_vision is not built in this workspace; skipping the Kinova camera."
+    return 0
+  fi
+
+  mkdir -p "$(dirname "${BLOOM_CAMERA_LOG}")"
+  echo "Starting the camera (${driver}) on ${BLOOM_CAMERA_TOPIC}, log in ${BLOOM_CAMERA_LOG}..."
+  ros2 launch camera_interface camera.launch.py "driver:=${driver}" ${params:+"params_file:=${params}"} \
+    >"${BLOOM_CAMERA_LOG}" 2>&1 &
+  CAMERA_PID="$!"
 }
 
 # The address a phone on the same Wi-Fi actually reaches: the source of the default
@@ -98,6 +156,9 @@ fi
 # Job control gives each background server its own process group.
 set -m
 
+source_extender_workspace
+start_camera
+
 echo "Starting Bloom API with ROS adapters..."
 (
   cd "${BLOOM_ROOT}/backend"
@@ -129,7 +190,9 @@ API:       http://${BLOOM_API_HOST}:${BLOOM_API_PORT}
 Frontend: http://${BLOOM_FRONTEND_HOST}:${BLOOM_FRONTEND_PORT}
 API proxy: ${BLOOM_API_PROXY_TARGET}
 
-Press Ctrl+C to stop both processes.
+Camera:   ${BLOOM_CAMERA_TOPIC} (${BLOOM_CAMERA}; BLOOM_CAMERA=none to skip)
+
+Press Ctrl+C to stop everything.
 EOF
 
 if [[ "${BLOOM_FRONTEND_HOST}" == "0.0.0.0" || "${BLOOM_FRONTEND_HOST}" == "::" ]]; then

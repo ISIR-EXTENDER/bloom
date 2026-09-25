@@ -59,6 +59,12 @@ BLOOM_ROBOT_NAME=Kinova \
 BLOOM_ROS_EE_FRAME_ID=effector_frame \
 ```
 
+**The gripper camera starts with the launcher.** With `BLOOM_ROBOT_NAME` set it picks the arm's camera through
+`camera_interface`: the Explorer's USB camera (or the first webcam when it is not plugged in), or the Kinova's
+integrated camera through `kinova_vision`, which needs the arm on its network. The image reaches the camera test apps
+on `/camera/color/image_raw/compressed`. A camera already publishing there is left alone; `BLOOM_CAMERA=none` skips
+it, `BLOOM_CAMERA=usb_cam` forces the webcam, and the camera's log is `backend/data/camera.log`.
+
 `BLOOM_ROS_EE_FRAME_ID` names the arm's own end-effector frame. Get it wrong and Bloom offers a frame the manager
 silently discards, which looks exactly like a broken web stack.
 

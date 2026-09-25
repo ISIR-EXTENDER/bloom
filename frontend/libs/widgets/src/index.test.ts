@@ -1813,6 +1813,19 @@ describe("a toggle straight from the palette", () => {
     return toggle?.settings as Record<string, unknown>;
   };
 
+  it("keeps each camera test app's pad on its arm's axes", () => {
+    for (const [robot, seed] of [
+      ["explorer", explorerCameraTestSeed],
+      ["kinova", kinovaCameraTestSeed],
+    ] as const) {
+      const pad = (seed as unknown as { applications: ApplicationConfig[] }).applications[0]?.screens
+        .flatMap((screen) => screen.widgets)
+        .find((widget) => widget.title === "Translation")?.settings.runtime_binding as Record<string, unknown>;
+      const placed = translationPadSettings(robot).runtime_binding as Record<string, unknown>;
+      expect(pad.axis_mapping, robot).toEqual(placed.axis_mapping);
+    }
+  });
+
   it("places this arm's Translation pad, with the Manager apps' words and axes", () => {
     for (const robot of ["explorer", "kinova"]) {
       const bundle = (robot === "explorer" ? explorerManagerSeed : kinovaManagerSeed) as unknown as {

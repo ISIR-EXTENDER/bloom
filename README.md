@@ -233,8 +233,8 @@ halves of Bloom against it:
 scripts/extender-workspace-dev.sh
 ```
 
-It sources the ROS workspace, starts the API with its ROS adapters and the dashboard, prints the URL to open, and
-stops both on Ctrl-C. It finds the workspace whether Bloom sits beside it or inside its `src/`; set
+It sources the ROS workspace, starts the robot's camera through `camera_interface`, the API with its ROS adapters
+and the dashboard, prints the URL to open, and stops everything on Ctrl-C. It finds the workspace whether Bloom sits beside it or inside its `src/`; set
 `EXTENDER_WORKSPACE` to the workspace root if it lives somewhere else. After a `git pull` it installs whatever the
 pull added, so a dependency added upstream cannot surface as Vite failing to resolve an import.
 

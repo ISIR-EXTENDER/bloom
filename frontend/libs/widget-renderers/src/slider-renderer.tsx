@@ -368,8 +368,13 @@ function resolveAxisWords(
 ): { negative: string; positive: string } {
   const labels =
     typeof settings.labels === "object" && settings.labels !== null ? (settings.labels as Record<string, unknown>) : {};
+  // Height reads Down and Up however the slider is laid out; other axes follow the orientation.
+  const binding = settings.runtime_binding as { axis_mapping?: { value?: { component?: string } } } | undefined;
+  const drivesHeight = binding?.axis_mapping?.value?.component === "linear_z";
   const fallback =
-    orientation === "vertical" ? { negative: "▼ Down", positive: "▲ Up" } : { negative: "◀ Left", positive: "Right ▶" };
+    orientation === "vertical" || drivesHeight
+      ? { negative: "▼ Down", positive: "▲ Up" }
+      : { negative: "◀ Left", positive: "Right ▶" };
   return {
     negative: typeof labels.negative === "string" && labels.negative ? labels.negative : fallback.negative,
     positive: typeof labels.positive === "string" && labels.positive ? labels.positive : fallback.positive,
