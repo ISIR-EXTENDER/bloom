@@ -89,8 +89,8 @@ start_camera() {
   config="$(ros2 pkg prefix camera_interface)/share/camera_interface/config"
   if [[ "${driver}" == "auto" ]]; then
     case "${BLOOM_ROBOT_NAME:-}" in
-      [Kk]inova) driver="kinova_vision" ;;
-      [Ee]xplorer) driver="usb_cam" params="${config}/explorer_camera.yaml" ;;
+      *[Kk]inova*|*[Gg]en3*) driver="kinova_vision" ;;
+      *[Ee]xplorer*) driver="usb_cam" params="${config}/explorer_camera.yaml" ;;
       *) driver="usb_cam" params="${config}/usb_camera.yaml" ;;
     esac
   elif [[ "${driver}" == "usb_cam" ]]; then

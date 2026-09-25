@@ -47,7 +47,9 @@ import {
   resolveLegacyWidgetKind,
   resolveWidgetDescriptor,
   resolveWidgetDestination,
+  robotFamily,
   snapLayoutValue,
+  speedSliderSettings,
   type TopicMessage,
   type TopicPlotSample,
   translationPadSettings,
@@ -1850,6 +1852,31 @@ describe("a toggle straight from the palette", () => {
       expect(placed.onStateLabel).toBe("closed");
       expect(placed.onPayload).toBe(seed.onPayload);
     }
+  });
+
+  it("places this arm's speed slider with the Manager apps' range", () => {
+    for (const robot of ["explorer", "kinova"]) {
+      const seed = (robot === "explorer" ? explorerManagerSeed : kinovaManagerSeed) as unknown as {
+        applications: ApplicationConfig[];
+      };
+      const seedSlider = seed.applications[0]?.screens
+        .flatMap((screen) => screen.widgets)
+        .find((widget) => widget.id === "drive-max-linear-speed")?.settings as Record<string, unknown>;
+      const placed = speedSliderSettings(robot);
+      for (const key of ["topic", "min", "max", "step", "value", "unit"]) {
+        expect(placed[key], `${robot} ${key}`).toEqual(seedSlider[key]);
+      }
+    }
+  });
+
+  it("recognizes an arm by a name that only contains it", () => {
+    expect(robotFamily("Kinova Gen3")).toBe("kinova");
+    expect(robotFamily("gen3_lite")).toBe("kinova");
+    expect(robotFamily("explorer_sim")).toBe("explorer");
+    expect(robotFamily("franka")).toBeUndefined();
+    expect(robotFamily(null)).toBeUndefined();
+    expect(gripperToggleSettings("kinova_sim").onPayload).toBe("{data: [0.8]}");
+    expect(speedSliderSettings("Kinova Gen3").max).toBe(0.1);
   });
 });
 

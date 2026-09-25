@@ -1,3 +1,4 @@
+import { type RobotFamily, robotFamily } from "./robot-family";
 import type { ToggleSettings } from "./settings";
 
 /**
@@ -13,15 +14,13 @@ const GRIPPER_MESSAGE_TYPE = "std_msgs/msg/Float64MultiArray";
 type GripperCalibration = { closed: number; open: number };
 
 /** Explorer matches tablet_interface; the Kinova pair is the Robotiq 85 knuckle joint's own range. */
-const GRIPPER_CALIBRATIONS: Readonly<Record<string, GripperCalibration>> = {
+const GRIPPER_CALIBRATIONS: Readonly<Record<RobotFamily, GripperCalibration>> = {
   explorer: { closed: 1.1, open: 0.2 },
   kinova: { closed: 0.8, open: 0.0 },
 };
 
-const DEFAULT_CALIBRATION = GRIPPER_CALIBRATIONS.explorer as GripperCalibration;
-
 function gripperCalibrationFor(robotName: string | undefined): GripperCalibration {
-  return GRIPPER_CALIBRATIONS[(robotName ?? "").trim().toLowerCase()] ?? DEFAULT_CALIBRATION;
+  return GRIPPER_CALIBRATIONS[robotFamily(robotName) ?? "explorer"];
 }
 
 /**

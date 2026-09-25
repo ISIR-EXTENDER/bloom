@@ -7,7 +7,7 @@ import {
   type ScreenConfig,
   type UserProfile,
 } from "@bloom/api-client";
-import { gripperToggleSettings, PALETTE_WIRING, translationPadSettings } from "@bloom/widgets";
+import { gripperToggleSettings, PALETTE_WIRING, speedSliderSettings, translationPadSettings } from "@bloom/widgets";
 import { ensureUniqueId } from "../configurations/configuration-editor";
 import { defaultStopRegion, NEW_TABLET_CANVAS } from "./builder-geometry";
 import { createNewApplicationName, slugify } from "./builderHomeModel";
@@ -203,7 +203,7 @@ export function createStarterScreen(
           // It published to /cmd/max_velocity, which nothing on either arm reads: the first touch failed.
           title: PALETTE_WIRING.slider?.title ?? "Max linear speed",
           layout: { x: 440, y: 190, width: 440, height: 132 },
-          settings: { ...PALETTE_WIRING.slider?.settings },
+          settings: speedSliderSettings(robotName),
         },
         {
           id: "gripper",

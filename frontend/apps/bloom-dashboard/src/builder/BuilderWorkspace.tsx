@@ -6,6 +6,8 @@ import {
   gripperToggleSettings,
   minSizeFor,
   removeWidgetFromScreen,
+  robotFamily,
+  speedSliderSettings,
   translationPadSettings,
   updateWidgetSettings,
   updateWidgetTitle,
@@ -31,6 +33,12 @@ import {
 } from "./builder-geometry";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
+
+const ROBOT_AWARE_SETTINGS: Partial<Record<string, (robotName?: string) => Record<string, unknown>>> = {
+  joystick: translationPadSettings,
+  slider: speedSliderSettings,
+  toggle: gripperToggleSettings,
+};
 
 type BuilderWorkspaceProps = {
   /** The frames this robot accepts, so a pad can be told to turn in one of them. */
@@ -160,26 +168,26 @@ export function BuilderWorkspace({
     }
 
     const widgetId = createUniqueWidgetId(draftScreen, definition.kind);
-    // A toggle is placed wired to the gripper, and the two arms travel different distances. Giving it
-    // the other arm's numbers would be a control that looks right and closes on nothing.
+    // Gripper travel, pad axes and speed range differ per arm: the other arm's numbers would look right and do wrong.
     // A series picker drives a plot board; placed beside one, it drives that one.
+    const robotAware = ROBOT_AWARE_SETTINGS[definition.kind];
     const board = draftScreen.widgets.find((widget) => widget.kind === "plot-board");
-    const placed =
-      definition.kind === "toggle"
-        ? { ...definition, defaultSettings: gripperToggleSettings(robotName) }
-        : definition.kind === "joystick"
-          ? { ...definition, defaultSettings: translationPadSettings(robotName) }
-          : definition.kind === "plot-picker" && board
-            ? { ...definition, defaultSettings: { ...definition.defaultSettings, plot_id: board.id } }
-            : definition;
+    const placed = robotAware
+      ? { ...definition, defaultSettings: robotAware(robotName) }
+      : definition.kind === "plot-picker" && board
+        ? { ...definition, defaultSettings: { ...definition.defaultSettings, plot_id: board.id } }
+        : definition;
     const covered = findOverlappedWidget(layout, draftScreen);
     commitScreenChange(addWidgetToScreen(draftScreen, placed, { id: widgetId, layout }));
     setSelectedWidgetId(widgetId);
-    setLayoutNotice(
-      covered
-        ? `No free space left: ${definition.displayName} was placed over ${covered.title}. Drag it clear, or it cannot be pressed at runtime.`
-        : null,
-    );
+    const notices = [
+      covered &&
+        `No free space left: ${definition.displayName} was placed over ${covered.title}. Drag it clear, or it cannot be pressed at runtime.`,
+      robotAware &&
+        !robotFamily(robotName) &&
+        `Bloom does not know which arm it drives (BLOOM_ROBOT_NAME is "${robotName ?? ""}"), so the ${definition.displayName} has the Explorer's values. Check them before driving another arm.`,
+    ].filter(Boolean);
+    setLayoutNotice(notices.length ? notices.join(" ") : null);
   };
 
   /**

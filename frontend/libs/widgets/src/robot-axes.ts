@@ -1,3 +1,5 @@
+import { PALETTE_WIRING } from "./palette-wiring";
+import { type RobotFamily, robotFamily } from "./robot-family";
 import { getDefaultWidgetSettings } from "./settings";
 
 /**
@@ -8,16 +10,14 @@ import { getDefaultWidgetSettings } from "./settings";
  */
 type AxisMapping = Record<"x" | "y", { component: string; scale?: number }>;
 
-const TRANSLATION_AXES: Readonly<Record<string, AxisMapping>> = {
+const TRANSLATION_AXES: Readonly<Record<RobotFamily, AxisMapping>> = {
   explorer: { x: { component: "linear_y" }, y: { component: "linear_x", scale: -1 } },
   kinova: { x: { component: "linear_x" }, y: { component: "linear_y" } },
 };
 
-const DEFAULT_AXES = TRANSLATION_AXES.explorer as AxisMapping;
-
 /** A joystick that moves the hand where its words say, on the arm this Bloom drives. */
 export function translationPadSettings(robotName?: string): Record<string, unknown> {
-  const axes = TRANSLATION_AXES[(robotName ?? "").trim().toLowerCase()] ?? DEFAULT_AXES;
+  const axes = TRANSLATION_AXES[robotFamily(robotName) ?? "explorer"];
   return {
     ...getDefaultWidgetSettings("joystick"),
     deadzone: 0,
@@ -31,4 +31,15 @@ export function translationPadSettings(robotName?: string): Record<string, unkno
       axis_deadzone: 0.2,
     },
   };
+}
+
+/** qontrol's configured limits (Explorer 0.1 m/s, Kinova 0.05 m/s) sit mid-range, as in the Manager apps. */
+const LINEAR_SPEED_RANGES: Readonly<Record<RobotFamily, { max: number; step: number; value: number }>> = {
+  explorer: { max: 0.3, step: 0.015, value: 0.15 },
+  kinova: { max: 0.1, step: 0.005, value: 0.05 },
+};
+
+/** The max linear speed slider, bounded to what the arm this Bloom drives was validated at. */
+export function speedSliderSettings(robotName?: string): Record<string, unknown> {
+  return { ...PALETTE_WIRING.slider?.settings, ...LINEAR_SPEED_RANGES[robotFamily(robotName) ?? "explorer"] };
 }

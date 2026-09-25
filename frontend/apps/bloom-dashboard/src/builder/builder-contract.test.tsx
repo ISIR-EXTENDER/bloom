@@ -313,7 +313,10 @@ describe("a draft while a save is in flight", () => {
   });
 });
 
-function renderWorkspace(source: ScreenConfig, overrides: { onBackToBuilderHome?: () => void } = {}) {
+function renderWorkspace(
+  source: ScreenConfig,
+  overrides: { onBackToBuilderHome?: () => void; robotName?: string } = {},
+) {
   const application = { ...explorer, screens: [source] };
   return render(
     <BuilderWorkspace
@@ -326,6 +329,7 @@ function renderWorkspace(source: ScreenConfig, overrides: { onBackToBuilderHome?
       onBackToAppConfig={vi.fn()}
       onBackToBuilderHome={overrides.onBackToBuilderHome ?? vi.fn()}
       onSaveScreenDraft={vi.fn()}
+      robotName={overrides.robotName}
       runtimeCapabilities={null}
       selection={{ appId: application.id, configId: "explorer-manager", screenId: source.id }}
     />,
@@ -382,6 +386,28 @@ describe("the builder inspector", () => {
     expect(glass?.getAttribute("data-error")).toBe("true");
     expect(glass?.textContent).toContain("39 px");
     expect(screen.getAllByText("Too small")).toHaveLength(1);
+  });
+});
+
+describe("placing a control for the arm this Bloom drives", () => {
+  afterEach(cleanup);
+
+  const empty = (): ScreenConfig => ({ ...bench, widgets: [] });
+
+  // A Kinova is configured at 0.05 m/s; the Explorer's 0..0.3 slider put its midpoint at three times that.
+  it("gives a speed slider this arm's range", () => {
+    renderWorkspace(empty(), { robotName: "Kinova Gen3" });
+    fireEvent.click(screen.getByRole("button", { name: /^Add Slider widget/ }));
+
+    expect((screen.getByLabelText(/^Maximum/) as HTMLInputElement).value).toBe("0.1");
+    expect(screen.queryByText(/does not know which arm/)).toBeNull();
+  });
+
+  it("says when it cannot tell which arm it drives", () => {
+    renderWorkspace(empty());
+    fireEvent.click(screen.getByRole("button", { name: /^Add Slider widget/ }));
+
+    expect(screen.getByText(/does not know which arm it drives/)).toBeTruthy();
   });
 });
 

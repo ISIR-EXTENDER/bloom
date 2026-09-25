@@ -1326,7 +1326,9 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add Slider widget" }));
     fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "-2" } });
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("max must be greater than min");
+    // The other alert says this Bloom has no robot name, so the slider carries the Explorer's range.
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts.some((alert) => alert.textContent?.includes("max must be greater than min"))).toBe(true);
   });
 
   it("keeps builder drafts dirty when saving fails", async () => {

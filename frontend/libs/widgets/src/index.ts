@@ -16,6 +16,7 @@ export * from "./palette-wiring";
 export * from "./plot-series";
 export * from "./render-descriptors";
 export * from "./robot-axes";
+export * from "./robot-family";
 export * from "./runtime";
 export * from "./settings";
 export * from "./telemetry";

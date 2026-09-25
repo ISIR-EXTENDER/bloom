@@ -96,6 +96,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A speed slider placed from the palette takes the arm's range.** On a Kinova it is 0..0.1 m/s around its
+  configured 0.05, as in the Kinova Manager app, instead of the Explorer's 0..0.3. The arm is recognized from a
+  `BLOOM_ROBOT_NAME` that contains "kinova", "gen3" or "explorer" (the pad, the gripper and the launcher's camera pick
+  follow the same rule), and the Builder says when it cannot tell which arm it drives. Sandbox's "Teleop Gain" slider
+  is now "Max Velocity", in m/s.
+
 - **Sandbox and Petanque speed sliders stop at 0.3 m/s.** They kept a 0..1 range from when the value was a gain;
   qontrol reads it as an absolute speed with no clamp of its own, so the top of the slider asked for 1 m/s. A seed test
   now refuses a shipped speed slider past the range the Manager apps validated.

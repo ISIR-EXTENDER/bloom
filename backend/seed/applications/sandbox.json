@@ -481,7 +481,7 @@
             {
               "id": "control-panel-max-velocity",
               "kind": "slider",
-              "title": "Teleop Gain",
+              "title": "Max Velocity",
               "layout": {
                 "x": 590,
                 "y": 20,
@@ -491,7 +491,7 @@
               "settings": {
                 "binding": "max_velocity",
                 "direction": "horizontal",
-                "intent_label": "Teleoperation gain",
+                "intent_label": "Max linear speed",
                 "min": 0,
                 "max": 0.3,
                 "step": 0.015,
