@@ -15,10 +15,11 @@ export type Robot3dSettings = {
   frameAxes?: boolean;
   jointStateTopic: string;
   markerTopic: string;
-  modelSource: "extension" | "urdf-url";
+  /** Accepted from older screens and ignored: the view draws the API's robot, not a file. */
+  modelSource?: "extension" | "urdf-url";
   /** A PoseStamped drawn as a triad in its frame: the manager's `/ee_pose` beside the model's tool shows whether the frames agree. */
   poseTopic?: string;
-  robotModelUrl: string;
+  robotModelUrl?: string;
   showAxes: boolean;
   /** A JointState drawn as a translucent copy of the robot: where a joint target is sending it. */
   targetJointTopic?: string;
@@ -29,9 +30,7 @@ export const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
   eeLink: "",
   jointStateTopic: "/joint_states",
   markerTopic: "",
-  modelSource: "extension",
   poseTopic: "",
-  robotModelUrl: "",
   showAxes: true,
   targetJointTopic: "/joint_target_command",
 };
@@ -39,14 +38,6 @@ export const ROBOT_3D_DEFAULT_SETTINGS: Robot3dSettings = {
 export const robot3dContract = createContract(
   "robot-3d",
   [
-    {
-      key: "modelSource",
-      label: "Model source",
-      type: "select",
-      required: false,
-      options: ["extension", "urdf-url"],
-    },
-    { key: "robotModelUrl", label: "Robot model URL", type: "text", required: false },
     { key: "jointStateTopic", label: "Joint state topic", type: "text", required: true },
     { key: "markerTopic", label: "Marker topic (visualization_msgs/msg/MarkerArray)", type: "text", required: false },
     {
@@ -68,8 +59,8 @@ export const robot3dContract = createContract(
 
 function validateRobot3dSettings(settings: Record<string, unknown>): WidgetSettingsValidationResult<Robot3dSettings> {
   const errors = [
-    ...validateOneOf(settings, "modelSource", ["extension", "urdf-url"]),
-    ...validateString(settings, "robotModelUrl", { allowEmpty: true }),
+    ...(settings.modelSource === undefined ? [] : validateOneOf(settings, "modelSource", ["extension", "urdf-url"])),
+    ...(settings.robotModelUrl === undefined ? [] : validateString(settings, "robotModelUrl", { allowEmpty: true })),
     ...validateString(settings, "jointStateTopic"),
     ...validateString(settings, "markerTopic", { allowEmpty: true }),
     ...(settings.targetJointTopic === undefined
@@ -81,13 +72,6 @@ function validateRobot3dSettings(settings: Record<string, unknown>): WidgetSetti
     ...(settings.frameAxes === undefined ? [] : validateBoolean(settings, "frameAxes")),
     ...validateString(settings, "description", { allowEmpty: true }),
   ];
-  if (
-    settings.modelSource === "urdf-url" &&
-    typeof settings.robotModelUrl === "string" &&
-    !settings.robotModelUrl.trim()
-  ) {
-    errors.push({ field: "robotModelUrl", message: "robotModelUrl is required when modelSource is urdf-url" });
-  }
   if (errors.length > 0) return fail(errors);
   return succeed(settings as Robot3dSettings);
 }

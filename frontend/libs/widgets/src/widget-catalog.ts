@@ -150,7 +150,7 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     runtimeRequirements: ["data-source"],
     maturity: "ready",
     maturityNote:
-      "Draws the URDF the API serves, driven by joint states; a MarkerArray topic draws targets and paths. Desktop screens only.",
+      "Draws the URDF the API serves, driven by joint states; a MarkerArray topic draws as rviz would, a joint target as a translucent twin, a pose as a triad. Desktop screens only.",
     deviceClasses: ["desktop"],
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["backgroundColor", "borderColor"]),

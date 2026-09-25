@@ -76,6 +76,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   point is drawn whatever its own colour says, because per-point colours override it, alpha included: a
   coloured trajectory published without a marker colour used to be invisible twice over, hidden and then
   fully transparent.
+- The 3D view's inspector no longer offers a model source or a model URL. Both were inert, since the view
+  draws the robot the API serves; a screen that still carries them is accepted and they are ignored.
 - The mesh cache fetches a file the URDF names several times once, and an absolute mesh path under a
   workspace that itself lives in a directory called `share` resolves to the right package.
 

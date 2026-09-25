@@ -32,7 +32,8 @@ The web app never carries a robot. The API serves the one that runs:
 ## Consequences
 
 - One more read-only surface on the API perimeter, listed with the others.
-- A model URL setting stays inert: the view draws the API's robot, not a file someone uploaded.
+- The model source and model URL settings no longer show in the inspector (2026-09-24); they are accepted
+  from older screens and ignored, because the view draws the API's robot, not a file someone uploaded.
 - Widget Lab's `lab-robot-3d-draws-the-running-model` requires links, drawn meshes and the probe's two
   markers, so a description the API cannot serve, or a mesh route that answers 404, fails the run.
 - 2026-09-24, later: the runtime tells the view each twist it sends, and the view draws the commanded linear

@@ -199,8 +199,8 @@ describe("widget capability metadata", () => {
       },
       defaultSettings: {
         jointStateTopic: "/joint_states",
-        modelSource: "extension",
         showAxes: true,
+        targetJointTopic: "/joint_target_command",
       },
       displayName: "3D robot view",
       // The view draws the URDF the API serves, so it is ready rather than a preview.

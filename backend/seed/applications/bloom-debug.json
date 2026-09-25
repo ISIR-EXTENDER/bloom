@@ -317,8 +317,6 @@
                 "eeLink": "",
                 "showAxes": true,
                 "frameAxes": false,
-                "modelSource": "extension",
-                "robotModelUrl": "",
                 "description": "The running robot: its description from the API, /joint_states driving it, /ee_pose as a triad, a joint target as a translucent twin, and any MarkerArray on /goal_markers."
               }
             },

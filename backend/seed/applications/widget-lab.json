@@ -632,8 +632,6 @@
                 "poseTopic": "/ee_pose",
                 "eeLink": "",
                 "showAxes": true,
-                "modelSource": "extension",
-                "robotModelUrl": "",
                 "description": ""
               }
             },
