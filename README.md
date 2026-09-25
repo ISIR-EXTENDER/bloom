@@ -120,9 +120,9 @@ ports, firewall rules and database operations.
 
 ## Preview
 
-| Builder | Explorer Manager | Kinova Manager |
+| Builder | Explorer Manager | The robot in 3D |
 | --- | --- | --- |
-| ![Bloom screen builder](docs/assets/screenshots/builder-screen-canvas.png) | ![Explorer Manager Drive screen](docs/assets/screenshots/runtime-explorer-drive.png) | ![Kinova Manager Drive screen](docs/assets/screenshots/runtime-kinova-drive.png) |
+| ![Bloom screen builder](docs/assets/screenshots/builder-screen-canvas.png) | ![Explorer Manager Drive screen](docs/assets/screenshots/runtime-explorer-drive.png) | ![Bloom Debug drawing the running robot, a goal and the path to it](docs/assets/screenshots/runtime-robot-3d-view.png) |
 
 <details>
 <summary>More product and runtime screens</summary>
@@ -131,18 +131,23 @@ ports, firewall rules and database operations.
 | --- | --- | --- |
 | ![Bloom landing page](docs/assets/screenshots/landing-page.png) | ![Bloom screen library](docs/assets/screenshots/builder-screen-library.png) | ![Bloom runtime app library](docs/assets/screenshots/runtime-library.png) |
 
-| App configuration | Positions | Robot feedback |
+| Kinova Manager | Widget Lab, Robot screen | App configuration |
 | --- | --- | --- |
-| ![Bloom app configuration](docs/assets/screenshots/app-configuration.png) | ![Explorer Manager positions](docs/assets/screenshots/runtime-explorer-positions.png) | ![Explorer Manager robot feedback](docs/assets/screenshots/runtime-explorer-feedback.png) |
+| ![Kinova Manager Drive screen](docs/assets/screenshots/runtime-kinova-drive.png) | ![Widget Lab Robot screen with the 3D view, a camera and a saved pose](docs/assets/screenshots/runtime-widget-lab-robot.png) | ![Bloom app configuration](docs/assets/screenshots/app-configuration.png) |
 
-| Joystick Lab | Command sources | Bloom Debug |
+| Positions | Robot feedback | Joystick Lab |
 | --- | --- | --- |
-| ![Explorer Manager Joystick Lab](docs/assets/screenshots/11-joystick-lab.png) | ![Explorer Manager command sources](docs/assets/screenshots/runtime-explorer-command-sources.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) |
+| ![Explorer Manager positions](docs/assets/screenshots/runtime-explorer-positions.png) | ![Explorer Manager robot feedback](docs/assets/screenshots/runtime-explorer-feedback.png) | ![Explorer Manager Joystick Lab](docs/assets/screenshots/11-joystick-lab.png) |
+
+| Command sources | Bloom Debug | Camera |
+| --- | --- | --- |
+| ![Explorer Manager command sources](docs/assets/screenshots/runtime-explorer-command-sources.png) | ![Bloom Debug runtime](docs/assets/screenshots/runtime-bloom-debug.png) | ![Webcam visualizer](docs/assets/screenshots/runtime-camera.png) |
 
 </details>
 
 The general preview set is captured from the ROS bench, so a control whose topic has no subscriber there reads as
-unavailable. The Joystick Lab image and the walkthrough use a live ROS graph. Refresh the general set from a running dashboard and
+unavailable. The Joystick Lab image, the two 3D robot views and the walkthrough use a live ROS graph: the 3D view
+draws the robot the API serves, so without one it shows its note instead of a scene. Refresh the general set from a running dashboard and
 isolated seeded backend with:
 
 ```bash
@@ -193,7 +198,8 @@ The recorder uses Playwright and `ffmpeg`; install Chromium with the command abo
   shares the STOP region instead of taking canvas height.
 - A 3D robot view that stands in for rviz while a simulation runs: the API serves the running robot's description
   and meshes, the view draws every rviz marker kind, joint targets as a translucent twin, a pose topic as a triad,
-  and the runtime's own commanded motion; it keeps asking for the robot until the launch is up. Desktop screens only.
+  and the runtime's own commanded motion; it keeps asking for the robot until the launch is up, and says when its
+  joint states stop. Desktop screens only, and Bloom Debug ships a Robot view screen built from it.
 
 Single-switch directional teleoperation is covered by the current scan-step implementation and tests, but still needs
 validation with the intended device. Browser reduced-motion preferences cover the little that moves; nothing on the

@@ -70,3 +70,16 @@ overlays, and unreadable debug content.
 - Repeat the tutorial on Explorer and Kinova hardware under the normal lab safety procedure.
 - Validate the intended tablet, gamepad, switch, and operator profiles with Robin.
 - Confirm every offered frame against each manager's live configuration before participant use.
+
+## Amended 2026-09-25: the 3D robot view captures
+
+`docs/assets/screenshots/runtime-robot-3d-view.png` (Bloom Debug's Robot view) and
+`runtime-widget-lab-robot.png` (Widget Lab's Robot screen) are the two README images that cannot be taken from
+the mocked dashboard: the 3D view draws the robot the API serves, so without a running robot it shows its note
+instead of a scene. Both were captured at 1920x1080 against the live Kinova simulation
+(`cartesian_manager kinova.launch.py use_simulation:=true`), with the Widget Lab probe publishing its markers,
+a second node publishing a goal, a path and a label on `/goal_markers`, and the arm folded out of its upright
+start first so the pose reads. `npm run capture:readme` leaves both alone, since it runs without ROS.
+
+Taking them found a defect: a marker that gives a colour per point was hidden when its own `color.a` was unset,
+where rviz draws it because `colors` overrides `color`. Fixed, with a test, before the capture was kept.

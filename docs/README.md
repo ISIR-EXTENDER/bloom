@@ -1,6 +1,7 @@
 # Bloom Documentation
 
-Everything in `docs/`, and what each page is for. Reviewed 2026-09-24, for 0.3.0.
+Everything in `docs/`, and what each page is for. Reviewed 2026-09-25, for 0.3.0 and the unreleased work on the
+3D robot view that follows it.
 
 ## Start Here
 
