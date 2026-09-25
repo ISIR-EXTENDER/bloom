@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="frontend/apps/bloom-dashboard/public/logo.png" alt="Bloom" width="460" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/logo-dark.png" />
+    <img src="docs/assets/readme/logo-light.png" alt="Bloom" width="460" />
+  </picture>
 </p>
 
 <h3 align="center">Give the gesture back.</h3>
