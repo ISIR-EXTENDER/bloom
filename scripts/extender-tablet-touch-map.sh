@@ -352,7 +352,16 @@ if [[ "${DIAGNOSE}" == "1" ]]; then
   exit 0
 fi
 
+# Written before the hardware check, so it can be installed with the tablet unplugged.
+if [[ "${INSTALL_AUTOSTART}" == "1" ]]; then
+  install_autostart
+fi
+
 if ! wait_for_hardware; then
+  if [[ "${INSTALL_AUTOSTART}" == "1" ]]; then
+    echo "Tablet not connected; it will be mapped at the next login."
+    exit 0
+  fi
   echo "Display output '${DISPLAY_OUTPUT}' is not connected." >&2
   echo "Available outputs:" >&2
   xrandr --query | sed -n 's/^\([^ ]*\) connected.*/  - \1/p' >&2
@@ -448,10 +457,6 @@ if [[ "${GNOME_MAPPING}" == "1" ]]; then
   else
     run gsettings set "$(gnome_touchscreen_path)" output "${identity}"
   fi
-fi
-
-if [[ "${INSTALL_AUTOSTART}" == "1" ]]; then
-  install_autostart
 fi
 
 if [[ "${DRY_RUN}" == "1" ]]; then

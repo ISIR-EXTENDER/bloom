@@ -96,6 +96,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **The launcher maps the tablet's touch whenever it is plugged in.** The mapping used to run once at login, so a
+  tablet plugged in later, or remapped by GNOME, had to be fixed by hand. `BLOOM_APPLY_TABLET_TOUCH_MAP` now defaults
+  to `auto`, a failed mapping never stops Bloom, and the documented default keeps the tablet's own display mode
+  rather than forcing the 1820x720 logical scale. `--install-autostart` works with the tablet unplugged.
 - **The tablet touch helper survives Ubuntu 24.04.** `scripts/extender-tablet-touch-map.sh` finds the touchscreen by
   its USB id and maps every direct-touch device it exposes by id, instead of one name xinput may share between two
   devices. `--diagnose` prints what the session, screens and touch devices look like, read-only, and `--gnome` tells

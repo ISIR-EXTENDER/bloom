@@ -29,7 +29,8 @@ BLOOM_FRONTEND_HOST=${BLOOM_FRONTEND_HOST:-"127.0.0.1"}
 BLOOM_FRONTEND_PORT=${BLOOM_FRONTEND_PORT:-"5173"}
 BLOOM_API_PROXY_TARGET=${BLOOM_API_PROXY_TARGET:-"http://127.0.0.1:${BLOOM_API_PORT}"}
 BLOOM_PUBLIC_HOST=${BLOOM_PUBLIC_HOST:-""}
-BLOOM_APPLY_TABLET_TOUCH_MAP=${BLOOM_APPLY_TABLET_TOUCH_MAP:-"0"}
+# auto maps the tablet's touch when it is plugged in; 1 always tries, 0 never does.
+BLOOM_APPLY_TABLET_TOUCH_MAP=${BLOOM_APPLY_TABLET_TOUCH_MAP:-"auto"}
 # auto picks the robot's camera through camera_interface; none skips it; or name a driver: usb_cam, camera_ros, kinova_vision.
 BLOOM_CAMERA=${BLOOM_CAMERA:-"auto"}
 BLOOM_CAMERA_TOPIC="/camera/color/image_raw/compressed"
@@ -133,8 +134,12 @@ if [[ ! -f "${EXTENDER_SETUP_FILE}" ]]; then
   exit 1
 fi
 
-if [[ "${BLOOM_APPLY_TABLET_TOUCH_MAP}" == "1" ]]; then
-  "${BLOOM_ROOT}/scripts/extender-tablet-touch-map.sh"
+tablet_plugged_in() {
+  command -v lsusb >/dev/null 2>&1 && lsusb -d "${TOUCH_USB_ID:-27c0:0818}" >/dev/null 2>&1
+}
+if [[ "${BLOOM_APPLY_TABLET_TOUCH_MAP}" == "1" ]] || { [[ "${BLOOM_APPLY_TABLET_TOUCH_MAP}" == "auto" ]] && tablet_plugged_in; }; then
+  "${BLOOM_ROOT}/scripts/extender-tablet-touch-map.sh" ||
+    echo "Tablet touch mapping failed; run scripts/extender-tablet-touch-map.sh --diagnose." >&2
 fi
 
 if [[ "${BLOOM_FRONTEND_HOST}" == "0.0.0.0" || "${BLOOM_FRONTEND_HOST}" == "::" ]]; then

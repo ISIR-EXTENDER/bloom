@@ -64,20 +64,15 @@ test suites.
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |
 | `BLOOM_APP_NAME`, `BLOOM_SERVICE_NAME`, `BLOOM_APP_DESCRIPTION` | Bloom defaults | Names reported by the API and its OpenAPI page. |
 | `BLOOM_APP_VERSION` | the release version | Version the API reports. Leave it unset, or it hides the real version. |
-| `BLOOM_APPLY_TABLET_TOUCH_MAP` | `0` | Set to `1` to run `scripts/extender-tablet-touch-map.sh` before launch. |
+| `BLOOM_APPLY_TABLET_TOUCH_MAP` | `auto` | `auto` maps the tablet's touch when it is plugged in, `1` always runs `scripts/extender-tablet-touch-map.sh`, `0` never does. A failed mapping never stops Bloom. |
 | `DISPLAY_MODE` | empty | Optional tablet display mode passed to the touch-map helper, for example `1280x720`. |
 | `LOGICAL_DISPLAY_SIZE` | empty | Optional scaled tablet workspace, for example `1820x720`. |
 | `APPLY_DISPLAY_MODE` | `0` | Set to `1` to apply `DISPLAY_MODE` before remapping touch. |
 | `PLACE_OUTPUT_RIGHT_OF` | empty | Optional laptop output to place to the left of the tablet, for example `eDP-1`. |
 
-Current Extender tablet setup:
+Current Extender tablet setup maps touch only and keeps the mode the tablet comes up in:
 
 ```bash
-BLOOM_APPLY_TABLET_TOUCH_MAP=1 \
-DISPLAY_MODE=1280x720 \
-LOGICAL_DISPLAY_SIZE=1820x720 \
-APPLY_DISPLAY_MODE=1 \
-PLACE_OUTPUT_RIGHT_OF=eDP-1 \
 scripts/extender-workspace-dev.sh
 ```
 
@@ -277,14 +272,15 @@ the touch mapping workflow.
 ### Linux Display Setup
 
 Although the physical panel is documented as `1024x600`, the current GNOME display configuration exposes the tablet as
-`1280x720`. For Bloom operator testing, the most comfortable lab setup found so far keeps the physical HDMI mode at
-`1280x720` and uses an XRandR logical scale of `1820x720`.
+`1280x720`. Keep the mode the tablet comes up in: that is the setup that worked before the move to Ubuntu 24.04, and
+forcing a mode with `xrandr` makes GNOME rework its monitors, which is where the touch matrix gets lost. The
+`1820x720` logical scale below is kept for reference only.
 
 Bloom must therefore be tested on:
 
 - `1024x600`: native panel constraint and worst-case UI density.
 - `1280x720`: mode shown by GNOME settings for the HMTECH display.
-- `1820x720`: current logical tablet workspace used during Extender tests.
+- `1820x720`: the logical scale used for a while in 2026; no longer the default.
 
 Useful inspection commands:
 
@@ -293,24 +289,15 @@ xrandr --query
 xinput list
 ```
 
-Current touch mapping command:
+Current touch mapping command, which leaves the display mode alone:
 
 ```bash
-xinput map-to-output "HID 27c0:0818" HDMI-1
+./scripts/extender-tablet-touch-map.sh
 ```
 
-In practice, the current dual-monitor lab setup is more reliable when the laptop stays on the left, the tablet stays on
-the right, and the touch matrix is calculated from the active `xrandr` geometry:
-
-```bash
-DISPLAY_MODE=1280x720 LOGICAL_DISPLAY_SIZE=1820x720 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_RIGHT_OF=eDP-1 ./scripts/extender-tablet-touch-map.sh
-```
-
-Verified target state:
-
-- `eDP-1`: `1920x1080+0+0`
-- `HDMI-1`: `1820x720+1920+0` using physical `1280x720` plus `--scale-from 1820x720`
-- Touch matrix for `HID 27c0:0818`: approximately `0.4866 0 0.5134 / 0 0.6667 0 / 0 0 1`
+It is what `xinput map-to-output "HID 27c0:0818" HDMI-1` did, found by USB id rather than by name and computed from
+the live `xrandr` geometry. Force a mode (`DISPLAY_MODE=… APPLY_DISPLAY_MODE=1`) only when the tablet comes back in a
+wrong one.
 
 ### After The Move To Ubuntu 24.04
 
@@ -397,8 +384,7 @@ touchscreen:
 DISPLAY_MODE=1280x720 APPLY_DISPLAY_MODE=1 ./scripts/extender-tablet-touch-map.sh
 ```
 
-If the tablet screen should stay to the right of the laptop and use the current comfortable logical workspace, include
-the laptop output and logical size:
+The logical scale used for a while in 2026, kept for reference; it is not the default any more:
 
 ```bash
 DISPLAY_MODE=1280x720 LOGICAL_DISPLAY_SIZE=1820x720 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_RIGHT_OF=eDP-1 ./scripts/extender-tablet-touch-map.sh
@@ -431,8 +417,11 @@ The helper can install this entry automatically:
 Install it with the current Extender tablet layout:
 
 ```bash
-DISPLAY_MODE=1280x720 LOGICAL_DISPLAY_SIZE=1820x720 APPLY_DISPLAY_MODE=1 PLACE_OUTPUT_RIGHT_OF=eDP-1 ./scripts/extender-tablet-touch-map.sh --install-autostart
+./scripts/extender-tablet-touch-map.sh --install-autostart
 ```
+
+It maps once, at login. A tablet plugged in later is mapped when Bloom's launcher starts (`BLOOM_APPLY_TABLET_TOUCH_MAP`
+is `auto`), and `--gnome` lets GNOME keep the mapping itself at every hotplug.
 
 This is the preferred low-maintenance option when the only recurring issue is touch mapping after reconnect or reboot.
 
