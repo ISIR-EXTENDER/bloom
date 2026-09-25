@@ -83,6 +83,20 @@ try {
     await page.waitForTimeout(900);
   });
 
+  // A real operator screen with its gripper toggle selected: the topic and both payloads are fields, not code.
+  await step("builder-inspector", async () => {
+    await page.goto(`${dashboardUrl}/#/builder`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { exact: true, name: "Apps" }).click();
+    await page.getByRole("button", { name: "Open Explorer Manager app" }).click();
+    await page.getByRole("button", { name: "Open Drive · Operator screen builder" }).click();
+    await page.locator(".builder-widget-palette").first().waitFor();
+    await page.locator('.builder-widget-frame[aria-label$=" toggle widget"]').first().click();
+    const topic = page.locator("label.builder-settings-field", { hasText: "Topic" }).first();
+    await topic.waitFor();
+    await topic.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(600);
+  });
+
   await step("app-configuration", async () => {
     await page.goto(`${dashboardUrl}/#/builder`, { waitUntil: "networkidle" });
     await page.getByRole("button", { exact: true, name: "Apps" }).click();
@@ -117,6 +131,31 @@ try {
       await page.waitForTimeout(700);
     });
   }
+
+  // One app, three roles: the same Drive for the person at the robot, the engineer at the bench, and a
+  // one-switch user whose highlight walks the controls.
+  await step("runtime-explorer-drive-bench", async () => {
+    await openRuntimeLibrary(page);
+    await openRuntimeApp(page, "Explorer Manager", "Bench");
+    await page.getByRole("region", { name: "Runtime application" }).waitFor();
+    await page.waitForTimeout(800);
+  });
+
+  await step("runtime-explorer-one-switch", async () => {
+    await openRuntimeLibrary(page);
+    await openRuntimeApp(page, "Explorer Manager", "One switch");
+    await page.getByRole("region", { name: "Runtime application" }).waitFor();
+    // Let the scan highlight step onto a control.
+    await page.waitForTimeout(3200);
+  });
+
+  // A second screen that watches the operator without being able to command anything.
+  await step("runtime-supervisor", async () => {
+    await openRuntimeLibrary(page);
+    await page.getByRole("button", { exact: true, name: "Explorer Manager" }).click();
+    await page.locator(".runtime-library-supervisor").click();
+    await page.waitForTimeout(1200);
+  });
 
   await step("runtime-kinova-drive", async () => {
     await openRuntimeLibrary(page);
@@ -229,8 +268,9 @@ function applyApiDefaults(application) {
       ...profile,
     })),
     runtime_policy: {
-      command_frame_id: "",
+      allowed_parameters: [],
       allowed_service_calls: [],
+      command_frame_id: "",
       ...application.runtime_policy,
     },
     screens: application.screens.map((screen) => ({ reserved_regions: [], ...screen })),
@@ -269,12 +309,11 @@ async function capture(page, path) {
   await page.screenshot({ fullPage: false, path });
 }
 
-/** The library opens an app as a role: select its row, keep the remembered role or take the first, open. */
-async function openRuntimeApp(page, appName) {
+/** The library opens an app as a role: select its row, pick the role when one is named, open. */
+async function openRuntimeApp(page, appName, roleName) {
   await page.getByRole("button", { exact: true, name: appName }).click();
-  const open = page.locator(".runtime-library-open");
-  if (await open.isDisabled()) {
-    await page.locator(".runtime-library-roles button").first().click();
+  if (roleName) {
+    await page.locator(".runtime-library-roles").getByRole("button", { exact: true, name: roleName }).click();
   }
-  await open.click();
+  await page.locator(".runtime-library-open").click();
 }
