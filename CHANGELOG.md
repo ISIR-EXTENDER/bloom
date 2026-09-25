@@ -19,6 +19,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **A screen can be made for a tablet or a desktop, and switched later.** Creating a screen asks what it is made
+  for, the screen builder has **Switch to desktop** / **Switch to tablet** next to the device reading, and the
+  palette offers the switch when a widget is Desktop only. Widgets scale together so the layout holds; STOP never
+  ends smaller than the new canvas's own and a switch that would put it over a control is refused.
+
 - **The widget palette has a search box.** It matches a widget's name, kind, description and category, ignoring
   case and accents; "3d" finds the robot view and "stop" finds STOP.
 - **Keyboard and gamepad are no longer a secret.** Settings has a "Keyboard and gamepad" card that says how to drive

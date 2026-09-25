@@ -28,12 +28,14 @@ type ScreenCardAction = {
 type BuilderAppScreensPanelProps = {
   isDirty: boolean;
   isSaving: boolean;
+  newScreenDevice: "desktop" | "tablet";
   newScreenName: string;
   onAddScreen: (screen: ScreenConfig) => void;
   onAddScreenById: (screenId: string) => void;
   onCreateScreen: () => void;
   onDuplicateScreen: (screenId: string) => void;
   onMoveScreenBefore: (screenId: string, targetScreenId: string) => void;
+  onNewScreenDeviceChange: (device: "desktop" | "tablet") => void;
   onNewScreenNameChange: (name: string) => void;
   onOpenScreenBuilder: (screenId: string) => void;
   onRemoveScreen: (screenId: string) => void;
@@ -45,12 +47,14 @@ type BuilderAppScreensPanelProps = {
 export function BuilderAppScreensPanel({
   isDirty,
   isSaving,
+  newScreenDevice,
   newScreenName,
   onAddScreen,
   onAddScreenById,
   onCreateScreen,
   onDuplicateScreen,
   onMoveScreenBefore,
+  onNewScreenDeviceChange,
   onNewScreenNameChange,
   onOpenScreenBuilder,
   onRemoveScreen,
@@ -84,6 +88,16 @@ export function BuilderAppScreensPanel({
             type="text"
             value={newScreenName}
           />
+        </label>
+        <label className="builder-settings-field">
+          <span>Made for</span>
+          <select
+            onChange={(event) => onNewScreenDeviceChange(event.target.value === "desktop" ? "desktop" : "tablet")}
+            value={newScreenDevice}
+          >
+            <option value="tablet">Tablet: touch, for driving</option>
+            <option value="desktop">Desktop: mouse, for the 3D view and debugging</option>
+          </select>
         </label>
         <button disabled={isSaving} onClick={onCreateScreen} type="button">
           Create screen

@@ -20,6 +20,8 @@ type BuilderInspectorProps = {
   /** STOP is already reserved on this screen, so the palette says so instead of offering it twice. */
   hasStopRegion?: boolean;
   onAddStopRegion?: () => void;
+  /** Offered on a tablet screen, for the widgets that only work on a desktop. */
+  onSwitchToDesktop?: () => void;
   canvas?: CanvasSettings;
   deviceClass?: "desktop" | "tablet";
   glassScale?: number;
@@ -47,6 +49,7 @@ export function BuilderInspector({
   availableWidgetDefinitions,
   hasStopRegion = false,
   onAddStopRegion,
+  onSwitchToDesktop,
   canvas,
   deviceClass = "tablet",
   glassScale = 1,
@@ -77,6 +80,7 @@ export function BuilderInspector({
           hasStopRegion={hasStopRegion}
           onAddStopRegion={onAddStopRegion}
           onAddWidget={onAddWidget}
+          onSwitchToDesktop={onSwitchToDesktop}
         />
       </BuilderInspectorPanel>
     );
@@ -94,6 +98,7 @@ export function BuilderInspector({
           hasStopRegion={hasStopRegion}
           onAddStopRegion={onAddStopRegion}
           onAddWidget={onAddWidget}
+          onSwitchToDesktop={onSwitchToDesktop}
         />
       </BuilderInspectorPanel>
     );
@@ -180,6 +185,7 @@ export function BuilderInspector({
         hasStopRegion={hasStopRegion}
         onAddStopRegion={onAddStopRegion}
         onAddWidget={onAddWidget}
+        onSwitchToDesktop={onSwitchToDesktop}
       />
     </BuilderInspectorPanel>
   );
@@ -241,12 +247,15 @@ function WidgetPalette({
   hasStopRegion,
   onAddStopRegion,
   onAddWidget,
+  onSwitchToDesktop,
 }: {
   capabilities: readonly RuntimeCapability[] | null;
   definitions: readonly WidgetDefinition[];
   deviceClass?: "desktop" | "tablet";
   hasStopRegion?: boolean;
   onAddStopRegion?: () => void;
+  /** Offered on a tablet screen, for the widgets that only work on a desktop. */
+  onSwitchToDesktop?: () => void;
   onAddWidget: (definition: WidgetDefinition) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -274,6 +283,14 @@ function WidgetPalette({
         type="search"
         value={query}
       />
+      {onSwitchToDesktop && definitions.some((definition) => !widgetFitsDeviceClass(definition, deviceClass)) ? (
+        <p className="builder-widget-palette-device">
+          Widgets marked Desktop only need a desktop screen.{" "}
+          <button className="builder-secondary-action" onClick={onSwitchToDesktop} type="button">
+            Switch this screen to desktop
+          </button>
+        </p>
+      ) : null}
       {!showStop && matching.length === 0 ? (
         <p className="builder-widget-palette-empty">No widget matches “{query.trim()}”.</p>
       ) : null}

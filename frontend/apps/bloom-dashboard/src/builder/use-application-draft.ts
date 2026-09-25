@@ -32,7 +32,13 @@ import {
   parseLines,
   type ThemeInspiration,
 } from "./app-config-model";
-import { defaultStopRegion, resolveNewScreenCanvas } from "./builder-geometry";
+import {
+  type DeviceClass,
+  defaultStopRegion,
+  newScreenCanvasFor,
+  resolveDeviceClass,
+  resolveNewScreenCanvas,
+} from "./builder-geometry";
 import { createStarterProfile } from "./builder-starters";
 
 type ApplicationDraftOptions = {
@@ -55,6 +61,9 @@ export function useApplicationDraft({
   const [draft, setDraft] = useState(application);
   const [newPreset, setNewPreset] = useState(createEmptyActionPresetDraft());
   const [newScreenName, setNewScreenName] = useState("New screen");
+  // Null follows the app: a desktop app's first screen makes new screens desktop ones.
+  const [chosenScreenDevice, setNewScreenDevice] = useState<DeviceClass | null>(null);
+  const newScreenDevice = chosenScreenDevice ?? resolveDeviceClass({ canvas: resolveNewScreenCanvas(draft) });
   const [saveState, setSaveState] = useState<AppSaveState>({ status: "idle" });
   const [themeInspirationError, setThemeInspirationError] = useState("");
   const isDirty = JSON.stringify(draft) !== JSON.stringify(application);
@@ -132,7 +141,8 @@ export function useApplicationDraft({
 
   const createScreen = () => {
     const title = newScreenName.trim() || "New screen";
-    const newScreenCanvas = resolveNewScreenCanvas(draft);
+    const newScreenCanvas =
+      chosenScreenDevice === null ? resolveNewScreenCanvas(draft) : newScreenCanvasFor(chosenScreenDevice);
 
     edit((current) =>
       addScreenToApplication(current, {
@@ -272,6 +282,7 @@ export function useApplicationDraft({
     loadMoodboardFile,
     moveScreenBefore,
     newPreset,
+    newScreenDevice,
     newScreenName,
     patchApplication,
     removeActionPreset,
@@ -281,6 +292,7 @@ export function useApplicationDraft({
     saveDraft,
     saveState,
     setNewPreset: (patch: Partial<RuntimeActionPreset>) => setNewPreset((current) => ({ ...current, ...patch })),
+    setNewScreenDevice,
     setNewScreenName,
     syncRuntimePolicyFromActionPresets,
     themeInspirationError,

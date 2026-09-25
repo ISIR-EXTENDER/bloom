@@ -1505,6 +1505,32 @@
   font-weight: 800;
 }
 
+.builder-device-switch {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 30%, var(--bloom-border));
+  border-radius: 8px;
+  background: var(--bloom-surface);
+  color: var(--bloom-primary);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.builder-device-switch:hover,
+.builder-device-switch:focus-visible {
+  border-color: var(--bloom-primary);
+}
+
+.builder-widget-palette-device {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: var(--bloom-muted);
+  font-size: 0.88rem;
+}
+
 /* The desk: the panel sits on it at true proportion, with the kiosk bar it will carry (design 7a). */
 .builder-canvas-viewport {
   min-height: 0;

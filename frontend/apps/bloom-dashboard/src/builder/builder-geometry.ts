@@ -71,6 +71,66 @@ const CHECKED_PANEL: Record<DeviceClass, { height: number; width: number }> = {
 /** The canvas a new tablet screen starts on: the 1280×720 panel the device switch and shipped screens use. */
 export const NEW_TABLET_CANVAS: CanvasSettings = { preset_id: "native-1280x720", runtime_mode: "fit" };
 
+/** The canvas a new desktop screen starts on, the one the shipped desktop screens use. */
+export const NEW_DESKTOP_CANVAS: CanvasSettings = { preset_id: "full-hd", runtime_mode: "fit" };
+
+export function newScreenCanvasFor(deviceClass: DeviceClass): CanvasSettings {
+  return { ...(deviceClass === "desktop" ? NEW_DESKTOP_CANVAS : NEW_TABLET_CANVAS) };
+}
+
+/**
+ * The screen on the other class's canvas, its widgets scaled as one so the composition holds. STOP never ends up
+ * smaller than that canvas's default and keeps its corner; a switch that would put it over a control is refused.
+ */
+export function switchScreenDevice(
+  screen: ScreenConfig,
+  deviceClass: DeviceClass,
+): { refusal: string; screen?: undefined } | { refusal?: undefined; screen: ScreenConfig } {
+  const canvas = { ...newScreenCanvasFor(deviceClass), runtime_mode: screen.canvas.runtime_mode };
+  const from = resolveCanvasPresetSize(screen.canvas);
+  const to = resolveCanvasPresetSize(canvas);
+  const scale = Math.min(to.width / from.width, to.height / from.height);
+  const scaled = <T extends { height: number; width: number; x: number; y: number }>(box: T): T => ({
+    ...box,
+    x: Math.round(box.x * scale),
+    y: Math.round(box.y * scale),
+    width: Math.round(box.width * scale),
+    height: Math.round(box.height * scale),
+  });
+  const widgets = screen.widgets.map((widget) => ({ ...widget, layout: scaled(widget.layout) }));
+  const floor = defaultStopRegion(canvas);
+  const regions = (screen.reserved_regions ?? []).map((region) => {
+    const box = scaled(region);
+    if (region.id !== "stop") {
+      return box;
+    }
+    const width = Math.max(box.width, floor.width);
+    const height = Math.max(box.height, floor.height);
+    return {
+      ...box,
+      x: Math.max(0, Math.min(box.x + box.width - width, to.width - width)),
+      y: Math.max(0, Math.min(box.y + box.height - height, to.height - height)),
+      width,
+      height,
+    };
+  });
+  for (const region of regions) {
+    const covered = widgets.find(
+      (widget) =>
+        widget.layout.x < region.x + region.width &&
+        widget.layout.x + widget.layout.width > region.x &&
+        widget.layout.y < region.y + region.height &&
+        widget.layout.y + widget.layout.height > region.y,
+    );
+    if (covered) {
+      return {
+        refusal: `STOP would cover ${covered.title} on the ${deviceClass} canvas. Move it away from STOP first.`,
+      };
+    }
+  }
+  return { screen: { ...screen, canvas, reserved_regions: regions, widgets } };
+}
+
 /** A new screen in an app follows a desktop app's canvas; every other app gets the tablet panel. */
 export function resolveNewScreenCanvas(application: Pick<ApplicationConfig, "screens">): CanvasSettings {
   const first = application.screens[0];

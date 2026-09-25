@@ -13,6 +13,7 @@ import bloomDebugConfiguration from "../../../../../backend/seed/applications/bl
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
 import kinovaManagerConfiguration from "../../../../../backend/seed/applications/kinova-manager.json";
 import {
+  defaultStopRegion,
   explainLayoutRefusal,
   findUndersizedWidgets,
   glassPx,
@@ -24,6 +25,7 @@ import {
   resolveNewScreenCanvas,
   resolvePrimaryTarget,
   reviewScreens,
+  switchScreenDevice,
   TOUCH_FLOOR_PX,
 } from "./builder-geometry";
 
@@ -318,5 +320,62 @@ describe("what the resize handle allows", () => {
       expect(definition.defaultLayout.width, definition.kind).toBeGreaterThanOrEqual(contract[0]);
       expect(definition.defaultLayout.height, definition.kind).toBeGreaterThanOrEqual(contract[1]);
     }
+  });
+});
+
+describe("switching a screen between tablet and desktop", () => {
+  const widget = (id: string, x: number, y: number, width: number, height: number): WidgetConfig =>
+    ({ id, kind: "label", title: id, layout: { x, y, width, height }, settings: {} }) as WidgetConfig;
+  const desktopScreen = (widgets: WidgetConfig[], stop: ReservedRegion): ScreenConfig => ({
+    id: "s",
+    title: "S",
+    canvas: { preset_id: "full-hd", runtime_mode: "fit" },
+    reserved_regions: [stop],
+    widgets,
+  });
+
+  it("scales every widget by one factor, so the composition holds", () => {
+    const stop = defaultStopRegion({ preset_id: "full-hd", runtime_mode: "fit" });
+    const result = switchScreenDevice(desktopScreen([widget("a", 30, 60, 600, 300)], stop), "tablet");
+
+    expect(result.refusal).toBeUndefined();
+    expect(result.screen?.canvas.preset_id).toBe("native-1280x720");
+    expect(result.screen?.widgets[0]?.layout).toEqual({ x: 20, y: 40, width: 400, height: 200 });
+  });
+
+  it("never leaves STOP smaller than the new canvas's own, and keeps its corner", () => {
+    const stop = defaultStopRegion({ preset_id: "full-hd", runtime_mode: "fit" });
+    const tabletStop = defaultStopRegion({ preset_id: "native-1280x720", runtime_mode: "fit" });
+    const moved = switchScreenDevice(desktopScreen([], stop), "tablet").screen?.reserved_regions?.[0];
+
+    expect(moved?.width).toBeGreaterThanOrEqual(tabletStop.width);
+    expect(moved?.height).toBeGreaterThanOrEqual(tabletStop.height);
+    expect(moved && moved.x + moved.width).toBeLessThanOrEqual(1280);
+    expect(moved && moved.y + moved.height).toBeLessThanOrEqual(720);
+  });
+
+  it("refuses rather than put STOP over a control", () => {
+    const stop = defaultStopRegion({ preset_id: "full-hd", runtime_mode: "fit" });
+    // Flush against STOP's left edge: once STOP grows to the tablet floor it would cover this.
+    const neighbour = widget("gripper", stop.x - 200, stop.y, 196, stop.height);
+    const result = switchScreenDevice(desktopScreen([neighbour], stop), "tablet");
+
+    expect(result.screen).toBeUndefined();
+    expect(result.refusal).toMatch(/STOP would cover gripper/);
+  });
+
+  it("goes back up to desktop without shrinking anything", () => {
+    const stop = defaultStopRegion({ preset_id: "native-1280x720", runtime_mode: "fit" });
+    const tablet: ScreenConfig = {
+      id: "t",
+      title: "T",
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+      reserved_regions: [stop],
+      widgets: [widget("a", 20, 40, 400, 200)],
+    };
+    const result = switchScreenDevice(tablet, "desktop");
+
+    expect(result.screen?.canvas.preset_id).toBe("full-hd");
+    expect(result.screen?.widgets[0]?.layout).toEqual({ x: 30, y: 60, width: 600, height: 300 });
   });
 });

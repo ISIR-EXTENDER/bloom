@@ -7,13 +7,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuilderInspector, matchesSearch } from "./BuilderInspector";
 
 // Robin looked for the 3D view in a palette of twenty widgets and did not find it.
-function renderPalette() {
+function renderPalette(tablet?: { onSwitchToDesktop: () => void }) {
   render(
     <BuilderInspector
+      onSwitchToDesktop={tablet?.onSwitchToDesktop}
       availableWidgetDefinitions={Array.from(createDefaultWidgetRegistry().values()).filter(
         (definition) => definition.kind !== "unknown",
       )}
-      deviceClass="desktop"
+      deviceClass={tablet ? "tablet" : "desktop"}
       hasStopRegion={false}
       onAddStopRegion={vi.fn()}
       onAddWidget={vi.fn()}
@@ -67,5 +68,24 @@ describe("searching the widget palette", () => {
     expect(matchesSearch(["camera"], ["Caméra"])).toBe(true);
     expect(matchesSearch(["robot", "3d"], ["Robot 3D view"])).toBe(true);
     expect(matchesSearch(["robot", "plot"], ["Robot 3D view"])).toBe(false);
+  });
+});
+
+describe("a desktop-only widget on a tablet screen", () => {
+  afterEach(cleanup);
+
+  it("offers to switch the screen to desktop instead of leaving a dead end", () => {
+    const onSwitchToDesktop = vi.fn();
+    renderPalette({ onSwitchToDesktop });
+
+    fireEvent.click(screen.getByRole("button", { name: "Switch this screen to desktop" }));
+
+    expect(onSwitchToDesktop).toHaveBeenCalledOnce();
+  });
+
+  it("says nothing about it on a desktop screen", () => {
+    renderPalette();
+
+    expect(screen.queryByRole("button", { name: "Switch this screen to desktop" })).toBeNull();
   });
 });

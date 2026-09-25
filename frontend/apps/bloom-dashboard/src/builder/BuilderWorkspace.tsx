@@ -24,6 +24,7 @@ import {
   placeClearOfRegions,
   placeClearOfWidgets,
   resolveBuilderPanel,
+  switchScreenDevice,
 } from "./builder-geometry";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
@@ -236,6 +237,16 @@ export function BuilderWorkspace({
     });
   };
 
+  const switchDevice = (deviceClass: "desktop" | "tablet") => {
+    const result = switchScreenDevice(draftScreen, deviceClass);
+    if (result.refusal !== undefined) {
+      setLayoutNotice(result.refusal);
+      return;
+    }
+    commitScreenChange(result.screen);
+    setLayoutNotice(`Now a ${deviceClass} screen: widgets and STOP were rescaled together. Check sizes, then save.`);
+  };
+
   const removeSelectedWidget = () => {
     if (!selectedWidget) {
       return;
@@ -297,12 +308,19 @@ export function BuilderWorkspace({
             </button>
           </div>
           <dl className="builder-stage-meta">
-            {/* Tablet and desktop are separate apps: the class follows the screen, so this reports
-                it, never sets it. Shown as a reading beside the others, because two framed pills
-                with one filled in read as a switch and invite a click that does nothing. */}
+            {/* A reading plus one explicit action: two pills with one filled read as a switch that does nothing. */}
             <div>
               <dt>Device</dt>
-              <dd>{panel.deviceClass === "desktop" ? "Desktop 1920×1080" : "Tablet 1280×720"}</dd>
+              <dd>
+                {panel.deviceClass === "desktop" ? "Desktop" : "Tablet"} {panel.preset.width}×{panel.preset.height}{" "}
+                <button
+                  className="builder-device-switch"
+                  onClick={() => switchDevice(panel.deviceClass === "desktop" ? "tablet" : "desktop")}
+                  type="button"
+                >
+                  {panel.deviceClass === "desktop" ? "Switch to tablet" : "Switch to desktop"}
+                </button>
+              </dd>
             </div>
             <div>
               <dt>Canvas</dt>
@@ -371,6 +389,7 @@ export function BuilderWorkspace({
         hasStopRegion={(draftScreen.reserved_regions ?? []).some((region) => region.id === "stop")}
         onAddStopRegion={addStopRegion}
         onAddWidget={addWidget}
+        onSwitchToDesktop={panel.deviceClass === "tablet" ? () => switchDevice("desktop") : undefined}
         onDuplicateWidget={duplicateSelectedWidget}
         onRemoveWidget={removeSelectedWidget}
         onSelectWidget={selectWidget}

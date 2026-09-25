@@ -155,12 +155,14 @@ export function BuilderAppConfig({
         <BuilderAppScreensPanel
           isDirty={isDirty}
           isSaving={isSaving}
+          newScreenDevice={editor.newScreenDevice}
           newScreenName={editor.newScreenName}
           onAddScreen={editor.addScreen}
           onAddScreenById={editor.addScreenById}
           onCreateScreen={editor.createScreen}
           onDuplicateScreen={editor.duplicateScreen}
           onMoveScreenBefore={editor.moveScreenBefore}
+          onNewScreenDeviceChange={editor.setNewScreenDevice}
           onNewScreenNameChange={editor.setNewScreenName}
           onOpenScreenBuilder={(screenId) =>
             onOpenScreenBuilder({
