@@ -18,6 +18,8 @@ export type RuntimeStrings = {
     resumeAria: string;
     resumeConfirm: string;
     resumeConfirmAria: string;
+    stopAgain: string;
+    stopAgainAria: string;
   };
   control: {
     anotherOwner: string;

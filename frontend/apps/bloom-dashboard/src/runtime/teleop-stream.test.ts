@@ -108,22 +108,71 @@ describe("the teleop stream pump", () => {
     pump.stop();
   });
 
-  it("stops the moment a send is refused, and restarts on the next dispatch", async () => {
+  it("backs off a refused tick, gives up after a few, and restarts on the next dispatch", async () => {
     composer.contribute("drive-z", { linear_z: 0.5 });
     let attempts = 0;
-    const pump = createPump(() => {
+    const onGiveUp = vi.fn();
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => ++sequence,
+      onGiveUp,
+      send: () => {
+        attempts += 1;
+        return Promise.reject(new Error("Teleop command was rejected: runtime stop is engaged."));
+      },
+    });
+
+    pump.noteDispatched(widgetRequest(), "sent");
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(attempts).toBe(4);
+    expect(onGiveUp).toHaveBeenCalledTimes(1);
+
+    pump.noteDispatched(widgetRequest(), "sent");
+    await vi.advanceTimersByTimeAsync(100);
+    expect(attempts).toBeGreaterThan(4);
+    pump.stop();
+  });
+
+  it("keeps streaming a held value after one transient refusal", async () => {
+    composer.contribute("drive-z", { linear_z: 0.5 });
+    let attempts = 0;
+    const pump = createPump((request) => {
       attempts += 1;
-      return Promise.reject(new Error("Teleop command was rejected: runtime stop is engaged."));
+      if (attempts === 1) {
+        return Promise.reject(new Error("Too many requests."));
+      }
+      sent.push(request);
+      return Promise.resolve();
     });
 
     pump.noteDispatched(widgetRequest(), "sent");
     await vi.advanceTimersByTimeAsync(1000);
-    expect(attempts).toBe(1);
 
-    pump.noteDispatched(widgetRequest(), "sent");
-    await vi.advanceTimersByTimeAsync(100);
-    expect(attempts).toBeGreaterThan(1);
+    expect(sent.length).toBeGreaterThan(5);
+    expect(sent.at(-1)?.linear.z).toBe(0.5);
     pump.stop();
+  });
+
+  it("ends a suspend with a zero even when no move was acknowledged yet", async () => {
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => ++sequence,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+      unsettledMove: () => ({ frame_id: "base_link", mode: 2, target: "/custom_teleop" }),
+    });
+
+    await pump.suspend();
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({
+      angular: { x: 0, y: 0, z: 0 },
+      linear: { x: 0, y: 0, z: 0 },
+      mode: 2,
+      target: "/custom_teleop",
+    });
   });
 
   it("keeps the dispatched rotation frame in every heartbeat", async () => {
@@ -238,6 +287,30 @@ describe("a non-widget source", () => {
     await vi.advanceTimersByTimeAsync(120);
 
     expect(sent.at(-1)).toMatchObject({ frame_id: "hybrid_frame", mode: 3, target: "/custom_teleop" });
+    pump.stop();
+  });
+
+  it("keeps a pad's own rotation frame while a gamepad streams beside it", async () => {
+    composer.contribute("rotation-pad", { angular_z: 0.4 }, "effector_frame");
+    composer.contribute("gamepad", { linear_x: 0.6 });
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => 1,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+
+    pump.noteDispatched(widgetRequest({ frame_id: "effector_frame" }), "sent");
+    pump.noteExternalContribution({ frame_id: "base_link", mode: 0, target: "/joystick_cartesian_command" });
+    await vi.advanceTimersByTimeAsync(120);
+
+    expect(sent.at(-1)).toMatchObject({ angular: { z: 0.4 }, frame_id: "effector_frame" });
+
+    composer.release("rotation-pad");
+    await vi.advanceTimersByTimeAsync(120);
+    expect(sent.at(-1)).toMatchObject({ frame_id: "base_link" });
     pump.stop();
   });
 

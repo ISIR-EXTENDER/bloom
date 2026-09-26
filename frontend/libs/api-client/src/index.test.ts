@@ -410,3 +410,20 @@ describe("readRobotModel", () => {
     expect(second.get("If-None-Match")).toBe('"abc"');
   });
 });
+
+describe("resumeRuntimeStop", () => {
+  it("names the latch it answers, and sends no body without one", async () => {
+    const fetcher = createJsonFetcher({ stopped: false, asserted: false, engaged_at: "", detail: "" });
+    const client = createBloomApiClient({ fetcher });
+
+    await client.resumeRuntimeStop({ engagedAt: "2026-09-26T10:00:00+00:00" });
+    await client.resumeRuntimeStop();
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, "/api/v1/runtime/stop/resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ engaged_at: "2026-09-26T10:00:00+00:00" }),
+    });
+    expect(fetcher).toHaveBeenNthCalledWith(2, "/api/v1/runtime/stop/resume", { method: "POST" });
+  });
+});

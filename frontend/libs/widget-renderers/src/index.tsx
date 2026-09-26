@@ -101,7 +101,12 @@ export function renderScreenWidgets(
     const controlState = options.controlStateByWidgetId?.[descriptor.widget.id];
     return (
       <WidgetFrame controlState={controlState} descriptor={descriptor} key={descriptor.widget.id}>
-        <WidgetBoundary title={descriptor.widget.title}>{renderWidgetDescriptor(descriptor, options)}</WidgetBoundary>
+        <WidgetBoundary
+          onFailed={options.onWidgetFailed ? () => options.onWidgetFailed?.(descriptor.widget.id) : undefined}
+          title={descriptor.widget.title}
+        >
+          {renderWidgetDescriptor(descriptor, options)}
+        </WidgetBoundary>
       </WidgetFrame>
     );
   });

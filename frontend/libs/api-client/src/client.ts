@@ -317,8 +317,18 @@ export class BloomApiClient {
     return this.request<RuntimeStopState>("/api/v1/runtime/stop", { method: "POST" });
   }
 
-  resumeRuntimeStop(): Promise<RuntimeStopState> {
-    return this.request<RuntimeStopState>("/api/v1/runtime/stop/resume", { method: "POST" });
+  /** `engagedAt` names the latch this resume answers; the backend refuses it with 409 once a newer STOP latched. */
+  resumeRuntimeStop(latch?: { engagedAt?: string }): Promise<RuntimeStopState> {
+    return this.request<RuntimeStopState>(
+      "/api/v1/runtime/stop/resume",
+      latch?.engagedAt
+        ? {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ engaged_at: latch.engagedAt }),
+          }
+        : { method: "POST" },
+    );
   }
 
   stopRuntimeRecording(recordingId: string): Promise<RuntimeRecordingResponse> {

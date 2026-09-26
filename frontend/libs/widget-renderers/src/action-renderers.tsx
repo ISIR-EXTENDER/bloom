@@ -11,11 +11,13 @@ import {
 import { type PointerEvent, useEffect, useId, useRef, useState } from "react";
 import { LatchCountdownNotice } from "./latch-countdown-notice";
 import { rendererStrings } from "./renderer-strings";
-import type { WidgetRendererProps } from "./types";
+import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
 
 /** A confirming press closer than this to the arming one is the same gesture, not a second decision. */
 const CONFIRM_SETTLE_MS = 600;
+const RELEASE_RETRIES = 3;
+const RELEASE_RETRY_MS = 200;
 
 export function CommandLikeWidget({
   conditioning,
@@ -55,6 +57,9 @@ export function CommandLikeWidget({
   const [isMomentaryLatched, setIsMomentaryLatched] = useState(false);
   // A refused hold used to keep its pressed look; the reason now stays on the button.
   const [momentaryRefusal, setMomentaryRefusal] = useState("");
+  // Press and release go out one after the other, and every press attempted is followed by a release.
+  const momentaryQueueRef = useRef<Promise<void> | null>(null);
+  const releaseOwedRef = useRef(false);
   const [isArmed, setIsArmed] = useState(false);
   const armedAtRef = useRef(0);
   const visibleButtonLabel = momentary
@@ -184,39 +189,77 @@ export function CommandLikeWidget({
     }
     releaseMomentary();
   };
+  const sendMomentaryPayload = (payloadKey: "payload" | "releasedPayload"): MaybeOutcome => {
+    try {
+      const outcome = onActionIntent?.({
+        type: "topic-publish",
+        widgetId: descriptor.widget.id,
+        widgetKind: descriptor.widget.kind,
+        topic,
+        messageType,
+        payload: descriptor.widget.settings[payloadKey],
+        ...(payloadKey === "releasedPayload" ? { release: true } : {}),
+      } satisfies WidgetActionIntent);
+      return outcome instanceof Promise ? outcome.catch(() => ({ accepted: false })) : outcome;
+    } catch {
+      return { accepted: false };
+    }
+  };
+  const enqueueMomentary = (step: () => Promise<void> | undefined) => {
+    const previous = momentaryQueueRef.current;
+    const next = previous ? previous.then(step) : step();
+    if (!next) {
+      return;
+    }
+    momentaryQueueRef.current = next;
+    void next.finally(() => {
+      if (momentaryQueueRef.current === next) {
+        momentaryQueueRef.current = null;
+      }
+    });
+  };
+  const sendRelease = (attempt: number): Promise<void> | undefined =>
+    afterOutcome(sendMomentaryPayload("releasedPayload"), (result) => {
+      if (result?.accepted !== false || attempt >= RELEASE_RETRIES) {
+        return undefined;
+      }
+      return new Promise<void>((resolve) => setTimeout(resolve, RELEASE_RETRY_MS * 2 ** attempt)).then(() =>
+        sendRelease(attempt + 1),
+      );
+    });
+  const queueMomentaryRelease = () => {
+    if (!releaseOwedRef.current) {
+      return;
+    }
+    releaseOwedRef.current = false;
+    enqueueMomentary(() => sendRelease(0));
+  };
   const publishMomentaryPayload = (payloadKey: "payload" | "releasedPayload") => {
     if (!topic || !messageType) {
       return;
     }
-    if (payloadKey === "payload") {
-      setMomentaryRefusal("");
-    }
-    const outcome = onActionIntent?.({
-      type: "topic-publish",
-      widgetId: descriptor.widget.id,
-      widgetKind: descriptor.widget.kind,
-      topic,
-      messageType,
-      payload: descriptor.widget.settings[payloadKey],
-      ...(payloadKey === "releasedPayload" ? { release: true } : {}),
-    } satisfies WidgetActionIntent);
-    if (payloadKey !== "payload") {
+    if (payloadKey === "releasedPayload") {
+      queueMomentaryRelease();
       return;
     }
+    setMomentaryRefusal("");
+    releaseOwedRef.current = true;
     const refuse = (detail: string) => {
       holdPointerIdRef.current = null;
       isMomentaryPressedRef.current = false;
       setIsMomentaryPressed(false);
       setIsMomentaryLatched(false);
       setMomentaryRefusal(detail || rendererStrings(language).notSent);
+      // A refused or lost press may still have reached the robot: let it go all the same.
+      queueMomentaryRelease();
     };
-    Promise.resolve(outcome).then(
-      (result) => {
+    enqueueMomentary(() =>
+      afterOutcome(sendMomentaryPayload("payload"), (result) => {
         if (result?.accepted === false && isMomentaryPressedRef.current) {
           refuse(result.detail ?? "");
         }
-      },
-      () => isMomentaryPressedRef.current && refuse(""),
+        return undefined;
+      }),
     );
   };
 
@@ -295,6 +338,15 @@ export function CommandLikeWidget({
       <LatchCountdownNotice countdown={latch} text={strings} />
     </div>
   );
+}
+
+type MaybeOutcome = WidgetActionOutcome | undefined | Promise<WidgetActionOutcome | undefined>;
+
+function afterOutcome(
+  outcome: MaybeOutcome,
+  next: (result: WidgetActionOutcome | undefined) => Promise<void> | undefined,
+): Promise<void> | undefined {
+  return outcome instanceof Promise ? outcome.then(next) : next(outcome);
 }
 
 export function LabelWidget({ descriptor }: WidgetRendererProps) {

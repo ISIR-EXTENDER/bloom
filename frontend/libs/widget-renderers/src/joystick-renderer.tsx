@@ -16,7 +16,7 @@ import { resolveStepTargetPreset, type StepTargetPreset } from "./motor-preset-h
 import { formatSignedValue } from "./readouts";
 import { type RendererStrings, rendererStrings } from "./renderer-strings";
 import { resolveJoystickBinding } from "./settings-readers";
-import type { WidgetRendererProps } from "./types";
+import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
 import { useSettledAnnouncement } from "./use-settled-announcement";
 
@@ -58,17 +58,35 @@ export function JoystickWidget({
   const latestVectorRef = useRef<JoystickVector>({ x: 0, y: 0 });
   const onActionIntentRef = useRef(onActionIntent);
   const widgetRef = useRef(descriptor.widget);
+  const latestEmitRef = useRef(0);
+  const isLatchedRef = useRef(false);
 
   useEffect(() => {
     onActionIntentRef.current = onActionIntent;
     widgetRef.current = descriptor.widget;
   }, [descriptor.widget, onActionIntent]);
 
+  // A held vector the runtime refused was withdrawn from the twist, so the pad must not keep showing it.
+  const emitVector = (vector: JoystickVector) => {
+    const emit = ++latestEmitRef.current;
+    const outcome = emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, vector);
+    const settle = (result: WidgetActionOutcome | undefined) => {
+      if (result?.accepted === false && isLatchedRef.current && emit === latestEmitRef.current) {
+        returnToRestRef.current();
+      }
+    };
+    if (outcome instanceof Promise) {
+      outcome.then(settle, () => settle({ accepted: false }));
+    } else {
+      settle(outcome);
+    }
+  };
+
   const handleVectorChange = (value: JoystickVector) => {
     latestVectorRef.current = value;
     setCurrentVector(value);
     setInputRevision((revision) => revision + 1);
-    emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, value);
+    emitVector(value);
   };
 
   const handleInteractionStart = () => {
@@ -97,7 +115,7 @@ export function JoystickWidget({
     if (vector.x === 0 && vector.y === 0) {
       setPadResetSignal((signal) => signal + 1);
     }
-    emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, vector);
+    emitVector(vector);
   };
 
   // After a runtime suspend the robot holds nothing, so neither does the
@@ -125,6 +143,7 @@ export function JoystickWidget({
   // An authored zero_on_release: false holds the vector just like the latch preset.
   const keepsReleasedVector = motorPreset === "latch" || !binding.zeroOnRelease;
   const isLatched = keepsReleasedVector || stepPreset !== null;
+  isLatchedRef.current = isLatched;
   const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
   const latch = useLatchCountdown(vectorIsHeld, inputRevision, () => emitHeldVector({ x: 0, y: 0 }));
   const latchCountdown = <LatchCountdownNotice countdown={latch} text={text} />;
@@ -313,7 +332,7 @@ function emitJoystickVectorChange(
   onActionIntent: WidgetRendererProps["onActionIntent"],
   value: JoystickVector,
 ) {
-  onActionIntent?.(createWidgetActionIntent(widget, { type: "set-vector", value }));
+  return onActionIntent?.(createWidgetActionIntent(widget, { type: "set-vector", value }));
 }
 
 function formatVectorReadout(vector: JoystickVector, rotation: boolean): string {

@@ -18,6 +18,8 @@ export const esRuntimeStrings: RuntimeStrings = {
     resumeAria: "Mantener un segundo para reanudar",
     resumeConfirm: "PULSA OTRA VEZ PARA REANUDAR",
     resumeConfirmAria: "Pulsa otra vez para reanudar",
+    stopAgain: "DETENER DE NUEVO",
+    stopAgainAria: "Detener el robot de nuevo",
   },
   control: {
     anotherOwner: "Otro operador controla este robot",

@@ -308,6 +308,7 @@ export function RuntimeWorkspace({
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
   const stopped = runtimeStop.state?.stopped === true || runtimeStop.stopRequested;
+  const stopNeedsReassert = runtimeStop.state?.stopped === true && !runtimeStop.state.asserted;
   const isAssistiveRuntimeTargetEnabled = (target: HTMLElement) => {
     // Not in control: claim, STOP, and the way out; maintenance holds motion, and without it a switch or dwell
     // operator refused the claim could reach neither Settings nor another app.
@@ -318,7 +319,12 @@ export function RuntimeWorkspace({
     }
     // Stopped: resume, and the way out. Maintenance holds motion anyway, so a
     // switch or dwell operator is not locked on the screen they stopped on.
-    return !stopped || target.dataset.dwellAction === "resume" || target.hasAttribute("data-assistive-maintenance");
+    return (
+      !stopped ||
+      target.dataset.dwellAction === "resume" ||
+      target.dataset.dwellAction === "stop-again" ||
+      target.hasAttribute("data-assistive-maintenance")
+    );
   };
   const gamepad = useGamepadInput({
     deadzone: runtimeProfile.deadzone > 0 ? runtimeProfile.deadzone : undefined,
@@ -357,7 +363,7 @@ export function RuntimeWorkspace({
     // The whole view, not just the canvas: the bar's maintenance button is the
     // only way to Settings, another screen, another role, or out.
     rootRef: workspaceRef,
-    revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}:${runtimeControlBlocked}:${stopped}`,
+    revision: `${screen.id}:${runtimeProfile.motorAccessibilityPreset}:${runtimeControlBlocked}:${stopped}:${stopNeedsReassert}`,
   });
   useStoppedControls(canvasViewportRef, stopped);
   useDwellActivation({
@@ -496,6 +502,8 @@ export function RuntimeWorkspace({
         resumeDisabled={runtimeControlBlocked}
         resumeDisabledReason={runtimeControlBlocked ? strings.control.resumeRequiresOwner : ""}
         stopped={runtimeStop.stopRequested ? true : (runtimeStop.state?.stopped ?? null)}
+        reassert={stopNeedsReassert}
+        latchId={runtimeStop.state?.engaged_at ?? ""}
         language={runtimeProfile.language}
       />
     ) : null;
@@ -720,6 +728,13 @@ export function RuntimeWorkspace({
                 motorPreset: runtimeProfile.motorAccessibilityPreset,
                 neutralRevision: teleopNeutralRevision,
                 onActionIntent: stableActionIntent,
+                // A crashed teleop control shows "sending nothing": the suspend makes that true.
+                onWidgetFailed: (widgetId) => {
+                  const widget = screen.widgets.find((candidate) => candidate.id === widgetId);
+                  if (widget && usesTeleopAdapter(widget)) {
+                    onSuspendTeleop();
+                  }
+                },
                 robotModel,
               }}
               screen={screen}
@@ -756,9 +771,11 @@ export function RuntimeWorkspace({
           />
         ) : null}
 
+        {/* One tree position whether scanning or not: a remount when scanning starts left the first highlight on a
+            detached STOP. */}
+        {renderStopControl(scanning.index >= 0 && stopRect ? splitStopRegion(stopRect).stop : stopRect)}
         {scanning.index >= 0 && stopRect ? (
           <>
-            {renderStopControl(splitStopRegion(stopRect).stop)}
             <button
               className="runtime-switch-bar-button"
               data-placement="region"
@@ -773,9 +790,7 @@ export function RuntimeWorkspace({
               {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
             </p>
           </>
-        ) : (
-          renderStopControl(stopRect)
-        )}
+        ) : null}
       </div>
     </section>
   );

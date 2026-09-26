@@ -24,6 +24,13 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false) {
     setArmed(false);
   }, []);
 
+  // A confirm armed before the control was disabled must not survive to complete once it is enabled again.
+  useEffect(() => {
+    if (disabled) {
+      disarm();
+    }
+  }, [disabled, disarm]);
+
   useEffect(
     () => () => {
       if (timerRef.current !== null) {

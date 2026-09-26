@@ -106,6 +106,66 @@ describe("runtime teleop suspension", () => {
     });
   });
 
+  it("ends a suspend with a zero when the first move is still waiting for its ack", async () => {
+    let ackFirst: (() => void) | undefined;
+    client.sendTeleopCommand = vi.fn((request: RuntimeTeleopCommandRequest) => {
+      sent.push(request);
+      const ack = {
+        type: "teleop_ack" as const,
+        detail: "Accepted.",
+        payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" as const },
+      };
+      if (sent.length === 1) {
+        return new Promise<typeof ack>((resolve) => {
+          ackFirst = () => resolve(ack);
+        });
+      }
+      return Promise.resolve(ack);
+    });
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    const move = (x: number) =>
+      result.current.dispatch({
+        type: "value-change",
+        binding: "joy",
+        modeId: "translation",
+        publishRateHz: 30,
+        runtimeBinding: { adapter: "teleop", target: "translation" },
+        value: { x, y: 0 },
+        widgetId: "translation",
+        widgetKind: "joystick",
+        zeroOnRelease: true,
+      });
+
+    act(() => {
+      void move(0.8);
+      void move(0.6);
+    });
+    act(() => result.current.suspendTeleop());
+    expect(sent.at(-1)).toMatchObject({ angular: { x: 0, y: 0, z: 0 }, linear: { x: 0, y: 0, z: 0 } });
+
+    await act(async () => {
+      ackFirst?.();
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(sent.some((request) => request.linear.x === 0.6)).toBe(false);
+    expect(sent.at(-1)?.linear.x).toBe(0);
+  });
+
+  it("returns the controls to rest when the stream is refused for good", async () => {
+    client.sendTeleopCommand = vi.fn(async () => {
+      throw new Error("Socket is closed.");
+    });
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    const revisionBefore = result.current.neutralRevision;
+
+    act(() => result.current.contributeTeleop("gamepad", { linear_x: 0.7 }, "base_link"));
+    expect(result.current.teleopActive).toBe(true);
+    await act(() => vi.advanceTimersByTimeAsync(3000));
+
+    expect(result.current.neutralRevision).toBeGreaterThan(revisionBefore);
+    expect(result.current.teleopActive).toBe(false);
+  });
+
   it("sends the command even when a listener throws", async () => {
     const { result } = renderHook(() => useRuntimeActionDispatcher(client));
     const after: RuntimeTeleopCommandRequest[] = [];
@@ -341,6 +401,30 @@ describe("runtime teleop suspension", () => {
         void result.current.dispatch(joystick(0.4));
       });
       await act(() => vi.advanceTimersByTimeAsync(60));
+      expect(sent.at(-1)?.linear).toEqual({ x: 0.4, y: 0, z: 0 });
+    });
+
+    it("ends the wire on what is still held once a failed value is withdrawn", async () => {
+      // The timed-out value may still have been published: the last frame must not be it.
+      client.sendTeleopCommand = vi.fn((request: RuntimeTeleopCommandRequest) => {
+        if (request.linear.z === 0.5) {
+          sent.push(request);
+          return Promise.reject(new Error("Request timed out."));
+        }
+        return accept(request);
+      });
+      const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+
+      act(() => {
+        void result.current.dispatch(joystick(0.4));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60));
+      act(() => {
+        void result.current.dispatch(slider(0.5));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60));
+      expect(sent.some((request) => request.linear.z === 0.5)).toBe(true);
+
       expect(sent.at(-1)?.linear).toEqual({ x: 0.4, y: 0, z: 0 });
     });
 

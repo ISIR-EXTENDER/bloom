@@ -7,7 +7,7 @@ const STOP_STATE_POLL_MS = 2000;
 export type RuntimeStopClient = {
   engageRuntimeStop?: () => Promise<RuntimeStopState>;
   getRuntimeStopState?: () => Promise<RuntimeStopState>;
-  resumeRuntimeStop?: () => Promise<RuntimeStopState>;
+  resumeRuntimeStop?: (latch?: { engagedAt?: string }) => Promise<RuntimeStopState>;
 };
 
 export type RuntimeStopHandle = {
@@ -32,8 +32,10 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   clientRef.current = client;
   // Bumped by every STOP and resume: a poll sent before one answers with the latch as it was.
   const actionCountRef = useRef(0);
+  const stateRef = useRef<RuntimeStopState | null>(null);
 
   const mirrorState = useCallback((next: RuntimeStopState) => {
+    stateRef.current = next;
     setState(next);
   }, []);
 
@@ -71,14 +73,23 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
       return;
     }
     actionCountRef.current += 1;
+    const actionsWhenSent = actionCountRef.current;
+    // A Resume or another STOP since this one was sent owns the state now.
+    const current = () => actionsWhenSent === actionCountRef.current;
     setStopRequested(true);
     engageRuntimeStop()
       .then((next) => {
+        if (!current()) {
+          return;
+        }
         mirrorState(next);
         setStopRequested(false);
         setRequestError("");
       })
       .catch((error: unknown) => {
+        if (!current()) {
+          return;
+        }
         const message = error instanceof Error ? error.message : "The stop request failed.";
         const getState = clientRef.current?.getRuntimeStopState;
         if (!getState) {
@@ -87,12 +98,19 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
         }
         getState()
           .then((next) => {
+            if (!current()) {
+              return;
+            }
             mirrorState(next);
             // Not latched on the backend: the press still holds every control here until Resume.
             setStopRequested(!next.stopped);
             setRequestError(next.stopped && !next.asserted ? "" : message);
           })
-          .catch(() => setRequestError(message));
+          .catch(() => {
+            if (current()) {
+              setRequestError(message);
+            }
+          });
       });
   }, [mirrorState]);
 
@@ -101,15 +119,43 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     if (!resumeRuntimeStop) {
       return;
     }
+    // The latch on screen: a STOP pressed elsewhere since then is a new latch this resume must not release.
+    const engagedAt = stateRef.current?.stopped ? stateRef.current.engaged_at : "";
     actionCountRef.current += 1;
+    const actionsWhenSent = actionCountRef.current;
+    const current = () => actionsWhenSent === actionCountRef.current;
     setStopRequested(false);
-    resumeRuntimeStop()
+    resumeRuntimeStop(engagedAt ? { engagedAt } : undefined)
       .then((next) => {
-        mirrorState(next);
-        setRequestError("");
+        if (current()) {
+          mirrorState(next);
+          setRequestError("");
+        }
       })
       .catch((error: unknown) => {
-        setRequestError(error instanceof Error ? error.message : "The resume request failed.");
+        if (!current()) {
+          return;
+        }
+        const message = error instanceof Error ? error.message : "The resume request failed.";
+        const getState = clientRef.current?.getRuntimeStopState;
+        if (!engagedAt || (error as { status?: unknown } | null)?.status !== 409 || !getState) {
+          setRequestError(message);
+          return;
+        }
+        // 409 is also "not the owner": only a latch that moved on (a newer STOP, which stays) is answered silently.
+        getState()
+          .then((next) => {
+            if (!current()) {
+              return;
+            }
+            mirrorState(next);
+            setRequestError(next.engaged_at !== engagedAt ? "" : message);
+          })
+          .catch(() => {
+            if (current()) {
+              setRequestError(message);
+            }
+          });
       });
   }, [mirrorState]);
 

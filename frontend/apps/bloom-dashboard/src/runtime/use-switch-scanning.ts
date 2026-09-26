@@ -138,6 +138,8 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       }
       armedHoldsRef.current = 0;
       const previous = targetsRef.current;
+      // The lit control was replaced (STOP remounts when scanning starts): begin the cycle again rather than skip it.
+      const restart = lit !== undefined && !lit.isConnected;
       const targets = readTargets();
       if (targets.length === 0) {
         indexRef.current = -1;
@@ -156,7 +158,10 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       const wasLit = previous[indexRef.current];
       const urgentNext = urgentQueueRef.current.shift();
       let nextIndex: number;
-      if (urgentNext) {
+      if (restart && !urgentNext) {
+        returnToRef.current = null;
+        nextIndex = 0;
+      } else if (urgentNext) {
         if (!returnToRef.current && wasLit && !wasLit.hasAttribute("data-scan-urgent")) {
           returnToRef.current = wasLit;
         }
@@ -183,8 +188,8 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
         return;
       }
       // Enter on a focused STOP is a stop, not a press of whatever is lit: a caregiver tabbing to STOP at a
-      // scan station fired a step target instead.
-      if (event.target instanceof Element && event.target.closest('[data-scan-priority="stop"]')) {
+      // scan station fired a step target instead. Resume is not exempt: a switch press there arms, then confirms.
+      if (event.target instanceof Element && event.target.closest('[data-scan-priority="stop"]:not([data-stopped])')) {
         return;
       }
       event.preventDefault();

@@ -2,7 +2,12 @@
  * @vitest-environment jsdom
  */
 import type { ScreenConfig } from "@bloom/api-client";
-import { createDefaultWidgetRegistry, createWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
+import {
+  createDefaultWidgetRegistry,
+  createWidgetRegistry,
+  renderScreenDescriptors,
+  type WidgetActionIntent,
+} from "@bloom/widgets";
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -328,6 +333,75 @@ describe("widget renderer registry", () => {
 
     await waitFor(() => expect(screen.getByText("The robot is stopped.")).toBeInTheDocument());
     expect(button).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("sends the release only after the press has settled, so a quick tap cannot land in reverse", async () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    let settlePress: ((outcome: { accepted: boolean }) => void) | undefined;
+    const onActionIntent = vi.fn((intent: WidgetActionIntent) =>
+      intent.type === "topic-publish" && intent.release !== true
+        ? new Promise<{ accepted: boolean }>((resolve) => {
+            settlePress = resolve;
+          })
+        : Promise.resolve({ accepted: true }),
+    );
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+    const button = screen.getByRole("button", { name: "Hold Snake" });
+    fireEvent.pointerDown(button, { pointerId: 1 });
+    fireEvent.pointerUp(button, { pointerId: 1 });
+    await act(async () => {});
+    expect(onActionIntent).toHaveBeenCalledTimes(1);
+
+    await act(async () => settlePress?.({ accepted: true }));
+    expect(onActionIntent.mock.calls.map(([intent]) => (intent as { payload?: unknown }).payload)).toEqual([
+      "{data: true}",
+      "{data: false}",
+    ]);
+  });
+
+  it("still sends the release when the press was refused or its answer was lost", async () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn((intent: WidgetActionIntent) =>
+      intent.type === "topic-publish" && intent.release !== true
+        ? Promise.resolve({ accepted: false, detail: "Request timed out." })
+        : Promise.resolve({ accepted: true }),
+    );
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Hold Snake" }), { pointerId: 1 });
+
+    await waitFor(() => expect(onActionIntent).toHaveBeenCalledTimes(2));
+    expect(onActionIntent.mock.calls.at(-1)?.[0]).toMatchObject({ payload: "{data: false}", release: true });
+  });
+
+  it("retries a refused release until the robot takes it", async () => {
+    vi.useFakeTimers();
+    try {
+      const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+      if (!descriptor) throw new Error("Missing momentary button descriptor.");
+      let releases = 0;
+      const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
+        if (intent.type === "topic-publish" && intent.release === true) {
+          releases += 1;
+          return Promise.resolve({ accepted: releases > 1, detail: "Too many requests." });
+        }
+        return Promise.resolve({ accepted: true });
+      });
+
+      render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+      const button = screen.getByRole("button", { name: "Hold Snake" });
+      fireEvent.pointerDown(button, { pointerId: 1 });
+      await act(() => vi.advanceTimersByTimeAsync(0));
+      fireEvent.pointerUp(button, { pointerId: 1 });
+      await act(() => vi.advanceTimersByTimeAsync(2000));
+
+      expect(releases).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("latches a momentary button for switch, dwell and keyboard activation", () => {
@@ -2024,6 +2098,39 @@ describe("a widget that cannot be drawn", () => {
 
     expect(screen.getByText("This control could not be drawn. It is sending nothing.")).toBeTruthy();
     expect(screen.getByRole("article", { name: "Speed Label" })).toBeTruthy();
+  });
+
+  it("tells the runtime which widget crashed, so it can let go of what that widget held", () => {
+    const registry = createWidgetRendererRegistry([
+      {
+        kind: "gauge",
+        render: () => {
+          throw new Error("crashed mid-hold");
+        },
+      } as WidgetRendererRegistration,
+    ]);
+    const screenConfig = {
+      id: "s1",
+      title: "Drive",
+      canvas: { preset_id: "hd", width: 1280, height: 720 },
+      reserved_regions: [],
+      widgets: [
+        { id: "broken", kind: "gauge", title: "Pad", layout: { x: 0, y: 0, width: 200, height: 120 }, settings: {} },
+      ],
+    } as unknown as ScreenConfig;
+    const onWidgetFailed = vi.fn();
+
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <div>
+        {renderScreenWidgets(renderScreenDescriptors(screenConfig, createDefaultWidgetRegistry()), {
+          onWidgetFailed,
+          registry,
+        })}
+      </div>,
+    );
+
+    expect(onWidgetFailed).toHaveBeenCalledWith("broken");
   });
 });
 

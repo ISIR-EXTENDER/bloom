@@ -343,6 +343,28 @@ describe("the latch preset", () => {
     expect(values).toEqual([0.25]);
   });
 
+  it("returns a latched joystick to rest when the runtime refuses its vector", async () => {
+    const onActionIntent = vi.fn(async () => ({ accepted: false, detail: "Request timed out." }));
+    render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="latch" onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+
+    fireEvent.keyDown(pad, { key: "ArrowRight" });
+    fireEvent.keyUp(pad, { key: "ArrowRight" });
+    await act(async () => {});
+
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Zero Translation" }).disabled).toBe(true);
+  });
+
+  it("returns a step joystick to rest when the runtime refuses its step", async () => {
+    const onActionIntent = vi.fn(() => ({ accepted: false }));
+    render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="step" onActionIntent={onActionIntent} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Right, one step" }));
+    await act(async () => {});
+
+    expect(document.querySelector(".bloom-control-vector-readout")?.textContent).toBe("x 0.00 y 0.00");
+  });
+
   it("gives the latched joystick an explicit zero control", () => {
     const onActionIntent = vi.fn();
     render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="latch" onActionIntent={onActionIntent} />);

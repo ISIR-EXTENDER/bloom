@@ -57,6 +57,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const teleopRateGate = useRef<TeleopRateGate | null>(null);
   if (teleopRateGate.current === null) {
     teleopRateGate.current = new TeleopRateGate({
+      refresh: (request) => ({ ...request, ...teleopComposer.current.compose() }),
       send: (request) => {
         const sendTeleopCommand = clientRef.current.sendTeleopCommand;
         if (!sendTeleopCommand) {
@@ -82,11 +83,14 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   }, []);
   // Keeps the composed twist alive past the manager's 0.2s input timeout.
   const teleopPump = useRef<TeleopStreamPump | null>(null);
+  const pumpGaveUp = useRef(() => {});
   if (teleopPump.current === null) {
     teleopPump.current = new TeleopStreamPump({
       composer: teleopComposer.current,
       nextSequence: () => ++nextTeleopSequence.current,
+      onGiveUp: () => pumpGaveUp.current(),
       send: (request) => teleopRateGate.current?.submit(request) ?? Promise.reject(new Error("Teleop gate is gone.")),
+      unsettledMove: () => teleopRateGate.current?.unsettledMove ?? null,
     });
   }
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
@@ -103,6 +107,28 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   }, [neutralRevision]);
   const syncTeleopActive = useCallback(() => {
     setTeleopActive(!isZeroTwist(teleopComposer.current.compose()));
+  }, []);
+  // After a withdraw the wire must end on what the controls still hold, not on the withdrawn value.
+  const submitComposedTwist = useCallback((base: RuntimeTeleopCommandRequest, sessionFrameId: string | undefined) => {
+    const twist = teleopComposer.current.compose();
+    const frameId = teleopComposer.current.resolveFrame(sessionFrameId ?? "").frameId;
+    const request: RuntimeTeleopCommandRequest = {
+      type: "teleop_cmd",
+      angular: twist.angular,
+      ...(frameId ? { frame_id: frameId } : {}),
+      linear: twist.linear,
+      mode: base.mode,
+      seq: ++nextTeleopSequence.current,
+      target: base.target,
+    };
+    teleopRateGate.current?.submit(request).then(
+      (outcome) => {
+        if (outcome.status !== "coalesced") {
+          teleopPump.current?.noteDispatched(request, "sent", sessionFrameId);
+        }
+      },
+      () => undefined,
+    );
   }, []);
 
   const dispatch = useCallback(
@@ -162,14 +188,24 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       return pendingResult.then((result) => {
         if (result.request && "type" in result.request && result.request.type === "teleop_cmd") {
           // The widget shows rest after a refused value, so the composed twist must not keep carrying it.
+          const sessionFrameId = options.runtimePolicy?.command_frame_id;
+          let withdrawn = false;
           if (isRuntimeActionProblem(result) && intent.type === "value-change") {
             const latestSequences = latestTeleopSequenceByWidget.current;
             if (latestSequences.get(intent.widgetId) === teleopSequence) {
               latestSequences.delete(intent.widgetId);
               teleopComposer.current.release(intent.widgetId);
+              withdrawn = true;
             }
           }
-          teleopPump.current?.noteDispatched(result.request, isRuntimeActionProblem(result) ? "failed" : "sent");
+          teleopPump.current?.noteDispatched(
+            result.request,
+            isRuntimeActionProblem(result) ? "failed" : "sent",
+            sessionFrameId,
+          );
+          if (withdrawn && result.status !== "unsupported" && allowsTarget(options.runtimePolicy, result.request)) {
+            submitComposedTwist(result.request, sessionFrameId);
+          }
           syncTeleopActive();
         }
         setRecords((currentRecords) =>
@@ -197,7 +233,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         return result;
       });
     },
-    [client, syncTeleopActive],
+    [client, submitComposedTwist, syncTeleopActive],
   );
 
   const subscribeTopic = useCallback(
@@ -255,10 +291,12 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     }
     teleopComposer.current.clear();
     settlingAfterSuspend.current = true;
+    teleopRateGate.current?.discardPending();
     void teleopPump.current?.suspend().catch(() => undefined);
     syncTeleopActive();
     setNeutralRevision((revision) => revision + 1);
   }, [syncTeleopActive]);
+  pumpGaveUp.current = suspendTeleop;
 
   useEffect(() => {
     const suspendWhenHidden = () => {
@@ -295,6 +333,11 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {
   return `${intent.widgetId}-${intent.type}-${index}`;
+}
+
+function allowsTarget(policy: RuntimeAdapterPolicy | undefined, request: RuntimeTeleopCommandRequest): boolean {
+  const allowed = policy?.allowed_teleop_targets;
+  return !allowed || allowed.includes("*") || allowed.includes(request.target);
 }
 
 function isRestingValue(value: unknown): boolean {

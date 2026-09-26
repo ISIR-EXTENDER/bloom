@@ -110,4 +110,45 @@ describe("the aggregate teleop rate gate", () => {
     resolveMoving?.(accepted(command(1)));
     await expect(moving).resolves.toMatchObject({ status: "accepted" });
   });
+
+  it("recomposes a queued move when it leaves, so a withdrawn value does not ride out", async () => {
+    const sent: RuntimeTeleopCommandRequest[] = [];
+    // The composer now holds 0.2: the 0.9 queued below was withdrawn while it waited.
+    const gate = new TeleopRateGate({
+      refresh: (request) => ({ ...request, linear: { x: 0.2, y: 0, z: 0 } }),
+      send: async (request) => {
+        sent.push(request);
+        return accepted(request);
+      },
+    });
+
+    await gate.submit(command(1, 0.2));
+    void gate.submit(command(2, 0.9));
+    await vi.advanceTimersByTimeAsync(100);
+
+    expect(sent.at(-1)?.linear.x).toBe(0.2);
+  });
+
+  it("remembers a move until a zero follows it, and drops a queued one on request", async () => {
+    const sent: RuntimeTeleopCommandRequest[] = [];
+    const gate = new TeleopRateGate({
+      send: async (request) => {
+        sent.push(request);
+        return accepted(request);
+      },
+    });
+
+    expect(gate.unsettledMove).toBeNull();
+    await gate.submit(command(1));
+    const queued = gate.submit(command(2));
+    expect(gate.unsettledMove?.seq).toBe(2);
+
+    gate.discardPending();
+    await expect(queued).resolves.toMatchObject({ status: "coalesced" });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sent.map((request) => request.seq)).toEqual([1]);
+
+    await gate.submit(command(3, 0));
+    expect(gate.unsettledMove).toBeNull();
+  });
 });

@@ -1,4 +1,5 @@
 import type { RuntimeLanguage } from "@bloom/api-client";
+import type { CSSProperties, KeyboardEvent } from "react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { useAssistiveActivation } from "./assistive-activation";
@@ -13,6 +14,7 @@ const RESUME_HOLD_MS = 1000;
  * stop on a drive screen, and nothing else may come before it.
  */
 const STOP_TAB_INDEX = 1;
+const STOP_AGAIN_GAP = 8;
 
 export type RuntimeStopControlProps = {
   /** null while unknown; rendered as running so STOP is always pressable. */
@@ -25,7 +27,15 @@ export type RuntimeStopControlProps = {
   resumeDisabledReason?: string;
   /** The screen's reserved `stop` region in the canvas shell; without one STOP floats in the corner. */
   region?: RegionRect | null;
+  /** Latched but not asserted on ROS: STOP again sits beside Resume so the operator can re-assert. */
+  reassert?: boolean;
+  /** The latch Resume answers; a new one drops a hold or armed confirm begun on the old. */
+  latchId?: string;
 };
+
+function isActivationKey(event: KeyboardEvent) {
+  return !event.repeat && (event.key === "Enter" || event.key === " ");
+}
 
 /**
  * STOP as runtime chrome (finding 3): tap stops on pointerdown, resuming
@@ -40,6 +50,8 @@ export function RuntimeStopControl({
   resumeDisabled = false,
   resumeDisabledReason = "",
   region = null,
+  reassert = false,
+  latchId = "",
 }: RuntimeStopControlProps) {
   const placement = region ? "region" : "corner";
   const style = region ? { height: region.height, left: region.left, top: region.top, width: region.width } : undefined;
@@ -48,6 +60,9 @@ export function RuntimeStopControl({
   // station pulled focus to STOP from wherever the operator was.
   const keyboardHoldRef = useRef(false);
   const keyboardPressRef = useRef(false);
+  // A real key went down on STOP. A scan or dwell activation also clicks with detail 0, and handing focus to Resume
+  // then put the switch on Resume's own key handler.
+  const stopKeyDownRef = useRef(false);
   const resume = () => {
     if (!resumeDisabled) {
       keyboardPressRef.current = keyboardHoldRef.current;
@@ -83,90 +98,137 @@ export function RuntimeStopControl({
   // completed after the operator pressed STOP again and resumed the robot.
   useEffect(() => {
     void stopped;
+    void latchId;
     cancelResumeHold();
     disarm();
-  }, [cancelResumeHold, disarm, stopped]);
+  }, [cancelResumeHold, disarm, latchId, stopped]);
+  useEffect(() => {
+    if (resumeDisabled) {
+      cancelResumeHold();
+    }
+  }, [cancelResumeHold, resumeDisabled]);
   const startResumeHold = () => {
     if (!resumeDisabled) {
       resumeHold.start();
     }
   };
 
-  if (stopped) {
-    return (
-      <button
-        key="resume"
-        aria-label={`${assistiveArmed ? strings.stop.resumeConfirmAria : strings.stop.resumeAria}${
-          requestError || resumeDisabledReason ? `. ${requestError || resumeDisabledReason}` : ""
-        }`}
-        className="runtime-stop-control"
-        // Armed, it holds the scan highlight so the confirming press lands on it, as an armed Go home does.
-        data-armed={assistiveArmed ? "true" : undefined}
-        data-dwell-action="resume"
-        data-dwell-min-ms={RESUME_HOLD_MS}
-        data-placement={placement}
-        data-runtime-control-independent=""
-        data-scan-priority="stop"
-        data-stopped="true"
-        disabled={resumeDisabled}
-        onBlur={() => {
-          keyboardHoldRef.current = false;
-          resumeHold.cancel();
-        }}
-        onKeyDown={(event) => {
-          if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
-            keyboardHoldRef.current = true;
-            startResumeHold();
-          }
-        }}
-        onKeyUp={() => {
-          keyboardHoldRef.current = false;
-          resumeHold.cancel();
-        }}
-        onPointerCancel={resumeHold.cancel}
-        onPointerDown={startResumeHold}
-        onPointerLeave={resumeHold.cancel}
-        onPointerUp={resumeHold.cancel}
-        ref={(node) => {
-          buttonRef.current = node;
-          resumeRef(node);
-        }}
-        style={style}
-        tabIndex={STOP_TAB_INDEX}
-        type="button"
-      >
-        <span className="runtime-stop-label">{assistiveArmed ? strings.stop.resumeConfirm : strings.stop.resume}</span>
-        {requestError || resumeDisabledReason ? (
-          <span className="runtime-stop-error">{requestError || resumeDisabledReason}</span>
-        ) : null}
-        <span aria-hidden="true" className="runtime-stop-hold" style={{ transform: `scaleX(${resumeHold.value})` }} />
-      </button>
-    );
-  }
-
-  return (
+  const engageButton = (again: boolean, buttonStyle: CSSProperties | undefined) => (
     <button
-      key="stop"
-      aria-label={requestError ? `${strings.stop.engageAria}. ${requestError}` : strings.stop.engageAria}
+      key={again ? "stop-again" : "stop"}
+      aria-label={
+        again
+          ? strings.stop.stopAgainAria
+          : requestError
+            ? `${strings.stop.engageAria}. ${requestError}`
+            : strings.stop.engageAria
+      }
       className="runtime-stop-control"
+      data-dwell-action={again ? "stop-again" : undefined}
       data-placement={placement}
       data-runtime-control-independent=""
       data-scan-priority="stop"
+      data-stop-again={again ? "true" : undefined}
+      onBlur={() => {
+        stopKeyDownRef.current = false;
+      }}
       onClick={(event) => {
-        // Keyboard only; a pointer tap already engaged on pointerdown.
+        // Keyboard, scan and dwell; a pointer tap already engaged on pointerdown.
         if (event.detail === 0) {
-          keyboardPressRef.current = true;
+          // STOP again stays mounted, so there is no hand-over to make.
+          keyboardPressRef.current = !again && stopKeyDownRef.current;
+          stopKeyDownRef.current = false;
           onEngage();
         }
       }}
+      onKeyDown={(event) => {
+        if (isActivationKey(event)) {
+          stopKeyDownRef.current = true;
+        }
+      }}
       onPointerDown={onEngage}
-      ref={buttonRef}
-      style={style}
+      ref={again ? undefined : buttonRef}
+      style={buttonStyle}
       tabIndex={STOP_TAB_INDEX}
       type="button"
     >
-      <span className="runtime-stop-label">{strings.stop.engage}</span>
-      {requestError ? <span className="runtime-stop-error">{requestError}</span> : null}
+      <span className="runtime-stop-label">{again ? strings.stop.stopAgain : strings.stop.engage}</span>
+      {!again && requestError ? <span className="runtime-stop-error">{requestError}</span> : null}
     </button>
   );
+
+  if (stopped) {
+    const showStopAgain = reassert;
+    const stopAgainHeight = region ? Math.round((region.height - STOP_AGAIN_GAP) * 0.4) : 0;
+    const stopAgainStyle = region && showStopAgain ? { ...style, height: stopAgainHeight } : style;
+    const resumeStyle =
+      region && showStopAgain
+        ? {
+            ...style,
+            height: region.height - STOP_AGAIN_GAP - stopAgainHeight,
+            top: region.top + stopAgainHeight + STOP_AGAIN_GAP,
+          }
+        : style;
+    return (
+      <>
+        {showStopAgain ? engageButton(true, stopAgainStyle) : null}
+        <button
+          key="resume"
+          aria-label={`${assistiveArmed ? strings.stop.resumeConfirmAria : strings.stop.resumeAria}${
+            requestError || resumeDisabledReason ? `. ${requestError || resumeDisabledReason}` : ""
+          }`}
+          className="runtime-stop-control"
+          // Armed, it holds the scan highlight so the confirming press lands on it, as an armed Go home does.
+          data-armed={assistiveArmed ? "true" : undefined}
+          data-dwell-action="resume"
+          data-dwell-min-ms={RESUME_HOLD_MS}
+          data-placement={placement}
+          data-reassert={showStopAgain ? "true" : undefined}
+          data-runtime-control-independent=""
+          data-scan-priority="stop"
+          data-stopped="true"
+          disabled={resumeDisabled}
+          onBlur={() => {
+            keyboardHoldRef.current = false;
+            resumeHold.cancel();
+          }}
+          onKeyDown={(event) => {
+            // Under scanning a key is the switch: it arms and confirms through the scan, never a hold here.
+            if (event.currentTarget.closest('[data-runtime-scanning="true"]')) {
+              return;
+            }
+            if (isActivationKey(event)) {
+              keyboardHoldRef.current = true;
+              startResumeHold();
+            }
+          }}
+          onKeyUp={() => {
+            keyboardHoldRef.current = false;
+            resumeHold.cancel();
+          }}
+          onPointerCancel={resumeHold.cancel}
+          onPointerDown={startResumeHold}
+          onPointerLeave={resumeHold.cancel}
+          onPointerUp={resumeHold.cancel}
+          ref={(node) => {
+            buttonRef.current = node;
+            resumeRef(node);
+          }}
+          style={resumeStyle}
+          tabIndex={STOP_TAB_INDEX}
+          type="button"
+        >
+          <span className="runtime-stop-label">
+            {assistiveArmed ? strings.stop.resumeConfirm : strings.stop.resume}
+          </span>
+          {requestError || resumeDisabledReason ? (
+            <span className="runtime-stop-error">{requestError || resumeDisabledReason}</span>
+          ) : null}
+          <span aria-hidden="true" className="runtime-stop-hold" style={{ transform: `scaleX(${resumeHold.value})` }} />
+        </button>
+      </>
+    );
+  }
+
+  return <>{engageButton(false, style)}</>;
 }

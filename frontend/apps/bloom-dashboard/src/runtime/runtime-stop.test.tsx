@@ -58,10 +58,107 @@ describe("the STOP control", () => {
     const stop = screen.getByRole("button", { name: "Stop the robot" });
     stop.focus();
 
+    fireEvent.keyDown(stop, { key: "Enter" });
     fireEvent.click(stop, { detail: 0 });
     rerender(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
 
     expect(document.activeElement).toBe(screen.getByRole("button", { name: /Hold for one second to resume/ }));
+  });
+
+  // A scan or dwell activation clicks with detail 0 too; handing it focus put the switch on Resume's hold.
+  it("leaves focus alone after a STOP fired by a scan or dwell click", () => {
+    const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
+    const { rerender } = render(<RuntimeStopControl requestError="" stopped={false} {...handlers} />);
+    const stop = screen.getByRole("button", { name: "Stop the robot" });
+    stop.focus();
+
+    fireEvent.click(stop, { detail: 0 });
+    rerender(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
+
+    expect(handlers.onEngage).toHaveBeenCalledOnce();
+    expect(document.activeElement).not.toBe(screen.getByRole("button", { name: /Hold for one second to resume/ }));
+  });
+
+  it("leaves keys on Resume to the switch while scanning", () => {
+    const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
+    render(
+      <div data-runtime-scanning="true">
+        <RuntimeStopControl requestError="" stopped={true} {...handlers} />
+      </div>,
+    );
+    const resume = screen.getByRole("button", { name: /Hold for one second to resume/ });
+
+    fireEvent.keyDown(resume, { key: " " });
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(handlers.onResume).not.toHaveBeenCalled();
+  });
+
+  it("offers STOP again beside Resume while the latch is not asserted, first in order", () => {
+    const handlers = renderControl({
+      reassert: true,
+      region: { height: 208, left: 0, top: 100, width: 300 },
+      stopped: true,
+    });
+    const buttons = screen.getAllByRole("button");
+
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "Stop the robot again",
+      "Hold for one second to resume",
+    ]);
+    const [again, resume] = buttons as [HTMLElement, HTMLElement];
+    expect(again.getAttribute("data-scan-priority")).toBe("stop");
+    expect(again.hasAttribute("data-stopped")).toBe(false);
+    expect(again.style.top).toBe("100px");
+    expect(Number.parseFloat(resume.style.top)).toBeGreaterThan(100 + Number.parseFloat(again.style.height));
+
+    fireEvent.pointerDown(again);
+    fireEvent.click(again, { detail: 0 });
+    expect(handlers.onEngage).toHaveBeenCalledTimes(2);
+    expect(handlers.onResume).not.toHaveBeenCalled();
+  });
+
+  it("shows no STOP again once the latch is asserted", () => {
+    renderControl({ reassert: false, stopped: true });
+
+    expect(screen.queryByRole("button", { name: "Stop the robot again" })).toBeNull();
+  });
+
+  it("drops an armed confirm when a new latch replaces the one it answered", () => {
+    const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
+    const { rerender } = render(<RuntimeStopControl latchId="a" requestError="" stopped={true} {...handlers} />);
+    act(() => {
+      screen.getByRole("button").dispatchEvent(new CustomEvent("bloom-assistive-activate", { cancelable: true }));
+    });
+    expect(screen.getByRole("button", { name: /Press again to resume/ })).toBeTruthy();
+
+    rerender(<RuntimeStopControl latchId="b" requestError="" stopped={true} {...handlers} />);
+
+    expect(screen.getByRole("button", { name: /Hold for one second to resume/ })).toBeTruthy();
+  });
+
+  it("drops an armed confirm and a hold in progress when resume becomes disabled", () => {
+    const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
+    const { rerender } = render(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
+    const resume = screen.getByRole("button");
+    act(() => {
+      resume.dispatchEvent(new CustomEvent("bloom-assistive-activate", { cancelable: true }));
+    });
+    fireEvent.pointerDown(resume);
+    act(() => {
+      vi.advanceTimersByTime(600);
+    });
+
+    rerender(<RuntimeStopControl requestError="" resumeDisabled stopped={true} {...handlers} />);
+    rerender(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(handlers.onResume).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /Hold for one second to resume/ })).toBeTruthy();
   });
 
   it("does not pull focus back after a keyboard tap on Resume that let go early", () => {
@@ -384,6 +481,96 @@ describe("the stop mirror", () => {
       fireEvent.click(screen.getByRole("button", { name: "resume" }));
     });
     expect(screen.getByTestId("requested").textContent).toBe("false");
+  });
+
+  it("drops a late STOP answer that arrives after Resume", async () => {
+    let answerEngage: (state: RuntimeStopState) => void = () => {};
+    const client: RuntimeStopClient = {
+      getRuntimeStopState: () => Promise.resolve(running),
+      engageRuntimeStop: () =>
+        new Promise((resolve) => {
+          answerEngage = resolve;
+        }),
+      resumeRuntimeStop: () => Promise.resolve(running),
+    };
+    render(<Probe client={client} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
+
+    fireEvent.click(screen.getByRole("button", { name: "engage" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "resume" }));
+    });
+    await act(async () => {
+      answerEngage(stoppedState);
+    });
+
+    expect(screen.getByTestId("stopped").textContent).toBe("false");
+    expect(screen.getByTestId("requested").textContent).toBe("false");
+  });
+
+  it("drops a late fallback read of a failed STOP that arrives after Resume", async () => {
+    let answerRead: (state: RuntimeStopState) => void = () => {};
+    const getRuntimeStopState = vi
+      .fn()
+      .mockResolvedValueOnce(running)
+      .mockImplementation(
+        () =>
+          new Promise<RuntimeStopState>((resolve) => {
+            answerRead = resolve;
+          }),
+      );
+    const client: RuntimeStopClient = {
+      getRuntimeStopState,
+      engageRuntimeStop: () => Promise.reject(new Error("offline")),
+      resumeRuntimeStop: () => Promise.resolve(running),
+    };
+    render(<Probe client={client} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "engage" }));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "resume" }));
+    });
+    await act(async () => {
+      answerRead(failedStopState);
+    });
+
+    expect(screen.getByTestId("stopped").textContent).toBe("false");
+    expect(screen.getByTestId("requested").textContent).toBe("false");
+  });
+
+  it("resumes the latch on screen, and keeps a newer one the backend refused to release", async () => {
+    const newer: RuntimeStopState = { ...stoppedState, engaged_at: "2026-09-15T10:05:00+00:00" };
+    const getRuntimeStopState = vi.fn().mockResolvedValueOnce(stoppedState).mockResolvedValue(newer);
+    const resumeRuntimeStop = vi.fn(() =>
+      Promise.reject(Object.assign(new Error("Bloom API request failed with status 409"), { status: 409 })),
+    );
+    render(<Probe client={{ getRuntimeStopState, resumeRuntimeStop }} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("true"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "resume" }));
+    });
+
+    expect(resumeRuntimeStop).toHaveBeenCalledWith({ engagedAt: stoppedState.engaged_at });
+    await waitFor(() => expect(getRuntimeStopState).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId("stopped").textContent).toBe("true");
+    expect(screen.getByTestId("error").textContent).toBe("");
+  });
+
+  it("still says why a resume was refused when the latch did not move", async () => {
+    const getRuntimeStopState = vi.fn().mockResolvedValue(stoppedState);
+    const resumeRuntimeStop = vi.fn(() => Promise.reject(Object.assign(new Error("not the owner"), { status: 409 })));
+    render(<Probe client={{ getRuntimeStopState, resumeRuntimeStop }} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("true"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "resume" }));
+    });
+
+    await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("not the owner"));
   });
 
   it("surfaces a failed assertion and immediately mirrors the latched state", async () => {

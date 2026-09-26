@@ -179,6 +179,8 @@ export type ScreenRendererOptions = {
   motorPreset?: MotorAccessibilityPreset;
   neutralRevision?: number;
   onActionIntent?: WidgetActionIntentHandler;
+  /** A widget crashed and shows its fallback: whatever it was holding must be let go of. */
+  onWidgetFailed?: (widgetId: string) => void;
   renderUnknown?: UnknownWidgetRenderer;
   registry?: WidgetRendererRegistry;
   robotModel?: RobotModelSource;

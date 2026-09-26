@@ -152,6 +152,45 @@ describe("switch scanning", () => {
     expect(enter.defaultPrevented).toBe(false);
   });
 
+  it("takes a switch press on a focused Resume as the switch", () => {
+    const { clicks, rootRef } = buildScreen(2);
+    const resume = document.createElement("button");
+    resume.setAttribute("data-scan-priority", "stop");
+    resume.setAttribute("data-stopped", "true");
+    layOut(resume);
+    document.body.append(resume);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    vi.advanceTimersByTime(1000);
+    resume.focus();
+
+    const space = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: " " });
+    document.activeElement?.dispatchEvent(space);
+
+    expect(clicks).toEqual(["target-0"]);
+    expect(space.defaultPrevented).toBe(true);
+  });
+
+  it("starts the cycle again when the lit control was replaced, instead of skipping its replacement", () => {
+    const { root, rootRef } = buildScreen(2);
+    const stop = document.createElement("button");
+    stop.setAttribute("data-scan-priority", "stop");
+    stop.textContent = "Stop the robot";
+    layOut(stop);
+    document.body.append(stop);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    expect(document.querySelector("[data-scan-lit]")).toBe(stop);
+
+    const remounted = stop.cloneNode(true) as HTMLButtonElement;
+    remounted.removeAttribute("data-scan-lit");
+    layOut(remounted);
+    stop.replaceWith(remounted);
+    vi.advanceTimersByTime(1000);
+
+    expect(document.querySelector("[data-scan-lit]")).toBe(remounted);
+    vi.advanceTimersByTime(1000);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
+  });
+
   it("walks the controls at the configured period and wraps around", () => {
     const { root, rootRef } = buildScreen(3);
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));

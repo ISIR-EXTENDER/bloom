@@ -1237,6 +1237,20 @@ button.runtime-kiosk-screen:focus-visible {
   font-size: clamp(16px, 2.6vmin, 22px);
 }
 
+/* Latched but not asserted: STOP again stacks above Resume. In a reserved region the control splits it inline. */
+.runtime-stop-control[data-stop-again]:not([data-placement="region"]) {
+  transform: translateY(calc(-100% - 8px));
+}
+
+.runtime-app-workspace > .runtime-stop-control[data-stop-again] {
+  bottom: calc(50% + 4px);
+  transform: none;
+}
+
+.runtime-app-workspace > .runtime-stop-control[data-reassert] {
+  top: calc(50% + 4px);
+}
+
 .runtime-stop-label {
   text-align: center;
 }

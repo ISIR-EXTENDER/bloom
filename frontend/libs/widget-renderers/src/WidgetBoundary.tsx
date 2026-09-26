@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 type WidgetBoundaryProps = {
   children: ReactNode;
+  onFailed?: () => void;
   title: string;
 };
 
@@ -23,6 +24,12 @@ export class WidgetBoundary extends Component<WidgetBoundaryProps, WidgetBoundar
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error(`Bloom widget "${this.props.title}" failed to render.`, error, info.componentStack);
+    // The fallback says it sends nothing, so whatever it was holding goes too.
+    try {
+      this.props.onFailed?.();
+    } catch (releaseError) {
+      console.error(`Bloom widget "${this.props.title}" could not release its command.`, releaseError);
+    }
   }
 
   render(): ReactNode {
