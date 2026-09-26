@@ -11,6 +11,14 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-26
+
+Validation status, stated plainly: both simulations pass 30/30 (`npm run e2e:sim`, Explorer Gazebo and Kinova mock
+hardware), the Builder harness passes 11/11, and the suites and contracts pass; see
+[the release record](docs/validation/2026-09-26-release-0.4.0.md). Nothing in this release ran on an arm or on the lab
+tablet. The safety changes (STOP releasing the controls at the press, the suspend gate, STOP zeroing namespace
+targets) are proven in tests and simulation only.
+
 ### Breaking
 
 - **The `reduced-motion` motor preset is gone.** It was accepted and changed nothing; a profile that still carries it

@@ -13,7 +13,7 @@ MIN_PRODUCTION_API_KEY_LENGTH = 32
 
 class Settings(BaseModel):
     app_name: str = "Bloom API"
-    app_version: str = "0.3.0"
+    app_version: str = "0.4.0"
     app_description: str = "Configurable web interface backend for robot supervision and control."
     api_prefix: str = "/api/v1"
     service_name: str = "bloom-api"
