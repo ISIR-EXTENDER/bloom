@@ -23,16 +23,25 @@ export function describeSpeedCapExcess(
     return null;
   }
   const segments = Array.isArray(settings.segment_values) ? settings.segment_values : [];
+  // A segment is clamped to the maximum before it is sent, so it is refused only when the maximum is too.
+  const maxWithinCap = typeof settings.max === "number" && settings.max <= cap.value;
   const over = [
     ["Maximum", settings.max],
     ["Initial value", settings.value],
-    ...segments.map((value, index) => [`Segment ${index + 1}`, value] as const),
+    ...(maxWithinCap ? [] : segments.map((value, index) => [`Segment ${index + 1}`, value] as const)),
   ].filter(([, value]) => typeof value === "number" && value > cap.value);
-  return over.length === 0
-    ? null
-    : `This robot refuses a speed limit above ${cap.value} ${cap.unit}, so ${over
-        .map(([label, value]) => `${label} (${value})`)
-        .join(", ")} will be refused. Lower ${over.length === 1 ? "it" : "them"} to ${cap.value} or less.`;
+  const refusal =
+    over.length === 0
+      ? null
+      : `This robot refuses a speed limit above ${cap.value} ${cap.unit}, so ${over
+          .map(([label, value]) => `${label} (${value})`)
+          .join(", ")} will be refused. Lower ${over.length === 1 ? "it" : "them"} to ${cap.value} or less.`;
+  // The server's floor is 0: a negative limit is refused too.
+  const negative =
+    typeof settings.min === "number" && settings.min < 0
+      ? `This robot refuses a negative speed limit, so a Minimum of ${settings.min} will be refused. Set it to 0 or more.`
+      : null;
+  return [refusal, negative].filter(Boolean).join(" ") || null;
 }
 
 /** The caps the robot reports (`max_linear_speed_limit`, `max_angular_speed_limit`), else the server defaults. */

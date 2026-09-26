@@ -32,6 +32,7 @@ import { AxisMappingEditor } from "./AxisMappingEditor";
 import { BuilderSettingsField, coerceFieldValue } from "./BuilderSettingsField";
 import {
   type AllowablePolicyList,
+  type DeploymentAllowlists,
   WidgetCliPreview,
   WidgetDestinationSummary,
   WidgetGlassSizeSummary,
@@ -52,6 +53,8 @@ type BuilderWidgetSettingsEditorProps = {
   allowedTeleopTargets?: readonly string[];
   allowedPublishTopics?: readonly string[];
   allowedMessageTypes?: readonly string[];
+  allowedServiceCalls?: readonly string[];
+  deploymentAllowlists?: DeploymentAllowlists;
   /** Adds a refused entry to the app's own list, from the refusal itself. */
   onAllowPolicyEntry?: (list: AllowablePolicyList, value: string) => void;
   serverTeleopTargets?: readonly string[];
@@ -102,6 +105,8 @@ export function BuilderWidgetSettingsEditor({
   allowedTeleopTargets,
   allowedPublishTopics,
   allowedMessageTypes,
+  allowedServiceCalls,
+  deploymentAllowlists,
   onAllowPolicyEntry,
   serverTeleopTargets,
   speedLimitCaps = DEFAULT_SPEED_LIMIT_CAPS,
@@ -123,6 +128,15 @@ export function BuilderWidgetSettingsEditor({
   const destination = resolveWidgetDestination(widget.kind, effectiveSettings);
   // A picked preset is what the press sends, so its topic and type are what the runtime checks.
   const route = resolveWidgetRoute({ ...widget, settings: effectiveSettings }, actionPresets);
+  const hasPreset = widget.kind === "command-button" && String(effectiveSettings.presetId ?? "").trim() !== "";
+  const releaseWarning =
+    widget.kind === "command-button" &&
+    effectiveSettings.momentary === true &&
+    !hasPreset &&
+    effectiveSettings.topic === MODE_REQUEST_TOPIC &&
+    isMissingPayload(effectiveSettings.releasedPayload)
+      ? 'Hold to run on /mode_request sends nothing on release, so the manager stays in the held mode. Set "Payload on release", such as {"data": "geometric/both"}.'
+      : null;
   const speedCapWarning = describeSpeedCapExcess(widget.kind, destination, effectiveSettings, speedLimitCaps);
 
   const updateSetting = (field: WidgetSettingField, rawValue: string | boolean, picked = false) => {
@@ -192,6 +206,15 @@ export function BuilderWidgetSettingsEditor({
         nextSettings.action_label = `Request ${String(rawValue)}`;
       }
     }
+    // A held mode with nothing to send on release left the manager in it: /mode_request lets go to Neutral.
+    if (
+      field.key === "momentary" &&
+      nextSettings.momentary === true &&
+      effectiveSettings.topic === MODE_REQUEST_TOPIC &&
+      isMissingPayload(effectiveSettings.releasedPayload)
+    ) {
+      nextSettings.releasedPayload = { ...NEUTRAL_MODE_PAYLOAD };
+    }
     // Typing into one field is one undo step; a checkbox or a choice is its own.
     const typed = !picked && (field.type === "text" || field.type === "number" || field.type === "json");
     setValidationMessage(onUpdateSettings(nextSettings, undefined, typed ? field.key : undefined));
@@ -215,13 +238,29 @@ export function BuilderWidgetSettingsEditor({
     );
   };
 
-  // A preset replaces what the button's purpose wrote, so the two never both claim the press.
+  // A preset replaces where the button's purpose sent the press; its guard and styling stay with the button.
   const choosePreset = (presetId: string) => {
-    const kept = Object.fromEntries(
-      Object.entries(widget.settings).filter(([key]) => !(COMMAND_PURPOSE_KEYS as readonly string[]).includes(key)),
-    );
+    const kept = Object.fromEntries(Object.entries(widget.settings).filter(([key]) => !PRESET_REPLACED_KEYS.has(key)));
+    const previousCommand = String(widget.settings.command ?? "");
     const command = actionPresets.find((preset) => preset.id === presetId)?.command ?? "";
-    setValidationMessage(onUpdateSettings({ ...kept, command, presetId }));
+    const next: Record<string, unknown> = { ...kept, command, presetId };
+    if (kept.action_label === `Request ${previousCommand}`) {
+      next.action_label = `Request ${command}`;
+    }
+    // A joint target moves the whole arm, so it asks for a second press like Go home.
+    if (command.startsWith("behaviour/joint_target/")) {
+      next.confirm_press = true;
+    }
+    setValidationMessage(onUpdateSettings(next));
+  };
+  // "No preset" drops the command the preset wrote too: the dispatcher would still match the preset by it.
+  const clearPreset = () => {
+    const picked = actionPresets.find((preset) => preset.id === widget.settings.presetId);
+    const { presetId: _presetId, ...rest } = widget.settings;
+    if (picked && rest.command === picked.command) {
+      delete rest.command;
+    }
+    setValidationMessage(onUpdateSettings(rest));
   };
   const presetConflict = describePresetConflict(widget.kind, widget.settings);
 
@@ -270,6 +309,11 @@ export function BuilderWidgetSettingsEditor({
     return (
       <BuilderSettingsField
         defaultValue={contract.defaultSettings[field.key]}
+        disabledReason={
+          field.key === "momentary" && hasPreset
+            ? "A preset sends one message per press, so it cannot be held. Clear the preset to hold."
+            : undefined
+        }
         field={field}
         key={field.key}
         onChange={(rawValue) => updateSetting(field, rawValue)}
@@ -309,13 +353,21 @@ export function BuilderWidgetSettingsEditor({
         allowedMessageTypes={allowedMessageTypes}
         allowedParameters={allowedParameters}
         allowedPublishTopics={allowedPublishTopics}
+        allowedServiceCalls={allowedServiceCalls}
         allowedTeleopTargets={allowedTeleopTargets}
+        deployment={deploymentAllowlists}
         destination={route?.destination ?? null}
         messageType={route?.messageType}
         onAllow={onAllowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}
+        service={route?.service}
         widget={widget}
       />
+      {releaseWarning ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          {releaseWarning}
+        </p>
+      ) : null}
       {speedCapWarning ? (
         <p className="builder-settings-destination-refusal" role="alert">
           {speedCapWarning}
@@ -373,9 +425,11 @@ export function BuilderWidgetSettingsEditor({
       {presetField ? (
         <ActionPresetField
           onChange={(presetId) =>
-            widget.kind === "command-button" && presetId
-              ? choosePreset(presetId)
-              : updateSetting(presetField, presetId, true)
+            widget.kind !== "command-button"
+              ? updateSetting(presetField, presetId, true)
+              : presetId
+                ? choosePreset(presetId)
+                : clearPreset()
           }
           presets={actionPresets}
           value={String(effectiveSettings.presetId ?? "")}
@@ -499,6 +553,9 @@ function ActionPresetField({
 /** An older app can carry a preset beside its own topic or frame; say which one the press sends. */
 function describePresetConflict(kind: string, settings: Record<string, unknown>): string | null {
   const presetId = typeof settings.presetId === "string" ? settings.presetId.trim() : "";
+  if (kind === "command-button" && presetId && settings.momentary === true) {
+    return `This button names preset "${presetId}" and Hold to run, and a held preset sends nothing. Clear Hold to run or the preset.`;
+  }
   const topic = typeof settings.topic === "string" ? settings.topic.trim() : "";
   const hasBinding = isRecord(settings.runtime_binding);
   if (!presetId || (!topic && !hasBinding)) {
@@ -508,6 +565,25 @@ function describePresetConflict(kind: string, settings: Record<string, unknown>)
   return kind === "toggle"
     ? `This toggle names preset "${presetId}", which a toggle ignores: it uses ${own}.`
     : `This button names preset "${presetId}" and ${own}. The preset is sent while the app has it; pick a purpose or clear the preset so only one remains.`;
+}
+
+const MODE_REQUEST_TOPIC = "/mode_request";
+const NEUTRAL_MODE_PAYLOAD = { data: "geometric/both" };
+// Where the press went and how it was held; a preset replaces these and nothing else.
+const PRESET_REPLACED_KEYS: ReadonlySet<string> = new Set([
+  "messageType",
+  "momentary",
+  "payload",
+  "pressed_label",
+  "released_label",
+  "releasedPayload",
+  "runtime_binding",
+  "targetScreenId",
+  "topic",
+]);
+
+function isMissingPayload(value: unknown): boolean {
+  return value === undefined || value === null || value === "" || (isRecord(value) && Object.keys(value).length === 0);
 }
 
 type Purpose = { id: string; label: string; title: string; settings: (robotName?: string) => Record<string, unknown> };

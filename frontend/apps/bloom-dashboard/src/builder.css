@@ -2096,6 +2096,10 @@
   min-height: 22px;
 }
 
+.builder-settings-checkbox small {
+  grid-column: 1 / -1;
+}
+
 .builder-settings-advanced {
   display: grid;
   gap: 12px;

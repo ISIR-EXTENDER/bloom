@@ -10,7 +10,7 @@ import {
 } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
-import type { AllowablePolicyList } from "./BuilderWidgetSummaries";
+import type { AllowablePolicyList, DeploymentAllowlists } from "./BuilderWidgetSummaries";
 import { densityFloorFor, glassPx } from "./builder-geometry";
 import type { SpeedLimitCaps } from "./speed-limit-caps";
 
@@ -24,6 +24,8 @@ type BuilderInspectorProps = {
   /** The app's publish list; empty defers to the deployment. */
   allowedPublishTopics?: readonly string[];
   allowedMessageTypes?: readonly string[];
+  allowedServiceCalls?: readonly string[];
+  deploymentAllowlists?: DeploymentAllowlists;
   /** Adds a refused entry to the app's own list. */
   onAllowPolicyEntry?: (list: AllowablePolicyList, value: string) => void;
   serverTeleopTargets?: readonly string[];
@@ -63,6 +65,8 @@ export function BuilderInspector({
   allowedTeleopTargets,
   allowedPublishTopics,
   allowedMessageTypes,
+  allowedServiceCalls,
+  deploymentAllowlists,
   onAllowPolicyEntry,
   serverTeleopTargets,
   speedLimitCaps,
@@ -189,7 +193,9 @@ export function BuilderInspector({
         allowedParameters={allowedParameters}
         allowedPublishTopics={allowedPublishTopics}
         allowedMessageTypes={allowedMessageTypes}
+        allowedServiceCalls={allowedServiceCalls}
         allowedTeleopTargets={allowedTeleopTargets}
+        deploymentAllowlists={deploymentAllowlists}
         onAllowPolicyEntry={onAllowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}
         speedLimitCaps={speedLimitCaps}

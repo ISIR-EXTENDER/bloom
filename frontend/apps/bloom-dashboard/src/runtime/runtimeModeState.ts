@@ -1,7 +1,14 @@
-import type { ApplicationConfig, RosTopicStatus, ScreenConfig, WidgetConfig } from "@bloom/api-client";
+import type {
+  ApplicationConfig,
+  RosTopicStatus,
+  RuntimeActionPreset,
+  ScreenConfig,
+  WidgetConfig,
+} from "@bloom/api-client";
 import type { WidgetControlState } from "@bloom/widget-renderers";
 import {
   createDefaultWidgetRegistry,
+  createWidgetActionIntent,
   describeUnavailableWidgetRuntime,
   type RuntimeCapability,
   readValueMappingTopic,
@@ -10,6 +17,7 @@ import {
   TELEOP_DEFAULT_TARGET,
   type WidgetActionIntent,
 } from "@bloom/widgets";
+import { resolveCommandRoute } from "./dispatch-commands";
 
 export type RuntimeRobotMode = "b1" | "b2";
 
@@ -151,6 +159,8 @@ export function createRuntimeControlStateByWidgetId(
   screen: ScreenConfig,
   modeState: RuntimeModeState,
   options: {
+    /** The app's presets, so a preset-driven button is lit and gated by the topic its press really goes to. */
+    actionPresets?: readonly RuntimeActionPreset[];
     activeCommandFrameId?: string | null;
     allowedCommandFrameIds?: readonly string[] | null;
     commandFrameError?: string | null;
@@ -199,7 +209,7 @@ export function createRuntimeControlStateByWidgetId(
         toggleState: modeState.mode === "b2" ? "on" : "off",
       };
     } else {
-      const widgetMode = resolveWidgetModeRequest(widget);
+      const widgetMode = resolveWidgetModeRequest(widget, options.actionPresets ?? []);
       if (widgetMode) {
         controlState = {
           selection: widgetMode === modeState.requestedMode ? "selected" : "unselected",
@@ -232,7 +242,7 @@ export function createRuntimeControlStateByWidgetId(
       };
     }
 
-    const commandTopic = resolveWidgetCommandTopic(widget);
+    const commandTopic = resolveWidgetCommandTopic(widget, options.actionPresets ?? []);
     if (commandTopic && options.topicStatuses !== undefined) {
       const topicStatus = options.topicStatuses?.find((candidate) => candidate.name === commandTopic);
       if (options.topicStatuses === null) {
@@ -301,22 +311,50 @@ export function usesTeleopAdapter(widget: WidgetConfig): boolean {
  * while pressed, and it restores a different mode on release, so giving it a
  * latching highlight as well would say two contradictory things at once.
  */
-function resolveWidgetModeRequest(widget: WidgetConfig): string | null {
+function resolveWidgetModeRequest(widget: WidgetConfig, presets: readonly RuntimeActionPreset[]): string | null {
   if (widget.kind !== "command-button" || widget.settings.momentary === true) {
     return null;
   }
-  if (widget.settings.topic !== MODE_REQUEST_TOPIC) {
+  const press = resolveCommandPress(widget, presets);
+  if (press?.topic !== MODE_REQUEST_TOPIC) {
     return null;
   }
 
-  const payloadData = readPayloadData(widget.settings.payload);
-  const raw = typeof payloadData === "string" ? payloadData : widget.settings.command;
+  const payloadData = readPayloadData(press.payload);
+  const raw = typeof payloadData === "string" && payloadData ? payloadData : press.command;
   if (typeof raw !== "string" || !raw) {
     return null;
   }
 
   const normalized = normalizeModeRequest(raw);
   return isModeRequest(normalized) ? normalized : null;
+}
+
+/** The topic and payload a button's press publishes, resolved as the dispatcher resolves it. */
+function resolveCommandPress(
+  widget: WidgetConfig,
+  presets: readonly RuntimeActionPreset[],
+): { command?: string; payload: unknown; topic: string } | null {
+  const intent = createWidgetActionIntent(widget, { type: "press" });
+  if (intent.type === "topic-publish") {
+    return { command: stringOrUndefined(widget.settings.command), payload: intent.payload, topic: intent.topic };
+  }
+  if (intent.type !== "command") {
+    return null;
+  }
+  const route = resolveCommandRoute(intent, presets);
+  if (route.kind === "topic") {
+    return { command: intent.command, payload: route.publish.payload, topic: route.publish.topic };
+  }
+  if (route.kind === "preset" && route.preset.kind === "topic-publish" && route.preset.topic) {
+    const { preset } = route;
+    return { command: preset.command, payload: preset.payload, topic: preset.topic };
+  }
+  return null;
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
 export function createRuntimeRobotStatus(
@@ -350,7 +388,7 @@ export function createRuntimeTopicStatusSummaries(
   const knownTopics = new Set(requirements.map((requirement) => requirement.topic));
   for (const screen of application.screens) {
     for (const widget of screen.widgets) {
-      const topic = resolveWidgetCommandTopic(widget);
+      const topic = resolveWidgetCommandTopic(widget, application.action_presets ?? []);
       if (!topic || !configuredTopics.has(topic) || knownTopics.has(topic)) {
         continue;
       }
@@ -387,11 +425,17 @@ export function createRuntimeTopicStatusSummaries(
   });
 }
 
-function resolveWidgetCommandTopic(widget: WidgetConfig): string | null {
+function resolveWidgetCommandTopic(widget: WidgetConfig, presets: readonly RuntimeActionPreset[]): string | null {
   if (!TOPIC_COMMAND_WIDGET_KINDS.has(widget.kind)) {
     return null;
   }
-  const topic = widget.settings.topic;
+  if (widget.kind === "command-button") {
+    return asTopicPath(resolveCommandPress(widget, presets)?.topic);
+  }
+  return asTopicPath(widget.settings.topic);
+}
+
+function asTopicPath(topic: unknown): string | null {
   return typeof topic === "string" && topic.startsWith("/") ? topic : null;
 }
 

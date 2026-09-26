@@ -21,7 +21,7 @@ import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/Configu
 import { leaveAfterConfirming, useUnsavedChanges } from "../ui/unsaved-changes";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
-import type { AllowablePolicyList } from "./BuilderWidgetSummaries";
+import type { AllowablePolicyList, DeploymentAllowlists } from "./BuilderWidgetSummaries";
 import {
   defaultStopRegion,
   explainLayoutRefusal,
@@ -46,6 +46,8 @@ type BuilderWorkspaceProps = {
   /** The frames this robot accepts, so a pad can be told to turn in one of them. */
   commandFrameIds?: readonly string[];
   serverTeleopTargets?: readonly string[];
+  /** The deployment's own allowlists, so an Allow is never offered past them. */
+  deploymentAllowlists?: DeploymentAllowlists;
   configurations: readonly LoadedConfiguration[];
   /** Names the arm this deployment drives, so a gripper arrives with that arm's own travel. */
   robotName?: string;
@@ -82,6 +84,7 @@ const CHECKED_PANEL_BY_CLASS = {
 export function BuilderWorkspace({
   commandFrameIds,
   serverTeleopTargets,
+  deploymentAllowlists,
   configurations,
   robotName,
   runtimeCapabilities,
@@ -341,18 +344,31 @@ export function BuilderWorkspace({
   };
 
   // The policy belongs to the app, so allowing an entry saves the app now; the screen draft stays as it is.
+  // Saves run one after another, each built on the last: a second Allow before the first landed dropped it.
+  const pendingApplicationRef = useRef<ApplicationConfig | null>(null);
+  const allowSaveChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const allowPolicyEntry = onSaveApplication
     ? (list: AllowablePolicyList, value: string) => {
-        const application = selectedWorkspace.application;
+        const pending = pendingApplicationRef.current;
+        const application = pending?.id === selectedWorkspace.application.id ? pending : selectedWorkspace.application;
         const current = application.runtime_policy[list] ?? [];
-        onSaveApplication({
-          ...application,
-          runtime_policy: { ...application.runtime_policy, [list]: [...current, value] },
-        })
+        if (current.includes(value)) {
+          return;
+        }
+        const next = { ...application, runtime_policy: { ...application.runtime_policy, [list]: [...current, value] } };
+        pendingApplicationRef.current = next;
+        const settle = () => {
+          if (pendingApplicationRef.current === next) {
+            pendingApplicationRef.current = null;
+          }
+        };
+        allowSaveChainRef.current = allowSaveChainRef.current
+          .then(() => onSaveApplication(next))
           .then(() => setLayoutNotice(`${value} is now allowed in ${application.name}.`))
           .catch((error: unknown) =>
             setLayoutNotice(describeApiError(error, `Bloom could not allow ${value} in ${application.name}.`)),
-          );
+          )
+          .finally(settle);
       }
     : undefined;
 
@@ -521,6 +537,8 @@ export function BuilderWorkspace({
         allowedParameters={selectedWorkspace.application.runtime_policy.allowed_parameters ?? []}
         allowedPublishTopics={selectedWorkspace.application.runtime_policy.allowed_publish_topics}
         allowedMessageTypes={selectedWorkspace.application.runtime_policy.allowed_message_types}
+        allowedServiceCalls={selectedWorkspace.application.runtime_policy.allowed_service_calls ?? []}
+        deploymentAllowlists={deploymentAllowlists}
         allowedTeleopTargets={selectedWorkspace.application.runtime_policy.allowed_teleop_targets}
         onAllowPolicyEntry={allowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}

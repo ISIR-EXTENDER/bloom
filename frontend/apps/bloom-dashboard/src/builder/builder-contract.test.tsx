@@ -703,7 +703,7 @@ describe("allowing a refusal from the inspector", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select and move Snake gain widget" }));
     fireEvent.click(screen.getByRole("button", { name: "Allow /cartesian_manager:shapers.snake.gain in this app" }));
 
-    expect(onSaveApplication).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(onSaveApplication).toHaveBeenCalledOnce());
     expect(onSaveApplication.mock.calls[0]?.[0].runtime_policy.allowed_parameters).toEqual([
       "/cartesian_manager:shapers.snake.gain",
     ]);

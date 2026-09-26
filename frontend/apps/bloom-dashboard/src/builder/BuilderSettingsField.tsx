@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 export function BuilderSettingsField({
   defaultValue,
+  disabledReason,
   field,
   inert,
   onChange,
@@ -14,6 +15,8 @@ export function BuilderSettingsField({
   suggestionListId?: string;
   /** What the contract gave this field, so an untouched inert setting stays quiet. */
   defaultValue?: unknown;
+  /** Why a checkbox cannot be ticked here; an already ticked one can still be cleared. */
+  disabledReason?: string;
   field: WidgetSettingField;
   inert?: { key: string; reason: string };
   onChange: (value: string | boolean) => void;
@@ -49,8 +52,14 @@ export function BuilderSettingsField({
   if (field.type === "boolean") {
     return (
       <label className="builder-settings-field builder-settings-checkbox">
-        <input checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} type="checkbox" />
+        <input
+          checked={Boolean(value)}
+          disabled={Boolean(disabledReason) && !value}
+          onChange={(event) => onChange(event.target.checked)}
+          type="checkbox"
+        />
         <span>{field.label}</span>
+        {disabledReason ? <small className="builder-settings-pending">{disabledReason}</small> : null}
       </label>
     );
   }

@@ -1,4 +1,4 @@
-import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
+import type { CanvasSettings, RuntimeCapabilityReport, WidgetConfig } from "@bloom/api-client";
 import {
   allowlistAllows,
   buildCliPreview,
@@ -106,17 +106,39 @@ export type AllowablePolicyList =
   | "allowed_message_types"
   | "allowed_parameters"
   | "allowed_publish_topics"
+  | "allowed_service_calls"
   | "allowed_teleop_targets";
+
+/** The deployment's own lists from /capabilities; an app's lists can only narrow them. Undefined until reported. */
+export type DeploymentAllowlists = {
+  messageTypes?: readonly string[];
+  parameters?: readonly string[];
+  publishTopics?: readonly string[];
+  serviceCalls?: readonly string[];
+};
+
+/** The deployment lists a capability report carries; an older backend that sends none checks nothing. */
+export function readDeploymentAllowlists(report: RuntimeCapabilityReport | null | undefined): DeploymentAllowlists {
+  return {
+    messageTypes: report?.allowed_ros_message_types,
+    parameters: report?.allowed_ros_parameters,
+    publishTopics: report?.allowed_ros_publish_topics,
+    serviceCalls: report?.allowed_ros_service_calls,
+  };
+}
 
 export function WidgetDestinationSummary({
   allowedMessageTypes,
   allowedParameters,
   allowedPublishTopics,
+  allowedServiceCalls,
   allowedTeleopTargets,
+  deployment,
   destination,
   messageType,
   onAllow,
   serverTeleopTargets,
+  service,
   widget,
 }: {
   /** The app's message type list; empty defers to the deployment, as the backend narrows. */
@@ -124,7 +146,10 @@ export function WidgetDestinationSummary({
   allowedParameters?: readonly string[];
   /** The app's publish list; empty defers to the deployment, as the backend narrows. */
   allowedPublishTopics?: readonly string[];
+  /** The app's service list; empty calls none. */
+  allowedServiceCalls?: readonly string[];
   allowedTeleopTargets?: readonly string[];
+  deployment?: DeploymentAllowlists;
   destination: WidgetDestination | null;
   /** The type a plain publish sends, when one is known. */
   messageType?: string | null;
@@ -132,6 +157,8 @@ export function WidgetDestinationSummary({
   onAllow?: (list: AllowablePolicyList, value: string) => void;
   /** What this robot's server allows; the app's list can only narrow it. */
   serverTeleopTargets?: readonly string[];
+  /** The service a service-call preset calls. */
+  service?: string | null;
   widget: WidgetConfig;
 }) {
   // Kinds whose data flow is not modelled get no panel at all. A guess here is
@@ -156,34 +183,65 @@ export function WidgetDestinationSummary({
   const serverRefuses =
     Boolean(teleopTarget) && Boolean(serverTeleopTargets) && !allowlistAllows(serverTeleopTargets ?? [], teleopTarget);
 
+  const deploymentRefuses = (list: readonly string[] | undefined, value: string) =>
+    Boolean(value) && list !== undefined && !allowlistAllows(list, value);
+
   const parameterTarget = resolveParameterTarget(widget.settings);
   const parameterOutsidePolicy =
     Boolean(parameterTarget) &&
     Boolean(allowedParameters) &&
     !allowlistAllows(allowedParameters ?? [], parameterTarget);
 
+  const serviceTarget = destination.direction === "publishes" ? (service ?? "") : "";
+  const serviceOutsidePolicy = Boolean(serviceTarget) && !allowlistAllows(allowedServiceCalls ?? [], serviceTarget);
+
   // A plain publish outside a non-empty app list is refused at runtime; only teleop and parameters said so.
   const publishTopic =
-    destination.direction === "publishes" && !teleopTarget && !parameterTarget ? (destination.topic ?? "") : "";
+    destination.direction === "publishes" && !teleopTarget && !parameterTarget && !serviceTarget
+      ? (destination.topic ?? "")
+      : "";
   const publishOutsidePolicy =
     Boolean(publishTopic) &&
     (allowedPublishTopics?.length ?? 0) > 0 &&
     !allowlistAllows(allowedPublishTopics ?? [], publishTopic);
-  const refusedMessageType =
-    publishTopic &&
-    messageType &&
+  const publishedType = publishTopic && messageType ? messageType : "";
+  const messageTypeOutsidePolicy =
+    Boolean(publishedType) &&
     (allowedMessageTypes?.length ?? 0) > 0 &&
-    !allowlistAllows(allowedMessageTypes ?? [], messageType)
-      ? messageType
-      : "";
+    !allowlistAllows(allowedMessageTypes ?? [], publishedType);
 
-  const label = destination.direction === "reads" ? "Reads from" : parameterTarget ? "Sets parameter" : "Publishes to";
+  const label =
+    destination.direction === "reads"
+      ? "Reads from"
+      : parameterTarget
+        ? "Sets parameter"
+        : serviceTarget
+          ? "Calls service"
+          : "Publishes to";
   const emptyLabel = destination.direction === "reads" ? "No topic set" : "Not configured";
-  const allowButton = (list: AllowablePolicyList, value: string) =>
-    onAllow ? (
-      <button className="builder-secondary-action" onClick={() => onAllow(list, value)} type="button">
-        Allow {value} in this app
-      </button>
+  // One click adds the entry to the app, which cannot help when the deployment refuses it as well.
+  const refusal = (
+    list: AllowablePolicyList,
+    value: string,
+    appRefuses: boolean,
+    robotRefuses: boolean,
+    subject: string,
+    where: string,
+  ) =>
+    appRefuses || robotRefuses ? (
+      <p className="builder-settings-destination-refusal" key={list} role="alert">
+        {robotRefuses
+          ? `${appRefuses ? `This app does not allow ${subject}, and this robot refuses it too` : `This robot refuses ${subject}`}; the lab's deployment settings must allow it.`
+          : `This app does not allow ${subject}, so the runtime will refuse it. Add it under App configuration, Adapter guardrails, ${where}.`}
+        {!robotRefuses && onAllow ? (
+          <>
+            {" "}
+            <button className="builder-secondary-action" onClick={() => onAllow(list, value)} type="button">
+              Allow {value} in this app
+            </button>
+          </>
+        ) : null}
+      </p>
     ) : null;
 
   return (
@@ -199,38 +257,52 @@ export function WidgetDestinationSummary({
         <span className="builder-settings-destination-topic builder-settings-destination-none">{emptyLabel}</span>
       )}
       {destination.detail ? <p className="builder-settings-destination-summary">{destination.detail}</p> : null}
-      {outsidePolicy ? (
-        <p className="builder-settings-destination-refusal" role="alert">
-          This app does not allow teleop on {teleopTarget}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Teleop targets. {allowButton("allowed_teleop_targets", teleopTarget)}
-        </p>
-      ) : null}
+      {refusal(
+        "allowed_teleop_targets",
+        teleopTarget,
+        outsidePolicy,
+        false,
+        `teleop on ${teleopTarget}`,
+        "Teleop targets",
+      )}
       {serverRefuses ? (
         <p className="builder-settings-destination-refusal" role="alert">
           Nothing on this robot takes a joystick on {teleopTarget}, so the runtime will refuse it. The manager listens
           on {serverTeleopTargets?.join(", ")}.
         </p>
       ) : null}
-      {publishOutsidePolicy ? (
-        <p className="builder-settings-destination-refusal" role="alert">
-          This app does not allow publishing on {publishTopic}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Allowed publish topics.{" "}
-          {allowButton("allowed_publish_topics", publishTopic)}
-        </p>
-      ) : null}
-      {refusedMessageType ? (
-        <p className="builder-settings-destination-refusal" role="alert">
-          This app does not allow the message type {refusedMessageType}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Allowed message types.{" "}
-          {allowButton("allowed_message_types", refusedMessageType)}
-        </p>
-      ) : null}
-      {parameterOutsidePolicy ? (
-        <p className="builder-settings-destination-refusal" role="alert">
-          This app does not allow setting {parameterTarget}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Allowed parameters. {allowButton("allowed_parameters", parameterTarget)}
-        </p>
-      ) : null}
+      {refusal(
+        "allowed_publish_topics",
+        publishTopic,
+        publishOutsidePolicy,
+        deploymentRefuses(deployment?.publishTopics, publishTopic),
+        `publishing on ${publishTopic}`,
+        "Allowed publish topics",
+      )}
+      {refusal(
+        "allowed_message_types",
+        publishedType,
+        messageTypeOutsidePolicy,
+        deploymentRefuses(deployment?.messageTypes, publishedType),
+        `the message type ${publishedType}`,
+        "Allowed message types",
+      )}
+      {refusal(
+        "allowed_parameters",
+        parameterTarget,
+        parameterOutsidePolicy,
+        deploymentRefuses(deployment?.parameters, parameterTarget),
+        `setting ${parameterTarget}`,
+        "Allowed parameters",
+      )}
+      {refusal(
+        "allowed_service_calls",
+        serviceTarget,
+        serviceOutsidePolicy,
+        deploymentRefuses(deployment?.serviceCalls, serviceTarget),
+        `calling ${serviceTarget}`,
+        "Allowed service calls",
+      )}
     </div>
   );
 }

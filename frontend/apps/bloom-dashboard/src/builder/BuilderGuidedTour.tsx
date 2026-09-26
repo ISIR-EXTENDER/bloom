@@ -378,6 +378,10 @@ function isTopicDestinationAllowed(application: ApplicationConfig, route: Widget
     return true;
   }
   const policy = application.runtime_policy;
+  // A service-call preset is allowed by the service list, which an app naming none leaves empty.
+  if (route.service) {
+    return allowlistAllows(policy.allowed_service_calls ?? [], route.service);
+  }
   // A parameter is allowed by name, and an app that names none tunes none, as the backend narrows it.
   if (route.parameter) {
     return allowlistAllows(policy.allowed_parameters ?? [], route.parameter);

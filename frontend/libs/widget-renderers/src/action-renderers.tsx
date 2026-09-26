@@ -197,7 +197,7 @@ export function CommandLikeWidget({
         widgetKind: descriptor.widget.kind,
         topic,
         messageType,
-        payload: descriptor.widget.settings[payloadKey],
+        payload: resolveMomentaryPayload(topic, payloadKey, descriptor.widget.settings[payloadKey]),
         ...(payloadKey === "releasedPayload" ? { release: true } : {}),
       } satisfies WidgetActionIntent);
       return outcome instanceof Promise ? outcome.catch(() => ({ accepted: false })) : outcome;
@@ -338,6 +338,18 @@ export function CommandLikeWidget({
       <LatchCountdownNotice countdown={latch} text={strings} />
     </div>
   );
+}
+
+/** A /mode_request hold saved without a release payload let go with {}, which the server refuses: send Neutral. */
+function resolveMomentaryPayload(topic: string, payloadKey: "payload" | "releasedPayload", payload: unknown): unknown {
+  const missing =
+    payload === undefined ||
+    payload === null ||
+    payload === "" ||
+    (typeof payload === "object" && !Array.isArray(payload) && Object.keys(payload).length === 0);
+  return payloadKey === "releasedPayload" && missing && topic === "/mode_request"
+    ? { data: "geometric/both" }
+    : payload;
 }
 
 type MaybeOutcome = WidgetActionOutcome | undefined | Promise<WidgetActionOutcome | undefined>;

@@ -3,6 +3,7 @@ import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
 import { BuilderHome } from "../builder/BuilderHome";
+import { readDeploymentAllowlists } from "../builder/BuilderWidgetSummaries";
 import { BuilderWorkspace } from "../builder/BuilderWorkspace";
 import { readSpeedLimitCaps } from "../builder/speed-limit-caps";
 import type { useConfigurations } from "../configurations/use-configurations";
@@ -339,6 +340,7 @@ function BuilderProductWorkspace({
     <BuilderWorkspace
       commandFrameIds={runtimeCapabilityReport?.command_frame_ids}
       serverTeleopTargets={runtimeCapabilityReport?.teleop_targets}
+      deploymentAllowlists={readDeploymentAllowlists(runtimeCapabilityReport)}
       robotName={runtimeCapabilityReport?.robot_name}
       runtimeCapabilities={runtimeCapabilities}
       configurations={state.configurations}

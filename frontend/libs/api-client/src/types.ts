@@ -349,6 +349,11 @@ export type RuntimeCapabilitiesResponse = {
   robot_name?: string;
   /** Topics this server lets a joystick drive; an app's own teleop list can only narrow it. */
   teleop_targets?: string[];
+  /** The deployment's own allowlists; an app's lists can only narrow them. */
+  allowed_ros_publish_topics?: string[];
+  allowed_ros_message_types?: string[];
+  allowed_ros_parameters?: string[];
+  allowed_ros_service_calls?: string[];
 };
 
 /** Capabilities plus the frame operator commands are stamped with. */
