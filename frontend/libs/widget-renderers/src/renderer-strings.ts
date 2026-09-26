@@ -28,6 +28,7 @@ const STRINGS = {
     zeroButton: "Zero",
     live: "Live",
     releasesIn: (seconds: number) => `Releases in ${seconds} s`,
+    keepGoing: "Keep going",
   },
   fr: {
     cameraClosed: "Le flux de la caméra s'est fermé.",
@@ -53,6 +54,7 @@ const STRINGS = {
     zeroButton: "Zéro",
     live: "En direct",
     releasesIn: (seconds: number) => `Relâché dans ${seconds} s`,
+    keepGoing: "Continuer",
   },
   es: {
     cameraClosed: "El flujo de la cámara se cerró.",
@@ -78,6 +80,7 @@ const STRINGS = {
     zeroButton: "Cero",
     live: "En vivo",
     releasesIn: (seconds: number) => `Se suelta en ${seconds} s`,
+    keepGoing: "Continuar",
   },
 } as const;
 

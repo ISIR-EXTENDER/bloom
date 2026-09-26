@@ -1865,12 +1865,27 @@
 /* The last seconds before a latched control lets go by itself: it used to release in silence. */
 .bloom-latch-countdown {
   align-self: center;
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 4px 10px;
   border-radius: 8px;
   background: var(--bloom-error-container);
   color: var(--bloom-on-error-container);
   font-size: 14px;
   font-weight: 700;
+}
+
+.bloom-latch-keep {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  background: var(--bloom-surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 /* It had no rule at all, so it rendered at the browser's default size while still a scan target. */

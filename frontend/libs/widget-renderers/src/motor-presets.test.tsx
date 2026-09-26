@@ -566,6 +566,15 @@ describe("a latched control about to let go", () => {
     });
     expect(screen.getByText("Releases in 5 s").getAttribute("role")).toBe("status");
 
+    // Keeping it is a deliberate press that moves nothing, and starts the window again.
+    const heldCalls = onActionIntent.mock.calls.length;
+    fireEvent.click(screen.getByRole("button", { name: "Keep going" }));
+    act(() => {
+      vi.advanceTimersByTime(10_500);
+    });
+    expect(onActionIntent.mock.calls.length).toBe(heldCalls);
+    expect(screen.getByText("Releases in 5 s")).toBeTruthy();
+
     act(() => {
       vi.advanceTimersByTime(5_000);
     });

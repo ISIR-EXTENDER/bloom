@@ -21,7 +21,13 @@ export const jointTableContract = createContract(
   [
     { key: "topic", label: "Joint state topic", type: "text", required: true },
     { key: "messageType", label: "Message type", type: "text", required: false },
-    { key: "joint_limits", label: "Joint limits (name: [lower, upper])", type: "json", required: false },
+    // Empty is the usual answer: the runtime reads each bounded joint's range from the robot's own URDF.
+    {
+      key: "joint_limits",
+      label: "Joint limits (name: [lower, upper]; empty reads them from the robot)",
+      type: "json",
+      required: false,
+    },
     { key: "hide_title", label: "Hide the card title", type: "boolean", required: false },
     { key: "show_details", label: "Show runtime details", type: "boolean", required: true },
   ],

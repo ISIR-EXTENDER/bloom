@@ -908,7 +908,7 @@ describe("widget settings contracts", () => {
     expect(() => addWidgetToScreen(empty, topicPlot, { id: "plot", settings: {} })).toThrow("topic: topic is required");
   });
 
-  it("places every sending or reading widget with somewhere to send or read, except the app-specific ones", () => {
+  it("places every sending or reading widget with somewhere to send or read", () => {
     const empty = { ...sampleScreen, widgets: [] };
     const unwired = [...createDefaultWidgetRegistry().values()]
       .filter((definition) => definition.availability.editor)
@@ -918,8 +918,8 @@ describe("widget settings contracts", () => {
       })
       .map((definition) => definition.kind);
 
-    // A gesture pad is a game's input; it has no manager topic to arrive on.
-    expect(unwired).toEqual(["gesture-pad"]);
+    // The gesture pad was the one exception; it arrives on /ui/gesture now, which every deployment allows.
+    expect(unwired).toEqual([]);
   });
 
   it("offers nothing in the palette that has no settings to fill in", () => {
@@ -1873,6 +1873,12 @@ describe("a toggle straight from the palette", () => {
       expect(placed.onStateLabel).toBe("closed");
       expect(placed.onPayload).toBe(seed.onPayload);
     }
+  });
+
+  // Placed, it published nothing: no topic, so the inspector read "Not configured".
+  it("places a gesture pad that publishes somewhere every deployment allows", () => {
+    const gesture = DEFAULT_WIDGET_DEFINITIONS.find((definition) => definition.kind === "gesture-pad");
+    expect(gesture?.defaultSettings).toMatchObject({ topic: "/ui/gesture", messageType: "std_msgs/msg/String" });
   });
 
   it("places this arm's speed slider with the Manager apps' range", () => {

@@ -91,7 +91,8 @@ export const DEFAULT_WIDGET_DEFINITIONS: readonly WidgetDefinition[] = [
     defaultLayout: { width: 360, height: 280, minWidth: 260, minHeight: 220 },
     runtimeRequirements: ["command-dispatcher"],
     maturity: "preview",
-    maturityNote: "Publishes an angle and a power; no controller on the cartesian_manager stack reads them yet.",
+    maturityNote:
+      "Publishes an angle and a power on /ui/gesture; no controller on the cartesian_manager stack reads them yet.",
     availability: { editor: true, runtime: true },
     editor: createDefaultEditorCapabilities(["accentColor", "backgroundColor", "borderColor"]),
   },

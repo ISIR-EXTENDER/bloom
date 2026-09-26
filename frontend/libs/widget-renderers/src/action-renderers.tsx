@@ -9,6 +9,7 @@ import {
 } from "@bloom/widgets";
 
 import { type PointerEvent, useEffect, useId, useRef, useState } from "react";
+import { LatchCountdownNotice } from "./latch-countdown-notice";
 import { rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
@@ -73,7 +74,7 @@ export function CommandLikeWidget({
   // when it unmounts (Settings, a screen change). Otherwise the manager stays in
   // snake mode after the button that requested it is gone.
   const releaseHeldRef = useRef(() => {});
-  const releaseSecondsLeft = useLatchCountdown(isMomentaryLatched, null, () => releaseHeldRef.current());
+  const latch = useLatchCountdown(isMomentaryLatched, null, () => releaseHeldRef.current());
   useEffect(() => {
     if (disabled) {
       releaseHeldRef.current();
@@ -202,19 +203,17 @@ export function CommandLikeWidget({
   // what the countdown wording promised on exactly the guard that protects a destructive command.
   const hint = momentaryRefusal
     ? momentaryRefusal
-    : releaseSecondsLeft !== null
-      ? rendererStrings(language).releasesIn(releaseSecondsLeft)
-      : isArmed
-        ? confirmTimeoutSeconds > 0
-          ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
-          : "stays armed until pressed again"
-        : authoredHint
-          ? authoredHint
-          : showDetails && detail
-            ? isSelected
-              ? `Last requested \u00b7 ${detail}`
-              : detail
-            : "";
+    : isArmed
+      ? confirmTimeoutSeconds > 0
+        ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
+        : "stays armed until pressed again"
+      : authoredHint
+        ? authoredHint
+        : showDetails && detail
+          ? isSelected
+            ? `Last requested \u00b7 ${detail}`
+            : detail
+          : "";
 
   return (
     <div
@@ -258,6 +257,7 @@ export function CommandLikeWidget({
           </small>
         ) : null}
       </button>
+      <LatchCountdownNotice countdown={latch} text={rendererStrings(language)} />
     </div>
   );
 }

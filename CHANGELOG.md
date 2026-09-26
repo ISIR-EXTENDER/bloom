@@ -22,9 +22,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 ### Fixed
 
 - **A latched control says when it will let go.** A latched pad, slider or held Snake releases after 15 s without
-  input, which is safe but came in silence; the last five seconds are now counted down on the control.
+  input, which is safe but came in silence; the last five seconds are now counted down on the control, with **Keep
+  going**, which restarts the window without moving anything.
 - **The joint table reads its limits from the robot.** Its limit column needed the ranges typed as JSON; with none
   typed, it now takes each bounded joint's range from the URDF the API already serves.
+- **A gesture pad placed from the palette publishes.** It arrived with no topic; it now sends on `/ui/gesture`, which
+  every deployment allows, as JSON text. The joint table's inspector says an empty limit list reads the robot's own.
 - **Scan and dwell can use the gesture pad.** A switch press sends the gesture shown, and under the scan, dwell and step
   presets angle and power have their own step buttons; the pad was lit and did not answer.
 - **Operator words in French and Spanish.** The step hints, the step, zero and stop controls' names and the plot's

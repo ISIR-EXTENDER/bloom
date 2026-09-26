@@ -14,6 +14,7 @@ import {
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { bindArrowToWord } from "./JoystickPrimitive";
+import { LatchCountdownNotice } from "./latch-countdown-notice";
 import { resolveStepTargetPreset } from "./motor-preset-hints";
 import { formatSignedValue, resolveDecimalPlaces } from "./readouts";
 import { rendererStrings } from "./renderer-strings";
@@ -171,13 +172,8 @@ export function SliderWidget({
     lastNeutralRevisionRef.current = neutralRevision;
     returnToRestRef.current();
   }, [neutralRevision]);
-  const releaseSecondsLeft = useLatchCountdown(valueIsHeld, inputRevision, () => setAndEmit(defaultValue));
-  const latchCountdown =
-    releaseSecondsLeft === null ? null : (
-      <span className="bloom-latch-countdown" role="status">
-        {text.releasesIn(releaseSecondsLeft)}
-      </span>
-    );
+  const latch = useLatchCountdown(valueIsHeld, inputRevision, () => setAndEmit(defaultValue));
+  const latchCountdown = <LatchCountdownNotice countdown={latch} text={text} />;
 
   if (stepPreset) {
     const stepBy = (delta: number) => setAndEmit(Number(clamp(currentValue + delta, min, max).toFixed(4)));

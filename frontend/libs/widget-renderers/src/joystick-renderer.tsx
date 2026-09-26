@@ -11,6 +11,7 @@ import {
 } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
+import { LatchCountdownNotice } from "./latch-countdown-notice";
 import { resolveStepTargetPreset, type StepTargetPreset } from "./motor-preset-hints";
 import { formatSignedValue } from "./readouts";
 import { type RendererStrings, rendererStrings } from "./renderer-strings";
@@ -125,13 +126,8 @@ export function JoystickWidget({
   const keepsReleasedVector = motorPreset === "latch" || !binding.zeroOnRelease;
   const isLatched = keepsReleasedVector || stepPreset !== null;
   const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
-  const releaseSecondsLeft = useLatchCountdown(vectorIsHeld, inputRevision, () => emitHeldVector({ x: 0, y: 0 }));
-  const latchCountdown =
-    releaseSecondsLeft === null ? null : (
-      <span className="bloom-latch-countdown" role="status">
-        {text.releasesIn(releaseSecondsLeft)}
-      </span>
-    );
+  const latch = useLatchCountdown(vectorIsHeld, inputRevision, () => emitHeldVector({ x: 0, y: 0 }));
+  const latchCountdown = <LatchCountdownNotice countdown={latch} text={text} />;
 
   if (stepPreset) {
     return (
