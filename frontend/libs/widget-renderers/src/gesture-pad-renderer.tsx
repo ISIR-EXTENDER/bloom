@@ -15,6 +15,8 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
 
   const lastSentRef = useRef(gesture);
   const draggingRef = useRef(false);
+  // Arrows pressed on the pad: a key-up from focus arriving mid-press is not a gesture.
+  const heldArrowsRef = useRef(new Set<string>());
   const emitGesture = (nextGesture: { angleDegrees: number; power: number }) => {
     setGesture(nextGesture);
     lastSentRef.current = nextGesture;
@@ -34,7 +36,15 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
       return;
     }
     event.preventDefault();
+    heldArrowsRef.current.add(event.key);
     setGesture(nextGesture);
+  };
+  const cancelDrag = () => {
+    // A drag the browser took away was never sent; show what the robot last got.
+    if (draggingRef.current) {
+      draggingRef.current = false;
+      setGesture(lastSentRef.current);
+    }
   };
 
   const angle = Math.round(gesture.angleDegrees);
@@ -58,16 +68,14 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
           }
         }}
         onKeyDown={handleKeyboardGesture}
+        onBlur={() => heldArrowsRef.current.clear()}
         onKeyUp={(event) => {
-          if (event.key.startsWith("Arrow")) {
+          if (heldArrowsRef.current.delete(event.key)) {
             emitGesture(gesture);
           }
         }}
-        onPointerCancel={() => {
-          // A drag the browser took away was never sent; show what the robot last got.
-          draggingRef.current = false;
-          setGesture(lastSentRef.current);
-        }}
+        onLostPointerCapture={cancelDrag}
+        onPointerCancel={cancelDrag}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           draggingRef.current = true;

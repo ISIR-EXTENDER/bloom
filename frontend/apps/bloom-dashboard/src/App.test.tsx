@@ -1793,6 +1793,50 @@ describe("App", () => {
     );
   });
 
+  it("keeps a held slider on screen when another control's newer command supersedes it", async () => {
+    const runtimeActionClient = createRuntimeActionClient();
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: {
+            sandbox: sandboxTeleopLabConfiguration as unknown as ConfigurationBundle,
+          },
+          ids: ["sandbox"],
+        })}
+        runtimeActionClient={runtimeActionClient}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Sandbox runtime" }));
+    await screen.findByRole("region", { name: "Runtime application" });
+    // The first move stays in flight, so every later one waits in the gate and can be coalesced.
+    vi.mocked(
+      runtimeActionClient.sendTeleopCommand as NonNullable<typeof runtimeActionClient.sendTeleopCommand>,
+    ).mockImplementation(() => new Promise(() => {}));
+
+    const joystickZone = getRuntimeJoystickZone();
+    fireEvent.pointerDown(joystickZone, { clientX: 150, clientY: 150, pointerId: 1 });
+    fireEvent.pointerMove(joystickZone, { clientX: 190, clientY: 150, pointerId: 1 });
+    await waitFor(() => expect(runtimeActionClient.sendTeleopCommand).toHaveBeenCalled());
+
+    const zSlider = screen.getByRole("slider", { name: "Z axis" });
+    zSlider.focus();
+    fireEvent.keyDown(zSlider, { key: "PageUp" });
+    fireEvent.keyDown(zSlider, { key: "PageUp" });
+    fireEvent.keyDown(zSlider, { key: "PageUp" });
+    const heldValue = zSlider.getAttribute("aria-valuenow");
+    expect(Number(heldValue)).toBeGreaterThan(0);
+
+    fireEvent.pointerMove(joystickZone, { clientX: 180, clientY: 150, pointerId: 1 });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+
+    expect(zSlider).toHaveAttribute("aria-valuenow", heldValue);
+  });
+
   it("opens the Sandbox V0.0 runtime screens imported from Extender UI", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     render(

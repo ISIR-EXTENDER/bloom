@@ -55,6 +55,8 @@ export function SliderWidget({
   // The last value the runtime took: a refused one goes back to it rather than reading as sent.
   const confirmedValueRef = useRef(defaultValue);
   const latestEmitRef = useRef(0);
+  // What the robot was last asked for: a refused value snaps the thumb home, but the release must still go out.
+  const lastEmittedRef = useRef(defaultValue);
   const readBackValue = controlState?.value;
   // A parameter slider opens on what the node holds, not on the seed's guess.
   useEffect(() => {
@@ -73,6 +75,7 @@ export function SliderWidget({
 
   const emitValueChange = (value: number) => {
     setInputRevision((revision) => revision + 1);
+    lastEmittedRef.current = value;
     const emit = ++latestEmitRef.current;
     const settle = (outcome: WidgetActionOutcome | undefined) => {
       if (outcome?.accepted === false) {
@@ -106,11 +109,13 @@ export function SliderWidget({
   const heldKeysRef = useRef(new Set<string>());
 
   const releaseToCenter = () => {
-    if (!releasesToCenter || currentValue === defaultValue) {
+    if (!releasesToCenter) {
       return;
     }
     setCurrentValue(defaultValue);
-    emitValueChange(defaultValue);
+    if (lastEmittedRef.current !== defaultValue) {
+      emitValueChange(defaultValue);
+    }
   };
 
   const handleValueCommit = () => {
@@ -119,6 +124,7 @@ export function SliderWidget({
     }
   };
 
+  // Also a cancelled or stolen pointer: Radix ends a slide only on pointerup.
   const handleBlur = () => {
     heldKeysRef.current.clear();
     releaseToCenter();
@@ -169,6 +175,7 @@ export function SliderWidget({
   const returnToRestRef = useRef(() => {});
   returnToRestRef.current = () => {
     if (returnToCenter || drivesTeleop) {
+      lastEmittedRef.current = restValue;
       setCurrentValue(restValue);
     }
   };
@@ -247,6 +254,8 @@ export function SliderWidget({
     onBlur: handleBlur,
     onKeyDown: handleKeyDown,
     onKeyUp: handleKeyUp,
+    onLostPointerCapture: handleBlur,
+    onPointerCancel: handleBlur,
     onValueChange: handleValueChange,
     onValueCommit: handleValueCommit,
     orientation,
@@ -292,7 +301,7 @@ export function SliderWidget({
     );
   }
 
-  if (!returnToCenter) {
+  if (!returnToCenter && !drivesTeleop) {
     const axisWord = unit === "m/s" ? "linear" : unit === "rad/s" ? "angular" : "";
     return (
       <div
@@ -370,7 +379,7 @@ export function SliderWidget({
         <SliderPrimitive.Root
           className="bloom-axis-slider"
           data-orientation={orientation}
-          data-return-to-center="true"
+          data-return-to-center={returnToCenter ? "true" : "false"}
           {...radixHandlers}
         >
           <SliderPrimitive.Track className="bloom-axis-track">
@@ -378,6 +387,17 @@ export function SliderWidget({
           </SliderPrimitive.Track>
           <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-axis-knob" />
         </SliderPrimitive.Root>
+        {releasesToCenter ? null : (
+          <button
+            aria-label={text.zero(descriptor.widget.title)}
+            className="bloom-latch-zero"
+            disabled={!valueIsHeld}
+            onClick={() => setAndEmit(restValue)}
+            type="button"
+          >
+            {text.zeroButton}
+          </button>
+        )}
       </div>
       {latchCountdown}
       <output aria-live="polite" className="sr-only">

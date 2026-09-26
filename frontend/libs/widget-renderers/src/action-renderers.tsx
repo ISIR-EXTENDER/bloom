@@ -49,6 +49,8 @@ export function CommandLikeWidget({
   const showsDisabledReason = Boolean(disabledReason) && controlState?.unavailable !== true;
   const disabledReasonId = showsDisabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
   const isMomentaryPressedRef = useRef(false);
+  // Only the pointer that began a hold may end it; a latch (click, scan, dwell) has none.
+  const holdPointerIdRef = useRef<number | null>(null);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
   const [isMomentaryLatched, setIsMomentaryLatched] = useState(false);
   // A refused hold used to keep its pressed look; the reason now stays on the button.
@@ -79,8 +81,10 @@ export function CommandLikeWidget({
   // snake mode after the button that requested it is gone.
   const releaseHeldRef = useRef(() => {});
   const latch = useLatchCountdown(isMomentaryLatched, null, () => releaseHeldRef.current());
+  // An armed Go home must not survive a disable, a STOP or a suspend either.
   useEffect(() => {
     if (disabled) {
+      setIsArmed(false);
       releaseHeldRef.current();
     }
   }, [disabled]);
@@ -91,6 +95,7 @@ export function CommandLikeWidget({
       return;
     }
     lastNeutralRevisionRef.current = neutralRevision;
+    setIsArmed(false);
     releaseHeldRef.current();
   }, [neutralRevision]);
 
@@ -122,6 +127,7 @@ export function CommandLikeWidget({
     if (typeof event.currentTarget.setPointerCapture === "function") {
       event.currentTarget.setPointerCapture(event.pointerId);
     }
+    holdPointerIdRef.current = event.pointerId;
     isMomentaryPressedRef.current = true;
     setIsMomentaryPressed(true);
     publishMomentaryPayload("payload");
@@ -140,12 +146,14 @@ export function CommandLikeWidget({
     if (!allowActivation()) {
       return;
     }
+    holdPointerIdRef.current = null;
     isMomentaryPressedRef.current = true;
     setIsMomentaryPressed(true);
     setIsMomentaryLatched(true);
     publishMomentaryPayload("payload");
   };
   const releaseMomentary = () => {
+    holdPointerIdRef.current = null;
     isMomentaryPressedRef.current = false;
     setIsMomentaryPressed(false);
     setIsMomentaryLatched(false);
@@ -157,7 +165,7 @@ export function CommandLikeWidget({
     }
   };
   const handleMomentaryRelease = (event: PointerEvent<HTMLButtonElement>) => {
-    if (!isMomentaryPressedRef.current) {
+    if (!isMomentaryPressedRef.current || holdPointerIdRef.current !== event.pointerId) {
       return;
     }
     if (
@@ -189,6 +197,7 @@ export function CommandLikeWidget({
       return;
     }
     const refuse = (detail: string) => {
+      holdPointerIdRef.current = null;
       isMomentaryPressedRef.current = false;
       setIsMomentaryPressed(false);
       setIsMomentaryLatched(false);
@@ -211,17 +220,18 @@ export function CommandLikeWidget({
   const authoredHint = getStringSetting(descriptor.widget.settings, "hint", "");
   // A timeout of zero means the button stays armed until it is pressed again, which is the opposite of
   // what the countdown wording promised on exactly the guard that protects a destructive command.
+  const strings = rendererStrings(language);
   const hint = momentaryRefusal
     ? momentaryRefusal
     : isArmed
       ? confirmTimeoutSeconds > 0
-        ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
-        : "stays armed until pressed again"
+        ? strings.armedFor(confirmTimeoutSeconds)
+        : strings.armedUntilPressed
       : authoredHint
         ? authoredHint
         : showDetails && detail
           ? isSelected
-            ? `Last requested \u00b7 ${detail}`
+            ? strings.lastRequested(detail)
             : detail
           : "";
 
@@ -239,7 +249,9 @@ export function CommandLikeWidget({
       <button
         aria-describedby={disabledReasonId}
         aria-label={`${
-          selection ? `${visibleButtonLabel}: ${isSelected ? "requested" : "not requested"}` : visibleButtonLabel
+          selection
+            ? `${visibleButtonLabel}: ${isSelected ? strings.requested : strings.notRequested}`
+            : visibleButtonLabel
         }${disabledReason ? `. ${disabledReason}` : ""}`}
         aria-pressed={momentary ? isMomentaryPressed : selection ? isSelected : undefined}
         className="bloom-command-button"
@@ -273,7 +285,7 @@ export function CommandLikeWidget({
           </small>
         ) : null}
       </button>
-      <LatchCountdownNotice countdown={latch} text={rendererStrings(language)} />
+      <LatchCountdownNotice countdown={latch} text={strings} />
     </div>
   );
 }
