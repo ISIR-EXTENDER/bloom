@@ -35,6 +35,8 @@ class Settings(BaseModel):
     configuration_dir: Path = Field(default=Path("data/configurations"))
     configuration_database_path: Path = Field(default=Path("data/bloom.db"))
     theme_asset_dir: Path = Field(default=Path("data/theme-assets"))
+    #: Where the STOP latch survives a restart. No file means a fresh install, which starts unlatched.
+    runtime_stop_state_path: Path = Field(default=Path("data/runtime_stop.json"))
     # Import the bundles in backend/seed/applications that this store is
     # missing. Off for tests that assert on an empty store.
     seed_shared_applications: bool = Field(default=True)
@@ -129,6 +131,11 @@ class Settings(BaseModel):
     #: Server-side caps on the qontrol speed-limit topics; the operator UI's sliders stop at the same values.
     max_linear_speed_limit: float = Field(default=0.3, gt=0, allow_inf_nan=False)
     max_angular_speed_limit: float = Field(default=0.8, gt=0, allow_inf_nan=False)
+    #: Caps on live manager tuning, about 3x the largest value cartesian_manager ships (2.0 and 0.4 rad/s).
+    #: The manager bounds none of them, and a huge one disables the limit as surely as zero.
+    max_manager_linear_acceleration: float = Field(default=6.0, gt=0, allow_inf_nan=False)
+    max_manager_angular_acceleration: float = Field(default=6.0, gt=0, allow_inf_nan=False)
+    max_jaco_angular_velocity: float = Field(default=1.2, gt=0, allow_inf_nan=False)
     #: Worker threads blocking ROS reads (parameters, robot model) may hold at once.
     ros_read_concurrency: int = Field(default=4, ge=1)
     # Per topic, per socket: the newest sample each interval. Zero forwards every sample.
@@ -353,11 +360,25 @@ class Settings(BaseModel):
             max_angular_speed_limit=_read_float_env(
                 "BLOOM_MAX_ANGULAR_SPEED_LIMIT", cls.model_fields["max_angular_speed_limit"].default
             ),
+            max_manager_linear_acceleration=_read_float_env(
+                "BLOOM_MAX_MANAGER_LINEAR_ACCELERATION",
+                cls.model_fields["max_manager_linear_acceleration"].default,
+            ),
+            max_manager_angular_acceleration=_read_float_env(
+                "BLOOM_MAX_MANAGER_ANGULAR_ACCELERATION",
+                cls.model_fields["max_manager_angular_acceleration"].default,
+            ),
+            max_jaco_angular_velocity=_read_float_env(
+                "BLOOM_MAX_JACO_ANGULAR_VELOCITY", cls.model_fields["max_jaco_angular_velocity"].default
+            ),
             runtime_topic_max_rate_hz=_read_int_env(
                 "BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ",
                 cls.model_fields["runtime_topic_max_rate_hz"].default,
             ),
             service_name=os.getenv("BLOOM_SERVICE_NAME", cls.model_fields["service_name"].default),
+            runtime_stop_state_path=Path(
+                os.getenv("BLOOM_RUNTIME_STOP_STATE_PATH", str(cls.model_fields["runtime_stop_state_path"].default))
+            ),
             theme_asset_dir=Path(os.getenv("BLOOM_THEME_ASSET_DIR", str(cls.model_fields["theme_asset_dir"].default))),
         )
 

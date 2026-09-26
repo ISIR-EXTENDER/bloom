@@ -6,11 +6,14 @@ the manager's own joint-target cancel. Not an IEC emergency stop.
 
 from __future__ import annotations
 
+import json
+import os
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import TypeVar
+from pathlib import Path
+from typing import Any, TypeVar
 
 from libs.ros_adapters.names import ros_name_error
 from libs.ros_adapters.publishers import RosPublisherGateway, RosPublishRequest
@@ -42,6 +45,10 @@ class RuntimeStoppedError(RuntimeError):
     """Raised when a robot command loses the race with the STOP latch."""
 
 
+class RuntimeStopLatchMismatchError(RuntimeError):
+    """Raised when a resume answers a STOP other than the one latched now."""
+
+
 class RuntimeStopAssertionError(RuntimeError):
     """Raised after the latch engages but its ROS assertions do not both publish."""
 
@@ -60,8 +67,10 @@ class RuntimeStopController:
         audit_log: RuntimeAuditLog | None = None,
         teleop_target: str = DEFAULT_TELEOP_TARGET,
         mode_request_topic: str = DEFAULT_MODE_REQUEST_TOPIC,
-        on_asserted: Callable[[str], None] | None = None,
+        on_asserted: Callable[..., None] | None = None,
         teleop_targets: Sequence[str] | Callable[[], Sequence[str]] | None = None,
+        joint_target_topics: Callable[[], Iterable[str]] | None = None,
+        state_path: Path | None = None,
     ) -> None:
         self._teleop_gateway = teleop_gateway
         self._ros_publisher_gateway = ros_publisher_gateway
@@ -71,6 +80,9 @@ class RuntimeStopController:
         # A callable is read at each STOP, since the manager's inputs can change while Bloom runs.
         self._teleop_targets_source = teleop_targets
         self._mode_request_topic = mode_request_topic
+        # Mode-request topics sessions sent a joint target on; STOP cancels on each, not only the default.
+        self._joint_target_topics_source = joint_target_topics
+        self._state_path = state_path
         # Told the zeroed target once both assertions publish, so session state can follow.
         self._on_asserted = on_asserted
         self._lock = threading.Lock()
@@ -79,6 +91,7 @@ class RuntimeStopController:
         self._simulated = False
         self._engaged_at = ""
         self._detail = "Runtime stop is not engaged."
+        self._restore_latch()
 
     @property
     def state(self) -> RuntimeStopState:
@@ -127,20 +140,21 @@ class RuntimeStopController:
             # Read once: a refresh between the zeros and the session bookkeeping would mark an unzeroed topic zeroed.
             targets = self._teleop_targets()
             zero_ok, zero_detail, zero_simulated = self._publish_zero_twists(targets)
-            cancel_ok, cancel_detail, cancel_simulated = self._publish_joint_target_cancel()
+            cancelled, cancel_ok, cancel_detail, cancel_simulated = self._publish_joint_target_cancels()
             servo_ok, servo_detail, servo_simulated = self._publish_visual_servoing_off()
             self._asserted = zero_ok and cancel_ok and servo_ok
             self._simulated = zero_simulated or cancel_simulated or servo_simulated
             prefix = "Runtime stop engaged." if self._asserted else "Runtime stop latched, but ROS assertion failed."
             detail = f"{prefix} {zero_detail} {cancel_detail} {servo_detail}"
             self._detail = detail
+            save_error = self._save_latch()
             state = self._state_unlocked()
 
-        self._record("accepted" if state.asserted else "rejected", detail)
-        # The session state follows the zeros whether or not both assertions published: those targets were told.
+        self._record("accepted" if state.asserted else "rejected", detail + save_error)
+        # Session state forgets only what was actually told: a failed cancel is still owed when its sender leaves.
         if self._on_asserted is not None:
             for target in targets:
-                self._on_asserted(target)
+                self._on_asserted(target, cancelled_topics=cancelled, servo_off=servo_ok)
         if not state.asserted:
             raise RuntimeStopAssertionError(state)
         return state
@@ -153,17 +167,22 @@ class RuntimeStopController:
             target for target in dict.fromkeys([self._teleop_target, *extra]) if ros_name_error(target) is None
         )
 
-    def resume(self) -> RuntimeStopState:
-        """Clear the latch; publishes nothing."""
+    def resume(self, engaged_at: str | None = None) -> RuntimeStopState:
+        """Clear the latch; publishes nothing. With `engaged_at`, only the STOP it names."""
         with self._lock:
+            if engaged_at is not None and self._stopped and engaged_at != self._engaged_at:
+                raise RuntimeStopLatchMismatchError(
+                    "A newer STOP was engaged after this resume was requested. Review it and hold resume again."
+                )
             self._stopped = False
             self._asserted = False
             self._simulated = False
             self._engaged_at = ""
             self._detail = "Runtime stop is not engaged."
+            save_error = self._save_latch()
             state = self._state_unlocked()
 
-        self._record("accepted", "Runtime stop resumed by operator hold.")
+        self._record("accepted", "Runtime stop resumed by operator hold." + save_error)
         return state
 
     def _publish_zero_twists(self, targets: tuple[str, ...]) -> tuple[bool, str, bool]:
@@ -209,10 +228,51 @@ class RuntimeStopController:
             raise RuntimeError(detail)
         return detail
 
-    def _publish_joint_target_cancel(self, mode_request_topic: str | None = None) -> tuple[bool, str, bool]:
-        return self._publish_mode_request(
-            mode_request_topic or self._mode_request_topic, CANCEL_MODE_REQUEST, "Joint-target cancel"
-        )
+    def _publish_joint_target_cancels(self) -> tuple[tuple[str, ...], bool, str, bool]:
+        tracked = self._joint_target_topics_source() if self._joint_target_topics_source is not None else ()
+        cancelled: list[str] = []
+        details: list[str] = []
+        simulated = False
+        for topic in dict.fromkeys([self._mode_request_topic, *tracked]):
+            ok, detail, topic_simulated = self._publish_mode_request(topic, CANCEL_MODE_REQUEST, "Joint-target cancel")
+            if ok:
+                cancelled.append(topic)
+            simulated = simulated or topic_simulated
+            details.append(detail)
+        return tuple(cancelled), len(cancelled) == len(details), " ".join(details), simulated
+
+    def _restore_latch(self) -> None:
+        """A restart keeps a latched STOP latched; a file that cannot be read starts latched too."""
+        if self._state_path is None or not self._state_path.exists():
+            return
+        try:
+            saved: Any = json.loads(self._state_path.read_text(encoding="utf-8"))
+            stopped = saved["stopped"]
+            if not isinstance(stopped, bool):
+                raise ValueError("stopped is not a boolean")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            self._stopped = True
+            self._engaged_at = datetime.now(timezone.utc).isoformat()
+            self._detail = f"Runtime stop state could not be read ({exc}); starting latched."
+            return
+        if stopped:
+            self._stopped = True
+            self._engaged_at = str(saved.get("engaged_at") or datetime.now(timezone.utc).isoformat())
+            self._detail = f"Runtime stop restored after a backend restart. {saved.get('reason', '')}".strip()
+
+    def _save_latch(self) -> str:
+        """Called with the lock held. Returns why the latch could not be saved, or an empty string."""
+        if self._state_path is None:
+            return ""
+        saved = {"stopped": self._stopped, "engaged_at": self._engaged_at, "reason": self._detail}
+        temporary = self._state_path.with_name(f".{self._state_path.name}.tmp")
+        try:
+            self._state_path.parent.mkdir(parents=True, exist_ok=True)
+            temporary.write_text(json.dumps(saved), encoding="utf-8")
+            os.replace(temporary, self._state_path)
+        except OSError as exc:
+            return f" Latch state could not be saved: {exc}."
+        return ""
 
     def _publish_mode_request(self, topic: str, mode: str, label: str = "Mode request") -> tuple[bool, str, bool]:
         request = RosPublishRequest(topic=topic, message_type="std_msgs/msg/String", payload={"data": mode})
@@ -265,6 +325,7 @@ __all__ = [
     "CANCEL_MODE_REQUEST",
     "RuntimeStopAssertionError",
     "RuntimeStopController",
+    "RuntimeStopLatchMismatchError",
     "RuntimeStopState",
     "RuntimeStoppedError",
 ]

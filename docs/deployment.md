@@ -201,6 +201,12 @@ export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 # The server refuses a speed limit above these on the qontrol speed-limit topics, whatever an app sends.
 export BLOOM_MAX_LINEAR_SPEED_LIMIT=0.3
 export BLOOM_MAX_ANGULAR_SPEED_LIMIT=0.8
+# cartesian_manager limits a runtime owner may set; 0 and very large values both switch the limiter off.
+export BLOOM_MAX_MANAGER_LINEAR_ACCELERATION=6.0
+export BLOOM_MAX_MANAGER_ANGULAR_ACCELERATION=6.0
+export BLOOM_MAX_JACO_ANGULAR_VELOCITY=1.2
+# Where the STOP latch is kept, so a backend restart comes back stopped if it went down stopped.
+export BLOOM_RUNTIME_STOP_STATE_PATH=data/runtime_stop.json
 ```
 
 The speed caps are deployment-wide. On a Kinova, whose apps stop at 0.1 m/s, set `BLOOM_MAX_LINEAR_SPEED_LIMIT=0.1`

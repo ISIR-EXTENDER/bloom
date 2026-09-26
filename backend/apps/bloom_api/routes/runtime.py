@@ -59,6 +59,7 @@ from libs.sessions import (
     RuntimeStoppedError,
 )
 from libs.sessions.audit import summarize_payload
+from libs.sessions.stop import RuntimeStopLatchMismatchError, RuntimeStopState
 
 logger = logging.getLogger(__name__)
 
@@ -171,12 +172,34 @@ async def engage_runtime_stop(
     return RuntimeStopStateResponse(**asdict(state))
 
 
+class RuntimeStopResumeRequest(BaseModel):
+    #: The `engaged_at` of the STOP this resume answers; a newer latch refuses it. Omitted resumes any.
+    engaged_at: str | None = None
+
+
 @router.post("/stop/resume", response_model=RuntimeStopStateResponse)
-def resume_runtime_stop(
+async def resume_runtime_stop(
     request: Request,
+    resume_request: RuntimeStopResumeRequest | None = None,
     _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RuntimeStopStateResponse:
-    state = execute_as_runtime_owner(request, lambda: get_runtime_stop_controller(request).resume())
+    """On the STOP worker, so a resume queued before a STOP can never run after it."""
+    controller = get_runtime_stop_controller(request)
+    engaged_at = resume_request.engaged_at if resume_request is not None else None
+
+    def resume() -> RuntimeStopState:
+        if request.app.state.settings.runtime_control_required and not (
+            request.app.state.runtime_session_manager.is_control_owner(
+                request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+            )
+        ):
+            raise HTTPException(status_code=409, detail="This runtime session does not own robot control.")
+        return controller.resume(engaged_at)
+
+    try:
+        state = await run_runtime_thread(resume, executor=request.app.state.runtime_stop_executor)
+    except RuntimeStopLatchMismatchError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     return RuntimeStopStateResponse(**asdict(state))
 
 

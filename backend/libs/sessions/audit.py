@@ -76,7 +76,7 @@ MAX_SUMMARIZED_FIELDS = 20
 def summarize_payload(payload: dict[str, Any]) -> dict[str, Any]:
     summary: dict[str, Any] = {
         "field_count": len(payload),
-        "fields": sorted(payload.keys())[:MAX_SUMMARIZED_FIELDS],
+        "fields": sorted(payload.keys(), key=str)[:MAX_SUMMARIZED_FIELDS],
     }
     data = payload.get("data")
     if isinstance(data, list):

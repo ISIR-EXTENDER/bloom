@@ -38,7 +38,12 @@ from libs.ros_adapters.camera_streams import CameraStreamGateway, NoopCameraStre
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
 from libs.ros_adapters.parameters import NoopRosParameterGateway, RosParameterGateway
 from libs.ros_adapters.robot_model import NoopRobotModelGateway, RobotModelGateway
-from libs.ros_adapters.safety import MAX_ANGULAR_SPEED_TOPIC, MAX_LINEAR_SPEED_TOPIC, RuntimeCommandPolicy
+from libs.ros_adapters.safety import (
+    MAX_ANGULAR_SPEED_TOPIC,
+    MAX_LINEAR_SPEED_TOPIC,
+    RuntimeCommandPolicy,
+    manager_parameter_bounds,
+)
 from libs.ros_adapters.teleop_targets import TeleopTargetDirectory
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
@@ -118,6 +123,11 @@ def create_app(
             (MAX_LINEAR_SPEED_TOPIC, 0.0, app_settings.max_linear_speed_limit),
             (MAX_ANGULAR_SPEED_TOPIC, 0.0, app_settings.max_angular_speed_limit),
         ),
+        parameter_bounds=manager_parameter_bounds(
+            app_settings.max_manager_linear_acceleration,
+            app_settings.max_manager_angular_acceleration,
+            app_settings.max_jaco_angular_velocity,
+        ),
     )
     # The manager's input topics, read from its parameters; the ROS launcher starts the reads.
     app.state.teleop_target_directory = TeleopTargetDirectory(
@@ -131,7 +141,9 @@ def create_app(
     )
     app.state.runtime_recording_gateway = runtime_recording_gateway or create_runtime_recording_gateway(app_settings)
     app.state.teleop_command_gateway = teleop_command_gateway or NoopTeleopCommandGateway()
-    app.state.runtime_session_manager = RuntimeSessionManager()
+    app.state.runtime_session_manager = RuntimeSessionManager(
+        zero_orphaned_teleop=app_settings.ros_command_backend == "teleop_command"
+    )
     # After the gateways; still latches when both are Noops.
     app.state.runtime_stop_controller = runtime_stop_controller or RuntimeStopController(
         teleop_gateway=app.state.teleop_command_gateway,
@@ -145,6 +157,8 @@ def create_app(
             *app.state.runtime_session_manager.moving_teleop_targets(),
         ),
         on_asserted=app.state.runtime_session_manager.record_runtime_stop,
+        joint_target_topics=app.state.runtime_session_manager.joint_target_topics,
+        state_path=app_settings.runtime_stop_state_path,
     )
     # STOP never waits for a pool worker, and ROS reads that hang on a node that is down never hold the shared one.
     app.state.runtime_stop_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bloom-stop")

@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import dataclass
 from threading import Lock
 from time import monotonic
@@ -12,7 +12,7 @@ from libs.ros_adapters.mode_request import (
     parse_mode_request,
 )
 from libs.sessions.stop import VISUAL_SERVOING_ON_TOPIC
-from libs.sessions.teleop import TeleopCommand
+from libs.sessions.teleop import TeleopCommand, TeleopVector3
 
 T = TypeVar("T")
 STOP_MODE_REQUEST = "behaviour/passthrough"
@@ -62,6 +62,8 @@ class RuntimeSessionManager:
         max_sessions: int = MAX_RUNTIME_SESSIONS,
         lease_timeout_sec: float = CONTROL_LEASE_TIMEOUT_SEC,
         clock: Callable[[], float] = monotonic,
+        *,
+        zero_orphaned_teleop: bool = False,
     ) -> None:
         self._max_sessions = max_sessions
         self._max_read_only_sessions = max(1, max_sessions // 2)
@@ -83,6 +85,9 @@ class RuntimeSessionManager:
         self._visual_servoing_sessions: set[str] = set()
         #: Resets a stale owner's lease left behind, for whoever claims control next.
         self._orphaned_mode_resets: list[tuple[str, str]] = []
+        # The legacy /teleop_cmd has no input timeout, so a displaced owner's last twist must be zeroed.
+        self._zero_orphaned_teleop = zero_orphaned_teleop
+        self._orphaned_teleop_zeros: list[TeleopCommand] = []
         self._lock = Lock()
         self._operation_lock = Lock()
 
@@ -139,13 +144,20 @@ class RuntimeSessionManager:
                 self._releasing_session_id = None
 
     def claim_control(self, session: RuntimeSession) -> RuntimeControlSnapshot:
-        with self._lock:
-            self._ensure_connected(session.id)
-            self._last_seen[session.id] = self._clock()
-            self._drop_a_stale_lease()
-            if self._owner_session_id is None and self._releasing_session_id is None:
-                self._owner_session_id = session.id
-            return self._snapshot(session.id)
+        # Never drop a lease mid-operation: what that publish records would be lost. The claimer retries.
+        idle = self._operation_lock.acquire(blocking=False)
+        try:
+            with self._lock:
+                self._ensure_connected(session.id)
+                self._last_seen[session.id] = self._clock()
+                if idle:
+                    self._drop_a_stale_lease()
+                if self._owner_session_id is None and self._releasing_session_id is None:
+                    self._owner_session_id = session.id
+                return self._snapshot(session.id)
+        finally:
+            if idle:
+                self._operation_lock.release()
 
     def release_control(self, session: RuntimeSession) -> RuntimeControlSnapshot:
         if self.begin_control_release(session):
@@ -196,6 +208,8 @@ class RuntimeSessionManager:
             with self._lock:
                 if not self._is_control_owner(session_id):
                     raise RuntimeControlNotOwnedError("This runtime session does not own robot control.")
+                # An owner driving only through HTTP is still there.
+                self._last_seen[session_id] = self._clock()
             return operation()
 
     def record_teleop_command(self, session: RuntimeSession, command: TeleopCommand) -> None:
@@ -282,7 +296,7 @@ class RuntimeSessionManager:
 
     def has_orphaned_mode_resets(self) -> bool:
         with self._lock:
-            return bool(self._orphaned_mode_resets)
+            return bool(self._orphaned_mode_resets or self._orphaned_teleop_zeros)
 
     def take_orphaned_mode_resets(self) -> tuple[tuple[str, str], ...]:
         """What a displaced stale owner left set, handed once to the session that now holds control."""
@@ -291,17 +305,35 @@ class RuntimeSessionManager:
             self._orphaned_mode_resets.clear()
             return resets
 
-    def record_runtime_stop(self, zeroed_target: str) -> None:
-        """STOP zeroed that target and asked every session's manager for passthrough."""
+    def take_orphaned_teleop_zeros(self) -> tuple[TeleopCommand, ...]:
         with self._lock:
-            self._joint_target_topics.clear()
-            self._visual_servoing_sessions.clear()
+            zeros = tuple(self._orphaned_teleop_zeros)
+            self._orphaned_teleop_zeros.clear()
+            return zeros
+
+    def record_runtime_stop(
+        self, zeroed_target: str, *, cancelled_topics: Collection[str] | None = None, servo_off: bool = True
+    ) -> None:
+        """STOP zeroed that target; only the cancels and servo-off that published are forgotten."""
+        with self._lock:
+            if cancelled_topics is None:
+                self._joint_target_topics.clear()
+            else:
+                for session_id, topic in list(self._joint_target_topics.items()):
+                    if topic in cancelled_topics:
+                        del self._joint_target_topics[session_id]
+            if servo_off:
+                self._visual_servoing_sessions.clear()
             for session_id in self._sessions:
                 self._mode_requests[session_id] = STOP_MODE_REQUEST
                 commands = self._teleop_commands.get(session_id, {})
                 commands.pop(zeroed_target, None)
                 if not commands:
                     self._teleop_commands.pop(session_id, None)
+
+    def joint_target_topics(self) -> tuple[str, ...]:
+        with self._lock:
+            return tuple(dict.fromkeys(self._joint_target_topics.values()))
 
     def moving_teleop_targets(self) -> tuple[str, ...]:
         """Every target some session is driving now, including one granted through a namespace entry."""
@@ -351,7 +383,9 @@ class RuntimeSessionManager:
         self._releasing_session_id = None
         # Whatever it last sent expired on the manager long before this. A joint target and a shaping mode do not
         # expire, and the old session's own disconnect must not undo the new owner's, so the next claim resets them.
-        self._teleop_commands.pop(owner_id, None)
+        for command in self._teleop_commands.pop(owner_id, {}).values():
+            if self._zero_orphaned_teleop:
+                self._orphaned_teleop_zeros.append(_zero_of(command))
         joint_target_topic = self._joint_target_topics.pop(owner_id, None)
         if joint_target_topic is not None:
             self._orphaned_mode_resets.append((joint_target_topic, STOP_MODE_REQUEST))
@@ -379,6 +413,17 @@ class RuntimeSessionManager:
     def _ensure_connected(self, session_id: str) -> None:
         if session_id not in self._sessions:
             raise ValueError("Runtime session is not connected.")
+
+
+def _zero_of(command: TeleopCommand) -> TeleopCommand:
+    return TeleopCommand(
+        angular=TeleopVector3(),
+        frame_id=command.frame_id,
+        linear=TeleopVector3(),
+        mode=command.mode,
+        seq=command.seq + 1,
+        target=command.target,
+    )
 
 
 def _is_zero_command(command: TeleopCommand) -> bool:

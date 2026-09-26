@@ -89,3 +89,95 @@ def test_parameter_set_still_takes_a_boolean_gate_and_a_valid_limit() -> None:
     limit = {"node": "/cartesian_manager", "name": "shapers.jaco.max_angular_velocity", "value": 0.5}
     assert test_client.post("/api/v1/ros/parameters/set", json=gate).status_code == 200
     assert test_client.post("/api/v1/ros/parameters/set", json=limit).status_code == 200
+
+
+PARAMETER_SET = "/api/v1/ros/parameters/set"
+
+
+@pytest.mark.parametrize(
+    ("name", "too_high", "shipped"),
+    [
+        ("rate_limiter.max_linear_acceleration", 1e300, 2.0),
+        ("rate_limiter.max_angular_acceleration", 6.5, 2.0),
+        ("shapers.jaco.max_angular_velocity", 1.3, 0.4),
+    ],
+)
+def test_parameter_set_refuses_a_limit_so_high_it_disables_itself(name: str, too_high: float, shipped: float) -> None:
+    test_client = client()
+    response = test_client.post(PARAMETER_SET, json={"node": "/cartesian_manager", "name": name, "value": too_high})
+    assert response.status_code == 422, response.text
+    assert (
+        test_client.post(PARAMETER_SET, json={"node": "/cartesian_manager", "name": name, "value": shipped}).status_code
+        == 200
+    )
+    audit = test_client.get("/api/v1/runtime/audit").json()
+    assert any(record["status"] == "rejected" and record["target"].endswith(name) for record in audit["records"])
+
+
+def test_a_lab_can_raise_the_acceleration_cap_in_settings() -> None:
+    body = {"node": "/cartesian_manager", "name": "rate_limiter.max_linear_acceleration", "value": 8.0}
+    assert client().post(PARAMETER_SET, json=body).status_code == 422
+    assert client(max_manager_linear_acceleration=10.0).post(PARAMETER_SET, json=body).status_code == 200
+
+
+def test_a_huge_integer_is_refused_rather_than_a_500() -> None:
+    test_client = client()
+    assert test_client.post(PUBLISH, json=speed(MAX_LINEAR_SPEED_TOPIC, 10**400)).status_code == 422
+    array = {"topic": "/ui/twist", "message_type": "std_msgs/msg/Float64MultiArray", "payload": {"data": [10**400]}}
+    assert client(allowed_ros_message_types=("*",)).post(PUBLISH, json=array).status_code == 422
+    gain = {"node": "/cartesian_manager", "name": "shapers.snake.gain", "value": 10**400}
+    assert test_client.post(PARAMETER_SET, json=gain).status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("message_type", "data"),
+    [
+        ("std_msgs/msg/Float32", 3.5e38),
+        ("std_msgs/msg/Float32", -1e39),
+        ("std_msgs/msg/Float32MultiArray", [1.0, 4e38]),
+        ("std_msgs/msg/Int32", 2**32 + 5),
+        ("std_msgs/msg/Int32", -(2**31) - 1),
+        ("std_msgs/msg/Int32MultiArray", [1, 2**31]),
+        ("std_msgs/msg/UInt8MultiArray", [0, 256]),
+        ("std_msgs/msg/UInt8MultiArray", [-1]),
+    ],
+)
+def test_numbers_the_message_type_cannot_hold_are_refused(message_type: str, data: object) -> None:
+    body = {"topic": "/ui/numbers", "message_type": message_type, "payload": {"data": data}}
+    assert client(allowed_ros_message_types=("*",)).post(PUBLISH, json=body).status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("message_type", "data"),
+    [
+        ("std_msgs/msg/Float32", 3.4e38),
+        ("std_msgs/msg/Int32", 2**31 - 1),
+        ("std_msgs/msg/Int32MultiArray", [-(2**31), 0]),
+        ("std_msgs/msg/UInt8MultiArray", [0, 255]),
+    ],
+)
+def test_numbers_at_the_edge_of_the_type_publish(message_type: str, data: object) -> None:
+    body = {"topic": "/ui/numbers", "message_type": message_type, "payload": {"data": data}}
+    assert client(allowed_ros_message_types=("*",)).post(PUBLISH, json=body).status_code == 200
+
+
+def test_the_default_caps_cover_every_shipped_slider() -> None:
+    from libs.config.seed import DEFAULT_SEED_DIR
+    from libs.ros_adapters.safety import DEFAULT_PARAMETER_BOUNDS
+
+    bounds = {key: upper for key, _lower, upper in DEFAULT_PARAMETER_BOUNDS}
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            mapping = node.get("runtime_binding", {}).get("value_mapping", {}) if "runtime_binding" in node else {}
+            key = f"{mapping.get('node')}:{mapping.get('parameter')}"
+            if key in bounds:
+                assert node["max"] <= bounds[key], key
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    for path in DEFAULT_SEED_DIR.glob("applications/*.json"):
+        walk(json.loads(path.read_text()))

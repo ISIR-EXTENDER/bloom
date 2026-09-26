@@ -36,7 +36,12 @@ from libs.ros_adapters import (
 from libs.ros_adapters.names import require_ros_name
 from libs.ros_adapters.parameters import RosParameterGateway, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
-from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, parameter_value_error
+from libs.ros_adapters.safety import (
+    RuntimeCommandPolicy,
+    RuntimeCommandPolicyError,
+    RuntimePayloadShapeError,
+    parameter_value_error,
+)
 from libs.sessions import (
     RuntimeAuditRecord,
     RuntimeRateLimitError,
@@ -350,11 +355,17 @@ def set_ros_parameter(
             )
         )
 
+    policy = policy_for(request, set_request)
     try:
-        policy_for(request, set_request).ensure_parameter_allowed(set_request.node, set_request.name)
+        policy.ensure_parameter_allowed(set_request.node, set_request.name)
     except RuntimeCommandPolicyError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    try:
+        policy.ensure_parameter_value_in_bounds(set_request.node, set_request.name, set_request.value)
+    except RuntimePayloadShapeError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     try:
         get_runtime_command_rate_limiter(request).ensure_allowed(f"http_ros_parameter:{target}")
     except RuntimeRateLimitError as exc:

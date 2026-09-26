@@ -324,7 +324,12 @@ async def handle_runtime_client_payload(
         control_message = claim_runtime_control(websocket, session, manager, audit_log)
         if manager.is_control_owner(session.id) and manager.has_orphaned_mode_resets():
             await run_runtime_thread(
-                reset_orphaned_modes, manager, session, get_runtime_stop_controller(websocket), audit_log
+                reset_orphaned_modes,
+                manager,
+                session,
+                get_runtime_stop_controller(websocket),
+                audit_log,
+                get_teleop_command_gateway(websocket),
             )
         await websocket.send_json(control_message.model_dump())
         return
@@ -371,8 +376,11 @@ def reset_orphaned_modes(
     session: RuntimeSession,
     stop_controller: RuntimeStopController,
     audit_log: RuntimeAuditLog,
+    teleop_gateway: TeleopCommandGateway | None = None,
 ) -> None:
     """Undo the joint target or shaping mode a displaced stale owner left, before the new owner drives."""
+    for zero in manager.take_orphaned_teleop_zeros() if teleop_gateway is not None else ():
+        publish_orphaned_zero(teleop_gateway, zero, session, audit_log)
     for topic, mode in manager.take_orphaned_mode_resets():
         try:
             if mode == VISUAL_SERVOING_OFF:
@@ -388,6 +396,22 @@ def reset_orphaned_modes(
                 channel="runtime_control", detail=detail, session_id=session.id, status=status, topic=topic
             )
         )
+
+
+def publish_orphaned_zero(
+    gateway: TeleopCommandGateway, zero: TeleopCommand, session: RuntimeSession, audit_log: RuntimeAuditLog
+) -> None:
+    try:
+        detail = gateway.publish(zero).detail
+        status = "accepted"
+    except RuntimeError as exc:
+        detail = str(exc)
+        status = "rejected"
+    audit_log.record(
+        RuntimeAuditRecord(
+            channel="runtime_control", detail=detail, session_id=session.id, status=status, target=zero.target
+        )
+    )
 
 
 def claim_runtime_control(

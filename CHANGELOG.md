@@ -56,7 +56,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   their words name, and its joystick gate is gone: turning it off stopped the app's own driving and stayed off.
 - **The server caps the speed limits.** `BLOOM_MAX_LINEAR_SPEED_LIMIT` (0.3 m/s) and `BLOOM_MAX_ANGULAR_SPEED_LIMIT`
   (0.8 rad/s) bound the qontrol speed-limit topics whatever an app sends; set 0.1 on a Kinova. Non-finite numbers and
-  booleans are refused in any numeric field, and a manager rate or velocity limit must be above zero.
+  booleans are refused in any numeric field, and a manager rate or velocity limit must be above zero and below its cap
+  (`BLOOM_MAX_MANAGER_LINEAR_ACCELERATION`, `BLOOM_MAX_MANAGER_ANGULAR_ACCELERATION`, `BLOOM_MAX_JACO_ANGULAR_VELOCITY`).
+  The capability report carries the speed caps so the Builder can warn.
 - **Saved poses are named the way the manager reads them.** `Pose-1` is saved as `pose_1`, captures are `pose_N`, and
   a name or joint name that could break the exported YAML is refused. Poses already stored as `pose-1` are renamed
   on load, and two names the manager would fold together are never exported side by side.
@@ -67,8 +69,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   operator's motion, after their tablet disconnected, released control, or went stale; the backend cancels the one,
   resets the other to Neutral and switches off visual servoing it started, and a stale owner's are reset by the next
   claim.
-- **STOP is never queued behind slow reads.** It ran on the same thread pool as robot-parameter reads, which block for
-  seconds when the manager is down; it has its own worker.
+- **STOP is never queued behind slow reads, survives a restart, and a late Resume can't clear it.** It ran on the same
+  thread pool as robot-parameter reads, which block for seconds when the manager is down; it has its own worker, and
+  Resume runs on it too and names the latch it answers, so a Resume sent before a newer STOP is refused. The latch is
+  kept in `BLOOM_RUNTIME_STOP_STATE_PATH`: a backend that went down stopped comes back stopped. A STOP whose cancel
+  failed still owes it, and STOP cancels a joint target on every mode-request topic it was sent on.
 - **A released slider sends the zero it owes.** A slider whose value was superseded by another control's newer command
   drew 0 and sent nothing on release, while the manager kept its value; a slider whose command failed left its value
   in every later joystick command. An armed Go home is disarmed by STOP.

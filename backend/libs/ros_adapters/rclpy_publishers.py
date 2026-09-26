@@ -68,5 +68,5 @@ class RclpyRosPublisherGateway:
 
         try:
             set_message_fields(message, payload)
-        except (AttributeError, TypeError, ValueError) as exc:
+        except (AttributeError, OverflowError, TypeError, ValueError) as exc:
             raise ValueError(f"Invalid ROS message payload: {exc}") from exc

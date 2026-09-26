@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 from apps.bloom_api.capabilities import describe_runtime_capabilities
 from apps.bloom_api.settings import Settings
+from libs.ros_adapters.safety import MAX_ANGULAR_SPEED_TOPIC, MAX_LINEAR_SPEED_TOPIC
 
 router = APIRouter()
 
@@ -29,6 +30,9 @@ class RuntimeCapabilitiesResponse(BaseModel):
     command_frame_ids: list[str]
     # Topics this server lets a joystick drive (BLOOM_ALLOWED_TELEOP_TARGETS); an app's own list can only narrow it.
     teleop_targets: list[str] = []
+    #: The caps the server enforces on the speed-limit topics, so the Builder can warn before saving a slider past them.
+    max_linear_speed_limit: float
+    max_angular_speed_limit: float
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -59,4 +63,12 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
         command_frame_ids=list(settings.allowed_command_frame_ids) if supports_command_frames else [],
         robot_name=settings.robot_name,
         teleop_targets=list(request.app.state.teleop_target_directory.targets()),
+        max_linear_speed_limit=_topic_cap(request, MAX_LINEAR_SPEED_TOPIC, settings.max_linear_speed_limit),
+        max_angular_speed_limit=_topic_cap(request, MAX_ANGULAR_SPEED_TOPIC, settings.max_angular_speed_limit),
     )
+
+
+def _topic_cap(request: Request, topic: str, fallback: float) -> float:
+    """The bound the policy actually enforces, which an injected policy may set apart from settings."""
+    bounds = request.app.state.runtime_command_policy.topic_value_bounds
+    return next((upper for bounded, _lower, upper in bounds if bounded == topic), fallback)

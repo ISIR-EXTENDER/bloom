@@ -189,6 +189,7 @@ def narrow_policy_to_application(
         # The app names the parameters it tunes; none named means it tunes none.
         allowed_parameters=narrow_allowlist(policy.allowed_parameters, application_policy.allowed_parameters),
         topic_value_bounds=policy.topic_value_bounds,
+        parameter_bounds=policy.parameter_bounds,
     )
 
 
