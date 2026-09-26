@@ -44,6 +44,7 @@ echo "==> dynamic security smoke"
 smoke_dir="$(mktemp -d)"
 smoke_port=8765
 (cd backend && BLOOM_CONFIGURATION_DATABASE_PATH="${smoke_dir}/bloom.db" BLOOM_CONFIGURATION_DIR="${smoke_dir}/configurations" \
+  BLOOM_RUNTIME_STOP_STATE_PATH="${smoke_dir}/runtime_stop.json" \
   BLOOM_THEME_ASSET_DIR="${smoke_dir}/theme-assets" \
   uv run uvicorn apps.bloom_api.main:app --host 127.0.0.1 --port "${smoke_port}" > "${smoke_dir}/api.log" 2>&1) &
 smoke_api_pid=$!

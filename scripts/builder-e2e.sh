@@ -52,6 +52,7 @@ log "starting the API on port ${API_PORT}"
 (
   cd "${BLOOM_ROOT}/backend"
   BLOOM_CONFIGURATION_DATABASE_PATH="${OUT_DIR}/bloom.db" \
+    BLOOM_RUNTIME_STOP_STATE_PATH="${OUT_DIR}/runtime_stop.json" \
     BLOOM_CONFIGURATION_DIR="${OUT_DIR}/configurations" \
     BLOOM_CORS_ALLOWED_ORIGINS="${DASHBOARD_URL}" \
     BLOOM_ROBOT_NAME="Explorer" \
