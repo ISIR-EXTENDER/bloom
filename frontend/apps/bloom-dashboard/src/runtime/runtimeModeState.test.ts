@@ -22,6 +22,7 @@ describe("runtime mode state", () => {
         nextState: "on",
         payload: { data: 3 },
       },
+      [],
       new Date("2026-07-10T12:00:00.000Z"),
     );
 

@@ -4,14 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-progress";
+import type { DeploymentAllowlists } from "./BuilderWidgetSummaries";
 import { densityFloorFor, glassPx, resolveBuilderPanel, reviewScreens } from "./builder-geometry";
 import { resolveWidgetRoute, type WidgetRoute } from "./widget-publish-route";
+import { describeWidgetSendProblems } from "./widget-send-problems";
 
 type ReviewRuleId = "minimum" | "overlap" | "device-class" | "symmetry" | "pads" | "profiles" | "pairs";
 type BuilderTourStepId = "geometry" | "touch" | ReviewRuleId | "frame" | "topics" | "profile" | "ship";
 
 type BuilderGuidedTourProps = {
   application: ApplicationConfig;
+  /** The deployment's own lists, which refuse what the app allows beyond them. Undefined until reported. */
+  deployment?: DeploymentAllowlists;
   onClose: () => void;
   onOpenConfiguration: () => void;
   /** Builder Home, where the app card's Share button writes the file the team gets. */
@@ -37,6 +41,7 @@ const NO_SIBLINGS: readonly ApplicationConfig[] = [];
 
 export function BuilderGuidedTour({
   application,
+  deployment,
   onClose,
   onOpenConfiguration,
   onOpenHome,
@@ -48,8 +53,11 @@ export function BuilderGuidedTour({
   const firstScreen = application.screens[0];
   const tourKey = guidedTourProgressKey("builder", selection.configId, selection.appId);
   const { completedStepIds, completeStep } = useGuidedTourProgress(tourKey);
-  const checks = useMemo(() => evaluateBuilderTour(application, siblings), [application, siblings]);
-  const topicProblem = useMemo(() => findFirstTopicProblem(application), [application]);
+  const checks = useMemo(
+    () => evaluateBuilderTour(application, siblings, deployment),
+    [application, deployment, siblings],
+  );
+  const topicProblem = useMemo(() => findFirstTopicProblem(application, deployment), [application, deployment]);
   const touchProblem = useMemo(() => findTouchProblem(application), [application]);
   const steps = useMemo(
     () =>
@@ -194,6 +202,7 @@ export function BuilderGuidedTour({
 export function evaluateBuilderTour(
   application: ApplicationConfig,
   siblings: readonly ApplicationConfig[] = [],
+  deployment: DeploymentAllowlists = {},
 ): Record<Exclude<BuilderTourStepId, "ship">, boolean> {
   const rules = Object.fromEntries(reviewScreens(application, siblings).map((rule) => [rule.id, rule.passed]));
   const destinations = collectWidgetDestinations(application);
@@ -214,7 +223,7 @@ export function evaluateBuilderTour(
     pairs: rules.pairs === true,
     // Empty is a choice too: the manager reads the command in its default input frame, base_link.
     frame: true,
-    topics: destinations.length > 0 && destinations.every(({ route }) => isTopicDestinationAllowed(application, route)),
+    topics: destinations.length > 0 && findFirstTopicProblem(application, deployment) === null,
     profile: application.profiles.length > 0,
   };
 }
@@ -286,7 +295,9 @@ function createBuilderTourSteps(
       detail: checks.topics
         ? "Every modeled widget destination is present in the matching app policy."
         : topicProblem
-          ? `${topicProblem.widget.title} on ${topicProblem.screen.title} has no topic or its destination is absent from the matching app policy.`
+          ? topicProblem.reason
+            ? `${topicProblem.widget.title} on ${topicProblem.screen.title}: ${topicProblem.reason}`
+            : `${topicProblem.widget.title} on ${topicProblem.screen.title} has no topic or its destination is absent from the matching app policy.`
           : "Add a widget with a modeled data destination before reviewing topic policy.",
       why: "The builder and runtime must agree on where data flows before the robot is connected.",
       action: "Inspect widget bindings",
@@ -349,6 +360,8 @@ function findRuleProblemScreenId(
 }
 
 type WidgetTopicProblem = {
+  /** What fails at press time, when it is more than a missing or refused destination. */
+  reason?: string;
   route: WidgetRoute;
   screen: TourScreen;
   widget: WidgetConfig;
@@ -363,10 +376,46 @@ function collectWidgetDestinations(application: ApplicationConfig): WidgetTopicP
   );
 }
 
-function findFirstTopicProblem(application: ApplicationConfig): WidgetTopicProblem | null {
-  return (
-    collectWidgetDestinations(application).find(({ route }) => !isTopicDestinationAllowed(application, route)) ?? null
-  );
+function findFirstTopicProblem(
+  application: ApplicationConfig,
+  deployment: DeploymentAllowlists = {},
+): WidgetTopicProblem | null {
+  for (const problem of collectWidgetDestinations(application)) {
+    const [reason] = describeWidgetSendProblems(problem.widget, application.action_presets);
+    if (reason) {
+      return { ...problem, reason };
+    }
+    if (!isTopicDestinationAllowed(application, problem.route)) {
+      return problem;
+    }
+    const refusal = describeDeploymentRefusal(problem.route, deployment);
+    if (refusal) {
+      return { ...problem, reason: refusal };
+    }
+  }
+  return null;
+}
+
+/** The deployment's lists refuse what the app allows beyond them, as the backend narrows. */
+function describeDeploymentRefusal(route: WidgetRoute, deployment: DeploymentAllowlists): string | null {
+  const { destination } = route;
+  if (destination.direction === "reads" || !destination.topic || route.teleop) {
+    return null;
+  }
+  const refuses = (list: readonly string[] | undefined, value: string | null): value is string =>
+    Boolean(value) && list !== undefined && !allowlistAllows(list, value ?? "");
+  const checks: Array<[readonly string[] | undefined, string | null, string]> = route.service
+    ? [[deployment.serviceCalls, route.service, "calling"]]
+    : route.parameter
+      ? [[deployment.parameters, route.parameter, "setting"]]
+      : [
+          [deployment.publishTopics, destination.topic, "publishing on"],
+          [deployment.messageTypes, route.messageType, "the message type"],
+        ];
+  const refused = checks.find(([list, value]) => refuses(list, value));
+  return refused
+    ? `this robot refuses ${refused[2]} ${refused[1]}; the lab's deployment settings must allow it.`
+    : null;
 }
 
 function isTopicDestinationAllowed(application: ApplicationConfig, route: WidgetRoute): boolean {

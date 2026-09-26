@@ -42,6 +42,7 @@ import { RequiredTextInput } from "./RequiredTextInput";
 import { SERIES_KINDS, SeriesEditor } from "./SeriesEditor";
 import { DEFAULT_SPEED_LIMIT_CAPS, describeSpeedCapExcess, type SpeedLimitCaps } from "./speed-limit-caps";
 import { resolveWidgetRoute } from "./widget-publish-route";
+import { describeWidgetSendProblems, isMissingPayload, MODE_REQUEST_TOPIC } from "./widget-send-problems";
 
 type BuilderWidgetSettingsEditorProps = {
   /** The app's reusable command presets, picked by name for a widget that takes a preset id. */
@@ -129,14 +130,16 @@ export function BuilderWidgetSettingsEditor({
   // A picked preset is what the press sends, so its topic and type are what the runtime checks.
   const route = resolveWidgetRoute({ ...widget, settings: effectiveSettings }, actionPresets);
   const hasPreset = widget.kind === "command-button" && String(effectiveSettings.presetId ?? "").trim() !== "";
-  const releaseWarning =
+  const releaseNote =
     widget.kind === "command-button" &&
     effectiveSettings.momentary === true &&
-    !hasPreset &&
     effectiveSettings.topic === MODE_REQUEST_TOPIC &&
     isMissingPayload(effectiveSettings.releasedPayload)
-      ? 'Hold to run on /mode_request sends nothing on release, so the manager stays in the held mode. Set "Payload on release", such as {"data": "geometric/both"}.'
+      ? 'Hold to run on /mode_request lets go to Neutral; set "Payload on release" to choose another mode.'
       : null;
+  const canHold = Boolean(
+    String(effectiveSettings.topic ?? "").trim() && String(effectiveSettings.messageType ?? "").trim(),
+  );
   const speedCapWarning = describeSpeedCapExcess(widget.kind, destination, effectiveSettings, speedLimitCaps);
 
   const updateSetting = (field: WidgetSettingField, rawValue: string | boolean, picked = false) => {
@@ -148,8 +151,8 @@ export function BuilderWidgetSettingsEditor({
       delete nextSettings[field.key];
     }
     // A reader's type was the old topic's, and the backend subscribed with it: /ee_pose's PoseStamped on
-    // /joint_states waited forever. Empty, the backend reads the type from the graph.
-    if (field.key === "topic" && destination?.direction === "reads" && nextSettings.topic !== widget.settings.topic) {
+    // /joint_states waited forever. A publisher kept String on /gripper_controller/commands. A typed type stays.
+    if (field.key === "topic" && destination && nextSettings.topic !== widget.settings.topic) {
       const followed = followTopicMessageType(
         widget.settings.topic,
         nextSettings.topic,
@@ -173,7 +176,12 @@ export function BuilderWidgetSettingsEditor({
     // A toggle's payloads are ROS text, not JSON, and every message type wants a different shape. An
     // author who picks a type and is left to write "{data: [1.1]}" from memory gets a toggle that
     // publishes nothing. Carry the matching pair across, unless they have written their own.
-    if (widget.kind === "toggle" && field.key === "messageType") {
+    const nextMessageType = String(nextSettings.messageType ?? "");
+    if (
+      widget.kind === "toggle" &&
+      (field.key === "messageType" ||
+        (field.key === "topic" && nextMessageType !== "" && nextMessageType !== effectiveSettings.messageType))
+    ) {
       const previous = getDefaultRosMessageTogglePayloads(String(effectiveSettings.messageType ?? ""));
       const gripperPairs = (["explorer", "kinova"] as const)
         .map((robot) => gripperToggleSettings(robot))
@@ -186,7 +194,7 @@ export function BuilderWidgetSettingsEditor({
           (effectiveSettings.offPayload ?? "") === pair.offPayload,
       );
       if (untouched || !effectiveSettings.onPayload) {
-        const suggested = getDefaultRosMessageTogglePayloads(String(rawValue));
+        const suggested = getDefaultRosMessageTogglePayloads(nextMessageType);
         nextSettings.onPayload = suggested.onPayload;
         nextSettings.offPayload = suggested.offPayload;
       }
@@ -242,8 +250,16 @@ export function BuilderWidgetSettingsEditor({
   const choosePreset = (presetId: string) => {
     const kept = Object.fromEntries(Object.entries(widget.settings).filter(([key]) => !PRESET_REPLACED_KEYS.has(key)));
     const previousCommand = String(widget.settings.command ?? "");
-    const command = actionPresets.find((preset) => preset.id === presetId)?.command ?? "";
+    const preset = actionPresets.find((candidate) => candidate.id === presetId);
+    const command = preset?.command ?? "";
     const next: Record<string, unknown> = { ...kept, command, presetId };
+    // A title or label that only named the old purpose, preset or palette default follows the preset.
+    const namesPrevious = namesPreviousChoice(widget, actionPresets);
+    const titleFollows = Boolean(preset?.name) && namesPrevious(widget.title);
+    const label = widget.settings.button_label;
+    if (preset?.name && typeof label === "string" && label.trim() && namesPrevious(label)) {
+      next.button_label = preset.name;
+    }
     if (kept.action_label === `Request ${previousCommand}`) {
       next.action_label = `Request ${command}`;
     }
@@ -251,7 +267,7 @@ export function BuilderWidgetSettingsEditor({
     if (command.startsWith("behaviour/joint_target/")) {
       next.confirm_press = true;
     }
-    setValidationMessage(onUpdateSettings(next));
+    setValidationMessage(onUpdateSettings(next, titleFollows ? preset?.name : undefined));
   };
   // "No preset" drops the command the preset wrote too: the dispatcher would still match the preset by it.
   const clearPreset = () => {
@@ -262,7 +278,7 @@ export function BuilderWidgetSettingsEditor({
     }
     setValidationMessage(onUpdateSettings(rest));
   };
-  const presetConflict = describePresetConflict(widget.kind, widget.settings);
+  const sendProblems = describeWidgetSendProblems(widget, actionPresets);
 
   // The ROS plumbing of a control that says in words what it does: the choice above writes it, and 24 raw fields
   // in one list buried the four an author changes.
@@ -310,9 +326,13 @@ export function BuilderWidgetSettingsEditor({
       <BuilderSettingsField
         defaultValue={contract.defaultSettings[field.key]}
         disabledReason={
-          field.key === "momentary" && hasPreset
-            ? "A preset sends one message per press, so it cannot be held. Clear the preset to hold."
-            : undefined
+          field.key !== "momentary"
+            ? undefined
+            : hasPreset
+              ? "A preset sends one message per press, so it cannot be held. Clear the preset to hold."
+              : !canHold
+                ? "Hold to run publishes on this button's own topic and message type; set both under Advanced (ROS) first."
+                : undefined
         }
         field={field}
         key={field.key}
@@ -363,9 +383,9 @@ export function BuilderWidgetSettingsEditor({
         service={route?.service}
         widget={widget}
       />
-      {releaseWarning ? (
-        <p className="builder-settings-destination-refusal" role="alert">
-          {releaseWarning}
+      {releaseNote ? (
+        <p className="builder-settings-pending" role="status">
+          {releaseNote}
         </p>
       ) : null}
       {speedCapWarning ? (
@@ -373,7 +393,7 @@ export function BuilderWidgetSettingsEditor({
           {speedCapWarning}
         </p>
       ) : null}
-      <WidgetCliPreview widget={widget} />
+      <WidgetCliPreview presets={actionPresets} widget={widget} />
       <AxisMappingEditor
         allowedCommandFrameIds={allowedCommandFrameIds}
         allowedTeleopTargets={allowedTeleopTargets}
@@ -435,11 +455,11 @@ export function BuilderWidgetSettingsEditor({
           value={String(effectiveSettings.presetId ?? "")}
         />
       ) : null}
-      {presetConflict ? (
-        <p className="builder-settings-destination-refusal" role="alert">
-          {presetConflict}
+      {sendProblems.map((problem) => (
+        <p className="builder-settings-destination-refusal" key={problem} role="alert">
+          {problem}
         </p>
-      ) : null}
+      ))}
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (
@@ -550,24 +570,6 @@ function ActionPresetField({
   );
 }
 
-/** An older app can carry a preset beside its own topic or frame; say which one the press sends. */
-function describePresetConflict(kind: string, settings: Record<string, unknown>): string | null {
-  const presetId = typeof settings.presetId === "string" ? settings.presetId.trim() : "";
-  if (kind === "command-button" && presetId && settings.momentary === true) {
-    return `This button names preset "${presetId}" and Hold to run, and a held preset sends nothing. Clear Hold to run or the preset.`;
-  }
-  const topic = typeof settings.topic === "string" ? settings.topic.trim() : "";
-  const hasBinding = isRecord(settings.runtime_binding);
-  if (!presetId || (!topic && !hasBinding)) {
-    return null;
-  }
-  const own = topic ? `its own topic ${topic}` : "its own runtime binding";
-  return kind === "toggle"
-    ? `This toggle names preset "${presetId}", which a toggle ignores: it uses ${own}.`
-    : `This button names preset "${presetId}" and ${own}. The preset is sent while the app has it; pick a purpose or clear the preset so only one remains.`;
-}
-
-const MODE_REQUEST_TOPIC = "/mode_request";
 const NEUTRAL_MODE_PAYLOAD = { data: "geometric/both" };
 // Where the press went and how it was held; a preset replaces these and nothing else.
 const PRESET_REPLACED_KEYS: ReadonlySet<string> = new Set([
@@ -582,8 +584,18 @@ const PRESET_REPLACED_KEYS: ReadonlySet<string> = new Set([
   "topic",
 ]);
 
-function isMissingPayload(value: unknown): boolean {
-  return value === undefined || value === null || value === "" || (isRecord(value) && Object.keys(value).length === 0);
+/** Whether a title or button label still names the button's previous purpose, preset or palette default. */
+function namesPreviousChoice(widget: WidgetConfig, presets: readonly RuntimeActionPreset[]) {
+  const purpose = COMMAND_PURPOSES.find((candidate) => candidate.id === commandPurposeOf(widget.settings));
+  const palette = DEFAULT_WIDGET_DEFINITIONS.find((definition) => definition.kind === widget.kind);
+  const names = [
+    purpose?.title,
+    purpose?.settings().button_label,
+    presets.find((preset) => preset.id === widget.settings.presetId)?.name,
+    palette?.defaultTitle,
+    palette?.defaultSettings.button_label,
+  ].filter((name): name is string => typeof name === "string" && name.trim() !== "");
+  return (value: unknown) => typeof value !== "string" || value.trim() === "" || names.includes(value.trim());
 }
 
 type Purpose = { id: string; label: string; title: string; settings: (robotName?: string) => Record<string, unknown> };

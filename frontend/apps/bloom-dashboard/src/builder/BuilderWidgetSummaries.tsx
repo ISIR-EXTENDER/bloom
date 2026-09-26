@@ -1,4 +1,4 @@
-import type { CanvasSettings, RuntimeCapabilityReport, WidgetConfig } from "@bloom/api-client";
+import type { CanvasSettings, RuntimeActionPreset, RuntimeCapabilityReport, WidgetConfig } from "@bloom/api-client";
 import {
   allowlistAllows,
   buildCliPreview,
@@ -18,7 +18,13 @@ const FIT_OVERFLOW_GUARD = 0.99;
  * robot without the app, without a session and without asking anyone -- and the first thing to try when
  * a control does nothing. A toggle sends two different messages, so it gets both lines.
  */
-export function WidgetCliPreview({ widget }: { widget: WidgetConfig }) {
+export function WidgetCliPreview({
+  presets = [],
+  widget,
+}: {
+  presets?: readonly RuntimeActionPreset[];
+  widget: WidgetConfig;
+}) {
   const settings = widget.settings ?? {};
   const lines =
     widget.kind === "toggle"
@@ -26,7 +32,7 @@ export function WidgetCliPreview({ widget }: { widget: WidgetConfig }) {
           ["ON", buildCliPreview(widget.kind, settings, settings.onPayload)],
           ["OFF", buildCliPreview(widget.kind, settings, settings.offPayload)],
         ]
-      : [["", buildCliPreview(widget.kind, settings, settings.payload)]];
+      : [["", buildCliPreview(widget.kind, settings, settings.payload, presets)]];
   const shown = lines.filter(([, line]) => line !== null);
 
   if (shown.length === 0) {
@@ -257,14 +263,17 @@ export function WidgetDestinationSummary({
         <span className="builder-settings-destination-topic builder-settings-destination-none">{emptyLabel}</span>
       )}
       {destination.detail ? <p className="builder-settings-destination-summary">{destination.detail}</p> : null}
-      {refusal(
-        "allowed_teleop_targets",
-        teleopTarget,
-        outsidePolicy,
-        false,
-        `teleop on ${teleopTarget}`,
-        "Teleop targets",
-      )}
+      {/* The server's refusal has its own line below; allowing the target in the app cannot help then. */}
+      {outsidePolicy
+        ? refusal(
+            "allowed_teleop_targets",
+            teleopTarget,
+            true,
+            serverRefuses,
+            `teleop on ${teleopTarget}`,
+            "Teleop targets",
+          )
+        : null}
       {serverRefuses ? (
         <p className="builder-settings-destination-refusal" role="alert">
           Nothing on this robot takes a joystick on {teleopTarget}, so the runtime will refuse it. The manager listens

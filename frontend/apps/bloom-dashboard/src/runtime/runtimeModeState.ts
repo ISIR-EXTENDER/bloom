@@ -79,9 +79,10 @@ export function createDefaultRuntimeModeState(): RuntimeModeState {
 export function applyRuntimeModeIntent(
   currentState: RuntimeModeState,
   intent: WidgetActionIntent,
+  presets: readonly RuntimeActionPreset[] = [],
   now = new Date(),
 ): RuntimeModeState {
-  const requestedMode = resolveModeRequestFromIntent(intent);
+  const requestedMode = resolveModeRequestFromIntent(intent, presets);
   if (requestedMode) {
     return {
       ...currentState,
@@ -127,27 +128,37 @@ function isModeRequest(value: string): boolean {
   return /^(behaviour|geometric)\//.test(value);
 }
 
-function resolveModeRequestFromIntent(intent: WidgetActionIntent): string | null {
+function resolveModeRequestFromIntent(
+  intent: WidgetActionIntent,
+  presets: readonly RuntimeActionPreset[],
+): string | null {
   if (intent.type === "topic-publish") {
-    if (intent.topic !== MODE_REQUEST_TOPIC) {
-      return null;
-    }
-    const data = readPayloadData(intent.payload);
-    if (typeof data !== "string") {
-      return null;
-    }
-    const normalized = normalizeModeRequest(data);
-    return isModeRequest(normalized) ? normalized : null;
+    return intent.topic === MODE_REQUEST_TOPIC ? asModeRequest(readPayloadData(intent.payload)) : null;
   }
-
-  if (intent.type === "command" && intent.command) {
-    // A command intent does not carry its topic; it is routed by preset. The
-    // command string is the mode string, so the grammar is what identifies it.
-    const normalized = normalizeModeRequest(intent.command);
-    return isModeRequest(normalized) ? normalized : null;
+  if (intent.type !== "command") {
+    return null;
   }
+  // The mode is what the resolved route sent, not what the button's own command says.
+  const route = resolveCommandRoute(intent, presets);
+  if (route.kind === "topic") {
+    return route.publish.topic === MODE_REQUEST_TOPIC ? asModeRequest(readPayloadData(route.publish.payload)) : null;
+  }
+  if (route.kind === "preset") {
+    const { preset } = route;
+    return preset.kind === "topic-publish" && preset.topic === MODE_REQUEST_TOPIC
+      ? (asModeRequest(readPayloadData(preset.payload)) ?? asModeRequest(preset.command))
+      : null;
+  }
+  // No preset to route by: the command string is the mode string, so the grammar identifies it.
+  return route.kind === "none" ? asModeRequest(intent.command) : null;
+}
 
-  return null;
+function asModeRequest(value: unknown): string | null {
+  if (typeof value !== "string" || !value) {
+    return null;
+  }
+  const normalized = normalizeModeRequest(value);
+  return isModeRequest(normalized) ? normalized : null;
 }
 
 const DEFAULT_FRAME_REASONS = {

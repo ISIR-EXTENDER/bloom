@@ -165,7 +165,9 @@ export function App({
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
     if (isRuntimeActionConfirmed(result)) {
-      setRuntimeModeState((currentModeState) => applyRuntimeModeIntent(currentModeState, intent));
+      setRuntimeModeState((currentModeState) =>
+        applyRuntimeModeIntent(currentModeState, intent, applicationRuntime?.action_presets),
+      );
     }
     // A coalesced teleop update was superseded by a newer one, not refused: its control must not snap home.
     return { accepted: isRuntimeActionConfirmed(result) || result.status === "coalesced", detail: result.detail };

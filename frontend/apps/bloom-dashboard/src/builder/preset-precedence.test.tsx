@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { RuntimeActionPreset, WidgetConfig } from "@bloom/api-client";
-import { COMMAND_PURPOSES, createWidgetActionIntent } from "@bloom/widgets";
+import { COMMAND_PURPOSES, createWidgetActionIntent, resolveCommandRoute } from "@bloom/widgets";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchRuntimeActionIntent, type RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
@@ -77,21 +77,34 @@ describe("a preset picked by name", () => {
     });
   });
 
-  it("outranks a topic and a frame binding an older app still carries", async () => {
+  // An older Builder saved a picked preset beside the button's own topic: a "Jaco" button with preset "home"
+  // moved the arm home in one tap. Its own topic or frame is what it sends, as before the preset outranked it.
+  it("does not outrank the topic or frame an older app saved beside it", async () => {
     const { client, publishRosTopic } = publishingClient();
-    for (const settings of [
-      { ...purposeSettings("go-home"), presetId: release.id },
-      { ...purposeSettings("frame-tool"), presetId: release.id },
-    ]) {
-      await dispatchRuntimeActionIntent(client, createWidgetActionIntent(button(settings), { type: "press" }), {
-        actionPresets: [release],
-      });
-    }
+    const jaco = button({ ...purposeSettings("jaco"), presetId: release.id });
+    await dispatchRuntimeActionIntent(client, createWidgetActionIntent(jaco, { type: "press" }), {
+      actionPresets: [release],
+    });
+    expect(publishRosTopic).toHaveBeenCalledOnce();
+    expect(publishRosTopic.mock.calls[0]?.[0]).toMatchObject({ payload: { data: "geometric/jaco" } });
 
-    expect(publishRosTopic).toHaveBeenCalledTimes(2);
-    for (const [request] of publishRosTopic.mock.calls) {
-      expect(request).toMatchObject({ payload_text: "{data: 'behaviour/passthrough'}" });
-    }
+    const frame = createWidgetActionIntent(button({ ...purposeSettings("frame-tool"), presetId: release.id }), {
+      type: "press",
+    });
+    expect(frame.type === "command" && resolveCommandRoute(frame, [release])).toEqual({
+      frameId: "effector_frame",
+      kind: "teleop-frame",
+    });
+  });
+
+  it("wins beside a topic when the button names the preset's own command", async () => {
+    const { client, publishRosTopic } = publishingClient();
+    const settings = { ...purposeSettings("neutral"), command: release.command, presetId: release.id };
+    await dispatchRuntimeActionIntent(client, createWidgetActionIntent(button(settings), { type: "press" }), {
+      actionPresets: [release],
+    });
+
+    expect(publishRosTopic.mock.calls[0]?.[0]).toMatchObject({ payload_text: "{data: 'behaviour/passthrough'}" });
   });
 
   it("falls back to the button's own topic when the app lacks that preset", async () => {

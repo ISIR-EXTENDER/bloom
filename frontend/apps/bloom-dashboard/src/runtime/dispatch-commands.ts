@@ -1,5 +1,5 @@
 import type { RuntimeActionPreset } from "@bloom/api-client";
-import { resolveTeleopFrameId, type TopicPublishIntent, type WidgetActionIntent } from "@bloom/widgets";
+import { resolveCommandRoute, type WidgetActionIntent } from "@bloom/widgets";
 import {
   getErrorMessage,
   type RuntimeActionDispatchOptions,
@@ -10,37 +10,14 @@ import { dispatchTeleopFrameIntent } from "./dispatch-teleop";
 import {
   createPresetTopicPublishRequest,
   createRosTopicPublishRequest,
-  findActionPreset,
   publishTopicRequest,
   validateTopicPublishRequest,
 } from "./dispatch-topics";
 import type { RuntimeActionClient } from "./runtime-protocol";
 
-/** Where a command press goes. The Builder's inspector and checklist read the same answer. */
-export type CommandRoute =
-  | { kind: "preset"; preset: RuntimeActionPreset }
-  | { kind: "teleop-frame"; frameId: string }
-  | { kind: "topic"; publish: TopicPublishIntent }
-  | { kind: "none" };
+export { type CommandRoute, resolveCommandRoute } from "@bloom/widgets";
 
 type CommandIntent = Extract<WidgetActionIntent, { type: "command" }>;
-
-/** A preset picked by id, then the button's frame binding, then its own topic, then a preset sharing its command. */
-export function resolveCommandRoute(intent: CommandIntent, presets: readonly RuntimeActionPreset[]): CommandRoute {
-  const picked = intent.presetId ? presets.find((candidate) => candidate.id === intent.presetId) : undefined;
-  if (picked) {
-    return { kind: "preset", preset: picked };
-  }
-  const frameId = resolveTeleopFrameId(intent.runtimeBinding);
-  if (frameId) {
-    return { kind: "teleop-frame", frameId };
-  }
-  if (intent.fallback) {
-    return { kind: "topic", publish: intent.fallback };
-  }
-  const byCommand = findActionPreset(intent, presets);
-  return byCommand ? { kind: "preset", preset: byCommand } : { kind: "none" };
-}
 
 export async function dispatchCommandIntent(
   client: RuntimeActionClient,

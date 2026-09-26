@@ -26,7 +26,8 @@ export function resolveWidgetPreset(
   widget: WidgetConfig,
   presets: readonly RuntimeActionPreset[],
 ): RuntimeActionPreset | null {
-  if (widget.kind !== "command-button") {
+  // A held button holds its own topic, whatever preset it names.
+  if (widget.kind !== "command-button" || widget.settings.momentary === true) {
     return null;
   }
   const intent = createWidgetActionIntent(widget, { type: "press" });

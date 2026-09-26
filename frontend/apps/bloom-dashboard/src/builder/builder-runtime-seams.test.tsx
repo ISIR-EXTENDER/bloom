@@ -309,7 +309,8 @@ describe("Hold to run on /mode_request", () => {
     cleanup();
 
     renderEditor(button({ ...purposeSettings("jaco"), momentary: true }), { actionPresets: [] });
-    expect(screen.getByText(/sends nothing on release/)).toBeTruthy();
+    expect(screen.getByText(/lets go to Neutral; set "Payload on release" to choose another mode/)).toBeTruthy();
+    expect(screen.queryByText(/stays in the held mode/)).toBeNull();
   });
 });
 

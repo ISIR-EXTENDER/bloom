@@ -33,4 +33,31 @@ describe("the command line a control is equivalent to", () => {
     expect(line).toContain("/mode_request");
     expect(line).toContain("geometric/both");
   });
+
+  it("follows the preset the dispatcher sends, and the button's own topic when an older app saved both", () => {
+    const home = {
+      command: "behaviour/joint_target/home",
+      description: "",
+      id: "home",
+      kind: "topic-publish" as const,
+      message_type: "std_msgs/msg/String",
+      name: "Home",
+      payload: { data: "behaviour/joint_target/home" },
+      payload_text: "",
+      tags: [],
+      topic: "/mode_request",
+    };
+    expect(buildCliPreview("command-button", { command: home.command, presetId: "home" }, undefined, [home])).toContain(
+      "behaviour/joint_target/home",
+    );
+
+    const jaco = {
+      command: "geometric/jaco",
+      messageType: "std_msgs/msg/String",
+      payload: { data: "geometric/jaco" },
+      presetId: "home",
+      topic: "/mode_request",
+    };
+    expect(buildCliPreview("command-button", jaco, jaco.payload, [home])).toContain("geometric/jaco");
+  });
 });

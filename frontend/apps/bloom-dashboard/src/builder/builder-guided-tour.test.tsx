@@ -142,7 +142,12 @@ describe("the builder review checklist", () => {
       kind: "toggle",
       title: "Gripper",
       layout: { x: 0, y: 0, width: 260, height: 160 },
-      settings: { topic: "/gripper_controller/commands", messageType: "std_msgs/msg/Float64MultiArray" },
+      settings: {
+        messageType: "std_msgs/msg/Float64MultiArray",
+        offPayload: "{data: [0.0]}",
+        onPayload: "{data: [1.1]}",
+        topic: "/gripper_controller/commands",
+      },
     };
     const withToggle = (allowed: string[]) =>
       evaluateBuilderTour({

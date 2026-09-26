@@ -11,6 +11,7 @@ import { BuilderAppScreensPanel } from "./BuilderAppScreensPanel";
 import { BuilderAppThemePanel } from "./BuilderAppThemePanel";
 import { BuilderGuidedTour } from "./BuilderGuidedTour";
 import { BuilderProfilesPanel } from "./BuilderProfilesPanel";
+import { readDeploymentAllowlists } from "./BuilderWidgetSummaries";
 import { countLabel } from "./builderHomeModel";
 import { useApplicationDraft } from "./use-application-draft";
 
@@ -47,6 +48,10 @@ export function BuilderAppConfig({
   );
   const availableScreens = collectAvailableScreens(selectedWorkspace.bundle.applications);
   const supportedCommandFrameIds = runtimeCapabilityReport?.command_frame_ids;
+  const deploymentAllowlists = useMemo(
+    () => readDeploymentAllowlists(runtimeCapabilityReport),
+    [runtimeCapabilityReport],
+  );
   // Resolved against the draft below; the hook cannot know the robot's frames.
   const isCommandFrameUnavailable = (draft: ApplicationConfig) => {
     const frameId = draft.runtime_policy.command_frame_id ?? "";
@@ -74,6 +79,7 @@ export function BuilderAppConfig({
     return (
       <BuilderGuidedTour
         application={draft}
+        deployment={deploymentAllowlists}
         siblings={siblingApplications}
         onClose={() => setTourOpen(false)}
         onOpenConfiguration={() => setTourOpen(false)}

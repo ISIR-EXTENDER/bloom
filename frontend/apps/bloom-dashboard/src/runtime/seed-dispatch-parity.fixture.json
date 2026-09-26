@@ -1,0 +1,827 @@
+{
+  "explorer-manager.json:explorer-manager:manager_drive_bench:drive-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [1.1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_bench:drive-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.2]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_bench:drive-mode-both:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/both"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_bench:drive-mode-jaco:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/jaco"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_bench:drive-snake-hold:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_operator:drive-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [1.1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_operator:drive-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.2]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_operator:drive-mode-both:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/both"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_operator:drive-mode-jaco:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/jaco"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_drive_operator:drive-snake-hold:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_positions:positions-home:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/joint_target/home"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_positions:positions-release:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/passthrough"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-frame-base:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "command"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-frame-tool:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "command"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-frame-hybrid:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "command"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-mode-both:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/both"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-mode-jaco:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/jaco"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-snake-hold:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [1.1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "explorer-manager.json:explorer-manager:manager_joystick_lab:lab-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.2]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_bench:drive-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.8]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_bench:drive-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.0]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_bench:drive-mode-both:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/both"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_bench:drive-mode-jaco:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/jaco"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_bench:drive-snake-hold:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_bench:drive-fault-reset:press": {
+    "request": {
+      "type": "runtime_action",
+      "app_id": "kinova-manager",
+      "command": "kinova.reset_fault",
+      "config_id": "seed",
+      "preset_id": "fault-reset"
+    },
+    "status": "accepted",
+    "type": "command"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_operator:drive-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.8]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_operator:drive-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.0]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_operator:drive-fault-reset:press": {
+    "request": {
+      "type": "runtime_action",
+      "app_id": "kinova-manager",
+      "command": "kinova.reset_fault",
+      "config_id": "seed",
+      "preset_id": "fault-reset"
+    },
+    "status": "accepted",
+    "type": "command"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_operator:drive-mode-both:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/both"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_operator:drive-mode-jaco:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/jaco"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_drive_operator:drive-snake-hold:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_positions:positions-release:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/passthrough"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-frame-base:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "command"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-frame-tool:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "command"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-frame-hybrid:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "command"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-mode-both:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/both"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-mode-jaco:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/jaco"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-snake-hold:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.8]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "kinova-manager.json:kinova-manager:manager_joystick_lab:lab-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.0]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_control:control-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [1.1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_control:control-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.2]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_control:control-load-home-pose:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/joint_target/home"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_live_teleop:live-back-home:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "screen-navigation"
+  },
+  "petanque-admin.json:app-petanque-admin:visual_servoing:visual-servoing-toggle:on": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: true}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:visual_servoing:visual-servoing-toggle:off": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: false}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:visual_servoing:visual-servoing-save:press": {
+    "request": {
+      "topic": "/ui/visual_servoing/save",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "save"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:poses:poses-load-home:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/joint_target/home"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_petanque:petanque-start:press": {
+    "request": {
+      "topic": "/petanque_state_machine/change_state",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "go_to_start"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_petanque:petanque-stop:press": {
+    "request": {
+      "topic": "/petanque_state_machine/change_state",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "stop"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_petanque:petanque-back-home:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "screen-navigation"
+  },
+  "petanque-admin.json:app-petanque-admin:default_petanque:petanque-activate-throw:press": {
+    "request": {
+      "topic": "/petanque_state_machine/change_state",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "activate_throw"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_petanque:petanque-throw:press": {
+    "request": {
+      "topic": "/petanque_state_machine/change_state",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "throw"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:default_petanque:petanque-pick-up:press": {
+    "request": {
+      "topic": "/petanque_state_machine/change_state",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "pick_up"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:petanque_teleop_config:teleop-config-mode:on": {
+    "request": {
+      "topic": "/petanque_state_machine/change_state",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'teleop'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "petanque-admin.json:app-petanque-admin:petanque_teleop_config:teleop-config-mode:off": {
+    "request": {
+      "topic": "/petanque_state_machine/change_state",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'stop'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:sandbox_control:sandbox-mode:on": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'geometric/jaco'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:sandbox_control:sandbox-mode:off": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'geometric/both'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:sandbox_control:sandbox-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [1.1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:sandbox_control:sandbox-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.2]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:sandbox_control:sandbox-hub-output:on": {
+    "request": {
+      "topic": "/hub/digital_output",
+      "message_type": "std_msgs/msg/Float32MultiArray",
+      "payload_text": "{data: [13, 1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:sandbox_control:sandbox-hub-output:off": {
+    "request": {
+      "topic": "/hub/digital_output",
+      "message_type": "std_msgs/msg/Float32MultiArray",
+      "payload_text": "{data: [13, 0]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [1.1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.2]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-servo-enable:on": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: true}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-servo-enable:off": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: false}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-servo-save:press": {
+    "request": {
+      "topic": "/ui/visual_servoing/save",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "save"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-open-monitor:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "screen-navigation"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-mode:on": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'geometric/jaco'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:control_panel:control-panel-mode:off": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'geometric/both'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:snake_control:snake-mode-toggle:on": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'geometric/snake'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:snake_control:snake-mode-toggle:off": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload_text": "{data: 'geometric/both'}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:snake_control:snake-hold:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:visual_servoing:servo-enable:on": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: true}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:visual_servoing:servo-enable:off": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: false}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:visual_servoing:servo-save:press": {
+    "request": {
+      "topic": "/ui/visual_servoing/save",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "save"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "sandbox.json:sandbox:visual_servoing:servo-open-monitor:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "screen-navigation"
+  },
+  "sandbox.json:sandbox:visual_servoing_monitor:servo-monitor-back:press": {
+    "request": null,
+    "status": "unsupported",
+    "type": "screen-navigation"
+  },
+  "visual-servoing.json:visual-servoing:servo:servo-enable:on": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: true}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "visual-servoing.json:visual-servoing:servo:servo-enable:off": {
+    "request": {
+      "topic": "/ui/visual_servoing/on",
+      "message_type": "std_msgs/msg/Bool",
+      "payload_text": "{data: false}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "visual-servoing.json:visual-servoing:servo:servo-save:press": {
+    "request": {
+      "topic": "/ui/visual_servoing/save",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "save"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "visual-servoing.json:visual-servoing:approach:approach-servo-input:on": {
+    "request": null,
+    "status": "published",
+    "type": "toggle-state"
+  },
+  "visual-servoing.json:visual-servoing:approach:approach-servo-input:off": {
+    "request": null,
+    "status": "published",
+    "type": "toggle-state"
+  },
+  "widget-lab.json:widget-lab:lab-controls:lab-gripper:on": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [1.1]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "widget-lab.json:widget-lab:lab-controls:lab-gripper:off": {
+    "request": {
+      "topic": "/gripper_controller/commands",
+      "message_type": "std_msgs/msg/Float64MultiArray",
+      "payload_text": "{data: [0.2]}"
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "widget-lab.json:widget-lab:lab-controls:lab-hold-snake:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/snake"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "widget-lab.json:widget-lab:lab-controls:lab-jaco:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "geometric/jaco"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  },
+  "widget-lab.json:widget-lab:lab-readers:lab-ping:press": {
+    "request": {
+      "topic": "/mode_request",
+      "message_type": "std_msgs/msg/String",
+      "payload": {
+        "data": "behaviour/passthrough"
+      }
+    },
+    "status": "published",
+    "type": "topic-publish"
+  }
+}

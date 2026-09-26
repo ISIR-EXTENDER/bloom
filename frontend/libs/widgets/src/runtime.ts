@@ -62,8 +62,10 @@ export type WidgetActionIntent =
   | {
       action?: RuntimeActionContract;
       command: string;
-      /** The widget's own topic publish, sent only when its preset id names no app preset. */
+      /** The widget's own topic publish, which outranks a picked preset saved beside it by an older Builder. */
       fallback?: TopicPublishIntent;
+      /** The command the widget itself names, set with a preset id: a preset with that command is the new shape. */
+      ownCommand?: string;
       presetId?: string;
       runtimeBinding?: unknown;
       type: "command";
@@ -184,8 +186,8 @@ function createCommandLikeIntent(
         payload: resolveCommandPayload(settings),
       })
     : undefined;
-  // A picked preset outranks the topic; the dispatcher falls back to the topic when the app lacks that preset.
-  if (topicIntent && !presetId) {
+  // A held button always holds its own topic; otherwise resolveCommandRoute weighs a picked preset against it.
+  if (topicIntent && (!presetId || settings.momentary === true)) {
     return topicIntent;
   }
 
@@ -203,6 +205,7 @@ function createCommandLikeIntent(
     widgetKind: widget.kind,
     command: resolvedCommand,
     ...withOptional("fallback", topicIntent),
+    ...withOptional("ownCommand", presetId ? command : undefined),
     ...withOptional("presetId", presetId),
     ...withOptional("runtimeBinding", runtimeBinding),
     ...(action ? { action } : {}),

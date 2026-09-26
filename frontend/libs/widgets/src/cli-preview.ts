@@ -1,3 +1,6 @@
+import type { RuntimeActionPreset, WidgetConfig, WidgetKind } from "@bloom/api-client";
+import { resolveCommandRoute } from "./command-route";
+import { createWidgetActionIntent } from "./runtime";
 import { readOptionalString } from "./values";
 import { resolveWidgetDestination } from "./widget-destination";
 
@@ -15,7 +18,21 @@ export function buildCliPreview(
   kind: string,
   settings: Record<string, unknown> | undefined,
   payload: unknown,
+  presets: readonly RuntimeActionPreset[] = [],
 ): string | null {
+  // A button's press is resolved as the dispatcher resolves it: a preset it sends is the preset's line.
+  if (kind === "command-button") {
+    const widget = { id: "cli-preview", kind: kind as WidgetKind, settings: settings ?? {}, title: "" } as WidgetConfig;
+    const intent = createWidgetActionIntent(widget, { type: "press" });
+    const route = intent.type === "command" ? resolveCommandRoute(intent, presets) : null;
+    if (route?.kind === "preset") {
+      return buildPresetLine(route.preset);
+    }
+    if (intent.type !== "topic-publish" && route?.kind !== "topic") {
+      return null;
+    }
+  }
+
   const destination = resolveWidgetDestination(kind, settings);
   if (destination?.direction !== "publishes" || !destination.topic) {
     return null;
@@ -32,6 +49,13 @@ export function buildCliPreview(
   }
 
   return `ros2 topic pub -1 ${destination.topic} ${messageType} "${body.replaceAll('"', '\\"')}"`;
+}
+
+function buildPresetLine(preset: RuntimeActionPreset): string | null {
+  const body = readPayloadText(preset.payload_text || preset.payload);
+  return preset.kind === "topic-publish" && preset.topic && preset.message_type && body !== null
+    ? `ros2 topic pub -1 ${preset.topic} ${preset.message_type} "${body.replaceAll('"', '\\"')}"`
+    : null;
 }
 
 /** Payloads are held either as ROS text ("{data: [1.1]}") or as a real object. */

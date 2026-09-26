@@ -1509,11 +1509,12 @@ describe("widget runtime action intents", () => {
         { type: "press" },
       ),
     ).toEqual({
-      // A named preset is asked for first; the button's own publish is the fallback when the app lacks it.
+      // The button's own publish outranks the preset unless the preset's command is its own (resolveCommandRoute).
       type: "command",
       widgetId: "emergency-stop",
       widgetKind: "command-button",
       command: "emergency_stop",
+      ownCommand: "emergency_stop",
       presetId: "emergency-stop-bool",
       fallback: {
         type: "topic-publish",

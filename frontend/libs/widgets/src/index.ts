@@ -3,6 +3,7 @@ export * from "./canvas";
 export * from "./canvas-defaults";
 export * from "./cli-preview";
 export * from "./command-purposes";
+export * from "./command-route";
 export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
