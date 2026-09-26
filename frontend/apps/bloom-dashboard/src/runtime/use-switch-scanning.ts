@@ -56,6 +56,8 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
   // and a deferred render must never make the highlight skip a target.
   const indexRef = useRef(-1);
   const armedHoldsRef = useRef(0);
+  const urgentQueueRef = useRef<HTMLElement[]>([]);
+  const returnToRef = useRef<HTMLElement | null>(null);
   const activateCurrent = useCallback(() => {
     const target = targetsRef.current[indexRef.current];
     if (!target) {
@@ -118,6 +120,9 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     };
 
     readTargets();
+    armedHoldsRef.current = 0;
+    urgentQueueRef.current = [];
+    returnToRef.current = null;
     indexRef.current = targetsRef.current.length > 0 ? 0 : -1;
     setIndex(indexRef.current);
     paint(indexRef.current);
@@ -140,11 +145,29 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
         return;
       }
       // A control that appears for a few seconds (Keep going before a latch lets go) is lit next, not after a
-      // whole cycle a one-switch operator could not finish in time.
-      const urgent = targets.findIndex(
-        (target) => target.hasAttribute("data-scan-urgent") && !previous.includes(target),
-      );
-      const nextIndex = urgent >= 0 ? urgent : (indexRef.current + 1) % targets.length;
+      // whole cycle a one-switch operator could not finish in time. Every new one is queued, and the scan then
+      // goes back to where it was, so STOP keeps its place in the cycle.
+      for (const target of targets) {
+        if (target.hasAttribute("data-scan-urgent") && !previous.includes(target)) {
+          urgentQueueRef.current.push(target);
+        }
+      }
+      urgentQueueRef.current = urgentQueueRef.current.filter((target) => targets.includes(target));
+      const wasLit = previous[indexRef.current];
+      const urgentNext = urgentQueueRef.current.shift();
+      let nextIndex: number;
+      if (urgentNext) {
+        if (!returnToRef.current && wasLit && !wasLit.hasAttribute("data-scan-urgent")) {
+          returnToRef.current = wasLit;
+        }
+        nextIndex = targets.indexOf(urgentNext);
+      } else if (returnToRef.current && targets.includes(returnToRef.current)) {
+        nextIndex = (targets.indexOf(returnToRef.current) + 1) % targets.length;
+        returnToRef.current = null;
+      } else {
+        returnToRef.current = null;
+        nextIndex = (indexRef.current + 1) % targets.length;
+      }
       indexRef.current = nextIndex;
       setIndex(nextIndex);
       paint(nextIndex);
@@ -159,7 +182,17 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       if (!rootIsModal && isInsideModal(event.target)) {
         return;
       }
+      // Enter on a focused STOP is a stop, not a press of whatever is lit: a caregiver tabbing to STOP at a
+      // scan station fired a step target instead.
+      if (event.target instanceof Element && event.target.closest('[data-scan-priority="stop"]')) {
+        return;
+      }
       event.preventDefault();
+      // One press, one activation: a held switch auto-repeats, and the repeat confirmed an armed Go home or
+      // resumed after STOP.
+      if (event.repeat) {
+        return;
+      }
       activateCurrent();
     };
 

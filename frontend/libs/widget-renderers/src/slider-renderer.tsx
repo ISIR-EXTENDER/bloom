@@ -155,15 +155,21 @@ export function SliderWidget({
   // A latched command must never outlive the operator's attention. Scanning,
   // telemetry and status polls re-render constantly, so the window is keyed on
   // input rather than restarted by every render.
-  const valueIsHeld = (motorPreset === "latch" || usesStepTargets) && returnToCenter && currentValue !== defaultValue;
+  // A teleop axis rests at zero whatever it was authored with: with Return to center off it kept streaming its
+  // velocity after the finger left, with no countdown and no reset on suspend.
+  const drivesTeleop = asRecord(sliderSettings.runtime_binding).adapter === "teleop";
+  const restValue = drivesTeleop ? 0 : defaultValue;
+  const valueIsHeld =
+    ((motorPreset === "latch" || usesStepTargets) && returnToCenter && currentValue !== defaultValue) ||
+    (drivesTeleop && !returnToCenter && currentValue !== 0);
 
   // After a runtime suspend a held value is gone on the robot, so it goes from
   // the control too. A configured value, such as a speed limit, stays.
   const lastNeutralRevisionRef = useRef(neutralRevision);
   const returnToRestRef = useRef(() => {});
   returnToRestRef.current = () => {
-    if (returnToCenter) {
-      setCurrentValue(defaultValue);
+    if (returnToCenter || drivesTeleop) {
+      setCurrentValue(restValue);
     }
   };
   useEffect(() => {
@@ -173,7 +179,7 @@ export function SliderWidget({
     lastNeutralRevisionRef.current = neutralRevision;
     returnToRestRef.current();
   }, [neutralRevision]);
-  const latch = useLatchCountdown(valueIsHeld, inputRevision, () => setAndEmit(defaultValue));
+  const latch = useLatchCountdown(valueIsHeld, inputRevision, () => setAndEmit(restValue));
   const latchCountdown = <LatchCountdownNotice countdown={latch} text={text} />;
 
   if (stepPreset) {

@@ -55,9 +55,23 @@ describe("command button confirm press", () => {
     const button = screen.getByRole("button");
 
     fireEvent.click(button);
+    act(() => {
+      vi.advanceTimersByTime(700);
+    });
     fireEvent.click(button);
 
     expect(onActionIntent).toHaveBeenCalledTimes(1);
+  });
+
+  // A double tap, a bouncing switch or a held Enter armed and confirmed Go home in one gesture.
+  it("does not take a press right after arming as the confirmation", () => {
+    const onActionIntent = renderButton({ confirm_press: true });
+    const button = screen.getByRole("button");
+
+    fireEvent.click(button);
+    fireEvent.click(button);
+
+    expect(onActionIntent).not.toHaveBeenCalled();
   });
 
   it("shows the confirmation label while armed", () => {

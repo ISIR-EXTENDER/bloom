@@ -10,6 +10,8 @@ export type LatchCountdown = {
   secondsLeft: number | null;
   /** A deliberate "keep going": restarts the window without changing what is held. */
   keep: () => void;
+  /** The window ran out and the control let go; cleared when it is held again. */
+  released: boolean;
 };
 
 /**
@@ -27,6 +29,7 @@ export function useLatchCountdown(
   onExpireRef.current = onExpire;
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [kept, setKept] = useState(0);
+  const [released, setReleased] = useState(false);
 
   useEffect(() => {
     void revision;
@@ -35,9 +38,11 @@ export function useLatchCountdown(
     if (!active) {
       return;
     }
+    setReleased(false);
     const startedAt = Date.now();
     const expiry = window.setTimeout(() => {
       setSecondsLeft(null);
+      setReleased(true);
       onExpireRef.current();
     }, expiryMs);
     const tick = window.setInterval(() => {
@@ -50,5 +55,5 @@ export function useLatchCountdown(
     };
   }, [active, revision, kept, expiryMs]);
 
-  return { keep: () => setKept((count) => count + 1), secondsLeft };
+  return { keep: () => setKept((count) => count + 1), released, secondsLeft };
 }

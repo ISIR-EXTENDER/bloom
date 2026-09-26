@@ -63,6 +63,8 @@ describe("a switch operator can undo their own STOP", () => {
     await screen.findByRole("button", { name: /Press again to resume/ });
     expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
 
+    // A second press within 600 ms is the same press bouncing; this one is a second decision.
+    await new Promise((resolve) => setTimeout(resolve, 650));
     act(() => {
       window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
     });

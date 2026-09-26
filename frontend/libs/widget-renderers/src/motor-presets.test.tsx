@@ -582,6 +582,8 @@ describe("a latched control about to let go", () => {
     });
     expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0 });
     expect(screen.queryByText(/Releases in/)).toBeNull();
+    // The release itself is said, not only the warning before it.
+    expect(screen.getByText("Released after a while without input.").getAttribute("role")).toBe("status");
   });
 
   it("names its step controls in the operator's language", () => {
@@ -624,6 +626,33 @@ describe("the gesture pad under scan", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Power +" }));
     expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ angleDegrees: 45, power: 0.6 });
+  });
+
+  it("sends nothing for a press that began elsewhere and lifted over the pad", () => {
+    const onActionIntent = vi.fn();
+    const [descriptor] = renderScreenDescriptors(
+      {
+        id: "gesture",
+        title: "Gesture",
+        canvas: { preset_id: "tablet", runtime_mode: "fit" },
+        widgets: [
+          {
+            id: "throw",
+            kind: "gesture-pad",
+            title: "Throw",
+            layout: { x: 0, y: 0, width: 360, height: 300 },
+            settings: { topic: "/ui/throw", messageType: "std_msgs/msg/String" },
+          },
+        ],
+      } as ScreenConfig,
+      createDefaultWidgetRegistry(),
+    );
+    if (descriptor?.status !== "resolved") throw new Error("Missing gesture descriptor.");
+    render(<GesturePadWidget descriptor={descriptor} onActionIntent={onActionIntent} />);
+
+    fireEvent.pointerUp(screen.getByRole("button", { name: /choose trajectory gesture/ }), { pointerId: 3 });
+
+    expect(onActionIntent).not.toHaveBeenCalled();
   });
 });
 
@@ -674,5 +703,59 @@ describe("a segmented slider", () => {
       runtime_binding: { adapter: "teleop", axis_mapping: { value: { component: "linear_z" } } },
     });
     expect(container.querySelector('[data-slider-kind="segments"]')).toBeNull();
+  });
+});
+
+describe("a teleop slider authored without return to center", () => {
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  // It streamed its velocity after the finger left, with no countdown: only STOP or a blur stopped the arm.
+  it("still lets go of the arm, to zero, after the latch window", () => {
+    vi.useFakeTimers();
+    const onActionIntent = vi.fn();
+    const [descriptor] = renderScreenDescriptors(
+      {
+        id: "s",
+        title: "S",
+        canvas: { preset_id: "tablet", runtime_mode: "fit" },
+        widgets: [
+          {
+            id: "height",
+            kind: "slider",
+            title: "Height",
+            layout: { x: 0, y: 0, width: 160, height: 360 },
+            settings: {
+              min: -1,
+              max: 1,
+              step: 0.25,
+              value: 0,
+              direction: "vertical",
+              returnToCenter: false,
+              runtime_binding: {
+                adapter: "teleop",
+                target: "linear_z",
+                axis_mapping: { value: { component: "linear_z" } },
+                value_mapping: { target_topic: "/joystick_cartesian_command" },
+              },
+            },
+          },
+        ],
+      } as ScreenConfig,
+      createDefaultWidgetRegistry(),
+    );
+    if (descriptor?.status !== "resolved") throw new Error("Missing slider descriptor.");
+    render(<SliderWidget descriptor={descriptor} onActionIntent={onActionIntent} />);
+    const slider = screen.getByRole("slider", { name: "Height" });
+    slider.focus();
+    fireEvent.keyDown(slider, { key: "ArrowUp" });
+
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toBe(0);
   });
 });

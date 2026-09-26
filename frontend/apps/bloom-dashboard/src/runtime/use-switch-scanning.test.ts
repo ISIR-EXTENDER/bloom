@@ -71,8 +71,9 @@ describe("switch scanning", () => {
     vi.advanceTimersByTime(1000);
 
     expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("Keep going");
+    // Then back to where it was, so nothing in the cycle, STOP included, loses its place.
     vi.advanceTimersByTime(1000);
-    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-2");
   });
 
   it("holds the highlight on an armed control until it fires or disarms", () => {
@@ -98,6 +99,34 @@ describe("switch scanning", () => {
     vi.advanceTimersByTime(3000);
 
     expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-1");
+  });
+
+  // Many switch boxes send a held key; the auto-repeat armed and then confirmed Go home in one long press.
+  it("activates once for a held switch", () => {
+    const { clicks, rootRef } = buildScreen(3);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", repeat: true }));
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " ", repeat: true }));
+
+    expect(clicks).toEqual(["target-0"]);
+  });
+
+  it("leaves Enter on a focused STOP to STOP", () => {
+    const { clicks, rootRef } = buildScreen(3);
+    const stop = document.createElement("button");
+    stop.setAttribute("data-scan-priority", "stop");
+    Object.defineProperty(stop, "offsetParent", { get: () => document.body });
+    document.body.append(stop);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    vi.advanceTimersByTime(1000);
+
+    const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" });
+    stop.dispatchEvent(enter);
+
+    expect(clicks).toEqual([]);
+    expect(enter.defaultPrevented).toBe(false);
   });
 
   it("walks the controls at the configured period and wraps around", () => {

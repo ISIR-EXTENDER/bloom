@@ -129,7 +129,7 @@ export function RuntimeGuidedTour({ application, onDone, profile, screen, select
           <button data-scan-switch="" onClick={scanning.activateCurrent} type="button">
             {strings.scan.button}
           </button>
-          <p aria-live="polite" className="sr-only" role="status">
+          <p aria-live="off" className="sr-only">
             {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
           </p>
         </div>

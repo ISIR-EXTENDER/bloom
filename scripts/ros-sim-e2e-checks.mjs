@@ -288,6 +288,8 @@ async function operatorSession() {
         await page.getByRole("button", { name: /Press again to move/ }).waitFor();
         const firstPress = ros.since(MODE, since).filter((message) => message.data.data.includes("joint_target"));
         assert(firstPress.length === 0, "the first press already dispatched the home target");
+        // A confirmation within 600 ms of arming is taken for the same press bouncing, and ignored.
+        await page.waitForTimeout(700);
         await page.getByRole("button", { name: /Press again to move/ }).click();
         await ros.waitFor(MODE, (data) => data.data === "behaviour/joint_target/home", { since });
         const target = await ros.waitFor(JOINT_TARGET, () => true, { since, timeoutMs: 8000 });

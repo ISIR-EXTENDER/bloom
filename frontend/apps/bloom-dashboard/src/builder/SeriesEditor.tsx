@@ -28,7 +28,8 @@ const NEW_SERIES_CHOICES = [
 function nextSeries(rows: readonly SeriesRow[]): SeriesRow {
   const taken = new Set(rows.map((row) => `${text(row, "topic")}#${text(row, "field_path")}`));
   const free = NEW_SERIES_CHOICES.find((choice) => !taken.has(`${choice.topic}#${choice.field_path}`));
-  return { enabled: true, ...(free ?? { ...NEW_SERIES_CHOICES[0], field_path: "", label: "New series" }) };
+  // All six taken: an empty row to fill in, which the "not plotted" note explains until it has a topic and field.
+  return { enabled: true, ...(free ?? { field_path: "", label: `Series ${rows.length + 1}`, topic: "", unit: "" }) };
 }
 
 type SeriesRow = Record<string, unknown>;

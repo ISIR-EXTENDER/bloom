@@ -32,6 +32,9 @@ export type RuntimeStopControlProps = {
  * STOP as runtime chrome (finding 3): tap stops on pointerdown, resuming
  * takes a 1s hold. The stopped look follows the backend latch, and a press the backend has not confirmed.
  */
+/** A second assistive press closer than this to the arming one is the same press. */
+const ASSISTIVE_CONFIRM_SETTLE_MS = 600;
+
 export function RuntimeStopControl({
   stopped,
   requestError,
@@ -57,6 +60,7 @@ export function RuntimeStopControl({
   };
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
   const [assistiveArmed, setAssistiveArmed] = useState(false);
+  const armedAtRef = useRef(0);
   const armedTimerRef = useRef<number | null>(null);
   const disarm = useCallback(() => {
     if (armedTimerRef.current !== null) {
@@ -72,10 +76,15 @@ export function RuntimeStopControl({
       return;
     }
     if (assistiveArmed) {
+      // A bouncing switch pressed twice within milliseconds; that is one press, not a confirmation.
+      if (Date.now() - armedAtRef.current < ASSISTIVE_CONFIRM_SETTLE_MS) {
+        return;
+      }
       disarm();
       resume();
       return;
     }
+    armedAtRef.current = Date.now();
     setAssistiveArmed(true);
     armedTimerRef.current = window.setTimeout(() => {
       armedTimerRef.current = null;
@@ -92,7 +101,16 @@ export function RuntimeStopControl({
       keyboardPressRef.current = false;
       buttonRef.current?.focus();
     }
+    // The key comes up on the element that replaced the one it went down on; nothing else would clear it.
+    keyboardHoldRef.current = false;
   }, [stopped]);
+  // A resume the backend refused leaves STOP engaged: the pending hand-over must not fire on a later resume from
+  // another station.
+  useEffect(() => {
+    if (requestError) {
+      keyboardPressRef.current = false;
+    }
+  }, [requestError]);
   useEffect(() => {
     if (!stopped) {
       disarm();
@@ -117,6 +135,8 @@ export function RuntimeStopControl({
           requestError || resumeDisabledReason ? `. ${requestError || resumeDisabledReason}` : ""
         }`}
         className="runtime-stop-control"
+        // Armed, it holds the scan highlight so the confirming press lands on it, as an armed Go home does.
+        data-armed={assistiveArmed ? "true" : undefined}
         data-dwell-action="resume"
         data-dwell-min-ms={RESUME_HOLD_MS}
         data-placement={placement}
@@ -124,7 +144,10 @@ export function RuntimeStopControl({
         data-scan-priority="stop"
         data-stopped="true"
         disabled={resumeDisabled}
-        onBlur={resumeHold.cancel}
+        onBlur={() => {
+          keyboardHoldRef.current = false;
+          resumeHold.cancel();
+        }}
         onKeyDown={(event) => {
           if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
             keyboardHoldRef.current = true;

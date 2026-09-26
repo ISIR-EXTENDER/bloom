@@ -30,6 +30,7 @@ const STRINGS = {
     releasesIn: (seconds: number) => `Releases in ${seconds} s`,
     keepGoing: "Keep going",
     releasesSoon: "This control lets go in a few seconds.",
+    released: "Released after a while without input.",
   },
   fr: {
     cameraClosed: "Le flux de la caméra s'est fermé.",
@@ -57,6 +58,7 @@ const STRINGS = {
     releasesIn: (seconds: number) => `Relâché dans ${seconds} s`,
     keepGoing: "Continuer",
     releasesSoon: "Cette commande se relâche dans quelques secondes.",
+    released: "Relâchée faute d'action.",
   },
   es: {
     cameraClosed: "El flujo de la cámara se cerró.",
@@ -84,6 +86,7 @@ const STRINGS = {
     releasesIn: (seconds: number) => `Se suelta en ${seconds} s`,
     keepGoing: "Continuar",
     releasesSoon: "Este control se suelta en unos segundos.",
+    released: "Soltado por falta de acción.",
   },
 } as const;
 

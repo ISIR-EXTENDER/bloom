@@ -315,7 +315,7 @@ export function RuntimeMaintenanceSheet({
               >
                 {strings.scan.button}
               </button>
-              <p aria-live="polite" className="sr-only" role="status">
+              <p aria-live="off" className="sr-only">
                 {strings.scan.progress(sheetScanning.index + 1, sheetScanning.targetCount)}
               </p>
             </>

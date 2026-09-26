@@ -208,9 +208,10 @@ export function BuilderWidgetSettingsEditor({
         : widget.kind === "joystick"
           ? joystickPurposeOf(widget.settings) !== null
           : true;
-  const errorNamesAdvanced = Boolean(
-    validationMessage && [...ADVANCED_FIELD_KEYS].some((key) => validationMessage.includes(key)),
-  );
+  // Matched as the field names lead each error, after the widget prefix: the prefix carried the widget id
+  // ("command-button-3"), so every error on a button looked like one about "command".
+  const errorDetail = validationMessage?.replace(/^Invalid settings for widget "[^"]*": /, "") ?? "";
+  const errorNamesAdvanced = [...ADVANCED_FIELD_KEYS].some((key) => new RegExp(`(^|; )${key}[.:]`).test(errorDetail));
   useEffect(() => {
     if (advancedRef.current && (!purposeChosen || errorNamesAdvanced)) {
       advancedRef.current.open = true;
@@ -300,8 +301,18 @@ export function BuilderWidgetSettingsEditor({
         <PurposeField
           label="What this button does"
           onChoose={(purpose) => choosePurpose(purpose, COMMAND_PURPOSES, COMMAND_PURPOSE_KEYS, commandPurposeOf)}
-          purposes={commandPurposesFor(robotName)}
+          // A purpose this arm does not offer stays listed when the button already has it, disabled, so the
+          // choice reads what the button does instead of "Something else".
+          purposes={
+            commandPurposesFor(robotName).some((purpose) => purpose.id === commandPurposeOf(widget.settings)) ||
+            commandPurposeOf(widget.settings) === null
+              ? commandPurposesFor(robotName)
+              : COMMAND_PURPOSES
+          }
           unavailable={(purpose) => {
+            if (!commandPurposesFor(robotName).includes(purpose)) {
+              return "not on this robot";
+            }
             // A frame this robot does not accept arrives disabled at runtime; say so before it is chosen.
             const frameId = asRecord(purpose.settings().runtime_binding).frame_id;
             return typeof frameId === "string" && allowedCommandFrameIds && !allowedCommandFrameIds.includes(frameId)

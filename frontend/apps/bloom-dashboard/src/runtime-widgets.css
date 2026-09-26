@@ -1867,7 +1867,9 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 2;
+  /* Above the pad's touch zone (3) and readout (4): under them, a tap on Keep going landed on the pad's corner and
+     set a near-full vector. */
+  z-index: 6;
   display: inline-flex;
   align-items: center;
   gap: 10px;

@@ -21,6 +21,21 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A second safety review, fixed.** A held switch key auto-repeats, and the repeat armed then confirmed Go home, or
+  resumed after STOP, in one long press: a scan press now activates once. Enter on a focused STOP at a scan station
+  fired the lit control instead of stopping. **Keep going** on a latched pad sat under the pad's touch zone, so a
+  tap on it drove the arm. A teleop slider authored without return to center held its velocity with no countdown
+  and no reset on suspend; it now releases to zero like any latch. A confirmation within 600 ms of arming (a double
+  tap, a bouncing switch, a held Enter) is taken for the same press, on Go home and on Resume, and an armed Resume
+  holds the scan so the confirming press lands on it.
+- **Announcements and scan.** The latch warning's live region is there before it speaks, and the release is said;
+  "Scanning N of M" is no longer read at every step; after an urgent **Keep going** the scan returns to where it
+  was, so STOP keeps its place.
+- **Smaller.** STOP's keyboard focus hand-over clears on blur, on the swap and on a refused resume. Advanced opens
+  only for an error about one of its fields. A Kinova button that already does Go home reads so, disabled. The
+  gesture pad sends only for a drag that started on it and sends arrows on key-up. A plot picker tells a missing
+  board from an empty one, and Add series past the six suggestions adds an empty row to fill in.
+
 - **Review of the new "what it does" choices and latches, fixed.** Choosing a purpose that also renamed the widget
   kept the old settings (two commits from one draft). A speed slider switched to Height or Pivot kept its speed
   segments and could hold the arm moving with no zero; segments are never drawn on a motion axis now, and a purpose

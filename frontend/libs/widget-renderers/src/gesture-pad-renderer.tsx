@@ -1,5 +1,5 @@
 import { clamp, createWidgetActionIntent, getBooleanSetting, getStringSetting } from "@bloom/widgets";
-import { type CSSProperties, type KeyboardEvent, type PointerEvent, useState } from "react";
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import { resolveStepTargetPreset } from "./motor-preset-hints";
 import { rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
@@ -13,8 +13,11 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const [gesture, setGesture] = useState({ angleDegrees: 45, power: 0.5 });
 
+  const lastSentRef = useRef(gesture);
+  const draggingRef = useRef(false);
   const emitGesture = (nextGesture: { angleDegrees: number; power: number }) => {
     setGesture(nextGesture);
+    lastSentRef.current = nextGesture;
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-gesture", value: nextGesture }));
   };
 
@@ -24,13 +27,14 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
     setGesture(resolveGestureFromPointer(event));
   };
 
+  // Arrows move the drawn gesture and send it when the key comes up: a held arrow repeated a publish per repeat.
   const handleKeyboardGesture = (event: KeyboardEvent<HTMLButtonElement>) => {
     const nextGesture = resolveGestureFromKeyboard(event, gesture);
     if (!nextGesture) {
       return;
     }
     event.preventDefault();
-    emitGesture(nextGesture);
+    setGesture(nextGesture);
   };
 
   const angle = Math.round(gesture.angleDegrees);
@@ -54,8 +58,19 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
           }
         }}
         onKeyDown={handleKeyboardGesture}
+        onKeyUp={(event) => {
+          if (event.key.startsWith("Arrow")) {
+            emitGesture(gesture);
+          }
+        }}
+        onPointerCancel={() => {
+          // A drag the browser took away was never sent; show what the robot last got.
+          draggingRef.current = false;
+          setGesture(lastSentRef.current);
+        }}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
+          draggingRef.current = true;
           handlePointerGesture(event);
         }}
         onPointerMove={(event) => {
@@ -63,7 +78,13 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
             handlePointerGesture(event);
           }
         }}
-        onPointerUp={(event) => emitGesture(resolveGestureFromPointer(event))}
+        onPointerUp={(event) => {
+          // Only a drag that started here: a press begun elsewhere and released over the pad drew nothing.
+          if (draggingRef.current) {
+            draggingRef.current = false;
+            emitGesture(resolveGestureFromPointer(event));
+          }
+        }}
         type="button"
       >
         <span aria-hidden="true" className="bloom-gesture-arc" />

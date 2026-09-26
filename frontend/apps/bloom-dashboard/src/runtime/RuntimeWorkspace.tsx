@@ -781,7 +781,7 @@ export function RuntimeWorkspace({
             >
               {strings.scan.button}
             </button>
-            <p aria-live="polite" className="sr-only" role="status">
+            <p aria-live="off" className="sr-only">
               {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
             </p>
           </div>
@@ -807,7 +807,7 @@ export function RuntimeWorkspace({
             >
               {strings.scan.button}
             </button>
-            <p aria-live="polite" className="sr-only" role="status">
+            <p aria-live="off" className="sr-only">
               {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
             </p>
           </>

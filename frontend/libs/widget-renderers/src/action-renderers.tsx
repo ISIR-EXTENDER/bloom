@@ -14,6 +14,9 @@ import { rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
 
+/** A confirming press closer than this to the arming one is the same gesture, not a second decision. */
+const CONFIRM_SETTLE_MS = 600;
+
 export function CommandLikeWidget({
   conditioning,
   controlState,
@@ -51,6 +54,7 @@ export function CommandLikeWidget({
   // A refused hold used to keep its pressed look; the reason now stays on the button.
   const [momentaryRefusal, setMomentaryRefusal] = useState("");
   const [isArmed, setIsArmed] = useState(false);
+  const armedAtRef = useRef(0);
   const visibleButtonLabel = momentary
     ? isMomentaryPressed
       ? pressedLabel
@@ -98,7 +102,13 @@ export function CommandLikeWidget({
       return;
     }
     if (confirmPress && !isArmed) {
+      armedAtRef.current = Date.now();
       setIsArmed(true);
+      return;
+    }
+    // The second press is a second decision: a double tap, a bouncing switch or a held Enter confirmed the move
+    // within a few milliseconds of arming it.
+    if (confirmPress && Date.now() - armedAtRef.current < CONFIRM_SETTLE_MS) {
       return;
     }
     setIsArmed(false);
@@ -241,6 +251,12 @@ export function CommandLikeWidget({
         data-unsupported={controlState?.unsupported ? "true" : undefined}
         disabled={disabled}
         onClick={momentary ? handleMomentaryActivation : handlePress}
+        onKeyDown={(event) => {
+          // A held Enter or Space repeats the click; one press is one command.
+          if (event.repeat && (event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+          }
+        }}
         onPointerCancel={momentary ? handleMomentaryRelease : undefined}
         onPointerDown={momentary ? handleMomentaryPress : undefined}
         onPointerLeave={momentary ? handleMomentaryRelease : undefined}

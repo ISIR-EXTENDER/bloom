@@ -285,7 +285,7 @@ export function RuntimeSettingsPanel({
                 >
                   {strings.scan.button}
                 </button>
-                <p aria-live="polite" className="sr-only" role="status">
+                <p aria-live="off" className="sr-only">
                   {strings.scan.progress(scanning.index + 1, scanning.targetCount)}
                 </p>
               </>

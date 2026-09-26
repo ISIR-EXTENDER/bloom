@@ -3,20 +3,22 @@ import type { LatchCountdown } from "./use-latch-countdown";
 
 /** The last seconds of a latch, with a way to keep it that does not move anything. */
 export function LatchCountdownNotice({ countdown, text }: { countdown: LatchCountdown; text: RendererStrings }) {
-  if (countdown.secondsLeft === null) {
-    return null;
-  }
-  // An overlay, so the step targets under a resting pointer do not move; the count is for the eyes, and the
-  // live region says the warning once rather than every second.
+  // The live region is always there and filled on the change: one mounted already holding its words is often
+  // not read, and the release itself used to go unsaid.
+  const announcement = countdown.secondsLeft !== null ? text.releasesSoon : countdown.released ? text.released : "";
   return (
-    <span className="bloom-latch-countdown">
-      <span aria-hidden="true">{text.releasesIn(countdown.secondsLeft)}</span>
+    <>
       <span className="sr-only" role="status">
-        {text.releasesSoon}
+        {announcement}
       </span>
-      <button className="bloom-latch-keep" data-scan-urgent="" onClick={countdown.keep} type="button">
-        {text.keepGoing}
-      </button>
-    </span>
+      {countdown.secondsLeft === null ? null : (
+        <span className="bloom-latch-countdown">
+          <span aria-hidden="true">{text.releasesIn(countdown.secondsLeft)}</span>
+          <button className="bloom-latch-keep" data-scan-urgent="" onClick={countdown.keep} type="button">
+            {text.keepGoing}
+          </button>
+        </span>
+      )}
+    </>
   );
 }
