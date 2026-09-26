@@ -45,8 +45,13 @@ export function RuntimeStopControl({
   const placement = region ? "region" : "corner";
   const style = region ? { height: region.height, left: region.left, top: region.top, width: region.width } : undefined;
   const strings = useRuntimeStrings(language);
+  // Set only when a keyboard hold completes: a tap that let go early left it set, and a later resume from another
+  // station pulled focus to STOP from wherever the operator was.
+  const keyboardHoldRef = useRef(false);
+  const keyboardPressRef = useRef(false);
   const resume = () => {
     if (!resumeDisabled) {
+      keyboardPressRef.current = keyboardHoldRef.current;
       onResume();
     }
   };
@@ -80,7 +85,6 @@ export function RuntimeStopControl({
   const resumeRef = useAssistiveActivation<HTMLButtonElement>(resumeAssistively);
   // STOP and Resume are two elements, so a rest begun on STOP never completes as a resume. The swap dropped a
   // keyboard operator's focus to the page; a keyboard press hands it to the element that replaces it.
-  const keyboardPressRef = useRef(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   useLayoutEffect(() => {
     void stopped;
@@ -123,11 +127,14 @@ export function RuntimeStopControl({
         onBlur={resumeHold.cancel}
         onKeyDown={(event) => {
           if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
-            keyboardPressRef.current = true;
+            keyboardHoldRef.current = true;
             startResumeHold();
           }
         }}
-        onKeyUp={resumeHold.cancel}
+        onKeyUp={() => {
+          keyboardHoldRef.current = false;
+          resumeHold.cancel();
+        }}
         onPointerCancel={resumeHold.cancel}
         onPointerDown={startResumeHold}
         onPointerLeave={resumeHold.cancel}

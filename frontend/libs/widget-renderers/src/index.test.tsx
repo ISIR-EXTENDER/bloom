@@ -584,8 +584,13 @@ describe("widget renderer registry", () => {
       y: 0,
     } as DOMRect);
 
-    fireEvent.pointerDown(gesturePad, { clientX: 100, clientY: 25, pointerId: 1 });
+    fireEvent.pointerDown(gesturePad, { clientX: 20, clientY: 80, pointerId: 1 });
+    fireEvent.pointerMove(gesturePad, { buttons: 1, clientX: 60, clientY: 50, pointerId: 1 });
+    // Drawn while the finger moves, sent once when it lifts: each move was an HTTP publish.
+    expect(onActionIntent).not.toHaveBeenCalled();
+    fireEvent.pointerUp(gesturePad, { clientX: 100, clientY: 25, pointerId: 1 });
 
+    expect(onActionIntent).toHaveBeenCalledTimes(1);
     expect(onActionIntent).toHaveBeenCalledWith({
       binding: "petanque.throw.preview",
       messageType: "std_msgs/msg/String",

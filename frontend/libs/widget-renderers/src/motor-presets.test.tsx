@@ -564,7 +564,9 @@ describe("a latched control about to let go", () => {
     act(() => {
       vi.advanceTimersByTime(10_500);
     });
-    expect(screen.getByText("Releases in 5 s").getAttribute("role")).toBe("status");
+    // The count is for the eyes; the live region says the warning once.
+    expect(screen.getByText("Releases in 5 s").getAttribute("aria-hidden")).toBe("true");
+    expect(screen.getByText("This control lets go in a few seconds.").getAttribute("role")).toBe("status");
 
     // Keeping it is a deliberate press that moves nothing, and starts the window again.
     const heldCalls = onActionIntent.mock.calls.length;
@@ -622,5 +624,55 @@ describe("the gesture pad under scan", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Power +" }));
     expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ angleDegrees: 45, power: 0.6 });
+  });
+});
+
+describe("a segmented slider", () => {
+  afterEach(cleanup);
+
+  const sliderWith = (settings: Record<string, unknown>) => {
+    const [descriptor] = renderScreenDescriptors(
+      {
+        id: "s",
+        title: "S",
+        canvas: { preset_id: "tablet", runtime_mode: "fit" },
+        widgets: [
+          {
+            id: "speed",
+            kind: "slider",
+            title: "Max speed",
+            layout: { x: 0, y: 0, width: 400, height: 140 },
+            settings: {
+              min: 0,
+              max: 0.3,
+              step: 0.015,
+              variant: "segments",
+              segment_values: [0.08, 0.15, 0.3],
+              ...settings,
+            },
+          },
+        ],
+      } as ScreenConfig,
+      createDefaultWidgetRegistry(),
+    );
+    if (descriptor?.status !== "resolved") throw new Error("Missing slider descriptor.");
+    return render(<SliderWidget descriptor={descriptor} onActionIntent={vi.fn()} />).container;
+  };
+
+  it("offers segments for a speed limit", () => {
+    expect(
+      sliderWith({ topic: "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed" }).querySelector(
+        '[data-slider-kind="segments"]',
+      ),
+    ).toBeTruthy();
+  });
+
+  // Switched to Height, a segmented slider held linear_z at 0.3 with no zero and no countdown: only STOP stopped it.
+  it("never holds a motion axis on a segment", () => {
+    const container = sliderWith({
+      returnToCenter: true,
+      runtime_binding: { adapter: "teleop", axis_mapping: { value: { component: "linear_z" } } },
+    });
+    expect(container.querySelector('[data-slider-kind="segments"]')).toBeNull();
   });
 });

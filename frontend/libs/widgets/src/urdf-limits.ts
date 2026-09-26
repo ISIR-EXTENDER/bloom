@@ -5,7 +5,8 @@
  */
 export function readUrdfJointLimits(urdf: string): Record<string, readonly [number, number]> {
   const limits: Record<string, readonly [number, number]> = {};
-  for (const [, attributes = "", body = ""] of urdf.matchAll(/<joint\b([^>]*)>([\s\S]*?)<\/joint>/g)) {
+  // A self-closing <joint/> has no body; matched as an open tag, its lazy body ran on into the next joint.
+  for (const [, attributes = "", body = ""] of urdf.matchAll(/<joint\b([^>]*?)(?:\/>|>([\s\S]*?)<\/joint>)/g)) {
     const name = readAttribute(attributes, "name");
     const type = readAttribute(attributes, "type");
     if (!name || (type !== "revolute" && type !== "prismatic")) {
@@ -23,4 +24,16 @@ export function readUrdfJointLimits(urdf: string): Record<string, readonly [numb
 
 function readAttribute(attributes: string, name: string): string | undefined {
   return attributes.match(new RegExp(`\\b${name}\\s*=\\s*"([^"]*)"`))?.[1];
+}
+
+/** Joints that turn without end: no limit is right for them, and "not reported" read as missing data. */
+export function readUrdfContinuousJoints(urdf: string): ReadonlySet<string> {
+  const names = new Set<string>();
+  for (const [, attributes = ""] of urdf.matchAll(/<joint\b([^>]*?)(?:\/>|>)/g)) {
+    const name = readAttribute(attributes, "name");
+    if (name && readAttribute(attributes, "type") === "continuous") {
+      names.add(name);
+    }
+  }
+  return names;
 }

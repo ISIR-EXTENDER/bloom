@@ -1,18 +1,35 @@
 import type { WidgetConfig } from "@bloom/api-client";
-import { fieldSuggestionsFor, isRecord, TOPIC_SUGGESTIONS } from "@bloom/widgets";
+import { fieldSuggestionsFor, followTopicMessageType, isRecord, TOPIC_SUGGESTIONS } from "@bloom/widgets";
 import { useId } from "react";
 
 export const SERIES_KINDS: ReadonlySet<string> = new Set(["plot-board", "value-strip"]);
 
-/** A new row reads something every arm publishes, so it plots the moment it is added. */
-const NEW_SERIES = {
-  enabled: true,
-  field_path: "pose.position.x",
-  label: "Hand x",
-  message_type: "geometry_msgs/msg/PoseStamped",
-  topic: "/ee_pose",
-  unit: "m",
-};
+/**
+ * A new row reads something every arm publishes, so it plots the moment it is added, and never one the board
+ * already has: the same topic and field twice made the picker toggle both rows together.
+ */
+const NEW_SERIES_CHOICES = [
+  ...["x", "y", "z"].map((axis) => ({
+    field_path: `pose.position.${axis}`,
+    label: `Hand ${axis}`,
+    message_type: "geometry_msgs/msg/PoseStamped",
+    topic: "/ee_pose",
+    unit: "m",
+  })),
+  ...["x", "y", "z"].map((axis) => ({
+    field_path: `twist.linear.${axis}`,
+    label: `Hand speed ${axis}`,
+    message_type: "geometry_msgs/msg/TwistStamped",
+    topic: "/ee_velocity",
+    unit: "m/s",
+  })),
+];
+
+function nextSeries(rows: readonly SeriesRow[]): SeriesRow {
+  const taken = new Set(rows.map((row) => `${text(row, "topic")}#${text(row, "field_path")}`));
+  const free = NEW_SERIES_CHOICES.find((choice) => !taken.has(`${choice.topic}#${choice.field_path}`));
+  return { enabled: true, ...(free ?? { ...NEW_SERIES_CHOICES[0], field_path: "", label: "New series" }) };
+}
 
 type SeriesRow = Record<string, unknown>;
 
@@ -80,7 +97,15 @@ export function SeriesEditor({
                     edit(
                       index,
                       key === "topic"
-                        ? { topic: event.target.value, message_type: undefined, messageType: undefined }
+                        ? {
+                            topic: event.target.value,
+                            message_type: followTopicMessageType(
+                              row.topic,
+                              event.target.value,
+                              row.message_type ?? row.messageType,
+                            ),
+                            messageType: undefined,
+                          }
                         : { [key]: event.target.value },
                     )
                   }
@@ -133,7 +158,7 @@ export function SeriesEditor({
           <option key={suggestion.topic} value={suggestion.topic} />
         ))}
       </datalist>
-      <button className="builder-secondary-action" onClick={() => commit([...rows, { ...NEW_SERIES }])} type="button">
+      <button className="builder-secondary-action" onClick={() => commit([...rows, nextSeries(rows)])} type="button">
         Add series
       </button>
     </section>

@@ -300,13 +300,16 @@ export function BuilderWorkspace({
     commitScreenChange(updateWidgetTitle(draftScreen, selectedWidget.id, title || "Untitled widget"));
   };
 
-  const updateSelectedWidgetSettings = (settings: Record<string, unknown>): string | null => {
+  const updateSelectedWidgetSettings = (settings: Record<string, unknown>, title?: string): string | null => {
     if (!selectedWidget) {
       return null;
     }
 
     try {
-      commitScreenChange(updateWidgetSettings(draftScreen, selectedWidget.id, settings));
+      const withSettings = updateWidgetSettings(draftScreen, selectedWidget.id, settings);
+      commitScreenChange(
+        title === undefined ? withSettings : updateWidgetTitle(withSettings, selectedWidget.id, title),
+      );
       return null;
     } catch (error) {
       return describeApiError(error, "Bloom could not save this builder draft.");
@@ -422,6 +425,7 @@ export function BuilderWorkspace({
         runtimeCapabilities={runtimeCapabilities}
         allowedCommandFrameIds={commandFrameIds}
         allowedParameters={selectedWorkspace.application.runtime_policy.allowed_parameters ?? []}
+        allowedPublishTopics={selectedWorkspace.application.runtime_policy.allowed_publish_topics}
         allowedTeleopTargets={selectedWorkspace.application.runtime_policy.allowed_teleop_targets}
         serverTeleopTargets={serverTeleopTargets}
         hasStopRegion={(draftScreen.reserved_regions ?? []).some((region) => region.id === "stop")}

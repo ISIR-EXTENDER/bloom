@@ -103,9 +103,9 @@ export function RuntimeMaintenanceSheet({
       }
       // STOP stays in the loop: it is drawn outside the sheet and stays live over it, and the trap kept a
       // keyboard operator from reaching it.
-      const stops = [...document.querySelectorAll<HTMLElement>('button[data-scan-priority="stop"]')].filter(
-        (stop) => !panel.contains(stop),
-      );
+      const stops = [
+        ...document.querySelectorAll<HTMLElement>('button[data-scan-priority="stop"]:not([disabled])'),
+      ].filter((stop) => !panel.contains(stop));
       const focusable = [...panel.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR), ...stops];
       const first = focusable[0];
       const last = focusable.at(-1);

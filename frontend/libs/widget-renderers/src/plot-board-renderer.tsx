@@ -119,7 +119,9 @@ export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRen
   return (
     <div className="bloom-plot-picker bloom-info-card">
       {series.length === 0 && unavailable.length === 0 ? (
-        <p className="bloom-plot-picker-empty">No plot board “{plotId}” on this screen.</p>
+        <p className="bloom-plot-picker-empty">
+          {plotId ? "The linked plot board has no series to show." : "Link this picker to a plot board in the Builder."}
+        </p>
       ) : null}
       <ul aria-label={descriptor.widget.title} className="bloom-plot-picker-list">
         {series.map((entry) => (

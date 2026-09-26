@@ -50,3 +50,25 @@ export const TOPIC_SUGGESTIONS: readonly TopicSuggestion[] = [
 export function fieldSuggestionsFor(topic: unknown): readonly string[] {
   return TOPIC_SUGGESTIONS.find((suggestion) => suggestion.topic === topic)?.fields ?? [];
 }
+
+export function messageTypeSuggestionFor(topic: unknown): string | undefined {
+  return TOPIC_SUGGESTIONS.find((suggestion) => suggestion.topic === topic)?.messageType;
+}
+
+/**
+ * The message type a reader should carry after its topic changes. The old topic's type only goes when it was
+ * that topic's known one (placed, not typed); the new topic's known type replaces it, or the backend reads it
+ * from the graph. A type the author typed stays: a topic nobody publishes yet cannot be looked up.
+ */
+export function followTopicMessageType(
+  previousTopic: unknown,
+  nextTopic: unknown,
+  messageType: unknown,
+): string | undefined {
+  const previousKnown = messageTypeSuggestionFor(previousTopic);
+  const authored = typeof messageType === "string" && messageType !== "" && messageType !== previousKnown;
+  if (authored) {
+    return messageType as string;
+  }
+  return messageTypeSuggestionFor(nextTopic);
+}

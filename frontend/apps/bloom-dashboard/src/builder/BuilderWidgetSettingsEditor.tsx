@@ -1,12 +1,15 @@
 import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import {
+  asRecord,
   COMMAND_PURPOSE_KEYS,
   COMMAND_PURPOSES,
   commandPurposeOf,
+  commandPurposesFor,
   DEFAULT_WIDGET_DEFINITIONS,
   deriveSliderStep,
   fieldSuggestionsFor,
   findInertSetting,
+  followTopicMessageType,
   getDefaultRosMessageTogglePayloads,
   getWidgetSettingsContract,
   gripperToggleSettings,
@@ -23,7 +26,7 @@ import {
   TOPIC_SUGGESTIONS,
   type WidgetSettingField,
 } from "@bloom/widgets";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 import { AxisMappingEditor } from "./AxisMappingEditor";
 import { BuilderSettingsField, coerceFieldValue } from "./BuilderSettingsField";
@@ -38,6 +41,7 @@ type BuilderWidgetSettingsEditorProps = {
   /** The app's teleop list, so a target the runtime will refuse is named before it goes live. */
   allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
+  allowedPublishTopics?: readonly string[];
   serverTeleopTargets?: readonly string[];
   canvas?: CanvasSettings;
   /** The floor this screen's device class is held to: the touch floor on a tablet, the mouse one on a desktop. */
@@ -45,7 +49,7 @@ type BuilderWidgetSettingsEditorProps = {
   /** The fit scale of this screen's own device class, as the inspector measured it. */
   glassScale?: number;
   panel?: { height: number; width: number };
-  onUpdateSettings: (settings: Record<string, unknown>) => string | null;
+  onUpdateSettings: (settings: Record<string, unknown>, title?: string) => string | null;
   onUpdateTitle: (title: string) => void;
   /** The arm this Bloom drives, so a speed limit takes that arm's range. */
   robotName?: string;
@@ -54,7 +58,8 @@ type BuilderWidgetSettingsEditorProps = {
   widget: WidgetConfig;
 };
 
-const ADVANCED_FIELD_KINDS: ReadonlySet<string> = new Set(["command-button", "joystick", "slider", "toggle"]);
+// The kinds with a "what it does" choice. A toggle has none, so its topic and payloads stay in view.
+const ADVANCED_FIELD_KINDS: ReadonlySet<string> = new Set(["command-button", "joystick", "slider"]);
 const ADVANCED_FIELD_KEYS: ReadonlySet<string> = new Set([
   "action_id",
   "action_label",
@@ -80,6 +85,7 @@ export function BuilderWidgetSettingsEditor({
   allowedCommandFrameIds,
   allowedParameters,
   allowedTeleopTargets,
+  allowedPublishTopics,
   serverTeleopTargets,
   canvas,
   floorPx = TOUCH_FLOOR_PX,
@@ -109,8 +115,17 @@ export function BuilderWidgetSettingsEditor({
     // A reader's type was the old topic's, and the backend subscribed with it: /ee_pose's PoseStamped on
     // /joint_states waited forever. Empty, the backend reads the type from the graph.
     if (field.key === "topic" && destination?.direction === "reads" && nextSettings.topic !== widget.settings.topic) {
-      delete nextSettings.messageType;
+      const followed = followTopicMessageType(
+        widget.settings.topic,
+        nextSettings.topic,
+        widget.settings.messageType ?? widget.settings.message_type,
+      );
       delete nextSettings.message_type;
+      if (followed) {
+        nextSettings.messageType = followed;
+      } else {
+        delete nextSettings.messageType;
+      }
     }
     // Step follows the range (~20 increments); a direct step edit overrides.
     if (widget.kind === "slider" && (field.key === "min" || field.key === "max")) {
@@ -168,12 +183,13 @@ export function BuilderWidgetSettingsEditor({
     purposeOf: (settings: Record<string, unknown>) => string | null,
   ) => {
     const kept = Object.fromEntries(Object.entries(widget.settings).filter(([key]) => !ownedKeys.includes(key)));
-    setValidationMessage(onUpdateSettings({ ...kept, ...purpose.settings(robotName) }));
     const previous = purposes.find((candidate) => candidate.id === purposeOf(widget.settings));
     const defaultTitle = DEFAULT_WIDGET_DEFINITIONS.find((definition) => definition.kind === widget.kind)?.defaultTitle;
-    if (!widget.title.trim() || widget.title === previous?.title || widget.title === defaultTitle) {
-      onUpdateTitle(purpose.title);
-    }
+    const followsPurpose = !widget.title.trim() || widget.title === previous?.title || widget.title === defaultTitle;
+    // One commit: a title committed after the settings, from the same draft, used to drop them.
+    setValidationMessage(
+      onUpdateSettings({ ...kept, ...purpose.settings(robotName) }, followsPurpose ? purpose.title : undefined),
+    );
   };
 
   // The ROS plumbing of a control that says in words what it does: the choice above writes it, and 24 raw fields
@@ -181,6 +197,25 @@ export function BuilderWidgetSettingsEditor({
   const isAdvanced = (field: WidgetSettingField) =>
     ADVANCED_FIELD_KINDS.has(widget.kind) && ADVANCED_FIELD_KEYS.has(field.key);
   const basicFields = contract.fields.filter((field) => !isAdvanced(field));
+  // Folded fields must not hide what needs doing: no purpose chosen means they are the settings, and an error
+  // naming one of them points at a field nobody can see.
+  const advancedRef = useRef<HTMLDetailsElement | null>(null);
+  const purposeChosen =
+    widget.kind === "slider"
+      ? sliderPurposeOf(widget.settings) !== null
+      : widget.kind === "command-button"
+        ? commandPurposeOf(widget.settings) !== null
+        : widget.kind === "joystick"
+          ? joystickPurposeOf(widget.settings) !== null
+          : true;
+  const errorNamesAdvanced = Boolean(
+    validationMessage && [...ADVANCED_FIELD_KEYS].some((key) => validationMessage.includes(key)),
+  );
+  useEffect(() => {
+    if (advancedRef.current && (!purposeChosen || errorNamesAdvanced)) {
+      advancedRef.current.open = true;
+    }
+  }, [purposeChosen, errorNamesAdvanced]);
   const advancedFields = contract.fields.filter(isAdvanced);
   const renderField = (field: WidgetSettingField) =>
     // The series editor above carries these as rows; the raw array would be a second way in.
@@ -231,6 +266,7 @@ export function BuilderWidgetSettingsEditor({
 
       <WidgetDestinationSummary
         allowedParameters={allowedParameters}
+        allowedPublishTopics={allowedPublishTopics}
         allowedTeleopTargets={allowedTeleopTargets}
         destination={destination}
         serverTeleopTargets={serverTeleopTargets}
@@ -264,7 +300,14 @@ export function BuilderWidgetSettingsEditor({
         <PurposeField
           label="What this button does"
           onChoose={(purpose) => choosePurpose(purpose, COMMAND_PURPOSES, COMMAND_PURPOSE_KEYS, commandPurposeOf)}
-          purposes={COMMAND_PURPOSES}
+          purposes={commandPurposesFor(robotName)}
+          unavailable={(purpose) => {
+            // A frame this robot does not accept arrives disabled at runtime; say so before it is chosen.
+            const frameId = asRecord(purpose.settings().runtime_binding).frame_id;
+            return typeof frameId === "string" && allowedCommandFrameIds && !allowedCommandFrameIds.includes(frameId)
+              ? "not on this robot"
+              : null;
+          }}
           value={commandPurposeOf(widget.settings)}
         />
       ) : null}
@@ -281,7 +324,7 @@ export function BuilderWidgetSettingsEditor({
         <>
           {basicFields.map(renderField)}
           {advancedFields.length > 0 ? (
-            <details className="builder-settings-advanced">
+            <details className="builder-settings-advanced" ref={advancedRef}>
               <summary>Advanced (ROS)</summary>
               {advancedFields.map(renderField)}
             </details>
@@ -302,7 +345,7 @@ export function BuilderWidgetSettingsEditor({
 
       {validationMessage ? (
         <p className="builder-settings-error" role="alert">
-          {validationMessage}
+          {describeValidation(validationMessage, contract.fields)}
         </p>
       ) : null}
     </section>
@@ -351,11 +394,14 @@ function PurposeField({
   label,
   onChoose,
   purposes,
+  unavailable,
   value,
 }: {
   label: string;
   onChoose: (purpose: Purpose) => void;
   purposes: readonly Purpose[];
+  /** Why a purpose cannot work here, or null. */
+  unavailable?: (purpose: Purpose) => string | null;
   value: string | null;
 }) {
   return (
@@ -370,13 +416,28 @@ function PurposeField({
         }}
         value={value ?? ""}
       >
-        <option value="">Something else (set below)</option>
-        {purposes.map((purpose) => (
-          <option key={purpose.id} value={purpose.id}>
-            {purpose.label}
-          </option>
-        ))}
+        <option value="">Something else (set under Advanced)</option>
+        {purposes.map((purpose) => {
+          const reason = unavailable?.(purpose) ?? null;
+          return (
+            <option disabled={reason !== null} key={purpose.id} value={purpose.id}>
+              {reason ? `${purpose.label} (${reason})` : purpose.label}
+            </option>
+          );
+        })}
       </select>
     </label>
+  );
+}
+
+/**
+ * The settings error in the inspector's words: `Invalid settings for widget "x": runtime_binding.adapter: ...`
+ * named a key the author may never have seen. Each key becomes its field's label.
+ */
+function describeValidation(message: string, fields: readonly WidgetSettingField[]): string {
+  const detail = message.replace(/^Invalid settings for widget "[^"]*": /, "");
+  return fields.reduce(
+    (text, field) => text.replace(new RegExp(`(^|; )${field.key}(\\.[\\w.]+)?: `, "g"), `$1${field.label}: `),
+    detail,
   );
 }

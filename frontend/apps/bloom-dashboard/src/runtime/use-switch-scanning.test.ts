@@ -57,6 +57,49 @@ describe("switch scanning", () => {
     expect(document.querySelector("[data-scan-lit]")?.textContent).toBe("Stop the robot");
   });
 
+  // Keep going exists for five seconds before a latch lets go; waiting its turn in a 28 s cycle, it never came.
+  it("lights a control that just appeared for a moment at the next step", () => {
+    const { root, rootRef } = buildScreen(6);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    vi.advanceTimersByTime(1000);
+
+    const keep = document.createElement("button");
+    keep.setAttribute("data-scan-urgent", "");
+    keep.textContent = "Keep going";
+    Object.defineProperty(keep, "offsetParent", { get: () => root });
+    root.append(keep);
+    vi.advanceTimersByTime(1000);
+
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("Keep going");
+    vi.advanceTimersByTime(1000);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
+  });
+
+  it("holds the highlight on an armed control until it fires or disarms", () => {
+    const { root, rootRef } = buildScreen(3);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    const first = root.querySelector("button") as HTMLButtonElement;
+    first.setAttribute("data-armed", "true");
+
+    vi.advanceTimersByTime(2000);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
+
+    first.removeAttribute("data-armed");
+    vi.advanceTimersByTime(1000);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-1");
+  });
+
+  // A button armed until pressed again must not hold the scan for ever: STOP would be out of reach.
+  it("moves on after two periods even when the control stays armed", () => {
+    const { root, rootRef } = buildScreen(3);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    (root.querySelector("button") as HTMLButtonElement).setAttribute("data-armed", "true");
+
+    vi.advanceTimersByTime(3000);
+
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-1");
+  });
+
   it("walks the controls at the configured period and wraps around", () => {
     const { root, rootRef } = buildScreen(3);
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));

@@ -17,6 +17,8 @@ type BuilderInspectorProps = {
   allowedCommandFrameIds?: readonly string[];
   allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
+  /** The app's publish list; empty defers to the deployment. */
+  allowedPublishTopics?: readonly string[];
   serverTeleopTargets?: readonly string[];
   /** STOP is already reserved on this screen, so the palette says so instead of offering it twice. */
   hasStopRegion?: boolean;
@@ -37,7 +39,8 @@ type BuilderInspectorProps = {
   onDuplicateWidget: () => void;
   onRemoveWidget: () => void;
   onSelectWidget: (widgetId: string) => void;
-  onUpdateWidgetSettings: (settings: Record<string, unknown>) => string | null;
+  /** A title given with the settings is committed with them, as one change. */
+  onUpdateWidgetSettings: (settings: Record<string, unknown>, title?: string) => string | null;
   onUpdateWidgetTitle: (title: string) => void;
   selectedWidget: WidgetConfig | null;
   widgets: readonly WidgetConfig[];
@@ -48,6 +51,7 @@ export function BuilderInspector({
   allowedCommandFrameIds,
   allowedParameters,
   allowedTeleopTargets,
+  allowedPublishTopics,
   serverTeleopTargets,
   availableWidgetDefinitions,
   hasStopRegion = false,
@@ -164,6 +168,7 @@ export function BuilderInspector({
       <BuilderWidgetSettingsEditor
         allowedCommandFrameIds={allowedCommandFrameIds}
         allowedParameters={allowedParameters}
+        allowedPublishTopics={allowedPublishTopics}
         allowedTeleopTargets={allowedTeleopTargets}
         serverTeleopTargets={serverTeleopTargets}
         canvas={canvas}

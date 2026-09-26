@@ -18,8 +18,10 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-gesture", value: nextGesture }));
   };
 
+  // Drawn while the finger moves, sent when it lifts: one publish per pointer move spent the HTTP rate limit
+  // in seconds, and every other command on the screen came back 429.
   const handlePointerGesture = (event: PointerEvent<HTMLButtonElement>) => {
-    emitGesture(resolveGestureFromPointer(event));
+    setGesture(resolveGestureFromPointer(event));
   };
 
   const handleKeyboardGesture = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -61,6 +63,7 @@ export function GesturePadWidget({ descriptor, language, motorPreset, onActionIn
             handlePointerGesture(event);
           }
         }}
+        onPointerUp={(event) => emitGesture(resolveGestureFromPointer(event))}
         type="button"
       >
         <span aria-hidden="true" className="bloom-gesture-arc" />

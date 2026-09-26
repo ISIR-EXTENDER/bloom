@@ -9,6 +9,7 @@ export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switc
  * Controls that open every cycle, ahead of the screen, wherever they are drawn.
  * STOP carries it: last in a 23-target cycle it was 31 s away at 1400 ms.
  */
+const MAX_ARMED_HOLDS = 2;
 const SCAN_PRIORITY_SELECTOR = `${SCAN_TARGET_SELECTOR}[data-scan-priority]`;
 
 export type SwitchScanningOptions = {
@@ -54,6 +55,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
   // The ref is the source of truth inside the loop; state only informs the UI,
   // and a deferred render must never make the highlight skip a target.
   const indexRef = useRef(-1);
+  const armedHoldsRef = useRef(0);
   const activateCurrent = useCallback(() => {
     const target = targetsRef.current[indexRef.current];
     if (!target) {
@@ -121,13 +123,28 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     paint(indexRef.current);
 
     const advance = () => {
+      // An armed control (Go home waiting for its second press) keeps the highlight until it fires or disarms: the
+      // confirming press otherwise landed on whatever was lit next.
+      // Two periods at most: a button that stays armed until pressed must never keep the operator from STOP.
+      const lit = targetsRef.current[indexRef.current];
+      if (lit?.isConnected && lit.getAttribute("data-armed") === "true" && armedHoldsRef.current < MAX_ARMED_HOLDS) {
+        armedHoldsRef.current += 1;
+        return;
+      }
+      armedHoldsRef.current = 0;
+      const previous = targetsRef.current;
       const targets = readTargets();
       if (targets.length === 0) {
         indexRef.current = -1;
         setIndex(-1);
         return;
       }
-      const nextIndex = (indexRef.current + 1) % targets.length;
+      // A control that appears for a few seconds (Keep going before a latch lets go) is lit next, not after a
+      // whole cycle a one-switch operator could not finish in time.
+      const urgent = targets.findIndex(
+        (target) => target.hasAttribute("data-scan-urgent") && !previous.includes(target),
+      );
+      const nextIndex = urgent >= 0 ? urgent : (indexRef.current + 1) % targets.length;
       indexRef.current = nextIndex;
       setIndex(nextIndex);
       paint(nextIndex);

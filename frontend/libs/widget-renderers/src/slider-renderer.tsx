@@ -1,4 +1,5 @@
 import {
+  asRecord,
   clamp,
   createWidgetActionIntent,
   getBooleanSetting,
@@ -249,7 +250,9 @@ export function SliderWidget({
 
   const segmentLabels = readStringList(sliderSettings.segment_labels);
   const segmentValues = readNumberList(sliderSettings.segment_values);
-  if (getStringSetting(sliderSettings, "variant", "") === "segments" && segmentValues.length > 0) {
+  // Segments hold a value with no zero and no latch countdown: right for a speed limit, never for a motion axis.
+  const drivesMotion = returnToCenter || asRecord(sliderSettings.runtime_binding).adapter === "teleop";
+  if (getStringSetting(sliderSettings, "variant", "") === "segments" && segmentValues.length > 0 && !drivesMotion) {
     return (
       <div
         className="bloom-slider-widget bloom-info-card"

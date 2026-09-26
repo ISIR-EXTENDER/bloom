@@ -407,6 +407,18 @@ describe("placing a control for the arm this Bloom drives", () => {
     expect(screen.queryByText(/does not know which arm/)).toBeNull();
   });
 
+  // The title and the settings were committed one after the other from the same draft: the title won and the
+  // slider stayed a speed limit under the name Height.
+  it("becomes Height, settings and title together, when that is chosen", () => {
+    renderWorkspace(empty(), { robotName: "Explorer" });
+    fireEvent.click(screen.getByRole("button", { name: /^Add Slider widget/ }));
+
+    fireEvent.change(screen.getByLabelText("What this slider controls"), { target: { value: "height" } });
+
+    expect((screen.getByLabelText("What this slider controls") as HTMLSelectElement).value).toBe("height");
+    expect(screen.getByRole("heading", { level: 2, name: "Height" })).toBeTruthy();
+  });
+
   it("says when it cannot tell which arm it drives", () => {
     renderWorkspace(empty());
     fireEvent.click(screen.getByRole("button", { name: /^Add Slider widget/ }));

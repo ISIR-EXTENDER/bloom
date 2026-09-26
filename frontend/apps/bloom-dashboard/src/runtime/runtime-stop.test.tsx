@@ -64,6 +64,31 @@ describe("the STOP control", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: /Hold for one second to resume/ }));
   });
 
+  it("does not pull focus back after a keyboard tap on Resume that let go early", () => {
+    const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
+    const { rerender } = render(
+      <>
+        <input aria-label="elsewhere" />
+        <RuntimeStopControl requestError="" stopped={true} {...handlers} />
+      </>,
+    );
+    const resume = screen.getByRole("button", { name: /Hold for one second to resume/ });
+    fireEvent.keyDown(resume, { key: "Enter" });
+    fireEvent.keyUp(resume, { key: "Enter" });
+    const elsewhere = screen.getByLabelText("elsewhere");
+    elsewhere.focus();
+
+    // Another station resumes.
+    rerender(
+      <>
+        <input aria-label="elsewhere" />
+        <RuntimeStopControl requestError="" stopped={false} {...handlers} />
+      </>,
+    );
+
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
   it("says a failed STOP in its accessible name, not only on screen", () => {
     renderControl({ requestError: "The stop request failed." });
 

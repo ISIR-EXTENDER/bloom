@@ -1864,7 +1864,10 @@
 
 /* The last seconds before a latched control lets go by itself: it used to release in silence. */
 .bloom-latch-countdown {
-  align-self: center;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 10px;

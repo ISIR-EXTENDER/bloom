@@ -4,6 +4,7 @@ import {
   readJacobian,
   readJointLimits,
   readJointStates,
+  readUrdfContinuousJoints,
   readUrdfJointLimits,
   yoshikawaManipulability,
 } from "@bloom/widgets";
@@ -23,11 +24,14 @@ export function JointTableWidget({ data, descriptor, robotModel }: WidgetRendere
   const topic = getStringSetting(settings, "topic", "/joint_states");
   const latest = data?.type === "topic-echo" ? data.messages.at(-1) : undefined;
   const configuredLimits = readJointLimits(settings.joint_limits);
-  const hasConfiguredLimits = Object.keys(configuredLimits).length > 0;
-  // The limits typed by hand win; otherwise the robot's own description has them, and the column was empty.
-  const [modelLimits, setModelLimits] = useState<Record<string, readonly [number, number]>>({});
+  // The robot's own description gives every bounded joint's range, and a limit typed by hand overrides only its
+  // own joint: typing one used to hide all the others.
+  const [model, setModel] = useState<{
+    continuous: ReadonlySet<string>;
+    limits: Record<string, readonly [number, number]>;
+  }>({ continuous: new Set(), limits: {} });
   useEffect(() => {
-    if (hasConfiguredLimits || !robotModel) {
+    if (!robotModel) {
       return;
     }
     let current = true;
@@ -35,15 +39,15 @@ export function JointTableWidget({ data, descriptor, robotModel }: WidgetRendere
       .load()
       .then((urdf) => {
         if (current && urdf) {
-          setModelLimits(readUrdfJointLimits(urdf));
+          setModel({ continuous: readUrdfContinuousJoints(urdf), limits: readUrdfJointLimits(urdf) });
         }
       })
       .catch(() => undefined);
     return () => {
       current = false;
     };
-  }, [hasConfiguredLimits, robotModel]);
-  const rows = readJointStates(latest?.value, hasConfiguredLimits ? configuredLimits : modelLimits);
+  }, [robotModel]);
+  const rows = readJointStates(latest?.value, { ...model.limits, ...configuredLimits });
   // A frozen pose read as the arm's current one is how an operator plans a move from where it was.
   const stale = isSampleStale(latest?.receivedAt, useNow(1000));
 
@@ -77,7 +81,9 @@ export function JointTableWidget({ data, descriptor, robotModel }: WidgetRendere
                 <td>{row.effort === null ? "—" : formatSigned(row.effort, 1)}</td>
                 <td>
                   {row.proximity === null ? (
-                    <span className="bloom-debug-unreported">not reported</span>
+                    <span className="bloom-debug-unreported">
+                      {model.continuous.has(row.name) ? "continuous" : "not reported"}
+                    </span>
                   ) : (
                     <span
                       className="bloom-joint-proximity"

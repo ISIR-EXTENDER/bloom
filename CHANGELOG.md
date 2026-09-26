@@ -21,6 +21,25 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **Review of the new "what it does" choices and latches, fixed.** Choosing a purpose that also renamed the widget
+  kept the old settings (two commits from one draft). A speed slider switched to Height or Pivot kept its speed
+  segments and could hold the arm moving with no zero; segments are never drawn on a motion axis now, and a purpose
+  owns those keys. Go home is not offered on the Kinova while cartesian_manager#10 is open. A button's purpose now
+  replaces its navigation, action id and emphasis too, and Release is marked danger as in the Manager apps. A frame
+  the robot does not accept is shown disabled in the choice.
+- **Latch and scan.** The countdown no longer shifts step targets under a resting pointer and says its warning once;
+  **Keep going** is lit by scanning at the next step; the scan holds an armed Go home for two periods so its
+  confirming press lands on it; the maintenance Tab loop skips a disabled Resume; a keyboard tap on Resume that let
+  go early no longer pulls focus later.
+- **Builder.** Advanced (ROS) has a marker, opens by itself when no purpose is chosen or an error names a field in it,
+  and errors name fields by their label; the toggle keeps its topic and payloads in view. A publish outside the
+  app's own list is warned about in the inspector. A reader keeps a message type the author typed and takes the new
+  topic's known one. Add series never duplicates a row.
+- **Runtime widgets.** The gesture pad sends once when the finger lifts: every move was an HTTP publish, and dragging
+  spent the rate limit for every other command. Typed joint limits add to the robot's instead of hiding them,
+  continuous joints say so, the URDF reader keeps the joint after a self-closing one, and an unlinked plot picker says
+  what to do.
+
 - **A latched control says when it will let go.** A latched pad, slider or held Snake releases after 15 s without
   input, which is safe but came in silence; the last five seconds are now counted down on the control, with **Keep
   going**, which restarts the window without moving anything.

@@ -91,16 +91,20 @@ export const SLIDER_PURPOSES: readonly SliderPurpose[] = [
 /** The keys a purpose owns: switching replaces all of them, so no part of the previous purpose lingers. */
 export const SLIDER_PURPOSE_KEYS = [
   "direction",
+  "intent_label",
   "labels",
   "max",
   "messageType",
   "min",
   "returnToCenter",
   "runtime_binding",
+  "segment_labels",
+  "segment_values",
   "step",
   "topic",
   "unit",
   "value",
+  "variant",
 ] as const;
 
 /** Which purpose a slider already has, read from where it sends; null for anything else. */

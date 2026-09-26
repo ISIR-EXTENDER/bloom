@@ -1,3 +1,4 @@
+import { robotFamily } from "./robot-family";
 import { asRecord } from "./values";
 
 /**
@@ -57,7 +58,7 @@ export const COMMAND_PURPOSES: readonly CommandPurpose[] = [
     id: "release",
     label: "Cancel a pose in progress",
     title: "Release",
-    settings: mode("behaviour/passthrough", "Cancel the pose"),
+    settings: mode("behaviour/passthrough", "Cancel the pose", { variant: "danger" }),
   },
   { id: "frame-base", label: "Drive in the base frame", title: "Base", settings: frame("base_link", "Base") },
   { id: "frame-tool", label: "Drive in the tool frame", title: "Tool", settings: frame("effector_frame", "Tool") },
@@ -71,6 +72,8 @@ export const COMMAND_PURPOSES: readonly CommandPurpose[] = [
 
 /** The keys a purpose owns: switching replaces all of them, so a Go home confirm never lingers on Neutral. */
 export const COMMAND_PURPOSE_KEYS = [
+  "action_feedback",
+  "action_id",
   "action_label",
   "button_label",
   "command",
@@ -86,8 +89,20 @@ export const COMMAND_PURPOSE_KEYS = [
   "released_label",
   "releasedPayload",
   "runtime_binding",
+  "targetScreenId",
   "topic",
+  "variant",
 ] as const;
+
+/**
+ * The purposes this arm can use. Go home is left out on the Kinova while cartesian_manager#10 is open: its home
+ * target has six joints for a seven-joint arm and one past the gen3 limit, and the Kinova Manager app omits it.
+ */
+export function commandPurposesFor(robotName?: string | null): readonly CommandPurpose[] {
+  return robotFamily(robotName) === "kinova"
+    ? COMMAND_PURPOSES.filter((purpose) => purpose.id !== "go-home")
+    : COMMAND_PURPOSES;
+}
 
 export function commandPurposeOf(settings: Record<string, unknown>): string | null {
   const binding = asRecord(settings.runtime_binding);

@@ -79,6 +79,47 @@ describe("the joint table", () => {
     await waitFor(() => expect(container.querySelector(".bloom-joint-proximity")?.textContent).toBe("90%"));
   });
 
+  it("adds typed limits to the robot's own, and names a continuous joint", async () => {
+    const [descriptor] = renderScreenDescriptors(
+      {
+        ...debugScreen,
+        widgets: [
+          {
+            ...(debugScreen.widgets[0] as ScreenConfig["widgets"][number]),
+            settings: { topic: "/joint_states", joint_limits: { joint_2: [-2, 2] } },
+          },
+        ],
+      },
+      createDefaultWidgetRegistry(),
+    );
+    if (!descriptor) throw new Error("Missing descriptor.");
+    const urdf =
+      '<robot><joint name="joint_1" type="revolute"><limit lower="-1" upper="1"/></joint>' +
+      '<joint name="wrist" type="continuous"/></robot>';
+    const { container } = render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            joints: {
+              type: "topic-echo",
+              messages: [
+                {
+                  receivedAt: "2026-09-17T10:00:00Z",
+                  topic: "",
+                  value: { name: ["joint_1", "joint_2", "wrist"], position: [0.9, 1.8, 3] },
+                },
+              ],
+            },
+          },
+          robotModel: { asset: async () => null, load: async () => urdf },
+        })}
+      </div>,
+    );
+
+    await waitFor(() => expect(container.querySelectorAll(".bloom-joint-proximity")).toHaveLength(2));
+    expect(screen.getByText("continuous")).toBeTruthy();
+  });
+
   it("waits for joint states instead of inventing rows", () => {
     renderWidget(0);
     expect(screen.getByText("Waiting for /joint_states.")).toBeTruthy();

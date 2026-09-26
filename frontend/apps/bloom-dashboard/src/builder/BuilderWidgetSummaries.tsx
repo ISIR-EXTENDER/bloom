@@ -102,12 +102,15 @@ export function WidgetGlassSizeSummary({
  */
 export function WidgetDestinationSummary({
   allowedParameters,
+  allowedPublishTopics,
   allowedTeleopTargets,
   destination,
   serverTeleopTargets,
   widget,
 }: {
   allowedParameters?: readonly string[];
+  /** The app's publish list; empty defers to the deployment, as the backend narrows. */
+  allowedPublishTopics?: readonly string[];
   allowedTeleopTargets?: readonly string[];
   destination: WidgetDestination | null;
   /** What this robot's server allows; the app's list can only narrow it. */
@@ -147,6 +150,16 @@ export function WidgetDestinationSummary({
     !allowedParameters?.includes("*") &&
     !allowedParameters?.includes(parameterTarget);
 
+  // A plain publish outside a non-empty app list is refused at runtime; only teleop and parameters said so.
+  const publishTopic =
+    destination.direction === "publishes" && !teleopTarget && !parameterTarget ? (destination.topic ?? "") : "";
+  const publishOutsidePolicy =
+    Boolean(publishTopic) &&
+    (allowedPublishTopics?.length ?? 0) > 0 &&
+    !allowedPublishTopics?.some(
+      (entry) => entry === "*" || entry === publishTopic || (entry.endsWith("/") && publishTopic.startsWith(entry)),
+    );
+
   const label = destination.direction === "reads" ? "Reads from" : parameterTarget ? "Sets parameter" : "Publishes to";
   const emptyLabel = destination.direction === "reads" ? "No topic set" : "Not configured";
 
@@ -173,6 +186,12 @@ export function WidgetDestinationSummary({
         <p className="builder-settings-destination-refusal" role="alert">
           Nothing on this robot takes a joystick on {teleopTarget}, so the runtime will refuse it. The manager listens
           on {serverTeleopTargets?.join(", ")}.
+        </p>
+      ) : null}
+      {publishOutsidePolicy ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          This app does not allow publishing on {publishTopic}, so the runtime will refuse it. Add it under App
+          configuration, Adapter guardrails, Allowed publish topics.
         </p>
       ) : null}
       {parameterOutsidePolicy ? (

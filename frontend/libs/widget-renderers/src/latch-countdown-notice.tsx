@@ -6,10 +6,15 @@ export function LatchCountdownNotice({ countdown, text }: { countdown: LatchCoun
   if (countdown.secondsLeft === null) {
     return null;
   }
+  // An overlay, so the step targets under a resting pointer do not move; the count is for the eyes, and the
+  // live region says the warning once rather than every second.
   return (
     <span className="bloom-latch-countdown">
-      <span role="status">{text.releasesIn(countdown.secondsLeft)}</span>
-      <button className="bloom-latch-keep" onClick={countdown.keep} type="button">
+      <span aria-hidden="true">{text.releasesIn(countdown.secondsLeft)}</span>
+      <span className="sr-only" role="status">
+        {text.releasesSoon}
+      </span>
+      <button className="bloom-latch-keep" data-scan-urgent="" onClick={countdown.keep} type="button">
         {text.keepGoing}
       </button>
     </span>

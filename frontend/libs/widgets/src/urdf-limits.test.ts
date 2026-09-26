@@ -13,4 +13,10 @@ describe("joint limits from the robot description", () => {
 
     expect(readUrdfJointLimits(urdf)).toEqual({ joint_1: [-2.5, 2.5], slide: [0, 0.3] });
   });
+
+  it("keeps the joint that follows a self-closing one", () => {
+    const urdf = '<joint name="a" type="fixed"/><joint name="b" type="revolute"><limit lower="-1" upper="1"/></joint>';
+
+    expect(readUrdfJointLimits(urdf)).toEqual({ b: [-1, 1] });
+  });
 });

@@ -2112,6 +2112,16 @@
   font-weight: 700;
 }
 
+/* display: flex removed the disclosure triangle, and the section read as a label rather than something to open. */
+.builder-settings-advanced summary::before {
+  content: "▸";
+  margin-right: 8px;
+}
+
+.builder-settings-advanced[open] summary::before {
+  content: "▾";
+}
+
 .builder-series-editor {
   display: grid;
   gap: 10px;

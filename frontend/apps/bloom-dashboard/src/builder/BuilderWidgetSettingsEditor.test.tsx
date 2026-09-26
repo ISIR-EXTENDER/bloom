@@ -650,6 +650,8 @@ describe("a plot board's series", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Add series" }));
     expect(seriesSent()).toHaveLength(2);
+    // Never one the board already has: the same key twice toggled both rows together.
+    expect(seriesSent()?.[1]).toMatchObject({ topic: "/ee_pose", field_path: "pose.position.x" });
 
     fireEvent.change(screen.getAllByLabelText("Field")[0] as HTMLElement, { target: { value: "pose.position.y" } });
     expect(seriesSent()?.[0]).toMatchObject({ field_path: "pose.position.y", label: "Hand z" });
@@ -679,7 +681,20 @@ describe("pointing a reading widget at another topic", () => {
 
     const sent = onUpdate.mock.calls.at(-1)?.[0] as Record<string, unknown>;
     expect(sent.topic).toBe("/joint_states");
-    expect("messageType" in sent).toBe(false);
+    expect(sent.messageType).toBe("sensor_msgs/msg/JointState");
+  });
+
+  // Cleared, a type the author typed for a topic nobody publishes yet could not be read back from the graph.
+  it("keeps a type the author typed", () => {
+    const onUpdate = renderEditor(
+      { topic: "/lab/sensor", messageType: "std_msgs/msg/Float32", fieldPath: "data", min: 0, max: 1 },
+      "gauge",
+    );
+    fireEvent.change(screen.getByLabelText(/^Input topic/), { target: { value: "/lab/sensor_2" } });
+
+    expect((onUpdate.mock.calls.at(-1)?.[0] as Record<string, unknown> | undefined)?.messageType).toBe(
+      "std_msgs/msg/Float32",
+    );
   });
 });
 
@@ -706,7 +721,7 @@ describe("what a slider controls", () => {
   // Height, Pivot and the gain were a runtime_binding written by hand; a new app could not lift the hand.
   it("turns a speed slider into the Manager apps' Height in one choice", () => {
     const onUpdateTitle = vi.fn();
-    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>, _title?: string) => null);
     render(
       <BuilderWidgetSettingsEditor
         onUpdateSettings={onUpdateSettings}
@@ -742,7 +757,9 @@ describe("what a slider controls", () => {
     });
     expect(sent.topic).toBeUndefined();
     expect(sent.unit).toBeUndefined();
-    expect(onUpdateTitle).toHaveBeenCalledWith("Height");
+    // The title travels with the settings: two commits from one draft dropped the settings.
+    expect(onUpdateSettings.mock.calls.at(-1)?.[1]).toBe("Height");
+    expect(onUpdateTitle).not.toHaveBeenCalled();
   });
 });
 
@@ -751,7 +768,7 @@ describe("what a command button does", () => {
 
   const neutral = () => {
     const onUpdateTitle = vi.fn();
-    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>, _title?: string) => null);
     render(
       <BuilderWidgetSettingsEditor
         onUpdateSettings={onUpdateSettings}
@@ -775,18 +792,18 @@ describe("what a command button does", () => {
     );
     const choice = screen.getByLabelText("What this button does") as HTMLSelectElement;
     const sent = () => onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
-    return { choice, onUpdateTitle, sent };
+    return { choice, onUpdateSettings, onUpdateTitle, sent };
   };
 
   // Anything but Neutral needed the manager's mode string typed from memory.
   it("becomes Go home, with its second press, in one choice", () => {
-    const { choice, onUpdateTitle, sent } = neutral();
+    const { choice, onUpdateSettings, sent } = neutral();
     expect(choice.value).toBe("neutral");
 
     fireEvent.change(choice, { target: { value: "go-home" } });
 
     expect(sent()).toMatchObject({ command: "behaviour/joint_target/home", confirm_press: true });
-    expect(onUpdateTitle).toHaveBeenCalledWith("Go home");
+    expect(onUpdateSettings.mock.calls.at(-1)?.[1]).toBe("Go home");
   });
 
   it("becomes a frame button, dropping the mode topic it no longer sends on", () => {
@@ -796,5 +813,32 @@ describe("what a command button does", () => {
 
     expect(sent().runtime_binding).toEqual({ adapter: "teleop-frame", frame_id: "effector_frame" });
     expect(sent().topic).toBeUndefined();
+  });
+});
+
+describe("a publish the app does not allow", () => {
+  afterEach(cleanup);
+
+  // Only teleop targets and parameters were checked; a gesture pad on /ui/gesture in a Manager app, whose list
+  // has no /ui/, was refused at runtime without a word in the Builder.
+  it("is said in the inspector, with where to allow it", () => {
+    render(
+      <BuilderWidgetSettingsEditor
+        allowedPublishTopics={["/mode_request", "/gripper_controller/commands"]}
+        onUpdateSettings={vi.fn(() => null)}
+        onUpdateTitle={vi.fn()}
+        widget={
+          {
+            id: "gesture",
+            kind: "gesture-pad",
+            title: "Gesture",
+            layout: { x: 0, y: 0, width: 360, height: 300 },
+            settings: { topic: "/ui/gesture", messageType: "std_msgs/msg/String" },
+          } as unknown as WidgetConfig
+        }
+      />,
+    );
+
+    expect(screen.getByRole("alert").textContent).toMatch(/does not allow publishing on \/ui\/gesture/);
   });
 });
