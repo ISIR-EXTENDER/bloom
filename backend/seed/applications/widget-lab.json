@@ -8,7 +8,7 @@
     {
       "id": "widget-lab",
       "name": "Widget Lab",
-      "description": "Every widget kind on the palette, bound to the simulation's topics, so each one is proven end to end. Explorer only: its drive axes, gripper travel, speed range and joint names are the Explorer's.",
+      "description": "Every widget kind on the palette, bound to the simulation's topics, so each one is proven end to end. Its drive axes, gripper travel, speed range and joint names follow the Explorer.",
       "lifecycle": "active",
       "action_presets": [],
       "runtime_policy": {
@@ -629,7 +629,7 @@
               "settings": {
                 "jointStateTopic": "/joint_states",
                 "markerTopic": "/widget_lab/markers",
-                "targetJointTopic": "/joint_target_command",
+                "targetJointTopic": "/widget_lab/target",
                 "poseTopic": "/ee_pose",
                 "eeLink": "",
                 "showAxes": true,

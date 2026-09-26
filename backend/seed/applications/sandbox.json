@@ -259,9 +259,9 @@
               "title": "RZ",
               "layout": {
                 "x": 630,
-                "y": 130,
+                "y": 140,
                 "width": 390,
-                "height": 124
+                "height": 120
               },
               "settings": {
                 "direction": "horizontal",
