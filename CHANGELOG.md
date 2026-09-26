@@ -96,6 +96,13 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A runtime widget is held to its own app's policy on every route.** Topic publishes, parameter sets and service
+  calls over HTTP checked only the deployment's allowlists, so an app that does not list a topic could still publish
+  to it; the runtime now names its app and the API narrows to that app's policy, parameters included.
+- **Smaller API leaks closed.** Recordings stop when the API stops instead of writing until the disk fills; camera
+  streams are capped at 12; the `/ui/` publisher cache is bounded and locked; reading positions for an unknown app no
+  longer grows a map; and a raw `/ee_jac` and its manipulability no longer starve each other in the socket throttle.
+
 - **Editing in the Builder no longer fights the author.** A number field keeps what is being typed, so a slider's
   Maximum can be retyped (its first keystroke broke the range and snapped the field back, and an emptied field
   became 0). A cleared title or app name stays empty until the field is left, instead of reading "Untitled

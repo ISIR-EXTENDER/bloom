@@ -148,6 +148,10 @@ def publish_camera_frame(
     )
 
 
+#: Each stream is an rclpy subscription copying frames of up to 8 MB; the telemetry socket has its own cap.
+MAX_CAMERA_STREAMS = 12
+
+
 @router.websocket("/camera")
 async def runtime_camera_websocket(websocket: WebSocket) -> None:
     """Stream one ROS camera topic as binary frames.
@@ -166,6 +170,18 @@ async def runtime_camera_websocket(websocket: WebSocket) -> None:
         await websocket.close(code=1008, reason=topic_error[:120])
         return
 
+    open_streams = getattr(websocket.app.state, "camera_streams_open", 0)
+    if open_streams >= MAX_CAMERA_STREAMS:
+        await websocket.close(code=1013, reason="Too many camera streams are open.")
+        return
+    websocket.app.state.camera_streams_open = open_streams + 1
+    try:
+        await _stream_camera_topic(websocket, topic)
+    finally:
+        websocket.app.state.camera_streams_open -= 1
+
+
+async def _stream_camera_topic(websocket: WebSocket, topic: str) -> None:
     gateway = get_camera_stream_gateway(websocket)
     event_loop = asyncio.get_running_loop()
     # One slot: an operator judging where the gripper is wants the newest frame, never a backlog.
@@ -179,7 +195,8 @@ async def runtime_camera_websocket(websocket: WebSocket) -> None:
             topic,
             lambda frame: event_loop.call_soon_threadsafe(enqueue_camera_frame, frames, frame),
         )
-    except (RuntimeError, ValueError) as error:
+    # Any error: rclpy raises its own, and an unanswered close left the widget waiting forever.
+    except Exception as error:  # noqa: BLE001
         logger.warning("Cannot stream camera topic %s: %s", topic, error)
         await websocket.close(code=1011, reason=str(error))
         return

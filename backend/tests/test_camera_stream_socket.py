@@ -76,6 +76,22 @@ def test_a_topic_that_is_not_a_topic_is_refused() -> None:
     assert gateway.topics == []
 
 
+def test_camera_streams_are_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Each stream is a subscription copying frames of up to 8 MB; an observer key could open any number.
+    monkeypatch.setattr("apps.bloom_api.routes.runtime_camera.MAX_CAMERA_STREAMS", 1)
+    url = "/api/v1/runtime/camera?topic=/camera/color/image_raw/compressed"
+
+    with build_client(NoopCameraStreamGateway()) as client:
+        with client.websocket_connect(url) as first:
+            first.receive_json()
+            with client.websocket_connect(url) as second, pytest.raises(WebSocketDisconnect) as refusal:
+                second.receive_json()
+        with client.websocket_connect(url) as again:
+            assert again.receive_json()["type"] == "camera_stream_opened"
+
+    assert refusal.value.code == 1013
+
+
 def test_without_a_ros_node_the_socket_says_so_rather_than_hanging() -> None:
     # The alternative is a black rectangle that looks exactly like a camera that has not started.
     with build_client(NoopCameraStreamGateway()) as client:

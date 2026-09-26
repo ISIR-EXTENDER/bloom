@@ -19,6 +19,8 @@ class RuntimeTopicSample:
     value: Any
     message_type: str = ""
     received_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    #: A value derived from the topic rather than the message itself; throttled apart from the raw stream.
+    stream: str = ""
 
 
 RuntimeTopicSampleCallback = Callable[[RuntimeTopicSample], None]

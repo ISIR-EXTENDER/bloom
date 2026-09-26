@@ -8,6 +8,7 @@ import {
   type WidgetActionIntent,
 } from "@bloom/widgets";
 import {
+  appScope,
   getErrorMessage,
   isAllowedByPolicy,
   type RuntimeActionDispatchOptions,
@@ -28,7 +29,7 @@ export async function publishTopicRequest(
     return { intent, request, status: "blocked", detail: policyError };
   }
   try {
-    const response = await client.publishRosTopic(request);
+    const response = await client.publishRosTopic({ ...request, ...appScope(options) });
     return { intent, request, status: response.status, detail: response.detail };
   } catch (error: unknown) {
     return { intent, request, status: "failed", detail: getErrorMessage(error) };

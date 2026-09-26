@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from libs.sessions.topic_sample_throttle import TopicSampleThrottle
 from libs.sessions.topics import RuntimeTopicSample
 
@@ -74,6 +76,18 @@ def test_topics_are_throttled_apart() -> None:
     throttle.offer(sample("/a", 1))
     throttle.offer(sample("/b", 2))
     assert sent == [1.0, 2.0]
+
+
+def test_a_derived_stream_is_throttled_apart_from_its_topic() -> None:
+    # A raw /ee_jac and its manipulability arrive in pairs; on one key the later always replaced the earlier.
+    loop, sent, throttle = make()
+    for value in range(10):
+        throttle.offer(sample("/ee_jac", value))
+        throttle.offer(replace(sample("/ee_jac", 100 + value), stream="manipulability"))
+        loop.advance(0.05)
+
+    assert any(value < 100 for value in sent[2:])
+    assert any(value >= 100 for value in sent[2:])
 
 
 def test_a_rate_of_zero_forwards_everything() -> None:

@@ -126,6 +126,11 @@ class RosbagRuntimeRecordingGateway:
             topics=request.topics,
         )
 
+    def stop_all(self) -> None:
+        """At API shutdown: a recording nobody can stop any more would write until the disk fills."""
+        for recording_id in list(self._recordings):
+            self.stop(recording_id)
+
     def _ensure_executable_available(self) -> None:
         if which(self._executable) is None:
             raise RuntimeError(f"{self._executable} executable is not available for rosbag recording")

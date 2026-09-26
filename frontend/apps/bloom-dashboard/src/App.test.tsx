@@ -496,6 +496,8 @@ describe("App", () => {
 
     await waitFor(() =>
       expect(runtimeActionClient.setRosParameter).toHaveBeenCalledWith({
+        app_id: "explorer-manager",
+        config_id: "explorer-manager",
         node: "/cartesian_manager",
         name: "shapers.snake.gain",
         value: 3.1,
@@ -1439,6 +1441,8 @@ describe("App", () => {
     expect(screen.queryByRole("heading", { level: 2, name: "Choose what to preview" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 2, name: "Action intents" })).not.toBeInTheDocument();
     expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith({
+      app_id: "sandbox",
+      config_id: "sandbox",
       topic: "/ui/ros_toggle",
       message_type: "std_msgs/msg/Int32MultiArray",
       payload_text: "{data: [13, 1]}",

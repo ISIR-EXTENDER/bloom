@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import threading
+from collections import OrderedDict
 from typing import Any
 
 from libs.ros_adapters.messages import resolve_message_class
 from libs.ros_adapters.publishers import RosPublishReceipt, RosPublishRequest
+
+#: The `/ui/` namespace accepts any name under it, so the cache is bounded: each entry is a DDS publisher.
+MAX_CACHED_PUBLISHERS = 128
 
 
 class RclpyRosPublisherGateway:
@@ -17,7 +22,8 @@ class RclpyRosPublisherGateway:
     def __init__(self, node: Any, qos_profile: int = 10) -> None:
         self._node = node
         self._qos_profile = qos_profile
-        self._publishers: dict[tuple[str, str], Any] = {}
+        self._publishers: OrderedDict[tuple[str, str], Any] = OrderedDict()
+        self._publishers_lock = threading.Lock()
         self._message_classes: dict[str, type] = {}
 
     def publish(self, request: RosPublishRequest) -> RosPublishReceipt:
@@ -38,10 +44,16 @@ class RclpyRosPublisherGateway:
 
     def _ensure_publisher(self, topic: str, message_type: str, message_cls: type) -> Any:
         cache_key = (topic, message_type)
-        publisher = self._publishers.get(cache_key)
-        if publisher is None:
+        with self._publishers_lock:
+            publisher = self._publishers.get(cache_key)
+            if publisher is not None:
+                self._publishers.move_to_end(cache_key)
+                return publisher
             publisher = self._node.create_publisher(message_cls, topic, self._qos_profile)
             self._publishers[cache_key] = publisher
+            while len(self._publishers) > MAX_CACHED_PUBLISHERS:
+                _, oldest = self._publishers.popitem(last=False)
+                self._node.destroy_publisher(oldest)
         return publisher
 
     @staticmethod

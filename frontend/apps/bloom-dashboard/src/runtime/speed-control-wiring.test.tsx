@@ -75,6 +75,9 @@ describe("the Explorer speed controls", () => {
 
     await waitFor(() =>
       expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith({
+        // The app's name, so the backend checks this app's policy as well as the deployment's.
+        app_id: "explorer-manager",
+        config_id: "explorer-manager",
         topic: LINEAR_SPEED_TOPIC,
         message_type: "std_msgs/msg/Float64",
         payload: { data: 0.165 },

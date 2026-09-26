@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -67,6 +70,7 @@ def create_app(
 ) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(
+        lifespan=_stop_recordings_on_shutdown,
         title=app_settings.app_name,
         version=app_settings.app_version,
         description=app_settings.app_description,
@@ -245,3 +249,11 @@ def install_unreadable_configuration_handler(app: FastAPI) -> None:
     @app.exception_handler(ConfigurationUnreadableError)
     async def _unreadable(_request: Request, exc: ConfigurationUnreadableError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+@asynccontextmanager
+async def _stop_recordings_on_shutdown(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    stop_all = getattr(getattr(app.state, "runtime_recording_gateway", None), "stop_all", None)
+    if callable(stop_all):
+        stop_all()

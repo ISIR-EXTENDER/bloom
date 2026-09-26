@@ -175,6 +175,7 @@ class ManipulabilityDerivingGateway:
                 RuntimeTopicSample(
                     message_type=sample.message_type,
                     received_at=sample.received_at,
+                    stream=MANIPULABILITY_FIELD_PATH,
                     topic=sample.topic,
                     value={MANIPULABILITY_FIELD_PATH: measure},
                 )

@@ -62,8 +62,9 @@ def find_position_library(request: Request, config_id: str = "", app_id: str = "
     key = f"{config_id}:{app_id}"
     store = getattr(request.app.state, "position_store", None)
     if key not in libraries and store is not None and (config_id or app_id):
-        # After an API restart the map is empty but the store is not.
-        libraries[key] = library_backed_by(store, config_id, app_id)
+        # After an API restart the map is empty but the store is not. Read without caching: any id pair can be
+        # asked for, and only a write, which checks the app exists, may add to the map.
+        return library_backed_by(store, config_id, app_id)
     return libraries.get(key)
 
 

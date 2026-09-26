@@ -102,3 +102,28 @@ def test_two_recordings_with_one_label_in_the_same_second_stay_separate():
 
     assert first != second
     assert first.startswith("rosbag-") and "run" in first
+
+
+def test_closing_the_api_stops_every_recording(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Nothing listed or stopped them: a reload lost the id and ros2 bag record wrote until the disk filled.
+    from fastapi.testclient import TestClient
+
+    from apps.bloom_api.main import create_app
+    from apps.bloom_api.settings import Settings
+    from libs.config import InMemoryConfigurationRepository
+
+    processes: list[FakeRosbagProcess] = []
+
+    def fake_popen(command: list[str], stderr: object, stdout: object, text: bool) -> FakeRosbagProcess:
+        processes.append(FakeRosbagProcess(command=command, stderr=stderr, stdout=stdout, text=text))
+        return processes[-1]
+
+    monkeypatch.setattr("libs.sessions.recording.which", lambda executable: f"/usr/bin/{executable}")
+    gateway = RosbagRuntimeRecordingGateway(base_directory=tmp_path, popen_factory=fake_popen)
+    app = create_app(Settings(environment="test"), InMemoryConfigurationRepository(), runtime_recording_gateway=gateway)
+
+    with TestClient(app):
+        gateway.start(RuntimeRecordingRequest(label="run", output_folder="rec", topics=("/joint_states",)))
+        assert processes[0].terminated is False
+
+    assert processes[0].terminated is True

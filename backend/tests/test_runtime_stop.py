@@ -360,6 +360,25 @@ def test_stop_zeros_a_target_granted_through_a_namespace_entry() -> None:
     assert "/ui/arm_twist" in zeroed
 
 
+def test_a_runtime_widget_publishes_only_what_its_app_allows() -> None:
+    # The HTTP route checked the deployment only: an app that does not list a topic could still publish to it.
+    ros_gateway = RecordingRosPublisherGateway()
+    client = create_stop_test_client(RecordingTeleopGateway(), ros_gateway)
+    message = {"topic": "/ui/lamp", "message_type": "std_msgs/msg/Bool", "payload": {"data": True}}
+
+    scoped = client.post(
+        "/api/v1/ros/topics/publish", json={**message, "config_id": "explorer-manager", "app_id": "explorer-manager"}
+    )
+    unknown = client.post(
+        "/api/v1/ros/topics/publish", json={**message, "config_id": "explorer-manager", "app_id": "x"}
+    )
+    deployment = client.post("/api/v1/ros/topics/publish", json=message)
+
+    assert scoped.status_code == 403
+    assert unknown.status_code == 404
+    assert deployment.status_code == 200
+
+
 def test_resume_clears_the_latch_and_publishes_nothing() -> None:
     teleop_gateway = RecordingTeleopGateway()
     ros_gateway = RecordingRosPublisherGateway()

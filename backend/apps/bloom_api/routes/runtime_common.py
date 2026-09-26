@@ -164,6 +164,8 @@ def narrow_policy_to_application(
         allowed_teleop_targets=narrow_allowlist(
             policy.allowed_teleop_targets, application_policy.allowed_teleop_targets
         ),
+        # The app names the parameters it tunes; none named means it tunes none.
+        allowed_parameters=narrow_allowlist(policy.allowed_parameters, application_policy.allowed_parameters),
     )
 
 

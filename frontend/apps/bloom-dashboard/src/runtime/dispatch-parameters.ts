@@ -1,6 +1,7 @@
 import type { RosParameterSetRequest, RuntimeAdapterPolicy } from "@bloom/api-client";
 import { asRecord, readOptionalNumber, readOptionalString, type WidgetActionIntent } from "@bloom/widgets";
 import {
+  appScope,
   getErrorMessage,
   isAllowedByPolicy,
   type RuntimeActionDispatchOptions,
@@ -22,7 +23,7 @@ export async function dispatchParameterRequest(
     return { intent, status: "unsupported", detail: "Parameter intents need an API client before they can be sent." };
   }
   try {
-    const response = await client.setRosParameter(request);
+    const response = await client.setRosParameter({ ...request, ...appScope(options) });
     return { intent, status: response.status === "set" ? "published" : response.status, detail: response.detail };
   } catch (error: unknown) {
     return { intent, status: "failed", detail: getErrorMessage(error) };

@@ -276,7 +276,13 @@ export type ThemeAssetUploadResponse = {
 
 export type RosTopicPublishStatus = "published" | "simulated";
 
-export type RosTopicPublishRequest = {
+/** The app a runtime widget belongs to: the backend then narrows the deployment's policy to that app's. */
+export type AppScope = {
+  config_id?: string;
+  app_id?: string;
+};
+
+export type RosTopicPublishRequest = AppScope & {
   topic: string;
   message_type: string;
   payload?: Record<string, unknown>;
@@ -410,7 +416,7 @@ export type SavedPositionExportResponse = {
 
 export type RosParameterValue = boolean | number | string;
 
-export type RosParameterSetRequest = {
+export type RosParameterSetRequest = AppScope & {
   node: string;
   name: string;
   value: RosParameterValue;
@@ -430,7 +436,7 @@ export type RosParameterReading = {
   value: RosParameterValue | null;
 };
 
-export type RosServiceCallRequest = {
+export type RosServiceCallRequest = AppScope & {
   service: string;
   service_type: string;
 };

@@ -36,15 +36,17 @@ class TopicSampleThrottle:
         self._interval = 1.0 / max_rate_hz if max_rate_hz > 0 else 0.0
         self._emit = emit
         self._clock = clock
-        self._last_sent: dict[str, float] = {}
-        self._pending: dict[str, RuntimeTopicSample] = {}
-        self._timers: dict[str, TimerHandle] = {}
+        # Keyed by topic and stream: a raw /ee_jac and its manipulability arrive together, and one key let the
+        # later always replace the earlier, starving a widget of the other.
+        self._last_sent: dict[tuple[str, str], float] = {}
+        self._pending: dict[tuple[str, str], RuntimeTopicSample] = {}
+        self._timers: dict[tuple[str, str], TimerHandle] = {}
 
     def offer(self, sample: RuntimeTopicSample) -> None:
         if self._interval == 0.0:
             self._emit(sample)
             return
-        topic = sample.topic
+        topic = (sample.topic, sample.stream)
         now = self._clock()
         due = self._last_sent.get(topic, float("-inf")) + self._interval
         if now >= due and topic not in self._pending:
@@ -55,7 +57,7 @@ class TopicSampleThrottle:
         if topic not in self._timers:
             self._timers[topic] = self._loop.call_later(max(0.0, due - now), self._flush, topic)
 
-    def _flush(self, topic: str) -> None:
+    def _flush(self, topic: tuple[str, str]) -> None:
         self._timers.pop(topic, None)
         sample = self._pending.pop(topic, None)
         if sample is not None:

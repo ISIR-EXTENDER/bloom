@@ -76,3 +76,8 @@ export function isAllowedByPolicy(value: string, allowedValues: readonly string[
 export function getErrorMessage(error: unknown): string {
   return describeApiError(error, "Runtime action failed.");
 }
+
+/** Names the widget's app on a robot-facing request, so the backend applies that app's policy too. */
+export function appScope(options: RuntimeActionDispatchOptions): { app_id?: string; config_id?: string } {
+  return options.appId && options.configId ? { app_id: options.appId, config_id: options.configId } : {};
+}

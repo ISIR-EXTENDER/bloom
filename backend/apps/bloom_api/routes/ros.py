@@ -6,9 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from apps.bloom_api.routes.runtime_common import (
+    find_runtime_application,
     get_runtime_audit_log,
     get_runtime_command_policy,
     get_runtime_command_rate_limiter,
+    narrow_policy_to_application,
 )
 from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
@@ -32,7 +34,7 @@ from libs.ros_adapters import (
 from libs.ros_adapters.names import require_ros_name
 from libs.ros_adapters.parameters import RosParameterGateway, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
-from libs.ros_adapters.safety import RuntimeCommandPolicyError
+from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
 from libs.sessions import (
     RuntimeAuditRecord,
     RuntimeRateLimitError,
@@ -42,7 +44,28 @@ from libs.sessions import (
 router = APIRouter(prefix="/ros", tags=["ros"])
 
 
-class RosTopicPublishRequest(BaseModel):
+class AppScopedRequest(BaseModel):
+    """Names the app a runtime widget belongs to, so its own policy narrows the deployment's.
+
+    Optional: the Builder's tools and Bloom Debug speak for the deployment. A runtime widget always sends it, and
+    without it an app declaring it drives nothing could still publish to the gripper.
+    """
+
+    config_id: str = ""
+    app_id: str = ""
+
+
+def policy_for(request: Request, scope: AppScopedRequest) -> RuntimeCommandPolicy:
+    deployment = get_runtime_command_policy(request)
+    if not scope.config_id or not scope.app_id:
+        return deployment
+    application = find_runtime_application(request, scope.config_id, scope.app_id)
+    if application is None:
+        raise HTTPException(status_code=404, detail="application not found")
+    return narrow_policy_to_application(deployment, application)
+
+
+class RosTopicPublishRequest(AppScopedRequest):
     topic: str = Field(min_length=1)
     message_type: str = Field(min_length=1)
     payload: dict[str, Any] | None = None
@@ -77,7 +100,7 @@ class RosTopicPublishRequest(BaseModel):
         return normalized_message_type
 
 
-class RosParameterSetRequest(BaseModel):
+class RosParameterSetRequest(AppScopedRequest):
     node: str = Field(min_length=1)
     name: str = Field(min_length=1)
     value: bool | int | float | str
@@ -115,7 +138,7 @@ class RosParameterListResponse(BaseModel):
     parameters: tuple[RosParameterReadingResponse, ...]
 
 
-class RosServiceCallRequest(BaseModel):
+class RosServiceCallRequest(AppScopedRequest):
     service: str = Field(min_length=1)
     service_type: str = Field(min_length=1)
 
@@ -221,7 +244,7 @@ def publish_ros_topic(
         raise HTTPException(status_code=409, detail=stop_reason)
 
     gateway = get_ros_publisher_gateway(request)
-    policy = get_runtime_command_policy(request)
+    policy = policy_for(request, publish_request)
     rate_limiter = get_runtime_command_rate_limiter(request)
     ros_publish_request = RosPublishRequest(
         topic=publish_request.topic,
@@ -315,7 +338,7 @@ def set_ros_parameter(
         )
 
     try:
-        get_runtime_command_policy(request).ensure_parameter_allowed(set_request.node, set_request.name)
+        policy_for(request, set_request).ensure_parameter_allowed(set_request.node, set_request.name)
     except RuntimeCommandPolicyError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=403, detail=str(exc)) from exc
@@ -366,7 +389,7 @@ def call_ros_service(
         raise HTTPException(status_code=409, detail=stop_reason)
 
     try:
-        get_runtime_command_policy(request).ensure_service_allowed(call_request.service, call_request.service_type)
+        policy_for(request, call_request).ensure_service_allowed(call_request.service, call_request.service_type)
     except RuntimeCommandPolicyError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=403, detail=str(exc)) from exc
