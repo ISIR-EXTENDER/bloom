@@ -168,6 +168,7 @@ export function BuilderInspector({
         key={selectedWidget.id}
         onUpdateSettings={onUpdateWidgetSettings}
         onUpdateTitle={onUpdateWidgetTitle}
+        screenWidgets={widgets}
         widget={selectedWidget}
       />
       <div className="builder-inspector-actions">

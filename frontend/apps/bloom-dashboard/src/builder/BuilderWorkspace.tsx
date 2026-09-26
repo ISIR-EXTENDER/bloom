@@ -180,7 +180,7 @@ export function BuilderWorkspace({
         ? { ...definition, defaultSettings: { ...definition.defaultSettings, plot_id: board.id } }
         : definition;
     const covered = findOverlappedWidget(layout, draftScreen);
-    commitScreenChange(addWidgetToScreen(draftScreen, placed, { id: widgetId, layout }));
+    commitScreenChange(linkOrphanPickers(addWidgetToScreen(draftScreen, placed, { id: widgetId, layout })));
     setSelectedWidgetId(widgetId);
     const notices = [
       covered &&
@@ -487,4 +487,22 @@ function createUniqueWidgetId(screen: ScreenConfig, baseId: string): string {
   }
 
   return candidateId;
+}
+
+/** A series picker placed before its board, or left pointing at a removed one, takes the board that arrives. */
+function linkOrphanPickers(screen: ScreenConfig): ScreenConfig {
+  const boards = screen.widgets.filter((widget) => widget.kind === "plot-board");
+  const board = boards.at(-1);
+  if (!board) {
+    return screen;
+  }
+  const boardIds = new Set(boards.map((candidate) => candidate.id));
+  return {
+    ...screen,
+    widgets: screen.widgets.map((widget) =>
+      widget.kind === "plot-picker" && !boardIds.has(String(widget.settings.plot_id ?? ""))
+        ? { ...widget, settings: { ...widget.settings, plot_id: board.id } }
+        : widget,
+    ),
+  };
 }

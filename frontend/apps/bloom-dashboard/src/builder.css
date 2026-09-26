@@ -2096,6 +2096,29 @@
   min-height: 22px;
 }
 
+.builder-series-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.builder-series-editor h4 {
+  margin: 0;
+}
+
+.builder-series-row {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 12px;
+}
+
+.builder-series-row legend {
+  padding: 0 4px;
+  font-weight: 700;
+}
+
 @media (pointer: coarse) {
   .builder-settings-field {
     gap: 8px;

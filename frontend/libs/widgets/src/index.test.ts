@@ -956,7 +956,9 @@ describe("widget settings contracts", () => {
       getRosMessageCommandPresetsByCategory()
         .get("motion")
         ?.map((preset) => preset.id),
-    ).toEqual(["manager-joint-target-home", "manager-cancel-behaviour"]);
+    ).toEqual(["manager-neutral", "manager-snake", "manager-joint-target-home", "manager-cancel-behaviour"]);
+    // Every example publishes somewhere a deployment can allow: /example/trigger could only ever be refused.
+    expect(ROS_MESSAGE_COMMAND_PRESETS.every((preset) => !preset.topic.startsWith("/example/"))).toBe(true);
 
     expect(
       normalizeWidgetSettings("command-button", {

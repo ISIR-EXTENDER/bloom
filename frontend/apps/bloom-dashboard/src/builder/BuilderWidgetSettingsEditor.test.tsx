@@ -634,3 +634,31 @@ describe("a palette gripper toggle given another message type", () => {
     expect(onUpdate.mock.calls.at(-1)?.[0]).toMatchObject({ onPayload: "{data: true}", offPayload: "{data: false}" });
   });
 });
+
+describe("a plot board's series", () => {
+  afterEach(cleanup);
+
+  const HAND_Z = { topic: "/ee_pose", field_path: "pose.position.z", label: "Hand z", unit: "m", enabled: true };
+
+  // Adding one meant writing a JSON array from memory, and a row with a typo vanished at runtime.
+  it("are rows an author can add to, edit and remove", () => {
+    const onUpdate = renderEditor({ series: [HAND_Z] }, "plot-board");
+    const seriesSent = () => (onUpdate.mock.calls.at(-1)?.[0] as { series: unknown[] } | undefined)?.series;
+    expect(screen.queryByLabelText(/^Series \(topic/)).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add series" }));
+    expect(seriesSent()).toHaveLength(2);
+
+    fireEvent.change(screen.getAllByLabelText("Field")[0] as HTMLElement, { target: { value: "pose.position.y" } });
+    expect(seriesSent()?.[0]).toMatchObject({ field_path: "pose.position.y", label: "Hand z" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove Hand z" }));
+    expect(seriesSent()).toEqual([]);
+  });
+
+  it("say which row plots nothing, and why", () => {
+    renderEditor({ series: [{ ...HAND_Z, topic: "ee_pose" }] }, "value-strip");
+
+    expect(screen.getByRole("status").textContent).toBe("Not plotted. Needs a topic starting with /.");
+  });
+});

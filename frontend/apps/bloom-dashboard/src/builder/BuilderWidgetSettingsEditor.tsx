@@ -18,6 +18,7 @@ import { BuilderSettingsField, coerceFieldValue } from "./BuilderSettingsField";
 import { WidgetCliPreview, WidgetDestinationSummary, WidgetGlassSizeSummary } from "./BuilderWidgetSummaries";
 import { TOUCH_FLOOR_PX } from "./builder-geometry";
 import { RequiredTextInput } from "./RequiredTextInput";
+import { SERIES_KINDS, SeriesEditor } from "./SeriesEditor";
 
 type BuilderWidgetSettingsEditorProps = {
   /** The frames this robot accepts, for a pad that turns the hand in its own. */
@@ -27,13 +28,15 @@ type BuilderWidgetSettingsEditorProps = {
   allowedTeleopTargets?: readonly string[];
   serverTeleopTargets?: readonly string[];
   canvas?: CanvasSettings;
-  /** The fit scale of this screen's own device class, as the inspector measured it. */
   /** The floor this screen's device class is held to: the touch floor on a tablet, the mouse one on a desktop. */
   floorPx?: number;
+  /** The fit scale of this screen's own device class, as the inspector measured it. */
   glassScale?: number;
   panel?: { height: number; width: number };
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   onUpdateTitle: (title: string) => void;
+  /** The other widgets on this screen: a series picker is linked to one of its plot boards by name. */
+  screenWidgets?: readonly WidgetConfig[];
   widget: WidgetConfig;
 };
 
@@ -47,6 +50,7 @@ export function BuilderWidgetSettingsEditor({
   panel = { height: 600, width: 1024 },
   onUpdateSettings,
   onUpdateTitle,
+  screenWidgets = [],
   widget,
 }: BuilderWidgetSettingsEditorProps) {
   const titleId = useId();
@@ -140,6 +144,7 @@ export function BuilderWidgetSettingsEditor({
         onUpdateSettings={onUpdateSettings}
         widget={widget}
       />
+      <SeriesEditor onUpdateSettings={onUpdateSettings} widget={widget} />
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (
@@ -150,17 +155,28 @@ export function BuilderWidgetSettingsEditor({
             : "This widget has no settings."}
         </p>
       ) : (
-        contract.fields.map((field) => (
-          <BuilderSettingsField
-            defaultValue={contract.defaultSettings[field.key]}
-            field={field}
-            key={field.key}
-            onChange={(rawValue) => updateSetting(field, rawValue)}
-            inert={findInertSetting(destination, field.key)}
-            onClear={() => updateSetting(field, "")}
-            value={effectiveSettings[field.key]}
-          />
-        ))
+        contract.fields.map((field) =>
+          // The series editor above carries these as rows; the raw array would be a second way in.
+          field.key === "series" && SERIES_KINDS.has(widget.kind) ? null : widget.kind === "plot-picker" &&
+            field.key === "plot_id" ? (
+            <PlotBoardField
+              boards={screenWidgets.filter((candidate) => candidate.kind === "plot-board")}
+              key={field.key}
+              onChange={(boardId) => updateSetting(field, boardId)}
+              value={String(effectiveSettings.plot_id ?? "")}
+            />
+          ) : (
+            <BuilderSettingsField
+              defaultValue={contract.defaultSettings[field.key]}
+              field={field}
+              key={field.key}
+              onChange={(rawValue) => updateSetting(field, rawValue)}
+              inert={findInertSetting(destination, field.key)}
+              onClear={() => updateSetting(field, "")}
+              value={effectiveSettings[field.key]}
+            />
+          ),
+        )
       )}
 
       {validationMessage ? (
@@ -169,5 +185,40 @@ export function BuilderWidgetSettingsEditor({
         </p>
       ) : null}
     </section>
+  );
+}
+
+/** The board a series picker drives, chosen by title: the field asked for a widget id nobody can see. */
+function PlotBoardField({
+  boards,
+  onChange,
+  value,
+}: {
+  boards: readonly WidgetConfig[];
+  onChange: (boardId: string) => void;
+  value: string;
+}) {
+  const linked = boards.some((board) => board.id === value);
+  return (
+    <label className="builder-settings-field">
+      <span>Plot board</span>
+      <select onChange={(event) => onChange(event.target.value)} value={linked ? value : ""}>
+        <option value="">{boards.length === 0 ? "No plot board on this screen" : "Choose a plot board"}</option>
+        {boards.map((board) => (
+          <option key={board.id} value={board.id}>
+            {board.title}
+          </option>
+        ))}
+      </select>
+      {!linked ? (
+        <small className="builder-settings-pending" role="status">
+          {boards.length === 0
+            ? "Add a plot board to this screen; the picker shows and hides its series."
+            : value
+              ? `"${value}" is not a plot board on this screen, so the picker controls nothing.`
+              : "Not linked yet, so the picker controls nothing."}
+        </small>
+      ) : null}
+    </label>
   );
 }

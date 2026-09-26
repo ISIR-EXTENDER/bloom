@@ -415,6 +415,24 @@ describe("placing a control for the arm this Bloom drives", () => {
   });
 });
 
+describe("linking a plot picker to its board", () => {
+  afterEach(cleanup);
+
+  // The picker asked for a widget id nobody can see, and one placed before its board stayed linked to nothing.
+  it("links a picker placed first to the board that arrives, and names the board", () => {
+    renderWorkspace({ ...bench, widgets: [] });
+    fireEvent.click(screen.getByRole("button", { name: /^Add Plot picker widget/ }));
+    expect(screen.getByText(/Add a plot board to this screen/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Add Plot board widget/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Select and move Series widget" }));
+
+    const board = screen.getByLabelText("Plot board") as HTMLSelectElement;
+    expect(board.selectedOptions[0]?.textContent).toBe("Hand position");
+    expect(screen.queryByText(/controls nothing/)).toBeNull();
+  });
+});
+
 describe("the STOP region in the builder", () => {
   afterEach(cleanup);
 

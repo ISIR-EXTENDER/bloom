@@ -11,6 +11,18 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Fixed
+
+- **A plot picker is linked by name, and links itself.** Its inspector asked for a plot board's widget id, which
+  nothing on screen shows; it now offers the screen's plot boards by title and says when the picker controls nothing.
+  A picker placed before its board, or left on a removed one, takes the next board placed.
+- **Series are rows, not JSON.** A plot board's or value strip's series are edited one row each (label, topic, field,
+  unit, shown, emphasis), with Add and Remove, and a row that would plot nothing says why; a typo used to drop the
+  series at runtime without a word.
+- **The command preset library points at topics that can work.** The trigger example published to `/example/trigger`,
+  which no deployment allows, and now uses `/ui/trigger`; the Petanque command says it needs that stack; Neutral and
+  Snake join the manager presets.
+
 ## [0.4.1] - 2026-09-26
 
 ### Fixed
