@@ -120,12 +120,18 @@ describe("the event log", () => {
 
   it("ages a live event from its arrival here, not from the backend's stamp", () => {
     vi.useFakeTimers();
-    // Quiet first, so this reads as a backend of its own rather than an old event from the last one.
+    // Quiet first, then a stream advancing with this clock: a backend of its own, not old events from the last.
     vi.advanceTimersByTime(5000);
-    const skewed = new Date(Date.now() - 3_600_000 * 5).toISOString();
-    render(
+    const skewedAt = () => new Date(Date.now() - 3_600_000 * 5).toISOString();
+    const first = { receivedAt: skewedAt(), topic: "/rosout", value: "hello" };
+    const { rerender } = render(
+      <EventLogWidget data={{ type: "event-log", messages: [first] }} descriptor={descriptor("event-log", "Log")} />,
+    );
+    vi.advanceTimersByTime(100);
+    const next = { receivedAt: skewedAt(), topic: "/rosout", value: "again" };
+    rerender(
       <EventLogWidget
-        data={{ type: "event-log", messages: [{ receivedAt: skewed, topic: "/rosout", value: "hello" }] }}
+        data={{ type: "event-log", messages: [first, next] }}
         descriptor={descriptor("event-log", "Log")}
       />,
     );

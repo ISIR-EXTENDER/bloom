@@ -24,14 +24,17 @@ export function isSampleStale(receivedAt: string | undefined, now: number): bool
   return arrived !== undefined && now - arrived > STALE_VALUE_AFTER_MS;
 }
 
-// The backend's clock and the tablet's may disagree by minutes. Each stamp is timed once, on arrival; one
-// first met after newer ones (a remounted widget) is placed by the newest stamp's offset, unless that
-// stream went quiet, which is how a backend whose clock stepped back, or another backend, looks.
+// The backend's clock and the tablet's may disagree by minutes. Each stamp is timed once, on arrival. One
+// older than the newest is placed by the newest's offset, so it reads old; a quiet link re-anchors only to
+// an older stream that advances in step with this clock, which is how a stepped-back or new backend looks.
 const arrivals = new Map<string, number>();
 const MAX_TRACKED_STAMPS = 4096;
+const STEP_BACK_MIN_GAP_MS = 50;
+const STEP_BACK_TOLERANCE_MS = 1000;
 let newestStamp = Number.NEGATIVE_INFINITY;
 let clockOffset = 0;
 let anchoredAt = Number.NEGATIVE_INFINITY;
+let stepBackCandidate: { at: number; stamp: number } | null = null;
 
 /** A backend `received_at` on this tablet's clock: when the sample arrived here, in ms since epoch. */
 export function localReceivedAt(receivedAt: string | undefined): number | undefined {
@@ -40,6 +43,8 @@ export function localReceivedAt(receivedAt: string | undefined): number | undefi
   }
   const known = arrivals.get(receivedAt);
   if (known !== undefined) {
+    arrivals.delete(receivedAt);
+    arrivals.set(receivedAt, known);
     return known;
   }
   const stamp = Date.parse(receivedAt);
@@ -47,10 +52,13 @@ export function localReceivedAt(receivedAt: string | undefined): number | undefi
     return undefined;
   }
   const now = Date.now();
-  if (stamp > newestStamp || now - anchoredAt > STALE_VALUE_AFTER_MS) {
+  if (stamp > newestStamp || (now - anchoredAt > STALE_VALUE_AFTER_MS && advancesWithClock(stamp, now))) {
     newestStamp = stamp;
     clockOffset = now - stamp;
     anchoredAt = now;
+    stepBackCandidate = null;
+  } else {
+    stepBackCandidate = { at: now, stamp };
   }
   const arrived = stamp + clockOffset;
   arrivals.set(receivedAt, arrived);
@@ -58,4 +66,14 @@ export function localReceivedAt(receivedAt: string | undefined): number | undefi
     arrivals.delete(arrivals.keys().next().value as string);
   }
   return arrived;
+}
+
+// Dead samples met on a remount arrive together; a live stream's stamps advance as this clock does.
+function advancesWithClock(stamp: number, now: number): boolean {
+  if (!stepBackCandidate) {
+    return false;
+  }
+  const localGap = now - stepBackCandidate.at;
+  const stampGap = stamp - stepBackCandidate.stamp;
+  return localGap >= STEP_BACK_MIN_GAP_MS && stampGap > 0 && Math.abs(stampGap - localGap) <= STEP_BACK_TOLERANCE_MS;
 }

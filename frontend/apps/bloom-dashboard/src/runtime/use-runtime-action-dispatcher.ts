@@ -47,6 +47,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   // carry whatever the translation joystick is currently holding.
   const teleopComposer = useRef(new TeleopTwistComposer());
   const externalSources = useRef(new Set<string>());
+  // The latest teleop sequence each widget contributed, so a late failure cannot withdraw a newer value.
+  const latestTeleopSequenceByWidget = useRef(new Map<string, number>());
   const externalSourcesAwaitingNeutral = useRef(new Set<string>());
   const clientRef = useRef(client);
   clientRef.current = client;
@@ -136,6 +138,9 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         (intent.type === "command" && resolveTeleopFrameId(intent.runtimeBinding) !== null)
           ? ++nextTeleopSequence.current
           : undefined;
+      if (intent.type === "value-change" && teleopSequence !== undefined) {
+        latestTeleopSequenceByWidget.current.set(intent.widgetId, teleopSequence);
+      }
 
       const pendingResult = dispatchRuntimeActionIntent(client, intent, {
         actionPresets: options.actionPresets,
@@ -156,6 +161,14 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
       return pendingResult.then((result) => {
         if (result.request && "type" in result.request && result.request.type === "teleop_cmd") {
+          // The widget shows rest after a refused value, so the composed twist must not keep carrying it.
+          if (isRuntimeActionProblem(result) && intent.type === "value-change") {
+            const latestSequences = latestTeleopSequenceByWidget.current;
+            if (latestSequences.get(intent.widgetId) === teleopSequence) {
+              latestSequences.delete(intent.widgetId);
+              teleopComposer.current.release(intent.widgetId);
+            }
+          }
           teleopPump.current?.noteDispatched(result.request, isRuntimeActionProblem(result) ? "failed" : "sent");
           syncTeleopActive();
         }

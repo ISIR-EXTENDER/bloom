@@ -120,7 +120,14 @@ export function CommandLikeWidget({
     onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
   };
   const handleMomentaryPress = (event: PointerEvent<HTMLButtonElement>) => {
-    if (disabled || isMomentaryPressedRef.current) {
+    if (disabled) {
+      return;
+    }
+    if (isMomentaryPressedRef.current) {
+      // A latch from scan, dwell or keyboard: the touch or mouse that comes to end it releases on its up.
+      if (holdPointerIdRef.current === null) {
+        holdPointerIdRef.current = event.pointerId;
+      }
       return;
     }
     setIsMomentaryLatched(false);

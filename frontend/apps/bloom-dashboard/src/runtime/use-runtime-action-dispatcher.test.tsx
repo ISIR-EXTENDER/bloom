@@ -293,4 +293,84 @@ describe("runtime teleop suspension", () => {
       widgetId: "visual-servoing",
     });
   });
+  describe("a refused teleop value", () => {
+    const slider = (value: number) =>
+      ({
+        type: "value-change",
+        binding: "z",
+        runtimeBinding: { adapter: "teleop", axis_mapping: { value: { component: "linear_z" } } },
+        value,
+        widgetId: "z-slider",
+        widgetKind: "slider",
+      }) as const;
+    const joystick = (x: number) =>
+      ({
+        type: "value-change",
+        binding: "joy",
+        modeId: "translation",
+        publishRateHz: 30,
+        runtimeBinding: { adapter: "teleop", target: "translation" },
+        value: { x, y: 0 },
+        widgetId: "translation",
+        widgetKind: "joystick",
+        zeroOnRelease: true,
+      }) as const;
+    const accept = (request: RuntimeTeleopCommandRequest) => {
+      sent.push(request);
+      return Promise.resolve({
+        type: "teleop_ack" as const,
+        detail: "Accepted.",
+        payload: { ...request, frame_id: request.frame_id ?? "", status: "accepted" as const },
+      });
+    };
+
+    it("leaves the composed twist when its send times out, as the slider snaps to rest", async () => {
+      client.sendTeleopCommand = vi.fn((request: RuntimeTeleopCommandRequest) =>
+        request.linear.z === 0.5 ? Promise.reject(new Error("Request timed out.")) : accept(request),
+      );
+      const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+      let outcome: Awaited<ReturnType<typeof result.current.dispatch>> | undefined;
+
+      await act(async () => {
+        outcome = await result.current.dispatch(slider(0.5));
+      });
+      expect(outcome?.status).toBe("failed");
+      expect(result.current.teleopActive).toBe(false);
+
+      act(() => {
+        void result.current.dispatch(joystick(0.4));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60));
+      expect(sent.at(-1)?.linear).toEqual({ x: 0.4, y: 0, z: 0 });
+    });
+
+    it("does not withdraw a newer value of the same widget when the older failure lands late", async () => {
+      let failFirst: ((error: Error) => void) | undefined;
+      client.sendTeleopCommand = vi.fn((request: RuntimeTeleopCommandRequest) =>
+        request.linear.z === 0.5
+          ? new Promise<never>((_, reject) => {
+              failFirst = reject;
+            })
+          : accept(request),
+      );
+      const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+
+      act(() => {
+        void result.current.dispatch(slider(0.5));
+        void result.current.dispatch(slider(0.3));
+      });
+      await act(async () => {
+        failFirst?.(new Error("Request timed out."));
+        await vi.advanceTimersByTimeAsync(60);
+      });
+      expect(sent.at(-1)?.linear.z).toBe(0.3);
+
+      act(() => {
+        void result.current.dispatch(joystick(0.4));
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60));
+      expect(sent.at(-1)?.linear).toEqual({ x: 0.4, y: 0, z: 0.3 });
+      expect(result.current.teleopActive).toBe(true);
+    });
+  });
 });

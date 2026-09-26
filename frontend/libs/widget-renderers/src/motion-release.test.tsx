@@ -165,6 +165,20 @@ describe("a momentary Snake", () => {
     expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}"]);
   });
 
+  it("lets a touch or mouse end a hold that scanning latched", () => {
+    const onActionIntent = vi.fn();
+    render(<CommandLikeWidget descriptor={snake} onActionIntent={onActionIntent} />);
+    const button = screen.getByRole("button");
+
+    fireEvent.click(button, { detail: 0 });
+    fireEvent.pointerDown(button, { pointerId: 7 });
+    fireEvent.pointerUp(button, { pointerId: 7 });
+    fireEvent.click(button, { detail: 1 });
+
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(onActionIntent.mock.calls.map(([intent]) => intent.payload)).toEqual(["{data: true}", "{data: false}"]);
+  });
+
   it("ends a pointer hold only for the pointer that began it", () => {
     const onActionIntent = vi.fn();
     render(<CommandLikeWidget descriptor={snake} onActionIntent={onActionIntent} />);
