@@ -71,15 +71,67 @@ export function BuilderSettingsField({
     return <JsonSettingsField field={field} onChange={onChange} value={value} />;
   }
 
+  if (field.type === "number") {
+    return <NumberSettingsField field={field} onChange={onChange} value={value} />;
+  }
+
   return (
     <label className="builder-settings-field">
       <span>{field.label}</span>
       <input
-        {...getTouchEditingProps(field.type === "number" ? "number" : "text")}
+        {...getTouchEditingProps("text")}
         onChange={(event) => onChange(event.target.value)}
-        step={field.type === "number" ? "any" : undefined}
-        type={field.type === "number" ? "number" : "text"}
+        type="text"
         value={String(value ?? "")}
+      />
+    </label>
+  );
+}
+
+/**
+ * Keeps a half-typed number on screen. Committed per keystroke, retyping a slider's Maximum went through "0",
+ * which the range check refused, and the field snapped back; an emptied field became 0.
+ */
+function NumberSettingsField({
+  field,
+  onChange,
+  value,
+}: {
+  field: WidgetSettingField;
+  onChange: (value: string) => void;
+  value: unknown;
+}) {
+  const saved = value === undefined || value === null ? "" : String(value);
+  const [draft, setDraft] = useState(saved);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only an outside change to the saved value replaces the draft.
+  useEffect(() => {
+    if (Number(draft) !== Number(saved) || (draft === "") !== (saved === "")) {
+      setDraft(saved);
+    }
+  }, [saved]);
+
+  const commits = (raw: string) =>
+    raw === "" ? !field.required : Number.isFinite(Number(raw)) && !/[.eE+-]$/.test(raw);
+
+  return (
+    <label className="builder-settings-field">
+      <span>{field.label}</span>
+      <input
+        {...getTouchEditingProps("number")}
+        onBlur={() => {
+          if (!commits(draft)) {
+            setDraft(saved);
+          }
+        }}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          if (commits(event.target.value)) {
+            onChange(event.target.value);
+          }
+        }}
+        type="text"
+        value={draft}
       />
     </label>
   );

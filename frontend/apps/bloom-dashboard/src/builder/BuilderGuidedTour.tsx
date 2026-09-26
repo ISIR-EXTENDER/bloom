@@ -1,10 +1,16 @@
 import type { ApplicationConfig, WidgetConfig } from "@bloom/api-client";
-import { asRecord, INTERACTIVE_WIDGET_KINDS, resolveWidgetDestination } from "@bloom/widgets";
+import { asRecord, INTERACTIVE_WIDGET_KINDS, resolveDeviceClass, resolveWidgetDestination } from "@bloom/widgets";
 import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-progress";
-import { findUndersizedWidgets, glassPx, resolveBuilderPanel, reviewScreens, TOUCH_FLOOR_PX } from "./builder-geometry";
+import {
+  densityFloorFor,
+  findUndersizedWidgets,
+  glassPx,
+  resolveBuilderPanel,
+  reviewScreens,
+} from "./builder-geometry";
 
 type ReviewRuleId = "minimum" | "symmetry" | "pads" | "profiles" | "pairs";
 type BuilderTourStepId = "geometry" | "touch" | ReviewRuleId | "frame" | "topics" | "profile" | "ship";
@@ -354,7 +360,7 @@ function allowlistAllows(allowlist: readonly string[], topic: string): boolean {
 /** The three ways the touch step fails, each carrying what it takes to name the offender. */
 type WidgetTouchProblem =
   | { kind: "empty" }
-  | { glass: number; kind: "small"; screen: TourScreen; widget: WidgetConfig }
+  | { floor: number; glass: number; kind: "small"; screen: TourScreen; widget: WidgetConfig }
   | { kind: "overlap"; other: WidgetConfig; screen: TourScreen; widget: WidgetConfig };
 
 function findTouchProblem(application: ApplicationConfig): WidgetTouchProblem | null {
@@ -367,9 +373,11 @@ function findTouchProblem(application: ApplicationConfig): WidgetTouchProblem | 
   for (const screen of application.screens) {
     const { glassScale } = resolveBuilderPanel(screen);
     const controls = controlsOn(screen);
-    const small = controls.find((widget) => glassPx(widget, glassScale) < TOUCH_FLOOR_PX);
+    // The floor the inspector and the settings summary use: a desktop screen is clicked, not touched.
+    const floor = densityFloorFor(resolveDeviceClass(screen));
+    const small = controls.find((widget) => glassPx(widget, glassScale) < floor);
     if (small) {
-      return { glass: glassPx(small, glassScale), kind: "small", screen, widget: small };
+      return { floor, glass: glassPx(small, glassScale), kind: "small", screen, widget: small };
     }
     const overlap = findInteractiveOverlap(controls);
     if (overlap) {
@@ -384,7 +392,7 @@ function describeTouchProblem(problem: WidgetTouchProblem): string {
     return "No control has been placed yet, so there is no target to measure.";
   }
   if (problem.kind === "small") {
-    return `${problem.widget.title} on ${problem.screen.title} is ${problem.glass} px on the glass, needs ${TOUCH_FLOOR_PX}.`;
+    return `${problem.widget.title} on ${problem.screen.title} is ${problem.glass} px on the glass, needs ${problem.floor}.`;
   }
   return `${problem.widget.title} overlaps ${problem.other.title} on ${problem.screen.title}.`;
 }

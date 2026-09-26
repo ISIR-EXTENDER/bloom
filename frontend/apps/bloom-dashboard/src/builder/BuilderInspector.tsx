@@ -9,7 +9,7 @@ import {
 } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
-import { densityFloorFor, glassPx, TOUCH_FLOOR_PX } from "./builder-geometry";
+import { densityFloorFor, glassPx } from "./builder-geometry";
 
 type BuilderInspectorProps = {
   availableWidgetDefinitions: readonly WidgetDefinition[];
@@ -127,7 +127,7 @@ export function BuilderInspector({
             {selectedWidget.layout.width} × {selectedWidget.layout.height}
           </dd>
         </div>
-        <div data-error={glass < TOUCH_FLOOR_PX ? "true" : undefined}>
+        <div data-error={glass < densityFloorFor(deviceClass) ? "true" : undefined}>
           <dt>Glass at fit {glassScale.toFixed(2)}</dt>
           <dd>{glass} px</dd>
         </div>

@@ -271,12 +271,17 @@ describe("slider step follows the range", () => {
   });
 
   it("keeps retuning while the author types through intermediate ranges", () => {
-    // An emptied number field coerces to 0, which is a real range.
-    const onUpdateSettings = renderEditor({ direction: "vertical", max: 1, min: -1, step: 0.1 });
+    // Retyping 0.3 as 0.2 passes through "" and "0.": neither is stored, and the field keeps what was typed.
+    const onUpdateSettings = renderEditor({ direction: "horizontal", max: 0.3, min: 0, step: 0.015 });
+    const maximum = screen.getByLabelText("Maximum") as HTMLInputElement;
 
-    fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "" } });
+    fireEvent.change(maximum, { target: { value: "" } });
+    fireEvent.change(maximum, { target: { value: "0." } });
+    expect(onUpdateSettings).not.toHaveBeenCalled();
+    expect(maximum.value).toBe("0.");
 
-    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 0, min: -1, step: 0.05 }));
+    fireEvent.change(maximum, { target: { value: "0.2" } });
+    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 0.2, min: 0, step: 0.01 }));
   });
 });
 
@@ -608,5 +613,24 @@ describe("a mode button's payload", () => {
     fireEvent.change(screen.getByLabelText(/^Command/), { target: { value: "geometric/snake" } });
 
     expect(onUpdate.mock.calls.at(-1)?.[0]).toMatchObject({ payload: { data: "behaviour/passthrough" } });
+  });
+});
+
+describe("a palette gripper toggle given another message type", () => {
+  afterEach(cleanup);
+
+  it("takes the new type's payloads instead of publishing an array on a Bool", () => {
+    const onUpdate = renderEditor(
+      {
+        messageType: "std_msgs/msg/Float64MultiArray",
+        offPayload: "{data: [0.2]}",
+        onPayload: "{data: [1.1]}",
+        topic: "/gripper_controller/commands",
+      },
+      "toggle",
+    );
+    fireEvent.change(screen.getByLabelText(/ROS message type/), { target: { value: "std_msgs/msg/Bool" } });
+
+    expect(onUpdate.mock.calls.at(-1)?.[0]).toMatchObject({ onPayload: "{data: true}", offPayload: "{data: false}" });
   });
 });

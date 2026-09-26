@@ -11,6 +11,8 @@ type BuilderCanvasProps = {
   onMoveReservedRegion?: (regionId: string, next: { x: number; y: number }) => void;
   onCommitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
   onPreviewWidgetLayout: (widgetId: string, layout: WidgetLayout) => void;
+  /** Why a drag or resize went back where it started: it used to snap back without a word. */
+  onRefuseWidgetLayout?: (reason: string) => void;
   onSelectWidget: (widgetId: string) => void;
   screen: ScreenConfig;
   selectedWidgetId: string | null;
@@ -20,6 +22,7 @@ export function BuilderCanvas({
   onMoveReservedRegion,
   onCommitWidgetLayout,
   onPreviewWidgetLayout,
+  onRefuseWidgetLayout,
   onSelectWidget,
   screen,
   selectedWidgetId,
@@ -76,12 +79,16 @@ export function BuilderCanvas({
       glassScale={glassScale}
       key={descriptor.widget.id}
       minSize={resolveWidgetMinSize(descriptor)}
-      onCommitWidgetLayout={(widgetId, start, final) =>
+      onCommitWidgetLayout={(widgetId, start, final) => {
         // The same question the inspector asks. Refusing only a reserved region let a resize handle
         // push a widget past the artboard edge, which the inspector then refused for the very same
         // layout -- and the backend has no upper bound, so a save persisted it.
-        onCommitWidgetLayout(widgetId, start, explainLayoutRefusal(final, screen) ? start : final)
-      }
+        const refusal = explainLayoutRefusal(final, screen);
+        if (refusal) {
+          onRefuseWidgetLayout?.(refusal);
+        }
+        onCommitWidgetLayout(widgetId, start, refusal ? start : final);
+      }}
       onPreviewWidgetLayout={(widgetId, layout) => {
         if (!overlapsRegion(layout, regions)) {
           onPreviewWidgetLayout(widgetId, layout);

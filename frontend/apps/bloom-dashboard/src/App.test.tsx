@@ -233,10 +233,10 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Create guided app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
     });
 
-    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1]?.applications[0];
     expect(savedApplication).toMatchObject({
       id: "robot-check",
       name: "Robot Check",
@@ -722,12 +722,16 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
     fireEvent.click(await screen.findByRole("button", { name: "Create guided app" }));
 
+    // Its own file: added to the first configuration, sharing it rewrote bloom-debug.json.
     await waitFor(() => {
-      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
     });
 
-    const [, savedApplication] = configurationClient.upsertApplication.mock.calls[0] ?? [];
+    const [configId, savedBundle] = configurationClient.upsertConfiguration.mock.calls[0] ?? [];
+    const savedApplication = savedBundle?.applications[0];
 
+    expect(configId).toBe("new-bloom-app");
+    expect(savedBundle?.applications).toHaveLength(1);
     expect(savedApplication).toMatchObject({
       id: "new-bloom-app",
       name: "New Bloom App",
@@ -1218,6 +1222,20 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
   });
 
+  // Only the in-page Back buttons asked: a top tab dropped the screen being edited without a word.
+  it("asks before the product navigation drops an unsaved screen", async () => {
+    render(<App configurationClient={createConfigurationClient()} />);
+    await openDefaultScreenBuilder();
+    await moveDigitalOutputWidget();
+
+    const confirmed = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+
+    expect(confirmed).toHaveBeenCalled();
+    expect(screen.getByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+    confirmed.mockRestore();
+  });
+
   it("discards builder drafts before saving", async () => {
     const configurationClient = createConfigurationClient();
 
@@ -1230,11 +1248,18 @@ describe("App", () => {
       expect(screen.getByText((_, element) => element?.textContent === "64, 48")).toBeVisible();
     });
 
+    // Discard clears undo too, so it asks; refused, the draft stays.
+    const confirmed = vi.spyOn(window, "confirm").mockReturnValue(false);
+    fireEvent.click(screen.getByRole("button", { name: "Discard" }));
+    expect(screen.getByText((_, element) => element?.textContent === "64, 48")).toBeVisible();
+
+    confirmed.mockReturnValue(true);
     fireEvent.click(screen.getByRole("button", { name: "Discard" }));
 
     await waitFor(() => {
       expect(screen.getByText((_, element) => element?.textContent === "24, 32")).toBeVisible();
     });
+    confirmed.mockRestore();
 
     expect(configurationClient.upsertConfiguration).not.toHaveBeenCalled();
     expect(configurationClient.upsertApplication).not.toHaveBeenCalled();
@@ -1271,7 +1296,9 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Duplicate widget" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Digital output copy" })).toBeVisible();
-    expect(screen.getByText((_, element) => element?.textContent === "48, 56")).toBeVisible();
+    // Clear of the original, as a palette placement is; 24 px down-right sat it on top.
+    expect(screen.queryByText((_, element) => element?.textContent === "48, 56")).toBeNull();
+    expect(screen.queryByText(/was placed over/)).toBeNull();
     expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 

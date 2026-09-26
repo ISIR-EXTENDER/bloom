@@ -53,10 +53,12 @@ describe("the builder canvas", () => {
   it("refuses a move into a reserved region", () => {
     const onCommitWidgetLayout = vi.fn();
     const onPreviewWidgetLayout = vi.fn();
+    const onRefuseWidgetLayout = vi.fn();
     render(
       <BuilderCanvas
         onCommitWidgetLayout={onCommitWidgetLayout}
         onPreviewWidgetLayout={onPreviewWidgetLayout}
+        onRefuseWidgetLayout={onRefuseWidgetLayout}
         onSelectWidget={vi.fn()}
         screen={bench}
         selectedWidgetId={null}
@@ -72,6 +74,8 @@ describe("the builder canvas", () => {
     expect(onPreviewWidgetLayout).not.toHaveBeenCalled();
     const [, start, final] = onCommitWidgetLayout.mock.calls[0] ?? [];
     expect(final).toEqual(start);
+    // It snapped back without a word; the reason now reaches the inspector's notice.
+    expect(onRefuseWidgetLayout).toHaveBeenCalledWith(expect.stringMatching(/STOP/));
   });
 
   it.each([

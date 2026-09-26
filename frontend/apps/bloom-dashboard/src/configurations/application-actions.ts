@@ -1,4 +1,4 @@
-import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
+import { type ApplicationConfig, CURRENT_CONFIGURATION_SCHEMA_VERSION, type ScreenConfig } from "@bloom/api-client";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { type BloomRoute, builderModeRoute } from "../ui/navigationRoute";
 import type { ConfigurationClient } from "./configuration-client";
@@ -66,10 +66,19 @@ export function createApplicationActions({
 
     async createApplication(configId: string, application: ApplicationConfig) {
       const state = requireReady("create an application");
-      if (!state.configurations.some((candidate) => candidate.id === configId)) {
-        throw new Error(`Configuration "${configId}" was not found.`);
+      if (state.configurations.some((candidate) => candidate.id === configId)) {
+        await state.saveApplication(configId, application);
+      } else {
+        // A new app gets its own file: added to the first one, sharing it rewrote bloom-debug.json.
+        await state.saveConfiguration(configId, {
+          metadata: {
+            exported_at: new Date().toISOString(),
+            schema_version: CURRENT_CONFIGURATION_SCHEMA_VERSION,
+            source: "bloom-builder",
+          },
+          applications: [application],
+        });
       }
-      await state.saveApplication(configId, application);
       openInBuilder(configId, application);
     },
 

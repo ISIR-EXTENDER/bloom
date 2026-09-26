@@ -4,18 +4,20 @@ import {
   findInertSetting,
   getDefaultRosMessageTogglePayloads,
   getWidgetSettingsContract,
+  gripperToggleSettings,
   isRecord,
   normalizeWidgetSettings,
   readOptionalNumber,
   resolveWidgetDestination,
   type WidgetSettingField,
 } from "@bloom/widgets";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 import { AxisMappingEditor } from "./AxisMappingEditor";
 import { BuilderSettingsField, coerceFieldValue } from "./BuilderSettingsField";
 import { WidgetCliPreview, WidgetDestinationSummary, WidgetGlassSizeSummary } from "./BuilderWidgetSummaries";
 import { TOUCH_FLOOR_PX } from "./builder-geometry";
+import { RequiredTextInput } from "./RequiredTextInput";
 
 type BuilderWidgetSettingsEditorProps = {
   /** The frames this robot accepts, for a pad that turns the hand in its own. */
@@ -47,6 +49,7 @@ export function BuilderWidgetSettingsEditor({
   onUpdateTitle,
   widget,
 }: BuilderWidgetSettingsEditorProps) {
+  const titleId = useId();
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const contract = getWidgetSettingsContract(widget.kind);
   const normalizedSettings = normalizeWidgetSettings(widget.kind, widget.settings);
@@ -74,9 +77,16 @@ export function BuilderWidgetSettingsEditor({
     // publishes nothing. Carry the matching pair across, unless they have written their own.
     if (widget.kind === "toggle" && field.key === "messageType") {
       const previous = getDefaultRosMessageTogglePayloads(String(effectiveSettings.messageType ?? ""));
-      const untouched =
-        (effectiveSettings.onPayload ?? "") === previous.onPayload &&
-        (effectiveSettings.offPayload ?? "") === previous.offPayload;
+      const gripperPairs = (["explorer", "kinova"] as const)
+        .map((robot) => gripperToggleSettings(robot))
+        .filter((pair) => pair.messageType === effectiveSettings.messageType);
+      const placed = [previous, ...gripperPairs];
+      // The palette places the gripper's calibrated pair, which counts as untouched too.
+      const untouched = placed.some(
+        (pair) =>
+          (effectiveSettings.onPayload ?? "") === pair.onPayload &&
+          (effectiveSettings.offPayload ?? "") === pair.offPayload,
+      );
       if (untouched || !effectiveSettings.onPayload) {
         const suggested = getDefaultRosMessageTogglePayloads(String(rawValue));
         nextSettings.onPayload = suggested.onPayload;
@@ -105,12 +115,13 @@ export function BuilderWidgetSettingsEditor({
         <h3 id="builder-settings-editor-title">Widget configuration</h3>
       </div>
 
-      <label className="builder-settings-field">
+      <label className="builder-settings-field" htmlFor={titleId}>
         <span>Title</span>
-        <input
+        <RequiredTextInput
+          id={titleId}
           {...getTouchEditingProps("name")}
-          onChange={(event) => onUpdateTitle(event.target.value)}
-          type="text"
+          fallback="Untitled widget"
+          onCommit={onUpdateTitle}
           value={widget.title}
         />
       </label>

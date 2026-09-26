@@ -51,6 +51,7 @@ import {
   setRuntimeProfileOverrides,
   setRuntimeProfilePreference,
 } from "./ui/runtime-user-preferences";
+import { confirmLeavingUnsaved } from "./ui/unsaved-changes";
 import { useBloomRoute } from "./ui/use-bloom-route";
 
 const defaultConfigurationClient = createDashboardConfigurationClient();
@@ -258,6 +259,9 @@ export function App({
   };
 
   function navigateToRoute(nextRoute: BloomRoute) {
+    if (!confirmLeavingUnsaved()) {
+      return;
+    }
     if (isRuntimeOperationView && !(nextRoute.activeView === "runtime" && nextRoute.runtimeMode === "app")) {
       runtimeActions.suspendTeleop();
     }

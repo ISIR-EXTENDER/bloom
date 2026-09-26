@@ -208,6 +208,7 @@ export function BuilderHome({
                         {countLabel(application.screens.length, "screen")} · {configuration.id}
                       </small>
                       <ShareBadge
+                        appCount={configuration.bundle.applications.length}
                         configId={configuration.id}
                         onPublish={onPublishConfiguration}
                         onTakeShipped={onTakeShippedConfiguration}
@@ -261,7 +262,7 @@ export function BuilderHome({
                             } catch (error) {
                               setAppActionState({
                                 status: "error",
-                                message: describeApiError(error, "Bloom could not create this app."),
+                                message: describeApiError(error, "Bloom could not duplicate this app."),
                               });
                             }
                           }}
@@ -301,7 +302,7 @@ export function BuilderHome({
                                 } catch (error) {
                                   setAppActionState({
                                     status: "error",
-                                    message: describeApiError(error, "Bloom could not create this app."),
+                                    message: describeApiError(error, "Bloom could not delete this app."),
                                   });
                                 }
                               }}
@@ -398,8 +399,13 @@ export function BuilderHome({
                   robotName,
                 );
                 setCreateState({ status: "creating" });
+                const configIds = new Set(configurations.map((configuration) => configuration.id));
+                let configId = application.id;
+                for (let suffix = 2; configIds.has(configId); suffix += 1) {
+                  configId = `${application.id}-${suffix}`;
+                }
                 try {
-                  await onCreateApplication(firstConfiguration.id, application);
+                  await onCreateApplication(configId, application);
                   setCreateState({ status: "idle" });
                 } catch (error) {
                   setCreateState({
@@ -639,6 +645,7 @@ function ScreenLibraryPreview({ screen, type }: { screen: ScreenConfig; type: Sc
 }
 
 function ShareBadge({
+  appCount,
   configId,
   onPublish,
   onTakeShipped,
@@ -646,6 +653,8 @@ function ShareBadge({
   state,
   status,
 }: {
+  /** Sharing writes the whole file, so a card whose file holds other apps says it shares them too. */
+  appCount: number;
   configId: string;
   onPublish?: (configId: string) => Promise<{ path: string; alreadyPublished: boolean; warnings?: string[] }>;
   onTakeShipped?: (configId: string) => Promise<unknown>;
@@ -685,7 +694,7 @@ function ShareBadge({
           onClick={() => run("publishing", () => onPublish(configId))}
           type="button"
         >
-          {busy ? "Sharing…" : "Share"}
+          {busy ? "Sharing…" : appCount > 1 ? `Share all ${appCount} apps` : "Share"}
         </button>
       ) : null}
       {badge.action === "take" && onTakeShipped ? (
@@ -695,7 +704,7 @@ function ShareBadge({
           onClick={() => run("taking", () => onTakeShipped(configId))}
           type="button"
         >
-          {busy ? "Updating…" : "Update"}
+          {busy ? "Updating…" : appCount > 1 ? `Update all ${appCount} apps` : "Update"}
         </button>
       ) : null}
     </p>

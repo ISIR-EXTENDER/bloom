@@ -42,11 +42,14 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
         return currentState;
       }
 
+      const known = currentState.configurations.some((configuration) => configuration.id === configId);
       return {
         ...currentState,
-        configurations: currentState.configurations.map((configuration) =>
-          configuration.id === configId ? savedConfiguration : configuration,
-        ),
+        configurations: known
+          ? currentState.configurations.map((configuration) =>
+              configuration.id === configId ? savedConfiguration : configuration,
+            )
+          : [...currentState.configurations, savedConfiguration],
       };
     });
 

@@ -2,6 +2,7 @@ import type { ApplicationConfig, RuntimeCapabilityReport } from "@bloom/api-clie
 import { useMemo, useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import { useUnsavedChanges } from "../ui/unsaved-changes";
 import { type AppSaveState, collectAvailableScreens } from "./app-config-model";
 import { BuilderActionPresetsPanel } from "./BuilderActionPresetsPanel";
 import { BuilderAdapterGuardrailsPanel } from "./BuilderAdapterGuardrailsPanel";
@@ -60,6 +61,7 @@ export function BuilderAppConfig({
   });
   const { draft, isDirty, isSaving, saveState } = editor;
   const commandFrameUnavailable = isCommandFrameUnavailable(draft);
+  useUnsavedChanges(isDirty, `${application.name} has unsaved changes. Leave and lose them?`);
 
   if (tourOpen) {
     return (
@@ -98,7 +100,7 @@ export function BuilderAppConfig({
         </div>
         <div className="builder-app-config-actions">
           <button disabled={isDirty || isSaving} onClick={() => setTourOpen(true)} type="button">
-            Review checklist
+            {isDirty ? "Review checklist (save first)" : "Review checklist"}
           </button>
           <button className="builder-back-button" onClick={onBackToHome} type="button">
             Back to apps
@@ -110,7 +112,15 @@ export function BuilderAppConfig({
           >
             {isSaving ? "Saving..." : "Save app"}
           </button>
-          <button disabled={!isDirty || isSaving} onClick={editor.discard} type="button">
+          <button
+            disabled={!isDirty || isSaving}
+            onClick={() => {
+              if (window.confirm(`Discard your changes to ${application.name}? This cannot be undone.`)) {
+                editor.discard();
+              }
+            }}
+            type="button"
+          >
             Discard
           </button>
         </div>

@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { describeApiError } from "../ui/api-error";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import { leaveAfterConfirming, useUnsavedChanges } from "../ui/unsaved-changes";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
 import {
@@ -120,12 +121,9 @@ export function BuilderWorkspace({
   }, [isDirty]);
 
   /** Leaving with unsaved work asks first; the wording names what is at stake. */
-  const leaveWith = (leave: () => void) => () => {
-    if (isDirty && !window.confirm(`${draftScreen.title} has unsaved changes. Leave and lose them?`)) {
-      return;
-    }
-    leave();
-  };
+  const unsavedMessage = `${draftScreen.title} has unsaved changes. Leave and lose them?`;
+  useUnsavedChanges(isDirty, unsavedMessage);
+  const leaveWith = (leave: () => void) => () => leaveAfterConfirming(isDirty, unsavedMessage, leave);
 
   const saveDraft = async () => {
     if (!isDirty || isSaving) {
@@ -148,6 +146,10 @@ export function BuilderWorkspace({
   };
 
   const discardDraft = () => {
+    // Discard also clears undo, so it cannot be taken back.
+    if (!window.confirm(`Discard your changes to ${draftScreen.title}? This cannot be undone.`)) {
+      return;
+    }
     resetDraft();
     setSaveState({ status: "idle" });
   };
@@ -218,7 +220,8 @@ export function BuilderWorkspace({
     }
 
     const source = selectedWidget.layout;
-    const layout = placeClearOfRegions({ ...source, x: source.x + 24, y: source.y + 24 }, draftScreen);
+    // Clear of the other widgets as a palette placement is: 24 px down-right sat the copy on the original.
+    const layout = placeClearOfWidgets({ ...source, x: source.x + 24, y: source.y + 24 }, draftScreen);
     if (!layout) {
       setLayoutNotice(
         `There is no room for a copy of ${selectedWidget.title} clear of the reserved regions. Make room first.`,
@@ -232,10 +235,15 @@ export function BuilderWorkspace({
       offset: { x: layout.x - source.x, y: layout.y - source.y },
       title: `${selectedWidget.title} copy`,
     });
+    const covered = findOverlappedWidget(layout, draftScreen);
 
     commitScreenChange(nextScreen);
     setSelectedWidgetId(widgetId);
-    setLayoutNotice(null);
+    setLayoutNotice(
+      covered
+        ? `No free space left: the copy was placed over ${covered.title}. Drag it clear, or it cannot be pressed at runtime.`
+        : null,
+    );
   };
 
   // STOP is placed, never removed: the region moves, and a move that would cover a control is refused
@@ -381,6 +389,7 @@ export function BuilderWorkspace({
           onMoveReservedRegion={moveReservedRegion}
           onCommitWidgetLayout={commitWidgetLayout}
           onPreviewWidgetLayout={previewWidgetLayout}
+          onRefuseWidgetLayout={setLayoutNotice}
           onSelectWidget={selectWidget}
           screen={draftScreen}
           selectedWidgetId={selectedWidgetId}

@@ -96,6 +96,17 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **Editing in the Builder no longer fights the author.** A number field keeps what is being typed, so a slider's
+  Maximum can be retyped (its first keystroke broke the range and snapped the field back, and an emptied field
+  became 0). A cleared title or app name stays empty until the field is left, instead of reading "Untitled
+  widgetG". Discard asks first, since it also clears undo, and the product navigation or closing the tab asks before
+  dropping an unsaved screen or app. A duplicate lands clear of the other widgets, a refused drag says why, the
+  checklist and the inspector use the same touch floor on a desktop screen, a palette gripper toggle given another
+  message type takes that type's payloads, and "Review checklist" says to save first.
+- **A guided app gets its own file.** It was added to the first configuration, Bloom Debug, so sharing it rewrote
+  `bloom-debug.json`. Share and Update say "all N apps" when a file holds several, and a failed delete or duplicate
+  no longer says Bloom could not create the app.
+
 - **No more dead ends at runtime.** A Builder preview has a **Back to Builder** button in the bar; the way back
   was a 1.5 s hold and two menus deep. A page that could not load the apps retries every 5 s and offers Home, since
   the runtime hides the navigation. Scan and dwell operators can switch role (the button took only a hold, and their
