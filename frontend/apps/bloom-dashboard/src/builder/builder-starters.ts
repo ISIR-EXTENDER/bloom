@@ -8,7 +8,7 @@ import {
   type UserProfile,
 } from "@bloom/api-client";
 import { gripperToggleSettings, PALETTE_WIRING, speedSliderSettings, translationPadSettings } from "@bloom/widgets";
-import { ensureUniqueId } from "../configurations/configuration-editor";
+import { createUniqueApplicationName, ensureUniqueId } from "../configurations/configuration-editor";
 import { defaultStopRegion, NEW_TABLET_CANVAS } from "./builder-geometry";
 import { createNewApplicationName, slugify } from "./builderHomeModel";
 
@@ -115,7 +115,7 @@ export function createApplicationFromPlaygroundScreen(
   sourceApplication: ApplicationConfig,
   existingApplications: readonly ApplicationConfig[],
 ): ApplicationConfig {
-  const name = `${screen.title || "Playground"} Draft`;
+  const name = createUniqueApplicationName(`${screen.title || "Playground"} Draft`, existingApplications);
   const id = ensureUniqueId(slugify(name), new Set(existingApplications.map((application) => application.id)));
 
   return {

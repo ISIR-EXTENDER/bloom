@@ -1,5 +1,9 @@
 import type { ApplicationConfig, ScreenConfig, ShareStatus } from "@bloom/api-client";
 import { useState } from "react";
+import {
+  createUniqueApplicationName,
+  createUniqueConfigId as createUniqueConfigIdAmong,
+} from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { describeApiError } from "../ui/api-error";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -109,17 +113,11 @@ export function BuilderHome({
   const allApplications = applications.map((item) => item.application);
   const [createWizard, setCreateWizard] = useState<CreateWizardState>(() => createDefaultWizardState(allApplications));
   // Shipped ids too, deleted ones included: a new app under one would share over its file.
-  const createUniqueConfigId = (baseId: string) => {
-    const configIds = new Set([
+  const createUniqueConfigId = (baseId: string) =>
+    createUniqueConfigIdAmong(baseId, [
       ...configurations.map((configuration) => configuration.id),
       ...Object.keys(shareStatus),
     ]);
-    let configId = baseId;
-    for (let suffix = 2; configIds.has(configId); suffix += 1) {
-      configId = `${baseId}-${suffix}`;
-    }
-    return configId;
-  };
 
   return (
     <section className="builder-home" aria-labelledby="builder-home-title">
@@ -719,18 +717,4 @@ function ShareBadge({
       ) : null}
     </p>
   );
-}
-
-/** The typed name, or with a number after it when another app already has it. */
-function createUniqueApplicationName(name: string, applications: readonly ApplicationConfig[]): string {
-  const baseName = name.trim();
-  const taken = new Set(applications.map((application) => application.name));
-  if (!baseName || !taken.has(baseName)) {
-    return baseName;
-  }
-  let suffix = 2;
-  while (taken.has(`${baseName} ${suffix}`)) {
-    suffix += 1;
-  }
-  return `${baseName} ${suffix}`;
 }

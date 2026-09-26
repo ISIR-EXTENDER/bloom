@@ -56,4 +56,19 @@ describe("the screens in an app", () => {
     fireEvent.blur(title);
     expect(screen.getByRole("status").textContent).toBe("Untitled screen");
   });
+
+  // Selecting the title by drag started a card drag, since the input sat inside the draggable card.
+  it("does not start a card drag from the title field", () => {
+    render(<Harness />);
+    const title = screen.getByLabelText("Screen title") as HTMLInputElement;
+    const card = title.closest("article");
+    expect(card?.getAttribute("draggable")).toBe("true");
+
+    fireEvent.focus(title);
+    expect(card?.getAttribute("draggable")).toBe("false");
+    expect(fireEvent.dragStart(title, { dataTransfer: { setData: noop, types: [] } })).toBe(false);
+
+    fireEvent.blur(title);
+    expect(card?.getAttribute("draggable")).toBe("true");
+  });
 });

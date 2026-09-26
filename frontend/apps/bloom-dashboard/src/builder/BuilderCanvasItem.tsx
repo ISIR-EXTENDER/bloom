@@ -123,6 +123,7 @@ export function BuilderCanvasItem({
       aria-label={`${widget.title} ${widget.kind} widget`}
       className={`builder-widget-frame widget-preview-card ${selected ? "is-selected" : ""}`}
       data-too-small={tooSmall ? "true" : undefined}
+      data-widget-id={widget.id}
       data-widget-kind={widget.kind}
       style={{
         left: `${widget.layout.x}px`,
@@ -136,6 +137,7 @@ export function BuilderCanvasItem({
         aria-pressed={selected}
         className="builder-widget-selector"
         onClick={() => onSelectWidget(widget.id)}
+        onFocus={() => onSelectWidget(widget.id)}
         onKeyDown={(event) => nudge(event, "move")}
         onPointerDown={(event) => startInteraction(event, "move")}
         type="button"
@@ -151,6 +153,7 @@ export function BuilderCanvasItem({
       <button
         aria-label={`Resize ${widget.title} widget`}
         className="builder-widget-resize-handle"
+        onFocus={() => onSelectWidget(widget.id)}
         onKeyDown={(event) => nudge(event, "resize")}
         onPointerDown={(event) => startInteraction(event, "resize")}
         type="button"

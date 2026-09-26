@@ -1,7 +1,13 @@
+import type { ApplicationConfig } from "@bloom/api-client";
 import { minSizeFor, normalizeWidgetSettings } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
-import { CREATE_THEME_PRESETS, createStarterScreen, type StarterScreenId } from "./builder-starters";
+import {
+  CREATE_THEME_PRESETS,
+  createApplicationFromPlaygroundScreen,
+  createStarterScreen,
+  type StarterScreenId,
+} from "./builder-starters";
 
 const STARTERS: StarterScreenId[] = ["blank", "operator-control", "debug-monitor"];
 
@@ -58,5 +64,19 @@ describe("the wizard's design presets", () => {
     expect(CREATE_THEME_PRESETS["extender-ui"].preset_id).toBe("extender-ui");
     expect(CREATE_THEME_PRESETS["high-visibility"].preset_id).toBe("high-contrast");
     expect(CREATE_THEME_PRESETS["bloom-default"].preset_id).toBe("bloom-default");
+  });
+});
+
+describe("an app saved from a playground screen", () => {
+  // The id was made unique but the name was not, so a second save listed two "Drive Draft" apps.
+  it("takes a name no app in any configuration has", () => {
+    const screen = { ...createStarterScreen("blank", false), title: "Drive" };
+    const source = { id: "play", name: "Playground", profiles: [], screens: [screen] } as unknown as ApplicationConfig;
+    const existing = [source, { id: "other-config-app", name: "Drive Draft" } as unknown as ApplicationConfig];
+
+    const created = createApplicationFromPlaygroundScreen(screen, source, existing);
+
+    expect(created.name).toBe("Drive Draft 2");
+    expect(created.id).not.toBe("other-config-app");
   });
 });

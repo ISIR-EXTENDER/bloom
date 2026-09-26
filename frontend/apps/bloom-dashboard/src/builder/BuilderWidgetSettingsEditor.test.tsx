@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
+import type { CanvasSettings, RuntimeActionPreset, WidgetConfig } from "@bloom/api-client";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
@@ -856,5 +856,36 @@ describe("a publish the app does not allow", () => {
     );
 
     expect(screen.getByRole("alert").textContent).toMatch(/does not allow publishing on \/ui\/gesture/);
+  });
+});
+
+describe("the reusable preset picker", () => {
+  afterEach(cleanup);
+
+  // A pick is its own undo step: passing the field's key merged two picks into one.
+  it("commits a pick without a coalescing key", () => {
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>, _title?: string, _key?: string) => null);
+    const preset = { id: "home", name: "Home", kind: "mode", description: "", command: "HOME", topic: "", payload: {} };
+    render(
+      <BuilderWidgetSettingsEditor
+        actionPresets={[preset as unknown as RuntimeActionPreset]}
+        onUpdateSettings={onUpdateSettings}
+        onUpdateTitle={vi.fn()}
+        widget={
+          {
+            id: "home-button",
+            kind: "command-button",
+            title: "Home",
+            layout: { x: 0, y: 0, width: 100, height: 100 },
+            settings: {},
+          } as unknown as WidgetConfig
+        }
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Reusable preset"), { target: { value: "home" } });
+
+    expect(onUpdateSettings).toHaveBeenCalled();
+    expect(onUpdateSettings.mock.lastCall?.[2]).toBeUndefined();
   });
 });

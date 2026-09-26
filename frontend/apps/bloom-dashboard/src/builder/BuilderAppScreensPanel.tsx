@@ -1,5 +1,5 @@
 import type { ScreenConfig } from "@bloom/api-client";
-import { useId } from "react";
+import { useId, useState } from "react";
 import {
   BLOOM_APP_SCREEN_REORDER_DRAG_TYPE,
   BLOOM_SCREEN_DRAG_TYPE,
@@ -247,16 +247,22 @@ function ScreenCard({
   sourceApplicationName?: string;
 }) {
   const titleId = useId();
+  // Selecting the title's text by drag started a card drag in Chromium and Firefox.
+  const [editingTitle, setEditingTitle] = useState(false);
   return (
     <article
       className="builder-screen-card"
-      draggable={draggable}
+      draggable={draggable && !editingTitle}
       onDragOver={(event) => {
         if (onDropBefore && canReceiveBloomDrag(event.dataTransfer, reorderDragType)) {
           event.preventDefault();
         }
       }}
       onDragStart={(event) => {
+        if (event.target instanceof Element && event.target.closest("input, textarea, select")) {
+          event.preventDefault();
+          return;
+        }
         if (!draggable) {
           return;
         }
@@ -279,7 +285,10 @@ function ScreenCard({
             <RequiredTextInput
               {...getTouchEditingProps("name")}
               disabled={renameDisabled}
+              draggable={false}
               id={titleId}
+              onBlur={() => setEditingTitle(false)}
+              onFocus={() => setEditingTitle(true)}
               fallback="Untitled screen"
               onCommit={onRename}
               value={screen.title}

@@ -1,8 +1,10 @@
 import type { ApplicationConfig, ConfigurationBundle, ScreenConfig, UserProfile } from "@bloom/api-client";
 
+/** `others` widens the id and name check, e.g. to every configuration's apps. */
 export function duplicateApplicationInConfigurationBundle(
   bundle: ConfigurationBundle,
   applicationId: string,
+  others: readonly ApplicationConfig[] = bundle.applications,
 ): ApplicationConfig {
   const application = bundle.applications.find((candidateApplication) => candidateApplication.id === applicationId);
 
@@ -10,16 +12,41 @@ export function duplicateApplicationInConfigurationBundle(
     throw new Error(`Application "${applicationId}" was not found in the selected configuration.`);
   }
 
+  const taken = [...bundle.applications, ...others];
   const nextId = createUniqueId(
     `${application.id}-copy`,
-    bundle.applications.map((candidateApplication) => candidateApplication.id),
+    taken.map((candidateApplication) => candidateApplication.id),
   );
 
   return {
     ...structuredClone(application),
     id: nextId,
-    name: `${application.name} Copy`,
+    name: createUniqueApplicationName(`${application.name} Copy`, taken),
   };
+}
+
+/** The typed name, or with a number after it when another app already has it. */
+export function createUniqueApplicationName(name: string, applications: readonly ApplicationConfig[]): string {
+  const baseName = name.trim();
+  const taken = new Set(applications.map((application) => application.name));
+  if (!baseName || !taken.has(baseName)) {
+    return baseName;
+  }
+  let suffix = 2;
+  while (taken.has(`${baseName} ${suffix}`)) {
+    suffix += 1;
+  }
+  return `${baseName} ${suffix}`;
+}
+
+/** A config id no loaded or shipped configuration uses: a new app under a shipped id would share over its file. */
+export function createUniqueConfigId(baseId: string, takenIds: Iterable<string>): string {
+  const taken = new Set(takenIds);
+  let configId = baseId;
+  for (let suffix = 2; taken.has(configId); suffix += 1) {
+    configId = `${baseId}-${suffix}`;
+  }
+  return configId;
 }
 
 export function addScreenToApplication(application: ApplicationConfig, screen: ScreenConfig): ApplicationConfig {

@@ -21,15 +21,20 @@ function Harness({ series }: { series: Record<string, unknown>[] }) {
     settings,
   } as unknown as WidgetConfig;
   return (
-    <SeriesEditor
-      onUpdateSettings={(next) => {
-        const result = normalizeWidgetSettings("plot-board", next);
-        if (!result.success) return result.errors.map((error) => error.message).join(" ");
-        setSettings(result.settings);
-        return null;
-      }}
-      widget={widget}
-    />
+    <>
+      <SeriesEditor
+        onUpdateSettings={(next) => {
+          const result = normalizeWidgetSettings("plot-board", next);
+          if (!result.success) return result.errors.map((error) => error.message).join(" ");
+          setSettings(result.settings);
+          return null;
+        }}
+        widget={widget}
+      />
+      <button onClick={() => setSettings({ series: [] })} type="button">
+        Undo from outside
+      </button>
+    </>
   );
 }
 
@@ -62,5 +67,15 @@ describe("the series editor", () => {
 
     expect((screen.getByLabelText("Topic") as HTMLInputElement).value).toBe("/ee_pose");
     expect(screen.getByRole("alert").textContent).toContain("a topic starts with /");
+  });
+
+  // The refusal outlived an Undo that took the series somewhere else entirely.
+  it("drops the refusal when the series changes from outside", () => {
+    render(<Harness series={[HAND_Z]} />);
+    fireEvent.change(screen.getByLabelText("Topic"), { target: { value: "ee_pose" } });
+    expect(screen.getByRole("alert")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo from outside" }));
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

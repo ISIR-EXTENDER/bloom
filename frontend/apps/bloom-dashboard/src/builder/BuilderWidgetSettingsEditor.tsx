@@ -107,7 +107,7 @@ export function BuilderWidgetSettingsEditor({
   const effectiveSettings = normalizedSettings.success ? normalizedSettings.settings : widget.settings;
   const destination = resolveWidgetDestination(widget.kind, effectiveSettings);
 
-  const updateSetting = (field: WidgetSettingField, rawValue: string | boolean) => {
+  const updateSetting = (field: WidgetSettingField, rawValue: string | boolean, picked = false) => {
     const nextSettings: Record<string, unknown> = {
       ...widget.settings,
       [field.key]: coerceFieldValue(field, rawValue),
@@ -175,7 +175,7 @@ export function BuilderWidgetSettingsEditor({
       }
     }
     // Typing into one field is one undo step; a checkbox or a choice is its own.
-    const typed = field.type === "text" || field.type === "number" || field.type === "json";
+    const typed = !picked && (field.type === "text" || field.type === "number" || field.type === "json");
     setValidationMessage(onUpdateSettings(nextSettings, undefined, typed ? field.key : undefined));
   };
 
@@ -336,7 +336,7 @@ export function BuilderWidgetSettingsEditor({
       ) : null}
       {presetField ? (
         <ActionPresetField
-          onChange={(presetId) => updateSetting(presetField, presetId)}
+          onChange={(presetId) => updateSetting(presetField, presetId, true)}
           presets={actionPresets}
           value={String(effectiveSettings.presetId ?? "")}
         />

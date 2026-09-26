@@ -506,3 +506,120 @@ describe("leaving the builder with unsaved work", () => {
     confirmed.mockRestore();
   });
 });
+
+describe("undo in the builder", () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  const empty = (): ScreenConfig => ({ ...bench, widgets: [] });
+  const fontSize = () => screen.getByLabelText("Font size") as HTMLInputElement;
+  const labels = () => screen.queryAllByRole("button", { name: /^Select and move Label/ });
+
+  // A keyed edit that changed nothing still claimed the run, so the next one merged into adding the Label.
+  it("keeps the widget when the edit after a no-op one is undone", () => {
+    renderWorkspace(empty());
+    fireEvent.click(screen.getByRole("button", { name: /^Add Label widget/ }));
+    fireEvent.change(fontSize(), { target: { value: "20.0" } });
+    fireEvent.change(fontSize(), { target: { value: "24" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(labels()).toHaveLength(1);
+    expect(Number(fontSize().value)).toBe(20);
+  });
+
+  it("does not merge edits of one field across a change of selection", () => {
+    renderWorkspace(empty());
+    fireEvent.click(screen.getByRole("button", { name: /^Add Label widget/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Add Label widget/ }));
+    const [first, second] = labels();
+    if (!first || !second) throw new Error("expected two labels");
+    fireEvent.click(first);
+    fireEvent.change(fontSize(), { target: { value: "24" } });
+    fireEvent.click(second);
+    fireEvent.click(first);
+    fireEvent.change(fontSize(), { target: { value: "28" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(Number(fontSize().value)).toBe(24);
+  });
+
+  it("does not merge edits of one field separated by an idle pause", () => {
+    let now = 1_000_000;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    renderWorkspace(empty());
+    fireEvent.click(screen.getByRole("button", { name: /^Add Label widget/ }));
+    fireEvent.change(fontSize(), { target: { value: "24" } });
+    now += 2000;
+    fireEvent.change(fontSize(), { target: { value: "28" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    expect(Number(fontSize().value)).toBe(24);
+  });
+
+  it("undoes from a checkbox or a select, but not from a text field", () => {
+    renderWorkspace(empty());
+    fireEvent.click(screen.getByRole("button", { name: /^Add Label widget/ }));
+    const checkbox = document.body.appendChild(Object.assign(document.createElement("input"), { type: "checkbox" }));
+    const select = document.body.appendChild(document.createElement("select"));
+    const text = document.body.appendChild(document.createElement("input"));
+
+    fireEvent.keyDown(text, { key: "z", ctrlKey: true });
+    expect(labels()).toHaveLength(1);
+    fireEvent.keyDown(checkbox, { key: "z", ctrlKey: true });
+    expect(labels()).toHaveLength(0);
+    fireEvent.keyDown(select, { key: "y", ctrlKey: true });
+    expect(labels()).toHaveLength(1);
+
+    for (const control of [checkbox, select, text]) {
+      fireEvent.keyDown(control, { key: "Delete" });
+    }
+    expect(labels()).toHaveLength(1);
+    for (const control of [checkbox, select, text]) control.remove();
+  });
+});
+
+describe("Delete in the builder", () => {
+  afterEach(cleanup);
+
+  const selector = (name: string) => screen.getByRole("button", { name: `Select and move ${name} widget` });
+  const has = (name: string) => screen.queryByRole("button", { name: `Select and move ${name} widget` }) !== null;
+  const [firstWidget, secondWidget] = bench.widgets;
+
+  it("selects a widget when its frame takes focus", () => {
+    if (!firstWidget) throw new Error("the bench fixture has no widget");
+    renderWorkspace(bench);
+    fireEvent.focus(selector(firstWidget.title));
+    expect(selector(firstWidget.title).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  // Tabbing to another widget and pressing Delete removed the one selected earlier.
+  it("removes the widget whose frame has focus, not the selection", () => {
+    if (!firstWidget || !secondWidget) throw new Error("the bench fixture needs two widgets");
+    renderWorkspace(bench);
+    fireEvent.click(selector(firstWidget.title));
+
+    fireEvent.keyDown(selector(secondWidget.title), { key: "Delete" });
+
+    expect(has(secondWidget.title)).toBe(false);
+    expect(has(firstWidget.title)).toBe(true);
+  });
+
+  it("removes nothing from STOP or from another widget's resize handle", () => {
+    if (!firstWidget || !secondWidget) throw new Error("the bench fixture needs two widgets");
+    renderWorkspace(bench);
+    fireEvent.click(selector(firstWidget.title));
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Move the STOP region" }), { key: "Delete" });
+    fireEvent.keyDown(screen.getByRole("button", { name: `Resize ${secondWidget.title} widget` }), {
+      key: "Backspace",
+    });
+
+    expect(has(firstWidget.title)).toBe(true);
+    expect(has(secondWidget.title)).toBe(true);
+  });
+});

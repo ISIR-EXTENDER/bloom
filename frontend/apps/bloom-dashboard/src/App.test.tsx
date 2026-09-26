@@ -758,12 +758,16 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
     fireEvent.click(await screen.findByRole("button", { name: "Duplicate Sandbox app" }));
 
+    // Into a configuration of its own: written into the source, the copy rewrote a shipped file.
     await waitFor(() => {
-      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
     });
+    expect(configurationClient.upsertApplication).not.toHaveBeenCalled();
 
-    const [, savedApplication] = configurationClient.upsertApplication.mock.calls[0] ?? [];
+    const [configId, savedBundle] = configurationClient.upsertConfiguration.mock.calls[0] ?? [];
+    const savedApplication = savedBundle?.applications[0];
 
+    expect(configId).toBe("sandbox-copy");
     expect(savedApplication).toMatchObject({
       id: "sandbox-copy",
       name: "Sandbox Copy",

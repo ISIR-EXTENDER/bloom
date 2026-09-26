@@ -92,6 +92,7 @@ export function BuilderWorkspace({
     commitScreenChange,
     commitWidgetLayout,
     draftScreen,
+    endCoalescing,
     isDirty,
     previewWidgetLayout,
     redo,
@@ -143,6 +144,9 @@ export function BuilderWorkspace({
   };
 
   const selectWidget = (widgetId: string | null) => {
+    if (widgetId !== selectedWidgetId) {
+      endCoalescing();
+    }
     setLayoutNotice(null);
     setSelectedWidgetId(widgetId);
   };
@@ -285,13 +289,15 @@ export function BuilderWorkspace({
     setLayoutNotice(`Now a ${deviceClass} screen: widgets and STOP were rescaled together. Check sizes, then save.`);
   };
 
-  const removeSelectedWidget = () => {
-    if (!selectedWidget) {
-      return;
-    }
-
-    commitScreenChange(removeWidgetFromScreen(draftScreen, selectedWidget.id));
+  const removeWidget = (widgetId: string) => {
+    commitScreenChange(removeWidgetFromScreen(draftScreen, widgetId));
     setSelectedWidgetId(null);
+  };
+
+  const removeSelectedWidget = () => {
+    if (selectedWidget) {
+      removeWidget(selectedWidget.id);
+    }
   };
 
   const updateSelectedWidgetTitle = (title: string) => {
@@ -341,10 +347,13 @@ export function BuilderWorkspace({
     } else if (command && key === "y") {
       event.preventDefault();
       redo();
-    } else if ((event.key === "Delete" || event.key === "Backspace") && !command && selectedWidget) {
-      event.preventDefault();
-      removeSelectedWidget();
-    } else if (event.key === "Escape" && selectedWidget) {
+    } else if ((event.key === "Delete" || event.key === "Backspace") && !command) {
+      const target = resolveDeleteTarget(event.target, selectedWidget?.id ?? null);
+      if (target && !isFormControl(event.target)) {
+        event.preventDefault();
+        removeWidget(target);
+      }
+    } else if (event.key === "Escape" && selectedWidget && !isFormControl(event.target)) {
       selectWidget(null);
     }
   };
@@ -506,13 +515,40 @@ export function BuilderWorkspace({
   );
 }
 
+const TEXT_INPUT_TYPES = new Set(["", "text", "number", "search", "url", "email", "password", "tel"]);
+
+// Undo/redo still reach the builder from a checkbox, radio, range or select; only typing keeps its own.
 function isTextEntryTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  if (target instanceof HTMLInputElement) {
+    return TEXT_INPUT_TYPES.has((target.getAttribute("type") ?? "").toLowerCase());
+  }
   return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName) ||
-      target.closest('[contenteditable]:not([contenteditable="false"])') !== null)
+    target.isContentEditable ||
+    target.tagName === "TEXTAREA" ||
+    target.closest('[contenteditable]:not([contenteditable="false"])') !== null
   );
+}
+
+function isFormControl(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
+}
+
+/** The widget Delete acts on: the focused one's frame, else the selection; never from STOP or another's resize handle. */
+function resolveDeleteTarget(target: EventTarget | null, selectedId: string | null): string | null {
+  if (!(target instanceof Element)) {
+    return selectedId;
+  }
+  if (target.closest(".builder-canvas-region")) {
+    return null;
+  }
+  const frameId = target.closest<HTMLElement>(".builder-widget-frame[data-widget-id]")?.dataset.widgetId ?? null;
+  if (frameId === null || frameId === selectedId) {
+    return selectedId;
+  }
+  return target.closest(".builder-widget-resize-handle") ? null : frameId;
 }
 
 function DraftSaveStatus({ state }: { state: DraftSaveState }) {

@@ -2,7 +2,7 @@ import { type ApplicationConfig, CURRENT_CONFIGURATION_SCHEMA_VERSION, type Scre
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { type BloomRoute, builderModeRoute } from "../ui/navigationRoute";
 import type { ConfigurationClient } from "./configuration-client";
-import { duplicateApplicationInConfigurationBundle } from "./configuration-editor";
+import { createUniqueConfigId, duplicateApplicationInConfigurationBundle } from "./configuration-editor";
 import type { ConfigurationLoadState } from "./use-configurations";
 
 type ApplicationActionsOptions = {
@@ -38,6 +38,21 @@ export function createApplicationActions({
     };
   };
 
+  // A new app gets its own file: added to an existing one, sharing it rewrote that (often shipped) file.
+  const saveAsNewConfiguration = async (
+    state: Extract<ConfigurationLoadState, { status: "ready" }>,
+    configId: string,
+    application: ApplicationConfig,
+  ) =>
+    state.saveConfiguration(configId, {
+      metadata: {
+        exported_at: new Date().toISOString(),
+        schema_version: CURRENT_CONFIGURATION_SCHEMA_VERSION,
+        source: "bloom-builder",
+      },
+      applications: [application],
+    });
+
   const openInBuilder = (configId: string, application: ApplicationConfig) => {
     setSelection({ configId, appId: application.id, screenId: application.screens[0]?.id ?? "main" });
     navigate(builderModeRoute("app-config"));
@@ -69,15 +84,7 @@ export function createApplicationActions({
       if (state.configurations.some((candidate) => candidate.id === configId)) {
         await state.saveApplication(configId, application);
       } else {
-        // A new app gets its own file: added to the first one, sharing it rewrote bloom-debug.json.
-        await state.saveConfiguration(configId, {
-          metadata: {
-            exported_at: new Date().toISOString(),
-            schema_version: CURRENT_CONFIGURATION_SCHEMA_VERSION,
-            source: "bloom-builder",
-          },
-          applications: [application],
-        });
+        await saveAsNewConfiguration(state, configId, application);
       }
       openInBuilder(configId, application);
     },
@@ -88,9 +95,17 @@ export function createApplicationActions({
       if (!configuration) {
         throw new Error(`Configuration "${configId}" was not found.`);
       }
-      const duplicated = duplicateApplicationInConfigurationBundle(configuration.bundle, applicationId);
-      await state.saveApplication(configId, duplicated);
-      openInBuilder(configId, duplicated);
+      const duplicated = duplicateApplicationInConfigurationBundle(
+        configuration.bundle,
+        applicationId,
+        state.configurations.flatMap((candidate) => candidate.bundle.applications),
+      );
+      const copyConfigId = createUniqueConfigId(duplicated.id, [
+        ...state.configurations.map((candidate) => candidate.id),
+        ...Object.keys(state.shareStatus),
+      ]);
+      await saveAsNewConfiguration(state, copyConfigId, duplicated);
+      openInBuilder(copyConfigId, duplicated);
     },
 
     async deleteApplication(configId: string, applicationId: string) {

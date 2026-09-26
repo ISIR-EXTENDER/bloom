@@ -64,6 +64,13 @@ export function SeriesEditor({
 }) {
   const listId = useId();
   const [rejection, setRejection] = useState<string | null>(null);
+  // Undo or Discard changing the series from outside ends whatever the refusal was about.
+  const seriesKey = `${widget.id}:${JSON.stringify(widget.settings?.series ?? null)}`;
+  const [seenSeries, setSeenSeries] = useState(seriesKey);
+  if (seenSeries !== seriesKey) {
+    setSeenSeries(seriesKey);
+    setRejection(null);
+  }
   if (!SERIES_KINDS.has(widget.kind)) {
     return null;
   }
