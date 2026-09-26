@@ -54,6 +54,7 @@ export type RuntimeTopicStatusSummary = {
 type RuntimeTopicRequirement = Pick<RuntimeTopicStatusSummary, "label" | "requirement" | "topic">;
 
 const MODE_REQUEST_TOPIC = "/mode_request";
+const DEFAULT_GEOMETRIC_MODE = "geometric/both";
 const WIDGET_REGISTRY = createDefaultWidgetRegistry();
 const TOPIC_COMMAND_WIDGET_KINDS = new Set(["command-button", "gesture-pad", "slider", "toggle"]);
 
@@ -101,6 +102,19 @@ export function applyRuntimeModeIntent(
     ...currentState,
     mode,
     source: "operator-command",
+    updatedAt: now.toISOString(),
+  };
+}
+
+/** A STOP that reached ROS also sent geometric/both; one that did not leaves the shaper unknown. */
+export function applyRuntimeStopLatch(
+  currentState: RuntimeModeState,
+  latch: { asserted: boolean },
+  now = new Date(),
+): RuntimeModeState {
+  return {
+    ...currentState,
+    requestedMode: latch.asserted ? DEFAULT_GEOMETRIC_MODE : null,
     updatedAt: now.toISOString(),
   };
 }

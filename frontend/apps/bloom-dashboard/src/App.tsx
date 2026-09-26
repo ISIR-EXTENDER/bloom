@@ -1,8 +1,8 @@
-import type { ApplicationConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeStopState } from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
 import type { WidgetActionOutcome } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import "./builder.css";
 import "./builder-tour.css";
@@ -24,7 +24,11 @@ import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
 import { isRuntimeActionConfirmed, type RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
-import { applyRuntimeModeIntent, createDefaultRuntimeModeState } from "./runtime/runtimeModeState";
+import {
+  applyRuntimeModeIntent,
+  applyRuntimeStopLatch,
+  createDefaultRuntimeModeState,
+} from "./runtime/runtimeModeState";
 import { createSupervisorRuntimeClient } from "./runtime/supervisor-client";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { useRuntimeCapabilityReport } from "./runtime/use-runtime-capabilities";
@@ -77,6 +81,16 @@ export function App({
   const { navigate, route } = useBloomRoute();
   const { activeView, builderMode, runtimeMode, supervisorTarget, libraryTarget } = route;
   const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
+  // Kept here, not in the workspace: a remount seeing the same latch must not undo a mode asked for since.
+  const lastStopLatchRef = useRef("");
+  const handleStopLatch = useCallback((latch: RuntimeStopState) => {
+    const key = `${latch.engaged_at}:${latch.asserted}`;
+    if (key === lastStopLatchRef.current) {
+      return;
+    }
+    lastStopLatchRef.current = key;
+    setRuntimeModeState((current) => applyRuntimeStopLatch(current, latch));
+  }, []);
   const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}:${supervisorTarget?.configId ?? ""}:${supervisorTarget?.appId ?? ""}:${libraryTarget?.appId ?? ""}`;
@@ -328,6 +342,7 @@ export function App({
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onUploadThemeAsset={applicationActions.uploadThemeAsset}
                 onSuspendTeleop={runtimeActions.suspendTeleop}
+                onStopLatch={handleStopLatch}
                 profilePreferences={runtimeUserPreferences.profilePreferences}
                 profileOverrides={runtimeUserPreferences.profileOverrides}
                 recentRuntimeSelections={runtimeUserPreferences.recentRuntimeSelections}

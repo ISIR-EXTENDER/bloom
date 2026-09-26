@@ -1,4 +1,10 @@
-import type { ApplicationConfig, RuntimeCapability, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
+import type {
+  ApplicationConfig,
+  RuntimeCapability,
+  RuntimeCapabilityReport,
+  RuntimeStopState,
+  ScreenConfig,
+} from "@bloom/api-client";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
@@ -71,6 +77,7 @@ type ProductWorkspaceProps = {
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onUploadThemeAsset: (file: File) => Promise<string>;
   onSuspendTeleop: ReturnType<typeof useRuntimeActionDispatcher>["suspendTeleop"];
+  onStopLatch?: (latch: RuntimeStopState) => void;
   profilePreferences: Record<string, string>;
   profileOverrides: Record<string, RuntimeProfileOverrides>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
@@ -118,6 +125,7 @@ export function ProductWorkspace({
   onTopicSubscriptionRequest,
   onUploadThemeAsset,
   onSuspendTeleop,
+  onStopLatch,
   profilePreferences,
   profileOverrides,
   recentRuntimeSelections,
@@ -246,6 +254,7 @@ export function ProductWorkspace({
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
       onSuspendTeleop={onSuspendTeleop}
+      onStopLatch={onStopLatch}
       preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
       profileOverrides={profileOverrides}
       runtimeActionClient={runtimeActionClient}

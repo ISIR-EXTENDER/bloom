@@ -1,4 +1,4 @@
-import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeCapabilityReport, RuntimeStopState, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -86,6 +86,8 @@ type RuntimeWorkspaceProps = {
   onProfileOverridesChange: (profileId: string, overrides: RuntimeProfileOverrides) => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onSuspendTeleop: () => void;
+  /** A STOP latch seen engaged; the backend's STOP resets the shaper, so the requested mode follows. */
+  onStopLatch?: (latch: RuntimeStopState) => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
   /** Switching role from maintenance; the workspace opens that profile's layout. */
@@ -114,6 +116,7 @@ export function RuntimeWorkspace({
   onProfileOverridesChange,
   onSelectionChange,
   onSuspendTeleop,
+  onStopLatch,
   onTeleopCommand,
   onTeleopContribution,
   onTopicSample,
@@ -306,6 +309,15 @@ export function RuntimeWorkspace({
     screen,
   });
   const runtimeStop = useRuntimeStop(runtimeActionClient);
+  const onStopLatchRef = useRef(onStopLatch);
+  onStopLatchRef.current = onStopLatch;
+  const observedStop = runtimeStop.state;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new latch, or one now asserted, is reported once.
+  useEffect(() => {
+    if (observedStop?.stopped && observedStop.engaged_at) {
+      onStopLatchRef.current?.(observedStop);
+    }
+  }, [observedStop?.stopped, observedStop?.engaged_at, observedStop?.asserted]);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;

@@ -18,6 +18,11 @@ import { useLatchCountdown } from "./use-latch-countdown";
 const CONFIRM_SETTLE_MS = 600;
 const RELEASE_RETRIES = 3;
 const RELEASE_RETRY_MS = 200;
+/** The visual servoing switch: while on, the servo node moves the arm, so a suspend or STOP turns it off. */
+export const VISUAL_SERVOING_SWITCH_TOPIC = "/ui/visual_servoing/on";
+// Per topic, the last momentary publish attempted from any widget: a release retry must not undo a newer hold.
+let momentaryPublishCount = 0;
+const lastMomentaryPublishByTopic = new Map<string, number>();
 
 export function CommandLikeWidget({
   conditioning,
@@ -60,6 +65,8 @@ export function CommandLikeWidget({
   // Press and release go out one after the other, and every press attempted is followed by a release.
   const momentaryQueueRef = useRef<Promise<void> | null>(null);
   const releaseOwedRef = useRef(false);
+  // A queued press whose hold has ended before its turn is dropped: it would set the mode after the let-go.
+  const holdGenerationRef = useRef(0);
   const [isArmed, setIsArmed] = useState(false);
   const armedAtRef = useRef(0);
   const visibleButtonLabel = momentary
@@ -190,6 +197,8 @@ export function CommandLikeWidget({
     releaseMomentary();
   };
   const sendMomentaryPayload = (payloadKey: "payload" | "releasedPayload"): MaybeOutcome => {
+    momentaryPublishCount += 1;
+    lastMomentaryPublishByTopic.set(topic, momentaryPublishCount);
     try {
       const outcome = onActionIntent?.({
         type: "topic-publish",
@@ -218,15 +227,19 @@ export function CommandLikeWidget({
       }
     });
   };
-  const sendRelease = (attempt: number): Promise<void> | undefined =>
-    afterOutcome(sendMomentaryPayload("releasedPayload"), (result) => {
+  const sendRelease = (attempt: number, firstAttempt?: number): Promise<void> | undefined => {
+    const outcome = sendMomentaryPayload("releasedPayload");
+    const firstPublish = firstAttempt ?? lastMomentaryPublishByTopic.get(topic);
+    return afterOutcome(outcome, (result) => {
       if (result?.accepted !== false || attempt >= RELEASE_RETRIES) {
         return undefined;
       }
       return new Promise<void>((resolve) => setTimeout(resolve, RELEASE_RETRY_MS * 2 ** attempt)).then(() =>
-        sendRelease(attempt + 1),
+        // Another widget's publish since then holds the topic now; this retry would cancel its mode.
+        lastMomentaryPublishByTopic.get(topic) === firstPublish ? sendRelease(attempt + 1, firstPublish) : undefined,
       );
     });
+  };
   const queueMomentaryRelease = () => {
     if (!releaseOwedRef.current) {
       return;
@@ -244,6 +257,8 @@ export function CommandLikeWidget({
     }
     setMomentaryRefusal("");
     releaseOwedRef.current = true;
+    holdGenerationRef.current += 1;
+    const holdGeneration = holdGenerationRef.current;
     const refuse = (detail: string) => {
       holdPointerIdRef.current = null;
       isMomentaryPressedRef.current = false;
@@ -253,14 +268,21 @@ export function CommandLikeWidget({
       // A refused or lost press may still have reached the robot: let it go all the same.
       queueMomentaryRelease();
     };
-    enqueueMomentary(() =>
-      afterOutcome(sendMomentaryPayload("payload"), (result) => {
-        if (result?.accepted === false && isMomentaryPressedRef.current) {
+    enqueueMomentary(() => {
+      if (holdGeneration !== holdGenerationRef.current || !isMomentaryPressedRef.current) {
+        return undefined;
+      }
+      return afterOutcome(sendMomentaryPayload("payload"), (result) => {
+        if (
+          result?.accepted === false &&
+          isMomentaryPressedRef.current &&
+          holdGeneration === holdGenerationRef.current
+        ) {
           refuse(result.detail ?? "");
         }
         return undefined;
-      }),
-    );
+      });
+    });
   };
 
   const layout = getBooleanSetting(descriptor.widget.settings, "hide_title", false) ? "bare" : "card";
@@ -402,6 +424,7 @@ export function ToggleWidget({
   controlState,
   descriptor,
   language,
+  neutralRevision,
   onActionIntent,
 }: WidgetRendererProps) {
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
@@ -422,6 +445,39 @@ export function ToggleWidget({
   const stateLabel = isOn ? onLabel : offLabel;
   const [isPending, setIsPending] = useState(false);
   const stateTextId = useId();
+  const switchOffServoRef = useRef(() => {});
+  switchOffServoRef.current = () => {
+    if (topic !== VISUAL_SERVOING_SWITCH_TOPIC || !isOn) {
+      return;
+    }
+    setLocalIsOn(false);
+    const intent = createWidgetActionIntent(descriptor.widget, { nextState: "off", type: "toggle" });
+    // Marked a release so the STOP and hold gates let the switch-off through.
+    try {
+      const outcome = onActionIntent?.(intent.type === "topic-publish" ? { ...intent, release: true } : intent);
+      if (outcome instanceof Promise) {
+        outcome.catch(() => undefined);
+      }
+    } catch {
+      // The runtime shell reports a failed publish; the switch still reads off, as STOP turns it off too.
+    }
+  };
+  const lastNeutralRevisionRef = useRef(neutralRevision);
+  useEffect(() => {
+    if (neutralRevision === lastNeutralRevisionRef.current) {
+      return;
+    }
+    lastNeutralRevisionRef.current = neutralRevision;
+    switchOffServoRef.current();
+  }, [neutralRevision]);
+  const disabled = controlState?.disabled === true;
+  useEffect(() => {
+    if (disabled) {
+      switchOffServoRef.current();
+    }
+  }, [disabled]);
+  // Settings, the tour and a screen change unmount the canvas before their suspend lands here.
+  useEffect(() => () => switchOffServoRef.current(), []);
 
   const handleToggle = async () => {
     if (isPending || !allowToggle()) {
