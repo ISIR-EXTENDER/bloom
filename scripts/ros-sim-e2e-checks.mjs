@@ -441,8 +441,8 @@ async function freshAppSession() {
     const built = await check(page, "a-new-app-arrives-wired", async () => {
       await createGuidedApp(page, dashboardUrl, appName);
       await openScreenBuilder(page);
-      const added = await addPaletteWidgets(page, ["Command button", "Gauge"]);
-      assert(added.length === 2, `only added ${added.join(", ")}`);
+      const added = await addPaletteWidgets(page, ["Command button", "Gauge", "Camera"]);
+      assert(added.length === 3, `only added ${added.join(", ")}`);
       await saveScreenDraft(page);
       await shot(page, "fresh-screen");
       return `${appName}: the starter's pad, speed and gripper, and ${added.join(" and ")} from the palette, untouched`;
@@ -472,8 +472,9 @@ async function freshAppSession() {
 
       const gauge = await page.locator("[data-widget-kind='gauge']").innerText();
       assert(/\d\.\d/.test(gauge) && !/no source/i.test(gauge), `gauge reads "${gauge.replace(/\s+/g, " ")}"`);
+      await page.locator("[data-widget-kind='camera'] img.bloom-camera-image").waitFor({ timeout: 15000 });
       await shot(page, "fresh-runtime");
-      return `${drive.summary}; gripper ${robot.gripper.close[0]}; speed ${speed.data.toFixed(3)}; Neutral; gauge live`;
+      return `${drive.summary}; gripper ${robot.gripper.close[0]}; speed ${speed.data.toFixed(3)}; Neutral; gauge live; camera frame`;
     });
   } finally {
     await context.close();

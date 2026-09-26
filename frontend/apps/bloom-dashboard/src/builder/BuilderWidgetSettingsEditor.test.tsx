@@ -582,3 +582,31 @@ describe("the command line beside the fields", () => {
     expect(screen.queryByText(/ros2 topic pub/)).toBeNull();
   });
 });
+
+describe("a mode button's payload", () => {
+  afterEach(cleanup);
+
+  const MODE_BUTTON = {
+    command: "geometric/both",
+    messageType: "std_msgs/msg/String",
+    payload: { data: "geometric/both" },
+    topic: "/mode_request",
+  };
+
+  it("follows its command, so the new mode is the one sent", () => {
+    const onUpdate = renderEditor(MODE_BUTTON, "command-button");
+    fireEvent.change(screen.getByLabelText(/^Command/), { target: { value: "geometric/snake" } });
+
+    expect(onUpdate.mock.calls.at(-1)?.[0]).toMatchObject({
+      command: "geometric/snake",
+      payload: { data: "geometric/snake" },
+    });
+  });
+
+  it("keeps a payload the author wrote", () => {
+    const onUpdate = renderEditor({ ...MODE_BUTTON, payload: { data: "behaviour/passthrough" } }, "command-button");
+    fireEvent.change(screen.getByLabelText(/^Command/), { target: { value: "geometric/snake" } });
+
+    expect(onUpdate.mock.calls.at(-1)?.[0]).toMatchObject({ payload: { data: "behaviour/passthrough" } });
+  });
+});

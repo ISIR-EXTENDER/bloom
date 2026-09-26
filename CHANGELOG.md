@@ -96,6 +96,11 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A camera placed from the palette shows the gripper camera.** It arrives on
+  `/camera/color/image_raw/compressed`, where the launcher's camera_interface publishes on both arms, instead of a
+  placeholder. A command button whose Command is edited now sends the new mode, unless its payload was written by
+  hand. The gesture pad is marked Preview: nothing on the cartesian_manager stack reads its angle and power yet.
+
 - **A speed slider placed from the palette takes the arm's range.** On a Kinova it is 0..0.1 m/s around its
   configured 0.05, as in the Kinova Manager app, instead of the Explorer's 0..0.3. The arm is recognized from a
   `BLOOM_ROBOT_NAME` that contains "kinova", "gen3" or "explorer" (the pad, the gripper and the launcher's camera pick

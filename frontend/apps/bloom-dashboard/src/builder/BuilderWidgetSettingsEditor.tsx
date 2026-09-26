@@ -4,6 +4,7 @@ import {
   findInertSetting,
   getDefaultRosMessageTogglePayloads,
   getWidgetSettingsContract,
+  isRecord,
   normalizeWidgetSettings,
   readOptionalNumber,
   resolveWidgetDestination,
@@ -80,6 +81,18 @@ export function BuilderWidgetSettingsEditor({
         const suggested = getDefaultRosMessageTogglePayloads(String(rawValue));
         nextSettings.onPayload = suggested.onPayload;
         nextSettings.offPayload = suggested.offPayload;
+      }
+    }
+    // A mode button sends {data: <command>}; a new command left the old one going out.
+    if (widget.kind === "command-button" && field.key === "command") {
+      const payload = effectiveSettings.payload;
+      const previous = String(effectiveSettings.command ?? "");
+      const followsCommand =
+        payload === "" ||
+        payload === undefined ||
+        (isRecord(payload) && Object.keys(payload).length === 1 && payload.data === previous);
+      if (followsCommand && String(effectiveSettings.messageType ?? "") === "std_msgs/msg/String") {
+        nextSettings.payload = { data: String(rawValue) };
       }
     }
     setValidationMessage(onUpdateSettings(nextSettings));

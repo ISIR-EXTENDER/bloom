@@ -37,6 +37,8 @@ export const PALETTE_WIRING: Readonly<Record<string, { title: string; settings: 
       value: 0.15,
     },
   },
+  // camera_interface publishes here on both arms, and the launcher starts it with Bloom.
+  camera: { title: "Gripper camera", settings: { source: "ros-topic", topic: "/camera/color/image_raw/compressed" } },
   // Up to 1.5 m: the Kinova's hand sits near 1.2 m above its base, the Explorer's near 0.2 m.
   gauge: { title: "Hand height", settings: { ...EE_POSE, fieldPath: "pose.position.z", max: 1.5, min: 0, unit: "m" } },
   plot: { title: "Hand height", settings: { ...EE_POSE, fieldPath: "pose.position.z", unit: "m", samples: [] } },
