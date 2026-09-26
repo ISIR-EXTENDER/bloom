@@ -1,5 +1,5 @@
 import type { RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import { resolveTeleopFrameId, type WidgetActionIntent } from "@bloom/widgets";
+import { asRecord, resolveTeleopFrameId, type WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dispatchRuntimeActionIntent,
@@ -93,7 +93,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   // Advances on every suspend so held controls can return to rest as well.
   const [neutralRevision, setNeutralRevision] = useState(0);
   // Between a suspend and the controls' return to rest, a pointermove could put the old push back into
-  // the composer, and the pad, reset, would never send its zero. Moves in that gap are dropped.
+  // the composer, and the pad, reset, would never send its zero. Teleop moves in that gap are dropped.
   const settlingAfterSuspend = useRef(false);
   useEffect(() => {
     void neutralRevision;
@@ -105,7 +105,12 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
   const dispatch = useCallback(
     (intent: WidgetActionIntent, options: RuntimeDispatchOptions = {}) => {
-      if (settlingAfterSuspend.current && intent.type === "value-change" && !isRestingValue(intent.value)) {
+      if (
+        settlingAfterSuspend.current &&
+        intent.type === "value-change" &&
+        asRecord(intent.runtimeBinding).adapter === "teleop" &&
+        !isRestingValue(intent.value)
+      ) {
         return Promise.resolve({
           detail: "Dropped: the controls are returning to rest.",
           intent,

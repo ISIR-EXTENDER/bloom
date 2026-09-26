@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 import type { RuntimeStopState } from "@bloom/api-client";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { explorerManagerClient as configurationClient } from "../test-support/configuration-client";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
@@ -15,8 +15,14 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock as never;
+Object.defineProperty(HTMLElement.prototype, "offsetParent", { configurable: true, get: () => document.body });
 
 describe("dwell and STOP", () => {
+  afterEach(() => {
+    cleanup();
+    window.location.hash = "";
+  });
+
   it("does not resume a STOP the operator just pressed while the pointer rests on it", async () => {
     window.localStorage.setItem(
       "bloom.runtime-user-preferences.v1",
@@ -56,5 +62,41 @@ describe("dwell and STOP", () => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
     expect(stopped).toBe(true);
+  }, 20000);
+
+  // Maintenance runs its own dwell on its sheet and STOP is drawn outside it: resting on STOP did nothing.
+  it("stops the arm by dwell while the maintenance sheet is open", async () => {
+    window.localStorage.setItem(
+      "bloom.runtime-user-preferences.v1",
+      JSON.stringify({
+        profileOverrides: { "explorer-manager:explorer-manager:operator": { dwellEnabled: true, dwellMs: 400 } },
+        profilePreferences: { "explorer-manager:explorer-manager": "operator" },
+        recentRuntimeSelections: [],
+      }),
+    );
+    const client = {
+      engageRuntimeStop: vi.fn(
+        async (): Promise<RuntimeStopState> => ({
+          stopped: true,
+          asserted: true,
+          engaged_at: "",
+          detail: "",
+        }),
+      ),
+      getRuntimeStopState: vi.fn(
+        async (): Promise<RuntimeStopState> => ({ stopped: false, asserted: false, engaged_at: "", detail: "" }),
+      ),
+      publishRosTopic: vi.fn(),
+    } satisfies RuntimeActionClient;
+
+    render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openRuntimeApp("Explorer Manager");
+    fireEvent.pointerMove(await screen.findByRole("button", { name: /maintenance/i }), { clientX: 10, clientY: 10 });
+    await waitFor(() => expect(screen.getByRole("dialog", { name: "Maintenance" })).toBeTruthy(), { timeout: 5000 });
+
+    fireEvent.pointerMove(screen.getByRole("button", { name: "Stop the robot" }), { clientX: 900, clientY: 500 });
+
+    await waitFor(() => expect(client.engageRuntimeStop).toHaveBeenCalled(), { timeout: 5000 });
   }, 20000);
 });

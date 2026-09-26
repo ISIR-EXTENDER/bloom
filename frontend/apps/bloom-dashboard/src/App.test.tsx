@@ -1235,6 +1235,15 @@ describe("App", () => {
 
     expect(confirmed).toHaveBeenCalled();
     expect(screen.getByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+
+    // Browser Back changes the hash itself; it went through without asking.
+    confirmed.mockClear();
+    act(() => {
+      window.history.pushState(null, "", "#/landing");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    expect(confirmed).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     confirmed.mockRestore();
   });
 

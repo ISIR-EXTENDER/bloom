@@ -136,6 +136,13 @@ class UserProfile(BloomModel):
     #: A tap opens maintenance instead of the hold; for roles that are not driving.
     menu_on_tap: bool = False
 
+    @field_validator("motor_accessibility_preset", mode="before")
+    @classmethod
+    def _read_removed_presets_as_default(cls, value: object) -> object:
+        # "reduced-motion" was accepted and changed nothing; refusing it made a stored app unreadable, and the
+        # loader then failed every app with it.
+        return "default" if value == "reduced-motion" else value
+
 
 class RuntimeAdapterPolicy(BloomModel):
     #: Shared rotation frame for every Cartesian command in this application.

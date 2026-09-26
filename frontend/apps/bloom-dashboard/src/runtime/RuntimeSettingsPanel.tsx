@@ -3,6 +3,7 @@ import { localizeOperatorText, PROFILE_TARGET_PX } from "@bloom/widgets";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import type { RuntimeStatusChip } from "./RuntimeKioskBar";
 import { normalizeRuntimeProfileOverrides, type RuntimeProfileOverrides } from "./runtime-profile-overrides";
 import { applyRuntimeProfileOverrides, type ResolvedRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
@@ -14,6 +15,8 @@ type PushMode = "drag" | "latch" | "step";
 
 type RuntimeSettingsPanelProps = {
   applicationName: string;
+  /** The live status, as the kiosk bar shows it: it was always HELD here, even while STOPPED or LINK DOWN. */
+  statusChip?: RuntimeStatusChip;
   baseProfile: ResolvedRuntimeProfile;
   /** The connected pad's name, or null when none is attached. */
   gamepadName?: string | null;
@@ -42,6 +45,7 @@ const PUSH_PRESETS: Record<PushMode, UserProfile["motor_accessibility_preset"]> 
 export function RuntimeSettingsPanel({
   gamepadName = null,
   applicationName,
+  statusChip,
   baseProfile,
   onClose,
   onSave,
@@ -126,9 +130,9 @@ export function RuntimeSettingsPanel({
       <header className="runtime-kiosk-bar">
         <h2 className="runtime-kiosk-app">{applicationName}</h2>
         <span className="runtime-kiosk-screen">{strings.settings.title}</span>
-        <span className="runtime-kiosk-status" data-tone="held" role="status">
+        <span className="runtime-kiosk-status" data-tone={statusChip?.tone ?? "held"} role="status">
           <span aria-hidden="true" className="runtime-kiosk-status-dot" />
-          {strings.status.held}
+          {statusChip?.label ?? strings.status.held}
         </span>
         <span className="runtime-kiosk-spacer" />
         <span className="runtime-kiosk-role" data-role={runtimeRole}>

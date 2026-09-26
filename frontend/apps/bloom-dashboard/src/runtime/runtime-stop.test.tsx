@@ -51,6 +51,25 @@ describe("the STOP control", () => {
     expect(handlers.onEngage).toHaveBeenCalledTimes(1);
   });
 
+  // STOP and Resume are two elements; the swap dropped a keyboard operator's focus to the page.
+  it("keeps keyboard focus on the control through STOP and back", () => {
+    const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
+    const { rerender } = render(<RuntimeStopControl requestError="" stopped={false} {...handlers} />);
+    const stop = screen.getByRole("button", { name: "Stop the robot" });
+    stop.focus();
+
+    fireEvent.click(stop, { detail: 0 });
+    rerender(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
+
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Hold for one second to resume/ }));
+  });
+
+  it("says a failed STOP in its accessible name, not only on screen", () => {
+    renderControl({ requestError: "The stop request failed." });
+
+    expect(screen.getByRole("button", { name: "Stop the robot. The stop request failed." })).toBeTruthy();
+  });
+
   it("resumes only after a full 1s hold", () => {
     const handlers = renderControl({ stopped: true });
     const button = screen.getByRole("button", { name: "Hold for one second to resume" });

@@ -344,6 +344,13 @@ function isTopicDestinationAllowed(
     return true;
   }
   const runtimeBinding = asRecord(widget.settings.runtime_binding);
+  // A parameter is allowed by name, and an app that names none tunes none, as the backend narrows it.
+  if (runtimeBinding.adapter === "parameter") {
+    const mapping = asRecord(runtimeBinding.value_mapping);
+    const key = `${String(mapping.node ?? "")}:${String(mapping.parameter ?? "")}`;
+    const allowed = application.runtime_policy.allowed_parameters ?? [];
+    return allowed.includes("*") || allowed.includes(key);
+  }
   // As the backend narrows: an empty teleop list allows none, an empty publish list defers to the deployment.
   return runtimeBinding.adapter === "teleop"
     ? allowlistAllows(application.runtime_policy.allowed_teleop_targets, destination.topic)

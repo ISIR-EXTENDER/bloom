@@ -217,6 +217,29 @@ describe("runtime teleop suspension", () => {
     expect(sent.at(-1)?.linear.x).toBe(0.5);
   });
 
+  it("lets a speed slider through in that moment: only a teleop push can put motion back", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    let outcome: Awaited<ReturnType<typeof result.current.dispatch>> | undefined;
+    act(() => {
+      result.current.suspendTeleop();
+      void result.current
+        .dispatch({
+          type: "value-change",
+          messageType: "std_msgs/msg/Float64",
+          topic: "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+          value: 0.2,
+          widgetId: "speed",
+          widgetKind: "slider",
+        })
+        .then((next) => {
+          outcome = next;
+        });
+    });
+    await act(() => vi.advanceTimersByTimeAsync(10));
+
+    expect(outcome?.status).not.toBe("blocked");
+  });
+
   it("coalesces rapid widget updates before they reach the WebSocket client", async () => {
     const { result } = renderHook(() => useRuntimeActionDispatcher(client));
 

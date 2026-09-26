@@ -399,7 +399,11 @@ export function BuilderHome({
                   robotName,
                 );
                 setCreateState({ status: "creating" });
-                const configIds = new Set(configurations.map((configuration) => configuration.id));
+                // Shipped ids too, deleted ones included: a new app under one would share over its file.
+                const configIds = new Set([
+                  ...configurations.map((configuration) => configuration.id),
+                  ...Object.keys(shareStatus),
+                ]);
                 let configId = application.id;
                 for (let suffix = 2; configIds.has(configId); suffix += 1) {
                   configId = `${application.id}-${suffix}`;

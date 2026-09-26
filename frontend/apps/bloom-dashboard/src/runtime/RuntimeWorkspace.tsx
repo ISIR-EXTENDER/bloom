@@ -347,8 +347,12 @@ export function RuntimeWorkspace({
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
   const stopped = runtimeStop.state?.stopped === true || runtimeStop.stopRequested;
   const isAssistiveRuntimeTargetEnabled = (target: HTMLElement) => {
+    // Not in control: claim, STOP, and the way out; maintenance holds motion, and without it a switch or dwell
+    // operator refused the claim could reach neither Settings nor another app.
     if (runtimeControlBlocked) {
-      return target.hasAttribute("data-runtime-control-independent");
+      return (
+        target.hasAttribute("data-runtime-control-independent") || target.hasAttribute("data-assistive-maintenance")
+      );
     }
     // Stopped: resume, and the way out. Maintenance holds motion anyway, so a
     // switch or dwell operator is not locked on the screen they stopped on.
@@ -367,7 +371,11 @@ export function RuntimeWorkspace({
     onContribution: (contribution) =>
       onTeleopContribution?.(GAMEPAD_CONTRIBUTION_ID, contribution, commandFrameId ?? ""),
   });
-  const resolvedChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings, {
+  // An unconfirmed STOP reads STOPPED too: READY over controls this screen is holding was a false all-clear.
+  const chipStopState = runtimeStop.stopRequested
+    ? { asserted: false, detail: "", engaged_at: "", ...runtimeStop.state, stopped: true }
+    : runtimeStop.state;
+  const resolvedChip = resolveRuntimeStatusChip(chipStopState, runtimeLink, strings, {
     heldForMaintenance: motionHeld,
     notInControl: runtimeControlBlocked,
   });
@@ -396,6 +404,15 @@ export function RuntimeWorkspace({
     isTargetEnabled: isAssistiveRuntimeTargetEnabled,
     // The whole view, as scanning uses: a dwell operator needs the bar's maintenance button too.
     rootRef: workspaceRef,
+  });
+  // Settings, the tour and maintenance run their own dwell on their own panel, and STOP is drawn outside
+  // each: a head or eye pointer could not stop the arm while one was open. This one answers only STOP.
+  const documentBodyRef = useRef(typeof document === "undefined" ? null : document.body);
+  useDwellActivation({
+    dwellMs: runtimeProfile.dwellMs,
+    enabled: runtimeProfile.dwellEnabled && (maintenanceOpen || settingsOpen || tourOpen),
+    isTargetEnabled: (target) => target.dataset.scanPriority === "stop",
+    rootRef: documentBodyRef,
   });
   const previousScreenIdRef = useRef(screen.id);
   motionHeldRef.current = motionHeld;
@@ -541,6 +558,7 @@ export function RuntimeWorkspace({
           gamepadName={gamepad.connected ? gamepad.id : null}
           key={profileOverrideKey}
           onClose={() => setSettingsOpen(false)}
+          statusChip={statusChip}
           onSave={(nextOverrides) => onProfileOverridesChange(baseRuntimeProfile.id, nextOverrides)}
           overrides={activeProfileOverrides}
           runtimeRole={resolveRuntimeRole({

@@ -13,6 +13,23 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **STOP is reachable from every way of pointing, over every sheet.** A dwell user could not stop the arm while
+  Settings, the tour or maintenance was open (each runs its own dwell, and STOP is drawn outside them), and the
+  maintenance sheet's Tab trap left STOP out. A keyboard press on STOP or Resume keeps focus on the control; a failed
+  STOP is in its accessible name; the status chip reads STOPPED while a press is unconfirmed; the Settings header
+  shows the live status instead of always HELD; and a switch or dwell operator who is not in control can still open
+  the menu.
+- **Fixes to this night's own changes, from a review of the diff.** The bounded publisher cache could destroy a
+  publisher another thread was using, including the ones STOP publishes on: publishes now run under its lock and those
+  topics are never evicted. The suspend gate dropped any slider move, not only teleop. Browser Back skipped the
+  unsaved-work question. A guided app could take the id of a shipped app deleted here and then share over its file.
+  `stop_all` stopped at the first recording that would not stop. A profile saved with the removed `reduced-motion`
+  preset made its app unreadable, and one unreadable app failed the loading of every other: the preset now reads as
+  default, and the rest load.
+- **A parameter control can be allowed from the Builder.** The inspector sent authors to an "Adapter guardrails,
+  Parameters" list that did not exist; **Allowed parameters** is there now. The runtime and the checklist read an
+  empty list as none, as the backend does: a new app's gain slider looked live and every move came back 403.
+
 - **A plot picker is linked by name, and links itself.** Its inspector asked for a plot board's widget id, which
   nothing on screen shows; it now offers the screen's plot boards by title and says when the picker controls nothing.
   A picker placed before its board, or left on a removed one, takes the next board placed.
@@ -43,7 +60,7 @@ targets) are proven in tests and simulation only.
 ### Breaking
 
 - **The `reduced-motion` motor preset is gone.** It was accepted and changed nothing; a profile that still carries it
-  is refused at import. Nothing on the operating surface animates and the browser's `prefers-reduced-motion` covers
+  reads as the default preset. Nothing on the operating surface animates and the browser's `prefers-reduced-motion` covers
   the chrome that does.
 
 ### Added

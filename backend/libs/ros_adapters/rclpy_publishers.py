@@ -9,6 +9,8 @@ from libs.ros_adapters.publishers import RosPublishReceipt, RosPublishRequest
 
 #: The `/ui/` namespace accepts any name under it, so the cache is bounded: each entry is a DDS publisher.
 MAX_CACHED_PUBLISHERS = 128
+#: Never evicted: STOP publishes on these, and a recreated publisher can lose its first message to discovery.
+PINNED_TOPICS = frozenset({"/mode_request", "/joint_target_command", "/ui/visual_servoing/on"})
 
 
 class RclpyRosPublisherGateway:
@@ -28,10 +30,11 @@ class RclpyRosPublisherGateway:
 
     def publish(self, request: RosPublishRequest) -> RosPublishReceipt:
         message_cls = self._get_message_class(request.message_type)
-        publisher = self._ensure_publisher(request.topic, request.message_type, message_cls)
         message = message_cls()
         self._set_message_fields(message, request.payload)
-        publisher.publish(message)
+        # Under the lock that evicts: another thread must not destroy this publisher mid-publish.
+        with self._publishers_lock:
+            self._ensure_publisher(request.topic, request.message_type, message_cls).publish(message)
         return RosPublishReceipt(
             topic=request.topic,
             message_type=request.message_type,
@@ -43,17 +46,17 @@ class RclpyRosPublisherGateway:
         return resolve_message_class(message_type, self._message_classes, "publish ROS messages")
 
     def _ensure_publisher(self, topic: str, message_type: str, message_cls: type) -> Any:
+        """Called with the publishers lock held."""
         cache_key = (topic, message_type)
-        with self._publishers_lock:
-            publisher = self._publishers.get(cache_key)
-            if publisher is not None:
-                self._publishers.move_to_end(cache_key)
-                return publisher
-            publisher = self._node.create_publisher(message_cls, topic, self._qos_profile)
-            self._publishers[cache_key] = publisher
-            while len(self._publishers) > MAX_CACHED_PUBLISHERS:
-                _, oldest = self._publishers.popitem(last=False)
-                self._node.destroy_publisher(oldest)
+        publisher = self._publishers.get(cache_key)
+        if publisher is not None:
+            self._publishers.move_to_end(cache_key)
+            return publisher
+        publisher = self._node.create_publisher(message_cls, topic, self._qos_profile)
+        self._publishers[cache_key] = publisher
+        evictable = [key for key in self._publishers if key[0] not in PINNED_TOPICS and key != cache_key]
+        while len(self._publishers) > MAX_CACHED_PUBLISHERS and evictable:
+            self._node.destroy_publisher(self._publishers.pop(evictable.pop(0)))
         return publisher
 
     @staticmethod

@@ -74,3 +74,18 @@ describe("sharing from the Builder", () => {
     expect(screen.queryByText(/Shared|Edited here|Update available|Not shared/)).toBeNull();
   });
 });
+
+describe("a new guided app's file", () => {
+  afterEach(cleanup);
+
+  // Deleted locally, a shipped app keeps its file: a new app under that id would share over it.
+  it("never takes the id of a shipped app, even one deleted here", async () => {
+    const onCreateApplication = vi.fn(async (_configId: string, _application: unknown) => undefined);
+    renderApps({ onCreateApplication, shareStatus: { "new-bloom-app": "deleted" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Create guided app" }));
+
+    await waitFor(() => expect(onCreateApplication).toHaveBeenCalled());
+    expect(onCreateApplication.mock.calls[0]?.[0]).toBe("new-bloom-app-2");
+  });
+});

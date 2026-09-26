@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -10,6 +11,8 @@ from typing import Any, Literal, Protocol
 from uuid import uuid4
 
 RuntimeRecordingStatus = Literal["recording", "simulated", "stopped"]
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -129,7 +132,11 @@ class RosbagRuntimeRecordingGateway:
     def stop_all(self) -> None:
         """At API shutdown: a recording nobody can stop any more would write until the disk fills."""
         for recording_id in list(self._recordings):
-            self.stop(recording_id)
+            # One that will not stop must not keep the rest writing.
+            try:
+                self.stop(recording_id)
+            except Exception:  # noqa: BLE001
+                logger.exception("Could not stop recording %s at shutdown.", recording_id)
 
     def _ensure_executable_available(self) -> None:
         if which(self._executable) is None:

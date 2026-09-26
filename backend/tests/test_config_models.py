@@ -472,3 +472,12 @@ def test_a_screen_keeps_its_reserved_regions_clear_of_widgets() -> None:
         {"id": "drive", "title": "Drive", "widgets": [beside], "reserved_regions": [stop]}
     )
     assert screen.reserved_regions[0].owner == "runtime-chrome"
+
+
+def test_a_profile_saved_with_the_removed_reduced_motion_preset_still_loads() -> None:
+    # Refused, it made the stored app unreadable, and the loader then failed every app alongside it.
+    from libs.config.models import UserProfile
+
+    profile = UserProfile(id="operator", name="Operator", motor_accessibility_preset="reduced-motion")
+
+    assert profile.motor_accessibility_preset.value == "default"

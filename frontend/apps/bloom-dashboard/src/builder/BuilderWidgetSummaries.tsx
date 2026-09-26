@@ -178,7 +178,7 @@ export function WidgetDestinationSummary({
       {parameterOutsidePolicy ? (
         <p className="builder-settings-destination-refusal" role="alert">
           This app does not allow setting {parameterTarget}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Parameters.
+          configuration, Adapter guardrails, Allowed parameters.
         </p>
       ) : null}
     </div>

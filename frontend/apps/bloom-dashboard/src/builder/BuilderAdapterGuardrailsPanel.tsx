@@ -16,6 +16,11 @@ const POLICY_LISTS: ReadonlyArray<{ field: keyof RuntimeAdapterPolicy; label: st
   { field: "allowed_message_types", label: "Allowed message types" },
   { field: "allowed_service_calls", label: "Allowed service calls" },
   { field: "allowed_teleop_targets", label: "Allowed teleop targets" },
+  // The inspector sent authors here for a parameter, and there was no such list.
+  {
+    field: "allowed_parameters",
+    label: "Allowed parameters (node:name, such as /cartesian_manager:shapers.snake.gain)",
+  },
   { field: "allowed_recording_topics", label: "Allowed recording topics" },
 ];
 
@@ -91,7 +96,7 @@ export function BuilderAdapterGuardrailsPanel({
             onChange={(event) => onPolicyListChange(field, event.target.value)}
             placeholder="One value per line"
             rows={3}
-            value={formatLines(policy[field] as readonly string[])}
+            value={formatLines((policy[field] as readonly string[] | undefined) ?? [])}
           />
           {field === "allowed_teleop_targets" && runtimeCapabilityReport?.teleop_targets?.length ? (
             <small className="builder-inline-hint">

@@ -56,7 +56,9 @@ function validateParameterRequest(
   if (!policy) {
     return null;
   }
-  if (!isAllowedByPolicy(`${request.node}:${request.name}`, policy.allowed_parameters ?? [])) {
+  // Unlike topics, an empty list allows none, as the backend reads it: an app names the parameters it tunes.
+  const allowed = policy.allowed_parameters ?? [];
+  if (allowed.length === 0 || !isAllowedByPolicy(`${request.node}:${request.name}`, allowed)) {
     return `Parameter "${request.node}:${request.name}" is not allowed by this app runtime policy.`;
   }
   return null;

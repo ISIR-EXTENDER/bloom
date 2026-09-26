@@ -101,7 +101,12 @@ export function RuntimeMaintenanceSheet({
       if (event.key !== "Tab") {
         return;
       }
-      const focusable = [...panel.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR)];
+      // STOP stays in the loop: it is drawn outside the sheet and stays live over it, and the trap kept a
+      // keyboard operator from reaching it.
+      const stops = [...document.querySelectorAll<HTMLElement>('button[data-scan-priority="stop"]')].filter(
+        (stop) => !panel.contains(stop),
+      );
+      const focusable = [...panel.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR), ...stops];
       const first = focusable[0];
       const last = focusable.at(-1);
       if (!first || !last) {
@@ -109,17 +114,12 @@ export function RuntimeMaintenanceSheet({
         panel.focus();
         return;
       }
-      const active = document.activeElement;
-      const outside = !(active instanceof Node) || !panel.contains(active);
-      if (event.shiftKey && (outside || active === first)) {
-        event.preventDefault();
-        last.focus();
-        return;
-      }
-      if (!event.shiftKey && (outside || active === last)) {
-        event.preventDefault();
-        first.focus();
-      }
+      // Every step is placed here: STOP is not next in the browser's own order after the sheet's last control.
+      event.preventDefault();
+      const index = focusable.indexOf(document.activeElement as HTMLElement);
+      const step = event.shiftKey ? -1 : 1;
+      const next = index < 0 ? (event.shiftKey ? last : first) : focusable.at((index + step) % focusable.length);
+      next?.focus();
     };
 
     document.addEventListener("keydown", keepFocusInside, true);

@@ -23,10 +23,23 @@ def test_the_publisher_cache_stays_bounded_and_drops_the_least_used(monkeypatch)
     node = FakeNode()
     gateway = RclpyRosPublisherGateway(node)
 
-    gateway._ensure_publisher("/ui/a", "std_msgs/msg/Bool", object)
-    gateway._ensure_publisher("/ui/b", "std_msgs/msg/Bool", object)
-    gateway._ensure_publisher("/ui/a", "std_msgs/msg/Bool", object)
-    gateway._ensure_publisher("/ui/c", "std_msgs/msg/Bool", object)
+    for topic in ("/ui/a", "/ui/b", "/ui/a", "/ui/c"):
+        with gateway._publishers_lock:
+            gateway._ensure_publisher(topic, "std_msgs/msg/Bool", object)
 
     assert node.created == ["/ui/a", "/ui/b", "/ui/c"]
     assert node.destroyed == ["/ui/b"]
+
+
+def test_the_topics_stop_publishes_on_are_never_evicted(monkeypatch) -> None:
+    # A recreated publisher can lose its first message before discovery: STOP's cancel must not be that message.
+    monkeypatch.setattr(rclpy_publishers, "MAX_CACHED_PUBLISHERS", 1)
+    node = FakeNode()
+    gateway = RclpyRosPublisherGateway(node)
+
+    for topic in ("/mode_request", "/ui/a", "/ui/b"):
+        with gateway._publishers_lock:
+            gateway._ensure_publisher(topic, "std_msgs/msg/String", object)
+
+    assert "/mode_request" not in node.destroyed
+    assert node.destroyed == ["/ui/a"]

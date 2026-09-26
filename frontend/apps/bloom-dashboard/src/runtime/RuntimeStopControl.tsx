@@ -1,5 +1,5 @@
 import type { RuntimeLanguage } from "@bloom/api-client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { useAssistiveActivation } from "./assistive-activation";
 import { useRuntimeStrings } from "./strings";
@@ -78,6 +78,17 @@ export function RuntimeStopControl({
     }, ASSISTIVE_RESUME_WINDOW_MS);
   };
   const resumeRef = useAssistiveActivation<HTMLButtonElement>(resumeAssistively);
+  // STOP and Resume are two elements, so a rest begun on STOP never completes as a resume. The swap dropped a
+  // keyboard operator's focus to the page; a keyboard press hands it to the element that replaces it.
+  const keyboardPressRef = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  useLayoutEffect(() => {
+    void stopped;
+    if (keyboardPressRef.current) {
+      keyboardPressRef.current = false;
+      buttonRef.current?.focus();
+    }
+  }, [stopped]);
   useEffect(() => {
     if (!stopped) {
       disarm();
@@ -99,7 +110,7 @@ export function RuntimeStopControl({
       <button
         key="resume"
         aria-label={`${assistiveArmed ? strings.stop.resumeConfirmAria : strings.stop.resumeAria}${
-          resumeDisabledReason ? `. ${resumeDisabledReason}` : ""
+          requestError || resumeDisabledReason ? `. ${requestError || resumeDisabledReason}` : ""
         }`}
         className="runtime-stop-control"
         data-dwell-action="resume"
@@ -112,6 +123,7 @@ export function RuntimeStopControl({
         onBlur={resumeHold.cancel}
         onKeyDown={(event) => {
           if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
+            keyboardPressRef.current = true;
             startResumeHold();
           }
         }}
@@ -120,7 +132,10 @@ export function RuntimeStopControl({
         onPointerDown={startResumeHold}
         onPointerLeave={resumeHold.cancel}
         onPointerUp={resumeHold.cancel}
-        ref={resumeRef}
+        ref={(node) => {
+          buttonRef.current = node;
+          resumeRef(node);
+        }}
         style={style}
         tabIndex={STOP_TAB_INDEX}
         type="button"
@@ -137,7 +152,7 @@ export function RuntimeStopControl({
   return (
     <button
       key="stop"
-      aria-label={strings.stop.engageAria}
+      aria-label={requestError ? `${strings.stop.engageAria}. ${requestError}` : strings.stop.engageAria}
       className="runtime-stop-control"
       data-placement={placement}
       data-runtime-control-independent=""
@@ -145,10 +160,12 @@ export function RuntimeStopControl({
       onClick={(event) => {
         // Keyboard only; a pointer tap already engaged on pointerdown.
         if (event.detail === 0) {
+          keyboardPressRef.current = true;
           onEngage();
         }
       }}
       onPointerDown={onEngage}
+      ref={buttonRef}
       style={style}
       tabIndex={STOP_TAB_INDEX}
       type="button"

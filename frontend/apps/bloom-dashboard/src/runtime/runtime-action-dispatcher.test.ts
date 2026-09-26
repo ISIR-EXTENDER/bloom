@@ -985,6 +985,20 @@ describe("parameter bindings", () => {
     expect(result.status).toBe("published");
   });
 
+  // The backend reads an empty list as none; here it read as all, so a new app's gain slider looked live and
+  // every move came back 403.
+  it("is blocked when the app names no parameter at all, as the backend blocks it", async () => {
+    const setRosParameter = vi.fn();
+    const client = { publishRosTopic: vi.fn(), setRosParameter } as unknown as RuntimeActionClient;
+
+    const result = await dispatchRuntimeActionIntent(client, sliderIntent(4.5), {
+      runtimePolicy: { ...DEFAULT_RUNTIME_POLICY, allowed_parameters: [] },
+    });
+
+    expect(setRosParameter).not.toHaveBeenCalled();
+    expect(result.status).toBe("blocked");
+  });
+
   it("is blocked by the app policy before anything reaches the client", async () => {
     const setRosParameter = vi.fn();
     const client = { publishRosTopic: vi.fn(), setRosParameter } as unknown as RuntimeActionClient;
