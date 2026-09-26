@@ -1,7 +1,7 @@
 import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getBloomApiBaseUrl, getBloomApiKey } from "../configurations/configuration-client";
 import { ScreenArtboard } from "../screen/ScreenArtboard";
@@ -14,7 +14,7 @@ import {
 } from "../ui/guided-tour-progress";
 import { BloomDebugPanel } from "./BloomDebugPanel";
 import { resolveCameraStreamTargets, useCameraStreams } from "./camera-stream";
-import { applyPlotSelections, usePlotSelections } from "./plot-series-data";
+import { usePlotSelections } from "./plot-series-data";
 import { RuntimeGuidedTour } from "./RuntimeGuidedTour";
 import { RuntimeKioskBar, resolveRuntimeRole } from "./RuntimeKioskBar";
 import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
@@ -27,13 +27,13 @@ import { isRuntimeMotionHeld, resolveRuntimeIntentRefusal } from "./runtime-inte
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
-import { withRobotCommand } from "./runtime-topic-data";
 import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopAdapter } from "./runtimeModeState";
 import { resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
 import { useAudioCues } from "./use-audio-cues";
 import { useDwellActivation } from "./use-dwell-activation";
+import { useEffectiveWidgetData } from "./use-effective-widget-data";
 import { GAMEPAD_CONTRIBUTION_ID, useGamepadInput } from "./use-gamepad-input";
 import { useParameterReadings } from "./use-parameter-readings";
 import { usePositionLibrary } from "./use-position-library";
@@ -44,6 +44,7 @@ import { useRuntimeLinkState } from "./use-runtime-link-state";
 import { useRuntimeStop } from "./use-runtime-stop";
 import { useRuntimeTopicData } from "./use-runtime-topic-data";
 import { useViewportSize } from "./use-runtime-viewport";
+import { useStopSheetInset } from "./use-stop-sheet-inset";
 import { useStoppedControls } from "./use-stopped-controls";
 import { useSwitchScanning } from "./use-switch-scanning";
 import { useTopicStatuses } from "./use-topic-statuses";
@@ -162,16 +163,7 @@ export function RuntimeWorkspace({
   const debugRect = useReservedRegionRect(debugRegion, artboardFrameRef, runtimeControlsRef, artboardScale);
   // The sheet keeps clear of STOP, which stays live above the scrim; the corner STOP is 176 px plus its margin.
   const stopFallbackInset = runtimeActionClient.engageRuntimeStop ? 202 : 0;
-  const [stopSheetInset, setStopSheetInset] = useState(stopFallbackInset);
-  // Measured after layout, not during render: reading the shell mid-render made the first one take the fallback.
-  useLayoutEffect(() => {
-    const shell = runtimeControlsRef.current;
-    const next =
-      stopRect && shell
-        ? Math.max(0, window.innerWidth - (shell.getBoundingClientRect().left + stopRect.left) + 14)
-        : stopFallbackInset;
-    setStopSheetInset((current) => (current === next ? current : next));
-  });
+  const stopSheetInset = useStopSheetInset(stopRect, runtimeControlsRef, stopFallbackInset);
   const scaledArtboardSize = useMemo(
     () => ({
       height: Math.max(1, Math.floor(artboardSize.height * artboardScale)),
@@ -303,44 +295,14 @@ export function RuntimeWorkspace({
       setCommandTwist(null);
     }
   }, [teleopActive]);
-  const effectiveDataByWidgetId = useMemo(() => {
-    const merged = withRobotCommand(
-      { ...applyPlotSelections(screen, dataByWidgetId, plotSelections.selections), ...cameraFrames },
-      screen,
-      commandTwist,
-    );
-    if (!screenHasPositionLibrary) {
-      return merged;
-    }
-    for (const widget of screen.widgets) {
-      if (widget.kind !== "position-library") {
-        continue;
-      }
-      const existing = merged[widget.id];
-      merged[widget.id] = {
-        type: "position-library",
-        joints: existing?.type === "position-library" ? existing.joints : undefined,
-        saved: positionLibrary.state.saved.map((pose) => ({
-          name: pose.name,
-          jointNames: pose.joint_names,
-          positions: pose.positions,
-          description: pose.description,
-        })),
-        exportYaml: positionLibrary.state.exportYaml || undefined,
-        notice: positionLibrary.state.notice || undefined,
-        busy: positionLibrary.state.busy,
-      };
-    }
-    return merged;
-  }, [
+  const effectiveDataByWidgetId = useEffectiveWidgetData({
     cameraFrames,
     commandTwist,
     dataByWidgetId,
-    plotSelections.selections,
-    positionLibrary.state,
+    plotSelections: plotSelections.selections,
+    positionLibrary: screenHasPositionLibrary ? positionLibrary.state : null,
     screen,
-    screenHasPositionLibrary,
-  ]);
+  });
   const runtimeStop = useRuntimeStop(runtimeActionClient);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;

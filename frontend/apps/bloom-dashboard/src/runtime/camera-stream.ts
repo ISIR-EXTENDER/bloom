@@ -56,7 +56,8 @@ export function useCameraStreams(
       return;
     }
 
-    const sockets: WebSocket[] = [];
+    // Only live sockets and pending retries: an outage retried for hours must not grow either.
+    const sockets = new Set<WebSocket>();
     // Each widget holds one object URL at a time; the previous one is revoked or the tab leaks.
     const objectUrls = new Map<string, string>();
 
@@ -74,7 +75,7 @@ export function useCameraStreams(
     };
 
     let disposed = false;
-    const retries: ReturnType<typeof setTimeout>[] = [];
+    const retries = new Set<ReturnType<typeof setTimeout>>();
     const open = (target: CameraStreamTarget, attempt: number) => {
       let connected = false;
       const socket = new WebSocket(
@@ -95,6 +96,7 @@ export function useCameraStreams(
         replaceFrame(target.widgetId, target.topic, connected, event.data as Blob);
       };
       socket.onclose = (event) => {
+        sockets.delete(socket);
         if (disposed) {
           return;
         }
@@ -114,10 +116,14 @@ export function useCameraStreams(
           } as WidgetDataSnapshot,
         }));
         if (retryInMs !== null) {
-          retries.push(setTimeout(() => open(target, attempt + 1), retryInMs));
+          const retry = setTimeout(() => {
+            retries.delete(retry);
+            open(target, attempt + 1);
+          }, retryInMs);
+          retries.add(retry);
         }
       };
-      sockets.push(socket);
+      sockets.add(socket);
     };
     for (const target of openTargets) {
       open(target, 0);

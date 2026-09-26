@@ -57,9 +57,13 @@ type PendingReply = {
  * is watching the screen and moving nothing still says it is there.
  */
 export const RUNTIME_KEEPALIVE_INTERVAL_MS = 3000;
+// A half-open link (Wi-Fi gone, no TCP close) answers nothing: bound every wait on it.
+export const RUNTIME_REQUEST_TIMEOUT_MS = 2000;
+export const RUNTIME_MAX_MISSED_PONGS = 2;
 
 export type RuntimeWebSocketClientOptions = {
   protocols?: string[];
+  requestTimeoutMs?: number;
   url: string;
   WebSocketCtor?: WebSocketConstructorLike;
 };
@@ -84,6 +88,7 @@ export function createRuntimeWebSocketClient(
   >
 > {
   const WebSocketCtor = options.WebSocketCtor ?? getDefaultWebSocketConstructor();
+  const requestTimeoutMs = options.requestTimeoutMs ?? RUNTIME_REQUEST_TIMEOUT_MS;
   let socket: WebSocketLike | null = null;
   let connectPromise: Promise<WebSocketLike> | null = null;
   let linkState: RuntimeLinkState = "connecting";
@@ -163,12 +168,43 @@ export function createRuntimeWebSocketClient(
     pendingRepliesBySocket.set(runtimeSocket, pendingReplies);
     // A socket that was replaced still delivers its own replies, but no longer speaks for the link.
     const isCurrent = () => socket === runtimeSocket;
-    const keepaliveTimer = setInterval(() => sendKeepalivePing(runtimeSocket), RUNTIME_KEEPALIVE_INTERVAL_MS);
-
-    runtimeSocket.addEventListener("message", (event) => {
-      if (!(event instanceof MessageEvent)) {
+    let unansweredPings = 0;
+    let closed = false;
+    const keepaliveTimer = setInterval(() => {
+      if (unansweredPings >= RUNTIME_MAX_MISSED_PONGS) {
+        // Tear down now: close() on a half-open link may not fire its close event for minutes.
+        handleClosed();
+        runtimeSocket.close();
         return;
       }
+      if (sendKeepalivePing(runtimeSocket)) {
+        unansweredPings += 1;
+      }
+    }, RUNTIME_KEEPALIVE_INTERVAL_MS);
+
+    const handleClosed = () => {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      clearInterval(keepaliveTimer);
+      rejectPendingReplies(runtimeSocket, "Bloom runtime WebSocket closed before the runtime replied.");
+      pendingRepliesBySocket.delete(runtimeSocket);
+      if (!isCurrent()) {
+        return;
+      }
+      socket = null;
+      connectPromise = null;
+      sessionId = "";
+      setControlState(null);
+      setLinkState("disconnected");
+    };
+
+    runtimeSocket.addEventListener("message", (event) => {
+      if (!(event instanceof MessageEvent) || closed) {
+        return;
+      }
+      unansweredPings = 0;
 
       const connectedState = parseRuntimeSessionConnected(event.data);
       if (connectedState) {
@@ -214,19 +250,7 @@ export function createRuntimeWebSocketClient(
       }
     });
 
-    runtimeSocket.addEventListener("close", () => {
-      clearInterval(keepaliveTimer);
-      rejectPendingReplies(runtimeSocket, "Bloom runtime WebSocket closed before the runtime replied.");
-      pendingRepliesBySocket.delete(runtimeSocket);
-      if (!isCurrent()) {
-        return;
-      }
-      socket = null;
-      connectPromise = null;
-      sessionId = "";
-      setControlState(null);
-      setLinkState("disconnected");
-    });
+    runtimeSocket.addEventListener("close", handleClosed);
 
     runtimeSocket.addEventListener("error", () => {
       clearInterval(keepaliveTimer);
@@ -243,17 +267,7 @@ export function createRuntimeWebSocketClient(
     const message = { type: "app_context", ...appContext };
     appContextSocket = runtimeSocket;
     appContextReply = new Promise<RuntimeAppContextResponse>((resolve, reject) => {
-      pendingReplies.push({
-        reject,
-        settle: (data) => {
-          const reply = parseAppContextAck(data);
-          if (reply === null) {
-            return false;
-          }
-          resolve(reply);
-          return true;
-        },
-      });
+      pendingReplies.push(createPendingReply(parseAppContextAck, resolve, reject));
       runtimeSocket.send(JSON.stringify(message));
     });
     // A resend nobody awaits still fails when the socket closes under it.
@@ -262,11 +276,47 @@ export function createRuntimeWebSocketClient(
   }
 
   /** Sent outside the reply queue: the lease keepalive must never be able to offset a teleop ack or a stop refusal. */
-  function sendKeepalivePing(runtimeSocket: WebSocketLike) {
+  function sendKeepalivePing(runtimeSocket: WebSocketLike): boolean {
     if (!pendingRepliesBySocket.has(runtimeSocket) || runtimeSocket.readyState !== WebSocketCtor.OPEN) {
-      return;
+      return false;
     }
     runtimeSocket.send(JSON.stringify({ type: "ping" }));
+    return true;
+  }
+
+  /** A timed-out request keeps its queue slot, so its late reply is swallowed instead of shifting later ones. */
+  function createPendingReply<T>(
+    parseReply: (data: unknown) => T | null,
+    resolve: (reply: T) => void,
+    reject: (error: Error) => void,
+  ): PendingReply {
+    let done = false;
+    const timer = setTimeout(() => {
+      done = true;
+      reject(new Error(`Bloom runtime did not reply within ${requestTimeoutMs / 1000} s; the link may be down.`));
+    }, requestTimeoutMs);
+    return {
+      reject: (error) => {
+        clearTimeout(timer);
+        if (!done) {
+          done = true;
+          reject(error);
+        }
+      },
+      settle: (data) => {
+        clearTimeout(timer);
+        const reply = parseReply(data);
+        if (done) {
+          return true;
+        }
+        if (reply === null) {
+          return false;
+        }
+        done = true;
+        resolve(reply);
+        return true;
+      },
+    };
   }
 
   function rejectPendingReplies(runtimeSocket: WebSocketLike, message: string) {
@@ -283,17 +333,7 @@ export function createRuntimeWebSocketClient(
       throw new Error("Bloom runtime WebSocket closed before the request was sent.");
     }
     return new Promise<T>((resolve, reject) => {
-      pendingReplies.push({
-        reject,
-        settle: (data) => {
-          const reply = parseReply(data);
-          if (reply === null) {
-            return false;
-          }
-          resolve(reply);
-          return true;
-        },
-      });
+      pendingReplies.push(createPendingReply(parseReply, resolve, reject));
       runtimeSocket.send(JSON.stringify(message));
     });
   }

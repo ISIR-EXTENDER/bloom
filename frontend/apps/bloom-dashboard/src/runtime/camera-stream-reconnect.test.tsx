@@ -13,7 +13,10 @@ class FakeSocket {
   constructor(readonly url: string) {
     FakeSocket.opened.push(this);
   }
-  close() {}
+  closed = false;
+  close() {
+    this.closed = true;
+  }
 }
 
 describe("a camera stream that drops", () => {
@@ -38,6 +41,19 @@ describe("a camera stream that drops", () => {
     expect(result.current.gripper).toMatchObject({ reconnecting: true });
     act(() => vi.advanceTimersByTime(1000));
     expect(FakeSocket.opened).toHaveLength(2);
+  });
+
+  it("keeps only the live socket across a long outage", () => {
+    const { unmount } = renderHook(() => useCameraStreams(targets, "http://127.0.0.1:8000"));
+    for (let drop = 0; drop < 5; drop += 1) {
+      act(() => FakeSocket.opened.at(-1)?.onclose?.({ code: 1006, reason: "" }));
+      act(() => vi.advanceTimersByTime(10000));
+    }
+    expect(FakeSocket.opened).toHaveLength(6);
+
+    unmount();
+
+    expect(FakeSocket.opened.filter((socket) => socket.closed)).toEqual([FakeSocket.opened[5]]);
   });
 
   it("does not retry a topic the API refused", () => {

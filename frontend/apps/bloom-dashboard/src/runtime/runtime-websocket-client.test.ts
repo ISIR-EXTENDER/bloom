@@ -4,10 +4,12 @@ import type { RuntimeLinkState } from "./runtime-action-dispatcher";
 import {
   createRuntimeWebSocketClient,
   RUNTIME_KEEPALIVE_INTERVAL_MS,
+  RUNTIME_REQUEST_TIMEOUT_MS,
   type RuntimeWebSocketClientOptions,
   resolveRuntimeWebSocketProtocols,
   resolveRuntimeWebSocketUrl,
 } from "./runtime-websocket-client";
+import { TeleopRateGate } from "./teleop-rate-gate";
 
 describe("runtime WebSocket client", () => {
   it("resolves runtime WebSocket URLs from API base URLs", () => {
@@ -329,7 +331,10 @@ describe("runtime WebSocket client", () => {
       socket.open();
       await flushPromises();
 
-      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 3);
+      for (let tick = 0; tick < 3; tick += 1) {
+        vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS);
+        socket.message({ detail: "Runtime session is alive.", session_id: "s", type: "pong" });
+      }
 
       expect(socket.sentMessages).toEqual(Array(3).fill(JSON.stringify({ type: "ping" })));
 
@@ -368,8 +373,8 @@ describe("runtime WebSocket client", () => {
       socket.open();
       await flushPromises();
 
-      // Three pings the server never answers: each used to take a queue slot.
-      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 3);
+      // Two pings the server never answers: each used to take a queue slot.
+      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 2);
 
       const teleop = client.sendTeleopCommand({
         angular: { x: 0, y: 0, z: 0 },
@@ -383,6 +388,124 @@ describe("runtime WebSocket client", () => {
       socket.message({ detail: "ok", payload: { status: "accepted" }, session_id: "s", type: "teleop_ack" });
 
       await expect(teleop).resolves.toMatchObject({ type: "teleop_ack" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("closes a half-open link after two missed pongs so the link reads down", async () => {
+    vi.useFakeTimers();
+    try {
+      const WebSocketCtor = createFakeWebSocketConstructor();
+      const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+      const links: RuntimeLinkState[] = [];
+      client.addRuntimeLinkStateListener((state) => links.push(state));
+      void client.ensureRuntimeConnected();
+      const socket = WebSocketCtor.instances[0];
+      socket.open();
+      await flushPromises();
+      // A browser may hold a half-open socket's close event for minutes.
+      const close = vi.spyOn(socket, "close").mockImplementation(() => undefined);
+
+      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS * 2);
+      expect(links.at(-1)).toBe("connected");
+
+      vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS);
+      expect(close).toHaveBeenCalledOnce();
+      expect(links.at(-1)).toBe("disconnected");
+
+      void client.ensureRuntimeConnected();
+      expect(WebSocketCtor.instances).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps a link whose pongs arrive", async () => {
+    vi.useFakeTimers();
+    try {
+      const WebSocketCtor = createFakeWebSocketConstructor();
+      const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+      void client.ensureRuntimeConnected();
+      const socket = WebSocketCtor.instances[0];
+      socket.open();
+      await flushPromises();
+      const close = vi.spyOn(socket, "close");
+
+      for (let tick = 0; tick < 10; tick += 1) {
+        vi.advanceTimersByTime(RUNTIME_KEEPALIVE_INTERVAL_MS);
+        socket.message({ detail: "Runtime session is alive.", session_id: "s", type: "pong" });
+      }
+
+      expect(close).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("rejects a request the runtime never answers, and swallows its late reply", async () => {
+    vi.useFakeTimers();
+    try {
+      const WebSocketCtor = createFakeWebSocketConstructor();
+      const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+      void client.ensureRuntimeConnected();
+      const socket = WebSocketCtor.instances[0];
+      socket.open();
+      await flushPromises();
+
+      const claim = client.claimRuntimeControl();
+      const claimResult = claim.catch((error: Error) => error);
+      await flushPromises();
+      vi.advanceTimersByTime(RUNTIME_REQUEST_TIMEOUT_MS);
+      expect(await claimResult).toBeInstanceOf(Error);
+      await expect(claim).rejects.toThrow("did not reply within 2 s");
+
+      const teleop = client.sendTeleopCommand({
+        angular: { x: 0, y: 0, z: 0 },
+        linear: { x: 0.1, y: 0, z: 0 },
+        mode: 0,
+        seq: 1,
+        target: "/joystick_cartesian_command",
+        type: "teleop_cmd",
+      });
+      await flushPromises();
+      // The claim's late answer lands in its own slot, not on the teleop.
+      socket.message({ detail: "Runtime error.", session_id: "s", type: "runtime_error" });
+      socket.message({ detail: "ok", payload: { status: "accepted" }, session_id: "s", type: "teleop_ack" });
+      await expect(teleop).resolves.toMatchObject({ type: "teleop_ack" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("frees the teleop gate when a teleop request times out", async () => {
+    vi.useFakeTimers();
+    try {
+      const WebSocketCtor = createFakeWebSocketConstructor();
+      const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+      void client.ensureRuntimeConnected();
+      const socket = WebSocketCtor.instances[0];
+      socket.open();
+      await flushPromises();
+      const gate = new TeleopRateGate({ intervalMs: 1, send: (request) => client.sendTeleopCommand(request) });
+      const move = (seq: number) => ({
+        angular: { x: 0, y: 0, z: 0 },
+        linear: { x: 0.1, y: 0, z: 0 },
+        mode: 0,
+        seq,
+        target: "/joystick_cartesian_command",
+        type: "teleop_cmd" as const,
+      });
+
+      const first = gate.submit(move(1)).catch((error: Error) => error);
+      await flushPromises();
+      await vi.advanceTimersByTimeAsync(RUNTIME_REQUEST_TIMEOUT_MS);
+      expect(await first).toBeInstanceOf(Error);
+
+      void gate.submit(move(2)).catch(() => undefined);
+      await vi.advanceTimersByTimeAsync(5);
+      expect(socket.sentMessages.filter((message) => message.includes("teleop_cmd"))).toHaveLength(2);
+      gate.dispose();
     } finally {
       vi.useRealTimers();
     }
