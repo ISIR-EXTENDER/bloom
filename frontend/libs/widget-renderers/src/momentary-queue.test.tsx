@@ -133,3 +133,52 @@ describe("a release refused more than once", () => {
     ]);
   });
 });
+
+describe("a refused release retrying before a latched mode button", () => {
+  // The latched Jaco never recorded its publish, so Snake's retry set geometric/both over it.
+  it("gives up once the latched button has published on the topic", async () => {
+    vi.useFakeTimers();
+    const sent: { id: string; payload: unknown }[] = [];
+    const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
+      if (intent.type !== "topic-publish") return { accepted: true };
+      sent.push({ id: intent.widgetId, payload: intent.payload });
+      return { accepted: !(intent.widgetId === "snake-latched" && intent.release) };
+    });
+    render(
+      <div>
+        {holdButton("snake-latched", "geometric/snake", onActionIntent)}
+        <CommandLikeWidget
+          descriptor={
+            {
+              widget: {
+                id: "jaco-latched",
+                kind: "command-button",
+                title: "Jaco",
+                layout: { x: 0, y: 0, width: 10, height: 10 },
+                settings: {
+                  messageType: "std_msgs/msg/String",
+                  payload: { data: "geometric/jaco" },
+                  topic: "/mode_request",
+                },
+              },
+            } as never
+          }
+          onActionIntent={onActionIntent}
+        />
+      </div>,
+    );
+    const [snake, jaco] = screen.getAllByRole("button") as [HTMLElement, HTMLElement];
+
+    tap(snake, 1);
+    fireEvent.click(jaco);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(sent).toEqual([
+      { id: "snake-latched", payload: { data: "geometric/snake" } },
+      { id: "snake-latched", payload: { data: "geometric/both" } },
+      { id: "jaco-latched", payload: { data: "geometric/jaco" } },
+    ]);
+  });
+});

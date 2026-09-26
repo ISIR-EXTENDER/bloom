@@ -194,3 +194,64 @@ describe("a refused servo switch-off", () => {
     expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
   });
 });
+
+describe("a servo On whose reply was refused or lost", () => {
+  it("switches the servo off at once and reads off", async () => {
+    const { onActionIntent } = renderToggle(SERVO, (intent) =>
+      intent.type === "topic-publish" && intent.payload === "{data: true}"
+        ? { accepted: false, detail: "timed out" }
+        : { accepted: true },
+    );
+    await act(async () => {});
+
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
+    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
+  });
+
+  it("still switches off on unmount while no off has been accepted", async () => {
+    vi.useFakeTimers();
+    const { onActionIntent, unmount } = renderToggle(SERVO, (intent) =>
+      intent.type === "topic-publish" && intent.payload === "{data: true}"
+        ? Promise.reject(new Error("lost"))
+        : { accepted: false },
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
+    const offsBefore = payloads(onActionIntent).filter((payload) => payload === "{data: false}").length;
+    expect(offsBefore).toBe(4);
+
+    unmount();
+
+    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(offsBefore + 1);
+  });
+});
+
+describe("a switch-off retry from an unmounted servo switch", () => {
+  // The old instance kept its own epoch, so its retry turned off the servo the remounted switch showed on.
+  it("gives up once a remounted switch has been toggled", async () => {
+    vi.useFakeTimers();
+    const log: unknown[] = [];
+    const handler = (intent: WidgetActionIntent): Outcome => {
+      const payload = intent.type === "topic-publish" ? intent.payload : null;
+      log.push(payload);
+      return { accepted: payload !== "{data: false}" };
+    };
+    const first = renderToggle(SERVO, handler);
+    await act(async () => {});
+    first.rerender(1);
+    first.unmount();
+
+    renderToggle(SERVO, handler);
+    await act(async () => {});
+    const remountedOn = log.lastIndexOf("{data: true}");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(remountedOn).toBeGreaterThan(0);
+    expect(log.slice(remountedOn + 1)).toEqual([]);
+    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
+  });
+});

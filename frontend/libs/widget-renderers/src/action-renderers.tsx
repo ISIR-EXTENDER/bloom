@@ -23,6 +23,18 @@ export const VISUAL_SERVOING_SWITCH_TOPIC = "/ui/visual_servoing/on";
 // Per topic, the last momentary publish attempted from any widget: a release retry must not undo a newer hold.
 let momentaryPublishCount = 0;
 const lastMomentaryPublishByTopic = new Map<string, number>();
+const recordTopicPublish = (topic: string) => {
+  momentaryPublishCount += 1;
+  lastMomentaryPublishByTopic.set(topic, momentaryPublishCount);
+};
+// Per topic, shared by every toggle instance: a retry from an unmounted switch must not undo a remounted one.
+let servoEpochCount = 0;
+const servoEpochByTopic = new Map<string, number>();
+const advanceServoEpoch = (topic: string) => {
+  servoEpochCount += 1;
+  servoEpochByTopic.set(topic, servoEpochCount);
+  return servoEpochCount;
+};
 
 export function CommandLikeWidget({
   conditioning,
@@ -129,7 +141,12 @@ export function CommandLikeWidget({
       return;
     }
     setIsArmed(false);
-    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "press" }));
+    const intent = createWidgetActionIntent(descriptor.widget, { type: "press" });
+    // A latched publish holds the topic too, so it cancels a pending release retry.
+    if (intent.type === "topic-publish") {
+      recordTopicPublish(intent.topic);
+    }
+    onActionIntent?.(intent);
   };
   const handleMomentaryPress = (event: PointerEvent<HTMLButtonElement>) => {
     if (disabled) {
@@ -197,8 +214,7 @@ export function CommandLikeWidget({
     releaseMomentary();
   };
   const sendMomentaryPayload = (payloadKey: "payload" | "releasedPayload"): MaybeOutcome => {
-    momentaryPublishCount += 1;
-    lastMomentaryPublishByTopic.set(topic, momentaryPublishCount);
+    recordTopicPublish(topic);
     try {
       const outcome = onActionIntent?.({
         type: "topic-publish",
@@ -446,9 +462,9 @@ export function ToggleWidget({
   const [isPending, setIsPending] = useState(false);
   const stateTextId = useId();
   const isServoSwitch = topic === VISUAL_SERVOING_SWITCH_TOPIC;
-  // An On still travelling counts as on for a suspend; the epoch advances on every switch-off and toggle.
+  // An On still travelling, or refused or lost, counts as on for a suspend until an off is accepted.
   const pendingOnRef = useRef(false);
-  const servoEpochRef = useRef(0);
+  const possiblyOnRef = useRef(false);
   const publishServoOff = (epoch: number, attempt: number): Promise<void> | undefined => {
     const intent = createWidgetActionIntent(descriptor.widget, { nextState: "off", type: "toggle" });
     let outcome: MaybeOutcome;
@@ -460,10 +476,11 @@ export function ToggleWidget({
       outcome = { accepted: false };
     }
     return afterOutcome(outcome, (result) => {
-      if (epoch !== servoEpochRef.current) {
+      if (epoch !== servoEpochByTopic.get(topic)) {
         return undefined;
       }
       if (result?.accepted !== false) {
+        possiblyOnRef.current = false;
         setLocalIsOn(false);
         return undefined;
       }
@@ -472,17 +489,16 @@ export function ToggleWidget({
         return undefined;
       }
       return new Promise<void>((resolve) => setTimeout(resolve, RELEASE_RETRY_MS * 2 ** attempt)).then(() =>
-        epoch === servoEpochRef.current ? publishServoOff(epoch, attempt + 1) : undefined,
+        epoch === servoEpochByTopic.get(topic) ? publishServoOff(epoch, attempt + 1) : undefined,
       );
     });
   };
   const switchOffServo = () => {
-    servoEpochRef.current += 1;
-    void publishServoOff(servoEpochRef.current, 0);
+    void publishServoOff(advanceServoEpoch(topic), 0);
   };
   const switchOffServoRef = useRef(() => {});
   switchOffServoRef.current = () => {
-    if (isServoSwitch && (isOn || pendingOnRef.current)) {
+    if (isServoSwitch && (isOn || pendingOnRef.current || possiblyOnRef.current)) {
       switchOffServo();
     }
   };
@@ -514,28 +530,34 @@ export function ToggleWidget({
     }
 
     setIsPending(true);
-    servoEpochRef.current += 1;
-    const epoch = servoEpochRef.current;
+    const epoch = advanceServoEpoch(topic);
     pendingOnRef.current = nextState === "on";
+    if (isServoSwitch && nextState === "on") {
+      possiblyOnRef.current = true;
+    }
+    let accepted = false;
     try {
       const outcome = await onActionIntent(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
-      const accepted = outcome === undefined || outcome.accepted;
-      if (isServoSwitch && epoch !== servoEpochRef.current) {
-        // A suspend landed while this travelled: the servo stays off, even if the On went through.
-        if (nextState === "on" && accepted) {
-          switchOffServo();
-        }
-        return;
-      }
-      if (!controlledToggleState && accepted) {
-        setLocalIsOn(nextState === "on");
-      }
+      accepted = outcome === undefined || outcome.accepted;
     } catch {
-      // The runtime shell owns visible error reporting. Keep the last
-      // acknowledged state when an embedding handler rejects unexpectedly.
+      // The runtime shell owns visible error reporting; a rejected publish counts as refused.
     } finally {
       pendingOnRef.current = false;
       setIsPending(false);
+    }
+    if (isServoSwitch && nextState === "on" && (!accepted || epoch !== servoEpochByTopic.get(topic))) {
+      // A refused or lost On may still have reached the servo, and a suspend that landed meanwhile keeps it off.
+      switchOffServo();
+      return;
+    }
+    if (isServoSwitch && epoch !== servoEpochByTopic.get(topic)) {
+      return;
+    }
+    if (isServoSwitch && nextState === "off" && accepted) {
+      possiblyOnRef.current = false;
+    }
+    if (!controlledToggleState && accepted) {
+      setLocalIsOn(nextState === "on");
     }
   };
 
