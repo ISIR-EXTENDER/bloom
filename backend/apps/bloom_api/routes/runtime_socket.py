@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from collections.abc import Callable
+from concurrent.futures import Executor
 from contextlib import suppress
 from dataclasses import asdict
 from json import JSONDecodeError
@@ -195,6 +196,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     get_teleop_command_gateway(websocket),
                     get_runtime_stop_controller(websocket),
                     get_runtime_audit_log(websocket),
+                    getattr(websocket.app.state, "runtime_stop_executor", None),
                 )
             else:
                 # Zeroing belongs to "this session was commanding", not to the lease feature. Without the
@@ -588,6 +590,7 @@ def disconnect_runtime_session(
     gateway: TeleopCommandGateway,
     stop_controller: RuntimeStopController,
     audit_log: RuntimeAuditLog,
+    stop_executor: Executor | None = None,
 ) -> None:
     try:
         manager.wait_for_control_operations(session)
@@ -595,7 +598,11 @@ def disconnect_runtime_session(
             neutralize_runtime_session(manager, session, gateway, stop_controller, audit_log)
         except RuntimeError:
             try:
-                stop_controller.engage()
+                # On STOP's own worker, so it is ordered with HTTP STOP and resume.
+                if stop_executor is None:
+                    stop_controller.engage()
+                else:
+                    stop_executor.submit(stop_controller.engage).result()
             except RuntimeStopAssertionError:
                 pass
     finally:
