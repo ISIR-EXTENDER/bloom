@@ -8,7 +8,7 @@
     {
       "id": "widget-lab",
       "name": "Widget Lab",
-      "description": "Every widget kind on the palette, bound to the simulation's topics, so each one is proven end to end. Its drive axes, gripper travel, speed range and joint names follow the Explorer.",
+      "description": "Every widget kind on the palette, bound to the simulation's topics, so each one is proven end to end. Its drive axes, gripper travel, speed range and joint names are the Explorer's: on a real Kinova, use it in simulation only.",
       "lifecycle": "active",
       "action_presets": [],
       "runtime_policy": {

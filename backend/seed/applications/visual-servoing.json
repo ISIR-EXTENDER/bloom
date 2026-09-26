@@ -512,7 +512,7 @@
             {
               "id": "approach-inputs-label",
               "kind": "label",
-              "title": "SERVO INPUT — the manager's gate on the servoing source",
+              "title": "SERVO INPUT — no effect yet: the manager's config declares only the joystick source",
               "layout": {
                 "x": 446,
                 "y": 14,
@@ -520,7 +520,7 @@
                 "height": 24
               },
               "settings": {
-                "text": "SERVO INPUT — the manager's gate on the servoing source",
+                "text": "SERVO INPUT — no effect yet: the manager's config declares only the joystick source",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false

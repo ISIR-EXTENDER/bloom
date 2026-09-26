@@ -198,7 +198,14 @@ export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
 # The newest sample per topic, this many times a second at most, on each runtime socket; 0 forwards every one.
 export BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ=30
 export BLOOM_RUNTIME_CONTROL_REQUIRED=true
+# The server refuses a speed limit above these on the qontrol speed-limit topics, whatever an app sends.
+export BLOOM_MAX_LINEAR_SPEED_LIMIT=0.3
+export BLOOM_MAX_ANGULAR_SPEED_LIMIT=0.8
 ```
+
+The speed caps are deployment-wide. On a Kinova, whose apps stop at 0.1 m/s, set `BLOOM_MAX_LINEAR_SPEED_LIMIT=0.1`
+so an edited app cannot send more. A cap below an app's slider maximum makes the top of that slider fail with
+"Command failed" rather than send a lower value.
 
 This example narrows the default publish allowlist and leaves out `/ui/`. An app with a gesture pad (`/ui/gesture`)
 or another `/ui/` widget needs `/ui/`, or its exact topics, added back; otherwise those publishes are refused.

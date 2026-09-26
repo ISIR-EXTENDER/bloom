@@ -84,7 +84,8 @@ hardware emergency stop.
 
 Releasing a control is also a command. A release sends a zero, and `cartesian_manager` expires any input after 0.2
 seconds, so an abandoned control does not keep the arm moving. If the browser disconnects mid-motion the backend
-publishes zero for every teleop target it was tracking before it releases the lease.
+publishes zero for every teleop target it was tracking, cancels a Go home it started, turns a held Snake back to
+Neutral and switches off visual servoing it started, before it releases the lease.
 
 ## Maintenance
 

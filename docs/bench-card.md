@@ -103,8 +103,9 @@ the launch: the view asks again every three seconds until the description exists
 `visualization_msgs/msg/MarkerArray` on `/goal_markers` (Bloom Debug) or `/widget_lab/markers` (Widget Lab) is drawn
 on the robot as rviz would draw it; a blue arrow and arc show what the runtime is commanding. Double-click the view or
 press Frame to frame the robot again. Both screens also draw `/ee_pose` as a triad: if it sits on the model's tool
-triad, the manager's frames and the description agree, which is the check in section 4 made visible. A joint target
-such as Go home shows as a translucent copy of the robot until the manager cancels it.
+triad, the manager's frames and the description agree, which is the check in section 4 made visible. On Bloom Debug a
+joint target such as Go home shows as a translucent copy of the robot until the manager cancels it; Widget Lab draws
+its probe's target instead.
 
 ## 4. Check the frames before anything moves
 

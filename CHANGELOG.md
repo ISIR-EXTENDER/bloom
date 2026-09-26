@@ -39,9 +39,48 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   controls nothing. A picker placed before its board, or left on a removed one, takes the next board placed.
 - **Series are rows, not JSON.** A plot board's or value strip's series are edited one row each (label, topic, field,
   unit, shown, emphasis), with Add and Remove, and a row that would plot nothing says why.
+- **Preview, rename and undo in the Builder.** The screen builder and app config have **Preview** (after saving),
+  and screens can be renamed on their card. A widget can be deselected (Escape or a click on empty canvas), which
+  brings the palette to the top. Edits to one field, and nudges of one widget, make one undo step; Ctrl/Cmd+Z undoes,
+  Ctrl/Cmd+Shift+Z and Ctrl+Y redo, and Delete removes the selected widget, outside text fields.
+- **Reusable presets are picked by name.** A command button's **Reusable preset** lists the app's presets instead of
+  asking for an id under Advanced (ROS).
+- **A real High visibility theme.** It was the Extender theme under another name; it is black on white with strong
+  outlines.
+
+### Changed
+
+- **Sandbox and Petanque drive the Explorer the way the Explorer Manager does.** Their pads used an identity mapping,
+  so a push moved a different axis than the Manager's pad; they now carry its mapping and pivot sign, and their labels
+  say Forward, Left, Tilt instead of axis names. Visual servoing's Forward and Sideways sliders drive the Kinova axes
+  their words name, and its joystick gate is gone: turning it off stopped the app's own driving and stayed off.
+- **The server caps the speed limits.** `BLOOM_MAX_LINEAR_SPEED_LIMIT` (0.3 m/s) and `BLOOM_MAX_ANGULAR_SPEED_LIMIT`
+  (0.8 rad/s) bound the qontrol speed-limit topics whatever an app sends; set 0.1 on a Kinova. Non-finite numbers and
+  booleans are refused in any numeric field, and a manager rate or velocity limit must be above zero.
+- **Saved poses are named the way the manager reads them.** `Pose-1` is saved as `pose_1`, captures are `pose_N`, and
+  a name or joint name that could break the exported YAML is refused. Poses already stored as `pose-1` are renamed
+  on load, and two names the manager would fold together are never exported side by side.
 
 ### Fixed
 
+- **Leaving control undoes what it left running.** A Go home kept moving, and a held Snake kept shaping the next
+  operator's motion, after their tablet disconnected, released control, or went stale; the backend cancels the one,
+  resets the other to Neutral and switches off visual servoing it started, and a stale owner's are reset by the next
+  claim.
+- **STOP is never queued behind slow reads.** It ran on the same thread pool as robot-parameter reads, which block for
+  seconds when the manager is down; it has its own worker.
+- **A released slider sends the zero it owes.** A slider whose value was superseded by another control's newer command
+  drew 0 and sent nothing on release, while the manager kept its value; a slider whose command failed left its value
+  in every later joystick command. An armed Go home is disarmed by STOP.
+- **STOP within a switch's reach, and not undone by a late Resume.** Switch scanning skipped STOP over Settings and the
+  tour, a Resume hold could fire after a later STOP, and a status reply older than a STOP could show READY.
+- **A dead link reads LINK DOWN.** A Wi-Fi drop without a TCP close left the link connected and Claim spinning; two
+  missed pings end it, and a request without a reply in 2 s fails.
+- **Readings are what they say.** A gauge printed its clamped value, staleness compared the backend's clock with the
+  tablet's, and the Jacobian had no stale cue.
+- **The Builder keeps what authors type.** Guardrail lists deleted each new line, the series editor refused an empty
+  row silently, Save as app and Duplicate wrote into the shipped file, and guided create repeated "New Bloom App".
+- **The Sandbox's safe max velocity is safe.** Its preset sent 0.5 m/s; it sends 0.15.
 - **Switch and keyboard presses at a scan station.** A held switch key auto-repeated and could arm then confirm Go
   home, or resume after STOP, in one press: a scan press now activates once, and a confirmation within 600 ms of
   arming counts as the same press. Enter on a focused STOP fired the lit control instead of stopping. An armed Resume

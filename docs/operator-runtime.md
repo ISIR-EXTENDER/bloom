@@ -128,14 +128,17 @@ session may hold up to 64 topic subscriptions.
 disconnects, or has said nothing at all for 10 seconds — a tablet that lost Wi-Fi keeps its connection open, and its
 lease must not block the room until that connection finally dies (decision 0135). A Runtime tab pings every 3 seconds
 while it is open, so an operator reading the screen and moving nothing never looks stale. Waiting sessions are never
-promoted silently: someone has to press **Take control**. STOP remains available from a blocked Runtime because
+promoted silently: someone has to press **Take control**. Taking a stale lease is not free of side effects: before the
+new owner can drive, Bloom undoes what the silent owner left set, a Go home still running (`behaviour/passthrough`), a
+Snake or Jaco shaper (`geometric/both`) and visual servoing it switched on. STOP remains available from a blocked Runtime because
 stopping must not depend on lease ownership. Scan and dwell profiles restrict themselves to **Take control** and STOP
 while blocked rather than disappearing or reaching robot controls. Resume and every other robot-facing command require
 the lease.
 
 When the owner leaves Runtime, the frontend clears composed input and asks the backend to release. The backend first
 blocks new commands and handover, waits for any in-flight command, publishes zero for every teleop target that still has
-a nonzero command, and only then releases the lease. A lost connection follows the same sequence. If that final
+a nonzero command, cancels a joint target it started, resets a shaper it left set to `geometric/both`, switches off
+visual servoing it switched on, and only then releases the lease. A lost connection follows the same sequence. If that final
 neutralization cannot reach the adapter, Bloom latches the shared runtime STOP before relinquishing ownership. Treat an
 unasserted STOP as a software-path failure and use the hardware emergency stop and lab procedure.
 
@@ -233,7 +236,7 @@ yaws positively about the base z axis ([record](validation/ros-sim-e2e.md)); not
 | Jaco | Requests `geometric/jaco`. |
 | Hold snake | Requests `geometric/snake` while pressed and `geometric/both` on release. A pointer holds it; keyboard, switch scanning, and dwell latch it instead, and the next activation releases it. An unattended latch releases itself after 15 seconds. |
 | Gripper | Explorer publishes close `[1.1]` and open `[0.2]`, matching `tablet_interface`. Kinova publishes close `[0.8]` and open `[0.0]`, the Robotiq 85 knuckle joint's range. The button names what it will do (**Close gripper**); the card header names the commanded state. |
-| Live tuning | A slider or toggle bound to a node parameter (Snake gain on Drive · Bench, the throw shape on Petanque's Teleop settings, the manager's input gates on Visual servoing · Approach) sets it through the node's own parameter service and opens on the value the node holds. Owner-only and audited; allowed while STOP is latched, because a gain is configuration, not motion (ADR 0139). |
+| Live tuning | A slider or toggle bound to a node parameter (Snake gain on Drive · Bench, the throw shape on Petanque's Teleop settings, the manager's servo input gate on Visual servoing · Approach) sets it through the node's own parameter service and opens on the value the node holds. Owner-only and audited; allowed while STOP is latched, because a gain is configuration, not motion (ADR 0139). |
 | Speed limits | Bench sliders start at the configured controller limits; Operator segments offer Slow, Medium, and Fast (Explorer 0.08 / 0.15 / 0.30, Kinova 0.025 / 0.05 / 0.10). Both publish linear/angular limits to `qontrol_controller` and are disabled when the ROS graph has no subscriber. |
 
 What each word drives in the base frame is the seed's `axis_mapping`, one per robot. The Explorer's is the profile
