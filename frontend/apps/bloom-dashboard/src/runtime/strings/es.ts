@@ -202,6 +202,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     },
     stopLatch: "Bloqueo de parada",
     stopped: "Detenido",
+    stoppedNotAsserted: "Detenido, sin confirmar en el robot",
     title: "Vista de supervisión",
     updatedAt: (value) => `Solicitado ${value}`,
   },

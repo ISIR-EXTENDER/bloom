@@ -200,6 +200,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     },
     stopLatch: "Stop latch",
     stopped: "Stopped",
+    stoppedNotAsserted: "Stopped, not confirmed on the robot",
     title: "Supervisor mirror",
     updatedAt: (value) => `Requested ${value}`,
   },

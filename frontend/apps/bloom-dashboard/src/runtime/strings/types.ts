@@ -162,6 +162,7 @@ export type RuntimeStrings = {
     };
     stopLatch: string;
     stopped: string;
+    stoppedNotAsserted: string;
     title: string;
     updatedAt: (value: string) => string;
   };

@@ -79,13 +79,10 @@ describe("the STOP control", () => {
     expect(document.activeElement).not.toBe(screen.getByRole("button", { name: /Hold for one second to resume/ }));
   });
 
+  // Told by prop, not a DOM attribute: Settings and the maintenance sheet never set data-runtime-scanning="true".
   it("leaves keys on Resume to the switch while scanning", () => {
     const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
-    render(
-      <div data-runtime-scanning="true">
-        <RuntimeStopControl requestError="" stopped={true} {...handlers} />
-      </div>,
-    );
+    render(<RuntimeStopControl requestError="" scanMode stopped={true} {...handlers} />);
     const resume = screen.getByRole("button", { name: /Hold for one second to resume/ });
 
     fireEvent.keyDown(resume, { key: " " });

@@ -31,6 +31,8 @@ export type RuntimeStopControlProps = {
   reassert?: boolean;
   /** The latch Resume answers; a new one drops a hold or armed confirm begun on the old. */
   latchId?: string;
+  /** Switch scanning: a key is the switch, so Resume only arms and confirms, never takes a key hold. */
+  scanMode?: boolean;
 };
 
 function isActivationKey(event: KeyboardEvent) {
@@ -52,6 +54,7 @@ export function RuntimeStopControl({
   region = null,
   reassert = false,
   latchId = "",
+  scanMode = false,
 }: RuntimeStopControlProps) {
   const placement = region ? "region" : "corner";
   const style = region ? { height: region.height, left: region.left, top: region.top, width: region.width } : undefined;
@@ -142,8 +145,20 @@ export function RuntimeStopControl({
         }
       }}
       onKeyDown={(event) => {
-        if (isActivationKey(event)) {
-          stopKeyDownRef.current = true;
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+        // A key still held from Resume's hold auto-repeats onto STOP once focus is handed over; only a fresh press stops.
+        if (event.repeat) {
+          event.preventDefault();
+          return;
+        }
+        stopKeyDownRef.current = true;
+      }}
+      onKeyUp={(event) => {
+        // Space clicks on keyup: one that went down on Resume must not click STOP.
+        if (event.key === " " && !stopKeyDownRef.current) {
+          event.preventDefault();
         }
       }}
       onPointerDown={onEngage}
@@ -194,7 +209,7 @@ export function RuntimeStopControl({
           }}
           onKeyDown={(event) => {
             // Under scanning a key is the switch: it arms and confirms through the scan, never a hold here.
-            if (event.currentTarget.closest('[data-runtime-scanning="true"]')) {
+            if (scanMode) {
               return;
             }
             if (isActivationKey(event)) {

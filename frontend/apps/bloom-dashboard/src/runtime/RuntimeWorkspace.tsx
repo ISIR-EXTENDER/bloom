@@ -46,7 +46,7 @@ import { useRuntimeTopicData } from "./use-runtime-topic-data";
 import { useViewportSize } from "./use-runtime-viewport";
 import { useStopSheetInset } from "./use-stop-sheet-inset";
 import { useStoppedControls } from "./use-stopped-controls";
-import { useSwitchScanning } from "./use-switch-scanning";
+import { useSwitchKeyGuard, useSwitchScanning } from "./use-switch-scanning";
 import { useTopicStatuses } from "./use-topic-statuses";
 
 type ApplicationRuntimeContext = Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
@@ -228,6 +228,7 @@ export function RuntimeWorkspace({
   const baseControlStateByWidgetId = useMemo(
     () =>
       createRuntimeControlStateByWidgetId(screen, runtimeModeState, {
+        actionPresets: application.action_presets,
         activeCommandFrameId: commandFrameId,
         allowedCommandFrameIds,
         commandFrameError,
@@ -245,6 +246,7 @@ export function RuntimeWorkspace({
         topicStatuses,
       }),
     [
+      application.action_presets,
       application.runtime_policy.allowed_teleop_targets,
       commandFrameId,
       commandFrameError,
@@ -308,7 +310,11 @@ export function RuntimeWorkspace({
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
   const stopped = runtimeStop.state?.stopped === true || runtimeStop.stopRequested;
-  const stopNeedsReassert = runtimeStop.state?.stopped === true && !runtimeStop.state.asserted;
+  // Not asserted, or never confirmed at all (engage failed, or the backend answered not stopped): STOP must be resendable.
+  const stopNeedsReassert =
+    (runtimeStop.state?.stopped === true && !runtimeStop.state.asserted) ||
+    (runtimeStop.stopRequested && runtimeStop.state?.stopped !== true);
+  const scanMode = runtimeProfile.motorAccessibilityPreset === "scan";
   const isAssistiveRuntimeTargetEnabled = (target: HTMLElement) => {
     // Not in control: claim, STOP, and the way out; maintenance holds motion, and without it a switch or dwell
     // operator refused the claim could reach neither Settings nor another app.
@@ -353,11 +359,12 @@ export function RuntimeWorkspace({
       ? { label: strings.status.debug, tone: "debug" as const }
       : resolvedChip;
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
+  useSwitchKeyGuard(scanMode);
   const scanning = useSwitchScanning({
     // Maintenance covers the canvas; a switch press there must not reach it.
     // Scanning stays on while stopped: isTargetEnabled leaves resume as the
     // only target, and turning it off would latch a switch operator out.
-    enabled: runtimeProfile.motorAccessibilityPreset === "scan" && !maintenanceOpen && !settingsOpen && !tourOpen,
+    enabled: scanMode && !maintenanceOpen && !settingsOpen && !tourOpen,
     isTargetEnabled: isAssistiveRuntimeTargetEnabled,
     periodMs: runtimeProfile.scanPeriodMs,
     // The whole view, not just the canvas: the bar's maintenance button is the
@@ -503,6 +510,7 @@ export function RuntimeWorkspace({
         resumeDisabledReason={runtimeControlBlocked ? strings.control.resumeRequiresOwner : ""}
         stopped={runtimeStop.stopRequested ? true : (runtimeStop.state?.stopped ?? null)}
         reassert={stopNeedsReassert}
+        scanMode={scanMode}
         latchId={runtimeStop.state?.engaged_at ?? ""}
         language={runtimeProfile.language}
       />

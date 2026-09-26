@@ -5,7 +5,7 @@
 import { renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { SCAN_TARGET_SELECTOR, useSwitchScanning } from "./use-switch-scanning";
+import { SCAN_TARGET_SELECTOR, useSwitchKeyGuard, useSwitchScanning } from "./use-switch-scanning";
 
 // jsdom lays nothing out: getClientRects() is empty until a test gives an element a box.
 function layOut(element: HTMLElement) {
@@ -136,20 +136,110 @@ describe("switch scanning", () => {
     expect(clicks).toEqual(["target-0"]);
   });
 
-  it("leaves Enter on a focused STOP to STOP", () => {
+  // A focused STOP used to be exempt, so a STOP AGAIN that kept focus took every later press as another STOP.
+  it("takes a switch press on a focused STOP as the switch, firing the lit target", () => {
     const { clicks, rootRef } = buildScreen(3);
     const stop = document.createElement("button");
     stop.setAttribute("data-scan-priority", "stop");
+    const stopKeys = vi.fn();
+    stop.addEventListener("keydown", stopKeys);
+    stop.addEventListener("click", () => clicks.push("stop"));
     layOut(stop);
     document.body.append(stop);
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
     vi.advanceTimersByTime(1000);
+    stop.focus();
 
     const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" });
     stop.dispatchEvent(enter);
 
-    expect(clicks).toEqual([]);
-    expect(enter.defaultPrevented).toBe(false);
+    expect(clicks).toEqual(["target-0"]);
+    expect(enter.defaultPrevented).toBe(true);
+    expect(stopKeys).not.toHaveBeenCalled();
+  });
+
+  it("fires STOP when STOP is lit", () => {
+    const { clicks, rootRef } = buildScreen(2);
+    const stop = document.createElement("button");
+    stop.setAttribute("data-scan-priority", "stop");
+    stop.addEventListener("click", () => clicks.push("stop"));
+    layOut(stop);
+    document.body.append(stop);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { cancelable: true, key: "Enter" }));
+
+    expect(clicks).toEqual(["stop"]);
+  });
+
+  // Focus on the fired target gave the next key a native click on it, whatever was lit by then.
+  it("highlights without moving focus, and announces what it fired", () => {
+    const { root, rootRef } = buildScreen(2);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    const before = document.activeElement;
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { cancelable: true, key: " " }));
+
+    expect(document.activeElement).toBe(before);
+    expect(root.querySelector("button")).not.toBe(document.activeElement);
+    expect(document.querySelector('[role="status"][data-scan-announcer]')?.textContent).toBe("target-0");
+  });
+
+  it("swallows the key up too, so Space never clicks the focused control", () => {
+    const { rootRef, root } = buildScreen(2);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    const focused = root.querySelectorAll("button")[1] as HTMLButtonElement;
+    focused.focus();
+    const ownKeyUp = vi.fn();
+    focused.addEventListener("keyup", ownKeyUp);
+
+    const up = new KeyboardEvent("keyup", { bubbles: true, cancelable: true, key: " " });
+    focused.dispatchEvent(up);
+
+    expect(up.defaultPrevented).toBe(true);
+    expect(ownKeyUp).not.toHaveBeenCalled();
+  });
+
+  it("sends the switch to the open dialog's scanner, not to the screen behind it", () => {
+    const screenBehind = buildScreen(2);
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    const inside = document.createElement("button");
+    inside.textContent = "inside";
+    const dialogClicks: string[] = [];
+    inside.addEventListener("click", () => dialogClicks.push("inside"));
+    layOut(inside);
+    dialog.append(inside);
+    document.body.append(dialog);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef: { current: dialog }, revision: "a" }));
+    renderHook(() =>
+      useSwitchScanning({ enabled: true, periodMs: 1000, rootRef: screenBehind.rootRef, revision: "a" }),
+    );
+
+    window.dispatchEvent(new KeyboardEvent("keydown", { cancelable: true, key: " " }));
+
+    expect(dialogClicks).toEqual(["inside"]);
+    expect(screenBehind.clicks).toEqual([]);
+  });
+
+  it("owns the switch keys while the scan preset holds the guard, even with no scanner running", () => {
+    const button = document.createElement("button");
+    const ownKeys = vi.fn();
+    button.addEventListener("keydown", ownKeys);
+    document.body.append(button);
+    button.focus();
+    const { unmount } = renderHook(() => useSwitchKeyGuard(true));
+
+    const held = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" });
+    button.dispatchEvent(held);
+    expect(held.defaultPrevented).toBe(true);
+    expect(ownKeys).not.toHaveBeenCalled();
+
+    unmount();
+    const released = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" });
+    button.dispatchEvent(released);
+    expect(released.defaultPrevented).toBe(false);
+    expect(ownKeys).toHaveBeenCalledOnce();
   });
 
   it("takes a switch press on a focused Resume as the switch", () => {
@@ -311,7 +401,7 @@ describe("switch scanning", () => {
     expect(result.current.activateCurrent).toEqual(expect.any(Function));
   });
 
-  it("leaves a switch press inside an open dialog to the dialog", () => {
+  it("leaves a tap inside an open dialog to the dialog", () => {
     const { clicks, rootRef } = buildScreen(2);
     const dialog = document.createElement("div");
     dialog.setAttribute("role", "dialog");
@@ -319,7 +409,6 @@ describe("switch scanning", () => {
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
 
     dialog.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
-    dialog.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: " " }));
 
     expect(clicks).toEqual([]);
   });

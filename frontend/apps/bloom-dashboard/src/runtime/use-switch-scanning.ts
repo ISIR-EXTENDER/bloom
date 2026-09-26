@@ -11,6 +11,54 @@ export const SCAN_TARGET_SELECTOR = "button:not([disabled]):not([data-scan-switc
  */
 const MAX_ARMED_HOLDS = 2;
 const SCAN_PRIORITY_SELECTOR = `${SCAN_TARGET_SELECTOR}[data-scan-priority]`;
+/** The keys a switch box, a sip-puff or a keyboard switch send. */
+export const SWITCH_KEYS: ReadonlySet<string> = new Set([" ", "Enter"]);
+
+type ActiveScanner = { activate: () => void; modal: boolean };
+// Scanners running now, newest last; the switch keys go to one of them and nowhere else.
+const activeScanners: ActiveScanner[] = [];
+let keyGuardHolders = 0;
+
+// Capture on window runs before any control's handler: under scan no key reaches a focused button's own handler
+// or its native Enter/Space click, so what fires is always the lit target.
+function guardSwitchKey(event: KeyboardEvent) {
+  if (!SWITCH_KEYS.has(event.key)) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  // One press, one activation: a held switch auto-repeats.
+  if (event.type === "keydown" && !event.repeat) {
+    ([...activeScanners].reverse().find((scanner) => scanner.modal) ?? activeScanners.at(-1))?.activate();
+  }
+}
+
+function holdSwitchKeyGuard(): () => void {
+  if (keyGuardHolders === 0) {
+    for (const type of ["keydown", "keypress", "keyup"]) {
+      window.addEventListener(type, guardSwitchKey as EventListener, true);
+    }
+  }
+  keyGuardHolders += 1;
+  let released = false;
+  return () => {
+    if (released) {
+      return;
+    }
+    released = true;
+    keyGuardHolders -= 1;
+    if (keyGuardHolders === 0) {
+      for (const type of ["keydown", "keypress", "keyup"]) {
+        window.removeEventListener(type, guardSwitchKey as EventListener, true);
+      }
+    }
+  };
+}
+
+/** Held for as long as the scan preset is on, so the scanner owns the switch keys on every screen and sheet. */
+export function useSwitchKeyGuard(enabled: boolean): void {
+  useEffect(() => (enabled ? holdSwitchKeyGuard() : undefined), [enabled]);
+}
 
 export type SwitchScanningOptions = {
   /** Fires the lit target; without one the target is clicked. */
@@ -27,7 +75,7 @@ export type SwitchScanningOptions = {
 };
 
 export type SwitchScanningState = {
-  /** Fire and focus the currently highlighted scan target. */
+  /** Fire the currently highlighted scan target. */
   activateCurrent: () => void;
   /** Index of the lit target, or -1 while nothing is scanning. */
   index: number;
@@ -37,7 +85,7 @@ export type SwitchScanningState = {
 /**
  * Walks a highlight across the screen's controls; any switch fires the lit one.
  *
- * The switch is deliberately broad -- Space, Enter, or a tap anywhere outside a
+ * The switch is deliberately broad -- Space, Enter (from any focus), or a tap anywhere outside a
  * control -- because a switch box, a sip-puff and a button all present as one
  * of those. Targets are read from the DOM, so a widget is scannable exactly
  * when it renders buttons: pads and sliders switch to step targets under this
@@ -73,7 +121,8 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     } else {
       activateAssistively(target);
     }
-    target.focus();
+    // Highlight only: a focused target would take the native click of a later key.
+    announce(target);
   }, []);
 
   useEffect(() => {
@@ -88,8 +137,11 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     }
 
     // Scanning a dialog is the dialog's own business; only a root outside one
-    // keeps its hands off the keys and taps that belong to it.
+    // keeps its hands off the taps that belong to it.
     const rootIsModal = isInsideModal(root);
+    const scanner: ActiveScanner = { activate: activateCurrent, modal: rootIsModal };
+    activeScanners.push(scanner);
+    const releaseKeyGuard = holdSwitchKeyGuard();
 
     const readTargets = () => {
       // Clear the outgoing set first. paint() only touches targets still in the list, so one that left it --
@@ -178,29 +230,6 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       paint(nextIndex);
     };
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== " " && event.key !== "Enter") {
-        return;
-      }
-      // A key meant for an open dialog belongs to the dialog, never to the
-      // control highlighted behind it.
-      if (!rootIsModal && isInsideModal(event.target)) {
-        return;
-      }
-      // Enter on a focused STOP is a stop, not a press of whatever is lit: a caregiver tabbing to STOP at a
-      // scan station fired a step target instead. Resume is not exempt: a switch press there arms, then confirms.
-      if (event.target instanceof Element && event.target.closest('[data-scan-priority="stop"]:not([data-stopped])')) {
-        return;
-      }
-      event.preventDefault();
-      // One press, one activation: a held switch auto-repeats, and the repeat confirmed an armed Go home or
-      // resumed after STOP.
-      if (event.repeat) {
-        return;
-      }
-      activateCurrent();
-    };
-
     const onPointerDown = (event: PointerEvent) => {
       // A tap on a control is a direct hit, not a switch press. The target is
       // not always an Element (a tap landing on the window itself is not).
@@ -215,13 +244,13 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     };
 
     const timer = window.setInterval(advance, periodMs);
-    window.addEventListener("keydown", onKeyDown);
     window.addEventListener("pointerdown", onPointerDown);
 
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("pointerdown", onPointerDown);
+      activeScanners.splice(activeScanners.indexOf(scanner), 1);
+      releaseKeyGuard();
       for (const target of targetsRef.current) {
         target.removeAttribute("data-scan-lit");
       }
@@ -238,4 +267,19 @@ function isLaidOut(element: HTMLElement): boolean {
 
 function isInsideModal(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('[role="dialog"], [aria-modal="true"]') !== null;
+}
+
+let announcer: HTMLElement | null = null;
+
+// Focus used to carry the activated target to a screen reader; a polite status line carries it now.
+function announce(target: HTMLElement) {
+  if (!announcer?.isConnected) {
+    announcer = document.createElement("div");
+    announcer.className = "sr-only";
+    announcer.setAttribute("aria-live", "polite");
+    announcer.setAttribute("data-scan-announcer", "");
+    announcer.setAttribute("role", "status");
+    document.body.append(announcer);
+  }
+  announcer.textContent = (target.getAttribute("aria-label") ?? target.textContent ?? "").trim();
 }

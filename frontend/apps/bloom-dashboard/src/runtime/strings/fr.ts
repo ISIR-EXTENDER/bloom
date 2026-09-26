@@ -202,6 +202,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     },
     stopLatch: "Verrou d'arrêt",
     stopped: "Arrêté",
+    stoppedNotAsserted: "Arrêté, non confirmé sur le robot",
     title: "Vue superviseur",
     updatedAt: (value) => `Demandé ${value}`,
   },

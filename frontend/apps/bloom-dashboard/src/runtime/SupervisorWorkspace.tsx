@@ -113,10 +113,14 @@ export function SupervisorWorkspace({
           <dd data-state={stopState ? (stopState.stopped ? "stopped" : "running") : "unknown"}>
             {stopState
               ? stopState.stopped
-                ? strings.supervisor.stopped
+                ? stopState.asserted
+                  ? strings.supervisor.stopped
+                  : strings.supervisor.stoppedNotAsserted
                 : strings.supervisor.running
               : strings.supervisor.notReported}
           </dd>
+          {/* Not asserted covers a latch restored after a restart too: the backend has not told the robot since. */}
+          {stopState?.stopped && !stopState.asserted && stopState.detail ? <small>{stopState.detail}</small> : null}
         </div>
         <div>
           <dt>{strings.supervisor.lastRequest}</dt>

@@ -66,13 +66,20 @@ export function RuntimeSettingsPanel({
       : profile.motorAccessibilityPreset === "latch"
         ? "latch"
         : "drag";
+  // How the operator reaches Save is the saved way until they save: following the draft stranded a switch user
+  // who picked Touch with no scan left to reach Save or Discard.
+  const activeProfile = useMemo(
+    () => applyRuntimeProfileOverrides(baseProfile, normalizeRuntimeProfileOverrides(overrides)),
+    [baseProfile, overrides],
+  );
   const scanning = useSwitchScanning({
-    enabled: inputMethod === "scan",
-    periodMs: profile.scanPeriodMs,
+    enabled: activeProfile.motorAccessibilityPreset === "scan",
+    // A draft scan step still previews live.
+    periodMs: inputMethod === "scan" ? profile.scanPeriodMs : activeProfile.scanPeriodMs,
     revision: `${inputMethod}:${pushMode}`,
     rootRef,
   });
-  useDwellActivation({ dwellMs: profile.dwellMs, enabled: inputMethod === "dwell", rootRef });
+  useDwellActivation({ dwellMs: activeProfile.dwellMs, enabled: activeProfile.dwellEnabled, rootRef });
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
