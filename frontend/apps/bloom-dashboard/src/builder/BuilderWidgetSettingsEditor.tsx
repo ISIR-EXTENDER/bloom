@@ -1,14 +1,26 @@
 import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import {
+  COMMAND_PURPOSE_KEYS,
+  COMMAND_PURPOSES,
+  commandPurposeOf,
+  DEFAULT_WIDGET_DEFINITIONS,
   deriveSliderStep,
+  fieldSuggestionsFor,
   findInertSetting,
   getDefaultRosMessageTogglePayloads,
   getWidgetSettingsContract,
   gripperToggleSettings,
   isRecord,
+  JOYSTICK_PURPOSE_KEYS,
+  JOYSTICK_PURPOSES,
+  joystickPurposeOf,
   normalizeWidgetSettings,
   readOptionalNumber,
   resolveWidgetDestination,
+  SLIDER_PURPOSE_KEYS,
+  SLIDER_PURPOSES,
+  sliderPurposeOf,
+  TOPIC_SUGGESTIONS,
   type WidgetSettingField,
 } from "@bloom/widgets";
 import { useId, useState } from "react";
@@ -35,10 +47,34 @@ type BuilderWidgetSettingsEditorProps = {
   panel?: { height: number; width: number };
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   onUpdateTitle: (title: string) => void;
+  /** The arm this Bloom drives, so a speed limit takes that arm's range. */
+  robotName?: string;
   /** The other widgets on this screen: a series picker is linked to one of its plot boards by name. */
   screenWidgets?: readonly WidgetConfig[];
   widget: WidgetConfig;
 };
+
+const ADVANCED_FIELD_KINDS: ReadonlySet<string> = new Set(["command-button", "joystick", "slider", "toggle"]);
+const ADVANCED_FIELD_KEYS: ReadonlySet<string> = new Set([
+  "action_id",
+  "action_label",
+  "axis_hints",
+  "binding",
+  "cancellable",
+  "command",
+  "intent_label",
+  "messageType",
+  "mode_id",
+  "offPayload",
+  "onPayload",
+  "payload",
+  "presetId",
+  "publish_rate_hz",
+  "releasedPayload",
+  "runtime_binding",
+  "topic",
+  "zero_on_release",
+]);
 
 export function BuilderWidgetSettingsEditor({
   allowedCommandFrameIds,
@@ -50,10 +86,12 @@ export function BuilderWidgetSettingsEditor({
   panel = { height: 600, width: 1024 },
   onUpdateSettings,
   onUpdateTitle,
+  robotName,
   screenWidgets = [],
   widget,
 }: BuilderWidgetSettingsEditorProps) {
   const titleId = useId();
+  const suggestionId = useId();
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const contract = getWidgetSettingsContract(widget.kind);
   const normalizedSettings = normalizeWidgetSettings(widget.kind, widget.settings);
@@ -67,6 +105,12 @@ export function BuilderWidgetSettingsEditor({
     };
     if (nextSettings[field.key] === undefined) {
       delete nextSettings[field.key];
+    }
+    // A reader's type was the old topic's, and the backend subscribed with it: /ee_pose's PoseStamped on
+    // /joint_states waited forever. Empty, the backend reads the type from the graph.
+    if (field.key === "topic" && destination?.direction === "reads" && nextSettings.topic !== widget.settings.topic) {
+      delete nextSettings.messageType;
+      delete nextSettings.message_type;
     }
     // Step follows the range (~20 increments); a direct step edit overrides.
     if (widget.kind === "slider" && (field.key === "min" || field.key === "max")) {
@@ -108,9 +152,64 @@ export function BuilderWidgetSettingsEditor({
       if (followsCommand && String(effectiveSettings.messageType ?? "") === "std_msgs/msg/String") {
         nextSettings.payload = { data: String(rawValue) };
       }
+      if (effectiveSettings.action_label === `Request ${previous}`) {
+        nextSettings.action_label = `Request ${String(rawValue)}`;
+      }
     }
     setValidationMessage(onUpdateSettings(nextSettings));
   };
+
+  // Each choice writes what the shipped Manager apps use, replacing every key the old purpose owned. A title
+  // the author wrote stays; one that only named the old purpose follows the new one.
+  const choosePurpose = (
+    purpose: Purpose,
+    purposes: readonly Purpose[],
+    ownedKeys: readonly string[],
+    purposeOf: (settings: Record<string, unknown>) => string | null,
+  ) => {
+    const kept = Object.fromEntries(Object.entries(widget.settings).filter(([key]) => !ownedKeys.includes(key)));
+    setValidationMessage(onUpdateSettings({ ...kept, ...purpose.settings(robotName) }));
+    const previous = purposes.find((candidate) => candidate.id === purposeOf(widget.settings));
+    const defaultTitle = DEFAULT_WIDGET_DEFINITIONS.find((definition) => definition.kind === widget.kind)?.defaultTitle;
+    if (!widget.title.trim() || widget.title === previous?.title || widget.title === defaultTitle) {
+      onUpdateTitle(purpose.title);
+    }
+  };
+
+  // The ROS plumbing of a control that says in words what it does: the choice above writes it, and 24 raw fields
+  // in one list buried the four an author changes.
+  const isAdvanced = (field: WidgetSettingField) =>
+    ADVANCED_FIELD_KINDS.has(widget.kind) && ADVANCED_FIELD_KEYS.has(field.key);
+  const basicFields = contract.fields.filter((field) => !isAdvanced(field));
+  const advancedFields = contract.fields.filter(isAdvanced);
+  const renderField = (field: WidgetSettingField) =>
+    // The series editor above carries these as rows; the raw array would be a second way in.
+    field.key === "series" && SERIES_KINDS.has(widget.kind) ? null : widget.kind === "plot-picker" &&
+      field.key === "plot_id" ? (
+      <PlotBoardField
+        boards={screenWidgets.filter((candidate) => candidate.kind === "plot-board")}
+        key={field.key}
+        onChange={(boardId) => updateSetting(field, boardId)}
+        value={String(effectiveSettings.plot_id ?? "")}
+      />
+    ) : (
+      <BuilderSettingsField
+        defaultValue={contract.defaultSettings[field.key]}
+        field={field}
+        key={field.key}
+        onChange={(rawValue) => updateSetting(field, rawValue)}
+        inert={findInertSetting(destination, field.key)}
+        onClear={() => updateSetting(field, "")}
+        suggestionListId={
+          field.key === "topic"
+            ? `${suggestionId}-topics`
+            : field.key === "fieldPath" || field.key === "field_path"
+              ? `${suggestionId}-fields`
+              : undefined
+        }
+        value={effectiveSettings[field.key]}
+      />
+    );
 
   return (
     <section className="builder-settings-editor" aria-labelledby="builder-settings-editor-title">
@@ -145,6 +244,30 @@ export function BuilderWidgetSettingsEditor({
         widget={widget}
       />
       <SeriesEditor onUpdateSettings={onUpdateSettings} widget={widget} />
+      {widget.kind === "slider" ? (
+        <PurposeField
+          label="What this slider controls"
+          onChoose={(purpose) => choosePurpose(purpose, SLIDER_PURPOSES, SLIDER_PURPOSE_KEYS, sliderPurposeOf)}
+          purposes={SLIDER_PURPOSES}
+          value={sliderPurposeOf(widget.settings)}
+        />
+      ) : null}
+      {widget.kind === "joystick" ? (
+        <PurposeField
+          label="What this pad does"
+          onChoose={(purpose) => choosePurpose(purpose, JOYSTICK_PURPOSES, JOYSTICK_PURPOSE_KEYS, joystickPurposeOf)}
+          purposes={JOYSTICK_PURPOSES}
+          value={joystickPurposeOf(widget.settings)}
+        />
+      ) : null}
+      {widget.kind === "command-button" ? (
+        <PurposeField
+          label="What this button does"
+          onChoose={(purpose) => choosePurpose(purpose, COMMAND_PURPOSES, COMMAND_PURPOSE_KEYS, commandPurposeOf)}
+          purposes={COMMAND_PURPOSES}
+          value={commandPurposeOf(widget.settings)}
+        />
+      ) : null}
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (
@@ -155,29 +278,27 @@ export function BuilderWidgetSettingsEditor({
             : "This widget has no settings."}
         </p>
       ) : (
-        contract.fields.map((field) =>
-          // The series editor above carries these as rows; the raw array would be a second way in.
-          field.key === "series" && SERIES_KINDS.has(widget.kind) ? null : widget.kind === "plot-picker" &&
-            field.key === "plot_id" ? (
-            <PlotBoardField
-              boards={screenWidgets.filter((candidate) => candidate.kind === "plot-board")}
-              key={field.key}
-              onChange={(boardId) => updateSetting(field, boardId)}
-              value={String(effectiveSettings.plot_id ?? "")}
-            />
-          ) : (
-            <BuilderSettingsField
-              defaultValue={contract.defaultSettings[field.key]}
-              field={field}
-              key={field.key}
-              onChange={(rawValue) => updateSetting(field, rawValue)}
-              inert={findInertSetting(destination, field.key)}
-              onClear={() => updateSetting(field, "")}
-              value={effectiveSettings[field.key]}
-            />
-          ),
-        )
+        <>
+          {basicFields.map(renderField)}
+          {advancedFields.length > 0 ? (
+            <details className="builder-settings-advanced">
+              <summary>Advanced (ROS)</summary>
+              {advancedFields.map(renderField)}
+            </details>
+          ) : null}
+        </>
       )}
+
+      <datalist id={`${suggestionId}-topics`}>
+        {TOPIC_SUGGESTIONS.map((suggestion) => (
+          <option key={suggestion.topic} value={suggestion.topic} />
+        ))}
+      </datalist>
+      <datalist id={`${suggestionId}-fields`}>
+        {fieldSuggestionsFor(effectiveSettings.topic).map((fieldPath) => (
+          <option key={fieldPath} value={fieldPath} />
+        ))}
+      </datalist>
 
       {validationMessage ? (
         <p className="builder-settings-error" role="alert">
@@ -219,6 +340,43 @@ function PlotBoardField({
               : "Not linked yet, so the picker controls nothing."}
         </small>
       ) : null}
+    </label>
+  );
+}
+
+type Purpose = { id: string; label: string; title: string; settings: (robotName?: string) => Record<string, unknown> };
+
+/** What a slider or button drives, in words: each choice writes what the shipped Manager apps use. */
+function PurposeField({
+  label,
+  onChoose,
+  purposes,
+  value,
+}: {
+  label: string;
+  onChoose: (purpose: Purpose) => void;
+  purposes: readonly Purpose[];
+  value: string | null;
+}) {
+  return (
+    <label className="builder-settings-field">
+      <span>{label}</span>
+      <select
+        onChange={(event) => {
+          const purpose = purposes.find((candidate) => candidate.id === event.target.value);
+          if (purpose) {
+            onChoose(purpose);
+          }
+        }}
+        value={value ?? ""}
+      >
+        <option value="">Something else (set below)</option>
+        {purposes.map((purpose) => (
+          <option key={purpose.id} value={purpose.id}>
+            {purpose.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

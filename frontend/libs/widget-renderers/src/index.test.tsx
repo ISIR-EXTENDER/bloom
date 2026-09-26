@@ -1008,17 +1008,20 @@ describe("widget renderer registry", () => {
         })}
       </div>,
     );
-    expect(screen.getByRole("status").textContent).toBe("No new frame for 5 s");
+    // Said once as a change; the ticking count is for the eyes only.
+    expect(screen.getByRole("status").textContent).toBe("The camera stopped sending.");
+    expect(screen.getByText("No new frame for 5 s")).toHaveAttribute("aria-hidden", "true");
     cleanup();
 
     render(
       <div>
         {renderWidgetDescriptor(descriptor, {
-          dataByWidgetId: { "gripper-camera": { ...frame, detail: "The camera stream closed. Reconnecting…" } },
+          dataByWidgetId: { "gripper-camera": { ...frame, reconnecting: true } },
+          language: "fr",
         })}
       </div>,
     );
-    expect(screen.getByRole("status").textContent).toBe("The camera stream closed. Reconnecting…");
+    expect(screen.getByRole("status").textContent).toBe("Le flux de la caméra s'est fermé. Reconnexion…");
   });
 
   it("renders webcam previews with discovered browser cameras", async () => {

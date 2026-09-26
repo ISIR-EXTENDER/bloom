@@ -360,6 +360,10 @@ async function closing() {
 // ---- Helpers ----
 
 async function typeInto(label, text) {
+  const advanced = page.locator("details.builder-settings-advanced");
+  if ((await advanced.count()) > 0 && !(await advanced.first().evaluate((node) => node.open))) {
+    await advanced.first().locator("summary").click();
+  }
   const field = page
     .locator("label.builder-settings-field", { has: page.locator("span", { hasText: new RegExp(`^${label}$`) }) })
     .locator("input, textarea")

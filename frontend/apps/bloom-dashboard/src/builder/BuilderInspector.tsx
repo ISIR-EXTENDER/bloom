@@ -1,6 +1,7 @@
 import type { CanvasSettings, WidgetConfig, WidgetLayout } from "@bloom/api-client";
 import {
   findSizeShortfall,
+  paletteArrivesAs,
   type RuntimeCapability,
   resolveWidgetReadiness,
   type WidgetCategory,
@@ -29,6 +30,8 @@ type BuilderInspectorProps = {
   /** Why the last add, duplicate or resize was refused. */
   layoutNotice?: string | null;
   onResizeWidget?: (widgetId: string, layout: WidgetLayout) => void;
+  /** The arm this Bloom drives, as the capabilities name it. */
+  robotName?: string;
   runtimeCapabilities: readonly RuntimeCapability[] | null;
   onAddWidget: (definition: WidgetDefinition) => void;
   onDuplicateWidget: () => void;
@@ -56,6 +59,7 @@ export function BuilderInspector({
   panel = { height: 600, width: 1024 },
   layoutNotice = null,
   onResizeWidget,
+  robotName,
   runtimeCapabilities,
   onAddWidget,
   onDuplicateWidget,
@@ -168,6 +172,7 @@ export function BuilderInspector({
         key={selectedWidget.id}
         onUpdateSettings={onUpdateWidgetSettings}
         onUpdateTitle={onUpdateWidgetTitle}
+        robotName={robotName}
         screenWidgets={widgets}
         widget={selectedWidget}
       />
@@ -348,6 +353,11 @@ function WidgetPalette({
                     type="button"
                   >
                     <strong>{definition.displayName}</strong>
+                    {paletteArrivesAs(definition.kind) ? (
+                      <small className="builder-widget-palette-arrives">
+                        Arrives as {paletteArrivesAs(definition.kind)}
+                      </small>
+                    ) : null}
                     {readiness.state === "unavailable" ? (
                       <em className="builder-widget-palette-flag">{fitsClass ? "Not connected" : "Desktop only"}</em>
                     ) : null}

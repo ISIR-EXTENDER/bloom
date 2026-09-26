@@ -1,5 +1,6 @@
 import type { WidgetConfig } from "@bloom/api-client";
-import { isRecord } from "@bloom/widgets";
+import { fieldSuggestionsFor, isRecord, TOPIC_SUGGESTIONS } from "@bloom/widgets";
+import { useId } from "react";
 
 export const SERIES_KINDS: ReadonlySet<string> = new Set(["plot-board", "value-strip"]);
 
@@ -43,6 +44,7 @@ export function SeriesEditor({
   onUpdateSettings: (settings: Record<string, unknown>) => string | null;
   widget: WidgetConfig;
 }) {
+  const listId = useId();
   if (!SERIES_KINDS.has(widget.kind)) {
     return null;
   }
@@ -66,7 +68,22 @@ export function SeriesEditor({
               <label className="builder-settings-field" key={key}>
                 <span>{{ label: "Label", topic: "Topic", field_path: "Field", unit: "Unit" }[key]}</span>
                 <input
-                  onChange={(event) => edit(index, { [key]: event.target.value })}
+                  list={
+                    key === "topic"
+                      ? `${listId}-topics`
+                      : key === "field_path"
+                        ? `${listId}-fields-${index}`
+                        : undefined
+                  }
+                  onChange={(event) =>
+                    // A new topic takes its type from the graph; the old one's kept the subscription waiting.
+                    edit(
+                      index,
+                      key === "topic"
+                        ? { topic: event.target.value, message_type: undefined, messageType: undefined }
+                        : { [key]: event.target.value },
+                    )
+                  }
                   type="text"
                   value={text(row, key)}
                 />
@@ -90,6 +107,11 @@ export function SeriesEditor({
                 <span>Emphasis</span>
               </label>
             ) : null}
+            <datalist id={`${listId}-fields-${index}`}>
+              {fieldSuggestionsFor(text(row, "topic")).map((fieldPath) => (
+                <option key={fieldPath} value={fieldPath} />
+              ))}
+            </datalist>
             {problem ? (
               <small className="builder-settings-pending" role="status">
                 Not plotted. {problem}
@@ -106,6 +128,11 @@ export function SeriesEditor({
           </fieldset>
         );
       })}
+      <datalist id={`${listId}-topics`}>
+        {TOPIC_SUGGESTIONS.map((suggestion) => (
+          <option key={suggestion.topic} value={suggestion.topic} />
+        ))}
+      </datalist>
       <button className="builder-secondary-action" onClick={() => commit([...rows, { ...NEW_SERIES }])} type="button">
         Add series
       </button>

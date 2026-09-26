@@ -11,12 +11,14 @@ import {
 const MOMENTARY_HOLD_EXPIRY_MS = 15000;
 
 import { type PointerEvent, useEffect, useId, useRef, useState } from "react";
+import { rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
 
 export function CommandLikeWidget({
   conditioning,
   controlState,
   descriptor,
+  language,
   neutralRevision,
   onActionIntent,
 }: WidgetRendererProps) {
@@ -186,7 +188,7 @@ export function CommandLikeWidget({
       isMomentaryPressedRef.current = false;
       setIsMomentaryPressed(false);
       setIsMomentaryLatched(false);
-      setMomentaryRefusal(detail || "Not sent.");
+      setMomentaryRefusal(detail || rendererStrings(language).notSent);
     };
     Promise.resolve(outcome).then(
       (result) => {

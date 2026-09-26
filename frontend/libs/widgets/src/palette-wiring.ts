@@ -51,3 +51,15 @@ export const PALETTE_WIRING: Readonly<Record<string, { title: string; settings: 
   "plot-board": { title: "Hand position", settings: { series: HAND_AXES } },
   "value-strip": { title: "Hand position", settings: { series: HAND_AXES } },
 };
+
+const ARRIVES_AS_EXTRA: Readonly<Record<string, string>> = {
+  joystick: "Translation pad",
+  toggle: "Gripper open and close",
+  "plot-picker": "Linked to this screen's plot board",
+  "position-library": "Saved poses; going to one needs its export in the manager",
+};
+
+/** What a palette entry becomes when placed, in a few words, so the palette says it before the click does. */
+export function paletteArrivesAs(kind: string): string | null {
+  return PALETTE_WIRING[kind]?.title ?? ARRIVES_AS_EXTRA[kind] ?? null;
+}

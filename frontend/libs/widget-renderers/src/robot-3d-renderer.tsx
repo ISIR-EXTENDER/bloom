@@ -5,10 +5,12 @@ import type { WidgetRendererProps } from "./types";
 
 const RobotScene = lazy(() => import("./robot-3d-scene"));
 
+import { rendererStrings } from "./renderer-strings";
 import type { SceneStatus } from "./robot-3d-scene";
 
 /** The running robot from its own description, its joints from ROS, and markers as rviz reads them. */
-export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererProps) {
+export function Robot3dWidget({ data, descriptor, language, robotModel }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   const settings = descriptor.widget.settings;
   const jointStateTopic = getStringSetting(settings, "jointStateTopic", "/joint_states");
   const markerTopic = getStringSetting(settings, "markerTopic", "");
@@ -97,9 +99,15 @@ export function Robot3dWidget({ data, descriptor, robotModel }: WidgetRendererPr
         ) : null}
         {note ? <p className="bloom-robot-3d-note">{note}</p> : null}
         {!note && staleSeconds !== null ? (
-          <p className="bloom-robot-3d-note bloom-robot-3d-stale" role="status">
-            No joint state for {staleSeconds} s. The robot is drawn where it last was.
-          </p>
+          <>
+            {/* The count ticks every second; the live region says the change once. */}
+            <p aria-hidden="true" className="bloom-robot-3d-note bloom-robot-3d-stale">
+              {text.jointsStale(staleSeconds)}
+            </p>
+            <span className="sr-only" role="status">
+              {text.jointsStalled}
+            </span>
+          </>
         ) : null}
       </div>
       {gestureHint && canDraw && robotModel && status.model === "ready" ? (

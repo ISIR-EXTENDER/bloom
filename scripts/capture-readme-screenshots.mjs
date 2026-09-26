@@ -91,6 +91,7 @@ try {
     await page.getByRole("button", { name: "Open Drive · Operator screen builder" }).click();
     await page.locator(".builder-widget-palette").first().waitFor();
     await page.locator('.builder-widget-frame[aria-label$=" toggle widget"]').first().click();
+    await page.locator("details.builder-settings-advanced summary").first().click();
     const topic = page.locator("label.builder-settings-field", { hasText: "Topic" }).first();
     await topic.waitFor();
     await topic.scrollIntoViewIfNeeded();

@@ -108,7 +108,9 @@ export function useCameraStreams(
             type: "camera-frame",
             topic: target.topic,
             connected,
-            detail: `${(event.reason ?? "") || "The camera stream closed."}${retryInMs === null ? "" : " Reconnecting…"}`,
+            // The renderer words it in the operator's language; the server's own reason stays as sent.
+            detail: event.reason || undefined,
+            reconnecting: retryInMs !== null,
           } as WidgetDataSnapshot,
         }));
         if (retryInMs !== null) {

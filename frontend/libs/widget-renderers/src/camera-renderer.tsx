@@ -1,8 +1,10 @@
 import { getBooleanSetting, getStringSetting } from "@bloom/widgets";
 import { useEffect, useRef, useState } from "react";
+import { rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
 
-export function CameraWidget({ data, descriptor }: WidgetRendererProps) {
+export function CameraWidget({ data, descriptor, language }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   const source = getStringSetting(descriptor.widget.settings, "source", "placeholder");
   const streamUrl = getStringSetting(descriptor.widget.settings, "streamUrl", "");
   const topic = getStringSetting(descriptor.widget.settings, "topic", "");
@@ -32,10 +34,14 @@ export function CameraWidget({ data, descriptor }: WidgetRendererProps) {
                     src={frame.frameUrl}
                     style={{ objectFit: fitMode === "cover" ? "cover" : "contain" }}
                   />
-                  <CameraStaleBadge detail={frame.detail} receivedAt={frame.receivedAt} />
+                  <CameraStaleBadge
+                    detail={describeClosedStream(frame, text)}
+                    receivedAt={frame.receivedAt}
+                    text={text}
+                  />
                 </>
               ) : (
-                <CameraPlaceholder message={describeRosCameraStatus(topic, frame)} />
+                <CameraPlaceholder message={describeRosCameraStatus(topic, frame, text)} />
               )}
             </div>
           </div>
@@ -74,7 +80,15 @@ export function CameraWidget({ data, descriptor }: WidgetRendererProps) {
 const CAMERA_STALE_MS = 2000;
 
 /** The last frame of a camera that stopped looks exactly like a live one; this says how old it is. */
-function CameraStaleBadge({ detail, receivedAt }: { detail?: string; receivedAt?: number }) {
+function CameraStaleBadge({
+  detail,
+  receivedAt,
+  text,
+}: {
+  detail?: string;
+  receivedAt?: number;
+  text: RendererStrings;
+}) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -84,10 +98,16 @@ function CameraStaleBadge({ detail, receivedAt }: { detail?: string; receivedAt?
   if (!detail && ageMs < CAMERA_STALE_MS) {
     return null;
   }
+  // The count ticks every second; announced, it buried everything else. The live region says the change once.
   return (
-    <span className="bloom-camera-stale" role="status">
-      {detail ?? `No new frame for ${Math.floor(ageMs / 1000)} s`}
-    </span>
+    <>
+      <span aria-hidden="true" className="bloom-camera-stale">
+        {detail ?? text.cameraStale(Math.floor(ageMs / 1000))}
+      </span>
+      <span className="sr-only" role="status">
+        {detail ?? text.cameraStalled}
+      </span>
+    </>
   );
 }
 
@@ -102,23 +122,32 @@ function describeCameraSource(source: string, streamUrl: string, topic: string):
 }
 
 /** Each state names what to do about it; "no image" alone sends an operator hunting the wrong thing. */
-function describeRosCameraStatus(
-  topic: string,
-  frame: { connected: boolean; frameUrl?: string; detail?: string } | undefined,
-): string {
+type CameraFrameState = { connected: boolean; frameUrl?: string; detail?: string; reconnecting?: boolean };
+type RendererStrings = ReturnType<typeof rendererStrings>;
+
+function describeClosedStream(frame: CameraFrameState, text: RendererStrings): string | undefined {
+  if (!frame.detail && !frame.reconnecting) {
+    return undefined;
+  }
+  const reason = frame.detail || text.cameraClosed;
+  return frame.reconnecting ? `${reason} ${text.cameraReconnecting}` : reason;
+}
+
+function describeRosCameraStatus(topic: string, frame: CameraFrameState | undefined, text: RendererStrings): string {
   if (!topic) {
-    return "Name a compressed image topic to show a camera.";
+    return text.cameraNameTopic;
   }
   if (!frame) {
-    return "Connecting…";
+    return text.cameraConnecting;
   }
-  if (frame.detail) {
-    return frame.detail;
+  const closed = describeClosedStream(frame, text);
+  if (closed) {
+    return closed;
   }
   if (!frame.connected) {
-    return "This backend has no ROS node, so no camera can reach it.";
+    return text.cameraNoRos;
   }
-  return frame.frameUrl ? topic : `Waiting for a frame on ${topic}.`;
+  return frame.frameUrl ? topic : text.cameraWaiting(topic);
 }
 
 function WebcamPreview({

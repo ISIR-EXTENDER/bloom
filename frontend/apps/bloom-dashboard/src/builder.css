@@ -2096,6 +2096,22 @@
   min-height: 22px;
 }
 
+.builder-settings-advanced {
+  display: grid;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--bloom-border);
+  border-radius: 12px;
+}
+
+.builder-settings-advanced summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .builder-series-editor {
   display: grid;
   gap: 10px;
@@ -2403,6 +2419,7 @@
   text-transform: uppercase;
 }
 
+.builder-widget-palette-arrives,
 .builder-widget-palette-note {
   margin-top: 4px;
   color: var(--bloom-on-surface-muted);

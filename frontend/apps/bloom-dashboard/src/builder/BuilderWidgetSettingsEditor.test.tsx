@@ -592,6 +592,7 @@ describe("a mode button's payload", () => {
   afterEach(cleanup);
 
   const MODE_BUTTON = {
+    action_label: "Request geometric/both",
     command: "geometric/both",
     messageType: "std_msgs/msg/String",
     payload: { data: "geometric/both" },
@@ -605,6 +606,7 @@ describe("a mode button's payload", () => {
     expect(onUpdate.mock.calls.at(-1)?.[0]).toMatchObject({
       command: "geometric/snake",
       payload: { data: "geometric/snake" },
+      action_label: "Request geometric/snake",
     });
   });
 
@@ -660,5 +662,139 @@ describe("a plot board's series", () => {
     renderEditor({ series: [{ ...HAND_Z, topic: "ee_pose" }] }, "value-strip");
 
     expect(screen.getByRole("status").textContent).toBe("Not plotted. Needs a topic starting with /.");
+  });
+});
+
+describe("pointing a reading widget at another topic", () => {
+  afterEach(cleanup);
+
+  // The palette's PoseStamped stayed after the topic changed, and the backend subscribed with it: the gauge
+  // waited forever on /joint_states.
+  it("drops the old topic's message type, so the backend reads the new one's", () => {
+    const onUpdate = renderEditor(
+      { topic: "/ee_pose", messageType: "geometry_msgs/msg/PoseStamped", fieldPath: "pose.position.z", min: 0, max: 1 },
+      "gauge",
+    );
+    fireEvent.change(screen.getByLabelText(/^Input topic/), { target: { value: "/joint_states" } });
+
+    const sent = onUpdate.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(sent.topic).toBe("/joint_states");
+    expect("messageType" in sent).toBe(false);
+  });
+});
+
+describe("suggestions where an author types a topic or a field", () => {
+  afterEach(cleanup);
+
+  // Topic and field path were typed from memory, with nothing on screen to say what the stack publishes.
+  it("offer the stack's topics, and the fields of the one chosen", () => {
+    renderEditor({ topic: "/ee_pose", fieldPath: "", min: 0, max: 1 }, "gauge");
+
+    const topic = screen.getByLabelText(/^Input topic/) as HTMLInputElement;
+    const topics = [...(topic.list?.options ?? [])].map((option) => option.value);
+    expect(topics).toContain("/joint_states");
+
+    const field = screen.getByLabelText(/^Field path/) as HTMLInputElement;
+    const fields = [...(field.list?.options ?? [])].map((option) => option.value);
+    expect(fields).toContain("pose.position.z");
+  });
+});
+
+describe("what a slider controls", () => {
+  afterEach(cleanup);
+
+  // Height, Pivot and the gain were a runtime_binding written by hand; a new app could not lift the hand.
+  it("turns a speed slider into the Manager apps' Height in one choice", () => {
+    const onUpdateTitle = vi.fn();
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
+    render(
+      <BuilderWidgetSettingsEditor
+        onUpdateSettings={onUpdateSettings}
+        onUpdateTitle={onUpdateTitle}
+        widget={
+          {
+            id: "speed",
+            kind: "slider",
+            title: "Max linear speed",
+            layout: { x: 0, y: 0, width: 400, height: 120 },
+            settings: {
+              topic: "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+              messageType: "std_msgs/msg/Float64",
+              min: 0,
+              max: 0.3,
+              step: 0.015,
+              value: 0.15,
+              unit: "m/s",
+            },
+          } as unknown as WidgetConfig
+        }
+      />,
+    );
+    const purpose = screen.getByLabelText("What this slider controls") as HTMLSelectElement;
+    expect(purpose.value).toBe("linear-speed");
+
+    fireEvent.change(purpose, { target: { value: "height" } });
+
+    const sent = onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    expect(sent.runtime_binding).toMatchObject({
+      adapter: "teleop",
+      axis_mapping: { value: { component: "linear_z" } },
+    });
+    expect(sent.topic).toBeUndefined();
+    expect(sent.unit).toBeUndefined();
+    expect(onUpdateTitle).toHaveBeenCalledWith("Height");
+  });
+});
+
+describe("what a command button does", () => {
+  afterEach(cleanup);
+
+  const neutral = () => {
+    const onUpdateTitle = vi.fn();
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>) => null);
+    render(
+      <BuilderWidgetSettingsEditor
+        onUpdateSettings={onUpdateSettings}
+        onUpdateTitle={onUpdateTitle}
+        widget={
+          {
+            id: "mode",
+            kind: "command-button",
+            title: "Neutral",
+            layout: { x: 0, y: 0, width: 220, height: 120 },
+            settings: {
+              topic: "/mode_request",
+              messageType: "std_msgs/msg/String",
+              command: "geometric/both",
+              payload: { data: "geometric/both" },
+              button_label: "Neutral",
+            },
+          } as unknown as WidgetConfig
+        }
+      />,
+    );
+    const choice = screen.getByLabelText("What this button does") as HTMLSelectElement;
+    const sent = () => onUpdateSettings.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+    return { choice, onUpdateTitle, sent };
+  };
+
+  // Anything but Neutral needed the manager's mode string typed from memory.
+  it("becomes Go home, with its second press, in one choice", () => {
+    const { choice, onUpdateTitle, sent } = neutral();
+    expect(choice.value).toBe("neutral");
+
+    fireEvent.change(choice, { target: { value: "go-home" } });
+
+    expect(sent()).toMatchObject({ command: "behaviour/joint_target/home", confirm_press: true });
+    expect(onUpdateTitle).toHaveBeenCalledWith("Go home");
+  });
+
+  it("becomes a frame button, dropping the mode topic it no longer sends on", () => {
+    const { choice, sent } = neutral();
+
+    fireEvent.change(choice, { target: { value: "frame-tool" } });
+
+    expect(sent().runtime_binding).toEqual({ adapter: "teleop-frame", frame_id: "effector_frame" });
+    expect(sent().topic).toBeUndefined();
   });
 });

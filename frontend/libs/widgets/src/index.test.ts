@@ -48,6 +48,7 @@ import {
   resolveWidgetDescriptor,
   resolveWidgetDestination,
   robotFamily,
+  rotationPadSettings,
   snapLayoutValue,
   speedSliderSettings,
   type TopicMessage,
@@ -1843,6 +1844,24 @@ describe("a toggle straight from the palette", () => {
       expect(placed.labels).toEqual(seedPad.labels);
       expect(binding(placed).axis_mapping).toEqual(binding(seedPad).axis_mapping);
       expect(binding(placed).value_mapping).toEqual(binding(seedPad).value_mapping);
+    }
+  });
+
+  it("places this arm's Rotation pad, with the Manager apps' words and axes", () => {
+    for (const robot of ["explorer", "kinova"]) {
+      const bundle = (robot === "explorer" ? explorerManagerSeed : kinovaManagerSeed) as unknown as {
+        applications: ApplicationConfig[];
+      };
+      const seedPad = bundle.applications[0]?.screens
+        .flatMap((screen) => screen.widgets)
+        .find((widget) => widget.kind === "joystick" && widget.title === "Rotation")?.settings as Record<
+        string,
+        unknown
+      >;
+      const placed = rotationPadSettings(robot);
+      const binding = (settings: Record<string, unknown>) => settings.runtime_binding as Record<string, unknown>;
+      expect(placed.labels).toEqual(seedPad.labels);
+      expect(binding(placed).axis_mapping, robot).toEqual(binding(seedPad).axis_mapping);
     }
   });
 

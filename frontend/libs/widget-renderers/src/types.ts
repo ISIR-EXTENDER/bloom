@@ -29,6 +29,8 @@ export type WidgetDataSnapshot =
       detail?: string;
       /** When the newest frame arrived (ms since epoch); a frame that stops changing must not look live. */
       receivedAt?: number;
+      /** The stream closed and is being reopened; the renderer says so in the operator's language. */
+      reconnecting?: boolean;
     }
   | {
       messages: readonly TopicMessage[];

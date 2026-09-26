@@ -11,8 +11,22 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+### Added
+
+- **Say what a control does, in words.** A slider, a pad and a command button each get a choice in the inspector:
+  a speed limit, hand height, pivot or snake gain; moving or turning the hand; Neutral, Jaco, Snake while held, Go
+  home (with its second press), Release, or a drive frame. Each writes what the shipped Manager apps use, for this
+  arm, and the ROS fields move under **Advanced (ROS)**. Topic and field inputs suggest what the stack publishes, and
+  the palette says what each widget arrives as.
+
 ### Fixed
 
+- **A reading widget pointed at another topic reads it.** It kept the old topic's message type, and the backend
+  subscribed with it, so a gauge moved to `/joint_states` waited forever. The type now comes from the graph. A mode
+  button's action label follows its command too.
+- **Camera and 3D status in the operator's language, announced once.** "No new frame", "Reconnecting…", the 3D view's
+  "No joint state" and the refused-hold fallback were English on a French or Spanish screen, and the stale counts
+  re-announced every second. The 3D view's Frame button and a plot's Freeze are 44 px.
 - **STOP is reachable from every way of pointing, over every sheet.** A dwell user could not stop the arm while
   Settings, the tour or maintenance was open (each runs its own dwell, and STOP is drawn outside them), and the
   maintenance sheet's Tab trap left STOP out. A keyboard press on STOP or Resume keeps focus on the control; a failed

@@ -7,8 +7,11 @@ export function BuilderSettingsField({
   inert,
   onChange,
   onClear,
+  suggestionListId,
   value,
 }: {
+  /** A datalist of likely values (the stack's topics, a topic's fields); typing anything else stays allowed. */
+  suggestionListId?: string;
   /** What the contract gave this field, so an untouched inert setting stays quiet. */
   defaultValue?: unknown;
   field: WidgetSettingField;
@@ -80,6 +83,7 @@ export function BuilderSettingsField({
       <span>{field.label}</span>
       <input
         {...getTouchEditingProps("text")}
+        list={suggestionListId}
         onChange={(event) => onChange(event.target.value)}
         type="text"
         value={String(value ?? "")}

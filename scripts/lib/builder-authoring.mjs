@@ -48,13 +48,23 @@ export async function selectCanvasWidget(page, kind) {
 
 /** The inspector's fields, by the label text beside them; the control itself may carry other ARIA names. */
 export async function fillInspectorField(page, label, value) {
+  await openAdvancedSettings(page);
   const field = inspectorField(page, "label.builder-settings-field", label).locator("input, textarea").first();
   await field.waitFor({ timeout: 10000 });
   await field.fill(value);
   await field.press("Tab");
 }
 
+/** A control's ROS fields sit under "Advanced (ROS)"; the harness sets them as an author would, opening it first. */
+async function openAdvancedSettings(page) {
+  const advanced = page.locator("details.builder-settings-advanced");
+  if ((await advanced.count()) > 0 && !(await advanced.first().evaluate((node) => node.open))) {
+    await advanced.first().locator("summary").click();
+  }
+}
+
 export async function checkInspectorBox(page, label) {
+  await openAdvancedSettings(page);
   await inspectorField(page, "label.builder-settings-checkbox", label).locator("input").check();
 }
 

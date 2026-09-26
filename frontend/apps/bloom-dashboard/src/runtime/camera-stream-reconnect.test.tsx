@@ -35,7 +35,7 @@ describe("a camera stream that drops", () => {
     const { result } = renderHook(() => useCameraStreams(targets, "http://127.0.0.1:8000"));
     act(() => FakeSocket.opened[0]?.onclose?.({ code: 1006, reason: "" }));
 
-    expect(result.current.gripper).toMatchObject({ detail: "The camera stream closed. Reconnecting…" });
+    expect(result.current.gripper).toMatchObject({ reconnecting: true });
     act(() => vi.advanceTimersByTime(1000));
     expect(FakeSocket.opened).toHaveLength(2);
   });

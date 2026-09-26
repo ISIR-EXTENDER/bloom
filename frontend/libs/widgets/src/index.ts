@@ -1,6 +1,7 @@
 export * from "./canvas";
 export * from "./canvas-defaults";
 export * from "./cli-preview";
+export * from "./command-purposes";
 export * from "./control-geometry";
 export * from "./debug-readings";
 export * from "./editor";
@@ -19,7 +20,9 @@ export * from "./robot-axes";
 export * from "./robot-family";
 export * from "./runtime";
 export * from "./settings";
+export * from "./slider-purposes";
 export * from "./telemetry";
+export * from "./topic-suggestions";
 export * from "./values";
 export * from "./widget-catalog";
 export * from "./widget-definition";

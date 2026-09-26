@@ -1853,12 +1853,26 @@
   pointer-events: none;
 }
 
+/* It had no rule at all, so it rendered at the browser's default size while still a scan target. */
+.bloom-plot-freeze {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid color-mix(in srgb, var(--bloom-primary) 24%, transparent);
+  border-radius: 999px;
+  background: var(--bloom-surface);
+  color: var(--bloom-primary);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* A sibling of the stage, not a child: children of an image role are hidden from assistive technology. */
 .bloom-robot-3d-fit {
   position: absolute;
   right: 10px;
   bottom: 44px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 24%, transparent);
   border-radius: 999px;

@@ -398,6 +398,7 @@ export function BuilderWorkspace({
 
       <BuilderInspector
         availableWidgetDefinitions={availableWidgetDefinitions}
+        robotName={robotName}
         canvas={draftScreen.canvas}
         deviceClass={panel.deviceClass}
         glassScale={panel.glassScale}
