@@ -65,11 +65,20 @@ def test_parameter_set_refuses_infinity() -> None:
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize("value", [-1.0, True, "fast"])
-def test_parameter_set_refuses_a_negative_or_non_numeric_acceleration_limit(value: object) -> None:
+@pytest.mark.parametrize("value", [-1.0, 0, 0.0, True, "fast"])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "rate_limiter.max_linear_acceleration",
+        "rate_limiter.max_angular_acceleration",
+        "shapers.jaco.max_angular_velocity",
+    ],
+)
+def test_parameter_set_refuses_a_limit_the_manager_reads_as_disabled(name: str, value: object) -> None:
+    # cartesian_manager treats <= 0 as "no limit", so zero is refused with the negatives.
     response = client().post(
         "/api/v1/ros/parameters/set",
-        json={"node": "/cartesian_manager", "name": "rate_limiter.max_linear_acceleration", "value": value},
+        json={"node": "/cartesian_manager", "name": name, "value": value},
     )
     assert response.status_code == 422
 

@@ -108,3 +108,16 @@ def test_capture_reports_missing_joints() -> None:
             state_names=["joint_1", "joint_2", "joint_3", "joint_4", "joint_5"],
             state_positions=[1.0, -0.2, 0.5, 1.5, -1.0],
         )
+
+
+def test_a_new_pose_replaces_a_legacy_hyphenated_one() -> None:
+    library = PositionLibrary(poses=[pose("pose-1")])
+    library.save(pose("pose_1", BOIRE))
+
+    assert [item.name for item in library.list()] == ["pose_1"]
+    assert library.get("pose_1").positions == BOIRE
+
+
+def test_the_export_refuses_names_the_manager_would_normalize_together() -> None:
+    with pytest.raises(PositionLibraryError, match="pose_1"):
+        render_joint_targets_yaml([pose("pose-1"), pose("pose_1", BOIRE)])

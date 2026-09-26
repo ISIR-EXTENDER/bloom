@@ -67,6 +67,8 @@ from libs.sessions import (
     TeleopVector3,
     parse_runtime_client_message,
 )
+from libs.sessions.manager import VISUAL_SERVOING_OFF
+from libs.sessions.stop import VISUAL_SERVOING_ON_TOPIC
 from libs.sessions.teleop_runtime import build_teleop_ack, to_teleop_command
 from libs.sessions.topic_sample_throttle import TopicSampleThrottle
 from libs.sessions.topics import is_live_subscription_gateway
@@ -203,6 +205,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     manager.moving_teleop_commands(session)
                     or manager.pending_joint_target(session)
                     or manager.pending_shaping_reset(session)
+                    or manager.pending_visual_servoing_off(session)
                 ):
                     await run_runtime_thread(
                         neutralize_runtime_session,
@@ -225,21 +228,20 @@ async def runtime_websocket(websocket: WebSocket) -> None:
 
 #: Keep-alives and teleop, which has its own command rate limit, are never throttled here.
 UNMETERED_MESSAGE_TYPES = frozenset({"ping", "teleop_cmd"})
+#: A screen switch unsubscribes the old screen and subscribes the new one, up to the session cap each way.
+SUBSCRIPTION_MESSAGE_TYPES = frozenset({"subscribe_topic", "unsubscribe_topic"})
+SUBSCRIPTION_BURST = 2 * MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION + 32
 
 
-class SocketMessageBudget:
-    """A token bucket per socket, so a client looping on subscribe or app_context cannot busy the server."""
-
-    def __init__(self, rate_per_sec: float = 20.0, burst: float = 40.0, clock: Callable[[], float] = monotonic) -> None:
+class TokenBucket:
+    def __init__(self, rate_per_sec: float, burst: float, clock: Callable[[], float]) -> None:
         self._rate = rate_per_sec
         self._burst = burst
         self._clock = clock
         self._tokens = burst
         self._updated = clock()
 
-    def allow(self, payload: object) -> bool:
-        if isinstance(payload, dict) and payload.get("type") in UNMETERED_MESSAGE_TYPES:
-            return True
+    def take(self) -> bool:
         now = self._clock()
         self._tokens = min(self._burst, self._tokens + (now - self._updated) * self._rate)
         self._updated = now
@@ -247,6 +249,29 @@ class SocketMessageBudget:
             return False
         self._tokens -= 1
         return True
+
+
+class SocketMessageBudget:
+    """Token buckets per socket, so a client looping on subscribe or app_context cannot busy the server."""
+
+    def __init__(
+        self,
+        rate_per_sec: float = 20.0,
+        burst: float = 40.0,
+        clock: Callable[[], float] = monotonic,
+        subscription_rate_per_sec: float = 64.0,
+        subscription_burst: float = SUBSCRIPTION_BURST,
+    ) -> None:
+        self._messages = TokenBucket(rate_per_sec, burst, clock)
+        self._subscriptions = TokenBucket(subscription_rate_per_sec, subscription_burst, clock)
+
+    def allow(self, payload: object) -> bool:
+        message_type = payload.get("type") if isinstance(payload, dict) else None
+        if message_type in UNMETERED_MESSAGE_TYPES:
+            return True
+        if message_type in SUBSCRIPTION_MESSAGE_TYPES:
+            return self._subscriptions.take()
+        return self._messages.take()
 
 
 async def handle_runtime_client_payload(
@@ -350,7 +375,10 @@ def reset_orphaned_modes(
     """Undo the joint target or shaping mode a displaced stale owner left, before the new owner drives."""
     for topic, mode in manager.take_orphaned_mode_resets():
         try:
-            detail = stop_controller.publish_mode_reset(topic, mode)
+            if mode == VISUAL_SERVOING_OFF:
+                detail = stop_controller.turn_off_visual_servoing()
+            else:
+                detail = stop_controller.publish_mode_reset(topic, mode)
             status = "accepted"
         except RuntimeError as exc:
             detail = str(exc)
@@ -498,6 +526,19 @@ def neutralize_runtime_session(
                     session_id=session.id,
                     status="accepted",
                     topic=shaping_topic,
+                )
+            )
+        # The servoing node keeps commanding while its switch is on, whoever is driving next.
+        if manager.pending_visual_servoing_off(session):
+            detail = stop_controller.turn_off_visual_servoing()
+            manager.clear_visual_servoing(session)
+            audit_log.record(
+                RuntimeAuditRecord(
+                    channel="runtime_control",
+                    detail=detail,
+                    session_id=session.id,
+                    status="accepted",
+                    topic=VISUAL_SERVOING_ON_TOPIC,
                 )
             )
     except RuntimeError as exc:

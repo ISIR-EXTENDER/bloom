@@ -37,6 +37,7 @@ from libs.config import (
     RuntimeAdapterPolicy,
 )
 from libs.ros_adapters import (
+    RosPublishReceipt,
     RosPublishRequest,
     RosServiceGateway,
     RosServiceRequest,
@@ -260,28 +261,32 @@ def dispatch_runtime_action(
         record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    try:
-        receipt = execute_as_runtime_owner(
-            request,
-            lambda: stop_controller.execute_if_running(
-                lambda: publish_with_runtime_policy(
-                    get_ros_publisher_gateway(request),
-                    get_runtime_command_policy(request),
-                    audit_log,
-                    ros_publish_request,
-                    get_runtime_command_rate_limiter(request),
-                )
-            ),
+    def publish_and_record() -> RosPublishReceipt:
+        receipt = stop_controller.execute_if_running(
+            lambda: publish_with_runtime_policy(
+                get_ros_publisher_gateway(request),
+                get_runtime_command_policy(request),
+                audit_log,
+                ros_publish_request,
+                get_runtime_command_rate_limiter(request),
+            )
         )
+        # Under the lease gate a release waits on, as the HTTP publish path does.
+        request.app.state.runtime_session_manager.record_published_mode_request(
+            request.headers.get(RUNTIME_SESSION_HEADER, "").strip(),
+            preset.topic,
+            payload,
+            require_owner=request.app.state.settings.runtime_control_required,
+        )
+        return receipt
+
+    try:
+        receipt = execute_as_runtime_owner(request, publish_and_record)
     except RuntimeStoppedError as exc:
         record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
-
-    request.app.state.runtime_session_manager.record_published_mode_request(
-        request.headers.get(RUNTIME_SESSION_HEADER, "").strip(), preset.topic, payload
-    )
 
     return RuntimeActionDispatchResponse(
         app_id=action_request.app_id,

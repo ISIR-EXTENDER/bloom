@@ -202,6 +202,13 @@ class RuntimeStopController:
             raise RuntimeError(detail)
         return detail
 
+    def turn_off_visual_servoing(self) -> str:
+        """The STOP's servo-off, alone: for a session that leaves servoing on. Raises on failure."""
+        ok, detail, _simulated = self._publish_visual_servoing_off()
+        if not ok:
+            raise RuntimeError(detail)
+        return detail
+
     def _publish_joint_target_cancel(self, mode_request_topic: str | None = None) -> tuple[bool, str, bool]:
         return self._publish_mode_request(
             mode_request_topic or self._mode_request_topic, CANCEL_MODE_REQUEST, "Joint-target cancel"

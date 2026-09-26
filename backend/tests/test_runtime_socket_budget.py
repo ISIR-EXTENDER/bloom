@@ -3,6 +3,7 @@
 from fastapi.testclient import TestClient
 
 from apps.bloom_api.main import create_app
+from apps.bloom_api.routes.runtime_common import MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION
 from apps.bloom_api.routes.runtime_socket import SocketMessageBudget
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
@@ -29,15 +30,29 @@ class Clock:
 def test_budget_allows_a_burst_then_refills_and_never_meters_ping_or_teleop() -> None:
     clock = Clock()
     budget = SocketMessageBudget(rate_per_sec=20, burst=40, clock=clock)
-    subscribe = {"type": "subscribe_topic"}
+    app_context = {"type": "app_context"}
 
-    assert all(budget.allow(subscribe) for _ in range(40))
-    assert budget.allow(subscribe) is False
+    assert all(budget.allow(app_context) for _ in range(40))
+    assert budget.allow(app_context) is False
     assert budget.allow({"type": "ping"}) is True
     assert budget.allow({"type": "teleop_cmd"}) is True
 
     clock.now = 0.5
-    assert sum(budget.allow(subscribe) for _ in range(20)) == 10
+    assert sum(budget.allow(app_context) for _ in range(20)) == 10
+
+
+def test_a_full_screen_switch_fits_the_subscription_budget_and_app_context_stays_metered() -> None:
+    clock = Clock()
+    budget = SocketMessageBudget(clock=clock)
+    switch = [{"type": "unsubscribe_topic"}] * MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION + [
+        {"type": "subscribe_topic"}
+    ] * MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION
+
+    assert all(budget.allow(message) for message in switch)
+    assert all(budget.allow({"type": "app_context"}) for _ in range(40))
+    assert budget.allow({"type": "app_context"}) is False
+    # A client looping on subscribe is still slowed down.
+    assert not all(budget.allow({"type": "subscribe_topic"}) for _ in range(100))
 
 
 def test_a_spamming_socket_gets_errors_and_stays_open_with_one_store_read() -> None:

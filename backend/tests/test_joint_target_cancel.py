@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 
 import pytest
@@ -106,3 +107,51 @@ def test_manager_forgets_a_joint_target_once_cancelled() -> None:
     manager.record_published_mode_request(session.id, "/mode_request", {"data": "behaviour/joint_target/home"})
     manager.record_runtime_stop("/joystick_cartesian_command")
     assert manager.pending_joint_target(session) is None
+
+
+def test_a_mode_request_recorded_after_release_is_ignored() -> None:
+    # The late-record race: the publish finished, the release ran, and only then did the route record.
+    manager = RuntimeSessionManager()
+    former = manager.connect()
+    manager.claim_control(former)
+    manager.release_control(former)
+    manager.record_published_mode_request(
+        former.id, "/mode_request", {"data": "behaviour/joint_target/home"}, require_owner=True
+    )
+    assert manager.pending_joint_target(former) is None
+
+
+def test_a_release_waits_for_an_in_flight_publish_and_then_sees_its_joint_target() -> None:
+    manager = RuntimeSessionManager()
+    owner = manager.connect()
+    manager.claim_control(owner)
+    publishing = threading.Event()
+    proceed = threading.Event()
+    seen_by_release: list[str | None] = []
+
+    def publish_and_record() -> None:
+        publishing.set()
+        proceed.wait(2.0)
+        manager.record_published_mode_request(
+            owner.id, "/mode_request", {"data": "behaviour/joint_target/home"}, require_owner=True
+        )
+
+    def release() -> None:
+        assert manager.begin_control_release(owner)
+        manager.wait_for_control_operations(owner)
+        seen_by_release.append(manager.pending_joint_target(owner))
+        manager.finish_control_release(owner)
+
+    publisher = threading.Thread(target=lambda: manager.execute_if_control_owner(owner.id, publish_and_record))
+    publisher.start()
+    assert publishing.wait(2.0)
+    releaser = threading.Thread(target=release)
+    releaser.start()
+    time.sleep(0.05)
+    assert seen_by_release == []
+    proceed.set()
+    publisher.join(2.0)
+    releaser.join(2.0)
+
+    # The release neutralizes what the publish recorded, so nothing is left for a later disconnect to cancel.
+    assert seen_by_release == ["/mode_request"]

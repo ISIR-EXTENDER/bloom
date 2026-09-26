@@ -262,19 +262,25 @@ def publish_ros_topic(
         message_type=publish_request.message_type,
         payload=publish_request.to_payload(),
     )
-    try:
-        receipt = execute_as_runtime_owner(
-            request,
-            lambda: stop_controller.execute_if_running(
-                lambda: publish_with_runtime_policy(
-                    gateway,
-                    policy,
-                    audit_log,
-                    ros_publish_request,
-                    rate_limiter,
-                )
-            ),
+    manager = request.app.state.runtime_session_manager
+    session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+
+    def publish_and_record() -> RosPublishReceipt:
+        receipt = stop_controller.execute_if_running(
+            lambda: publish_with_runtime_policy(gateway, policy, audit_log, ros_publish_request, rate_limiter)
         )
+        # The shipped mode buttons publish here, not as action presets. Recorded under the lease gate a
+        # release waits on, so a release never misses it and a non-owner never keeps it.
+        manager.record_published_mode_request(
+            session_id,
+            ros_publish_request.topic,
+            ros_publish_request.payload,
+            require_owner=request.app.state.settings.runtime_control_required,
+        )
+        return receipt
+
+    try:
+        receipt = execute_as_runtime_owner(request, publish_and_record)
     except RuntimeStoppedError as exc:
         audit_log.record(
             RuntimeAuditRecord(
@@ -288,10 +294,6 @@ def publish_ros_topic(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SafeRosPublishError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.detail) from exc
-    # The shipped mode buttons publish here, not as action presets.
-    request.app.state.runtime_session_manager.record_published_mode_request(
-        request.headers.get(RUNTIME_SESSION_HEADER, "").strip(), ros_publish_request.topic, ros_publish_request.payload
-    )
     return _to_response(receipt)
 
 

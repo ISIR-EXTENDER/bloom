@@ -11,10 +11,13 @@ from libs.ros_adapters.mode_request import (
     ModeRequestError,
     parse_mode_request,
 )
+from libs.sessions.stop import VISUAL_SERVOING_ON_TOPIC
 from libs.sessions.teleop import TeleopCommand
 
 T = TypeVar("T")
 STOP_MODE_REQUEST = "behaviour/passthrough"
+#: Marks an orphaned reset that switches visual servoing off rather than publishing a mode request.
+VISUAL_SERVOING_OFF = "visual_servoing/off"
 #: Sockets one backend serves at once. Each may hold 64 ROS subscriptions, and
 #: a robot is driven by one operator with a few mirrors beside it, so anything
 #: past this is a client reconnecting in a loop rather than a room full of
@@ -76,6 +79,8 @@ class RuntimeSessionManager:
         self._joint_target_topics: dict[str, str] = {}
         #: The mode-request topic a session left a shaping mode other than geometric/both on.
         self._shaping_topics: dict[str, str] = {}
+        #: Sessions that last switched visual servoing on, until someone switches it off.
+        self._visual_servoing_sessions: set[str] = set()
         #: Resets a stale owner's lease left behind, for whoever claims control next.
         self._orphaned_mode_resets: list[tuple[str, str]] = []
         self._lock = Lock()
@@ -127,6 +132,7 @@ class RuntimeSessionManager:
             self._frame_ids.pop(session.id, None)
             self._joint_target_topics.pop(session.id, None)
             self._shaping_topics.pop(session.id, None)
+            self._visual_servoing_sessions.discard(session.id)
             if self._owner_session_id == session.id:
                 self._owner_session_id = None
             if self._releasing_session_id == session.id:
@@ -206,7 +212,9 @@ class RuntimeSessionManager:
                 return
             commands[command.target] = command
 
-    def record_mode_request(self, session_id: str, mode: str, topic: str = "/mode_request") -> None:
+    def record_mode_request(
+        self, session_id: str, mode: str, topic: str = "/mode_request", *, require_owner: bool = False
+    ) -> None:
         """Remember what the controlling session last asked the manager for.
 
         The manager publishes no mode feedback, so this is the last request,
@@ -217,7 +225,7 @@ class RuntimeSessionManager:
         except ModeRequestError:
             return
         with self._lock:
-            if session_id not in self._sessions:
+            if not self._may_record(session_id, require_owner):
                 return
             # A joint target fires once and is not a lasting mode, but it runs on after its sender leaves.
             if request.one_shot:
@@ -232,10 +240,27 @@ class RuntimeSessionManager:
             if request.normalized == STOP_MODE_REQUEST:
                 self._joint_target_topics.pop(session_id, None)
 
-    def record_published_mode_request(self, session_id: str, topic: str, payload: object) -> None:
-        mode = payload.get("data") if isinstance(payload, dict) else None
-        if topic.endswith("mode_request") and isinstance(mode, str):
-            self.record_mode_request(session_id, mode, topic)
+    def record_published_mode_request(
+        self, session_id: str, topic: str, payload: object, *, require_owner: bool = False
+    ) -> None:
+        """With the lease on, a session that no longer holds it records nothing its later disconnect would undo."""
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if topic.endswith("mode_request") and isinstance(data, str):
+            self.record_mode_request(session_id, data, topic, require_owner=require_owner)
+        elif topic == VISUAL_SERVOING_ON_TOPIC and isinstance(data, bool):
+            with self._lock:
+                if not data:
+                    self._visual_servoing_sessions.clear()
+                elif self._may_record(session_id, require_owner):
+                    self._visual_servoing_sessions.add(session_id)
+
+    def pending_visual_servoing_off(self, session: RuntimeSession) -> bool:
+        with self._lock:
+            return session.id in self._visual_servoing_sessions
+
+    def clear_visual_servoing(self, session: RuntimeSession) -> None:
+        with self._lock:
+            self._visual_servoing_sessions.discard(session.id)
 
     def pending_joint_target(self, session: RuntimeSession) -> str | None:
         """The mode-request topic to cancel on, when this session left a joint target running."""
@@ -270,6 +295,7 @@ class RuntimeSessionManager:
         """STOP zeroed that target and asked every session's manager for passthrough."""
         with self._lock:
             self._joint_target_topics.clear()
+            self._visual_servoing_sessions.clear()
             for session_id in self._sessions:
                 self._mode_requests[session_id] = STOP_MODE_REQUEST
                 commands = self._teleop_commands.get(session_id, {})
@@ -332,6 +358,15 @@ class RuntimeSessionManager:
         shaping_topic = self._shaping_topics.pop(owner_id, None)
         if shaping_topic is not None:
             self._orphaned_mode_resets.append((shaping_topic, DEFAULT_GEOMETRIC_MODE))
+        if owner_id in self._visual_servoing_sessions:
+            self._visual_servoing_sessions.discard(owner_id)
+            self._orphaned_mode_resets.append((VISUAL_SERVOING_ON_TOPIC, VISUAL_SERVOING_OFF))
+
+    def _may_record(self, session_id: str, require_owner: bool) -> bool:
+        # The lease holder, releasing included: a release waits for this publish, then undoes what it recorded.
+        if require_owner:
+            return session_id in self._sessions and self._owner_session_id == session_id
+        return session_id in self._sessions
 
     def _is_control_owner(self, session_id: str) -> bool:
         return (

@@ -45,6 +45,20 @@ class PositionLibraryError(ValueError):
     """Raised when a pose would produce a configuration the manager rejects."""
 
 
+def with_normalized_names(poses: Iterable[JointPose]) -> list[JointPose]:
+    """Stored names normalized; a legacy `pose-1` and a later `pose_1` collide, and the later one wins."""
+    result: list[JointPose] = []
+    slots: dict[str, int] = {}
+    for pose in poses:
+        normalized = replace(pose, name=normalize_pose_name(pose.name))
+        if normalized.name in slots:
+            result[slots[normalized.name]] = normalized
+        else:
+            slots[normalized.name] = len(result)
+            result.append(normalized)
+    return result
+
+
 @dataclass(frozen=True)
 class JointPose:
     """A pose captured from the robot, ordered to match ``joint_names``."""
@@ -90,7 +104,7 @@ class PositionLibrary:
         with self._lock:
             self._ensure_consistent_joints(pose)
             for index, existing in enumerate(self.poses):
-                if existing.name == pose.name:
+                if normalize_pose_name(existing.name) == normalize_pose_name(pose.name):
                     self.poses[index] = pose
                     self._changed()
                     return pose
@@ -101,7 +115,7 @@ class PositionLibrary:
     def remove(self, name: str) -> bool:
         with self._lock:
             for index, existing in enumerate(self.poses):
-                if existing.name == name:
+                if normalize_pose_name(existing.name) == normalize_pose_name(name):
                     del self.poses[index]
                     self._changed()
                     return True
@@ -117,7 +131,10 @@ class PositionLibrary:
 
     def rename(self, name: str, new_name: str) -> JointPose:
         with self._lock:
-            if any(pose.name == new_name for pose in self.poses):
+            if any(
+                normalize_pose_name(pose.name) == normalize_pose_name(new_name) and pose.name != name
+                for pose in self.poses
+            ):
                 raise PositionLibraryError(f"'{new_name}' already exists")
             for index, existing in enumerate(self.poses):
                 if existing.name == name:
@@ -168,7 +185,7 @@ class SQLitePositionStore:
                 " WHERE config_id = ? AND app_id = ? ORDER BY position",
                 (config_id, app_id),
             ).fetchall()
-        return [
+        return with_normalized_names(
             JointPose(
                 name=str(row["name"]),
                 joint_names=tuple(str(joint) for joint in json.loads(row["joint_names_json"])),
@@ -176,7 +193,7 @@ class SQLitePositionStore:
                 description=str(row["description"]),
             )
             for row in rows
-        ]
+        )
 
     def replace(self, config_id: str, app_id: str, poses: list[JointPose]) -> None:
         with sqlite_connection(self.database_path) as connection:
@@ -207,7 +224,7 @@ def library_backed_by(store: PositionStore | None, config_id: str, app_id: str) 
     if store is None:
         return PositionLibrary()
     return PositionLibrary(
-        poses=store.load(config_id, app_id),
+        poses=with_normalized_names(store.load(config_id, app_id)),
         on_change=lambda poses: store.replace(config_id, app_id, poses),
     )
 
@@ -226,6 +243,12 @@ def render_joint_targets_yaml(poses: Iterable[JointPose], indent: str = "      "
     for pose in pose_list:
         if pose.joint_names != joint_names:
             raise PositionLibraryError(f"'{pose.name}' uses a different joint order to '{pose_list[0].name}'")
+
+    names = [normalize_pose_name(pose.name) for pose in pose_list]
+    duplicates = sorted({name for name in names if names.count(name) > 1})
+    if duplicates:
+        # cartesian_manager normalizes target names and refuses to start on a duplicate.
+        raise PositionLibraryError(f"two saved positions share the name {', '.join(duplicates)}")
 
     flattened: list[float] = []
     for pose in pose_list:
@@ -294,4 +317,5 @@ __all__ = [
     "POSITION_NAME_PATTERN",
     "normalize_pose_name",
     "render_joint_targets_yaml",
+    "with_normalized_names",
 ]

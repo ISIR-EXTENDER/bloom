@@ -12,7 +12,9 @@ DEFAULT_TOPIC_VALUE_BOUNDS: tuple[tuple[str, float, float], ...] = (
     (MAX_LINEAR_SPEED_TOPIC, 0.0, 0.3),
     (MAX_ANGULAR_SPEED_TOPIC, 0.0, 0.8),
 )
-_NON_NEGATIVE_PARAMETER = re.compile(r"(^|\.)max_\w*(speed|velocity|acceleration)$")
+_NON_NEGATIVE_PARAMETER = re.compile(r"(^|\.)max_\w*speed$")
+# cartesian_manager reads <= 0 on these as "no limit": the rate limiter and the jaco clamp switch off.
+_POSITIVE_PARAMETER = re.compile(r"(^|\.)max_\w*(velocity|acceleration)$")
 
 
 class RuntimeCommandPolicyError(ValueError):
@@ -121,6 +123,8 @@ def parameter_value_error(name: str, value: object) -> str | None:
     """Why a live parameter value is refused, or None."""
     if isinstance(value, float) and not math.isfinite(value):
         return f"parameter {name} must be a finite number."
+    if _POSITIVE_PARAMETER.search(name) and not (is_finite_number(value) and value > 0):
+        return f"parameter {name} must be a number above zero."
     if _NON_NEGATIVE_PARAMETER.search(name) and not (is_finite_number(value) and value >= 0):
         return f"parameter {name} must be a number of zero or more."
     return None
