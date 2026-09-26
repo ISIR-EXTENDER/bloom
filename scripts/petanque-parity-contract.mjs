@@ -124,8 +124,9 @@ for (const id of ["control-max-velocity", "teleop-config-max-velocity"]) {
 
 // The gripper speaks the position controller with the Explorer's travel.
 requireTopicWidget("control-gripper", "toggle", STACK.gripper, "std_msgs/msg/Float64MultiArray");
-assert("control-gripper open payload", setting("control-gripper", "onPayload") === "{data: [0.2]}");
-assert("control-gripper closed payload", setting("control-gripper", "offPayload") === "{data: [1.1]}");
+// On is closed, as gripperToggleSettings("explorer") and the Manager apps have it.
+assert("control-gripper closed payload", setting("control-gripper", "onPayload") === "{data: [1.1]}");
+assert("control-gripper open payload", setting("control-gripper", "offPayload") === "{data: [0.2]}");
 
 // Home is the manager's own joint-target behaviour, dispatched with a confirm.
 for (const id of ["control-load-home-pose", "poses-load-home"]) {

@@ -119,8 +119,8 @@ if (requireTopicWidget("snake-hold", "command-button", STACK.mode)) {
   );
 }
 
-requireTopicWidget("control-panel-camera", "camera", "/camera/play_petanque");
-requireTopicWidget("servo-camera", "camera", "/image_raw");
+requireTopicWidget("control-panel-camera", "camera", STACK.cameraImage);
+requireTopicWidget("servo-camera", "camera", STACK.cameraImage);
 requireTopicWidget("control-panel-servo-enable", "toggle", STACK.servoOn, "std_msgs/msg/Bool");
 requireTopicWidget("servo-enable", "toggle", STACK.servoOn, "std_msgs/msg/Bool");
 requireTopicWidget("control-panel-servo-save", "command-button", STACK.servoSave, "std_msgs/msg/String");

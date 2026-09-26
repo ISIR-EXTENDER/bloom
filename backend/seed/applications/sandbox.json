@@ -15,12 +15,12 @@
           "id": "sandbox-max-velocity-safe",
           "name": "Safe max velocity",
           "kind": "topic-publish",
-          "description": "Set a conservative max velocity in the sandbox app.",
+          "description": "Set a conservative max velocity (0.15 m/s, the Explorer's mid-range) in the sandbox app.",
           "command": "set_safe_max_velocity",
           "topic": "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
           "message_type": "std_msgs/msg/Float64",
           "payload": {
-            "data": 0.5
+            "data": 0.15
           },
           "payload_text": "",
           "tags": [
@@ -138,22 +138,22 @@
                 "zero_on_release": true,
                 "mode_id": "rotation",
                 "labels": {
-                  "top": "RY+",
-                  "right": "RX+",
-                  "bottom": "RY-",
-                  "left": "RX-"
+                  "top": "Tilt up",
+                  "right": "Roll right",
+                  "bottom": "Tilt down",
+                  "left": "Roll left"
                 },
                 "axis_hints": {
                   "x": {
                     "color": "#2563eb",
-                    "negative_label": "RX-",
-                    "positive_label": "RX+",
+                    "negative_label": "Roll left",
+                    "positive_label": "Roll right",
                     "semantic": "rotation"
                   },
                   "y": {
                     "color": "#0ea5e9",
-                    "negative_label": "RY-",
-                    "positive_label": "RY+",
+                    "negative_label": "Tilt down",
+                    "positive_label": "Tilt up",
                     "semantic": "rotation"
                   }
                 },
@@ -164,6 +164,14 @@
                   "value_mapping": {
                     "mode": 1,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_y"
+                    },
+                    "y": {
+                      "component": "angular_x"
+                    }
                   }
                 }
               }
@@ -185,22 +193,22 @@
                 "zero_on_release": true,
                 "mode_id": "both",
                 "labels": {
-                  "top": "Y+",
-                  "right": "X+",
-                  "bottom": "Y-",
-                  "left": "X-"
+                  "top": "Forward",
+                  "right": "Right",
+                  "bottom": "Back",
+                  "left": "Left"
                 },
                 "axis_hints": {
                   "x": {
                     "color": "#2563eb",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
+                    "negative_label": "Left",
+                    "positive_label": "Right",
                     "semantic": "translation"
                   },
                   "y": {
                     "color": "#0ea5e9",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
+                    "negative_label": "Back",
+                    "positive_label": "Forward",
                     "semantic": "translation"
                   }
                 },
@@ -211,6 +219,15 @@
                   "value_mapping": {
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_y"
+                    },
+                    "y": {
+                      "component": "linear_x",
+                      "scale": -1
+                    }
                   }
                 }
               }
@@ -252,7 +269,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "rad/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -260,7 +277,8 @@
                   "target": "rotation",
                   "axis_mapping": {
                     "value": {
-                      "component": "angular_z"
+                      "component": "angular_z",
+                      "scale": -1
                     }
                   },
                   "value_mapping": {
@@ -286,7 +304,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "m/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -316,13 +334,15 @@
               },
               "settings": {
                 "initialValue": false,
-                "offLabel": "Closed",
-                "onLabel": "Open",
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [0.2]}",
-                "offPayload": "{data: [1.1]}",
-                "show_details": false
+                "show_details": false,
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}",
+                "onStateLabel": "closed",
+                "offStateLabel": "open"
               }
             },
             {
@@ -383,13 +403,13 @@
                 "height": 350
               },
               "settings": {
-                "source": "webcam",
+                "source": "ros-topic",
                 "streamUrl": "",
                 "fitMode": "cover",
                 "showHeader": true,
                 "showStatus": true,
-                "webcamPicker": true,
-                "topic": "/camera/play_petanque"
+                "webcamPicker": false,
+                "topic": "/camera/color/image_raw/compressed"
               }
             },
             {
@@ -404,13 +424,15 @@
               },
               "settings": {
                 "initialValue": false,
-                "offLabel": "Closed",
-                "onLabel": "Open",
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [0.2]}",
-                "offPayload": "{data: [1.1]}",
-                "show_details": false
+                "show_details": false,
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}",
+                "onStateLabel": "closed",
+                "offStateLabel": "open"
               }
             },
             {
@@ -526,7 +548,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "m/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -561,22 +583,22 @@
                 "zero_on_release": true,
                 "mode_id": "both",
                 "labels": {
-                  "top": "Y+",
-                  "right": "X+",
-                  "bottom": "Y-",
-                  "left": "X-"
+                  "top": "Forward",
+                  "right": "Right",
+                  "bottom": "Back",
+                  "left": "Left"
                 },
                 "axis_hints": {
                   "x": {
                     "color": "#2563eb",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
+                    "negative_label": "Left",
+                    "positive_label": "Right",
                     "semantic": "translation"
                   },
                   "y": {
                     "color": "#0ea5e9",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
+                    "negative_label": "Back",
+                    "positive_label": "Forward",
                     "semantic": "translation"
                   }
                 },
@@ -587,6 +609,15 @@
                   "value_mapping": {
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_y"
+                    },
+                    "y": {
+                      "component": "linear_x",
+                      "scale": -1
+                    }
                   }
                 }
               }
@@ -608,22 +639,22 @@
                 "zero_on_release": true,
                 "mode_id": "rotation",
                 "labels": {
-                  "top": "RY+",
-                  "right": "RX+",
-                  "bottom": "RY-",
-                  "left": "RX-"
+                  "top": "Tilt up",
+                  "right": "Roll right",
+                  "bottom": "Tilt down",
+                  "left": "Roll left"
                 },
                 "axis_hints": {
                   "x": {
                     "color": "#2563eb",
-                    "negative_label": "RX-",
-                    "positive_label": "RX+",
+                    "negative_label": "Roll left",
+                    "positive_label": "Roll right",
                     "semantic": "rotation"
                   },
                   "y": {
                     "color": "#0ea5e9",
-                    "negative_label": "RY-",
-                    "positive_label": "RY+",
+                    "negative_label": "Tilt down",
+                    "positive_label": "Tilt up",
                     "semantic": "rotation"
                   }
                 },
@@ -634,6 +665,14 @@
                   "value_mapping": {
                     "mode": 1,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_y"
+                    },
+                    "y": {
+                      "component": "angular_x"
+                    }
                   }
                 }
               }
@@ -654,7 +693,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "rad/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -662,7 +701,8 @@
                   "target": "rotation",
                   "axis_mapping": {
                     "value": {
-                      "component": "angular_z"
+                      "component": "angular_z",
+                      "scale": -1
                     }
                   },
                   "value_mapping": {
@@ -847,22 +887,22 @@
                 "zero_on_release": true,
                 "mode_id": "both",
                 "labels": {
-                  "top": "Haut",
-                  "right": "Droite",
-                  "bottom": "Bas",
-                  "left": "Gauche"
+                  "top": "Forward",
+                  "right": "Right",
+                  "bottom": "Back",
+                  "left": "Left"
                 },
                 "axis_hints": {
                   "x": {
                     "color": "#2563eb",
-                    "negative_label": "X-",
-                    "positive_label": "X+",
+                    "negative_label": "Left",
+                    "positive_label": "Right",
                     "semantic": "translation"
                   },
                   "y": {
                     "color": "#0ea5e9",
-                    "negative_label": "Y-",
-                    "positive_label": "Y+",
+                    "negative_label": "Back",
+                    "positive_label": "Forward",
                     "semantic": "translation"
                   }
                 },
@@ -873,6 +913,15 @@
                   "value_mapping": {
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_y"
+                    },
+                    "y": {
+                      "component": "linear_x",
+                      "scale": -1
+                    }
                   }
                 }
               }
@@ -972,13 +1021,13 @@
                 "height": 292
               },
               "settings": {
-                "source": "webcam",
+                "source": "ros-topic",
                 "streamUrl": "",
                 "fitMode": "cover",
                 "showHeader": true,
                 "showStatus": true,
-                "webcamPicker": true,
-                "topic": "/image_raw"
+                "webcamPicker": false,
+                "topic": "/camera/color/image_raw/compressed"
               }
             },
             {

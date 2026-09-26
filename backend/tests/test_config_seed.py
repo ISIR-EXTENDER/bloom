@@ -278,6 +278,20 @@ def test_no_shipped_speed_slider_can_ask_for_more_than_the_manager_apps_do() -> 
     assert too_fast == []
 
 
+def test_no_shipped_speed_preset_asks_for_more_than_the_explorer_mid_range() -> None:
+    # A "safe" preset published 0.5 m/s, above even the 0.3 slider ceiling.
+    too_fast = []
+    for config_id in available_seed_ids():
+        bundle = load_configuration_file(DEFAULT_SEED_DIR / f"{config_id}.json")
+        for application in bundle.applications:
+            for preset in application.action_presets:
+                data = (preset.payload or {}).get("data") if isinstance(preset.payload, dict) else None
+                if preset.topic in SPEED_CEILINGS and isinstance(data, (int, float)) and data > 0.15:
+                    too_fast.append(f"{config_id}/{preset.id}: {data}")
+
+    assert too_fast == []
+
+
 def test_cartesian_manager_monitors_use_its_twist_stamped_command_type() -> None:
     """A wrong type leaves an apparently healthy topic widget permanently empty."""
     checked = 0

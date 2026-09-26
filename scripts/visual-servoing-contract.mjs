@@ -34,15 +34,9 @@ for (const screenId of ["control_panel", "visual_servoing", "visual_servoing_mon
 }
 
 for (const id of ["control-panel-camera", "servo-camera"]) {
-  assert(`${id} is local webcam preview`, setting(id, "source") === "webcam", "expected source=webcam");
-  assert(`${id} shows webcam picker`, setting(id, "webcamPicker") === true, "expected webcamPicker=true");
+  assert(`${id} is a ROS camera`, setting(id, "source") === "ros-topic", `got ${setting(id, "source")}`);
+  assert(`${id} reads the camera_interface topic`, setting(id, "topic") === STACK.cameraImage);
 }
-
-assert("servo-camera keeps ROS image topic as metadata", setting("servo-camera", "topic") === "/image_raw");
-assert(
-  "control panel camera keeps legacy camera topic",
-  setting("control-panel-camera", "topic") === "/camera/play_petanque",
-);
 assert("AprilTag RViz panel is not a browser webcam", setting("servo-rviz", "source") === "placeholder");
 assert("AprilTag RViz panel points at detections", setting("servo-rviz", "topic") === STACK.tagDetections);
 

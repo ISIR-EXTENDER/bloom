@@ -39,7 +39,7 @@ def test_kinova_gripper_stays_within_the_robotiq_85_range() -> None:
 def test_gripper_labels_name_the_press_and_the_commanded_state() -> None:
     # The button names what pressing does; the header names what was last commanded.
     # On is the closing position, so while on the button offers to open.
-    for config_id in ("explorer-manager", "kinova-manager"):
+    for config_id in ("explorer-manager", "kinova-manager", "sandbox", "petanque-admin", "widget-lab"):
         for toggle in gripper_toggles(config_id):
             settings = toggle["settings"]
             closing_on = position(settings["onPayload"]) > position(settings["offPayload"])
@@ -58,3 +58,37 @@ def test_kinova_requests_no_joint_target_defined_for_another_arm() -> None:
         if "behaviour/joint_target/" in json.dumps(widget["settings"].get("payload"))
     ]
     assert requests == []
+
+
+# The Explorer profile the Explorer Manager app was validated with: swap X/Y, invert linear X.
+EXPLORER_PAD = {
+    "translation": {"x": {"component": "linear_y"}, "y": {"component": "linear_x", "scale": -1}},
+    "rotation": {"x": {"component": "angular_y"}, "y": {"component": "angular_x"}},
+}
+
+
+def test_explorer_apps_drive_on_the_validated_axes() -> None:
+    # Without an axis_mapping a pad falls back to identity, which moves the Explorer on the wrong axes.
+    for config_id in ("sandbox", "petanque-admin"):
+        for widget in widgets(config_id):
+            binding = widget["settings"].get("runtime_binding") or {}
+            if binding.get("adapter") != "teleop":
+                continue
+            if widget["kind"] == "joystick":
+                pad = "rotation" if widget["settings"].get("mode_id") == "rotation" else "translation"
+                assert binding.get("axis_mapping") == EXPLORER_PAD[pad], (config_id, widget["id"])
+            elif binding["axis_mapping"]["value"]["component"] == "angular_z":
+                assert binding["axis_mapping"]["value"].get("scale") == -1, (config_id, widget["id"])
+
+
+def test_normalized_teleop_sliders_show_no_speed_unit() -> None:
+    # The manager normalizes to unit scale; a -1..1 slider in m/s would read as a real speed.
+    for path in SEEDS.glob("*.json"):
+        for widget in widgets(path.stem):
+            binding = widget["settings"].get("runtime_binding") or {}
+            if widget["kind"] == "slider" and binding.get("adapter") == "teleop":
+                assert widget["settings"].get("unit", "") not in ("m/s", "rad/s"), (path.stem, widget["id"])
+
+
+def test_kinova_manager_reads_no_explorer_only_topic() -> None:
+    assert "effort_overload" not in (SEEDS / "kinova-manager.json").read_text(encoding="utf-8")

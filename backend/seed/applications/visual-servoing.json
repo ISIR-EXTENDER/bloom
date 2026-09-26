@@ -8,7 +8,7 @@
     {
       "id": "visual-servoing",
       "name": "Visual servoing",
-      "description": "Robin's AprilTag flow on the current stack: approach a tag with the gripper camera in view, save the view as the target, then let the visual servoing node drive back to it. Camera on camera_interface's convention topic; the node's frames are the Kinova gen3's today.",
+      "description": "Robin's AprilTag flow on the current stack: approach a tag with the gripper camera in view, save the view as the target, then let the visual servoing node drive back to it. Camera on camera_interface's convention topic; the node's frames and the drive axes are the Kinova gen3's today.",
       "lifecycle": "active",
       "runtime_policy": {
         "command_frame_id": "base_link",
@@ -36,7 +36,6 @@
           "/joystick_cartesian_command"
         ],
         "allowed_parameters": [
-          "/cartesian_manager:inputs.joystick.enabled",
           "/cartesian_manager:inputs.visual_servoing.enabled"
         ]
       },
@@ -259,7 +258,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "m/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -293,7 +292,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "m/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -301,7 +300,7 @@
                   "target": "translation",
                   "axis_mapping": {
                     "value": {
-                      "component": "linear_x"
+                      "component": "linear_y"
                     }
                   },
                   "value_mapping": {
@@ -323,11 +322,11 @@
               },
               "settings": {
                 "direction": "horizontal",
-                "intent_label": "Sideways velocity",
+                "intent_label": "Sideways velocity, right positive",
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "m/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -335,7 +334,7 @@
                   "target": "translation",
                   "axis_mapping": {
                     "value": {
-                      "component": "linear_y"
+                      "component": "linear_x"
                     }
                   },
                   "value_mapping": {
@@ -513,7 +512,7 @@
             {
               "id": "approach-inputs-label",
               "kind": "label",
-              "title": "MANAGER INPUTS — which sources the manager sums",
+              "title": "SERVO INPUT — the manager's gate on the servoing source",
               "layout": {
                 "x": 446,
                 "y": 14,
@@ -521,35 +520,10 @@
                 "height": 24
               },
               "settings": {
-                "text": "MANAGER INPUTS — which sources the manager sums",
+                "text": "SERVO INPUT — the manager's gate on the servoing source",
                 "fontSize": 12,
                 "align": "left",
                 "show_details": false
-              }
-            },
-            {
-              "id": "approach-joystick-input",
-              "kind": "toggle",
-              "title": "Joystick input",
-              "layout": {
-                "x": 446,
-                "y": 46,
-                "width": 226,
-                "height": 120
-              },
-              "settings": {
-                "initialValue": true,
-                "onLabel": "Summed",
-                "offLabel": "Ignored",
-                "show_details": false,
-                "runtime_binding": {
-                  "adapter": "parameter",
-                  "target": "parameter",
-                  "value_mapping": {
-                    "node": "/cartesian_manager",
-                    "parameter": "inputs.joystick.enabled"
-                  }
-                }
               }
             },
             {
@@ -557,9 +531,9 @@
               "kind": "toggle",
               "title": "Servo input",
               "layout": {
-                "x": 684,
+                "x": 446,
                 "y": 46,
-                "width": 226,
+                "width": 464,
                 "height": 120
               },
               "settings": {
@@ -637,7 +611,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "m/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -698,6 +672,14 @@
                   "value_mapping": {
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_x"
+                    },
+                    "y": {
+                      "component": "linear_y"
+                    }
                   }
                 }
               }
@@ -745,6 +727,14 @@
                   "value_mapping": {
                     "mode": 1,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_x"
+                    },
+                    "y": {
+                      "component": "angular_y"
+                    }
                   }
                 }
               }

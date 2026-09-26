@@ -107,8 +107,8 @@ describe("normalizeConfigurationBundle", () => {
       ),
     ).toEqual({
       "control-panel-max-velocity": { intent: "Max linear speed", unit: "m/s" },
-      "control-panel-rz": { intent: "Yaw velocity", unit: "rad/s" },
-      "control-panel-z": { intent: "Vertical velocity", unit: "m/s" },
+      "control-panel-rz": { intent: "Yaw velocity", unit: "" },
+      "control-panel-z": { intent: "Vertical velocity", unit: "" },
     });
 
     const snakeHold = application?.screens

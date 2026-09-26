@@ -61,11 +61,14 @@ for (const axis of ["x", "y", "z"]) {
   );
 }
 
-// The manager's input gates, live parameters on the Approach screen.
-for (const [id, parameter] of [
-  ["approach-joystick-input", "inputs.joystick.enabled"],
-  ["approach-servo-input", "inputs.visual_servoing.enabled"],
-]) {
+// The manager's servo gate, a live parameter on the Approach screen. The joystick gate is not offered:
+// switching it off paused this app's own drive and outlived the session.
+assert("no joystick input gate", !setting("approach-joystick-input", "runtime_binding"));
+assert(
+  "policy leaves the joystick gate alone",
+  !(app?.runtime_policy?.allowed_parameters ?? []).includes("/cartesian_manager:inputs.joystick.enabled"),
+);
+for (const [id, parameter] of [["approach-servo-input", "inputs.visual_servoing.enabled"]]) {
   const binding = setting(id, "runtime_binding");
   assert(`${id} is a parameter toggle`, binding?.adapter === "parameter", `got ${binding?.adapter}`);
   assert(
@@ -85,6 +88,16 @@ assert(
   "approach translation targets the manager",
   setting("approach-translation", "runtime_binding")?.value_mapping?.target_topic === STACK.twist,
 );
+
+// The nudge sliders name the Kinova's base axes: forward is +y, right is +x.
+for (const [id, component] of [
+  ["servo-forward", "linear_y"],
+  ["servo-sideways", "linear_x"],
+  ["servo-height", "linear_z"],
+]) {
+  const found = setting(id, "runtime_binding")?.axis_mapping?.value?.component;
+  assert(`${id} drives ${component}`, found === component, `got ${found}`);
+}
 
 // The image pipeline stays in ROS: no raw image topic reaches a monitor or a recording.
 const monitors = screens().flatMap((entry) =>

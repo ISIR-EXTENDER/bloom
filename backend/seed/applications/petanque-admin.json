@@ -122,7 +122,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "rad/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -130,7 +130,8 @@
                   "target": "rotation",
                   "axis_mapping": {
                     "value": {
-                      "component": "angular_z"
+                      "component": "angular_z",
+                      "scale": -1
                     }
                   },
                   "value_mapping": {
@@ -156,7 +157,7 @@
                 "min": -1,
                 "max": 1,
                 "step": 0.01,
-                "unit": "m/s",
+                "unit": "",
                 "returnToCenter": true,
                 "show_details": false,
                 "runtime_binding": {
@@ -194,16 +195,25 @@
                   "value_mapping": {
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_y"
+                    },
+                    "y": {
+                      "component": "linear_x",
+                      "scale": -1
+                    }
                   }
                 },
                 "color": "#4a9eff",
                 "deadzone": 0.1,
                 "diskSize": 90,
                 "labels": {
-                  "top": "Y+",
-                  "right": "X+",
-                  "bottom": "Y-",
-                  "left": "X-"
+                  "top": "Forward",
+                  "right": "Right",
+                  "bottom": "Back",
+                  "left": "Left"
                 },
                 "showTopicInfo": false
               }
@@ -228,16 +238,24 @@
                   "value_mapping": {
                     "mode": 1,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_y"
+                    },
+                    "y": {
+                      "component": "angular_x"
+                    }
                   }
                 },
                 "color": "#f97316",
                 "deadzone": 0.1,
                 "diskSize": 90,
                 "labels": {
-                  "top": "RY+",
-                  "right": "RX+",
-                  "bottom": "RY-",
-                  "left": "RX-"
+                  "top": "Tilt up",
+                  "right": "Roll right",
+                  "bottom": "Tilt down",
+                  "left": "Roll left"
                 },
                 "showTopicInfo": false
               }
@@ -276,13 +294,15 @@
               },
               "settings": {
                 "initialValue": false,
-                "offLabel": "Closed",
-                "onLabel": "Open",
                 "topic": "/gripper_controller/commands",
                 "messageType": "std_msgs/msg/Float64MultiArray",
-                "onPayload": "{data: [0.2]}",
-                "offPayload": "{data: [1.1]}",
-                "show_details": false
+                "show_details": false,
+                "offLabel": "Close gripper",
+                "onLabel": "Open gripper",
+                "onPayload": "{data: [1.1]}",
+                "offPayload": "{data: [0.2]}",
+                "onStateLabel": "closed",
+                "offStateLabel": "open"
               }
             },
             {
@@ -379,16 +399,25 @@
                   "value_mapping": {
                     "mode": 3,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "linear_y"
+                    },
+                    "y": {
+                      "component": "linear_x",
+                      "scale": -1
+                    }
                   }
                 },
                 "color": "#4a9eff",
                 "deadzone": 0.1,
                 "diskSize": 78,
                 "labels": {
-                  "top": "Y+",
-                  "right": "X+",
-                  "bottom": "Y-",
-                  "left": "X-"
+                  "top": "Forward",
+                  "right": "Right",
+                  "bottom": "Back",
+                  "left": "Left"
                 }
               }
             },
@@ -412,16 +441,24 @@
                   "value_mapping": {
                     "mode": 1,
                     "target_topic": "/joystick_cartesian_command"
+                  },
+                  "axis_mapping": {
+                    "x": {
+                      "component": "angular_y"
+                    },
+                    "y": {
+                      "component": "angular_x"
+                    }
                   }
                 },
                 "color": "#f97316",
                 "deadzone": 0.1,
                 "diskSize": 78,
                 "labels": {
-                  "top": "RY+",
-                  "right": "RX+",
-                  "bottom": "RY-",
-                  "left": "RX-"
+                  "top": "Tilt up",
+                  "right": "Roll right",
+                  "bottom": "Tilt down",
+                  "left": "Roll left"
                 }
               }
             },

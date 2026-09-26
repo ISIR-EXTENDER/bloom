@@ -1,3 +1,4 @@
+import { robotFamily } from "../robot-family";
 import type { ToggleSettings } from "./toggle";
 
 export type RosMessageTogglePreset = {
@@ -160,12 +161,13 @@ export const ROS_MESSAGE_COMMAND_PRESETS: readonly RosMessageCommandPreset[] = [
   },
 ];
 
-export function getRosMessageCommandPresetsByCategory(): ReadonlyMap<
-  RosMessageCommandPreset["category"],
-  readonly RosMessageCommandPreset[]
-> {
+/** Go home is left out on the Kinova while cartesian_manager#10 is open, as in `commandPurposesFor`. */
+export function getRosMessageCommandPresetsByCategory(
+  robotName?: string | null,
+): ReadonlyMap<RosMessageCommandPreset["category"], readonly RosMessageCommandPreset[]> {
   const groups = new Map<RosMessageCommandPreset["category"], RosMessageCommandPreset[]>();
-  for (const preset of ROS_MESSAGE_COMMAND_PRESETS) {
+  const hidden = robotFamily(robotName) === "kinova" ? "manager-joint-target-home" : undefined;
+  for (const preset of ROS_MESSAGE_COMMAND_PRESETS.filter((candidate) => candidate.id !== hidden)) {
     groups.set(preset.category, [...(groups.get(preset.category) ?? []), preset]);
   }
   return groups;
