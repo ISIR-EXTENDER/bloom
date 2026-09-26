@@ -16,6 +16,11 @@ from apps.bloom_api.security import (
     MAX_RATE_LIMIT_CLIENTS,
     _allow_http_request,
     authenticate_api_key,
+    require_admin,
+    require_observer,
+    require_observer_on_loop,
+    require_operator,
+    require_operator_on_loop,
     require_runtime_owner,
 )
 from apps.bloom_api.settings import Settings, get_settings
@@ -455,6 +460,28 @@ def test_every_robot_facing_http_route_requires_runtime_ownership() -> None:
                 assert require_runtime_owner not in dependency_calls
 
     assert checked_routes == protected_routes
+
+
+def test_every_http_read_route_requires_a_key() -> None:
+    app = create_app(Settings(environment="test"), InMemoryConfigurationRepository())
+    guards = {require_admin, require_observer, require_observer_on_loop, require_operator, require_operator_on_loop}
+    public_routes = {"/api/v1/health"}
+    read_routes = [(path, route) for path, route in walk_api_routes(app.routes) if "GET" in route.methods]
+    assert "/api/v1/capabilities" in {path for path, _route in read_routes}
+
+    for path, route in read_routes:
+        if path in public_routes:
+            continue
+        dependency_calls = {dependency.call for dependency in route.dependant.dependencies}
+        assert dependency_calls & guards, path
+
+
+def test_capabilities_refuse_a_missing_key() -> None:
+    # The report lists the deployment's allowlists.
+    client = make_secure_client()
+
+    assert client.get("/api/v1/capabilities").status_code == 401
+    assert client.get("/api/v1/capabilities", headers=OBSERVER).status_code == 200
 
 
 def test_settings_can_be_loaded_from_environment(monkeypatch) -> None:

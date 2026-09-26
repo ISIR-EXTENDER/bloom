@@ -1,6 +1,6 @@
 import type { WidgetConfig, WidgetKind } from "@bloom/api-client";
 import { normalizeWidgetSettings } from "./settings";
-import { readOptionalNumber } from "./values";
+import { isRecord, readOptionalNumber } from "./values";
 
 export type ToggleState = "off" | "on";
 
@@ -183,7 +183,7 @@ function createCommandLikeIntent(
   const topicIntent = topic
     ? createTopicPublishIntent(widget, topic, {
         messageType: getOptionalString(settings, "messageType"),
-        payload: resolveCommandPayload(settings),
+        payload: resolveCommandPayload(settings, getOptionalString(settings, "messageType")),
       })
     : undefined;
   // A held button always holds its own topic; otherwise resolveCommandRoute weighs a picked preset against it.
@@ -384,11 +384,22 @@ function createRuntimeActionContract(
   };
 }
 
-function resolveCommandPayload(settings: Record<string, unknown>): unknown {
-  if ("payload" in settings) {
-    return settings.payload;
+// The settings default payload is "", so a String button with none sends its command as the data.
+function resolveCommandPayload(settings: Record<string, unknown>, messageType: string | undefined): unknown {
+  const command = getOptionalString(settings, "command");
+  if (isEmptyPayload(settings.payload) && command && messageType === STRING_MESSAGE_TYPE) {
+    return { data: command };
   }
-  return getOptionalString(settings, "command") ?? "";
+  return settings.payload ?? "";
+}
+
+const STRING_MESSAGE_TYPE = "std_msgs/msg/String";
+
+function isEmptyPayload(value: unknown): boolean {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  return typeof value === "string" ? value.trim() === "" : isRecord(value) && Object.keys(value).length === 0;
 }
 
 function getRuntimeActionFeedbackMode(value: unknown): RuntimeActionFeedbackMode {

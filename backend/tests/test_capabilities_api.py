@@ -89,6 +89,7 @@ def test_the_server_reports_the_deployment_allowlists(test_settings: Settings) -
             "allowed_ros_message_types": ("std_msgs/msg/String",),
             "allowed_ros_parameters": ("/cartesian_manager:shapers.snake.gain",),
             "allowed_ros_service_calls": ("/fault_controller/reset_fault",),
+            "allowed_ros_service_types": ("std_srvs/srv/Trigger",),
         }
     )
     payload = TestClient(create_app(narrowed)).get("/api/v1/capabilities").json()
@@ -97,4 +98,5 @@ def test_the_server_reports_the_deployment_allowlists(test_settings: Settings) -
     assert payload["allowed_ros_message_types"] == ["std_msgs/msg/String"]
     assert payload["allowed_ros_parameters"] == ["/cartesian_manager:shapers.snake.gain"]
     assert payload["allowed_ros_service_calls"] == ["/fault_controller/reset_fault"]
+    assert payload["allowed_ros_service_types"] == ["std_srvs/srv/Trigger"]
     assert not any("key" in field for field in payload)

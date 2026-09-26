@@ -17,6 +17,8 @@ export type WidgetRoute = {
   parameter: string | null;
   /** The ROS service a service-call preset calls, else null. */
   service: string | null;
+  /** The service type a service-call preset names, else null. */
+  serviceType: string | null;
   /** True when the widget adds an axis to the composed twist. */
   teleop: boolean;
 };
@@ -61,6 +63,7 @@ export function resolveWidgetRoute(widget: WidgetConfig, presets: readonly Runti
       messageType: service ? null : preset.message_type || null,
       parameter: null,
       service: service ? preset.topic || null : null,
+      serviceType: service ? preset.message_type || null : null,
       teleop: false,
     };
   }
@@ -76,6 +79,7 @@ export function resolveWidgetRoute(widget: WidgetConfig, presets: readonly Runti
     parameter:
       binding.adapter === "parameter" ? `${String(mapping.node ?? "")}:${String(mapping.parameter ?? "")}` : null,
     service: null,
+    serviceType: null,
     teleop: binding.adapter === "teleop",
   };
 }

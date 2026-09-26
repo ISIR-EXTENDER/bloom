@@ -1,8 +1,15 @@
 import type { RuntimeActionPreset, WidgetConfig } from "@bloom/api-client";
-import { createWidgetActionIntent, isRecord, messageTypeSuggestionFor, normalizeWidgetSettings } from "@bloom/widgets";
+import {
+  createWidgetActionIntent,
+  isRecord,
+  messageTypeSuggestionFor,
+  normalizeWidgetSettings,
+  resolveCommandRoute,
+} from "@bloom/widgets";
 import { resolveWidgetPreset, resolveWidgetRoute } from "./widget-publish-route";
 
 export const MODE_REQUEST_TOPIC = "/mode_request";
+const STRING_MESSAGE_TYPE = "std_msgs/msg/String";
 
 export function isMissingPayload(value: unknown): boolean {
   return value === undefined || value === null || value === "" || (isRecord(value) && Object.keys(value).length === 0);
@@ -72,6 +79,29 @@ function describeMessageTypeProblem(widget: WidgetConfig, presets: readonly Runt
     : null;
 }
 
+/** A button's own publish with no payload is refused, unless it is a String that sends its command instead. */
+function describeCommandPayloadProblem(widget: WidgetConfig, presets: readonly RuntimeActionPreset[]): string | null {
+  const settings = effectiveSettings(widget);
+  const topic = readText(settings.topic);
+  const messageType = readText(settings.messageType);
+  if (widget.kind !== "command-button" || !topic || !messageType || !isMissingPayload(settings.payload)) {
+    return null;
+  }
+  const intent = createWidgetActionIntent(widget, { type: "press" });
+  const sendsOwnTopic =
+    intent.type === "topic-publish" ||
+    (intent.type === "command" && resolveCommandRoute(intent, presets).kind === "topic");
+  if (!sendsOwnTopic) {
+    return null;
+  }
+  if (messageType === STRING_MESSAGE_TYPE) {
+    return readText(settings.command)
+      ? null
+      : `This button has no payload and no command, so every press on ${topic} is refused. Set Payload or Command.`;
+  }
+  return `This button has no payload for ${messageType}, so every press on ${topic} is refused. Set Payload.`;
+}
+
 function describeTogglePayloadProblems(widget: WidgetConfig): string[] {
   if (widget.kind !== "toggle" || !readText(widget.settings.topic)) {
     return [];
@@ -99,6 +129,7 @@ export function describeWidgetSendProblems(widget: WidgetConfig, presets: readon
     describePresetConflict(widget, presets),
     describeHoldProblem(widget),
     describeMessageTypeProblem(widget, presets),
+    describeCommandPayloadProblem(widget, presets),
     ...describeTogglePayloadProblems(widget),
   ].filter((problem): problem is string => problem !== null);
 }

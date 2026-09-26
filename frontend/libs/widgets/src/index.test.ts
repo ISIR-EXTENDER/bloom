@@ -1528,6 +1528,28 @@ describe("widget runtime action intents", () => {
     });
   });
 
+  it("sends a String button's command as its data when it has no payload", () => {
+    const pressWith = (settings: Record<string, unknown>) =>
+      createWidgetActionIntent(
+        createWidgetConfigFromDefinition(
+          createDefaultWidgetRegistry().get("command-button") as WidgetDefinition,
+          "mode",
+          { settings: { topic: "/mode_request", ...settings } },
+        ),
+        { type: "press" },
+      );
+
+    expect(pressWith({ command: "geometric/both", messageType: "std_msgs/msg/String" })).toMatchObject({
+      type: "topic-publish",
+      payload: { data: "geometric/both" },
+    });
+    expect(
+      pressWith({ command: "geometric/both", messageType: "std_msgs/msg/String", payload: "{data: geometric/jaco}" }),
+    ).toMatchObject({ payload: "{data: geometric/jaco}" });
+    // No fallback makes sense for another type; the checklist flags the missing payload instead.
+    expect(pressWith({ command: "go", messageType: "std_msgs/msg/Float64" })).toMatchObject({ payload: "" });
+  });
+
   it("creates topic publish intents for ROS message toggles", () => {
     expect(
       createWidgetActionIntent(

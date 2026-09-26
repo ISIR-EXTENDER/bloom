@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from apps.bloom_api.capabilities import describe_runtime_capabilities
+from apps.bloom_api.security import BloomPrincipal, require_observer
 from apps.bloom_api.settings import Settings
 from libs.ros_adapters.safety import MAX_ANGULAR_SPEED_TOPIC, MAX_LINEAR_SPEED_TOPIC
 
@@ -38,6 +39,7 @@ class RuntimeCapabilitiesResponse(BaseModel):
     allowed_ros_message_types: list[str] = []
     allowed_ros_parameters: list[str] = []
     allowed_ros_service_calls: list[str] = []
+    allowed_ros_service_types: list[str] = []
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -51,7 +53,10 @@ def health(request: Request) -> HealthResponse:
 
 
 @router.get("/capabilities", response_model=RuntimeCapabilitiesResponse)
-def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
+def capabilities(
+    request: Request,
+    _principal: BloomPrincipal = Depends(require_observer),
+) -> RuntimeCapabilitiesResponse:
     """Report which runtime seams are really wired.
 
     The builder uses this to say what a widget can and cannot do here, instead
@@ -75,6 +80,7 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
         allowed_ros_message_types=list(policy.allowed_message_types),
         allowed_ros_parameters=list(policy.allowed_parameters),
         allowed_ros_service_calls=list(policy.allowed_service_calls),
+        allowed_ros_service_types=list(policy.allowed_service_types),
     )
 
 

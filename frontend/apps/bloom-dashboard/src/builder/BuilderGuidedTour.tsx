@@ -399,19 +399,24 @@ function findFirstTopicProblem(
 /** The deployment's lists refuse what the app allows beyond them, as the backend narrows. */
 function describeDeploymentRefusal(route: WidgetRoute, deployment: DeploymentAllowlists): string | null {
   const { destination } = route;
-  if (destination.direction === "reads" || !destination.topic || route.teleop) {
+  if (destination.direction === "reads" || !destination.topic) {
     return null;
   }
   const refuses = (list: readonly string[] | undefined, value: string | null): value is string =>
     Boolean(value) && list !== undefined && !allowlistAllows(list, value ?? "");
-  const checks: Array<[readonly string[] | undefined, string | null, string]> = route.service
-    ? [[deployment.serviceCalls, route.service, "calling"]]
-    : route.parameter
-      ? [[deployment.parameters, route.parameter, "setting"]]
-      : [
-          [deployment.publishTopics, destination.topic, "publishing on"],
-          [deployment.messageTypes, route.messageType, "the message type"],
-        ];
+  const checks: Array<[readonly string[] | undefined, string | null, string]> = route.teleop
+    ? [[deployment.teleopTargets, destination.topic, "teleop on"]]
+    : route.service
+      ? [
+          [deployment.serviceCalls, route.service, "calling"],
+          [deployment.serviceTypes, route.serviceType, "the service type"],
+        ]
+      : route.parameter
+        ? [[deployment.parameters, route.parameter, "setting"]]
+        : [
+            [deployment.publishTopics, destination.topic, "publishing on"],
+            [deployment.messageTypes, route.messageType, "the message type"],
+          ];
   const refused = checks.find(([list, value]) => refuses(list, value));
   return refused
     ? `this robot refuses ${refused[2]} ${refused[1]}; the lab's deployment settings must allow it.`

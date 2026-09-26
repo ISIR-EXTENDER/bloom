@@ -354,6 +354,7 @@ export type RuntimeCapabilitiesResponse = {
   allowed_ros_message_types?: string[];
   allowed_ros_parameters?: string[];
   allowed_ros_service_calls?: string[];
+  allowed_ros_service_types?: string[];
 };
 
 /** Capabilities plus the frame operator commands are stamped with. */

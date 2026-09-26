@@ -121,6 +121,8 @@ export type DeploymentAllowlists = {
   parameters?: readonly string[];
   publishTopics?: readonly string[];
   serviceCalls?: readonly string[];
+  serviceTypes?: readonly string[];
+  teleopTargets?: readonly string[];
 };
 
 /** The deployment lists a capability report carries; an older backend that sends none checks nothing. */
@@ -130,6 +132,8 @@ export function readDeploymentAllowlists(report: RuntimeCapabilityReport | null 
     parameters: report?.allowed_ros_parameters,
     publishTopics: report?.allowed_ros_publish_topics,
     serviceCalls: report?.allowed_ros_service_calls,
+    serviceTypes: report?.allowed_ros_service_types,
+    teleopTargets: report?.teleop_targets,
   };
 }
 
@@ -145,6 +149,7 @@ export function WidgetDestinationSummary({
   onAllow,
   serverTeleopTargets,
   service,
+  serviceType,
   widget,
 }: {
   /** The app's message type list; empty defers to the deployment, as the backend narrows. */
@@ -165,6 +170,8 @@ export function WidgetDestinationSummary({
   serverTeleopTargets?: readonly string[];
   /** The service a service-call preset calls. */
   service?: string | null;
+  /** The service type that preset names, which only the deployment's list governs. */
+  serviceType?: string | null;
   widget: WidgetConfig;
 }) {
   // Kinds whose data flow is not modelled get no panel at all. A guess here is
@@ -200,6 +207,8 @@ export function WidgetDestinationSummary({
 
   const serviceTarget = destination.direction === "publishes" ? (service ?? "") : "";
   const serviceOutsidePolicy = Boolean(serviceTarget) && !allowlistAllows(allowedServiceCalls ?? [], serviceTarget);
+  const refusedServiceType =
+    serviceTarget && serviceType && deploymentRefuses(deployment?.serviceTypes, serviceType) ? serviceType : "";
 
   // A plain publish outside a non-empty app list is refused at runtime; only teleop and parameters said so.
   const publishTopic =
@@ -312,6 +321,11 @@ export function WidgetDestinationSummary({
         `calling ${serviceTarget}`,
         "Allowed service calls",
       )}
+      {refusedServiceType ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          This robot refuses the service type {refusedServiceType}; the lab's deployment settings must allow it.
+        </p>
+      ) : null}
     </div>
   );
 }

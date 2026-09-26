@@ -381,6 +381,7 @@ export function BuilderWidgetSettingsEditor({
         onAllow={onAllowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}
         service={route?.service}
+        serviceType={route?.serviceType}
         widget={widget}
       />
       {releaseNote ? (

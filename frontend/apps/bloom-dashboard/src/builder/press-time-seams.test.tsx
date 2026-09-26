@@ -13,7 +13,7 @@ import {
 } from "../runtime/runtimeModeState";
 import { BuilderGuidedTour, evaluateBuilderTour } from "./BuilderGuidedTour";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
-import { WidgetDestinationSummary } from "./BuilderWidgetSummaries";
+import { readDeploymentAllowlists, WidgetDestinationSummary } from "./BuilderWidgetSummaries";
 import { resolveWidgetRoute } from "./widget-publish-route";
 
 const preset = (overrides: Partial<RuntimeActionPreset>): RuntimeActionPreset => ({
@@ -241,6 +241,37 @@ describe("a publisher that would fail at press time", () => {
   });
 });
 
+describe("a button with no payload", () => {
+  it("sends its command as the data of a String message", async () => {
+    const mode = button({ command: "geometric/both", messageType: "std_msgs/msg/String", topic: "/mode_request" });
+    const { client, publishRosTopic } = publishingClient();
+    await dispatchRuntimeActionIntent(client, createWidgetActionIntent(mode, { type: "press" }), {
+      actionPresets: presets,
+    });
+    expect(publishRosTopic.mock.calls[0]?.[0]).toMatchObject({ payload: { data: "geometric/both" } });
+    expect(evaluateBuilderTour(appWith([mode])).topics).toBe(true);
+  });
+
+  it("is flagged when no fallback applies, held or not", () => {
+    const cases: Array<[WidgetConfig, RegExp]> = [
+      [
+        button({ command: "go", messageType: "std_msgs/msg/Float64", topic: "/speed" }),
+        /no payload for std_msgs\/msg\/Float64, so every press on \/speed is refused/,
+      ],
+      [
+        button({ messageType: "std_msgs/msg/String", momentary: true, topic: "/mode_request" }),
+        /no payload and no command, so every press on \/mode_request is refused/,
+      ],
+    ];
+    for (const [target, problem] of cases) {
+      renderEditor(target);
+      expect(screen.getByText(problem)).toBeTruthy();
+      expect(evaluateBuilderTour(appWith([target])).topics).toBe(false);
+      cleanup();
+    }
+  });
+});
+
 describe("a joystick target the robot's server refuses", () => {
   it("offers no Allow in this app", () => {
     const pad = widget("joystick", {
@@ -287,5 +318,49 @@ describe("the checklist and the deployment's allowlists", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: /Bind to allowed topics/ }));
     expect(screen.getByText(/this robot refuses publishing on \/gripper_controller\/commands/)).toBeTruthy();
+  });
+
+  it("reads the teleop targets and service types from the capability report", () => {
+    const report = {
+      capabilities: [],
+      command_frame_id: "",
+      allowed_ros_service_types: ["std_srvs/srv/Trigger"],
+      teleop_targets: ["/t"],
+    };
+    expect(readDeploymentAllowlists(report)).toMatchObject({
+      serviceTypes: ["std_srvs/srv/Trigger"],
+      teleopTargets: ["/t"],
+    });
+  });
+
+  it("fails the topics step on a joystick target the robot's server refuses", () => {
+    const pad = widget("joystick", {
+      runtime_binding: { adapter: "teleop", value_mapping: { target_topic: "/other_twist" } },
+    });
+    const app = appWith([pad], { allowed_teleop_targets: ["/other_twist"] });
+    expect(evaluateBuilderTour(app).topics).toBe(true);
+    expect(evaluateBuilderTour(app, [], { teleopTargets: ["/joystick_cartesian_command"] }).topics).toBe(false);
+    expect(evaluateBuilderTour(app, [], { teleopTargets: ["/other_twist"] }).topics).toBe(true);
+  });
+
+  it("fails the topics step, and the inspector warns, on a service type the robot refuses", () => {
+    const reset = button({ command: resetFault.command, presetId: resetFault.id });
+    const app = appWith([reset]);
+    expect(evaluateBuilderTour(app).topics).toBe(true);
+    expect(evaluateBuilderTour(app, [], { serviceTypes: ["std_srvs/srv/Trigger"] }).topics).toBe(false);
+    expect(evaluateBuilderTour(app, [], { serviceTypes: ["example_interfaces/srv/Trigger"] }).topics).toBe(true);
+
+    const route = resolveWidgetRoute(reset, presets);
+    render(
+      <WidgetDestinationSummary
+        allowedServiceCalls={["/fault_controller/reset_fault"]}
+        deployment={{ serviceTypes: ["std_srvs/srv/Trigger"] }}
+        destination={route?.destination ?? null}
+        service={route?.service}
+        serviceType={route?.serviceType}
+        widget={reset}
+      />,
+    );
+    expect(screen.getByText(/This robot refuses the service type example_interfaces\/srv\/Trigger/)).toBeTruthy();
   });
 });
