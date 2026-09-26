@@ -4,9 +4,10 @@ import {
   readJacobian,
   readJointLimits,
   readJointStates,
+  readUrdfJointLimits,
   yoshikawaManipulability,
 } from "@bloom/widgets";
-import { type CSSProperties, useRef } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { formatSignedValue } from "./readouts";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
@@ -17,11 +18,32 @@ const PROXIMITY_LIMIT = 0.8;
 const STRONG_ENTRY = 0.8;
 const MANIPULABILITY_SESSION_GAP_MS = 5000;
 
-export function JointTableWidget({ data, descriptor }: WidgetRendererProps) {
+export function JointTableWidget({ data, descriptor, robotModel }: WidgetRendererProps) {
   const settings = descriptor.widget.settings;
   const topic = getStringSetting(settings, "topic", "/joint_states");
   const latest = data?.type === "topic-echo" ? data.messages.at(-1) : undefined;
-  const rows = readJointStates(latest?.value, readJointLimits(settings.joint_limits));
+  const configuredLimits = readJointLimits(settings.joint_limits);
+  const hasConfiguredLimits = Object.keys(configuredLimits).length > 0;
+  // The limits typed by hand win; otherwise the robot's own description has them, and the column was empty.
+  const [modelLimits, setModelLimits] = useState<Record<string, readonly [number, number]>>({});
+  useEffect(() => {
+    if (hasConfiguredLimits || !robotModel) {
+      return;
+    }
+    let current = true;
+    robotModel
+      .load()
+      .then((urdf) => {
+        if (current && urdf) {
+          setModelLimits(readUrdfJointLimits(urdf));
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [hasConfiguredLimits, robotModel]);
+  const rows = readJointStates(latest?.value, hasConfiguredLimits ? configuredLimits : modelLimits);
   // A frozen pose read as the arm's current one is how an operator plans a move from where it was.
   const stale = isSampleStale(latest?.receivedAt, useNow(1000));
 

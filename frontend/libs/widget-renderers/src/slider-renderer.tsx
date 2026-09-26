@@ -14,12 +14,13 @@ import {
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { bindArrowToWord } from "./JoystickPrimitive";
-import { resolveStepTargetPreset, STEP_TARGET_HINTS } from "./motor-preset-hints";
+import { resolveStepTargetPreset } from "./motor-preset-hints";
 import { formatSignedValue, resolveDecimalPlaces } from "./readouts";
+import { rendererStrings } from "./renderer-strings";
 import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
+import { useLatchCountdown } from "./use-latch-countdown";
 import { useSettledAnnouncement } from "./use-settled-announcement";
 
-const SLIDER_LATCH_EXPIRY_MS = 15000;
 const SLIDER_STEP_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown"]);
 
 export function SliderWidget({
@@ -30,6 +31,7 @@ export function SliderWidget({
   neutralRevision,
   onActionIntent,
 }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   // Normalize first: configs carry snake_case aliases for these keys.
   const normalizedSettings = normalizeWidgetSettings("slider", descriptor.widget.settings);
   const sliderSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
@@ -169,16 +171,13 @@ export function SliderWidget({
     lastNeutralRevisionRef.current = neutralRevision;
     returnToRestRef.current();
   }, [neutralRevision]);
-  const expireHeldValueRef = useRef(() => {});
-  expireHeldValueRef.current = () => setAndEmit(defaultValue);
-  useEffect(() => {
-    void inputRevision;
-    if (!valueIsHeld) {
-      return;
-    }
-    const expiry = window.setTimeout(() => expireHeldValueRef.current(), SLIDER_LATCH_EXPIRY_MS);
-    return () => window.clearTimeout(expiry);
-  }, [inputRevision, valueIsHeld]);
+  const releaseSecondsLeft = useLatchCountdown(valueIsHeld, inputRevision, () => setAndEmit(defaultValue));
+  const latchCountdown =
+    releaseSecondsLeft === null ? null : (
+      <span className="bloom-latch-countdown" role="status">
+        {text.releasesIn(releaseSecondsLeft)}
+      </span>
+    );
 
   if (stepPreset) {
     const stepBy = (delta: number) => setAndEmit(Number(clamp(currentValue + delta, min, max).toFixed(4)));
@@ -196,12 +195,13 @@ export function SliderWidget({
               {/* The space is read: without it a screen reader says "Max speedm/s". */}
               {unit ? <small className="bloom-control-unit"> {unit}</small> : null}
             </strong>
-            <span>{STEP_TARGET_HINTS[stepPreset]}</span>
+            <span>{text.stepHints[stepPreset]}</span>
           </header>
         )}
-        <fieldset aria-label={`${descriptor.widget.title} step controls`} className="bloom-slider-stepper">
+        {latchCountdown}
+        <fieldset aria-label={text.stepControls(descriptor.widget.title)} className="bloom-slider-stepper">
           <button
-            aria-label={`Increase ${descriptor.widget.title} by ${step}`}
+            aria-label={text.increase(descriptor.widget.title, step)}
             className="bloom-slider-step-button"
             disabled={currentValue >= max}
             onClick={() => stepBy(step)}
@@ -214,7 +214,7 @@ export function SliderWidget({
           </output>
           {returnToCenter ? (
             <button
-              aria-label={`Zero ${descriptor.widget.title}`}
+              aria-label={text.zero(descriptor.widget.title)}
               className="bloom-slider-step-button"
               disabled={currentValue === defaultValue}
               onClick={() => setAndEmit(defaultValue)}
@@ -224,7 +224,7 @@ export function SliderWidget({
             </button>
           ) : null}
           <button
-            aria-label={`Decrease ${descriptor.widget.title} by ${step}`}
+            aria-label={text.decrease(descriptor.widget.title, step)}
             className="bloom-slider-step-button"
             disabled={currentValue <= min}
             onClick={() => stepBy(-step)}
@@ -374,6 +374,7 @@ export function SliderWidget({
           <SliderPrimitive.Thumb aria-label={descriptor.widget.title} className="bloom-axis-knob" />
         </SliderPrimitive.Root>
       </div>
+      {latchCountdown}
       <output aria-live="polite" className="sr-only">
         {announcedValue}
       </output>

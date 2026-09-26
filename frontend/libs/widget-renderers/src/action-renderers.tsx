@@ -8,11 +8,10 @@ import {
   type WidgetActionIntent,
 } from "@bloom/widgets";
 
-const MOMENTARY_HOLD_EXPIRY_MS = 15000;
-
 import { type PointerEvent, useEffect, useId, useRef, useState } from "react";
 import { rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
+import { useLatchCountdown } from "./use-latch-countdown";
 
 export function CommandLikeWidget({
   conditioning,
@@ -74,13 +73,7 @@ export function CommandLikeWidget({
   // when it unmounts (Settings, a screen change). Otherwise the manager stays in
   // snake mode after the button that requested it is gone.
   const releaseHeldRef = useRef(() => {});
-  useEffect(() => {
-    if (!isMomentaryLatched) {
-      return;
-    }
-    const timer = setTimeout(() => releaseHeldRef.current(), MOMENTARY_HOLD_EXPIRY_MS);
-    return () => clearTimeout(timer);
-  }, [isMomentaryLatched]);
+  const releaseSecondsLeft = useLatchCountdown(isMomentaryLatched, null, () => releaseHeldRef.current());
   useEffect(() => {
     if (disabled) {
       releaseHeldRef.current();
@@ -209,17 +202,19 @@ export function CommandLikeWidget({
   // what the countdown wording promised on exactly the guard that protects a destructive command.
   const hint = momentaryRefusal
     ? momentaryRefusal
-    : isArmed
-      ? confirmTimeoutSeconds > 0
-        ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
-        : "stays armed until pressed again"
-      : authoredHint
-        ? authoredHint
-        : showDetails && detail
-          ? isSelected
-            ? `Last requested \u00b7 ${detail}`
-            : detail
-          : "";
+    : releaseSecondsLeft !== null
+      ? rendererStrings(language).releasesIn(releaseSecondsLeft)
+      : isArmed
+        ? confirmTimeoutSeconds > 0
+          ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
+          : "stays armed until pressed again"
+        : authoredHint
+          ? authoredHint
+          : showDetails && detail
+            ? isSelected
+              ? `Last requested \u00b7 ${detail}`
+              : detail
+            : "";
 
   return (
     <div

@@ -10,6 +10,7 @@ import {
 } from "@bloom/widgets";
 import { type CSSProperties, useState } from "react";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
+import { rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
 import { isSampleStale, useNow } from "./use-now";
 
@@ -160,7 +161,8 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
   );
 }
 
-export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
+export function PlotWidget({ data, descriptor, language }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   const showLegend = getBooleanSetting(descriptor.widget.settings, "showLegend", true);
   const historySeconds = getNumberSetting(descriptor.widget.settings, "historySeconds", 10);
   const allowFreeze = getBooleanSetting(descriptor.widget.settings, "allow_freeze", true);
@@ -211,7 +213,7 @@ export function PlotWidget({ data, descriptor }: WidgetRendererProps) {
               onClick={handleFreezeToggle}
               type="button"
             >
-              {isFrozen ? "Live" : "Freeze"}
+              {isFrozen ? text.live : text.freeze}
             </button>
           ) : null}
         </header>

@@ -7,6 +7,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CommandLikeWidget } from "./action-renderers";
+import { GesturePadWidget } from "./gesture-pad-renderer";
 import { JoystickWidget } from "./joystick-renderer";
 import { SliderWidget } from "./slider-renderer";
 
@@ -542,5 +543,75 @@ describe("what a step slider's title reads as", () => {
     render(<SliderWidget descriptor={descriptor} motorPreset="step" />);
 
     expect(screen.getByText(/Max speed/).textContent).toBe("Max speed m/s");
+  });
+});
+
+describe("a latched control about to let go", () => {
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  // After 15 s without input it zeroes, which is safe; with no warning it was a surprise.
+  it("counts the last seconds down, then releases", () => {
+    vi.useFakeTimers();
+    const onActionIntent = vi.fn();
+    render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="latch" onActionIntent={onActionIntent} />);
+    const pad = screen.getByRole("application", { name: "Translation" });
+    fireEvent.keyDown(pad, { key: "ArrowRight" });
+    fireEvent.keyUp(pad, { key: "ArrowRight" });
+
+    act(() => {
+      vi.advanceTimersByTime(10_500);
+    });
+    expect(screen.getByText("Releases in 5 s").getAttribute("role")).toBe("status");
+
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ x: 0, y: 0 });
+    expect(screen.queryByText(/Releases in/)).toBeNull();
+  });
+
+  it("names its step controls in the operator's language", () => {
+    render(
+      <SliderWidget descriptor={descriptors().slider} language="fr" motorPreset="step" onActionIntent={vi.fn()} />,
+    );
+
+    expect(screen.getByRole("button", { name: /^Augmenter Z de/ })).toBeTruthy();
+  });
+});
+
+describe("the gesture pad under scan", () => {
+  afterEach(cleanup);
+
+  // A scan press arrives as a click, which the pad ignored: it was lit and did not answer.
+  it("sends the shown gesture on a switch press, and steps angle and power", () => {
+    const onActionIntent = vi.fn();
+    const [descriptor] = renderScreenDescriptors(
+      {
+        id: "gesture",
+        title: "Gesture",
+        canvas: { preset_id: "tablet", runtime_mode: "fit" },
+        widgets: [
+          {
+            id: "throw",
+            kind: "gesture-pad",
+            title: "Throw",
+            layout: { x: 0, y: 0, width: 360, height: 300 },
+            settings: { topic: "/ui/throw", messageType: "std_msgs/msg/String" },
+          },
+        ],
+      } as ScreenConfig,
+      createDefaultWidgetRegistry(),
+    );
+    if (descriptor?.status !== "resolved") throw new Error("Missing gesture descriptor.");
+    render(<GesturePadWidget descriptor={descriptor} motorPreset="scan" onActionIntent={onActionIntent} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /choose trajectory gesture/ }), { detail: 0 });
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ angleDegrees: 45, power: 0.5 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Power +" }));
+    expect(onActionIntent.mock.calls.at(-1)?.[0].value).toEqual({ angleDegrees: 45, power: 0.6 });
   });
 });

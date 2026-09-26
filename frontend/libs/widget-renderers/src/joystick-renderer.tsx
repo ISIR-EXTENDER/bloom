@@ -9,24 +9,27 @@ import {
   resolveTitlePlacement,
   resolveWidgetDestination,
 } from "@bloom/widgets";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { JoystickPrimitive, type JoystickVector } from "./JoystickPrimitive";
-import { resolveStepTargetPreset, STEP_TARGET_HINTS, type StepTargetPreset } from "./motor-preset-hints";
+import { resolveStepTargetPreset, type StepTargetPreset } from "./motor-preset-hints";
 import { formatSignedValue } from "./readouts";
+import { type RendererStrings, rendererStrings } from "./renderer-strings";
 import { resolveJoystickBinding } from "./settings-readers";
 import type { WidgetRendererProps } from "./types";
+import { useLatchCountdown } from "./use-latch-countdown";
 import { useSettledAnnouncement } from "./use-settled-announcement";
 
 const STEP_ZONE_INCREMENT = 0.25;
-const LATCH_EXPIRY_MS = 15000;
 
 export function JoystickWidget({
   conditioning,
   descriptor,
+  language,
   motorPreset,
   neutralRevision,
   onActionIntent,
 }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   const normalizedSettings = normalizeWidgetSettings("joystick", descriptor.widget.settings);
   const joystickSettings = normalizedSettings.success ? normalizedSettings.settings : descriptor.widget.settings;
   // The profile's dead zone belongs to the person, not the app: a widget's
@@ -122,16 +125,13 @@ export function JoystickWidget({
   const keepsReleasedVector = motorPreset === "latch" || !binding.zeroOnRelease;
   const isLatched = keepsReleasedVector || stepPreset !== null;
   const vectorIsHeld = isLatched && (currentVector.x !== 0 || currentVector.y !== 0);
-  const expireHeldVectorRef = useRef(() => {});
-  expireHeldVectorRef.current = () => emitHeldVector({ x: 0, y: 0 });
-  useEffect(() => {
-    void inputRevision;
-    if (!vectorIsHeld) {
-      return;
-    }
-    const expiry = window.setTimeout(() => expireHeldVectorRef.current(), LATCH_EXPIRY_MS);
-    return () => window.clearTimeout(expiry);
-  }, [inputRevision, vectorIsHeld]);
+  const releaseSecondsLeft = useLatchCountdown(vectorIsHeld, inputRevision, () => emitHeldVector({ x: 0, y: 0 }));
+  const latchCountdown =
+    releaseSecondsLeft === null ? null : (
+      <span className="bloom-latch-countdown" role="status">
+        {text.releasesIn(releaseSecondsLeft)}
+      </span>
+    );
 
   if (stepPreset) {
     return (
@@ -139,9 +139,11 @@ export function JoystickWidget({
         currentVector={currentVector}
         descriptor={descriptor}
         labels={binding.labels}
+        latchCountdown={latchCountdown}
         motorPreset={stepPreset}
         onVector={emitHeldVector}
         showDetails={showDetails}
+        text={text}
       />
     );
   }
@@ -197,15 +199,16 @@ export function JoystickWidget({
         {pad}
         {keepsReleasedVector ? (
           <button
-            aria-label={`Zero ${descriptor.widget.title}`}
+            aria-label={text.zero(descriptor.widget.title)}
             className="bloom-latch-zero"
             disabled={!vectorIsHeld}
             onClick={() => emitHeldVector({ x: 0, y: 0 })}
             type="button"
           >
-            Zero
+            {text.zeroButton}
           </button>
         ) : null}
+        {latchCountdown}
       </div>
       <output aria-live="polite" className="sr-only">
         {announcedVector}
@@ -223,16 +226,20 @@ function StepZoneJoystick({
   currentVector,
   descriptor,
   labels,
+  latchCountdown,
   motorPreset,
   onVector,
   showDetails,
+  text,
 }: {
   currentVector: JoystickVector;
   descriptor: WidgetRendererProps["descriptor"];
   labels: { bottom: string; left: string; right: string; top: string };
+  latchCountdown: ReactNode;
   motorPreset: StepTargetPreset;
   onVector: (vector: JoystickVector) => void;
   showDetails: boolean;
+  text: RendererStrings;
 }) {
   const stepBy = (dx: number, dy: number) =>
     onVector({
@@ -248,11 +255,12 @@ function StepZoneJoystick({
     >
       <header className="bloom-control-header">
         <strong>{descriptor.widget.title}</strong>
-        <span>{STEP_TARGET_HINTS[motorPreset]}</span>
+        <span>{text.stepHints[motorPreset]}</span>
       </header>
-      <fieldset aria-label={`${descriptor.widget.title} step targets`} className="bloom-step-zones">
+      {latchCountdown}
+      <fieldset aria-label={text.stepControls(descriptor.widget.title)} className="bloom-step-zones">
         <button
-          aria-label={`${labels.top}, one step`}
+          aria-label={text.oneStep(labels.top)}
           className="bloom-step-zone"
           data-zone="top"
           onClick={() => stepBy(0, STEP_ZONE_INCREMENT)}
@@ -261,7 +269,7 @@ function StepZoneJoystick({
           {labels.top}
         </button>
         <button
-          aria-label={`${labels.left}, one step`}
+          aria-label={text.oneStep(labels.left)}
           className="bloom-step-zone"
           data-zone="left"
           onClick={() => stepBy(-STEP_ZONE_INCREMENT, 0)}
@@ -270,7 +278,7 @@ function StepZoneJoystick({
           {labels.left}
         </button>
         <button
-          aria-label={`Stop ${descriptor.widget.title}`}
+          aria-label={text.stop(descriptor.widget.title)}
           className="bloom-step-zone"
           data-zone="stop"
           onClick={() => onVector({ x: 0, y: 0 })}
@@ -279,7 +287,7 @@ function StepZoneJoystick({
           0
         </button>
         <button
-          aria-label={`${labels.right}, one step`}
+          aria-label={text.oneStep(labels.right)}
           className="bloom-step-zone"
           data-zone="right"
           onClick={() => stepBy(STEP_ZONE_INCREMENT, 0)}
@@ -288,7 +296,7 @@ function StepZoneJoystick({
           {labels.right}
         </button>
         <button
-          aria-label={`${labels.bottom}, one step`}
+          aria-label={text.oneStep(labels.bottom)}
           className="bloom-step-zone"
           data-zone="bottom"
           onClick={() => stepBy(0, -STEP_ZONE_INCREMENT)}

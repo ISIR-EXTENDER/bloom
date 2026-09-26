@@ -1,6 +1,6 @@
 import { getBooleanSetting, getStringSetting } from "@bloom/widgets";
 import { useEffect, useRef, useState } from "react";
-import { rendererStrings } from "./renderer-strings";
+import { type RendererStrings, rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
 
 export function CameraWidget({ data, descriptor, language }: WidgetRendererProps) {
@@ -123,7 +123,6 @@ function describeCameraSource(source: string, streamUrl: string, topic: string):
 
 /** Each state names what to do about it; "no image" alone sends an operator hunting the wrong thing. */
 type CameraFrameState = { connected: boolean; frameUrl?: string; detail?: string; reconnecting?: boolean };
-type RendererStrings = ReturnType<typeof rendererStrings>;
 
 function describeClosedStream(frame: CameraFrameState, text: RendererStrings): string | undefined {
   if (!frame.detail && !frame.reconnecting) {

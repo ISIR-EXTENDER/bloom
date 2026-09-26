@@ -654,6 +654,15 @@
   min-inline-size: 0;
 }
 
+.bloom-gesture-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bloom-space-in-card);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
 .bloom-slider-stepper {
   display: flex;
   flex-direction: column;
@@ -1851,6 +1860,17 @@
   color: var(--bloom-ink-soft);
   font-size: 0.85rem;
   pointer-events: none;
+}
+
+/* The last seconds before a latched control lets go by itself: it used to release in silence. */
+.bloom-latch-countdown {
+  align-self: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 /* It had no rule at all, so it rendered at the browser's default size while still a scan target. */

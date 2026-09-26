@@ -3,7 +3,7 @@
  */
 import type { ScreenConfig } from "@bloom/api-client";
 import { createDefaultWidgetRegistry, renderScreenDescriptors } from "@bloom/widgets";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { formatManipulability } from "./debug-table-renderers";
@@ -46,6 +46,38 @@ function renderWidget(index: number, value?: unknown) {
 
 describe("the joint table", () => {
   afterEach(cleanup);
+
+  // The limit column needed ranges typed as JSON although the API already serves the description holding them.
+  it("takes its limits from the robot's own description when none are typed", async () => {
+    const [descriptor] = renderScreenDescriptors(
+      {
+        ...debugScreen,
+        widgets: [
+          { ...(debugScreen.widgets[0] as ScreenConfig["widgets"][number]), settings: { topic: "/joint_states" } },
+        ],
+      },
+      createDefaultWidgetRegistry(),
+    );
+    if (!descriptor) throw new Error("Missing descriptor.");
+    const urdf = '<robot><joint name="joint_1" type="revolute"><limit lower="-1" upper="1"/></joint></robot>';
+    const { container } = render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: {
+            joints: {
+              type: "topic-echo",
+              messages: [
+                { receivedAt: "2026-09-17T10:00:00Z", topic: "", value: { name: ["joint_1"], position: [0.9] } },
+              ],
+            },
+          },
+          robotModel: { asset: async () => null, load: async () => urdf },
+        })}
+      </div>,
+    );
+
+    await waitFor(() => expect(container.querySelector(".bloom-joint-proximity")?.textContent).toBe("90%"));
+  });
 
   it("waits for joint states instead of inventing rows", () => {
     renderWidget(0);
