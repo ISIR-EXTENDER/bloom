@@ -155,7 +155,7 @@
 }
 
 .runtime-robot-status-refresh {
-  min-height: 34px;
+  min-height: 44px;
   padding: 5px 12px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 34%, var(--bloom-border));
   border-radius: 999px;
@@ -919,11 +919,13 @@
 }
 
 /* On roles that open the menu with a tap, the screen name is the way to the other screens. */
-button.runtime-kiosk-screen {
+button.runtime-kiosk-screen,
+.runtime-kiosk-builder {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  /* The bar's full height: 36 px was under the 44 px floor every other runtime target keeps. */
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 22%, transparent);
   border-radius: 9px;
@@ -1035,17 +1037,17 @@ button.runtime-kiosk-screen:focus-visible {
   flex: 0 0 auto;
   gap: 4px;
   align-items: stretch;
-  min-height: 32px;
+  min-height: 44px;
   margin: 0;
-  padding: 2px;
-  border: 1px solid color-mix(in srgb, var(--bloom-primary) 34%, var(--bloom-border));
+  padding: 0;
+  border: none;
   border-radius: 8px;
   background: var(--bloom-surface-container);
 }
 
 .runtime-kiosk-tour-offer button {
-  min-width: 32px;
-  min-height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0 10px;
   border: none;
   border-radius: 6px;

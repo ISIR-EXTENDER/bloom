@@ -111,6 +111,7 @@ export const esRuntimeStrings: RuntimeStrings = {
     maintenance: "Mantenimiento",
     maintenanceAria: "Mantener para abrir mantenimiento",
     gamepadChip: "Mando",
+    backToBuilder: "Volver al Builder",
     menuAria: "Abrir mantenimiento",
     screenMenuAria: (screen) => `${screen}: abrir la lista de pantallas`,
     holdHint: "Mantén ⋯ pulsado para abrir el menú",

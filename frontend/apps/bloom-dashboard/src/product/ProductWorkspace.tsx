@@ -37,6 +37,9 @@ type ProductWorkspaceProps = {
   onOpenHelp: () => void;
   onOpenLanding: () => void;
   onOpenRuntimeApp: (selection: WorkspaceSelection) => void;
+  /** The Builder's own preview: the runtime then offers a way straight back. */
+  onPreviewRuntimeApp?: (selection: WorkspaceSelection) => void;
+  openedFromBuilder?: boolean;
   onOpenSupervisorApp: (selection: WorkspaceSelection) => void;
   onOpenSupervisorWindow: (selection: WorkspaceSelection) => void;
   onRuntimeProfilePreferenceChange: (
@@ -97,6 +100,8 @@ export function ProductWorkspace({
   onOpenHelp,
   onOpenLanding,
   onOpenRuntimeApp,
+  onPreviewRuntimeApp,
+  openedFromBuilder = false,
   onOpenSupervisorApp,
   onOpenSupervisorWindow,
   onRuntimeProfilePreferenceChange,
@@ -131,11 +136,11 @@ export function ProductWorkspace({
   }
 
   if (state.status === "error") {
-    return <ConfigurationStatus isError message={state.message} />;
+    return <ConfigurationStatus isError message={state.message} onOpenHome={onOpenLanding} />;
   }
 
   if (state.configurations.length === 0) {
-    return <ConfigurationStatus message="No configurations found yet." />;
+    return <ConfigurationStatus message="No configurations found yet." onOpenHome={onOpenLanding} />;
   }
 
   if (!selection) {
@@ -143,6 +148,7 @@ export function ProductWorkspace({
       <ConfigurationStatus
         isError={runtimeMode === "supervisor"}
         message={runtimeMode === "supervisor" ? "Supervisor application not found." : "No application selected."}
+        onOpenHome={onOpenLanding}
       />
     );
   }
@@ -159,7 +165,7 @@ export function ProductWorkspace({
         onCreateApplication={onCreateApplication}
         onDeleteApplication={onDeleteApplication}
         onDuplicateApplication={onDuplicateApplication}
-        onOpenRuntimeApp={onOpenRuntimeApp}
+        onOpenRuntimeApp={onPreviewRuntimeApp ?? onOpenRuntimeApp}
         onSaveApplication={onSaveApplication}
         onSaveBuilderScreen={onSaveBuilderScreen}
         onSelectionChange={onSelectionChange}
@@ -217,6 +223,7 @@ export function ProductWorkspace({
       onEditApplication={onEditRuntimeApplication}
       onEditScreen={onEditRuntimeScreen}
       onOpenBuilderHome={onOpenBuilderHome}
+      openedFromBuilder={openedFromBuilder}
       onOpenHelp={onOpenHelp}
       onOpenLanding={onOpenLanding}
       onOpenSupervisor={() => onOpenSupervisorWindow(selection)}
@@ -344,9 +351,11 @@ function BuilderProductWorkspace({
 type ConfigurationStatusProps = {
   isError?: boolean;
   message: string;
+  /** The runtime hides the product navigation, so without this an error page had no way out. */
+  onOpenHome?: () => void;
 };
 
-function ConfigurationStatus({ isError = false, message }: ConfigurationStatusProps) {
+function ConfigurationStatus({ isError = false, message, onOpenHome }: ConfigurationStatusProps) {
   return (
     <section className="configuration-panel" aria-labelledby="configuration-panel-title">
       <div>
@@ -359,6 +368,13 @@ function ConfigurationStatus({ isError = false, message }: ConfigurationStatusPr
       >
         {message}
       </p>
+      {onOpenHome ? (
+        <div className="hero-actions">
+          <button onClick={onOpenHome} type="button">
+            Home
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

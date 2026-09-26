@@ -1,5 +1,6 @@
 import { localizeOperatorText, resolveCanvasPresetSize } from "@bloom/widgets";
 import { useEffect, useId, useRef, useState } from "react";
+import { useAssistiveActivation } from "./assistive-activation";
 import { type RuntimeKioskBarProps, resolveRuntimeRole } from "./RuntimeKioskBar";
 import type { RuntimeStrings } from "./strings";
 import { useDwellActivation } from "./use-dwell-activation";
@@ -45,6 +46,8 @@ export function RuntimeMaintenanceSheet({
   const [choosingRole, setChoosingRole] = useState(false);
   const panelRef = useRef<HTMLElement | null>(null);
   const roleHold = useHoldGesture(ROLE_SWITCH_HOLD_MS, () => setChoosingRole(true));
+  // A scan or dwell press arrives as a click, which the hold ignores: those roles could never switch.
+  const roleSwitchRef = useAssistiveActivation<HTMLButtonElement>(() => setChoosingRole(true));
   // The sheet is the scan root while it is open, so Settings, a screen change
   // and Resume operating stay reachable by switch.
   const sheetScanning = useSwitchScanning({
@@ -224,6 +227,7 @@ export function RuntimeMaintenanceSheet({
                 onPointerDown={roleHold.start}
                 onPointerLeave={roleHold.cancel}
                 onPointerUp={roleHold.cancel}
+                ref={roleSwitchRef}
                 type="button"
               >
                 <span

@@ -314,6 +314,18 @@ describe("App", () => {
     });
   });
 
+  // From a preview, the way back to the screen being edited was a 1.5 s hold and two menus deep.
+  it("offers the way back to the Builder from a preview", async () => {
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={createRuntimeActionClient()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Builder: Compose screens" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Screen library" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Preview Diagnostics screen runtime" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Back to Builder" }));
+
+    expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
+  });
+
   it("renders live topic samples in runtime debug widgets", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);

@@ -74,6 +74,8 @@ export type RuntimeKioskBarProps = {
   onOpenSettings: () => void;
   onOpenSupervisor: () => void;
   onOpenTour: () => void;
+  /** Set when the app was opened as a Builder preview: the way back was a 1.5 s hold and two menus deep. */
+  onBackToBuilder?: () => void;
   /** The first-entry practice offer; null once answered or once the tour has been walked. */
   tourOffer?: { onAccept: () => void; onDismiss: () => void } | null;
   onReload?: () => void;
@@ -104,6 +106,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     language = "en",
     tourOffer = null,
     gamepadName = null,
+    onBackToBuilder,
   } = props;
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
@@ -212,12 +215,17 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
             <button onClick={tourOffer.onAccept} type="button">
               {strings.tour.offerStart}
             </button>
-            <button aria-label={strings.tour.offerDismiss} onClick={tourOffer.onDismiss} type="button">
-              ×
+            <button onClick={tourOffer.onDismiss} type="button">
+              {strings.tour.offerDismiss}
             </button>
           </fieldset>
         ) : null}
         <span className="runtime-kiosk-spacer" />
+        {onBackToBuilder ? (
+          <button className="runtime-kiosk-builder" onClick={onBackToBuilder} type="button">
+            {strings.kiosk.backToBuilder}
+          </button>
+        ) : null}
         <span className="runtime-kiosk-role" data-role={resolveRuntimeRole(profile)}>
           {localizeOperatorText(profile.name, language)}
         </span>

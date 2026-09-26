@@ -205,7 +205,9 @@ export function App({
     navigateToRoute(runtimeModeRoute(mode));
   };
 
+  const [openedFromBuilder, setOpenedFromBuilder] = useState(false);
   const openRuntimeApp = (nextSelection: WorkspaceSelection) => {
+    setOpenedFromBuilder(false);
     runtimeActions.clearFeedback();
     setSelection(nextSelection);
     setRuntimeUserPreferences((currentPreferences) => addRecentRuntimeSelection(currentPreferences, nextSelection));
@@ -300,6 +302,11 @@ export function App({
                 onOpenLanding={() => handleProductViewChange("landing")}
                 libraryTarget={libraryTarget}
                 onOpenRuntimeApp={openRuntimeApp}
+                onPreviewRuntimeApp={(nextSelection) => {
+                  openRuntimeApp(nextSelection);
+                  setOpenedFromBuilder(true);
+                }}
+                openedFromBuilder={openedFromBuilder}
                 onOpenSupervisorApp={openSupervisorApp}
                 onOpenSupervisorWindow={openSupervisorWindow}
                 onRuntimeProfilePreferenceChange={handleRuntimeProfilePreferenceChange}

@@ -125,10 +125,31 @@ describe("the builder review checklist", () => {
       pads: true,
       profiles: true,
       pairs: true,
-      frame: false,
+      // An empty frame is the manager's default, base_link: every new app failed here for a valid choice.
+      frame: true,
       topics: false,
       profile: true,
     });
+  });
+
+  it("passes a publish the deployment allows when the app narrows nothing, as the backend does", () => {
+    const toggle = {
+      id: "gripper",
+      kind: "toggle",
+      title: "Gripper",
+      layout: { x: 0, y: 0, width: 260, height: 160 },
+      settings: { topic: "/gripper_controller/commands", messageType: "std_msgs/msg/Float64MultiArray" },
+    };
+    const withToggle = (allowed: string[]) =>
+      evaluateBuilderTour({
+        ...application,
+        runtime_policy: { ...application.runtime_policy, allowed_publish_topics: allowed },
+        screens: [{ ...application.screens[0], widgets: [toggle] }],
+      } as typeof application).topics;
+
+    expect(withToggle([])).toBe(true);
+    expect(withToggle(["/gripper_controller/"])).toBe(true);
+    expect(withToggle(["/mode_request"])).toBe(false);
   });
 
   it("earns profile and ship checks only through preview and export actions", async () => {

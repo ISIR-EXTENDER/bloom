@@ -193,7 +193,8 @@ export function evaluateBuilderTour(
     pads: rules.pads === true,
     profiles: rules.profiles === true,
     pairs: rules.pairs === true,
-    frame: Boolean(application.runtime_policy.command_frame_id),
+    // Empty is a choice too: the manager reads the command in its default input frame, base_link.
+    frame: true,
     topics:
       destinations.length > 0 &&
       destinations.every(({ destination, widget }) => isTopicDestinationAllowed(application, widget, destination)),
@@ -253,9 +254,9 @@ function createBuilderTourSteps(
     {
       id: "frame",
       title: "Say which way is forward",
-      detail: checks.frame
+      detail: application.runtime_policy.command_frame_id
         ? `Operator commands use ${application.runtime_policy.command_frame_id}.`
-        : "Choose an explicit Cartesian command frame in Adapter guardrails.",
+        : "Operator commands use the manager's default frame, base_link. Pick another in Adapter guardrails if the arm is mounted sideways.",
       why: "A robot base frame may not match forward for the person operating a side-mounted arm.",
       action: "Open adapter guardrails",
       complete: checks.frame,
@@ -337,9 +338,17 @@ function isTopicDestinationAllowed(
     return true;
   }
   const runtimeBinding = asRecord(widget.settings.runtime_binding);
+  // As the backend narrows: an empty teleop list allows none, an empty publish list defers to the deployment.
   return runtimeBinding.adapter === "teleop"
-    ? application.runtime_policy.allowed_teleop_targets.includes(destination.topic)
-    : application.runtime_policy.allowed_publish_topics.includes(destination.topic);
+    ? allowlistAllows(application.runtime_policy.allowed_teleop_targets, destination.topic)
+    : application.runtime_policy.allowed_publish_topics.length === 0 ||
+        allowlistAllows(application.runtime_policy.allowed_publish_topics, destination.topic);
+}
+
+function allowlistAllows(allowlist: readonly string[], topic: string): boolean {
+  return allowlist.some(
+    (entry) => entry === "*" || entry === topic || (entry.endsWith("/") && topic.startsWith(entry)),
+  );
 }
 
 /** The three ways the touch step fails, each carrying what it takes to name the offender. */

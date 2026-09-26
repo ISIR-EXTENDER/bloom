@@ -111,6 +111,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     maintenance: "Maintenance",
     maintenanceAria: "Hold to open maintenance",
     gamepadChip: "Gamepad",
+    backToBuilder: "Back to Builder",
     menuAria: "Open maintenance",
     screenMenuAria: (screen) => `${screen}: open the screen list`,
     holdHint: "Keep holding ⋯ to open the menu",

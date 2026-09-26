@@ -77,6 +77,8 @@ type RuntimeWorkspaceProps = {
   onEditApplication: () => void;
   onEditScreen: () => void;
   onOpenBuilderHome: () => void;
+  /** Opened as a Builder preview: the bar offers the way back to the screen being edited. */
+  openedFromBuilder?: boolean;
   onOpenHelp: () => void;
   onOpenLanding: () => void;
   onOpenSupervisor: () => void;
@@ -123,6 +125,7 @@ export function RuntimeWorkspace({
   runtimeModeState,
   screen,
   selection,
+  openedFromBuilder = false,
 }: RuntimeWorkspaceProps) {
   const canvasViewportRef = useRef<HTMLDivElement | null>(null);
   const artboardFrameRef = useRef<HTMLDivElement | null>(null);
@@ -614,6 +617,7 @@ export function RuntimeWorkspace({
                 : "connecting"
         }
         onSwitchProfile={onProfileChange}
+        onBackToBuilder={openedFromBuilder ? onEditScreen : undefined}
         profile={{
           id: baseRuntimeProfile.id,
           layoutId: profileLayoutId(application, baseRuntimeProfile.id),

@@ -46,6 +46,8 @@ export function CommandLikeWidget({
   const isMomentaryPressedRef = useRef(false);
   const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
   const [isMomentaryLatched, setIsMomentaryLatched] = useState(false);
+  // A refused hold used to keep its pressed look; the reason now stays on the button.
+  const [momentaryRefusal, setMomentaryRefusal] = useState("");
   const [isArmed, setIsArmed] = useState(false);
   const visibleButtonLabel = momentary
     ? isMomentaryPressed
@@ -165,7 +167,10 @@ export function CommandLikeWidget({
     if (!topic || !messageType) {
       return;
     }
-    onActionIntent?.({
+    if (payloadKey === "payload") {
+      setMomentaryRefusal("");
+    }
+    const outcome = onActionIntent?.({
       type: "topic-publish",
       widgetId: descriptor.widget.id,
       widgetKind: descriptor.widget.kind,
@@ -174,6 +179,23 @@ export function CommandLikeWidget({
       payload: descriptor.widget.settings[payloadKey],
       ...(payloadKey === "releasedPayload" ? { release: true } : {}),
     } satisfies WidgetActionIntent);
+    if (payloadKey !== "payload") {
+      return;
+    }
+    const refuse = (detail: string) => {
+      isMomentaryPressedRef.current = false;
+      setIsMomentaryPressed(false);
+      setIsMomentaryLatched(false);
+      setMomentaryRefusal(detail || "Not sent.");
+    };
+    Promise.resolve(outcome).then(
+      (result) => {
+        if (result?.accepted === false && isMomentaryPressedRef.current) {
+          refuse(result.detail ?? "");
+        }
+      },
+      () => isMomentaryPressedRef.current && refuse(""),
+    );
   };
 
   const layout = getBooleanSetting(descriptor.widget.settings, "hide_title", false) ? "bare" : "card";
@@ -183,17 +205,19 @@ export function CommandLikeWidget({
   const authoredHint = getStringSetting(descriptor.widget.settings, "hint", "");
   // A timeout of zero means the button stays armed until it is pressed again, which is the opposite of
   // what the countdown wording promised on exactly the guard that protects a destructive command.
-  const hint = isArmed
-    ? confirmTimeoutSeconds > 0
-      ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
-      : "stays armed until pressed again"
-    : authoredHint
-      ? authoredHint
-      : showDetails && detail
-        ? isSelected
-          ? `Last requested \u00b7 ${detail}`
-          : detail
-        : "";
+  const hint = momentaryRefusal
+    ? momentaryRefusal
+    : isArmed
+      ? confirmTimeoutSeconds > 0
+        ? `arms for ${confirmTimeoutSeconds} s, then cancels itself`
+        : "stays armed until pressed again"
+      : authoredHint
+        ? authoredHint
+        : showDetails && detail
+          ? isSelected
+            ? `Last requested \u00b7 ${detail}`
+            : detail
+          : "";
 
   return (
     <div

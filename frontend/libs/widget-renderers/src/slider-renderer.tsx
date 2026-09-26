@@ -16,7 +16,7 @@ import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { bindArrowToWord } from "./JoystickPrimitive";
 import { resolveStepTargetPreset, STEP_TARGET_HINTS } from "./motor-preset-hints";
 import { formatSignedValue, resolveDecimalPlaces } from "./readouts";
-import type { WidgetRendererProps } from "./types";
+import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
 import { useSettledAnnouncement } from "./use-settled-announcement";
 
 const SLIDER_LATCH_EXPIRY_MS = 15000;
@@ -48,11 +48,15 @@ export function SliderWidget({
   const configuredValue = getNumberSetting(sliderSettings, "value", 0);
   const defaultValue = clamp(returnToCenter ? 0 : configuredValue, min, max);
   const [currentValue, setCurrentValue] = useState(defaultValue);
+  // The last value the runtime took: a refused one goes back to it rather than reading as sent.
+  const confirmedValueRef = useRef(defaultValue);
+  const latestEmitRef = useRef(0);
   const readBackValue = controlState?.value;
   // A parameter slider opens on what the node holds, not on the seed's guess.
   useEffect(() => {
     if (typeof readBackValue === "number" && Number.isFinite(readBackValue)) {
-      setCurrentValue(clamp(readBackValue, min, max));
+      confirmedValueRef.current = clamp(readBackValue, min, max);
+      setCurrentValue(confirmedValueRef.current);
     }
   }, [readBackValue, min, max]);
   // Counts operator input, so the attention window restarts on input only.
@@ -65,7 +69,22 @@ export function SliderWidget({
 
   const emitValueChange = (value: number) => {
     setInputRevision((revision) => revision + 1);
-    onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
+    const emit = ++latestEmitRef.current;
+    const settle = (outcome: WidgetActionOutcome | undefined) => {
+      if (outcome?.accepted === false) {
+        if (emit === latestEmitRef.current) {
+          setCurrentValue(releasesToCenter ? defaultValue : confirmedValueRef.current);
+        }
+        return;
+      }
+      confirmedValueRef.current = value;
+    };
+    const outcome = onActionIntent?.(createWidgetActionIntent(descriptor.widget, { type: "set-value", value }));
+    if (outcome instanceof Promise) {
+      outcome.then(settle, () => settle({ accepted: false }));
+    } else {
+      settle(outcome);
+    }
   };
 
   const handleValueChange = (values: number[]) => {

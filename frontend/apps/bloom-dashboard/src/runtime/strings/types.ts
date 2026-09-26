@@ -74,6 +74,7 @@ export type RuntimeStrings = {
     maintenance: string;
     maintenanceAria: string;
     gamepadChip: string;
+    backToBuilder: string;
     menuAria: string;
     screenMenuAria: (screen: string) => string;
     holdHint: string;

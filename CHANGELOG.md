@@ -96,6 +96,15 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **No more dead ends at runtime.** A Builder preview has a **Back to Builder** button in the bar; the way back
+  was a 1.5 s hold and two menus deep. A page that could not load the apps retries every 5 s and offers Home, since
+  the runtime hides the navigation. Scan and dwell operators can switch role (the button took only a hold, and their
+  press arrives as a click). A refused slider move goes back to the value the robot has instead of showing one it
+  never got, and a refused hold-to-run button lets go and says why. The tour offer says "Not now" instead of "×",
+  and the bar's buttons and Refresh status are 44 px tall.
+- **The review checklist no longer fails every new app.** An app that narrows no publish topic defers to the
+  deployment, as the backend does, and an empty command frame is the manager's default, base_link.
+
 - **STOP zeroes every topic a session is driving,** including one allowed through a namespace entry such as
   `/ui/`, which it skipped. A manager input stays accepted when its node misses one parameter read while another
   answers; it used to vanish until the next read, refusing the joystick and escaping STOP.

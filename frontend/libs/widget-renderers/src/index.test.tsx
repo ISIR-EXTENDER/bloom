@@ -140,6 +140,20 @@ describe("widget renderer registry", () => {
     });
   });
 
+  // "Max linear speed" read 0.30 m/s while a refused publish left qontrol at 0.15.
+  it("goes back to the last value the runtime took when a move is refused", async () => {
+    const descriptor = renderScreenDescriptors(sliderScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+    const onActionIntent = vi.fn(async () => ({ accepted: false, detail: "Refused." }));
+    const user = userEvent.setup();
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+    screen.getByRole("slider", { name: "Speed" }).focus();
+    await user.keyboard("{ArrowRight}");
+
+    await waitFor(() => expect(screen.getByText("0.80 m/s")).toBeInTheDocument());
+  });
+
   it("returns teleop sliders to center when configured", async () => {
     const descriptor = renderScreenDescriptors(returnToCenterSliderScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing slider descriptor.");
@@ -301,6 +315,19 @@ describe("widget renderer registry", () => {
         type: "topic-publish",
       }),
     );
+  });
+
+  it("lets go of a hold the runtime refused and says why", async () => {
+    const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
+    if (!descriptor) throw new Error("Missing momentary button descriptor.");
+    const onActionIntent = vi.fn(async () => ({ accepted: false, detail: "The robot is stopped." }));
+
+    render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
+    const button = screen.getByRole("button", { name: "Hold Snake" });
+    fireEvent.pointerDown(button, { pointerId: 1 });
+
+    await waitFor(() => expect(screen.getByText("The robot is stopped.")).toBeInTheDocument());
+    expect(button).toHaveAttribute("aria-pressed", "false");
   });
 
   it("latches a momentary button for switch, dwell and keyboard activation", () => {

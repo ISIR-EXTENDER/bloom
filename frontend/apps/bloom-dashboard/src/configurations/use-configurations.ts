@@ -29,6 +29,8 @@ export type ConfigurationLoadState =
     }
   | { status: "error"; message: string };
 
+const CONFIGURATION_RETRY_MS = 5000;
+
 export function useConfigurations(client: ConfigurationClient): ConfigurationLoadState {
   const [state, setState] = useState<ConfigurationLoadState>({ status: "loading" });
 
@@ -123,9 +125,14 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
     [client, refreshShareStatus],
   );
 
+  // An API that is not up yet (a tablet booted before the robot PC) is retried rather than left as a dead end.
+  const [loadAttempt, setLoadAttempt] = useState(0);
   useEffect(() => {
     let isCurrent = true;
-    setState({ status: "loading" });
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    if (loadAttempt === 0) {
+      setState({ status: "loading" });
+    }
 
     loadConfigurations(client)
       .then((configurations) => {
@@ -146,14 +153,20 @@ export function useConfigurations(client: ConfigurationClient): ConfigurationLoa
       })
       .catch((error: unknown) => {
         if (isCurrent) {
-          setState({ status: "error", message: describeApiError(error, "Bloom could not load configurations.") });
+          setState({
+            status: "error",
+            message: `${describeApiError(error, "Bloom could not load configurations.")} Trying again every ${CONFIGURATION_RETRY_MS / 1000} s.`,
+          });
+          retry = setTimeout(() => setLoadAttempt((attempt) => attempt + 1), CONFIGURATION_RETRY_MS);
         }
       });
 
     return () => {
       isCurrent = false;
+      clearTimeout(retry);
     };
   }, [
+    loadAttempt,
     client,
     deleteApplication,
     saveApplication,
