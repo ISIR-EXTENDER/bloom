@@ -19,6 +19,7 @@ from libs.sessions import (
     RuntimeStoppedError,
     TeleopCommand,
     TeleopPublishReceipt,
+    TeleopVector3,
 )
 
 JPEG_MARKERS = b"\xff\xd8\xff\xd9"
@@ -315,6 +316,48 @@ def test_generic_ros_publish_is_rejected_while_stopped() -> None:
 
     assert response.status_code == 409
     assert len(ros_gateway.requests) == requests_after_engage
+
+
+def test_a_topic_name_ros_refuses_is_a_clear_422() -> None:
+    client = create_stop_test_client(RecordingTeleopGateway(), RecordingRosPublisherGateway())
+
+    response = client.post(
+        "/api/v1/ros/topics/publish",
+        json={"topic": "/ui/my-toggle", "message_type": "std_msgs/msg/Bool", "payload": {"data": True}},
+    )
+
+    assert response.status_code == 422
+    assert "not a valid name" in response.text
+
+
+def test_stop_zeros_a_target_granted_through_a_namespace_entry() -> None:
+    # "/ui/" lets a session drive /ui/arm_twist, but a namespace is no topic to zero: STOP skipped it.
+    gateway = RecordingTeleopGateway()
+    client = TestClient(
+        create_app(
+            Settings(environment="test", allowed_teleop_targets=("/joystick_cartesian_command", "/ui/")),
+            InMemoryConfigurationRepository(),
+            teleop_command_gateway=gateway,
+        )
+    )
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "linear": {"x": 0.4, "y": 0.0, "z": 0.0},
+                "mode": 0,
+                "seq": 1,
+                "target": "/ui/arm_twist",
+            }
+        )
+        assert websocket.receive_json()["type"] == "teleop_ack"
+        client.post("/api/v1/runtime/stop")
+        zeroed = [command.target for command in gateway.commands if command.linear == TeleopVector3()]
+
+    assert "/ui/arm_twist" in zeroed
 
 
 def test_resume_clears_the_latch_and_publishes_nothing() -> None:

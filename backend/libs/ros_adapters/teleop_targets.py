@@ -10,6 +10,7 @@ import logging
 import threading
 from collections.abc import Sequence
 
+from libs.ros_adapters.names import ros_name_error
 from libs.ros_adapters.parameters import RosParameterGateway
 
 logger = logging.getLogger(__name__)
@@ -27,27 +28,25 @@ class TeleopTargetDirectory:
         self._gateway = parameter_gateway
         self._sources = _group_by_node(sources)
         self._refresh_sec = refresh_sec
-        self._discovered: tuple[str, ...] = ()
+        self._by_node: dict[str, tuple[str, ...]] = {}
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
 
     def targets(self) -> tuple[str, ...]:
-        return tuple(dict.fromkeys((*self._static, *self._discovered)))
+        discovered = [target for targets in self._by_node.values() for target in targets]
+        return tuple(dict.fromkeys((*self._static, *discovered)))
 
     def refresh(self) -> None:
         """One read of every source; a node that cannot answer keeps what it last said."""
-        found: list[str] = []
-        answered = False
+        by_node = dict(self._by_node)
         for node, names in self._sources.items():
             try:
                 readings = self._gateway.get(node, names)
             except Exception as exc:  # noqa: BLE001 - a manager that is not up yet is the normal case at start
                 logger.debug("Teleop targets: %s did not answer (%s).", node, exc)
                 continue
-            answered = True
-            found.extend(r.value for r in readings if is_topic_name(r.value))
-        if answered:
-            self._discovered = tuple(dict.fromkeys(found))
+            by_node[node] = tuple(dict.fromkeys(r.value for r in readings if is_topic_name(r.value)))
+        self._by_node = by_node
 
     def start(self) -> None:
         if self._thread is not None or not self._sources:
@@ -66,7 +65,7 @@ class TeleopTargetDirectory:
 
 def is_topic_name(value: object) -> bool:
     """One topic, never a namespace or a wildcard: the allowlist reads a trailing `/` as a whole namespace."""
-    return isinstance(value, str) and value.startswith("/") and not value.endswith("/") and "*" not in value
+    return isinstance(value, str) and ros_name_error(value) is None
 
 
 def _group_by_node(sources: Sequence[str]) -> dict[str, tuple[str, ...]]:

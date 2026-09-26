@@ -34,6 +34,7 @@ from libs.ros_adapters.camera_streams import (
     CameraStreamHandle,
     NoopCameraStreamGateway,
 )
+from libs.ros_adapters.names import ros_name_error
 from libs.ros_adapters.safety import (
     RuntimeCommandPolicyError,
 )
@@ -160,8 +161,9 @@ async def runtime_camera_websocket(websocket: WebSocket) -> None:
     topic = websocket.query_params.get("topic", "").strip()
     await websocket.accept(subprotocol=select_runtime_websocket_subprotocol(websocket))
 
-    if not topic.startswith("/") or any(character.isspace() for character in topic):
-        await websocket.close(code=1008, reason="A camera topic must start with / and carry no whitespace.")
+    topic_error = ros_name_error(topic)
+    if topic_error:
+        await websocket.close(code=1008, reason=topic_error[:120])
         return
 
     gateway = get_camera_stream_gateway(websocket)

@@ -29,6 +29,7 @@ from libs.ros_adapters import (
     SafeRosPublishError,
     publish_with_runtime_policy,
 )
+from libs.ros_adapters.names import require_ros_name
 from libs.ros_adapters.parameters import RosParameterGateway, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import RuntimeCommandPolicyError
@@ -63,12 +64,7 @@ class RosTopicPublishRequest(BaseModel):
     @field_validator("topic")
     @classmethod
     def _validate_topic(cls, topic: str) -> str:
-        normalized_topic = topic.strip()
-        if not normalized_topic.startswith("/"):
-            raise ValueError("ROS topic must start with '/'")
-        if any(character.isspace() for character in normalized_topic):
-            raise ValueError("ROS topic must not contain whitespace")
-        return normalized_topic
+        return require_ros_name(topic)
 
     @field_validator("message_type")
     @classmethod
@@ -126,12 +122,7 @@ class RosServiceCallRequest(BaseModel):
     @field_validator("service")
     @classmethod
     def _validate_service(cls, service: str) -> str:
-        normalized = service.strip()
-        if not normalized.startswith("/"):
-            raise ValueError("ROS service must start with '/'")
-        if any(character.isspace() for character in normalized):
-            raise ValueError("ROS service must not contain whitespace")
-        return normalized
+        return require_ros_name(service, "service")
 
     @field_validator("service_type")
     @classmethod

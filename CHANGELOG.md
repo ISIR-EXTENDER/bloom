@@ -96,6 +96,15 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **STOP zeroes every topic a session is driving,** including one allowed through a namespace entry such as
+  `/ui/`, which it skipped. A manager input stays accepted when its node misses one parameter read while another
+  answers; it used to vanish until the next read, refusing the joystick and escaping STOP.
+- **A topic name ROS refuses is answered, not fatal.** `/ui/my-toggle` or `/2dof/pose` closed the operator's runtime
+  socket (and lease) or answered 500; every topic, service and recording name is now checked against the ROS rules
+  first, with a message that says what is wrong.
+- **An app stored by a newer Bloom is a 409, and can still be repaired.** It answered 500 everywhere, including the
+  overwrite, delete and Update that would fix it, and closed the runtime socket of a tablet that named it.
+
 - **STOP releases every control the instant it is pressed.** It used to wait for the backend's answer while the
   teleop socket kept streaming a held pad; a STOP the backend could not be told about now keeps the controls held
   and shows Resume. A pad moved in the moment between a suspend (focus lost, a sheet opening) and the controls'

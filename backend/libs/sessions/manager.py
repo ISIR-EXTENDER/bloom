@@ -225,6 +225,11 @@ class RuntimeSessionManager:
                 if not commands:
                     self._teleop_commands.pop(session_id, None)
 
+    def moving_teleop_targets(self) -> tuple[str, ...]:
+        """Every target some session is driving now, including one granted through a namespace entry."""
+        with self._lock:
+            return tuple(dict.fromkeys(target for commands in self._teleop_commands.values() for target in commands))
+
     def moving_teleop_commands(self, session: RuntimeSession) -> tuple[TeleopCommand, ...]:
         with self._lock:
             return tuple(self._teleop_commands.get(session.id, {}).values())

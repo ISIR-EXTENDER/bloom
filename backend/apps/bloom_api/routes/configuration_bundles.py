@@ -27,7 +27,8 @@ def get_configuration_bundle(config_id: str, request: Request) -> ConfigurationB
 
 
 def try_get_configuration_bundle(config_id: str, request: Request) -> ConfigurationBundle | None:
+    """None for an unreadable copy too: overwrite, delete and take-shipped are how it gets repaired."""
     try:
         return get_configuration_repository(request).get(config_id)
-    except (ConfigurationNotFoundError, ValueError):
+    except (ConfigurationNotFoundError, ConfigurationUnreadableError, ValueError):
         return None

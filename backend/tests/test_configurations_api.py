@@ -16,7 +16,9 @@ from libs.config import (
     CanvasSettings,
     ConfigurationBundle,
     ConfigurationMetadata,
+    ConfigurationUnreadableError,
     FileConfigurationRepository,
+    InMemoryConfigurationRepository,
     ScreenConfig,
     SQLiteConfigurationRepository,
     load_legacy_screen_file,
@@ -613,3 +615,44 @@ def test_a_server_that_cannot_write_shared_apps_says_how_to_share_instead(tmp_pa
 
     assert response.status_code == 409
     assert "bloom config publish sandbox" in response.json()["detail"]
+
+
+class _OneUnreadable(InMemoryConfigurationRepository):
+    """An app stored by a newer Bloom: the row is there and the models refuse it."""
+
+    def __init__(self, bundle: ConfigurationBundle) -> None:
+        super().__init__({"broken": bundle})
+        self.broken = True
+
+    def get(self, config_id: str) -> ConfigurationBundle:
+        if config_id == "broken" and self.broken:
+            raise ConfigurationUnreadableError("broken", "unknown widget kind 'holographic-pad'")
+        return super().get(config_id)
+
+    def upsert(self, config_id: str, bundle: ConfigurationBundle) -> ConfigurationBundle:
+        self.broken = False
+        return super().upsert(config_id, bundle)
+
+
+def test_an_unreadable_app_is_a_conflict_and_can_still_be_repaired(
+    sample_configuration_bundle: ConfigurationBundle,
+) -> None:
+    repository = _OneUnreadable(sample_configuration_bundle)
+    client = TestClient(create_app(Settings(environment="test"), repository))
+
+    assert client.get("/api/v1/configurations/broken").status_code == 409
+    assert client.get("/api/v1/configurations/broken/applications").status_code == 409
+    # Overwriting it is the repair; it used to answer 500 before writing anything.
+    assert (
+        client.put(
+            "/api/v1/configurations/broken", json=sample_configuration_bundle.model_dump(mode="json")
+        ).status_code
+        == 200
+    )
+    assert client.get("/api/v1/configurations/broken").status_code == 200
+
+
+def test_an_unreadable_app_can_be_deleted(sample_configuration_bundle: ConfigurationBundle) -> None:
+    client = TestClient(create_app(Settings(environment="test"), _OneUnreadable(sample_configuration_bundle)))
+
+    assert client.delete("/api/v1/configurations/broken").status_code == 204

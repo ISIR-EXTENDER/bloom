@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import TypeVar
 
+from libs.ros_adapters.names import ros_name_error
 from libs.ros_adapters.publishers import RosPublisherGateway, RosPublishRequest
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
 from libs.sessions.teleop import TeleopCommand, TeleopCommandGateway, TeleopVector3
@@ -149,9 +150,7 @@ class RuntimeStopController:
         extra = source() if callable(source) else (source or ())
         # A wildcard or namespace entry is a permission, not a topic that can carry a zero.
         return tuple(
-            target
-            for target in dict.fromkeys([self._teleop_target, *extra])
-            if target.startswith("/") and not target.endswith("/") and "*" not in target
+            target for target in dict.fromkeys([self._teleop_target, *extra]) if ros_name_error(target) is None
         )
 
     def resume(self) -> RuntimeStopState:

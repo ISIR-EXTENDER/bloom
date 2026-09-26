@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from apps.bloom_api.body_limit import RequestBodyLimitMiddleware
 from apps.bloom_api.routes import api_router
@@ -9,7 +10,7 @@ from apps.bloom_api.security import (
     install_security_headers,
 )
 from apps.bloom_api.settings import Settings, get_settings
-from libs.config import ConfigurationRepository, create_configuration_repository
+from libs.config import ConfigurationRepository, ConfigurationUnreadableError, create_configuration_repository
 from libs.config.seed import adopt_file_configurations, seed_configurations
 from libs.ros_adapters import (
     NoopRosPublisherGateway,
@@ -121,7 +122,10 @@ def create_app(
         teleop_target=(
             LEGACY_TELEOP_TARGET if app_settings.ros_command_backend == "teleop_command" else DEFAULT_TELEOP_TARGET
         ),
-        teleop_targets=app.state.teleop_target_directory.targets,
+        teleop_targets=lambda: (
+            *app.state.teleop_target_directory.targets(),
+            *app.state.runtime_session_manager.moving_teleop_targets(),
+        ),
         on_asserted=app.state.runtime_session_manager.record_runtime_stop,
     )
     app.state.http_rate_limit_buckets = {}
@@ -130,6 +134,7 @@ def create_app(
     # Added last so it wraps the others: the body is refused before anything reads or routes it.
     install_body_limit(app)
     install_security_headers(app)
+    install_unreadable_configuration_handler(app)
     install_api_key_log_redaction()
     app.include_router(api_router, prefix=app_settings.api_prefix)
 
@@ -232,3 +237,11 @@ def __getattr__(name: str) -> FastAPI:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     app = globals()["app"] = create_app()
     return app
+
+
+def install_unreadable_configuration_handler(app: FastAPI) -> None:
+    """A stored app that no longer parses is a conflict to resolve, not a server fault."""
+
+    @app.exception_handler(ConfigurationUnreadableError)
+    async def _unreadable(_request: Request, exc: ConfigurationUnreadableError) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"detail": str(exc)})

@@ -2,6 +2,8 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, field_validator, model_validator
 
+from libs.ros_adapters.names import require_ros_name
+
 
 class RuntimeModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -36,12 +38,7 @@ class RuntimeTopicMessage(RuntimeModel):
     @field_validator("topic")
     @classmethod
     def topic_must_be_absolute(cls, value: str) -> str:
-        normalized_topic = value.strip()
-        if not normalized_topic.startswith("/"):
-            raise ValueError("topic must start with '/'")
-        if any(character.isspace() for character in normalized_topic):
-            raise ValueError("topic must not contain whitespace")
-        return normalized_topic
+        return require_ros_name(value)
 
     @field_validator("widget_id")
     @classmethod
@@ -100,12 +97,7 @@ class RuntimeTeleopCommandMessage(RuntimeModel):
     @field_validator("target")
     @classmethod
     def target_must_be_absolute(cls, value: str) -> str:
-        normalized_target = value.strip()
-        if not normalized_target.startswith("/"):
-            raise ValueError("target must start with '/'")
-        if any(character.isspace() for character in normalized_target):
-            raise ValueError("target must not contain whitespace")
-        return normalized_target
+        return require_ros_name(value)
 
 
 RuntimeClientMessage = Annotated[

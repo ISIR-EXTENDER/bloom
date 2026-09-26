@@ -19,6 +19,7 @@ from apps.bloom_api.security import (
     execute_as_runtime_owner,
     require_runtime_owner,
 )
+from libs.ros_adapters.names import require_ros_name
 from libs.ros_adapters.safety import (
     RuntimeCommandPolicyError,
 )
@@ -42,12 +43,7 @@ class RuntimeRecordingStartRequest(BaseModel):
     def topics_must_be_absolute(cls, topics: tuple[str, ...]) -> tuple[str, ...]:
         normalized_topics: list[str] = []
         for topic in topics:
-            normalized_topic = topic.strip()
-            if not normalized_topic.startswith("/"):
-                raise ValueError("recording topics must start with '/'")
-            if any(character.isspace() for character in normalized_topic):
-                raise ValueError("recording topics must not contain whitespace")
-            normalized_topics.append(normalized_topic)
+            normalized_topics.append(require_ros_name(topic))
         return tuple(dict.fromkeys(normalized_topics))
 
     @field_validator("output_folder")

@@ -13,6 +13,7 @@ from apps.bloom_api.settings import Settings
 from libs.config import (
     ApplicationConfig,
     ConfigurationNotFoundError,
+    ConfigurationUnreadableError,
 )
 from libs.ros_adapters import (
     RosPublisherGateway,
@@ -177,7 +178,7 @@ def narrow_allowlist(deployment: tuple[str, ...], application: tuple[str, ...]) 
 def find_runtime_application(connection: Request | WebSocket, config_id: str, app_id: str) -> ApplicationConfig | None:
     try:
         bundle = connection.app.state.configuration_repository.get(config_id)
-    except (ConfigurationNotFoundError, ValueError):
+    except (ConfigurationNotFoundError, ConfigurationUnreadableError, ValueError):
         return None
     return next((application for application in bundle.applications if application.id == app_id), None)
 

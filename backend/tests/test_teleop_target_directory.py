@@ -65,6 +65,25 @@ def test_a_manager_that_is_not_up_leaves_the_default_and_keeps_what_it_last_said
     assert directory.targets() == ("/joystick_cartesian_command",)
 
 
+def test_a_node_that_misses_one_read_keeps_its_targets_while_another_answers() -> None:
+    # One silent node used to wipe its topics whenever another answered: teleop refused, STOP skipped them.
+    manager = ManagerParameters({"topics.joystick_command": "/lab_joystick"})
+    servo = ManagerParameters({"topics.command": "/lab_servo"})
+
+    class TwoNodes:
+        def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
+            return (manager if node == "/cartesian_manager" else servo).get(node, names)
+
+    directory = TeleopTargetDirectory(
+        (), TwoNodes(), ("/cartesian_manager:topics.joystick_command", "/servo:topics.command")
+    )
+    directory.refresh()
+    servo.topics = None
+    directory.refresh()
+
+    assert directory.targets() == ("/lab_joystick", "/lab_servo")
+
+
 def test_nothing_but_a_topic_name_is_taken_from_the_manager() -> None:
     parameters = ManagerParameters({"topics.joystick_command": "", "topics.visual_servoing_command": "relative"})
     directory = TeleopTargetDirectory((), parameters, MANAGER_INPUTS)

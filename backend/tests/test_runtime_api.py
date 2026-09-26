@@ -467,6 +467,30 @@ def test_runtime_websocket_accepts_topic_subscriptions() -> None:
     }
 
 
+def test_a_topic_name_ros_refuses_is_answered_without_closing_the_socket() -> None:
+    # rclpy raises its own name error, not a ValueError: it closed the socket and the operator lost control.
+    client = TestClient(create_app(Settings(environment="test"), InMemoryConfigurationRepository()))
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "subscribe_topic",
+                "field_path": "data",
+                "message_type": "std_msgs/msg/Float64",
+                "topic": "/2dof/pose",
+                "widget_id": "pose",
+            }
+        )
+        refused = websocket.receive_json()
+        websocket.send_json({"type": "ping"})
+        still_open = websocket.receive_json()
+
+    assert refused["type"] == "runtime_error"
+    assert "no part may start with a digit" in str(refused)
+    assert still_open["type"] == "pong"
+
+
 def test_resubscribing_a_widget_replaces_its_subscription() -> None:
     # A screen resubscribes whenever the socket reconnects. Stacking a second
     # subscription on the same topic would double every sample and leak the
