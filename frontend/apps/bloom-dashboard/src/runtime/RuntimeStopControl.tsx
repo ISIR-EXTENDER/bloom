@@ -63,9 +63,8 @@ export function RuntimeStopControl({
   // station pulled focus to STOP from wherever the operator was.
   const keyboardHoldRef = useRef(false);
   const keyboardPressRef = useRef(false);
-  // A real key went down on STOP. A scan or dwell activation also clicks with detail 0, and handing focus to Resume
-  // then put the switch on Resume's own key handler.
-  const stopKeyDownRef = useRef(false);
+  // A key engaged STOP on keydown; a native click from that same press must not engage again.
+  const keyEngagedRef = useRef(false);
   const resume = () => {
     if (!resumeDisabled) {
       keyboardPressRef.current = keyboardHoldRef.current;
@@ -88,6 +87,7 @@ export function RuntimeStopControl({
     }
     // The key comes up on the element that replaced the one it went down on; nothing else would clear it.
     keyboardHoldRef.current = false;
+    keyEngagedRef.current = false;
   }, [stopped]);
   // A resume the backend refused leaves STOP engaged: the pending hand-over must not fire on a later resume from
   // another station.
@@ -133,14 +133,16 @@ export function RuntimeStopControl({
       data-scan-priority="stop"
       data-stop-again={again ? "true" : undefined}
       onBlur={() => {
-        stopKeyDownRef.current = false;
+        keyEngagedRef.current = false;
       }}
       onClick={(event) => {
-        // Keyboard, scan and dwell; a pointer tap already engaged on pointerdown.
+        // Scan and dwell; a pointer tap engaged on pointerdown, a key on keydown.
         if (event.detail === 0) {
-          // STOP again stays mounted, so there is no hand-over to make.
-          keyboardPressRef.current = !again && stopKeyDownRef.current;
-          stopKeyDownRef.current = false;
+          if (keyEngagedRef.current) {
+            keyEngagedRef.current = false;
+            return;
+          }
+          keyboardPressRef.current = false;
           onEngage();
         }
       }}
@@ -148,18 +150,23 @@ export function RuntimeStopControl({
         if (event.key !== "Enter" && event.key !== " ") {
           return;
         }
+        // Stops on the press, not Space's release; the native click must not double it.
+        event.preventDefault();
         // A key still held from Resume's hold auto-repeats onto STOP once focus is handed over; only a fresh press stops.
         if (event.repeat) {
-          event.preventDefault();
           return;
         }
-        stopKeyDownRef.current = true;
+        // STOP again stays mounted, so there is no hand-over to make.
+        keyboardPressRef.current = !again;
+        keyEngagedRef.current = true;
+        onEngage();
       }}
       onKeyUp={(event) => {
-        // Space clicks on keyup: one that went down on Resume must not click STOP.
-        if (event.key === " " && !stopKeyDownRef.current) {
+        // Space clicks on keyup: it already stopped on keydown, and one that went down on Resume must not click STOP.
+        if (event.key === " ") {
           event.preventDefault();
         }
+        keyEngagedRef.current = false;
       }}
       onPointerDown={onEngage}
       ref={again ? undefined : buttonRef}
@@ -201,6 +208,7 @@ export function RuntimeStopControl({
           data-reassert={showStopAgain ? "true" : undefined}
           data-runtime-control-independent=""
           data-scan-priority="stop"
+          data-scan-switch-only=""
           data-stopped="true"
           disabled={resumeDisabled}
           onBlur={() => {

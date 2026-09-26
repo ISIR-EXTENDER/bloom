@@ -242,6 +242,22 @@ describe("switch scanning", () => {
     expect(ownKeys).toHaveBeenCalledOnce();
   });
 
+  it("takes focus back from an iframe while the guard is held, so switch keys still reach it", () => {
+    const root = document.createElement("div");
+    root.tabIndex = -1;
+    const frame = document.createElement("iframe");
+    root.append(frame);
+    document.body.append(root);
+    renderHook(() => useSwitchKeyGuard(true, { current: root }));
+
+    frame.focus();
+    expect(document.activeElement).toBe(frame);
+    window.dispatchEvent(new FocusEvent("blur"));
+    vi.advanceTimersByTime(0);
+
+    expect(document.activeElement).toBe(root);
+  });
+
   it("takes a switch press on a focused Resume as the switch", () => {
     const { clicks, rootRef } = buildScreen(2);
     const resume = document.createElement("button");
@@ -349,6 +365,17 @@ describe("switch scanning", () => {
 
     window.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
 
+    expect(clicks).toEqual(["target-0"]);
+  });
+
+  it("takes no tap anywhere as the switch for a switch-only target", () => {
+    const { clicks, root, rootRef } = buildScreen(2);
+    root.querySelector("button")?.setAttribute("data-scan-switch-only", "");
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    window.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    expect(clicks).toEqual([]);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
     expect(clicks).toEqual(["target-0"]);
   });
 

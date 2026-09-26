@@ -50,8 +50,12 @@ export function RuntimeMaintenanceSheet({
   const roleSwitchRef = useAssistiveActivation<HTMLButtonElement>(() => setChoosingRole(true));
   // The sheet is the scan root while it is open, so Settings, a screen change
   // and Resume operating stay reachable by switch.
+  const scanPreset = scanning?.enabled === true;
+  // Pages with no scanner would strand a one-switch operator: a caregiver opens them by touch.
+  const touchOnly = scanPreset ? "" : undefined;
   const sheetScanning = useSwitchScanning({
-    enabled: scanning?.enabled === true,
+    enabled: scanPreset,
+    isTargetEnabled: (target) => !target.hasAttribute("data-scan-touch-only"),
     periodMs: scanning?.periodMs ?? 1200,
     rootRef: panelRef,
     revision: `${choosingRole}:${screen.id}`,
@@ -245,6 +249,7 @@ export function RuntimeMaintenanceSheet({
               hint={strings.kiosk.exitHint}
               label={strings.kiosk.exitToLibrary}
               onClick={closeAnd(onOpenAppLibrary)}
+              touchOnly={scanPreset}
             />
           </div>
 
@@ -273,16 +278,16 @@ export function RuntimeMaintenanceSheet({
             <button onClick={closeAnd(onOpenSupervisor)} type="button">
               {strings.kiosk.supervisorMirror}
             </button>
-            <button onClick={onEditScreen} type="button">
+            <button data-scan-touch-only={touchOnly} onClick={onEditScreen} type="button">
               {strings.kiosk.editScreen}
             </button>
-            <button onClick={onEditApplication} type="button">
+            <button data-scan-touch-only={touchOnly} onClick={onEditApplication} type="button">
               {strings.kiosk.editApp}
             </button>
-            <button onClick={onOpenHelp} type="button">
+            <button data-scan-touch-only={touchOnly} onClick={onOpenHelp} type="button">
               {strings.kiosk.help}
             </button>
-            <button onClick={onOpenLanding} type="button">
+            <button data-scan-touch-only={touchOnly} onClick={onOpenLanding} type="button">
               {strings.kiosk.home}
             </button>
             <fieldset className="runtime-maintenance-languages">
@@ -299,6 +304,7 @@ export function RuntimeMaintenanceSheet({
               ))}
             </fieldset>
           </div>
+          {scanPreset ? <p className="runtime-maintenance-touch-note">{strings.kiosk.touchOnlyNote}</p> : null}
 
           {diagnostics ? <div className="runtime-maintenance-diagnostics">{diagnostics}</div> : null}
         </div>
@@ -346,11 +352,13 @@ function ActionButton({
   hint,
   label,
   onClick,
+  touchOnly = false,
 }: {
   danger?: boolean;
   hint: string;
   label: string;
   onClick: () => void;
+  touchOnly?: boolean;
 }) {
   const hintId = useId();
   return (
@@ -359,6 +367,7 @@ function ActionButton({
       aria-label={label}
       className="runtime-maintenance-action"
       data-danger={danger ? "true" : undefined}
+      data-scan-touch-only={touchOnly ? "" : undefined}
       onClick={onClick}
       type="button"
     >

@@ -16,6 +16,8 @@ export type RuntimeStopHandle = {
   requestError: string;
   /** STOP was pressed and the backend has not answered, or could not be told: motion stays refused. */
   stopRequested: boolean;
+  /** The last STOP failed or the backend answered not stopped: STOP must be resendable. */
+  engageUnconfirmed: boolean;
   engage: () => void;
   resume: () => void;
 };
@@ -28,6 +30,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   const [state, setState] = useState<RuntimeStopState | null>(null);
   const [requestError, setRequestError] = useState("");
   const [stopRequested, setStopRequested] = useState(false);
+  const [engageUnconfirmed, setEngageUnconfirmed] = useState(false);
   const clientRef = useRef(client);
   clientRef.current = client;
   // Bumped by every STOP and resume: a poll sent before one answers with the latch as it was.
@@ -52,6 +55,9 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
         .then((next) => {
           if (!cancelled && actionsWhenSent === actionCountRef.current) {
             mirrorState(next);
+            if (next.stopped) {
+              setEngageUnconfirmed(false);
+            }
           }
         })
         .catch(() => {
@@ -84,6 +90,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
         }
         mirrorState(next);
         setStopRequested(false);
+        setEngageUnconfirmed(false);
         setRequestError("");
       })
       .catch((error: unknown) => {
@@ -93,6 +100,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
         const message = error instanceof Error ? error.message : "The stop request failed.";
         const getState = clientRef.current?.getRuntimeStopState;
         if (!getState) {
+          setEngageUnconfirmed(true);
           setRequestError(message);
           return;
         }
@@ -104,10 +112,12 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
             mirrorState(next);
             // Not latched on the backend: the press still holds every control here until Resume.
             setStopRequested(!next.stopped);
+            setEngageUnconfirmed(!next.stopped);
             setRequestError(next.stopped && !next.asserted ? "" : message);
           })
           .catch(() => {
             if (current()) {
+              setEngageUnconfirmed(true);
               setRequestError(message);
             }
           });
@@ -125,6 +135,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     const actionsWhenSent = actionCountRef.current;
     const current = () => actionsWhenSent === actionCountRef.current;
     setStopRequested(false);
+    setEngageUnconfirmed(false);
     resumeRuntimeStop(engagedAt ? { engagedAt } : undefined)
       .then((next) => {
         if (current()) {
@@ -160,5 +171,5 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   }, [mirrorState]);
 
   const assertionError = state?.stopped && !state.asserted ? state.detail : "";
-  return { state, requestError: assertionError || requestError, stopRequested, engage, resume };
+  return { state, requestError: assertionError || requestError, stopRequested, engageUnconfirmed, engage, resume };
 }

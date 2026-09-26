@@ -405,11 +405,14 @@ function StreamPreview({ fitMode, streamUrl, title }: { fitMode: string; streamU
   }
 
   return (
+    // View only: focus inside the frame took the switch keys and taps away from the scanner.
     <iframe
       src={streamUrl}
       title={`${title} stream`}
       sandbox="allow-same-origin allow-scripts"
       referrerPolicy="no-referrer"
+      style={{ pointerEvents: "none" }}
+      tabIndex={-1}
     />
   );
 }

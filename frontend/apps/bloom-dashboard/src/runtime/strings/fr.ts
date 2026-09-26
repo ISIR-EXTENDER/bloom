@@ -160,6 +160,8 @@ export const frRuntimeStrings: RuntimeStrings = {
     more: "Plus",
     resumeNote:
       "Fermer reprend l'envoi immédiatement. Rien ici ne change ce que l'app envoie : sujets, repère et fréquence sont affichés pour être lus, pas réglés.",
+    touchOnlyNote:
+      "Quitter vers la bibliothèque, Modifier, Aide et Accueil ne sont pas balayés : un aidant peut les ouvrir au toucher.",
     resume: "Reprendre le pilotage",
   },
   supervisor: {

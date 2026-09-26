@@ -56,8 +56,29 @@ function holdSwitchKeyGuard(): () => void {
 }
 
 /** Held for as long as the scan preset is on, so the scanner owns the switch keys on every screen and sheet. */
-export function useSwitchKeyGuard(enabled: boolean): void {
-  useEffect(() => (enabled ? holdSwitchKeyGuard() : undefined), [enabled]);
+export function useSwitchKeyGuard(enabled: boolean, rootRef?: { current: HTMLElement | null }): void {
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+    const release = holdSwitchKeyGuard();
+    let timer = 0;
+    // Focus inside an iframe takes the keys out of this window: the guard, and so the switch, would never see them.
+    const reclaimFromFrame = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (document.activeElement instanceof HTMLIFrameElement) {
+          rootRef?.current?.focus({ preventScroll: true });
+        }
+      }, 0);
+    };
+    window.addEventListener("blur", reclaimFromFrame);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("blur", reclaimFromFrame);
+      release();
+    };
+  }, [enabled, rootRef]);
 }
 
 export type SwitchScanningOptions = {
@@ -86,7 +107,7 @@ export type SwitchScanningState = {
  * Walks a highlight across the screen's controls; any switch fires the lit one.
  *
  * The switch is deliberately broad -- Space, Enter (from any focus), or a tap anywhere outside a
- * control -- because a switch box, a sip-puff and a button all present as one
+ * control, except on a `data-scan-switch-only` target -- because a switch box, a sip-puff and a button all present as one
  * of those. Targets are read from the DOM, so a widget is scannable exactly
  * when it renders buttons: pads and sliders switch to step targets under this
  * preset, because a click on a pad moves nothing.
@@ -238,6 +259,10 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
         return;
       }
       if (!rootIsModal && isInsideModal(target)) {
+        return;
+      }
+      // A stray tap (orbiting the 3D view, touching a camera) must not resume the robot: that takes the switch.
+      if (targetsRef.current[indexRef.current]?.hasAttribute("data-scan-switch-only")) {
         return;
       }
       activateCurrent();

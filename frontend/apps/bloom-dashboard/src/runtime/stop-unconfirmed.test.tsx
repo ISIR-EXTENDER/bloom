@@ -72,6 +72,22 @@ describe("a STOP the backend never confirmed", () => {
   }, 20000);
 });
 
+describe("a STOP still in flight", () => {
+  it("shows Resume alone, not STOP again, while the backend has not answered", async () => {
+    const client = {
+      engageRuntimeStop: vi.fn(() => new Promise<RuntimeStopState>(() => {})),
+      getRuntimeStopState: vi.fn(async () => ({ stopped: false, asserted: false, engaged_at: "", detail: "" })),
+      resumeRuntimeStop: vi.fn(),
+      publishRosTopic: vi.fn(),
+    } satisfies RuntimeActionClient;
+    await openApp(client);
+
+    press(await screen.findByRole("button", { name: "Stop the robot" }));
+    await screen.findByRole("button", { name: /Hold for one second to resume/ });
+    expect(screen.queryByRole("button", { name: "Stop the robot again" })).toBeNull();
+  }, 20000);
+});
+
 describe("the supervisor's stop latch", () => {
   it("says a latch restored after a restart is not confirmed on the robot, and why", async () => {
     const detail = "Runtime stop restored after a backend restart.";

@@ -310,10 +310,9 @@ export function RuntimeWorkspace({
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
   const stopped = runtimeStop.state?.stopped === true || runtimeStop.stopRequested;
-  // Not asserted, or never confirmed at all (engage failed, or the backend answered not stopped): STOP must be resendable.
+  // Not asserted, or the engage failed: STOP must be resendable. Not while a normal STOP is in flight.
   const stopNeedsReassert =
-    (runtimeStop.state?.stopped === true && !runtimeStop.state.asserted) ||
-    (runtimeStop.stopRequested && runtimeStop.state?.stopped !== true);
+    (runtimeStop.state?.stopped === true && !runtimeStop.state.asserted) || runtimeStop.engageUnconfirmed;
   const scanMode = runtimeProfile.motorAccessibilityPreset === "scan";
   const isAssistiveRuntimeTargetEnabled = (target: HTMLElement) => {
     // Not in control: claim, STOP, and the way out; maintenance holds motion, and without it a switch or dwell
@@ -359,7 +358,7 @@ export function RuntimeWorkspace({
       ? { label: strings.status.debug, tone: "debug" as const }
       : resolvedChip;
   useAudioCues(statusChip?.tone, runtimeProfile.audioCues);
-  useSwitchKeyGuard(scanMode);
+  useSwitchKeyGuard(scanMode, workspaceRef);
   const scanning = useSwitchScanning({
     // Maintenance covers the canvas; a switch press there must not reach it.
     // Scanning stays on while stopped: isTargetEnabled leaves resume as the

@@ -84,3 +84,52 @@ describe("a keyboard Resume handing focus to STOP", () => {
     expect(onEngage).toHaveBeenCalledOnce();
   });
 });
+
+describe("a keyboard STOP", () => {
+  afterEach(cleanup);
+
+  function StopHarness({ onEngage }: { onEngage: () => void }) {
+    const [stopped, setStopped] = useState(false);
+    return (
+      <RuntimeStopControl
+        onEngage={() => {
+          onEngage();
+          setStopped(true);
+        }}
+        onResume={() => setStopped(false)}
+        requestError=""
+        stopped={stopped}
+      />
+    );
+  }
+
+  it.each([" ", "Enter"])("stops on the %j press, not its release, and only once", (key) => {
+    const onEngage = vi.fn();
+    render(<StopHarness onEngage={onEngage} />);
+    screen.getByRole("button", { name: "Stop the robot" }).focus();
+
+    nativeKeyDown(key);
+    expect(onEngage).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /Hold for one second to resume/ }));
+
+    nativeKeyDown(key, true);
+    nativeKeyUp(key);
+    expect(onEngage).toHaveBeenCalledOnce();
+  });
+});
+
+it("still stops on a scan click after a keyboard STOP and a Resume", () => {
+  const onEngage = vi.fn();
+  const view = (stopped: boolean) => (
+    <RuntimeStopControl onEngage={onEngage} onResume={vi.fn()} requestError="" stopped={stopped} />
+  );
+  const { rerender } = render(view(false));
+  screen.getByRole("button", { name: "Stop the robot" }).focus();
+  nativeKeyDown(" ");
+  rerender(view(true));
+  rerender(view(false));
+
+  fireEvent.click(screen.getByRole("button", { name: "Stop the robot" }), { detail: 0 });
+  expect(onEngage).toHaveBeenCalledTimes(2);
+  cleanup();
+});

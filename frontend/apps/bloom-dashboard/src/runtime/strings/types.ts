@@ -121,6 +121,7 @@ export type RuntimeStrings = {
     exitHint: string;
     more: string;
     resumeNote: string;
+    touchOnlyNote: string;
     resume: string;
   };
   supervisor: {

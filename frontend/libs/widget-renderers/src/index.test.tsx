@@ -1027,6 +1027,24 @@ describe("widget renderer registry", () => {
     expect(screen.getByText("Ready")).toBeVisible();
   });
 
+  it("draws a page stream as a view the operator cannot tap or tab into", () => {
+    const pageScreen: ScreenConfig = {
+      ...cameraStreamScreen,
+      widgets: cameraStreamScreen.widgets.map((widget) => ({
+        ...widget,
+        settings: { ...widget.settings, streamUrl: "http://localhost:8000/stream" },
+      })),
+    };
+    const [descriptor] = renderScreenDescriptors(pageScreen, createDefaultWidgetRegistry());
+    if (!descriptor) throw new Error("Missing camera descriptor.");
+
+    const { container } = render(<div>{renderWidgetDescriptor(descriptor)}</div>);
+
+    const frame = container.querySelector("iframe") as HTMLIFrameElement;
+    expect(frame.style.pointerEvents).toBe("none");
+    expect(frame.tabIndex).toBe(-1);
+  });
+
   it("renders a ROS camera topic, and says which of the three silences it is in", () => {
     // Robin asked to see the gripper while driving. "No image" alone sends an operator hunting the
     // wrong thing, so waiting, unconfigured and no-ROS each read differently.

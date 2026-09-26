@@ -159,6 +159,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     more: "More",
     resumeNote:
       "Closing resumes publishing immediately. Nothing here changes what the app sends — topics, frame and rate are shown so you can read them, not set them.",
+    touchOnlyNote: "Exit to library, Edit, Help and Home are not scanned: a caregiver can open them by touch.",
     resume: "Resume operating",
   },
   supervisor: {

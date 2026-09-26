@@ -160,6 +160,8 @@ export const esRuntimeStrings: RuntimeStrings = {
     more: "Más",
     resumeNote:
       "Al cerrar, el envío se reanuda de inmediato. Nada aquí cambia lo que envía la app: temas, marco y frecuencia se muestran para leerlos, no para ajustarlos.",
+    touchOnlyNote:
+      "Salir a la biblioteca, Editar, Ayuda e Inicio no entran en el barrido: un cuidador puede abrirlos tocándolos.",
     resume: "Reanudar la operación",
   },
   supervisor: {

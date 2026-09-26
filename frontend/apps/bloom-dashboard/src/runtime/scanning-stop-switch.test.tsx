@@ -121,6 +121,30 @@ describe("STOP under switch scanning", () => {
     await waitFor(() => expect(client.resumeRuntimeStop).toHaveBeenCalledOnce());
   }, 20000);
 
+  it("takes no stray tap on the artboard as the switch for Resume, but still for STOP", async () => {
+    scanProfile(5000);
+    const client = stopClient();
+    await openScanning(client);
+    const stop = await screen.findByRole("button", { name: "Stop the robot" });
+    await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(stop));
+
+    act(() => {
+      document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    });
+    await waitFor(() => expect(client.engageRuntimeStop).toHaveBeenCalledOnce());
+    const resume = await screen.findByRole("button", { name: /Hold for one second to resume/ });
+    await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(resume));
+
+    for (let tap = 0; tap < 2; tap += 1) {
+      act(() => {
+        document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+      });
+    }
+    await act(() => wait(50));
+    expect(screen.queryByRole("button", { name: /Press again to resume/ })).toBeNull();
+    expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
+  }, 20000);
+
   it("offers STOP again, first in the scan, while the latch is not asserted", async () => {
     scanProfile(5000);
     const client = stopClient({ assertFails: true });
