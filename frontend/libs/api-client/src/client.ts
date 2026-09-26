@@ -173,11 +173,23 @@ export class BloomApiClient {
   }
 
   publishRosTopic(request: RosTopicPublishRequest): Promise<RosTopicPublishResponse> {
-    return this.request<RosTopicPublishResponse>("/api/v1/ros/topics/publish", {
+    // A hanging press would hold a momentary widget's queue, and the release it owes, forever.
+    const timeoutMs = 4000;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error(`ROS publish on ${request.topic} timed out after ${timeoutMs / 1000} s.`));
+      }, timeoutMs);
+    });
+    const published = this.request<RosTopicPublishResponse>("/api/v1/ros/topics/publish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
+      signal: controller.signal,
     });
+    return Promise.race([published, timedOut]).finally(() => clearTimeout(timer));
   }
 
   dispatchRuntimeAction(request: RuntimeActionDispatchRequest): Promise<RuntimeActionDispatchResponse> {

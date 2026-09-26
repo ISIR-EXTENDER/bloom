@@ -319,23 +319,27 @@ export class TeleopTwistComposer {
    * A widget's own frame therefore wins while it is the only one turning. Two widgets turning under
    * different frames cannot both be honoured in one message, so the session's frame is kept and the
    * pair is named rather than one of them silently losing.
+   *
+   * A turning widget with no frame of its own turns in the session's, so it takes part in the conflict.
+   * A frame outside `allowedFrameIds` never leaves: the session frame, or the backend default, goes instead.
    */
-  resolveFrame(sessionFrameId = ""): { frameId: string; conflicting: string[] } {
+  resolveFrame(sessionFrameId = "", allowedFrameIds?: readonly string[]): { frameId: string; conflicting: string[] } {
     const declared = new Map<string, string>();
     for (const [widgetId, contribution] of this.contributions) {
-      const frameId = this.frames.get(widgetId);
-      if (!frameId || !turnsTheHand(contribution)) {
-        continue;
+      if (turnsTheHand(contribution)) {
+        declared.set(widgetId, this.frames.get(widgetId) || sessionFrameId);
       }
-      declared.set(widgetId, frameId);
     }
 
     const distinct = new Set(declared.values());
+    const allows = (frameId: string) => !frameId || !allowedFrameIds || allowedFrameIds.includes(frameId);
+    const fallback = allows(sessionFrameId) ? sessionFrameId : "";
     if (distinct.size === 1) {
-      return { frameId: [...distinct][0] as string, conflicting: [] };
+      const frameId = [...distinct][0] as string;
+      return { frameId: allows(frameId) ? frameId : fallback, conflicting: [] };
     }
     return {
-      frameId: sessionFrameId,
+      frameId: fallback,
       conflicting: distinct.size > 1 ? [...declared.keys()].sort() : [],
     };
   }

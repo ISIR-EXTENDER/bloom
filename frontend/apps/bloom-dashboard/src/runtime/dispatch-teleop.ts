@@ -36,7 +36,12 @@ export async function dispatchTeleopRequest(
 ): Promise<RuntimeActionDispatchResult> {
   // The request was composed before it was judged. A refused one must leave the composer too, or its
   // value keeps riding on every later command from the widgets that are allowed.
-  const frameError = validateCommandFrameRequest(request, options.allowedCommandFrameIds);
+  // A widget's own frame is judged too: in a conflict the request carries the session frame, and the refused
+  // frame would ride out later, once the widget it conflicted with lets go.
+  const widgetFrameId = readOptionalString(asRecord(asRecord(intent.runtimeBinding).value_mapping).frame_id) ?? "";
+  const frameError =
+    validateCommandFrameId(widgetFrameId, options.allowedCommandFrameIds) ??
+    validateCommandFrameId(request.frame_id ?? "", options.allowedCommandFrameIds);
   if (frameError) {
     options.teleopComposer?.release(intent.widgetId);
     return {
@@ -307,14 +312,11 @@ function validateTeleopCommandRequest(
   return `Teleop target "${request.target}" is not allowed by this app runtime policy.`;
 }
 
-function validateCommandFrameRequest(
-  request: RuntimeTeleopCommandRequest,
-  allowedCommandFrameIds: readonly string[] | undefined,
-): string | null {
-  if (!request.frame_id || !allowedCommandFrameIds || allowedCommandFrameIds.includes(request.frame_id)) {
+function validateCommandFrameId(frameId: string, allowedCommandFrameIds: readonly string[] | undefined): string | null {
+  if (!frameId || !allowedCommandFrameIds || allowedCommandFrameIds.includes(frameId)) {
     return null;
   }
-  return `Command frame "${request.frame_id}" is not available on this robot.`;
+  return `Command frame "${frameId}" is not available on this robot.`;
 }
 
 function resolveTeleopMode(modeId: string | undefined): number {

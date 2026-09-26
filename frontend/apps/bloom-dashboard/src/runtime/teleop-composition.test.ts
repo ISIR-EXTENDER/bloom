@@ -175,3 +175,21 @@ describe("TeleopTwistComposer", () => {
     expect(composer.activeWidgetIds).toEqual([]);
   });
 });
+
+describe("the composed twist's frame", () => {
+  it("counts a turning widget with no frame as turning in the session's, so the conflict is seen", () => {
+    const composer = new TeleopTwistComposer();
+    composer.contribute("tilt", { angular_x: 0.3 });
+    composer.contribute("tool", { angular_y: 0.2 }, "effector_frame");
+
+    expect(composer.resolveFrame("base_link")).toEqual({ frameId: "base_link", conflicting: ["tilt", "tool"] });
+  });
+
+  it("never resolves a frame the robot does not allow", () => {
+    const composer = new TeleopTwistComposer();
+    composer.contribute("tool", { angular_y: 0.2 }, "ft_frame");
+
+    expect(composer.resolveFrame("base_link", ["base_link", "effector_frame"]).frameId).toBe("base_link");
+    expect(composer.resolveFrame("gone_frame", ["base_link"]).frameId).toBe("");
+  });
+});

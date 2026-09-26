@@ -82,6 +82,9 @@ export function JoystickWidget({
     }
   };
 
+  const emitVectorRef = useRef(emitVector);
+  emitVectorRef.current = emitVector;
+
   const handleVectorChange = (value: JoystickVector) => {
     latestVectorRef.current = value;
     setCurrentVector(value);
@@ -101,7 +104,7 @@ export function JoystickWidget({
     const intervalMs = Math.round(1000 / binding.publishRateHz);
     const interval = window.setInterval(() => {
       if (isHeldRef.current) {
-        emitJoystickVectorChange(widgetRef.current, onActionIntentRef.current, latestVectorRef.current);
+        emitVectorRef.current(latestVectorRef.current);
       }
     }, intervalMs);
 

@@ -176,7 +176,30 @@ describe("Bloom API client", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestPayload),
+      signal: expect.any(AbortSignal),
     });
+  });
+
+  it("gives up on a ROS publish that hangs, aborting the request", async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const fetcher = vi.fn<typeof fetch>((_input, init) => {
+        signal = init?.signal ?? undefined;
+        return new Promise<Response>(() => undefined);
+      });
+      const client = createBloomApiClient({ fetcher });
+
+      const outcome = expect(
+        client.publishRosTopic({ topic: "/snake_control/enable", message_type: "std_msgs/msg/Bool", payload: {} }),
+      ).rejects.toThrow("timed out");
+      await vi.advanceTimersByTimeAsync(4000);
+
+      await outcome;
+      expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("publishes CLI-style ROS payload text through the backend", async () => {
@@ -199,6 +222,7 @@ describe("Bloom API client", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestPayload),
+      signal: expect.any(AbortSignal),
     });
   });
 

@@ -95,6 +95,52 @@ describe("a teleop slider with return to center off", () => {
   });
 });
 
+describe("a refused slider value", () => {
+  function sliderDescriptor(settings: Record<string, unknown>) {
+    const [descriptor] = renderScreenDescriptors(
+      screenWith({ id: "z", kind: "slider", title: "Z axis", settings: { min: -1, max: 1, step: 0.1, ...settings } }),
+      createDefaultWidgetRegistry(),
+    );
+    if (!descriptor) throw new Error("Missing slider descriptor.");
+    return descriptor;
+  }
+
+  it("rests a teleop slider at zero, not its last accepted value, since the wire carries nothing", async () => {
+    let accept = true;
+    const onActionIntent = vi.fn(async () => ({ accepted: accept }));
+    const { slider } = renderSlider({ returnToCenter: false, runtime_binding: TELEOP_BINDING }, onActionIntent);
+
+    slider.focus();
+    await act(async () => fireEvent.keyDown(slider, { key: "ArrowUp" }));
+    expect(Number(slider.getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+    accept = false;
+    await act(async () => fireEvent.keyDown(slider, { key: "ArrowUp" }));
+
+    expect(slider).toHaveAttribute("aria-valuenow", "0");
+  });
+
+  it("does not jump back to a value from before a suspend", async () => {
+    let accept = true;
+    const onActionIntent = vi.fn(async () => ({ accepted: accept }));
+    const descriptor = sliderDescriptor({ returnToCenter: true });
+    const view = (neutralRevision: number) => (
+      <div>{renderWidgetDescriptor(descriptor, { motorPreset: "latch", neutralRevision, onActionIntent })}</div>
+    );
+    const { rerender } = render(view(0));
+    const slider = screen.getByRole("slider", { name: "Z axis" });
+
+    slider.focus();
+    await act(async () => fireEvent.keyDown(slider, { key: "ArrowUp" }));
+    expect(Number(slider.getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+    rerender(view(1));
+    expect(slider).toHaveAttribute("aria-valuenow", "0");
+    accept = false;
+    await act(async () => fireEvent.keyDown(slider, { key: "ArrowUp" }));
+
+    expect(slider).toHaveAttribute("aria-valuenow", "0");
+  });
+});
+
 function commandDescriptor(settings: Record<string, unknown>) {
   return {
     widget: { id: "cmd", kind: "command-button", title: "Command", settings },

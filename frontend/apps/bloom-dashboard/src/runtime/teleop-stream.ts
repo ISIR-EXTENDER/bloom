@@ -3,8 +3,6 @@ import { isZeroTwist, type TeleopTwistComposer } from "./teleop-composition";
 
 type StreamTarget = Pick<RuntimeTeleopCommandRequest, "frame_id" | "mode" | "target">;
 
-const DEFAULT_STREAM_TARGET: StreamTarget = { mode: 0, target: "/joystick_cartesian_command" };
-
 /**
  * Re-sends the composed twist between widget events: cartesian_manager drops
  * an input older than timeout_sec (0.2s on Explorer), so a slider that only
@@ -20,11 +18,14 @@ export class TeleopStreamPump {
   private readonly maxRetries: number;
   private readonly unsettledMove: () => StreamTarget | null;
   private readonly onGiveUp: () => void;
+  private readonly allowedFrameIds: () => readonly string[] | undefined;
 
   private timer: ReturnType<typeof setInterval> | null = null;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private failures = 0;
   private lastRequest: StreamTarget | null = null;
+  // Every target a move went to since its last zero: a suspend ends each, not only the latest.
+  private readonly owedTargets = new Map<string, StreamTarget>();
   private sessionFrameId: string | undefined;
   private lastSentAt = 0;
   private zeroFramesLeft = 0;
@@ -39,6 +40,8 @@ export class TeleopStreamPump {
     /** A move submitted but not yet acknowledged: suspend must still end it with a zero. */
     unsettledMove?: () => StreamTarget | null;
     onGiveUp?: () => void;
+    /** The robot's command frames; a frame outside them never leaves. */
+    allowedFrameIds?: () => readonly string[] | undefined;
   }) {
     this.composer = options.composer;
     this.send = options.send;
@@ -48,6 +51,7 @@ export class TeleopStreamPump {
     this.maxRetries = options.maxRetries ?? 3;
     this.unsettledMove = options.unsettledMove ?? (() => null);
     this.onGiveUp = options.onGiveUp ?? (() => undefined);
+    this.allowedFrameIds = options.allowedFrameIds ?? (() => undefined);
   }
 
   noteDispatched(request: RuntimeTeleopCommandRequest, outcome: "failed" | "sent", sessionFrameId?: string): void {
@@ -57,6 +61,11 @@ export class TeleopStreamPump {
     }
 
     this.lastRequest = { frame_id: request.frame_id, mode: request.mode, target: request.target };
+    if (isZeroTwist(request)) {
+      this.owedTargets.delete(request.target);
+    } else {
+      this.owedTargets.set(request.target, this.lastRequest);
+    }
     if (sessionFrameId !== undefined) {
       this.sessionFrameId = sessionFrameId;
     }
@@ -76,6 +85,9 @@ export class TeleopStreamPump {
     if (!this.lastRequest) {
       this.lastRequest = fallback;
     }
+    if (!this.owedTargets.has(this.lastRequest.target)) {
+      this.owedTargets.set(this.lastRequest.target, this.lastRequest);
+    }
     // An empty frame counts: it is a reset to the backend default, not "no opinion".
     if (fallback.frame_id !== undefined) {
       this.sessionFrameId = fallback.frame_id;
@@ -92,31 +104,42 @@ export class TeleopStreamPump {
     this.clearRetry();
   }
 
-  /** End a runtime surface with one explicit zero, then forget its target. */
+  /** End a runtime surface with one explicit zero per target it moved, then forget them. */
   suspend(): Promise<void> {
     this.stop();
-    const target = this.lastRequest ?? this.unsettledMove();
+    const owed = new Map(this.owedTargets);
+    for (const target of [this.lastRequest, this.unsettledMove()]) {
+      if (target !== null && !owed.has(target.target)) {
+        owed.set(target.target, target);
+      }
+    }
     const sessionFrameId = this.sessionFrameId;
+    this.owedTargets.clear();
     this.lastRequest = null;
     this.sessionFrameId = undefined;
     this.lastSentAt = 0;
     this.zeroFramesLeft = 0;
     this.failures = 0;
 
-    if (target === null) {
-      return Promise.resolve();
-    }
+    return Promise.all(
+      [...owed.values()].map((target) => {
+        const frameId = this.allowedFrame(sessionFrameId ?? target.frame_id ?? "");
+        return this.send({
+          type: "teleop_cmd",
+          angular: { x: 0, y: 0, z: 0 },
+          ...(frameId ? { frame_id: frameId } : {}),
+          linear: { x: 0, y: 0, z: 0 },
+          mode: target.mode,
+          seq: this.nextSequence(),
+          target: target.target,
+        });
+      }),
+    ).then(() => undefined);
+  }
 
-    const frameId = sessionFrameId ?? target.frame_id;
-    return this.send({
-      type: "teleop_cmd",
-      angular: { x: 0, y: 0, z: 0 },
-      ...(frameId ? { frame_id: frameId } : {}),
-      linear: { x: 0, y: 0, z: 0 },
-      mode: target.mode ?? DEFAULT_STREAM_TARGET.mode,
-      seq: this.nextSequence(),
-      target: target.target ?? DEFAULT_STREAM_TARGET.target,
-    }).then(() => undefined);
+  private allowedFrame(frameId: string): string {
+    const allowed = this.allowedFrameIds();
+    return !frameId || !allowed || allowed.includes(frameId) ? frameId : "";
   }
 
   private start(): void {
@@ -154,7 +177,10 @@ export class TeleopStreamPump {
       this.zeroFramesLeft = this.zeroTailFrames;
     }
 
-    const frameId = this.composer.resolveFrame(this.sessionFrameId ?? lastRequest.frame_id ?? "").frameId;
+    const frameId = this.composer.resolveFrame(
+      this.sessionFrameId ?? lastRequest.frame_id ?? "",
+      this.allowedFrameIds(),
+    ).frameId;
     this.lastSentAt = Date.now();
     this.send({
       type: "teleop_cmd",

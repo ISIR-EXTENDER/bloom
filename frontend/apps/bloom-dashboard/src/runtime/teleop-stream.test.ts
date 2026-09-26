@@ -175,6 +175,48 @@ describe("the teleop stream pump", () => {
     });
   });
 
+  it("ends a suspend with a zero on every target moved since the last zero", async () => {
+    composer.contribute("drive-z", { linear_z: 0.5 });
+    const pump = createPump();
+    pump.noteDispatched(widgetRequest({ target: "/arm_a/cartesian_command" }), "sent");
+    pump.noteDispatched(widgetRequest({ target: "/arm_b/cartesian_command" }), "sent");
+    pump.noteDispatched(widgetRequest({ linear: { x: 0, y: 0, z: 0 }, target: "/arm_c/cartesian_command" }), "sent");
+    pump.noteDispatched(widgetRequest({ linear: { x: 0, y: 0, z: 0 }, target: "/arm_b/cartesian_command" }), "sent");
+    pump.noteDispatched(widgetRequest({ target: "/arm_c/cartesian_command" }), "sent");
+    pump.stop();
+    sent = [];
+
+    composer.clear();
+    await pump.suspend();
+
+    expect(sent.map((request) => request.target).sort()).toEqual([
+      "/arm_a/cartesian_command",
+      "/arm_c/cartesian_command",
+    ]);
+    expect(sent.every((request) => request.linear.z === 0)).toBe(true);
+  });
+
+  it("never streams a frame the robot does not allow", async () => {
+    composer.contribute("drive-rz", { angular_z: 0.4 }, "ft_frame");
+    const pump = new TeleopStreamPump({
+      allowedFrameIds: () => ["base_link"],
+      composer,
+      nextSequence: () => ++sequence,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+
+    pump.noteDispatched(widgetRequest({ frame_id: "base_link" }), "sent", "base_link");
+    await vi.advanceTimersByTimeAsync(120);
+    composer.clear();
+    await pump.suspend();
+
+    expect(sent.length).toBeGreaterThan(1);
+    expect(sent.every((request) => request.frame_id === "base_link")).toBe(true);
+  });
+
   it("keeps the dispatched rotation frame in every heartbeat", async () => {
     composer.contribute("drive-rz", { angular_z: 0.4 });
     const pump = createPump();

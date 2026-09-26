@@ -355,6 +355,29 @@ describe("the latch preset", () => {
     expect(screen.getByRole<HTMLButtonElement>("button", { name: "Zero Translation" }).disabled).toBe(true);
   });
 
+  it("returns a latched joystick to rest when a held re-send is refused", async () => {
+    vi.useFakeTimers();
+    try {
+      const onActionIntent = vi.fn(async () => ({ accepted: onActionIntent.mock.calls.length === 1 }));
+      render(
+        <JoystickWidget descriptor={descriptors().joystick} motorPreset="latch" onActionIntent={onActionIntent} />,
+      );
+      const pad = screen.getByRole("application", { name: "Translation" });
+
+      fireEvent.keyDown(pad, { key: "ArrowRight" });
+      await act(async () => {});
+      expect(screen.getByRole<HTMLButtonElement>("button", { name: "Zero Translation" }).disabled).toBe(false);
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+
+      expect(onActionIntent.mock.calls.length).toBeGreaterThan(1);
+      expect(screen.getByRole<HTMLButtonElement>("button", { name: "Zero Translation" }).disabled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("returns a step joystick to rest when the runtime refuses its step", async () => {
     const onActionIntent = vi.fn(() => ({ accepted: false }));
     render(<JoystickWidget descriptor={descriptors().joystick} motorPreset="step" onActionIntent={onActionIntent} />);

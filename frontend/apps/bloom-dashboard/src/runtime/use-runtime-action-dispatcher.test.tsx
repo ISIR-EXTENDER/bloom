@@ -428,6 +428,49 @@ describe("runtime teleop suspension", () => {
       expect(sent.at(-1)?.linear).toEqual({ x: 0.4, y: 0, z: 0 });
     });
 
+    it("refuses a widget's own frame the robot does not allow, even when a conflict hides it", async () => {
+      client.sendTeleopCommand = vi.fn(accept);
+      const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+      const turning = (widgetId: string, frameId: string, x: number) =>
+        ({
+          type: "value-change",
+          binding: "joy",
+          runtimeBinding: {
+            adapter: "teleop",
+            axis_mapping: { x: { component: "angular_x" } },
+            value_mapping: { frame_id: frameId },
+          },
+          value: { x, y: 0 },
+          widgetId,
+          widgetKind: "joystick",
+        }) as const;
+      const options = {
+        allowedCommandFrameIds: ["base_link", "hybrid_frame"],
+        runtimePolicy: {
+          allowed_teleop_targets: ["*"],
+          command_frame_id: "base_link",
+        } as unknown as NonNullable<Parameters<typeof result.current.dispatch>[1]>["runtimePolicy"],
+      };
+      let pending: ReturnType<typeof result.current.dispatch> | undefined;
+
+      act(() => {
+        void result.current.dispatch(turning("rot-b", "hybrid_frame", 0.3), options);
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60));
+      act(() => {
+        pending = result.current.dispatch(turning("rot-a", "ft_frame", 0.4), options);
+      });
+      await act(() => vi.advanceTimersByTimeAsync(60));
+      act(() => {
+        void result.current.dispatch(turning("rot-b", "hybrid_frame", 0), options);
+      });
+      await act(() => vi.advanceTimersByTimeAsync(200));
+
+      expect((await pending)?.status).toBe("blocked");
+      expect(sent.some((request) => request.frame_id === "ft_frame")).toBe(false);
+      expect(sent.at(-1)?.angular.x).toBe(0);
+    });
+
     it("does not withdraw a newer value of the same widget when the older failure lands late", async () => {
       let failFirst: ((error: Error) => void) | undefined;
       client.sendTeleopCommand = vi.fn((request: RuntimeTeleopCommandRequest) =>

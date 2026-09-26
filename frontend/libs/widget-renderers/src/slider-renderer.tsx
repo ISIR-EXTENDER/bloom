@@ -79,6 +79,10 @@ export function SliderWidget({
     const emit = ++latestEmitRef.current;
     const settle = (outcome: WidgetActionOutcome | undefined) => {
       if (outcome?.accepted === false) {
+        // A refused teleop value withdraws the whole contribution, so the wire carries rest, not the last one taken.
+        if (drivesTeleop) {
+          confirmedValueRef.current = restValue;
+        }
         if (emit === latestEmitRef.current) {
           setCurrentValue(releasesToCenter ? defaultValue : confirmedValueRef.current);
         }
@@ -176,6 +180,7 @@ export function SliderWidget({
   returnToRestRef.current = () => {
     if (returnToCenter || drivesTeleop) {
       lastEmittedRef.current = restValue;
+      confirmedValueRef.current = restValue;
       setCurrentValue(restValue);
     }
   };

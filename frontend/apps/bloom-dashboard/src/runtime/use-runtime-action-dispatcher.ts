@@ -52,6 +52,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const externalSourcesAwaitingNeutral = useRef(new Set<string>());
   const clientRef = useRef(client);
   clientRef.current = client;
+  // The robot's command frames as of the latest dispatch: every resend is judged against them, not only the first.
+  const allowedCommandFrameIds = useRef<readonly string[] | undefined>(undefined);
   // Whoever draws the commanded motion, such as the 3D robot view, hears each twist as it goes out.
   const teleopCommandListeners = useRef(new Set<(request: RuntimeTeleopCommandRequest) => void>());
   const teleopRateGate = useRef<TeleopRateGate | null>(null);
@@ -88,6 +90,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     teleopPump.current = new TeleopStreamPump({
       composer: teleopComposer.current,
       nextSequence: () => ++nextTeleopSequence.current,
+      allowedFrameIds: () => allowedCommandFrameIds.current,
       onGiveUp: () => pumpGaveUp.current(),
       send: (request) => teleopRateGate.current?.submit(request) ?? Promise.reject(new Error("Teleop gate is gone.")),
       unsettledMove: () => teleopRateGate.current?.unsettledMove ?? null,
@@ -111,7 +114,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   // After a withdraw the wire must end on what the controls still hold, not on the withdrawn value.
   const submitComposedTwist = useCallback((base: RuntimeTeleopCommandRequest, sessionFrameId: string | undefined) => {
     const twist = teleopComposer.current.compose();
-    const frameId = teleopComposer.current.resolveFrame(sessionFrameId ?? "").frameId;
+    const frameId = teleopComposer.current.resolveFrame(sessionFrameId ?? "", allowedCommandFrameIds.current).frameId;
     const request: RuntimeTeleopCommandRequest = {
       type: "teleop_cmd",
       angular: twist.angular,
@@ -145,6 +148,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
           status: "blocked" as const,
         });
       }
+      allowedCommandFrameIds.current = options.allowedCommandFrameIds;
       nextRecordIndex.current += 1;
       const recordId = createRecordId(intent, nextRecordIndex.current);
       setRecords((currentRecords) =>
