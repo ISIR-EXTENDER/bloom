@@ -1,6 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
+
+import { DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -298,6 +300,74 @@ describe("runtime teleop suspension", () => {
     await act(() => vi.advanceTimersByTimeAsync(10));
 
     expect(outcome?.status).not.toBe("blocked");
+  });
+
+  it("re-resolves the frame of a move that waited in the rate gate", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    const options = {
+      allowedCommandFrameIds: ["base_link", "effector_frame"],
+      runtimePolicy: { ...DEFAULT_RUNTIME_POLICY, command_frame_id: "base_link" },
+    };
+    const turn = (x: number) =>
+      result.current.dispatch(
+        {
+          type: "value-change",
+          binding: "joy",
+          modeId: "rotation",
+          publishRateHz: 30,
+          runtimeBinding: { adapter: "teleop", value_mapping: { frame_id: "effector_frame" } },
+          value: { x, y: 0 },
+          widgetId: "tilt",
+          widgetKind: "joystick",
+          zeroOnRelease: true,
+        },
+        options,
+      );
+
+    act(() => {
+      void turn(0.2);
+      void turn(0.3);
+    });
+    // A second hand turning under the session frame arrives while the move waits: one frame must now give way.
+    act(() => result.current.contributeTeleop("gamepad", { angular_z: 0.4 }, "base_link"));
+    await act(() => vi.advanceTimersByTimeAsync(40));
+
+    expect(sent[0]).toMatchObject({ frame_id: "effector_frame" });
+    expect(sent[1]).toMatchObject({ angular: { x: 0.3, z: 0.4 }, frame_id: "base_link" });
+  });
+
+  it("streams two pads on two targets without mixing their pushes", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    const options = { runtimePolicy: { ...DEFAULT_RUNTIME_POLICY, allowed_teleop_targets: ["*"] } };
+    const push = (widgetId: string, target: string, value: { x: number; y: number }) =>
+      result.current.dispatch(
+        {
+          type: "value-change",
+          binding: "joy",
+          modeId: "translation",
+          publishRateHz: 30,
+          runtimeBinding: { adapter: "teleop", value_mapping: { target_topic: target } },
+          value,
+          widgetId,
+          widgetKind: "joystick",
+          zeroOnRelease: true,
+        },
+        options,
+      );
+
+    act(() => {
+      void push("pad-a", "/joystick_cartesian_command", { x: 0.6, y: 0 });
+      void push("pad-b", "/visual_servoing_command", { x: 0, y: 0.4 });
+    });
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    const last = (target: string) => sent.filter((request) => request.target === target).at(-1);
+
+    expect(last("/joystick_cartesian_command")?.linear).toEqual({ x: 0.6, y: 0, z: 0 });
+    expect(last("/visual_servoing_command")?.linear).toEqual({ x: 0, y: 0.4, z: 0 });
+
+    act(() => result.current.suspendTeleop());
+    expect(last("/joystick_cartesian_command")?.linear).toEqual({ x: 0, y: 0, z: 0 });
+    expect(last("/visual_servoing_command")?.linear).toEqual({ x: 0, y: 0, z: 0 });
   });
 
   it("coalesces rapid widget updates before they reach the WebSocket client", async () => {

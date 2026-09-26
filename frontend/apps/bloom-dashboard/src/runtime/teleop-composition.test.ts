@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  composeTeleopMode,
   composeTwist,
   contributionFromAxisMap,
   createZeroTwist,
@@ -191,5 +192,47 @@ describe("the composed twist's frame", () => {
 
     expect(composer.resolveFrame("base_link", ["base_link", "effector_frame"]).frameId).toBe("base_link");
     expect(composer.resolveFrame("gone_frame", ["base_link"]).frameId).toBe("");
+  });
+});
+
+describe("one composition per teleop target", () => {
+  it("never lets a pad on one manager input ride out on another's topic", () => {
+    const composer = new TeleopTwistComposer();
+    composer.contribute("pad-a", { linear_x: 0.6 }, "", "/joystick_cartesian_command");
+    composer.contribute("pad-b", { linear_y: 0.4 }, "", "/visual_servoing_command");
+
+    expect(composer.compose("/joystick_cartesian_command").linear).toEqual({ x: 0.6, y: 0, z: 0 });
+    expect(composer.compose("/visual_servoing_command").linear).toEqual({ x: 0, y: 0.4, z: 0 });
+
+    composer.release("pad-a");
+    expect(composer.compose("/joystick_cartesian_command").linear).toEqual({ x: 0, y: 0, z: 0 });
+    expect(composer.compose("/visual_servoing_command").linear).toEqual({ x: 0, y: 0.4, z: 0 });
+  });
+
+  it("counts as moving when two targets hold opposite pushes", () => {
+    const composer = new TeleopTwistComposer();
+    composer.contribute("pad-a", { linear_x: 0.6 }, "", "/arm_a");
+    composer.contribute("pad-b", { linear_x: -0.6 }, "", "/arm_b");
+
+    expect(composer.moving).toBe(true);
+  });
+});
+
+describe("composeTeleopMode", () => {
+  const twist = (linear: number, angular: number) => ({
+    angular: { x: angular, y: 0, z: 0 },
+    linear: { x: linear, y: 0, z: 0 },
+  });
+
+  it("sends BOTH on the legacy topic when a translation and a rotation pad are held together", () => {
+    expect(composeTeleopMode(twist(0.5, 0.3), 1, "/teleop_cmd")).toBe(3);
+    expect(composeTeleopMode(twist(0.5, 0), 1, "/teleop_cmd")).toBe(2);
+    expect(composeTeleopMode(twist(0, 0.3), 2, "/teleop_cmd")).toBe(1);
+    expect(composeTeleopMode(twist(0, 0), 2, "/teleop_cmd")).toBe(2);
+  });
+
+  it("leaves snake and the manager's topics as declared", () => {
+    expect(composeTeleopMode(twist(0.5, 0.3), 4, "/teleop_cmd")).toBe(4);
+    expect(composeTeleopMode(twist(0.5, 0.3), 1, "/joystick_cartesian_command")).toBe(1);
   });
 });

@@ -1,5 +1,5 @@
 import type { RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import { asRecord, resolveTeleopFrameId, type WidgetActionIntent } from "@bloom/widgets";
+import { asRecord, resolveTeleopFrameId, TELEOP_DEFAULT_TARGET, type WidgetActionIntent } from "@bloom/widgets";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dispatchRuntimeActionIntent,
@@ -10,7 +10,7 @@ import {
   type RuntimeTopicSubscriptionRequest,
 } from "./runtime-action-dispatcher";
 import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
-import { type ComponentContribution, isZeroTwist, TeleopTwistComposer } from "./teleop-composition";
+import { type ComponentContribution, composeTeleopMode, TeleopTwistComposer } from "./teleop-composition";
 import { TeleopRateGate } from "./teleop-rate-gate";
 import { TeleopStreamPump } from "./teleop-stream";
 
@@ -44,8 +44,10 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const nextRecordIndex = useRef(0);
   const nextTeleopSequence = useRef(0);
   // Composition is stateful: the twist sent when the Z slider moves must still
-  // carry whatever the translation joystick is currently holding.
+  // carry whatever the translation joystick is currently holding. It is kept per target.
   const teleopComposer = useRef(new TeleopTwistComposer());
+  // The session frame as of the latest dispatch or contribution, so a queued move is re-resolved against it.
+  const sessionFrameId = useRef<string | undefined>(undefined);
   const externalSources = useRef(new Set<string>());
   // The latest teleop sequence each widget contributed, so a late failure cannot withdraw a newer value.
   const latestTeleopSequenceByWidget = useRef(new Map<string, number>());
@@ -59,7 +61,14 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const teleopRateGate = useRef<TeleopRateGate | null>(null);
   if (teleopRateGate.current === null) {
     teleopRateGate.current = new TeleopRateGate({
-      refresh: (request) => ({ ...request, ...teleopComposer.current.compose() }),
+      refresh: (request) =>
+        composeTargetRequest(
+          teleopComposer.current,
+          request,
+          request.seq,
+          sessionFrameId.current ?? request.frame_id ?? "",
+          allowedCommandFrameIds.current,
+        ),
       send: (request) => {
         const sendTeleopCommand = clientRef.current.sendTeleopCommand;
         if (!sendTeleopCommand) {
@@ -93,7 +102,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       allowedFrameIds: () => allowedCommandFrameIds.current,
       onGiveUp: () => pumpGaveUp.current(),
       send: (request) => teleopRateGate.current?.submit(request) ?? Promise.reject(new Error("Teleop gate is gone.")),
-      unsettledMove: () => teleopRateGate.current?.unsettledMove ?? null,
+      unsettledMoves: () => teleopRateGate.current?.unsettledMoves ?? [],
     });
   }
   const [records, setRecords] = useState<RuntimeActionRecord[]>([]);
@@ -109,25 +118,21 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
     settlingAfterSuspend.current = false;
   }, [neutralRevision]);
   const syncTeleopActive = useCallback(() => {
-    setTeleopActive(!isZeroTwist(teleopComposer.current.compose()));
+    setTeleopActive(teleopComposer.current.moving);
   }, []);
   // After a withdraw the wire must end on what the controls still hold, not on the withdrawn value.
-  const submitComposedTwist = useCallback((base: RuntimeTeleopCommandRequest, sessionFrameId: string | undefined) => {
-    const twist = teleopComposer.current.compose();
-    const frameId = teleopComposer.current.resolveFrame(sessionFrameId ?? "", allowedCommandFrameIds.current).frameId;
-    const request: RuntimeTeleopCommandRequest = {
-      type: "teleop_cmd",
-      angular: twist.angular,
-      ...(frameId ? { frame_id: frameId } : {}),
-      linear: twist.linear,
-      mode: base.mode,
-      seq: ++nextTeleopSequence.current,
-      target: base.target,
-    };
+  const submitComposedTwist = useCallback((base: RuntimeTeleopCommandRequest, frameOfSession: string | undefined) => {
+    const request = composeTargetRequest(
+      teleopComposer.current,
+      base,
+      ++nextTeleopSequence.current,
+      frameOfSession ?? "",
+      allowedCommandFrameIds.current,
+    );
     teleopRateGate.current?.submit(request).then(
       (outcome) => {
         if (outcome.status !== "coalesced") {
-          teleopPump.current?.noteDispatched(request, "sent", sessionFrameId);
+          teleopPump.current?.noteDispatched(request, "sent", frameOfSession);
         }
       },
       () => undefined,
@@ -149,6 +154,9 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         });
       }
       allowedCommandFrameIds.current = options.allowedCommandFrameIds;
+      if (options.runtimePolicy?.command_frame_id !== undefined) {
+        sessionFrameId.current = options.runtimePolicy.command_frame_id;
+      }
       nextRecordIndex.current += 1;
       const recordId = createRecordId(intent, nextRecordIndex.current);
       setRecords((currentRecords) =>
@@ -192,7 +200,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       return pendingResult.then((result) => {
         if (result.request && "type" in result.request && result.request.type === "teleop_cmd") {
           // The widget shows rest after a refused value, so the composed twist must not keep carrying it.
-          const sessionFrameId = options.runtimePolicy?.command_frame_id;
+          const frameOfSession = options.runtimePolicy?.command_frame_id;
           let withdrawn = false;
           if (isRuntimeActionProblem(result) && intent.type === "value-change") {
             const latestSequences = latestTeleopSequenceByWidget.current;
@@ -205,10 +213,10 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
           teleopPump.current?.noteDispatched(
             result.request,
             isRuntimeActionProblem(result) ? "failed" : "sent",
-            sessionFrameId,
+            frameOfSession,
           );
           if (withdrawn && result.status !== "unsupported" && allowsTarget(options.runtimePolicy, result.request)) {
-            submitComposedTwist(result.request, sessionFrameId);
+            submitComposedTwist(result.request, frameOfSession);
           }
           syncTeleopActive();
         }
@@ -260,6 +268,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const contributeTeleop = useCallback(
     (sourceId: string, contribution: ComponentContribution | null, commandFrameId = "") => {
       externalSources.current.add(sourceId);
+      sessionFrameId.current = commandFrameId;
       if (externalSourcesAwaitingNeutral.current.has(sourceId)) {
         if (contribution === null) {
           externalSourcesAwaitingNeutral.current.delete(sourceId);
@@ -269,17 +278,14 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
         return;
       }
 
+      const target = teleopPump.current?.externalTarget(TELEOP_DEFAULT_TARGET) ?? TELEOP_DEFAULT_TARGET;
       if (contribution === null) {
         teleopComposer.current.release(sourceId);
       } else {
-        teleopComposer.current.contribute(sourceId, contribution);
+        teleopComposer.current.contribute(sourceId, contribution, "", target);
       }
       syncTeleopActive();
-      teleopPump.current?.noteExternalContribution({
-        frame_id: commandFrameId,
-        target: "/joystick_cartesian_command",
-        mode: 0,
-      });
+      teleopPump.current?.noteExternalContribution({ frame_id: commandFrameId, target, mode: 0 });
     },
     [syncTeleopActive],
   );
@@ -337,6 +343,27 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {
   return `${intent.widgetId}-${intent.type}-${index}`;
+}
+
+// The target's own composition, its frame re-resolved and, on the legacy topic, its mode from what moves.
+function composeTargetRequest(
+  composer: TeleopTwistComposer,
+  base: RuntimeTeleopCommandRequest,
+  seq: number,
+  sessionFrameId: string,
+  allowedFrameIds: readonly string[] | undefined,
+): RuntimeTeleopCommandRequest {
+  const twist = composer.compose(base.target);
+  const frameId = composer.resolveFrame(sessionFrameId, allowedFrameIds, base.target).frameId;
+  return {
+    type: "teleop_cmd",
+    angular: twist.angular,
+    ...(frameId ? { frame_id: frameId } : {}),
+    linear: twist.linear,
+    mode: composeTeleopMode(twist, base.mode, base.target),
+    seq,
+    target: base.target,
+  };
 }
 
 function allowsTarget(policy: RuntimeAdapterPolicy | undefined, request: RuntimeTeleopCommandRequest): boolean {

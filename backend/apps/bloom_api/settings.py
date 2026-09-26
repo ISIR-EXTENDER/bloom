@@ -128,6 +128,9 @@ class Settings(BaseModel):
     # The browser coalesces the complete twist to at most 30 Hz. Keep a 2x
     # margin for timing jitter while retaining a hard server-side ceiling.
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
+    # Legacy /teleop_cmd only: a moving twist not refreshed for this long is zeroed server side. The browser
+    # streams every 50 ms, so 0.5 s is ten missed frames.
+    teleop_deadman_timeout_sec: float = Field(default=0.5, gt=0)
     #: Server-side caps on the qontrol speed-limit topics; the operator UI's sliders stop at the same values.
     max_linear_speed_limit: float = Field(default=0.3, gt=0, allow_inf_nan=False)
     max_angular_speed_limit: float = Field(default=0.8, gt=0, allow_inf_nan=False)
@@ -353,6 +356,9 @@ class Settings(BaseModel):
             runtime_command_rate_limit_per_second=_read_int_env(
                 "BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND",
                 cls.model_fields["runtime_command_rate_limit_per_second"].default,
+            ),
+            teleop_deadman_timeout_sec=_read_float_env(
+                "BLOOM_TELEOP_DEADMAN_TIMEOUT_SEC", cls.model_fields["teleop_deadman_timeout_sec"].default
             ),
             max_linear_speed_limit=_read_float_env(
                 "BLOOM_MAX_LINEAR_SPEED_LIMIT", cls.model_fields["max_linear_speed_limit"].default

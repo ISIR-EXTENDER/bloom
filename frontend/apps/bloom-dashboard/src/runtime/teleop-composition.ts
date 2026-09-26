@@ -1,3 +1,5 @@
+import { TELEOP_DEFAULT_TARGET } from "@bloom/widgets";
+
 /**
  * Compose a full 6-DoF twist from several widgets.
  *
@@ -270,42 +272,97 @@ export function composeTwist(contributions: Iterable<ComponentContribution>): Te
   return twist;
 }
 
+/** The legacy `extender_msgs/TeleopCommand` topic, whose controller reads `mode`; cartesian_manager ignores it. */
+export const LEGACY_TELEOP_TARGET = "/teleop_cmd";
+const TELEOP_MODE = { rotation: 1, translation: 2, both: 3 } as const;
+
 /**
- * Accumulates per-widget contributions for one teleop target topic.
+ * The legacy mode for what the twist actually moves: a translation pad and a rotation pad held together
+ * need BOTH, or the controller zeroes one part. Snake, other targets and a resting twist keep `declared`.
+ */
+export function composeTeleopMode(twist: TeleopTwist, declared: number, target: string): number {
+  if (target !== LEGACY_TELEOP_TARGET || !(Object.values(TELEOP_MODE) as number[]).includes(declared)) {
+    return declared;
+  }
+  const linear = twist.linear.x !== 0 || twist.linear.y !== 0 || twist.linear.z !== 0;
+  const angular = twist.angular.x !== 0 || twist.angular.y !== 0 || twist.angular.z !== 0;
+  if (linear && angular) return TELEOP_MODE.both;
+  if (linear) return TELEOP_MODE.translation;
+  if (angular) return TELEOP_MODE.rotation;
+  return declared;
+}
+
+type TargetComposition = {
+  contributions: Map<string, ComponentContribution>;
+  frames: Map<string, string>;
+};
+
+/**
+ * Accumulates per-widget contributions, one composition per teleop target topic.
  *
  * Held by the runtime dispatcher hook, because composition is inherently
  * stateful: the twist published when the Z slider moves must still carry
- * whatever the translation joystick is currently holding.
+ * whatever the translation joystick is currently holding. Each target is its own
+ * manager input, so a pad on one never rides out on another's topic.
  */
 export class TeleopTwistComposer {
-  private readonly contributions = new Map<string, ComponentContribution>();
-  private readonly frames = new Map<string, string>();
+  private readonly byTarget = new Map<string, TargetComposition>();
+  private readonly targetOfWidget = new Map<string, string>();
 
-  contribute(widgetId: string, contribution: ComponentContribution, frameId = ""): void {
-    this.contributions.set(widgetId, contribution);
+  contribute(
+    widgetId: string,
+    contribution: ComponentContribution,
+    frameId = "",
+    target = TELEOP_DEFAULT_TARGET,
+  ): void {
+    const previous = this.targetOfWidget.get(widgetId);
+    if (previous !== undefined && previous !== target) {
+      this.release(widgetId);
+    }
+    let composition = this.byTarget.get(target);
+    if (!composition) {
+      composition = { contributions: new Map(), frames: new Map() };
+      this.byTarget.set(target, composition);
+    }
+    this.targetOfWidget.set(widgetId, target);
+    composition.contributions.set(widgetId, contribution);
     if (frameId) {
-      this.frames.set(widgetId, frameId);
+      composition.frames.set(widgetId, frameId);
     } else {
-      this.frames.delete(widgetId);
+      composition.frames.delete(widgetId);
     }
   }
 
   release(widgetId: string): void {
-    this.contributions.delete(widgetId);
-    this.frames.delete(widgetId);
+    const target = this.targetOfWidget.get(widgetId);
+    if (target === undefined) {
+      return;
+    }
+    this.targetOfWidget.delete(widgetId);
+    const composition = this.byTarget.get(target);
+    composition?.contributions.delete(widgetId);
+    composition?.frames.delete(widgetId);
+    if (composition?.contributions.size === 0) {
+      this.byTarget.delete(target);
+    }
   }
 
   clear(): void {
-    this.contributions.clear();
-    this.frames.clear();
+    this.byTarget.clear();
+    this.targetOfWidget.clear();
   }
 
   get activeWidgetIds(): string[] {
-    return [...this.contributions.keys()];
+    return [...this.targetOfWidget.keys()];
   }
 
-  compose(): TeleopTwist {
-    return composeTwist(this.contributions.values());
+  /** Whether any target is being driven. Summing across targets could cancel two opposite pads out. */
+  get moving(): boolean {
+    return [...this.byTarget.keys()].some((target) => !isZeroTwist(this.compose(target)));
+  }
+
+  compose(target = TELEOP_DEFAULT_TARGET): TeleopTwist {
+    return composeTwist(this.byTarget.get(target)?.contributions.values() ?? []);
   }
 
   /**
@@ -323,11 +380,16 @@ export class TeleopTwistComposer {
    * A turning widget with no frame of its own turns in the session's, so it takes part in the conflict.
    * A frame outside `allowedFrameIds` never leaves: the session frame, or the backend default, goes instead.
    */
-  resolveFrame(sessionFrameId = "", allowedFrameIds?: readonly string[]): { frameId: string; conflicting: string[] } {
+  resolveFrame(
+    sessionFrameId = "",
+    allowedFrameIds?: readonly string[],
+    target = TELEOP_DEFAULT_TARGET,
+  ): { frameId: string; conflicting: string[] } {
+    const composition = this.byTarget.get(target);
     const declared = new Map<string, string>();
-    for (const [widgetId, contribution] of this.contributions) {
+    for (const [widgetId, contribution] of composition?.contributions ?? []) {
       if (turnsTheHand(contribution)) {
-        declared.set(widgetId, this.frames.get(widgetId) || sessionFrameId);
+        declared.set(widgetId, composition?.frames.get(widgetId) || sessionFrameId);
       }
     }
 

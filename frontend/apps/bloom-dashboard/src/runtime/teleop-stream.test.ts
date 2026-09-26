@@ -161,7 +161,7 @@ describe("the teleop stream pump", () => {
         sent.push(request);
         return Promise.resolve();
       },
-      unsettledMove: () => ({ frame_id: "base_link", mode: 2, target: "/custom_teleop" }),
+      unsettledMoves: () => [{ frame_id: "base_link", mode: 2, target: "/custom_teleop" }],
     });
 
     await pump.suspend();
@@ -260,6 +260,71 @@ describe("the teleop stream pump", () => {
   });
 });
 
+describe("a pump driving two teleop targets", () => {
+  let composer: TeleopTwistComposer;
+  let sent: RuntimeTeleopCommandRequest[];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    composer = new TeleopTwistComposer();
+    sent = [];
+  });
+  afterEach(() => vi.useRealTimers());
+
+  it("streams each target its own composition and zeroes both on suspend", async () => {
+    let sequence = 0;
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => ++sequence,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+    composer.contribute("pad-a", { linear_x: 0.6 }, "", "/joystick_cartesian_command");
+    composer.contribute("pad-b", { linear_y: 0.4 }, "", "/visual_servoing_command");
+    pump.noteDispatched(widgetRequest({ linear: { x: 0.6, y: 0, z: 0 } }), "sent");
+    pump.noteDispatched(widgetRequest({ linear: { x: 0, y: 0.4, z: 0 }, target: "/visual_servoing_command" }), "sent");
+    await vi.advanceTimersByTimeAsync(120);
+
+    const last = (target: string) => sent.filter((request) => request.target === target).at(-1);
+    expect(last("/joystick_cartesian_command")?.linear).toEqual({ x: 0.6, y: 0, z: 0 });
+    expect(last("/visual_servoing_command")?.linear).toEqual({ x: 0, y: 0.4, z: 0 });
+
+    composer.release("pad-a");
+    await vi.advanceTimersByTimeAsync(120);
+    expect(last("/joystick_cartesian_command")?.linear).toEqual({ x: 0, y: 0, z: 0 });
+    expect(last("/visual_servoing_command")?.linear).toEqual({ x: 0, y: 0.4, z: 0 });
+
+    composer.clear();
+    sent = [];
+    await pump.suspend();
+    expect(sent.map((request) => request.target).sort()).toEqual([
+      "/joystick_cartesian_command",
+      "/visual_servoing_command",
+    ]);
+    expect(sent.every((request) => request.linear.y === 0 && request.linear.x === 0)).toBe(true);
+  });
+
+  it("streams the legacy topic with the mode of what is actually held", async () => {
+    const pump = new TeleopStreamPump({
+      composer,
+      nextSequence: () => 1,
+      send: (request) => {
+        sent.push(request);
+        return Promise.resolve();
+      },
+    });
+    composer.contribute("move", { linear_x: 0.5 }, "", "/teleop_cmd");
+    composer.contribute("turn", { angular_x: 0.3 }, "", "/teleop_cmd");
+    pump.noteDispatched(widgetRequest({ mode: 1, target: "/teleop_cmd" }), "sent");
+    await vi.advanceTimersByTimeAsync(60);
+
+    expect(sent.at(-1)).toMatchObject({ mode: 3, target: "/teleop_cmd" });
+    pump.stop();
+  });
+});
+
 describe("a non-widget source", () => {
   let composer: TeleopTwistComposer;
   let sent: RuntimeTeleopCommandRequest[];
@@ -313,8 +378,7 @@ describe("a non-widget source", () => {
     pump.stop();
   });
 
-  it("keeps the target a widget already established", async () => {
-    composer.contribute("gamepad", { linear_x: 0.6 });
+  it("follows the target a widget already established", async () => {
     const pump = new TeleopStreamPump({
       composer,
       nextSequence: () => 1,
@@ -325,7 +389,9 @@ describe("a non-widget source", () => {
     });
 
     pump.noteDispatched(widgetRequest({ target: "/custom_teleop", mode: 3 }), "sent");
-    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target: "/joystick_cartesian_command" });
+    const target = pump.externalTarget("/joystick_cartesian_command");
+    composer.contribute("gamepad", { linear_x: 0.6 }, "", target);
+    pump.noteExternalContribution({ frame_id: "hybrid_frame", mode: 0, target });
     await vi.advanceTimersByTimeAsync(120);
 
     expect(sent.at(-1)).toMatchObject({ frame_id: "hybrid_frame", mode: 3, target: "/custom_teleop" });

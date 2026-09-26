@@ -1,7 +1,8 @@
+import asyncio
 import math
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 import anyio
 from fastapi import FastAPI, Request
@@ -59,6 +60,7 @@ from libs.sessions import (
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
+from libs.sessions.deadman import run_teleop_deadman, zero_stale_teleop
 from libs.sessions.positions import PositionStore, SQLitePositionStore
 from libs.sessions.stop import DEFAULT_TELEOP_TARGET, LEGACY_TELEOP_TARGET
 from libs.sessions.topics import is_live_subscription_gateway
@@ -85,7 +87,7 @@ def create_app(
 ) -> FastAPI:
     app_settings = settings or get_settings()
     app = FastAPI(
-        lifespan=_stop_recordings_on_shutdown,
+        lifespan=_runtime_lifespan,
         title=app_settings.app_name,
         version=app_settings.app_version,
         description=app_settings.app_description,
@@ -306,11 +308,35 @@ def _json_safe(value: object) -> object:
     return value
 
 
+def start_teleop_deadman(app: FastAPI) -> asyncio.Task | None:
+    """Only the legacy /teleop_cmd needs it: cartesian_manager expires every input after its own timeout."""
+    settings = app.state.settings
+    if settings.ros_command_backend != "teleop_command":
+        return None
+    return asyncio.create_task(
+        run_teleop_deadman(
+            lambda: zero_stale_teleop(
+                app.state.runtime_session_manager,
+                app.state.teleop_command_gateway,
+                app.state.runtime_stop_controller,
+                app.state.runtime_audit_log,
+                settings.teleop_deadman_timeout_sec,
+            )
+        )
+    )
+
+
 @asynccontextmanager
-async def _stop_recordings_on_shutdown(app: FastAPI) -> AsyncIterator[None]:
+async def _runtime_lifespan(app: FastAPI) -> AsyncIterator[None]:
+    deadman = start_teleop_deadman(app)
+    app.state.teleop_deadman_task = deadman
     try:
         yield
     finally:
+        if deadman is not None:
+            deadman.cancel()
+            with suppress(asyncio.CancelledError):
+                await deadman
         stop_all = getattr(getattr(app.state, "runtime_recording_gateway", None), "stop_all", None)
         if callable(stop_all):
             stop_all()

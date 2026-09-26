@@ -448,7 +448,10 @@ async def release_runtime_control(
         # exactly the case this path exists to answer; catching RuntimeError alone tore the socket down.
         except (RuntimeError, ValueError) as exc:
             try:
-                await run_runtime_thread(get_runtime_stop_controller(websocket).engage)
+                await run_runtime_thread(
+                    get_runtime_stop_controller(websocket).engage,
+                    executor=getattr(websocket.app.state, "runtime_stop_executor", None),
+                )
             except RuntimeStopAssertionError:
                 pass
             snapshot = manager.finish_control_release(session)

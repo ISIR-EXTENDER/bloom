@@ -18,10 +18,10 @@ import {
 import type { RuntimeActionClient, RuntimeTeleopCommandRequest, RuntimeVector3 } from "./runtime-protocol";
 import {
   type ComponentContribution,
+  composeTeleopMode,
   composeTwist,
   contributionFromAxisMap,
   defaultJoystickAxisMap,
-  isZeroTwist,
   readAxisDeadZone,
   readWidgetAxisMap,
   type TeleopTwistComposer,
@@ -126,7 +126,7 @@ export async function dispatchTeleopFrameIntent(
       detail: "Runtime frame selection needs the composed teleop state.",
     };
   }
-  if (!isZeroTwist(options.teleopComposer.compose())) {
+  if (options.teleopComposer.moving) {
     return {
       intent,
       status: "blocked",
@@ -251,16 +251,16 @@ export function createTeleopCommandRequest(
 
   // cartesian_manager replaces the latest command per source rather than
   // accumulating it, so every publish has to carry the whole twist.
-  composer.contribute(intent.widgetId, contribution, widgetFrameId);
-  const twist = composer.compose();
-  const frameId = composer.resolveFrame(sessionFrameId).frameId;
+  composer.contribute(intent.widgetId, contribution, widgetFrameId, target);
+  const twist = composer.compose(target);
+  const frameId = composer.resolveFrame(sessionFrameId, undefined, target).frameId;
 
   return {
     type: "teleop_cmd",
     angular: twist.angular,
     ...(frameId ? { frame_id: frameId } : {}),
     linear: twist.linear,
-    mode,
+    mode: composeTeleopMode(twist, mode, target),
     seq: sequence,
     target,
   };

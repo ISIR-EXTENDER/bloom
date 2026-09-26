@@ -75,6 +75,8 @@ class RuntimeSessionManager:
         self._owner_session_id: str | None = None
         self._releasing_session_id: str | None = None
         self._teleop_commands: dict[str, dict[str, TeleopCommand]] = {}
+        #: When each recorded moving command last arrived, for the legacy deadman.
+        self._teleop_updated_at: dict[str, dict[str, float]] = {}
         self._mode_requests: dict[str, str] = {}
         self._frame_ids: dict[str, str] = {}
         #: The mode-request topic a session sent a joint target on, until something cancels it.
@@ -133,6 +135,7 @@ class RuntimeSessionManager:
             self._read_only_sessions.discard(session.id)
             self._last_seen.pop(session.id, None)
             self._teleop_commands.pop(session.id, None)
+            self._teleop_updated_at.pop(session.id, None)
             self._mode_requests.pop(session.id, None)
             self._frame_ids.pop(session.id, None)
             self._joint_target_topics.pop(session.id, None)
@@ -225,6 +228,27 @@ class RuntimeSessionManager:
                     self._teleop_commands.pop(session.id, None)
                 return
             commands[command.target] = command
+            self._teleop_updated_at.setdefault(session.id, {})[command.target] = self._clock()
+
+    def stale_teleop_commands(self, max_age_sec: float) -> tuple[tuple[str, TeleopCommand], ...]:
+        """Moving commands nobody refreshed within max_age_sec, with the session that sent them."""
+        with self._lock:
+            now = self._clock()
+            return tuple(
+                (session_id, command)
+                for session_id, commands in self._teleop_commands.items()
+                for target, command in commands.items()
+                if now - self._teleop_updated_at.get(session_id, {}).get(target, now) > max_age_sec
+            )
+
+    def forget_teleop_command(self, session_id: str, command: TeleopCommand) -> None:
+        """Drop a zeroed command, unless a fresher one replaced it meanwhile."""
+        with self._lock:
+            commands = self._teleop_commands.get(session_id, {})
+            if commands.get(command.target) is command:
+                del commands[command.target]
+                if not commands:
+                    self._teleop_commands.pop(session_id, None)
 
     def record_mode_request(
         self, session_id: str, mode: str, topic: str = "/mode_request", *, require_owner: bool = False
@@ -390,7 +414,7 @@ class RuntimeSessionManager:
         # expire, and the old session's own disconnect must not undo the new owner's, so the next claim resets them.
         for command in self._teleop_commands.pop(owner_id, {}).values():
             if self._zero_orphaned_teleop:
-                self._orphaned_teleop_zeros.append(_zero_of(command))
+                self._orphaned_teleop_zeros.append(zero_of(command))
         joint_target_topic = self._joint_target_topics.pop(owner_id, None)
         if joint_target_topic is not None:
             self._orphaned_mode_resets.append((joint_target_topic, STOP_MODE_REQUEST))
@@ -427,7 +451,7 @@ def _forget_topics(records: dict[str, str], published: Collection[str] | None) -
             del records[session_id]
 
 
-def _zero_of(command: TeleopCommand) -> TeleopCommand:
+def zero_of(command: TeleopCommand) -> TeleopCommand:
     return TeleopCommand(
         angular=TeleopVector3(),
         frame_id=command.frame_id,

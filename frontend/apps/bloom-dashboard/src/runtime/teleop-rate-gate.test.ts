@@ -138,10 +138,10 @@ describe("the aggregate teleop rate gate", () => {
       },
     });
 
-    expect(gate.unsettledMove).toBeNull();
+    expect(gate.unsettledMoves).toEqual([]);
     await gate.submit(command(1));
     const queued = gate.submit(command(2));
-    expect(gate.unsettledMove?.seq).toBe(2);
+    expect(gate.unsettledMoves.map((move) => move.seq)).toEqual([2]);
 
     gate.discardPending();
     await expect(queued).resolves.toMatchObject({ status: "coalesced" });
@@ -149,6 +149,29 @@ describe("the aggregate teleop rate gate", () => {
     expect(sent.map((request) => request.seq)).toEqual([1]);
 
     await gate.submit(command(3, 0));
-    expect(gate.unsettledMove).toBeNull();
+    expect(gate.unsettledMoves).toEqual([]);
+  });
+
+  it("keeps a lane per target, so a pad on one never coalesces away another's", async () => {
+    const sent: RuntimeTeleopCommandRequest[] = [];
+    const gate = new TeleopRateGate({
+      send: async (request) => {
+        sent.push(request);
+        return accepted(request);
+      },
+    });
+
+    await gate.submit(command(1));
+    const onA = gate.submit(command(2));
+    const onB = gate.submit({ ...command(3), target: "/visual_servoing_command" });
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(onA).resolves.toMatchObject({ status: "accepted" });
+    await expect(onB).resolves.toMatchObject({ status: "accepted" });
+    expect(sent.map((request) => request.seq)).toEqual([1, 3, 2]);
+    expect(gate.unsettledMoves.map((move) => move.target).sort()).toEqual([
+      "/joystick_cartesian_command",
+      "/visual_servoing_command",
+    ]);
   });
 });
