@@ -273,7 +273,11 @@ export function App({
         )}
 
         <div id="bloom-main-content" tabIndex={-1}>
-          <AppErrorBoundary resetKey={activeView}>
+          <AppErrorBoundary
+            onError={runtimeActions.suspendTeleop}
+            onOpenHome={() => handleProductViewChange("landing")}
+            resetKey={activeView}
+          >
             {activeView === "landing" ? (
               <LandingPage onOpenView={handleProductViewChange} />
             ) : activeView === "help" ? (

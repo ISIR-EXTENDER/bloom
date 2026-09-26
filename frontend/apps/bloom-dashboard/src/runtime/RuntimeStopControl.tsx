@@ -30,7 +30,7 @@ export type RuntimeStopControlProps = {
 
 /**
  * STOP as runtime chrome (finding 3): tap stops on pointerdown, resuming
- * takes a 1s hold, and the stopped look follows the backend's latch only.
+ * takes a 1s hold. The stopped look follows the backend latch, and a press the backend has not confirmed.
  */
 export function RuntimeStopControl({
   stopped,

@@ -342,7 +342,7 @@ export function RuntimeWorkspace({
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
-  const stopped = runtimeStop.state?.stopped === true;
+  const stopped = runtimeStop.state?.stopped === true || runtimeStop.stopRequested;
   const isAssistiveRuntimeTargetEnabled = (target: HTMLElement) => {
     if (runtimeControlBlocked) {
       return target.hasAttribute("data-runtime-control-independent");
@@ -504,12 +504,16 @@ export function RuntimeWorkspace({
     runtimeActionClient.engageRuntimeStop ? (
       <RuntimeStopControl
         region={region}
-        onEngage={runtimeStop.engage}
+        onEngage={() => {
+          // Zero here, not after the round trip: the socket still streams while the request travels.
+          onSuspendTeleop();
+          runtimeStop.engage();
+        }}
         onResume={runtimeStop.resume}
         requestError={runtimeStop.requestError}
         resumeDisabled={runtimeControlBlocked}
         resumeDisabledReason={runtimeControlBlocked ? strings.control.resumeRequiresOwner : ""}
-        stopped={runtimeStop.state?.stopped ?? null}
+        stopped={runtimeStop.stopRequested ? true : (runtimeStop.state?.stopped ?? null)}
         language={runtimeProfile.language}
       />
     ) : null;

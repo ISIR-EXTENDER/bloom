@@ -96,6 +96,12 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **STOP releases every control the instant it is pressed.** It used to wait for the backend's answer while the
+  teleop socket kept streaming a held pad; a STOP the backend could not be told about now keeps the controls held
+  and shows Resume. A pad moved in the moment between a suspend (focus lost, a sheet opening) and the controls'
+  return to rest can no longer put its push back and stream it on with nobody touching the screen. A view that
+  crashes releases the controls and offers Try again and Home instead of a bare error.
+
 - **A camera placed from the palette shows the gripper camera.** It arrives on
   `/camera/color/image_raw/compressed`, where the launcher's camera_interface publishes on both arms, instead of a
   placeholder. A command button whose Command is edited now sends the new mode, unless its payload was written by

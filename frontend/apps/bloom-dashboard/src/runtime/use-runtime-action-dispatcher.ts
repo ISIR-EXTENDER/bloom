@@ -92,12 +92,26 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
   const [teleopActive, setTeleopActive] = useState(false);
   // Advances on every suspend so held controls can return to rest as well.
   const [neutralRevision, setNeutralRevision] = useState(0);
+  // Between a suspend and the controls' return to rest, a pointermove could put the old push back into
+  // the composer, and the pad, reset, would never send its zero. Moves in that gap are dropped.
+  const settlingAfterSuspend = useRef(false);
+  useEffect(() => {
+    void neutralRevision;
+    settlingAfterSuspend.current = false;
+  }, [neutralRevision]);
   const syncTeleopActive = useCallback(() => {
     setTeleopActive(!isZeroTwist(teleopComposer.current.compose()));
   }, []);
 
   const dispatch = useCallback(
     (intent: WidgetActionIntent, options: RuntimeDispatchOptions = {}) => {
+      if (settlingAfterSuspend.current && intent.type === "value-change" && !isRestingValue(intent.value)) {
+        return Promise.resolve({
+          detail: "Dropped: the controls are returning to rest.",
+          intent,
+          status: "blocked" as const,
+        });
+      }
       nextRecordIndex.current += 1;
       const recordId = createRecordId(intent, nextRecordIndex.current);
       setRecords((currentRecords) =>
@@ -222,6 +236,7 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       }
     }
     teleopComposer.current.clear();
+    settlingAfterSuspend.current = true;
     void teleopPump.current?.suspend().catch(() => undefined);
     syncTeleopActive();
     setNeutralRevision((revision) => revision + 1);
@@ -262,4 +277,12 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
 
 function createRecordId(intent: WidgetActionIntent, index: number): string {
   return `${intent.widgetId}-${intent.type}-${index}`;
+}
+
+function isRestingValue(value: unknown): boolean {
+  if (typeof value === "number") return value === 0;
+  if (value && typeof value === "object" && "x" in value && "y" in value) {
+    return (value as { x: number }).x === 0 && (value as { y: number }).y === 0;
+  }
+  return false;
 }

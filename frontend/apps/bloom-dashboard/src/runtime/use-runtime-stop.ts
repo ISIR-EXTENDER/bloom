@@ -14,6 +14,8 @@ export type RuntimeStopHandle = {
   /** Latest backend-confirmed state, or null while unknown. */
   state: RuntimeStopState | null;
   requestError: string;
+  /** STOP was pressed and the backend has not answered, or could not be told: motion stays refused. */
+  stopRequested: boolean;
   engage: () => void;
   resume: () => void;
 };
@@ -25,6 +27,7 @@ export type RuntimeStopHandle = {
 export function useRuntimeStop(client: RuntimeStopClient | null | undefined): RuntimeStopHandle {
   const [state, setState] = useState<RuntimeStopState | null>(null);
   const [requestError, setRequestError] = useState("");
+  const [stopRequested, setStopRequested] = useState(false);
   const clientRef = useRef(client);
   clientRef.current = client;
 
@@ -64,9 +67,11 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     if (!engageRuntimeStop) {
       return;
     }
+    setStopRequested(true);
     engageRuntimeStop()
       .then((next) => {
         mirrorState(next);
+        setStopRequested(false);
         setRequestError("");
       })
       .catch((error: unknown) => {
@@ -79,6 +84,8 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
         getState()
           .then((next) => {
             mirrorState(next);
+            // Not latched on the backend: the press still holds every control here until Resume.
+            setStopRequested(!next.stopped);
             setRequestError(next.stopped && !next.asserted ? "" : message);
           })
           .catch(() => setRequestError(message));
@@ -90,6 +97,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     if (!resumeRuntimeStop) {
       return;
     }
+    setStopRequested(false);
     resumeRuntimeStop()
       .then((next) => {
         mirrorState(next);
@@ -101,5 +109,5 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   }, [mirrorState]);
 
   const assertionError = state?.stopped && !state.asserted ? state.detail : "";
-  return { state, requestError: assertionError || requestError, engage, resume };
+  return { state, requestError: assertionError || requestError, stopRequested, engage, resume };
 }

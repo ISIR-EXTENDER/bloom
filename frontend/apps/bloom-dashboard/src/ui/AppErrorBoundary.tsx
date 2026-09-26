@@ -2,6 +2,9 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 type AppErrorBoundaryProps = {
   children: ReactNode;
+  /** Runs on a crash: the dispatcher lives above this boundary and would keep streaming a held pad. */
+  onError?: () => void;
+  onOpenHome?: () => void;
   resetKey: string;
 };
 
@@ -19,6 +22,7 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    this.props.onError?.();
     console.error("Bloom UI rendering failed.", error, info.componentStack);
   }
 
@@ -39,6 +43,17 @@ export class AppErrorBoundary extends Component<AppErrorBoundaryProps, AppErrorB
           <p className="configuration-status configuration-status-error" role="alert">
             {this.state.error.message}
           </p>
+          <p>Every control was released. Try the view again, or start from the home page.</p>
+          <div className="hero-actions">
+            <button onClick={() => this.setState({ error: null })} type="button">
+              Try again
+            </button>
+            {this.props.onOpenHome ? (
+              <button onClick={this.props.onOpenHome} type="button">
+                Home
+              </button>
+            ) : null}
+          </div>
         </section>
       );
     }

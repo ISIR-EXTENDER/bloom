@@ -239,8 +239,12 @@ describe("the stop mirror", () => {
       <div>
         <span data-testid="stopped">{stop.state === null ? "unknown" : String(stop.state.stopped)}</span>
         <span data-testid="error">{stop.requestError}</span>
+        <span data-testid="requested">{String(stop.stopRequested)}</span>
         <button onClick={stop.engage} type="button">
           engage
+        </button>
+        <button onClick={stop.resume} type="button">
+          resume
         </button>
       </div>
     );
@@ -266,11 +270,35 @@ describe("the stop mirror", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "engage" }));
     expect(screen.getByTestId("stopped").textContent).toBe("false");
+    // Motion is refused meanwhile: the teleop socket still streams while the request travels.
+    expect(screen.getByTestId("requested").textContent).toBe("true");
 
     await act(async () => {
       confirmLatch(stoppedState);
     });
     expect(screen.getByTestId("stopped").textContent).toBe("true");
+    expect(screen.getByTestId("requested").textContent).toBe("false");
+  });
+
+  it("keeps holding the controls when the stop request cannot reach the backend, until Resume", async () => {
+    const client: RuntimeStopClient = {
+      getRuntimeStopState: vi.fn().mockResolvedValueOnce(running).mockRejectedValue(new Error("offline")),
+      engageRuntimeStop: () => Promise.reject(new Error("offline")),
+      resumeRuntimeStop: () => Promise.resolve(running),
+    };
+    render(<Probe client={client} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "engage" }));
+    });
+    await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("offline"));
+    expect(screen.getByTestId("requested").textContent).toBe("true");
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "resume" }));
+    });
+    expect(screen.getByTestId("requested").textContent).toBe("false");
   });
 
   it("surfaces a failed assertion and immediately mirrors the latched state", async () => {

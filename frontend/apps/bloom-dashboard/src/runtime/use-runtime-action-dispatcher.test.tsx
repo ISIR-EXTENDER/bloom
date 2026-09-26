@@ -176,6 +176,47 @@ describe("runtime teleop suspension", () => {
     expect(sent.length).toBeGreaterThan(before);
   });
 
+  // A pointermove landing before the pad's reset effect put the push back, and the reset pad never sent
+  // its zero: the pump streamed the old vector with nobody touching the screen.
+  it("drops a pad move that arrives before the controls return to rest", async () => {
+    const { result } = renderHook(() => useRuntimeActionDispatcher(client));
+    const move = (x: number) =>
+      result.current.dispatch({
+        type: "value-change",
+        binding: "joy",
+        modeId: "translation",
+        publishRateHz: 30,
+        runtimeBinding: { adapter: "teleop", target: "translation" },
+        value: { x, y: 0 },
+        widgetId: "translation",
+        widgetKind: "joystick",
+        zeroOnRelease: true,
+      });
+
+    act(() => {
+      move(0.8);
+    });
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    let late: Awaited<ReturnType<typeof move>> | undefined;
+    act(() => {
+      result.current.suspendTeleop();
+      void move(0.8).then((outcome) => {
+        late = outcome;
+      });
+    });
+    await act(() => vi.advanceTimersByTimeAsync(500));
+
+    expect(late?.status).toBe("blocked");
+    expect(result.current.teleopActive).toBe(false);
+    expect(sent.at(-1)?.linear.x).toBe(0);
+
+    act(() => {
+      move(0.5);
+    });
+    await act(() => vi.advanceTimersByTimeAsync(60));
+    expect(sent.at(-1)?.linear.x).toBe(0.5);
+  });
+
   it("coalesces rapid widget updates before they reach the WebSocket client", async () => {
     const { result } = renderHook(() => useRuntimeActionDispatcher(client));
 
