@@ -27,7 +27,7 @@ TOUCH_IDS=()
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [--dry-run] [--apply-display-mode] [--install-autostart] [--gnome] [--diagnose]
+Usage: $(basename "$0") [--dry-run] [--apply-display-mode] [--install-autostart] [--gnome] [--diagnose] [--watch]
 
 Maps the Extender touchscreen to the target display output.
 
@@ -41,8 +41,8 @@ Environment:
   APPLY_DISPLAY_MODE    Set to 1 to apply DISPLAY_MODE before touch mapping.
   CREATE_DISPLAY_MODE   Set to 1 to create DISPLAY_MODE with cvt when missing.
   LOGICAL_DISPLAY_SIZE  Optional scaled logical size, for example 1820x720.
-  PLACE_OUTPUT_LEFT_OF  Optional output to place to the right of DISPLAY_OUTPUT.
-  PLACE_OUTPUT_RIGHT_OF Optional output to place to the left of DISPLAY_OUTPUT.
+  PLACE_OUTPUT_LEFT_OF  Optional output; DISPLAY_OUTPUT goes left of it (it sits to the right).
+  PLACE_OUTPUT_RIGHT_OF Optional output; DISPLAY_OUTPUT goes right of it (it sits to the left).
   USE_EXACT_TOUCH_MATRIX Set to 1 to calculate the xinput matrix. Default: 1
   DISPLAY_SETTLE_SECONDS Seconds to wait after xrandr changes. Default: 0.5
   WAIT_SECONDS          Seconds to wait for display/input devices. Default: 10

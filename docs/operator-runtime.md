@@ -177,7 +177,10 @@ configuration and app, but the tour remains available for repetition.
 
 ## Stop And Resume
 
-- A pointer press on **STOP** engages the backend runtime stop immediately. Keyboard activation is also supported.
+- A pointer press on **STOP** releases every control on the screen at once and engages the backend runtime stop.
+  Keyboard activation is also supported.
+- If the backend cannot be reached, the controls stay stopped on this screen, it shows the error, and
+  **HOLD TO RESUME** is the way back.
 - STOP is the first stop in the keyboard tab order, the runtime's only positive `tabindex`; it used to be
   second-to-last, behind every control on the screen.
 - The stop is a backend latch shared by runtime clients; it is not a decorative local button.
@@ -355,7 +358,10 @@ dwell root, as it already does for scanning, so Close, Settings, a screen, a rol
 by rest alone.
 
 Latched and stepped return-to-center controls automatically publish zero after 15 seconds without renewed input; the
-visible zero control releases them sooner.
+visible zero control releases them sooner. For the last 5 seconds the control shows **Releases in N s** and a
+**Keep going** button that restarts the 15 seconds without moving anything; scanning lights that button next. Once it
+lets go, a screen reader hears that the control released. This **Keep going** button is not the Settings push mode of
+the same name below, which chooses latching in the first place.
 
 ### Runtime Settings
 

@@ -38,8 +38,10 @@ Click any widget to place it. It lands clear of the others and of STOP, and it a
 | Event log | The mode requests |
 | Joint table, Jacobian, 3D robot view, positions | The robot's joint states, Jacobian and model |
 
-Change any of it in the Inspector: its banner says **Publishes to** or **Reads from**, and the joystick's topic field
-offers the inputs the robot's manager listens on. Only the gesture pad, a game's input, asks for its topic.
+Change any of it in the Inspector. Its banner says **Publishes to** or **Reads from**. A slider, pad or command button
+first asks what it is for: **What this slider controls**, **What this pad does** or **What this button does**. Pick one
+and Bloom fills in the topic, fields and payloads; they stay folded under **Advanced (ROS)**, which opens by itself
+when no purpose is chosen or a setting there is wrong. The gesture pad arrives on `/ui/gesture`.
 
 The 3D robot view and a few debug widgets are **Desktop only**. On a tablet screen the palette offers **Switch this
 screen to desktop**, and the device reading at the top of the canvas has the same switch.

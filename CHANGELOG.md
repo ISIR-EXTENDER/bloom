@@ -16,86 +16,56 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **Say what a control does, in words.** A slider, a pad and a command button each get a choice in the inspector:
   a speed limit, hand height, pivot or snake gain; moving or turning the hand; Neutral, Jaco, Snake while held, Go
   home (with its second press), Release, or a drive frame. Each writes what the shipped Manager apps use, for this
-  arm, and the ROS fields move under **Advanced (ROS)**. Topic and field inputs suggest what the stack publishes, and
-  the palette says what each widget arrives as.
+  arm, and owns the settings it writes. The ROS fields fold under **Advanced (ROS)**, which opens by itself when no
+  purpose is chosen or an error names one of its fields; a toggle keeps its topic and payloads in view. Go home is not
+  offered on the Kinova while cartesian_manager#10 is open, and a frame the robot does not accept is shown disabled.
+  Topic and field inputs suggest what the stack publishes, the palette says what each widget arrives as, and the
+  inspector warns about a publish outside the app's own list.
+- **A latched control says when it will let go.** A latched pad, slider or held Snake, and a teleop slider without
+  return to center, releases after 15 s without input. The last five seconds are counted down on the control, with
+  **Keep going**, which restarts the window without moving anything. Scanning lights it at the next step and then
+  returns to where it was; the release is announced.
+- **The joint table reads its limits from the robot.** With no ranges typed, it takes each bounded joint's range from
+  the URDF the API already serves; typed limits add to the robot's, and continuous joints say so.
+- **A gesture pad placed from the palette publishes.** It sends on `/ui/gesture`, which the default allowlist allows,
+  as JSON text, once when the finger lifts.
+- **Scan and dwell can use the gesture pad.** A switch press sends the gesture shown, and under the scan, dwell and step
+  presets angle and power have their own step buttons.
+- **Operator words in French and Spanish.** The step hints, the step, zero and stop controls' names and the plot's
+  Freeze and Live follow the profile's language. Failure messages stay in English on purpose.
+- **Allowed parameters in the Builder.** A parameter control can be allowed from Adapter guardrails. The runtime and
+  the checklist read an empty list as none, as the backend does.
+- **A plot picker is linked by name, and links itself.** It offers the screen's plot boards by title and says when it
+  controls nothing. A picker placed before its board, or left on a removed one, takes the next board placed.
+- **Series are rows, not JSON.** A plot board's or value strip's series are edited one row each (label, topic, field,
+  unit, shown, emphasis), with Add and Remove, and a row that would plot nothing says why.
 
 ### Fixed
 
-- **A second safety review, fixed.** A held switch key auto-repeats, and the repeat armed then confirmed Go home, or
-  resumed after STOP, in one long press: a scan press now activates once. Enter on a focused STOP at a scan station
-  fired the lit control instead of stopping. **Keep going** on a latched pad sat under the pad's touch zone, so a
-  tap on it drove the arm. A teleop slider authored without return to center held its velocity with no countdown
-  and no reset on suspend; it now releases to zero like any latch. A confirmation within 600 ms of arming (a double
-  tap, a bouncing switch, a held Enter) is taken for the same press, on Go home and on Resume, and an armed Resume
-  holds the scan so the confirming press lands on it.
-- **Announcements and scan.** The latch warning's live region is there before it speaks, and the release is said;
-  "Scanning N of M" is no longer read at every step; after an urgent **Keep going** the scan returns to where it
-  was, so STOP keeps its place.
-- **Smaller.** STOP's keyboard focus hand-over clears on blur, on the swap and on a refused resume. Advanced opens
-  only for an error about one of its fields. A Kinova button that already does Go home reads so, disabled. The
-  gesture pad sends only for a drag that started on it and sends arrows on key-up. A plot picker tells a missing
-  board from an empty one, and Add series past the six suggestions adds an empty row to fill in.
-
-- **Review of the new "what it does" choices and latches, fixed.** Choosing a purpose that also renamed the widget
-  kept the old settings (two commits from one draft). A speed slider switched to Height or Pivot kept its speed
-  segments and could hold the arm moving with no zero; segments are never drawn on a motion axis now, and a purpose
-  owns those keys. Go home is not offered on the Kinova while cartesian_manager#10 is open. A button's purpose now
-  replaces its navigation, action id and emphasis too, and Release is marked danger as in the Manager apps. A frame
-  the robot does not accept is shown disabled in the choice.
-- **Latch and scan.** The countdown no longer shifts step targets under a resting pointer and says its warning once;
-  **Keep going** is lit by scanning at the next step; the scan holds an armed Go home for two periods so its
-  confirming press lands on it; the maintenance Tab loop skips a disabled Resume; a keyboard tap on Resume that let
-  go early no longer pulls focus later.
-- **Builder.** Advanced (ROS) has a marker, opens by itself when no purpose is chosen or an error names a field in it,
-  and errors name fields by their label; the toggle keeps its topic and payloads in view. A publish outside the
-  app's own list is warned about in the inspector. A reader keeps a message type the author typed and takes the new
-  topic's known one. Add series never duplicates a row.
-- **Runtime widgets.** The gesture pad sends once when the finger lifts: every move was an HTTP publish, and dragging
-  spent the rate limit for every other command. Typed joint limits add to the robot's instead of hiding them,
-  continuous joints say so, the URDF reader keeps the joint after a self-closing one, and an unlinked plot picker says
-  what to do.
-
-- **A latched control says when it will let go.** A latched pad, slider or held Snake releases after 15 s without
-  input, which is safe but came in silence; the last five seconds are now counted down on the control, with **Keep
-  going**, which restarts the window without moving anything.
-- **The joint table reads its limits from the robot.** Its limit column needed the ranges typed as JSON; with none
-  typed, it now takes each bounded joint's range from the URDF the API already serves.
-- **A gesture pad placed from the palette publishes.** It arrived with no topic; it now sends on `/ui/gesture`, which
-  every deployment allows, as JSON text. The joint table's inspector says an empty limit list reads the robot's own.
-- **Scan and dwell can use the gesture pad.** A switch press sends the gesture shown, and under the scan, dwell and step
-  presets angle and power have their own step buttons; the pad was lit and did not answer.
-- **Operator words in French and Spanish.** The step hints, the step, zero and stop controls' names and the plot's
-  Freeze and Live follow the profile's language. Failure messages stay in English on purpose.
-
-- **A reading widget pointed at another topic reads it.** It kept the old topic's message type, and the backend
-  subscribed with it, so a gauge moved to `/joint_states` waited forever. The type now comes from the graph. A mode
-  button's action label follows its command too.
+- **Switch and keyboard presses at a scan station.** A held switch key auto-repeated and could arm then confirm Go
+  home, or resume after STOP, in one press: a scan press now activates once, and a confirmation within 600 ms of
+  arming counts as the same press. Enter on a focused STOP fired the lit control instead of stopping. An armed Resume
+  or Go home holds the scan so the confirming press lands on it; the maintenance Tab loop skips a disabled Resume;
+  "Scanning N of M" is no longer read at every step.
+- **The gesture pad no longer floods the API.** It published on every move, which spent the rate limit for every
+  other command, and it now sends only for a drag that started on it.
+- **A reading widget pointed at another topic reads it.** It kept the old topic's message type, so a gauge moved to
+  `/joint_states` waited forever. The type now comes from the graph unless the author typed one. A mode button's
+  action label follows its command too.
 - **Camera and 3D status in the operator's language, announced once.** "No new frame", "Reconnecting…", the 3D view's
   "No joint state" and the refused-hold fallback were English on a French or Spanish screen, and the stale counts
   re-announced every second. The 3D view's Frame button and a plot's Freeze are 44 px.
 - **STOP is reachable from every way of pointing, over every sheet.** A dwell user could not stop the arm while
-  Settings, the tour or maintenance was open (each runs its own dwell, and STOP is drawn outside them), and the
-  maintenance sheet's Tab trap left STOP out. A keyboard press on STOP or Resume keeps focus on the control; a failed
-  STOP is in its accessible name; the status chip reads STOPPED while a press is unconfirmed; the Settings header
-  shows the live status instead of always HELD; and a switch or dwell operator who is not in control can still open
-  the menu.
-- **Fixes to this night's own changes, from a review of the diff.** The bounded publisher cache could destroy a
-  publisher another thread was using, including the ones STOP publishes on: publishes now run under its lock and those
-  topics are never evicted. The suspend gate dropped any slider move, not only teleop. Browser Back skipped the
-  unsaved-work question. A guided app could take the id of a shipped app deleted here and then share over its file.
-  `stop_all` stopped at the first recording that would not stop. A profile saved with the removed `reduced-motion`
-  preset made its app unreadable, and one unreadable app failed the loading of every other: the preset now reads as
-  default, and the rest load.
-- **A parameter control can be allowed from the Builder.** The inspector sent authors to an "Adapter guardrails,
-  Parameters" list that did not exist; **Allowed parameters** is there now. The runtime and the checklist read an
-  empty list as none, as the backend does: a new app's gain slider looked live and every move came back 403.
-
-- **A plot picker is linked by name, and links itself.** Its inspector asked for a plot board's widget id, which
-  nothing on screen shows; it now offers the screen's plot boards by title and says when the picker controls nothing.
-  A picker placed before its board, or left on a removed one, takes the next board placed.
-- **Series are rows, not JSON.** A plot board's or value strip's series are edited one row each (label, topic, field,
-  unit, shown, emphasis), with Add and Remove, and a row that would plot nothing says why; a typo used to drop the
-  series at runtime without a word.
+  Settings, the tour or maintenance was open, and the maintenance sheet's Tab trap left STOP out. A keyboard press on
+  STOP or Resume keeps focus on the control; a failed STOP is in its accessible name; the status chip reads STOPPED
+  while a press is unconfirmed; the Settings header shows the live status; and a switch or dwell operator who is not
+  in control can still open the menu.
+- **Regressions from 0.4.x.** The bounded publisher cache could destroy a publisher another thread was using,
+  including STOP's: publishes now run under its lock and those topics are never evicted. The suspend gate dropped any
+  slider move, not only teleop. Browser Back skipped the unsaved-work question. A guided app could take the id of a
+  deleted shipped app and share over its file. `stop_all` stopped at the first recording that would not stop. A
+  profile with the removed `reduced-motion` preset made its app unreadable, and one unreadable app failed every
+  other: the preset now reads as default, and the rest load.
 - **The command preset library points at topics that can work.** The trigger example published to `/example/trigger`,
   which no deployment allows, and now uses `/ui/trigger`; the Petanque command says it needs that stack; Neutral and
   Snake join the manager presets.

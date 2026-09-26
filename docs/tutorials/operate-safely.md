@@ -63,6 +63,9 @@ Two more things the bar tells you, and they matter:
 In both cases the control keeps its previous state. A toggle that flips is never on its own proof that the robot moved;
 Bloom changes a control only after the backend acknowledges it.
 
+A latched or stepped control lets go by itself after 15 seconds without input. For the last 5 seconds it reads
+**Releases in N s** and shows a **Keep going** button: press it to keep holding without moving anything.
+
 ## STOP and resume
 
 STOP is always live. It sits in the screen's reserved region, which no widget can occupy, and it stays above the
@@ -106,7 +109,7 @@ Hold Maintenance, then **Settings**. It replaces the controls rather than coveri
 
 - **Display** — text size (Normal, Large, Larger), language (EN, ES, FR), sound on every press.
 - **How you reach the controls** — input method (Touch, Dwell, Scan), and **How a push moves** (Drag, Tap by tap,
-  Keep going).
+  Keep going). Keep going latches a push: the control holds until you release it.
 - **Timing** — hold to activate, scan step, ignore repeats, joystick dead zone. A setting that does not apply to the
   chosen input method is drawn dashed and says so.
 

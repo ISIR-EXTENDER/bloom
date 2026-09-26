@@ -5,18 +5,20 @@ executable: if a step cannot be run, it is not a gate, it is a wish.
 
 ## 1. Automated gates
 
-All of these must pass from a clean checkout.
+All of these must pass from a clean checkout. `npm run verify` runs everything CI runs, in CI's order
+(`scripts/verify.sh`); run it first. The steps it covers:
 
 ```bash
 npm install
-npm run check          # Biome lint + format
-npm run test           # frontend workspaces
-npm run build          # production build
-npm run audit:security # frontend + backend dependency audits
+npm run verify         # all of the below, plus the dynamic security smoke and visual smoke
 
-cd backend
-uv sync
-make test              # backend suite
+cd backend && uv sync && make lint && make test && cd ..   # backend lint + suite
+npm run check          # Biome lint + format
+npm run build          # production build
+npm run test           # frontend workspaces
+npm run check:contracts # versions and every app contract, visual-servoing app included
+npm run qa:review      # repository invariants
+npm run audit:security # frontend + backend dependency audits
 ```
 
 Do not pin suite totals here; they change whenever coverage improves. The gate is
@@ -32,6 +34,7 @@ npm run validation:frontend-backend
 npm run validation:sandbox-runtime
 npm run validation:sandbox-tablet
 npm run validation:visual-servoing
+npm run validation:visual-servoing-app
 npm run validation:petanque-parity
 ```
 

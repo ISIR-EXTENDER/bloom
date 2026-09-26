@@ -25,8 +25,9 @@ The script:
 
 Run exactly one Bloom API process and one replica for a robot-facing deployment. Runtime command ownership is held in
 that process; `uvicorn --workers 2`, two containers, or load balancing across replicas would create independent owners
-and defeat the one-operator guarantee. The maintained `bloom api run`, `bloom api run-ros`, and workspace script all
-start one process. A shared lease coordinator is required before scaling the command API horizontally.
+and defeat the one-operator guarantee. The maintained `make run` and `make ros-run` in `backend` (the CLI's `api run`
+and `api run-ros`) and the workspace script all start one process. A shared lease coordinator is required before
+scaling the command API horizontally.
 
 ## Node.js
 
@@ -59,7 +60,7 @@ test suites.
 | `BLOOM_RUNTIME_CONTROL_REQUIRED` | `true` | Require one Runtime session to own robot commands; production refuses `false`. |
 | `BLOOM_SEED_SHARED_APPLICATIONS` | `true` | Import and upgrade shipped applications at API start. |
 | `BLOOM_TELEOP_TARGET_PARAMETERS` | manager `topics.*_command` | `<node>:<parameter>` pairs naming the manager's input topics a joystick may drive. |
-| `BLOOM_CAMERA` | `auto` | `scripts/extender-workspace-dev.sh` only: the camera `camera_interface` starts; `none` skips it, or name a driver (`usb_cam`, `camera_ros`, `kinova_vision`). |
+| `BLOOM_CAMERA` | `auto` | `scripts/extender-workspace-dev.sh` only: the camera `camera_interface` starts; `none` skips it, or name a driver (`usb_cam`, `camera_ros`, `kinova_vision`). Optional: a driver whose package is not built, such as `kinova_vision`, which no repos file provides, is skipped. |
 | `BLOOM_SEED_DIR` | `backend/seed/applications` | Where the shared applications live; the Builder's **Share** writes here. |
 | `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |
@@ -198,6 +199,9 @@ export BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND=60
 export BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ=30
 export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 ```
+
+This example narrows the default publish allowlist and leaves out `/ui/`. An app with a gesture pad (`/ui/gesture`)
+or another `/ui/` widget needs `/ui/`, or its exact topics, added back; otherwise those publishes are refused.
 
 Keep the backend command ceiling at or above `60` for the shipped runtime. Bloom coalesces all composed teleop inputs
 to at most 30 moving commands/s and sends neutral commands immediately; the 2x margin prevents normal tablet timing

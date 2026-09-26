@@ -30,8 +30,8 @@ is worse than it looks.
   `rclpy_cartesian_manager.py`, `rclpy_teleop.py`, `rclpy_topic_streams.py`,
   `camera_frames.py`, `rclpy_publishers.py`.
 - `create_app()` installs a Noop for every ROS seam when nothing real is passed.
-- `bloom api run` and `bloom api run-ros` are separate entry points, and the
-  ROS-free one is the default.
+- `api run` and `api run-ros` (`make run` and `make ros-run` in `backend`) are
+  separate entry points, and the ROS-free one is the default.
 - The rule is written down: `docs/architecture.md` — *generic libs may not
   import ROS.*
 

@@ -186,7 +186,7 @@ An app you build or change can be shared the same way, as one file committed to 
 ## Quickstart
 
 This starts Bloom without ROS or robot hardware. You need Node.js 24 LTS, npm 11+, Python 3.10-3.12, and
-[`uv`](https://docs.astral.sh/uv/).
+[`uv`](https://docs.astral.sh/uv/). The ROS path needs Python 3.12, the version ROS 2 Jazzy's `rclpy` is built for.
 
 ### 1. Install
 

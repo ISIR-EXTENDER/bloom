@@ -58,8 +58,8 @@ The Kinova launch does not spawn `fault_controller`, so Reset fault is not exerc
 - Explorer: `ros-jazzy-ros-gz-bridge` and the Explorer Gazebo packages, and no other Gazebo simulation running. Gazebo
   transport ignores `ROS_DOMAIN_ID`, so the script refuses to start a second world.
 - Kinova: `kortex_description` and `robotiq_description` built in the Extender workspace. They are in
-  `extender.repos` (`Kinovarobotics/ros2_kortex` on `jazzy`, `PickNikRobotics/ros2_robotiq_gripper` on `main`); the
-  workspace README explains which packages to ignore and why the versions must match. `kortex_description` 0.2.3, the
+  `kinova.repos` (`Kinovarobotics/ros2_kortex` on `jazzy`, `PickNikRobotics/ros2_robotiq_gripper` on `main`), imported
+  with `WITH_KORTEX=1 ./setup_workspace.sh`; the workspace README explains which packages to ignore and why the versions must match. `kortex_description` 0.2.3, the
   copy in the older `kinova_ros2_ws`, writes a `mimic` attribute Jazzy's `ros2_control` refuses, so no controller
   spawns. Packages installed outside the sourced workspace can still be added with `BLOOM_E2E_EXTRA_PREFIX`.
 

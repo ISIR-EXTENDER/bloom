@@ -15,7 +15,8 @@ interface safely. Part two attaches it to a simulated Explorer or Kinova arm and
 
 ### 1. Install
 
-You need Node.js 24 LTS, npm 11 or newer, Python 3.10 to 3.12, and [`uv`](https://docs.astral.sh/uv/).
+You need Node.js 24 LTS, npm 11 or newer, Python 3.10 to 3.12, and [`uv`](https://docs.astral.sh/uv/). Running
+against ROS needs Python 3.12, the version ROS 2 Jazzy's `rclpy` is built for.
 
 ```bash
 git clone https://github.com/ISIR-EXTENDER/bloom.git
@@ -114,8 +115,8 @@ ros2 launch cartesian_manager kinova.launch.py use_simulation:=true
 
 > [!NOTE]
 > Kinova needs `kortex_description` and `robotiq_description` built in the workspace, at versions that agree. They are
-> in `extender.repos`; the workspace README explains which packages to ignore and why the versions matter. Without
-> them the launch loads no hardware and no controller spawns.
+> in `kinova.repos`, imported with `WITH_KORTEX=1 ./setup_workspace.sh`; the workspace README explains which packages
+> to ignore and why the versions matter. Without them the launch loads no hardware and no controller spawns.
 
 Leave that terminal running.
 
@@ -187,7 +188,7 @@ another browser tab may still own the robot.
 **Watch the arm in Bloom rather than rviz.** On the laptop, open **Bloom Debug** and switch to its **Robot view**
 screen (hold **⋯** for 1.5 seconds, then pick the screen): the robot the manager runs with, drawn from the description
 the API serves, moving with `/joint_states`, with `/ee_pose` as a small triad on the tool, a joint target such as
-Load home as a translucent copy, and any `visualization_msgs/msg/MarkerArray` on `/goal_markers` drawn as rviz would.
+Go home as a translucent copy, and any `visualization_msgs/msg/MarkerArray` on `/goal_markers` drawn as rviz would.
 Open it before the launch if you like: it asks again every three seconds until the robot is up.
 
 ### 9. Check the same things a machine checks

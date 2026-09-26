@@ -55,15 +55,21 @@ scripts/extender-workspace-dev.sh
 For Kinova, change `BLOOM_ROBOT_NAME`:
 
 ```bash
+cd /path/to/bloom
+EXTENDER_WORKSPACE=/path/to/extender_workspace \
 BLOOM_ROBOT_NAME=Kinova \
+BLOOM_ROS_COMMAND_FRAME_ID=base_link \
 BLOOM_ROS_EE_FRAME_ID=effector_frame \
+scripts/extender-workspace-dev.sh
 ```
 
 **The gripper camera starts with the launcher.** With `BLOOM_ROBOT_NAME` set it picks the arm's camera through
 `camera_interface`: the Explorer's USB camera (or the first webcam when it is not plugged in), or the Kinova's
-integrated camera through `kinova_vision`, which needs the arm on its network. The image reaches the camera test apps
-on `/camera/color/image_raw/compressed`. A camera already publishing there is left alone; `BLOOM_CAMERA=none` skips
-it, `BLOOM_CAMERA=usb_cam` forces the webcam, and the camera's log is `backend/data/camera.log`.
+integrated camera through `kinova_vision`, which needs the arm on its network. The camera is optional: no repos file
+provides `kinova_vision`, and the launcher skips any camera whose package is not built. The image reaches the camera
+test apps on `/camera/color/image_raw/compressed`. A camera already publishing there is left alone;
+`BLOOM_CAMERA=none` skips it, `BLOOM_CAMERA=usb_cam` forces the webcam, and the camera's log is
+`backend/data/camera.log`.
 
 `BLOOM_ROS_EE_FRAME_ID` names the arm's own end-effector frame. Get it wrong and Bloom offers a frame the manager
 silently discards, which looks exactly like a broken web stack.
@@ -71,6 +77,10 @@ silently discards, which looks exactly like a broken web stack.
 **Driving from a tablet** — bind the dashboard to the network so the launcher allows the tablet's origin:
 
 ```bash
+EXTENDER_WORKSPACE=/path/to/extender_workspace \
+BLOOM_ROBOT_NAME=Explorer \
+BLOOM_ROS_COMMAND_FRAME_ID=base_link \
+BLOOM_ROS_EE_FRAME_ID=effector_frame \
 BLOOM_API_HOST=127.0.0.1 \
 BLOOM_FRONTEND_HOST=0.0.0.0 \
 scripts/extender-workspace-dev.sh
@@ -94,7 +104,7 @@ the launch: the view asks again every three seconds until the description exists
 on the robot as rviz would draw it; a blue arrow and arc show what the runtime is commanding. Double-click the view or
 press Frame to frame the robot again. Both screens also draw `/ee_pose` as a triad: if it sits on the model's tool
 triad, the manager's frames and the description agree, which is the check in section 4 made visible. A joint target
-such as Load home shows as a translucent copy of the robot until the manager cancels it.
+such as Go home shows as a translucent copy of the robot until the manager cancels it.
 
 ## 4. Check the frames before anything moves
 
