@@ -11,6 +11,15 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-26
+
+### Fixed
+
+- **A clean checkout installs again.** 0.4.0 bumped every package but not the `@bloom/*` references between them,
+  which still named 0.3.0, so `npm ci` looked for them on the public registry and CI could not install. The references
+  now follow the version, and `npm run check:version` compares them too, so it cannot pass with a stale one again.
+  Nothing else changed from 0.4.0; its validation record stands.
+
 ## [0.4.0] - 2026-09-26
 
 Validation status, stated plainly: both simulations pass 30/30 (`npm run e2e:sim`, Explorer Gazebo and Kinova mock

@@ -9,7 +9,32 @@ import { readFileSync } from "node:fs";
 const lock = JSON.parse(readFileSync("package-lock.json", "utf8"));
 const workspacePaths = Object.keys(lock.packages).filter((path) => !path.includes("node_modules"));
 
+// A workspace that pins a sibling at the old version sends npm ci to the public registry for it, which has no
+// such package: 0.4.0 was tagged with every @bloom reference still at 0.3.0 and CI could not install.
+const workspaceNames = new Set(workspacePaths.map((path) => lock.packages[path]?.name).filter(Boolean));
+const siblingReferences = workspacePaths.flatMap((path) => {
+  const manifest = path ? `${path}/package.json` : "package.json";
+  const fromManifest = JSON.parse(readFileSync(manifest, "utf8"));
+  const fromLock = lock.packages[path] ?? {};
+  return [
+    ...[fromManifest, fromLock].flatMap((source, index) =>
+      Object.entries({ ...source.dependencies, ...source.devDependencies })
+        .filter(([name]) => workspaceNames.has(name))
+        .map(([name]) => ({
+          label: `${index === 0 ? manifest : `package-lock.json (${path || "root"})`} -> ${name}`,
+          path: index === 0 ? manifest : "package-lock.json",
+          read: (text) => {
+            const parsed = JSON.parse(text);
+            const entry = index === 0 ? parsed : parsed.packages[path];
+            return (entry.dependencies?.[name] ?? entry.devDependencies?.[name])?.replace(/^[\^~]/, "");
+          },
+        })),
+    ),
+  ];
+});
+
 const SOURCES = [
+  ...siblingReferences,
   ...workspacePaths.map((path) => {
     const manifest = path ? `${path}/package.json` : "package.json";
     return { label: manifest, path: manifest, read: (text) => JSON.parse(text).version };
