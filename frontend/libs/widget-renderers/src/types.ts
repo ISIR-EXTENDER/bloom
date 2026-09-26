@@ -27,6 +27,8 @@ export type WidgetDataSnapshot =
       /** False when the backend has no ROS node, so "starting up" and "never will" read differently. */
       connected: boolean;
       detail?: string;
+      /** When the newest frame arrived (ms since epoch); a frame that stops changing must not look live. */
+      receivedAt?: number;
     }
   | {
       messages: readonly TopicMessage[];

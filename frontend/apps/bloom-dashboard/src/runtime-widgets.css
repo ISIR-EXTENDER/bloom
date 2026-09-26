@@ -2086,6 +2086,18 @@
     var(--bloom-surface-container-low);
 }
 
+.bloom-camera-stale {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--bloom-error-container);
+  color: var(--bloom-on-error-container);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 .bloom-camera-frame video,
 .bloom-camera-frame img,
 .bloom-camera-frame iframe {

@@ -34,6 +34,8 @@ export function resolveCameraStreamUrl(apiBaseUrl: string, topic: string, origin
 
 export const resolveCameraStreamProtocols = resolveWebSocketProtocols;
 
+const CAMERA_RETRY_MAX_MS = 10000;
+
 export function useCameraStreams(
   targets: readonly CameraStreamTarget[],
   apiBaseUrl: string,
@@ -68,10 +70,12 @@ export function useCameraStreams(
       if (previous) {
         URL.revokeObjectURL(previous);
       }
-      publish(widgetId, { type: "camera-frame", topic, connected, frameUrl });
+      publish(widgetId, { type: "camera-frame", topic, connected, frameUrl, receivedAt: Date.now() });
     };
 
-    for (const target of openTargets) {
+    let disposed = false;
+    const retries: ReturnType<typeof setTimeout>[] = [];
+    const open = (target: CameraStreamTarget, attempt: number) => {
       let connected = false;
       const socket = new WebSocket(
         resolveCameraStreamUrl(apiBaseUrl, target.topic, undefined, apiKey),
@@ -83,6 +87,7 @@ export function useCameraStreams(
           const opened = readOpenedMessage(event.data);
           if (opened) {
             connected = opened.connected;
+            attempt = 0;
             publish(target.widgetId, { type: "camera-frame", topic: target.topic, connected });
           }
           return;
@@ -90,18 +95,37 @@ export function useCameraStreams(
         replaceFrame(target.widgetId, target.topic, connected, event.data as Blob);
       };
       socket.onclose = (event) => {
-        publish(target.widgetId, {
-          type: "camera-frame",
-          topic: target.topic,
-          connected,
-          // 1000 is this effect tearing the socket down, which is not a failure worth showing.
-          detail: event.code === 1000 ? undefined : (event.reason ?? "") || "The camera stream closed.",
-        });
+        if (disposed) {
+          return;
+        }
+        // Anything but a refused topic is worth another try: an API restart used to leave the placeholder
+        // until the operator changed screen.
+        const retryInMs = event.code === 1008 ? null : Math.min(CAMERA_RETRY_MAX_MS, 1000 * 2 ** attempt);
+        setFrames((current) => ({
+          ...current,
+          [target.widgetId]: {
+            ...(current[target.widgetId] ?? { type: "camera-frame", topic: target.topic, connected }),
+            type: "camera-frame",
+            topic: target.topic,
+            connected,
+            detail: `${(event.reason ?? "") || "The camera stream closed."}${retryInMs === null ? "" : " Reconnecting…"}`,
+          } as WidgetDataSnapshot,
+        }));
+        if (retryInMs !== null) {
+          retries.push(setTimeout(() => open(target, attempt + 1), retryInMs));
+        }
       };
       sockets.push(socket);
+    };
+    for (const target of openTargets) {
+      open(target, 0);
     }
 
     return () => {
+      disposed = true;
+      for (const retry of retries) {
+        clearTimeout(retry);
+      }
       for (const socket of sockets) {
         socket.onmessage = null;
         socket.onclose = null;

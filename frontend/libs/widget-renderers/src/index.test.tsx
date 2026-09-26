@@ -980,6 +980,47 @@ describe("widget renderer registry", () => {
     expect(image).toHaveAttribute("src", "blob:bloom/frame-1");
   });
 
+  // The last frame of a camera that stopped looked exactly like a live one.
+  it("says how old the last frame is once the camera stops sending", () => {
+    const [descriptor] = renderScreenDescriptors(rosCameraScreen, createDefaultWidgetRegistry());
+    if (!descriptor) throw new Error("Missing ROS camera descriptor.");
+    const frame = {
+      type: "camera-frame" as const,
+      topic: "/camera/color/image_raw/compressed",
+      connected: true,
+      frameUrl: "blob:bloom/frame-1",
+    };
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: { "gripper-camera": { ...frame, receivedAt: Date.now() } },
+        })}
+      </div>,
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+    cleanup();
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: { "gripper-camera": { ...frame, receivedAt: Date.now() - 5000 } },
+        })}
+      </div>,
+    );
+    expect(screen.getByRole("status").textContent).toBe("No new frame for 5 s");
+    cleanup();
+
+    render(
+      <div>
+        {renderWidgetDescriptor(descriptor, {
+          dataByWidgetId: { "gripper-camera": { ...frame, detail: "The camera stream closed. Reconnecting…" } },
+        })}
+      </div>,
+    );
+    expect(screen.getByRole("status").textContent).toBe("The camera stream closed. Reconnecting…");
+  });
+
   it("renders webcam previews with discovered browser cameras", async () => {
     const descriptor = renderScreenDescriptors(webcamScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing webcam descriptor.");

@@ -96,6 +96,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **A camera that stops says so.** The last frame of a stopped camera looked live; after two seconds without a new
+  one the view now reads "No new frame for N s". A dropped camera stream reconnects on its own, backing off to 10 s,
+  instead of showing a placeholder until the operator changes screen; only a topic the API refused is left alone.
+
 - **A runtime widget is held to its own app's policy on every route.** Topic publishes, parameter sets and service
   calls over HTTP checked only the deployment's allowlists, so an app that does not list a topic could still publish
   to it; the runtime now names its app and the API narrows to that app's policy, parameters included. The narrowing

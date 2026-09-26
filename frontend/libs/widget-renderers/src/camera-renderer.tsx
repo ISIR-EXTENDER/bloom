@@ -25,12 +25,15 @@ export function CameraWidget({ data, descriptor }: WidgetRendererProps) {
           <div className="bloom-camera-body">
             <div className="bloom-camera-frame" data-fit-mode={fitMode === "cover" ? "cover" : "contain"}>
               {frame?.frameUrl ? (
-                <img
-                  alt={descriptor.widget.title}
-                  className="bloom-camera-image"
-                  src={frame.frameUrl}
-                  style={{ objectFit: fitMode === "cover" ? "cover" : "contain" }}
-                />
+                <>
+                  <img
+                    alt={descriptor.widget.title}
+                    className="bloom-camera-image"
+                    src={frame.frameUrl}
+                    style={{ objectFit: fitMode === "cover" ? "cover" : "contain" }}
+                  />
+                  <CameraStaleBadge detail={frame.detail} receivedAt={frame.receivedAt} />
+                </>
               ) : (
                 <CameraPlaceholder message={describeRosCameraStatus(topic, frame)} />
               )}
@@ -65,6 +68,26 @@ export function CameraWidget({ data, descriptor }: WidgetRendererProps) {
         </>
       )}
     </div>
+  );
+}
+
+const CAMERA_STALE_MS = 2000;
+
+/** The last frame of a camera that stopped looks exactly like a live one; this says how old it is. */
+function CameraStaleBadge({ detail, receivedAt }: { detail?: string; receivedAt?: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const ageMs = receivedAt === undefined ? 0 : now - receivedAt;
+  if (!detail && ageMs < CAMERA_STALE_MS) {
+    return null;
+  }
+  return (
+    <span className="bloom-camera-stale" role="status">
+      {detail ?? `No new frame for ${Math.floor(ageMs / 1000)} s`}
+    </span>
   );
 }
 
