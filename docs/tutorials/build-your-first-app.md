@@ -18,7 +18,8 @@ app**:
 - **Design preset** — **Extender light**, **Bloom garden**, or **High visibility**.
 
 Press **Create guided app**. Bloom opens the new app's page; it also appears in **Available apps**, with an
-**Operator** role that opens its screen.
+**Operator** role that opens its screen. The app gets a file of its own, named after it, so sharing it later touches
+no other app.
 
 ## 2. Add widgets
 
@@ -58,7 +59,8 @@ command frame, allowed topics, a preview as the person, and the export.
 
 Press **Open runtime** on the app card, or pick the app in **Runtime**. You get the same kiosk as any shipped app: the
 44 px bar, STOP in its reserved region, and Maintenance behind a hold on **⋯**. Push **Forward**: the hand moves
-forward. Press **Close gripper**: the state reads **commanded: closed**.
+forward. Press **Close gripper**: the state reads **commanded: closed**. Opened from the Builder, the bar also has
+**Back to Builder**, which returns to the screen you were editing.
 
 To share the app with the team, press **Share** on its card in **Builder > Apps** and commit the file it names.
 

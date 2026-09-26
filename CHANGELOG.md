@@ -98,7 +98,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 - **A runtime widget is held to its own app's policy on every route.** Topic publishes, parameter sets and service
   calls over HTTP checked only the deployment's allowlists, so an app that does not list a topic could still publish
-  to it; the runtime now names its app and the API narrows to that app's policy, parameters included.
+  to it; the runtime now names its app and the API narrows to that app's policy, parameters included. The narrowing
+  understands namespaces: a deployment's `/ui/` and an app's `/ui/widget_lab/gesture` meet at the topic, where a
+  literal intersection dropped it (the Explorer simulation caught the Widget Lab's gesture pad refused).
 - **Smaller API leaks closed.** Recordings stop when the API stops instead of writing until the disk fills; camera
   streams are capped at 12; the `/ui/` publisher cache is bounded and locked; reading positions for an unknown app no
   longer grows a map; and a raw `/ee_jac` and its manipulability no longer starve each other in the socket throttle.

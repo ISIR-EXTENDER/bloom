@@ -42,7 +42,7 @@ app opened last is preselected once its configuration loads, and Escape closes t
 A profile's `preferred_control_layout_id` selects the screen a role opens on. When it names no existing screen, the app
 opens on its first screen. On the Manager apps, **Operator** and **One switch** open **Drive · Operator** and **Bench**
 opens **Drive · Bench**. To change role mid-session, open Maintenance and hold **Switch role**, which needs its own
-1.5 second hold.
+1.5 second hold; a scan or dwell press selects it directly.
 
 ### Kiosk Bar
 
@@ -99,7 +99,8 @@ A Runtime tab names the app it is running on its socket as soon as it opens (`ap
 topic publishes and service calls are limited to the intersection of the deployment allowlists and that app's
 `runtime_policy`, the same narrowing `POST /runtime/actions` has always applied. An app that declares no teleop target
 of its own, such as Bloom Debug or the webcam visualizer, can stream none. A client that names no app keeps the
-deployment-wide limits.
+deployment-wide limits. The HTTP routes do the same: a widget's topic publish or parameter set carries its
+`config_id` and `app_id`, and the API checks that app's policy, `allowed_parameters` included.
 
 Runtime also checks each widget's declared backend requirement against `GET /api/v1/capabilities`. The report names one
 seam each for commands, services, topic data, teleop, camera frames, and recording. When the backend

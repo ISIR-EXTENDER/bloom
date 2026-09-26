@@ -46,7 +46,9 @@ The first things to protect are:
   are swept once either map fills.
 - Enforce deployment allowlists for publish topics, message types, teleop targets, command frames, service calls,
   recording topics, and recording folders, with narrower app policy as an earlier guardrail. The runtime socket
-  applies the same narrowing once a session names the app it is running.
+  applies the same narrowing once a session names the app it is running, and the HTTP publish, parameter and
+  service routes apply it to a request that names its app (`config_id`, `app_id`), which every runtime widget does.
+  An app's `allowed_parameters` are part of that narrowing; an app that names none tunes none.
 - Validate manager mode grammar and reject malformed/unknown frame requests before they reach ROS.
 - Audit accepted and rejected runtime command attempts.
 - Keep file paths controlled by repositories/services, never by raw user-provided paths.

@@ -68,7 +68,9 @@ Bloom changes a control only after the backend acknowledges it.
 STOP is always live. It sits in the screen's reserved region, which no widget can occupy, and it stays above the
 maintenance scrim, Settings and the practice tour — over those last two it becomes a full-height rail on the right.
 
-- A press engages the backend latch immediately. Keyboard activation works too.
+- A press releases every control on this screen at once and engages the backend latch. Keyboard activation works
+  too. If the backend cannot be told, the controls stay held here, the screen shows the error, and **HOLD TO RESUME**
+  is the way back.
 - The latch is shared by every runtime client, not a local button.
 - While stopped, the widgets go muted and inert and the control becomes **HOLD TO RESUME**.
 - Resume needs a continuous one-second hold. Leaving or releasing the target cancels it.

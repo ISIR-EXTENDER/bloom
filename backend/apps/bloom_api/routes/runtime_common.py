@@ -174,7 +174,20 @@ def narrow_allowlist(deployment: tuple[str, ...], application: tuple[str, ...]) 
         return deployment
     if "*" in deployment:
         return application
-    return tuple(value for value in deployment if value in application)
+    # Namespace-aware: a deployment "/ui/" and an app "/ui/widget_lab/gesture" meet at the topic. A literal
+    # intersection dropped it, and the Widget Lab's gesture pad was refused.
+    kept = [value for value in application if allowlist_grants(deployment, value)]
+    kept += [value for value in deployment if allowlist_grants(application, value)]
+    return tuple(dict.fromkeys(kept))
+
+
+def allowlist_grants(entries: tuple[str, ...], value: str) -> bool:
+    """The rule `ensure_allowed` applies: exact, `*`, or an entry ending in `/` granting its namespace."""
+    return (
+        "*" in entries
+        or value in entries
+        or any(entry.endswith("/") and entry != "/" and value.startswith(entry) for entry in entries)
+    )
 
 
 def find_runtime_application(connection: Request | WebSocket, config_id: str, app_id: str) -> ApplicationConfig | None:
