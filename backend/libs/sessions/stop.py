@@ -191,9 +191,16 @@ class RuntimeStopController:
             return False, f"Zero velocity could not be published: {', '.join(failures)}.", simulated
         return True, f"Zero velocity {'; '.join(published)}.", simulated
 
-    def _publish_joint_target_cancel(self) -> tuple[bool, str, bool]:
+    def cancel_joint_target(self, mode_request_topic: str | None = None) -> str:
+        """The STOP's own cancel, alone: for a session that leaves a joint target running. Raises on failure."""
+        ok, detail, _simulated = self._publish_joint_target_cancel(mode_request_topic)
+        if not ok:
+            raise RuntimeError(detail)
+        return detail
+
+    def _publish_joint_target_cancel(self, mode_request_topic: str | None = None) -> tuple[bool, str, bool]:
         request = RosPublishRequest(
-            topic=self._mode_request_topic,
+            topic=mode_request_topic or self._mode_request_topic,
             message_type="std_msgs/msg/String",
             payload={"data": CANCEL_MODE_REQUEST},
         )

@@ -19,7 +19,11 @@ from libs.config.models import (
     WidgetConfig,
     WidgetLayout,
 )
-from libs.config.repository import ConfigurationNotFoundError, ConfigurationUnreadableError
+from libs.config.repository import (
+    ConfigurationNotFoundError,
+    ConfigurationUnreadableError,
+    InvalidConfigurationIdError,
+)
 from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
 
 
@@ -63,7 +67,7 @@ class SQLiteConfigurationRepository:
 
     def upsert(self, config_id: str, bundle: ConfigurationBundle) -> ConfigurationBundle:
         if config_id in {"", ".", ".."} or "/" in config_id or "\\" in config_id:
-            raise ValueError("config_id must be a plain storage key")
+            raise InvalidConfigurationIdError("config_id must be a plain storage key")
 
         bundle_json = dump_configuration_json(bundle)
         with sqlite_connection(self.database_path) as connection:

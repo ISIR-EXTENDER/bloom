@@ -181,7 +181,7 @@ def adopt_file_configurations(
     *,
     configuration_dir: Path | str,
 ) -> tuple[str, ...]:
-    """Carry an existing JSON store into an empty one, once.
+    """Carry an existing JSON store into this one.
 
     File storage was the default for a long time, so most machines have real
     work sitting in `backend/data/configurations`: screens people rearranged,
@@ -189,21 +189,27 @@ def adopt_file_configurations(
     all of it behind on disk, present but invisible, and the builder would look
     like it had been reset.
 
-    Only an empty target is adopted into. Once the store has anything in it,
-    it is the source of truth and the JSON files are history.
+    Any id the store lacks and nobody deleted on purpose is adopted, so a file
+    that failed once, or a store that already held something, loses nothing.
     """
-
-    if repository.list_ids():
-        return ()
 
     source_dir = Path(configuration_dir)
     if not source_dir.is_dir():
         return ()
 
+    existing = set(repository.list_ids())
+    deleted = set(repository.deleted_ids())
     adopted: list[str] = []
     for path in sorted(source_dir.glob("*.json")):
-        repository.upsert(path.stem, load_configuration_file(path))
-        adopted.append(path.stem)
+        config_id = path.stem
+        if config_id in existing or config_id in deleted:
+            continue
+        try:
+            repository.upsert(config_id, load_configuration_file(path))
+        except Exception:
+            logger.exception("Legacy configuration %s could not be migrated; leaving the file in place.", path)
+            continue
+        adopted.append(config_id)
     return tuple(adopted)
 
 

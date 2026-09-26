@@ -16,6 +16,7 @@ from apps.bloom_api.routes.runtime_common import (
     get_runtime_command_rate_limiter,
     get_runtime_control_snapshot,
     get_runtime_stop_controller,
+    run_runtime_thread,
     runtime_control_detail,
 )
 from apps.bloom_api.routes.runtime_positions import router as positions_router
@@ -26,7 +27,7 @@ from apps.bloom_api.security import (
     BloomPrincipal,
     execute_as_runtime_owner,
     require_observer,
-    require_operator,
+    require_operator_on_loop,
     require_runtime_owner,
 )
 from libs.config import (
@@ -151,13 +152,18 @@ def get_runtime_stop_state(
 
 
 @router.post("/stop", response_model=RuntimeStopStateResponse)
-def engage_runtime_stop(
+async def engage_runtime_stop(
     request: Request,
-    _principal: BloomPrincipal = Depends(require_operator),
+    _principal: BloomPrincipal = Depends(require_operator_on_loop),
 ) -> RuntimeStopStateResponse:
-    """HTTP on purpose: STOP matters most when the WebSocket is what died."""
+    """HTTP on purpose: STOP matters most when the WebSocket is what died.
+
+    Its own worker, so slow ROS reads filling the shared thread pool cannot queue it.
+    """
     try:
-        state = get_runtime_stop_controller(request).engage()
+        state = await run_runtime_thread(
+            get_runtime_stop_controller(request).engage, executor=request.app.state.runtime_stop_executor
+        )
     except RuntimeStopAssertionError as exc:
         # The latch is set; the body carries the whole state so a client can tell that from a refused STOP.
         raise HTTPException(status_code=503, detail=asdict(exc.state)) from exc
@@ -395,6 +401,8 @@ def ensure_application_policy_allows(policy: RuntimeAdapterPolicy, publish_reque
         allowed_publish_topics=policy.allowed_publish_topics or ("*",),
         allowed_recording_topics=policy.allowed_recording_topics,
         allowed_teleop_targets=policy.allowed_teleop_targets,
+        # The deployment policy holds the lab's own bounds and checks them on publish.
+        topic_value_bounds=(),
     ).ensure_publish_allowed(publish_request.topic, publish_request.message_type, publish_request.payload)
 
 

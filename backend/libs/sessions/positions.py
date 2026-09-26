@@ -21,6 +21,7 @@ refuses to start unless
 from __future__ import annotations
 
 import json
+import re
 import threading
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, replace
@@ -28,6 +29,16 @@ from pathlib import Path
 from typing import Protocol
 
 from libs.db.sqlite import apply_sqlite_migrations, sqlite_connection
+
+#: What cartesian_manager can name as a joint target.
+POSITION_NAME_PATTERN = re.compile(r"^[a-z0-9_]{1,64}$")
+#: URDF joint names keep their case and may hold hyphens (the Explorer's joint-tool).
+JOINT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def normalize_pose_name(name: str) -> str:
+    """The manager lowercases a mode request and turns '-' into '_', so a saved name must already be that."""
+    return name.strip().lower().replace("-", "_")
 
 
 class PositionLibraryError(ValueError):
@@ -279,5 +290,8 @@ __all__ = [
     "PositionLibrary",
     "PositionLibraryError",
     "pose_from_joint_state",
+    "JOINT_NAME_PATTERN",
+    "POSITION_NAME_PATTERN",
+    "normalize_pose_name",
     "render_joint_targets_yaml",
 ]

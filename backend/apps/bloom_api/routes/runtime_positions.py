@@ -1,9 +1,10 @@
 """Saved poses: captured from the live joint state, listed, deleted and exported for the manager."""
 
 import logging
+import threading
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from apps.bloom_api.security import (
     BloomPrincipal,
@@ -14,23 +15,44 @@ from libs.config import (
     ConfigurationNotFoundError,
 )
 from libs.sessions.positions import (
+    JOINT_NAME_PATTERN,
+    POSITION_NAME_PATTERN,
     JointPose,
     PositionLibrary,
     PositionLibraryError,
     library_backed_by,
+    normalize_pose_name,
     render_joint_targets_yaml,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+_LIBRARIES_LOCK = threading.RLock()
 
 
 class SavedPositionRequest(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
     name: str = Field(min_length=1, max_length=64)
     joint_names: tuple[str, ...] = Field(min_length=1)
     positions: tuple[float, ...] = Field(min_length=1)
     description: str = Field(default="", max_length=280)
+
+    @field_validator("name")
+    @classmethod
+    def _name_the_manager_can_reach(cls, name: str) -> str:
+        normalized = normalize_pose_name(name)
+        if not POSITION_NAME_PATTERN.fullmatch(normalized):
+            raise ValueError("a position name may use only a-z, 0-9 and _, up to 64 characters")
+        return normalized
+
+    @field_validator("joint_names")
+    @classmethod
+    def _plain_joint_names(cls, joint_names: tuple[str, ...]) -> tuple[str, ...]:
+        if not all(JOINT_NAME_PATTERN.fullmatch(joint) for joint in joint_names):
+            raise ValueError("a joint name may use only letters, digits, _ and -, up to 128 characters")
+        return joint_names
 
 
 class SavedPositionResponse(BaseModel):
@@ -77,19 +99,22 @@ def get_position_library_for_write(request: Request, config_id: str = "", app_id
             bundle = None
         if bundle is None or all(application.id != app_id for application in bundle.applications):
             raise HTTPException(status_code=404, detail=f"no application '{app_id}' in configuration '{config_id}'")
-    libraries = position_libraries(request)
     key = f"{config_id}:{app_id}"
-    if key not in libraries:
-        libraries[key] = library_backed_by(getattr(request.app.state, "position_store", None), config_id, app_id)
-    return libraries[key]
+    # Two first saves racing each built a library, and the one that lost the map took its pose with it.
+    with _LIBRARIES_LOCK:
+        libraries = position_libraries(request)
+        if key not in libraries:
+            libraries[key] = library_backed_by(getattr(request.app.state, "position_store", None), config_id, app_id)
+        return libraries[key]
 
 
 def position_libraries(request: Request) -> dict[str, PositionLibrary]:
-    libraries = getattr(request.app.state, "position_libraries", None)
-    if libraries is None:
-        libraries = {}
-        request.app.state.position_libraries = libraries
-    return libraries
+    with _LIBRARIES_LOCK:
+        libraries = getattr(request.app.state, "position_libraries", None)
+        if libraries is None:
+            libraries = {}
+            request.app.state.position_libraries = libraries
+        return libraries
 
 
 def to_position_response(pose: JointPose) -> SavedPositionResponse:

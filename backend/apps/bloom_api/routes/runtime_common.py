@@ -3,10 +3,13 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, replace
+from concurrent.futures import Executor
+from dataclasses import asdict, dataclass, field, replace
 from functools import partial
+from time import monotonic
 from typing import Any
 
+import anyio.to_thread
 from fastapi import HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from apps.bloom_api.settings import Settings
@@ -123,6 +126,9 @@ def audited_rejection(audit_log: RuntimeAuditLog, status_code: int, **record: An
 
 
 MAX_TOPIC_SUBSCRIPTIONS_PER_SESSION = 64
+# Short enough that an app edited in the Builder is picked up on the next app_context.
+APP_LOOKUP_TTL_SEC = 2.0
+MAX_APP_LOOKUPS = 16
 
 
 @dataclass
@@ -131,6 +137,22 @@ class RuntimeSocketPolicy:
 
     policy: RuntimeCommandPolicy
     application: ApplicationConfig | None = None
+    #: (config_id, app_id) -> (looked up at, application): a repeated app_context skips the store read.
+    app_lookups: dict[tuple[str, str], tuple[float, ApplicationConfig | None]] = field(default_factory=dict)
+
+    def find_application(
+        self, connection: Request | WebSocket, config_id: str, app_id: str, now: float | None = None
+    ) -> ApplicationConfig | None:
+        now = monotonic() if now is None else now
+        key = (config_id, app_id)
+        cached = self.app_lookups.get(key)
+        if cached is not None and now - cached[0] < APP_LOOKUP_TTL_SEC:
+            return cached[1]
+        if len(self.app_lookups) >= MAX_APP_LOOKUPS:
+            self.app_lookups.clear()
+        application = find_runtime_application(connection, config_id, app_id)
+        self.app_lookups[key] = (now, application)
+        return application
 
     def current(self, connection: Request | WebSocket) -> RuntimeCommandPolicy:
         """Recomputed per command, so a manager input that appears after the tablet connected is accepted."""
@@ -166,6 +188,7 @@ def narrow_policy_to_application(
         ),
         # The app names the parameters it tunes; none named means it tunes none.
         allowed_parameters=narrow_allowlist(policy.allowed_parameters, application_policy.allowed_parameters),
+        topic_value_bounds=policy.topic_value_bounds,
     )
 
 
@@ -245,18 +268,23 @@ def runtime_control_detail(
     return "No runtime session owns robot control."
 
 
-async def run_runtime_thread(operation: Callable[..., Any], *args: Any) -> Any:
+async def run_runtime_thread(operation: Callable[..., Any], *args: Any, executor: Executor | None = None) -> Any:
     """Finish safety work even when socket shutdown cancels its handler.
 
     The work is handed to a thread before the first await. A task wrapping
     to_thread only reaches the executor on its first loop iteration, and a
     handler cancelled before then dropped the disconnect neutralization.
     """
-    future = asyncio.get_running_loop().run_in_executor(None, partial(operation, *args))
+    future = asyncio.get_running_loop().run_in_executor(executor, partial(operation, *args))
     try:
         return await asyncio.shield(future)
     except asyncio.CancelledError:
         return await future
+
+
+async def run_blocking_ros_read(request: Request, operation: Callable[..., Any], *args: Any) -> Any:
+    """ROS reads wait seconds on a node that is down; their own limiter keeps them off every other route's pool."""
+    return await anyio.to_thread.run_sync(partial(operation, *args), limiter=request.app.state.ros_read_limiter)
 
 
 def record_runtime_control(audit_log: RuntimeAuditLog, session_id: str, accepted: bool, detail: str) -> None:

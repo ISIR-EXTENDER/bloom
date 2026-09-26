@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from apps.bloom_api.security import BloomPrincipal, require_observer
+from apps.bloom_api.routes.runtime_common import run_blocking_ros_read
+from apps.bloom_api.security import BloomPrincipal, require_observer, require_observer_on_loop
 from libs.ros_adapters.robot_model import ASSET_CONTENT_TYPES, RobotModelGateway
 
 router = APIRouter(prefix="/ros/robot-model", tags=["ros"])
@@ -25,13 +26,13 @@ ASSET_CACHE_CONTROL = "private, max-age=300"
 
 
 @router.get("", response_model=RobotModelResponse)
-def read_robot_model(
+async def read_robot_model(
     request: Request,
     response: Response,
-    _principal: BloomPrincipal = Depends(require_observer),
+    _principal: BloomPrincipal = Depends(require_observer_on_loop),
 ) -> RobotModelResponse | Response:
     """The URDF the robot runs with, so the 3D view draws this robot and not a shipped copy."""
-    urdf = get_robot_model_gateway(request).description()
+    urdf = await run_blocking_ros_read(request, get_robot_model_gateway(request).description)
     node = request.app.state.settings.ros_robot_description_node
     # The view asks again every few seconds; an unchanged robot costs a hash, not the whole description.
     etag = f'"{hashlib.sha256((urdf or "").encode()).hexdigest()[:32]}"'

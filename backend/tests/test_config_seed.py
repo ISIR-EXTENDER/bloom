@@ -155,8 +155,8 @@ def test_an_existing_file_store_is_carried_into_sqlite(tmp_path: Path) -> None:
     assert sqlite_repository.get("explorer-manager").applications[0].screens[0].title == "Drive (my layout)"
 
 
-def test_adoption_only_happens_into_an_empty_store(tmp_path: Path) -> None:
-    """Once SQLite holds anything it is the source of truth, not the JSON files."""
+def test_adoption_never_overwrites_an_id_the_store_holds(tmp_path: Path) -> None:
+    """Once SQLite holds an id it is the source of truth for it, not the JSON file."""
     file_dir = tmp_path / "configurations"
     file_repository = create_configuration_repository(
         "file", configuration_dir=file_dir, database_path=tmp_path / "unused.db"

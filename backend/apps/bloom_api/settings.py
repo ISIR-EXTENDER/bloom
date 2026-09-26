@@ -126,6 +126,11 @@ class Settings(BaseModel):
     # The browser coalesces the complete twist to at most 30 Hz. Keep a 2x
     # margin for timing jitter while retaining a hard server-side ceiling.
     runtime_command_rate_limit_per_second: int = Field(default=60, ge=0)
+    #: Server-side caps on the qontrol speed-limit topics; the operator UI's sliders stop at the same values.
+    max_linear_speed_limit: float = Field(default=0.3, gt=0, allow_inf_nan=False)
+    max_angular_speed_limit: float = Field(default=0.8, gt=0, allow_inf_nan=False)
+    #: Worker threads blocking ROS reads (parameters, robot model) may hold at once.
+    ros_read_concurrency: int = Field(default=4, ge=1)
     # Per topic, per socket: the newest sample each interval. Zero forwards every sample.
     runtime_topic_max_rate_hz: int = Field(default=30, ge=0)
     allowed_recording_topics: tuple[str, ...] = (
@@ -342,6 +347,12 @@ class Settings(BaseModel):
                 "BLOOM_RUNTIME_COMMAND_RATE_LIMIT_PER_SECOND",
                 cls.model_fields["runtime_command_rate_limit_per_second"].default,
             ),
+            max_linear_speed_limit=_read_float_env(
+                "BLOOM_MAX_LINEAR_SPEED_LIMIT", cls.model_fields["max_linear_speed_limit"].default
+            ),
+            max_angular_speed_limit=_read_float_env(
+                "BLOOM_MAX_ANGULAR_SPEED_LIMIT", cls.model_fields["max_angular_speed_limit"].default
+            ),
             runtime_topic_max_rate_hz=_read_int_env(
                 "BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ",
                 cls.model_fields["runtime_topic_max_rate_hz"].default,
@@ -368,6 +379,13 @@ def _read_int_env(name: str, default: int) -> int:
     if value is None:
         return default
     return int(value)
+
+
+def _read_float_env(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return float(value)
 
 
 def _read_tuple_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:

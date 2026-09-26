@@ -12,6 +12,10 @@ class ConfigurationNotFoundError(KeyError):
     pass
 
 
+class InvalidConfigurationIdError(ValueError):
+    """A config id that cannot be a storage key, such as one holding a path separator."""
+
+
 class ConfigurationUnreadableError(RuntimeError):
     """Stored, but this build cannot reconstruct it.
 
@@ -110,5 +114,5 @@ class FileConfigurationRepository:
 
     def _path_for(self, config_id: str) -> Path:
         if "/" in config_id or "\\" in config_id or config_id in {"", ".", ".."}:
-            raise ValueError("config_id must be a plain file stem")
+            raise InvalidConfigurationIdError("config_id must be a plain file stem")
         return self.root_dir / f"{config_id}.json"

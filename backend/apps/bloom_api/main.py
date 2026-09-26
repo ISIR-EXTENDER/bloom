@@ -1,7 +1,12 @@
+import math
 from collections.abc import AsyncIterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 
+import anyio
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -13,7 +18,12 @@ from apps.bloom_api.security import (
     install_security_headers,
 )
 from apps.bloom_api.settings import Settings, get_settings
-from libs.config import ConfigurationRepository, ConfigurationUnreadableError, create_configuration_repository
+from libs.config import (
+    ConfigurationRepository,
+    ConfigurationUnreadableError,
+    InvalidConfigurationIdError,
+    create_configuration_repository,
+)
 from libs.config.seed import adopt_file_configurations, seed_configurations
 from libs.ros_adapters import (
     NoopRosPublisherGateway,
@@ -28,7 +38,7 @@ from libs.ros_adapters.camera_streams import CameraStreamGateway, NoopCameraStre
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
 from libs.ros_adapters.parameters import NoopRosParameterGateway, RosParameterGateway
 from libs.ros_adapters.robot_model import NoopRobotModelGateway, RobotModelGateway
-from libs.ros_adapters.safety import RuntimeCommandPolicy
+from libs.ros_adapters.safety import MAX_ANGULAR_SPEED_TOPIC, MAX_LINEAR_SPEED_TOPIC, RuntimeCommandPolicy
 from libs.ros_adapters.teleop_targets import TeleopTargetDirectory
 from libs.sessions import (
     InMemoryRuntimeAuditLog,
@@ -104,6 +114,10 @@ def create_app(
         allowed_service_calls=app_settings.allowed_ros_service_calls,
         allowed_service_types=app_settings.allowed_ros_service_types,
         allowed_teleop_targets=app_settings.allowed_teleop_targets,
+        topic_value_bounds=(
+            (MAX_LINEAR_SPEED_TOPIC, 0.0, app_settings.max_linear_speed_limit),
+            (MAX_ANGULAR_SPEED_TOPIC, 0.0, app_settings.max_angular_speed_limit),
+        ),
     )
     # The manager's input topics, read from its parameters; the ROS launcher starts the reads.
     app.state.teleop_target_directory = TeleopTargetDirectory(
@@ -132,6 +146,9 @@ def create_app(
         ),
         on_asserted=app.state.runtime_session_manager.record_runtime_stop,
     )
+    # STOP never waits for a pool worker, and ROS reads that hang on a node that is down never hold the shared one.
+    app.state.runtime_stop_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bloom-stop")
+    app.state.ros_read_limiter = anyio.CapacityLimiter(app_settings.ros_read_concurrency)
     app.state.http_rate_limit_buckets = {}
     install_cors(app, app_settings)
     install_http_rate_limit(app)
@@ -139,6 +156,7 @@ def create_app(
     install_body_limit(app)
     install_security_headers(app)
     install_unreadable_configuration_handler(app)
+    install_validation_error_handler(app)
     install_api_key_log_redaction()
     app.include_router(api_router, prefix=app_settings.api_prefix)
 
@@ -250,10 +268,37 @@ def install_unreadable_configuration_handler(app: FastAPI) -> None:
     async def _unreadable(_request: Request, exc: ConfigurationUnreadableError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": str(exc)})
 
+    @app.exception_handler(InvalidConfigurationIdError)
+    async def _invalid_id(_request: Request, exc: InvalidConfigurationIdError) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
+def install_validation_error_handler(app: FastAPI) -> None:
+    """A refused NaN or Infinity is echoed back in the error, and JSON cannot carry it: that was a 500."""
+
+    @app.exception_handler(RequestValidationError)
+    async def _invalid(_request: Request, exc: RequestValidationError) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"detail": _json_safe(jsonable_encoder(exc.errors()))})
+
+
+def _json_safe(value: object) -> object:
+    if isinstance(value, float) and not math.isfinite(value):
+        return str(value)
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
+
 
 @asynccontextmanager
 async def _stop_recordings_on_shutdown(app: FastAPI) -> AsyncIterator[None]:
-    yield
-    stop_all = getattr(getattr(app.state, "runtime_recording_gateway", None), "stop_all", None)
-    if callable(stop_all):
-        stop_all()
+    try:
+        yield
+    finally:
+        stop_all = getattr(getattr(app.state, "runtime_recording_gateway", None), "stop_all", None)
+        if callable(stop_all):
+            stop_all()
+        stop_executor = getattr(app.state, "runtime_stop_executor", None)
+        if stop_executor is not None:
+            stop_executor.shutdown(wait=True)

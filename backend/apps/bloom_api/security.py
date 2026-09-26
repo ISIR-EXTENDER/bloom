@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from hmac import compare_digest
 from time import monotonic
 from typing import TypeVar
+from urllib.parse import unquote
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, status
 from starlette.responses import JSONResponse, Response
@@ -23,7 +24,8 @@ API_KEY_HEADER = "x-bloom-api-key"
 # which, unlike the query string, never reach the access log.
 RUNTIME_WEBSOCKET_SUBPROTOCOL = "bloom.runtime.v1"
 API_KEY_SUBPROTOCOL_PREFIX = "bloom.api-key."
-_API_KEY_QUERY = re.compile(r"(api_key=)[^&\s\"]*")
+# Any spelling the query parser decodes to api_key: api%5Fkey=, API_KEY=, api_key%3D.
+_QUERY_PAIR = re.compile(r"(?P<key>[^?&=/\s\"]+)(?P<sep>=|%3[dD])(?P<value>[^&\s\"]*)")
 RUNTIME_SESSION_HEADER = "x-bloom-runtime-session"
 #: Addresses kept before idle ones are swept. A lab has a handful of tablets;
 #: past this the buckets are a spoofed-address memory leak, not traffic.
@@ -131,6 +133,11 @@ def require_operator(request: Request) -> BloomPrincipal:
     return principal
 
 
+async def require_operator_on_loop(request: Request) -> BloomPrincipal:
+    """The same check without a worker thread, for STOP, which must not wait for one."""
+    return require_operator(request)
+
+
 def require_observer(request: Request) -> BloomPrincipal:
     """Guard a read-only runtime surface.
 
@@ -141,6 +148,10 @@ def require_observer(request: Request) -> BloomPrincipal:
     if not principal.is_observer:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Observer role required.")
     return principal
+
+
+async def require_observer_on_loop(request: Request) -> BloomPrincipal:
+    return require_observer(request)
 
 
 def require_runtime_owner(request: Request) -> BloomPrincipal:
@@ -230,7 +241,13 @@ class ApiKeyLogRedaction(logging.Filter):
 
 
 def redact_api_key(text: str) -> str:
-    return _API_KEY_QUERY.sub(r"\1***", text)
+    return _QUERY_PAIR.sub(_redact_api_key_pair, text)
+
+
+def _redact_api_key_pair(match: re.Match[str]) -> str:
+    if unquote(match["key"]).lower() != "api_key":
+        return match.group(0)
+    return f"{match['key']}{match['sep']}***"
 
 
 def install_api_key_log_redaction() -> None:

@@ -1,5 +1,6 @@
 from pathlib import Path
 from threading import Thread
+from typing import NoReturn
 
 import typer
 import uvicorn
@@ -18,6 +19,7 @@ from libs.config import (
     ConfigurationNotFoundError,
     ConfigurationRepository,
     ConfigurationStorageKind,
+    ConfigurationUnreadableError,
     create_configuration_repository,
     load_configuration_file,
     load_legacy_application_file,
@@ -28,6 +30,7 @@ from libs.config import (
 from libs.config.seed import (
     NewerSharedVersionError,
     adopt_file_configurations,
+    available_seed_ids,
     configuration_share_status,
     seed_configurations,
     strip_seed_fingerprint,
@@ -198,8 +201,14 @@ def seed_shared_applications(
     layouts and edits; use --force to reset one deliberately. A copy nobody has
     edited is updated to the shipped version.
     """
+    source_dir = seed_dir or get_settings().seed_dir
+    shipped = available_seed_ids(source_dir)
+    unknown = sorted(set(force) - set(shipped))
+    if unknown:
+        # A typo used to reset nothing and still report success.
+        fail(f"Not a shipped application: {', '.join(unknown)}. Available: {', '.join(shipped) or 'none'}")
     repository = open_configuration_repository(storage, configuration_dir, database_path)
-    outcome = seed_configurations(repository, seed_dir=seed_dir or get_settings().seed_dir, force_ids=frozenset(force))
+    outcome = seed_configurations(repository, seed_dir=source_dir, force_ids=frozenset(force))
 
     for config_id in outcome.imported:
         typer.echo(f"Imported {config_id}")
@@ -277,8 +286,15 @@ def import_configuration(
 ) -> None:
     """Import a configuration bundle from JSON into storage."""
     repository = open_configuration_repository(storage, configuration_dir, database_path)
-    # An imported bundle is someone's work, even when it was exported from a seeded copy.
-    repository.upsert(config_id, strip_seed_fingerprint(load_configuration_file(source_path)))
+    try:
+        bundle = load_configuration_file(source_path)
+    except (OSError, ValueError) as exc:
+        fail(f"Could not read {source_path}: {exc}")
+    try:
+        # An imported bundle is someone's work, even when it was exported from a seeded copy.
+        repository.upsert(config_id, strip_seed_fingerprint(bundle))
+    except ValueError as exc:
+        fail(f"Could not import as {config_id!r}: {exc}")
     typer.echo(f"Imported {config_id}")
 
 
@@ -364,11 +380,20 @@ def export_configuration(
     repository = open_configuration_repository(storage, configuration_dir, database_path)
     try:
         bundle = repository.get(config_id)
-    except ConfigurationNotFoundError as exc:
-        typer.echo(f"Configuration not found: {config_id}", err=True)
-        raise typer.Exit(code=1) from exc
-    save_configuration_file(bundle, destination_path)
+    except ConfigurationNotFoundError:
+        fail(f"Configuration not found: {config_id}")
+    except (ConfigurationUnreadableError, ValueError) as exc:
+        fail(f"Could not read {config_id}: {exc}")
+    try:
+        save_configuration_file(bundle, destination_path)
+    except OSError as exc:
+        fail(f"Could not write {destination_path}: {exc}")
     typer.echo(f"Exported {config_id}")
+
+
+def fail(message: str) -> NoReturn:
+    typer.echo(message, err=True)
+    raise typer.Exit(code=1)
 
 
 def main() -> None:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from collections import defaultdict, deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -19,11 +20,16 @@ class RuntimeCommandRateLimiter:
     max_commands_per_second: int
     clock: Callable[[], float] = monotonic
     _events_by_key: dict[str, deque[float]] = field(default_factory=lambda: defaultdict(deque))
+    # Called from the event loop and from worker threads alike.
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     def ensure_allowed(self, key: str) -> None:
         if self.max_commands_per_second <= 0:
             return
+        with self._lock:
+            self._ensure_allowed_unlocked(key)
 
+    def _ensure_allowed_unlocked(self, key: str) -> None:
         now = self.clock()
         window_start = now - 1.0
         if len(self._events_by_key) >= MAX_TRACKED_KEYS:
@@ -42,7 +48,8 @@ class RuntimeCommandRateLimiter:
 
     @property
     def tracked_keys(self) -> tuple[str, ...]:
-        return tuple(self._events_by_key)
+        with self._lock:
+            return tuple(self._events_by_key)
 
     def _forget_idle_keys(self, window_start: float) -> None:
         """A key with nothing left in its window is indistinguishable from a new one."""

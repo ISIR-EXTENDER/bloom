@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from apps.bloom_api.routes.runtime_common import (
     find_runtime_application,
@@ -11,12 +11,14 @@ from apps.bloom_api.routes.runtime_common import (
     get_runtime_command_policy,
     get_runtime_command_rate_limiter,
     narrow_policy_to_application,
+    run_blocking_ros_read,
 )
 from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
     execute_as_runtime_owner,
     require_observer,
+    require_observer_on_loop,
     require_runtime_owner,
 )
 from libs.ros_adapters import (
@@ -34,7 +36,7 @@ from libs.ros_adapters import (
 from libs.ros_adapters.names import require_ros_name
 from libs.ros_adapters.parameters import RosParameterGateway, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
-from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError
+from libs.ros_adapters.safety import RuntimeCommandPolicy, RuntimeCommandPolicyError, parameter_value_error
 from libs.sessions import (
     RuntimeAuditRecord,
     RuntimeRateLimitError,
@@ -50,6 +52,8 @@ class AppScopedRequest(BaseModel):
     Optional: the Builder's tools and Bloom Debug speak for the deployment. A runtime widget always sends it, and
     without it an app declaring it drives nothing could still publish to the gripper.
     """
+
+    model_config = ConfigDict(allow_inf_nan=False)
 
     config_id: str = ""
     app_id: str = ""
@@ -118,6 +122,13 @@ class RosParameterSetRequest(AppScopedRequest):
         if name.strip() != name or any(character.isspace() for character in name):
             raise ValueError("parameter name must not contain spaces")
         return name
+
+    @model_validator(mode="after")
+    def _validate_value(self) -> RosParameterSetRequest:
+        error = parameter_value_error(self.name, self.value)
+        if error is not None:
+            raise ValueError(error)
+        return self
 
 
 class RosParameterSetResponse(BaseModel):
@@ -293,11 +304,11 @@ def get_ros_parameter_gateway(request: Request) -> RosParameterGateway:
 
 
 @router.get("/parameters", response_model=RosParameterListResponse)
-def read_ros_parameters(
+async def read_ros_parameters(
     request: Request,
     node: str,
     names: str,
-    _principal: BloomPrincipal = Depends(require_observer),
+    _principal: BloomPrincipal = Depends(require_observer_on_loop),
 ) -> RosParameterListResponse:
     """Current values of allowlisted parameters, so a tuning control opens on what the node holds."""
     policy = get_runtime_command_policy(request)
@@ -308,7 +319,7 @@ def read_ros_parameters(
         except RuntimeCommandPolicyError as exc:
             raise HTTPException(status_code=403, detail=str(exc)) from exc
     try:
-        readings = get_ros_parameter_gateway(request).get(node, wanted)
+        readings = await run_blocking_ros_read(request, get_ros_parameter_gateway(request).get, node, wanted)
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     return RosParameterListResponse(

@@ -6,6 +6,7 @@ from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import asdict
 from json import JSONDecodeError
+from time import monotonic
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import ValidationError
@@ -15,7 +16,6 @@ from apps.bloom_api.routes.runtime_common import (
     RuntimeSocketPolicy,
     build_runtime_control_message,
     cancel_runtime_task,
-    find_runtime_application,
     get_allowed_command_frame_ids,
     get_runtime_audit_log,
     get_runtime_command_policy,
@@ -110,6 +110,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     socket_policy = RuntimeSocketPolicy(policy=get_runtime_command_policy(websocket))
     receive_task: asyncio.Task | None = None
     sample_task: asyncio.Task | None = None
+    message_budget = SocketMessageBudget()
 
     try:
         control_snapshot = get_runtime_control_snapshot(websocket, manager, session.id)
@@ -141,6 +142,16 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 except (JSONDecodeError, KeyError, UnicodeDecodeError) as exc:
                     await websocket.send_json(
                         runtime_error(session.id, "Invalid runtime message.", {"message": str(exc)}).model_dump()
+                    )
+                    receive_task = asyncio.create_task(websocket.receive_json())
+                    continue
+                if not message_budget.allow(payload):
+                    await websocket.send_json(
+                        runtime_error(
+                            session.id,
+                            "Runtime message refused: this session is sending too many.",
+                            {"code": "message_rate_limited", "message": "Slow down and send it again."},
+                        ).model_dump()
                     )
                     receive_task = asyncio.create_task(websocket.receive_json())
                     continue
@@ -187,7 +198,7 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 # lease a disconnect used to leave the last non-zero twist standing; cartesian_manager
                 # expires it after 0.2 s, but the legacy /teleop_cmd path has no such timeout. There is
                 # no release to wait for here, so the neutralize step runs on its own.
-                if manager.moving_teleop_commands(session):
+                if manager.moving_teleop_commands(session) or manager.pending_joint_target(session):
                     await run_runtime_thread(
                         neutralize_runtime_session,
                         manager,
@@ -205,6 +216,32 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 handle.close()
             await cancel_runtime_task(receive_task)
             await cancel_runtime_task(sample_task)
+
+
+#: Keep-alives and teleop, which has its own command rate limit, are never throttled here.
+UNMETERED_MESSAGE_TYPES = frozenset({"ping", "teleop_cmd"})
+
+
+class SocketMessageBudget:
+    """A token bucket per socket, so a client looping on subscribe or app_context cannot busy the server."""
+
+    def __init__(self, rate_per_sec: float = 20.0, burst: float = 40.0, clock: Callable[[], float] = monotonic) -> None:
+        self._rate = rate_per_sec
+        self._burst = burst
+        self._clock = clock
+        self._tokens = burst
+        self._updated = clock()
+
+    def allow(self, payload: object) -> bool:
+        if isinstance(payload, dict) and payload.get("type") in UNMETERED_MESSAGE_TYPES:
+            return True
+        now = self._clock()
+        self._tokens = min(self._burst, self._tokens + (now - self._updated) * self._rate)
+        self._updated = now
+        if self._tokens < 1:
+            return False
+        self._tokens -= 1
+        return True
 
 
 async def handle_runtime_client_payload(
@@ -358,7 +395,7 @@ def apply_runtime_app_context(
     Without it the socket only knew the deployment policy, so an app that
     declares no teleop target of its own could still stream teleop.
     """
-    application = find_runtime_application(websocket, message.config_id, message.app_id)
+    application = socket_policy.find_application(websocket, message.config_id, message.app_id)
     if application is None:
         return runtime_error(
             session.id,
@@ -404,6 +441,20 @@ def neutralize_runtime_session(
                 # STOP may have won the gate after this target last moved. A
                 # direct zero is still safe and covers non-default targets.
                 gateway.publish(zero)
+        # A joint target runs to its pose with nobody left to stop it; cancel it the way STOP does.
+        cancel_topic = manager.pending_joint_target(session)
+        if cancel_topic is not None:
+            detail = stop_controller.cancel_joint_target(cancel_topic)
+            manager.clear_joint_target(session)
+            audit_log.record(
+                RuntimeAuditRecord(
+                    channel="runtime_control",
+                    detail=detail,
+                    session_id=session.id,
+                    status="accepted",
+                    topic=cancel_topic,
+                )
+            )
     except RuntimeError as exc:
         audit_log.record(
             RuntimeAuditRecord(

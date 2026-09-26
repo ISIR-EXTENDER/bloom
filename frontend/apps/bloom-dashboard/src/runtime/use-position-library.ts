@@ -110,10 +110,10 @@ export function usePositionLibrary(
 function nextPoseName(saved: readonly SavedPosition[]): string {
   const taken = new Set(saved.map((pose) => pose.name));
   let index = 1;
-  while (taken.has(`pose-${index}`)) {
+  while (taken.has(`pose_${index}`)) {
     index += 1;
   }
-  return `pose-${index}`;
+  return `pose_${index}`;
 }
 
 function describeError(error: unknown): string {

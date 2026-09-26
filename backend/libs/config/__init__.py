@@ -52,6 +52,7 @@ from libs.config.repository import (
     ConfigurationUnreadableError,
     FileConfigurationRepository,
     InMemoryConfigurationRepository,
+    InvalidConfigurationIdError,
 )
 from libs.config.sqlite_repository import SQLiteConfigurationRepository
 from libs.config.storage import ConfigurationStorageKind, create_configuration_repository
@@ -72,6 +73,7 @@ __all__ = [
     "DisplayPreset",
     "FileConfigurationRepository",
     "InMemoryConfigurationRepository",
+    "InvalidConfigurationIdError",
     "MotorAccessibilityPreset",
     "RuntimeLanguage",
     "ReusableScreen",

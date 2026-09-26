@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Any, Literal
@@ -43,19 +44,23 @@ class InMemoryRuntimeAuditLog(RuntimeAuditLog):
     def __init__(self, max_records: int = 500) -> None:
         self._max_records = max_records
         self._records: list[RuntimeAuditRecord] = []
+        # Written from the event loop and from worker threads alike.
+        self._lock = threading.Lock()
 
     def record(self, record: RuntimeAuditRecord) -> None:
-        last = self._records[-1] if self._records else None
-        if last is not None and _same_event(last, record):
-            self._records[-1] = replace(record, repeats=last.repeats + 1)
-            return
-        self._records.append(record)
-        if len(self._records) > self._max_records:
-            self._records = self._records[-self._max_records :]
+        with self._lock:
+            last = self._records[-1] if self._records else None
+            if last is not None and _same_event(last, record):
+                self._records[-1] = replace(record, repeats=last.repeats + 1)
+                return
+            self._records.append(record)
+            if len(self._records) > self._max_records:
+                self._records = self._records[-self._max_records :]
 
     def list_records(self, limit: int = 100) -> tuple[RuntimeAuditRecord, ...]:
         normalized_limit = max(0, min(limit, self._max_records))
-        return tuple(reversed(self._records[-normalized_limit:]))
+        with self._lock:
+            return tuple(reversed(self._records[-normalized_limit:]))
 
 
 def _same_event(left: RuntimeAuditRecord, right: RuntimeAuditRecord) -> bool:

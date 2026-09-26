@@ -67,6 +67,8 @@ class RuntimeSessionManager:
         self._teleop_commands: dict[str, dict[str, TeleopCommand]] = {}
         self._mode_requests: dict[str, str] = {}
         self._frame_ids: dict[str, str] = {}
+        #: The mode-request topic a session sent a joint target on, until something cancels it.
+        self._joint_target_topics: dict[str, str] = {}
         self._lock = Lock()
         self._operation_lock = Lock()
 
@@ -114,6 +116,7 @@ class RuntimeSessionManager:
             self._teleop_commands.pop(session.id, None)
             self._mode_requests.pop(session.id, None)
             self._frame_ids.pop(session.id, None)
+            self._joint_target_topics.pop(session.id, None)
             if self._owner_session_id == session.id:
                 self._owner_session_id = None
             if self._releasing_session_id == session.id:
@@ -193,7 +196,7 @@ class RuntimeSessionManager:
                 return
             commands[command.target] = command
 
-    def record_mode_request(self, session_id: str, mode: str) -> None:
+    def record_mode_request(self, session_id: str, mode: str, topic: str = "/mode_request") -> None:
         """Remember what the controlling session last asked the manager for.
 
         The manager publishes no mode feedback, so this is the last request,
@@ -203,21 +206,35 @@ class RuntimeSessionManager:
             request = parse_mode_request(mode)
         except ModeRequestError:
             return
-        # A joint target fires once and the manager falls back by itself, so it is not a lasting mode.
-        if request.one_shot:
-            return
         with self._lock:
-            if session_id in self._sessions:
-                self._mode_requests[session_id] = request.normalized
+            if session_id not in self._sessions:
+                return
+            # A joint target fires once and is not a lasting mode, but it runs on after its sender leaves.
+            if request.one_shot:
+                self._joint_target_topics[session_id] = topic
+                return
+            self._mode_requests[session_id] = request.normalized
+            if request.normalized == STOP_MODE_REQUEST:
+                self._joint_target_topics.pop(session_id, None)
 
     def record_published_mode_request(self, session_id: str, topic: str, payload: object) -> None:
         mode = payload.get("data") if isinstance(payload, dict) else None
         if topic.endswith("mode_request") and isinstance(mode, str):
-            self.record_mode_request(session_id, mode)
+            self.record_mode_request(session_id, mode, topic)
+
+    def pending_joint_target(self, session: RuntimeSession) -> str | None:
+        """The mode-request topic to cancel on, when this session left a joint target running."""
+        with self._lock:
+            return self._joint_target_topics.get(session.id)
+
+    def clear_joint_target(self, session: RuntimeSession) -> None:
+        with self._lock:
+            self._joint_target_topics.pop(session.id, None)
 
     def record_runtime_stop(self, zeroed_target: str) -> None:
         """STOP zeroed that target and asked every session's manager for passthrough."""
         with self._lock:
+            self._joint_target_topics.clear()
             for session_id in self._sessions:
                 self._mode_requests[session_id] = STOP_MODE_REQUEST
                 commands = self._teleop_commands.get(session_id, {})
@@ -271,8 +288,9 @@ class RuntimeSessionManager:
 
         self._owner_session_id = None
         self._releasing_session_id = None
-        # Whatever it last sent expired on the manager long before this.
+        # Whatever it last sent expired on the manager long before this. A joint target is the next owner's to cancel.
         self._teleop_commands.pop(owner_id, None)
+        self._joint_target_topics.pop(owner_id, None)
 
     def _is_control_owner(self, session_id: str) -> bool:
         return (

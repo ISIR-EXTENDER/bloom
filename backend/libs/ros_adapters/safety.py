@@ -1,7 +1,18 @@
 from __future__ import annotations
 
+import math
+import re
 from dataclasses import dataclass
 from typing import Any
+
+MAX_LINEAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed"
+MAX_ANGULAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed"
+#: The operator UI's own slider caps: 0.3 m/s and 0.8 rad/s.
+DEFAULT_TOPIC_VALUE_BOUNDS: tuple[tuple[str, float, float], ...] = (
+    (MAX_LINEAR_SPEED_TOPIC, 0.0, 0.3),
+    (MAX_ANGULAR_SPEED_TOPIC, 0.0, 0.8),
+)
+_NON_NEGATIVE_PARAMETER = re.compile(r"(^|\.)max_\w*(speed|velocity|acceleration)$")
 
 
 class RuntimeCommandPolicyError(ValueError):
@@ -22,11 +33,24 @@ class RuntimeCommandPolicy:
     allowed_service_types: tuple[str, ...] = ()
     #: "<node>:<parameter>" pairs a runtime may set live.
     allowed_parameters: tuple[str, ...] = ()
+    #: (topic, min, max) for topics whose `data` is a limit the robot obeys.
+    topic_value_bounds: tuple[tuple[str, float, float], ...] = DEFAULT_TOPIC_VALUE_BOUNDS
 
     def ensure_publish_allowed(self, topic: str, message_type: str, payload: dict[str, Any]) -> None:
         ensure_allowed(topic, self.allowed_publish_topics, "ROS topic")
         ensure_allowed(message_type, self.allowed_message_types, "ROS message type")
         validate_minimum_payload_shape(message_type, payload)
+        self.ensure_topic_value_in_bounds(topic, payload)
+
+    def ensure_topic_value_in_bounds(self, topic: str, payload: dict[str, Any]) -> None:
+        for bounded_topic, lower, upper in self.topic_value_bounds:
+            if topic != bounded_topic:
+                continue
+            data = payload.get("data")
+            if not is_finite_number(data) or not lower <= data <= upper:
+                raise RuntimePayloadShapeError(
+                    f"{topic} payload field 'data' must be a number from {lower} to {upper}."
+                )
 
     def ensure_teleop_allowed(self, target: str) -> None:
         ensure_allowed(target, self.allowed_teleop_targets, "teleop target")
@@ -54,6 +78,8 @@ def ensure_allowed(value: str, allowed_values: tuple[str, ...], label: str) -> N
 
 
 def validate_minimum_payload_shape(message_type: str, payload: dict[str, Any]) -> None:
+    if _holds_non_finite(payload):
+        raise RuntimePayloadShapeError(f"{message_type} payload must not hold NaN or infinite numbers.")
     if not message_type.startswith("std_msgs/msg/"):
         return
 
@@ -63,9 +89,9 @@ def validate_minimum_payload_shape(message_type: str, payload: dict[str, Any]) -
     data = payload["data"]
     if message_type == "std_msgs/msg/Bool" and not isinstance(data, bool):
         raise RuntimePayloadShapeError("std_msgs/msg/Bool payload field 'data' must be a boolean.")
-    if message_type == "std_msgs/msg/Float64" and not isinstance(data, int | float):
-        raise RuntimePayloadShapeError("std_msgs/msg/Float64 payload field 'data' must be a number.")
-    if message_type == "std_msgs/msg/Int32" and not isinstance(data, int):
+    if message_type in {"std_msgs/msg/Float64", "std_msgs/msg/Float32"} and not is_finite_number(data):
+        raise RuntimePayloadShapeError(f"{message_type} payload field 'data' must be a finite number.")
+    if message_type == "std_msgs/msg/Int32" and (isinstance(data, bool) or not isinstance(data, int)):
         raise RuntimePayloadShapeError("std_msgs/msg/Int32 payload field 'data' must be an integer.")
     if message_type == "std_msgs/msg/String" and not isinstance(data, str):
         raise RuntimePayloadShapeError("std_msgs/msg/String payload field 'data' must be a string.")
@@ -75,3 +101,26 @@ def validate_minimum_payload_shape(message_type: str, payload: dict[str, Any]) -
         "std_msgs/msg/UInt8MultiArray",
     } and not isinstance(data, list):
         raise RuntimePayloadShapeError(f"{message_type} payload field 'data' must be a list.")
+
+
+def _holds_non_finite(value: object) -> bool:
+    if isinstance(value, float):
+        return not math.isfinite(value)
+    if isinstance(value, dict):
+        return any(_holds_non_finite(item) for item in value.values())
+    if isinstance(value, list | tuple):
+        return any(_holds_non_finite(item) for item in value)
+    return False
+
+
+def is_finite_number(value: object) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def parameter_value_error(name: str, value: object) -> str | None:
+    """Why a live parameter value is refused, or None."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return f"parameter {name} must be a finite number."
+    if _NON_NEGATIVE_PARAMETER.search(name) and not (is_finite_number(value) and value >= 0):
+        return f"parameter {name} must be a number of zero or more."
+    return None
