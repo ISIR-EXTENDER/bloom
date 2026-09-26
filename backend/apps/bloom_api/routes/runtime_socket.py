@@ -35,6 +35,7 @@ from apps.bloom_api.security import (
     require_runtime_websocket_principal,
     select_runtime_websocket_subprotocol,
 )
+from libs.ros_adapters.mode_request import DEFAULT_GEOMETRIC_MODE
 from libs.ros_adapters.safety import (
     RuntimeCommandPolicy,
 )
@@ -198,7 +199,11 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 # lease a disconnect used to leave the last non-zero twist standing; cartesian_manager
                 # expires it after 0.2 s, but the legacy /teleop_cmd path has no such timeout. There is
                 # no release to wait for here, so the neutralize step runs on its own.
-                if manager.moving_teleop_commands(session) or manager.pending_joint_target(session):
+                if (
+                    manager.moving_teleop_commands(session)
+                    or manager.pending_joint_target(session)
+                    or manager.pending_shaping_reset(session)
+                ):
                     await run_runtime_thread(
                         neutralize_runtime_session,
                         manager,
@@ -291,7 +296,12 @@ async def handle_runtime_client_payload(
         return
 
     if isinstance(message, RuntimeClaimControlMessage):
-        await websocket.send_json(claim_runtime_control(websocket, session, manager, audit_log).model_dump())
+        control_message = claim_runtime_control(websocket, session, manager, audit_log)
+        if manager.is_control_owner(session.id) and manager.has_orphaned_mode_resets():
+            await run_runtime_thread(
+                reset_orphaned_modes, manager, session, get_runtime_stop_controller(websocket), audit_log
+            )
+        await websocket.send_json(control_message.model_dump())
         return
 
     if isinstance(message, RuntimeReleaseControlMessage):
@@ -329,6 +339,27 @@ async def handle_runtime_client_payload(
     if isinstance(message, RuntimeTeleopCommandMessage) and response.type == "teleop_ack":
         manager.record_teleop_command(session, to_teleop_command(message))
     await websocket.send_json(response.model_dump())
+
+
+def reset_orphaned_modes(
+    manager: RuntimeSessionManager,
+    session: RuntimeSession,
+    stop_controller: RuntimeStopController,
+    audit_log: RuntimeAuditLog,
+) -> None:
+    """Undo the joint target or shaping mode a displaced stale owner left, before the new owner drives."""
+    for topic, mode in manager.take_orphaned_mode_resets():
+        try:
+            detail = stop_controller.publish_mode_reset(topic, mode)
+            status = "accepted"
+        except RuntimeError as exc:
+            detail = str(exc)
+            status = "rejected"
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="runtime_control", detail=detail, session_id=session.id, status=status, topic=topic
+            )
+        )
 
 
 def claim_runtime_control(
@@ -453,6 +484,20 @@ def neutralize_runtime_session(
                     session_id=session.id,
                     status="accepted",
                     topic=cancel_topic,
+                )
+            )
+        # A held Snake whose release never came would shape the next operator's motion.
+        shaping_topic = manager.pending_shaping_reset(session)
+        if shaping_topic is not None:
+            detail = stop_controller.publish_mode_reset(shaping_topic, DEFAULT_GEOMETRIC_MODE)
+            manager.clear_shaping_reset(session)
+            audit_log.record(
+                RuntimeAuditRecord(
+                    channel="runtime_control",
+                    detail=detail,
+                    session_id=session.id,
+                    status="accepted",
+                    topic=shaping_topic,
                 )
             )
     except RuntimeError as exc:

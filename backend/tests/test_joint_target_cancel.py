@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -25,6 +27,16 @@ class RecordingRosPublisherGateway:
 
     def cancels(self) -> list[RosPublishRequest]:
         return [r for r in self.requests if r.topic == "/mode_request" and r.payload == {"data": CANCEL_MODE_REQUEST}]
+
+
+def eventually(condition, timeout: float = 2.0) -> bool:
+    """The server finishes a disconnect after the client's socket has already closed."""
+    deadline = time.monotonic() + timeout
+    while not condition():
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(0.01)
+    return True
 
 
 def mode(data: str) -> dict:
@@ -57,7 +69,7 @@ def test_the_owner_leaving_cancels_its_joint_target(ending: str) -> None:
             websocket.receive_json()
             assert len(gateway.cancels()) == 1
 
-    assert len(gateway.cancels()) == 1
+    assert eventually(lambda: len(gateway.cancels()) == 1)
 
 
 def test_leaving_without_a_joint_target_publishes_no_cancel() -> None:

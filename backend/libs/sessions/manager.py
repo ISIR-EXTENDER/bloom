@@ -5,7 +5,12 @@ from time import monotonic
 from typing import TypeVar
 from uuid import uuid4
 
-from libs.ros_adapters.mode_request import ModeRequestError, parse_mode_request
+from libs.ros_adapters.mode_request import (
+    DEFAULT_GEOMETRIC_MODE,
+    GEOMETRIC_PREFIX,
+    ModeRequestError,
+    parse_mode_request,
+)
 from libs.sessions.teleop import TeleopCommand
 
 T = TypeVar("T")
@@ -69,6 +74,10 @@ class RuntimeSessionManager:
         self._frame_ids: dict[str, str] = {}
         #: The mode-request topic a session sent a joint target on, until something cancels it.
         self._joint_target_topics: dict[str, str] = {}
+        #: The mode-request topic a session left a shaping mode other than geometric/both on.
+        self._shaping_topics: dict[str, str] = {}
+        #: Resets a stale owner's lease left behind, for whoever claims control next.
+        self._orphaned_mode_resets: list[tuple[str, str]] = []
         self._lock = Lock()
         self._operation_lock = Lock()
 
@@ -117,6 +126,7 @@ class RuntimeSessionManager:
             self._mode_requests.pop(session.id, None)
             self._frame_ids.pop(session.id, None)
             self._joint_target_topics.pop(session.id, None)
+            self._shaping_topics.pop(session.id, None)
             if self._owner_session_id == session.id:
                 self._owner_session_id = None
             if self._releasing_session_id == session.id:
@@ -214,6 +224,11 @@ class RuntimeSessionManager:
                 self._joint_target_topics[session_id] = topic
                 return
             self._mode_requests[session_id] = request.normalized
+            if request.normalized.startswith(f"{GEOMETRIC_PREFIX}/"):
+                if request.normalized == DEFAULT_GEOMETRIC_MODE:
+                    self._shaping_topics.pop(session_id, None)
+                else:
+                    self._shaping_topics[session_id] = topic
             if request.normalized == STOP_MODE_REQUEST:
                 self._joint_target_topics.pop(session_id, None)
 
@@ -230,6 +245,26 @@ class RuntimeSessionManager:
     def clear_joint_target(self, session: RuntimeSession) -> None:
         with self._lock:
             self._joint_target_topics.pop(session.id, None)
+
+    def pending_shaping_reset(self, session: RuntimeSession) -> str | None:
+        """The mode-request topic to send geometric/both on, when this session left Snake or another shaper set."""
+        with self._lock:
+            return self._shaping_topics.get(session.id)
+
+    def clear_shaping_reset(self, session: RuntimeSession) -> None:
+        with self._lock:
+            self._shaping_topics.pop(session.id, None)
+
+    def has_orphaned_mode_resets(self) -> bool:
+        with self._lock:
+            return bool(self._orphaned_mode_resets)
+
+    def take_orphaned_mode_resets(self) -> tuple[tuple[str, str], ...]:
+        """What a displaced stale owner left set, handed once to the session that now holds control."""
+        with self._lock:
+            resets = tuple(self._orphaned_mode_resets)
+            self._orphaned_mode_resets.clear()
+            return resets
 
     def record_runtime_stop(self, zeroed_target: str) -> None:
         """STOP zeroed that target and asked every session's manager for passthrough."""
@@ -288,9 +323,15 @@ class RuntimeSessionManager:
 
         self._owner_session_id = None
         self._releasing_session_id = None
-        # Whatever it last sent expired on the manager long before this. A joint target is the next owner's to cancel.
+        # Whatever it last sent expired on the manager long before this. A joint target and a shaping mode do not
+        # expire, and the old session's own disconnect must not undo the new owner's, so the next claim resets them.
         self._teleop_commands.pop(owner_id, None)
-        self._joint_target_topics.pop(owner_id, None)
+        joint_target_topic = self._joint_target_topics.pop(owner_id, None)
+        if joint_target_topic is not None:
+            self._orphaned_mode_resets.append((joint_target_topic, STOP_MODE_REQUEST))
+        shaping_topic = self._shaping_topics.pop(owner_id, None)
+        if shaping_topic is not None:
+            self._orphaned_mode_resets.append((shaping_topic, DEFAULT_GEOMETRIC_MODE))
 
     def _is_control_owner(self, session_id: str) -> bool:
         return (

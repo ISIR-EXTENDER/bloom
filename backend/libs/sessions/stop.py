@@ -193,26 +193,27 @@ class RuntimeStopController:
 
     def cancel_joint_target(self, mode_request_topic: str | None = None) -> str:
         """The STOP's own cancel, alone: for a session that leaves a joint target running. Raises on failure."""
-        ok, detail, _simulated = self._publish_joint_target_cancel(mode_request_topic)
+        return self.publish_mode_reset(mode_request_topic or self._mode_request_topic, CANCEL_MODE_REQUEST)
+
+    def publish_mode_reset(self, mode_request_topic: str, mode: str) -> str:
+        """A mode request that undoes what a departed session left set. Raises on failure."""
+        ok, detail, _simulated = self._publish_mode_request(mode_request_topic, mode)
         if not ok:
             raise RuntimeError(detail)
         return detail
 
     def _publish_joint_target_cancel(self, mode_request_topic: str | None = None) -> tuple[bool, str, bool]:
-        request = RosPublishRequest(
-            topic=mode_request_topic or self._mode_request_topic,
-            message_type="std_msgs/msg/String",
-            payload={"data": CANCEL_MODE_REQUEST},
+        return self._publish_mode_request(
+            mode_request_topic or self._mode_request_topic, CANCEL_MODE_REQUEST, "Joint-target cancel"
         )
+
+    def _publish_mode_request(self, topic: str, mode: str, label: str = "Mode request") -> tuple[bool, str, bool]:
+        request = RosPublishRequest(topic=topic, message_type="std_msgs/msg/String", payload={"data": mode})
         try:
             receipt = self._ros_publisher_gateway.publish(request)
         except Exception as exc:  # noqa: BLE001
-            return False, f"Joint-target cancel could not be published: {exc}", False
-        return (
-            True,
-            f"Joint-target cancel ({CANCEL_MODE_REQUEST}) {receipt.status} on {receipt.topic}.",
-            receipt.status == "simulated",
-        )
+            return False, f"{label} could not be published: {exc}", False
+        return True, f"{label} ({mode}) {receipt.status} on {receipt.topic}.", receipt.status == "simulated"
 
     def _publish_visual_servoing_off(self) -> tuple[bool, str, bool]:
         """The servoing node keeps commanding while its switch is on; STOP turns the switch off."""
