@@ -79,3 +79,22 @@ def test_the_server_reports_the_speed_caps_it_enforces(test_settings: Settings) 
     raised = test_settings.model_copy(update={"max_linear_speed_limit": 0.5, "max_angular_speed_limit": 1.0})
     payload = TestClient(create_app(raised)).get("/api/v1/capabilities").json()
     assert (payload["max_linear_speed_limit"], payload["max_angular_speed_limit"]) == (0.5, 1.0)
+
+
+def test_the_server_reports_the_deployment_allowlists(test_settings: Settings) -> None:
+    """The Builder's one-click Allow must not widen an app past what this deployment accepts."""
+    narrowed = test_settings.model_copy(
+        update={
+            "allowed_ros_publish_topics": ("/mode_request", "/ui/"),
+            "allowed_ros_message_types": ("std_msgs/msg/String",),
+            "allowed_ros_parameters": ("/cartesian_manager:shapers.snake.gain",),
+            "allowed_ros_service_calls": ("/fault_controller/reset_fault",),
+        }
+    )
+    payload = TestClient(create_app(narrowed)).get("/api/v1/capabilities").json()
+
+    assert payload["allowed_ros_publish_topics"] == ["/mode_request", "/ui/"]
+    assert payload["allowed_ros_message_types"] == ["std_msgs/msg/String"]
+    assert payload["allowed_ros_parameters"] == ["/cartesian_manager:shapers.snake.gain"]
+    assert payload["allowed_ros_service_calls"] == ["/fault_controller/reset_fault"]
+    assert not any("key" in field for field in payload)

@@ -46,6 +46,7 @@ def controller_for(manager: RuntimeSessionManager, gateway: SelectiveRosPublishe
         ros_publisher_gateway=gateway,
         on_asserted=manager.record_runtime_stop,
         joint_target_topics=manager.joint_target_topics,
+        shaping_topics=manager.shaping_topics,
     )
 
 
@@ -81,6 +82,30 @@ def test_a_cancel_or_servo_off_that_failed_is_still_owed() -> None:
         controller_for(manager, gateway).engage()
     assert manager.pending_joint_target(session) == "/kinova/mode_request"
     assert manager.pending_visual_servoing_off(session)
+
+
+def test_stop_resets_a_held_snake_on_every_tracked_mode_request_topic() -> None:
+    manager = RuntimeSessionManager()
+    session = manager.connect()
+    manager.record_mode_request(session.id, "geometric/snake", "/kinova/mode_request")
+    gateway = SelectiveRosPublisherGateway()
+
+    controller_for(manager, gateway).engage()
+
+    resets = [r.topic for r in gateway.requests if r.payload == {"data": "geometric/both"}]
+    assert resets == ["/mode_request", "/kinova/mode_request"]
+    assert manager.pending_shaping_reset(session) is None
+
+
+def test_a_shaping_reset_that_failed_is_still_owed() -> None:
+    manager = RuntimeSessionManager()
+    session = manager.connect()
+    manager.record_mode_request(session.id, "geometric/snake", "/kinova/mode_request")
+    gateway = SelectiveRosPublisherGateway(failing=("/kinova/mode_request",))
+
+    with pytest.raises(RuntimeStopAssertionError):
+        controller_for(manager, gateway).engage()
+    assert manager.pending_shaping_reset(session) == "/kinova/mode_request"
 
 
 def test_a_latched_stop_survives_a_restart(tmp_path: Path) -> None:

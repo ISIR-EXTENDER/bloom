@@ -33,6 +33,11 @@ class RuntimeCapabilitiesResponse(BaseModel):
     #: The caps the server enforces on the speed-limit topics, so the Builder can warn before saving a slider past them.
     max_linear_speed_limit: float
     max_angular_speed_limit: float
+    # The deployment's own allowlists, which an app's lists can only narrow; the Builder offers no Allow past them.
+    allowed_ros_publish_topics: list[str] = []
+    allowed_ros_message_types: list[str] = []
+    allowed_ros_parameters: list[str] = []
+    allowed_ros_service_calls: list[str] = []
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -54,6 +59,7 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
     """
     settings: Settings = request.app.state.settings
     supports_command_frames = settings.ros_command_backend == "cartesian_manager"
+    policy = request.app.state.runtime_command_policy
     return RuntimeCapabilitiesResponse(
         capabilities=[
             RuntimeCapabilityResponse(id=capability.id, available=capability.available, detail=capability.detail)
@@ -65,6 +71,10 @@ def capabilities(request: Request) -> RuntimeCapabilitiesResponse:
         teleop_targets=list(request.app.state.teleop_target_directory.targets()),
         max_linear_speed_limit=_topic_cap(request, MAX_LINEAR_SPEED_TOPIC, settings.max_linear_speed_limit),
         max_angular_speed_limit=_topic_cap(request, MAX_ANGULAR_SPEED_TOPIC, settings.max_angular_speed_limit),
+        allowed_ros_publish_topics=list(policy.allowed_publish_topics),
+        allowed_ros_message_types=list(policy.allowed_message_types),
+        allowed_ros_parameters=list(policy.allowed_parameters),
+        allowed_ros_service_calls=list(policy.allowed_service_calls),
     )
 
 

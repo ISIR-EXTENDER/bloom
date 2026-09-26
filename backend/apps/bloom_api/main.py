@@ -158,6 +158,7 @@ def create_app(
         ),
         on_asserted=app.state.runtime_session_manager.record_runtime_stop,
         joint_target_topics=app.state.runtime_session_manager.joint_target_topics,
+        shaping_topics=app.state.runtime_session_manager.shaping_topics,
         state_path=app_settings.runtime_stop_state_path,
     )
     # STOP never waits for a pool worker, and ROS reads that hang on a node that is down never hold the shared one.

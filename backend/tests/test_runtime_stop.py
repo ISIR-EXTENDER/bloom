@@ -130,12 +130,14 @@ def test_engaging_stop_publishes_zero_twist_and_joint_target_cancel() -> None:
         assert (zero_command.linear.x, zero_command.linear.y, zero_command.linear.z) == (0.0, 0.0, 0.0)
         assert (zero_command.angular.x, zero_command.angular.y, zero_command.angular.z) == (0.0, 0.0, 0.0)
 
-    # behaviour/passthrough is the manager's own joint-target cancel; the servoing
-    # node keeps commanding while its switch is on, so STOP turns it off too.
-    [cancel_request, servo_off] = ros_gateway.requests
+    # behaviour/passthrough is the manager's own joint-target cancel, geometric/both undoes a held Snake; the
+    # servoing node keeps commanding while its switch is on, so STOP turns it off too.
+    [cancel_request, shaping_reset, servo_off] = ros_gateway.requests
     assert cancel_request.topic == "/mode_request"
     assert cancel_request.message_type == "std_msgs/msg/String"
     assert cancel_request.payload == {"data": CANCEL_MODE_REQUEST}
+    assert shaping_reset.topic == "/mode_request"
+    assert shaping_reset.payload == {"data": "geometric/both"}
     assert servo_off.topic == "/ui/visual_servoing/on"
     assert servo_off.message_type == "std_msgs/msg/Bool"
     assert servo_off.payload == {"data": False}
@@ -223,7 +225,11 @@ def test_a_gateway_error_that_is_not_a_runtime_error_still_cancels_the_joint_tar
     assert response.status_code == 503
     assert response.json()["detail"]["stopped"] is True
     # The cancel still went out: a joint-target move must not keep running because the zero failed.
-    assert [request.payload for request in ros_gateway.requests] == [{"data": CANCEL_MODE_REQUEST}, {"data": False}]
+    assert [request.payload for request in ros_gateway.requests] == [
+        {"data": CANCEL_MODE_REQUEST},
+        {"data": "geometric/both"},
+        {"data": False},
+    ]
 
 
 def test_engaging_stop_twice_reasserts_instead_of_failing() -> None:
@@ -237,9 +243,9 @@ def test_engaging_stop_twice_reasserts_instead_of_failing() -> None:
     assert first.status_code == 200
     assert second.status_code == 200
     assert second.json()["stopped"] is True
-    # Each accepted teleop target is zeroed once per engage; cancel and servo-off go out each time.
+    # Each accepted teleop target is zeroed once per engage; cancel, shaping reset and servo-off go out each time.
     assert len(teleop_gateway.commands) == 2
-    assert len(ros_gateway.requests) == 4
+    assert len(ros_gateway.requests) == 6
 
 
 def test_teleop_is_rejected_while_stopped_and_accepted_after_resume() -> None:

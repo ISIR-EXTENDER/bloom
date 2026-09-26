@@ -1,7 +1,8 @@
 """The runtime STOP latch: outranks every command path while engaged.
 
 Engaging publishes a zero twist plus a ``behaviour/passthrough`` mode request,
-the manager's own joint-target cancel. Not an IEC emergency stop.
+the manager's own joint-target cancel, and a ``geometric/both`` shaping reset.
+Not an IEC emergency stop.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TypeVar
 
+from libs.ros_adapters.mode_request import DEFAULT_GEOMETRIC_MODE
 from libs.ros_adapters.names import ros_name_error
 from libs.ros_adapters.publishers import RosPublisherGateway, RosPublishRequest
 from libs.sessions.audit import RuntimeAuditLog, RuntimeAuditRecord, RuntimeAuditStatus
@@ -70,6 +72,7 @@ class RuntimeStopController:
         on_asserted: Callable[..., None] | None = None,
         teleop_targets: Sequence[str] | Callable[[], Sequence[str]] | None = None,
         joint_target_topics: Callable[[], Iterable[str]] | None = None,
+        shaping_topics: Callable[[], Iterable[str]] | None = None,
         state_path: Path | None = None,
     ) -> None:
         self._teleop_gateway = teleop_gateway
@@ -82,6 +85,8 @@ class RuntimeStopController:
         self._mode_request_topic = mode_request_topic
         # Mode-request topics sessions sent a joint target on; STOP cancels on each, not only the default.
         self._joint_target_topics_source = joint_target_topics
+        # The manager keeps its shaper apart from its behaviour, so a Snake outlives the cancel unless reset too.
+        self._shaping_topics_source = shaping_topics
         self._state_path = state_path
         # Told the zeroed target once both assertions publish, so session state can follow.
         self._on_asserted = on_asserted
@@ -141,11 +146,12 @@ class RuntimeStopController:
             targets = self._teleop_targets()
             zero_ok, zero_detail, zero_simulated = self._publish_zero_twists(targets)
             cancelled, cancel_ok, cancel_detail, cancel_simulated = self._publish_joint_target_cancels()
+            reset, reset_ok, reset_detail, reset_simulated = self._publish_shaping_resets()
             servo_ok, servo_detail, servo_simulated = self._publish_visual_servoing_off()
-            self._asserted = zero_ok and cancel_ok and servo_ok
-            self._simulated = zero_simulated or cancel_simulated or servo_simulated
+            self._asserted = zero_ok and cancel_ok and reset_ok and servo_ok
+            self._simulated = zero_simulated or cancel_simulated or reset_simulated or servo_simulated
             prefix = "Runtime stop engaged." if self._asserted else "Runtime stop latched, but ROS assertion failed."
-            detail = f"{prefix} {zero_detail} {cancel_detail} {servo_detail}"
+            detail = f"{prefix} {zero_detail} {cancel_detail} {reset_detail} {servo_detail}"
             self._detail = detail
             save_error = self._save_latch()
             state = self._state_unlocked()
@@ -154,7 +160,7 @@ class RuntimeStopController:
         # Session state forgets only what was actually told: a failed cancel is still owed when its sender leaves.
         if self._on_asserted is not None:
             for target in targets:
-                self._on_asserted(target, cancelled_topics=cancelled, servo_off=servo_ok)
+                self._on_asserted(target, cancelled_topics=cancelled, reset_shaping_topics=reset, servo_off=servo_ok)
         if not state.asserted:
             raise RuntimeStopAssertionError(state)
         return state
@@ -240,6 +246,19 @@ class RuntimeStopController:
             simulated = simulated or topic_simulated
             details.append(detail)
         return tuple(cancelled), len(cancelled) == len(details), " ".join(details), simulated
+
+    def _publish_shaping_resets(self) -> tuple[tuple[str, ...], bool, str, bool]:
+        tracked = self._shaping_topics_source() if self._shaping_topics_source is not None else ()
+        reset: list[str] = []
+        details: list[str] = []
+        simulated = False
+        for topic in dict.fromkeys([self._mode_request_topic, *tracked]):
+            ok, detail, topic_simulated = self._publish_mode_request(topic, DEFAULT_GEOMETRIC_MODE, "Shaping reset")
+            if ok:
+                reset.append(topic)
+            simulated = simulated or topic_simulated
+            details.append(detail)
+        return tuple(reset), len(reset) == len(details), " ".join(details), simulated
 
     def _restore_latch(self) -> None:
         """A restart keeps a latched STOP latched; a file that cannot be read starts latched too."""

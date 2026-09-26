@@ -312,16 +312,17 @@ class RuntimeSessionManager:
             return zeros
 
     def record_runtime_stop(
-        self, zeroed_target: str, *, cancelled_topics: Collection[str] | None = None, servo_off: bool = True
+        self,
+        zeroed_target: str,
+        *,
+        cancelled_topics: Collection[str] | None = None,
+        reset_shaping_topics: Collection[str] | None = None,
+        servo_off: bool = True,
     ) -> None:
-        """STOP zeroed that target; only the cancels and servo-off that published are forgotten."""
+        """STOP zeroed that target; only the cancels, shaping resets and servo-off that published are forgotten."""
         with self._lock:
-            if cancelled_topics is None:
-                self._joint_target_topics.clear()
-            else:
-                for session_id, topic in list(self._joint_target_topics.items()):
-                    if topic in cancelled_topics:
-                        del self._joint_target_topics[session_id]
+            _forget_topics(self._joint_target_topics, cancelled_topics)
+            _forget_topics(self._shaping_topics, reset_shaping_topics)
             if servo_off:
                 self._visual_servoing_sessions.clear()
             for session_id in self._sessions:
@@ -334,6 +335,10 @@ class RuntimeSessionManager:
     def joint_target_topics(self) -> tuple[str, ...]:
         with self._lock:
             return tuple(dict.fromkeys(self._joint_target_topics.values()))
+
+    def shaping_topics(self) -> tuple[str, ...]:
+        with self._lock:
+            return tuple(dict.fromkeys(self._shaping_topics.values()))
 
     def moving_teleop_targets(self) -> tuple[str, ...]:
         """Every target some session is driving now, including one granted through a namespace entry."""
@@ -413,6 +418,13 @@ class RuntimeSessionManager:
     def _ensure_connected(self, session_id: str) -> None:
         if session_id not in self._sessions:
             raise ValueError("Runtime session is not connected.")
+
+
+def _forget_topics(records: dict[str, str], published: Collection[str] | None) -> None:
+    """None means everything was told."""
+    for session_id, topic in list(records.items()):
+        if published is None or topic in published:
+            del records[session_id]
 
 
 def _zero_of(command: TeleopCommand) -> TeleopCommand:
