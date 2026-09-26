@@ -1,9 +1,16 @@
-import { type ApplicationConfig, CURRENT_CONFIGURATION_SCHEMA_VERSION, type ScreenConfig } from "@bloom/api-client";
+import {
+  type ApplicationConfig,
+  BloomApiError,
+  CURRENT_CONFIGURATION_SCHEMA_VERSION,
+  type ScreenConfig,
+} from "@bloom/api-client";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { type BloomRoute, builderModeRoute } from "../ui/navigationRoute";
 import type { ConfigurationClient } from "./configuration-client";
 import { createUniqueConfigId, duplicateApplicationInConfigurationBundle } from "./configuration-editor";
 import type { ConfigurationLoadState } from "./use-configurations";
+
+const MAX_CONFIG_ID_ATTEMPTS = 50;
 
 type ApplicationActionsOptions = {
   configurationClient: ConfigurationClient;
@@ -53,6 +60,25 @@ export function createApplicationActions({
       applications: [application],
     });
 
+  // Loaded ids are only what this client saw; ask the server too. Another client can still take it between the two.
+  const claimFreeConfigId = async (configId: string, knownIds: Iterable<string>) => {
+    const taken = new Set(knownIds);
+    let candidate = createUniqueConfigId(configId, taken);
+    for (let attempt = 0; attempt < MAX_CONFIG_ID_ATTEMPTS; attempt += 1) {
+      try {
+        await configurationClient.getConfiguration(candidate);
+      } catch (error) {
+        if (error instanceof BloomApiError && error.status === 404) {
+          return candidate;
+        }
+        throw error;
+      }
+      taken.add(candidate);
+      candidate = createUniqueConfigId(configId, taken);
+    }
+    throw new Error(`Bloom could not find a free configuration id for "${configId}" on the server.`);
+  };
+
   const openInBuilder = (configId: string, application: ApplicationConfig) => {
     setSelection({ configId, appId: application.id, screenId: application.screens[0]?.id ?? "main" });
     navigate(builderModeRoute("app-config"));
@@ -83,10 +109,12 @@ export function createApplicationActions({
       const state = requireReady("create an application");
       if (state.configurations.some((candidate) => candidate.id === configId)) {
         await state.saveApplication(configId, application);
-      } else {
-        await saveAsNewConfiguration(state, configId, application);
+        openInBuilder(configId, application);
+        return;
       }
-      openInBuilder(configId, application);
+      const freeConfigId = await claimFreeConfigId(configId, Object.keys(state.shareStatus));
+      await saveAsNewConfiguration(state, freeConfigId, application);
+      openInBuilder(freeConfigId, application);
     },
 
     async duplicateApplication(configId: string, applicationId: string) {
@@ -100,7 +128,7 @@ export function createApplicationActions({
         applicationId,
         state.configurations.flatMap((candidate) => candidate.bundle.applications),
       );
-      const copyConfigId = createUniqueConfigId(duplicated.id, [
+      const copyConfigId = await claimFreeConfigId(duplicated.id, [
         ...state.configurations.map((candidate) => candidate.id),
         ...Object.keys(state.shareStatus),
       ]);

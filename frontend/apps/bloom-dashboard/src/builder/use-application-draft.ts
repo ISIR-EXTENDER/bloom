@@ -6,7 +6,7 @@ import type {
   UserProfile,
 } from "@bloom/api-client";
 import type { RosMessageCommandPreset } from "@bloom/widgets";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   addProfileToApplication,
   addScreenToApplication,
@@ -28,7 +28,6 @@ import {
   createUniquePresetId,
   DEFAULT_THEME_INSPIRATION,
   MAX_MOODBOARD_IMAGE_BYTES,
-  mergeUniqueRuntimePolicyValues,
   parseLines,
   type ThemeInspiration,
 } from "./app-config-model";
@@ -40,6 +39,7 @@ import {
   resolveNewScreenCanvas,
 } from "./builder-geometry";
 import { createStarterProfile } from "./builder-starters";
+import { syncPublishPolicy } from "./widget-publish-route";
 
 type ApplicationDraftOptions = {
   application: ApplicationConfig;
@@ -71,11 +71,21 @@ export function useApplicationDraft({
   const assignedScreenIds = new Set(draft.screens.map((screen) => screen.id));
   const unassignedScreens = availableScreens.filter(({ screen }) => !assignedScreenIds.has(screen.id));
 
+  const adoptedRef = useRef(application);
+  const sentRef = useRef<ApplicationConfig | null>(null);
   useEffect(() => {
-    setDraft(application);
-    setNewPreset(createEmptyActionPresetDraft());
-    setSaveState({ status: "idle" });
-    setThemeInspirationError("");
+    const previous = adoptedRef.current;
+    adoptedRef.current = application;
+    if (previous.id !== application.id) {
+      setDraft(application);
+      setNewPreset(createEmptyActionPresetDraft());
+      setSaveState({ status: "idle" });
+      setThemeInspirationError("");
+      return;
+    }
+    // A saved app arriving while the author kept typing must not revert what they typed since the save.
+    const adoptable = [previous, application, sentRef.current].map((candidate) => JSON.stringify(candidate));
+    setDraft((current) => (adoptable.includes(JSON.stringify(current)) ? application : current));
   }, [application]);
 
   const edit = (update: (current: ApplicationConfig) => ApplicationConfig) => {
@@ -89,6 +99,7 @@ export function useApplicationDraft({
     }
 
     setSaveState({ status: "saving" });
+    sentRef.current = draft;
     try {
       await onSaveApplication(draft);
       setSaveState({ status: "saved" });
@@ -236,20 +247,7 @@ export function useApplicationDraft({
     }));
 
   const syncRuntimePolicyFromActionPresets = () =>
-    edit((current) => ({
-      ...current,
-      runtime_policy: {
-        ...current.runtime_policy,
-        allowed_message_types: mergeUniqueRuntimePolicyValues(
-          current.runtime_policy.allowed_message_types,
-          current.action_presets.map((preset) => preset.message_type),
-        ),
-        allowed_publish_topics: mergeUniqueRuntimePolicyValues(
-          current.runtime_policy.allowed_publish_topics,
-          current.action_presets.map((preset) => preset.topic),
-        ),
-      },
-    }));
+    edit((current) => ({ ...current, runtime_policy: { ...current.runtime_policy, ...syncPublishPolicy(current) } }));
 
   const loadMoodboardFile = async (file: File | undefined) => {
     if (!file) {

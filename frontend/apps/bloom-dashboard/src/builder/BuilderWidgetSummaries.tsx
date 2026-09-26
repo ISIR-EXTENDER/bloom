@@ -1,5 +1,6 @@
 import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
 import {
+  allowlistAllows,
   buildCliPreview,
   INTERACTIVE_WIDGET_KINDS,
   resolveCanvasFitScale,
@@ -100,19 +101,35 @@ export function WidgetGlassSizeSummary({
  * setting a topic and seeing no change has no way to tell whether the field is
  * ignored, the robot is disconnected, or they made a typo.
  */
+/** The app policy lists an inspector refusal can add an entry to. */
+export type AllowablePolicyList =
+  | "allowed_message_types"
+  | "allowed_parameters"
+  | "allowed_publish_topics"
+  | "allowed_teleop_targets";
+
 export function WidgetDestinationSummary({
+  allowedMessageTypes,
   allowedParameters,
   allowedPublishTopics,
   allowedTeleopTargets,
   destination,
+  messageType,
+  onAllow,
   serverTeleopTargets,
   widget,
 }: {
+  /** The app's message type list; empty defers to the deployment, as the backend narrows. */
+  allowedMessageTypes?: readonly string[];
   allowedParameters?: readonly string[];
   /** The app's publish list; empty defers to the deployment, as the backend narrows. */
   allowedPublishTopics?: readonly string[];
   allowedTeleopTargets?: readonly string[];
   destination: WidgetDestination | null;
+  /** The type a plain publish sends, when one is known. */
+  messageType?: string | null;
+  /** Adds the refused entry to the app's own list, in one click. */
+  onAllow?: (list: AllowablePolicyList, value: string) => void;
   /** What this robot's server allows; the app's list can only narrow it. */
   serverTeleopTargets?: readonly string[];
   widget: WidgetConfig;
@@ -132,23 +149,18 @@ export function WidgetDestinationSummary({
   const outsidePolicy =
     Boolean(teleopTarget) &&
     Boolean(allowedTeleopTargets) &&
-    !allowedTeleopTargets?.includes("*") &&
-    !allowedTeleopTargets?.includes(teleopTarget);
+    !allowlistAllows(allowedTeleopTargets ?? [], teleopTarget);
 
   // Robin, 2026-09-25: added a topic to the app's list, picked it here, then got "Command failed". The
   // server's list, the manager's own inputs, did not have it, and nothing said so.
   const serverRefuses =
-    Boolean(teleopTarget) &&
-    Boolean(serverTeleopTargets) &&
-    !serverTeleopTargets?.includes("*") &&
-    !serverTeleopTargets?.includes(teleopTarget);
+    Boolean(teleopTarget) && Boolean(serverTeleopTargets) && !allowlistAllows(serverTeleopTargets ?? [], teleopTarget);
 
   const parameterTarget = resolveParameterTarget(widget.settings);
   const parameterOutsidePolicy =
     Boolean(parameterTarget) &&
     Boolean(allowedParameters) &&
-    !allowedParameters?.includes("*") &&
-    !allowedParameters?.includes(parameterTarget);
+    !allowlistAllows(allowedParameters ?? [], parameterTarget);
 
   // A plain publish outside a non-empty app list is refused at runtime; only teleop and parameters said so.
   const publishTopic =
@@ -156,12 +168,23 @@ export function WidgetDestinationSummary({
   const publishOutsidePolicy =
     Boolean(publishTopic) &&
     (allowedPublishTopics?.length ?? 0) > 0 &&
-    !allowedPublishTopics?.some(
-      (entry) => entry === "*" || entry === publishTopic || (entry.endsWith("/") && publishTopic.startsWith(entry)),
-    );
+    !allowlistAllows(allowedPublishTopics ?? [], publishTopic);
+  const refusedMessageType =
+    publishTopic &&
+    messageType &&
+    (allowedMessageTypes?.length ?? 0) > 0 &&
+    !allowlistAllows(allowedMessageTypes ?? [], messageType)
+      ? messageType
+      : "";
 
   const label = destination.direction === "reads" ? "Reads from" : parameterTarget ? "Sets parameter" : "Publishes to";
   const emptyLabel = destination.direction === "reads" ? "No topic set" : "Not configured";
+  const allowButton = (list: AllowablePolicyList, value: string) =>
+    onAllow ? (
+      <button className="builder-secondary-action" onClick={() => onAllow(list, value)} type="button">
+        Allow {value} in this app
+      </button>
+    ) : null;
 
   return (
     <div
@@ -179,7 +202,7 @@ export function WidgetDestinationSummary({
       {outsidePolicy ? (
         <p className="builder-settings-destination-refusal" role="alert">
           This app does not allow teleop on {teleopTarget}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Teleop targets.
+          configuration, Adapter guardrails, Teleop targets. {allowButton("allowed_teleop_targets", teleopTarget)}
         </p>
       ) : null}
       {serverRefuses ? (
@@ -191,13 +214,21 @@ export function WidgetDestinationSummary({
       {publishOutsidePolicy ? (
         <p className="builder-settings-destination-refusal" role="alert">
           This app does not allow publishing on {publishTopic}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Allowed publish topics.
+          configuration, Adapter guardrails, Allowed publish topics.{" "}
+          {allowButton("allowed_publish_topics", publishTopic)}
+        </p>
+      ) : null}
+      {refusedMessageType ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          This app does not allow the message type {refusedMessageType}, so the runtime will refuse it. Add it under App
+          configuration, Adapter guardrails, Allowed message types.{" "}
+          {allowButton("allowed_message_types", refusedMessageType)}
         </p>
       ) : null}
       {parameterOutsidePolicy ? (
         <p className="builder-settings-destination-refusal" role="alert">
           This app does not allow setting {parameterTarget}, so the runtime will refuse it. Add it under App
-          configuration, Adapter guardrails, Allowed parameters.
+          configuration, Adapter guardrails, Allowed parameters. {allowButton("allowed_parameters", parameterTarget)}
         </p>
       ) : null}
     </div>

@@ -10,7 +10,9 @@ import {
 } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
+import type { AllowablePolicyList } from "./BuilderWidgetSummaries";
 import { densityFloorFor, glassPx } from "./builder-geometry";
+import type { SpeedLimitCaps } from "./speed-limit-caps";
 
 type BuilderInspectorProps = {
   /** The app's reusable command presets, offered by name to the widgets that take one. */
@@ -21,7 +23,11 @@ type BuilderInspectorProps = {
   allowedTeleopTargets?: readonly string[];
   /** The app's publish list; empty defers to the deployment. */
   allowedPublishTopics?: readonly string[];
+  allowedMessageTypes?: readonly string[];
+  /** Adds a refused entry to the app's own list. */
+  onAllowPolicyEntry?: (list: AllowablePolicyList, value: string) => void;
   serverTeleopTargets?: readonly string[];
+  speedLimitCaps?: SpeedLimitCaps;
   /** STOP is already reserved on this screen, so the palette says so instead of offering it twice. */
   hasStopRegion?: boolean;
   onAddStopRegion?: () => void;
@@ -56,7 +62,10 @@ export function BuilderInspector({
   allowedParameters,
   allowedTeleopTargets,
   allowedPublishTopics,
+  allowedMessageTypes,
+  onAllowPolicyEntry,
   serverTeleopTargets,
+  speedLimitCaps,
   availableWidgetDefinitions,
   hasStopRegion = false,
   onAddStopRegion,
@@ -179,8 +188,11 @@ export function BuilderInspector({
         allowedCommandFrameIds={allowedCommandFrameIds}
         allowedParameters={allowedParameters}
         allowedPublishTopics={allowedPublishTopics}
+        allowedMessageTypes={allowedMessageTypes}
         allowedTeleopTargets={allowedTeleopTargets}
+        onAllowPolicyEntry={onAllowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}
+        speedLimitCaps={speedLimitCaps}
         canvas={canvas}
         floorPx={densityFloorFor(deviceClass)}
         panel={panel}
@@ -244,9 +256,11 @@ function WidgetList({
         {widgets.map((widget) => (
           <button
             aria-pressed={widget.id === selectedWidgetId}
+            data-widget-id={widget.id}
             key={widget.id}
             ref={widget.id === selectedWidgetId ? selectedRef : undefined}
             onClick={() => onSelectWidget(widget.id)}
+            onFocus={() => widget.id !== selectedWidgetId && onSelectWidget(widget.id)}
             type="button"
           >
             <strong>{widget.title}</strong>

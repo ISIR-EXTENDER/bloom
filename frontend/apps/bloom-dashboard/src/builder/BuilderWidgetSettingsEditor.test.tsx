@@ -889,3 +889,115 @@ describe("the reusable preset picker", () => {
     expect(onUpdateSettings.mock.lastCall?.[2]).toBeUndefined();
   });
 });
+
+describe("guardrails the inspector checks", () => {
+  afterEach(cleanup);
+
+  const speedSlider = (settings: Record<string, unknown>) =>
+    ({
+      id: "speed",
+      kind: "slider",
+      title: "Max linear speed",
+      layout: { x: 0, y: 0, width: 300, height: 100 },
+      settings: {
+        direction: "horizontal",
+        max: 0.3,
+        min: 0,
+        step: 0.015,
+        messageType: "std_msgs/msg/Float64",
+        topic: "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed",
+        ...settings,
+      },
+    }) as unknown as WidgetConfig;
+
+  // The message type list was never checked, so a Float64 slider under a String-only app looked fine until live.
+  it("names a message type the app refuses, and allows it in one click", () => {
+    const onAllowPolicyEntry = vi.fn();
+    render(
+      <BuilderWidgetSettingsEditor
+        allowedMessageTypes={["std_msgs/msg/String"]}
+        onAllowPolicyEntry={onAllowPolicyEntry}
+        onUpdateSettings={vi.fn(() => null)}
+        onUpdateTitle={vi.fn()}
+        widget={speedSlider({})}
+      />,
+    );
+
+    expect(screen.getByRole("alert").textContent).toMatch(/does not allow the message type std_msgs\/msg\/Float64/);
+    fireEvent.click(screen.getByRole("button", { name: "Allow std_msgs/msg/Float64 in this app" }));
+    expect(onAllowPolicyEntry).toHaveBeenCalledWith("allowed_message_types", "std_msgs/msg/Float64");
+  });
+
+  // A new app refuses the Snake gain, and the only fix was typing node:name into a textarea.
+  it("allows a refused parameter with the exact entry", () => {
+    const onAllowPolicyEntry = vi.fn();
+    render(
+      <BuilderWidgetSettingsEditor
+        allowedParameters={[]}
+        onAllowPolicyEntry={onAllowPolicyEntry}
+        onUpdateSettings={vi.fn(() => null)}
+        onUpdateTitle={vi.fn()}
+        widget={
+          {
+            id: "gain",
+            kind: "slider",
+            title: "Snake gain",
+            layout: { x: 0, y: 0, width: 300, height: 100 },
+            settings: {
+              max: 10,
+              min: 0,
+              step: 0.1,
+              runtime_binding: {
+                adapter: "parameter",
+                value_mapping: { node: "/cartesian_manager", parameter: "shapers.snake.gain" },
+              },
+            },
+          } as unknown as WidgetConfig
+        }
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Allow /cartesian_manager:shapers.snake.gain in this app" }));
+    expect(onAllowPolicyEntry).toHaveBeenCalledWith("allowed_parameters", "/cartesian_manager:shapers.snake.gain");
+  });
+
+  it("allows a namespaced publish topic, as the backend does", () => {
+    render(
+      <BuilderWidgetSettingsEditor
+        allowedPublishTopics={["/explorer_user_interfaces/"]}
+        onUpdateSettings={vi.fn(() => null)}
+        onUpdateTitle={vi.fn()}
+        widget={speedSlider({})}
+      />,
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  // The server refuses a speed limit above its cap, and nothing in the Builder said so.
+  it("warns when a speed limit slider goes past the robot's cap", () => {
+    render(
+      <BuilderWidgetSettingsEditor
+        onUpdateSettings={vi.fn(() => null)}
+        onUpdateTitle={vi.fn()}
+        speedLimitCaps={{ angular: 0.8, linear: 0.25 }}
+        widget={speedSlider({ segment_values: [0.1, 0.2, 0.28] })}
+      />,
+    );
+    const warning = screen.getByRole("alert").textContent ?? "";
+    expect(warning).toMatch(/above 0.25 m\/s/);
+    expect(warning).toMatch(/Maximum \(0.3\)/);
+    expect(warning).toMatch(/Segment 3 \(0.28\)/);
+    expect(warning).not.toMatch(/Segment 2/);
+  });
+
+  it("holds a speed slider to the server's default cap when the robot names none", () => {
+    render(
+      <BuilderWidgetSettingsEditor
+        onUpdateSettings={vi.fn(() => null)}
+        onUpdateTitle={vi.fn()}
+        widget={speedSlider({ max: 0.5 })}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toMatch(/above 0.3 m\/s/);
+  });
+});

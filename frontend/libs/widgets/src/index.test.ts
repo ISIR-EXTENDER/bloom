@@ -1509,13 +1509,21 @@ describe("widget runtime action intents", () => {
         { type: "press" },
       ),
     ).toEqual({
-      type: "topic-publish",
+      // A named preset is asked for first; the button's own publish is the fallback when the app lacks it.
+      type: "command",
       widgetId: "emergency-stop",
       widgetKind: "command-button",
-      topic: "/explorer/emergency_stop",
-      messageType: "std_msgs/msg/Bool",
-      payload: "{data: true}",
-      payloadText: "{data: true}",
+      command: "emergency_stop",
+      presetId: "emergency-stop-bool",
+      fallback: {
+        type: "topic-publish",
+        widgetId: "emergency-stop",
+        widgetKind: "command-button",
+        topic: "/explorer/emergency_stop",
+        messageType: "std_msgs/msg/Bool",
+        payload: "{data: true}",
+        payloadText: "{data: true}",
+      },
     });
   });
 

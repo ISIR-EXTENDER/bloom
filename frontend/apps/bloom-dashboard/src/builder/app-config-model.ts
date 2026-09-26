@@ -169,13 +169,6 @@ export function createUniquePresetId(name: string, presets: readonly RuntimeActi
   );
 }
 
-export function mergeUniqueRuntimePolicyValues(
-  currentValues: readonly string[],
-  nextValues: readonly string[],
-): string[] {
-  return [...new Set([...currentValues, ...nextValues].map((value) => value.trim()).filter(Boolean))];
-}
-
 export function formatPresetCategory(category: RosMessageCommandPreset["category"]): string {
   return {
     bridge: "Bridge commands",

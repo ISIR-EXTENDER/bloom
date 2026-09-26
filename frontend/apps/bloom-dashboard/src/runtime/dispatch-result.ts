@@ -1,5 +1,5 @@
 import type { RosTopicPublishRequest, RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import type { WidgetActionIntent } from "@bloom/widgets";
+import { allowlistAllows, type WidgetActionIntent } from "@bloom/widgets";
 import { describeApiError } from "../ui/api-error";
 import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
 import type { TeleopTwistComposer } from "./teleop-composition";
@@ -70,7 +70,7 @@ export type RuntimeActionDispatchOptions = {
 };
 
 export function isAllowedByPolicy(value: string, allowedValues: readonly string[]): boolean {
-  return allowedValues.length === 0 || allowedValues.includes("*") || allowedValues.includes(value);
+  return allowedValues.length === 0 || allowlistAllows(allowedValues, value);
 }
 
 export function getErrorMessage(error: unknown): string {

@@ -1,3 +1,4 @@
+export * from "./allowlist";
 export * from "./canvas";
 export * from "./canvas-defaults";
 export * from "./cli-preview";

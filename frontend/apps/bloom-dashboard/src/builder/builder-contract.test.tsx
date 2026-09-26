@@ -623,3 +623,90 @@ describe("Delete in the builder", () => {
     expect(has(secondWidget.title)).toBe(true);
   });
 });
+
+describe("Delete away from the canvas", () => {
+  afterEach(cleanup);
+
+  const selector = (name: string) => screen.getByRole("button", { name: `Select and move ${name} widget` });
+  const has = (name: string) => screen.queryByRole("button", { name: `Select and move ${name} widget` }) !== null;
+  const [firstWidget, secondWidget] = bench.widgets;
+  const listRow = (name: string) =>
+    within(screen.getByRole("region", { name: "Select on canvas" })).getByRole("button", {
+      name: new RegExp(`^${name}`),
+    });
+
+  // Delete from the toolbar or the palette removed the selected widget.
+  it("removes nothing from the toolbar or the palette", () => {
+    if (!firstWidget) throw new Error("the bench fixture has no widget");
+    renderWorkspace(bench);
+    fireEvent.click(selector(firstWidget.title));
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "Undo" }), { key: "Delete" });
+    fireEvent.keyDown(screen.getByRole("button", { name: /^Add Label widget/ }), { key: "Backspace" });
+
+    expect(has(firstWidget.title)).toBe(true);
+  });
+
+  it("selects a list row on focus and removes that row's widget", () => {
+    if (!firstWidget || !secondWidget) throw new Error("the bench fixture needs two widgets");
+    renderWorkspace(bench);
+    fireEvent.click(selector(firstWidget.title));
+
+    fireEvent.focus(listRow(secondWidget.title));
+    expect(selector(secondWidget.title).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.keyDown(listRow(secondWidget.title), { key: "Delete" });
+
+    expect(has(secondWidget.title)).toBe(false);
+    expect(has(firstWidget.title)).toBe(true);
+  });
+});
+
+describe("allowing a refusal from the inspector", () => {
+  afterEach(cleanup);
+
+  it("adds the exact entry to the app's list and saves the app", async () => {
+    const gain = {
+      id: "gain",
+      kind: "slider",
+      title: "Snake gain",
+      layout: { x: 40, y: 40, width: 320, height: 120 },
+      settings: {
+        direction: "horizontal",
+        max: 10,
+        min: 0,
+        step: 0.1,
+        runtime_binding: {
+          adapter: "parameter",
+          target: "parameter",
+          value_mapping: { node: "/cartesian_manager", parameter: "shapers.snake.gain" },
+        },
+      },
+    };
+    const source = { ...bench, widgets: [gain] } as unknown as ScreenConfig;
+    const application = {
+      ...explorer,
+      runtime_policy: { ...explorer.runtime_policy, allowed_parameters: [] },
+      screens: [source],
+    };
+    const onSaveApplication = vi.fn(async (_application: ApplicationConfig) => undefined);
+    render(
+      <BuilderWorkspace
+        configurations={[{ id: "explorer-manager", bundle: { metadata: {}, applications: [application] } } as never]}
+        onBackToAppConfig={vi.fn()}
+        onBackToBuilderHome={vi.fn()}
+        onSaveApplication={onSaveApplication}
+        onSaveScreenDraft={vi.fn()}
+        runtimeCapabilities={null}
+        selection={{ appId: application.id, configId: "explorer-manager", screenId: source.id }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Select and move Snake gain widget" }));
+    fireEvent.click(screen.getByRole("button", { name: "Allow /cartesian_manager:shapers.snake.gain in this app" }));
+
+    expect(onSaveApplication).toHaveBeenCalledOnce();
+    expect(onSaveApplication.mock.calls[0]?.[0].runtime_policy.allowed_parameters).toEqual([
+      "/cartesian_manager:shapers.snake.gain",
+    ]);
+    expect(await screen.findByText(/is now allowed in/)).toBeTruthy();
+  });
+});

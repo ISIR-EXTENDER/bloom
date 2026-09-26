@@ -5,7 +5,7 @@ import type { WidgetConfig } from "@bloom/api-client";
 import { normalizeWidgetSettings } from "@bloom/widgets";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SeriesEditor } from "./SeriesEditor";
 
 const HAND_Z = { topic: "/ee_pose", field_path: "pose.position.z", label: "Hand z", unit: "m", enabled: true };
@@ -77,5 +77,29 @@ describe("the series editor", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Undo from outside" }));
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("the series editor's undo steps", () => {
+  afterEach(cleanup);
+
+  // Every keystroke of a typed topic was its own undo step.
+  it("keys each row's typed field so its keystrokes coalesce, and a checkbox stands alone", () => {
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>, _title?: string, _key?: string) => null);
+    const widget = {
+      id: "board",
+      kind: "plot-board",
+      title: "Board",
+      layout: { x: 0, y: 0, width: 100, height: 100 },
+      settings: { series: [HAND_Z, { ...HAND_Z, field_path: "pose.position.x" }] },
+    } as unknown as WidgetConfig;
+    render(<SeriesEditor onUpdateSettings={onUpdateSettings} widget={widget} />);
+
+    const topics = screen.getAllByLabelText("Topic");
+    fireEvent.change(topics[0] as HTMLElement, { target: { value: "/ee_pos" } });
+    fireEvent.change(topics[1] as HTMLElement, { target: { value: "/ee_pos" } });
+    fireEvent.click(screen.getAllByLabelText("Shown")[0] as HTMLElement);
+
+    expect(onUpdateSettings.mock.calls.map((call) => call[2])).toEqual(["series:0:topic", "series:1:topic", undefined]);
   });
 });

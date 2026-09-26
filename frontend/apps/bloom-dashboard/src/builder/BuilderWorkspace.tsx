@@ -1,4 +1,4 @@
-import type { RuntimeCapability, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeCapability, ScreenConfig } from "@bloom/api-client";
 import {
   addWidgetToScreen,
   createDefaultWidgetRegistry,
@@ -21,6 +21,7 @@ import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/Configu
 import { leaveAfterConfirming, useUnsavedChanges } from "../ui/unsaved-changes";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { BuilderInspector } from "./BuilderInspector";
+import type { AllowablePolicyList } from "./BuilderWidgetSummaries";
 import {
   defaultStopRegion,
   explainLayoutRefusal,
@@ -31,6 +32,7 @@ import {
   resolveBuilderPanel,
   switchScreenDevice,
 } from "./builder-geometry";
+import type { SpeedLimitCaps } from "./speed-limit-caps";
 import { useBuilderScreenDraft } from "./useBuilderScreenDraft";
 import { useSelectedBuilderWidget } from "./useSelectedBuilderWidget";
 
@@ -51,6 +53,10 @@ type BuilderWorkspaceProps = {
   onBackToAppConfig: () => void;
   onBackToBuilderHome: () => void;
   onSaveScreenDraft: (screen: ScreenConfig) => Promise<void>;
+  /** Saves the app itself, for an inspector refusal allowed in one click. */
+  onSaveApplication?: (application: ApplicationConfig) => Promise<void>;
+  /** The server's caps on the speed-limit topics. */
+  speedLimitCaps?: SpeedLimitCaps;
   /** Opens the saved screen in the runtime, with a way back to the builder. */
   onPreviewScreen?: (selection: WorkspaceSelection) => void;
   selection: WorkspaceSelection;
@@ -82,8 +88,10 @@ export function BuilderWorkspace({
   onBackToAppConfig,
   onBackToBuilderHome,
   onSaveScreenDraft,
+  onSaveApplication,
   onPreviewScreen,
   selection,
+  speedLimitCaps,
 }: BuilderWorkspaceProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
   const {
@@ -332,6 +340,22 @@ export function BuilderWorkspace({
     }
   };
 
+  // The policy belongs to the app, so allowing an entry saves the app now; the screen draft stays as it is.
+  const allowPolicyEntry = onSaveApplication
+    ? (list: AllowablePolicyList, value: string) => {
+        const application = selectedWorkspace.application;
+        const current = application.runtime_policy[list] ?? [];
+        onSaveApplication({
+          ...application,
+          runtime_policy: { ...application.runtime_policy, [list]: [...current, value] },
+        })
+          .then(() => setLayoutNotice(`${value} is now allowed in ${application.name}.`))
+          .catch((error: unknown) =>
+            setLayoutNotice(describeApiError(error, `Bloom could not allow ${value} in ${application.name}.`)),
+          );
+      }
+    : undefined;
+
   // Read through a ref so the one window listener always sees this render's draft and selection.
   const shortcuts = useRef<(event: KeyboardEvent) => void>(() => undefined);
   shortcuts.current = (event: KeyboardEvent) => {
@@ -496,8 +520,11 @@ export function BuilderWorkspace({
         allowedCommandFrameIds={commandFrameIds}
         allowedParameters={selectedWorkspace.application.runtime_policy.allowed_parameters ?? []}
         allowedPublishTopics={selectedWorkspace.application.runtime_policy.allowed_publish_topics}
+        allowedMessageTypes={selectedWorkspace.application.runtime_policy.allowed_message_types}
         allowedTeleopTargets={selectedWorkspace.application.runtime_policy.allowed_teleop_targets}
+        onAllowPolicyEntry={allowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}
+        speedLimitCaps={speedLimitCaps}
         hasStopRegion={(draftScreen.reserved_regions ?? []).some((region) => region.id === "stop")}
         onAddStopRegion={addStopRegion}
         onAddWidget={addWidget}
@@ -536,19 +563,24 @@ function isFormControl(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName);
 }
 
-/** The widget Delete acts on: the focused one's frame, else the selection; never from STOP or another's resize handle. */
+/**
+ * The widget Delete acts on: a focused frame or list row names its own, the canvas or the page body the selection;
+ * anywhere else (the palette, the toolbar, STOP, another's resize handle) removes nothing.
+ */
 function resolveDeleteTarget(target: EventTarget | null, selectedId: string | null): string | null {
-  if (!(target instanceof Element)) {
+  if (!(target instanceof Element) || target === document.body || target === document.documentElement) {
     return selectedId;
   }
   if (target.closest(".builder-canvas-region")) {
     return null;
   }
-  const frameId = target.closest<HTMLElement>(".builder-widget-frame[data-widget-id]")?.dataset.widgetId ?? null;
-  if (frameId === null || frameId === selectedId) {
-    return selectedId;
+  const ownerId =
+    target.closest<HTMLElement>(".builder-widget-frame[data-widget-id], .builder-widget-list [data-widget-id]")?.dataset
+      .widgetId ?? null;
+  if (ownerId !== null) {
+    return ownerId === selectedId || !target.closest(".builder-widget-resize-handle") ? ownerId : null;
   }
-  return target.closest(".builder-widget-resize-handle") ? null : frameId;
+  return target.closest(".builder-canvas-viewport") ? selectedId : null;
 }
 
 function DraftSaveStatus({ state }: { state: DraftSaveState }) {

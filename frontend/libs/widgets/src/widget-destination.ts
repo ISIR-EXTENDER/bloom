@@ -285,3 +285,25 @@ export function resolveWidgetDestination(
 export function findInertSetting(destination: WidgetDestination | null, key: string): InertSetting | undefined {
   return destination?.inertSettings.find((setting) => setting.key === key);
 }
+
+/**
+ * The message type a publishing widget sends as a plain topic publish, as the dispatcher picks it; null for a
+ * teleop, frame or parameter binding, and for a widget whose type is unset.
+ */
+export function resolvePublishedMessageType(
+  kind: string,
+  settings: Record<string, unknown> | undefined,
+): string | null {
+  const widgetSettings = asRecord(settings);
+  const runtimeBinding = asRecord(widgetSettings.runtime_binding);
+  const adapter = typeof runtimeBinding.adapter === "string" ? runtimeBinding.adapter : "";
+  if (!PUBLISHING_KINDS.has(kind) || ["parameter", "teleop", "teleop-frame"].includes(adapter)) {
+    return null;
+  }
+  const valueMapping = asRecord(runtimeBinding.value_mapping);
+  const named = [valueMapping.message_type, valueMapping.messageType, widgetSettings.messageType].find(
+    (value): value is string => typeof value === "string" && value.trim().length > 0,
+  );
+  // A slider's number goes out as Float64 when nothing names a type.
+  return named?.trim() ?? (kind === "slider" ? "std_msgs/msg/Float64" : null);
+}

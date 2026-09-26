@@ -59,7 +59,7 @@ export function SeriesEditor({
   onUpdateSettings,
   widget,
 }: {
-  onUpdateSettings: (settings: Record<string, unknown>) => string | null;
+  onUpdateSettings: (settings: Record<string, unknown>, title?: string, coalesceKey?: string) => string | null;
   widget: WidgetConfig;
 }) {
   const listId = useId();
@@ -76,9 +76,14 @@ export function SeriesEditor({
   }
   const rows = readRows(widget);
   // A refused edit leaves the field as it was, so say why instead of snapping back in silence.
-  const commit = (next: SeriesRow[]) => setRejection(onUpdateSettings({ ...widget.settings, series: next }));
-  const edit = (index: number, patch: SeriesRow) =>
-    commit(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
+  const commit = (next: SeriesRow[], coalesceKey?: string) =>
+    setRejection(onUpdateSettings({ ...widget.settings, series: next }, undefined, coalesceKey));
+  // Typing into one row's field is one undo step; a checkbox, add or remove is its own.
+  const edit = (index: number, patch: SeriesRow, coalesceKey?: string) =>
+    commit(
+      rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)),
+      coalesceKey,
+    );
 
   return (
     <section aria-label="Series" className="builder-series-editor">
@@ -117,6 +122,7 @@ export function SeriesEditor({
                             messageType: undefined,
                           }
                         : { [key]: event.target.value },
+                      `series:${index}:${key}`,
                     )
                   }
                   type="text"

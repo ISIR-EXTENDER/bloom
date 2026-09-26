@@ -1,10 +1,11 @@
 import type { ApplicationConfig, WidgetConfig } from "@bloom/api-client";
-import { asRecord, INTERACTIVE_WIDGET_KINDS, resolveDeviceClass, resolveWidgetDestination } from "@bloom/widgets";
+import { allowlistAllows, INTERACTIVE_WIDGET_KINDS, resolveDeviceClass } from "@bloom/widgets";
 import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-progress";
 import { densityFloorFor, glassPx, resolveBuilderPanel, reviewScreens } from "./builder-geometry";
+import { resolveWidgetRoute, type WidgetRoute } from "./widget-publish-route";
 
 type ReviewRuleId = "minimum" | "overlap" | "device-class" | "symmetry" | "pads" | "profiles" | "pairs";
 type BuilderTourStepId = "geometry" | "touch" | ReviewRuleId | "frame" | "topics" | "profile" | "ship";
@@ -213,9 +214,7 @@ export function evaluateBuilderTour(
     pairs: rules.pairs === true,
     // Empty is a choice too: the manager reads the command in its default input frame, base_link.
     frame: true,
-    topics:
-      destinations.length > 0 &&
-      destinations.every(({ destination, widget }) => isTopicDestinationAllowed(application, widget, destination)),
+    topics: destinations.length > 0 && destinations.every(({ route }) => isTopicDestinationAllowed(application, route)),
     profile: application.profiles.length > 0,
   };
 }
@@ -350,7 +349,7 @@ function findRuleProblemScreenId(
 }
 
 type WidgetTopicProblem = {
-  destination: NonNullable<ReturnType<typeof resolveWidgetDestination>>;
+  route: WidgetRoute;
   screen: TourScreen;
   widget: WidgetConfig;
 };
@@ -358,49 +357,39 @@ type WidgetTopicProblem = {
 function collectWidgetDestinations(application: ApplicationConfig): WidgetTopicProblem[] {
   return application.screens.flatMap((screen) =>
     screen.widgets.flatMap((widget) => {
-      const destination = resolveWidgetDestination(widget.kind, widget.settings);
-      return destination ? [{ destination, screen, widget }] : [];
+      const route = resolveWidgetRoute(widget, application.action_presets);
+      return route ? [{ route, screen, widget }] : [];
     }),
   );
 }
 
 function findFirstTopicProblem(application: ApplicationConfig): WidgetTopicProblem | null {
   return (
-    collectWidgetDestinations(application).find(
-      ({ destination, widget }) => !isTopicDestinationAllowed(application, widget, destination),
-    ) ?? null
+    collectWidgetDestinations(application).find(({ route }) => !isTopicDestinationAllowed(application, route)) ?? null
   );
 }
 
-function isTopicDestinationAllowed(
-  application: ApplicationConfig,
-  widget: WidgetConfig,
-  destination: NonNullable<ReturnType<typeof resolveWidgetDestination>>,
-): boolean {
+function isTopicDestinationAllowed(application: ApplicationConfig, route: WidgetRoute): boolean {
+  const { destination } = route;
   if (!destination.topic) {
     return false;
   }
   if (destination.direction === "reads") {
     return true;
   }
-  const runtimeBinding = asRecord(widget.settings.runtime_binding);
+  const policy = application.runtime_policy;
   // A parameter is allowed by name, and an app that names none tunes none, as the backend narrows it.
-  if (runtimeBinding.adapter === "parameter") {
-    const mapping = asRecord(runtimeBinding.value_mapping);
-    const key = `${String(mapping.node ?? "")}:${String(mapping.parameter ?? "")}`;
-    const allowed = application.runtime_policy.allowed_parameters ?? [];
-    return allowed.includes("*") || allowed.includes(key);
+  if (route.parameter) {
+    return allowlistAllows(policy.allowed_parameters ?? [], route.parameter);
   }
-  // As the backend narrows: an empty teleop list allows none, an empty publish list defers to the deployment.
-  return runtimeBinding.adapter === "teleop"
-    ? allowlistAllows(application.runtime_policy.allowed_teleop_targets, destination.topic)
-    : application.runtime_policy.allowed_publish_topics.length === 0 ||
-        allowlistAllows(application.runtime_policy.allowed_publish_topics, destination.topic);
-}
-
-function allowlistAllows(allowlist: readonly string[], topic: string): boolean {
-  return allowlist.some(
-    (entry) => entry === "*" || entry === topic || (entry.endsWith("/") && topic.startsWith(entry)),
+  // As the backend narrows: an empty teleop list allows none, an empty publish or type list defers to the deployment.
+  if (route.teleop) {
+    return allowlistAllows(policy.allowed_teleop_targets, destination.topic);
+  }
+  const allows = (list: readonly string[], value: string | null) =>
+    list.length === 0 || (value !== null && allowlistAllows(list, value));
+  return (
+    allows(policy.allowed_publish_topics, destination.topic) && allows(policy.allowed_message_types, route.messageType)
   );
 }
 

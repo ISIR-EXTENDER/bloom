@@ -44,29 +44,33 @@ export type WidgetActionEvent =
       value: GestureValue;
     };
 
+export type TopicPublishIntent = {
+  messageType?: string;
+  nextState?: ToggleState;
+  payload: unknown;
+  payloadText?: string;
+  presetId?: string;
+  /** Lets go of a held command; it must reach the robot even from a control that just became unavailable. */
+  release?: boolean;
+  topic: string;
+  type: "topic-publish";
+  widgetId: string;
+  widgetKind: WidgetKind;
+};
+
 export type WidgetActionIntent =
   | {
       action?: RuntimeActionContract;
       command: string;
+      /** The widget's own topic publish, sent only when its preset id names no app preset. */
+      fallback?: TopicPublishIntent;
       presetId?: string;
       runtimeBinding?: unknown;
       type: "command";
       widgetId: string;
       widgetKind: WidgetKind;
     }
-  | {
-      messageType?: string;
-      nextState?: ToggleState;
-      payload: unknown;
-      payloadText?: string;
-      presetId?: string;
-      /** Lets go of a held command; it must reach the robot even from a control that just became unavailable. */
-      release?: boolean;
-      topic: string;
-      type: "topic-publish";
-      widgetId: string;
-      widgetKind: WidgetKind;
-    }
+  | TopicPublishIntent
   | {
       nextState: ToggleState;
       payload: unknown;
@@ -174,11 +178,15 @@ function createCommandLikeIntent(
 
   const topic = getOptionalString(settings, "topic");
   const presetId = getOptionalString(settings, "presetId");
-  if (topic) {
-    return createTopicPublishIntent(widget, topic, {
-      messageType: getOptionalString(settings, "messageType"),
-      payload: resolveCommandPayload(settings),
-    });
+  const topicIntent = topic
+    ? createTopicPublishIntent(widget, topic, {
+        messageType: getOptionalString(settings, "messageType"),
+        payload: resolveCommandPayload(settings),
+      })
+    : undefined;
+  // A picked preset outranks the topic; the dispatcher falls back to the topic when the app lacks that preset.
+  if (topicIntent && !presetId) {
+    return topicIntent;
   }
 
   const runtimeBinding = settings.runtime_binding;
@@ -194,6 +202,7 @@ function createCommandLikeIntent(
     widgetId: widget.id,
     widgetKind: widget.kind,
     command: resolvedCommand,
+    ...withOptional("fallback", topicIntent),
     ...withOptional("presetId", presetId),
     ...withOptional("runtimeBinding", runtimeBinding),
     ...(action ? { action } : {}),
@@ -327,7 +336,7 @@ function createTopicPublishIntent(
     payload: unknown;
     presetId?: string;
   },
-): WidgetActionIntent {
+): TopicPublishIntent {
   return {
     type: "topic-publish",
     widgetId: widget.id,

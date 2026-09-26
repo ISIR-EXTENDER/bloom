@@ -30,10 +30,17 @@ import { useEffect, useId, useRef, useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
 import { AxisMappingEditor } from "./AxisMappingEditor";
 import { BuilderSettingsField, coerceFieldValue } from "./BuilderSettingsField";
-import { WidgetCliPreview, WidgetDestinationSummary, WidgetGlassSizeSummary } from "./BuilderWidgetSummaries";
+import {
+  type AllowablePolicyList,
+  WidgetCliPreview,
+  WidgetDestinationSummary,
+  WidgetGlassSizeSummary,
+} from "./BuilderWidgetSummaries";
 import { TOUCH_FLOOR_PX } from "./builder-geometry";
 import { RequiredTextInput } from "./RequiredTextInput";
 import { SERIES_KINDS, SeriesEditor } from "./SeriesEditor";
+import { DEFAULT_SPEED_LIMIT_CAPS, describeSpeedCapExcess, type SpeedLimitCaps } from "./speed-limit-caps";
+import { resolveWidgetRoute } from "./widget-publish-route";
 
 type BuilderWidgetSettingsEditorProps = {
   /** The app's reusable command presets, picked by name for a widget that takes a preset id. */
@@ -44,7 +51,12 @@ type BuilderWidgetSettingsEditorProps = {
   allowedParameters?: readonly string[];
   allowedTeleopTargets?: readonly string[];
   allowedPublishTopics?: readonly string[];
+  allowedMessageTypes?: readonly string[];
+  /** Adds a refused entry to the app's own list, from the refusal itself. */
+  onAllowPolicyEntry?: (list: AllowablePolicyList, value: string) => void;
   serverTeleopTargets?: readonly string[];
+  /** The server's caps on the qontrol speed-limit topics, in m/s and rad/s. */
+  speedLimitCaps?: SpeedLimitCaps;
   canvas?: CanvasSettings;
   /** The floor this screen's device class is held to: the touch floor on a tablet, the mouse one on a desktop. */
   floorPx?: number;
@@ -89,7 +101,10 @@ export function BuilderWidgetSettingsEditor({
   allowedParameters,
   allowedTeleopTargets,
   allowedPublishTopics,
+  allowedMessageTypes,
+  onAllowPolicyEntry,
   serverTeleopTargets,
+  speedLimitCaps = DEFAULT_SPEED_LIMIT_CAPS,
   canvas,
   floorPx = TOUCH_FLOOR_PX,
   panel = { height: 600, width: 1024 },
@@ -106,6 +121,9 @@ export function BuilderWidgetSettingsEditor({
   const normalizedSettings = normalizeWidgetSettings(widget.kind, widget.settings);
   const effectiveSettings = normalizedSettings.success ? normalizedSettings.settings : widget.settings;
   const destination = resolveWidgetDestination(widget.kind, effectiveSettings);
+  // A picked preset is what the press sends, so its topic and type are what the runtime checks.
+  const route = resolveWidgetRoute({ ...widget, settings: effectiveSettings }, actionPresets);
+  const speedCapWarning = describeSpeedCapExcess(widget.kind, destination, effectiveSettings, speedLimitCaps);
 
   const updateSetting = (field: WidgetSettingField, rawValue: string | boolean, picked = false) => {
     const nextSettings: Record<string, unknown> = {
@@ -197,6 +215,16 @@ export function BuilderWidgetSettingsEditor({
     );
   };
 
+  // A preset replaces what the button's purpose wrote, so the two never both claim the press.
+  const choosePreset = (presetId: string) => {
+    const kept = Object.fromEntries(
+      Object.entries(widget.settings).filter(([key]) => !(COMMAND_PURPOSE_KEYS as readonly string[]).includes(key)),
+    );
+    const command = actionPresets.find((preset) => preset.id === presetId)?.command ?? "";
+    setValidationMessage(onUpdateSettings({ ...kept, command, presetId }));
+  };
+  const presetConflict = describePresetConflict(widget.kind, widget.settings);
+
   // The ROS plumbing of a control that says in words what it does: the choice above writes it, and 24 raw fields
   // in one list buried the four an author changes.
   const isAdvanced = (field: WidgetSettingField) =>
@@ -278,13 +306,21 @@ export function BuilderWidgetSettingsEditor({
       </label>
 
       <WidgetDestinationSummary
+        allowedMessageTypes={allowedMessageTypes}
         allowedParameters={allowedParameters}
         allowedPublishTopics={allowedPublishTopics}
         allowedTeleopTargets={allowedTeleopTargets}
-        destination={destination}
+        destination={route?.destination ?? null}
+        messageType={route?.messageType}
+        onAllow={onAllowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}
         widget={widget}
       />
+      {speedCapWarning ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          {speedCapWarning}
+        </p>
+      ) : null}
       <WidgetCliPreview widget={widget} />
       <AxisMappingEditor
         allowedCommandFrameIds={allowedCommandFrameIds}
@@ -336,10 +372,19 @@ export function BuilderWidgetSettingsEditor({
       ) : null}
       {presetField ? (
         <ActionPresetField
-          onChange={(presetId) => updateSetting(presetField, presetId, true)}
+          onChange={(presetId) =>
+            widget.kind === "command-button" && presetId
+              ? choosePreset(presetId)
+              : updateSetting(presetField, presetId, true)
+          }
           presets={actionPresets}
           value={String(effectiveSettings.presetId ?? "")}
         />
+      ) : null}
+      {presetConflict ? (
+        <p className="builder-settings-destination-refusal" role="alert">
+          {presetConflict}
+        </p>
       ) : null}
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
@@ -449,6 +494,20 @@ function ActionPresetField({
       ) : null}
     </label>
   );
+}
+
+/** An older app can carry a preset beside its own topic or frame; say which one the press sends. */
+function describePresetConflict(kind: string, settings: Record<string, unknown>): string | null {
+  const presetId = typeof settings.presetId === "string" ? settings.presetId.trim() : "";
+  const topic = typeof settings.topic === "string" ? settings.topic.trim() : "";
+  const hasBinding = isRecord(settings.runtime_binding);
+  if (!presetId || (!topic && !hasBinding)) {
+    return null;
+  }
+  const own = topic ? `its own topic ${topic}` : "its own runtime binding";
+  return kind === "toggle"
+    ? `This toggle names preset "${presetId}", which a toggle ignores: it uses ${own}.`
+    : `This button names preset "${presetId}" and ${own}. The preset is sent while the app has it; pick a purpose or clear the preset so only one remains.`;
 }
 
 type Purpose = { id: string; label: string; title: string; settings: (robotName?: string) => Record<string, unknown> };

@@ -341,3 +341,56 @@ describe("the builder review checklist", () => {
     );
   });
 });
+
+describe("the checklist's topic step", () => {
+  const drive = application.screens[0];
+  const withSlider = (policy: Partial<ApplicationConfig["runtime_policy"]>, presetId?: string) =>
+    ({
+      ...application,
+      action_presets: [
+        {
+          command: "geometric/jaco",
+          description: "",
+          id: "jaco",
+          kind: "topic-publish",
+          message_type: "std_msgs/msg/String",
+          name: "Jaco",
+          payload: null,
+          payload_text: "{data: 'geometric/jaco'}",
+          tags: [],
+          topic: "/mode_request",
+        },
+      ],
+      runtime_policy: { ...application.runtime_policy, ...policy },
+      screens: [
+        {
+          ...drive,
+          widgets: [
+            ...(drive?.widgets ?? []),
+            {
+              id: "speed",
+              kind: presetId ? "command-button" : "slider",
+              title: "Speed",
+              layout: { x: 500, y: 100, width: 300, height: 100 },
+              settings: presetId
+                ? { presetId }
+                : { messageType: "std_msgs/msg/Float64", topic: "/explorer_user_interfaces/max_linear_speed" },
+            },
+          ],
+        },
+      ],
+    }) as ApplicationConfig;
+
+  // Types were never checked: a Float64 slider under a String-only app passed the review and failed live.
+  it("checks message types as well as topics", () => {
+    expect(evaluateBuilderTour(withSlider({ allowed_message_types: ["std_msgs/msg/String"] })).topics).toBe(false);
+    expect(evaluateBuilderTour(withSlider({ allowed_message_types: ["std_msgs/msg/Float64"] })).topics).toBe(true);
+  });
+
+  it("checks a preset-driven button against its preset's topic and type", () => {
+    expect(evaluateBuilderTour(withSlider({ allowed_publish_topics: ["/mode_request"] }, "jaco")).topics).toBe(true);
+    expect(evaluateBuilderTour(withSlider({ allowed_message_types: ["std_msgs/msg/Bool"] }, "jaco")).topics).toBe(
+      false,
+    );
+  });
+});

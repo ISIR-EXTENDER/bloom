@@ -4,6 +4,7 @@ import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
 import { BuilderHome } from "../builder/BuilderHome";
 import { BuilderWorkspace } from "../builder/BuilderWorkspace";
+import { readSpeedLimitCaps } from "../builder/speed-limit-caps";
 import type { useConfigurations } from "../configurations/use-configurations";
 import { RuntimeHome } from "../runtime/RuntimeHome";
 import { RuntimeWorkspace } from "../runtime/RuntimeWorkspace";
@@ -344,8 +345,10 @@ function BuilderProductWorkspace({
       onBackToAppConfig={() => onChangeBuilderMode("app-config")}
       onBackToBuilderHome={() => onChangeBuilderMode("home")}
       onSaveScreenDraft={onSaveBuilderScreen}
+      onSaveApplication={onSaveApplication}
       onPreviewScreen={onOpenRuntimeApp}
       selection={selection}
+      speedLimitCaps={readSpeedLimitCaps(runtimeCapabilityReport)}
     />
   );
 }

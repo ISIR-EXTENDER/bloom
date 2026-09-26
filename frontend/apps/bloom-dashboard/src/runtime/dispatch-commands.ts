@@ -9,6 +9,7 @@ import {
 import { dispatchTeleopFrameIntent } from "./dispatch-teleop";
 import {
   createPresetTopicPublishRequest,
+  createRosTopicPublishRequest,
   findActionPreset,
   publishTopicRequest,
   validateTopicPublishRequest,
@@ -20,12 +21,26 @@ export async function dispatchCommandIntent(
   intent: Extract<WidgetActionIntent, { type: "command" }>,
   options: RuntimeActionDispatchOptions,
 ): Promise<RuntimeActionDispatchResult> {
-  const teleopFrameId = resolveTeleopFrameId(intent.runtimeBinding);
-  if (teleopFrameId) {
-    return dispatchTeleopFrameIntent(client, intent, teleopFrameId, options);
+  // A preset picked by id outranks the button's frame binding and topic, which an older app may still carry.
+  const pickedPreset = (options.actionPresets ?? []).find((candidate) => candidate.id === intent.presetId) ?? null;
+  if (!pickedPreset) {
+    const teleopFrameId = resolveTeleopFrameId(intent.runtimeBinding);
+    if (teleopFrameId) {
+      return dispatchTeleopFrameIntent(client, intent, teleopFrameId, options);
+    }
+    if (intent.fallback) {
+      const fallbackRequest = createRosTopicPublishRequest(intent.fallback);
+      return fallbackRequest
+        ? publishTopicRequest(client, intent, fallbackRequest, options)
+        : {
+            intent,
+            status: "unsupported",
+            detail: "Topic publish intents need a ROS message type before they can be sent.",
+          };
+    }
   }
 
-  const preset = findActionPreset(intent, options.actionPresets ?? []);
+  const preset = pickedPreset ?? findActionPreset(intent, options.actionPresets ?? []);
   const request = preset ? createPresetTopicPublishRequest(preset) : null;
   const configuredActionRequest = createConfiguredActionRequest(intent, options, preset);
   if (configuredActionRequest && client.dispatchRuntimeAction) {

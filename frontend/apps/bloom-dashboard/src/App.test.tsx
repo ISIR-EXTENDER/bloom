@@ -1,5 +1,6 @@
 import {
   type ApplicationConfig,
+  BloomApiError,
   type ConfigurationBundle,
   DEFAULT_ACTION_PRESETS,
   DEFAULT_APPLICATION_THEME,
@@ -900,10 +901,16 @@ describe("App", () => {
 
     const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
-    expect(savedApplication?.runtime_policy.allowed_publish_topics).toEqual(["/mode_request", "/ui/my_bridge"]);
+    // Sync adds what the app's own screens publish too, so the toggle on /ui/ros_toggle stays allowed.
+    expect(savedApplication?.runtime_policy.allowed_publish_topics).toEqual([
+      "/mode_request",
+      "/ui/my_bridge",
+      "/ui/ros_toggle",
+    ]);
     expect(savedApplication?.runtime_policy.allowed_message_types).toEqual([
       "std_msgs/msg/Bool",
       "std_msgs/msg/String",
+      "std_msgs/msg/Int32MultiArray",
     ]);
     expect(savedApplication?.runtime_policy.allowed_service_calls).toEqual(["/fault_controller/reset_fault"]);
     expect(savedApplication?.action_presets).toEqual([
@@ -2278,7 +2285,11 @@ function createConfigurationClient(
       return ids;
     }),
     getConfiguration: vi.fn(async (id: string): Promise<ConfigurationBundle> => {
-      return structuredClone(storedBundles.get(id) ?? createConfigurationBundle(id));
+      const stored = storedBundles.get(id);
+      if (!stored) {
+        throw new BloomApiError(`Configuration "${id}" was not found.`, 404, "");
+      }
+      return structuredClone(stored);
     }),
     upsertConfiguration: vi.fn(async (id: string, bundle: ConfigurationBundle): Promise<ConfigurationBundle> => {
       if (options.saveError) {
