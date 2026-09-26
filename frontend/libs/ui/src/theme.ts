@@ -49,7 +49,7 @@ export type BloomSemanticColorTokens = Readonly<Record<BloomSemanticColorTokenNa
 
 export type BloomThemeTokens = BloomPaletteTokens & BloomSemanticColorTokens;
 
-export type BloomThemePresetId = "bloom" | "clinical" | "extender-ui" | "petanque-play";
+export type BloomThemePresetId = "bloom" | "clinical" | "extender-ui" | "high-contrast" | "petanque-play";
 
 export type BloomThemePreset = {
   description: string;
@@ -198,6 +198,41 @@ export const BLOOM_THEME_PRESETS: Readonly<Record<BloomThemePresetId, BloomTheme
       onSecondary: "#0d1f19",
       primary: "#2d423b",
       primaryContainer: "#d4ddd2",
+    },
+  }),
+  "high-contrast": createThemePreset({
+    id: "high-contrast",
+    name: "High visibility",
+    description: "Black on white with strong outlines, for low vision and glare.",
+    palette: {
+      accent: "#0033cc",
+      accentHover: "#002299",
+      accentSoft: "#e6ecff",
+      border: "#000000",
+      cream: "#f2f2f2",
+      forest: "#000000",
+      ink: "#000000",
+      inkSoft: "#1a1a1a",
+      lilac: "#d9d9d9",
+      mist: "#e6ecff",
+      muted: "#333333",
+      paper: "#ffffff",
+      petal: "#ffd6d6",
+      pollen: "#ffcc00",
+      sage: "#006b2e",
+      surfaceSoft: "#ffffff",
+    },
+    roles: {
+      error: "#b00000",
+      errorContainer: "#ffe0e0",
+      onError: "#ffffff",
+      onErrorContainer: "#5c0000",
+      onPrimary: "#ffffff",
+      onSecondary: "#000000",
+      primary: "#0033cc",
+      primaryContainer: "#e6ecff",
+      secondary: "#ffcc00",
+      secondaryContainer: "#fff5cc",
     },
   }),
   "petanque-play": createThemePreset({

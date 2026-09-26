@@ -1,4 +1,5 @@
 import type { ScreenConfig } from "@bloom/api-client";
+import { useId } from "react";
 import {
   BLOOM_APP_SCREEN_REORDER_DRAG_TYPE,
   BLOOM_SCREEN_DRAG_TYPE,
@@ -16,6 +17,7 @@ import {
   screenFeatureLabel,
 } from "./app-config-model";
 import { countLabel } from "./builderHomeModel";
+import { RequiredTextInput } from "./RequiredTextInput";
 
 type ScreenCardAction = {
   ariaLabel: string;
@@ -39,6 +41,7 @@ type BuilderAppScreensPanelProps = {
   onNewScreenNameChange: (name: string) => void;
   onOpenScreenBuilder: (screenId: string) => void;
   onRemoveScreen: (screenId: string) => void;
+  onRenameScreen: (screenId: string, title: string) => void;
   onReorderScreen: (screenId: string, direction: "down" | "up") => void;
   screens: readonly ScreenConfig[];
   unassignedScreens: readonly AvailableScreen[];
@@ -58,6 +61,7 @@ export function BuilderAppScreensPanel({
   onNewScreenNameChange,
   onOpenScreenBuilder,
   onRemoveScreen,
+  onRenameScreen,
   onReorderScreen,
   screens,
   unassignedScreens,
@@ -163,6 +167,8 @@ export function BuilderAppScreensPanel({
                 draggable={!isSaving}
                 key={screen.id}
                 onDropBefore={(screenId) => onMoveScreenBefore(screenId, screen.id)}
+                onRename={(title) => onRenameScreen(screen.id, title)}
+                renameDisabled={isSaving}
                 reorderDragType={BLOOM_APP_SCREEN_REORDER_DRAG_TYPE}
                 screen={screen}
               />
@@ -224,6 +230,8 @@ function ScreenCard({
   actions,
   draggable = false,
   onDropBefore,
+  onRename,
+  renameDisabled = false,
   reorderDragType = BLOOM_SCREEN_DRAG_TYPE,
   screen,
   sourceApplicationName,
@@ -231,10 +239,14 @@ function ScreenCard({
   actions: readonly ScreenCardAction[];
   draggable?: boolean;
   onDropBefore?: (screenId: string) => void;
+  /** Only a screen in this app can be renamed here; a reusable one keeps its source app's name. */
+  onRename?: (title: string) => void;
+  renameDisabled?: boolean;
   reorderDragType?: string;
   screen: ScreenConfig;
   sourceApplicationName?: string;
 }) {
+  const titleId = useId();
   return (
     <article
       className="builder-screen-card"
@@ -261,6 +273,19 @@ function ScreenCard({
     >
       <div className="builder-screen-card-main">
         <strong>{screen.title}</strong>
+        {onRename ? (
+          <label className="builder-settings-field" htmlFor={titleId}>
+            <span>Screen title</span>
+            <RequiredTextInput
+              {...getTouchEditingProps("name")}
+              disabled={renameDisabled}
+              id={titleId}
+              fallback="Untitled screen"
+              onCommit={onRename}
+              value={screen.title}
+            />
+          </label>
+        ) : null}
         <div className="builder-screen-card-details">
           <span>{describeScreenFeature(screen)}</span>
           {sourceApplicationName ? <span>From {sourceApplicationName}</span> : null}

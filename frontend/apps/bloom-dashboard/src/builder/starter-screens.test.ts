@@ -1,7 +1,7 @@
 import { minSizeFor, normalizeWidgetSettings } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
 
-import { createStarterScreen, type StarterScreenId } from "./builder-starters";
+import { CREATE_THEME_PRESETS, createStarterScreen, type StarterScreenId } from "./builder-starters";
 
 const STARTERS: StarterScreenId[] = ["blank", "operator-control", "debug-monitor"];
 
@@ -49,5 +49,14 @@ describe("what a starter screen greets an author with", () => {
     }
 
     expect(below, below.join("\n")).toEqual([]);
+  });
+});
+
+describe("the wizard's design presets", () => {
+  // "Extender light" reused the app default, which is Bloom Garden, so the app opened in the wrong theme.
+  it("opens an Extender light app on the Extender preset", () => {
+    expect(CREATE_THEME_PRESETS["extender-ui"].preset_id).toBe("extender-ui");
+    expect(CREATE_THEME_PRESETS["high-visibility"].preset_id).toBe("high-contrast");
+    expect(CREATE_THEME_PRESETS["bloom-default"].preset_id).toBe("bloom-default");
   });
 });

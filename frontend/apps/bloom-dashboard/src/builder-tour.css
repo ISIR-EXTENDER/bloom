@@ -149,6 +149,8 @@
 
 .builder-tour-action {
   display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   align-items: center;
 }
 
@@ -162,6 +164,11 @@
   font: inherit;
   font-size: 18px;
   font-weight: 800;
+}
+
+.builder-tour-action button.builder-tour-secondary-action {
+  background: transparent;
+  color: var(--bloom-primary);
 }
 
 .builder-guided-tour :focus-visible {

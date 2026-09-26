@@ -8,6 +8,7 @@ import {
 } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
+import { resolveScreenFeature } from "./app-config-model";
 import {
   classifyScreen,
   countLabel,
@@ -37,6 +38,14 @@ describe("builderHomeModel", () => {
     expect(classifyScreen(createScreen({ id: "gripper", widgets: [] }))).toBe("device");
     expect(classifyScreen(createScreen({ id: "petanque-setup", widgets: [] }))).toBe("workflow");
     expect(classifyScreen(createScreen({ id: "overview", widgets: [] }))).toBe("general");
+  });
+
+  // Home called a toggle screen "Control" while the app config called it "Interface".
+  it("gives Home and the app config the same family for a screen", () => {
+    expect(resolveScreenFeature(createScreen({ id: "pump", widgets: [{ kind: "toggle" }] }))).toBe("controls");
+    expect(classifyScreen(createScreen({ id: "pump", widgets: [{ kind: "toggle" }] }))).toBe("control");
+    expect(resolveScreenFeature(createScreen({ id: "status", widgets: [{ kind: "gauge" }] }))).toBe("debug");
+    expect(resolveScreenFeature(createScreen({ id: "camera", widgets: [] }))).toBe("empty");
   });
 
   it("creates, filters, and groups reusable screens from configurations", () => {

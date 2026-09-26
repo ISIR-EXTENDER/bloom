@@ -33,14 +33,24 @@ export const CREATE_THEME_PRESETS: Record<CreateThemePresetId, ApplicationConfig
       surface: "#fffdf7",
     },
   },
-  "extender-ui": DEFAULT_APPLICATION_THEME,
-  "high-visibility": {
+  // The app default is Bloom Garden, so "Extender light" must name its own preset.
+  "extender-ui": {
     ...DEFAULT_APPLICATION_THEME,
     preset_id: "extender-ui",
     palette: {
-      accent: "#f59e0b",
+      accent: "#0ea5e9",
       background: "#f8fafc",
       primary: "#1d4ed8",
+      surface: "#ffffff",
+    },
+  },
+  "high-visibility": {
+    ...DEFAULT_APPLICATION_THEME,
+    preset_id: "high-contrast",
+    palette: {
+      accent: "#ffcc00",
+      background: "#ffffff",
+      primary: "#0033cc",
       surface: "#ffffff",
     },
   },

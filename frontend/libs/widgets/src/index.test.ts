@@ -630,8 +630,18 @@ describe("widget settings contracts", () => {
     ).toBe(true);
     expect(normalizeWidgetSettings("plot-board", { series: [{ topic: "cartesian_command" }] })).toEqual({
       success: false,
-      errors: [{ field: "series", message: "series 1 needs an absolute topic and a field_path" }],
+      errors: [{ field: "series", message: "series 1: a topic starts with /, such as /ee_pose" }],
     });
+    // A cleared topic or a new empty row is a row being filled in, not an error; the renderer skips it.
+    expect(
+      normalizeWidgetSettings("plot-board", {
+        series: [
+          { topic: "", field_path: "twist.linear.x" },
+          { topic: "", field_path: "", label: "Series 7" },
+          { topic: "/ee_pose" },
+        ],
+      }).success,
+    ).toBe(true);
     expect(normalizeWidgetSettings("plot-board", { series: [], y_min: 1, y_max: 1 }).success).toBe(false);
   });
 

@@ -1,7 +1,7 @@
 import type { ApplicationConfig } from "@bloom/api-client";
-import { getTouchEditingProps } from "../ui/touchEditing";
-import { APP_THEME_PRESETS, DEFAULT_THEME_INSPIRATION, type ThemeInspiration } from "./app-config-model";
+import { APP_THEME_PRESETS, type ThemeInspiration } from "./app-config-model";
 
+// The inspiration props stay for the data model; nothing reads a moodboard or reference yet, so the panel hides them.
 type BuilderAppThemePanelProps = {
   inspirationError: string;
   onInspirationChange: (patch: Partial<ThemeInspiration>) => void;
@@ -10,14 +10,7 @@ type BuilderAppThemePanelProps = {
   theme: ApplicationConfig["theme"];
 };
 
-export function BuilderAppThemePanel({
-  inspirationError,
-  onInspirationChange,
-  onMoodboardFile,
-  onThemeChange,
-  theme,
-}: BuilderAppThemePanelProps) {
-  const inspiration = theme.inspiration ?? DEFAULT_THEME_INSPIRATION;
+export function BuilderAppThemePanel({ onThemeChange, theme }: BuilderAppThemePanelProps) {
   const palettePreview = Object.entries(theme.palette);
 
   return (
@@ -28,10 +21,7 @@ export function BuilderAppThemePanel({
           <h2 id="builder-theme-title">App theme</h2>
         </div>
       </div>
-      <p className="builder-inspector-copy">
-        Each app can carry its own coherent palette. Bloom keeps this simple for now, then future templates can generate
-        richer design systems from moodboards or presets.
-      </p>
+      <p className="builder-inspector-copy">The preset sets the colours of the running app.</p>
       <div className="builder-theme-presets">
         {APP_THEME_PRESETS.map((preset) => (
           <button
@@ -45,44 +35,12 @@ export function BuilderAppThemePanel({
           </button>
         ))}
       </div>
-      <div className="builder-theme-inspiration">
-        <div>
-          <h3>Theme inspiration</h3>
-          <p className="builder-inspector-copy">
-            Save a moodboard image or website reference with the app. Bloom will later use this as input for coherent
-            app-specific design system generation.
-          </p>
-        </div>
-        {inspiration.moodboard_image_uri ? (
-          <img alt="Current app moodboard preview" src={inspiration.moodboard_image_uri} />
-        ) : (
-          <div className="builder-theme-inspiration-empty">No moodboard image yet.</div>
-        )}
-        <label className="builder-settings-field">
-          <span>Moodboard image</span>
-          <input
-            accept="image/png,image/jpeg,image/webp"
-            onChange={(event) => {
-              onMoodboardFile(event.target.files?.[0]);
-              event.target.value = "";
-            }}
-            type="file"
-          />
-        </label>
-        <label className="builder-settings-field">
-          <span>Website reference</span>
-          <input
-            {...getTouchEditingProps("url")}
-            onChange={(event) => onInspirationChange({ reference_url: event.target.value })}
-            placeholder="https://example.com/inspiration"
-            type="url"
-            value={inspiration.reference_url}
-          />
-        </label>
-        {inspirationError ? <p className="builder-inline-error">{inspirationError}</p> : null}
-      </div>
       <fieldset className="builder-theme-swatches">
-        <legend>Application palette</legend>
+        <legend>App card colours</legend>
+        <p className="builder-inspector-copy">
+          Builder Home shows the primary colour as this app's card stripe. The running app takes its colours from the
+          preset above.
+        </p>
         <div className="builder-theme-preview">
           {palettePreview.map(([key, value]) => (
             <span key={key} style={{ background: value }} title={key} />

@@ -91,6 +91,8 @@ describe("the builder review checklist", () => {
       geometry: true,
       touch: true,
       minimum: true,
+      overlap: true,
+      "device-class": true,
       symmetry: true,
       pads: true,
       profiles: true,
@@ -121,6 +123,8 @@ describe("the builder review checklist", () => {
       geometry: false,
       touch: false,
       minimum: false,
+      overlap: true,
+      "device-class": true,
       symmetry: true,
       pads: true,
       profiles: true,
@@ -156,7 +160,19 @@ describe("the builder review checklist", () => {
     const callbacks = renderTour();
     const tourKey = guidedTourProgressKey("builder", selection.configId, selection.appId);
 
-    const derived = ["geometry", "touch", "minimum", "symmetry", "pads", "profiles", "pairs", "frame", "topics"];
+    const derived = [
+      "geometry",
+      "touch",
+      "minimum",
+      "overlap",
+      "device-class",
+      "symmetry",
+      "pads",
+      "profiles",
+      "pairs",
+      "frame",
+      "topics",
+    ];
     await waitFor(() => expect(loadGuidedTourProgress(tourKey)).toEqual(derived));
     expect(screen.getByRole("heading", { name: "Test as the person, not as you" })).toBeTruthy();
 
@@ -165,11 +181,59 @@ describe("the builder review checklist", () => {
     expect(loadGuidedTourProgress(tourKey)).toContain("profile");
 
     fireEvent.click(screen.getByRole("button", { name: /13Ship it to the tablet/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Export reviewed app" }));
+    fireEvent.click(screen.getByRole("button", { name: "Download app JSON" }));
 
     expect(URL.createObjectURL).toHaveBeenCalledOnce();
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce();
     expect(loadGuidedTourProgress(tourKey)).toEqual([...derived, "profile", "ship"]);
+  });
+
+  // Overlap and device-class had no "why", and every screen rule opened the first screen, not the offender.
+  it("explains every review rule and opens the screen that fails it", () => {
+    const busy = {
+      id: "busy",
+      title: "Busy",
+      canvas: { preset_id: "tablet", runtime_mode: "fit" },
+      widgets: [
+        { id: "a", kind: "label", title: "A", layout: { x: 0, y: 0, width: 300, height: 120 }, settings: {} },
+        { id: "b", kind: "label", title: "B", layout: { x: 100, y: 40, width: 300, height: 120 }, settings: {} },
+        {
+          id: "view",
+          kind: "robot-3d",
+          title: "Robot",
+          layout: { x: 600, y: 100, width: 546, height: 420 },
+          settings: { jointStateTopic: "/joint_states" },
+        },
+      ],
+    };
+    const callbacks = renderTour({
+      application: { ...application, screens: [...application.screens, busy] } as ApplicationConfig,
+    });
+
+    for (const title of [
+      /Start from the panel/,
+      /No widget sits on another/,
+      /Every widget belongs on its screen's device class/,
+    ]) {
+      callbacks.onOpenScreenBuilder.mockClear();
+      fireEvent.click(screen.getByRole("button", { name: title }));
+      expect(screen.getByText("Why this matters").nextElementSibling?.textContent).not.toBe("");
+      fireEvent.click(screen.getByRole("button", { name: /^Open screen/ }));
+      expect(callbacks.onOpenScreenBuilder).toHaveBeenCalledWith({ ...selection, screenId: "busy" });
+    }
+  });
+
+  it("ships through Share on Builder home, with the JSON download kept as the second option", () => {
+    const onOpenHome = vi.fn();
+    renderTour({ onOpenHome });
+    fireEvent.click(screen.getByRole("button", { name: /Ship it to the tablet/ }));
+
+    expect(screen.getByText(/press Share on this app's card in Builder home/)).toBeTruthy();
+    expect(screen.queryByText(/SQLite|seed/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Go to Share on Builder home" }));
+    expect(onOpenHome).toHaveBeenCalledOnce();
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Download app JSON" })).toBeTruthy();
   });
 
   it("names the control, the screen and which of the three touch problems it is", () => {

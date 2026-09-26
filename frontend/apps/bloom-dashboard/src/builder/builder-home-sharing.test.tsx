@@ -89,3 +89,64 @@ describe("a new guided app's file", () => {
     expect(onCreateApplication.mock.calls[0]?.[0]).toBe("new-bloom-app-2");
   });
 });
+
+describe("naming and filing a new app", () => {
+  afterEach(cleanup);
+
+  const otherConfiguration = {
+    id: "sandbox",
+    bundle: {
+      ...bundle,
+      applications: [{ ...bundle.applications[0], id: "new-bloom-app", name: "New Bloom App" }],
+    } as ConfigurationBundle,
+  };
+
+  // Only the first configuration was checked, so every guided create came out "New Bloom App".
+  it("picks a name no configuration uses, and a fresh one for the next create", async () => {
+    const onCreateApplication = vi.fn(async (_configId: string, _application: { name: string }) => undefined);
+    render(
+      <BuilderHome
+        configurations={[{ id: "explorer-manager", bundle }, otherConfiguration]}
+        onCreateApplication={onCreateApplication}
+        onDeleteApplication={vi.fn()}
+        onDuplicateApplication={vi.fn()}
+        onOpenApplication={vi.fn()}
+        onOpenScreenBuilder={vi.fn()}
+        onPreviewScreenRuntime={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^Apps$/ }));
+    const nameInput = screen.getByRole("textbox", { name: "New app name" }) as HTMLInputElement;
+    expect(nameInput.value).toBe("New Bloom App 2");
+
+    fireEvent.change(nameInput, { target: { value: "New Bloom App" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create guided app" }));
+
+    await waitFor(() => expect(onCreateApplication).toHaveBeenCalled());
+    expect(onCreateApplication.mock.calls[0]?.[1].name).toBe("New Bloom App 2");
+    await waitFor(() => expect(nameInput.value).toBe("New Bloom App 3"));
+  });
+
+  // Saving a playground screen as an app wrote it into the source app's file, which Share then shipped.
+  it("saves a playground screen as an app in a file of its own", async () => {
+    const onCreateApplication = vi.fn(async (_configId: string, _application: unknown) => undefined);
+    renderApps({ onCreateApplication });
+    fireEvent.click(screen.getByRole("button", { name: /^Playground$/ }));
+
+    expect(screen.queryByText(/Draft lab|forces a saved workflow/)).toBeNull();
+    expect(screen.getByText(/Edit screen changes it in the app it comes from/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save Drive as app" }));
+
+    await waitFor(() => expect(onCreateApplication).toHaveBeenCalled());
+    expect(onCreateApplication.mock.calls[0]?.[0]).toBe("drive-draft");
+  });
+
+  it("calls the screen library a set of copies, not shared screens", () => {
+    renderApps({});
+    fireEvent.click(screen.getByRole("button", { name: /^Overview$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Screen library — adding a screen copies it/ }));
+
+    expect(screen.queryByText("Reusable screens")).toBeNull();
+    expect(screen.getByText(/Adding a screen to another app copies it/)).toBeTruthy();
+  });
+});

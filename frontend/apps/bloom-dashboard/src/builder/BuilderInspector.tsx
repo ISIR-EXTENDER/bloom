@@ -1,4 +1,4 @@
-import type { CanvasSettings, WidgetConfig, WidgetLayout } from "@bloom/api-client";
+import type { CanvasSettings, RuntimeActionPreset, WidgetConfig, WidgetLayout } from "@bloom/api-client";
 import {
   findSizeShortfall,
   paletteArrivesAs,
@@ -13,6 +13,8 @@ import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
 import { densityFloorFor, glassPx } from "./builder-geometry";
 
 type BuilderInspectorProps = {
+  /** The app's reusable command presets, offered by name to the widgets that take one. */
+  actionPresets?: readonly RuntimeActionPreset[];
   availableWidgetDefinitions: readonly WidgetDefinition[];
   allowedCommandFrameIds?: readonly string[];
   allowedParameters?: readonly string[];
@@ -38,9 +40,10 @@ type BuilderInspectorProps = {
   onAddWidget: (definition: WidgetDefinition) => void;
   onDuplicateWidget: () => void;
   onRemoveWidget: () => void;
-  onSelectWidget: (widgetId: string) => void;
+  /** Null clears the selection, which brings the palette to the top. */
+  onSelectWidget: (widgetId: string | null) => void;
   /** A title given with the settings is committed with them, as one change. */
-  onUpdateWidgetSettings: (settings: Record<string, unknown>, title?: string) => string | null;
+  onUpdateWidgetSettings: (settings: Record<string, unknown>, title?: string, coalesceKey?: string) => string | null;
   onUpdateWidgetTitle: (title: string) => void;
   selectedWidget: WidgetConfig | null;
   widgets: readonly WidgetConfig[];
@@ -48,6 +51,7 @@ type BuilderInspectorProps = {
 };
 
 export function BuilderInspector({
+  actionPresets,
   allowedCommandFrameIds,
   allowedParameters,
   allowedTeleopTargets,
@@ -97,8 +101,9 @@ export function BuilderInspector({
   if (!selectedWidget) {
     return (
       <BuilderInspectorPanel notice={layoutNotice} title="Select a widget">
-        <p className="builder-inspector-copy">Choose a widget on the canvas or in the screen list to inspect it.</p>
-        <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={null} widgets={widgets} />
+        <p className="builder-inspector-copy">
+          Add a widget below, or choose one on the canvas or in the screen list to inspect it.
+        </p>
         <WidgetPalette
           deviceClass={deviceClass}
           capabilities={runtimeCapabilities}
@@ -108,6 +113,7 @@ export function BuilderInspector({
           onAddWidget={onAddWidget}
           onSwitchToDesktop={onSwitchToDesktop}
         />
+        <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={null} widgets={widgets} />
       </BuilderInspectorPanel>
     );
   }
@@ -117,6 +123,9 @@ export function BuilderInspector({
 
   return (
     <BuilderInspectorPanel notice={layoutNotice} title={selectedWidget.title}>
+      <button className="builder-secondary-action" onClick={() => onSelectWidget(null)} type="button">
+        Add another widget
+      </button>
       <WidgetList onSelectWidget={onSelectWidget} selectedWidgetId={selectedWidget.id} widgets={widgets} />
       <dl className="builder-inspector-grid">
         <div>
@@ -166,6 +175,7 @@ export function BuilderInspector({
         Use duplicate or remove for quick layout iteration. Settings are rendered from the widget contract.
       </p>
       <BuilderWidgetSettingsEditor
+        actionPresets={actionPresets}
         allowedCommandFrameIds={allowedCommandFrameIds}
         allowedParameters={allowedParameters}
         allowedPublishTopics={allowedPublishTopics}
@@ -207,7 +217,7 @@ function WidgetList({
   selectedWidgetId,
   widgets,
 }: {
-  onSelectWidget: (widgetId: string) => void;
+  onSelectWidget: (widgetId: string | null) => void;
   selectedWidgetId: string | null;
   widgets: readonly WidgetConfig[];
 }) {

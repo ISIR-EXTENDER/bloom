@@ -1,6 +1,6 @@
 import type { WidgetConfig } from "@bloom/api-client";
 import { fieldSuggestionsFor, followTopicMessageType, isRecord, TOPIC_SUGGESTIONS } from "@bloom/widgets";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 export const SERIES_KINDS: ReadonlySet<string> = new Set(["plot-board", "value-strip"]);
 
@@ -63,11 +63,13 @@ export function SeriesEditor({
   widget: WidgetConfig;
 }) {
   const listId = useId();
+  const [rejection, setRejection] = useState<string | null>(null);
   if (!SERIES_KINDS.has(widget.kind)) {
     return null;
   }
   const rows = readRows(widget);
-  const commit = (next: SeriesRow[]) => onUpdateSettings({ ...widget.settings, series: next });
+  // A refused edit leaves the field as it was, so say why instead of snapping back in silence.
+  const commit = (next: SeriesRow[]) => setRejection(onUpdateSettings({ ...widget.settings, series: next }));
   const edit = (index: number, patch: SeriesRow) =>
     commit(rows.map((row, rowIndex) => (rowIndex === index ? { ...row, ...patch } : row)));
 
@@ -159,6 +161,11 @@ export function SeriesEditor({
           <option key={suggestion.topic} value={suggestion.topic} />
         ))}
       </datalist>
+      {rejection ? (
+        <p className="builder-inline-error" role="alert">
+          {rejection}
+        </p>
+      ) : null}
       <button className="builder-secondary-action" onClick={() => commit([...rows, nextSeries(rows)])} type="button">
         Add series
       </button>

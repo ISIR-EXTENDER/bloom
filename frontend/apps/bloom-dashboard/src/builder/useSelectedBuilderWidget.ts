@@ -7,19 +7,17 @@ export type SelectedBuilderWidget = {
   setSelectedWidgetId: (widgetId: string | null) => void;
 };
 
+/** Nothing is selected until the author picks a widget; a removed widget leaves no selection. */
 export function useSelectedBuilderWidget(screen: ScreenConfig): SelectedBuilderWidget {
-  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(screen.widgets[0]?.id ?? null);
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
 
   useEffect(() => {
-    setSelectedWidgetId((currentWidgetId) => {
-      if (currentWidgetId && screen.widgets.some((widget) => widget.id === currentWidgetId)) {
-        return currentWidgetId;
-      }
-      return screen.widgets[0]?.id ?? null;
-    });
+    setSelectedWidgetId((currentWidgetId) =>
+      currentWidgetId && screen.widgets.some((widget) => widget.id === currentWidgetId) ? currentWidgetId : null,
+    );
   }, [screen]);
 
-  const selectedWidget = screen.widgets.find((widget) => widget.id === selectedWidgetId) ?? screen.widgets[0] ?? null;
+  const selectedWidget = screen.widgets.find((widget) => widget.id === selectedWidgetId) ?? null;
 
   return {
     selectedWidget,

@@ -180,8 +180,8 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: "Screen library" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Playground" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Manage complete app workflows/i })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Design reusable screens first/i })).toBeVisible();
-    expect(screen.getByRole("button", { name: /Try runtime screens without setup/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Screen library — adding a screen copies it/i })).toBeVisible();
+    expect(screen.getByRole("button", { name: /Try app screens on the robot/i })).toBeVisible();
     expect(screen.queryByRole("heading", { level: 2, name: "Available apps" })).not.toBeInTheDocument();
   });
 
@@ -196,11 +196,11 @@ describe("App", () => {
     expect(screen.getByRole("heading", { level: 2, name: "Available apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Sandbox app" })).toBeVisible();
     expect(screen.getByRole("button", { name: /Create guided app/i })).toBeVisible();
-    expect(screen.queryByRole("heading", { level: 2, name: "Reusable screens" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "Screens across your apps" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Screen library" }));
 
-    expect(screen.getByRole("heading", { level: 2, name: "Reusable screens" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Screens across your apps" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 3, name: "Control screens" })).toBeVisible();
     expect(screen.getByText("Control")).toBeVisible();
     expect(screen.getByRole("button", { name: "Show Diagnostics layout preview" })).toBeVisible();
@@ -214,7 +214,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open Builder" }));
     fireEvent.click(await screen.findByRole("button", { name: "Playground" }));
 
-    expect(screen.getByRole("heading", { level: 2, name: "Try screens before creating an app" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Try screens from your apps" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Open Diagnostics in runtime playground" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Edit Diagnostics from playground" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Save Diagnostics as app" })).toBeVisible();
@@ -265,10 +265,12 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save Diagnostics as app" }));
 
     await waitFor(() => {
-      expect(configurationClient.upsertApplication).toHaveBeenCalledTimes(1);
+      expect(configurationClient.upsertConfiguration).toHaveBeenCalledTimes(1);
     });
 
-    const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
+    expect(configurationClient.upsertApplication).not.toHaveBeenCalled();
+    expect(configurationClient.upsertConfiguration.mock.calls[0]?.[0]).toBe("diagnostics-draft");
+    const savedApplication = configurationClient.upsertConfiguration.mock.calls[0]?.[1]?.applications[0];
     expect(savedApplication).toMatchObject({
       id: "diagnostics-draft",
       name: "Diagnostics Draft",
@@ -921,25 +923,25 @@ describe("App", () => {
     ]);
   });
 
-  it("saves app theme inspiration from a website reference and moodboard image", async () => {
-    const configurationClient = createConfigurationClient();
-    const moodboardFile = new File(["bloom moodboard"], "moodboard.png", { type: "image/png" });
+  it("hides theme inspiration fields but keeps saved inspiration data on save", async () => {
+    const bundle = createConfigurationBundle("sandbox");
+    const inspiration = {
+      moodboard_image_uri: "/api/v1/configurations/sandbox/theme-assets/moodboard.png",
+      reference_url: "https://lifesum.com/",
+    };
+    if (bundle.applications[0]) {
+      bundle.applications[0].theme.inspiration = inspiration;
+    }
+    const configurationClient = createConfigurationClient({ bundles: { sandbox: bundle } });
 
     render(<App configurationClient={configurationClient} />);
 
     await openAppConfig();
-    fireEvent.change(screen.getByLabelText("Website reference"), { target: { value: "https://lifesum.com/" } });
-    fireEvent.change(screen.getByLabelText("Moodboard image"), { target: { files: [moodboardFile] } });
+    expect(screen.queryByLabelText("Website reference")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Moodboard image")).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Current app moodboard preview")).not.toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(configurationClient.uploadThemeAsset).toHaveBeenCalledWith("sandbox", {
-        filename: "moodboard.png",
-        content_type: "image/png",
-        content_base64: expect.any(String),
-      });
-      expect(screen.getByAltText("Current app moodboard preview")).toBeVisible();
-    });
-
+    fireEvent.click(screen.getByRole("button", { name: /Extender UI/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
@@ -948,10 +950,8 @@ describe("App", () => {
 
     const savedApplication = configurationClient.upsertApplication.mock.calls[0]?.[1];
 
-    expect(savedApplication?.theme.inspiration.reference_url).toBe("https://lifesum.com/");
-    expect(savedApplication?.theme.inspiration.moodboard_image_uri).toBe(
-      "/api/v1/configurations/sandbox/theme-assets/moodboard.png",
-    );
+    expect(savedApplication?.theme.preset_id).toBe("extender-ui");
+    expect(savedApplication?.theme.inspiration).toEqual(inspiration);
   });
 
   it("opens app configuration when an older theme has no inspiration metadata", async () => {
@@ -968,8 +968,8 @@ describe("App", () => {
     await openAppConfig();
 
     expect(screen.getByRole("heading", { level: 1, name: "Sandbox" })).toBeVisible();
-    expect(screen.getByText("No moodboard image yet.")).toBeVisible();
-    expect(screen.getByLabelText("Website reference")).toHaveValue("");
+    expect(screen.getByRole("heading", { level: 2, name: "App theme" })).toBeVisible();
+    expect(screen.queryByLabelText("Website reference")).not.toBeInTheDocument();
   });
 
   it("adds an existing screen to the current app from app configuration", async () => {
@@ -1304,7 +1304,8 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     await openDefaultScreenBuilder();
-    fireEvent.click(await screen.findByRole("button", { name: "Duplicate widget" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Select and move Digital output widget" }));
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate widget" }));
 
     expect(screen.getByRole("heading", { level: 2, name: "Digital output copy" })).toBeVisible();
     // Clear of the original, as a palette placement is; 24 px down-right sat it on top.
@@ -1317,7 +1318,8 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} />);
 
     await openDefaultScreenBuilder();
-    fireEvent.click(await screen.findByRole("button", { name: "Remove widget" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Select and move Digital output widget" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove widget" }));
 
     expect(screen.getByRole("region", { name: "Empty screen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Add Label widget" })).toBeVisible();
@@ -1330,7 +1332,8 @@ describe("App", () => {
     render(<App configurationClient={configurationClient} />);
 
     await openDefaultScreenBuilder();
-    fireEvent.change(await screen.findByLabelText("Output topic"), { target: { value: "/ui/custom_output" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Select and move Digital output widget" }));
+    fireEvent.change(screen.getByLabelText("Output topic"), { target: { value: "/ui/custom_output" } });
     fireEvent.change(screen.getByLabelText("ON payload"), { target: { value: "{data: [42, 1]}" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
@@ -2068,6 +2071,7 @@ describe("App", () => {
     expect(await screen.findByRole("region", { name: "Bloom builder workspace" })).toBeVisible();
     expect(document.querySelector("[data-screen-renderer='screen-artboard']")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "Main" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Select and move Toggle widget" }));
     expect(screen.getByText((_, element) => element?.textContent === "128, 104")).toBeVisible();
     expect(screen.getByText((_, element) => element?.textContent === "272 × 192")).toBeVisible();
   });
@@ -2088,8 +2092,8 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Select and move Gripper Control widget" }));
 
     expect(screen.getByLabelText("Output topic")).toHaveValue("/gripper_controller/commands");
-    expect(screen.getByLabelText("ON payload")).toHaveValue("{data: [0.2]}");
-    expect(screen.getByLabelText("OFF payload")).toHaveValue("{data: [1.1]}");
+    expect(screen.getByLabelText("ON payload")).toHaveValue("{data: [1.1]}");
+    expect(screen.getByLabelText("OFF payload")).toHaveValue("{data: [0.2]}");
   });
 
   it("opens the webcam visualizer demo app with a camera viewer screen", async () => {

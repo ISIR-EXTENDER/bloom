@@ -62,6 +62,13 @@ export function BuilderAppConfig({
   const { draft, isDirty, isSaving, saveState } = editor;
   const commandFrameUnavailable = isCommandFrameUnavailable(draft);
   useUnsavedChanges(isDirty, `${application.name} has unsaved changes. Leave and lose them?`);
+  // The screen last opened, else the app's first; the saved app is what the runtime shows.
+  const previewScreenId = application.screens.some((screen) => screen.id === selection.screenId)
+    ? selection.screenId
+    : application.screens[0]?.id;
+  const previewSelection = previewScreenId
+    ? { appId: application.id, configId: selectedWorkspace.configuration.id, screenId: previewScreenId }
+    : null;
 
   if (tourOpen) {
     return (
@@ -70,6 +77,7 @@ export function BuilderAppConfig({
         siblings={siblingApplications}
         onClose={() => setTourOpen(false)}
         onOpenConfiguration={() => setTourOpen(false)}
+        onOpenHome={onBackToHome}
         onOpenScreenBuilder={onOpenScreenBuilder}
         onPreviewRuntime={onOpenRuntimeApp}
         selection={selection}
@@ -101,6 +109,13 @@ export function BuilderAppConfig({
         <div className="builder-app-config-actions">
           <button disabled={isDirty || isSaving} onClick={() => setTourOpen(true)} type="button">
             {isDirty ? "Review checklist (save first)" : "Review checklist"}
+          </button>
+          <button
+            disabled={isDirty || isSaving || !previewSelection}
+            onClick={() => previewSelection && onOpenRuntimeApp(previewSelection)}
+            type="button"
+          >
+            {isDirty ? "Preview (save first)" : "Preview"}
           </button>
           <button className="builder-back-button" onClick={onBackToHome} type="button">
             Back to apps
@@ -145,6 +160,7 @@ export function BuilderAppConfig({
             onNewPresetChange={editor.setNewPreset}
             onRemovePreset={editor.removeActionPreset}
             presets={draft.action_presets}
+            robotName={runtimeCapabilityReport?.robot_name}
           />
           <BuilderAppThemePanel
             inspirationError={editor.themeInspirationError}
@@ -182,6 +198,7 @@ export function BuilderAppConfig({
             })
           }
           onRemoveScreen={editor.removeScreen}
+          onRenameScreen={editor.renameScreen}
           onReorderScreen={editor.reorderScreen}
           screens={draft.screens}
           unassignedScreens={editor.unassignedScreens}

@@ -13,7 +13,7 @@ import {
   updateWidgetTitle,
   type WidgetDefinition,
 } from "@bloom/widgets";
-import { useEffect, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { describeApiError } from "../ui/api-error";
@@ -27,7 +27,6 @@ import {
   findOverlappedWidget,
   findUndersizedWidgets,
   overlapsRegion,
-  placeClearOfRegions,
   placeClearOfWidgets,
   resolveBuilderPanel,
   switchScreenDevice,
@@ -52,6 +51,8 @@ type BuilderWorkspaceProps = {
   onBackToAppConfig: () => void;
   onBackToBuilderHome: () => void;
   onSaveScreenDraft: (screen: ScreenConfig) => Promise<void>;
+  /** Opens the saved screen in the runtime, with a way back to the builder. */
+  onPreviewScreen?: (selection: WorkspaceSelection) => void;
   selection: WorkspaceSelection;
 };
 
@@ -81,6 +82,7 @@ export function BuilderWorkspace({
   onBackToAppConfig,
   onBackToBuilderHome,
   onSaveScreenDraft,
+  onPreviewScreen,
   selection,
 }: BuilderWorkspaceProps) {
   const selectedWorkspace = resolveSelectedWorkspace(configurations, selection);
@@ -187,7 +189,7 @@ export function BuilderWorkspace({
         `No free space left: ${definition.displayName} was placed over ${covered.title}. Drag it clear, or it cannot be pressed at runtime.`,
       robotAware &&
         !robotFamily(robotName) &&
-        `Bloom does not know which arm it drives (BLOOM_ROBOT_NAME is "${robotName ?? ""}"), so the ${definition.displayName} has the Explorer's values. Check them before driving another arm.`,
+        `Bloom does not know which arm it drives, so the ${definition.displayName} has the Explorer's values. Check them before driving another arm.`,
     ].filter(Boolean);
     setLayoutNotice(notices.length ? notices.join(" ") : null);
   };
@@ -297,10 +299,17 @@ export function BuilderWorkspace({
       return;
     }
 
-    commitScreenChange(updateWidgetTitle(draftScreen, selectedWidget.id, title || "Untitled widget"));
+    commitScreenChange(
+      updateWidgetTitle(draftScreen, selectedWidget.id, title || "Untitled widget"),
+      `title:${selectedWidget.id}`,
+    );
   };
 
-  const updateSelectedWidgetSettings = (settings: Record<string, unknown>, title?: string): string | null => {
+  const updateSelectedWidgetSettings = (
+    settings: Record<string, unknown>,
+    title?: string,
+    coalesceKey?: string,
+  ): string | null => {
     if (!selectedWidget) {
       return null;
     }
@@ -309,6 +318,7 @@ export function BuilderWorkspace({
       const withSettings = updateWidgetSettings(draftScreen, selectedWidget.id, settings);
       commitScreenChange(
         title === undefined ? withSettings : updateWidgetTitle(withSettings, selectedWidget.id, title),
+        coalesceKey === undefined ? undefined : `settings:${selectedWidget.id}:${coalesceKey}`,
       );
       return null;
     } catch (error) {
@@ -316,9 +326,49 @@ export function BuilderWorkspace({
     }
   };
 
+  // Read through a ref so the one window listener always sees this render's draft and selection.
+  const shortcuts = useRef<(event: KeyboardEvent) => void>(() => undefined);
+  shortcuts.current = (event: KeyboardEvent) => {
+    if (event.defaultPrevented || isTextEntryTarget(event.target)) {
+      return;
+    }
+    const key = event.key.toLowerCase();
+    const command = event.ctrlKey || event.metaKey;
+    if (command && key === "z") {
+      event.preventDefault();
+      if (event.shiftKey) redo();
+      else undo();
+    } else if (command && key === "y") {
+      event.preventDefault();
+      redo();
+    } else if ((event.key === "Delete" || event.key === "Backspace") && !command && selectedWidget) {
+      event.preventDefault();
+      removeSelectedWidget();
+    } else if (event.key === "Escape" && selectedWidget) {
+      selectWidget(null);
+    }
+  };
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => shortcuts.current(event);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
+
+  // A press on the canvas outside every widget and STOP clears the selection.
+  const deselectOnEmptyCanvas = (event: ReactPointerEvent<HTMLElement>) => {
+    const target = event.target as Element;
+    if (target.closest(".builder-canvas-viewport") && !target.closest(".builder-widget-frame, button")) {
+      selectWidget(null);
+    }
+  };
+
   return (
     <section className="builder-workspace" aria-label="Bloom builder workspace">
-      <section className="builder-stage-panel" aria-labelledby="builder-stage-title">
+      <section
+        className="builder-stage-panel"
+        aria-labelledby="builder-stage-title"
+        onPointerDown={deselectOnEmptyCanvas}
+      >
         <header className="builder-stage-toolbar">
           <div className="builder-stage-navigation">
             <button className="builder-back-button" onClick={leaveWith(onBackToAppConfig)} type="button">
@@ -345,6 +395,16 @@ export function BuilderWorkspace({
             <button disabled={!canRedo} onClick={redo} type="button">
               Redo
             </button>
+            {onPreviewScreen ? (
+              <button
+                disabled={isDirty || isSaving}
+                onClick={() => onPreviewScreen({ ...selection, screenId: draftScreen.id })}
+                title={isDirty ? "Save your changes to preview them" : undefined}
+                type="button"
+              >
+                {isDirty ? "Preview (save first)" : "Preview"}
+              </button>
+            ) : null}
           </div>
           <dl className="builder-stage-meta">
             {/* A reading plus one explicit action: two pills with one filled read as a switch that does nothing. */}
@@ -400,6 +460,7 @@ export function BuilderWorkspace({
       </section>
 
       <BuilderInspector
+        actionPresets={selectedWorkspace.application.action_presets}
         availableWidgetDefinitions={availableWidgetDefinitions}
         robotName={robotName}
         canvas={draftScreen.canvas}
@@ -442,6 +503,15 @@ export function BuilderWorkspace({
         widgetCount={draftScreen.widgets.length}
       />
     </section>
+  );
+}
+
+function isTextEntryTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      ["INPUT", "SELECT", "TEXTAREA"].includes(target.tagName) ||
+      target.closest('[contenteditable]:not([contenteditable="false"])') !== null)
   );
 }
 

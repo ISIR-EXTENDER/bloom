@@ -4,21 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-progress";
-import {
-  densityFloorFor,
-  findUndersizedWidgets,
-  glassPx,
-  resolveBuilderPanel,
-  reviewScreens,
-} from "./builder-geometry";
+import { densityFloorFor, glassPx, resolveBuilderPanel, reviewScreens } from "./builder-geometry";
 
-type ReviewRuleId = "minimum" | "symmetry" | "pads" | "profiles" | "pairs";
+type ReviewRuleId = "minimum" | "overlap" | "device-class" | "symmetry" | "pads" | "profiles" | "pairs";
 type BuilderTourStepId = "geometry" | "touch" | ReviewRuleId | "frame" | "topics" | "profile" | "ship";
 
 type BuilderGuidedTourProps = {
   application: ApplicationConfig;
   onClose: () => void;
   onOpenConfiguration: () => void;
+  /** Builder Home, where the app card's Share button writes the file the team gets. */
+  onOpenHome?: () => void;
   onOpenScreenBuilder: (selection: WorkspaceSelection) => void;
   onPreviewRuntime: (selection: WorkspaceSelection) => void;
   selection: WorkspaceSelection;
@@ -42,6 +38,7 @@ export function BuilderGuidedTour({
   application,
   onClose,
   onOpenConfiguration,
+  onOpenHome,
   onOpenScreenBuilder,
   onPreviewRuntime,
   selection,
@@ -85,7 +82,6 @@ export function BuilderGuidedTour({
   }
 
   const screenSelection = firstScreen ? { ...selection, screenId: firstScreen.id } : selection;
-  const undersizedScreen = application.screens.find((screen) => findUndersizedWidgets(screen).length > 0);
   const problemScreenId =
     activeStep.id === "topics"
       ? topicProblem?.screen.id
@@ -93,9 +89,7 @@ export function BuilderGuidedTour({
         ? touchProblem?.kind === "empty"
           ? undefined
           : touchProblem?.screen.id
-        : activeStep.id === "minimum"
-          ? undersizedScreen?.id
-          : undefined;
+        : findRuleProblemScreenId(application, activeStep.id, siblings);
   const activeScreenSelection = problemScreenId ? { ...selection, screenId: problemScreenId } : screenSelection;
 
   return (
@@ -150,7 +144,19 @@ export function BuilderGuidedTour({
               <p>{activeStep.why}</p>
             </aside>
             <div className="builder-tour-action">
+              {activeStep.id === "ship" && onOpenHome ? (
+                <button
+                  onClick={() => {
+                    completeStep("ship");
+                    onOpenHome();
+                  }}
+                  type="button"
+                >
+                  {activeStep.action}
+                </button>
+              ) : null}
               <button
+                className={activeStep.id === "ship" && onOpenHome ? "builder-tour-secondary-action" : undefined}
                 onClick={() => {
                   if (activeStep.id === "ship") {
                     downloadApplication(application);
@@ -170,7 +176,11 @@ export function BuilderGuidedTour({
                 }}
                 type="button"
               >
-                {activeStep.complete && activeStep.id !== "ship" ? "Review again" : activeStep.action}
+                {activeStep.id === "ship"
+                  ? "Download app JSON"
+                  : activeStep.complete
+                    ? "Review again"
+                    : activeStep.action}
               </button>
             </div>
           </article>
@@ -195,6 +205,8 @@ export function evaluateBuilderTour(
     // Measured on the glass: the target inside each control, at the class's smallest panel.
     touch: findTouchProblem(application) === null,
     minimum: rules.minimum === true,
+    overlap: rules.overlap === true,
+    "device-class": rules["device-class"] === true,
     symmetry: rules.symmetry === true,
     pads: rules.pads === true,
     profiles: rules.profiles === true,
@@ -210,6 +222,8 @@ export function evaluateBuilderTour(
 
 const REVIEW_RULE_WHY: Record<ReviewRuleId, string> = {
   minimum: "A card smaller than its content grows past its slot and covers the next control.",
+  overlap: "A widget under another cannot be pressed or read, however right its settings are.",
+  "device-class": "A desktop-only widget on a tablet screen does not render for the person holding the tablet.",
   symmetry: "Controls of one kind side by side read as a group only when they match.",
   pads: "Two pads at different sizes or heights ask the hand to relearn each one.",
   profiles: "A role that names a missing screen opens the wrong layout for the person using it.",
@@ -292,15 +306,20 @@ function createBuilderTourSteps(
     {
       id: "ship",
       title: "Ship it to the tablet",
-      detail: "Export the reviewed application JSON for the tracked seed and SQLite publish workflow.",
-      why: "The tablet should run the same reviewed bundle that the repository and deployment store share.",
-      action: "Export reviewed app",
+      detail:
+        "Save, then press Share on this app's card in Builder home: it writes the file the team gets on clone. Commit that file afterwards.",
+      why: "The tablet should run the same reviewed app that the repository ships, not a copy on one machine.",
+      action: "Go to Share on Builder home",
       complete: completedStepIds.includes("ship"),
     },
   ];
 
   return stepDefinitions.filter((step) => {
-    if (["geometry", "touch", "minimum", "symmetry", "pads", "topics", "profile"].includes(step.id)) {
+    if (
+      ["geometry", "touch", "minimum", "overlap", "device-class", "symmetry", "pads", "topics", "profile"].includes(
+        step.id,
+      )
+    ) {
       return hasScreen && (step.id !== "profile" || checks.profile);
     }
     return true;
@@ -308,6 +327,27 @@ function createBuilderTourSteps(
 }
 
 type TourScreen = ApplicationConfig["screens"][number];
+
+const SCREEN_RULE_IDS = new Set<string>(["minimum", "overlap", "device-class", "symmetry", "pads"]);
+
+/** The first screen that fails this step, so its action opens the offender rather than the first screen. */
+function findRuleProblemScreenId(
+  application: ApplicationConfig,
+  stepId: BuilderTourStepId,
+  siblings: readonly ApplicationConfig[],
+): string | undefined {
+  if (stepId === "geometry") {
+    return application.screens.find((screen) => !PANEL_PRESETS.has(screen.canvas.preset_id))?.id;
+  }
+  if (!SCREEN_RULE_IDS.has(stepId)) {
+    return undefined;
+  }
+  return application.screens.find(
+    (screen) =>
+      reviewScreens({ ...application, screens: [screen] }, siblings).find((rule) => rule.id === stepId)?.passed ===
+      false,
+  )?.id;
+}
 
 type WidgetTopicProblem = {
   destination: NonNullable<ReturnType<typeof resolveWidgetDestination>>;

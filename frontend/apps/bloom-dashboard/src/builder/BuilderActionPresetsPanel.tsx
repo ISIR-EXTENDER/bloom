@@ -1,7 +1,7 @@
 import type { RuntimeActionPreset } from "@bloom/api-client";
 import type { RosMessageCommandPreset } from "@bloom/widgets";
 import { getTouchEditingProps } from "../ui/touchEditing";
-import { COMMAND_PRESET_GROUPS, formatPresetCategory } from "./app-config-model";
+import { commandPresetGroupsFor, formatPresetCategory } from "./app-config-model";
 import { countLabel } from "./builderHomeModel";
 
 type BuilderActionPresetsPanelProps = {
@@ -11,6 +11,7 @@ type BuilderActionPresetsPanelProps = {
   onNewPresetChange: (patch: Partial<RuntimeActionPreset>) => void;
   onRemovePreset: (presetId: string) => void;
   presets: readonly RuntimeActionPreset[];
+  robotName?: string | null;
 };
 
 const PRESET_FIELDS: ReadonlyArray<{
@@ -32,6 +33,7 @@ export function BuilderActionPresetsPanel({
   onNewPresetChange,
   onRemovePreset,
   presets,
+  robotName,
 }: BuilderActionPresetsPanelProps) {
   return (
     <section className="builder-config-panel" aria-labelledby="builder-action-presets-title">
@@ -43,10 +45,10 @@ export function BuilderActionPresetsPanel({
         <span className="builder-section-badge">{countLabel(presets.length, "preset")}</span>
       </div>
       <p className="builder-inspector-copy">
-        Save common app commands once, then reference them from command widgets with their preset id.
+        Save common app commands once, then pick them by name in a command button's Reusable preset setting.
       </p>
       <ul className="builder-action-preset-library" aria-label="Reusable command preset library">
-        {COMMAND_PRESET_GROUPS.map(([category, libraryPresets]) => (
+        {commandPresetGroupsFor(robotName).map(([category, libraryPresets]) => (
           <li key={category}>
             <h3>{formatPresetCategory(category)}</h3>
             <div className="builder-action-preset-library-grid">

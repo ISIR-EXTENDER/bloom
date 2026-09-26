@@ -152,15 +152,18 @@ export function validatePlotSeriesList(settings: Record<string, unknown>) {
   if (!Array.isArray(settings.series)) {
     return [{ field: "series", message: "series must be a list" }];
   }
-  return settings.series.flatMap((entry, index) =>
-    typeof entry === "object" &&
-    entry !== null &&
-    typeof (entry as Record<string, unknown>).topic === "string" &&
-    String((entry as Record<string, unknown>).topic).startsWith("/") &&
-    typeof ((entry as Record<string, unknown>).field_path ?? (entry as Record<string, unknown>).fieldPath) === "string"
+  // A row still being filled in may lack its topic or field (the renderer skips it); a relative topic is a typo.
+  return settings.series.flatMap((entry, index) => {
+    const row = isRecord(entry) ? entry : null;
+    const topic = row?.topic ?? "";
+    const fieldPath = row?.field_path ?? row?.fieldPath ?? "";
+    if (!row || typeof topic !== "string" || typeof fieldPath !== "string") {
+      return [{ field: "series", message: `series ${index + 1} needs a text topic and field_path` }];
+    }
+    return topic === "" || topic.startsWith("/")
       ? []
-      : [{ field: "series", message: `series ${index + 1} needs an absolute topic and a field_path` }],
-  );
+      : [{ field: "series", message: `series ${index + 1}: a topic starts with /, such as /ee_pose` }];
+  });
 }
 
 /** A slider, a toggle or a joystick's runtime binding: which adapter, and what a parameter binding must name. */

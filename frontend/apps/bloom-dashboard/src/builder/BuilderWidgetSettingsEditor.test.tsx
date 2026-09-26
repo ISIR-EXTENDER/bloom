@@ -251,7 +251,11 @@ describe("slider step follows the range", () => {
 
     fireEvent.change(screen.getByLabelText("Maximum"), { target: { value: "9" } });
 
-    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 9, min: -1, step: 0.5 }));
+    expect(onUpdateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ max: 9, min: -1, step: 0.5 }),
+      undefined,
+      expect.any(String),
+    );
   });
 
   it("retunes step when minimum changes too", () => {
@@ -259,7 +263,11 @@ describe("slider step follows the range", () => {
 
     fireEvent.change(screen.getByLabelText("Minimum"), { target: { value: "0" } });
 
-    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 1, min: 0, step: 0.05 }));
+    expect(onUpdateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ max: 1, min: 0, step: 0.05 }),
+      undefined,
+      expect.any(String),
+    );
   });
 
   it("leaves a hand-tuned step alone when only the step field is edited", () => {
@@ -267,7 +275,11 @@ describe("slider step follows the range", () => {
 
     fireEvent.change(screen.getByLabelText("Step"), { target: { value: "0.25" } });
 
-    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 1, min: -1, step: 0.25 }));
+    expect(onUpdateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ max: 1, min: -1, step: 0.25 }),
+      undefined,
+      expect.any(String),
+    );
   });
 
   it("keeps retuning while the author types through intermediate ranges", () => {
@@ -281,7 +293,11 @@ describe("slider step follows the range", () => {
     expect(maximum.value).toBe("0.");
 
     fireEvent.change(maximum, { target: { value: "0.2" } });
-    expect(onUpdateSettings).toHaveBeenCalledWith(expect.objectContaining({ max: 0.2, min: 0, step: 0.01 }));
+    expect(onUpdateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({ max: 0.2, min: 0, step: 0.01 }),
+      undefined,
+      expect.any(String),
+    );
   });
 });
 

@@ -16,6 +16,7 @@ import {
   type BuilderHomeSection,
   countLabel,
   createBuilderApplicationItems,
+  createNewApplicationName,
   createPreviewWidgetStyle,
   createScreenLibraryItems,
   filterScreens,
@@ -105,9 +106,20 @@ export function BuilderHome({
   const screens = createScreenLibraryItems(applications);
   const filteredScreens = filterScreens(screens, screenSearch);
   const screenGroups = groupScreensByType(filteredScreens);
-  const [createWizard, setCreateWizard] = useState<CreateWizardState>(() =>
-    createDefaultWizardState(firstConfiguration?.bundle.applications ?? []),
-  );
+  const allApplications = applications.map((item) => item.application);
+  const [createWizard, setCreateWizard] = useState<CreateWizardState>(() => createDefaultWizardState(allApplications));
+  // Shipped ids too, deleted ones included: a new app under one would share over its file.
+  const createUniqueConfigId = (baseId: string) => {
+    const configIds = new Set([
+      ...configurations.map((configuration) => configuration.id),
+      ...Object.keys(shareStatus),
+    ]);
+    let configId = baseId;
+    for (let suffix = 2; configIds.has(configId); suffix += 1) {
+      configId = `${baseId}-${suffix}`;
+    }
+    return configId;
+  };
 
   return (
     <section className="builder-home" aria-labelledby="builder-home-title">
@@ -116,8 +128,8 @@ export function BuilderHome({
           <p className="eyebrow">Builder</p>
           <h1 id="builder-home-title">Choose what to build.</h1>
           <p>
-            Start from apps when you want to shape a full workflow, or jump into the shared screen library when you only
-            need to design one reusable view.
+            Start from apps when you want to shape a full workflow, or browse the screen library to find a screen to
+            edit in its app or copy into another.
           </p>
         </div>
       </header>
@@ -165,13 +177,13 @@ export function BuilderHome({
           </button>
           <button className="builder-overview-card" onClick={() => setActiveSection("screens")} type="button">
             <span className="builder-overview-card-kicker">Screens</span>
-            <strong>Design reusable screens first</strong>
-            <span>{countLabel(screens.length, "screen")} available across the shared library and existing apps.</span>
+            <strong>Screen library — adding a screen copies it</strong>
+            <span>{countLabel(screens.length, "screen")} across your apps. Another app gets its own copy.</span>
           </button>
           <button className="builder-overview-card" onClick={() => setActiveSection("playground")} type="button">
             <span className="builder-overview-card-kicker">Playground</span>
-            <strong>Try runtime screens without setup</strong>
-            <span>Open camera, debug, or teleop smoke screens quickly before promoting ideas into apps.</span>
+            <strong>Try app screens on the robot</strong>
+            <span>Open camera, debug, or teleop screens in runtime, or copy one into a new app of its own.</span>
           </button>
         </section>
       ) : null}
@@ -394,23 +406,18 @@ export function BuilderHome({
                   return;
                 }
                 const application = createGuidedApplication(
-                  createWizard,
-                  firstConfiguration.bundle.applications,
+                  { ...createWizard, name: createUniqueApplicationName(createWizard.name, allApplications) },
+                  allApplications,
                   robotName,
                 );
                 setCreateState({ status: "creating" });
-                // Shipped ids too, deleted ones included: a new app under one would share over its file.
-                const configIds = new Set([
-                  ...configurations.map((configuration) => configuration.id),
-                  ...Object.keys(shareStatus),
-                ]);
-                let configId = application.id;
-                for (let suffix = 2; configIds.has(configId); suffix += 1) {
-                  configId = `${application.id}-${suffix}`;
-                }
                 try {
-                  await onCreateApplication(configId, application);
+                  await onCreateApplication(createUniqueConfigId(application.id), application);
                   setCreateState({ status: "idle" });
+                  setCreateWizard((wizard) => ({
+                    ...wizard,
+                    name: createNewApplicationName([...allApplications, application]),
+                  }));
                 } catch (error) {
                   setCreateState({
                     status: "error",
@@ -436,13 +443,13 @@ export function BuilderHome({
           <div className="builder-screen-library-heading">
             <div>
               <p className="eyebrow">Screen library</p>
-              <h2 id="builder-screen-library-title">Reusable screens</h2>
+              <h2 id="builder-screen-library-title">Screens across your apps</h2>
             </div>
             <span>{countLabel(filteredScreens.length, "screen")}</span>
           </div>
           <p>
-            Work directly from reusable screens when you want to design a control, camera, or debug view before
-            assigning it to a specific app flow.
+            Edit screen changes the screen in the app it belongs to. Adding a screen to another app copies it, so later
+            edits to one copy do not reach the other.
           </p>
           <label className="builder-screen-library-search">
             <span>Find a screen</span>
@@ -534,11 +541,11 @@ export function BuilderHome({
       {activeSection === "playground" ? (
         <section className="builder-playground" aria-labelledby="builder-playground-title">
           <div>
-            <p className="eyebrow">Draft lab</p>
-            <h2 id="builder-playground-title">Try screens before creating an app</h2>
+            <p className="eyebrow">Playground</p>
+            <h2 id="builder-playground-title">Try screens from your apps</h2>
             <p>
-              Use the playground for quick robot experiments, hardware checks, and widget demos. Nothing here forces a
-              saved workflow yet, but every screen can later become reusable.
+              Open runtime to try a screen on the robot. Edit screen changes it in the app it comes from; Save as app
+              copies it into a new app with its own file.
             </p>
           </div>
           <div className="builder-playground-grid">
@@ -584,10 +591,9 @@ export function BuilderHome({
                     onClick={async () => {
                       setPlaygroundActionState({ screenId: screen.id, status: "promoting" });
                       try {
-                        await onCreateApplication(
-                          configuration.id,
-                          createApplicationFromPlaygroundScreen(screen, application, configuration.bundle.applications),
-                        );
+                        // Its own file, as guided create does: writing into the source would share that app's file.
+                        const promoted = createApplicationFromPlaygroundScreen(screen, application, allApplications);
+                        await onCreateApplication(createUniqueConfigId(promoted.id), promoted);
                         setPlaygroundActionState({ status: "idle" });
                       } catch (error) {
                         setPlaygroundActionState({
@@ -713,4 +719,18 @@ function ShareBadge({
       ) : null}
     </p>
   );
+}
+
+/** The typed name, or with a number after it when another app already has it. */
+function createUniqueApplicationName(name: string, applications: readonly ApplicationConfig[]): string {
+  const baseName = name.trim();
+  const taken = new Set(applications.map((application) => application.name));
+  if (!baseName || !taken.has(baseName)) {
+    return baseName;
+  }
+  let suffix = 2;
+  while (taken.has(`${baseName} ${suffix}`)) {
+    suffix += 1;
+  }
+  return `${baseName} ${suffix}`;
 }

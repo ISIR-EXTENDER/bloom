@@ -190,6 +190,7 @@ export function ProductWorkspace({
         profileOverrides={profileOverrides}
         profilePreferences={profilePreferences}
         recentRuntimeSelections={recentRuntimeSelections}
+        runtimeClient={runtimeActionClient}
       />
     );
   }
@@ -343,6 +344,7 @@ function BuilderProductWorkspace({
       onBackToAppConfig={() => onChangeBuilderMode("app-config")}
       onBackToBuilderHome={() => onChangeBuilderMode("home")}
       onSaveScreenDraft={onSaveBuilderScreen}
+      onPreviewScreen={onOpenRuntimeApp}
       selection={selection}
     />
   );

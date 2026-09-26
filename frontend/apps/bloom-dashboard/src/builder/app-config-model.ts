@@ -3,6 +3,9 @@ import { BLOOM_THEME_PRESETS, type BloomThemePresetId } from "@bloom/ui";
 import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { createUniqueId } from "../configurations/configuration-editor";
+import { resolveScreenFeature } from "./screen-classification";
+
+export { resolveScreenFeature };
 
 export type AppSaveState =
   | { status: "idle" }
@@ -25,9 +28,10 @@ export const DEFAULT_THEME_INSPIRATION: ThemeInspiration = {
   moodboard_image_uri: "",
   reference_url: "",
 };
-export const COMMAND_PRESET_GROUPS = Array.from(getRosMessageCommandPresetsByCategory());
+export const commandPresetGroupsFor = (robotName?: string | null) =>
+  Array.from(getRosMessageCommandPresetsByCategory(robotName));
 export const APP_THEME_PRESETS: ReadonlyArray<{
-  id: "bloom-default" | Extract<BloomThemePresetId, "extender-ui">;
+  id: "bloom-default" | Extract<BloomThemePresetId, "extender-ui" | "high-contrast">;
   label: string;
   description: string;
   palette: ApplicationConfig["theme"]["palette"];
@@ -40,6 +44,17 @@ export const APP_THEME_PRESETS: ReadonlyArray<{
       accent: "#0ea5e9",
       background: "#f8fafc",
       primary: "#1d4ed8",
+      surface: "#ffffff",
+    },
+  },
+  {
+    id: "high-contrast",
+    label: "High visibility",
+    description: BLOOM_THEME_PRESETS["high-contrast"].description,
+    palette: {
+      accent: "#ffcc00",
+      background: "#ffffff",
+      primary: "#0033cc",
       surface: "#ffffff",
     },
   },
@@ -88,34 +103,6 @@ export function createFeatureAccentStyle(feature: ScreenFeature): CSSProperties 
 
 export function describeScreenFeature(screen: ScreenConfig): string {
   return SCREEN_FEATURE_LABELS[resolveScreenFeature(screen)];
-}
-
-export function resolveScreenFeature(screen: ScreenConfig): ScreenFeature {
-  if (screen.widgets.length === 0) {
-    return "empty";
-  }
-
-  if (screen.widgets.some((widget) => widget.kind === "camera")) {
-    return "camera";
-  }
-
-  if (screen.widgets.some((widget) => widget.kind === "joystick" || widget.kind === "slider")) {
-    return "controls";
-  }
-
-  if (
-    screen.widgets.some(
-      (widget) =>
-        widget.kind === "event-log" ||
-        widget.kind === "plot-board" ||
-        widget.kind === "topic-echo" ||
-        widget.kind === "topic-plot",
-    )
-  ) {
-    return "debug";
-  }
-
-  return "interface";
 }
 
 export function groupAvailableScreensByFeature(screens: readonly AvailableScreen[]) {

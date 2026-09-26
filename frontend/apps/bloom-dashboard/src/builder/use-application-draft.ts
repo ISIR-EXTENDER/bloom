@@ -109,6 +109,12 @@ export function useApplicationDraft({
 
   const addScreen = (screen: ScreenConfig) => edit((current) => addScreenToApplication(current, screen));
 
+  const renameScreen = (screenId: string, title: string) =>
+    edit((current) => ({
+      ...current,
+      screens: current.screens.map((screen) => (screen.id === screenId ? { ...screen, title } : screen)),
+    }));
+
   const addScreenById = (screenId: string) => {
     const availableScreen = unassignedScreens.find(({ screen }) => screen.id === screenId);
     if (availableScreen) {
@@ -288,6 +294,7 @@ export function useApplicationDraft({
     removeActionPreset,
     removeProfile,
     removeScreen,
+    renameScreen,
     reorderScreen,
     saveDraft,
     saveState,

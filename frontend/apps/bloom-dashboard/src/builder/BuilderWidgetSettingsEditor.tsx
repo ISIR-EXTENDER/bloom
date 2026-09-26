@@ -1,4 +1,4 @@
-import type { CanvasSettings, WidgetConfig } from "@bloom/api-client";
+import type { CanvasSettings, RuntimeActionPreset, WidgetConfig } from "@bloom/api-client";
 import {
   asRecord,
   COMMAND_PURPOSE_KEYS,
@@ -36,6 +36,8 @@ import { RequiredTextInput } from "./RequiredTextInput";
 import { SERIES_KINDS, SeriesEditor } from "./SeriesEditor";
 
 type BuilderWidgetSettingsEditorProps = {
+  /** The app's reusable command presets, picked by name for a widget that takes a preset id. */
+  actionPresets?: readonly RuntimeActionPreset[];
   /** The frames this robot accepts, for a pad that turns the hand in its own. */
   allowedCommandFrameIds?: readonly string[];
   /** The app's teleop list, so a target the runtime will refuse is named before it goes live. */
@@ -49,7 +51,7 @@ type BuilderWidgetSettingsEditorProps = {
   /** The fit scale of this screen's own device class, as the inspector measured it. */
   glassScale?: number;
   panel?: { height: number; width: number };
-  onUpdateSettings: (settings: Record<string, unknown>, title?: string) => string | null;
+  onUpdateSettings: (settings: Record<string, unknown>, title?: string, coalesceKey?: string) => string | null;
   onUpdateTitle: (title: string) => void;
   /** The arm this Bloom drives, so a speed limit takes that arm's range. */
   robotName?: string;
@@ -82,6 +84,7 @@ const ADVANCED_FIELD_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 export function BuilderWidgetSettingsEditor({
+  actionPresets = [],
   allowedCommandFrameIds,
   allowedParameters,
   allowedTeleopTargets,
@@ -171,7 +174,9 @@ export function BuilderWidgetSettingsEditor({
         nextSettings.action_label = `Request ${String(rawValue)}`;
       }
     }
-    setValidationMessage(onUpdateSettings(nextSettings));
+    // Typing into one field is one undo step; a checkbox or a choice is its own.
+    const typed = field.type === "text" || field.type === "number" || field.type === "json";
+    setValidationMessage(onUpdateSettings(nextSettings, undefined, typed ? field.key : undefined));
   };
 
   // Each choice writes what the shipped Manager apps use, replacing every key the old purpose owned. A title
@@ -218,17 +223,23 @@ export function BuilderWidgetSettingsEditor({
     }
   }, [purposeChosen, errorNamesAdvanced]);
   const advancedFields = contract.fields.filter(isAdvanced);
-  const renderField = (field: WidgetSettingField) =>
-    // The series editor above carries these as rows; the raw array would be a second way in.
-    field.key === "series" && SERIES_KINDS.has(widget.kind) ? null : widget.kind === "plot-picker" &&
-      field.key === "plot_id" ? (
-      <PlotBoardField
-        boards={screenWidgets.filter((candidate) => candidate.kind === "plot-board")}
-        key={field.key}
-        onChange={(boardId) => updateSetting(field, boardId)}
-        value={String(effectiveSettings.plot_id ?? "")}
-      />
-    ) : (
+  const presetField = contract.fields.find((field) => field.key === "presetId");
+  const renderField = (field: WidgetSettingField) => {
+    // The series editor and the preset picker carry these; the raw field would be a second way in.
+    if ((field.key === "series" && SERIES_KINDS.has(widget.kind)) || field === presetField) {
+      return null;
+    }
+    if (widget.kind === "plot-picker" && field.key === "plot_id") {
+      return (
+        <PlotBoardField
+          boards={screenWidgets.filter((candidate) => candidate.kind === "plot-board")}
+          key={field.key}
+          onChange={(boardId) => updateSetting(field, boardId)}
+          value={String(effectiveSettings.plot_id ?? "")}
+        />
+      );
+    }
+    return (
       <BuilderSettingsField
         defaultValue={contract.defaultSettings[field.key]}
         field={field}
@@ -246,6 +257,7 @@ export function BuilderWidgetSettingsEditor({
         value={effectiveSettings[field.key]}
       />
     );
+  };
 
   return (
     <section className="builder-settings-editor" aria-labelledby="builder-settings-editor-title">
@@ -322,6 +334,13 @@ export function BuilderWidgetSettingsEditor({
           value={commandPurposeOf(widget.settings)}
         />
       ) : null}
+      {presetField ? (
+        <ActionPresetField
+          onChange={(presetId) => updateSetting(presetField, presetId)}
+          presets={actionPresets}
+          value={String(effectiveSettings.presetId ?? "")}
+        />
+      ) : null}
       <WidgetGlassSizeSummary canvas={canvas} floorPx={floorPx} panel={panel} widget={widget} />
 
       {contract.fields.length === 0 ? (
@@ -392,6 +411,40 @@ function PlotBoardField({
             : value
               ? `"${value}" is not a plot board on this screen, so the picker controls nothing.`
               : "Not linked yet, so the picker controls nothing."}
+        </small>
+      ) : null}
+    </label>
+  );
+}
+
+/** A reusable command preset, picked by name: the id field sat under Advanced and asked for an id nobody sees. */
+function ActionPresetField({
+  onChange,
+  presets,
+  value,
+}: {
+  onChange: (presetId: string) => void;
+  presets: readonly RuntimeActionPreset[];
+  value: string;
+}) {
+  const known = presets.some((preset) => preset.id === value);
+  return (
+    <label className="builder-settings-field">
+      <span>Reusable preset</span>
+      <select onChange={(event) => onChange(event.target.value)} value={value}>
+        <option value="">No preset</option>
+        {presets.map((preset) => (
+          <option key={preset.id} value={preset.id}>
+            {preset.name}
+          </option>
+        ))}
+        {value && !known ? <option value={value}>{value} (not in this app)</option> : null}
+      </select>
+      {presets.length === 0 || (value && !known) ? (
+        <small className="builder-settings-pending" role="status">
+          {value && !known
+            ? `"${value}" is not one of this app's presets, so the button falls back to its command.`
+            : "This app has no presets yet. Add them in App config, under Reusable presets."}
         </small>
       ) : null}
     </label>

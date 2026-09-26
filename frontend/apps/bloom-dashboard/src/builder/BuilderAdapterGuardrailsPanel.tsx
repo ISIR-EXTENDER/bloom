@@ -1,6 +1,7 @@
 import type { RuntimeAdapterPolicy, RuntimeCapabilityReport } from "@bloom/api-client";
+import { useState } from "react";
 import { getTouchEditingProps } from "../ui/touchEditing";
-import { formatLines } from "./app-config-model";
+import { formatLines, parseLines } from "./app-config-model";
 
 type BuilderAdapterGuardrailsPanelProps = {
   commandFrameUnavailable: boolean;
@@ -11,17 +12,34 @@ type BuilderAdapterGuardrailsPanelProps = {
   runtimeCapabilityReport: RuntimeCapabilityReport | null;
 };
 
-const POLICY_LISTS: ReadonlyArray<{ field: keyof RuntimeAdapterPolicy; label: string }> = [
-  { field: "allowed_publish_topics", label: "Allowed publish topics" },
-  { field: "allowed_message_types", label: "Allowed message types" },
-  { field: "allowed_service_calls", label: "Allowed service calls" },
-  { field: "allowed_teleop_targets", label: "Allowed teleop targets" },
-  // The inspector sent authors here for a parameter, and there was no such list.
+// Each hint says what an empty list means, as the backend narrows it.
+const POLICY_LISTS: ReadonlyArray<{ field: keyof RuntimeAdapterPolicy; label: string; whenEmpty: string }> = [
+  {
+    field: "allowed_publish_topics",
+    label: "Allowed publish topics",
+    whenEmpty: "Empty: any topic the robot itself allows.",
+  },
+  {
+    field: "allowed_message_types",
+    label: "Allowed message types",
+    whenEmpty: "Empty: any message type the robot itself allows.",
+  },
+  { field: "allowed_service_calls", label: "Allowed service calls", whenEmpty: "Empty: this app calls no service." },
+  {
+    field: "allowed_teleop_targets",
+    label: "Allowed teleop targets",
+    whenEmpty: "Empty: every joystick in this app is refused.",
+  },
   {
     field: "allowed_parameters",
     label: "Allowed parameters (node:name, such as /cartesian_manager:shapers.snake.gain)",
+    whenEmpty: "Empty: this app tunes no parameter.",
   },
-  { field: "allowed_recording_topics", label: "Allowed recording topics" },
+  {
+    field: "allowed_recording_topics",
+    label: "Allowed recording topics",
+    whenEmpty: "The robot's own recording list decides what can be recorded.",
+  },
 ];
 
 export function BuilderAdapterGuardrailsPanel({
@@ -52,8 +70,8 @@ export function BuilderAdapterGuardrailsPanel({
         <span className="builder-section-badge">App level</span>
       </div>
       <p className="builder-inspector-copy">
-        These lists help the runtime block accidental commands before they reach backend safety policies. Leave a list
-        empty only for unrestricted local demos.
+        These lists help the runtime block accidental commands before they reach backend safety policies. Each list says
+        below what leaving it empty means.
       </p>
       <label className="builder-settings-field">
         <span>Cartesian command frame</span>
@@ -88,16 +106,17 @@ export function BuilderAdapterGuardrailsPanel({
       <button className="builder-secondary-action" onClick={onSyncFromPresets} type="button">
         Sync publish guardrails from presets
       </button>
-      {POLICY_LISTS.map(({ field, label }) => (
-        <label className="builder-settings-field" key={field}>
-          <span>{label}</span>
-          <textarea
-            {...getTouchEditingProps("text")}
-            onChange={(event) => onPolicyListChange(field, event.target.value)}
-            placeholder="One value per line"
-            rows={3}
-            value={formatLines((policy[field] as readonly string[] | undefined) ?? [])}
+      {POLICY_LISTS.map(({ field, label, whenEmpty }) => (
+        <label className="builder-settings-field" htmlFor={`builder-policy-${field}`} key={field}>
+          <span id={`builder-policy-${field}-label`}>{label}</span>
+          <PolicyListTextarea
+            field={field}
+            onChange={(value) => onPolicyListChange(field, value)}
+            values={(policy[field] as readonly string[] | undefined) ?? []}
           />
+          <small className="builder-inline-hint" id={`builder-policy-${field}-hint`}>
+            {whenEmpty}
+          </small>
           {field === "allowed_teleop_targets" && runtimeCapabilityReport?.teleop_targets?.length ? (
             <small className="builder-inline-hint">
               This robot's manager listens on {runtimeCapabilityReport.teleop_targets.join(", ")}.
@@ -112,6 +131,37 @@ export function BuilderAdapterGuardrailsPanel({
         </label>
       ))}
     </section>
+  );
+}
+
+// Keeps the typed text, so a new or blank line survives until the author fills it; the parsed list commits on change.
+function PolicyListTextarea({
+  field,
+  onChange,
+  values,
+}: {
+  field: string;
+  onChange: (value: string) => void;
+  values: readonly string[];
+}) {
+  const [text, setText] = useState(() => formatLines(values));
+  const valuesKey = formatLines(values);
+  const shownText = formatLines(parseLines(text)) === valuesKey ? text : valuesKey;
+
+  return (
+    <textarea
+      {...getTouchEditingProps("text")}
+      aria-describedby={`builder-policy-${field}-hint`}
+      aria-labelledby={`builder-policy-${field}-label`}
+      id={`builder-policy-${field}`}
+      onChange={(event) => {
+        setText(event.target.value);
+        onChange(event.target.value);
+      }}
+      placeholder="One value per line"
+      rows={3}
+      value={shownText}
+    />
   );
 }
 

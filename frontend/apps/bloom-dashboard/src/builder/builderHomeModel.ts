@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { slugifyId } from "../configurations/configuration-editor";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveRuntimeArtboardSize } from "../runtime/runtime-canvas-fit";
+import { classifyScreen, type ScreenLibraryType } from "./screen-classification";
 
 export type BuilderApplicationItem = {
   application: ApplicationConfig;
@@ -11,7 +12,7 @@ export type BuilderApplicationItem = {
 
 export type BuilderHomeSection = "overview" | "apps" | "playground" | "screens";
 
-export type ScreenLibraryType = "camera" | "control" | "debug" | "device" | "workflow" | "general";
+export { classifyScreen, type ScreenLibraryType };
 
 export type ScreenLibraryItem = {
   application: ApplicationConfig;
@@ -138,48 +139,6 @@ export function selectPlaygroundScreens(screens: readonly ScreenLibraryItem[]): 
   return selectedScreens.length > 0 ? selectedScreens : screens.slice(0, 3);
 }
 
-export function classifyScreen(screen: ScreenConfig): ScreenLibraryType {
-  const screenText = `${screen.id} ${screen.title}`.toLowerCase();
-  const widgetKinds = new Set(screen.widgets.map((widget) => widget.kind));
-
-  if (widgetKinds.has("camera") || includesAny(screenText, ["camera", "stream", "video", "webcam"])) {
-    return "camera";
-  }
-
-  if (
-    widgetKinds.has("joystick") ||
-    widgetKinds.has("slider") ||
-    widgetKinds.has("command-button") ||
-    widgetKinds.has("toggle") ||
-    includesAny(screenText, ["control", "drive", "teleop", "command"])
-  ) {
-    return "control";
-  }
-
-  if (
-    widgetKinds.has("gauge") ||
-    widgetKinds.has("plot") ||
-    widgetKinds.has("plot-board") ||
-    widgetKinds.has("value-strip") ||
-    widgetKinds.has("event-log") ||
-    widgetKinds.has("topic-echo") ||
-    widgetKinds.has("topic-plot") ||
-    includesAny(screenText, ["debug", "diagnostic", "log", "monitor", "topic"])
-  ) {
-    return "debug";
-  }
-
-  if (includesAny(screenText, ["device", "gripper", "magnet", "pump", "sensor", "actuator"])) {
-    return "device";
-  }
-
-  if (includesAny(screenText, ["config", "state", "workflow", "petanque", "setup"])) {
-    return "workflow";
-  }
-
-  return "general";
-}
-
 /** "1 screen", "3 screens": a count with its noun in the right number. */
 export function countLabel(count: number, singular: string, plural = `${singular}s`): string {
   return `${count} ${count === 1 ? singular : plural}`;
@@ -237,8 +196,4 @@ function resolveScreenPreviewBounds(screen: ScreenConfig): { height: number; wid
 
 function capitalize(value: string): string {
   return `${value.charAt(0).toUpperCase()}${value.slice(1).toLowerCase()}`;
-}
-
-function includesAny(value: string, tokens: readonly string[]): boolean {
-  return tokens.some((token) => value.includes(token));
 }

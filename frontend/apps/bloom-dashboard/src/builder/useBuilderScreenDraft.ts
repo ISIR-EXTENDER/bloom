@@ -12,7 +12,8 @@ export type BuilderScreenDraft = {
   canRedo: boolean;
   canUndo: boolean;
   commitWidgetLayout: (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => void;
-  commitScreenChange: (screen: ScreenConfig) => void;
+  /** Changes sharing a `coalesceKey` back to back are one undo step, e.g. the keystrokes of one field. */
+  commitScreenChange: (screen: ScreenConfig, coalesceKey?: string) => void;
   draftScreen: ScreenConfig;
   isDirty: boolean;
   previewWidgetLayout: (widgetId: string, layout: WidgetLayout) => void;
@@ -25,6 +26,15 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
   const [history, setHistory] = useState<BuilderScreenDraftHistory>(() => createInitialHistory(sourceScreen));
 
   const editingScreenId = useRef(sourceScreen.id);
+  const lastCommit = useRef<{ at: number; key: string } | null>(null);
+
+  // Records this commit and says whether it continues the previous one.
+  const continuesLastCommit = (key: string | undefined, withinMs = Number.POSITIVE_INFINITY) => {
+    const now = Date.now();
+    const previous = lastCommit.current;
+    lastCommit.current = key ? { at: now, key } : null;
+    return key !== undefined && previous?.key === key && now - previous.at <= withinMs;
+  };
 
   useEffect(() => {
     setHistory((currentHistory) => {
@@ -50,6 +60,9 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
   };
 
   const commitWidgetLayout = (widgetId: string, startingLayout: WidgetLayout, finalLayout: WidgetLayout) => {
+    // Arrow nudges of one widget within a second are one step; a pointer drag rarely lands that fast.
+    const coalesces =
+      !areLayoutsEqual(finalLayout, startingLayout) && continuesLastCommit(`layout:${widgetId}`, LAYOUT_COALESCE_MS);
     setHistory((currentHistory) => {
       if (areLayoutsEqual(finalLayout, startingLayout)) {
         // A refused drop lands back on the start, over whatever the last preview wrote, with no history entry.
@@ -61,6 +74,9 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
       }
 
       const finalScreen = updateWidgetLayout(currentHistory.present, widgetId, finalLayout);
+      if (coalesces && currentHistory.past.length > 0) {
+        return { ...currentHistory, present: finalScreen, future: [] };
+      }
 
       return {
         past: [...currentHistory.past, updateWidgetLayout(finalScreen, widgetId, startingLayout)],
@@ -71,6 +87,7 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
   };
 
   const undo = () => {
+    lastCommit.current = null;
     setHistory((currentHistory) => {
       const previous = currentHistory.past.at(-1);
       if (!previous) {
@@ -86,6 +103,7 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
   };
 
   const redo = () => {
+    lastCommit.current = null;
     setHistory((currentHistory) => {
       const next = currentHistory.future[0];
       if (!next) {
@@ -100,10 +118,14 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
     });
   };
 
-  const commitScreenChange = (screen: ScreenConfig) => {
+  const commitScreenChange = (screen: ScreenConfig, coalesceKey?: string) => {
+    const coalesces = continuesLastCommit(coalesceKey);
     setHistory((currentHistory) => {
       if (areScreensEqual(screen, currentHistory.present)) {
         return currentHistory;
+      }
+      if (coalesces && currentHistory.past.length > 0) {
+        return { ...currentHistory, present: screen, future: [] };
       }
 
       return {
@@ -115,6 +137,7 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
   };
 
   const resetDraft = () => {
+    lastCommit.current = null;
     setHistory(createInitialHistory(sourceScreen));
   };
 
@@ -131,6 +154,8 @@ export function useBuilderScreenDraft(sourceScreen: ScreenConfig): BuilderScreen
     undo,
   };
 }
+
+const LAYOUT_COALESCE_MS = 1000;
 
 function createInitialHistory(screen: ScreenConfig): BuilderScreenDraftHistory {
   return {
