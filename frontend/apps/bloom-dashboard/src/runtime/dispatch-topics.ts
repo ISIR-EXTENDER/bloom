@@ -96,17 +96,6 @@ export function createValueTopicPublishRequest(
   };
 }
 
-export function findActionPreset(
-  intent: Extract<WidgetActionIntent, { type: "command" }>,
-  presets: readonly RuntimeActionPreset[],
-): RuntimeActionPreset | null {
-  return (
-    presets.find((preset) => preset.id === intent.presetId) ??
-    presets.find((preset) => preset.command && preset.command === intent.command) ??
-    null
-  );
-}
-
 export function createPresetTopicPublishRequest(preset: RuntimeActionPreset): RosTopicPublishRequest | null {
   if (preset.kind !== "topic-publish" || !preset.topic || !preset.message_type) {
     return null;

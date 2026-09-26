@@ -59,7 +59,7 @@ describe("an app as the Builder creates it", () => {
 
 describe("a shipped command button's command", () => {
   /**
-   * `findActionPreset` matches on the exact string, so a rename on one side and not the other leaves
+   * `resolveCommandRoute` matches a preset's command on the exact string, so a rename on one side and not the other leaves
    * a button that looks live and dispatches nothing. That is how "Enable safety zone" in the user
    * test app came to name `explorer.safety_zone.enable` while its preset said `explorer.safe_zone.enable`.
    *
