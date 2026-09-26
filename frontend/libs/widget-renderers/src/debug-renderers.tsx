@@ -13,7 +13,7 @@ import { useState } from "react";
 import { formatAge } from "./display-renderers";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
 import type { WidgetRendererProps } from "./types";
-import { isSampleStale, useNow } from "./use-now";
+import { isSampleStale, localReceivedAt, useNow } from "./use-now";
 
 const TOPIC_PLOT_VARIANTS = ["area", "bars", "sparkline"] as const;
 
@@ -91,7 +91,7 @@ function TopicEchoWidget({
   // A TwistStamped always carries a frame, so showing the frame alone meant the echo never showed an
   // age and a command sent ten minutes ago read exactly like the one just sent. The age earns its
   // place in the row once it is old enough to mislead; until then the frame has the space.
-  const age = latest ? formatAge(latest.receivedAt, now) : "nothing sent";
+  const age = latest ? formatAge(localReceivedAt(latest.receivedAt) ?? latest.receivedAt, now) : "nothing sent";
   const stale = isSampleStale(latest?.receivedAt, now);
   const headerNote = frameId ? (stale ? `${frameId} \u00b7 ${age}` : frameId) : age;
   const handlePauseToggle = () => {

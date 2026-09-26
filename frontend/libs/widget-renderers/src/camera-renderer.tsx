@@ -19,7 +19,7 @@ export function CameraWidget({ data, descriptor, language }: WidgetRendererProps
       {showHeader ? (
         <header className="bloom-camera-header">
           <strong>{descriptor.widget.title}</strong>
-          <span>{describeCameraSource(source, streamUrl, topic)}</span>
+          <span>{describeCameraSource(source, streamUrl, topic, text)}</span>
         </header>
       ) : null}
       {source === "ros-topic" ? (
@@ -46,7 +46,7 @@ export function CameraWidget({ data, descriptor, language }: WidgetRendererProps
             </div>
           </div>
           {/* The placeholder already carries the reason; the status line stays the short label. */}
-          {showStatus ? <span className="bloom-camera-status">{topic || "Topic needed"}</span> : null}
+          {showStatus ? <span className="bloom-camera-status">{topic || text.cameraTopicNeeded}</span> : null}
         </>
       ) : source === "webcam" ? (
         <div className="bloom-camera-body">
@@ -55,6 +55,7 @@ export function CameraWidget({ data, descriptor, language }: WidgetRendererProps
             showPicker={showWebcamPicker}
             showStatus={showStatus}
             streamUrl={streamUrl}
+            text={text}
             title={descriptor.widget.title}
             widgetId={descriptor.widget.id}
           />
@@ -66,11 +67,13 @@ export function CameraWidget({ data, descriptor, language }: WidgetRendererProps
               {streamUrl ? (
                 <StreamPreview fitMode={fitMode} streamUrl={streamUrl} title={descriptor.widget.title} />
               ) : (
-                <CameraPlaceholder message="No camera source configured yet." />
+                <CameraPlaceholder message={text.cameraNotConfigured} />
               )}
             </div>
           </div>
-          {showStatus ? <span className="bloom-camera-status">{streamUrl ? "Ready" : "Source needed"}</span> : null}
+          {showStatus ? (
+            <span className="bloom-camera-status">{streamUrl ? text.cameraReady : text.cameraSourceNeeded}</span>
+          ) : null}
         </>
       )}
     </div>
@@ -111,14 +114,14 @@ function CameraStaleBadge({
   );
 }
 
-function describeCameraSource(source: string, streamUrl: string, topic: string): string {
+function describeCameraSource(source: string, streamUrl: string, topic: string, text: RendererStrings): string {
   if (source === "ros-topic") {
-    return topic || "No topic";
+    return topic || text.cameraNoTopic;
   }
   if (source === "webcam") {
-    return "Local camera";
+    return text.cameraLocal;
   }
-  return streamUrl ? "Stream configured" : "No source";
+  return streamUrl ? text.cameraStreamConfigured : text.cameraNoSource;
 }
 
 /** Each state names what to do about it; "no image" alone sends an operator hunting the wrong thing. */
@@ -154,6 +157,7 @@ function WebcamPreview({
   showPicker,
   showStatus,
   streamUrl,
+  text,
   title,
   widgetId,
 }: {
@@ -161,6 +165,7 @@ function WebcamPreview({
   showPicker: boolean;
   showStatus: boolean;
   streamUrl: string;
+  text: RendererStrings;
   title: string;
   widgetId: string;
 }) {
@@ -230,13 +235,13 @@ function WebcamPreview({
     <>
       {showPicker ? (
         <label className="bloom-camera-picker" htmlFor={`bloom-webcam-picker-${widgetId}`}>
-          <span>Camera</span>
+          <span>{text.cameraPicker}</span>
           <select
             id={`bloom-webcam-picker-${widgetId}`}
             onChange={(event) => setSelectedDeviceId(event.target.value)}
             value={selectedDeviceId}
           >
-            <option value="">Auto</option>
+            <option value="">{text.cameraAuto}</option>
             {devices.map((device) => (
               <option key={device.deviceId} value={device.deviceId}>
                 {device.label}
@@ -250,7 +255,7 @@ function WebcamPreview({
         <video aria-label={`${title} webcam preview`} autoPlay muted playsInline ref={videoRef} />
         {status !== "ready" ? <CameraPlaceholder message={getWebcamPlaceholderMessage(status)} /> : null}
       </div>
-      {showStatus ? <span className="bloom-camera-status">{getWebcamStatusMessage(status)}</span> : null}
+      {showStatus ? <span className="bloom-camera-status">{text.webcamStatus[status]}</span> : null}
     </>
   );
 }
@@ -390,21 +395,6 @@ function getWebcamPlaceholderMessage(status: "idle" | "requesting" | "ready" | "
     return "Webcam permission was denied or the camera is unavailable.";
   }
   return "Waiting for webcam permission...";
-}
-
-function getWebcamStatusMessage(status: "idle" | "requesting" | "ready" | "unsupported" | "error"): string {
-  switch (status) {
-    case "ready":
-      return "Webcam live";
-    case "unsupported":
-      return "Webcam unsupported";
-    case "error":
-      return "Webcam unavailable";
-    case "requesting":
-      return "Requesting webcam permission";
-    case "idle":
-      return "Preparing webcam";
-  }
 }
 
 function StreamPreview({ fitMode, streamUrl, title }: { fitMode: string; streamUrl: string; title: string }) {

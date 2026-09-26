@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { TopicDebugWidget } from "./debug-renderers";
 import { PlotWidget } from "./display-renderers";
 import { createSparklinePath, resolvePlotBounds } from "./plot-rendering";
@@ -97,36 +97,42 @@ describe("the echo's header note", () => {
   // Every TwistStamped carries a frame, so showing the frame alone meant the echo never showed an age:
   // a command sent ten minutes ago read exactly like the one just sent.
   it("carries the age beside the frame", () => {
-    render(
-      <TopicDebugWidget
-        controlState={{ commandFrameId: "base_link" }}
-        data={{
-          type: "topic-echo",
-          messages: [
+    vi.useFakeTimers();
+    try {
+      // The backend's stamp is two hours off this clock: the age counts from arrival here, not from the stamp.
+      const skewed = new Date(Date.now() + 7_200_000).toISOString();
+      render(
+        <TopicDebugWidget
+          controlState={{ commandFrameId: "base_link" }}
+          data={{
+            type: "topic-echo",
+            messages: [
+              { receivedAt: skewed, topic: "/joystick_cartesian_command", value: { twist: { linear: { x: 0.4 } } } },
+            ],
+          }}
+          descriptor={
             {
-              receivedAt: new Date(Date.now() - 600_000).toISOString(),
-              topic: "/joystick_cartesian_command",
-              value: { twist: { linear: { x: 0.4 } } },
-            },
-          ],
-        }}
-        descriptor={
-          {
-            widget: {
-              id: "sent",
-              kind: "topic-echo",
-              title: "What was sent",
-              layout: { x: 0, y: 0, width: 400, height: 200 },
-              settings: {},
-            },
-          } as never
-        }
-      />,
-    );
+              widget: {
+                id: "sent",
+                kind: "topic-echo",
+                title: "What was sent",
+                layout: { x: 0, y: 0, width: 400, height: 200 },
+                settings: {},
+              },
+            } as never
+          }
+        />,
+      );
+      expect(screen.getByText(/base_link/).textContent).toBe("base_link");
 
-    const note = screen.getByText(/base_link/);
-    expect(note.textContent).toContain("base_link");
-    expect(note.textContent).toContain("10 min ago");
+      act(() => {
+        vi.advanceTimersByTime(600_000);
+      });
+      const note = screen.getByText(/base_link/);
+      expect(note.textContent).toContain("10 min ago");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

@@ -1,12 +1,12 @@
 import { getBooleanSetting, getStringSetting, hidesTitle } from "@bloom/widgets";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { type RendererStrings, rendererStrings } from "./renderer-strings";
 import { isMoving } from "./robot-3d-command";
+import type { SceneStatus } from "./robot-3d-scene";
 import type { WidgetRendererProps } from "./types";
+import { localReceivedAt } from "./use-now";
 
 const RobotScene = lazy(() => import("./robot-3d-scene"));
-
-import { rendererStrings } from "./renderer-strings";
-import type { SceneStatus } from "./robot-3d-scene";
 
 /** The running robot from its own description, its joints from ROS, and markers as rviz reads them. */
 export function Robot3dWidget({ data, descriptor, language, robotModel }: WidgetRendererProps) {
@@ -37,19 +37,19 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
     rememberGestureHintSeen();
   };
   const snapshot = data?.type === "robot-3d" ? data : undefined;
-  const staleSeconds = useStaleSeconds(snapshot?.receivedAt);
+  const staleSeconds = useStaleSeconds(localReceivedAt(snapshot?.receivedAt));
   const command = snapshot?.command;
   const moving = isMoving(command);
   const desktop = descriptor.context.deviceClass !== "tablet";
   const canDraw = desktop && typeof window !== "undefined" && "WebGLRenderingContext" in window && Boolean(robotModel);
   const note = !desktop
-    ? "Desktop screens only."
+    ? text.desktopOnly
     : !robotModel
-      ? "No robot model source in this runtime."
+      ? text.noRobotModel
       : !canDraw
-        ? "This browser cannot draw 3D."
+        ? text.cannotDraw3d
         : status.model === "unavailable"
-          ? "No robot description from the API yet. Launch the robot; the view keeps asking."
+          ? text.noRobotDescription
           : null;
 
   return (
@@ -61,7 +61,7 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
         </header>
       )}
       <div
-        aria-label={`${descriptor.widget.title} 3D view`}
+        aria-label={text.view3d(descriptor.widget.title)}
         className="bloom-robot-3d-stage"
         data-command={moving ? "moving" : "still"}
         data-stale={staleSeconds ?? "false"}
@@ -81,7 +81,7 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
         role="img"
       >
         {canDraw && robotModel ? (
-          <Suspense fallback={<p className="bloom-robot-3d-note">Loading the 3D view.</p>}>
+          <Suspense fallback={<p className="bloom-robot-3d-note">{text.loading3d}</p>}>
             <RobotScene
               eeLink={eeLink}
               command={moving ? command : undefined}
@@ -111,21 +111,21 @@ export function Robot3dWidget({ data, descriptor, language, robotModel }: Widget
         ) : null}
       </div>
       {gestureHint && canDraw && robotModel && status.model === "ready" ? (
-        <p className="bloom-robot-3d-gesture-hint">Drag to turn · wheel to zoom</p>
+        <p className="bloom-robot-3d-gesture-hint">{text.gestureHint}</p>
       ) : null}
       {canDraw && robotModel && status.model === "ready" ? (
         <button
-          aria-label="Frame the robot"
+          aria-label={text.frameRobot}
           className="bloom-robot-3d-fit"
           onClick={() => setFitRequest((count) => count + 1)}
           type="button"
         >
-          Frame
+          {text.frame}
         </button>
       ) : null}
       <strong className="bloom-display-source">
-        {snapshot ? summarizeJointState(snapshot.value, status.joints) : "Waiting for joint states"}
-        {markerTopic ? ` · markers ${markerTopic}` : ""}
+        {snapshot ? summarizeJointState(snapshot.value, status.joints, text) : text.waitingJointStates}
+        {markerTopic ? ` · ${text.markersFrom(markerTopic)}` : ""}
       </strong>
     </div>
   );
@@ -157,11 +157,11 @@ function asJointState(value: unknown): { name?: unknown; position?: unknown } | 
 /** How long since the joint state last arrived, once that is longer than a robot goes quiet for; null while fresh. */
 const STALE_AFTER_MS = 3000;
 
-function useStaleSeconds(receivedAt: string | undefined): number | null {
+/** `at` is on this tablet's clock: the backend's stamp would read a skewed tablet's fresh data as stale. */
+function useStaleSeconds(at: number | undefined): number | null {
   const [stale, setStale] = useState<number | null>(null);
   useEffect(() => {
-    const at = receivedAt ? Date.parse(receivedAt) : Number.NaN;
-    if (!Number.isFinite(at)) {
+    if (at === undefined) {
       setStale(null);
       return;
     }
@@ -172,7 +172,7 @@ function useStaleSeconds(receivedAt: string | undefined): number | null {
     check();
     const timer = setInterval(check, 1000);
     return () => clearInterval(timer);
-  }, [receivedAt]);
+  }, [at]);
   return stale;
 }
 
@@ -185,18 +185,21 @@ function asMarkers(value: unknown): readonly Record<string, unknown>[] | undefin
   return Array.isArray(markers) ? (markers as Record<string, unknown>[]) : undefined;
 }
 
-export function summarizeJointState(value: unknown, joints?: { driven: number; total: number }): string {
+export function summarizeJointState(
+  value: unknown,
+  joints?: { driven: number; total: number },
+  text: RendererStrings = rendererStrings(undefined),
+): string {
   const state = asJointState(value);
   const names = Array.isArray(state?.name) ? state.name : [];
   const positions = Array.isArray(state?.position) ? state.position : [];
   if (names.length === 0 && positions.length === 0) {
-    return "Live joint state received";
+    return text.jointStateReceived;
   }
-  const count = Math.max(names.length, positions.length);
-  const live = count === 1 ? "1 live joint" : `${count} live joints`;
+  const live = text.liveJoints(Math.max(names.length, positions.length));
   // A real arm may publish fewer joints than the description declares; say so rather than draw silently.
   if (joints && joints.total > 0 && joints.driven < joints.total) {
-    return `${live}, ${joints.driven} of the model's ${joints.total} driven`;
+    return text.jointsDriven(live, joints.driven, joints.total);
   }
   return live;
 }

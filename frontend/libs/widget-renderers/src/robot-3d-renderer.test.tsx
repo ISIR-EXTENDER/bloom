@@ -6,6 +6,7 @@ import { createDefaultWidgetRegistry, renderScreenDescriptors } from "@bloom/wid
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderWidgetDescriptor } from "./index";
+import { rendererStrings } from "./renderer-strings";
 import { summarizeJointState } from "./robot-3d-renderer";
 
 const robotScreen: ScreenConfig = {
@@ -112,11 +113,38 @@ describe("the 3D robot view", () => {
       act(() => {
         vi.advanceTimersByTime(4000);
       });
-      // The seconds ride on the attribute; the note itself needs a drawable stage, which jsdom has not.
-      expect(stage.getAttribute("data-stale")).toBe("5");
+      // Counted from arrival on this clock, not the backend's stamp. The note itself needs a drawable stage.
+      expect(stage.getAttribute("data-stale")).toBe("4");
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("reads a sample stamped by a backend clock an hour behind as fresh when it has just arrived", () => {
+    const descriptor = renderScreenDescriptors(robotScreen, createDefaultWidgetRegistry())[0];
+    if (descriptor?.status !== "resolved") {
+      throw new Error("the fixture did not resolve");
+    }
+    const behind = new Date(Date.now() - 3_600_000).toISOString();
+    render(
+      renderWidgetDescriptor(descriptor, {
+        dataByWidgetId: { view: { receivedAt: behind, topic: "/joint_states", type: "robot-3d", value: undefined } },
+      }),
+    );
+    expect(screen.getByRole("img", { name: "Robot 3D view" }).getAttribute("data-stale")).toBe("false");
+  });
+
+  it("labels the view in the profile's language", () => {
+    const descriptor = renderScreenDescriptors(robotScreen, createDefaultWidgetRegistry())[0];
+    if (descriptor?.status !== "resolved") {
+      throw new Error("the fixture did not resolve");
+    }
+    render(renderWidgetDescriptor(descriptor, { language: "fr" }));
+    expect(screen.getByRole("img", { name: "Vue 3D : Robot" })).toBeTruthy();
+    expect(screen.getByText(/En attente des états articulaires/)).toBeTruthy();
+    expect(
+      summarizeJointState({ name: ["a", "b"], position: [0, 0] }, { driven: 2, total: 7 }, rendererStrings("es")),
+    ).toBe("2 articulaciones en vivo, 2 de las 7 del modelo accionadas");
   });
 
   it("says how many of the model's joints the state drives, when not all of them", () => {

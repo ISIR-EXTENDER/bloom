@@ -10,6 +10,7 @@ import {
 } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { formatSignedValue } from "./readouts";
+import { rendererStrings } from "./renderer-strings";
 import type { PlotSeriesSnapshot, WidgetRendererProps } from "./types";
 import { STALE_VALUE_AFTER_MS, useNow } from "./use-now";
 
@@ -108,7 +109,8 @@ export function PlotBoardWidget({ data, descriptor }: WidgetRendererProps) {
   );
 }
 
-export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRendererProps) {
+export function PlotPickerWidget({ data, descriptor, language, onActionIntent }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   const settings = descriptor.widget.settings;
   const plotId = getStringSetting(settings, "plot_id", "");
   const showValue = getBooleanSetting(settings, "show_value", false);
@@ -149,7 +151,7 @@ export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRen
                 <strong>{entry.label}</strong>
                 <span>{showValue ? entry.topic : `${entry.topic} · ${shortFieldPath(entry.fieldPath)}`}</span>
               </span>
-              {showValue && isStale(entry, now) ? <span className="bloom-value-stale">stale</span> : null}
+              {showValue && isStale(entry, now) ? <span className="bloom-value-stale">{text.stale}</span> : null}
               {showValue ? (
                 <output className="bloom-plot-picker-value" data-stale={isStale(entry, now) || undefined}>
                   {formatLatest(entry)}
@@ -174,7 +176,8 @@ export function PlotPickerWidget({ data, descriptor, onActionIntent }: WidgetRen
   );
 }
 
-export function ValueStripWidget({ data, descriptor }: WidgetRendererProps) {
+export function ValueStripWidget({ data, descriptor, language }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   const series = resolveSeries(data, descriptor.widget.settings);
   const now = useNow(1000);
 
@@ -193,7 +196,7 @@ export function ValueStripWidget({ data, descriptor }: WidgetRendererProps) {
           </output>
           <span className="bloom-value-strip-unit">
             {entry.unit}
-            {isStale(entry, now) ? <span className="bloom-value-stale"> stale</span> : null}
+            {isStale(entry, now) ? <span className="bloom-value-stale"> {text.stale}</span> : null}
           </span>
         </li>
       ))}

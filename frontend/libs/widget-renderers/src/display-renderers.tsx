@@ -10,15 +10,18 @@ import {
 } from "@bloom/widgets";
 import { type CSSProperties, useState } from "react";
 import { createPlotBars, createSparklinePath, formatPlotNumber, resolvePlotBounds } from "./plot-rendering";
-import { rendererStrings } from "./renderer-strings";
+import { type RendererStrings, rendererStrings } from "./renderer-strings";
 import type { WidgetRendererProps } from "./types";
-import { isSampleStale, useNow } from "./use-now";
+import { isSampleStale, localReceivedAt, useNow } from "./use-now";
+import { useSettledAnnouncement } from "./use-settled-announcement";
 
 const DEFAULT_PLOT_VALUES = [0.18, 0.34, 0.28, 0.52, 0.47, 0.68, 0.61, 0.79, 0.73, 0.88];
 const EVENT_LOG_SEVERITIES = ["error", "info", "success", "warning"] as const;
 const PLOT_VARIANTS = ["area", "bars", "sparkline"] as const;
 
 type EventLogEntry = {
+  /** When a live event reached this tablet; authored entries have none. */
+  arrivedAt?: number;
   detail: string;
   severity: (typeof EVENT_LOG_SEVERITIES)[number];
   summary: string;
@@ -27,16 +30,13 @@ type EventLogEntry = {
 
 type PlotVariant = (typeof PLOT_VARIANTS)[number];
 
-const DEFAULT_EVENT_LOG_ENTRIES: readonly EventLogEntry[] = [
-  {
-    detail: "Connect a runtime log source or configure static events for this screen.",
-    severity: "info",
-    summary: "No events yet",
-    timestamp: "",
-  },
-];
+function defaultEventLogEntries(text: RendererStrings): readonly EventLogEntry[] {
+  return [{ detail: text.noEventsDetail, severity: "info", summary: text.noEventsYet, timestamp: "" }];
+}
 
-export function EventLogWidget({ data, descriptor }: WidgetRendererProps) {
+export function EventLogWidget({ data, descriptor, language }: WidgetRendererProps) {
+  const text = rendererStrings(language);
+  const now = useNow(1000);
   const settings = descriptor.widget.settings;
   const maxEntries = Math.max(1, Math.round(getNumberSetting(settings, "maxEntries", 20)));
   const showDetails = getBooleanSetting(settings, "show_details", false);
@@ -45,10 +45,11 @@ export function EventLogWidget({ data, descriptor }: WidgetRendererProps) {
   const topic = getStringSetting(settings, "topic", "");
   const notes = isRecord(settings.notes) ? settings.notes : {};
   const severityFilter = readStringArraySetting(settings.severityFilter);
-  const runtimeEntries = data?.type === "event-log" ? data.messages.map(toRuntimeEventLogEntry) : [];
+  const runtimeEntries =
+    data?.type === "event-log" ? data.messages.map((message) => toRuntimeEventLogEntry(message, text)) : [];
   const orderedRuntime = newestFirst ? [...runtimeEntries].reverse() : runtimeEntries;
   // Authored entries are a placeholder for a log with no source yet, never mixed into live events.
-  const entries = (orderedRuntime.length > 0 ? orderedRuntime : readEventLogEntries(settings.entries))
+  const entries = (orderedRuntime.length > 0 ? orderedRuntime : readEventLogEntries(settings.entries, text))
     .filter((entry) => severityFilter.length === 0 || severityFilter.includes(entry.severity))
     .slice(0, maxEntries);
 
@@ -58,7 +59,7 @@ export function EventLogWidget({ data, descriptor }: WidgetRendererProps) {
         <header className="bloom-widget-head">
           <strong>{descriptor.widget.title}</strong>
           <span className="bloom-widget-readout">
-            {topic ? `${topic}${newestFirst ? " \u00b7 newest first" : ""}` : formatEventCount(entries.length)}
+            {topic ? `${topic}${newestFirst ? ` \u00b7 ${text.newestFirst}` : ""}` : text.eventCount(entries.length)}
           </span>
         </header>
       )}
@@ -70,7 +71,7 @@ export function EventLogWidget({ data, descriptor }: WidgetRendererProps) {
               <span aria-hidden="true" className="bloom-event-log-marker" />
               {showTimestamps && entry.timestamp ? (
                 <time className="bloom-event-log-age" dateTime={entry.timestamp}>
-                  {formatAge(entry.timestamp)}
+                  {formatAge(entry.arrivedAt ?? entry.timestamp, now, text)}
                 </time>
               ) : null}
               <strong>{entry.summary}</strong>
@@ -83,29 +84,26 @@ export function EventLogWidget({ data, descriptor }: WidgetRendererProps) {
   );
 }
 
-/** "12 s ago", "2 min ago": how long, not when; the operator reads freshness. */
-export function formatAge(timestamp: string, now = Date.now()): string {
-  const time = new Date(timestamp).getTime();
+/** "12 s ago", "2 min ago": how long, not when. A number is already on this tablet's clock. */
+export function formatAge(timestamp: number | string, now = Date.now(), text = rendererStrings(undefined)): string {
+  const time = typeof timestamp === "number" ? timestamp : new Date(timestamp).getTime();
   if (Number.isNaN(time)) {
-    return timestamp;
+    return String(timestamp);
   }
   const seconds = Math.max(0, Math.round((now - time) / 1000));
   if (seconds < 60) {
-    return `${seconds} s ago`;
+    return text.secondsAgo(seconds);
   }
   const minutes = Math.round(seconds / 60);
-  return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+  return minutes < 60 ? text.minutesAgo(minutes) : text.hoursAgo(Math.round(minutes / 60));
 }
 
 function createEventLogEntryKey(entry: EventLogEntry): string {
   return [entry.timestamp, entry.severity, entry.summary, entry.detail].join("|");
 }
 
-function formatEventCount(count: number): string {
-  return count === 1 ? "1 event" : `${count} events`;
-}
-
-export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
+export function GaugeWidget({ data, descriptor, language }: WidgetRendererProps) {
+  const text = rendererStrings(language);
   const min = getNumberSetting(descriptor.widget.settings, "min", 0);
   const max = getNumberSetting(descriptor.widget.settings, "max", 1);
   // An authored value is a placeholder for the builder, never a reading. Drawn the same as a live one it
@@ -115,10 +113,11 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
   const stale = isSampleStale(hasSample ? data.receivedAt : undefined, useNow(1000));
   const live = hasSample && !stale;
   // A stale sample is still the robot's last word; it is marked, not replaced by the placeholder.
-  const value = clamp(hasSample ? data.value : getNumberSetting(descriptor.widget.settings, "value", min), min, max);
+  const value = hasSample ? data.value : getNumberSetting(descriptor.widget.settings, "value", min);
   const unit = getStringSetting(descriptor.widget.settings, "unit", "");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
-  const ratio = max > min ? (value - min) / (max - min) : 0;
+  // Only the fill is clamped: 2.3 rad on a 0–1 gauge must still read 2.3.
+  const ratio = max > min ? (clamp(value, min, max) - min) / (max - min) : 0;
   const percent = Math.round(ratio * 100);
 
   return (
@@ -126,7 +125,7 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
       {hidesTitle(descriptor.widget.settings) ? null : (
         <header className="bloom-display-header">
           <strong>{descriptor.widget.title}</strong>
-          <span>{showDetails && hasSample ? data.topic : unit || "Gauge"}</span>
+          <span>{showDetails && hasSample ? data.topic : unit || text.gauge}</span>
         </header>
       )}
       <meter
@@ -152,10 +151,10 @@ export function GaugeWidget({ data, descriptor }: WidgetRendererProps) {
       </div>
       {live ? (
         showDetails ? (
-          <small className="bloom-display-source">updated {formatShortTimestamp(data.receivedAt)}</small>
+          <small className="bloom-display-source">{text.updatedAt(formatShortTimestamp(data.receivedAt))}</small>
         ) : null
       ) : (
-        <small className="bloom-display-source">no source</small>
+        <small className="bloom-display-source">{text.noSource}</small>
       )}
     </div>
   );
@@ -196,6 +195,9 @@ export function PlotWidget({ data, descriptor, language }: WidgetRendererProps) 
   const path = createSparklinePath(values, 220, 82, yBounds);
   const bars = createPlotBars(values, 220, 82, yBounds);
   const latestValue = values.at(-1) ?? 0;
+  const readout = `${isFrozen ? text.frozenReading : text.latestReading} ${formatNumber(latestValue)}${unit ? ` ${unit}` : ""}`;
+  // Samples land every 16 ms; the live region says the value once it settles, not every batch.
+  const announcedReadout = useSettledAnnouncement(readout);
 
   return (
     <div className="bloom-plot-widget" data-live={live ? "true" : "false"} data-variant={variant}>
@@ -203,7 +205,9 @@ export function PlotWidget({ data, descriptor, language }: WidgetRendererProps) 
         <header className="bloom-display-header">
           <strong>{descriptor.widget.title}</strong>
           {showLegend ? (
-            <span>{liveSamples.length > 0 ? `${liveSamples.length} samples` : `${historySeconds}s history`}</span>
+            <span>
+              {liveSamples.length > 0 ? text.sampleCount(liveSamples.length) : text.historyWindow(historySeconds)}
+            </span>
           ) : null}
           {allowFreeze ? (
             <button
@@ -218,26 +222,25 @@ export function PlotWidget({ data, descriptor, language }: WidgetRendererProps) 
           ) : null}
         </header>
       )}
-      <svg aria-label={`${descriptor.widget.title} plot`} className="bloom-plot-sparkline" viewBox="0 0 220 82">
+      <svg aria-label={text.plotLabel(descriptor.widget.title)} className="bloom-plot-sparkline" viewBox="0 0 220 82">
         <title>{descriptor.widget.title}</title>
         <path className="bloom-plot-gridline" d="M0 20 H220 M0 41 H220 M0 62 H220" />
         {variant === "bars" ? bars.map((bar) => <rect className="bloom-plot-bar" key={bar.key} {...bar.rect} />) : null}
         {variant === "area" ? <path className="bloom-plot-area" d={`${path} L220 82 L0 82 Z`} /> : null}
         {variant !== "bars" ? <path className="bloom-plot-line" d={path} /> : null}
       </svg>
-      <output className="bloom-plot-readout" aria-live="polite">
-        {isFrozen ? "frozen " : "latest "}
-        {formatNumber(latestValue)}
-        {unit ? ` ${unit}` : ""}
-      </output>
+      <output className="bloom-plot-readout">{readout}</output>
+      <span aria-live="polite" className="sr-only">
+        {`${descriptor.widget.title}: ${announcedReadout}`}
+      </span>
       {live ? (
         showDetails ? (
           <small className="bloom-display-source">
-            live from {getStringSetting(descriptor.widget.settings, "topic", "topic")}
+            {text.liveFrom(getStringSetting(descriptor.widget.settings, "topic", "topic"))}
           </small>
         ) : null
       ) : (
-        <small className="bloom-display-source">no source</small>
+        <small className="bloom-display-source">{text.noSource}</small>
       )}
     </div>
   );
@@ -265,9 +268,9 @@ function readStringArraySetting(value: unknown): string[] {
   return value.filter((candidate): candidate is string => typeof candidate === "string");
 }
 
-function readEventLogEntries(value: unknown): readonly EventLogEntry[] {
+function readEventLogEntries(value: unknown, text: RendererStrings): readonly EventLogEntry[] {
   if (!Array.isArray(value)) {
-    return DEFAULT_EVENT_LOG_ENTRIES;
+    return defaultEventLogEntries(text);
   }
 
   const entries = value.flatMap((candidate) => {
@@ -290,24 +293,27 @@ function readEventLogEntries(value: unknown): readonly EventLogEntry[] {
     ];
   });
 
-  return entries.length > 0 ? entries : DEFAULT_EVENT_LOG_ENTRIES;
+  return entries.length > 0 ? entries : defaultEventLogEntries(text);
 }
 
-function toRuntimeEventLogEntry(message: { receivedAt: string; value: unknown }): EventLogEntry {
+function toRuntimeEventLogEntry(message: { receivedAt: string; value: unknown }, text: RendererStrings): EventLogEntry {
   const value = message.value;
+  const arrivedAt = localReceivedAt(message.receivedAt);
   if (isRecord(value)) {
     return {
+      arrivedAt,
       detail: JSON.stringify(value),
       severity: readRuntimeSeverity(value.level ?? value.severity),
-      summary: readString(value.msg, readString(value.message, readString(value.data, "Runtime event received"))),
+      summary: readString(value.msg, readString(value.message, readString(value.data, text.eventReceived))),
       timestamp: message.receivedAt,
     };
   }
 
   return {
+    arrivedAt,
     detail: typeof value === "string" ? value : JSON.stringify(value),
     severity: "info",
-    summary: typeof value === "string" ? value : "Runtime event received",
+    summary: typeof value === "string" ? value : text.eventReceived,
     timestamp: message.receivedAt,
   };
 }

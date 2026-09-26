@@ -125,15 +125,18 @@ export function JacobianWidget({ data, descriptor }: WidgetRendererProps) {
     bestRef.current.best = Math.max(bestRef.current.best, manipulability);
   }
   const share = manipulability !== null && bestRef.current.best > 0 ? manipulability / bestRef.current.best : 0;
+  // A frozen matrix read as the arm's current one hides the singularity it is driving into.
+  const stale = isSampleStale(latest?.receivedAt, useNow(1000));
 
   return (
-    <div className="bloom-jacobian bloom-info-card">
+    <div className="bloom-jacobian bloom-info-card" data-stale={stale ? "true" : undefined}>
       {hidesTitle(descriptor.widget.settings) ? null : (
         <header className="bloom-widget-head">
           <strong>{descriptor.widget.title}</strong>
           <span className="bloom-widget-readout">
             {topic}
             {jacobian ? ` · ${jacobian.rows}×${jacobian.columns}` : ""}
+            {stale ? " · stale" : ""}
           </span>
         </header>
       )}

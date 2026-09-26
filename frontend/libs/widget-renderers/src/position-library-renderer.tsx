@@ -92,7 +92,11 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
       {saved.length === 0 ? (
         <p className="bloom-position-empty">No saved poses yet.</p>
       ) : (
-        <ul aria-label="Saved poses" className="bloom-position-list">
+        <ul
+          aria-label={editable ? "Saved poses" : "Saved poses, for reference only"}
+          className="bloom-position-list"
+          data-readonly={editable ? undefined : "true"}
+        >
           {saved.map((pose) => (
             <li key={pose.name}>
               <span className="bloom-position-name">{pose.name}</span>
@@ -148,6 +152,9 @@ export function PositionLibraryWidget({ descriptor, data, onActionIntent }: Widg
             joint-target parameters.
           </p>
         </div>
+      ) : saved.length > 0 ? (
+        // Nothing here sends a pose; rows that look pickable would promise a move that never comes.
+        <p className="bloom-position-note">For reference only: this list cannot send a pose to the robot.</p>
       ) : null}
 
       {snapshot?.exportYaml ? (
