@@ -102,3 +102,34 @@ describe("a refused release retrying on a shared topic", () => {
     ]);
   });
 });
+
+describe("a release refused more than once", () => {
+  // Each retry used to compare against the first release, so the second retry never went out.
+  it("keeps retrying until the release is accepted", async () => {
+    vi.useFakeTimers();
+    let refusals = 2;
+    const sent: unknown[] = [];
+    const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
+      if (intent.type !== "topic-publish") return { accepted: true };
+      sent.push(intent.payload);
+      if (intent.release && refusals > 0) {
+        refusals -= 1;
+        return { accepted: false };
+      }
+      return { accepted: true };
+    });
+    render(holdButton("snake-retry", "geometric/snake", onActionIntent));
+
+    tap(screen.getByRole("button"), 1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(sent).toEqual([
+      { data: "geometric/snake" },
+      { data: "geometric/both" },
+      { data: "geometric/both" },
+      { data: "geometric/both" },
+    ]);
+  });
+});

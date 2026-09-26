@@ -227,16 +227,16 @@ export function CommandLikeWidget({
       }
     });
   };
-  const sendRelease = (attempt: number, firstAttempt?: number): Promise<void> | undefined => {
+  const sendRelease = (attempt: number): Promise<void> | undefined => {
     const outcome = sendMomentaryPayload("releasedPayload");
-    const firstPublish = firstAttempt ?? lastMomentaryPublishByTopic.get(topic);
+    const ownPublish = lastMomentaryPublishByTopic.get(topic);
     return afterOutcome(outcome, (result) => {
       if (result?.accepted !== false || attempt >= RELEASE_RETRIES) {
         return undefined;
       }
       return new Promise<void>((resolve) => setTimeout(resolve, RELEASE_RETRY_MS * 2 ** attempt)).then(() =>
-        // Another widget's publish since then holds the topic now; this retry would cancel its mode.
-        lastMomentaryPublishByTopic.get(topic) === firstPublish ? sendRelease(attempt + 1, firstPublish) : undefined,
+        // Another widget's publish since this attempt holds the topic now; a retry would cancel its mode.
+        lastMomentaryPublishByTopic.get(topic) === ownPublish ? sendRelease(attempt + 1) : undefined,
       );
     });
   };
@@ -445,21 +445,45 @@ export function ToggleWidget({
   const stateLabel = isOn ? onLabel : offLabel;
   const [isPending, setIsPending] = useState(false);
   const stateTextId = useId();
-  const switchOffServoRef = useRef(() => {});
-  switchOffServoRef.current = () => {
-    if (topic !== VISUAL_SERVOING_SWITCH_TOPIC || !isOn) {
-      return;
-    }
-    setLocalIsOn(false);
+  const isServoSwitch = topic === VISUAL_SERVOING_SWITCH_TOPIC;
+  // An On still travelling counts as on for a suspend; the epoch advances on every switch-off and toggle.
+  const pendingOnRef = useRef(false);
+  const servoEpochRef = useRef(0);
+  const publishServoOff = (epoch: number, attempt: number): Promise<void> | undefined => {
     const intent = createWidgetActionIntent(descriptor.widget, { nextState: "off", type: "toggle" });
+    let outcome: MaybeOutcome;
     // Marked a release so the STOP and hold gates let the switch-off through.
     try {
-      const outcome = onActionIntent?.(intent.type === "topic-publish" ? { ...intent, release: true } : intent);
-      if (outcome instanceof Promise) {
-        outcome.catch(() => undefined);
-      }
+      const sent = onActionIntent?.(intent.type === "topic-publish" ? { ...intent, release: true } : intent);
+      outcome = sent instanceof Promise ? sent.catch(() => ({ accepted: false })) : sent;
     } catch {
-      // The runtime shell reports a failed publish; the switch still reads off, as STOP turns it off too.
+      outcome = { accepted: false };
+    }
+    return afterOutcome(outcome, (result) => {
+      if (epoch !== servoEpochRef.current) {
+        return undefined;
+      }
+      if (result?.accepted !== false) {
+        setLocalIsOn(false);
+        return undefined;
+      }
+      // A refused off keeps reading On; the runtime shell shows the refusal.
+      if (attempt >= RELEASE_RETRIES) {
+        return undefined;
+      }
+      return new Promise<void>((resolve) => setTimeout(resolve, RELEASE_RETRY_MS * 2 ** attempt)).then(() =>
+        epoch === servoEpochRef.current ? publishServoOff(epoch, attempt + 1) : undefined,
+      );
+    });
+  };
+  const switchOffServo = () => {
+    servoEpochRef.current += 1;
+    void publishServoOff(servoEpochRef.current, 0);
+  };
+  const switchOffServoRef = useRef(() => {});
+  switchOffServoRef.current = () => {
+    if (isServoSwitch && (isOn || pendingOnRef.current)) {
+      switchOffServo();
     }
   };
   const lastNeutralRevisionRef = useRef(neutralRevision);
@@ -490,15 +514,27 @@ export function ToggleWidget({
     }
 
     setIsPending(true);
+    servoEpochRef.current += 1;
+    const epoch = servoEpochRef.current;
+    pendingOnRef.current = nextState === "on";
     try {
       const outcome = await onActionIntent(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
-      if (!controlledToggleState && (outcome === undefined || outcome.accepted)) {
+      const accepted = outcome === undefined || outcome.accepted;
+      if (isServoSwitch && epoch !== servoEpochRef.current) {
+        // A suspend landed while this travelled: the servo stays off, even if the On went through.
+        if (nextState === "on" && accepted) {
+          switchOffServo();
+        }
+        return;
+      }
+      if (!controlledToggleState && accepted) {
         setLocalIsOn(nextState === "on");
       }
     } catch {
       // The runtime shell owns visible error reporting. Keep the last
       // acknowledged state when an embedding handler rejects unexpectedly.
     } finally {
+      pendingOnRef.current = false;
       setIsPending(false);
     }
   };

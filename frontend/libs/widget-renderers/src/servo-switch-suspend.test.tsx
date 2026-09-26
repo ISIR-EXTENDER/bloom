@@ -8,9 +8,12 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { renderWidgetDescriptor } from "./index";
-import type { WidgetControlState } from "./types";
+import type { WidgetActionOutcome, WidgetControlState } from "./types";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const SERVO = {
   id: "servo",
@@ -37,8 +40,13 @@ const GRIPPER = {
   },
 };
 
-function renderToggle(widget: typeof SERVO) {
-  const onActionIntent = vi.fn((_intent: WidgetActionIntent) => ({ accepted: true }));
+type Outcome = WidgetActionOutcome | Promise<WidgetActionOutcome>;
+
+function renderToggle(
+  widget: typeof SERVO,
+  handler: (intent: WidgetActionIntent) => Outcome = () => ({ accepted: true }),
+) {
+  const onActionIntent = vi.fn(handler);
   const [descriptor] = renderScreenDescriptors(
     {
       id: "drive",
@@ -105,5 +113,84 @@ describe("the visual servoing switch on a suspend", () => {
 
     expect(onActionIntent).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Gripper: Closed" })).toBeInTheDocument();
+  });
+});
+
+const payloads = (onActionIntent: ReturnType<typeof vi.fn>) =>
+  onActionIntent.mock.calls.map(([intent]) => (intent as { payload?: unknown }).payload);
+
+describe("the visual servoing switch turned on just before a suspend", () => {
+  // The On was still travelling, so the switch read off, the suspend did nothing, and the On then landed.
+  it("stays off and switches the servo off again once the On is accepted", async () => {
+    let answerOn: (outcome: WidgetActionOutcome) => void = () => {};
+    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
+      intent.type === "topic-publish" && intent.payload === "{data: true}"
+        ? new Promise<WidgetActionOutcome>((resolve) => {
+            answerOn = resolve;
+          })
+        : { accepted: true },
+    );
+
+    rerender(1);
+    await act(async () => answerOn({ accepted: true }));
+
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}", "{data: false}"]);
+    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
+  });
+
+  it("switches off when it unmounts with the On still travelling", async () => {
+    let answerOn: (outcome: WidgetActionOutcome) => void = () => {};
+    const { onActionIntent, unmount } = renderToggle(SERVO, (intent) =>
+      intent.type === "topic-publish" && intent.payload === "{data: true}"
+        ? new Promise<WidgetActionOutcome>((resolve) => {
+            answerOn = resolve;
+          })
+        : { accepted: true },
+    );
+
+    unmount();
+    await act(async () => answerOn({ accepted: true }));
+
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}", "{data: false}"]);
+  });
+});
+
+describe("a refused servo switch-off", () => {
+  it("retries and reads off only once the off is accepted", async () => {
+    vi.useFakeTimers();
+    let refusals = 2;
+    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) => {
+      if (intent.type === "topic-publish" && intent.payload === "{data: false}" && refusals > 0) {
+        refusals -= 1;
+        return { accepted: false, detail: "refused" };
+      }
+      return { accepted: true };
+    });
+    await act(async () => {});
+
+    rerender(1);
+    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}", "{data: false}", "{data: false}"]);
+    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
+  });
+
+  it("keeps reading on when every attempt is refused", async () => {
+    vi.useFakeTimers();
+    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
+      intent.type === "topic-publish" && intent.payload === "{data: false}" ? { accepted: false } : { accepted: true },
+    );
+    await act(async () => {});
+
+    rerender(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
   });
 });
