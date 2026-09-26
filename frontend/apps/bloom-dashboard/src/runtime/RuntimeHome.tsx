@@ -1,13 +1,16 @@
 import type { ApplicationConfig, RuntimeLanguage, UserProfile } from "@bloom/api-client";
-import { PROFILE_TARGET_PX } from "@bloom/widgets";
+import { localizeOperatorText, PROFILE_TARGET_PX } from "@bloom/widgets";
 import { useEffect, useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { runtimePreferenceKey } from "../ui/runtime-user-preferences";
 import type { RuntimeProfileOverrides } from "./runtime-profile-overrides";
 import { runtimeProfileOverrideKey } from "./runtime-profile-overrides";
+import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { resolveInitialScreen } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
+import { type RuntimeLinkClient, useRuntimeLinkState } from "./use-runtime-link-state";
+import { type RuntimeStopClient, useRuntimeStop } from "./use-runtime-stop";
 import { useWindowViewportSize } from "./use-runtime-viewport";
 
 type RuntimeHomeProps = {
@@ -23,6 +26,8 @@ type RuntimeHomeProps = {
   profileOverrides?: Record<string, RuntimeProfileOverrides>;
   profilePreferences: Record<string, string>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
+  /** The runtime session the chip describes; without one the library shows no status at all. */
+  runtimeClient?: RuntimeLinkClient & RuntimeStopClient;
 };
 
 export type LibraryApp = {
@@ -111,6 +116,7 @@ export function RuntimeHome({
   profileOverrides = {},
   profilePreferences,
   recentRuntimeSelections,
+  runtimeClient,
 }: RuntimeHomeProps) {
   const apps = collectLibraryApps(configurations);
   const recentKey = recentRuntimeSelections[0] ? runtimePreferenceKey(recentRuntimeSelections[0]) : "";
@@ -131,6 +137,10 @@ export function RuntimeHome({
   const strings = useRuntimeStrings(language);
   const words = strings.library;
   const viewport = useWindowViewportSize();
+  const runtimeStop = useRuntimeStop(runtimeClient);
+  const runtimeLink = useRuntimeLinkState(runtimeClient);
+  const statusChip = resolveRuntimeStatusChip(runtimeStop.state, runtimeLink, strings);
+  const roleName = (profile: UserProfile) => localizeOperatorText(profile.name, language);
 
   useEffect(() => {
     if (!menuOpen) {
@@ -166,10 +176,12 @@ export function RuntimeHome({
         <h1 className="runtime-kiosk-screen" id="runtime-library-title">
           {words.title}
         </h1>
-        <span className="runtime-kiosk-status" data-tone="ready">
-          <span aria-hidden="true" className="runtime-kiosk-status-dot" />
-          {strings.status.ready}
-        </span>
+        {statusChip ? (
+          <span className="runtime-kiosk-status" data-tone={statusChip.tone} role="status">
+            <span aria-hidden="true" className="runtime-kiosk-status-dot" />
+            {statusChip.label}
+          </span>
+        ) : null}
         <span className="runtime-kiosk-frame">
           {(viewport.width >= 1600 ? words.classes.desktop : words.classes.tablet).toLowerCase()} · {viewport.width}×
           {viewport.height}
@@ -266,14 +278,14 @@ export function RuntimeHome({
                   <div className="runtime-library-roles">
                     {selected.application.profiles.map((profile) => (
                       <button
-                        aria-label={profile.name}
+                        aria-label={roleName(profile)}
                         aria-pressed={profile.id === chosen}
                         key={profile.id}
                         onClick={() => setChosenRoles((current) => ({ ...current, [selected.key]: profile.id }))}
                         type="button"
                       >
                         <span className="runtime-library-role-text">
-                          <strong>{profile.name}</strong>
+                          <strong>{roleName(profile)}</strong>
                           <span>{describeProfile(profile, strings)}</span>
                         </span>
                         {profile.id === remembered ? (
@@ -288,7 +300,7 @@ export function RuntimeHome({
               )}
             </div>
             <button className="runtime-library-open" onClick={open} type="button">
-              {chosenProfile ? words.openAs(chosenProfile.name) : words.open}
+              {chosenProfile ? words.openAs(roleName(chosenProfile)) : words.open}
             </button>
             <button
               aria-label={words.supervisorAria(selected.application.name)}

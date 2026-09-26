@@ -101,7 +101,7 @@ describe("switch scanning on a drive screen", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     // jsdom lays nothing out; the hook only scans what is laid out.
-    Object.defineProperty(HTMLElement.prototype, "offsetParent", { configurable: true, get: () => document.body });
+    HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
   });
   afterEach(() => {
     vi.useRealTimers();

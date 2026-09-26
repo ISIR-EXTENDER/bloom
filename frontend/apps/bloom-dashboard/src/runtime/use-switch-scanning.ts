@@ -105,7 +105,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
         (element) => !priority.includes(element),
       );
       const targets = [...priority, ...rest].filter(
-        (element) => element.offsetParent !== null && (isTargetEnabledRef.current?.(element) ?? true),
+        (element) => isLaidOut(element) && (isTargetEnabledRef.current?.(element) ?? true),
       );
       targetsRef.current = targets;
       setTargetCount(targets.length);
@@ -224,6 +224,11 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
   }, [activateCurrent, enabled, periodMs, rootRef, revision]);
 
   return { activateCurrent, index, targetCount };
+}
+
+// Not offsetParent: it is null for position: fixed, and STOP is fixed over settings and the tour.
+function isLaidOut(element: HTMLElement): boolean {
+  return element.getClientRects().length > 0;
 }
 
 function isInsideModal(target: EventTarget | null): boolean {

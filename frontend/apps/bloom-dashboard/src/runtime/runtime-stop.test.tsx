@@ -107,6 +107,24 @@ describe("the STOP control", () => {
     expect(handlers.onResume).toHaveBeenCalledTimes(1);
   });
 
+  // Another station resumed mid-hold and the operator pressed STOP again: the old hold resumed the robot.
+  it("drops a resume hold when the latch changes under it", () => {
+    const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
+    const { rerender } = render(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Hold for one second to resume" }));
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    rerender(<RuntimeStopControl requestError="" stopped={false} {...handlers} />);
+    rerender(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(handlers.onResume).not.toHaveBeenCalled();
+  });
+
   it("drops a keyboard resume hold when focus leaves before the key is released", () => {
     const handlers = renderControl({ stopped: true });
     const button = screen.getByRole("button", { name: "Hold for one second to resume" });
@@ -322,6 +340,29 @@ describe("the stop mirror", () => {
     });
     expect(screen.getByTestId("stopped").textContent).toBe("true");
     expect(screen.getByTestId("requested").textContent).toBe("false");
+  });
+
+  // A poll sent before STOP answered after it and showed the robot running for a whole poll period.
+  it("ignores a status reply to a poll sent before STOP", async () => {
+    let answerPoll: (state: RuntimeStopState) => void = () => {};
+    const client: RuntimeStopClient = {
+      getRuntimeStopState: () =>
+        new Promise((resolve) => {
+          answerPoll = resolve;
+        }),
+      engageRuntimeStop: () => Promise.resolve(stoppedState),
+    };
+    render(<Probe client={client} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "engage" }));
+    });
+    expect(screen.getByTestId("stopped").textContent).toBe("true");
+    await act(async () => {
+      answerPoll(running);
+    });
+
+    expect(screen.getByTestId("stopped").textContent).toBe("true");
   });
 
   it("keeps holding the controls when the stop request cannot reach the backend, until Resume", async () => {

@@ -11,7 +11,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock as never;
-Object.defineProperty(HTMLElement.prototype, "offsetParent", { configurable: true, get: () => document.body });
+HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
 
 describe("switch scanning behind the maintenance overlay", () => {
   it("does not fire a canvas control while the maintenance dialog covers it", async () => {

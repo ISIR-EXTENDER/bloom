@@ -7,6 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SCAN_TARGET_SELECTOR, useSwitchScanning } from "./use-switch-scanning";
 
+// jsdom lays nothing out: getClientRects() is empty until a test gives an element a box.
+function layOut(element: HTMLElement) {
+  element.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
+}
+
 function buildScreen(buttonCount: number) {
   const root = document.createElement("div");
   const clicks: string[] = [];
@@ -14,8 +19,7 @@ function buildScreen(buttonCount: number) {
     const button = document.createElement("button");
     button.textContent = `target-${index}`;
     button.addEventListener("click", () => clicks.push(`target-${index}`));
-    // jsdom leaves offsetParent null; the hook filters on it for visibility.
-    Object.defineProperty(button, "offsetParent", { get: () => root });
+    layOut(button);
     root.append(button);
   }
   document.body.append(root);
@@ -45,7 +49,7 @@ describe("switch scanning", () => {
     const stop = document.createElement("button");
     stop.setAttribute("data-scan-priority", "stop");
     stop.textContent = "Stop the robot";
-    Object.defineProperty(stop, "offsetParent", { get: () => document.body });
+    layOut(stop);
     document.body.append(stop);
 
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
@@ -57,6 +61,25 @@ describe("switch scanning", () => {
     expect(document.querySelector("[data-scan-lit]")?.textContent).toBe("Stop the robot");
   });
 
+  // Over settings and the tour STOP is position: fixed, so its offsetParent is null although it is on screen.
+  it("scans a fixed STOP and skips a control with no box", () => {
+    const { rootRef } = buildScreen(2);
+    const stop = document.createElement("button");
+    stop.setAttribute("data-scan-priority", "stop");
+    stop.textContent = "Stop the robot";
+    layOut(stop);
+    const hidden = document.createElement("button");
+    hidden.textContent = "hidden";
+    rootRef.current.append(hidden);
+    document.body.append(stop);
+    expect(stop.offsetParent).toBeNull();
+
+    const { result } = renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+
+    expect(document.querySelector("[data-scan-lit]")?.textContent).toBe("Stop the robot");
+    expect(result.current.targetCount).toBe(3);
+  });
+
   // Keep going exists for five seconds before a latch lets go; waiting its turn in a 28 s cycle, it never came.
   it("lights a control that just appeared for a moment at the next step", () => {
     const { root, rootRef } = buildScreen(6);
@@ -66,7 +89,7 @@ describe("switch scanning", () => {
     const keep = document.createElement("button");
     keep.setAttribute("data-scan-urgent", "");
     keep.textContent = "Keep going";
-    Object.defineProperty(keep, "offsetParent", { get: () => root });
+    layOut(keep);
     root.append(keep);
     vi.advanceTimersByTime(1000);
 
@@ -117,7 +140,7 @@ describe("switch scanning", () => {
     const { clicks, rootRef } = buildScreen(3);
     const stop = document.createElement("button");
     stop.setAttribute("data-scan-priority", "stop");
-    Object.defineProperty(stop, "offsetParent", { get: () => document.body });
+    layOut(stop);
     document.body.append(stop);
     renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
     vi.advanceTimersByTime(1000);
@@ -274,7 +297,7 @@ describe("switch scanning", () => {
     const { clicks, root, rootRef } = buildScreen(2);
     const bar = document.createElement("button");
     bar.setAttribute("data-scan-switch", "");
-    Object.defineProperty(bar, "offsetParent", { get: () => root });
+    layOut(bar);
     root.append(bar);
     const { result } = renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
 

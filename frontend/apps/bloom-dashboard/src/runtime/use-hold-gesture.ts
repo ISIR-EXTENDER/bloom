@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const HOLD_TICK_MS = 40;
 
@@ -13,12 +13,17 @@ export function useHoldGesture(durationMs: number, onComplete: () => void) {
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  const stop = () => {
+  const stop = useCallback(() => {
     if (timerRef.current !== null) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  };
+  }, []);
+  // Stable, so an effect can cancel a hold when what it would complete has changed.
+  const cancel = useCallback(() => {
+    stop();
+    setValue(0);
+  }, [stop]);
 
   useEffect(
     () => () => {
@@ -44,9 +49,6 @@ export function useHoldGesture(durationMs: number, onComplete: () => void) {
         }
       }, HOLD_TICK_MS);
     },
-    cancel: () => {
-      stop();
-      setValue(0);
-    },
+    cancel,
   };
 }

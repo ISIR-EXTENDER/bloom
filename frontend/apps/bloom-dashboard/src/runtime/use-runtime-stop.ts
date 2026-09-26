@@ -30,6 +30,8 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   const [stopRequested, setStopRequested] = useState(false);
   const clientRef = useRef(client);
   clientRef.current = client;
+  // Bumped by every STOP and resume: a poll sent before one answers with the latch as it was.
+  const actionCountRef = useRef(0);
 
   const mirrorState = useCallback((next: RuntimeStopState) => {
     setState(next);
@@ -43,9 +45,10 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
 
     let cancelled = false;
     const refresh = () => {
+      const actionsWhenSent = actionCountRef.current;
       getState()
         .then((next) => {
-          if (!cancelled) {
+          if (!cancelled && actionsWhenSent === actionCountRef.current) {
             mirrorState(next);
           }
         })
@@ -67,6 +70,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     if (!engageRuntimeStop) {
       return;
     }
+    actionCountRef.current += 1;
     setStopRequested(true);
     engageRuntimeStop()
       .then((next) => {
@@ -97,6 +101,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     if (!resumeRuntimeStop) {
       return;
     }
+    actionCountRef.current += 1;
     setStopRequested(false);
     resumeRuntimeStop()
       .then((next) => {

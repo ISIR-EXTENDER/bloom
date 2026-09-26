@@ -38,12 +38,7 @@ const EMPTY_PREFERENCES: RuntimeUserPreferences = {
 
 beforeEach(() => {
   window.localStorage.clear();
-  Object.defineProperty(HTMLElement.prototype, "offsetParent", {
-    configurable: true,
-    get() {
-      return document.body;
-    },
-  });
+  HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
   HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 
@@ -123,7 +118,7 @@ describe("runtime settings", () => {
     const { container } = renderSettings({ motorAccessibilityPreset: "scan" });
     const settings = within(container).getByRole("region", { name: "Settings" });
     const expectedTargets = [...settings.querySelectorAll<HTMLElement>(SCAN_TARGET_SELECTOR)].filter(
-      (target) => target.offsetParent !== null,
+      (target) => target.getClientRects().length > 0,
     );
     const visited = new Set<HTMLElement>();
 
@@ -165,6 +160,41 @@ describe("runtime settings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
 
     expect(onSave).toHaveBeenCalledWith({ dwellEnabled: true, motorAccessibilityPreset: "step" });
+  });
+
+  // Tapping the input method or push mode already chosen rewrote the preset to "default" and dropped large targets.
+  it("keeps a profile's own reach preset through choices that do not replace it", () => {
+    const onSave = vi.fn<(next: RuntimeProfileOverrides) => void>();
+    render(
+      <RuntimeSettingsPanel
+        applicationName="Explorer Manager"
+        baseProfile={{ ...defaultProfile, motorAccessibilityPreset: "large-targets" }}
+        onClose={vi.fn()}
+        onSave={onSave}
+        overrides={{}}
+        runtimeRole="operator"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Touch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Drag" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dwell" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tap by tap" }));
+    fireEvent.click(screen.getByRole("button", { name: "Drag" }));
+    fireEvent.click(screen.getByRole("button", { name: "Touch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+
+    expect(onSave).toHaveBeenCalledWith({ dwellEnabled: false, motorAccessibilityPreset: "large-targets" });
+  });
+
+  it("saves nothing about reach when only the selected choices were tapped", () => {
+    const { onSave } = renderSettings({ motorAccessibilityPreset: "assisted-touch" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Touch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Drag" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+
+    expect(onSave).toHaveBeenCalledWith({ motorAccessibilityPreset: "assisted-touch" });
   });
 
   it("interlocks the push choice while scanning", () => {

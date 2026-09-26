@@ -94,12 +94,27 @@ export function RuntimeSettingsPanel({
     const clamped = applyRuntimeProfileOverrides(baseProfile, { ...draft, [key]: profile[key] + delta });
     update({ ...draft, [key]: key === "deadzone" ? Math.round(clamped[key] * 100) / 100 : clamped[key] });
   };
-  const chooseInput = (method: InputMethod) =>
+  // Large targets and assisted touch are drag presets too: a press that leaves push as drag keeps them.
+  const dragPreset = (method: InputMethod): UserProfile["motor_accessibility_preset"] =>
+    [profile.motorAccessibilityPreset, baseProfile.motorAccessibilityPreset].find(
+      (preset) => !["latch", "scan", "step"].includes(preset) && (method === "dwell" || preset !== "dwell"),
+    ) ?? "default";
+  const chooseInput = (method: InputMethod) => {
+    if (method === inputMethod) {
+      return;
+    }
+    const preset = method === "scan" ? "scan" : pushMode === "drag" ? dragPreset(method) : PUSH_PRESETS[pushMode];
     update({
       ...draft,
       dwellEnabled: method === "dwell",
-      motorAccessibilityPreset: method === "scan" ? "scan" : PUSH_PRESETS[pushMode],
+      ...(preset === profile.motorAccessibilityPreset ? {} : { motorAccessibilityPreset: preset }),
     });
+  };
+  const choosePush = (mode: PushMode) => {
+    if (mode !== pushMode) {
+      update({ ...draft, motorAccessibilityPreset: mode === "drag" ? dragPreset(inputMethod) : PUSH_PRESETS[mode] });
+    }
+  };
   const tryPress = () => {
     const now = Date.now();
     if (now - lastTryRef.current < profile.repeatGuardMs) {
@@ -204,7 +219,7 @@ export function RuntimeSettingsPanel({
             <Segments
               disabled={inputMethod === "scan"}
               label={strings.settings.pushMoves}
-              onSelect={(mode: PushMode) => update({ ...draft, motorAccessibilityPreset: PUSH_PRESETS[mode] })}
+              onSelect={choosePush}
               options={(["drag", "step", "latch"] as const).map((mode) => ({
                 label: strings.settings.pushModes[mode],
                 value: mode,

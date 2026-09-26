@@ -6,6 +6,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { guidedTourProgressKey, loadGuidedTourProgress } from "../ui/guided-tour-progress";
+import { activateAssistively } from "./assistive-activation";
 import { RuntimeGuidedTour } from "./RuntimeGuidedTour";
 import type { ResolvedRuntimeProfile } from "./runtimeProfile";
 
@@ -66,12 +67,7 @@ describe("the runtime guided tour", () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.useFakeTimers();
-    Object.defineProperty(HTMLElement.prototype, "offsetParent", {
-      configurable: true,
-      get() {
-        return document.body;
-      },
-    });
+    HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
     HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
@@ -133,5 +129,32 @@ describe("the runtime guided tour", () => {
 
     expect(screen.getByRole("region", { name: "Practice this app" }).dataset.runtimeScanning).toBe("true");
     expect(screen.getByRole("button", { name: "SWITCH - press Space or tap here" })).toBeTruthy();
+  });
+
+  it("labels the practice movement in the operator's language", () => {
+    renderTour({ profile: { ...profile, language: "fr" } });
+    fireEvent.click(screen.getByRole("button", { name: "Je l'ai vu" }));
+
+    expect(screen.getByRole("button", { name: "▲ Avant" })).toBeTruthy();
+    expect(screen.queryByText(/Forward/)).toBeNull();
+  });
+
+  // The tour taught one press; the real Resume arms on a switch or dwell press and needs a second to confirm.
+  it("practises the real two-press Resume for switch and dwell", () => {
+    renderTour({ profile: { ...profile, motorAccessibilityPreset: "scan" } });
+    fireEvent.click(screen.getByRole("button", { name: "I've seen it" }));
+    fireEvent.click(screen.getByRole("button", { name: "▲ Forward" }));
+    fireEvent.click(screen.getByRole("button", { name: "▲ Forward" }));
+    fireEvent.click(screen.getByRole("button", { name: "STOP" }));
+
+    const resume = screen.getByRole("button", { name: "Hold for one second to resume" });
+    act(() => activateAssistively(resume));
+    expect(screen.getByRole("button", { name: "Press again to resume" })).toBeTruthy();
+    fireEvent.click(resume, { detail: 0 });
+    expect(screen.getByRole("button", { name: "Press again to resume" })).toBeTruthy();
+
+    act(() => vi.advanceTimersByTime(700));
+    act(() => activateAssistively(screen.getByRole("button", { name: "Press again to resume" })));
+    expect(screen.getByRole("heading", { name: "Make it fit your hand" })).toBeTruthy();
   });
 });

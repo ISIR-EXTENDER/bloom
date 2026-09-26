@@ -1,14 +1,13 @@
 import type { RuntimeLanguage } from "@bloom/api-client";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 
 import { useAssistiveActivation } from "./assistive-activation";
 import { useRuntimeStrings } from "./strings";
+import { useAssistiveConfirm } from "./use-assistive-confirm";
 import { useHoldGesture } from "./use-hold-gesture";
 import type { RegionRect } from "./use-reserved-region-rect";
 
 const RESUME_HOLD_MS = 1000;
-/** How long an armed assistive resume waits for its confirming press. */
-const ASSISTIVE_RESUME_WINDOW_MS = 8000;
 /**
  * The only positive tab index in the runtime: STOP was the second-to-last tab
  * stop on a drive screen, and nothing else may come before it.
@@ -32,9 +31,6 @@ export type RuntimeStopControlProps = {
  * STOP as runtime chrome (finding 3): tap stops on pointerdown, resuming
  * takes a 1s hold. The stopped look follows the backend latch, and a press the backend has not confirmed.
  */
-/** A second assistive press closer than this to the arming one is the same press. */
-const ASSISTIVE_CONFIRM_SETTLE_MS = 600;
-
 export function RuntimeStopControl({
   stopped,
   requestError,
@@ -59,39 +55,10 @@ export function RuntimeStopControl({
     }
   };
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
-  const [assistiveArmed, setAssistiveArmed] = useState(false);
-  const armedAtRef = useRef(0);
-  const armedTimerRef = useRef<number | null>(null);
-  const disarm = useCallback(() => {
-    if (armedTimerRef.current !== null) {
-      window.clearTimeout(armedTimerRef.current);
-      armedTimerRef.current = null;
-    }
-    setAssistiveArmed(false);
-  }, []);
-  // A switch or dwell activation cannot hold, and one press must not restart the
-  // robot: the first arms, the second within the window resumes.
-  const resumeAssistively = () => {
-    if (resumeDisabled) {
-      return;
-    }
-    if (assistiveArmed) {
-      // A bouncing switch pressed twice within milliseconds; that is one press, not a confirmation.
-      if (Date.now() - armedAtRef.current < ASSISTIVE_CONFIRM_SETTLE_MS) {
-        return;
-      }
-      disarm();
-      resume();
-      return;
-    }
-    armedAtRef.current = Date.now();
-    setAssistiveArmed(true);
-    armedTimerRef.current = window.setTimeout(() => {
-      armedTimerRef.current = null;
-      setAssistiveArmed(false);
-    }, ASSISTIVE_RESUME_WINDOW_MS);
-  };
-  const resumeRef = useAssistiveActivation<HTMLButtonElement>(resumeAssistively);
+  const assistiveResume = useAssistiveConfirm(resume, resumeDisabled);
+  const assistiveArmed = assistiveResume.armed;
+  const disarm = assistiveResume.disarm;
+  const resumeRef = useAssistiveActivation<HTMLButtonElement>(assistiveResume.activate);
   // STOP and Resume are two elements, so a rest begun on STOP never completes as a resume. The swap dropped a
   // keyboard operator's focus to the page; a keyboard press hands it to the element that replaces it.
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -111,16 +78,14 @@ export function RuntimeStopControl({
       keyboardPressRef.current = false;
     }
   }, [requestError]);
+  const cancelResumeHold = resumeHold.cancel;
+  // A hold or armed confirm belongs to the stop it began on: left running across a resume from elsewhere, it
+  // completed after the operator pressed STOP again and resumed the robot.
   useEffect(() => {
-    if (!stopped) {
-      disarm();
-    }
-    return () => {
-      if (armedTimerRef.current !== null) {
-        window.clearTimeout(armedTimerRef.current);
-      }
-    };
-  }, [disarm, stopped]);
+    void stopped;
+    cancelResumeHold();
+    disarm();
+  }, [cancelResumeHold, disarm, stopped]);
   const startResumeHold = () => {
     if (!resumeDisabled) {
       resumeHold.start();

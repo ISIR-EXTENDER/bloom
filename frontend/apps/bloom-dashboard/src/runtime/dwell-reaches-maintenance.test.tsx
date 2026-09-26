@@ -11,7 +11,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock as never;
-Object.defineProperty(HTMLElement.prototype, "offsetParent", { configurable: true, get: () => document.body });
+HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
 
 describe("maintenance under pointer dwell", () => {
   it("opens the sheet when the pointer rests on the maintenance button", async () => {

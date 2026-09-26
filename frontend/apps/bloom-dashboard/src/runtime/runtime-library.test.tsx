@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import type { ConfigurationBundle } from "@bloom/api-client";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ConfigurationBundle, RuntimeStopState } from "@bloom/api-client";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import explorerManagerConfiguration from "../../../../../backend/seed/applications/explorer-manager.json";
@@ -10,6 +10,8 @@ import petanqueAdminConfiguration from "../../../../../backend/seed/applications
 import sandboxConfiguration from "../../../../../backend/seed/applications/sandbox.json";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { collectLibraryApps, describeProfile, initialProfileId, RuntimeHome, rememberedProfileId } from "./RuntimeHome";
+import type { RuntimeLinkState } from "./runtime-action-dispatcher";
+import { runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { getRuntimeStrings } from "./strings";
 
 function loaded(id: string, bundle: unknown): LoadedConfiguration {
@@ -244,5 +246,55 @@ describe("library model", () => {
       "debugging · 48 px · continuous limits",
       "scan · 1.4 s period · dwell",
     ]);
+  });
+
+  // The library said READY while the robot was stopped or the backend was down.
+  it("shows the runtime's real state, and no word at all without a runtime behind it", async () => {
+    const stopped = { asserted: true, detail: "", engaged_at: "", stopped: true } as RuntimeStopState;
+    const linkDown = (listener: (state: RuntimeLinkState) => void) => {
+      listener("disconnected");
+      return () => {};
+    };
+    const props = {
+      configurations,
+      onOpenRuntimeApp: vi.fn(),
+      onOpenSupervisorApp: vi.fn(),
+      onProfilePreferenceChange: vi.fn(),
+      profilePreferences: {},
+      recentRuntimeSelections: [],
+    };
+    const { rerender } = render(<RuntimeHome {...props} />);
+    expect(screen.queryByRole("status")).toBeNull();
+
+    rerender(<RuntimeHome {...props} runtimeClient={{ addRuntimeLinkStateListener: linkDown }} />);
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("LINK DOWN"));
+
+    rerender(
+      <RuntimeHome
+        {...props}
+        runtimeClient={{ addRuntimeLinkStateListener: linkDown, getRuntimeStopState: () => Promise.resolve(stopped) }}
+      />,
+    );
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("STOPPED"));
+  });
+
+  it("names the roles in the operator's language", () => {
+    const identity = { appId: "explorer-manager", configId: "explorer-manager" };
+    render(
+      <RuntimeHome
+        configurations={configurations}
+        onOpenRuntimeApp={vi.fn()}
+        onOpenSupervisorApp={vi.fn()}
+        onProfilePreferenceChange={vi.fn()}
+        profileOverrides={{ [runtimeProfileOverrideKey(identity, "operator")]: { language: "fr" } }}
+        profilePreferences={{}}
+        recentRuntimeSelections={[]}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Opérateur" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Banc" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Ouvrir en tant que Opérateur" })).toBeTruthy();
+    expect(screen.queryByText("Operator")).toBeNull();
   });
 });

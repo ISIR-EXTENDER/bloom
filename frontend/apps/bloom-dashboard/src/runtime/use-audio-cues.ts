@@ -46,7 +46,7 @@ export function useAudioCues(tone: RuntimeStatusChipTone | undefined, enabled: b
   const contextRef = useRef<AudioContext | null>(null);
   const previousToneRef = useRef<RuntimeStatusChipTone | undefined>(tone);
 
-  // Browsers refuse audio before a user gesture; arm on the first pointer.
+  // Browsers refuse audio before a user gesture; a key counts too, for keyboard, switch and head-pointer users.
   useEffect(() => {
     if (!enabled) {
       return;
@@ -60,7 +60,11 @@ export function useAudioCues(tone: RuntimeStatusChipTone | undefined, enabled: b
       }
     };
     window.addEventListener("pointerdown", unlock, { capture: true });
-    return () => window.removeEventListener("pointerdown", unlock, { capture: true });
+    window.addEventListener("keydown", unlock, { capture: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock, { capture: true });
+      window.removeEventListener("keydown", unlock, { capture: true });
+    };
   }, [enabled]);
 
   useEffect(

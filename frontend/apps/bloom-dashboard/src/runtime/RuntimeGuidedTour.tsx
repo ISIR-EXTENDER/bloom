@@ -4,8 +4,10 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react"
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
 import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-progress";
+import { useAssistiveActivation } from "./assistive-activation";
 import type { ResolvedRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
+import { useAssistiveConfirm } from "./use-assistive-confirm";
 import { useDwellActivation } from "./use-dwell-activation";
 import { useHoldGesture } from "./use-hold-gesture";
 import { useSwitchScanning } from "./use-switch-scanning";
@@ -234,10 +236,14 @@ function TourStopPractice({
   setPracticeStopped: (stopped: boolean) => void;
   strings: RuntimeStrings;
 }) {
-  const resumeHold = useHoldGesture(RESUME_HOLD_MS, () => {
+  const resume = () => {
     setPracticeStopped(false);
     onComplete();
-  });
+  };
+  const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
+  // The real Resume's two-press confirm for switch and dwell, and no one-press keyboard click: a key must hold.
+  const assistiveResume = useAssistiveConfirm(resume);
+  const resumeRef = useAssistiveActivation<HTMLButtonElement>(assistiveResume.activate);
 
   if (!practiceStopped) {
     return (
@@ -249,15 +255,10 @@ function TourStopPractice({
 
   return (
     <button
-      aria-label={strings.stop.resumeAria}
+      aria-label={assistiveResume.armed ? strings.stop.resumeConfirmAria : strings.stop.resumeAria}
       className="runtime-tour-stop"
+      data-armed={assistiveResume.armed ? "true" : undefined}
       data-dwell-min-ms={RESUME_HOLD_MS}
-      onClick={(event) => {
-        if (event.detail === 0) {
-          setPracticeStopped(false);
-          onComplete();
-        }
-      }}
       onKeyDown={(event) => {
         if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
           resumeHold.start();
@@ -268,9 +269,10 @@ function TourStopPractice({
       onPointerDown={resumeHold.start}
       onPointerLeave={resumeHold.cancel}
       onPointerUp={resumeHold.cancel}
+      ref={resumeRef}
       type="button"
     >
-      {strings.stop.resume}
+      {assistiveResume.armed ? strings.stop.resumeConfirm : strings.stop.resume}
       <span aria-hidden="true" style={{ transform: `scaleX(${resumeHold.value})` }} />
     </button>
   );
@@ -313,7 +315,10 @@ function resolvePracticeMovement(application: ApplicationConfig, strings: Runtim
     .find((candidate) => candidate.kind === "joystick");
   const labels = widget?.settings.labels;
   const topLabel = isRecord(labels) && typeof labels.top === "string" ? labels.top : strings.settings.tryForward;
-  return { controlName: widget?.title ?? strings.tour.movementFallback, directionLabel: topLabel };
+  return {
+    controlName: widget?.title ? localizeOperatorText(widget.title, strings.language) : strings.tour.movementFallback,
+    directionLabel: localizeOperatorText(topLabel, strings.language),
+  };
 }
 
 function resolveStepBody(

@@ -15,7 +15,7 @@ class ResizeObserverMock {
   disconnect() {}
 }
 globalThis.ResizeObserver = ResizeObserverMock as never;
-Object.defineProperty(HTMLElement.prototype, "offsetParent", { configurable: true, get: () => document.body });
+HTMLElement.prototype.getClientRects = () => [new DOMRect(0, 0, 10, 10)] as unknown as DOMRectList;
 
 describe("a switch operator can undo their own STOP", () => {
   it("keeps scanning on while stopped, with resume as its only target", async () => {
