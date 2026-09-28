@@ -12,6 +12,7 @@ export * from "./layout-grid";
 export { legacyCanvasScreensToApplicationConfig } from "./legacy";
 export * from "./legacy-widgets";
 export * from "./min-size";
+export * from "./mode-request";
 export * from "./numbers";
 export * from "./operator-glossary";
 export * from "./pad-geometry";

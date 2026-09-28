@@ -1,5 +1,5 @@
 import type { ApplicationConfig, WidgetConfig } from "@bloom/api-client";
-import { allowlistAllows, INTERACTIVE_WIDGET_KINDS, resolveDeviceClass } from "@bloom/widgets";
+import { allowlistAllows, INTERACTIVE_WIDGET_KINDS, resolveDeviceClass, resolveTeleopFrameId } from "@bloom/widgets";
 import { useEffect, useMemo, useState } from "react";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -7,7 +7,12 @@ import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-
 import type { DeploymentAllowlists } from "./BuilderWidgetSummaries";
 import { densityFloorFor, glassPx, resolveBuilderPanel, reviewScreens } from "./builder-geometry";
 import { resolveWidgetRoute, type WidgetRoute } from "./widget-publish-route";
-import { describeWidgetFrameProblem, describeWidgetSendProblems, isNavigationButton } from "./widget-send-problems";
+import {
+  describeWidgetFrameProblem,
+  describeWidgetSendProblems,
+  isNavigationButton,
+  type SendProblemContext,
+} from "./widget-send-problems";
 
 type ReviewRuleId = "minimum" | "overlap" | "device-class" | "symmetry" | "pads" | "profiles" | "pairs";
 type BuilderTourStepId = "geometry" | "touch" | ReviewRuleId | "frame" | "topics" | "profile" | "ship";
@@ -210,6 +215,8 @@ export function evaluateBuilderTour(
   const destinations = collectWidgetDestinations(application);
   // Nothing on it commands the robot, so there is no route to check: a camera or reader app passes.
   const readOnly = isReadOnlyApplication(application);
+  // A frame button has no topic of its own, but its switch is judged against the teleop lists all the same.
+  const routed = destinations.length > 0 || hasFrameButton(application);
 
   return {
     // native-1280x720 and hd are the same tablet panel; full-hd is the desktop one.
@@ -227,7 +234,7 @@ export function evaluateBuilderTour(
     pairs: rules.pairs === true,
     // Empty is a choice too: the manager reads the command in its default input frame, base_link.
     frame: findFrameProblem(application, deployment) === null,
-    topics: (destinations.length > 0 || readOnly) && findFirstTopicProblem(application, deployment) === null,
+    topics: (routed || readOnly) && findFirstTopicProblem(application, deployment) === null,
     profile: application.profiles.length > 0,
   };
 }
@@ -392,6 +399,14 @@ function isReadOnlyApplication(application: ApplicationConfig): boolean {
   );
 }
 
+function hasFrameButton(application: ApplicationConfig): boolean {
+  return application.screens.some((screen) =>
+    screen.widgets.some(
+      (widget) => widget.kind === "command-button" && resolveTeleopFrameId(widget.settings.runtime_binding) !== null,
+    ),
+  );
+}
+
 /** No control to touch at all, though something is placed. */
 function hasNoControls(application: ApplicationConfig): boolean {
   const widgets = application.screens.flatMap((screen) => screen.widgets);
@@ -430,7 +445,14 @@ function findFirstTopicProblem(
   application: ApplicationConfig,
   deployment: DeploymentAllowlists = {},
 ): WidgetTopicProblem | null {
-  const context = { screens: application.screens };
+  // The frame step judges frames; this one judges where each press goes and what it carries.
+  const context: SendProblemContext = {
+    appTeleopTargets: application.runtime_policy.allowed_teleop_targets,
+    deploymentTeleopTargets: deployment.teleopTargets,
+    robotName: deployment.robotName,
+    screens: application.screens,
+    speedLimitCaps: deployment.speedLimitCaps,
+  };
   for (const screen of application.screens) {
     for (const widget of screen.widgets) {
       const [reason] = describeWidgetSendProblems(widget, application.action_presets, context);

@@ -40,7 +40,7 @@ import {
 import { TOUCH_FLOOR_PX } from "./builder-geometry";
 import { RequiredTextInput } from "./RequiredTextInput";
 import { SERIES_KINDS, SeriesEditor } from "./SeriesEditor";
-import { DEFAULT_SPEED_LIMIT_CAPS, describeSpeedCapExcess, type SpeedLimitCaps } from "./speed-limit-caps";
+import { DEFAULT_SPEED_LIMIT_CAPS, type SpeedLimitCaps } from "./speed-limit-caps";
 import { resolveWidgetRoute } from "./widget-publish-route";
 import {
   describeWidgetSendProblems,
@@ -148,7 +148,6 @@ export function BuilderWidgetSettingsEditor({
   const canHold = Boolean(
     String(effectiveSettings.topic ?? "").trim() && String(effectiveSettings.messageType ?? "").trim(),
   );
-  const speedCapWarning = describeSpeedCapExcess(widget.kind, destination, effectiveSettings, speedLimitCaps);
 
   const updateSetting = (field: WidgetSettingField, rawValue: string | boolean, picked = false) => {
     const nextSettings: Record<string, unknown> = {
@@ -286,7 +285,14 @@ export function BuilderWidgetSettingsEditor({
     }
     setValidationMessage(onUpdateSettings(rest));
   };
-  const sendProblems = describeWidgetSendProblems(widget, actionPresets, { screens: appScreens });
+  const sendProblems = describeWidgetSendProblems(widget, actionPresets, {
+    appTeleopTargets: allowedTeleopTargets,
+    commandFrameIds: allowedCommandFrameIds,
+    deploymentTeleopTargets: deploymentAllowlists?.teleopTargets,
+    robotName,
+    screens: appScreens,
+    speedLimitCaps,
+  });
 
   // The ROS plumbing of a control that says in words what it does: the choice above writes it, and 24 raw fields
   // in one list buried the four an author changes.
@@ -405,11 +411,6 @@ export function BuilderWidgetSettingsEditor({
       {releaseNote ? (
         <p className="builder-settings-pending" role="status">
           {releaseNote}
-        </p>
-      ) : null}
-      {speedCapWarning ? (
-        <p className="builder-settings-destination-refusal" role="alert">
-          {speedCapWarning}
         </p>
       ) : null}
       <WidgetCliPreview presets={actionPresets} widget={widget} />

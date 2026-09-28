@@ -29,6 +29,9 @@ const frame = (frameId: string, buttonLabel: string) => () => ({
   runtime_binding: { adapter: "teleop-frame", frame_id: frameId },
 });
 
+/** The command a navigation button carries; picking a screen under Opens screen is what makes it navigate. */
+export const NAVIGATE_SCREEN_COMMAND = "navigate_screen";
+
 export const COMMAND_PURPOSES: readonly CommandPurpose[] = [
   { id: "neutral", label: "Neutral: both shapers off", title: "Neutral", settings: mode("geometric/both", "Neutral") },
   { id: "jaco", label: "Jaco mode", title: "Jaco", settings: mode("geometric/jaco", "Jaco") },
@@ -67,6 +70,12 @@ export const COMMAND_PURPOSES: readonly CommandPurpose[] = [
     label: "Drive in the hybrid frame",
     title: "Hybrid",
     settings: frame("hybrid_frame", "Hybrid"),
+  },
+  {
+    id: "navigate",
+    label: "Open a screen",
+    title: "Open screen",
+    settings: () => ({ button_label: "Open screen", command: NAVIGATE_SCREEN_COMMAND }),
   },
 ];
 
@@ -112,6 +121,10 @@ export function commandPurposeOf(settings: Record<string, unknown>): string | nu
         String(binding.frame_id)
       ] ?? null
     );
+  }
+  const target = typeof settings.targetScreenId === "string" ? settings.targetScreenId.trim() : "";
+  if (target || settings.command === NAVIGATE_SCREEN_COMMAND) {
+    return "navigate";
   }
   if (settings.topic !== "/mode_request") {
     return null;

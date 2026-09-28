@@ -33,8 +33,8 @@ export function buildCliPreview(
     if (!publish) {
       return null;
     }
-    // A String press with no payload sends {data: command}; a held button sends its payload as is.
-    if (settings?.momentary !== true && readPayloadText(payload) === null) {
+    // A String press or hold with no payload sends {data: command}, as resolveCommandPayload does.
+    if (readPayloadText(payload) === null) {
       sent = publish.payload;
     }
   }
@@ -59,9 +59,20 @@ export function buildCliPreview(
 
 function buildPresetLine(preset: RuntimeActionPreset): string | null {
   const body = readPayloadText(preset.payload_text || preset.payload);
-  return preset.kind === "topic-publish" && preset.topic && preset.message_type && body !== null
-    ? `ros2 topic pub -1 ${preset.topic} ${preset.message_type} "${body.replaceAll('"', '\\"')}"`
+  if (!preset.topic || !preset.message_type) {
+    return null;
+  }
+  // A service-call preset names the service in `topic` and its type in `message_type`; no fields sends "{}".
+  if (preset.kind === "service-call") {
+    return `ros2 service call ${preset.topic} ${preset.message_type} "${quote(body ?? "{}")}"`;
+  }
+  return preset.kind === "topic-publish" && body !== null
+    ? `ros2 topic pub -1 ${preset.topic} ${preset.message_type} "${quote(body)}"`
     : null;
+}
+
+function quote(body: string): string {
+  return body.replaceAll('"', '\\"');
 }
 
 /** Payloads are held either as ROS text ("{data: [1.1]}") or as a real object. */

@@ -8,6 +8,7 @@ import {
   type WidgetDestination,
 } from "@bloom/widgets";
 import { glassPx } from "./builder-geometry";
+import { readSpeedLimitCaps, type SpeedLimitCaps } from "./speed-limit-caps";
 import { isMissingPayload, MODE_REQUEST_TOPIC } from "./widget-send-problems";
 
 const FIT_OVERFLOW_GUARD = 0.99;
@@ -37,7 +38,7 @@ export function WidgetCliPreview({
       : held
         ? [
             ["Held", buildCliPreview(widget.kind, settings, settings.payload, presets)],
-            ["Let go", buildCliPreview(widget.kind, settings, resolveReleasedPayload(settings), presets)],
+            ["Let go", releasedCliPreview(widget.kind, settings, presets)],
           ]
         : [["", buildCliPreview(widget.kind, settings, settings.payload, presets)]];
   const shown = lines.filter(([, line]) => line !== null);
@@ -59,11 +60,17 @@ export function WidgetCliPreview({
   );
 }
 
-/** What a held button sends on let-go: /mode_request falls back to Neutral, as the renderer does. */
-function resolveReleasedPayload(settings: Record<string, unknown>): unknown {
-  return isMissingPayload(settings.releasedPayload) && settings.topic === MODE_REQUEST_TOPIC
-    ? { data: "geometric/both" }
-    : settings.releasedPayload;
+/** What a held button sends on let-go: /mode_request falls back to Neutral, as the renderer does; else nothing. */
+function releasedCliPreview(
+  kind: string,
+  settings: Record<string, unknown>,
+  presets: readonly RuntimeActionPreset[],
+): string | null {
+  const released =
+    isMissingPayload(settings.releasedPayload) && settings.topic === MODE_REQUEST_TOPIC
+      ? { data: "geometric/both" }
+      : settings.releasedPayload;
+  return isMissingPayload(released) ? null : buildCliPreview(kind, settings, released, presets);
 }
 
 export function WidgetGlassSizeSummary({
@@ -139,6 +146,10 @@ export type DeploymentAllowlists = {
   serviceCalls?: readonly string[];
   serviceTypes?: readonly string[];
   teleopTargets?: readonly string[];
+  /** The arm the server drives, whose family decides which mode requests it refuses. */
+  robotName?: string;
+  /** The server's caps on the speed-limit topics. */
+  speedLimitCaps?: SpeedLimitCaps;
 };
 
 /** The deployment lists a capability report carries; an older backend that sends none checks nothing. */
@@ -151,6 +162,8 @@ export function readDeploymentAllowlists(report: RuntimeCapabilityReport | null 
     serviceCalls: report?.allowed_ros_service_calls,
     serviceTypes: report?.allowed_ros_service_types,
     teleopTargets: report?.teleop_targets,
+    robotName: report?.robot_name,
+    speedLimitCaps: readSpeedLimitCaps(report),
   };
 }
 
@@ -330,11 +343,12 @@ export function WidgetDestinationSummary({
         `setting ${parameterTarget}`,
         "Allowed parameters",
       )}
+      {/* A refused type refuses the call too, so allowing the service in the app cannot help then. */}
       {refusal(
         "allowed_service_calls",
         serviceTarget,
         serviceOutsidePolicy,
-        deploymentRefuses(deployment?.serviceCalls, serviceTarget),
+        deploymentRefuses(deployment?.serviceCalls, serviceTarget) || Boolean(refusedServiceType),
         `calling ${serviceTarget}`,
         "Allowed service calls",
       )}

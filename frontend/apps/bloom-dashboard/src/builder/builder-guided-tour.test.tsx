@@ -379,7 +379,13 @@ describe("the checklist's topic step", () => {
               layout: { x: 500, y: 100, width: 300, height: 100 },
               settings: presetId
                 ? { presetId }
-                : { messageType: "std_msgs/msg/Float64", topic: "/explorer_user_interfaces/max_linear_speed" },
+                : {
+                    max: 0.3,
+                    messageType: "std_msgs/msg/Float64",
+                    min: 0,
+                    step: 0.05,
+                    topic: "/explorer_user_interfaces/max_linear_speed",
+                  },
             },
           ],
         },

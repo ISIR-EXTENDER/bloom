@@ -865,6 +865,20 @@
   font-weight: 900;
 }
 
+.builder-action-preset-edit {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+}
+
+.builder-action-preset-edit summary {
+  min-height: 40px;
+  color: var(--bloom-primary);
+  cursor: pointer;
+  font-weight: 900;
+  line-height: 40px;
+}
+
 .builder-action-preset-form button {
   min-height: 48px;
   border: 1px solid var(--bloom-border);

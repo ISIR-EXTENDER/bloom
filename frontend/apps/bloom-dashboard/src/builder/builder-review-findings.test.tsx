@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import type { ApplicationConfig, ScreenConfig, WidgetConfig } from "@bloom/api-client";
-import { createWidgetActionIntent, resolveWidgetDestination } from "@bloom/widgets";
+import { createWidgetActionIntent, resolveCommandPayload, resolveWidgetDestination } from "@bloom/widgets";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -96,18 +96,23 @@ describe("a toggle's destination", () => {
 });
 
 describe("a held String button with no payload", () => {
-  it("is flagged: a hold sends Payload as it is and the server refuses it empty", () => {
-    const held = widget("command-button", {
-      command: "geometric/snake",
-      messageType: "std_msgs/msg/String",
-      momentary: true,
-      payload: "",
-      releasedPayload: { data: "geometric/both" },
-      topic: "/mode_request",
-    });
-    expect(describeWidgetSendProblems(held, [])).toContain(
-      "Hold to run sends this button's Payload as it is, and it is empty, so every hold on /mode_request is refused. Set Payload.",
-    );
+  const held = widget("command-button", {
+    command: "geometric/snake",
+    messageType: "std_msgs/msg/String",
+    momentary: true,
+    payload: "",
+    releasedPayload: { data: "geometric/both" },
+    topic: "/mode_request",
+  });
+
+  it("passes: the hold sends its command as the data, as the renderer does", () => {
+    expect(resolveCommandPayload(held.settings, "std_msgs/msg/String")).toEqual({ data: "geometric/snake" });
+    expect(describeWidgetSendProblems(held, [])).toEqual([]);
+  });
+
+  it("is flagged when it has no command either", () => {
+    const bare = widget("command-button", { ...held.settings, command: "" });
+    expect(describeWidgetSendProblems(bare, []).join(" ")).toMatch(/no payload and no command/);
   });
 });
 

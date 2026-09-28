@@ -240,6 +240,22 @@ export function useApplicationDraft({
       action_presets: current.action_presets.filter((preset) => preset.id !== presetId),
     }));
 
+  // Names and payloads keep what is typed; a ROS name or type never holds a space.
+  const updateActionPreset = (presetId: string, patch: Partial<RuntimeActionPreset>) => {
+    const trimmed = { ...patch };
+    for (const field of ["command", "message_type", "topic"] as const) {
+      if (typeof trimmed[field] === "string") {
+        trimmed[field] = trimmed[field].trim();
+      }
+    }
+    edit((current) => ({
+      ...current,
+      action_presets: current.action_presets.map((preset) =>
+        preset.id === presetId ? { ...preset, ...trimmed } : preset,
+      ),
+    }));
+  };
+
   const addLibraryActionPreset = (preset: RosMessageCommandPreset) =>
     edit((current) => ({
       ...current,
@@ -305,6 +321,7 @@ export function useApplicationDraft({
     updateProfile,
     updateRuntimePolicy,
     updateRuntimePolicyList,
+    updateActionPreset,
     updateTheme,
     updateThemeInspiration,
   };

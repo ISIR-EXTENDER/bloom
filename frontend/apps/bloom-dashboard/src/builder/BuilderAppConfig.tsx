@@ -165,6 +165,7 @@ export function BuilderAppConfig({
             onAddPreset={editor.addActionPreset}
             onNewPresetChange={editor.setNewPreset}
             onRemovePreset={editor.removeActionPreset}
+            onUpdatePreset={editor.updateActionPreset}
             presets={draft.action_presets}
             robotName={runtimeCapabilityReport?.robot_name}
           />
