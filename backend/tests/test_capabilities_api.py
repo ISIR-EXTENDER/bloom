@@ -100,3 +100,16 @@ def test_the_server_reports_the_deployment_allowlists(test_settings: Settings) -
     assert payload["allowed_ros_service_calls"] == ["/fault_controller/reset_fault"]
     assert payload["allowed_ros_service_types"] == ["std_srvs/srv/Trigger"]
     assert not any("key" in field for field in payload)
+
+
+def test_the_report_names_the_mode_requests_this_robot_refuses(test_settings: Settings) -> None:
+    kinova = TestClient(create_app(test_settings.model_copy(update={"robot_name": "Kinova"})))
+    refused = kinova.get("/api/v1/capabilities").json()["refused_mode_requests"]
+    assert "behaviour/joint_target/home" in refused
+    assert any(mode.startswith("behaviour/pose_target") for mode in refused)
+
+    allowed = test_settings.model_copy(update={"robot_name": "Kinova", "allow_kinova_home": True})
+    assert TestClient(create_app(allowed)).get("/api/v1/capabilities").json()["refused_mode_requests"] == []
+
+    explorer = TestClient(create_app(test_settings.model_copy(update={"robot_name": "Explorer"})))
+    assert explorer.get("/api/v1/capabilities").json()["refused_mode_requests"] == []

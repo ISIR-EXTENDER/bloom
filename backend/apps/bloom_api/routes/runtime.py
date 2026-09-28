@@ -292,8 +292,8 @@ def dispatch_runtime_action(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     def publish_and_record(commit: Callable[[], None]) -> RosPublishReceipt:
-        receipt = stop_controller.execute_if_running(
-            lambda: publish_with_runtime_policy(
+        def publish() -> RosPublishReceipt:
+            receipt = publish_with_runtime_policy(
                 get_ros_publisher_gateway(request),
                 get_runtime_command_policy(request),
                 audit_log,
@@ -301,15 +301,16 @@ def dispatch_runtime_action(
                 get_runtime_command_rate_limiter(request),
                 before_publish=commit,
             )
-        )
-        # Under the lease gate a release waits on, as the HTTP publish path does.
-        request.app.state.runtime_session_manager.record_published_mode_request(
-            request.headers.get(RUNTIME_SESSION_HEADER, "").strip(),
-            preset.topic,
-            payload,
-            require_owner=request.app.state.settings.runtime_control_required,
-        )
-        return receipt
+            # Under the lease and STOP gates, as the HTTP publish path does.
+            request.app.state.runtime_session_manager.record_published_mode_request(
+                request.headers.get(RUNTIME_SESSION_HEADER, "").strip(),
+                preset.topic,
+                payload,
+                require_owner=request.app.state.settings.runtime_control_required,
+            )
+            return receipt
+
+        return stop_controller.execute_if_running(publish)
 
     try:
         receipt = execute_ordered_as_runtime_owner(request, preset.topic, seq, publish_and_record)
@@ -344,6 +345,7 @@ def dispatch_service_call_preset(
     seq: int | None = None,
 ) -> RuntimeActionDispatchResponse:
     audit_log = get_runtime_audit_log(request)
+    payload: dict[str, Any] = {}
 
     def reject(status_code: int, detail: str, payload_summary: dict[str, Any] | None = None) -> HTTPException:
         return audited_rejection(
@@ -352,7 +354,7 @@ def dispatch_service_call_preset(
             channel="runtime_action",
             detail=detail,
             message_type=preset.message_type,
-            payload_summary=payload_summary or {},
+            payload_summary={**(summarize_payload(payload) if payload else {}), **(payload_summary or {})},
             target=preset.command or preset.id,
             topic=preset.topic,
         )
@@ -366,10 +368,17 @@ def dispatch_service_call_preset(
         raise reject(409, stop_reason)
 
     try:
+        payload = resolve_runtime_action_payload(preset)
+    except ValueError as exc:
+        raise reject(422, str(exc)) from exc
+
+    try:
         ensure_allowed(preset.topic, application.runtime_policy.allowed_service_calls, "ROS service")
-        get_runtime_command_policy(request).ensure_service_allowed(preset.topic, preset.message_type)
+        get_runtime_command_policy(request).ensure_service_call_allowed(preset.topic, preset.message_type, payload)
     except RuntimeCommandPolicyError as exc:
         raise reject(403, str(exc)) from exc
+    except RuntimePayloadShapeError as exc:
+        raise reject(422, str(exc)) from exc
 
     try:
         get_runtime_command_rate_limiter(request).ensure_allowed(f"runtime_action_service:{preset.topic}")
@@ -380,7 +389,9 @@ def dispatch_service_call_preset(
 
     def call(commit: Callable[[], None]) -> RosServiceReceipt:
         commit()
-        return ros_service_gateway.call(RosServiceRequest(service=preset.topic, service_type=preset.message_type))
+        return ros_service_gateway.call(
+            RosServiceRequest(service=preset.topic, service_type=preset.message_type, payload=payload)
+        )
 
     try:
         receipt = execute_ordered_as_runtime_owner(
@@ -407,7 +418,11 @@ def dispatch_service_call_preset(
             channel="runtime_action",
             detail=detail,
             message_type=preset.message_type,
-            payload_summary={"call_status": receipt.status, "success": receipt.success},
+            payload_summary={
+                **(summarize_payload(payload) if payload else {}),
+                "call_status": receipt.status,
+                "success": receipt.success,
+            },
             status="rejected" if refused else "accepted",
             target=preset.command or preset.id,
             topic=preset.topic,
@@ -420,7 +435,8 @@ def dispatch_service_call_preset(
         detail=detail,
         message_type=preset.message_type,
         preset_id=preset.id,
-        status=receipt.status,
+        # A service that answered success: false did not do what was asked; the runtime shows it as refused.
+        status="refused" if refused else receipt.status,
         topic=preset.topic,
     )
 

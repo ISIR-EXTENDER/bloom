@@ -171,6 +171,8 @@ def test_a_refused_reset_says_so_in_the_detail() -> None:
 
     assert response.status_code == 200
     assert response.json()["detail"] == "Service refused: Robot still faulted."
+    # Not "called": the runtime must show a refusal, not a confirmed press.
+    assert response.json()["status"] == "refused"
 
 
 def test_a_refused_service_is_audited_as_rejected() -> None:

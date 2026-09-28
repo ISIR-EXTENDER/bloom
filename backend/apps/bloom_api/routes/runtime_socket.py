@@ -65,10 +65,9 @@ from libs.sessions import (
     RuntimeUnsubscribeTopicMessage,
     TeleopCommand,
     TeleopCommandGateway,
-    TeleopVector3,
     parse_runtime_client_message,
 )
-from libs.sessions.manager import VISUAL_SERVOING_OFF
+from libs.sessions.manager import VISUAL_SERVOING_OFF, zero_of
 from libs.sessions.stop import VISUAL_SERVOING_ON_TOPIC
 from libs.sessions.teleop_runtime import build_teleop_ack, to_teleop_command
 from libs.sessions.topic_sample_throttle import TopicSampleThrottle
@@ -209,14 +208,23 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                     or manager.pending_shaping_reset(session)
                     or manager.pending_visual_servoing_off(session)
                 ):
-                    await run_runtime_thread(
-                        neutralize_runtime_session,
-                        manager,
-                        session,
-                        get_teleop_command_gateway(websocket),
-                        get_runtime_stop_controller(websocket),
-                        get_runtime_audit_log(websocket),
-                    )
+                    try:
+                        await run_runtime_thread(
+                            neutralize_runtime_session,
+                            manager,
+                            session,
+                            get_teleop_command_gateway(websocket),
+                            get_runtime_stop_controller(websocket),
+                            get_runtime_audit_log(websocket),
+                        )
+                    except Exception:
+                        # As with the lease: what could not be neutralized is stopped.
+                        logger.exception("Runtime session %s could not be neutralized; engaging STOP.", session.id)
+                        with suppress(Exception):
+                            await run_runtime_thread(
+                                get_runtime_stop_controller(websocket).engage,
+                                executor=getattr(websocket.app.state, "runtime_stop_executor", None),
+                            )
                 manager.disconnect(session)
         except Exception:
             logger.exception("Runtime session %s failed to release control on disconnect.", session.id)
@@ -381,8 +389,9 @@ def reset_orphaned_modes(
     teleop_gateway: TeleopCommandGateway | None = None,
 ) -> None:
     """Undo the joint target or shaping mode a displaced stale owner left, before the new owner drives."""
-    for zero in manager.take_orphaned_teleop_zeros() if teleop_gateway is not None else ():
-        publish_orphaned_zero(teleop_gateway, zero, session, audit_log)
+    for zero in manager.orphaned_teleop_zeros() if teleop_gateway is not None else ():
+        if publish_orphaned_zero(teleop_gateway, zero, session, audit_log):
+            manager.resolve_orphaned_teleop_zero(zero)
     for topic, mode in manager.orphaned_mode_resets():
         try:
             if mode == VISUAL_SERVOING_OFF:
@@ -391,7 +400,7 @@ def reset_orphaned_modes(
                 detail = stop_controller.publish_mode_reset(topic, mode)
             status = "accepted"
             manager.resolve_orphaned_mode_reset((topic, mode))
-        except RuntimeError as exc:
+        except Exception as exc:  # noqa: BLE001
             # Still owed: the next claim retries it and STOP keeps cancelling on its topic.
             detail = str(exc)
             status = "rejected"
@@ -404,11 +413,12 @@ def reset_orphaned_modes(
 
 def publish_orphaned_zero(
     gateway: TeleopCommandGateway, zero: TeleopCommand, session: RuntimeSession, audit_log: RuntimeAuditLog
-) -> None:
+) -> bool:
     try:
         detail = gateway.publish(zero).detail
         status = "accepted"
-    except RuntimeError as exc:
+    # rclpy raises its own errors too; the zero stays owed for the next claim.
+    except Exception as exc:  # noqa: BLE001
         detail = str(exc)
         status = "rejected"
     audit_log.record(
@@ -416,6 +426,7 @@ def publish_orphaned_zero(
             channel="runtime_control", detail=detail, session_id=session.id, status=status, target=zero.target
         )
     )
+    return status == "accepted"
 
 
 def claim_runtime_control(
@@ -450,7 +461,7 @@ async def release_runtime_control(
             )
         # wait_for_control_operations raises ValueError when the lease moved on mid-release, which is
         # exactly the case this path exists to answer; catching RuntimeError alone tore the socket down.
-        except (RuntimeError, ValueError) as exc:
+        except Exception as exc:  # noqa: BLE001
             try:
                 await run_runtime_thread(
                     get_runtime_stop_controller(websocket).engage,
@@ -514,76 +525,74 @@ def neutralize_runtime_session(
     stop_controller: RuntimeStopController,
     audit_log: RuntimeAuditLog,
 ) -> None:
-    commands = manager.moving_teleop_commands(session)
-    try:
-        for command in commands:
-            zero = TeleopCommand(
-                angular=TeleopVector3(),
-                frame_id=command.frame_id,
-                linear=TeleopVector3(),
-                mode=command.mode,
-                seq=command.seq + 1,
-                target=command.target,
+    """Each step runs even when another fails; any failure raises afterwards so the caller falls back to STOP."""
+    failures: list[str] = []
+
+    def attempt(step: Callable[[], str | None], topic: str = "") -> None:
+        try:
+            detail = step()
+        except Exception as exc:  # noqa: BLE001
+            failures.append(str(exc))
+            audit_log.record(
+                RuntimeAuditRecord(
+                    channel="runtime_control", detail=str(exc), session_id=session.id, status="rejected", topic=topic
+                )
             )
-            try:
-                stop_controller.execute_if_running(lambda zero=zero: gateway.publish(zero))
-            except RuntimeStoppedError:
-                # STOP may have won the gate after this target last moved. A
-                # direct zero is still safe and covers non-default targets.
-                gateway.publish(zero)
-        # A joint target runs to its pose with nobody left to stop it; cancel it the way STOP does.
-        cancel_topic = manager.pending_joint_target(session)
-        if cancel_topic is not None:
+            return
+        if detail is not None:
+            audit_log.record(
+                RuntimeAuditRecord(
+                    channel="runtime_control", detail=detail, session_id=session.id, status="accepted", topic=topic
+                )
+            )
+
+    def zero_teleop(command: TeleopCommand) -> None:
+        zero = zero_of(command)
+        try:
+            stop_controller.execute_if_running(lambda: gateway.publish(zero))
+        except RuntimeStoppedError:
+            # STOP may have won the gate after this target last moved. A
+            # direct zero is still safe and covers non-default targets.
+            gateway.publish(zero)
+        manager.forget_teleop_command(session.id, command)
+
+    for command in manager.moving_teleop_commands(session):
+        attempt(lambda command=command: zero_teleop(command))
+
+    # A joint target runs to its pose with nobody left to stop it; cancel it the way STOP does.
+    cancel_topic = manager.pending_joint_target(session)
+    if cancel_topic is not None:
+
+        def cancel() -> str:
             detail = stop_controller.cancel_joint_target(cancel_topic)
             manager.clear_joint_target(session)
-            audit_log.record(
-                RuntimeAuditRecord(
-                    channel="runtime_control",
-                    detail=detail,
-                    session_id=session.id,
-                    status="accepted",
-                    topic=cancel_topic,
-                )
-            )
-        # A held Snake whose release never came would shape the next operator's motion.
-        shaping_topic = manager.pending_shaping_reset(session)
-        if shaping_topic is not None:
+            return detail
+
+        attempt(cancel, cancel_topic)
+
+    # A held Snake whose release never came would shape the next operator's motion.
+    shaping_topic = manager.pending_shaping_reset(session)
+    if shaping_topic is not None:
+
+        def reset_shaping() -> str:
             detail = stop_controller.publish_mode_reset(shaping_topic, DEFAULT_GEOMETRIC_MODE)
             manager.clear_shaping_reset(session)
-            audit_log.record(
-                RuntimeAuditRecord(
-                    channel="runtime_control",
-                    detail=detail,
-                    session_id=session.id,
-                    status="accepted",
-                    topic=shaping_topic,
-                )
-            )
-        # The servoing node keeps commanding while its switch is on, whoever is driving next.
-        if manager.pending_visual_servoing_off(session):
+            return detail
+
+        attempt(reset_shaping, shaping_topic)
+
+    # The servoing node keeps commanding while its switch is on, whoever is driving next.
+    if manager.pending_visual_servoing_off(session):
+
+        def servo_off() -> str:
             detail = stop_controller.turn_off_visual_servoing()
             manager.clear_visual_servoing(session)
-            audit_log.record(
-                RuntimeAuditRecord(
-                    channel="runtime_control",
-                    detail=detail,
-                    session_id=session.id,
-                    status="accepted",
-                    topic=VISUAL_SERVOING_ON_TOPIC,
-                )
-            )
-    except RuntimeError as exc:
-        audit_log.record(
-            RuntimeAuditRecord(
-                channel="runtime_control",
-                detail=str(exc),
-                session_id=session.id,
-                status="rejected",
-            )
-        )
-        raise
+            return detail
 
-    manager.clear_teleop_commands(session)
+        attempt(servo_off, VISUAL_SERVOING_ON_TOPIC)
+
+    if failures:
+        raise RuntimeError(" ".join(failures))
 
 
 def disconnect_runtime_session(
@@ -598,7 +607,7 @@ def disconnect_runtime_session(
         manager.wait_for_control_operations(session)
         try:
             neutralize_runtime_session(manager, session, gateway, stop_controller, audit_log)
-        except RuntimeError:
+        except Exception:  # noqa: BLE001
             try:
                 # On STOP's own worker, so it is ordered with HTTP STOP and resume.
                 if stop_executor is None:

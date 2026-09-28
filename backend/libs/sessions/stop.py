@@ -90,7 +90,7 @@ class RuntimeStopController:
         # The manager keeps its shaper apart from its behaviour, so a Snake outlives the cancel unless reset too.
         self._shaping_topics_source = shaping_topics
         self._state_path = state_path
-        # Told the zeroed target once both assertions publish, so session state can follow.
+        # Told the targets whose zero published, and what else published, so session state can follow.
         self._on_asserted = on_asserted
         self._lock = threading.Lock()
         self._stopped = False
@@ -147,7 +147,7 @@ class RuntimeStopController:
             # limit. Keeping the gate held makes this the last robot operation.
             # Read once: a refresh between the zeros and the session bookkeeping would mark an unzeroed topic zeroed.
             targets = self._teleop_targets()
-            zero_ok, zero_detail, zero_simulated = self._publish_zero_twists(targets)
+            zeroed, zero_ok, zero_detail, zero_simulated = self._publish_zero_twists(targets)
             cancelled, cancel_ok, cancel_detail, cancel_simulated = self._publish_joint_target_cancels()
             reset, reset_ok, reset_detail, reset_simulated = self._publish_shaping_resets()
             servo_ok, servo_detail, servo_simulated = self._publish_visual_servoing_off()
@@ -162,8 +162,7 @@ class RuntimeStopController:
         self._record("accepted" if state.asserted else "rejected", state.detail)
         # Session state forgets only what was actually told: a failed cancel is still owed when its sender leaves.
         if self._on_asserted is not None:
-            for target in targets:
-                self._on_asserted(target, cancelled_topics=cancelled, reset_shaping_topics=reset, servo_off=servo_ok)
+            self._on_asserted(*zeroed, cancelled_topics=cancelled, reset_shaping_topics=reset, servo_off=servo_ok)
         if not state.asserted:
             raise RuntimeStopAssertionError(state)
         return state
@@ -197,8 +196,9 @@ class RuntimeStopController:
         self._record("accepted", "Runtime stop resumed by operator hold." + save_error)
         return state
 
-    def _publish_zero_twists(self, targets: tuple[str, ...]) -> tuple[bool, str, bool]:
+    def _publish_zero_twists(self, targets: tuple[str, ...]) -> tuple[tuple[str, ...], bool, str, bool]:
         """Every accepted target, because the latch cannot know which one a session was driving."""
+        zeroed: list[str] = []
         published: list[str] = []
         failures: list[str] = []
         simulated = False
@@ -217,10 +217,11 @@ class RuntimeStopController:
                 failures.append(f"{target} ({exc})")
                 continue
             simulated = simulated or receipt.status == "simulated"
+            zeroed.append(target)
             published.append(f"{receipt.status} on {receipt.target}")
         if failures:
-            return False, f"Zero velocity could not be published: {', '.join(failures)}.", simulated
-        return True, f"Zero velocity {'; '.join(published)}.", simulated
+            return tuple(zeroed), False, f"Zero velocity could not be published: {', '.join(failures)}.", simulated
+        return tuple(zeroed), True, f"Zero velocity {'; '.join(published)}.", simulated
 
     def cancel_joint_target(self, mode_request_topic: str | None = None) -> str:
         """The STOP's own cancel, alone: for a session that leaves a joint target running. Raises on failure."""

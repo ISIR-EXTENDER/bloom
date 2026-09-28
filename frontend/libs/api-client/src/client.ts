@@ -66,6 +66,10 @@ export class BloomApiError extends Error {
   }
 }
 
+export const PUBLISH_TIMEOUT_MS = 4000;
+// Above the backend's worst case (1 s wait_for_service + 3 s response), so a slow success still lands.
+export const SERVICE_CALL_TIMEOUT_MS = 6000;
+
 // ADR 0141: grows within a page, so the server applies robot publishes in the order they were issued.
 let publishSeq = Date.now();
 
@@ -199,8 +203,17 @@ export class BloomApiClient {
     );
   }
 
-  dispatchRuntimeAction(request: RuntimeActionDispatchRequest): Promise<RuntimeActionDispatchResponse> {
-    return this.requestWithTimeout<RuntimeActionDispatchResponse>("/api/v1/runtime/actions", request, "Runtime action");
+  /** The server resolves the preset, so the client waits out a service call unless told it is a topic publish. */
+  dispatchRuntimeAction(
+    request: RuntimeActionDispatchRequest,
+    options: { presetKind?: string } = {},
+  ): Promise<RuntimeActionDispatchResponse> {
+    return this.requestWithTimeout<RuntimeActionDispatchResponse>(
+      "/api/v1/runtime/actions",
+      request,
+      "Runtime action",
+      options.presetKind === "topic-publish" ? PUBLISH_TIMEOUT_MS : SERVICE_CALL_TIMEOUT_MS,
+    );
   }
 
   /**
@@ -312,11 +325,12 @@ export class BloomApiClient {
   }
 
   callRosService(request: RosServiceCallRequest): Promise<RosServiceCallResponse> {
-    return this.request<RosServiceCallResponse>("/api/v1/ros/services/call", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
+    return this.requestWithTimeout<RosServiceCallResponse>(
+      "/api/v1/ros/services/call",
+      request,
+      `Service call to ${request.service}`,
+      SERVICE_CALL_TIMEOUT_MS,
+    );
   }
 
   getRuntimeStopState(): Promise<RuntimeStopState> {
@@ -355,9 +369,13 @@ export class BloomApiClient {
 
   private robotModel: { etag: string; response: RobotModelResponse } | null = null;
 
-  /** A robot-facing POST that gives up after 4 s, aborting the request; the caller treats it as no reply. */
-  private requestWithTimeout<T>(path: string, body: unknown, label: string): Promise<T> {
-    const timeoutMs = 4000;
+  /** A robot-facing POST that gives up after `timeoutMs`, aborting the request; the caller treats it as no reply. */
+  private requestWithTimeout<T>(
+    path: string,
+    body: unknown,
+    label: string,
+    timeoutMs = PUBLISH_TIMEOUT_MS,
+  ): Promise<T> {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timedOut = new Promise<never>((_, reject) => {

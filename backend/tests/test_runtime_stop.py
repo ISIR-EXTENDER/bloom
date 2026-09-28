@@ -570,5 +570,5 @@ def test_the_mirror_follows_generic_mode_publishes_and_stop() -> None:
         stopped = client.get("/api/v1/runtime/control").json()
 
     assert (driving["owner_moving"], driving["owner_mode_request"]) == (True, "geometric/both")
-    assert (stopped["owner_moving"], stopped["owner_mode_request"]) == (False, "behaviour/passthrough")
+    assert (stopped["owner_moving"], stopped["owner_mode_request"]) == (False, "geometric/both")
     assert stopped["owner_frame_id"] == "hybrid_frame"

@@ -89,6 +89,7 @@ class RuntimeSessionManager:
         self._teleop_commands: dict[str, dict[str, TeleopCommand]] = {}
         #: When each recorded moving command last arrived, for the legacy deadman.
         self._teleop_updated_at: dict[str, dict[str, float]] = {}
+        #: The last geometric shaping mode per session; the manager keeps behaviour apart and so does this.
         self._mode_requests: dict[str, str] = {}
         self._frame_ids: dict[str, str] = {}
         #: The mode-request topic a session sent a joint target on, until something cancels it.
@@ -317,8 +318,8 @@ class RuntimeSessionManager:
             if request.one_shot:
                 self._joint_target_topics[session_id] = topic
                 return
-            self._mode_requests[session_id] = request.normalized
             if request.normalized.startswith(f"{GEOMETRIC_PREFIX}/"):
+                self._mode_requests[session_id] = request.normalized
                 if request.normalized == DEFAULT_GEOMETRIC_MODE:
                     self._shaping_topics.pop(session_id, None)
                 else:
@@ -363,8 +364,11 @@ class RuntimeSessionManager:
             return self._shaping_topics.get(session.id)
 
     def clear_shaping_reset(self, session: RuntimeSession) -> None:
+        """The shaping reset published: the session's mode is geometric/both again."""
         with self._lock:
             self._shaping_topics.pop(session.id, None)
+            if session.id in self._sessions:
+                self._mode_requests[session.id] = DEFAULT_GEOMETRIC_MODE
 
     def has_orphaned_mode_resets(self) -> bool:
         with self._lock:
@@ -380,21 +384,23 @@ class RuntimeSessionManager:
             if reset in self._orphaned_mode_resets:
                 self._orphaned_mode_resets.remove(reset)
 
-    def take_orphaned_teleop_zeros(self) -> tuple[TeleopCommand, ...]:
+    def orphaned_teleop_zeros(self) -> tuple[TeleopCommand, ...]:
+        """Zeros a displaced owner's twists are owed; each stays owed until it publishes or STOP zeroes its target."""
         with self._lock:
-            zeros = tuple(self._orphaned_teleop_zeros)
-            self._orphaned_teleop_zeros.clear()
-            return zeros
+            return tuple(self._orphaned_teleop_zeros)
+
+    def resolve_orphaned_teleop_zero(self, zero: TeleopCommand) -> None:
+        with self._lock:
+            self._orphaned_teleop_zeros = [owed for owed in self._orphaned_teleop_zeros if owed is not zero]
 
     def record_runtime_stop(
         self,
-        zeroed_target: str,
-        *,
+        *zeroed_targets: str,
         cancelled_topics: Collection[str] | None = None,
         reset_shaping_topics: Collection[str] | None = None,
         servo_off: bool = True,
     ) -> None:
-        """STOP zeroed that target; only the cancels, shaping resets and servo-off that published are forgotten."""
+        """Only the zeros, cancels, shaping resets and servo-off that published are forgotten."""
         with self._lock:
             _forget_topics(self._joint_target_topics, cancelled_topics)
             _forget_topics(self._shaping_topics, reset_shaping_topics)
@@ -405,10 +411,14 @@ class RuntimeSessionManager:
             ]
             if servo_off:
                 self._visual_servoing_sessions.clear()
+            self._orphaned_teleop_zeros = [
+                zero for zero in self._orphaned_teleop_zeros if zero.target not in zeroed_targets
+            ]
             for session_id in self._sessions:
-                self._mode_requests[session_id] = STOP_MODE_REQUEST
+                self._mode_requests[session_id] = DEFAULT_GEOMETRIC_MODE
                 commands = self._teleop_commands.get(session_id, {})
-                commands.pop(zeroed_target, None)
+                for target in zeroed_targets:
+                    commands.pop(target, None)
                 if not commands:
                     self._teleop_commands.pop(session_id, None)
 
@@ -425,7 +435,9 @@ class RuntimeSessionManager:
     def moving_teleop_targets(self) -> tuple[str, ...]:
         """Every target some session is driving now, including one granted through a namespace entry."""
         with self._lock:
-            return tuple(dict.fromkeys(target for commands in self._teleop_commands.values() for target in commands))
+            moving = (target for commands in self._teleop_commands.values() for target in commands)
+            owed = (zero.target for zero in self._orphaned_teleop_zeros)
+            return tuple(dict.fromkeys([*moving, *owed]))
 
     def moving_teleop_commands(self, session: RuntimeSession) -> tuple[TeleopCommand, ...]:
         with self._lock:
@@ -468,7 +480,6 @@ class RuntimeSessionManager:
 
         self._owner_session_id = None
         self._releasing_session_id = None
-        self._publish_seqs.pop(owner_id, None)
         # Whatever it last sent expired on the manager long before this. A joint target and a shaping mode do not
         # expire, and the old session's own disconnect must not undo the new owner's, so the next claim resets them.
         for command in self._teleop_commands.pop(owner_id, {}).values():
@@ -480,6 +491,7 @@ class RuntimeSessionManager:
         shaping_topic = self._shaping_topics.pop(owner_id, None)
         if shaping_topic is not None:
             self._orphaned_mode_resets.append((shaping_topic, DEFAULT_GEOMETRIC_MODE))
+            self._mode_requests[owner_id] = DEFAULT_GEOMETRIC_MODE
         if owner_id in self._visual_servoing_sessions:
             self._visual_servoing_sessions.discard(owner_id)
             self._orphaned_mode_resets.append((VISUAL_SERVOING_ON_TOPIC, VISUAL_SERVOING_OFF))

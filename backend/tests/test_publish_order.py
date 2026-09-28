@@ -232,7 +232,7 @@ def test_the_record_lives_with_the_session_and_is_dropped_on_disconnect() -> Non
     assert eventually(lambda: manager.last_publish_seq(session_id, "/ui/grip") is None)
 
 
-def test_a_stale_lease_drop_forgets_the_record() -> None:
+def test_a_displaced_session_keeps_its_record_until_it_disconnects() -> None:
     now = [0.0]
     manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=lambda: now[0])
     stale = manager.connect()
@@ -240,8 +240,15 @@ def test_a_stale_lease_drop_forgets_the_record() -> None:
     manager.execute_in_publish_order(stale.id, "/ui/grip", 4, lambda _commit: None)
 
     now[0] = 11.0
-    manager.claim_control(manager.connect())
+    successor = manager.connect()
+    manager.claim_control(successor)
+    manager.release_control(successor)
+    manager.claim_control(stale)
 
+    # A delayed older publish from before the displacement must not apply after the reclaim.
+    with pytest.raises(PublishSupersededError):
+        manager.execute_in_publish_order(stale.id, "/ui/grip", 3, lambda _commit: None)
+    manager.disconnect(stale)
     assert manager.last_publish_seq(stale.id, "/ui/grip") is None
 
 

@@ -17,7 +17,6 @@ from apps.bloom_api.routes.runtime_common import (
 from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
-    execute_as_runtime_owner,
     execute_ordered_as_runtime_owner,
     publish_seq,
     require_observer,
@@ -30,6 +29,7 @@ from libs.ros_adapters import (
     RosPublishReceipt,
     RosPublishRequest,
     RosServiceGateway,
+    RosServiceReceipt,
     RosServiceRequest,
     RosTopicCatalogGateway,
     RosTopicInfo,
@@ -52,6 +52,7 @@ from libs.sessions import (
     RuntimeRateLimitError,
     RuntimeStoppedError,
 )
+from libs.sessions.audit import summarize_payload
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -162,6 +163,14 @@ class RosParameterListResponse(BaseModel):
 class RosServiceCallRequest(AppScopedRequest):
     service: str = Field(min_length=1)
     service_type: str = Field(min_length=1)
+    payload: dict[str, Any] | None = None
+    payload_text: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_single_payload_source(self) -> RosServiceCallRequest:
+        if self.payload is not None and self.payload_text is not None:
+            raise ValueError("Use either payload or payload_text, not both")
+        return self
 
     @field_validator("service")
     @classmethod
@@ -277,20 +286,21 @@ def publish_ros_topic(
     session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
 
     def publish_and_record(commit: Callable[[], None]) -> RosPublishReceipt:
-        receipt = stop_controller.execute_if_running(
-            lambda: publish_with_runtime_policy(
+        def publish() -> RosPublishReceipt:
+            receipt = publish_with_runtime_policy(
                 gateway, policy, audit_log, ros_publish_request, rate_limiter, before_publish=commit
             )
-        )
-        # The shipped mode buttons publish here, not as action presets. Recorded under the lease gate a
-        # release waits on, so a release never misses it and a non-owner never keeps it.
-        manager.record_published_mode_request(
-            session_id,
-            ros_publish_request.topic,
-            ros_publish_request.payload,
-            require_owner=request.app.state.settings.runtime_control_required,
-        )
-        return receipt
+            # The shipped mode buttons publish here, not as action presets. Recorded under the lease gate a
+            # release waits on and the STOP gate, so neither a release nor a STOP misses it.
+            manager.record_published_mode_request(
+                session_id,
+                ros_publish_request.topic,
+                ros_publish_request.payload,
+                require_owner=request.app.state.settings.runtime_control_required,
+            )
+            return receipt
+
+        return stop_controller.execute_if_running(publish)
 
     try:
         receipt = execute_ordered_as_runtime_owner(request, publish_request.topic, seq, publish_and_record)
@@ -421,14 +431,17 @@ def call_ros_service(
     call_request: RosServiceCallRequest,
     _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RosServiceCallResponse:
+    seq = publish_seq(request)
     audit_log = get_runtime_audit_log(request)
+    payload: dict[str, Any] = call_request.payload or {}
 
-    def record(status: str, detail: str) -> None:
+    def record(status: str, detail: str, extra_summary: dict[str, Any] | None = None) -> None:
         audit_log.record(
             RuntimeAuditRecord(
                 channel="http_ros_service",
                 detail=detail,
                 message_type=call_request.service_type,
+                payload_summary={**(summarize_payload(payload) if payload else {}), **(extra_summary or {})},
                 status="accepted" if status == "accepted" else "rejected",
                 target=call_request.service,
             )
@@ -440,11 +453,23 @@ def call_ros_service(
         record("rejected", stop_reason)
         raise HTTPException(status_code=409, detail=stop_reason)
 
+    if call_request.payload_text is not None:
+        try:
+            payload = parse_ros_payload_text(call_request.payload_text)
+        except ValueError as exc:
+            record("rejected", str(exc))
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     try:
-        policy_for(request, call_request).ensure_service_allowed(call_request.service, call_request.service_type)
+        policy_for(request, call_request).ensure_service_call_allowed(
+            call_request.service, call_request.service_type, payload
+        )
     except RuntimeCommandPolicyError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except RuntimePayloadShapeError as exc:
+        record("rejected", str(exc))
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     try:
         get_runtime_command_rate_limiter(request).ensure_allowed(f"http_ros_service:{call_request.service}")
@@ -452,15 +477,24 @@ def call_ros_service(
         record("rejected", str(exc))
         raise HTTPException(status_code=429, detail=str(exc)) from exc
 
+    ros_service_request = RosServiceRequest(
+        service=call_request.service, service_type=call_request.service_type, payload=payload
+    )
+
+    def call(commit: Callable[[], None]) -> RosServiceReceipt:
+        commit()
+        return get_ros_service_gateway(request).call(ros_service_request)
+
     try:
-        receipt = execute_as_runtime_owner(
+        receipt = execute_ordered_as_runtime_owner(
             request,
-            lambda: stop_controller.execute_blocking_if_running(
-                lambda: get_ros_service_gateway(request).call(
-                    RosServiceRequest(service=call_request.service, service_type=call_request.service_type)
-                )
-            ),
+            call_request.service,
+            seq,
+            lambda commit: stop_controller.execute_blocking_if_running(lambda: call(commit)),
         )
+    except PublishSupersededError as exc:
+        record("rejected", str(exc), {"reason": "superseded", "publish_seq": seq})
+        raise superseded_error(exc) from exc
     except RuntimeStoppedError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=409, detail=str(exc)) from exc

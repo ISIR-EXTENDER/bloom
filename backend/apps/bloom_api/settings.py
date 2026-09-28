@@ -123,8 +123,8 @@ class Settings(BaseModel):
         "/petanque_throw:total_duration",
         "/petanque_throw:angle_between_start_and_finish",
     )
-    # Trigger-style services the runtime may call. The fault reset is the
-    # Kinova gen3's recovery path.
+    # Services the runtime may call, any type listed below; a request payload is checked against the
+    # type's Request fields. The fault reset is the Kinova gen3's recovery path.
     allowed_ros_service_calls: tuple[str, ...] = ("/fault_controller/reset_fault",)
     allowed_ros_service_types: tuple[str, ...] = (
         "example_interfaces/srv/Trigger",

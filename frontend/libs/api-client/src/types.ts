@@ -160,7 +160,7 @@ export type RuntimeAdapterPolicy = {
   allowed_parameters?: string[];
   allowed_publish_topics: string[];
   allowed_recording_topics: string[];
-  /** Trigger-style ROS services this app may call. */
+  /** ROS services this app may call; the deployment allowlists their types. */
   allowed_service_calls: string[];
   allowed_teleop_targets: string[];
 };
@@ -172,7 +172,9 @@ export type RuntimeActionPreset = {
   description: string;
   command: string;
   topic: string;
+  /** A ROS message type, or the service type when `kind` is "service-call" (`topic` then names the service). */
   message_type: string;
+  /** Message fields, or the service request fields; `payload_text` (YAML) wins when set. */
   payload: unknown;
   payload_text: string;
   tags: string[];
@@ -445,6 +447,9 @@ export type RosParameterReading = {
 export type RosServiceCallRequest = AppScope & {
   service: string;
   service_type: string;
+  /** Request fields, checked against the service type's Request; send one of the two, or neither. */
+  payload?: Record<string, unknown>;
+  payload_text?: string;
 };
 
 export type RosServiceCallResponse = {

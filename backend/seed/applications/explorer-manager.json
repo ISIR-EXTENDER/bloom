@@ -8,7 +8,7 @@
     {
       "id": "explorer-manager",
       "name": "Explorer Manager",
-      "description": "Operator app shaped around the cartesian_manager branches: velocity drive, named positions, robot feedback, and command-source visibility.",
+      "description": "Explorer operator app shaped around the cartesian_manager branches: velocity drive, named positions, robot feedback, and command-source visibility.",
       "lifecycle": "active",
       "action_presets": [
         {

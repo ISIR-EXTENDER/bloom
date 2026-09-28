@@ -236,13 +236,14 @@ def test_stop_ends_the_mirrored_motion_and_mode() -> None:
     owner = manager.connect()
     manager.claim_control(owner)
     manager.record_teleop_command(owner, moving_command())
-    manager.record_mode_request(owner.id, "geometric/both")
+    manager.record_mode_request(owner.id, "geometric/snake")
 
     manager.record_runtime_stop("/joystick_cartesian_command")
 
     seen = manager.control_snapshot("")
     assert seen.owner_moving is False
-    assert seen.owner_mode_request == "behaviour/passthrough"
+    # STOP resets the shaper; the passthrough it also sends is behaviour, which the manager keeps apart.
+    assert seen.owner_mode_request == "geometric/both"
     assert seen.owner_frame_id == "hybrid_frame"
 
 

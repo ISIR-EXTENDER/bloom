@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from libs.ros_adapters.mode_request import JOINT_TARGET_PREFIX, normalize_mode_request
+from libs.ros_adapters.mode_request import BEHAVIOUR_PREFIX, JOINT_TARGET_PREFIX, normalize_mode_request
 
 MAX_LINEAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed"
 MAX_ANGULAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed"
@@ -73,6 +73,12 @@ KINOVA_HOME_REFUSAL = (
     "Go home is not available on the Kinova: its manager loads the Explorer's home pose (cartesian_manager#10)."
 )
 
+#: An entry ending in "/" refuses every target under it.
+KINOVA_POSE_TARGETS = f"{BEHAVIOUR_PREFIX}/pose_target/"
+KINOVA_POSE_TARGET_REFUSAL = (
+    "Pose targets are not available on the Kinova: its manager loads the Explorer's Cartesian pose targets."
+)
+
 
 def is_kinova_robot(robot_name: str) -> bool:
     name = robot_name.lower()
@@ -81,7 +87,7 @@ def is_kinova_robot(robot_name: str) -> bool:
 
 def robot_refused_mode_requests(robot_name: str, allow_kinova_home: bool) -> tuple[tuple[str, str], ...]:
     if is_kinova_robot(robot_name) and not allow_kinova_home:
-        return ((KINOVA_HOME_MODE, KINOVA_HOME_REFUSAL),)
+        return ((KINOVA_HOME_MODE, KINOVA_HOME_REFUSAL), (KINOVA_POSE_TARGETS, KINOVA_POSE_TARGET_REFUSAL))
     return ()
 
 
@@ -107,7 +113,7 @@ class RuntimeCommandPolicy:
     topic_value_bounds: tuple[tuple[str, float, float], ...] = DEFAULT_TOPIC_VALUE_BOUNDS
     #: ("<node>:<parameter>", min, max) for live parameters the manager does not bound itself.
     parameter_bounds: tuple[tuple[str, float, float], ...] = DEFAULT_PARAMETER_BOUNDS
-    #: (normalized mode, reason) pairs refused on any mode-request topic on this robot.
+    #: (normalized mode, reason) pairs refused on any mode-request topic on this robot; "x/" refuses "x/*".
     refused_mode_requests: tuple[tuple[str, str], ...] = ()
 
     def ensure_publish_allowed(self, topic: str, message_type: str, payload: dict[str, Any]) -> None:
@@ -121,9 +127,10 @@ class RuntimeCommandPolicy:
         data = payload.get("data")
         if not self.refused_mode_requests or not topic.endswith("mode_request") or not isinstance(data, str):
             return
-        mode = normalize_mode_request(data)
+        # Empty segments dropped, so "…/home/" cannot slip past the comparison.
+        mode = "/".join(part for part in normalize_mode_request(data).split("/") if part)
         for refused, reason in self.refused_mode_requests:
-            if mode == refused:
+            if mode == refused or (refused.endswith("/") and mode.startswith(refused)):
                 raise RuntimePayloadShapeError(reason)
 
     def ensure_topic_value_in_bounds(self, topic: str, payload: dict[str, Any]) -> None:
@@ -142,6 +149,10 @@ class RuntimeCommandPolicy:
     def ensure_service_allowed(self, service: str, service_type: str) -> None:
         ensure_allowed(service, self.allowed_service_calls, "ROS service")
         ensure_allowed(service_type, self.allowed_service_types, "ROS service type")
+
+    def ensure_service_call_allowed(self, service: str, service_type: str, payload: dict[str, Any]) -> None:
+        self.ensure_service_allowed(service, service_type)
+        validate_service_request_payload(service_type, payload)
 
     def ensure_parameter_allowed(self, node: str, name: str) -> None:
         ensure_allowed(f"{node}:{name}", self.allowed_parameters, "ROS parameter")
@@ -240,6 +251,44 @@ def message_class(message_type: str) -> Any:
         return None
 
 
+@functools.lru_cache(maxsize=256)
+def service_request_class(service_type: str) -> Any:
+    """The rosidl Request class, or None without rosidl or for a type it does not know."""
+    try:
+        from rosidl_runtime_py.utilities import get_service
+    except ModuleNotFoundError:
+        return None
+    parts = service_type.split("/")
+    if len(parts) == 2:
+        parts = [parts[0], "srv", parts[1]]
+    try:
+        return get_service("/".join(parts)).Request
+    except (AttributeError, ModuleNotFoundError, ValueError):
+        return None
+
+
+def validate_service_request_payload(service_type: str, payload: dict[str, Any]) -> None:
+    """The topic-publish field walker, applied to the service's Request fields."""
+    label = f"{service_type} request"
+    if _holds_non_finite(payload):
+        raise RuntimePayloadShapeError(f"{label} must not hold NaN, infinite or out-of-range numbers.")
+    request_cls = service_request_class(service_type)
+    if request_cls is None:
+        hit = next(iter(_non_finite_texts(payload, "")), None)
+        if hit is not None:
+            raise RuntimePayloadShapeError(f"{label} field {hit[0]} must be a number, not {hit[1]!r}.")
+        return
+    declared = request_cls.get_fields_and_field_types()
+    if payload and not declared:
+        raise RuntimePayloadShapeError(f"{label} takes no fields.")
+    unknown = sorted(str(name) for name in payload if name not in declared)
+    if unknown:
+        raise RuntimePayloadShapeError(f"{label} has no field {', '.join(unknown)}.")
+    error = _fields_error(request_cls, payload, "")
+    if error is not None:
+        raise RuntimePayloadShapeError(f"{label} field {error}")
+
+
 def _fields_error(message_cls: Any, payload: object, path: str) -> str | None:
     if not isinstance(payload, dict):
         return None
@@ -272,9 +321,15 @@ def _field_error(field_type: str, value: object, path: str) -> str | None:
         return None
     if element in _INTEGER_FIELD_RANGES:
         lower, upper = _INTEGER_FIELD_RANGES[element]
-        if isinstance(value, int) and not isinstance(value, bool) and not lower <= value <= upper:
-            return f"'{path}' must be an integer from {lower} to {upper}."
-        return None
+        # rosidl would coerce "7" and True, and wrap an out-of-range value; byte and char also take text.
+        if isinstance(value, int) and not isinstance(value, bool):
+            in_range = lower <= value <= upper
+        else:
+            in_range = not element.startswith(("int", "uint"))
+        return None if in_range else f"'{path}' must be an integer from {lower} to {upper}."
+    if element in {"boolean", "bool"}:
+        # bool("false") is True.
+        return None if isinstance(value, bool) else f"'{path}' must be a boolean."
     if "/" in element:
         nested = message_class(element)
         return None if nested is None else _fields_error(nested, value, f"{path}.")

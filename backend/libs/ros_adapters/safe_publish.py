@@ -85,7 +85,8 @@ def normalize_mode_request_payload(
     would differ from what ``tablet_interface`` publishes for the same intent.
     The normalized form is published instead.
     """
-    if publish_request.topic not in mode_request_topics:
+    # Every mode-request topic the policy guards, not only the listed ones: a raw request there skipped the checks.
+    if publish_request.topic not in mode_request_topics and not publish_request.topic.endswith("mode_request"):
         return publish_request
 
     payload = publish_request.payload

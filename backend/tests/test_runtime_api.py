@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pytest
@@ -1506,3 +1507,32 @@ def test_a_freshly_created_app_can_drive_the_robot() -> None:
     assert context["payload"]["allowed_teleop_targets"] == ["/joystick_cartesian_command"]
     assert acknowledged["type"] == "teleop_ack", acknowledged
     assert gateway.commands[0].target == "/joystick_cartesian_command"
+
+
+def test_a_disconnect_without_the_lease_latches_stop_when_it_cannot_neutralize() -> None:
+    gateway = FailingNeutralTeleopGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=False),
+        InMemoryConfigurationRepository(),
+        teleop_command_gateway=gateway,
+    )
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        websocket.receive_json()
+        websocket.send_json(
+            {
+                "type": "teleop_cmd",
+                "angular": {"x": 0.0, "y": 0.0, "z": 0.0},
+                "linear": {"x": 0.2, "y": 0.0, "z": 0.0},
+                "mode": 3,
+                "seq": 1,
+                "target": "/joystick_cartesian_command",
+            }
+        )
+        assert websocket.receive_json()["type"] == "teleop_ack"
+
+    deadline = time.monotonic() + 2.0
+    while not client.get("/api/v1/runtime/stop").json()["stopped"] and time.monotonic() < deadline:
+        time.sleep(0.02)
+    assert client.get("/api/v1/runtime/stop").json()["stopped"] is True

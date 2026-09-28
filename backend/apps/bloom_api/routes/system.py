@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from apps.bloom_api.capabilities import describe_runtime_capabilities
 from apps.bloom_api.security import BloomPrincipal, require_observer
 from apps.bloom_api.settings import Settings
-from libs.ros_adapters.safety import MAX_ANGULAR_SPEED_TOPIC, MAX_LINEAR_SPEED_TOPIC
+from libs.ros_adapters.safety import MAX_ANGULAR_SPEED_TOPIC, MAX_LINEAR_SPEED_TOPIC, robot_refused_mode_requests
 
 router = APIRouter()
 
@@ -40,6 +40,8 @@ class RuntimeCapabilitiesResponse(BaseModel):
     allowed_ros_parameters: list[str] = []
     allowed_ros_service_calls: list[str] = []
     allowed_ros_service_types: list[str] = []
+    # Mode requests this robot refuses (a trailing "/" covers a family), so the Builder warns only when they apply.
+    refused_mode_requests: list[str] = []
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -76,6 +78,9 @@ def capabilities(
         teleop_targets=list(request.app.state.teleop_target_directory.targets()),
         max_linear_speed_limit=_topic_cap(request, MAX_LINEAR_SPEED_TOPIC, settings.max_linear_speed_limit),
         max_angular_speed_limit=_topic_cap(request, MAX_ANGULAR_SPEED_TOPIC, settings.max_angular_speed_limit),
+        refused_mode_requests=[
+            mode for mode, _reason in robot_refused_mode_requests(settings.robot_name, settings.allow_kinova_home)
+        ],
         allowed_ros_publish_topics=list(policy.allowed_publish_topics),
         allowed_ros_message_types=list(policy.allowed_message_types),
         allowed_ros_parameters=list(policy.allowed_parameters),

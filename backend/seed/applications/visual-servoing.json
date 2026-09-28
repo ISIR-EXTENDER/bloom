@@ -287,6 +287,10 @@
                 "height": 184
               },
               "settings": {
+                "labels": {
+                  "negative": "◀ Back",
+                  "positive": "Forward ▶"
+                },
                 "direction": "horizontal",
                 "intent_label": "Forward velocity",
                 "min": -1,

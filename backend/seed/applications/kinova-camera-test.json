@@ -8,7 +8,7 @@
     {
       "id": "kinova-camera-test",
       "name": "Kinova camera test",
-      "description": "Drives the arm with a camera in view, to check the camera path end to end before it is added to an operator app.",
+      "description": "Drives the Kinova gen3 with a camera in view, to check the camera path end to end before it is added to an operator app.",
       "lifecycle": "active",
       "action_presets": [],
       "runtime_policy": {

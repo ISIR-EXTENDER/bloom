@@ -266,11 +266,33 @@ describe("Bloom API client", () => {
 
       const outcome = expect(
         client.dispatchRuntimeAction({ app_id: "a", config_id: "c", command: "manager.neutral" }),
-      ).rejects.toThrow("timed out");
+      ).rejects.toThrow("timed out after 6 s");
       await vi.advanceTimersByTimeAsync(4000);
+      expect(signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(2000);
 
       await outcome;
       expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps the 4 s timeout for a runtime action the caller knows is a topic publish", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetcher = vi.fn<typeof fetch>(() => new Promise<Response>(() => undefined));
+      const client = createBloomApiClient({ fetcher });
+
+      const outcome = expect(
+        client.dispatchRuntimeAction(
+          { app_id: "a", config_id: "c", preset_id: "neutral" },
+          { presetKind: "topic-publish" },
+        ),
+      ).rejects.toThrow("timed out after 4 s");
+      await vi.advanceTimersByTimeAsync(4000);
+
+      await outcome;
     } finally {
       vi.useRealTimers();
     }
@@ -539,6 +561,61 @@ describe("resumeRuntimeStop", () => {
       body: JSON.stringify({ engaged_at: "2026-09-26T10:00:00+00:00" }),
     });
     expect(fetcher).toHaveBeenNthCalledWith(2, "/api/v1/runtime/stop/resume", { method: "POST" });
+  });
+
+  it("sends a service request payload with a publish sequence", async () => {
+    const fetcher = createJsonFetcher({
+      service: "/add",
+      service_type: "example_interfaces/srv/AddTwoInts",
+      status: "called",
+      success: null,
+      detail: 'Service /add answered: {"sum": 5}',
+    });
+    const client = createBloomApiClient({ fetcher });
+
+    await client.callRosService({
+      service: "/add",
+      service_type: "example_interfaces/srv/AddTwoInts",
+      payload: { a: 2, b: 3 },
+    });
+
+    const init = vi.mocked(fetcher).mock.calls[0]?.[1];
+    expect(JSON.parse(String(init?.body))).toEqual({
+      service: "/add",
+      service_type: "example_interfaces/srv/AddTwoInts",
+      payload: { a: 2, b: 3 },
+    });
+    expect(new Headers(init?.headers).get("X-Bloom-Publish-Seq")).toMatch(/^\d+$/);
+  });
+
+  it("waits out a service that answers after the backend's 4 s worst case, then gives up at 6 s", async () => {
+    vi.useFakeTimers();
+    try {
+      const answer = {
+        service: "/slow",
+        service_type: "std_srvs/srv/Trigger",
+        status: "called",
+        success: true,
+        detail: "",
+      };
+      const fetcher = vi.fn<typeof fetch>(
+        () => new Promise<Response>((resolve) => setTimeout(() => resolve(new Response(JSON.stringify(answer))), 4500)),
+      );
+      const client = createBloomApiClient({ fetcher });
+
+      const slow = client.callRosService({ service: "/slow", service_type: "std_srvs/srv/Trigger" });
+      await vi.advanceTimersByTimeAsync(4500);
+      await expect(slow).resolves.toEqual(answer);
+
+      fetcher.mockImplementation(() => new Promise<Response>(() => undefined));
+      const hung = expect(
+        client.callRosService({ service: "/hung", service_type: "std_srvs/srv/Trigger" }),
+      ).rejects.toThrow("Service call to /hung timed out after 6 s");
+      await vi.advanceTimersByTimeAsync(6000);
+      await hung;
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("sends an empty engaged_at, so a station that never saw a latch can't clear one", async () => {
