@@ -8,10 +8,12 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository
 from libs.ros_adapters.camera_streams import (
+    CAMERA_QOS_DEPTH,
     CameraStreamFrame,
     NoopCameraStreamGateway,
     RclpyCameraStreamGateway,
 )
+from libs.ros_adapters.qos import BEST_EFFORT, VOLATILE, QosChoice
 
 JPEG = b"\xff\xd8\xff" + b"frame one"
 
@@ -127,6 +129,15 @@ class RecordingNode:
     def destroy_subscription(self, subscription) -> None:
         self.destroyed += 1
 
+    def get_publishers_info_by_topic(self, topic):
+        return []
+
+    def create_timer(self, period, callback):
+        return object()
+
+    def destroy_timer(self, timer) -> None:
+        return None
+
 
 class FakeCompressedImage:
     def __init__(self, data: bytes, image_format: str = "jpeg") -> None:
@@ -136,9 +147,8 @@ class FakeCompressedImage:
 
 def test_an_oversized_frame_is_dropped_rather_than_streamed() -> None:
     node = RecordingNode()
-    gateway = RclpyCameraStreamGateway(node, max_frame_bytes=16)
+    gateway = RclpyCameraStreamGateway(node, max_frame_bytes=16, qos_factory=lambda choice: choice)
     gateway._get_compressed_image_class = lambda: FakeCompressedImage  # type: ignore[method-assign]
-    gateway._sensor_data_qos = lambda: "sensor-data"  # type: ignore[method-assign]
 
     seen: list[CameraStreamFrame] = []
     gateway.subscribe("/camera/color/image_raw/compressed", seen.append)
@@ -148,18 +158,19 @@ def test_an_oversized_frame_is_dropped_rather_than_streamed() -> None:
     assert [frame.image_bytes for frame in seen] == [b"x" * 8]
 
 
-def test_the_subscription_uses_sensor_data_qos() -> None:
+def test_the_subscription_is_best_effort_like_sensor_data() -> None:
     # Camera drivers publish best effort. A reliable subscriber matches none of them and sees nothing.
     node = RecordingNode()
-    gateway = RclpyCameraStreamGateway(node)
+    gateway = RclpyCameraStreamGateway(node, qos_factory=lambda choice: choice)
     gateway._get_compressed_image_class = lambda: FakeCompressedImage  # type: ignore[method-assign]
-    gateway._sensor_data_qos = lambda: "sensor-data"  # type: ignore[method-assign]
 
     handle = gateway.subscribe("/camera/color/image_raw/compressed", lambda frame: None)
     handle.close()
     handle.close()
 
-    assert node.created == [(FakeCompressedImage, "/camera/color/image_raw/compressed", "sensor-data")]
+    assert node.created == [
+        (FakeCompressedImage, "/camera/color/image_raw/compressed", QosChoice(BEST_EFFORT, VOLATILE, CAMERA_QOS_DEPTH))
+    ]
     assert node.destroyed == 1
 
 

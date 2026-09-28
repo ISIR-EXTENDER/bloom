@@ -21,10 +21,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from libs.ros_adapters.qos import AdaptiveSubscription, QosChoice, build_qos_profile
+
 logger = logging.getLogger(__name__)
 
 #: Matches the camera-frame publish path. A frame above this is not a camera frame.
 MAX_FRAME_BYTES = 8 * 1024 * 1024
+
+#: Same depth as ``qos_profile_sensor_data``.
+CAMERA_QOS_DEPTH = 5
 
 #: The only type on this path. Raw `Image` would put the conversion cost back on the backend.
 COMPRESSED_IMAGE_TYPE = "sensor_msgs/msg/CompressedImage"
@@ -50,24 +55,25 @@ class CameraStreamGateway(Protocol):
 
 
 class RclpyCameraStreamHandle:
-    def __init__(self, node: Any, subscription: Any) -> None:
-        self._node = node
+    def __init__(self, subscription: AdaptiveSubscription) -> None:
         self._subscription = subscription
-        self._closed = False
 
     def close(self) -> None:
-        if self._closed:
-            return
-        self._closed = True
-        self._node.destroy_subscription(self._subscription)
+        self._subscription.close()
 
 
 class RclpyCameraStreamGateway:
     """Subscribe to ``sensor_msgs/msg/CompressedImage`` through an existing rclpy node."""
 
-    def __init__(self, node: Any, max_frame_bytes: int = MAX_FRAME_BYTES) -> None:
+    def __init__(
+        self,
+        node: Any,
+        max_frame_bytes: int = MAX_FRAME_BYTES,
+        qos_factory: Callable[[QosChoice], Any] = build_qos_profile,
+    ) -> None:
         self._node = node
         self._max_frame_bytes = max_frame_bytes
+        self._qos_factory = qos_factory
 
     def subscribe(self, topic: str, on_frame: CameraStreamFrameCallback) -> RclpyCameraStreamHandle:
         reported_oversize = False
@@ -92,22 +98,17 @@ class RclpyCameraStreamGateway:
                 )
             )
 
-        subscription = self._node.create_subscription(
+        # Always best effort: a late frame is worse than none, and it still matches reliable drivers.
+        subscription = AdaptiveSubscription(
+            self._node,
             self._get_compressed_image_class(),
             topic,
             on_ros_message,
-            self._sensor_data_qos(),
+            CAMERA_QOS_DEPTH,
+            best_effort_only=True,
+            qos_factory=self._qos_factory,
         )
-        return RclpyCameraStreamHandle(self._node, subscription)
-
-    @staticmethod
-    def _sensor_data_qos() -> Any:
-        # Camera drivers publish best effort. A reliable subscriber matches none of them and sees nothing.
-        try:
-            from rclpy.qos import qos_profile_sensor_data
-        except ModuleNotFoundError as exc:
-            raise RuntimeError("rclpy is required to stream camera frames") from exc
-        return qos_profile_sensor_data
+        return RclpyCameraStreamHandle(subscription)
 
     @staticmethod
     def _get_compressed_image_class() -> type:

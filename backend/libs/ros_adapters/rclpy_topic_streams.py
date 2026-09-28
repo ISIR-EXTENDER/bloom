@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from libs.ros_adapters.messages import resolve_message_class
+from libs.ros_adapters.qos import AdaptiveSubscription, QosChoice, build_qos_profile
 from libs.sessions.topics import RuntimeTopicSample, RuntimeTopicSampleCallback, RuntimeTopicSubscription
 
 logger = logging.getLogger(__name__)
@@ -17,24 +18,25 @@ MAX_STREAMED_SEQUENCE = 8192
 
 
 class RclpyRuntimeTopicSubscriptionHandle:
-    def __init__(self, node: Any, subscription: Any) -> None:
-        self._node = node
+    def __init__(self, subscription: AdaptiveSubscription) -> None:
         self._subscription = subscription
-        self._closed = False
 
     def close(self) -> None:
-        if self._closed:
-            return
-        self._closed = True
-        self._node.destroy_subscription(self._subscription)
+        self._subscription.close()
 
 
 class RclpyRuntimeTopicSubscriptionGateway:
     """Stream ROS topic samples through an existing rclpy node."""
 
-    def __init__(self, node: Any, qos_profile: int = 10) -> None:
+    def __init__(
+        self,
+        node: Any,
+        qos_depth: int = 10,
+        qos_factory: Callable[[QosChoice], Any] = build_qos_profile,
+    ) -> None:
         self._node = node
-        self._qos_profile = qos_profile
+        self._qos_depth = qos_depth
+        self._qos_factory = qos_factory
         self._message_classes: dict[str, type] = {}
 
     def subscribe(
@@ -70,13 +72,15 @@ class RclpyRuntimeTopicSubscriptionGateway:
                 )
             )
 
-        ros_subscription = self._node.create_subscription(
+        ros_subscription = AdaptiveSubscription(
+            self._node,
             message_cls,
             subscription.topic,
             on_ros_message,
-            self._qos_profile,
+            self._qos_depth,
+            qos_factory=self._qos_factory,
         )
-        return RclpyRuntimeTopicSubscriptionHandle(self._node, ros_subscription)
+        return RclpyRuntimeTopicSubscriptionHandle(ros_subscription)
 
     def _resolve_topic_message_type(self, topic: str) -> str:
         for topic_name, message_types in self._node.get_topic_names_and_types():
