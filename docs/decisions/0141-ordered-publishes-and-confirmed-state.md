@@ -33,9 +33,15 @@ state, which is always an absolute payload and so safe to repeat, until one send
 
 - accepted: the state is **confirmed**;
 - superseded: a newer send owns the topic, nothing to do;
-- refused or no reply: retry at 250 ms, 500 ms, 1 s, 2 s, then every 2 s while the control is mounted, and on
-  unmount hand the last desired state to a module-level reconciler that finishes it;
-- a newer operator act replaces the desired state; the sequence makes any late send of the old one harmless.
+- no reply (timeout, network error, 5xx) or a transient refusal (429): it may have been applied, so retry at
+  250 ms, 500 ms, 1 s, 2 s, then every 2 s while the control is mounted, and on unmount hand the last desired
+  state to a module-level reconciler that finishes it within 60 s;
+- any other refusal (STOP latched, not the owner, 4xx, no ROS): the server did not apply it, so nothing is
+  retried and the control shows its last confirmed state with the reason;
+- STOP and suspend cancel a pending on, press or mode state, so nothing is re-applied after Resume without a new
+  operator act; the off and release states they ask for keep going;
+- a newer operator act replaces the desired state, and a publish on a topic ends other controls' pending states
+  on it; the sequence makes any late send of an old one harmless.
 
 **3. The screen shows what it knows.** A control is *confirmed* or *unconfirmed*. Unconfirmed shows the desired
 state with a "Not confirmed" mark (`data-confirmed="false"`), never the old state and never plain off. After

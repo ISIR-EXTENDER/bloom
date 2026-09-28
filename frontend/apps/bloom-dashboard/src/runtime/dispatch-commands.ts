@@ -1,7 +1,7 @@
 import type { RuntimeActionPreset } from "@bloom/api-client";
 import { resolveCommandRoute, type WidgetActionIntent } from "@bloom/widgets";
 import {
-  getErrorMessage,
+  classifyDispatchError,
   type RuntimeActionDispatchOptions,
   type RuntimeActionDispatchResult,
   type RuntimeConfiguredActionRequest,
@@ -72,8 +72,7 @@ export async function dispatchCommandIntent(
       return {
         intent,
         request: configuredActionRequest,
-        status: "failed",
-        detail: getErrorMessage(error),
+        ...classifyDispatchError(error),
       };
     }
   }

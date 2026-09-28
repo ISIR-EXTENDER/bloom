@@ -9,32 +9,24 @@ import {
 } from "@bloom/widgets";
 
 import { type PointerEvent, useEffect, useId, useRef, useState } from "react";
+import {
+  cancelPending,
+  claimTarget,
+  type DesiredSnapshot,
+  forgetSettled,
+  setDesired,
+  useDesiredState,
+} from "./desired-state";
 import { LatchCountdownNotice } from "./latch-countdown-notice";
-import { rendererStrings } from "./renderer-strings";
-import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
+import { type RendererStrings, rendererStrings } from "./renderer-strings";
+import type { WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
 
 /** A confirming press closer than this to the arming one is the same gesture, not a second decision. */
 const CONFIRM_SETTLE_MS = 600;
-const RELEASE_RETRIES = 3;
-const RELEASE_RETRY_MS = 200;
 /** The visual servoing switch: while on, the servo node moves the arm, so a suspend or STOP turns it off. */
 export const VISUAL_SERVOING_SWITCH_TOPIC = "/ui/visual_servoing/on";
-// Per topic, the last momentary publish attempted from any widget: a release retry must not undo a newer hold.
-let momentaryPublishCount = 0;
-const lastMomentaryPublishByTopic = new Map<string, number>();
-const recordTopicPublish = (topic: string) => {
-  momentaryPublishCount += 1;
-  lastMomentaryPublishByTopic.set(topic, momentaryPublishCount);
-};
-// Per topic, shared by every toggle instance: a retry from an unmounted switch must not undo a remounted one.
-let servoEpochCount = 0;
-const servoEpochByTopic = new Map<string, number>();
-const advanceServoEpoch = (topic: string) => {
-  servoEpochCount += 1;
-  servoEpochByTopic.set(topic, servoEpochCount);
-  return servoEpochCount;
-};
+const MODE_REQUEST_TOPIC = "/mode_request";
 
 export function CommandLikeWidget({
   conditioning,
@@ -67,18 +59,17 @@ export function CommandLikeWidget({
   // An unavailable widget's frame already states the reason; saying it twice only grows the card.
   const showsDisabledReason = Boolean(disabledReason) && controlState?.unavailable !== true;
   const disabledReasonId = showsDisabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
+  // A latched mode button asks for a state, so it keeps asking until the robot takes it (ADR 0141).
+  const reconcilesLatch = !momentary && !confirmPress && (selection !== undefined || topic === MODE_REQUEST_TOPIC);
+  const widgetId = descriptor.widget.id;
+  const target = topic || `widget:${widgetId}`;
+  const desired = useDesiredState(widgetId, target, onActionIntent);
   const isMomentaryPressedRef = useRef(false);
   // Only the pointer that began a hold may end it; a latch (click, scan, dwell) has none.
   const holdPointerIdRef = useRef<number | null>(null);
-  const [isMomentaryPressed, setIsMomentaryPressed] = useState(false);
+  const [isMomentaryHeld, setIsMomentaryHeld] = useState(false);
   const [isMomentaryLatched, setIsMomentaryLatched] = useState(false);
-  // A refused hold used to keep its pressed look; the reason now stays on the button.
-  const [momentaryRefusal, setMomentaryRefusal] = useState("");
-  // Press and release go out one after the other, and every press attempted is followed by a release.
-  const momentaryQueueRef = useRef<Promise<void> | null>(null);
-  const releaseOwedRef = useRef(false);
-  // A queued press whose hold has ended before its turn is dropped: it would set the mode after the let-go.
-  const holdGenerationRef = useRef(0);
+  const isMomentaryPressed = momentary && desired ? desired.value === "pressed" : isMomentaryHeld;
   const [isArmed, setIsArmed] = useState(false);
   const armedAtRef = useRef(0);
   const visibleButtonLabel = momentary
@@ -106,10 +97,18 @@ export function CommandLikeWidget({
   const releaseHeldRef = useRef(() => {});
   const latch = useLatchCountdown(isMomentaryLatched, null, () => releaseHeldRef.current());
   // An armed Go home must not survive a disable, a STOP or a suspend either.
+  // A mode still being asked for is not asked again after a STOP or a suspend.
+  const cancelPendingRef = useRef(() => {});
+  cancelPendingRef.current = () => {
+    if (reconcilesLatch) {
+      cancelPending(widgetId, target);
+    }
+  };
   useEffect(() => {
     if (disabled) {
       setIsArmed(false);
       releaseHeldRef.current();
+      cancelPendingRef.current();
     }
   }, [disabled]);
   useEffect(() => () => releaseHeldRef.current(), []);
@@ -121,7 +120,18 @@ export function CommandLikeWidget({
     lastNeutralRevisionRef.current = neutralRevision;
     setIsArmed(false);
     releaseHeldRef.current();
+    cancelPendingRef.current();
   }, [neutralRevision]);
+  // A refused press was not applied: the hold ends there, with nothing to release.
+  const pressRefused = momentary && desired?.refused === true && desired.value !== "pressed";
+  useEffect(() => {
+    if (pressRefused && isMomentaryPressedRef.current) {
+      holdPointerIdRef.current = null;
+      isMomentaryPressedRef.current = false;
+      setIsMomentaryHeld(false);
+      setIsMomentaryLatched(false);
+    }
+  }, [pressRefused]);
 
   const handlePress = () => {
     if (disabled) {
@@ -142,9 +152,13 @@ export function CommandLikeWidget({
     }
     setIsArmed(false);
     const intent = createWidgetActionIntent(descriptor.widget, { type: "press" });
-    // A latched publish holds the topic too, so it cancels a pending release retry.
+    if (intent.type === "topic-publish" && reconcilesLatch && onActionIntent) {
+      setDesired({ widgetId, target: intent.topic, value: "requested", engage: true, intent, send: onActionIntent });
+      return;
+    }
+    // A one-shot publish is the newest act on its topic: a pending retry there must not undo it.
     if (intent.type === "topic-publish") {
-      recordTopicPublish(intent.topic);
+      claimTarget(intent.topic);
     }
     onActionIntent?.(intent);
   };
@@ -165,8 +179,8 @@ export function CommandLikeWidget({
     }
     holdPointerIdRef.current = event.pointerId;
     isMomentaryPressedRef.current = true;
-    setIsMomentaryPressed(true);
-    publishMomentaryPayload("payload");
+    setIsMomentaryHeld(true);
+    publishMomentary("pressed");
   };
   // Scanning, dwell and the keyboard all activate through click(), which a
   // pointer-only hold cannot serve: the hold becomes a latch, with the same
@@ -184,16 +198,16 @@ export function CommandLikeWidget({
     }
     holdPointerIdRef.current = null;
     isMomentaryPressedRef.current = true;
-    setIsMomentaryPressed(true);
+    setIsMomentaryHeld(true);
     setIsMomentaryLatched(true);
-    publishMomentaryPayload("payload");
+    publishMomentary("pressed");
   };
   const releaseMomentary = () => {
     holdPointerIdRef.current = null;
     isMomentaryPressedRef.current = false;
-    setIsMomentaryPressed(false);
+    setIsMomentaryHeld(false);
     setIsMomentaryLatched(false);
-    publishMomentaryPayload("releasedPayload");
+    publishMomentary("released");
   };
   releaseHeldRef.current = () => {
     if (isMomentaryPressedRef.current) {
@@ -213,91 +227,27 @@ export function CommandLikeWidget({
     }
     releaseMomentary();
   };
-  const sendMomentaryPayload = (payloadKey: "payload" | "releasedPayload"): MaybeOutcome => {
-    recordTopicPublish(topic);
-    try {
-      const outcome = onActionIntent?.({
+  // Press and release are absolute payloads, so each replaces the other at once; the server orders them.
+  const publishMomentary = (value: "pressed" | "released") => {
+    if (!topic || !messageType || !onActionIntent) {
+      return;
+    }
+    const payloadKey = value === "pressed" ? "payload" : "releasedPayload";
+    setDesired({
+      widgetId,
+      target: topic,
+      value,
+      engage: value === "pressed",
+      intent: {
         type: "topic-publish",
-        widgetId: descriptor.widget.id,
+        widgetId,
         widgetKind: descriptor.widget.kind,
         topic,
         messageType,
         payload: resolveMomentaryPayload(topic, payloadKey, descriptor.widget.settings[payloadKey]),
-        ...(payloadKey === "releasedPayload" ? { release: true } : {}),
-      } satisfies WidgetActionIntent);
-      return outcome instanceof Promise ? outcome.catch(() => ({ accepted: false })) : outcome;
-    } catch {
-      return { accepted: false };
-    }
-  };
-  const enqueueMomentary = (step: () => Promise<void> | undefined) => {
-    const previous = momentaryQueueRef.current;
-    const next = previous ? previous.then(step) : step();
-    if (!next) {
-      return;
-    }
-    momentaryQueueRef.current = next;
-    void next.finally(() => {
-      if (momentaryQueueRef.current === next) {
-        momentaryQueueRef.current = null;
-      }
-    });
-  };
-  const sendRelease = (attempt: number): Promise<void> | undefined => {
-    const outcome = sendMomentaryPayload("releasedPayload");
-    const ownPublish = lastMomentaryPublishByTopic.get(topic);
-    return afterOutcome(outcome, (result) => {
-      if (result?.accepted !== false || attempt >= RELEASE_RETRIES) {
-        return undefined;
-      }
-      return new Promise<void>((resolve) => setTimeout(resolve, RELEASE_RETRY_MS * 2 ** attempt)).then(() =>
-        // Another widget's publish since this attempt holds the topic now; a retry would cancel its mode.
-        lastMomentaryPublishByTopic.get(topic) === ownPublish ? sendRelease(attempt + 1) : undefined,
-      );
-    });
-  };
-  const queueMomentaryRelease = () => {
-    if (!releaseOwedRef.current) {
-      return;
-    }
-    releaseOwedRef.current = false;
-    enqueueMomentary(() => sendRelease(0));
-  };
-  const publishMomentaryPayload = (payloadKey: "payload" | "releasedPayload") => {
-    if (!topic || !messageType) {
-      return;
-    }
-    if (payloadKey === "releasedPayload") {
-      queueMomentaryRelease();
-      return;
-    }
-    setMomentaryRefusal("");
-    releaseOwedRef.current = true;
-    holdGenerationRef.current += 1;
-    const holdGeneration = holdGenerationRef.current;
-    const refuse = (detail: string) => {
-      holdPointerIdRef.current = null;
-      isMomentaryPressedRef.current = false;
-      setIsMomentaryPressed(false);
-      setIsMomentaryLatched(false);
-      setMomentaryRefusal(detail || rendererStrings(language).notSent);
-      // A refused or lost press may still have reached the robot: let it go all the same.
-      queueMomentaryRelease();
-    };
-    enqueueMomentary(() => {
-      if (holdGeneration !== holdGenerationRef.current || !isMomentaryPressedRef.current) {
-        return undefined;
-      }
-      return afterOutcome(sendMomentaryPayload("payload"), (result) => {
-        if (
-          result?.accepted === false &&
-          isMomentaryPressedRef.current &&
-          holdGeneration === holdGenerationRef.current
-        ) {
-          refuse(result.detail ?? "");
-        }
-        return undefined;
-      });
+        ...(value === "released" ? { release: true } : {}),
+      } satisfies WidgetActionIntent,
+      send: onActionIntent,
     });
   };
 
@@ -309,8 +259,18 @@ export function CommandLikeWidget({
   // A timeout of zero means the button stays armed until it is pressed again, which is the opposite of
   // what the countdown wording promised on exactly the guard that protects a destructive command.
   const strings = rendererStrings(language);
-  const hint = momentaryRefusal
-    ? momentaryRefusal
+  const unconfirmed = desired !== null && !desired.confirmed;
+  const modeUnconfirmed = selection === "unconfirmed" || (reconcilesLatch && unconfirmed);
+  const mark =
+    desired?.marked && !desired.confirmed
+      ? confirmationMarkText(desired, strings, reconcilesLatch)
+      : selection === "unconfirmed"
+        ? strings.modeNotConfirmed
+        : "";
+  const refusal =
+    momentary && desired && (desired.refused || (unconfirmed && desired.marked)) ? (desired.detail ?? "") : "";
+  const hint = refusal
+    ? refusal
     : isArmed
       ? confirmTimeoutSeconds > 0
         ? strings.armedFor(confirmTimeoutSeconds)
@@ -322,11 +282,19 @@ export function CommandLikeWidget({
             ? strings.lastRequested(detail)
             : detail
           : "";
+  const stateName = mark
+    ? strings.notConfirmedName
+    : selection
+      ? isSelected
+        ? strings.requested
+        : strings.notRequested
+      : "";
 
   return (
     <div
       className="bloom-action-widget"
       data-armed={isArmed ? "true" : undefined}
+      data-confirmed={unconfirmed || modeUnconfirmed ? "false" : undefined}
       data-layout={layout}
       data-momentary={momentary ? "true" : "false"}
       data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
@@ -335,15 +303,15 @@ export function CommandLikeWidget({
       data-variant={variant || undefined}
     >
       <button
+        aria-busy={unconfirmed ? true : undefined}
         aria-describedby={disabledReasonId}
-        aria-label={`${
-          selection
-            ? `${visibleButtonLabel}: ${isSelected ? strings.requested : strings.notRequested}`
-            : visibleButtonLabel
-        }${disabledReason ? `. ${disabledReason}` : ""}`}
+        aria-label={`${stateName ? `${visibleButtonLabel}: ${stateName}` : visibleButtonLabel}${
+          disabledReason ? `. ${disabledReason}` : ""
+        }`}
         aria-pressed={momentary ? isMomentaryPressed : selection ? isSelected : undefined}
         className="bloom-command-button"
         data-armed={isArmed ? "true" : undefined}
+        data-confirmed={unconfirmed || modeUnconfirmed ? "false" : undefined}
         data-selected={isSelected ? "true" : undefined}
         data-confirm-press={confirmPress ? "true" : undefined}
         data-momentary={momentary ? "true" : "false"}
@@ -367,6 +335,7 @@ export function CommandLikeWidget({
         {showsTitle ? <span className="bloom-action-title">{descriptor.widget.title}</span> : null}
         <span className="bloom-action-label">{visibleButtonLabel}</span>
         {hint ? <span className="bloom-action-hint">{hint}</span> : null}
+        <ConfirmationMark late={Boolean(desired?.late && unconfirmed)} text={mark} />
         {showsDisabledReason ? (
           <small className="bloom-command-button-disabled-reason" id={disabledReasonId}>
             {disabledReason}
@@ -378,6 +347,21 @@ export function CommandLikeWidget({
   );
 }
 
+function confirmationMarkText(desired: DesiredSnapshot, strings: RendererStrings, isMode: boolean): string {
+  if (desired.late) {
+    return strings.notConfirmedLate;
+  }
+  return isMode ? strings.modeNotConfirmed : strings.notConfirmed;
+}
+
+function ConfirmationMark({ late, text }: { late: boolean; text: string }) {
+  return text ? (
+    <span className="bloom-confirm-mark" data-late={late ? "true" : undefined}>
+      {text}
+    </span>
+  ) : null;
+}
+
 /** A /mode_request hold saved without a release payload let go with {}, which the server refuses: send Neutral. */
 function resolveMomentaryPayload(topic: string, payloadKey: "payload" | "releasedPayload", payload: unknown): unknown {
   const missing =
@@ -385,18 +369,9 @@ function resolveMomentaryPayload(topic: string, payloadKey: "payload" | "release
     payload === null ||
     payload === "" ||
     (typeof payload === "object" && !Array.isArray(payload) && Object.keys(payload).length === 0);
-  return payloadKey === "releasedPayload" && missing && topic === "/mode_request"
+  return payloadKey === "releasedPayload" && missing && topic === MODE_REQUEST_TOPIC
     ? { data: "geometric/both" }
     : payload;
-}
-
-type MaybeOutcome = WidgetActionOutcome | undefined | Promise<WidgetActionOutcome | undefined>;
-
-function afterOutcome(
-  outcome: MaybeOutcome,
-  next: (result: WidgetActionOutcome | undefined) => Promise<void> | undefined,
-): Promise<void> | undefined {
-  return outcome instanceof Promise ? outcome.then(next) : next(outcome);
 }
 
 export function LabelWidget({ descriptor }: WidgetRendererProps) {
@@ -448,59 +423,68 @@ export function ToggleWidget({
   const onLabel = getStringSetting(descriptor.widget.settings, "onLabel", "Active");
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const variant = getStringSetting(descriptor.widget.settings, "variant", "");
-  const [localIsOn, setLocalIsOn] = useState(getBooleanSetting(descriptor.widget.settings, "initialValue", false));
+  const widgetId = descriptor.widget.id;
+  const target = topic || `widget:${widgetId}`;
+  const desired = useDesiredState(widgetId, target, onActionIntent);
+  const [localIsOn, setLocalIsOn] = useState(() =>
+    desired ? desired.value === "on" : getBooleanSetting(descriptor.widget.settings, "initialValue", false),
+  );
   const readBackValue = controlState?.value;
   useEffect(() => {
     if (typeof readBackValue === "boolean") {
       setLocalIsOn(readBackValue);
+      forgetSettled(widgetId, target);
     }
-  }, [readBackValue]);
+  }, [readBackValue, target, widgetId]);
   const allowToggle = useRepeatGuard(conditioning?.repeatGuardMs);
   const controlledToggleState = controlState?.toggleState;
-  const isOn = controlledToggleState ? controlledToggleState === "on" : localIsOn;
+  const unconfirmed = desired !== null && !desired.confirmed;
+  // Unconfirmed shows what was asked for, never the old state (ADR 0141).
+  const isOn = unconfirmed
+    ? desired.value === "on"
+    : controlledToggleState
+      ? controlledToggleState === "on"
+      : desired && desired.value !== null
+        ? desired.value === "on"
+        : localIsOn;
   const stateLabel = isOn ? onLabel : offLabel;
-  const [isPending, setIsPending] = useState(false);
   const stateTextId = useId();
+  const strings = rendererStrings(language);
   const isServoSwitch = topic === VISUAL_SERVOING_SWITCH_TOPIC;
-  // An On still travelling, or refused or lost, counts as on for a suspend until an off is accepted.
-  const pendingOnRef = useRef(false);
-  const possiblyOnRef = useRef(false);
-  const publishServoOff = (epoch: number, attempt: number): Promise<void> | undefined => {
-    const intent = createWidgetActionIntent(descriptor.widget, { nextState: "off", type: "toggle" });
-    let outcome: MaybeOutcome;
-    // Marked a release so the STOP and hold gates let the switch-off through.
-    try {
-      const sent = onActionIntent?.(intent.type === "topic-publish" ? { ...intent, release: true } : intent);
-      outcome = sent instanceof Promise ? sent.catch(() => ({ accepted: false })) : sent;
-    } catch {
-      outcome = { accepted: false };
+  const [isPending, setIsPending] = useState(false);
+
+  const requestState = (nextState: "off" | "on", release: boolean): boolean => {
+    if (!onActionIntent) {
+      return false;
     }
-    return afterOutcome(outcome, (result) => {
-      if (epoch !== servoEpochByTopic.get(topic)) {
-        return undefined;
-      }
-      if (result?.accepted !== false) {
-        possiblyOnRef.current = false;
-        setLocalIsOn(false);
-        return undefined;
-      }
-      // A refused off keeps reading On; the runtime shell shows the refusal.
-      if (attempt >= RELEASE_RETRIES) {
-        return undefined;
-      }
-      return new Promise<void>((resolve) => setTimeout(resolve, RELEASE_RETRY_MS * 2 ** attempt)).then(() =>
-        epoch === servoEpochByTopic.get(topic) ? publishServoOff(epoch, attempt + 1) : undefined,
-      );
+    const intent = createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" });
+    const reconciles =
+      intent.type === "topic-publish" || (intent.type === "toggle-state" && intent.runtimeBinding !== undefined);
+    if (!reconciles) {
+      return false;
+    }
+    setDesired({
+      widgetId,
+      target,
+      value: nextState,
+      engage: nextState === "on",
+      // Marked a release so the STOP and hold gates let a switch-off through.
+      intent: release && intent.type === "topic-publish" ? { ...intent, release: true } : intent,
+      send: onActionIntent,
     });
-  };
-  const switchOffServo = () => {
-    void publishServoOff(advanceServoEpoch(topic), 0);
+    return true;
   };
   const switchOffServoRef = useRef(() => {});
   switchOffServoRef.current = () => {
-    if (isServoSwitch && (isOn || pendingOnRef.current || possiblyOnRef.current)) {
-      switchOffServo();
+    if (isServoSwitch && (isOn || desired?.value === "on")) {
+      requestState("off", true);
     }
+  };
+  // A suspend or STOP cancels an On still being asked for; the servo switch turns off instead.
+  const settleForSuspendRef = useRef(() => {});
+  settleForSuspendRef.current = () => {
+    switchOffServoRef.current();
+    cancelPending(widgetId, target);
   };
   const lastNeutralRevisionRef = useRef(neutralRevision);
   useEffect(() => {
@@ -508,12 +492,12 @@ export function ToggleWidget({
       return;
     }
     lastNeutralRevisionRef.current = neutralRevision;
-    switchOffServoRef.current();
+    settleForSuspendRef.current();
   }, [neutralRevision]);
   const disabled = controlState?.disabled === true;
   useEffect(() => {
     if (disabled) {
-      switchOffServoRef.current();
+      settleForSuspendRef.current();
     }
   }, [disabled]);
   // Settings, the tour and a screen change unmount the canvas before their suspend lands here.
@@ -528,13 +512,11 @@ export function ToggleWidget({
       setLocalIsOn(nextState === "on");
       return;
     }
-
-    setIsPending(true);
-    const epoch = advanceServoEpoch(topic);
-    pendingOnRef.current = nextState === "on";
-    if (isServoSwitch && nextState === "on") {
-      possiblyOnRef.current = true;
+    if (requestState(nextState, isServoSwitch && nextState === "off")) {
+      return;
     }
+    // A local toggle with nothing on the robot to reconcile: one send, applied if accepted.
+    setIsPending(true);
     let accepted = false;
     try {
       const outcome = await onActionIntent(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
@@ -542,19 +524,7 @@ export function ToggleWidget({
     } catch {
       // The runtime shell owns visible error reporting; a rejected publish counts as refused.
     } finally {
-      pendingOnRef.current = false;
       setIsPending(false);
-    }
-    if (isServoSwitch && nextState === "on" && (!accepted || epoch !== servoEpochByTopic.get(topic))) {
-      // A refused or lost On may still have reached the servo, and a suspend that landed meanwhile keeps it off.
-      switchOffServo();
-      return;
-    }
-    if (isServoSwitch && epoch !== servoEpochByTopic.get(topic)) {
-      return;
-    }
-    if (isServoSwitch && nextState === "off" && accepted) {
-      possiblyOnRef.current = false;
     }
     if (!controlledToggleState && accepted) {
       setLocalIsOn(nextState === "on");
@@ -570,16 +540,30 @@ export function ToggleWidget({
   const inline = getStringSetting(descriptor.widget.settings, "layout", "") === "inline";
   // With state labels the button words are verbs ("Open gripper"): "pressed" would contradict the commanded state.
   const labelsAreActions = Boolean(onStateLabel || offStateLabel);
+  const marked = unconfirmed && desired.marked;
+  const accessibleName = `${descriptor.widget.title}: ${stateLabel}${marked ? `, ${strings.notConfirmedName}` : ""}`;
+  const mark = (
+    <ConfirmationMark
+      late={Boolean(marked && desired?.late)}
+      text={marked && desired ? confirmationMarkText(desired, strings, false) : ""}
+    />
+  );
 
   if (variant === "mode-segmented") {
     return (
-      <div className="bloom-toggle-widget" data-state={isOn ? "active" : "inactive"} data-variant={variant}>
+      <div
+        className="bloom-toggle-widget"
+        data-confirmed={unconfirmed ? "false" : undefined}
+        data-state={isOn ? "active" : "inactive"}
+        data-variant={variant}
+      >
         <strong className="bloom-toggle-title">{descriptor.widget.title}</strong>
         <button
           aria-pressed={isOn}
-          aria-label={`${descriptor.widget.title}: ${stateLabel}`}
-          aria-busy={isPending}
+          aria-label={accessibleName}
+          aria-busy={isPending || unconfirmed}
           className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
+          data-confirmed={unconfirmed ? "false" : undefined}
           disabled={isPending}
           onClick={handleToggle}
           type="button"
@@ -591,6 +575,7 @@ export function ToggleWidget({
             {onLabel}
           </span>
         </button>
+        {mark}
       </div>
     );
   }
@@ -598,6 +583,7 @@ export function ToggleWidget({
   return (
     <div
       className="bloom-toggle-widget bloom-info-card"
+      data-confirmed={unconfirmed ? "false" : undefined}
       data-layout={inline ? "inline" : "stacked"}
       data-narrow={descriptor.widget.layout.width < 260 ? "true" : undefined}
       data-state={isOn ? "active" : "inactive"}
@@ -615,15 +601,17 @@ export function ToggleWidget({
       <button
         aria-describedby={stateText ? stateTextId : undefined}
         aria-pressed={labelsAreActions ? undefined : isOn}
-        aria-label={`${descriptor.widget.title}: ${stateLabel}`}
-        aria-busy={isPending}
+        aria-label={accessibleName}
+        aria-busy={isPending || unconfirmed}
         className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
+        data-confirmed={unconfirmed ? "false" : undefined}
         disabled={isPending}
         onClick={handleToggle}
         type="button"
       >
         {stateLabel}
       </button>
+      {mark}
       {showDetails && topic ? <span className="bloom-widget-topic">{topic}</span> : null}
     </div>
   );

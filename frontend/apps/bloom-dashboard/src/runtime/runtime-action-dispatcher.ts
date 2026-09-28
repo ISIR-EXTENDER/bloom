@@ -17,7 +17,12 @@ export type {
   RuntimeActionRequest,
   RuntimeConfiguredActionRequest,
 } from "./dispatch-result";
-export { isRuntimeActionConfirmed, isRuntimeActionProblem } from "./dispatch-result";
+export {
+  classifyDispatchError,
+  isRuntimeActionConfirmed,
+  isRuntimeActionProblem,
+  toWidgetActionStatus,
+} from "./dispatch-result";
 export { createTeleopCommandRequest } from "./dispatch-teleop";
 export { createRosTopicPublishRequest, createValueTopicPublishRequest } from "./dispatch-topics";
 export type * from "./runtime-protocol";

@@ -1518,6 +1518,7 @@ describe("App", () => {
     await waitFor(() => expect(runtimeActionClient.engageRuntimeStop).toHaveBeenCalledOnce());
   });
 
+  // ADR 0141: "simulated" (no ROS) was not applied, so it is final: no retry, the acknowledged state stays.
   it("keeps the acknowledged control state and alerts when a command is not sent", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     runtimeActionClient.publishRosTopic = vi.fn(async (request) => ({
@@ -1537,7 +1538,12 @@ describe("App", () => {
         name: "Not sent: ROS publisher gateway is not configured.",
       }),
     ).toBeVisible();
-    expect(screen.getByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute("aria-pressed", "false");
+    expect(await screen.findByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledTimes(1);
   });
 
   it("fits the runtime canvas into the available application viewport", async () => {

@@ -22,10 +22,10 @@ import {
 import { useConfigurations } from "./configurations/use-configurations";
 import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
-import { isRuntimeActionConfirmed, type RuntimeActionClient } from "./runtime/runtime-action-dispatcher";
+import { type RuntimeActionClient, toWidgetActionStatus } from "./runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
 import {
-  applyRuntimeModeIntent,
+  applyRuntimeModeOutcome,
   applyRuntimeStopLatch,
   createDefaultRuntimeModeState,
 } from "./runtime/runtimeModeState";
@@ -178,13 +178,12 @@ export function App({
       onCommandFrameChange: applicationRuntime?.onCommandFrameChange,
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
-    if (isRuntimeActionConfirmed(result)) {
-      setRuntimeModeState((currentModeState) =>
-        applyRuntimeModeIntent(currentModeState, intent, applicationRuntime?.action_presets),
-      );
-    }
-    // A coalesced teleop update was superseded by a newer one, not refused: its control must not snap home.
-    return { accepted: isRuntimeActionConfirmed(result) || result.status === "coalesced", detail: result.detail };
+    const status = toWidgetActionStatus(result);
+    setRuntimeModeState((currentModeState) =>
+      applyRuntimeModeOutcome(currentModeState, intent, status, applicationRuntime?.action_presets),
+    );
+    // A coalesced or superseded update lost to a newer one, not to a refusal: its control must not snap home.
+    return { accepted: status === "accepted" || status === "superseded", detail: result.detail, status };
   };
 
   const tryNavigateRuntimeScreen = (targetScreenId: string): boolean => {

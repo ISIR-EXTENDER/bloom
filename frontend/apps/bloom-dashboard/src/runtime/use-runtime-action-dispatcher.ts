@@ -236,7 +236,8 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
           setFeedback({
             appId: options.appId,
             detail: result.detail,
-            status: result.status,
+            // No reply or a rate limit reads as a failure in the bar; the control itself says it is not confirmed.
+            status: result.status === "unknown" || result.status === "transient" ? "failed" : result.status,
             widgetId: intent.widgetId,
           });
         } else if (isRuntimeActionConfirmed(result)) {

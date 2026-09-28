@@ -394,7 +394,8 @@ describe("runtime teleop suspension", () => {
     expect(sent.at(-1)?.linear.x).toBe(1);
   });
 
-  it("returns transport failures and exposes them as operator feedback", async () => {
+  // ADR 0141: no reply is "unknown", not a refusal; the bar still reports it as a failure.
+  it("returns a transport failure as unknown and exposes it as operator feedback", async () => {
     client.publishRosTopic = vi.fn(async () => {
       throw new Error("ROS bridge disconnected.");
     });
@@ -415,7 +416,7 @@ describe("runtime teleop suspension", () => {
       );
     });
 
-    expect(dispatchResult).toMatchObject({ status: "failed", detail: "ROS bridge disconnected." });
+    expect(dispatchResult).toMatchObject({ status: "unknown", detail: "ROS bridge disconnected." });
     expect(result.current.feedback).toEqual({
       appId: "sandbox",
       detail: "ROS bridge disconnected.",

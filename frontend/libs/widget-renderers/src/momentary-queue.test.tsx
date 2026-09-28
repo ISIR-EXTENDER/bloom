@@ -7,10 +7,12 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CommandLikeWidget } from "./action-renderers";
+import { resetDesiredStates } from "./desired-state";
 import type { WidgetActionOutcome } from "./types";
 
 afterEach(() => {
   cleanup();
+  resetDesiredStates();
   vi.useRealTimers();
 });
 
@@ -46,9 +48,9 @@ const tap = (button: HTMLElement, pointerId: number) => {
   fireEvent.pointerUp(button, { pointerId });
 };
 
-describe("a momentary hold queued behind a slow press", () => {
-  // The second press used to go out after its release, leaving Snake on once the operator had let go.
-  it("drops a press whose hold ended before its turn, and still lets go", async () => {
+// ADR 0141 replaced the press queue: every act goes out at once and the server applies them in order.
+describe("two quick taps behind a slow press", () => {
+  it("sends each press and release at once and ends released", async () => {
     let answerFirst: (outcome: WidgetActionOutcome) => void = () => {};
     const sent: unknown[] = [];
     const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
@@ -67,19 +69,26 @@ describe("a momentary hold queued behind a slow press", () => {
     expect(button).toHaveAttribute("aria-pressed", "false");
     await act(async () => answerFirst({ accepted: true }));
 
-    expect(sent).toEqual([{ data: "geometric/snake" }, { data: "geometric/both" }, { data: "geometric/both" }]);
+    expect(sent).toEqual([
+      { data: "geometric/snake" },
+      { data: "geometric/both" },
+      { data: "geometric/snake" },
+      { data: "geometric/both" },
+    ]);
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(button).not.toHaveAttribute("data-confirmed");
   });
 });
 
-describe("a refused release retrying on a shared topic", () => {
-  // Widget A's late retry published geometric/both over the Jaco widget B was holding.
+describe("a release without a reply retrying on a shared topic", () => {
+  // Widget A's late retry published geometric/both over the Jaco widget B was holding; the newest act owns the topic.
   it("gives up once another widget has published on the topic", async () => {
     vi.useFakeTimers();
     const sent: { id: string; payload: unknown }[] = [];
     const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
       if (intent.type !== "topic-publish") return { accepted: true };
       sent.push({ id: intent.widgetId, payload: intent.payload });
-      return { accepted: !(intent.widgetId === "snake" && intent.release) };
+      return intent.widgetId === "snake" && intent.release ? Promise.reject(new Error("lost")) : { accepted: true };
     });
     render(
       <div>
@@ -103,7 +112,7 @@ describe("a refused release retrying on a shared topic", () => {
   });
 });
 
-describe("a release refused more than once", () => {
+describe("a release rate-limited more than once", () => {
   // Each retry used to compare against the first release, so the second retry never went out.
   it("keeps retrying until the release is accepted", async () => {
     vi.useFakeTimers();
@@ -114,7 +123,7 @@ describe("a release refused more than once", () => {
       sent.push(intent.payload);
       if (intent.release && refusals > 0) {
         refusals -= 1;
-        return { accepted: false };
+        return { accepted: false, status: "transient" as const };
       }
       return { accepted: true };
     });
@@ -134,7 +143,7 @@ describe("a release refused more than once", () => {
   });
 });
 
-describe("a refused release retrying before a latched mode button", () => {
+describe("a release without a reply retrying before a latched mode button", () => {
   // The latched Jaco never recorded its publish, so Snake's retry set geometric/both over it.
   it("gives up once the latched button has published on the topic", async () => {
     vi.useFakeTimers();
@@ -142,7 +151,9 @@ describe("a refused release retrying before a latched mode button", () => {
     const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
       if (intent.type !== "topic-publish") return { accepted: true };
       sent.push({ id: intent.widgetId, payload: intent.payload });
-      return { accepted: !(intent.widgetId === "snake-latched" && intent.release) };
+      return intent.widgetId === "snake-latched" && intent.release
+        ? Promise.reject(new Error("lost"))
+        : { accepted: true };
     });
     render(
       <div>

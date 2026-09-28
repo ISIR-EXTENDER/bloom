@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
+import { resetDesiredStates } from "@bloom/widget-renderers";
 import { cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 
@@ -26,4 +27,6 @@ Object.defineProperty(globalThis, "scrollTo", {
 
 afterEach(() => {
   cleanup();
+  // A control's desired state outlives its unmount (ADR 0141); a test must not inherit the last one's.
+  resetDesiredStates();
 });

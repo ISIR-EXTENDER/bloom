@@ -9,7 +9,7 @@ import {
 } from "@bloom/widgets";
 import {
   appScope,
-  getErrorMessage,
+  classifyDispatchError,
   isAllowedByPolicy,
   type RuntimeActionDispatchOptions,
   type RuntimeActionDispatchResult,
@@ -32,7 +32,7 @@ export async function publishTopicRequest(
     const response = await client.publishRosTopic({ ...request, ...appScope(options) });
     return { intent, request, status: response.status, detail: response.detail };
   } catch (error: unknown) {
-    return { intent, request, status: "failed", detail: getErrorMessage(error) };
+    return { intent, request, ...classifyDispatchError(error) };
   }
 }
 

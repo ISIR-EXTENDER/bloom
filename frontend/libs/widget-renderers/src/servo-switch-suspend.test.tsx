@@ -7,11 +7,13 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { resetDesiredStates } from "./desired-state";
 import { renderWidgetDescriptor } from "./index";
 import type { WidgetActionOutcome, WidgetControlState } from "./types";
 
 afterEach(() => {
   cleanup();
+  resetDesiredStates();
   vi.useRealTimers();
 });
 
@@ -119,9 +121,9 @@ describe("the visual servoing switch on a suspend", () => {
 const payloads = (onActionIntent: ReturnType<typeof vi.fn>) =>
   onActionIntent.mock.calls.map(([intent]) => (intent as { payload?: unknown }).payload);
 
+// ADR 0141 replaced the servo epochs: the server orders the Off after the On, so a late On cannot land after it.
 describe("the visual servoing switch turned on just before a suspend", () => {
-  // The On was still travelling, so the switch read off, the suspend did nothing, and the On then landed.
-  it("stays off and switches the servo off again once the On is accepted", async () => {
+  it("sends the Off at once and ignores the On's late answer", async () => {
     let answerOn: (outcome: WidgetActionOutcome) => void = () => {};
     const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
       intent.type === "topic-publish" && intent.payload === "{data: true}"
@@ -134,7 +136,7 @@ describe("the visual servoing switch turned on just before a suspend", () => {
     rerender(1);
     await act(async () => answerOn({ accepted: true }));
 
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}", "{data: false}"]);
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
     expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
   });
 
@@ -151,86 +153,105 @@ describe("the visual servoing switch turned on just before a suspend", () => {
     unmount();
     await act(async () => answerOn({ accepted: true }));
 
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}", "{data: false}"]);
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
+    expect(lastPayload(onActionIntent)).toMatchObject({ release: true });
   });
 });
 
-describe("a refused servo switch-off", () => {
-  it("retries and reads off only once the off is accepted", async () => {
+describe("a servo switch-off without a reply or rate-limited", () => {
+  // It used to keep reading On; it now shows the Off it asked for, not confirmed, until one is accepted.
+  it("shows Off not confirmed, retries, and reads Off once accepted", async () => {
     vi.useFakeTimers();
     let refusals = 2;
     const { onActionIntent, rerender } = renderToggle(SERVO, (intent) => {
       if (intent.type === "topic-publish" && intent.payload === "{data: false}" && refusals > 0) {
         refusals -= 1;
-        return { accepted: false, detail: "refused" };
+        return { accepted: false, detail: "Too many requests.", status: "transient" };
       }
       return { accepted: true };
     });
     await act(async () => {});
 
     rerender(1);
-    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Servo: Off, not confirmed" })).toHaveAttribute(
+      "data-confirmed",
+      "false",
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
 
     expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}", "{data: false}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Servo: Off" })).not.toHaveAttribute("data-confirmed");
   });
 
-  it("keeps reading on when every attempt is refused", async () => {
+  it("keeps retrying every 2 s and says to STOP if in doubt when no attempt gets a reply", async () => {
     vi.useFakeTimers();
     const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: false}" ? { accepted: false } : { accepted: true },
+      intent.type === "topic-publish" && intent.payload === "{data: false}"
+        ? Promise.reject(new Error("timed out"))
+        : { accepted: true },
     );
     await act(async () => {});
 
     rerender(1);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(3800);
+    });
+    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(5);
+    expect(screen.getByText("Not confirmed")).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4200);
     });
 
-    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(4);
-    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
+    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(7);
+    expect(screen.getByText("Robot has not confirmed \u2014 STOP if in doubt")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Servo: Off, not confirmed" })).toBeInTheDocument();
   });
 });
 
-describe("a servo On whose reply was refused or lost", () => {
-  it("switches the servo off at once and reads off", async () => {
-    const { onActionIntent } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: true}"
-        ? { accepted: false, detail: "timed out" }
-        : { accepted: true },
-    );
+describe("a servo On whose reply was lost", () => {
+  // It used to switch the servo off at once; ADR 0141 shows On, not confirmed, and keeps asking for it.
+  it("shows On not confirmed, retries the On, and converges", async () => {
+    vi.useFakeTimers();
+    let lost = 1;
+    const { onActionIntent } = renderToggle(SERVO, (intent) => {
+      if (intent.type === "topic-publish" && intent.payload === "{data: true}" && lost > 0) {
+        lost -= 1;
+        return Promise.reject(new Error("timed out"));
+      }
+      return { accepted: true };
+    });
+    await act(async () => {});
+    expect(screen.getByRole("button", { name: "Servo: Servoing, not confirmed" })).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: true}"]);
+    expect(screen.getByRole("button", { name: "Servo: Servoing" })).not.toHaveAttribute("data-confirmed");
+  });
+
+  it("asks for Off on unmount and keeps asking after it is gone", async () => {
+    vi.useFakeTimers();
+    const { onActionIntent, unmount } = renderToggle(SERVO, () => Promise.reject(new Error("lost")));
     await act(async () => {});
 
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
-  });
-
-  it("still switches off on unmount while no off has been accepted", async () => {
-    vi.useFakeTimers();
-    const { onActionIntent, unmount } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: true}"
-        ? Promise.reject(new Error("lost"))
-        : { accepted: false },
-    );
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
-    });
-    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
-    const offsBefore = payloads(onActionIntent).filter((payload) => payload === "{data: false}").length;
-    expect(offsBefore).toBe(4);
-
     unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    });
 
-    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(offsBefore + 1);
+    const sent = payloads(onActionIntent);
+    expect(sent.slice(0, 2)).toEqual(["{data: true}", "{data: false}"]);
+    expect(sent.filter((payload) => payload === "{data: true}")).toHaveLength(1);
+    expect(sent.filter((payload) => payload === "{data: false}")).toHaveLength(5);
   });
 });
 
-describe("a switch-off retry from an unmounted servo switch", () => {
-  // The old instance kept its own epoch, so its retry turned off the servo the remounted switch showed on.
-  it("gives up once a remounted switch has been toggled", async () => {
+describe("a switch-off still retrying from an unmounted servo switch", () => {
+  it("is replaced by the remounted switch's newer On", async () => {
     vi.useFakeTimers();
     const log: unknown[] = [];
     const handler = (intent: WidgetActionIntent): Outcome => {
@@ -253,5 +274,47 @@ describe("a switch-off retry from an unmounted servo switch", () => {
     expect(remountedOn).toBeGreaterThan(0);
     expect(log.slice(remountedOn + 1)).toEqual([]);
     expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
+  });
+});
+
+describe("a servo switch-off the robot refuses outright", () => {
+  // An explicit refusal (STOP latched, not the owner) was not applied, and the server's own resets cover it.
+  it("is not retried and reads a clean Off after an accepted On", async () => {
+    vi.useFakeTimers();
+    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
+      intent.type === "topic-publish" && intent.payload === "{data: false}"
+        ? { accepted: false, detail: "The robot is stopped." }
+        : { accepted: true },
+    );
+    await act(async () => {});
+
+    rerender(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
+    expect(screen.getByRole("button", { name: "Servo: Off" })).not.toHaveAttribute("data-confirmed");
+  });
+
+  it("keeps saying not confirmed, with the reason, when the On before it got no reply", async () => {
+    vi.useFakeTimers();
+    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
+      intent.type === "topic-publish" && intent.payload === "{data: false}"
+        ? { accepted: false, detail: "The robot is stopped." }
+        : Promise.reject(new Error("timed out")),
+    );
+    await act(async () => {});
+
+    rerender(1);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+
+    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
+    expect(screen.getByRole("button", { name: "Servo: Off, not confirmed" })).toHaveAttribute(
+      "data-confirmed",
+      "false",
+    );
   });
 });

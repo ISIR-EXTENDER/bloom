@@ -13,6 +13,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatEchoMessage } from "./debug-renderers";
+import { resetDesiredStates } from "./desired-state";
 import { GaugeWidget } from "./display-renderers";
 import {
   createWidgetRendererRegistry,
@@ -35,6 +36,7 @@ Element.prototype.releasePointerCapture = vi.fn();
 
 afterEach(() => {
   cleanup();
+  resetDesiredStates();
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
@@ -322,7 +324,8 @@ describe("widget renderer registry", () => {
     );
   });
 
-  it("lets go of a hold the runtime refused and says why", async () => {
+  // ADR 0141: an explicit refusal was not applied, so the hold ends there with nothing to release.
+  it("lets go of a hold the runtime refused and says why, without retrying", async () => {
     const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing momentary button descriptor.");
     const onActionIntent = vi.fn(async () => ({ accepted: false, detail: "The robot is stopped." }));
@@ -333,9 +336,13 @@ describe("widget renderer registry", () => {
 
     await waitFor(() => expect(screen.getByText("The robot is stopped.")).toBeInTheDocument());
     expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(button).not.toHaveAttribute("data-confirmed");
+    fireEvent.pointerUp(button, { pointerId: 1 });
+    expect(onActionIntent).toHaveBeenCalledTimes(1);
   });
 
-  it("sends the release only after the press has settled, so a quick tap cannot land in reverse", async () => {
+  // ADR 0141: the server orders press and release by sequence, so the release no longer waits for the press.
+  it("sends the release at once and ignores the press's late answer", async () => {
     const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing momentary button descriptor.");
     let settlePress: ((outcome: { accepted: boolean }) => void) | undefined;
@@ -352,32 +359,44 @@ describe("widget renderer registry", () => {
     fireEvent.pointerDown(button, { pointerId: 1 });
     fireEvent.pointerUp(button, { pointerId: 1 });
     await act(async () => {});
-    expect(onActionIntent).toHaveBeenCalledTimes(1);
-
-    await act(async () => settlePress?.({ accepted: true }));
     expect(onActionIntent.mock.calls.map(([intent]) => (intent as { payload?: unknown }).payload)).toEqual([
       "{data: true}",
       "{data: false}",
     ]);
+
+    await act(async () => settlePress?.({ accepted: true }));
+    expect(onActionIntent).toHaveBeenCalledTimes(2);
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    expect(button).not.toHaveAttribute("data-confirmed");
   });
 
-  it("still sends the release when the press was refused or its answer was lost", async () => {
+  // ADR 0141: a press without a reply used to trigger a release while still held; it now retries while held.
+  it("retries a press that got no reply while held and sends the release on let-go", async () => {
+    vi.useFakeTimers();
     const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing momentary button descriptor.");
     const onActionIntent = vi.fn((intent: WidgetActionIntent) =>
       intent.type === "topic-publish" && intent.release !== true
-        ? Promise.resolve({ accepted: false, detail: "Request timed out." })
+        ? Promise.reject(new Error("Request timed out."))
         : Promise.resolve({ accepted: true }),
     );
 
     render(<div>{renderWidgetDescriptor(descriptor, { onActionIntent })}</div>);
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Hold Snake" }), { pointerId: 1 });
+    const button = screen.getByRole("button", { name: "Hold Snake" });
+    fireEvent.pointerDown(button, { pointerId: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(300));
+    fireEvent.pointerUp(button, { pointerId: 1 });
+    await act(() => vi.advanceTimersByTimeAsync(5000));
 
-    await waitFor(() => expect(onActionIntent).toHaveBeenCalledTimes(2));
-    expect(onActionIntent.mock.calls.at(-1)?.[0]).toMatchObject({ payload: "{data: false}", release: true });
+    const sent = onActionIntent.mock.calls.map(([intent]) => intent as { payload?: unknown; release?: boolean });
+    expect(sent.map((intent) => [intent.payload, intent.release])).toEqual([
+      ["{data: true}", undefined],
+      ["{data: true}", undefined],
+      ["{data: false}", true],
+    ]);
   });
 
-  it("retries a refused release until the robot takes it", async () => {
+  it("retries a rate-limited release until the robot takes it", async () => {
     vi.useFakeTimers();
     try {
       const descriptor = renderScreenDescriptors(momentaryButtonScreen, createDefaultWidgetRegistry())[0];
@@ -386,7 +405,11 @@ describe("widget renderer registry", () => {
       const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
         if (intent.type === "topic-publish" && intent.release === true) {
           releases += 1;
-          return Promise.resolve({ accepted: releases > 1, detail: "Too many requests." });
+          return Promise.resolve(
+            releases > 1
+              ? { accepted: true }
+              : { accepted: false, detail: "Too many requests.", status: "transient" as const },
+          );
         }
         return Promise.resolve({ accepted: true });
       });
@@ -546,7 +569,8 @@ describe("widget renderer registry", () => {
     );
   });
 
-  it("keeps toggles pending until the action is acknowledged", async () => {
+  // ADR 0141: a pending toggle used to read its old state; it now shows what was asked for, unconfirmed.
+  it("shows the asked-for state unconfirmed until the action is acknowledged", async () => {
     const descriptor = renderScreenDescriptors(toggleScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing toggle descriptor.");
     let acknowledge: ((outcome: { accepted: boolean }) => void) | undefined;
@@ -562,15 +586,17 @@ describe("widget renderer registry", () => {
 
     await user.click(screen.getByRole("button", { name: "Digital output: Inactive" }));
 
-    const pendingToggle = screen.getByRole("button", { name: "Digital output: Inactive" });
-    expect(pendingToggle).toBeDisabled();
+    const pendingToggle = screen.getByRole("button", { name: "Digital output: Active" });
+    expect(pendingToggle).toHaveAttribute("data-confirmed", "false");
     expect(pendingToggle).toHaveAttribute("aria-busy", "true");
 
-    acknowledge?.({ accepted: true });
+    await act(async () => acknowledge?.({ accepted: true }));
 
-    expect(await screen.findByRole("button", { name: "Digital output: Active" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Digital output: Active" })).not.toHaveAttribute("data-confirmed");
+    expect(screen.getByRole("button", { name: "Digital output: Active" })).toHaveAttribute("aria-busy", "false");
   });
 
+  // ADR 0141: an explicit refusal was not applied, so the toggle keeps its last confirmed state and is not retried.
   it("keeps the previous toggle state when the action is rejected", async () => {
     const descriptor = renderScreenDescriptors(toggleScreen, createDefaultWidgetRegistry())[0];
     if (!descriptor) throw new Error("Missing toggle descriptor.");
@@ -581,10 +607,11 @@ describe("widget renderer registry", () => {
 
     await user.click(screen.getByRole("button", { name: "Digital output: Inactive" }));
 
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute("aria-busy", "false"),
-    );
-    expect(screen.getByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute("aria-pressed", "false");
+    const toggle = await screen.findByRole("button", { name: "Digital output: Inactive" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    expect(toggle).not.toHaveAttribute("data-confirmed");
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(onActionIntent).toHaveBeenCalledTimes(1);
   });
 
   it("emits vector value-change intents from interactive joysticks", async () => {

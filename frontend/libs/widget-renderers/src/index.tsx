@@ -13,6 +13,7 @@ import { WidgetBoundary } from "./WidgetBoundary";
 import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
+export { resetDesiredStates } from "./desired-state";
 export type {
   CommandedTwist,
   PlotSeriesSnapshot,
@@ -20,6 +21,7 @@ export type {
   ScreenRendererOptions,
   WidgetActionIntentHandler,
   WidgetActionOutcome,
+  WidgetActionStatus,
   WidgetControlState,
   WidgetDataSnapshot,
   WidgetRendererRegistration,

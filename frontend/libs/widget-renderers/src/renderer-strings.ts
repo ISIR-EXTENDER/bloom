@@ -85,6 +85,10 @@ const STRINGS = {
     requested: "requested",
     notRequested: "not requested",
     lastRequested: (detail: string) => `Last requested \u00b7 ${detail}`,
+    notConfirmed: "Not confirmed",
+    notConfirmedLate: "Robot has not confirmed \u2014 STOP if in doubt",
+    modeNotConfirmed: "Mode not confirmed",
+    notConfirmedName: "not confirmed",
   },
   fr: {
     gauge: "Jauge",
@@ -169,6 +173,10 @@ const STRINGS = {
     requested: "demandé",
     notRequested: "non demandé",
     lastRequested: (detail: string) => `Dernière demande \u00b7 ${detail}`,
+    notConfirmed: "Non confirmé",
+    notConfirmedLate: "Le robot n'a pas confirmé \u2014 STOP en cas de doute",
+    modeNotConfirmed: "Mode non confirmé",
+    notConfirmedName: "non confirmé",
   },
   es: {
     gauge: "Indicador",
@@ -252,6 +260,10 @@ const STRINGS = {
     requested: "solicitado",
     notRequested: "no solicitado",
     lastRequested: (detail: string) => `Última solicitud \u00b7 ${detail}`,
+    notConfirmed: "Sin confirmar",
+    notConfirmedLate: "El robot no ha confirmado \u2014 STOP si hay dudas",
+    modeNotConfirmed: "Modo sin confirmar",
+    notConfirmedName: "sin confirmar",
   },
 } as const;
 

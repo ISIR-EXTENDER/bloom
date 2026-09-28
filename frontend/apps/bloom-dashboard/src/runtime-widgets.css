@@ -896,6 +896,22 @@
   opacity: 0.85;
 }
 
+/* ADR 0141: the control shows what was asked for; the mark says the robot has not confirmed it. */
+.bloom-confirm-mark {
+  align-self: flex-start;
+  max-width: 100%;
+  color: var(--bloom-warning);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.bloom-confirm-mark[data-late="true"] {
+  padding: 2px 6px;
+  border-radius: var(--bloom-radius-control);
+  background: color-mix(in srgb, var(--bloom-warning) 12%, transparent);
+}
+
 /* ---- Toggle ---- */
 
 .bloom-toggle-widget.bloom-info-card {

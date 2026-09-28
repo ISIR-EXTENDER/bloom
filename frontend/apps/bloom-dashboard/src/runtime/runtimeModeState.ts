@@ -5,7 +5,7 @@ import type {
   ScreenConfig,
   WidgetConfig,
 } from "@bloom/api-client";
-import type { WidgetControlState } from "@bloom/widget-renderers";
+import type { WidgetActionStatus, WidgetControlState } from "@bloom/widget-renderers";
 import {
   createDefaultWidgetRegistry,
   createWidgetActionIntent,
@@ -33,6 +33,8 @@ export type RuntimeModeState = {
    * doing, and the UI has to say so.
    */
   requestedMode: string | null;
+  /** With requestedMode "unknown": the mode asked for whose reply never came (ADR 0141). */
+  unconfirmedMode?: string | null;
   source: "configuration-default" | "operator-command";
   updatedAt: string;
 };
@@ -54,6 +56,8 @@ export type RuntimeTopicStatusSummary = {
 type RuntimeTopicRequirement = Pick<RuntimeTopicStatusSummary, "label" | "requirement" | "topic">;
 
 const MODE_REQUEST_TOPIC = "/mode_request";
+/** A mode request without a reply: the manager may be in it or in the previous one. */
+export const UNKNOWN_REQUESTED_MODE = "unknown";
 const DEFAULT_GEOMETRIC_MODE = "geometric/both";
 const WIDGET_REGISTRY = createDefaultWidgetRegistry();
 const TOPIC_COMMAND_WIDGET_KINDS = new Set(["command-button", "gesture-pad", "slider", "toggle"]);
@@ -88,6 +92,7 @@ export function applyRuntimeModeIntent(
     return {
       ...currentState,
       requestedMode,
+      unconfirmedMode: null,
       source: "operator-command",
       updatedAt: now.toISOString(),
     };
@@ -106,6 +111,33 @@ export function applyRuntimeModeIntent(
   };
 }
 
+/**
+ * What a mode request's outcome says about the mode: accepted sets it, no reply makes it unknown, and a
+ * refusal (final or transient) or a superseded send leaves it.
+ */
+export function applyRuntimeModeOutcome(
+  currentState: RuntimeModeState,
+  intent: WidgetActionIntent,
+  outcome: WidgetActionStatus,
+  presets: readonly RuntimeActionPreset[] = [],
+  now = new Date(),
+): RuntimeModeState {
+  if (outcome === "accepted") {
+    return applyRuntimeModeIntent(currentState, intent, presets, now);
+  }
+  const requestedMode = outcome === "unknown" ? resolveModeRequestFromIntent(intent, presets) : null;
+  if (!requestedMode) {
+    return currentState;
+  }
+  return {
+    ...currentState,
+    requestedMode: UNKNOWN_REQUESTED_MODE,
+    unconfirmedMode: requestedMode,
+    source: "operator-command",
+    updatedAt: now.toISOString(),
+  };
+}
+
 /** A STOP that reached ROS also sent geometric/both; one that did not leaves the shaper unknown. */
 export function applyRuntimeStopLatch(
   currentState: RuntimeModeState,
@@ -115,6 +147,7 @@ export function applyRuntimeStopLatch(
   return {
     ...currentState,
     requestedMode: latch.asserted ? DEFAULT_GEOMETRIC_MODE : null,
+    unconfirmedMode: null,
     updatedAt: now.toISOString(),
   };
 }
@@ -236,9 +269,7 @@ export function createRuntimeControlStateByWidgetId(
     } else {
       const widgetMode = resolveWidgetModeRequest(widget, options.actionPresets ?? []);
       if (widgetMode) {
-        controlState = {
-          selection: widgetMode === modeState.requestedMode ? "selected" : "unselected",
-        };
+        controlState = { selection: resolveModeSelection(widgetMode, modeState) };
       }
     }
 
@@ -293,6 +324,15 @@ export function createRuntimeControlStateByWidgetId(
   }
 
   return controlStateByWidgetId;
+}
+
+function resolveModeSelection(widgetMode: string, modeState: RuntimeModeState): WidgetControlState["selection"] {
+  if (widgetMode === modeState.requestedMode) {
+    return "selected";
+  }
+  return modeState.requestedMode === UNKNOWN_REQUESTED_MODE && widgetMode === modeState.unconfirmedMode
+    ? "unconfirmed"
+    : "unselected";
 }
 
 /** The topic a teleop widget publishes on: its own, or the manager's input by default. */

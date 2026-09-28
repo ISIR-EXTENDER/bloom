@@ -82,9 +82,17 @@ export type WidgetDataSnapshot =
       type: "topic-plot";
     };
 
+/**
+ * How a send ended (ADR 0141): refused was not applied; transient was not applied but may be retried (a rate
+ * limit); superseded means a newer send owns the target; unknown means no reply, so it may have been applied.
+ */
+export type WidgetActionStatus = "accepted" | "refused" | "superseded" | "transient" | "unknown";
+
 export type WidgetActionOutcome = {
   accepted: boolean;
   detail?: string;
+  /** Absent means `accepted` alone decides: accepted or refused. */
+  status?: WidgetActionStatus;
 };
 
 export type WidgetActionIntentHandler = (
@@ -108,9 +116,9 @@ export type WidgetControlState = {
    *
    * The manager publishes no mode feedback, so this only ever reflects what
    * this session last requested. Renderers must not present it as confirmation
-   * that the robot is in that mode.
+   * that the robot is in that mode. "unconfirmed": this control asked last and got no reply.
    */
-  selection?: "selected" | "unselected";
+  selection?: "selected" | "unconfirmed" | "unselected";
   toggleState?: "off" | "on";
 };
 
