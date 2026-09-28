@@ -10,7 +10,7 @@ from urllib.parse import unquote
 from fastapi import FastAPI, HTTPException, Request, WebSocket, status
 from starlette.responses import JSONResponse, Response
 
-from libs.sessions import RuntimeControlNotOwnedError
+from libs.sessions import PublishSupersededError, RuntimeControlNotOwnedError
 
 SECURITY_HEADERS = {
     "Permissions-Policy": "camera=(self), microphone=(), geolocation=()",
@@ -27,6 +27,8 @@ API_KEY_SUBPROTOCOL_PREFIX = "bloom.api-key."
 # Any spelling the query parser decodes to api_key: api%5Fkey=, API_KEY=, api_key%3D.
 _QUERY_PAIR = re.compile(r"(?P<key>[^?&=/\s\"]+)(?P<sep>=|%3[dD])(?P<value>[^&\s\"]*)")
 RUNTIME_SESSION_HEADER = "x-bloom-runtime-session"
+#: ADR 0141: grows within a page, so the server applies a session's publishes to a target in issue order.
+PUBLISH_SEQ_HEADER = "x-bloom-publish-seq"
 #: Addresses kept before idle ones are swept. A lab has a handful of tablets;
 #: past this the buckets are a spoofed-address memory leak, not traffic.
 MAX_RATE_LIMIT_CLIENTS = 1024
@@ -178,6 +180,31 @@ def execute_as_runtime_owner(request: Request, operation: Callable[[], T]) -> T:
         return request.app.state.runtime_session_manager.execute_if_control_owner(session_id, operation)
     except RuntimeControlNotOwnedError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+def publish_seq(request: Request) -> int | None:
+    raw = request.headers.get(PUBLISH_SEQ_HEADER)
+    if raw is None:
+        return None
+    try:
+        return int(raw.strip(), 10)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"{PUBLISH_SEQ_HEADER} must be an integer."
+        ) from exc
+
+
+def execute_ordered_as_runtime_owner(request: Request, target: str, seq: int | None, operation: Callable[[], T]) -> T:
+    """Run a robot publish inside the lease gate, refused when a newer one already went to its target."""
+    manager = request.app.state.runtime_session_manager
+    session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+    return execute_as_runtime_owner(
+        request, lambda: manager.execute_in_publish_order(session_id, target, seq, operation)
+    )
+
+
+def superseded_error(exc: PublishSupersededError) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": "superseded", "message": str(exc)})
 
 
 def require_admin(request: Request) -> BloomPrincipal:

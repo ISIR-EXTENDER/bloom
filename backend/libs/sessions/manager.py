@@ -56,6 +56,14 @@ class RuntimeSessionLimitError(RuntimeError):
     """Raised when the backend already holds every session it serves."""
 
 
+class PublishSupersededError(Exception):
+    """A newer publish from the same session already went to this target (ADR 0141)."""
+
+    def __init__(self, target: str) -> None:
+        super().__init__(f"A newer command for {target} was already applied.")
+        self.target = target
+
+
 class RuntimeSessionManager:
     def __init__(
         self,
@@ -90,8 +98,11 @@ class RuntimeSessionManager:
         # The legacy /teleop_cmd has no input timeout, so a displaced owner's last twist must be zeroed.
         self._zero_orphaned_teleop = zero_orphaned_teleop
         self._orphaned_teleop_zeros: list[TeleopCommand] = []
+        #: Highest X-Bloom-Publish-Seq applied per session and target; STOP leaves it, the session drops it.
+        self._publish_seqs: dict[str, dict[str, int]] = {}
         self._lock = Lock()
         self._operation_lock = Lock()
+        self._publish_order_lock = Lock()
 
     @property
     def active_session_count(self) -> int:
@@ -141,6 +152,7 @@ class RuntimeSessionManager:
             self._joint_target_topics.pop(session.id, None)
             self._shaping_topics.pop(session.id, None)
             self._visual_servoing_sessions.discard(session.id)
+            self._publish_seqs.pop(session.id, None)
             if self._owner_session_id == session.id:
                 self._owner_session_id = None
             if self._releasing_session_id == session.id:
@@ -214,6 +226,28 @@ class RuntimeSessionManager:
                 # An owner driving only through HTTP is still there.
                 self._last_seen[session_id] = self._clock()
             return operation()
+
+    def execute_in_publish_order(self, session_id: str, target: str, seq: int | None, operation: Callable[[], T]) -> T:
+        """Refuse a publish whose seq is not above the last one applied; record it only once it succeeded."""
+        if seq is None:
+            return operation()
+        with self._publish_order_lock:
+            with self._lock:
+                # A request from no connected session has nothing to order against.
+                ordered = session_id in self._sessions
+                last = self._publish_seqs.get(session_id, {}).get(target)
+                if ordered and last is not None and seq <= last:
+                    raise PublishSupersededError(target)
+            result = operation()
+            if ordered:
+                with self._lock:
+                    if session_id in self._sessions:
+                        self._publish_seqs.setdefault(session_id, {})[target] = seq
+            return result
+
+    def last_publish_seq(self, session_id: str, target: str) -> int | None:
+        with self._lock:
+            return self._publish_seqs.get(session_id, {}).get(target)
 
     def record_teleop_command(self, session: RuntimeSession, command: TeleopCommand) -> None:
         with self._lock:
@@ -410,6 +444,7 @@ class RuntimeSessionManager:
 
         self._owner_session_id = None
         self._releasing_session_id = None
+        self._publish_seqs.pop(owner_id, None)
         # Whatever it last sent expired on the manager long before this. A joint target and a shaping mode do not
         # expire, and the old session's own disconnect must not undo the new owner's, so the next claim resets them.
         for command in self._teleop_commands.pop(owner_id, {}).values():

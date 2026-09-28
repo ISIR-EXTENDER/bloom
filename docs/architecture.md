@@ -125,6 +125,11 @@ dashboard posts them to `POST /api/v1/runtime/actions` with `config_id`, `app_id
 Robot-facing HTTP requests carry the WebSocket session ID in `X-Bloom-Runtime-Session`, and the backend checks that
 lease both when it authorizes the request and again at the final adapter operation. STOP is exempt; resume is not.
 
+`POST /ros/topics/publish` and `POST /runtime/actions` also take `X-Bloom-Publish-Seq`, an integer that grows within a
+page (ADR 0141). Under the lease lock, a seq not above the last one applied for that session and target (topic, or a
+preset's topic or service) is not published and gets `409` with `detail: {"code": "superseded", "message": ...}`. A
+malformed value is a `422`; without the header a request is applied as before.
+
 The backend then reloads the saved configuration, resolves the command against the app's saved `action_presets`,
 rejects anything no saved preset backs, parses the payload, applies the app runtime policy, applies the global ROS
 policy and rate limit, publishes through the configured gateway, and audits the accepted or rejected operation.

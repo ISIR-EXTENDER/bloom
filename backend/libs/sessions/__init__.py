@@ -5,6 +5,7 @@ from libs.sessions.audit import (
     summarize_payload,
 )
 from libs.sessions.manager import (
+    PublishSupersededError,
     RuntimeControlNotOwnedError,
     RuntimeControlSnapshot,
     RuntimeSession,
@@ -55,6 +56,7 @@ from libs.sessions.topics import (
 )
 
 __all__ = [
+    "PublishSupersededError",
     "CANCEL_MODE_REQUEST",
     "InMemoryRuntimeAuditLog",
     "NoopTeleopCommandGateway",

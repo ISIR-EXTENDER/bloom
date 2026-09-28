@@ -17,9 +17,12 @@ from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
     execute_as_runtime_owner,
+    execute_ordered_as_runtime_owner,
+    publish_seq,
     require_observer,
     require_observer_on_loop,
     require_runtime_owner,
+    superseded_error,
 )
 from libs.ros_adapters import (
     RosPublisherGateway,
@@ -43,6 +46,7 @@ from libs.ros_adapters.safety import (
     parameter_value_error,
 )
 from libs.sessions import (
+    PublishSupersededError,
     RuntimeAuditRecord,
     RuntimeRateLimitError,
     RuntimeStoppedError,
@@ -243,6 +247,7 @@ def publish_ros_topic(
     publish_request: RosTopicPublishRequest,
     _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RosTopicPublishResponse:
+    seq = publish_seq(request)
     audit_log = get_runtime_audit_log(request)
     # One robot, one latch: the generic publish path is refused too.
     stop_controller = request.app.state.runtime_stop_controller
@@ -285,7 +290,19 @@ def publish_ros_topic(
         return receipt
 
     try:
-        receipt = execute_as_runtime_owner(request, publish_and_record)
+        receipt = execute_ordered_as_runtime_owner(request, publish_request.topic, seq, publish_and_record)
+    except PublishSupersededError as exc:
+        audit_log.record(
+            RuntimeAuditRecord(
+                channel="http_ros_publish",
+                detail=str(exc),
+                message_type=publish_request.message_type,
+                payload_summary={"reason": "superseded", "publish_seq": seq},
+                status="rejected",
+                topic=publish_request.topic,
+            )
+        )
+        raise superseded_error(exc) from exc
     except RuntimeStoppedError as exc:
         audit_log.record(
             RuntimeAuditRecord(

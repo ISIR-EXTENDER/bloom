@@ -25,10 +25,12 @@ from apps.bloom_api.routes.runtime_socket import router as socket_router
 from apps.bloom_api.security import (
     RUNTIME_SESSION_HEADER,
     BloomPrincipal,
-    execute_as_runtime_owner,
+    execute_ordered_as_runtime_owner,
+    publish_seq,
     require_observer,
     require_operator_on_loop,
     require_runtime_owner,
+    superseded_error,
 )
 from libs.config import (
     ApplicationConfig,
@@ -52,6 +54,7 @@ from libs.ros_adapters.safety import (
     ensure_allowed,
 )
 from libs.sessions import (
+    PublishSupersededError,
     RuntimeAuditLog,
     RuntimeAuditRecord,
     RuntimeRateLimitError,
@@ -232,6 +235,7 @@ def dispatch_runtime_action(
     action_request: RuntimeActionDispatchRequest,
     _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RuntimeActionDispatchResponse:
+    seq = publish_seq(request)
     stop_controller = get_runtime_stop_controller(request)
     stop_reason = stop_controller.rejection_reason()
     if stop_reason is not None:
@@ -264,7 +268,7 @@ def dispatch_runtime_action(
     if preset.kind == "service-call":
         # Preset schema reuse: `topic` holds the service name, `message_type`
         # the service type.
-        return dispatch_service_call_preset(request, action_request, application, preset)
+        return dispatch_service_call_preset(request, action_request, application, preset, seq)
     if preset.kind != "topic-publish" or not preset.topic or not preset.message_type:
         raise HTTPException(status_code=422, detail="runtime action preset is not a ROS topic publish adapter")
 
@@ -304,7 +308,12 @@ def dispatch_runtime_action(
         return receipt
 
     try:
-        receipt = execute_as_runtime_owner(request, publish_and_record)
+        receipt = execute_ordered_as_runtime_owner(request, preset.topic, seq, publish_and_record)
+    except PublishSupersededError as exc:
+        record_runtime_action_rejection(
+            audit_log, action_request, preset, payload, str(exc), {"reason": "superseded", "publish_seq": seq}
+        )
+        raise superseded_error(exc) from exc
     except RuntimeStoppedError as exc:
         record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -328,16 +337,18 @@ def dispatch_service_call_preset(
     action_request: RuntimeActionDispatchRequest,
     application: ApplicationConfig,
     preset: RuntimeActionPreset,
+    seq: int | None = None,
 ) -> RuntimeActionDispatchResponse:
     audit_log = get_runtime_audit_log(request)
 
-    def reject(status_code: int, detail: str) -> HTTPException:
+    def reject(status_code: int, detail: str, payload_summary: dict[str, Any] | None = None) -> HTTPException:
         return audited_rejection(
             audit_log,
             status_code,
             channel="runtime_action",
             detail=detail,
             message_type=preset.message_type,
+            payload_summary=payload_summary or {},
             target=preset.command or preset.id,
             topic=preset.topic,
         )
@@ -363,14 +374,19 @@ def dispatch_service_call_preset(
 
     ros_service_gateway: RosServiceGateway = request.app.state.ros_service_gateway
     try:
-        receipt = execute_as_runtime_owner(
+        receipt = execute_ordered_as_runtime_owner(
             request,
+            preset.topic,
+            seq,
             lambda: stop_controller.execute_blocking_if_running(
                 lambda: ros_service_gateway.call(
                     RosServiceRequest(service=preset.topic, service_type=preset.message_type)
                 )
             ),
         )
+    except PublishSupersededError as exc:
+        reject(409, str(exc), {"reason": "superseded", "publish_seq": seq})
+        raise superseded_error(exc) from exc
     except RuntimeStoppedError as exc:
         raise reject(409, str(exc)) from exc
     except ValueError as exc:
@@ -440,6 +456,7 @@ def record_runtime_action_rejection(
     preset: RuntimeActionPreset,
     payload: dict[str, Any],
     detail: str,
+    extra_summary: dict[str, Any] | None = None,
 ) -> None:
     audit_log.record(
         RuntimeAuditRecord(
@@ -448,6 +465,7 @@ def record_runtime_action_rejection(
             message_type=preset.message_type,
             payload_summary={
                 **summarize_payload(payload),
+                **(extra_summary or {}),
                 "app_id": action_request.app_id,
                 "config_id": action_request.config_id,
                 "preset_id": preset.id,

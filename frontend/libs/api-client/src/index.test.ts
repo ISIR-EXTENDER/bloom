@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import sharedConfigurationBundle from "../../../../tests/fixtures/configuration-bundle.json";
 import widgetKindsContract from "../../../../tests/fixtures/widget-kinds-contract.json";
-import { type BloomApiError, type ConfigurationBundle, createBloomApiClient, WIDGET_KINDS } from "./index";
+import { BloomApiError, type ConfigurationBundle, createBloomApiClient, WIDGET_KINDS } from "./index";
 
 const sampleBundle = sharedConfigurationBundle as unknown as ConfigurationBundle;
 const contractWidgetKinds = widgetKindsContract.widget_kinds;
@@ -174,7 +174,7 @@ describe("Bloom API client", () => {
     await expect(client.publishRosTopic(requestPayload)).resolves.toEqual(responsePayload);
     expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics/publish", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Bloom-Publish-Seq": expect.stringMatching(/^\d+$/) },
       body: JSON.stringify(requestPayload),
       signal: expect.any(AbortSignal),
     });
@@ -220,7 +220,7 @@ describe("Bloom API client", () => {
     await expect(client.publishRosTopic(requestPayload)).resolves.toEqual(responsePayload);
     expect(fetcher).toHaveBeenCalledWith("/api/v1/ros/topics/publish", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Bloom-Publish-Seq": expect.stringMatching(/^\d+$/) },
       body: JSON.stringify(requestPayload),
       signal: expect.any(AbortSignal),
     });
@@ -248,7 +248,7 @@ describe("Bloom API client", () => {
     await expect(client.dispatchRuntimeAction(requestPayload)).resolves.toEqual(responsePayload);
     expect(fetcher).toHaveBeenCalledWith("/api/v1/runtime/actions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Bloom-Publish-Seq": expect.stringMatching(/^\d+$/) },
       body: JSON.stringify(requestPayload),
     });
   });
@@ -387,6 +387,50 @@ describe("Bloom API client", () => {
     expect(fetcher).toHaveBeenNthCalledWith(2, "/api/v1/runtime/recordings/recording-1/stop", {
       method: "POST",
     });
+  });
+
+  it("numbers every robot publish with a sequence that only grows", async () => {
+    const fetcher = createJsonFetcher({});
+    const client = createBloomApiClient({ fetcher });
+    const before = Date.now();
+
+    await client.publishRosTopic({ topic: "/ui/grip", message_type: "std_msgs/msg/Bool", payload: { data: true } });
+    await client.dispatchRuntimeAction({ app_id: "a", command: "c", config_id: "c" });
+    await client.publishRosTopic({ topic: "/ui/grip", message_type: "std_msgs/msg/Bool", payload: { data: false } });
+
+    const seqs = vi
+      .mocked(fetcher)
+      .mock.calls.map((call) => Number(new Headers(call[1]?.headers).get("X-Bloom-Publish-Seq")));
+    expect(seqs[0]).toBeGreaterThan(before - 60_000);
+    expect(seqs[1]).toBeGreaterThan(seqs[0] ?? Number.NaN);
+    expect(seqs[2]).toBeGreaterThan(seqs[1] ?? Number.NaN);
+  });
+
+  it("does not number reads", async () => {
+    const fetcher = createJsonFetcher({ configuration_ids: [] });
+    const client = createBloomApiClient({ fetcher });
+
+    await client.listConfigurations();
+
+    expect(new Headers(vi.mocked(fetcher).mock.calls[0]?.[1]?.headers).has("X-Bloom-Publish-Seq")).toBe(false);
+  });
+
+  it("surfaces a superseded publish as code superseded", async () => {
+    const body = { detail: { code: "superseded", message: "A newer command for /ui/grip was already applied." } };
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify(body), { status: 409 }));
+    const client = createBloomApiClient({ fetcher });
+
+    await expect(
+      client.publishRosTopic({ topic: "/ui/grip", message_type: "std_msgs/msg/Bool", payload: { data: true } }),
+    ).rejects.toMatchObject({ name: "BloomApiError", status: 409, code: "superseded" });
+  });
+
+  it("has no code when the detail is a plain string or not JSON", async () => {
+    const plain = new BloomApiError("failed", 409, '{"detail":"Runtime stop is engaged."}');
+    const html = new BloomApiError("failed", 502, "<html>bad gateway</html>");
+
+    expect(plain.code).toBeUndefined();
+    expect(html.code).toBeUndefined();
   });
 
   it("throws a typed error when the backend rejects a request", async () => {

@@ -54,6 +54,24 @@ export class BloomApiError extends Error {
     super(message);
     this.name = "BloomApiError";
   }
+
+  /** The machine-readable `detail.code`, such as "superseded" on a 409 (ADR 0141). */
+  get code(): string | undefined {
+    try {
+      const parsed = JSON.parse(this.responseText) as { detail?: { code?: unknown } };
+      return typeof parsed.detail?.code === "string" ? parsed.detail.code : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+}
+
+// ADR 0141: grows within a page, so the server applies robot publishes in the order they were issued.
+let publishSeq = Date.now();
+
+function nextPublishSeqHeader(): Record<string, string> {
+  publishSeq += 1;
+  return { "X-Bloom-Publish-Seq": String(publishSeq) };
 }
 
 export class BloomApiClient {
@@ -185,7 +203,7 @@ export class BloomApiClient {
     });
     const published = this.request<RosTopicPublishResponse>("/api/v1/ros/topics/publish", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...nextPublishSeqHeader() },
       body: JSON.stringify(request),
       signal: controller.signal,
     });
@@ -195,7 +213,7 @@ export class BloomApiClient {
   dispatchRuntimeAction(request: RuntimeActionDispatchRequest): Promise<RuntimeActionDispatchResponse> {
     return this.request<RuntimeActionDispatchResponse>("/api/v1/runtime/actions", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...nextPublishSeqHeader() },
       body: JSON.stringify(request),
     });
   }
