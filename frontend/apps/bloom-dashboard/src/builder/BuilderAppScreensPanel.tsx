@@ -67,6 +67,15 @@ export function BuilderAppScreensPanel({
   unassignedScreens,
 }: BuilderAppScreensPanelProps) {
   const availableScreenGroups = groupAvailableScreensByFeature(unassignedScreens);
+  // Removing a screen leaves the buttons that opened it as they are; say which ones now open nothing.
+  const strandedButtons = screens.flatMap((screen) =>
+    screen.widgets
+      .filter((widget) => {
+        const target = typeof widget.settings.targetScreenId === "string" ? widget.settings.targetScreenId.trim() : "";
+        return widget.kind === "command-button" && target && !screens.some((candidate) => candidate.id === target);
+      })
+      .map((widget) => `${widget.title} on ${screen.title} (opens "${String(widget.settings.targetScreenId)}")`),
+  );
 
   return (
     <section className="builder-config-panel builder-screens-panel" aria-labelledby="builder-screens-title">
@@ -115,6 +124,12 @@ export function BuilderAppScreensPanel({
           </div>
           {isDirty ? (
             <p className="builder-inline-hint">Save or discard app changes before opening a screen builder.</p>
+          ) : null}
+          {strandedButtons.length > 0 ? (
+            <p className="builder-settings-destination-refusal" role="alert">
+              These buttons open a screen this app no longer has, so pressing them does nothing:{" "}
+              {strandedButtons.join("; ")}. Pick another screen under Opens screen.
+            </p>
           ) : null}
           <section
             aria-label="Screens currently assigned to this app. Drop reusable screens here to add them."

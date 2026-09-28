@@ -538,6 +538,7 @@ export function BuilderWorkspace({
         allowedPublishTopics={selectedWorkspace.application.runtime_policy.allowed_publish_topics}
         allowedMessageTypes={selectedWorkspace.application.runtime_policy.allowed_message_types}
         allowedServiceCalls={selectedWorkspace.application.runtime_policy.allowed_service_calls ?? []}
+        appScreens={selectedWorkspace.application.screens}
         deploymentAllowlists={deploymentAllowlists}
         allowedTeleopTargets={selectedWorkspace.application.runtime_policy.allowed_teleop_targets}
         onAllowPolicyEntry={allowPolicyEntry}

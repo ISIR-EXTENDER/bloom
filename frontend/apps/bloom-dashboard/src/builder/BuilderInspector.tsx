@@ -25,6 +25,8 @@ type BuilderInspectorProps = {
   allowedPublishTopics?: readonly string[];
   allowedMessageTypes?: readonly string[];
   allowedServiceCalls?: readonly string[];
+  /** The app's screens, which a navigation button opens. */
+  appScreens?: readonly { id: string; title: string }[];
   deploymentAllowlists?: DeploymentAllowlists;
   /** Adds a refused entry to the app's own list. */
   onAllowPolicyEntry?: (list: AllowablePolicyList, value: string) => void;
@@ -66,6 +68,7 @@ export function BuilderInspector({
   allowedPublishTopics,
   allowedMessageTypes,
   allowedServiceCalls,
+  appScreens,
   deploymentAllowlists,
   onAllowPolicyEntry,
   serverTeleopTargets,
@@ -195,6 +198,7 @@ export function BuilderInspector({
         allowedMessageTypes={allowedMessageTypes}
         allowedServiceCalls={allowedServiceCalls}
         allowedTeleopTargets={allowedTeleopTargets}
+        appScreens={appScreens}
         deploymentAllowlists={deploymentAllowlists}
         onAllowPolicyEntry={onAllowPolicyEntry}
         serverTeleopTargets={serverTeleopTargets}

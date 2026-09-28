@@ -7,7 +7,7 @@ import { guidedTourProgressKey, useGuidedTourProgress } from "../ui/guided-tour-
 import type { DeploymentAllowlists } from "./BuilderWidgetSummaries";
 import { densityFloorFor, glassPx, resolveBuilderPanel, reviewScreens } from "./builder-geometry";
 import { resolveWidgetRoute, type WidgetRoute } from "./widget-publish-route";
-import { describeWidgetSendProblems } from "./widget-send-problems";
+import { describeWidgetFrameProblem, describeWidgetSendProblems, isNavigationButton } from "./widget-send-problems";
 
 type ReviewRuleId = "minimum" | "overlap" | "device-class" | "symmetry" | "pads" | "profiles" | "pairs";
 type BuilderTourStepId = "geometry" | "touch" | ReviewRuleId | "frame" | "topics" | "profile" | "ship";
@@ -59,6 +59,7 @@ export function BuilderGuidedTour({
   );
   const topicProblem = useMemo(() => findFirstTopicProblem(application, deployment), [application, deployment]);
   const touchProblem = useMemo(() => findTouchProblem(application), [application]);
+  const frameProblem = useMemo(() => findFrameProblem(application, deployment), [application, deployment]);
   const steps = useMemo(
     () =>
       createBuilderTourSteps(
@@ -69,8 +70,9 @@ export function BuilderGuidedTour({
         topicProblem,
         touchProblem,
         siblings,
+        frameProblem,
       ),
-    [application, checks, completedStepIds, firstScreen, siblings, topicProblem, touchProblem],
+    [application, checks, completedStepIds, firstScreen, frameProblem, siblings, topicProblem, touchProblem],
   );
   const [activeStepId, setActiveStepId] = useState<BuilderTourStepId>(
     () => steps.find((step) => !step.complete)?.id ?? steps[0]?.id ?? "ship",
@@ -206,6 +208,8 @@ export function evaluateBuilderTour(
 ): Record<Exclude<BuilderTourStepId, "ship">, boolean> {
   const rules = Object.fromEntries(reviewScreens(application, siblings).map((rule) => [rule.id, rule.passed]));
   const destinations = collectWidgetDestinations(application);
+  // Nothing on it commands the robot, so there is no route to check: a camera or reader app passes.
+  const readOnly = isReadOnlyApplication(application);
 
   return {
     // native-1280x720 and hd are the same tablet panel; full-hd is the desktop one.
@@ -222,8 +226,8 @@ export function evaluateBuilderTour(
     profiles: rules.profiles === true,
     pairs: rules.pairs === true,
     // Empty is a choice too: the manager reads the command in its default input frame, base_link.
-    frame: true,
-    topics: destinations.length > 0 && findFirstTopicProblem(application, deployment) === null,
+    frame: findFrameProblem(application, deployment) === null,
+    topics: (destinations.length > 0 || readOnly) && findFirstTopicProblem(application, deployment) === null,
     profile: application.profiles.length > 0,
   };
 }
@@ -246,7 +250,9 @@ function createBuilderTourSteps(
   topicProblem: WidgetTopicProblem | null,
   touchProblem: WidgetTouchProblem | null,
   siblings: readonly ApplicationConfig[] = [],
+  frameProblem: string | null = null,
 ): BuilderTourStep[] {
+  const readOnly = isReadOnlyApplication(application);
   const stepDefinitions: BuilderTourStep[] = [
     {
       id: "geometry",
@@ -262,9 +268,11 @@ function createBuilderTourSteps(
       id: "touch",
       title: "Place controls, watch the bounds",
       detail:
-        touchProblem === null
-          ? "Every control's target meets the 44 px floor on the glass of the smallest panel, and none overlap."
-          : describeTouchProblem(touchProblem),
+        touchProblem !== null
+          ? describeTouchProblem(touchProblem)
+          : hasNoControls(application)
+            ? "Nothing here is pressed or dragged, so there is no target to measure; this step does not apply."
+            : "Every control's target meets the 44 px floor on the glass of the smallest panel, and none overlap.",
       why: "Touch checks belong in the authoring loop, before the app reaches the lab.",
       action: "Inspect control bounds",
       complete: checks.touch,
@@ -282,9 +290,11 @@ function createBuilderTourSteps(
     {
       id: "frame",
       title: "Say which way is forward",
-      detail: application.runtime_policy.command_frame_id
-        ? `Operator commands use ${application.runtime_policy.command_frame_id}.`
-        : "Operator commands use the manager's default frame, base_link. Pick another in Adapter guardrails if the arm is mounted sideways.",
+      detail:
+        frameProblem ??
+        (application.runtime_policy.command_frame_id
+          ? `Operator commands use ${application.runtime_policy.command_frame_id}.`
+          : "Operator commands use the manager's default frame, base_link. Pick another in Adapter guardrails if the arm is mounted sideways."),
       why: "A robot base frame may not match forward for the person operating a side-mounted arm.",
       action: "Open adapter guardrails",
       complete: checks.frame,
@@ -293,7 +303,9 @@ function createBuilderTourSteps(
       id: "topics",
       title: "Bind to allowed topics",
       detail: checks.topics
-        ? "Every modeled widget destination is present in the matching app policy."
+        ? readOnly && collectWidgetDestinations(application).length === 0
+          ? "Nothing here commands the robot or reads a topic, so there is no route to check; this step does not apply."
+          : "Every modeled widget destination is present in the matching app policy."
         : topicProblem
           ? topicProblem.reason
             ? `${topicProblem.widget.title} on ${topicProblem.screen.title}: ${topicProblem.reason}`
@@ -362,10 +374,48 @@ function findRuleProblemScreenId(
 type WidgetTopicProblem = {
   /** What fails at press time, when it is more than a missing or refused destination. */
   reason?: string;
-  route: WidgetRoute;
+  route?: WidgetRoute;
   screen: TourScreen;
   widget: WidgetConfig;
 };
+
+/** Nothing commands the robot: a camera, reader or screen-to-screen app has no route for the topics step to check. */
+function isReadOnlyApplication(application: ApplicationConfig): boolean {
+  const widgets = application.screens.flatMap((screen) => screen.widgets);
+  return (
+    widgets.length > 0 &&
+    widgets.every(
+      (widget) =>
+        (!INTERACTIVE_WIDGET_KINDS.has(widget.kind) || isNavigationButton(widget)) &&
+        resolveWidgetRoute(widget, application.action_presets)?.destination.direction !== "publishes",
+    )
+  );
+}
+
+/** No control to touch at all, though something is placed. */
+function hasNoControls(application: ApplicationConfig): boolean {
+  const widgets = application.screens.flatMap((screen) => screen.widgets);
+  return widgets.length > 0 && widgets.every((widget) => !INTERACTIVE_WIDGET_KINDS.has(widget.kind));
+}
+
+/** The app's frame and every pad's own frame must be ones this robot accepts, or the runtime blocks the twist. */
+function findFrameProblem(application: ApplicationConfig, deployment: DeploymentAllowlists = {}): string | null {
+  const frames = deployment.commandFrameIds;
+  const appFrame = application.runtime_policy.command_frame_id?.trim() ?? "";
+  if (frames && appFrame && !frames.includes(appFrame)) {
+    const accepted = frames.length > 0 ? `it takes ${frames.join(", ")}` : "it takes no command frame";
+    return `Operator commands use ${appFrame}, which this robot does not accept (${accepted}), so every twist is blocked. Pick another in Adapter guardrails.`;
+  }
+  for (const screen of application.screens) {
+    for (const widget of screen.widgets) {
+      const problem = describeWidgetFrameProblem(widget, frames);
+      if (problem) {
+        return `${widget.title} on ${screen.title}: ${problem}`;
+      }
+    }
+  }
+  return null;
+}
 
 function collectWidgetDestinations(application: ApplicationConfig): WidgetTopicProblem[] {
   return application.screens.flatMap((screen) =>
@@ -380,17 +430,24 @@ function findFirstTopicProblem(
   application: ApplicationConfig,
   deployment: DeploymentAllowlists = {},
 ): WidgetTopicProblem | null {
-  for (const problem of collectWidgetDestinations(application)) {
-    const [reason] = describeWidgetSendProblems(problem.widget, application.action_presets);
-    if (reason) {
-      return { ...problem, reason };
-    }
-    if (!isTopicDestinationAllowed(application, problem.route)) {
-      return problem;
-    }
-    const refusal = describeDeploymentRefusal(problem.route, deployment);
-    if (refusal) {
-      return { ...problem, reason: refusal };
+  const context = { screens: application.screens };
+  for (const screen of application.screens) {
+    for (const widget of screen.widgets) {
+      const [reason] = describeWidgetSendProblems(widget, application.action_presets, context);
+      if (reason) {
+        return { reason, screen, widget };
+      }
+      const route = resolveWidgetRoute(widget, application.action_presets);
+      if (!route) {
+        continue;
+      }
+      if (!isTopicDestinationAllowed(application, route)) {
+        return { route, screen, widget };
+      }
+      const refusal = describeDeploymentRefusal(route, deployment);
+      if (refusal) {
+        return { reason: refusal, route, screen, widget };
+      }
     }
   }
   return null;
@@ -461,7 +518,7 @@ function findTouchProblem(application: ApplicationConfig): WidgetTouchProblem | 
   const controlsOn = (screen: TourScreen) =>
     screen.widgets.filter((widget) => INTERACTIVE_WIDGET_KINDS.has(widget.kind));
   if (!application.screens.some((screen) => controlsOn(screen).length > 0)) {
-    return { kind: "empty" };
+    return hasNoControls(application) ? null : { kind: "empty" };
   }
 
   for (const screen of application.screens) {

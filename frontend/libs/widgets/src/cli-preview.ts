@@ -21,6 +21,7 @@ export function buildCliPreview(
   presets: readonly RuntimeActionPreset[] = [],
 ): string | null {
   // A button's press is resolved as the dispatcher resolves it: a preset it sends is the preset's line.
+  let sent = payload;
   if (kind === "command-button") {
     const widget = { id: "cli-preview", kind: kind as WidgetKind, settings: settings ?? {}, title: "" } as WidgetConfig;
     const intent = createWidgetActionIntent(widget, { type: "press" });
@@ -28,8 +29,13 @@ export function buildCliPreview(
     if (route?.kind === "preset") {
       return buildPresetLine(route.preset);
     }
-    if (intent.type !== "topic-publish" && route?.kind !== "topic") {
+    const publish = intent.type === "topic-publish" ? intent : route?.kind === "topic" ? route.publish : null;
+    if (!publish) {
       return null;
+    }
+    // A String press with no payload sends {data: command}; a held button sends its payload as is.
+    if (settings?.momentary !== true && readPayloadText(payload) === null) {
+      sent = publish.payload;
     }
   }
 
@@ -43,7 +49,7 @@ export function buildCliPreview(
     return null;
   }
 
-  const body = readPayloadText(payload);
+  const body = readPayloadText(sent);
   if (body === null) {
     return null;
   }

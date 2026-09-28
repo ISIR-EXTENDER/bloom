@@ -70,17 +70,17 @@ export function resolveWidgetRoute(widget: WidgetConfig, presets: readonly Runti
   if (!destination) {
     return null;
   }
-  const binding = asRecord(widget.settings.runtime_binding);
-  const mapping = asRecord(binding.value_mapping);
+  const mapping = asRecord(asRecord(widget.settings.runtime_binding).value_mapping);
   return {
     destination,
     messageType:
       destination.direction === "publishes" ? resolvePublishedMessageType(widget.kind, widget.settings) : null,
+    // The destination says whether the binding is what sends: a toggle's own topic outranks it.
     parameter:
-      binding.adapter === "parameter" ? `${String(mapping.node ?? "")}:${String(mapping.parameter ?? "")}` : null,
+      destination.via === "parameter" ? `${String(mapping.node ?? "")}:${String(mapping.parameter ?? "")}` : null,
     service: null,
     serviceType: null,
-    teleop: binding.adapter === "teleop",
+    teleop: destination.via === "teleop",
   };
 }
 

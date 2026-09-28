@@ -8,6 +8,7 @@ import {
   type WidgetDestination,
 } from "@bloom/widgets";
 import { glassPx } from "./builder-geometry";
+import { isMissingPayload, MODE_REQUEST_TOPIC } from "./widget-send-problems";
 
 const FIT_OVERFLOW_GUARD = 0.99;
 
@@ -26,13 +27,19 @@ export function WidgetCliPreview({
   widget: WidgetConfig;
 }) {
   const settings = widget.settings ?? {};
+  const held = widget.kind === "command-button" && settings.momentary === true;
   const lines =
     widget.kind === "toggle"
       ? [
           ["ON", buildCliPreview(widget.kind, settings, settings.onPayload)],
           ["OFF", buildCliPreview(widget.kind, settings, settings.offPayload)],
         ]
-      : [["", buildCliPreview(widget.kind, settings, settings.payload, presets)]];
+      : held
+        ? [
+            ["Held", buildCliPreview(widget.kind, settings, settings.payload, presets)],
+            ["Let go", buildCliPreview(widget.kind, settings, resolveReleasedPayload(settings), presets)],
+          ]
+        : [["", buildCliPreview(widget.kind, settings, settings.payload, presets)]];
   const shown = lines.filter(([, line]) => line !== null);
 
   if (shown.length === 0) {
@@ -50,6 +57,13 @@ export function WidgetCliPreview({
       ))}
     </div>
   );
+}
+
+/** What a held button sends on let-go: /mode_request falls back to Neutral, as the renderer does. */
+function resolveReleasedPayload(settings: Record<string, unknown>): unknown {
+  return isMissingPayload(settings.releasedPayload) && settings.topic === MODE_REQUEST_TOPIC
+    ? { data: "geometric/both" }
+    : settings.releasedPayload;
 }
 
 export function WidgetGlassSizeSummary({
@@ -117,6 +131,8 @@ export type AllowablePolicyList =
 
 /** The deployment's own lists from /capabilities; an app's lists can only narrow them. Undefined until reported. */
 export type DeploymentAllowlists = {
+  /** The command frames this robot accepts; the runtime blocks a twist stamped in any other. */
+  commandFrameIds?: readonly string[];
   messageTypes?: readonly string[];
   parameters?: readonly string[];
   publishTopics?: readonly string[];
@@ -128,6 +144,7 @@ export type DeploymentAllowlists = {
 /** The deployment lists a capability report carries; an older backend that sends none checks nothing. */
 export function readDeploymentAllowlists(report: RuntimeCapabilityReport | null | undefined): DeploymentAllowlists {
   return {
+    commandFrameIds: report?.command_frame_ids,
     messageTypes: report?.allowed_ros_message_types,
     parameters: report?.allowed_ros_parameters,
     publishTopics: report?.allowed_ros_publish_topics,
@@ -185,7 +202,7 @@ export function WidgetDestinationSummary({
   // parameterisable; what stopped it is the app's own teleop list, which the runtime narrows the
   // socket to. Nothing said so until the control was live and refused.
   const teleopTarget =
-    destination.direction === "publishes" && resolveTeleopAdapter(widget.settings) ? (destination.topic ?? "") : "";
+    destination.direction === "publishes" && destination.via === "teleop" ? (destination.topic ?? "") : "";
   const outsidePolicy =
     Boolean(teleopTarget) &&
     Boolean(allowedTeleopTargets) &&
@@ -199,7 +216,7 @@ export function WidgetDestinationSummary({
   const deploymentRefuses = (list: readonly string[] | undefined, value: string) =>
     Boolean(value) && list !== undefined && !allowlistAllows(list, value);
 
-  const parameterTarget = resolveParameterTarget(widget.settings);
+  const parameterTarget = destination.via === "parameter" ? resolveParameterTarget(widget.settings) : "";
   const parameterOutsidePolicy =
     Boolean(parameterTarget) &&
     Boolean(allowedParameters) &&
@@ -342,10 +359,4 @@ function resolveParameterTarget(settings: Record<string, unknown>): string {
   }
   const { node, parameter } = mapping as { node?: unknown; parameter?: unknown };
   return typeof node === "string" && typeof parameter === "string" ? `${node}:${parameter}` : "";
-}
-
-/** True when this widget contributes to the composed twist, which is what the teleop list governs. */
-function resolveTeleopAdapter(settings: Record<string, unknown>): boolean {
-  const binding = settings.runtime_binding;
-  return Boolean(binding && typeof binding === "object" && (binding as { adapter?: unknown }).adapter === "teleop");
 }

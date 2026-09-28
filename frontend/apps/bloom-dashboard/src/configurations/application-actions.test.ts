@@ -105,3 +105,29 @@ describe("a new app's configuration id", () => {
     expect(saveConfiguration).not.toHaveBeenCalled();
   });
 });
+
+describe("a new app named like a shipped configuration", () => {
+  // "Petanque Admin" became petanque-admin and was saved into the shipped Petanque configuration.
+  it("gets a configuration of its own, never the shipped one", async () => {
+    const saveApplication = vi.fn();
+    const saveConfiguration = vi.fn();
+    const actions = createApplicationActions({
+      configurationClient: serverWith(["petanque-admin"]),
+      configurationState: {
+        status: "ready",
+        configurations: [{ id: "petanque-admin", bundle: bundle(app("app-petanque-admin", "Petanque Admin")) }],
+        saveApplication,
+        saveConfiguration,
+        shareStatus: { "petanque-admin-2": {} },
+      } as unknown as ConfigurationLoadState,
+      navigate: vi.fn(),
+      selection: null,
+      setSelection: vi.fn(),
+    });
+
+    await actions.createApplication("petanque-admin", app("petanque-admin", "Petanque Admin 2"));
+
+    expect(saveApplication).not.toHaveBeenCalled();
+    expect(saveConfiguration.mock.calls.map(([configId]) => configId)).toEqual(["petanque-admin-3"]);
+  });
+});

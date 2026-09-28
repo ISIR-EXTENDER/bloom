@@ -36,6 +36,7 @@ function renderEditor(settings: Record<string, unknown>, kind = "slider", allowe
 
 const TELEOP_BINDING = {
   adapter: "teleop",
+  target: "teleop",
   axis_mapping: { value: { component: "linear_z" } },
   value_mapping: { target_topic: "/joystick_cartesian_command" },
 };

@@ -41,6 +41,8 @@ export type CommandButtonSettings = {
   payload?: unknown;
   presetId?: string;
   runtime_binding?: TeleopFrameRuntimeBinding;
+  /** The screen a navigation button opens; naming one is what makes it navigate. */
+  targetScreenId?: string;
   topic?: string;
 };
 
@@ -100,6 +102,7 @@ export const commandButtonContract = createContract(
     { key: "payload", label: "Payload", type: "json", required: false },
     { key: "presetId", label: "Preset id", type: "text", required: false },
     { key: "runtime_binding", label: "Runtime binding", type: "json", required: false },
+    { key: "targetScreenId", label: "Opens screen", type: "text", required: false },
   ],
   COMMAND_BUTTON_DEFAULT_SETTINGS,
   validateCommandButtonSettings,
@@ -118,6 +121,9 @@ function validateCommandButtonSettings(
     ...validateString(settings, "topic", { allowEmpty: true }),
     ...validateString(settings, "messageType", { allowEmpty: true }),
     ...validateString(settings, "presetId", { allowEmpty: true }),
+    ...("targetScreenId" in settings && settings.targetScreenId !== undefined
+      ? validateString(settings, "targetScreenId", { allowEmpty: true })
+      : []),
   ];
   if ("runtime_binding" in settings && settings.runtime_binding !== undefined) {
     errors.push(...validateTeleopFrameRuntimeBinding(settings.runtime_binding));

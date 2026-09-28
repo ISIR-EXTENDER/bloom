@@ -42,7 +42,12 @@ import { RequiredTextInput } from "./RequiredTextInput";
 import { SERIES_KINDS, SeriesEditor } from "./SeriesEditor";
 import { DEFAULT_SPEED_LIMIT_CAPS, describeSpeedCapExcess, type SpeedLimitCaps } from "./speed-limit-caps";
 import { resolveWidgetRoute } from "./widget-publish-route";
-import { describeWidgetSendProblems, isMissingPayload, MODE_REQUEST_TOPIC } from "./widget-send-problems";
+import {
+  describeWidgetSendProblems,
+  isMissingPayload,
+  isNavigationButton,
+  MODE_REQUEST_TOPIC,
+} from "./widget-send-problems";
 
 type BuilderWidgetSettingsEditorProps = {
   /** The app's reusable command presets, picked by name for a widget that takes a preset id. */
@@ -55,6 +60,8 @@ type BuilderWidgetSettingsEditorProps = {
   allowedPublishTopics?: readonly string[];
   allowedMessageTypes?: readonly string[];
   allowedServiceCalls?: readonly string[];
+  /** The app's screens, which a navigation button opens. */
+  appScreens?: readonly { id: string; title: string }[];
   deploymentAllowlists?: DeploymentAllowlists;
   /** Adds a refused entry to the app's own list, from the refusal itself. */
   onAllowPolicyEntry?: (list: AllowablePolicyList, value: string) => void;
@@ -107,6 +114,7 @@ export function BuilderWidgetSettingsEditor({
   allowedPublishTopics,
   allowedMessageTypes,
   allowedServiceCalls,
+  appScreens,
   deploymentAllowlists,
   onAllowPolicyEntry,
   serverTeleopTargets,
@@ -278,7 +286,7 @@ export function BuilderWidgetSettingsEditor({
     }
     setValidationMessage(onUpdateSettings(rest));
   };
-  const sendProblems = describeWidgetSendProblems(widget, actionPresets);
+  const sendProblems = describeWidgetSendProblems(widget, actionPresets, { screens: appScreens });
 
   // The ROS plumbing of a control that says in words what it does: the choice above writes it, and 24 raw fields
   // in one list buried the four an author changes.
@@ -311,6 +319,16 @@ export function BuilderWidgetSettingsEditor({
     // The series editor and the preset picker carry these; the raw field would be a second way in.
     if ((field.key === "series" && SERIES_KINDS.has(widget.kind)) || field === presetField) {
       return null;
+    }
+    if (widget.kind === "command-button" && field.key === "targetScreenId") {
+      return isNavigationButton(widget) ? (
+        <ScreenTargetField
+          key={field.key}
+          onChange={(screenId) => updateSetting(field, screenId, true)}
+          screens={appScreens}
+          value={String(effectiveSettings.targetScreenId ?? "")}
+        />
+      ) : null;
     }
     if (widget.kind === "plot-picker" && field.key === "plot_id") {
       return (
@@ -533,6 +551,33 @@ function PlotBoardField({
               : "Not linked yet, so the picker controls nothing."}
         </small>
       ) : null}
+    </label>
+  );
+}
+
+/** The screen a navigation button opens, picked by title; a target the app lacks stays visible. */
+function ScreenTargetField({
+  onChange,
+  screens = [],
+  value,
+}: {
+  onChange: (screenId: string) => void;
+  screens?: readonly { id: string; title: string }[];
+  value: string;
+}) {
+  const known = screens.some((screen) => screen.id === value);
+  return (
+    <label className="builder-settings-field">
+      <span>Opens screen</span>
+      <select onChange={(event) => onChange(event.target.value)} value={value}>
+        <option value="">Choose a screen</option>
+        {screens.map((screen) => (
+          <option key={screen.id} value={screen.id}>
+            {screen.title}
+          </option>
+        ))}
+        {value && !known ? <option value={value}>{value} (not in this app)</option> : null}
+      </select>
     </label>
   );
 }

@@ -107,12 +107,11 @@ export function createApplicationActions({
 
     async createApplication(configId: string, application: ApplicationConfig) {
       const state = requireReady("create an application");
-      if (state.configurations.some((candidate) => candidate.id === configId)) {
-        await state.saveApplication(configId, application);
-        openInBuilder(configId, application);
-        return;
-      }
-      const freeConfigId = await claimFreeConfigId(configId, Object.keys(state.shareStatus));
+      // Always a file of its own: an id that matched a loaded (often shipped) configuration saved the app into it.
+      const freeConfigId = await claimFreeConfigId(configId, [
+        ...state.configurations.map((candidate) => candidate.id),
+        ...Object.keys(state.shareStatus),
+      ]);
       await saveAsNewConfiguration(state, freeConfigId, application);
       openInBuilder(freeConfigId, application);
     },

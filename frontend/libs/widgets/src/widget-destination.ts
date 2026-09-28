@@ -1,4 +1,4 @@
-import { asRecord } from "./values";
+import { asRecord, readOptionalString } from "./values";
 /**
  * Where a widget's data actually flows, and which settings have no effect.
  *
@@ -49,6 +49,8 @@ export type WidgetDestination = {
   detail: string | null;
   /** Settings the runtime ignores for this widget. */
   inertSettings: InertSetting[];
+  /** The binding that carries the value, when it is not a plain topic publish. */
+  via?: "parameter" | "teleop";
 };
 
 /** The manager input a teleop widget falls back to; the legacy /teleop_cmd path needs an explicit target_topic. */
@@ -173,6 +175,10 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
     ...(kind === "gesture-pad" ? [{ key: "command", reason: GESTURE_COMMAND_INERT }] : []),
   ];
 
+  if (kind === "toggle") {
+    return resolveToggleDestination(settings, adapter, valueMapping);
+  }
+
   // Frame controls change the local composition context. They do not publish
   // a ROS message of their own, so reporting a missing topic is misleading.
   if (adapter === "teleop-frame") {
@@ -181,19 +187,7 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
 
   if (adapter === "parameter") {
     // Not a topic at all: the value goes to the node's own parameter service and takes effect at once.
-    const node = typeof valueMapping.node === "string" ? valueMapping.node : "";
-    const parameter = typeof valueMapping.parameter === "string" ? valueMapping.parameter : "";
-    const reason = "A parameter binding sets a node parameter; it publishes no message.";
-    return {
-      direction: "publishes",
-      topic: node && parameter ? `${node} ${parameter}` : null,
-      source: "runtime-binding",
-      detail: "Sets this parameter live through the node's parameter service.",
-      inertSettings: [
-        { key: "topic", reason },
-        { key: "messageType", reason },
-      ],
-    };
+    return parameterDestination(valueMapping);
   }
 
   if (adapter === "teleop") {
@@ -210,6 +204,7 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
         source: "runtime-binding",
         detail: "One axis of a twist several widgets share, so this widget has no topic of its own.",
         inertSettings,
+        via: "teleop",
       };
     }
 
@@ -219,6 +214,7 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
       source: "adapter-default",
       detail: "The default for teleop widgets. One axis of a twist several widgets share.",
       inertSettings,
+      via: "teleop",
     };
   }
 
@@ -254,6 +250,61 @@ function resolvePublishDestination(kind: string, settings: Record<string, unknow
     source: "unset",
     detail: "This widget publishes nothing until you set a destination.",
     inertSettings: legacy,
+  };
+}
+
+function parameterDestination(valueMapping: Record<string, unknown>): WidgetDestination {
+  const node = typeof valueMapping.node === "string" ? valueMapping.node : "";
+  const parameter = typeof valueMapping.parameter === "string" ? valueMapping.parameter : "";
+  const reason = "A parameter binding sets a node parameter; it publishes no message.";
+  return {
+    direction: "publishes",
+    topic: node && parameter ? `${node} ${parameter}` : null,
+    source: "runtime-binding",
+    detail: "Sets this parameter live through the node's parameter service.",
+    inertSettings: [
+      { key: "topic", reason },
+      { key: "messageType", reason },
+    ],
+    via: "parameter",
+  };
+}
+
+/** A toggle's own topic, as createToggleIntent reads it: any non-blank text wins over a binding. */
+export function readToggleTopic(settings: Record<string, unknown>): string | null {
+  return typeof settings.topic === "string" && settings.topic.trim() ? settings.topic.trim() : null;
+}
+
+/** As createToggleIntent sends: its own topic first, else only a parameter binding, else nothing. */
+function resolveToggleDestination(
+  settings: Record<string, unknown>,
+  adapter: string,
+  valueMapping: Record<string, unknown>,
+): WidgetDestination {
+  const topic = readToggleTopic(settings);
+  if (topic) {
+    const hasBinding = Object.keys(asRecord(settings.runtime_binding)).length > 0;
+    return {
+      direction: "publishes",
+      topic,
+      source: "output-topic",
+      detail: null,
+      inertSettings: hasBinding
+        ? [{ key: "runtime_binding", reason: "A toggle with its own topic publishes there; the binding is ignored." }]
+        : [],
+    };
+  }
+  if (adapter === "parameter") {
+    return parameterDestination(valueMapping);
+  }
+  return {
+    direction: "publishes",
+    topic: null,
+    source: "unset",
+    detail: adapter
+      ? "A toggle sends only its own topic or a parameter binding, so this binding sends nothing."
+      : "This widget publishes nothing until you set a destination.",
+    inertSettings: [],
   };
 }
 
@@ -297,6 +348,9 @@ export function resolvePublishedMessageType(
   const widgetSettings = asRecord(settings);
   const runtimeBinding = asRecord(widgetSettings.runtime_binding);
   const adapter = typeof runtimeBinding.adapter === "string" ? runtimeBinding.adapter : "";
+  if (kind === "toggle") {
+    return readToggleTopic(widgetSettings) ? (readOptionalString(widgetSettings.messageType) ?? null) : null;
+  }
   if (!PUBLISHING_KINDS.has(kind) || ["parameter", "teleop", "teleop-frame"].includes(adapter)) {
     return null;
   }

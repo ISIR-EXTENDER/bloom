@@ -61,3 +61,37 @@ describe("the command line a control is equivalent to", () => {
     expect(buildCliPreview("command-button", jaco, jaco.payload, [home])).toContain("geometric/jaco");
   });
 });
+
+describe("what a String button with no payload sends", () => {
+  const settings = {
+    command: "geometric/jaco",
+    messageType: "std_msgs/msg/String",
+    payload: "",
+    topic: "/mode_request",
+  };
+
+  it("shows the command it sends as the data", () => {
+    expect(buildCliPreview("command-button", settings, settings.payload)).toBe(
+      'ros2 topic pub -1 /mode_request std_msgs/msg/String "{\\"data\\":\\"geometric/jaco\\"}"',
+    );
+  });
+
+  it("shows nothing for a held one, which sends its empty payload as is", () => {
+    expect(buildCliPreview("command-button", { ...settings, momentary: true }, settings.payload)).toBeNull();
+  });
+});
+
+describe("a toggle with its own topic and a parameter binding", () => {
+  it("shows the topic it publishes, not the parameter", () => {
+    const settings = {
+      messageType: "std_msgs/msg/Bool",
+      offPayload: { data: false },
+      onPayload: { data: true },
+      runtime_binding: { adapter: "parameter", value_mapping: { node: "/cartesian_manager", parameter: "x" } },
+      topic: "/ui/visual_servoing/on",
+    };
+    expect(buildCliPreview("toggle", settings, settings.onPayload)).toBe(
+      'ros2 topic pub -1 /ui/visual_servoing/on std_msgs/msg/Bool "{\\"data\\":true}"',
+    );
+  });
+});

@@ -1,4 +1,5 @@
 import type { WidgetConfig } from "@bloom/api-client";
+import { describeWidgetFrameProblem } from "./widget-send-problems";
 
 /** The six twist components, named as `cartesian_manager` names them. */
 const TWIST_COMPONENTS = ["linear_x", "linear_y", "linear_z", "angular_x", "angular_y", "angular_z"] as const;
@@ -68,6 +69,8 @@ export function AxisMappingEditor({
   const widgetFrameId = typeof valueMapping.frame_id === "string" ? valueMapping.frame_id : "";
   const targetTopic = typeof valueMapping.target_topic === "string" ? valueMapping.target_topic : "";
   const turnsTheHand = Object.values(mapping).some((binding) => binding.component?.startsWith("angular_"));
+  const frameProblem = describeWidgetFrameProblem(widget, allowedCommandFrameIds);
+  const frameKnown = !widgetFrameId || (allowedCommandFrameIds ?? []).includes(widgetFrameId);
   const targetListId = `${widget.id}-teleop-targets`;
 
   const updateValueMapping = (key: "frame_id" | "target_topic", value: string) => {
@@ -116,7 +119,7 @@ export function AxisMappingEditor({
           </datalist>
         </label>
       </div>
-      {turnsTheHand ? (
+      {turnsTheHand || frameProblem ? (
         <div className="builder-axis-row">
           <label>
             {/* The frame rotates only the angular part, so it is offered where a pad turns the hand. */}
@@ -128,8 +131,18 @@ export function AxisMappingEditor({
                   {frameId}
                 </option>
               ))}
+              {frameKnown ? null : (
+                <option value={widgetFrameId}>
+                  {allowedCommandFrameIds ? `${widgetFrameId} (not on this robot)` : widgetFrameId}
+                </option>
+              )}
             </select>
           </label>
+          {frameProblem ? (
+            <p className="builder-settings-destination-refusal" role="alert">
+              {frameProblem}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {axes.map((axis) => {
