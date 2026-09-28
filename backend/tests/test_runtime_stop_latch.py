@@ -148,6 +148,16 @@ def test_a_resume_for_an_older_stop_is_refused(tmp_path: Path) -> None:
     assert client.post("/api/v1/runtime/stop/resume").json()["stopped"] is False
 
 
+def test_a_resume_from_a_station_that_never_saw_the_latch_is_refused(tmp_path: Path) -> None:
+    client = app_with(tmp_path / "runtime_stop.json")
+    assert client.post("/api/v1/runtime/stop/resume", json={"engaged_at": ""}).status_code == 200
+
+    client.post("/api/v1/runtime/stop")
+    refused = client.post("/api/v1/runtime/stop/resume", json={"engaged_at": ""})
+    assert refused.status_code == 409
+    assert client.get("/api/v1/runtime/stop").json()["stopped"] is True
+
+
 def test_a_latch_that_cannot_be_saved_says_so_in_the_stop_state(tmp_path: Path) -> None:
     blocker = tmp_path / "not-a-directory"
     blocker.write_text("", encoding="utf-8")

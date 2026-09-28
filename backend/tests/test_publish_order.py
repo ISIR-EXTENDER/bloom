@@ -13,6 +13,7 @@ from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository, load_configuration_file
 from libs.ros_adapters import RosPublishReceipt, RosPublishRequest, RosServiceReceipt, RosServiceRequest
+from libs.ros_adapters.parameters import RosParameterReceipt, RosParameterRequest
 from libs.sessions import PublishSupersededError, RuntimeSessionManager
 from libs.sessions.audit import InMemoryRuntimeAuditLog
 
@@ -348,3 +349,78 @@ def test_a_service_preset_is_ordered_by_its_service_name() -> None:
         assert stale.json()["detail"]["code"] == "superseded"
         assert "/fault_controller/reset_fault" in stale.json()["detail"]["message"]
         assert len(gateway.requests) == 1
+
+
+class RecordingParameterGateway:
+    def __init__(self) -> None:
+        self.values: list[object] = []
+
+    def set(self, request: RosParameterRequest) -> RosParameterReceipt:
+        self.values.append(request.value)
+        return RosParameterReceipt(
+            node=request.node, name=request.name, value=request.value, status="set", detail="Parameter set."
+        )
+
+    def get(self, node: str, names: tuple[str, ...]) -> tuple:
+        return ()
+
+
+PARAMETER_SET = "/api/v1/ros/parameters/set"
+SNAKE_GAIN = {"node": "/cartesian_manager", "name": "shapers.snake.gain"}
+
+
+def make_parameter_client() -> tuple[TestClient, RecordingParameterGateway, InMemoryRuntimeAuditLog]:
+    gateway = RecordingParameterGateway()
+    audit_log = InMemoryRuntimeAuditLog()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        ros_parameter_gateway=gateway,
+        runtime_audit_log=audit_log,
+    )
+    return TestClient(app), gateway, audit_log
+
+
+def test_a_stale_parameter_set_after_a_newer_one_is_refused_and_not_applied() -> None:
+    client, gateway, audit_log = make_parameter_client()
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        headers = owner_headers(websocket)
+        fresh = client.post(PARAMETER_SET, headers=headers | seq(21), json=SNAKE_GAIN | {"value": 2.0})
+
+        stale = client.post(PARAMETER_SET, headers=headers | seq(20), json=SNAKE_GAIN | {"value": 4.0})
+
+        assert fresh.status_code == 200
+        assert stale.status_code == 409
+        assert stale.json()["detail"]["code"] == "superseded"
+        assert gateway.values == [2.0]
+        [record] = [r for r in audit_log.list_records(50) if r.payload_summary.get("reason") == "superseded"]
+        assert record.channel == "http_ros_parameter"
+        assert record.target == "/cartesian_manager:shapers.snake.gain"
+        assert record.payload_summary["publish_seq"] == 20
+
+
+def test_parameters_are_ordered_per_node_and_name() -> None:
+    client, gateway, _ = make_parameter_client()
+    manager: RuntimeSessionManager = client.app.state.runtime_session_manager
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        headers = owner_headers(websocket)
+        client.post(PARAMETER_SET, headers=headers | seq(40), json=SNAKE_GAIN | {"value": 2.0})
+
+        other = client.post(
+            PARAMETER_SET, headers=headers | seq(3), json={"node": "/cartesian_manager", "name": "other", "value": 1.0}
+        )
+
+        session_id = headers["X-Bloom-Runtime-Session"]
+        assert manager.last_publish_seq(session_id, "/cartesian_manager:shapers.snake.gain") == 40
+        assert other.status_code != 409
+
+
+def test_a_malformed_seq_on_a_parameter_set_is_refused() -> None:
+    client, gateway, _ = make_parameter_client()
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        headers = owner_headers(websocket)
+
+        response = client.post(PARAMETER_SET, headers=headers | seq("soon"), json=SNAKE_GAIN | {"value": 2.0})
+
+        assert response.status_code == 422
+        assert gateway.values == []

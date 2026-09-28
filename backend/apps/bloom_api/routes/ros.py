@@ -38,7 +38,7 @@ from libs.ros_adapters import (
     publish_with_runtime_policy,
 )
 from libs.ros_adapters.names import require_ros_name
-from libs.ros_adapters.parameters import RosParameterGateway, RosParameterRequest
+from libs.ros_adapters.parameters import RosParameterGateway, RosParameterReceipt, RosParameterRequest
 from libs.ros_adapters.payloads import parse_ros_payload_text
 from libs.ros_adapters.safety import (
     RuntimeCommandPolicy,
@@ -361,15 +361,17 @@ def set_ros_parameter(
     _principal: BloomPrincipal = Depends(require_runtime_owner),
 ) -> RosParameterSetResponse:
     """Live tuning. Allowed while STOP is latched: a gain is configuration, not motion."""
+    seq = publish_seq(request)
     audit_log = get_runtime_audit_log(request)
     target = f"{set_request.node}:{set_request.name}"
 
-    def record(status: str, detail: str) -> None:
+    def record(status: str, detail: str, payload_summary: dict[str, Any] | None = None) -> None:
         audit_log.record(
             RuntimeAuditRecord(
                 channel="http_ros_parameter",
                 detail=detail,
                 message_type=type(set_request.value).__name__,
+                payload_summary=payload_summary or {},
                 status="accepted" if status == "accepted" else "rejected",
                 target=target,
             )
@@ -391,13 +393,19 @@ def set_ros_parameter(
     except RuntimeRateLimitError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=429, detail=str(exc)) from exc
-    try:
-        receipt = execute_as_runtime_owner(
-            request,
-            lambda: get_ros_parameter_gateway(request).set(
-                RosParameterRequest(node=set_request.node, name=set_request.name, value=set_request.value)
-            ),
+
+    def set_parameter(commit: Callable[[], None]) -> RosParameterReceipt:
+        commit()
+        return get_ros_parameter_gateway(request).set(
+            RosParameterRequest(node=set_request.node, name=set_request.name, value=set_request.value)
         )
+
+    # Reconciled toggles resend: a late older set must not undo a newer one (ADR 0141).
+    try:
+        receipt = execute_ordered_as_runtime_owner(request, target, seq, set_parameter)
+    except PublishSupersededError as exc:
+        record("rejected", str(exc), {"reason": "superseded", "publish_seq": seq})
+        raise superseded_error(exc) from exc
     except RuntimeError as exc:
         record("rejected", str(exc))
         raise HTTPException(status_code=503, detail=str(exc)) from exc
