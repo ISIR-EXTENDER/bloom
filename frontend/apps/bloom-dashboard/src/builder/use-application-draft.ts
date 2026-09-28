@@ -138,10 +138,7 @@ export function useApplicationDraft({
       const name = `Role ${current.profiles.length + 1}`;
       // A new role opens on the screen the author is most likely to mean: the first one.
       const profile = {
-        ...createStarterProfile(
-          current.screens[0]?.id ?? "",
-          current.theme.preset_id as "bloom-default" | "extender-ui" | "high-visibility",
-        ),
+        ...createStarterProfile(current.screens[0]?.id ?? ""),
         id: createUniqueId(
           name,
           current.profiles.map((candidate) => candidate.id),

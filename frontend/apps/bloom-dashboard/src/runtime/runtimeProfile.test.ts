@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveInitialScreen, resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
+import {
+  applyRuntimeProfileOverrides,
+  resolveInitialScreen,
+  resolveNavigableScreens,
+  resolveRuntimeProfile,
+  resolveRuntimeThemePresetId,
+} from "./runtimeProfile";
 
 const profiles = [
   {
-    app_theme_preset_id: "bloom-default",
+    app_theme_preset_id: "",
     display_preset: "comfort",
     font_scale: 1.05,
     id: "operator",
@@ -13,7 +19,7 @@ const profiles = [
     preferred_control_layout_id: "default",
   },
   {
-    app_theme_preset_id: "bloom-default",
+    app_theme_preset_id: "",
     display_preset: "high-visibility",
     font_scale: 1.25,
     id: "tablet",
@@ -38,6 +44,7 @@ describe("resolveRuntimeProfile", () => {
       language: "en",
       motorAccessibilityPreset: "large-targets",
       name: "Tablet high visibility",
+      themePresetId: null,
     });
   });
 
@@ -69,6 +76,7 @@ describe("resolveRuntimeProfile", () => {
       language: "en",
       motorAccessibilityPreset: "default",
       name: "Default",
+      themePresetId: null,
     });
   });
 
@@ -160,5 +168,25 @@ describe("profile-selected control layout", () => {
   it("leaves the other role's layout out of navigation", () => {
     expect(ids(resolveNavigableScreens(application, "operator"))).toEqual(["drive_operator", "positions"]);
     expect(ids(resolveNavigableScreens(application, "legacy"))).toEqual(["drive_bench", "positions"]);
+  });
+});
+
+describe("the session's palette", () => {
+  const application = (presetId: string) => ({ theme: { preset_id: presetId } }) as never;
+  const role = (app_theme_preset_id: string) =>
+    resolveRuntimeProfile({ profiles: [{ ...profiles[0], app_theme_preset_id }] }, { height: 800, width: 1280 });
+
+  it("follows the app while the role names none, and reads legacy ids as their replacement", () => {
+    expect(resolveRuntimeThemePresetId(application("extender-ui"), role(""))).toBe("extender-ui");
+    expect(resolveRuntimeThemePresetId(application("extender-ui"), role("bloom-default"))).toBe("extender-ui");
+    expect(resolveRuntimeThemePresetId(application("bloom-default"), role(""))).toBe("bloom");
+    expect(resolveRuntimeThemePresetId(application("petanque-play"), role(""))).toBe("bloom");
+  });
+
+  it("takes the role's palette over the app's, and this tablet's over both", () => {
+    expect(resolveRuntimeThemePresetId(application("bloom"), role("dark"))).toBe("dark");
+    expect(resolveRuntimeThemePresetId(application("bloom"), role("high-visibility"))).toBe("high-contrast");
+    const onThisTablet = applyRuntimeProfileOverrides(role("dark"), { themePresetId: "colour-safe" });
+    expect(resolveRuntimeThemePresetId(application("bloom"), onThisTablet)).toBe("colour-safe");
   });
 });

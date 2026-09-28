@@ -25,7 +25,7 @@ const application = {
   },
   theme: {
     inspiration: { moodboard_image_uri: "", reference_url: "" },
-    preset_id: "bloom-default",
+    preset_id: "bloom",
     palette: { accent: "#d9a441", background: "#f7f1e6", primary: "#7f967e", surface: "#fffdf7" },
   },
   profiles: [
@@ -34,7 +34,7 @@ const application = {
       name: "Operator",
       display_preset: "default",
       font_scale: 1,
-      app_theme_preset_id: "bloom-default",
+      app_theme_preset_id: "",
       preferred_control_layout_id: "",
       motor_accessibility_preset: "default",
     },

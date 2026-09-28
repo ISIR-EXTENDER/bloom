@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   CREATE_THEME_PRESETS,
   createApplicationFromPlaygroundScreen,
+  createGuidedApplication,
   createStarterScreen,
   type StarterScreenId,
 } from "./builder-starters";
@@ -60,10 +61,29 @@ describe("what a starter screen greets an author with", () => {
 
 describe("the wizard's design presets", () => {
   // "Extender light" reused the app default, which is Bloom Garden, so the app opened in the wrong theme.
-  it("opens an Extender light app on the Extender preset", () => {
-    expect(CREATE_THEME_PRESETS["extender-ui"].preset_id).toBe("extender-ui");
-    expect(CREATE_THEME_PRESETS["high-visibility"].preset_id).toBe("high-contrast");
-    expect(CREATE_THEME_PRESETS["bloom-default"].preset_id).toBe("bloom-default");
+  it("opens each wizard choice on its own vetted palette", () => {
+    expect(Object.keys(CREATE_THEME_PRESETS)).toEqual([
+      "bloom",
+      "extender-ui",
+      "high-contrast",
+      "dark",
+      "colour-safe",
+      "pastel",
+    ]);
+    for (const [id, theme] of Object.entries(CREATE_THEME_PRESETS)) {
+      expect(theme.preset_id).toBe(id);
+    }
+    expect(CREATE_THEME_PRESETS["extender-ui"].palette.primary).toBe("#1d4ed8");
+  });
+
+  // The wizard's id ("high-visibility") used to land in the role, which then named a palette that did not exist.
+  it("leaves the first role following the app's palette", () => {
+    const application = createGuidedApplication(
+      { includeOnboardingSpots: false, name: "Night shift", starterId: "blank", themePresetId: "dark" },
+      [],
+    );
+    expect(application.theme.preset_id).toBe("dark");
+    expect(application.profiles[0]?.app_theme_preset_id).toBe("");
   });
 });
 

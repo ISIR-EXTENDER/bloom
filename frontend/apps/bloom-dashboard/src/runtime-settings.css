@@ -1,6 +1,6 @@
 /* Runtime settings (design 6a): Display, Timing and a real control to try, under a held bar. */
 .runtime-settings {
-  --settings-hairline: color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  --settings-hairline: var(--bloom-hairline);
   /* Above the 48 px floor for everyone, at the 64 px profile target for a
      profile that asked for one. */
   --settings-target: var(--bloom-touch-target-comfortable);
@@ -67,7 +67,7 @@
 
 /* Interlocked: legal elsewhere, not for this input method; it says so instead of accepting input. */
 .runtime-settings-card[data-interlocked="true"] {
-  border: 2px dashed color-mix(in srgb, var(--bloom-color-forest) 28%, transparent);
+  border: 2px dashed var(--bloom-hairline-strong);
   background: transparent;
 }
 
@@ -166,6 +166,33 @@
 
 .runtime-settings-toggle {
   min-width: 130px;
+}
+
+/* One button per palette, its swatch beside its name; the pressed one keeps the swatch readable. */
+.runtime-settings-palettes {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.runtime-settings-palettes button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  text-align: start;
+}
+
+.runtime-settings-palettes button > span:last-child {
+  min-width: 0;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.runtime-settings-palettes .bloom-palette-swatch {
+  flex: 0 0 auto;
+}
+
+.runtime-settings-palettes .bloom-palette-swatch > span {
+  width: 9px;
 }
 
 .runtime-settings-stepper {

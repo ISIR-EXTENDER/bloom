@@ -17,9 +17,25 @@ export type {
   BloomPaletteTokens,
   BloomSemanticColorTokenName,
   BloomSemanticColorTokens,
+  BloomSeriesTokenName,
   BloomThemePreset,
   BloomThemePresetId,
+  BloomThemeShape,
   BloomThemeTokenName,
   BloomThemeTokens,
 } from "./theme";
-export { BLOOM_SERIES_RAMP, BLOOM_THEME_PRESETS, createBloomThemeStyle, seriesStyle } from "./theme";
+export {
+  BLOOM_DEFAULT_SHAPE,
+  BLOOM_SERIES_RAMP,
+  BLOOM_THEME_PRESET_ALIASES,
+  BLOOM_THEME_PRESET_ORDER,
+  BLOOM_THEME_PRESETS,
+  canonicalBloomThemePresetId,
+  createBloomAppPalette,
+  createBloomThemeStyle,
+  isBloomThemePresetId,
+  normalizeBloomThemePresetId,
+  normalizeRoleThemePresetId,
+  resolveBloomThemePreset,
+  seriesStyle,
+} from "./theme";

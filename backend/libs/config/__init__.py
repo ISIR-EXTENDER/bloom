@@ -29,6 +29,7 @@ from libs.config.legacy_json import (
 from libs.config.models import (
     CURRENT_CONFIGURATION_SCHEMA_VERSION,
     ApplicationConfig,
+    ApplicationTheme,
     CanvasPresetId,
     CanvasSettings,
     ConfigurationBundle,
@@ -59,6 +60,7 @@ from libs.config.storage import ConfigurationStorageKind, create_configuration_r
 
 __all__ = [
     "ApplicationConfig",
+    "ApplicationTheme",
     "ApplicationNotFoundError",
     "CanvasPresetId",
     "CanvasSettings",

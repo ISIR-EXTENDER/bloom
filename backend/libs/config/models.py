@@ -94,7 +94,27 @@ class CanvasSettings(BloomModel):
     runtime_mode: RuntimeCanvasMode = RuntimeCanvasMode.FIT
 
 
+#: The vetted palettes (ADR 0143); frontend/libs/ui/src/theme.ts holds their colours.
+THEME_PRESET_IDS = frozenset({"bloom", "extender-ui", "high-contrast", "dark", "colour-safe", "pastel"})
+#: Ids earlier versions stored, read as the palette that replaced them.
+THEME_PRESET_ALIASES = {
+    "bloom-default": "bloom",
+    "clinical": "bloom",
+    "extender": "extender-ui",
+    "high-visibility": "high-contrast",
+    "petanque-play": "bloom",
+}
+
+
+def normalize_theme_preset_id(value: object) -> object:
+    return THEME_PRESET_ALIASES.get(value, value) if isinstance(value, str) else value
+
+
 class ApplicationThemePalette(BloomModel):
+    """The four-colour summary readers before the palette catalog used. The defaults are the ones every shipped app
+    was stamped with: configuration_fingerprint excludes defaults, so changing them would make seeded copies read as
+    edited. A new app gets its summary from the chosen palette at creation; an existing one is never rewritten."""
+
     primary: str = "#7f967e"
     accent: str = "#d9a441"
     background: str = "#f7f1e6"
@@ -108,8 +128,14 @@ class ApplicationThemeInspiration(BloomModel):
 
 class ApplicationTheme(BloomModel):
     inspiration: ApplicationThemeInspiration = Field(default_factory=ApplicationThemeInspiration)
-    preset_id: str = Field(default="bloom-default", min_length=1)
+    preset_id: str = Field(default="bloom", min_length=1)
     palette: ApplicationThemePalette = Field(default_factory=ApplicationThemePalette)
+
+    @field_validator("preset_id", mode="before")
+    @classmethod
+    def _read_retired_presets(cls, value: object) -> object:
+        # Unknown ids are kept, and the frontend shows them as Bloom Garden, so an app from a newer Bloom still loads.
+        return normalize_theme_preset_id(value)
 
 
 class UserProfile(BloomModel):
@@ -117,7 +143,8 @@ class UserProfile(BloomModel):
     name: str = Field(min_length=1)
     display_preset: DisplayPreset = DisplayPreset.DEFAULT
     font_scale: float = Field(default=1.0, ge=0.75, le=2.0)
-    app_theme_preset_id: str = Field(default="bloom-default", min_length=1)
+    #: The role's own palette; empty follows the application's.
+    app_theme_preset_id: str = ""
     preferred_control_layout_id: str = ""
     motor_accessibility_preset: MotorAccessibilityPreset = MotorAccessibilityPreset.DEFAULT
     language: RuntimeLanguage = RuntimeLanguage.ENGLISH
@@ -135,6 +162,12 @@ class UserProfile(BloomModel):
     dwell_ms: int = Field(default=1000, ge=400, le=4000)
     #: A tap opens maintenance instead of the hold; for roles that are not driving.
     menu_on_tap: bool = False
+
+    @field_validator("app_theme_preset_id", mode="before")
+    @classmethod
+    def _read_retired_role_palettes(cls, value: object) -> object:
+        # "bloom-default" was written into every role and meant "whatever the app uses".
+        return "" if value == "bloom-default" else normalize_theme_preset_id(value)
 
     @field_validator("motor_accessibility_preset", mode="before")
     @classmethod

@@ -9,6 +9,7 @@ import {
   repoRoot,
   startDashboardServer,
   TABLET_EMULATION,
+  withThemePreset,
 } from "./lib/runtime-harness.mjs";
 import { STACK } from "./lib/stack-topics.mjs";
 
@@ -59,6 +60,38 @@ const routes = [
       await holdForMaintenance(page);
     },
   },
+];
+
+/** ADR 0143: each vetted palette, on the tablet, on the screens an operator and an author use most. */
+const PALETTES = ["bloom", "extender-ui", "high-contrast", "dark", "colour-safe", "pastel"];
+const PALETTE_ROUTES = [
+  { name: "runtime", setup: showRuntime },
+  { name: "explorer-drive", setup: (page) => showExplorerRuntimeScreen(page, null) },
+  {
+    name: "explorer-maintenance",
+    setup: async (page) => {
+      await showExplorerRuntimeScreen(page, null);
+      await holdForMaintenance(page);
+    },
+  },
+  {
+    name: "settings",
+    setup: async (page) => {
+      await showExplorerRuntimeScreen(page, null);
+      await holdForMaintenance(page);
+      await page.getByRole("button", { exact: true, name: "Settings" }).click();
+      await page.getByRole("region", { name: "Settings" }).waitFor();
+    },
+  },
+  { name: "app-config", setup: showAppConfig },
+  {
+    name: "app-theme",
+    setup: async (page) => {
+      await showAppConfig(page);
+      await page.getByRole("heading", { name: "App theme" }).scrollIntoViewIfNeeded();
+    },
+  },
+  { name: "runtime-library", setup: showRuntimeLibrary },
 ];
 
 /**
@@ -118,6 +151,7 @@ try {
     await captureRuntimeLocales(browser);
     await captureDesktopDebug(browser);
     await captureBuilderCanvas(browser);
+    await capturePalettes(browser);
   } finally {
     await browser.close();
   }
@@ -492,6 +526,110 @@ async function showDebugRuntime(page) {
   await page.getByRole("button", { name: "Refresh audit" }).click();
   await page.getByRole("article", { name: /Joint states/i }).waitFor();
   await page.getByRole("article", { name: /Jacobian/i }).waitFor();
+}
+
+async function capturePalettes(browser) {
+  for (const palette of PALETTES) {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, ...TABLET_EMULATION });
+    await page.addInitScript(installTokenProbe);
+    await installConfigurationMocks(page, withThemePreset(configurations, palette));
+    await installRuntimeWebSocketMock(page);
+    for (const route of PALETTE_ROUTES) {
+      const label = `palette-${palette}:${route.name}`;
+      await route.setup(page);
+      await assertPaletteApplied(page, palette, label);
+      await assertNoHorizontalOverflow(page, label);
+      if (route.name === "explorer-drive" || route.name === "runtime") {
+        await assertStopFollowsPalette(page, label);
+        await assertUnavailableIsDashed(page, label);
+        await assertFocusAndScanRings(page, label);
+      }
+      await page.screenshot({
+        fullPage: false,
+        path: resolve(outputDir, `palette-${palette}-tablet-720-${route.name}.png`),
+      });
+    }
+    await page.close();
+  }
+}
+
+async function assertPaletteApplied(page, palette, label) {
+  const applied = await page.evaluate(() => document.documentElement.dataset.bloomTheme ?? "");
+  if (applied !== palette) {
+    throw new Error(`${label}: the page shows the "${applied}" palette`);
+  }
+}
+
+/** Runs in the page: a token as the browser resolves it, so it compares with a computed colour. */
+function installTokenProbe() {
+  window.__bloomToken = (element, name) => {
+    const probe = document.createElement("span");
+    probe.style.color = getComputedStyle(element).getPropertyValue(name).trim();
+    element.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  };
+}
+
+async function assertStopFollowsPalette(page, label) {
+  const result = await page.evaluate(() => {
+    const token = window.__bloomToken;
+    const stop = document.querySelector(".runtime-stop-control");
+    if (!stop) return { missing: true };
+    return { actual: getComputedStyle(stop).backgroundColor, expected: token(stop, "--bloom-stop") };
+  });
+  if (result.missing || result.actual !== result.expected) {
+    throw new Error(`${label}: STOP is not drawn in the stop token: ${JSON.stringify(result)}`);
+  }
+}
+
+async function assertUnavailableIsDashed(page, label) {
+  const cards = await page.evaluate(() => {
+    const token = window.__bloomToken;
+    return [...document.querySelectorAll('.widget-preview-card[data-runtime-unavailable="true"]')].map((card) => {
+      const style = getComputedStyle(card);
+      return {
+        color: style.outlineColor,
+        expected: token(card, "--bloom-unavailable-outline"),
+        style: style.outlineStyle,
+        width: style.outlineWidth,
+      };
+    });
+  });
+  const wrong = cards.filter((card) => card.style !== "dashed" || card.width !== "2px" || card.color !== card.expected);
+  if (wrong.length > 0) {
+    throw new Error(`${label}: unavailable cards lost their dashed outline: ${JSON.stringify(wrong)}`);
+  }
+}
+
+async function assertFocusAndScanRings(page, label) {
+  await page.keyboard.press("Shift");
+  const rings = await page.evaluate(() => {
+    const token = window.__bloomToken;
+    const stop = document.querySelector(".runtime-stop-control");
+    const target = document.querySelector(".widget-preview-card button, .widget-preview-card [role='slider']");
+    if (!stop || !target) return { missing: { stop: !stop, target: !target } };
+    stop.focus();
+    const focus = getComputedStyle(stop);
+    target.setAttribute("data-scan-lit", "");
+    const scan = getComputedStyle(target);
+    const result = {
+      focusWidth: Number.parseFloat(focus.outlineWidth),
+      scanColor: scan.outlineColor,
+      scanExpected: token(target, "--bloom-primary"),
+      scanWidth: Number.parseFloat(scan.outlineWidth),
+    };
+    target.removeAttribute("data-scan-lit");
+    stop.blur();
+    return result;
+  });
+  if (rings.missing) {
+    throw new Error(`${label}: no STOP or scan target to check the rings on: ${JSON.stringify(rings.missing)}`);
+  }
+  if (rings.focusWidth < 3 || rings.scanWidth < 4 || rings.scanColor !== rings.scanExpected) {
+    throw new Error(`${label}: focus or scan ring too faint: ${JSON.stringify(rings)}`);
+  }
 }
 
 /** The builder canvas (design 7a) is a desktop surface: the panel on its desk, regions and minimum-size tags. */

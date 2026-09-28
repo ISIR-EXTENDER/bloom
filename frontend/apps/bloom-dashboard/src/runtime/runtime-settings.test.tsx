@@ -28,6 +28,7 @@ const defaultProfile: ResolvedRuntimeProfile = {
   name: "Camille",
   repeatGuardMs: 0,
   scanPeriodMs: 1400,
+  themePresetId: null,
 };
 
 const EMPTY_PREFERENCES: RuntimeUserPreferences = {
@@ -389,5 +390,107 @@ describe("input methods that drop the saved way to reach STOP", () => {
     });
     act(() => vi.advanceTimersByTime(1000));
     expect(screen.getByRole("button", { name: "FR" }).getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+describe("the colours card", () => {
+  const renderColours = (props: Partial<Parameters<typeof RuntimeSettingsPanel>[0]> = {}) => {
+    const onSave = vi.fn<(next: RuntimeProfileOverrides) => void>();
+    const onClose = vi.fn();
+    const onPreviewTheme = vi.fn();
+    const result = render(
+      <RuntimeSettingsPanel
+        applicationName="Explorer Manager"
+        appThemePresetId="bloom"
+        baseProfile={defaultProfile}
+        onClose={onClose}
+        onPreviewTheme={onPreviewTheme}
+        onSave={onSave}
+        overrides={{}}
+        runtimeRole="operator"
+        {...props}
+      />,
+    );
+    const colours = () => within(screen.getByRole("group", { name: "Colours" }));
+    return { ...result, colours, onClose, onPreviewTheme, onSave };
+  };
+
+  it("offers every vetted palette and Same as app, pressed on the saved choice", () => {
+    const { colours } = renderColours();
+
+    expect(
+      colours()
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["Same as app", "Bloom Garden", "Extender", "High visibility", "Dark", "Colour-blind safe", "Pastel"]);
+    expect(colours().getByRole("button", { name: "Same as app" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("says Same as role when the role picked a palette of its own", () => {
+    const { colours } = renderColours({ baseProfile: { ...defaultProfile, themePresetId: "high-contrast" } });
+
+    expect(colours().getByRole("button", { name: "Same as role" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("previews a palette live, saves it for this tablet on Save and resume", () => {
+    const { colours, container, onPreviewTheme, onSave } = renderColours();
+
+    fireEvent.click(colours().getByRole("button", { name: "Dark" }));
+
+    const settings = within(container).getByRole("region", { name: "Settings" });
+    expect(settings).toHaveAttribute("data-bloom-theme", "dark");
+    expect(settings).toHaveStyle({ "--bloom-stop": "#dc2626" });
+    expect(onPreviewTheme).toHaveBeenLastCalledWith("dark");
+    expect(colours().getByRole("button", { name: "Dark" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save and resume" }));
+    expect(onSave).toHaveBeenCalledWith({ themePresetId: "dark" });
+  });
+
+  it("drops the tablet's choice when Same as app is picked, and Discard keeps the saved one", () => {
+    const { colours, onClose, onPreviewTheme, onSave, unmount } = renderColours({
+      overrides: { themePresetId: "colour-safe" },
+    });
+
+    fireEvent.click(colours().getByRole("button", { name: "Same as app" }));
+    expect(onPreviewTheme).toHaveBeenLastCalledWith("bloom");
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+    unmount();
+    expect(onPreviewTheme).toHaveBeenLastCalledWith(null);
+  });
+
+  it("names the palettes in the operator's language", () => {
+    renderColours({ overrides: { language: "fr" } });
+
+    const colours = within(screen.getByRole("group", { name: "Couleurs" }));
+    expect(colours.getByRole("button", { name: "Sombre" })).toBeTruthy();
+    expect(colours.getByRole("button", { name: "Comme l'app" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("keeps every palette button reachable by switch scanning and dwell", () => {
+    const { colours } = renderColours({ overrides: { motorAccessibilityPreset: "scan" } });
+
+    for (const button of colours().getAllByRole("button")) {
+      expect(button.matches(SCAN_TARGET_SELECTOR), button.textContent ?? "").toBe(true);
+      expect(button).not.toHaveAttribute("data-scan-touch-only");
+    }
+  });
+
+  it("stores only a vetted palette id as this tablet's override", () => {
+    saveRuntimeUserPreferences(
+      setRuntimeProfileOverrides(EMPTY_PREFERENCES, { appId: "a", configId: "c" }, "operator", {
+        themePresetId: "dark",
+      }),
+    );
+    expect(loadRuntimeUserPreferences().profileOverrides["c:a:operator"]).toEqual({ themePresetId: "dark" });
+
+    window.localStorage.setItem(
+      "bloom.runtime-user-preferences.v1",
+      JSON.stringify({ profileOverrides: { "c:a:operator": { themePresetId: "neon" } } }),
+    );
+    expect(loadRuntimeUserPreferences().profileOverrides["c:a:operator"]).toBeUndefined();
   });
 });

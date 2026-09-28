@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from libs.config import (
     ApplicationConfig,
+    ApplicationTheme,
     CanvasPresetId,
     CanvasSettings,
     ConfigurationBundle,
@@ -153,7 +154,7 @@ def test_configuration_bundle_serializes_to_json() -> None:
             "moodboard_image_uri": "",
             "reference_url": "",
         },
-        "preset_id": "bloom-default",
+        "preset_id": "bloom",
         "palette": {
             "accent": "#d9a441",
             "background": "#f7f1e6",
@@ -204,7 +205,7 @@ def test_configuration_bundle_validates_from_json_payload() -> None:
     bundle = ConfigurationBundle.model_validate(payload)
 
     assert bundle.metadata.source == "legacy-json"
-    assert bundle.applications[0].theme.preset_id == "bloom-default"
+    assert bundle.applications[0].theme.preset_id == "bloom"
     assert bundle.applications[0].screens[0].widgets[0].kind == WidgetKind.COMMAND_BUTTON
 
 
@@ -243,7 +244,7 @@ def test_application_accepts_user_profiles_for_future_personalization() -> None:
                 name="Meal layout",
                 display_preset=DisplayPreset.COMFORT,
                 font_scale=1.25,
-                app_theme_preset_id="bloom-default",
+                app_theme_preset_id="dark",
                 preferred_control_layout_id="meal-control",
                 motor_accessibility_preset=MotorAccessibilityPreset.LARGE_TARGETS,
             ),
@@ -253,6 +254,7 @@ def test_application_accepts_user_profiles_for_future_personalization() -> None:
     profile = application.profiles[0]
 
     assert profile.display_preset == DisplayPreset.COMFORT
+    assert profile.app_theme_preset_id == "dark"
     assert profile.font_scale == 1.25
     assert profile.preferred_control_layout_id == "meal-control"
     assert profile.motor_accessibility_preset == MotorAccessibilityPreset.LARGE_TARGETS
@@ -481,3 +483,44 @@ def test_a_profile_saved_with_the_removed_reduced_motion_preset_still_loads() ->
     profile = UserProfile(id="operator", name="Operator", motor_accessibility_preset="reduced-motion")
 
     assert profile.motor_accessibility_preset.value == "default"
+
+
+@pytest.mark.parametrize(
+    ("stored", "read"),
+    [
+        ("bloom-default", "bloom"),
+        ("clinical", "bloom"),
+        ("petanque-play", "bloom"),
+        ("high-visibility", "high-contrast"),
+        ("extender", "extender-ui"),
+        ("dark", "dark"),
+        ("colour-safe", "colour-safe"),
+        ("pastel", "pastel"),
+        # A palette from a newer Bloom still loads; the frontend shows it as Bloom Garden.
+        ("custom-demo", "custom-demo"),
+    ],
+)
+def test_application_theme_reads_retired_palette_ids_as_their_replacement(stored: str, read: str) -> None:
+    assert ApplicationTheme.model_validate({"preset_id": stored}).preset_id == read
+
+
+def test_application_theme_defaults_to_bloom_garden() -> None:
+    theme = ApplicationTheme()
+
+    assert theme.preset_id == "bloom"
+    # The stamped default, not Bloom Garden's own primary: see ApplicationThemePalette.
+    assert theme.palette.primary == "#7f967e"
+
+
+@pytest.mark.parametrize(
+    ("stored", "read"),
+    [("bloom-default", ""), ("", ""), ("high-visibility", "high-contrast"), ("dark", "dark"), ("pastel", "pastel")],
+)
+def test_user_profile_palette_follows_the_app_unless_the_role_picks_one(stored: str, read: str) -> None:
+    profile = UserProfile.model_validate({"id": "operator", "name": "Operator", "app_theme_preset_id": stored})
+
+    assert profile.app_theme_preset_id == read
+
+
+def test_user_profile_without_a_palette_follows_the_app() -> None:
+    assert UserProfile(id="operator", name="Operator").app_theme_preset_id == ""

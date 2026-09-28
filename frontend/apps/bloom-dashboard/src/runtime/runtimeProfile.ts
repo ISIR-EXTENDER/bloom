@@ -1,4 +1,5 @@
 import type { ApplicationConfig, DisplayPreset, RuntimeLanguage, UserProfile } from "@bloom/api-client";
+import { type BloomThemePresetId, normalizeBloomThemePresetId, normalizeRoleThemePresetId } from "@bloom/ui";
 import { clamp } from "@bloom/widgets";
 
 import type { RuntimeProfileOverrides } from "./runtime-profile-overrides";
@@ -21,6 +22,8 @@ export type ResolvedRuntimeProfile = {
   language: RuntimeLanguage;
   motorAccessibilityPreset: UserProfile["motor_accessibility_preset"];
   name: string;
+  /** The role's own palette, or null to follow the app. */
+  themePresetId: BloomThemePresetId | null;
 };
 
 const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
@@ -36,6 +39,7 @@ const DEFAULT_RUNTIME_PROFILE: ResolvedRuntimeProfile = {
   language: "en",
   motorAccessibilityPreset: "default",
   name: "Default",
+  themePresetId: null,
 };
 
 export function resolveRuntimeProfile(
@@ -97,7 +101,21 @@ export function applyRuntimeProfileOverrides(
     motorAccessibilityPreset,
     repeatGuardMs: clampRange(overrides.repeatGuardMs ?? profile.repeatGuardMs, 0, 600),
     scanPeriodMs: clampRange(overrides.scanPeriodMs ?? profile.scanPeriodMs, 600, 3000),
+    themePresetId: overrides.themePresetId ?? profile.themePresetId,
   };
+}
+
+/** This tablet's choice, then the role's, then the app's (ADR 0143). */
+export function resolveRuntimeThemePresetId(
+  application: Pick<ApplicationConfig, "theme">,
+  profile: Pick<ResolvedRuntimeProfile, "themePresetId">,
+): BloomThemePresetId {
+  return profile.themePresetId ?? normalizeBloomThemePresetId(application.theme.preset_id);
+}
+
+/** A role's palette, or null when it follows the app (empty, the old "bloom-default", or an unknown id). */
+export function readProfileThemePresetId(stored: string | undefined): BloomThemePresetId | null {
+  return normalizeRoleThemePresetId(stored) || null;
 }
 
 function resolvePreferredDisplayPreset(viewport: RuntimeProfileViewport): DisplayPreset {
@@ -127,6 +145,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
       language: profile.language ?? "en",
       motorAccessibilityPreset: profile.motor_accessibility_preset,
       name: profile.name,
+      themePresetId: readProfileThemePresetId(profile.app_theme_preset_id),
     };
   }
 
@@ -143,6 +162,7 @@ function normalizeRuntimeProfile(profile: UserProfile | ResolvedRuntimeProfile):
     language: profile.language,
     motorAccessibilityPreset: profile.motorAccessibilityPreset,
     name: profile.name,
+    themePresetId: profile.themePresetId,
   };
 }
 

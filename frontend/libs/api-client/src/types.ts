@@ -204,7 +204,9 @@ export const DEFAULT_APPLICATION_THEME: ApplicationTheme = {
   // Kept in step with the backend model default in
   // backend/libs/config/models.py. The two used to disagree, so an app created
   // through the API and one created in the builder started life different.
-  preset_id: "bloom-default",
+  preset_id: "bloom",
+  // The summary every shipped app carries; the backend fingerprint excludes defaults, so this
+  // must stay what those apps were stamped with. A new app derives its own from its palette.
   palette: {
     accent: "#d9a441",
     background: "#f7f1e6",

@@ -435,7 +435,10 @@ suspended.
 
 Settings has three columns:
 
-- **Display**: text size (Normal, Large, Larger), language (EN, ES, FR), and sound on every press.
+- **Display**: text size (Normal, Large, Larger), **Colours**, language (EN, ES, FR), and sound on every press.
+  Colours offers the six vetted palettes (Bloom Garden, Extender, High visibility, Dark, Colour-blind safe, Pastel) and
+  **Same as app** (or **Same as role** when the role has its own). A choice previews on the whole screen, STOP
+  included, and is saved for this tablet and role only. Every palette keeps STOP the most prominent control.
 - **How you reach the controls**: the input method (Touch, Dwell, Scan) and, as a separate card, **How a push moves**
   (Drag, Tap by tap, Keep going), which maps to the direct, step, and latch presets.
 - **Timing**: hold to activate, scan step, ignore repeats, and joystick dead zone. A setting that does not apply to the

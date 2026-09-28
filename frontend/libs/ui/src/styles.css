@@ -34,12 +34,25 @@
      3:1 against what it lands on, cream, forest and the STOP red alike. */
   --bloom-color-focus-ring: var(--bloom-color-ink);
   --bloom-color-focus-ring-contrast: var(--bloom-color-paper);
-  --bloom-color-error: #9b3d2e;
+  --bloom-color-error: #7c2436;
   --bloom-color-on-error: var(--bloom-color-paper);
   --bloom-color-error-container: #f5ddd8;
   --bloom-color-on-error-container: #4f1f16;
-  --bloom-shadow-soft: 0 18px 42px rgba(75, 83, 68, 0.14);
-  --bloom-shadow-card: 0 22px 54px rgba(82, 91, 76, 0.12);
+  /* Roles the vetted palettes own (ADR 0143); theme.ts carries the same values for every preset. */
+  --bloom-color-stop: #a8392a;
+  --bloom-color-on-stop: #fffaf1;
+  --bloom-color-stop-latched: #253d35;
+  --bloom-color-on-stop-latched: #fffaf1;
+  --bloom-color-success: #135c4f;
+  --bloom-color-on-success: #fffaf1;
+  --bloom-color-unavailable-outline: #6f7f76;
+  --bloom-color-hairline: rgba(49, 73, 63, 0.18);
+  --bloom-color-hairline-strong: rgba(49, 73, 63, 0.28);
+  --bloom-color-shadow: #253d35;
+  --bloom-color-surface-bright: #ffffff;
+  --bloom-color-command: #3b6fd1;
+  --bloom-shadow-soft: 0 18px 42px color-mix(in srgb, var(--bloom-color-shadow) 14%, transparent);
+  --bloom-shadow-card: 0 22px 54px color-mix(in srgb, var(--bloom-color-shadow) 12%, transparent);
   --bloom-radius-lg: 28px;
   --bloom-radius-md: 18px;
   --bloom-radius-pill: 999px;
@@ -121,6 +134,20 @@
   --bloom-focus-ring: var(--bloom-color-focus-ring);
   --bloom-focus-ring-contrast: var(--bloom-color-focus-ring-contrast);
   --bloom-error-container: var(--bloom-color-error-container);
+  --bloom-danger: var(--bloom-color-error);
+  --bloom-danger-container: var(--bloom-color-error-container);
+  --bloom-stop: var(--bloom-color-stop);
+  --bloom-on-stop: var(--bloom-color-on-stop);
+  --bloom-stop-latched: var(--bloom-color-stop-latched);
+  --bloom-on-stop-latched: var(--bloom-color-on-stop-latched);
+  --bloom-success: var(--bloom-color-success);
+  --bloom-on-success: var(--bloom-color-on-success);
+  --bloom-unavailable-outline: var(--bloom-color-unavailable-outline);
+  --bloom-hairline: var(--bloom-color-hairline);
+  --bloom-hairline-strong: var(--bloom-color-hairline-strong);
+  --bloom-shadow-color: var(--bloom-color-shadow);
+  --bloom-surface-bright: var(--bloom-color-surface-bright);
+  --bloom-command: var(--bloom-color-command);
   --bloom-on-error: var(--bloom-color-on-error);
   --bloom-on-error-container: var(--bloom-color-on-error-container);
   --bloom-shadow: var(--bloom-shadow-card);
@@ -137,7 +164,7 @@
   justify-content: space-between;
   min-height: 86px;
   padding: 14px clamp(20px, 4vw, 34px);
-  border: 1px solid rgba(63, 78, 70, 0.12);
+  border: 1px solid var(--bloom-hairline);
   border-top: 0;
   background:
     radial-gradient(
@@ -146,7 +173,7 @@
       transparent 42%
     ),
     linear-gradient(90deg, var(--bloom-surface), var(--bloom-surface-container));
-  box-shadow: 0 10px 24px rgba(82, 91, 76, 0.1);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--bloom-shadow-color) 10%, transparent);
 }
 
 .bloom-nav-brand {
@@ -191,7 +218,7 @@
 }
 
 .bloom-nav-link:hover {
-  background: rgba(37, 185, 79, 0.1);
+  background: color-mix(in srgb, var(--bloom-secondary) 14%, transparent);
 }
 
 .bloom-nav-link[aria-current="page"] {
@@ -225,13 +252,13 @@
 }
 
 .bloom-button-primary {
-  border-color: rgba(49, 73, 63, 0.32);
+  border-color: var(--bloom-hairline-strong);
   background: var(--bloom-primary);
   color: var(--bloom-on-primary);
 }
 
 .bloom-button-primary:hover {
-  background: color-mix(in srgb, var(--bloom-primary) 88%, white);
+  background: color-mix(in srgb, var(--bloom-primary) 88%, var(--bloom-surface-bright));
 }
 
 .bloom-button-secondary {

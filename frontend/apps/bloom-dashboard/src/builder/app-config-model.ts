@@ -1,5 +1,10 @@
 import type { ApplicationConfig, RuntimeActionPreset, ScreenConfig } from "@bloom/api-client";
-import { BLOOM_THEME_PRESETS, type BloomThemePresetId } from "@bloom/ui";
+import {
+  BLOOM_THEME_PRESET_ORDER,
+  BLOOM_THEME_PRESETS,
+  type BloomThemePresetId,
+  createBloomAppPalette,
+} from "@bloom/ui";
 import { getRosMessageCommandPresetsByCategory, type RosMessageCommandPreset } from "@bloom/widgets";
 import type { CSSProperties } from "react";
 import { createUniqueId } from "../configurations/configuration-editor";
@@ -30,46 +35,26 @@ export const DEFAULT_THEME_INSPIRATION: ThemeInspiration = {
 };
 export const commandPresetGroupsFor = (robotName?: string | null) =>
   Array.from(getRosMessageCommandPresetsByCategory(robotName));
+/** The vetted palettes (ADR 0143), in the order the Builder and the runtime offer them. */
 export const APP_THEME_PRESETS: ReadonlyArray<{
-  id: "bloom-default" | Extract<BloomThemePresetId, "extender-ui" | "high-contrast">;
+  id: BloomThemePresetId;
   label: string;
   description: string;
   palette: ApplicationConfig["theme"]["palette"];
-}> = [
-  {
-    id: "extender-ui",
-    label: "Extender UI",
-    description: BLOOM_THEME_PRESETS["extender-ui"].description,
-    palette: {
-      accent: "#0ea5e9",
-      background: "#f8fafc",
-      primary: "#1d4ed8",
-      surface: "#ffffff",
-    },
-  },
-  {
-    id: "high-contrast",
-    label: "High visibility",
-    description: BLOOM_THEME_PRESETS["high-contrast"].description,
-    palette: {
-      accent: "#ffcc00",
-      background: "#ffffff",
-      primary: "#0033cc",
-      surface: "#ffffff",
-    },
-  },
-  {
-    id: "bloom-default",
-    label: "Bloom Garden",
-    description: BLOOM_THEME_PRESETS.bloom.description,
-    palette: {
-      accent: "#d9a441",
-      background: "#f7f1e6",
-      primary: "#7f967e",
-      surface: "#fffdf7",
-    },
-  },
-];
+}> = BLOOM_THEME_PRESET_ORDER.map((id) => ({
+  id,
+  label: BLOOM_THEME_PRESETS[id].name,
+  description: BLOOM_THEME_PRESETS[id].description,
+  palette: createBloomAppPalette(BLOOM_THEME_PRESETS[id]),
+}));
+
+/** An app theme on a vetted palette; the stored four colours follow it for readers that predate the catalog. */
+export function withThemePreset(
+  theme: ApplicationConfig["theme"],
+  presetId: BloomThemePresetId,
+): ApplicationConfig["theme"] {
+  return { ...theme, palette: createBloomAppPalette(BLOOM_THEME_PRESETS[presetId]), preset_id: presetId };
+}
 
 const SCREEN_FEATURE_LABELS = {
   camera: "Camera views",

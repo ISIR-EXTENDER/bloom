@@ -1,5 +1,5 @@
 import type { ApplicationConfig } from "@bloom/api-client";
-import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
+import { BLOOM_THEME_PRESETS, type BloomThemePresetId, BloomThemeProvider, resolveBloomThemePreset } from "@bloom/ui";
 import { applyCommandStateMessage, clearCommandState, type WidgetActionOutcome } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { useEffect, useMemo, useState } from "react";
@@ -23,7 +23,12 @@ import { useConfigurations } from "./configurations/use-configurations";
 import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
 import { type RuntimeActionClient, toWidgetActionStatus } from "./runtime/runtime-action-dispatcher";
-import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
+import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime/runtime-profile-overrides";
+import {
+  applyRuntimeProfileOverrides,
+  resolveRuntimeProfile,
+  resolveRuntimeThemePresetId,
+} from "./runtime/runtimeProfile";
 import { createSupervisorRuntimeClient } from "./runtime/supervisor-client";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { useRuntimeCapabilityReport } from "./runtime/use-runtime-capabilities";
@@ -33,6 +38,7 @@ import {
   resolveSelectedWorkspace,
   type WorkspaceSelection,
 } from "./ui/ConfigurationWorkspace";
+import { applyDocumentTheme } from "./ui/document-theme";
 import { LandingPage } from "./ui/LandingPage";
 import {
   type BloomRoute,
@@ -46,6 +52,7 @@ import { restoreRuntimeSessionSelection, saveRuntimeSessionSelection } from "./u
 import {
   addRecentRuntimeSelection,
   loadRuntimeUserPreferences,
+  runtimePreferenceKey,
   saveRuntimeUserPreferences,
   setRuntimeProfileOverrides,
   setRuntimeProfilePreference,
@@ -89,12 +96,45 @@ export function App({
   // The library is a kiosk screen too (design 5a): its own bar, no product navigation.
   const isRuntimeSessionView = activeView === "runtime";
   const isRuntimeOperationView = activeView === "runtime" && runtimeMode === "app";
-  const activeTheme =
+  // ADR 0143: a session's palette is this tablet's choice, then the role's, then the app's, resolved here from
+  // the same data the workspace reads so the first frame is right. The supervisor mirror shows the operator role's
+  // palette (a tablet's choice stays on that tablet). Settings previews a draft palette on top.
+  const selectedApplication =
     configurationState.status === "ready" && selection
-      ? resolveThemePreset(
-          resolveSelectedWorkspace(configurationState.configurations, selection).application.theme.preset_id,
-        )
+      ? resolveSelectedWorkspace(configurationState.configurations, selection).application
+      : null;
+  const windowViewport = useWindowViewport();
+  const sessionThemeId = useMemo(() => {
+    if (!selectedApplication || !selection || activeView !== "runtime" || runtimeMode === "home") {
+      return null;
+    }
+    const preferredProfileId = runtimeUserPreferences.profilePreferences[runtimePreferenceKey(selection)] ?? "";
+    const profile = resolveRuntimeProfile(selectedApplication, windowViewport, preferredProfileId);
+    const overrides =
+      runtimeMode === "app"
+        ? runtimeUserPreferences.profileOverrides[runtimeProfileOverrideKey(selection, profile.id)]
+        : undefined;
+    return resolveRuntimeThemePresetId(selectedApplication, applyRuntimeProfileOverrides(profile, overrides));
+  }, [activeView, runtimeMode, runtimeUserPreferences, selectedApplication, selection, windowViewport]);
+  // The library and the landing page keep the last session's palette until another session starts.
+  const [lastSessionThemeId, setLastSessionThemeId] = useState<BloomThemePresetId | null>(null);
+  useEffect(() => {
+    if (sessionThemeId && runtimeMode === "app") {
+      setLastSessionThemeId(sessionThemeId);
+    }
+  }, [runtimeMode, sessionThemeId]);
+  const [previewThemeId, setPreviewThemeId] = useState<BloomThemePresetId | null>(null);
+  const outsideSession = activeView === "landing" || (activeView === "runtime" && runtimeMode === "home");
+  const activeThemeId =
+    (isRuntimeOperationView ? previewThemeId : null) ?? sessionThemeId ?? (outsideSession ? lastSessionThemeId : null);
+  const activeTheme = activeThemeId
+    ? BLOOM_THEME_PRESETS[activeThemeId]
+    : selectedApplication
+      ? resolveBloomThemePreset(selectedApplication.theme.preset_id)
       : BLOOM_THEME_PRESETS.bloom;
+  useEffect(() => {
+    applyDocumentTheme(document.documentElement, activeTheme);
+  }, [activeTheme]);
 
   useEffect(() => {
     if (configurationState.status !== "ready") {
@@ -320,6 +360,7 @@ export function App({
                 onOpenSupervisorWindow={openSupervisorWindow}
                 onRuntimeProfilePreferenceChange={handleRuntimeProfilePreferenceChange}
                 onRuntimeProfileOverridesChange={handleRuntimeProfileOverridesChange}
+                onRuntimePreviewTheme={setPreviewThemeId}
                 onRuntimeIntent={handleRuntimeIntent}
                 onSaveApplication={applicationActions.saveApplication}
                 onSaveBuilderScreen={applicationActions.saveScreen}
@@ -350,12 +391,17 @@ export function App({
   );
 }
 
-function resolveThemePreset(presetId: string) {
-  if (presetId === "bloom-default" || presetId === "bloom") {
-    return BLOOM_THEME_PRESETS.bloom;
-  }
+const readWindowViewport = () => ({ height: window.innerHeight, width: window.innerWidth });
 
-  return BLOOM_THEME_PRESETS[presetId as keyof typeof BLOOM_THEME_PRESETS] ?? BLOOM_THEME_PRESETS.bloom;
+/** The window, for the profile heuristic a session without a remembered role uses. */
+function useWindowViewport() {
+  const [viewport, setViewport] = useState(readWindowViewport);
+  useEffect(() => {
+    const onResize = () => setViewport(readWindowViewport());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return viewport;
 }
 
 function resetViewportForRoute(_routeKey: string) {

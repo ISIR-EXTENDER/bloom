@@ -1,5 +1,7 @@
 import type { ApplicationConfig } from "@bloom/api-client";
-import { APP_THEME_PRESETS, type ThemeInspiration } from "./app-config-model";
+import { resolveBloomThemePreset } from "@bloom/ui";
+import { PalettePreview } from "../ui/PalettePreview";
+import { APP_THEME_PRESETS, type ThemeInspiration, withThemePreset } from "./app-config-model";
 
 // The inspiration props stay for the data model; nothing reads a moodboard or reference yet, so the panel hides them.
 type BuilderAppThemePanelProps = {
@@ -11,7 +13,7 @@ type BuilderAppThemePanelProps = {
 };
 
 export function BuilderAppThemePanel({ onThemeChange, theme }: BuilderAppThemePanelProps) {
-  const palettePreview = Object.entries(theme.palette);
+  const selectedId = resolveBloomThemePreset(theme.preset_id).id;
 
   return (
     <section className="builder-config-panel" aria-labelledby="builder-theme-title">
@@ -21,43 +23,27 @@ export function BuilderAppThemePanel({ onThemeChange, theme }: BuilderAppThemePa
           <h2 id="builder-theme-title">App theme</h2>
         </div>
       </div>
-      <p className="builder-inspector-copy">The preset sets the colours of the running app.</p>
-      <div className="builder-theme-presets">
+      <p className="builder-inspector-copy">
+        Each palette is checked for contrast, colour-blind safety and STOP prominence. It colours the running app and
+        this app's Builder card; a role can pick its own under Roles, and an operator can change it in Settings.
+      </p>
+      <fieldset className="builder-theme-presets">
+        <legend className="sr-only">App palette</legend>
         {APP_THEME_PRESETS.map((preset) => (
           <button
-            aria-pressed={theme.preset_id === preset.id}
+            aria-pressed={selectedId === preset.id}
             key={preset.id}
-            onClick={() => onThemeChange({ ...theme, palette: preset.palette, preset_id: preset.id })}
+            onClick={() => {
+              if (selectedId !== preset.id) {
+                onThemeChange(withThemePreset(theme, preset.id));
+              }
+            }}
             type="button"
           >
-            <span>{preset.label}</span>
+            <PalettePreview preset={resolveBloomThemePreset(preset.id)} />
+            <span className="builder-theme-preset-name">{preset.label}</span>
             <small>{preset.description}</small>
           </button>
-        ))}
-      </div>
-      <fieldset className="builder-theme-swatches">
-        <legend>App card colours</legend>
-        <p className="builder-inspector-copy">
-          Builder Home shows the primary colour as this app's card stripe. The running app takes its colours from the
-          preset above.
-        </p>
-        <div className="builder-theme-preview">
-          {palettePreview.map(([key, value]) => (
-            <span key={key} style={{ background: value }} title={key} />
-          ))}
-        </div>
-        {palettePreview.map(([key, value]) => (
-          <label className="builder-theme-swatch" key={key}>
-            <span>{key}</span>
-            <input
-              aria-label={`${key} color`}
-              onChange={(event) =>
-                onThemeChange({ ...theme, palette: { ...theme.palette, [key]: event.target.value } })
-              }
-              type="color"
-              value={value}
-            />
-          </label>
         ))}
       </fieldset>
     </section>

@@ -201,7 +201,7 @@
 .runtime-tour-action > .runtime-tour-stop {
   width: 176px;
   min-height: 104px;
-  border-color: var(--bloom-error);
+  border-color: var(--bloom-stop);
   background: var(--bloom-error-container);
   color: var(--bloom-on-error-container);
 }

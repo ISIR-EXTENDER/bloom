@@ -1,4 +1,6 @@
 import type { ApplicationConfig, UserProfile } from "@bloom/api-client";
+import { normalizeRoleThemePresetId, resolveBloomThemePreset } from "@bloom/ui";
+import { APP_THEME_PRESETS } from "./app-config-model";
 
 /**
  * Roles, as an author can finally write them.
@@ -118,6 +120,21 @@ export function BuilderProfilesPanel({
                   value={profile.motor_accessibility_preset}
                 >
                   {MOTOR_PRESETS.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Colours</span>
+                <select
+                  onChange={(event) => onUpdateProfile(profile.id, { app_theme_preset_id: event.target.value })}
+                  value={normalizeRoleThemePresetId(profile.app_theme_preset_id)}
+                >
+                  {/* Empty follows the app, so changing the app's palette reaches every role that did not pick. */}
+                  <option value="">Same as app ({resolveBloomThemePreset(application.theme.preset_id).name})</option>
+                  {APP_THEME_PRESETS.map((preset) => (
                     <option key={preset.id} value={preset.id}>
                       {preset.label}
                     </option>

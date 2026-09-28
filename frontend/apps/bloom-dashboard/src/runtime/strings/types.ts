@@ -1,4 +1,5 @@
 import type { RuntimeLanguage } from "@bloom/api-client";
+import type { BloomThemePresetId } from "@bloom/ui";
 
 export type RuntimeStrings = {
   language: RuntimeLanguage;
@@ -236,6 +237,10 @@ export type RuntimeStrings = {
     sound: string;
     textSize: string;
     textSizes: Record<"large" | "larger" | "normal", string>;
+    colours: string;
+    coloursSameAsApp: string;
+    coloursSameAsRole: string;
+    paletteNames: Record<BloomThemePresetId, string>;
     timing: string;
     timingTouch: string;
     title: string;

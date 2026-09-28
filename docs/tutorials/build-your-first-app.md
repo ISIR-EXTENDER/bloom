@@ -15,7 +15,9 @@ app**:
 - **Starter screen** — choose **Operator controls**. It places this arm's **Translation** pad, a **Max linear speed**
   slider on qontrol's speed limit, and the **Gripper** toggle with this arm's open and closed values.
   **Debug monitor** reads the hand's pose and the mode requests instead; **Blank canvas** places nothing.
-- **Design preset** — **Extender light**, **Bloom garden**, or **High visibility**.
+- **Design preset** — one of the six vetted palettes: **Bloom Garden**, **Extender**, **High visibility**, **Dark**,
+  **Colour-blind safe** or **Pastel**. Change it later under **App theme** on the app's page; a role can pick its own under
+  **Roles > Colours**, and an operator can pick one for their tablet in runtime **Settings > Colours**.
 
 Press **Create guided app**. Bloom opens the new app's page; it also appears in **Available apps**, with an
 **Operator** role that opens its screen. The app gets a file of its own, named after it, so sharing it later touches

@@ -105,6 +105,11 @@ export class CommandIndicator {
     this.root.visible = false;
   }
 
+  setColor(color: Color): void {
+    this.material.color.copy(color);
+    this.arcMaterial.color.copy(color);
+  }
+
   attach(parent: Object3D): void {
     parent.add(this.root);
   }

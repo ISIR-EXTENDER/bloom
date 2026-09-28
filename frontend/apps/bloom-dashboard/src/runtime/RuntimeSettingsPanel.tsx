@@ -1,8 +1,14 @@
 import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
+import {
+  BLOOM_THEME_PRESET_ORDER,
+  BLOOM_THEME_PRESETS,
+  type BloomThemePresetId,
+  createBloomThemeStyle,
+} from "@bloom/ui";
 import { localizeOperatorText, PROFILE_TARGET_PX } from "@bloom/widgets";
 import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-
+import { PaletteSwatch } from "../ui/PalettePreview";
 import type { RuntimeStatusChip } from "./RuntimeKioskBar";
 import { normalizeRuntimeProfileOverrides, type RuntimeProfileOverrides } from "./runtime-profile-overrides";
 import { applyRuntimeProfileOverrides, type ResolvedRuntimeProfile } from "./runtimeProfile";
@@ -15,12 +21,16 @@ type PushMode = "drag" | "latch" | "step";
 
 type RuntimeSettingsPanelProps = {
   applicationName: string;
+  /** The app's own palette, what "Same as app" means. */
+  appThemePresetId?: BloomThemePresetId;
   /** The live status, as the kiosk bar shows it: it was always HELD here, even while STOPPED or LINK DOWN. */
   statusChip?: RuntimeStatusChip;
   baseProfile: ResolvedRuntimeProfile;
   /** The connected pad's name, or null when none is attached. */
   gamepadName?: string | null;
   onClose: () => void;
+  /** The palette the draft shows, so the whole screen previews it; null once the panel closes. */
+  onPreviewTheme?: (presetId: BloomThemePresetId | null) => void;
   onSave: (overrides: RuntimeProfileOverrides) => void;
   overrides: RuntimeProfileOverrides;
   runtimeRole: "bench" | "operator";
@@ -45,9 +55,11 @@ const PUSH_PRESETS: Record<PushMode, UserProfile["motor_accessibility_preset"]> 
 export function RuntimeSettingsPanel({
   gamepadName = null,
   applicationName,
+  appThemePresetId = "bloom",
   statusChip,
   baseProfile,
   onClose,
+  onPreviewTheme,
   onSave,
   overrides,
   runtimeRole,
@@ -101,12 +113,23 @@ export function RuntimeSettingsPanel({
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
+  const defaultThemeId = baseProfile.themePresetId ?? appThemePresetId;
+  const themeId = profile.themePresetId ?? appThemePresetId;
+  useEffect(() => {
+    onPreviewTheme?.(themeId);
+  }, [onPreviewTheme, themeId]);
+  useEffect(() => () => onPreviewTheme?.(null), [onPreviewTheme]);
+
   // Settings replaces the controls; focus goes to it, not to <body>.
   useEffect(() => {
     rootRef.current?.focus({ preventScroll: true });
   }, []);
 
   const update = (next: RuntimeProfileOverrides) => setDraft(normalizeRuntimeProfileOverrides(next));
+  const chooseTheme = (presetId: BloomThemePresetId | null) => {
+    const { themePresetId: _previous, ...rest } = draft;
+    update(presetId ? { ...rest, themePresetId: presetId } : rest);
+  };
   const step = (key: "deadzone" | "dwellMs" | "repeatGuardMs" | "scanPeriodMs", delta: number) => {
     const clamped = applyRuntimeProfileOverrides(baseProfile, { ...draft, [key]: profile[key] + delta });
     update({ ...draft, [key]: key === "deadzone" ? Math.round(clamped[key] * 100) / 100 : clamped[key] });
@@ -155,8 +178,14 @@ export function RuntimeSettingsPanel({
       // Scanning, dwell and a high-visibility display all ask for the 64 px target.
       data-assistive={inputMethod !== "touch" || profile.displayPreset === "high-visibility" ? "true" : "false"}
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
+      data-bloom-theme={themeId}
       ref={rootRef}
-      style={{ "--runtime-font-scale": profile.fontScale } as CSSProperties}
+      style={
+        {
+          ...createBloomThemeStyle(BLOOM_THEME_PRESETS[themeId]),
+          "--runtime-font-scale": profile.fontScale,
+        } as CSSProperties
+      }
       tabIndex={-1}
     >
       <header className="runtime-kiosk-bar">
@@ -186,6 +215,36 @@ export function RuntimeSettingsPanel({
               }))}
               selected={profile.fontScale}
             />
+          </SettingCard>
+          <SettingCard
+            label={strings.settings.colours}
+            // The key that applies: this tablet's override when set, else the role's (empty follows the app).
+            readout={
+              draft.themePresetId
+                ? `themePresetId ${draft.themePresetId}`
+                : `app_theme_preset_id ${baseProfile.themePresetId ?? '""'}`
+            }
+          >
+            <fieldset className="runtime-settings-segments runtime-settings-palettes">
+              <legend className="sr-only">{strings.settings.colours}</legend>
+              {[null, ...BLOOM_THEME_PRESET_ORDER].map((presetId) => (
+                <button
+                  aria-pressed={(draft.themePresetId ?? null) === presetId}
+                  key={presetId ?? "default"}
+                  onClick={() => chooseTheme(presetId)}
+                  type="button"
+                >
+                  <PaletteSwatch preset={BLOOM_THEME_PRESETS[presetId ?? defaultThemeId]} />
+                  <span>
+                    {presetId
+                      ? strings.settings.paletteNames[presetId]
+                      : baseProfile.themePresetId
+                        ? strings.settings.coloursSameAsRole
+                        : strings.settings.coloursSameAsApp}
+                  </span>
+                </button>
+              ))}
+            </fieldset>
           </SettingCard>
           <SettingCard label={strings.settings.language} readout={profile.language}>
             <Segments

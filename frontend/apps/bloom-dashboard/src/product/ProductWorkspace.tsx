@@ -1,4 +1,5 @@
 import type { ApplicationConfig, RuntimeCapability, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
+import type { BloomThemePresetId } from "@bloom/ui";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
@@ -52,6 +53,7 @@ type ProductWorkspaceProps = {
     profileId: string,
     overrides: RuntimeProfileOverrides,
   ) => void;
+  onRuntimePreviewTheme?: (presetId: BloomThemePresetId | null) => void;
   onRuntimeIntent: (
     intent: WidgetActionIntent,
     applicationRuntime?: Pick<ApplicationConfig, "action_presets" | "runtime_policy"> & {
@@ -106,6 +108,7 @@ export function ProductWorkspace({
   onOpenSupervisorWindow,
   onRuntimeProfilePreferenceChange,
   onRuntimeProfileOverridesChange,
+  onRuntimePreviewTheme,
   onRuntimeIntent,
   onSaveApplication,
   onSaveBuilderScreen,
@@ -242,6 +245,7 @@ export function ProductWorkspace({
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
       onSuspendTeleop={onSuspendTeleop}
+      onPreviewTheme={onRuntimePreviewTheme}
       preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
       profileOverrides={profileOverrides}
       runtimeActionClient={runtimeActionClient}

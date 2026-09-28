@@ -7,8 +7,10 @@ import {
   type ScreenConfig,
   type UserProfile,
 } from "@bloom/api-client";
+import { BLOOM_THEME_PRESET_ORDER, type BloomThemePresetId } from "@bloom/ui";
 import { gripperToggleSettings, PALETTE_WIRING, speedSliderSettings, translationPadSettings } from "@bloom/widgets";
 import { createUniqueApplicationName, ensureUniqueId } from "../configurations/configuration-editor";
+import { withThemePreset } from "./app-config-model";
 import { defaultStopRegion, NEW_TABLET_CANVAS } from "./builder-geometry";
 import { createNewApplicationName, slugify } from "./builderHomeModel";
 
@@ -20,41 +22,11 @@ export type CreateWizardState = {
 };
 
 export type StarterScreenId = "blank" | "operator-control" | "debug-monitor";
-export type CreateThemePresetId = "bloom-default" | "extender-ui" | "high-visibility";
+export type CreateThemePresetId = BloomThemePresetId;
 
-export const CREATE_THEME_PRESETS: Record<CreateThemePresetId, ApplicationConfig["theme"]> = {
-  "bloom-default": {
-    ...DEFAULT_APPLICATION_THEME,
-    preset_id: "bloom-default",
-    palette: {
-      accent: "#d9a441",
-      background: "#f7f1e6",
-      primary: "#7f967e",
-      surface: "#fffdf7",
-    },
-  },
-  // The app default is Bloom Garden, so "Extender light" must name its own preset.
-  "extender-ui": {
-    ...DEFAULT_APPLICATION_THEME,
-    preset_id: "extender-ui",
-    palette: {
-      accent: "#0ea5e9",
-      background: "#f8fafc",
-      primary: "#1d4ed8",
-      surface: "#ffffff",
-    },
-  },
-  "high-visibility": {
-    ...DEFAULT_APPLICATION_THEME,
-    preset_id: "high-contrast",
-    palette: {
-      accent: "#ffcc00",
-      background: "#ffffff",
-      primary: "#0033cc",
-      surface: "#ffffff",
-    },
-  },
-};
+export const CREATE_THEME_PRESETS = Object.fromEntries(
+  BLOOM_THEME_PRESET_ORDER.map((id) => [id, withThemePreset(DEFAULT_APPLICATION_THEME, id)]),
+) as Record<CreateThemePresetId, ApplicationConfig["theme"]>;
 
 export const STARTER_SCREEN_LABELS: Record<StarterScreenId, string> = {
   blank: "Blank canvas",
@@ -67,7 +39,7 @@ export function createDefaultWizardState(applications: readonly ApplicationConfi
     includeOnboardingSpots: true,
     name: createNewApplicationName(applications),
     starterId: "operator-control",
-    themePresetId: "bloom-default",
+    themePresetId: "bloom",
   };
 }
 
@@ -88,19 +60,20 @@ export function createGuidedApplication(
     runtime_policy: DEFAULT_RUNTIME_POLICY,
     theme: CREATE_THEME_PRESETS[wizard.themePresetId],
     // A role the app can be opened as: the library launches roles, and the review checklist asks for one.
-    profiles: [createStarterProfile(screen.id, wizard.themePresetId)],
+    profiles: [createStarterProfile(screen.id)],
     screens: [screen],
   };
 }
 
 /** Shared with the app config, so a role added later starts life like the one created with the app. */
-export function createStarterProfile(screenId: string, themePresetId: CreateThemePresetId): UserProfile {
+export function createStarterProfile(screenId: string): UserProfile {
   return {
     id: "operator",
     name: "Operator",
     display_preset: "comfort",
     font_scale: 1,
-    app_theme_preset_id: themePresetId,
+    // Empty follows the app's palette; a role picks its own only when someone chooses one.
+    app_theme_preset_id: "",
     preferred_control_layout_id: screenId,
     motor_accessibility_preset: "default",
     audio_cues: false,

@@ -32,6 +32,20 @@ export async function loadSeedConfigurationsByPath(pathsById) {
   );
 }
 
+/** Every app on one vetted palette, every role following it: how a palette pass sees the whole product. */
+export function withThemePreset(configurations, presetId) {
+  const themed = structuredClone(configurations);
+  for (const bundle of Object.values(themed)) {
+    for (const application of bundle.applications ?? []) {
+      application.theme = { ...application.theme, preset_id: presetId };
+      for (const profile of application.profiles ?? []) {
+        profile.app_theme_preset_id = "";
+      }
+    }
+  }
+  return themed;
+}
+
 export async function launchBrowser() {
   try {
     return await chromium.launch({ channel: "chrome" });

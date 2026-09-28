@@ -87,7 +87,11 @@ function withoutStrays(scene: Object3D | null): Object3D | null {
  * The URDF as a three.js robot, its meshes through the cache. `meshes` settles once every mesh the
  * URDF names has been drawn or failed; the count and the first failure are what the view reports.
  */
-export function parseRobot(urdf: string, meshes: MeshCache): { meshes: Promise<MeshReport>; robot: URDFRobot } {
+export function parseRobot(
+  urdf: string,
+  meshes: MeshCache,
+  color: Color = ROBOT_COLOR,
+): { meshes: Promise<MeshReport>; robot: URDFRobot } {
   const pending: Promise<void>[] = [];
   let count = 0;
   let firstError: string | undefined;
@@ -104,10 +108,10 @@ export function parseRobot(urdf: string, meshes: MeshCache): { meshes: Promise<M
             return;
           }
           object.traverse((child) => {
-            // The geometry is the cache's; the sage material is this robot's own.
+            // The geometry is the cache's; the material, in the theme's sage, is this robot's own.
             child.userData.sharedGeometry = true;
             if (child instanceof Mesh) {
-              child.material = new MeshStandardMaterial({ color: ROBOT_COLOR, metalness: 0.05, roughness: 0.85 });
+              child.material = new MeshStandardMaterial({ color, metalness: 0.05, roughness: 0.85 });
             }
           });
           count += 1;

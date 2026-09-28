@@ -17,9 +17,6 @@
 }
 
 .widget-preview-card {
-  --bloom-hairline: color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
-  --bloom-hairline-strong: color-mix(in srgb, var(--bloom-color-forest) 28%, transparent);
-
   position: absolute;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -35,7 +32,7 @@
    The outline keeps the card's geometry, so nothing shifts when a topic appears. */
 .widget-preview-card[data-runtime-unavailable="true"] {
   background: var(--bloom-surface-soft);
-  outline: 2px dashed rgba(49, 73, 63, 0.35);
+  outline: 2px dashed var(--bloom-unavailable-outline);
   outline-offset: -2px;
 }
 
@@ -839,7 +836,7 @@
 
 /* Unsupported: this robot will never offer it. Dashed with the reason, never faded (§09). */
 .bloom-command-button[data-unsupported="true"] {
-  border: 2px dashed color-mix(in srgb, var(--bloom-color-forest) 35%, transparent);
+  border: 2px dashed var(--bloom-unavailable-outline);
   background: var(--bloom-surface-container-high);
   color: var(--bloom-ink-soft);
 }
@@ -929,7 +926,7 @@
 
 /* ADR 0142: servoing measured live by the backend, apart from what the switch last asked. */
 .bloom-toggle-live {
-  color: var(--bloom-color-forest);
+  color: var(--bloom-primary);
   font-size: 13px;
   font-weight: 700;
 }
@@ -1770,7 +1767,11 @@ button.bloom-toggle-segment {
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 18%, transparent);
   border-radius: 24px;
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--bloom-accent) 52%, white) var(--bloom-gauge-percent), transparent 0),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--bloom-accent) 52%, var(--bloom-surface-bright)) var(--bloom-gauge-percent),
+      transparent 0
+    ),
     color-mix(in srgb, var(--bloom-primary-container) 58%, var(--bloom-surface));
   box-shadow: inset 0 0 28px color-mix(in srgb, var(--bloom-primary) 10%, transparent);
 }
@@ -1812,7 +1813,7 @@ button.bloom-toggle-segment {
   border-radius: 16px;
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--bloom-primary-container) 58%, transparent), transparent),
-    color-mix(in srgb, var(--bloom-surface) 88%, white);
+    color-mix(in srgb, var(--bloom-surface) 88%, var(--bloom-surface-bright));
 }
 
 .bloom-plot-gridline {
@@ -1831,7 +1832,7 @@ button.bloom-toggle-segment {
 
 .bloom-plot-line {
   fill: none;
-  stroke: color-mix(in srgb, var(--bloom-primary) 82%, black);
+  stroke: color-mix(in srgb, var(--bloom-primary) 82%, var(--bloom-ink));
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 4;
@@ -1841,7 +1842,7 @@ button.bloom-toggle-segment {
   justify-self: end;
   padding: 5px 10px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bloom-primary-container) 72%, white);
+  background: color-mix(in srgb, var(--bloom-primary-container) 72%, var(--bloom-surface-bright));
   color: var(--bloom-ink-soft);
   font-family: var(--bloom-font-mono);
   font-size: 13px;
@@ -1867,7 +1868,7 @@ button.bloom-toggle-segment {
   background:
     radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--bloom-accent) 20%, transparent), transparent 34%),
     linear-gradient(135deg, color-mix(in srgb, var(--bloom-primary-container) 58%, transparent), transparent),
-    color-mix(in srgb, var(--bloom-surface) 88%, white);
+    color-mix(in srgb, var(--bloom-surface) 88%, var(--bloom-surface-bright));
 }
 
 .bloom-robot-3d-canvas {
@@ -1896,8 +1897,8 @@ button.bloom-toggle-segment {
   top: 10px;
   left: 10px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--bloom-surface) 92%, white);
-  color: var(--bloom-warning-ink, var(--bloom-ink));
+  background: color-mix(in srgb, var(--bloom-surface) 92%, var(--bloom-surface-bright));
+  color: var(--bloom-ink);
   font-weight: 700;
 }
 
@@ -1912,7 +1913,7 @@ button.bloom-toggle-segment {
   margin: 0;
   padding: 8px 12px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bloom-surface) 92%, white);
+  background: color-mix(in srgb, var(--bloom-surface) 92%, var(--bloom-surface-bright));
   color: var(--bloom-ink-soft);
   font-size: 0.85rem;
   pointer-events: none;
@@ -1972,7 +1973,7 @@ button.bloom-toggle-segment {
   padding: 0 14px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 24%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bloom-surface) 92%, white);
+  background: color-mix(in srgb, var(--bloom-surface) 92%, var(--bloom-surface-bright));
   color: var(--bloom-primary);
   font-size: 0.85rem;
   font-weight: 700;
@@ -1995,13 +1996,17 @@ button.bloom-toggle-segment {
   border-radius: 28px;
   background:
     radial-gradient(circle at 50% 100%, color-mix(in srgb, var(--bloom-accent) 24%, transparent), transparent 42%),
-    linear-gradient(135deg, color-mix(in srgb, var(--bloom-primary-container) 72%, white), var(--bloom-surface));
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--bloom-primary-container) 72%, var(--bloom-surface-bright)),
+      var(--bloom-surface)
+    );
   color: var(--bloom-ink);
   cursor: crosshair;
   touch-action: none;
   box-shadow:
     inset 0 0 32px color-mix(in srgb, var(--bloom-primary) 10%, transparent),
-    0 14px 30px rgba(82, 91, 76, 0.12);
+    0 14px 30px color-mix(in srgb, var(--bloom-shadow-color) 12%, transparent);
 }
 
 .bloom-gesture-pad:focus-visible {
@@ -2066,11 +2071,11 @@ button.bloom-toggle-segment {
   gap: 6px;
   min-height: 124px;
   padding: 10px;
-  border: 1px solid rgba(63, 78, 70, 0.14);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 12px;
   background:
-    linear-gradient(to right, rgba(63, 78, 70, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(63, 78, 70, 0.08) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in srgb, var(--bloom-color-forest) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--bloom-color-forest) 8%, transparent) 1px, transparent 1px);
   background-size: 18px 18px;
 }
 
@@ -2157,7 +2162,7 @@ button.bloom-toggle-segment {
   padding: 6px 10px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 20%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bloom-surface) 92%, white);
+  background: color-mix(in srgb, var(--bloom-surface) 92%, var(--bloom-surface-bright));
   color: var(--bloom-ink);
   cursor: pointer;
   font: inherit;

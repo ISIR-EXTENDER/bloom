@@ -1,4 +1,10 @@
 import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
+import {
+  BLOOM_THEME_PRESETS,
+  type BloomThemePresetId,
+  createBloomThemeStyle,
+  normalizeBloomThemePresetId,
+} from "@bloom/ui";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,7 +34,7 @@ import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runti
 import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
 import { createRuntimeControlStateByWidgetId, usesTeleopAdapter } from "./runtimeModeState";
-import { resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
+import { resolveNavigableScreens, resolveRuntimeProfile, resolveRuntimeThemePresetId } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
 import { useAudioCues } from "./use-audio-cues";
@@ -86,6 +92,8 @@ type RuntimeWorkspaceProps = {
   onProfileOverridesChange: (profileId: string, overrides: RuntimeProfileOverrides) => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onSuspendTeleop: () => void;
+  /** A palette Settings is previewing, so the page around the workspace follows the draft; null when it closes. */
+  onPreviewTheme?: (presetId: BloomThemePresetId | null) => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
   /** Switching role from maintenance; the workspace opens that profile's layout. */
@@ -115,6 +123,7 @@ export function RuntimeWorkspace({
   onProfileOverridesChange,
   onSelectionChange,
   onSuspendTeleop,
+  onPreviewTheme,
   onTeleopCommand,
   onTeleopContribution,
   onTopicSample,
@@ -186,6 +195,14 @@ export function RuntimeWorkspace({
     [activeProfileOverrides, application, preferredProfileId, viewportSize],
   );
   const strings = useRuntimeStrings(runtimeProfile.language);
+  // Settings previews its draft palette on the whole screen until it saves or discards.
+  const [previewThemeId, setPreviewThemeId] = useState<BloomThemePresetId | null>(null);
+  const themeId = previewThemeId ?? resolveRuntimeThemePresetId(application, runtimeProfile);
+  const themeStyle = useMemo(() => createBloomThemeStyle(BLOOM_THEME_PRESETS[themeId]), [themeId]);
+  useEffect(() => {
+    onPreviewTheme?.(previewThemeId);
+  }, [onPreviewTheme, previewThemeId]);
+  useEffect(() => () => onPreviewTheme?.(null), [onPreviewTheme]);
   const configuredCommandFrameId =
     application.runtime_policy.command_frame_id || runtimeCapabilityReport?.command_frame_id || null;
   const allowedCommandFrameIds = runtimeCapabilityReport?.command_frame_ids ?? null;
@@ -542,10 +559,13 @@ export function RuntimeWorkspace({
         data-runtime-layout="operator"
         data-runtime-scanning="false"
         data-runtime-stopped={stopped ? "true" : "false"}
-        style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
+        data-bloom-theme={themeId}
+        style={{ ...themeStyle, "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
       >
         <RuntimeSettingsPanel
           applicationName={application.name}
+          appThemePresetId={normalizeBloomThemePresetId(application.theme.preset_id)}
+          onPreviewTheme={setPreviewThemeId}
           baseProfile={baseRuntimeProfile}
           gamepadName={gamepad.connected ? gamepad.id : null}
           key={profileOverrideKey}
@@ -574,7 +594,8 @@ export function RuntimeWorkspace({
         data-runtime-layout="operator"
         data-runtime-scanning={runtimeProfile.motorAccessibilityPreset === "scan" ? "true" : "false"}
         data-runtime-stopped={stopped ? "true" : "false"}
-        style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
+        data-bloom-theme={themeId}
+        style={{ ...themeStyle, "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
       >
         <RuntimeGuidedTour
           application={application}
@@ -601,7 +622,8 @@ export function RuntimeWorkspace({
       data-runtime-scanning={scanning.index >= 0 ? "true" : "false"}
       data-runtime-stopped={stopped ? "true" : "false"}
       ref={workspaceRef}
-      style={{ "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
+      data-bloom-theme={themeId}
+      style={{ ...themeStyle, "--runtime-font-scale": runtimeProfile.fontScale } as CSSProperties}
       tabIndex={-1}
     >
       <RuntimeKioskBar

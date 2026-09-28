@@ -7,6 +7,7 @@ import type {
   RuntimeActionPreset,
   RuntimeAdapterPolicy,
   ScreenConfig,
+  UserProfile,
   WidgetConfig,
   WidgetKind,
   WidgetLayout,
@@ -20,6 +21,7 @@ import {
   isCanvasPresetId,
   isRuntimeCanvasMode,
 } from "@bloom/api-client";
+import { canonicalBloomThemePresetId, normalizeRoleThemePresetId } from "@bloom/ui";
 import { isRecord, readNumber, readString } from "@bloom/widgets";
 import { ensureUniqueId } from "./configuration-editor";
 
@@ -102,7 +104,7 @@ function normalizeApplication(application: PartialApplicationConfig, index: numb
     action_presets: normalizeActionPresets(application.action_presets),
     runtime_policy: normalizeRuntimePolicy(application.runtime_policy),
     theme: normalizeApplicationTheme(application.theme),
-    profiles: Array.isArray(application.profiles) ? application.profiles : [],
+    profiles: Array.isArray(application.profiles) ? application.profiles.map(normalizeProfileTheme) : [],
     screens: (application.screens ?? []).map((screen, screenIndex) => normalizeScreen(screen, screenIndex)),
   };
 }
@@ -183,6 +185,12 @@ function isJsonLike(value: unknown): boolean {
   }
 }
 
+/** A role's palette: empty, the old "bloom-default" and anything unknown follow the app. */
+function normalizeProfileTheme(profile: UserProfile): UserProfile {
+  const app_theme_preset_id = normalizeRoleThemePresetId(profile.app_theme_preset_id);
+  return app_theme_preset_id === profile.app_theme_preset_id ? profile : { ...profile, app_theme_preset_id };
+}
+
 function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): ApplicationTheme {
   return {
     inspiration: {
@@ -192,7 +200,8 @@ function normalizeApplicationTheme(theme: PartialApplicationTheme | undefined): 
       ),
       reference_url: readString(theme?.inspiration?.reference_url, DEFAULT_THEME_INSPIRATION.reference_url),
     },
-    preset_id: readString(theme?.preset_id, DEFAULT_APPLICATION_THEME.preset_id),
+    // A retired id reads as its replacement; an id from a newer Bloom is kept and resolved at render (ADR 0143).
+    preset_id: canonicalBloomThemePresetId(readString(theme?.preset_id, DEFAULT_APPLICATION_THEME.preset_id)),
     palette: {
       accent: readString(theme?.palette?.accent, DEFAULT_APPLICATION_THEME.palette.accent),
       background: readString(theme?.palette?.background, DEFAULT_APPLICATION_THEME.palette.background),

@@ -1,4 +1,5 @@
 import type { RuntimeLanguage, UserProfile } from "@bloom/api-client";
+import { type BloomThemePresetId, isBloomThemePresetId } from "@bloom/ui";
 import { isRecord } from "@bloom/widgets";
 
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -13,6 +14,8 @@ export type RuntimeProfileOverrides = {
   motorAccessibilityPreset?: UserProfile["motor_accessibility_preset"];
   repeatGuardMs?: number;
   scanPeriodMs?: number;
+  /** This tablet's palette for the role; absent follows the role, then the app. */
+  themePresetId?: BloomThemePresetId;
 };
 
 const MOTOR_ACCESSIBILITY_PRESETS = new Set<UserProfile["motor_accessibility_preset"]>([
@@ -54,6 +57,9 @@ export function normalizeRuntimeProfileOverrides(value: unknown): RuntimeProfile
 
   if (typeof value.language === "string" && RUNTIME_LANGUAGES.has(value.language as RuntimeLanguage)) {
     overrides.language = value.language as RuntimeLanguage;
+  }
+  if (isBloomThemePresetId(value.themePresetId)) {
+    overrides.themePresetId = value.themePresetId;
   }
   if (
     typeof value.motorAccessibilityPreset === "string" &&

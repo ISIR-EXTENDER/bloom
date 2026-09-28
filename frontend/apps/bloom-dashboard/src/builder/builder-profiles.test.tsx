@@ -155,3 +155,49 @@ describe("the role editor helpers", () => {
     expect(() => updateProfileInApplication(application, "ghost", { name: "x" })).toThrow(/was not found/);
   });
 });
+
+describe("a role's colours", () => {
+  afterEach(cleanup);
+
+  const renderPanel = (profilePatch: Partial<ApplicationConfig["profiles"][number]>, onUpdateProfile = vi.fn()) =>
+    render(
+      <BuilderProfilesPanel
+        application={{
+          ...application,
+          profiles: application.profiles.map((profile) => ({ ...profile, ...profilePatch })),
+        }}
+        onAddProfile={vi.fn()}
+        onRemoveProfile={vi.fn()}
+        onUpdateProfile={onUpdateProfile}
+      />,
+    );
+
+  it("follows the app until someone picks a palette for the role", () => {
+    const onUpdateProfile = vi.fn();
+    renderPanel({ app_theme_preset_id: "" }, onUpdateProfile);
+
+    const colours = screen.getByLabelText("Colours") as HTMLSelectElement;
+    expect([...colours.options].map((option) => option.textContent)).toEqual([
+      "Same as app (Bloom Garden)",
+      "Bloom Garden",
+      "Extender",
+      "High visibility",
+      "Dark",
+      "Colour-blind safe",
+      "Pastel",
+    ]);
+    expect(colours.value).toBe("");
+
+    fireEvent.change(colours, { target: { value: "dark" } });
+    expect(onUpdateProfile).toHaveBeenCalledWith("operator", { app_theme_preset_id: "dark" });
+  });
+
+  it("reads the old default as following the app and a legacy id as its palette", () => {
+    renderPanel({ app_theme_preset_id: "bloom-default" });
+    expect((screen.getByLabelText("Colours") as HTMLSelectElement).value).toBe("");
+    cleanup();
+
+    renderPanel({ app_theme_preset_id: "high-visibility" });
+    expect((screen.getByLabelText("Colours") as HTMLSelectElement).value).toBe("high-contrast");
+  });
+});

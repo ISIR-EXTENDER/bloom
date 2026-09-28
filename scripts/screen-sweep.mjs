@@ -2,6 +2,7 @@
 
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { BLOOM_THEME_PRESET_ORDER } from "../frontend/libs/ui/src/theme.ts";
 import {
   INTERACTIVE_WIDGET_KINDS,
   PROFILE_TARGET_PX,
@@ -16,6 +17,7 @@ import {
   loadSeedConfigurations,
   startDashboardServer,
   TABLET_EMULATION,
+  withThemePreset,
 } from "./lib/runtime-harness.mjs";
 
 /** device-classes.md: each class authored at one panel, checked at the others. */
@@ -62,7 +64,14 @@ const port = Number(process.env.BLOOM_SCREEN_SWEEP_PORT ?? "5180");
 const workerCount = Number(process.env.BLOOM_SCREEN_SWEEP_WORKERS ?? "6");
 const screenshotEveryVisit = process.env.BLOOM_SCREEN_SWEEP_SCREENSHOTS === "all";
 
-const configurations = await loadSeedConfigurations();
+// BLOOM_SCREEN_SWEEP_PALETTE=dark sweeps every screen on one vetted palette (ADR 0143).
+const palette = process.env.BLOOM_SCREEN_SWEEP_PALETTE ?? "";
+if (palette && !BLOOM_THEME_PRESET_ORDER.includes(palette)) {
+  console.error(`Unknown palette "${palette}"; one of ${BLOOM_THEME_PRESET_ORDER.join(", ")}.`);
+  process.exit(1);
+}
+const seedConfigurations = await loadSeedConfigurations();
+const configurations = palette ? withThemePreset(seedConfigurations, palette) : seedConfigurations;
 const visits = planVisits(configurations);
 await mkdir(outputDir, { recursive: true });
 
@@ -109,7 +118,10 @@ report();
 
 function report() {
   const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
-  console.log(`\nBloom screen sweep: ${visits.length} screen visits at their maintained viewports in ${seconds}s.`);
+  const onPalette = palette ? ` on the ${palette} palette` : "";
+  console.log(
+    `\nBloom screen sweep: ${visits.length} screen visits at their maintained viewports${onPalette} in ${seconds}s.`,
+  );
 
   if (known.length > 0) {
     console.log(`\n${known.length} known gap(s), see KNOWN_GAPS in this script:`);

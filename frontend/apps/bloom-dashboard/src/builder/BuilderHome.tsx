@@ -1,4 +1,5 @@
 import type { ApplicationConfig, ScreenConfig, ShareStatus } from "@bloom/api-client";
+import { resolveBloomThemePreset } from "@bloom/ui";
 import { useState } from "react";
 import {
   createUniqueApplicationName,
@@ -7,6 +8,7 @@ import {
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { describeApiError } from "../ui/api-error";
 import type { WorkspaceSelection } from "../ui/ConfigurationWorkspace";
+import { APP_THEME_PRESETS } from "./app-config-model";
 import {
   type CreateThemePresetId,
   type CreateWizardState,
@@ -210,7 +212,7 @@ export function BuilderHome({
                     <article className="builder-app-card" key={`${configuration.id}:${application.id}`}>
                       <span
                         className="builder-app-card-theme"
-                        style={{ background: application.theme.palette.primary }}
+                        style={{ background: resolveBloomThemePreset(application.theme.preset_id).tokens.primary }}
                       />
                       <strong>{application.name}</strong>
                       <span>{application.description || "No description yet."}</span>
@@ -384,9 +386,11 @@ export function BuilderHome({
                 }
                 value={createWizard.themePresetId}
               >
-                <option value="extender-ui">Extender light</option>
-                <option value="bloom-default">Bloom garden</option>
-                <option value="high-visibility">High visibility</option>
+                {APP_THEME_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="builder-create-checkbox">

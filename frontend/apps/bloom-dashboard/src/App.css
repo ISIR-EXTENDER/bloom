@@ -65,7 +65,7 @@ textarea {
   padding: 12px 16px;
   border-radius: 999px;
   background: var(--bloom-primary);
-  color: white;
+  color: var(--bloom-on-primary);
   font-weight: 900;
   opacity: 0;
   pointer-events: none;
@@ -99,9 +99,9 @@ textarea {
   min-height: 100vh;
   padding: 0 28px 28px;
   background:
-    radial-gradient(circle at 8% 8%, rgba(200, 213, 196, 0.92), transparent 28%),
-    radial-gradient(circle at 82% 4%, rgba(255, 216, 155, 0.28), transparent 30%),
-    radial-gradient(circle at 92% 38%, rgba(199, 189, 220, 0.18), transparent 24%),
+    radial-gradient(circle at 8% 8%, color-mix(in srgb, var(--bloom-color-mist) 92%, transparent), transparent 28%),
+    radial-gradient(circle at 82% 4%, color-mix(in srgb, var(--bloom-color-pollen) 28%, transparent), transparent 30%),
+    radial-gradient(circle at 92% 38%, color-mix(in srgb, var(--bloom-color-lilac) 18%, transparent), transparent 24%),
     linear-gradient(135deg, var(--bloom-surface) 0%, var(--bloom-surface-soft) 58%, var(--bloom-primary-container) 100%);
 }
 
@@ -144,7 +144,7 @@ textarea {
 .screen-list-item {
   border: 1px solid var(--bloom-border);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--bloom-surface) 74%, white);
+  background: color-mix(in srgb, var(--bloom-surface) 74%, var(--bloom-surface-bright));
   color: var(--bloom-ink);
 }
 
@@ -372,7 +372,7 @@ h1 {
   padding: 18px;
   border: 1px solid color-mix(in srgb, var(--bloom-primary) 14%, var(--bloom-border));
   border-radius: 22px;
-  background: color-mix(in srgb, var(--bloom-surface-container-low) 78%, white);
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 78%, var(--bloom-surface-bright));
 }
 
 .help-capability-card h3,
@@ -412,7 +412,7 @@ h1 {
   margin-bottom: 12px;
   border-radius: 999px;
   background: var(--bloom-primary);
-  color: white;
+  color: var(--bloom-on-primary);
   content: counter(help-steps);
   font-weight: 900;
 }
@@ -431,7 +431,7 @@ h1 {
   padding: 12px 14px;
   border: 1px solid var(--bloom-border);
   border-radius: 16px;
-  background: color-mix(in srgb, var(--bloom-surface-container-low) 76%, white);
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 76%, var(--bloom-surface-bright));
 }
 
 .help-freshness-card dt {
@@ -533,4 +533,98 @@ h1 {
 .screen-list-item[aria-current="true"] {
   border-color: color-mix(in srgb, var(--bloom-primary) 44%, transparent);
   background: var(--bloom-primary-container);
+}
+
+/* A palette drawn in its own tokens (ui/PalettePreview): the Builder's cards and the runtime's choice share it. */
+.bloom-palette-preview {
+  display: block;
+  border-radius: 12px;
+}
+
+.bloom-palette-preview-surface {
+  display: grid;
+  grid-template-areas:
+    "primary focus stop"
+    "unavailable unknown stop"
+    "ready ready stop";
+  grid-template-columns: 1fr 1fr 1.1fr;
+  grid-template-rows: 24px 18px 20px;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--bloom-hairline);
+  border-radius: 12px;
+  background: var(--bloom-surface-container);
+  color: var(--bloom-on-surface);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.bloom-palette-preview-surface > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.bloom-palette-preview-primary {
+  grid-area: primary;
+  background: var(--bloom-primary);
+  color: var(--bloom-on-primary);
+}
+
+.bloom-palette-preview-focus {
+  grid-area: focus;
+  background: var(--bloom-surface);
+  outline: 3px solid var(--bloom-focus-ring);
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 5px var(--bloom-focus-ring-contrast);
+}
+
+.bloom-palette-preview-stop {
+  grid-area: stop;
+  background: var(--bloom-stop);
+  color: var(--bloom-on-stop);
+  letter-spacing: 0.06em;
+}
+
+.bloom-palette-preview-unavailable {
+  grid-area: unavailable;
+  background: var(--bloom-surface-container-high);
+  outline: 2px dashed var(--bloom-unavailable-outline);
+  outline-offset: -2px;
+}
+
+.bloom-palette-preview-unknown {
+  grid-area: unknown;
+  background: var(--bloom-surface-container-high);
+  border: 1px solid var(--bloom-hairline);
+}
+
+.bloom-palette-preview-surface > .bloom-palette-preview-ready {
+  grid-area: ready;
+  gap: 5px;
+  justify-content: flex-start;
+  padding: 0 6px;
+  background: color-mix(in srgb, var(--bloom-success) 18%, var(--bloom-surface));
+  color: var(--bloom-success);
+}
+
+.bloom-palette-preview-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.bloom-palette-swatch {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--bloom-hairline-strong);
+  border-radius: 8px;
+}
+
+.bloom-palette-swatch > span {
+  width: 14px;
+  height: 22px;
 }

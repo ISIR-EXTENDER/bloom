@@ -18,6 +18,7 @@ import webcamVisualizerConfiguration from "../../../../backend/seed/applications
 import compactSandboxConfiguration from "../../../../tests/fixtures/compact-sandbox-configuration.json";
 import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-teleop-lab-configuration.json";
 import { App } from "./App";
+import { CREATE_THEME_PRESETS } from "./builder/builder-starters";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient, RuntimeTopicSampleMessage } from "./runtime/runtime-action-dispatcher";
 import { createCommandStateServer } from "./test-support/command-state-server";
@@ -230,7 +231,7 @@ describe("App", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Apps" }));
     fireEvent.change(screen.getByLabelText("New app name"), { target: { value: "Robot Check" } });
     fireEvent.change(screen.getByLabelText("Starter screen"), { target: { value: "debug-monitor" } });
-    fireEvent.change(screen.getByLabelText("Design preset"), { target: { value: "bloom-default" } });
+    fireEvent.change(screen.getByLabelText("Design preset"), { target: { value: "dark" } });
     fireEvent.click(screen.getByLabelText("Include onboarding spots"));
     fireEvent.click(screen.getByRole("button", { name: "Create guided app" }));
 
@@ -243,7 +244,7 @@ describe("App", () => {
       id: "robot-check",
       name: "Robot Check",
       theme: {
-        preset_id: "bloom-default",
+        preset_id: "dark",
       },
     });
     // A role to open it as: the library launches roles, and the review checklist asks every profile for a screen.
@@ -509,6 +510,38 @@ describe("App", () => {
     );
   });
 
+  it("runs a role in its own palette from the first paint, and the library keeps it after the session", async () => {
+    const bundle = structuredClone(explorerManagerConfiguration) as unknown as ConfigurationBundle;
+    const bench = bundle.applications[0]?.profiles.find((profile) => profile.name === "Bench");
+    if (bench) {
+      bench.app_theme_preset_id = "dark";
+    }
+    render(
+      <App
+        configurationClient={createConfigurationClient({
+          bundles: { "explorer-manager": bundle },
+          ids: ["explorer-manager"],
+        })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openRuntimeApp("Explorer Manager", "Bench");
+
+    // First paint: the palette is resolved from the selection, not reported back by the workspace later.
+    const workspace = await screen.findByRole("region", { name: "Runtime application" });
+    expect(workspace).toHaveAttribute("data-bloom-theme", "dark");
+    expect(document.documentElement).toHaveAttribute("data-bloom-theme", "dark");
+    expect(document.documentElement.style.getPropertyValue("--bloom-stop")).toBe("#dc2626");
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+
+    // ADR 0143: the library keeps the last session's palette rather than snapping back to the app's.
+    // Bench opens maintenance with a tap (menu_on_tap), not the hold.
+    fireEvent.click(screen.getByRole("button", { name: "Open maintenance" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Exit to library" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Runtime library" })).toBeVisible();
+    expect(document.documentElement).toHaveAttribute("data-bloom-theme", "dark");
+  });
+
   it("offers practice on the first entry and remembers the answer", async () => {
     const configurationClient = createConfigurationClient({
       bundles: {
@@ -742,7 +775,8 @@ describe("App", () => {
       id: "new-bloom-app",
       name: "New Bloom App",
       profiles: [{ id: "operator", preferred_control_layout_id: "main" }],
-      theme: DEFAULT_APPLICATION_THEME,
+      // Bloom Garden, with the four-colour summary a new app derives from it (ADR 0143).
+      theme: CREATE_THEME_PRESETS.bloom,
     });
     expect(savedApplication?.screens[0]).toMatchObject({
       id: "main",
@@ -829,8 +863,7 @@ describe("App", () => {
     // A new app starts on Bloom Garden, the shared default; switching away
     // from it is the change worth saving.
     expect(screen.getByRole("button", { name: /Bloom Garden/ })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: /Extender UI/ }));
-    fireEvent.change(screen.getByLabelText("primary color"), { target: { value: "#ff8800" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Extender/ }));
     fireEvent.click(screen.getByRole("button", { name: "Save app" }));
 
     await waitFor(() => {
@@ -841,7 +874,7 @@ describe("App", () => {
 
     expect(savedApplication?.theme.preset_id).toBe("extender-ui");
     expect(savedApplication?.theme.palette.accent).toBe("#0ea5e9");
-    expect(savedApplication?.theme.palette.primary).toBe("#ff8800");
+    expect(savedApplication?.theme.palette.primary).toBe("#1d4ed8");
     expect(await screen.findByRole("status")).toHaveTextContent("App configuration saved.");
   });
 

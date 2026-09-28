@@ -17,7 +17,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { URDFRobot } from "urdf-loader";
-import { COMMAND_COLOR, CommandIndicator, commandPose } from "./robot-3d-command";
+import { CommandIndicator, commandPose } from "./robot-3d-command";
 import {
   asRecord,
   disposeObject,
@@ -28,6 +28,7 @@ import {
   vector,
 } from "./robot-3d-markers";
 import { createMeshCache, fitDistance, parseRobot, resolveRobotFrame, resolveToolLink } from "./robot-3d-model";
+import { readScenePalette, type ScenePalette, samePalette, watchThemeChange } from "./robot-3d-palette";
 import type { CommandedTwist, RobotModelSource } from "./types";
 
 export type JointStateSample = { name?: unknown; position?: unknown };
@@ -140,7 +141,9 @@ export default function RobotScene({
     const fill = new DirectionalLight(0xffffff, 0.35);
     fill.position.set(-3, 2, -2);
     scene.add(fill);
-    scene.add(new GridHelper(2, 20, 0xb7b1a3, 0xd9d4c7));
+    let palette = readScenePalette(container);
+    let grid = new GridHelper(2, 20, palette.gridCenter, palette.grid);
+    scene.add(grid);
     // ROS is Z-up, three.js is Y-up: everything in the base frame lives under this one rotation.
     const robotRoot = new Group();
     robotRoot.rotation.x = -Math.PI / 2;
@@ -148,6 +151,7 @@ export default function RobotScene({
     const markerRoot = new Group();
     robotRoot.add(markerRoot);
     const indicator = new CommandIndicator();
+    indicator.setColor(palette.command);
     indicator.attach(robotRoot);
     const poseAxes = new AxesHelper(0.1);
     poseAxes.visible = false;
@@ -266,12 +270,12 @@ export default function RobotScene({
     };
     const mountRobot = async (urdf: string) => {
       unmountRobot();
-      const parsed = parseRobot(urdf, cache);
+      const parsed = parseRobot(urdf, cache, palette.robot);
       current = parsed.robot;
       currentUrdf = urdf;
       robotRoot.add(parsed.robot);
       // The same robot once more, see-through, for wherever a joint target is sending it.
-      const twin = parseRobot(urdf, cache);
+      const twin = parseRobot(urdf, cache, palette.command);
       ghost = twin.robot;
       ghost.visible = false;
       robotRoot.add(ghost);
@@ -285,7 +289,7 @@ export default function RobotScene({
       ghost.traverse((child) => {
         if (child instanceof Mesh) {
           child.material = new MeshStandardMaterial({
-            color: COMMAND_COLOR,
+            color: palette.command,
             depthWrite: false,
             opacity: 0.35,
             transparent: true,
@@ -325,8 +329,33 @@ export default function RobotScene({
     };
     void poll();
 
+    const recolor = (object: Object3D | null, color: ScenePalette["robot"]) =>
+      object?.traverse((child) => {
+        // Only the URDF's own meshes: markers hang off the same links and keep their message colours.
+        if (child.userData.sharedGeometry && child instanceof Mesh && child.material instanceof MeshStandardMaterial) {
+          child.material.color.copy(color);
+        }
+      });
+    // A palette picked in Settings reaches the stage without a reload.
+    const stopWatchingTheme = watchThemeChange(container, () => {
+      const next = readScenePalette(container);
+      if (disposed || samePalette(next, palette)) {
+        return;
+      }
+      palette = next;
+      scene.remove(grid);
+      grid.dispose();
+      grid = new GridHelper(2, 20, palette.gridCenter, palette.grid);
+      scene.add(grid);
+      indicator.setColor(palette.command);
+      recolor(current, palette.robot);
+      recolor(ghost, palette.command);
+      invalidate();
+    });
+
     return () => {
       disposed = true;
+      stopWatchingTheme();
       stage.current = null;
       clearTimeout(pollTimer);
       clearTimeout(expiryTimer);
@@ -340,6 +369,7 @@ export default function RobotScene({
       indicator.dispose();
       unmountRobot();
       cache.dispose();
+      grid.dispose();
       controls.dispose();
       renderer.dispose();
       container.removeChild(renderer.domElement);

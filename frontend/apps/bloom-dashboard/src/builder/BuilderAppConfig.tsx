@@ -1,4 +1,5 @@
 import type { ApplicationConfig, RuntimeCapabilityReport } from "@bloom/api-client";
+import { resolveBloomThemePreset } from "@bloom/ui";
 import { useMemo, useState } from "react";
 import type { LoadedConfiguration } from "../configurations/configuration-loader";
 import { resolveSelectedWorkspace, type WorkspaceSelection } from "../ui/ConfigurationWorkspace";
@@ -109,7 +110,7 @@ export function BuilderAppConfig({
                 "widget",
               )}
             </span>
-            <span>{draft.theme.preset_id}</span>
+            <span>{resolveBloomThemePreset(draft.theme.preset_id).name}</span>
           </div>
         </div>
         <div className="builder-app-config-actions">

@@ -704,3 +704,19 @@ def test_sharing_an_app_with_uploaded_theme_images_says_they_stay_here(tmp_path:
     outcome = seed.publish_configuration(repository, "sandbox", seed_dir)
 
     assert outcome.warnings and "theme images" in outcome.warnings[0]
+
+
+#: explorer-manager as main stamped it on import (its fingerprint under the model before the palette catalog).
+EXPLORER_MANAGER_STAMP_FROM_MAIN = "4d746a010f834fb731feb7128697b92139e2774cedcbbe030b9e4c85098416f3"
+
+
+def test_a_copy_stamped_by_main_still_reads_as_an_unedited_seed() -> None:
+    # The fingerprint excludes model defaults, so changing a default (the four-colour palette summary, the
+    # palette id) would make every store seeded before the change read "Edited here" and never take an update.
+    stored = shipped_explorer_manager()
+    stored = stored.model_copy(
+        update={"metadata": stored.metadata.model_copy(update={"seed_fingerprint": EXPLORER_MANAGER_STAMP_FROM_MAIN})}
+    )
+
+    assert configuration_fingerprint(stored) == EXPLORER_MANAGER_STAMP_FROM_MAIN
+    assert is_unedited_seed_copy(stored)

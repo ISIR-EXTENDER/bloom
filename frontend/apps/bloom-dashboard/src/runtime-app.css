@@ -12,7 +12,7 @@
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--bloom-border) 70%, transparent);
   border-radius: 14px;
-  background: color-mix(in srgb, var(--bloom-surface-container-low) 96%, white);
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 96%, var(--bloom-surface-bright));
   box-shadow: none;
   font-size: calc(1rem * var(--runtime-font-scale));
   touch-action: manipulation;
@@ -68,11 +68,11 @@
 }
 
 .runtime-status-pill[data-status="ready"] {
-  border-color: color-mix(in srgb, #22c55e 44%, var(--bloom-border));
+  border-color: color-mix(in srgb, var(--bloom-success) 44%, var(--bloom-border));
 }
 
 .runtime-status-pill[data-status="ready"] .runtime-status-pill-value {
-  color: #22c55e;
+  color: var(--bloom-success);
 }
 
 .runtime-status-pill[data-status="unavailable"] {
@@ -144,8 +144,8 @@
 }
 
 .runtime-robot-topic-list > li > strong[data-status="ready"] {
-  background: color-mix(in srgb, #22c55e 18%, transparent);
-  color: #22c55e;
+  background: color-mix(in srgb, var(--bloom-success) 18%, transparent);
+  color: var(--bloom-success);
 }
 
 .runtime-robot-topic-list > li > strong[data-status="missing"],
@@ -207,7 +207,7 @@
   gap: 2px;
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: var(--bloom-radius-card);
   background: var(--bloom-surface-container-high);
   color: var(--bloom-ink);
@@ -240,7 +240,7 @@
   right: 10px;
   min-height: 32px;
   padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 8px;
   background: var(--bloom-surface-container);
   color: var(--bloom-ink);
@@ -259,10 +259,10 @@
   max-height: 420px;
   overflow-y: auto;
   padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 12px;
   background: var(--bloom-surface);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  box-shadow: 0 12px 28px var(--bloom-hairline);
 }
 
 .bloom-debug-panel-actions {
@@ -270,14 +270,14 @@
   grid-template-columns: 1fr 1fr;
   gap: 8px;
   padding: 10px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: var(--bloom-radius-card);
   background: var(--bloom-surface-container-high);
 }
 
 .bloom-debug-panel-actions button {
   min-height: 40px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 8px;
   background: var(--bloom-surface-container);
   color: var(--bloom-ink);
@@ -335,7 +335,7 @@
   min-width: 96px;
   padding: 5px 8px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bloom-secondary-container) 70%, white);
+  background: color-mix(in srgb, var(--bloom-secondary-container) 70%, var(--bloom-surface-bright));
   color: var(--bloom-ink);
   font-size: 0.68rem;
   text-align: center;
@@ -343,7 +343,7 @@
 }
 
 .bloom-debug-preflight-list > li > strong[data-status="ready"] {
-  background: color-mix(in srgb, var(--bloom-primary-container) 82%, white);
+  background: color-mix(in srgb, var(--bloom-primary-container) 82%, var(--bloom-surface-bright));
   color: var(--bloom-primary);
 }
 
@@ -437,10 +437,10 @@
   flex-direction: column;
   min-width: 180px;
   padding: 6px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 12px;
   background: var(--bloom-surface);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  box-shadow: 0 12px 28px var(--bloom-hairline);
 }
 
 .runtime-library-menu-list button {
@@ -490,7 +490,7 @@
   width: 100%;
   min-height: 80px;
   padding: 12px 16px;
-  border: 2px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 2px solid var(--bloom-hairline);
   border-radius: var(--bloom-radius-card);
   background: var(--bloom-surface-container-high);
   color: var(--bloom-ink);
@@ -560,7 +560,7 @@
 
 .runtime-library-badge[data-state="no"],
 .runtime-library-badge[data-state="archived"] {
-  border: 2px dashed color-mix(in srgb, var(--bloom-color-forest) 35%, transparent);
+  border: 2px dashed var(--bloom-unavailable-outline);
   background: var(--bloom-surface-container-high);
   color: var(--bloom-ink-soft);
 }
@@ -605,7 +605,7 @@
   align-items: center;
   min-height: var(--bloom-touch-target-high-visibility);
   padding: 8px 16px;
-  border: 2px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 2px solid var(--bloom-hairline);
   border-radius: var(--bloom-radius-control);
   background: var(--bloom-surface-container);
   color: var(--bloom-ink);
@@ -654,7 +654,7 @@
 }
 
 .runtime-library-open:disabled {
-  border: 2px dashed color-mix(in srgb, var(--bloom-color-forest) 35%, transparent);
+  border: 2px dashed var(--bloom-unavailable-outline);
   background: transparent;
   color: var(--bloom-ink-soft);
   cursor: not-allowed;
@@ -662,7 +662,7 @@
 
 .runtime-library-supervisor {
   min-height: 48px;
-  border: 2px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 2px solid var(--bloom-hairline);
   border-radius: var(--bloom-radius-control);
   background: var(--bloom-surface-container-high);
   color: var(--bloom-ink);
@@ -701,8 +701,9 @@
   min-height: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 20% 16%, rgba(127, 150, 126, 0.08), transparent 26%),
-    radial-gradient(circle at 88% 78%, rgba(199, 189, 220, 0.08), transparent 28%), var(--bloom-surface-container);
+    radial-gradient(circle at 20% 16%, color-mix(in srgb, var(--bloom-color-sage) 8%, transparent), transparent 26%),
+    radial-gradient(circle at 88% 78%, color-mix(in srgb, var(--bloom-color-lilac) 8%, transparent), transparent 28%),
+    var(--bloom-surface-container);
 }
 
 .runtime-app-canvas-viewport {
@@ -758,8 +759,9 @@
   border: 1px solid color-mix(in srgb, var(--bloom-border) 70%, transparent);
   border-radius: 18px;
   background:
-    radial-gradient(circle at top right, rgba(127, 150, 126, 0.08), transparent 30%), var(--bloom-surface-container-low);
-  box-shadow: inset 0 0 0 1px rgba(255, 253, 247, 0.82);
+    radial-gradient(circle at top right, color-mix(in srgb, var(--bloom-color-sage) 8%, transparent), transparent 30%),
+    var(--bloom-surface-container-low);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bloom-surface-bright) 82%, transparent);
   transform-origin: top left;
 }
 
@@ -778,7 +780,7 @@
   padding: 28px;
   border: 1px dashed color-mix(in srgb, var(--bloom-primary) 42%, var(--bloom-border));
   border-radius: 24px;
-  background: color-mix(in srgb, var(--bloom-surface-container-low) 94%, white);
+  background: color-mix(in srgb, var(--bloom-surface-container-low) 94%, var(--bloom-surface-bright));
   box-shadow: var(--bloom-shadow);
   transform: translate(-50%, -50%);
 }
@@ -1006,7 +1008,11 @@ button.runtime-kiosk-screen:focus-visible {
   color: var(--bloom-ink);
 }
 
-.runtime-kiosk-status[data-tone="stopped"],
+.runtime-kiosk-status[data-tone="stopped"] {
+  background: var(--bloom-stop);
+  color: var(--bloom-on-stop);
+}
+
 .runtime-kiosk-status[data-tone="link-down"] {
   background: var(--bloom-error);
   color: var(--bloom-on-error);
@@ -1015,7 +1021,7 @@ button.runtime-kiosk-screen:focus-visible {
 .runtime-kiosk-frame {
   flex: 0 0 auto;
   padding: 2px 10px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 8px;
   color: var(--bloom-ink);
   font-family: var(--bloom-font-mono);
@@ -1130,7 +1136,7 @@ button.runtime-kiosk-screen:focus-visible {
   height: 44px;
   min-height: 0;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 10px;
   background: var(--bloom-surface);
   color: var(--bloom-ink);
@@ -1173,10 +1179,10 @@ button.runtime-kiosk-screen:focus-visible {
   padding: 10px;
   border: none;
   border-radius: 18px;
-  /* Design system 10: filled error, a control at a glance — and no shadow to
+  /* Design system 10: filled STOP, a control at a glance — and no shadow to
      bleed past the panel's rounded corner. */
-  background: var(--bloom-error);
-  color: var(--bloom-on-error);
+  background: var(--bloom-stop);
+  color: var(--bloom-on-stop);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1193,16 +1199,16 @@ button.runtime-kiosk-screen:focus-visible {
   width: 188px;
   height: auto;
   border-radius: var(--bloom-radius-card);
-  background: var(--bloom-error);
-  color: var(--bloom-on-error);
+  background: var(--bloom-stop);
+  color: var(--bloom-on-stop);
   box-shadow: none;
   font-size: clamp(20px, 4vmin, 34px);
   letter-spacing: 0.04em;
 }
 
 .runtime-app-workspace > .runtime-stop-control[data-stopped="true"] {
-  background: var(--bloom-ink);
-  color: var(--bloom-surface);
+  background: var(--bloom-stop-latched);
+  color: var(--bloom-on-stop-latched);
   font-size: clamp(16px, 2.6vmin, 22px);
 }
 
@@ -1214,8 +1220,8 @@ button.runtime-kiosk-screen:focus-visible {
 }
 
 .runtime-stop-control[data-stopped="true"] {
-  background: var(--bloom-ink);
-  color: var(--bloom-surface);
+  background: var(--bloom-stop-latched);
+  color: var(--bloom-on-stop-latched);
   font-size: 16px;
 }
 
@@ -1224,16 +1230,16 @@ button.runtime-kiosk-screen:focus-visible {
   right: auto;
   bottom: auto;
   border-radius: var(--bloom-radius-card);
-  background: var(--bloom-error);
-  color: var(--bloom-on-error);
+  background: var(--bloom-stop);
+  color: var(--bloom-on-stop);
   box-shadow: none;
   font-size: clamp(20px, 4vmin, 34px);
   letter-spacing: 0.04em;
 }
 
 .runtime-stop-control[data-placement="region"][data-stopped="true"] {
-  background: var(--bloom-ink);
-  color: var(--bloom-surface);
+  background: var(--bloom-stop-latched);
+  color: var(--bloom-on-stop-latched);
   font-size: clamp(16px, 2.6vmin, 22px);
 }
 
@@ -1269,7 +1275,7 @@ button.runtime-kiosk-screen:focus-visible {
   bottom: 0;
   width: 100%;
   height: 6px;
-  background: var(--bloom-on-error);
+  background: var(--bloom-on-stop);
   transform-origin: left center;
   transform: scaleX(0);
 }
@@ -1288,7 +1294,7 @@ button.runtime-kiosk-screen:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 14px;
-  background: color-mix(in srgb, var(--bloom-color-forest) 55%, transparent);
+  background: color-mix(in srgb, var(--bloom-shadow-color) 55%, transparent);
 }
 
 .runtime-maintenance-panel {
@@ -1303,7 +1309,7 @@ button.runtime-kiosk-screen:focus-visible {
   border-radius: var(--bloom-radius-panel);
   background: var(--bloom-surface);
   color: var(--bloom-ink);
-  box-shadow: 0 18px 40px color-mix(in srgb, var(--bloom-color-forest) 30%, transparent);
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--bloom-shadow-color) 30%, transparent);
 }
 
 .runtime-maintenance-head {
@@ -1330,7 +1336,7 @@ button.runtime-kiosk-screen:focus-visible {
   min-height: 48px;
   margin-left: auto;
   padding: 0 22px;
-  border: 2px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 2px solid var(--bloom-hairline);
   border-radius: 12px;
   background: var(--bloom-surface-container);
   color: var(--bloom-ink);
@@ -1363,7 +1369,7 @@ button.runtime-kiosk-screen:focus-visible {
 .runtime-maintenance-fact {
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 12px;
   background: var(--bloom-surface-container-high);
 }
@@ -1420,7 +1426,7 @@ button.runtime-kiosk-screen:focus-visible {
   min-height: 64px;
   overflow: hidden;
   padding: 10px 16px;
-  border: 2px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 2px solid var(--bloom-hairline);
   border-radius: 12px;
   background: var(--bloom-surface-container);
   color: var(--bloom-ink);
@@ -1479,7 +1485,7 @@ button.runtime-kiosk-screen:focus-visible {
 .runtime-maintenance-tools button {
   min-height: 48px;
   padding: 0 16px;
-  border: 1px solid color-mix(in srgb, var(--bloom-color-forest) 18%, transparent);
+  border: 1px solid var(--bloom-hairline);
   border-radius: 10px;
   background: var(--bloom-surface-container-high);
   color: var(--bloom-ink);
@@ -1632,11 +1638,11 @@ button.runtime-kiosk-screen:focus-visible {
   content: "";
   pointer-events: none;
   -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--bloom-ink) 0 0) content-box,
+    linear-gradient(var(--bloom-ink) 0 0);
   mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
+    linear-gradient(var(--bloom-ink) 0 0) content-box,
+    linear-gradient(var(--bloom-ink) 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
 }
@@ -1697,11 +1703,11 @@ button.runtime-kiosk-screen:focus-visible {
   z-index: 30;
   padding: 8px 12px;
   border-radius: 10px;
-  background: var(--bloom-color-forest);
+  background: var(--bloom-ink);
   color: var(--bloom-surface);
   font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--bloom-shadow-color) 18%, transparent);
 }

@@ -13,6 +13,10 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Vetted palettes, chosen per app, per role and per tablet.** Six palettes (Bloom Garden, Extender, High
+  visibility, Dark, Colour-blind safe, Pastel), each proven for contrast, STOP prominence and red-green separation,
+  replace the free colour pickers. An author picks one per app and, optionally, per role; an operator picks one for
+  their tablet in **Settings > Colours**. Every stylesheet and the 3D view follow the chosen palette (ADR 0143).
 - **Say what a control does, in words.** A slider, a pad and a command button each get a choice in the inspector:
   a speed limit, hand height, pivot or snake gain; moving or turning the hand; Neutral, Jaco, Snake while held, Go
   home (with its second press), Release, or a drive frame. Each writes what the shipped Manager apps use, for this

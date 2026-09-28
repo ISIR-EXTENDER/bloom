@@ -123,15 +123,13 @@ Example:
 
 ## Current Theme Presets
 
-`frontend/libs/ui/src/theme.ts` currently defines:
-
-- `bloom`: default garden-inspired Bloom identity.
-- `clinical`: neutral high-readability theme for bright lab/tablet conditions.
-- `extender-ui`: blue operator palette aligned with the legacy Extender UI tablet interface.
-- `petanque-play`: warmer and more playful demo-oriented theme.
-
-These presets are intentionally small. The app builder can later expose preset selection, custom palettes, or generated
-themes from moodboard/reference inputs.
+`frontend/libs/ui/src/theme.ts` defines six vetted palettes (ADR 0143): `bloom` (Bloom Garden, the default),
+`extender-ui` (Extender), `high-contrast` (High visibility), `dark` (Dark), `colour-safe` (Colour-blind safe) and
+`pastel` (Pastel).
+Each owns every colour role, STOP and the plot series included, and `theme-contrast.test.ts` proves its contrast,
+STOP prominence and colour-blind separation. Authors pick one per app in the Builder and optionally one per role;
+an operator can pick one for their tablet in Settings > Colours. Retired ids (`bloom-default`, `clinical`,
+`petanque-play`, `high-visibility`) read as the palette that replaced them.
 
 ## Typography
 
