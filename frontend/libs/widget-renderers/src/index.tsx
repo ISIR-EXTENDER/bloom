@@ -16,8 +16,10 @@ export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widget
 export {
   cancelAllPendingEngaging,
   claimTarget,
+  forgetAllConfirmedState,
   forgetConfirmedValues,
   isReconcilerSend,
+  parameterTarget,
   resetDesiredStates,
   settleForAssertedStop,
 } from "./desired-state";

@@ -126,6 +126,8 @@ export type RuntimeStrings = {
     resumeNote: string;
     touchOnlyNote: string;
     touchOnlyRolesNote: string;
+    dwellTouchOnlyNote: string;
+    dwellTouchOnlyRolesNote: string;
     resume: string;
   };
   supervisor: {
@@ -218,6 +220,8 @@ export type RuntimeStrings = {
     language: string;
     onlyFor: (method: string) => string;
     onlyForTouchAndDwell: string;
+    inputMethodScanTouchOnly: string;
+    inputMethodDwellTouchOnly: string;
     practiceTour: string;
     pushModes: Record<"drag" | "latch" | "step", string>;
     pushMoves: string;

@@ -56,14 +56,15 @@ async function openSettingsBySwitch() {
   const sheet = await screen.findByRole("dialog");
   await pressWhenLit(() => within(sheet).queryByRole("button", { name: /^Settings/ }));
   const settings = await screen.findByRole("region", { name: "Settings" });
-  await pressWhenLit(() => within(settings).queryByRole("button", { name: "Touch" }));
-  await waitFor(() =>
-    expect(within(settings).getByRole("button", { name: "Touch" }).getAttribute("aria-pressed")).toBe("true"),
-  );
+  // Touch would drop STOP-by-switch, so the scan never lights it: a caregiver picks it by touch.
+  const touch = within(settings).getByRole("button", { name: "Touch" });
+  expect(touch.hasAttribute("data-scan-touch-only")).toBe(true);
+  fireEvent.click(touch);
+  expect(touch.getAttribute("aria-pressed")).toBe("true");
   return settings;
 }
 
-describe("leaving Settings by switch after choosing another input method", () => {
+describe("leaving Settings by switch after a caregiver chose another input method", () => {
   afterEach(() => {
     cleanup();
     window.localStorage.clear();

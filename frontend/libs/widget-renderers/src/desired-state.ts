@@ -59,6 +59,8 @@ type Entry = {
   stopped: boolean;
   /** Stopped by a newer act of another control on its target. */
   claimed: boolean;
+  /** The target's claim sequence at this control's newest act. */
+  actSeq: number;
   detachedAt: number;
   timers: Set<ReturnType<typeof setTimeout>>;
   snapshot: DesiredSnapshot;
@@ -69,7 +71,17 @@ let attemptSeq = 0;
 const listenersByKey = new Map<string, Set<() => void>>();
 const mountedKeys = new Map<string, number>();
 /** The last accepted value per scope and target; it outlives the control that sent it (ADR 0141). */
-const confirmedByTarget = new Map<string, { scope: string; target: string; value: string; seq: number }>();
+const confirmedByTarget = new Map<string, ConfirmedRecord>();
+/** The newest act per target, in send sequence: an accept of an older send no longer says what the robot has. */
+const claimSeqByTarget = new Map<string, number>();
+
+/** A value accepted on a target; `unknown` once a newer publish there claimed it without reporting back. */
+export type ConfirmedRecord = { scope: string; target: string; value: string; seq: number; unknown?: boolean };
+
+/** Where a node parameter's desired and confirmed state live, and what a set of it claims. */
+export function parameterTarget(node: string, name: string): string {
+  return `param:${node}:${name}`;
+}
 const reconcilerIntents = new WeakSet<object>();
 
 function desiredKey(scope: string, widgetId: string, target: string): string {
@@ -90,10 +102,23 @@ export function isReconcilerSend(intent: WidgetActionIntent): boolean {
  * target: controls there stop, and what they last confirmed is no longer known.
  */
 export function claimTarget(target: string): void {
-  claim(target);
+  const seq = claim(target);
+  for (const entry of [...entries.values()]) {
+    if (entry.target !== target || entry.momentary || !entry.idle || entry.stopped || !entry.snapshot.confirmed) {
+      continue;
+    }
+    // The mode highlight follows the mode ledger, not a button's own send.
+    if (target === MODE_REQUEST_TOPIC) {
+      drop(entry);
+    } else {
+      entry.claimed = true;
+      entry.stopped = true;
+      showIdle(entry, false, undefined);
+    }
+  }
   for (const [key, confirmed] of [...confirmedByTarget]) {
     if (confirmed.target === target) {
-      confirmedByTarget.delete(key);
+      confirmedByTarget.set(key, { ...confirmed, seq, unknown: true });
       notify(key);
     }
   }
@@ -103,7 +128,9 @@ export function claimTarget(target: string): void {
  * The newest act on a target wins: another control's pending state there stops at once and shows its last
  * confirmed state, or stays not confirmed if a send of it got no reply. A confirmed hold ends without a release.
  */
-function claim(target: string, exceptKey?: string): void {
+function claim(target: string, exceptKey?: string): number {
+  attemptSeq += 1;
+  claimSeqByTarget.set(target, attemptSeq);
   for (const entry of [...entries.values()]) {
     if (entry.target !== target || entry.key === exceptKey) {
       continue;
@@ -116,16 +143,35 @@ function claim(target: string, exceptKey?: string): void {
       publish(entry, { value: null, confirmed: true, marked: false, late: false, refused: false, claimed: true });
     }
   }
+  return attemptSeq;
 }
 
-/** The value last accepted on a target in a scope, whichever control sent it. */
-export function useConfirmedValue(target: string, scope = ""): string | null {
+/** The last accepted record on a target, marked unknown once a newer publish claimed it. */
+export function useConfirmedRecord(target: string, scope = ""): ConfirmedRecord | null {
   const key = confirmedKey(scope, target);
   return useSyncExternalStore(
     (listener) => subscribe(key, listener),
-    () => confirmedByTarget.get(key)?.value ?? null,
+    () => confirmedByTarget.get(key) ?? null,
     () => null,
   );
+}
+
+/**
+ * A new runtime session or lease: the server neutralised what the old one set, so nothing confirmed before
+ * still holds, in any app. Pending states keep going, but no longer fall back to an old confirmed value.
+ */
+export function forgetAllConfirmedState(): void {
+  for (const key of [...confirmedByTarget.keys()]) {
+    confirmedByTarget.delete(key);
+    notify(key);
+  }
+  for (const entry of [...entries.values()]) {
+    if (entry.snapshot.confirmed) {
+      drop(entry);
+    } else {
+      entry.lastConfirmed = null;
+    }
+  }
 }
 
 /** A runtime session over: what its controls confirmed no longer seeds new ones. */
@@ -152,7 +198,7 @@ export function settleForAssertedStop(): void {
   }
   for (const [key, confirmed] of [...confirmedByTarget]) {
     if (confirmed.target === VISUAL_SERVOING_SWITCH_TOPIC) {
-      confirmedByTarget.set(key, { ...confirmed, value: "off", seq: attemptSeq });
+      confirmedByTarget.set(key, { ...confirmed, value: "off", seq: attemptSeq, unknown: false });
       notify(key);
     } else if (confirmed.target === MODE_REQUEST_TOPIC) {
       confirmedByTarget.delete(key);
@@ -173,7 +219,7 @@ export function setDesired(options: {
 }): void {
   const scope = options.scope ?? "";
   const key = desiredKey(scope, options.widgetId, options.target);
-  claim(options.target, key);
+  const actSeq = claim(options.target, key);
   let entry = entries.get(key);
   if (!entry) {
     entry = {
@@ -197,6 +243,7 @@ export function setDesired(options: {
       idle: false,
       stopped: false,
       claimed: false,
+      actSeq,
       detachedAt: Date.now(),
       timers: new Set(),
       snapshot: { value: options.value, confirmed: false, marked: false, late: false, refused: false },
@@ -210,6 +257,7 @@ export function setDesired(options: {
   entry.idle = false;
   entry.stopped = false;
   entry.claimed = false;
+  entry.actSeq = actSeq;
   entry.value = options.value;
   entry.engage = options.engage;
   entry.momentary = options.momentary === true;
@@ -227,8 +275,8 @@ export function setDesired(options: {
 }
 
 /**
- * A suspend or STOP: a pending engaging state is not sent again. It reads "not confirmed" if a send got no
- * reply, otherwise the last confirmed state. Off and release states keep going.
+ * A suspend or STOP: a pending state is not sent again. It reads "not confirmed" if a send got no reply,
+ * otherwise the last confirmed state. Only the neutral states (servo off, a mode hold's release) keep going.
  */
 export function cancelPending(widgetId: string, target: string, scope = ""): void {
   const entry = entries.get(desiredKey(scope, widgetId, target));
@@ -237,7 +285,7 @@ export function cancelPending(widgetId: string, target: string, scope = ""): voi
   }
 }
 
-/** Every pending engaging state, mounted or not: after a suspend or STOP only off and release states finish. */
+/** Every pending state, mounted or not: after a suspend or STOP only the neutral states finish. */
 export function cancelAllPendingEngaging(): void {
   for (const entry of [...entries.values()]) {
     cancel(entry);
@@ -298,10 +346,11 @@ export function resetDesiredStates(): void {
   entries.clear();
   mountedKeys.clear();
   confirmedByTarget.clear();
+  claimSeqByTarget.clear();
 }
 
 function cancel(entry: Entry): void {
-  if (entry.idle || !entry.engage || entry.cancelled) {
+  if (entry.idle || isNeutral(entry) || entry.cancelled) {
     return;
   }
   entry.cancelled = true;
@@ -309,6 +358,14 @@ function cancel(entry: Entry): void {
   if (!entry.inFlight) {
     stop(entry, entry.snapshot.detail, true);
   }
+}
+
+/** What a STOP itself asks for: servoing off, a mode hold released. Other releases may actuate. */
+function isNeutral(entry: Entry): boolean {
+  return (
+    (entry.target === VISUAL_SERVOING_SWITCH_TOPIC && entry.value === "off") ||
+    (entry.momentary && entry.value === "released" && entry.target === MODE_REQUEST_TOPIC)
+  );
 }
 
 function isMounted(entry: Entry): boolean {
@@ -437,6 +494,18 @@ function showIdle(entry: Entry, refused: boolean, detail: string | undefined): v
   const withDetail = detail ? { detail } : {};
   const claimedMark = entry.claimed ? { claimed: true } : {};
   const unanswered = entry.uncertainValue ?? newestOpenValue(entry);
+  if (unanswered === null && isOvertaken(entry)) {
+    publish(entry, {
+      value: entry.lastConfirmed,
+      confirmed: false,
+      marked: true,
+      late: false,
+      refused: false,
+      claimed: true,
+      ...withDetail,
+    });
+    return;
+  }
   if (unanswered !== null) {
     publish(entry, {
       value: unanswered,
@@ -458,6 +527,15 @@ function showIdle(entry: Entry, refused: boolean, detail: string | undefined): v
     ...claimedMark,
     ...withDetail,
   });
+}
+
+/** A newer act claimed the target after this control's own: what it confirmed may no longer hold. */
+function isOvertaken(entry: Entry): boolean {
+  if (!entry.claimed || entry.target === MODE_REQUEST_TOPIC) {
+    return false;
+  }
+  const claimSeq = claimSeqByTarget.get(entry.target) ?? 0;
+  return claimSeq > entry.actSeq && claimSeq > entry.confirmedSeq;
 }
 
 function markConfirmed(entry: Entry, value: string, claimed: boolean): void {
@@ -489,7 +567,7 @@ function markConfirmed(entry: Entry, value: string, claimed: boolean): void {
 function recordConfirmed(entry: Entry, sent: Sent): void {
   const key = confirmedKey(entry.scope, entry.target);
   const current = confirmedByTarget.get(key);
-  if (current && current.seq > sent.seq) {
+  if ((current && current.seq > sent.seq) || sent.seq < (claimSeqByTarget.get(entry.target) ?? 0)) {
     return;
   }
   confirmedByTarget.set(key, { scope: entry.scope, target: entry.target, value: sent.value, seq: sent.seq });

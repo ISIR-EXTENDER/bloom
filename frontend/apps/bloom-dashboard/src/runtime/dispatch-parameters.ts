@@ -1,4 +1,5 @@
 import type { RosParameterSetRequest, RuntimeAdapterPolicy } from "@bloom/api-client";
+import { claimTarget, isReconcilerSend, parameterTarget } from "@bloom/widget-renderers";
 import { asRecord, readOptionalNumber, readOptionalString, type WidgetActionIntent } from "@bloom/widgets";
 import {
   appScope,
@@ -21,6 +22,10 @@ export async function dispatchParameterRequest(
   }
   if (!client.setRosParameter) {
     return { intent, status: "unsupported", detail: "Parameter intents need an API client before they can be sent." };
+  }
+  // ADR 0141: an operator's set is the newest act on its parameter, so no toggle's pending retry may undo it.
+  if (!isReconcilerSend(intent)) {
+    claimTarget(parameterTarget(request.node, request.name));
   }
   try {
     const response = await client.setRosParameter({ ...request, ...appScope(options) });

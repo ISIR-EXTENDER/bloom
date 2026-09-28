@@ -113,12 +113,13 @@ describe("runtime settings", () => {
     expect(intervalSpy).toHaveBeenCalledWith(expect.any(Function), 1600);
   });
 
-  it("puts every enabled settings button in the scan target set", () => {
+  // Touch and Dwell are the exception: under a saved scan a caregiver changes them by touch.
+  it("puts every enabled settings button but the touch-only ones in the scan target set", () => {
     vi.useFakeTimers();
     const { container } = renderSettings({ motorAccessibilityPreset: "scan" });
     const settings = within(container).getByRole("region", { name: "Settings" });
     const expectedTargets = [...settings.querySelectorAll<HTMLElement>(SCAN_TARGET_SELECTOR)].filter(
-      (target) => target.getClientRects().length > 0,
+      (target) => target.getClientRects().length > 0 && !target.hasAttribute("data-scan-touch-only"),
     );
     const visited = new Set<HTMLElement>();
 
@@ -131,6 +132,7 @@ describe("runtime settings", () => {
     }
 
     expect(visited.size).toBe(expectedTargets.length);
+    expect([...visited].map((target) => target.textContent)).not.toContain("Touch");
     expect(screen.getByText(new RegExp(`Scanning .+ of ${expectedTargets.length}`))).toBeTruthy();
   });
 
@@ -351,5 +353,41 @@ describe("the keyboard and gamepad card", () => {
     );
 
     expect(screen.getByText(/Gamepad connected: Xbox Wireless Controller/)).toBeTruthy();
+  });
+});
+
+describe("input methods that drop the saved way to reach STOP", () => {
+  it("keeps Touch and Dwell out of the scan while scan is saved; a caregiver's tap still picks them", () => {
+    renderSettings({ motorAccessibilityPreset: "scan" });
+
+    for (const name of ["Touch", "Dwell"]) {
+      expect(screen.getByRole("button", { name }).hasAttribute("data-scan-touch-only")).toBe(true);
+    }
+    expect(screen.getByRole("button", { name: "Scan" }).hasAttribute("data-scan-touch-only")).toBe(false);
+    expect(screen.getByText(/Touch and Dwell are not scanned/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Touch" }));
+    expect(screen.getByRole("button", { name: "Touch" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("does not let a rest on Touch drop dwell while dwell is saved", () => {
+    vi.useFakeTimers();
+    renderSettings({ dwellEnabled: true, dwellMs: 400 });
+    const touch = screen.getByRole("button", { name: "Touch" });
+    expect(screen.getByText(/Touch and Scan do not respond to dwell/)).toBeTruthy();
+
+    act(() => {
+      touch.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 100, clientY: 100 }));
+    });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByRole("button", { name: "Dwell" }).getAttribute("aria-pressed")).toBe("true");
+
+    // Other settings still take a dwell.
+    act(() => {
+      screen
+        .getByRole("button", { name: "FR" })
+        .dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: 400, clientY: 100 }));
+    });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(screen.getByRole("button", { name: "FR" }).getAttribute("aria-pressed")).toBe("true");
   });
 });

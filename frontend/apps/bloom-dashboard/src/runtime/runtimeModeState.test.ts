@@ -561,15 +561,38 @@ describe("a joystick on a topic the server refuses", () => {
 });
 
 describe("the mode request ledger", () => {
-  it("hands the decision to the newest older request without a reply when the newest is refused", () => {
+  it("hands the decision to the newest older request still without a reply when the newest is refused", () => {
+    const ledger = new ModeRequestLedger();
+    const jaco = ledger.begin("geometric/jaco");
+    const snake = ledger.begin("geometric/snake");
+    const both = ledger.begin("geometric/both");
+
+    expect(ledger.settle(snake, "refused")).toEqual({ kind: "ignore" });
+    expect(ledger.settle(both, "refused")).toEqual({ kind: "unknown", mode: "geometric/jaco" });
+    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "apply" });
+  });
+
+  // An older answer that came while the newest was deciding used to be forgotten, so a refused newest showed
+  // the mode before both of them, clean.
+  it("sets the newest older accepted mode when the newest is refused", () => {
+    const ledger = new ModeRequestLedger();
+    ledger.begin("geometric/snake");
+    const jaco = ledger.begin("geometric/jaco");
+    const both = ledger.begin("geometric/both");
+
+    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "ignore" });
+    expect(ledger.settle(both, "refused")).toEqual({ kind: "set", mode: "geometric/jaco" });
+  });
+
+  it("marks the newest older request without a reply unknown when the newest is refused", () => {
     const ledger = new ModeRequestLedger();
     const jaco = ledger.begin("geometric/jaco");
     const snake = ledger.begin("geometric/snake");
     const both = ledger.begin("geometric/both");
 
     expect(ledger.settle(snake, "unknown")).toEqual({ kind: "ignore" });
-    expect(ledger.settle(both, "refused")).toEqual({ kind: "unknown", mode: "geometric/jaco" });
-    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "apply" });
+    expect(ledger.settle(both, "refused")).toEqual({ kind: "unknown", mode: "geometric/snake" });
+    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "ignore" });
   });
 
   it("lets no older reply decide after a STOP", () => {

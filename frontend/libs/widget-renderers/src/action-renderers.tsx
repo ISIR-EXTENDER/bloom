@@ -1,4 +1,5 @@
 import {
+  asRecord,
   createWidgetActionIntent,
   getBooleanSetting,
   getNumberSetting,
@@ -15,8 +16,9 @@ import {
   claimTarget,
   type DesiredSnapshot,
   forgetSettled,
+  parameterTarget,
   setDesired,
-  useConfirmedValue,
+  useConfirmedRecord,
   useDesiredState,
   VISUAL_SERVOING_SWITCH_TOPIC,
 } from "./desired-state";
@@ -66,7 +68,12 @@ export function CommandLikeWidget({
   const showsDisabledReason = Boolean(disabledReason) && controlState?.unavailable !== true;
   const disabledReasonId = showsDisabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
   // A latched mode button asks for a state, so it keeps asking until the robot takes it (ADR 0141).
-  const reconcilesLatch = !momentary && !confirmPress && (selection !== undefined || topic === MODE_REQUEST_TOPIC);
+  // A joint or pose target is a one-shot: it claims the target once, and a retry would move the arm again.
+  const reconcilesLatch =
+    !momentary &&
+    !confirmPress &&
+    !isOneShotBehaviour(descriptor.widget.settings) &&
+    (selection !== undefined || topic === MODE_REQUEST_TOPIC);
   const widgetId = descriptor.widget.id;
   const target = topic || `widget:${widgetId}`;
   const desired = useDesiredState(widgetId, target, onActionIntent, desiredScope);
@@ -399,6 +406,28 @@ function ConfirmationMark({ id, late, text }: { id: string; late: boolean; text:
   ) : null;
 }
 
+const ONE_SHOT_BEHAVIOUR = /behaviour\/(joint|pose)[_-]target\//i;
+
+function isOneShotBehaviour(settings: Record<string, unknown>): boolean {
+  const payload = settings.payload;
+  const data = typeof payload === "object" && payload !== null ? asRecord(payload).data : payload;
+  return [settings.command, data].some((value) => typeof value === "string" && ONE_SHOT_BEHAVIOUR.test(value));
+}
+
+/** A parameter toggle's state lives on its parameter, which a slider or preset on it claims too. */
+function resolveToggleTarget(settings: Record<string, unknown>, widgetId: string): string {
+  const topic = getStringSetting(settings, "topic", "");
+  if (topic) {
+    return topic;
+  }
+  const binding = asRecord(settings.runtime_binding);
+  const mapping = asRecord(binding.value_mapping);
+  if (binding.adapter === "parameter" && typeof mapping.node === "string" && typeof mapping.parameter === "string") {
+    return parameterTarget(mapping.node, mapping.parameter);
+  }
+  return `widget:${widgetId}`;
+}
+
 /** A /mode_request hold saved without a release payload let go with {}, which the server refuses: send Neutral. */
 function resolveReleasedPayload(topic: string, payload: unknown): unknown {
   const missing =
@@ -460,11 +489,11 @@ export function ToggleWidget({
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const variant = getStringSetting(descriptor.widget.settings, "variant", "");
   const widgetId = descriptor.widget.id;
-  const target = topic || `widget:${widgetId}`;
+  const target = resolveToggleTarget(descriptor.widget.settings, widgetId);
   const desired = useDesiredState(widgetId, target, onActionIntent, desiredScope);
   // What the robot last accepted on this target, from this control before a screen change or from another one.
-  const confirmedValue = useConfirmedValue(target, desiredScope);
-  const confirmedIsOn = confirmedValue === "on" ? true : confirmedValue === "off" ? false : null;
+  const confirmed = useConfirmedRecord(target, desiredScope);
+  const confirmedIsOn = confirmed?.value === "on" ? true : confirmed?.value === "off" ? false : null;
   const [localIsOn, setLocalIsOn] = useState(() =>
     desired
       ? desired.value === "on"
@@ -482,7 +511,16 @@ export function ToggleWidget({
   // A /mode_request toggle shows the requested mode, which STOP and every other mode control move too.
   const modeDriven = topic === MODE_REQUEST_TOPIC && controlledToggleState !== undefined;
   const desiredUnconfirmed = desired !== null && !desired.confirmed;
-  const unconfirmed = modeDriven ? controlState?.toggleUnconfirmed === true : desiredUnconfirmed;
+  // A newer publish on the target left the last confirmed value unknown until a newer one is confirmed.
+  const confirmedUnknown =
+    !modeDriven &&
+    !desiredUnconfirmed &&
+    !controlledToggleState &&
+    !(desired && desired.value !== null) &&
+    typeof readBackValue !== "boolean" &&
+    confirmedIsOn !== null &&
+    confirmed?.unknown === true;
+  const unconfirmed = modeDriven ? controlState?.toggleUnconfirmed === true : desiredUnconfirmed || confirmedUnknown;
   // Unconfirmed shows what was asked for, never the old state (ADR 0141).
   const isOn = modeDriven
     ? controlledToggleState === "on"
@@ -589,7 +627,7 @@ export function ToggleWidget({
   const inline = getStringSetting(descriptor.widget.settings, "layout", "") === "inline";
   // With state labels the button words are verbs ("Open gripper"): "pressed" would contradict the commanded state.
   const labelsAreActions = Boolean(onStateLabel || offStateLabel);
-  const marked = modeDriven ? unconfirmed : desiredUnconfirmed && desired.marked;
+  const marked = modeDriven ? unconfirmed : (desiredUnconfirmed && desired.marked) || confirmedUnknown;
   const late = Boolean(marked && desiredUnconfirmed && desired.late);
   const accessibleName = `${descriptor.widget.title}: ${stateLabel}${marked ? `, ${strings.notConfirmedName}` : ""}`;
   const mark = (

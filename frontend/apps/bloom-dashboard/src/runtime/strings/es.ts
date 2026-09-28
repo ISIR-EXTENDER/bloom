@@ -166,6 +166,9 @@ export const esRuntimeStrings: RuntimeStrings = {
     touchOnlyNote:
       "Salir a la biblioteca, Vista de supervisión, Editar, Ayuda e Inicio no entran en el barrido: un cuidador puede abrirlos tocándolos.",
     touchOnlyRolesNote: "Los roles sin barrido también se eligen tocándolos.",
+    dwellTouchOnlyNote:
+      "Salir a la biblioteca, Vista de supervisión, Editar, Ayuda e Inicio no responden al reposo: un cuidador puede abrirlos tocándolos.",
+    dwellTouchOnlyRolesNote: "Los roles sin reposo también se eligen tocándolos.",
     resume: "Reanudar la operación",
   },
   supervisor: {
@@ -269,6 +272,8 @@ export const esRuntimeStrings: RuntimeStrings = {
     pushModes: { drag: "Arrastrar", step: "Toque a toque", latch: "Seguir" },
     onlyFor: (method) => `solo para ${method}`,
     onlyForTouchAndDwell: "solo para Tocar y Reposo",
+    inputMethodScanTouchOnly: "Tocar y Reposo no entran en el barrido: un cuidador los cambia tocándolos.",
+    inputMethodDwellTouchOnly: "Tocar y Barrido no responden al reposo: un cuidador los cambia tocándolos.",
     timing: "Tiempos",
     timingTouch: "Tiempos — tocar no necesita tiempos",
     holdToActivate: "Mantener para activar",

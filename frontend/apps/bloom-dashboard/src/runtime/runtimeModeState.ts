@@ -142,49 +142,107 @@ export function resolveRuntimeModeRequest(
   return resolveModeRequestFromIntent(intent, presets);
 }
 
-export type ModeReplyVerdict = { kind: "apply" } | { kind: "ignore" } | { kind: "unknown"; mode: string };
+export type ModeReplyVerdict =
+  | { kind: "apply" }
+  | { kind: "ignore" }
+  | { kind: "set"; mode: string }
+  | { kind: "unknown"; mode: string };
+
+type ModeRecord = { mode: string | null; outcome: "pending" | "accepted" | "unknown" | "none" };
 
 /**
  * Which reply may set the requested mode: the newest request's, or, when that one is refused, the newest older
- * request still without a reply, which the manager may yet apply (ADR 0141). A STOP starts over.
+ * request the manager may hold: accepted sets it, no reply yet or none at all makes it unknown (ADR 0141).
+ * A STOP or a new session starts over.
  */
 export class ModeRequestLedger {
   private count = 0;
   private deciding = 0;
-  private readonly unanswered = new Map<number, string | null>();
+  private readonly records = new Map<number, ModeRecord>();
 
   begin(mode: string | null): number {
     this.count += 1;
     this.deciding = this.count;
-    this.unanswered.set(this.count, mode);
+    this.records.set(this.count, { mode, outcome: "pending" });
     return this.count;
   }
 
   reset(): void {
     this.count += 1;
     this.deciding = this.count;
-    this.unanswered.clear();
+    this.records.clear();
   }
 
   settle(id: number, outcome: WidgetActionStatus): ModeReplyVerdict {
-    this.unanswered.delete(id);
+    const record = this.records.get(id);
+    if (!record) {
+      return { kind: "ignore" };
+    }
+    record.outcome = outcome === "accepted" ? "accepted" : outcome === "unknown" ? "unknown" : "none";
     if (id !== this.deciding) {
       return { kind: "ignore" };
     }
     if (outcome === "refused" || outcome === "transient") {
-      let older: [number, string] | null = null;
-      for (const [other, mode] of this.unanswered) {
-        if (other < id && mode && (!older || other > older[0])) {
-          older = [other, mode];
-        }
-      }
+      const older = this.newestHeldBefore(id);
       if (older) {
         this.deciding = older[0];
-        return { kind: "unknown", mode: older[1] };
+        if (older[1].outcome === "accepted") {
+          this.forgetThrough(older[0]);
+          return { kind: "set", mode: older[1].mode as string };
+        }
+        return { kind: "unknown", mode: older[1].mode as string };
       }
     }
+    this.forgetThrough(id);
     return { kind: "apply" };
   }
+
+  private newestHeldBefore(id: number): [number, ModeRecord] | null {
+    let newest: [number, ModeRecord] | null = null;
+    for (const [other, record] of this.records) {
+      if (other < id && record.mode && record.outcome !== "none" && (!newest || other > newest[0])) {
+        newest = [other, record];
+      }
+    }
+    return newest;
+  }
+
+  private forgetThrough(id: number): void {
+    for (const other of [...this.records.keys()]) {
+      if (other <= id) {
+        this.records.delete(other);
+      }
+    }
+  }
+}
+
+/** An older request the manager accepted, now the newest one it holds. */
+export function applyRequestedMode(currentState: RuntimeModeState, mode: string, now = new Date()): RuntimeModeState {
+  return {
+    ...currentState,
+    requestedMode: mode,
+    unconfirmedMode: null,
+    source: "operator-command",
+    updatedAt: now.toISOString(),
+  };
+}
+
+/**
+ * A new session or lease: the server reset shaping when the old one ended, so the last request no longer holds.
+ * The server's own record for the owner seeds it; without one the mode is not known.
+ */
+export function resetRuntimeModeForSession(
+  currentState: RuntimeModeState,
+  ownerModeRequest: string | null,
+  now = new Date(),
+): RuntimeModeState {
+  return {
+    ...currentState,
+    requestedMode: asModeRequest(ownerModeRequest),
+    unconfirmedMode: null,
+    source: "configuration-default",
+    updatedAt: now.toISOString(),
+  };
 }
 
 /** A mode request that may still be applied: the manager is in it or in the previous one. */

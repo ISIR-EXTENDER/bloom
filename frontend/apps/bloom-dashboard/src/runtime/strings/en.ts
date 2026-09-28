@@ -165,6 +165,9 @@ export const enRuntimeStrings: RuntimeStrings = {
     touchOnlyNote:
       "Exit to library, Supervisor mirror, Edit, Help and Home are not scanned: a caregiver can open them by touch.",
     touchOnlyRolesNote: "Roles that do not scan are touch only too.",
+    dwellTouchOnlyNote:
+      "Exit to library, Supervisor mirror, Edit, Help and Home do not respond to dwell: a caregiver can open them by touch.",
+    dwellTouchOnlyRolesNote: "Roles without dwell are touch only too.",
     resume: "Resume operating",
   },
   supervisor: {
@@ -266,6 +269,8 @@ export const enRuntimeStrings: RuntimeStrings = {
     pushModes: { drag: "Drag", step: "Tap by tap", latch: "Keep going" },
     onlyFor: (method) => `only for ${method}`,
     onlyForTouchAndDwell: "only for Touch and Dwell",
+    inputMethodScanTouchOnly: "Touch and Dwell are not scanned: a caregiver changes them by touch.",
+    inputMethodDwellTouchOnly: "Touch and Scan do not respond to dwell: a caregiver changes them by touch.",
     timing: "Timing",
     timingTouch: "Timing — touch needs no timing",
     holdToActivate: "Hold to activate",

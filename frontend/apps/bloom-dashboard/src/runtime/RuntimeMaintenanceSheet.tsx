@@ -51,13 +51,18 @@ export function RuntimeMaintenanceSheet({
   // The sheet is the scan root while it is open, so Settings, a screen change
   // and Resume operating stay reachable by switch.
   const scanPreset = scanning?.enabled === true;
-  // Pages with no scanner would strand a one-switch operator: a caregiver opens them by touch.
-  const touchOnly = scanPreset ? "" : undefined;
-  // A role with no scanner leaves nothing lit, STOP included: under scan only a scanning role is switch-reachable.
+  const dwellOn = dwell?.enabled === true;
+  const assistive = scanPreset || dwellOn;
+  // Pages with no scanner or dwell would strand the operator: a caregiver opens them by touch.
+  const touchOnly = assistive ? "" : undefined;
+  // A role without the operator's method leaves STOP out of reach; under scan the switch is that method. Only the
+  // dwell preset is known per role here, so a role that enables dwell some other way stays touch only.
   const roleTouchOnly = (candidate: { motorAccessibilityPreset?: string }) =>
-    scanPreset && candidate.motorAccessibilityPreset !== "scan";
+    scanPreset
+      ? candidate.motorAccessibilityPreset !== "scan"
+      : dwellOn && candidate.motorAccessibilityPreset !== "dwell";
   const switchRoleTouchOnly =
-    scanPreset && !profiles.some((candidate) => candidate.id !== profile.id && !roleTouchOnly(candidate));
+    assistive && !profiles.some((candidate) => candidate.id !== profile.id && !roleTouchOnly(candidate));
   const roleSwitchShown = onSwitchProfile !== undefined && profiles.length > 1;
   const someRoleTouchOnly = roleSwitchShown && (choosingRole ? profiles.some(roleTouchOnly) : switchRoleTouchOnly);
   const sheetScanning = useSwitchScanning({
@@ -71,7 +76,8 @@ export function RuntimeMaintenanceSheet({
   // reach neither Close nor anything inside it.
   useDwellActivation({
     dwellMs: dwell?.dwellMs ?? 800,
-    enabled: dwell?.enabled === true,
+    enabled: dwellOn,
+    isTargetEnabled: (target) => !target.hasAttribute("data-scan-touch-only"),
     rootRef: panelRef,
   });
   const facts = strings.kiosk.facts;
@@ -257,7 +263,7 @@ export function RuntimeMaintenanceSheet({
               hint={strings.kiosk.exitHint}
               label={strings.kiosk.exitToLibrary}
               onClick={closeAnd(onOpenAppLibrary)}
-              touchOnly={scanPreset}
+              touchOnly={assistive}
             />
           </div>
 
@@ -313,11 +319,15 @@ export function RuntimeMaintenanceSheet({
               ))}
             </fieldset>
           </div>
-          {scanPreset ? (
+          {assistive ? (
             <p className="runtime-maintenance-touch-note">
-              {someRoleTouchOnly
-                ? `${strings.kiosk.touchOnlyNote} ${strings.kiosk.touchOnlyRolesNote}`
-                : strings.kiosk.touchOnlyNote}
+              {scanPreset
+                ? someRoleTouchOnly
+                  ? `${strings.kiosk.touchOnlyNote} ${strings.kiosk.touchOnlyRolesNote}`
+                  : strings.kiosk.touchOnlyNote
+                : someRoleTouchOnly
+                  ? `${strings.kiosk.dwellTouchOnlyNote} ${strings.kiosk.dwellTouchOnlyRolesNote}`
+                  : strings.kiosk.dwellTouchOnlyNote}
             </p>
           ) : null}
 

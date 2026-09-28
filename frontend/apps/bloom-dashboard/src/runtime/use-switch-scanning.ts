@@ -170,6 +170,8 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     } else {
       activateAssistively(target);
     }
+    // A press re-arms an armed control (and restarts its settle) without data-armed ever dropping: hold afresh.
+    armedHoldsRef.current = 0;
     // Highlight only: a focused target would take the native click of a later key.
     announce(target);
   }, []);

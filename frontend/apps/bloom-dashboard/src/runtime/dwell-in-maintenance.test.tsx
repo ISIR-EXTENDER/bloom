@@ -49,12 +49,14 @@ describe("the maintenance sheet under pointer dwell", () => {
   }, 20000);
 
   // The role switch took only a hold, and a dwell arrives as a click: a dwell operator could not change role.
+  // Only to a role that dwells too; the others are touch only.
   it("lets a dwell operator switch role", async () => {
     window.localStorage.setItem(
       "bloom.runtime-user-preferences.v1",
       JSON.stringify({
         profileOverrides: {
           "explorer-manager:explorer-manager:operator": { dwellEnabled: true, dwellMs: 400 },
+          "explorer-manager:explorer-manager:bench": { motorAccessibilityPreset: "dwell" },
         },
         profilePreferences: { "explorer-manager:explorer-manager": "operator" },
         recentRuntimeSelections: [],

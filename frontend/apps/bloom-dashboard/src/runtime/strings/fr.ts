@@ -166,6 +166,9 @@ export const frRuntimeStrings: RuntimeStrings = {
     touchOnlyNote:
       "Quitter vers la bibliothèque, Vue superviseur, Modifier, Aide et Accueil ne sont pas balayés : un aidant peut les ouvrir au toucher.",
     touchOnlyRolesNote: "Les rôles sans balayage se choisissent aussi au toucher.",
+    dwellTouchOnlyNote:
+      "Quitter vers la bibliothèque, Vue superviseur, Modifier, Aide et Accueil ne réagissent pas au pointage : un aidant peut les ouvrir au toucher.",
+    dwellTouchOnlyRolesNote: "Les rôles sans pointage se choisissent aussi au toucher.",
     resume: "Reprendre le pilotage",
   },
   supervisor: {
@@ -270,6 +273,8 @@ export const frRuntimeStrings: RuntimeStrings = {
     pushModes: { drag: "Glisser", step: "Pas à pas", latch: "Continuer" },
     onlyFor: (method) => `seulement pour ${method}`,
     onlyForTouchAndDwell: "seulement pour Toucher et Pointage",
+    inputMethodScanTouchOnly: "Toucher et Pointage ne sont pas balayés : un aidant les change au toucher.",
+    inputMethodDwellTouchOnly: "Toucher et Défilement ne réagissent pas au pointage : un aidant les change au toucher.",
     timing: "Temps",
     timingTouch: "Temps — le toucher n'en a pas besoin",
     holdToActivate: "Maintenir pour activer",

@@ -124,6 +124,23 @@ describe("switch scanning", () => {
     expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-1");
   });
 
+  // A press too soon re-arms Resume and restarts its settle; the hold counted from the first arm ended before it.
+  it("holds an armed control afresh when a press re-arms it", () => {
+    const { clicks, root, rootRef } = buildScreen(3);
+    renderHook(() => useSwitchScanning({ enabled: true, periodMs: 1000, rootRef, revision: "a" }));
+    (root.querySelector("button") as HTMLButtonElement).setAttribute("data-armed", "true");
+
+    vi.advanceTimersByTime(1500);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: " " }));
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: " " }));
+    expect(clicks).toEqual(["target-0"]);
+
+    vi.advanceTimersByTime(2000);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-0");
+    vi.advanceTimersByTime(1000);
+    expect(root.querySelector("[data-scan-lit]")?.textContent).toBe("target-1");
+  });
+
   // Many switch boxes send a held key; the auto-repeat armed and then confirmed Go home in one long press.
   it("activates once for a held switch", () => {
     const { clicks, rootRef } = buildScreen(3);

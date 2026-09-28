@@ -24,13 +24,16 @@ import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
 import { type RuntimeActionClient, toWidgetActionStatus } from "./runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
+import { onRuntimeSessionStart } from "./runtime/runtime-session-events";
 import {
+  applyRequestedMode,
   applyRuntimeModeOutcome,
   applyRuntimeStopLatch,
   createDefaultRuntimeModeState,
   isRuntimeModeIntent,
   ModeRequestLedger,
   markRuntimeModeUnknown,
+  resetRuntimeModeForSession,
   resolveRuntimeModeRequest,
 } from "./runtime/runtimeModeState";
 import { createSupervisorRuntimeClient } from "./runtime/supervisor-client";
@@ -101,6 +104,15 @@ export function App({
     }
     setRuntimeModeState((current) => applyRuntimeStopLatch(current, latch));
   }, []);
+  // A reconnect, a lease handover or a return to an app: the server reset shaping when the old session ended.
+  useEffect(
+    () =>
+      onRuntimeSessionStart((ownerModeRequest) => {
+        modeLedgerRef.current.reset();
+        setRuntimeModeState((current) => resetRuntimeModeForSession(current, ownerModeRequest));
+      }),
+    [],
+  );
   const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
   const activeRouteKey = `${activeView}:${builderMode}:${runtimeMode}:${supervisorTarget?.configId ?? ""}:${supervisorTarget?.appId ?? ""}:${libraryTarget?.appId ?? ""}`;
@@ -197,6 +209,8 @@ export function App({
       setRuntimeModeState((currentModeState) =>
         applyRuntimeModeOutcome(currentModeState, intent, status, applicationRuntime?.action_presets),
       );
+    } else if (verdict?.kind === "set") {
+      setRuntimeModeState((currentModeState) => applyRequestedMode(currentModeState, verdict.mode));
     } else if (verdict?.kind === "unknown") {
       setRuntimeModeState((currentModeState) => markRuntimeModeUnknown(currentModeState, verdict.mode));
     }

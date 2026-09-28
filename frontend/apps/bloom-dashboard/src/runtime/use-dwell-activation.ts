@@ -39,8 +39,8 @@ export function useDwellActivation(options: DwellActivationOptions): void {
   // rest that started on STOP must never complete as a resume.
   const startActionRef = useRef("");
   const firedRef = useRef(false);
-  // The control a rest last fired, and where: STOP's rest must not carry over onto the Resume that replaces it.
-  const lastFireRef = useRef<{ element: HTMLElement; rect: DOMRect; x: number; y: number } | null>(null);
+  // Where a rest last fired: STOP's rest must not carry over onto the Resume that replaces it.
+  const lastFireRef = useRef<{ x: number; y: number } | null>(null);
   const pointerRef = useRef({ x: 0, y: 0 });
   activateTargetRef.current = activateTarget;
   isTargetEnabledRef.current = isTargetEnabled;
@@ -67,30 +67,15 @@ export function useDwellActivation(options: DwellActivationOptions): void {
       restAtRef.current = { x: event.clientX, y: event.clientY };
     };
 
-    const carriesOverFire = (target: HTMLElement) => {
-      const fire = lastFireRef.current;
-      return (
-        fire !== null &&
-        target !== fire.element &&
-        (!fire.element.isConnected || target.dataset.dwellAction === "resume")
-      );
-    };
+    // Until the pointer leaves the fire point, no control starts a rest: tremor across STOP's edge must not
+    // re-arm the Resume that replaced it.
+    const carriesOverFire = () => lastFireRef.current !== null;
 
     const onPointerMove = (event: PointerEvent) => {
       pointerRef.current = { x: event.clientX, y: event.clientY };
       const fire = lastFireRef.current;
-      if (fire) {
-        const { rect } = fire;
-        const measured = rect.width > 0 || rect.height > 0;
-        const left =
-          measured &&
-          (event.clientX < rect.left ||
-            event.clientX > rect.right ||
-            event.clientY < rect.top ||
-            event.clientY > rect.bottom);
-        if (left || Math.hypot(event.clientX - fire.x, event.clientY - fire.y) > REST_TOLERANCE_PX) {
-          lastFireRef.current = null;
-        }
+      if (fire && Math.hypot(event.clientX - fire.x, event.clientY - fire.y) > REST_TOLERANCE_PX) {
+        lastFireRef.current = null;
       }
       const element = event.target;
       const candidate = element instanceof Element ? element.closest<HTMLElement>(DWELL_TARGET_SELECTOR) : null;
@@ -107,7 +92,7 @@ export function useDwellActivation(options: DwellActivationOptions): void {
         return;
       }
       clearTarget();
-      if (target && !carriesOverFire(target)) {
+      if (target && !carriesOverFire()) {
         beginRest(target, event);
       }
     };
@@ -137,7 +122,7 @@ export function useDwellActivation(options: DwellActivationOptions): void {
         }
         // Fire once per rest; lingering must not repeat the command.
         firedRef.current = true;
-        lastFireRef.current = { element: target, rect: target.getBoundingClientRect(), ...pointerRef.current };
+        lastFireRef.current = { ...pointerRef.current };
         if (activateTargetRef.current) {
           activateTargetRef.current(target);
         } else {

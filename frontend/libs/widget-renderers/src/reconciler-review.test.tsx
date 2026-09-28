@@ -173,7 +173,7 @@ describe("a newer act on the same topic", () => {
     );
   });
 
-  it("leaves a Close still in flight not confirmed until it is answered", async () => {
+  it("leaves a Close still in flight not confirmed, even once answered after the newer act", async () => {
     let answer: (outcome: WidgetActionOutcome) => void = () => {};
     const onActionIntent = vi.fn((intent: WidgetActionIntent) =>
       intent.widgetId === "gripper"
@@ -198,7 +198,7 @@ describe("a newer act on the same topic", () => {
     expect(screen.getByRole("button", { name: /Gripper: Closed/ })).toHaveAttribute("data-confirmed", "false");
 
     await act(async () => answer({ accepted: true }));
-    expect(screen.getByRole("button", { name: "Gripper: Closed" })).not.toHaveAttribute("data-confirmed");
+    expect(screen.getByRole("button", { name: /Gripper: Closed/ })).toHaveAttribute("data-confirmed", "false");
   });
 });
 
@@ -230,7 +230,7 @@ describe("a suspend or STOP", () => {
     expect(screen.getByRole("button", { name: "Gripper: Closed, not confirmed" })).toBeInTheDocument();
   });
 
-  it("lets a detached Off finish", async () => {
+  it("lets a detached servo Off finish", async () => {
     let lostOffs = 2;
     const onActionIntent = vi.fn((intent: WidgetActionIntent) => {
       if (payloadOf(intent) === "{data: false}" && lostOffs > 0) {
@@ -239,7 +239,12 @@ describe("a suspend or STOP", () => {
       }
       return { accepted: true };
     });
-    const { unmount } = render(toggle(onActionIntent));
+    const { unmount } = render(
+      toggle(onActionIntent, {
+        id: "servo",
+        settings: { topic: "/ui/visual_servoing/on", messageType: "std_msgs/msg/Bool" },
+      }),
+    );
     fireEvent.click(screen.getByRole("button"));
     await settle(0);
     fireEvent.click(screen.getByRole("button"));

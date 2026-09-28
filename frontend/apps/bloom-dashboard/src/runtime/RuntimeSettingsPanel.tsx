@@ -72,14 +72,24 @@ export function RuntimeSettingsPanel({
     () => applyRuntimeProfileOverrides(baseProfile, normalizeRuntimeProfileOverrides(overrides)),
     [baseProfile, overrides],
   );
+  const savedScan = activeProfile.motorAccessibilityPreset === "scan";
+  // A method that drops the saved way of reaching STOP is changed by a caregiver's touch, never by switch or dwell.
+  const methodTouchOnly = (method: InputMethod) =>
+    savedScan ? method !== "scan" : activeProfile.dwellEnabled && method !== "dwell";
+  const skipTouchOnly = (target: HTMLElement) => !target.hasAttribute("data-scan-touch-only");
   const scanning = useSwitchScanning({
-    enabled: activeProfile.motorAccessibilityPreset === "scan",
+    enabled: savedScan,
     // A draft scan step still previews live.
     periodMs: inputMethod === "scan" ? profile.scanPeriodMs : activeProfile.scanPeriodMs,
     revision: `${inputMethod}:${pushMode}`,
     rootRef,
   });
-  useDwellActivation({ dwellMs: activeProfile.dwellMs, enabled: activeProfile.dwellEnabled, rootRef });
+  useDwellActivation({
+    dwellMs: activeProfile.dwellMs,
+    enabled: activeProfile.dwellEnabled,
+    isTargetEnabled: skipTouchOnly,
+    rootRef,
+  });
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -208,12 +218,23 @@ export function RuntimeSettingsPanel({
           </div>
 
           <h3 className="runtime-settings-group">{strings.settings.reach}</h3>
-          <SettingCard label={strings.settings.inputMethod} readout={profile.motorAccessibilityPreset}>
+          <SettingCard
+            label={strings.settings.inputMethod}
+            note={
+              savedScan
+                ? strings.settings.inputMethodScanTouchOnly
+                : activeProfile.dwellEnabled
+                  ? strings.settings.inputMethodDwellTouchOnly
+                  : undefined
+            }
+            readout={profile.motorAccessibilityPreset}
+          >
             <Segments
               label={strings.settings.inputMethod}
               onSelect={chooseInput}
               options={(["touch", "dwell", "scan"] as const).map((method) => ({
                 label: methodName(method),
+                touchOnly: methodTouchOnly(method),
                 value: method,
               }))}
               selected={inputMethod}
@@ -345,11 +366,13 @@ function SettingCard({
   children,
   interlocked,
   label,
+  note,
   readout,
 }: {
   children: ReactNode;
   interlocked?: string;
   label: string;
+  note?: string;
   readout?: string;
 }) {
   return (
@@ -357,6 +380,7 @@ function SettingCard({
       <div className="runtime-settings-card-head">
         <strong>{label}</strong>
         {interlocked ? <span className="runtime-settings-interlock">{interlocked}</span> : null}
+        {note ? <span className="runtime-settings-interlock">{note}</span> : null}
         {/* The stored key is for the person who edits the profile JSON; a screen reader reads the label instead. */}
         {readout ? (
           <span aria-hidden="true" className="runtime-settings-key">
@@ -379,7 +403,7 @@ function Segments<Value extends number | string>({
   disabled?: boolean;
   label: string;
   onSelect: (value: Value) => void;
-  options: readonly { label: string; style?: CSSProperties; value: Value }[];
+  options: readonly { label: string; style?: CSSProperties; touchOnly?: boolean; value: Value }[];
   selected: Value;
 }) {
   return (
@@ -388,6 +412,7 @@ function Segments<Value extends number | string>({
       {options.map((option) => (
         <button
           aria-pressed={option.value === selected}
+          data-scan-touch-only={option.touchOnly ? "" : undefined}
           disabled={disabled}
           key={String(option.value)}
           onClick={() => onSelect(option.value)}

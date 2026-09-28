@@ -889,6 +889,40 @@ describe("the reusable preset picker", () => {
     expect(onUpdateSettings).toHaveBeenCalled();
     expect(onUpdateSettings.mock.lastCall?.[2]).toBeUndefined();
   });
+
+  // A pose target moves the whole arm like a joint target, so it asks for the same second press.
+  it("asks a pose target preset for a second press", () => {
+    const onUpdateSettings = vi.fn((_settings: Record<string, unknown>, _title?: string) => null);
+    const preset = {
+      id: "pick",
+      name: "Pick pose",
+      kind: "topic-publish",
+      description: "",
+      command: "behaviour/pose_target/pick",
+      topic: "/mode_request",
+      payload: { data: "behaviour/pose_target/pick" },
+    };
+    render(
+      <BuilderWidgetSettingsEditor
+        actionPresets={[preset as unknown as RuntimeActionPreset]}
+        onUpdateSettings={onUpdateSettings}
+        onUpdateTitle={vi.fn()}
+        widget={
+          {
+            id: "pick-button",
+            kind: "command-button",
+            title: "Pick",
+            layout: { x: 0, y: 0, width: 100, height: 100 },
+            settings: {},
+          } as unknown as WidgetConfig
+        }
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Reusable preset"), { target: { value: "pick" } });
+
+    expect(onUpdateSettings.mock.lastCall?.[0]).toMatchObject({ confirm_press: true });
+  });
 });
 
 describe("guardrails the inspector checks", () => {

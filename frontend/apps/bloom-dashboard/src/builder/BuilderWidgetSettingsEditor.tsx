@@ -271,8 +271,8 @@ export function BuilderWidgetSettingsEditor({
     if (kept.action_label === `Request ${previousCommand}`) {
       next.action_label = `Request ${command}`;
     }
-    // A joint target moves the whole arm, so it asks for a second press like Go home.
-    if (command.startsWith("behaviour/joint_target/")) {
+    // A joint or pose target moves the whole arm, so it asks for a second press like Go home.
+    if (command.startsWith("behaviour/joint_target/") || command.startsWith("behaviour/pose_target/")) {
       next.confirm_press = true;
     }
     setValidationMessage(onUpdateSettings(next, titleFollows ? preset?.name : undefined));
