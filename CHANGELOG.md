@@ -13,6 +13,9 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Added
 
+- **Coverage with a floor.** `npm run coverage` measures each frontend package on its own (v8) and
+  `make -C backend coverage` the backend with branches; both write lcov for CI, and each package fails below
+  its floor (frontend 71 to 98 % lines per package, backend 90 % lines and branches together).
 - **Vetted palettes, chosen per app, per role and per tablet.** Six palettes (Bloom Garden, Extender, High
   visibility, Dark, Colour-blind safe, Pastel), each proven for contrast, STOP prominence and red-green separation,
   replace the free colour pickers. An author picks one per app and, optionally, per role; an operator picks one for

@@ -4,6 +4,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .venv/
+.coverage
+.coverage.*
 
 # JavaScript / TypeScript
 node_modules/

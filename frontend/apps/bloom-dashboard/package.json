@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -b && vite build",
+    "coverage": "vitest run --coverage",
     "dev": "vite",
     "test": "vitest run"
   },

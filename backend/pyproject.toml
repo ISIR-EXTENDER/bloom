@@ -25,6 +25,7 @@ dev = [
   "pip>=26.2",
   "pip-audit>=2.10.0",
   "pytest>=9.0.3,<10",
+  "pytest-cov>=7",
   "ruff>=0.15.0",
 ]
 
@@ -35,6 +36,17 @@ package = false
 pythonpath = ["."]
 testpaths = ["tests"]
 markers = ["command_state: the test reads the socket's command_state pushes itself"]
+
+[tool.coverage.run]
+branch = true
+source = ["apps", "libs"]
+
+[tool.coverage.report]
+# Lines and branches together, as coverage.py counts them: 92.1% on 2026-09-28 without ROS on the path (CI's
+# case; with rosidl a few more branches run). A drop below the floor fails `make coverage`.
+fail_under = 90
+precision = 2
+exclude_also = ["if TYPE_CHECKING:", "^\\s*\\.\\.\\.$"]
 
 [tool.ruff]
 # Matches the frontend's Biome line width, so a file reads the same either side.

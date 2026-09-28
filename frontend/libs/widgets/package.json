@@ -7,6 +7,7 @@
   "types": "src/index.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "coverage": "vitest run --coverage",
     "test": "vitest run"
   },
   "dependencies": {

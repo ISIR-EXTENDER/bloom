@@ -4,6 +4,15 @@ SHELL := /bin/bash
 test: ## Run backend unit tests without external pytest plugin leakage
 	@PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest
 
+.PHONY: coverage
+coverage: ## Run backend tests with branch coverage; writes coverage/{lcov.info,coverage.xml,coverage.json}
+	@# Plugin autoload stays off as in `test`; pytest-cov is loaded by name so nothing else leaks in.
+	@PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 uv run pytest -p pytest_cov --cov --cov-branch \
+		--cov-report=term-missing:skip-covered \
+		--cov-report=xml:coverage/coverage.xml \
+		--cov-report=lcov:coverage/lcov.info \
+		--cov-report=json:coverage/coverage.json
+
 .PHONY: lint
 lint: ## Lint and format-check the backend
 	@uv run ruff check .

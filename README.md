@@ -665,6 +665,10 @@ npm run security:dynamic
 Backend tests intentionally disable external pytest plugin autoloading so a sourced ROS environment cannot leak
 ROS-specific pytest plugins into generic Bloom tests.
 
+Coverage: `npm run coverage` measures each frontend package on its own and `make -C backend coverage` the backend
+with branches; each writes lcov under `coverage/`, and a package that drops below its floor (set in its vitest config,
+and `fail_under` in `backend/pyproject.toml`) fails the run. `npm run coverage -- --files 25` lists the least-covered files.
+
 CI runs the backend on Python 3.10 and 3.12, the supported floor and the deployed version. Dependabot opens weekly pull
 requests for npm, uv and GitHub Actions, grouping minor and patch updates; majors arrive one at a time.
 
