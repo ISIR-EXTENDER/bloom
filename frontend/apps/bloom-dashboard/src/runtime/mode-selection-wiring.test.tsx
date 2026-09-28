@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { explorerManagerClient } from "../test-support/configuration-client";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
@@ -16,6 +16,12 @@ import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 function createConfigurationClient() {
   return explorerManagerClient();
 }
+
+beforeEach(() => {
+  window.history.replaceState(null, "", "/");
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+});
 
 const pressedState = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
 
@@ -62,5 +68,39 @@ describe("pressing a mode button", () => {
       expect(pressedState(/^Both/)).toBe("true");
       expect(pressedState(/^Jaco/)).toBe("false");
     });
+  });
+});
+
+describe("a late reply to an older mode request", () => {
+  it("does not override the newer request's mode", async () => {
+    const client = createRuntimeActionClient();
+    let answerJaco: () => void = () => {};
+    const published = (request: { message_type: string; topic: string }) => ({
+      detail: "Published.",
+      message_type: request.message_type,
+      status: "published" as const,
+      topic: request.topic,
+    });
+    client.publishRosTopic.mockImplementation(async (request) => {
+      if (JSON.stringify(request.payload ?? request).includes("geometric/jaco")) {
+        await new Promise<void>((resolve) => {
+          answerJaco = resolve;
+        });
+      }
+      return published(request);
+    });
+    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={client} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
+    await openRuntimeApp("Explorer Manager");
+    fireEvent.click(await screen.findByRole("button", { name: /^Jaco/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Both/ }));
+    await waitFor(() => expect(pressedState(/^Both/)).toBe("true"));
+
+    answerJaco();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(pressedState(/^Both/)).toBe("true");
+    expect(pressedState(/^Jaco/)).toBe("false");
   });
 });

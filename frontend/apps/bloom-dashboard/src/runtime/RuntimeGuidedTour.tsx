@@ -242,7 +242,7 @@ function TourStopPractice({
   };
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
   // The real Resume's two-press confirm for switch and dwell, and no one-press keyboard click: a key must hold.
-  const assistiveResume = useAssistiveConfirm(resume);
+  const assistiveResume = useAssistiveConfirm(resume, false, practiceStopped);
   const resumeRef = useAssistiveActivation<HTMLButtonElement>(assistiveResume.activate);
 
   if (!practiceStopped) {

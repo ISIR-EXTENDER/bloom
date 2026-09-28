@@ -385,7 +385,7 @@ function createRuntimeActionContract(
 }
 
 // The settings default payload is "", so a String button with none sends its command as the data.
-function resolveCommandPayload(settings: Record<string, unknown>, messageType: string | undefined): unknown {
+export function resolveCommandPayload(settings: Record<string, unknown>, messageType: string | undefined): unknown {
   const command = getOptionalString(settings, "command");
   if (isEmptyPayload(settings.payload) && command && messageType === STRING_MESSAGE_TYPE) {
     return { data: command };

@@ -5,6 +5,7 @@ import {
   getStringSetting,
   hidesTitle,
   localizeOperatorText,
+  resolveCommandPayload,
   type WidgetActionIntent,
 } from "@bloom/widgets";
 
@@ -32,6 +33,7 @@ export function CommandLikeWidget({
   conditioning,
   controlState,
   descriptor,
+  desiredScope,
   language,
   neutralRevision,
   onActionIntent,
@@ -63,7 +65,7 @@ export function CommandLikeWidget({
   const reconcilesLatch = !momentary && !confirmPress && (selection !== undefined || topic === MODE_REQUEST_TOPIC);
   const widgetId = descriptor.widget.id;
   const target = topic || `widget:${widgetId}`;
-  const desired = useDesiredState(widgetId, target, onActionIntent);
+  const desired = useDesiredState(widgetId, target, onActionIntent, desiredScope);
   const isMomentaryPressedRef = useRef(false);
   // Only the pointer that began a hold may end it; a latch (click, scan, dwell) has none.
   const holdPointerIdRef = useRef<number | null>(null);
@@ -101,7 +103,7 @@ export function CommandLikeWidget({
   const cancelPendingRef = useRef(() => {});
   cancelPendingRef.current = () => {
     if (reconcilesLatch) {
-      cancelPending(widgetId, target);
+      cancelPending(widgetId, target, desiredScope);
     }
   };
   useEffect(() => {
@@ -153,7 +155,15 @@ export function CommandLikeWidget({
     setIsArmed(false);
     const intent = createWidgetActionIntent(descriptor.widget, { type: "press" });
     if (intent.type === "topic-publish" && reconcilesLatch && onActionIntent) {
-      setDesired({ widgetId, target: intent.topic, value: "requested", engage: true, intent, send: onActionIntent });
+      setDesired({
+        scope: desiredScope,
+        widgetId,
+        target: intent.topic,
+        value: "requested",
+        engage: true,
+        intent,
+        send: onActionIntent,
+      });
       return;
     }
     // A one-shot publish is the newest act on its topic: a pending retry there must not undo it.
@@ -232,8 +242,8 @@ export function CommandLikeWidget({
     if (!topic || !messageType || !onActionIntent) {
       return;
     }
-    const payloadKey = value === "pressed" ? "payload" : "releasedPayload";
     setDesired({
+      scope: desiredScope,
       widgetId,
       target: topic,
       value,
@@ -244,7 +254,11 @@ export function CommandLikeWidget({
         widgetKind: descriptor.widget.kind,
         topic,
         messageType,
-        payload: resolveMomentaryPayload(topic, payloadKey, descriptor.widget.settings[payloadKey]),
+        // The press resolves as a one-shot press does: a String hold with no payload sends its command.
+        payload:
+          value === "pressed"
+            ? resolveCommandPayload(descriptor.widget.settings, messageType)
+            : resolveReleasedPayload(topic, descriptor.widget.settings.releasedPayload),
         ...(value === "released" ? { release: true } : {}),
       } satisfies WidgetActionIntent,
       send: onActionIntent,
@@ -303,8 +317,11 @@ export function CommandLikeWidget({
       data-variant={variant || undefined}
     >
       <button
-        aria-busy={unconfirmed ? true : undefined}
-        aria-describedby={disabledReasonId}
+        // Busy only while the first send is out: a busy control through the whole retry went unannounced.
+        aria-busy={unconfirmed && !desired?.marked ? true : undefined}
+        aria-describedby={
+          [disabledReasonId, mark ? `${descriptor.widget.id}-confirm-mark` : ""].join(" ").trim() || undefined
+        }
         aria-label={`${stateName ? `${visibleButtonLabel}: ${stateName}` : visibleButtonLabel}${
           disabledReason ? `. ${disabledReason}` : ""
         }`}
@@ -335,7 +352,11 @@ export function CommandLikeWidget({
         {showsTitle ? <span className="bloom-action-title">{descriptor.widget.title}</span> : null}
         <span className="bloom-action-label">{visibleButtonLabel}</span>
         {hint ? <span className="bloom-action-hint">{hint}</span> : null}
-        <ConfirmationMark late={Boolean(desired?.late && unconfirmed)} text={mark} />
+        <ConfirmationMark
+          id={`${descriptor.widget.id}-confirm-mark`}
+          late={Boolean(desired?.late && unconfirmed)}
+          text={mark}
+        />
         {showsDisabledReason ? (
           <small className="bloom-command-button-disabled-reason" id={disabledReasonId}>
             {disabledReason}
@@ -354,24 +375,23 @@ function confirmationMarkText(desired: DesiredSnapshot, strings: RendererStrings
   return isMode ? strings.modeNotConfirmed : strings.notConfirmed;
 }
 
-function ConfirmationMark({ late, text }: { late: boolean; text: string }) {
+// The button's aria-label hides its content, so the button points here by aria-describedby.
+function ConfirmationMark({ id, late, text }: { id: string; late: boolean; text: string }) {
   return text ? (
-    <span className="bloom-confirm-mark" data-late={late ? "true" : undefined}>
+    <span className="bloom-confirm-mark" data-late={late ? "true" : undefined} id={id}>
       {text}
     </span>
   ) : null;
 }
 
 /** A /mode_request hold saved without a release payload let go with {}, which the server refuses: send Neutral. */
-function resolveMomentaryPayload(topic: string, payloadKey: "payload" | "releasedPayload", payload: unknown): unknown {
+function resolveReleasedPayload(topic: string, payload: unknown): unknown {
   const missing =
     payload === undefined ||
     payload === null ||
     payload === "" ||
     (typeof payload === "object" && !Array.isArray(payload) && Object.keys(payload).length === 0);
-  return payloadKey === "releasedPayload" && missing && topic === MODE_REQUEST_TOPIC
-    ? { data: "geometric/both" }
-    : payload;
+  return missing && topic === MODE_REQUEST_TOPIC ? { data: "geometric/both" } : payload;
 }
 
 export function LabelWidget({ descriptor }: WidgetRendererProps) {
@@ -414,6 +434,7 @@ export function ToggleWidget({
   conditioning,
   controlState,
   descriptor,
+  desiredScope,
   language,
   neutralRevision,
   onActionIntent,
@@ -425,7 +446,7 @@ export function ToggleWidget({
   const variant = getStringSetting(descriptor.widget.settings, "variant", "");
   const widgetId = descriptor.widget.id;
   const target = topic || `widget:${widgetId}`;
-  const desired = useDesiredState(widgetId, target, onActionIntent);
+  const desired = useDesiredState(widgetId, target, onActionIntent, desiredScope);
   const [localIsOn, setLocalIsOn] = useState(() =>
     desired ? desired.value === "on" : getBooleanSetting(descriptor.widget.settings, "initialValue", false),
   );
@@ -433,20 +454,25 @@ export function ToggleWidget({
   useEffect(() => {
     if (typeof readBackValue === "boolean") {
       setLocalIsOn(readBackValue);
-      forgetSettled(widgetId, target);
+      forgetSettled(widgetId, target, desiredScope);
     }
-  }, [readBackValue, target, widgetId]);
+  }, [desiredScope, readBackValue, target, widgetId]);
   const allowToggle = useRepeatGuard(conditioning?.repeatGuardMs);
   const controlledToggleState = controlState?.toggleState;
-  const unconfirmed = desired !== null && !desired.confirmed;
+  // A /mode_request toggle shows the requested mode, which STOP and every other mode control move too.
+  const modeDriven = topic === MODE_REQUEST_TOPIC && controlledToggleState !== undefined;
+  const desiredUnconfirmed = desired !== null && !desired.confirmed;
+  const unconfirmed = modeDriven ? controlState?.toggleUnconfirmed === true : desiredUnconfirmed;
   // Unconfirmed shows what was asked for, never the old state (ADR 0141).
-  const isOn = unconfirmed
-    ? desired.value === "on"
-    : controlledToggleState
-      ? controlledToggleState === "on"
-      : desired && desired.value !== null
-        ? desired.value === "on"
-        : localIsOn;
+  const isOn = modeDriven
+    ? controlledToggleState === "on"
+    : desiredUnconfirmed
+      ? desired.value === "on"
+      : controlledToggleState
+        ? controlledToggleState === "on"
+        : desired && desired.value !== null
+          ? desired.value === "on"
+          : localIsOn;
   const stateLabel = isOn ? onLabel : offLabel;
   const stateTextId = useId();
   const strings = rendererStrings(language);
@@ -464,6 +490,7 @@ export function ToggleWidget({
       return false;
     }
     setDesired({
+      scope: desiredScope,
       widgetId,
       target,
       value: nextState,
@@ -484,7 +511,7 @@ export function ToggleWidget({
   const settleForSuspendRef = useRef(() => {});
   settleForSuspendRef.current = () => {
     switchOffServoRef.current();
-    cancelPending(widgetId, target);
+    cancelPending(widgetId, target, desiredScope);
   };
   const lastNeutralRevisionRef = useRef(neutralRevision);
   useEffect(() => {
@@ -540,12 +567,16 @@ export function ToggleWidget({
   const inline = getStringSetting(descriptor.widget.settings, "layout", "") === "inline";
   // With state labels the button words are verbs ("Open gripper"): "pressed" would contradict the commanded state.
   const labelsAreActions = Boolean(onStateLabel || offStateLabel);
-  const marked = unconfirmed && desired.marked;
+  const marked = modeDriven ? unconfirmed : desiredUnconfirmed && desired.marked;
+  const late = Boolean(marked && desiredUnconfirmed && desired.late);
   const accessibleName = `${descriptor.widget.title}: ${stateLabel}${marked ? `, ${strings.notConfirmedName}` : ""}`;
   const mark = (
     <ConfirmationMark
-      late={Boolean(marked && desired?.late)}
-      text={marked && desired ? confirmationMarkText(desired, strings, false) : ""}
+      id={`${widgetId}-confirm-mark`}
+      late={late}
+      text={
+        !marked ? "" : late ? strings.notConfirmedLate : modeDriven ? strings.modeNotConfirmed : strings.notConfirmed
+      }
     />
   );
 
@@ -561,7 +592,8 @@ export function ToggleWidget({
         <button
           aria-pressed={isOn}
           aria-label={accessibleName}
-          aria-busy={isPending || unconfirmed}
+          aria-busy={isPending || (desiredUnconfirmed && !desired.marked)}
+          aria-describedby={marked ? `${widgetId}-confirm-mark` : undefined}
           className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
           data-confirmed={unconfirmed ? "false" : undefined}
           disabled={isPending}
@@ -599,10 +631,12 @@ export function ToggleWidget({
         </header>
       )}
       <button
-        aria-describedby={stateText ? stateTextId : undefined}
+        aria-describedby={
+          [stateText ? stateTextId : "", marked ? `${widgetId}-confirm-mark` : ""].join(" ").trim() || undefined
+        }
         aria-pressed={labelsAreActions ? undefined : isOn}
         aria-label={accessibleName}
-        aria-busy={isPending || unconfirmed}
+        aria-busy={isPending || (desiredUnconfirmed && !desired.marked)}
         className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
         data-confirmed={unconfirmed ? "false" : undefined}
         disabled={isPending}

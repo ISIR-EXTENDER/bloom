@@ -111,6 +111,11 @@ export function applyRuntimeModeIntent(
   };
 }
 
+/** Whether an intent asks the manager for a mode, on /mode_request or /cmd/mode. */
+export function isRuntimeModeIntent(intent: WidgetActionIntent, presets: readonly RuntimeActionPreset[] = []): boolean {
+  return resolveModeRequestFromIntent(intent, presets) !== null || resolveModeFromIntent(intent) !== null;
+}
+
 /**
  * What a mode request's outcome says about the mode: accepted sets it, no reply makes it unknown, and a
  * refusal (final or transient) or a superseded send leaves it.
@@ -266,6 +271,8 @@ export function createRuntimeControlStateByWidgetId(
       controlState = {
         toggleState: modeState.mode === "b2" ? "on" : "off",
       };
+    } else if (widget.kind === "toggle" && widget.settings.topic === MODE_REQUEST_TOPIC) {
+      controlState = resolveModeRequestToggle(asModeRequest(readPayloadData(widget.settings.onPayload)), modeState);
     } else {
       const widgetMode = resolveWidgetModeRequest(widget, options.actionPresets ?? []);
       if (widgetMode) {
@@ -333,6 +340,18 @@ function resolveModeSelection(widgetMode: string, modeState: RuntimeModeState): 
   return modeState.requestedMode === UNKNOWN_REQUESTED_MODE && widgetMode === modeState.unconfirmedMode
     ? "unconfirmed"
     : "unselected";
+}
+
+/** A /mode_request toggle is on while its mode is the one requested, and not confirmed while that is unknown. */
+function resolveModeRequestToggle(onMode: string | null, modeState: RuntimeModeState): WidgetControlState {
+  const requested = modeState.requestedMode;
+  if (!onMode || requested === null) {
+    return {};
+  }
+  if (requested === UNKNOWN_REQUESTED_MODE) {
+    return { toggleState: modeState.unconfirmedMode === onMode ? "on" : "off", toggleUnconfirmed: true };
+  }
+  return { toggleState: requested === onMode ? "on" : "off" };
 }
 
 /** The topic a teleop widget publishes on: its own, or the manager's input by default. */
@@ -529,9 +548,32 @@ function isModeToggleWidget(widget: WidgetConfig): boolean {
 }
 
 function readPayloadData(payload: unknown): unknown {
-  if (typeof payload === "object" && payload !== null && !Array.isArray(payload) && "data" in payload) {
-    return payload.data;
+  const parsed = typeof payload === "string" ? parsePayloadText(payload) : payload;
+  if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed) && "data" in parsed) {
+    return parsed.data;
   }
 
-  return payload;
+  return parsed;
+}
+
+/** A payload saved as text: JSON, or the ROS CLI's YAML flow form `{data: 'geometric/jaco'}`. */
+function parsePayloadText(text: string): unknown {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("{")) {
+    return text;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const match = /^\{\s*data\s*:\s*(?:'([^']*)'|"([^"]*)"|([^,}]*?))\s*\}$/.exec(trimmed);
+    if (!match) {
+      return text;
+    }
+    const quoted = match[1] ?? match[2];
+    if (quoted !== undefined) {
+      return { data: quoted };
+    }
+    const bare = match[3] ?? "";
+    return { data: /^-?\d+(\.\d+)?$/.test(bare) ? Number(bare) : bare };
+  }
 }

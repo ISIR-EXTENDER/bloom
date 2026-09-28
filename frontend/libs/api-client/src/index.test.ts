@@ -250,7 +250,30 @@ describe("Bloom API client", () => {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Bloom-Publish-Seq": expect.stringMatching(/^\d+$/) },
       body: JSON.stringify(requestPayload),
+      signal: expect.any(AbortSignal),
     });
+  });
+
+  it("gives up on a runtime action that hangs, aborting the request", async () => {
+    vi.useFakeTimers();
+    try {
+      let signal: AbortSignal | undefined;
+      const fetcher = vi.fn<typeof fetch>((_input, init) => {
+        signal = init?.signal ?? undefined;
+        return new Promise<Response>(() => undefined);
+      });
+      const client = createBloomApiClient({ fetcher });
+
+      const outcome = expect(
+        client.dispatchRuntimeAction({ app_id: "a", config_id: "c", command: "manager.neutral" }),
+      ).rejects.toThrow("timed out");
+      await vi.advanceTimersByTimeAsync(4000);
+
+      await outcome;
+      expect(signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("lists ROS topics through the backend", async () => {

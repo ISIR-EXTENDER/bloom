@@ -148,12 +148,13 @@ describe("the runtime guided tour", () => {
     fireEvent.click(screen.getByRole("button", { name: "STOP" }));
 
     const resume = screen.getByRole("button", { name: "Hold for one second to resume" });
+    act(() => vi.advanceTimersByTime(3000));
     act(() => activateAssistively(resume));
     expect(screen.getByRole("button", { name: "Press again to resume" })).toBeTruthy();
     fireEvent.click(resume, { detail: 0 });
     expect(screen.getByRole("button", { name: "Press again to resume" })).toBeTruthy();
 
-    act(() => vi.advanceTimersByTime(700));
+    act(() => vi.advanceTimersByTime(1500));
     act(() => activateAssistively(screen.getByRole("button", { name: "Press again to resume" })));
     expect(screen.getByRole("heading", { name: "Make it fit your hand" })).toBeTruthy();
   });

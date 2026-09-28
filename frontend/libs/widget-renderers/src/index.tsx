@@ -13,7 +13,7 @@ import { WidgetBoundary } from "./WidgetBoundary";
 import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
-export { resetDesiredStates } from "./desired-state";
+export { cancelAllPendingEngaging, resetDesiredStates } from "./desired-state";
 export type {
   CommandedTwist,
   PlotSeriesSnapshot,
@@ -86,6 +86,7 @@ export function renderWidgetDescriptor(
       controlState={options.controlStateByWidgetId?.[descriptor.widget.id]}
       data={options.dataByWidgetId?.[descriptor.widget.id]}
       descriptor={localized}
+      desiredScope={options.desiredScope}
       robotModel={options.robotModel}
       language={options.language}
       motorPreset={options.motorPreset}

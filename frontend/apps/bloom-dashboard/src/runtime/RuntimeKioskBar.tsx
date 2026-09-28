@@ -107,6 +107,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     tourOffer = null,
     gamepadName = null,
     onBackToBuilder,
+    scanning,
   } = props;
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
@@ -222,7 +223,13 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         ) : null}
         <span className="runtime-kiosk-spacer" />
         {onBackToBuilder ? (
-          <button className="runtime-kiosk-builder" onClick={onBackToBuilder} type="button">
+          <button
+            className="runtime-kiosk-builder"
+            // Leaves for a page with no scanner: a caregiver opens it by touch.
+            data-scan-touch-only={scanning?.enabled ? "" : undefined}
+            onClick={onBackToBuilder}
+            type="button"
+          >
             {strings.kiosk.backToBuilder}
           </button>
         ) : null}

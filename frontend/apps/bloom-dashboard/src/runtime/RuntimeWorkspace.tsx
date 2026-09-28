@@ -101,6 +101,8 @@ type RuntimeWorkspaceProps = {
   selection: WorkspaceSelection;
 };
 
+type ScopedApp = { application: ApplicationConfig; selection: WorkspaceSelection };
+
 export function RuntimeWorkspace({
   runtimeCapabilityReport,
   teleopActive,
@@ -406,7 +408,12 @@ export function RuntimeWorkspace({
     motionHeldRef.current = true;
     onSuspendTeleop();
   };
-  const handleRuntimeActionIntent: WidgetActionIntentHandler = (intent) => {
+  const handleRuntimeActionIntent = (
+    intent: Parameters<WidgetActionIntentHandler>[0],
+    scoped: ScopedApp = { application, selection },
+  ): ReturnType<WidgetActionIntentHandler> => {
+    // A detached control of an app no longer open finishes through that app's policy, never this one's.
+    const current = scoped.selection.appId === selection.appId && scoped.selection.configId === selection.configId;
     // Choosing what a plot shows is view state: no ownership needed, nothing reaches the robot.
     if (intent.type === "plot-series-toggle") {
       plotSelections.toggle(intent.plotId, intent.seriesKey);
@@ -416,7 +423,7 @@ export function RuntimeWorkspace({
       held: motionHeldRef.current,
       ownsControl: ownsRuntimeControl,
       stopped,
-      unavailable: controlStateByWidgetId[intent.widgetId]?.unavailable === true,
+      unavailable: current && controlStateByWidgetId[intent.widgetId]?.unavailable === true,
     });
     if (refusal === "not-owner") {
       return {
@@ -434,18 +441,18 @@ export function RuntimeWorkspace({
       return { accepted: false, detail: controlStateByWidgetId[intent.widgetId]?.disabledReason };
     }
     // Position ops are runtime-shell HTTP work, not robot commands.
-    if (positionLibrary.handleIntent(intent)) {
+    if (current && positionLibrary.handleIntent(intent)) {
       return { accepted: true };
     }
     return onActionIntent(intent, {
-      action_presets: application.action_presets,
-      allowedCommandFrameIds: allowedCommandFrameIds ?? undefined,
-      appId: selection.appId,
-      configId: selection.configId,
-      onCommandFrameChange: setCommandFrameId,
+      action_presets: scoped.application.action_presets,
+      allowedCommandFrameIds: current ? (allowedCommandFrameIds ?? undefined) : undefined,
+      appId: scoped.selection.appId,
+      configId: scoped.selection.configId,
+      onCommandFrameChange: current ? setCommandFrameId : undefined,
       runtime_policy: {
-        ...application.runtime_policy,
-        command_frame_id: commandFrameId ?? "",
+        ...scoped.application.runtime_policy,
+        command_frame_id: current ? (commandFrameId ?? "") : scoped.application.runtime_policy.command_frame_id,
       },
     });
   };
@@ -453,7 +460,14 @@ export function RuntimeWorkspace({
   // A new function identity each render would re-render every widget; the ref keeps the newest handler.
   const actionIntentRef = useRef(handleRuntimeActionIntent);
   actionIntentRef.current = handleRuntimeActionIntent;
-  const stableActionIntent = useCallback<WidgetActionIntentHandler>((intent) => actionIntentRef.current(intent), []);
+  // One handler per app and configuration, so a control's desired state never sends through another app.
+  const desiredScope = `${selection.appId}\u0000${selection.configId}`;
+  const scopedAppsRef = useRef(new Map<string, ScopedApp>());
+  scopedAppsRef.current.set(desiredScope, { application, selection });
+  const stableActionIntent = useCallback<WidgetActionIntentHandler>(
+    (intent) => actionIntentRef.current(intent, scopedAppsRef.current.get(desiredScope)),
+    [desiredScope],
+  );
 
   // Opening an app, closing Settings or the tour, and changing screen from
   // maintenance all replace the view; focus follows it to the named region
@@ -743,6 +757,7 @@ export function RuntimeWorkspace({
                 conditioning,
                 controlStateByWidgetId,
                 dataByWidgetId: effectiveDataByWidgetId,
+                desiredScope,
                 language: runtimeProfile.language,
                 motorPreset: runtimeProfile.motorAccessibilityPreset,
                 neutralRevision: teleopNeutralRevision,

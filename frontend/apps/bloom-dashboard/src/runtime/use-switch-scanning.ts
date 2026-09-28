@@ -14,10 +14,37 @@ const SCAN_PRIORITY_SELECTOR = `${SCAN_TARGET_SELECTOR}[data-scan-priority]`;
 /** The keys a switch box, a sip-puff or a keyboard switch send. */
 export const SWITCH_KEYS: ReadonlySet<string> = new Set([" ", "Enter"]);
 
-type ActiveScanner = { activate: () => void; modal: boolean };
+type ActiveScanner = { activate: () => void; modal: boolean; periodMs: number };
 // Scanners running now, newest last; the switch keys go to one of them and nowhere else.
 const activeScanners: ActiveScanner[] = [];
 let keyGuardHolders = 0;
+const switchPressListeners = new Set<() => void>();
+
+/** Every switch press, whichever control it lands on: Resume's confirm counts the ones it did not get. */
+export function subscribeSwitchPresses(listener: () => void): () => void {
+  switchPressListeners.add(listener);
+  return () => switchPressListeners.delete(listener);
+}
+
+let lastNotedEvent: Event | null = null;
+
+function noteSwitchPress(event?: Event) {
+  // Each scanner hears a stray tap; it is still one press.
+  if (event) {
+    if (event === lastNotedEvent) {
+      return;
+    }
+    lastNotedEvent = event;
+  }
+  for (const listener of [...switchPressListeners]) {
+    listener();
+  }
+}
+
+/** The running scanner's period, or 0 when nothing scans. */
+export function activeScanPeriodMs(): number {
+  return activeScanners.at(-1)?.periodMs ?? 0;
+}
 
 // Capture on window runs before any control's handler: under scan no key reaches a focused button's own handler
 // or its native Enter/Space click, so what fires is always the lit target.
@@ -29,6 +56,7 @@ function guardSwitchKey(event: KeyboardEvent) {
   event.stopPropagation();
   // One press, one activation: a held switch auto-repeats.
   if (event.type === "keydown" && !event.repeat) {
+    noteSwitchPress(event);
     ([...activeScanners].reverse().find((scanner) => scanner.modal) ?? activeScanners.at(-1))?.activate();
   }
 }
@@ -145,6 +173,11 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     // Highlight only: a focused target would take the native click of a later key.
     announce(target);
   }, []);
+  // The on-screen switch button: a press like a key's.
+  const pressCurrent = useCallback(() => {
+    noteSwitchPress();
+    activateCurrent();
+  }, [activateCurrent]);
 
   useEffect(() => {
     // Read so the dependency is real: a screen switch changes the target list
@@ -160,7 +193,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     // Scanning a dialog is the dialog's own business; only a root outside one
     // keeps its hands off the taps that belong to it.
     const rootIsModal = isInsideModal(root);
-    const scanner: ActiveScanner = { activate: activateCurrent, modal: rootIsModal };
+    const scanner: ActiveScanner = { activate: activateCurrent, modal: rootIsModal, periodMs };
     activeScanners.push(scanner);
     const releaseKeyGuard = holdSwitchKeyGuard();
 
@@ -177,8 +210,12 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       const rest = [...root.querySelectorAll<HTMLElement>(SCAN_TARGET_SELECTOR)].filter(
         (element) => !priority.includes(element),
       );
+      // Touch-only controls lead to a page with no scanner; a caregiver opens them by touch.
       const targets = [...priority, ...rest].filter(
-        (element) => isLaidOut(element) && (isTargetEnabledRef.current?.(element) ?? true),
+        (element) =>
+          !element.hasAttribute("data-scan-touch-only") &&
+          isLaidOut(element) &&
+          (isTargetEnabledRef.current?.(element) ?? true),
       );
       targetsRef.current = targets;
       setTargetCount(targets.length);
@@ -261,6 +298,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
       if (!rootIsModal && isInsideModal(target)) {
         return;
       }
+      noteSwitchPress(event);
       // A stray tap (orbiting the 3D view, touching a camera) must not resume the robot: that takes the switch.
       if (targetsRef.current[indexRef.current]?.hasAttribute("data-scan-switch-only")) {
         return;
@@ -282,7 +320,7 @@ export function useSwitchScanning(options: SwitchScanningOptions): SwitchScannin
     };
   }, [activateCurrent, enabled, periodMs, rootRef, revision]);
 
-  return { activateCurrent, index, targetCount };
+  return { activateCurrent: pressCurrent, index, targetCount };
 }
 
 // Not offsetParent: it is null for position: fixed, and STOP is fixed over settings and the tour.

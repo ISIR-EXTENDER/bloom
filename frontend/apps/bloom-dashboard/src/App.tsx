@@ -28,6 +28,7 @@ import {
   applyRuntimeModeOutcome,
   applyRuntimeStopLatch,
   createDefaultRuntimeModeState,
+  isRuntimeModeIntent,
 } from "./runtime/runtimeModeState";
 import { createSupervisorRuntimeClient } from "./runtime/supervisor-client";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
@@ -83,12 +84,15 @@ export function App({
   const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
   // Kept here, not in the workspace: a remount seeing the same latch must not undo a mode asked for since.
   const lastStopLatchRef = useRef("");
+  // Only the reply to the newest mode request, or a newer STOP, may set the mode: replies can arrive out of order.
+  const modeRequestCountRef = useRef(0);
   const handleStopLatch = useCallback((latch: RuntimeStopState) => {
     const key = `${latch.engaged_at}:${latch.asserted}`;
     if (key === lastStopLatchRef.current) {
       return;
     }
     lastStopLatchRef.current = key;
+    modeRequestCountRef.current += 1;
     setRuntimeModeState((current) => applyRuntimeStopLatch(current, latch));
   }, []);
   const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
@@ -170,6 +174,9 @@ export function App({
       return { accepted: true };
     }
 
+    const modeRequest = isRuntimeModeIntent(intent, applicationRuntime?.action_presets)
+      ? ++modeRequestCountRef.current
+      : null;
     const result = await runtimeActions.dispatch(intent, {
       actionPresets: applicationRuntime?.action_presets,
       allowedCommandFrameIds: applicationRuntime?.allowedCommandFrameIds,
@@ -179,9 +186,11 @@ export function App({
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
     const status = toWidgetActionStatus(result);
-    setRuntimeModeState((currentModeState) =>
-      applyRuntimeModeOutcome(currentModeState, intent, status, applicationRuntime?.action_presets),
-    );
+    if (modeRequest !== null && modeRequest === modeRequestCountRef.current) {
+      setRuntimeModeState((currentModeState) =>
+        applyRuntimeModeOutcome(currentModeState, intent, status, applicationRuntime?.action_presets),
+      );
+    }
     // A coalesced or superseded update lost to a newer one, not to a refusal: its control must not snap home.
     return { accepted: status === "accepted" || status === "superseded", detail: result.detail, status };
   };

@@ -109,17 +109,21 @@ describe("STOP under switch scanning", () => {
     await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(stop));
 
     await pressSwitch();
-    const resume = await screen.findByRole("button", { name: /Hold for one second to resume/ });
-    await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(resume));
+    const resume = await screen.findByRole("button", { name: /Press twice to resume/ });
+    // Resume listens once the switch has rested after the latch: two 2.5 s periods.
+    await act(() => wait(5100));
+    await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(resume), { timeout: 8000 });
 
     // A switch cannot hold: a long press is one press, and it only arms.
     await pressSwitch(1200);
     expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
     await screen.findByRole("button", { name: /Press again to resume/ });
 
+    // The confirming press comes a scan period after the arming one.
+    await act(() => wait(1400));
     await pressSwitch();
     await waitFor(() => expect(client.resumeRuntimeStop).toHaveBeenCalledOnce());
-  }, 20000);
+  }, 30000);
 
   it("takes no stray tap on the artboard as the switch for Resume, but still for STOP", async () => {
     scanProfile(5000);
@@ -132,7 +136,7 @@ describe("STOP under switch scanning", () => {
       document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     });
     await waitFor(() => expect(client.engageRuntimeStop).toHaveBeenCalledOnce());
-    const resume = await screen.findByRole("button", { name: /Hold for one second to resume/ });
+    const resume = await screen.findByRole("button", { name: /Press twice to resume/ });
     await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(resume));
 
     for (let tap = 0; tap < 2; tap += 1) {
@@ -152,7 +156,7 @@ describe("STOP under switch scanning", () => {
 
     fireEvent.pointerDown(await screen.findByRole("button", { name: "Stop the robot" }));
     const again = await screen.findByRole("button", { name: "Stop the robot again" });
-    expect(screen.getByRole("button", { name: /Hold for one second to resume/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Press twice to resume/ })).toBeTruthy();
     await waitFor(() => expect(document.querySelector("[data-scan-lit]")).toBe(again));
 
     await pressSwitch();

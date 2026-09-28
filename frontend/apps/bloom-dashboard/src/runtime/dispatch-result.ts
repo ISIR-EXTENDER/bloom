@@ -72,9 +72,9 @@ export function toWidgetActionStatus(result: RuntimeActionDispatchResult): Widge
 }
 
 /**
- * ADR 0141, what a failed request means for the robot. Applied, maybe: no reply, a 504, or a service that did not
- * answer in time. Not applied but worth retrying: a rate limit. Not applied, final: every other answer (STOP
- * latched, not the owner, forbidden, invalid). A 409 "superseded" lost to a newer send.
+ * ADR 0141, what a failed request means for the robot. Applied, maybe: no reply or a 500, 502, 503 or 504. Not
+ * applied but worth retrying: a rate limit. Not applied, final: every other answer (STOP latched, not the owner,
+ * forbidden, invalid); no ROS answers 2xx "simulated", which is final too. A 409 "superseded" lost to a newer send.
  */
 export function classifyDispatchError(error: unknown): {
   detail: string;
@@ -90,7 +90,7 @@ export function classifyDispatchError(error: unknown): {
   if (error.status === 429) {
     return { detail, status: "transient" };
   }
-  if (error.status === 504 || (error.status === 503 && /did not answer/i.test(error.responseText))) {
+  if (error.status === 500 || error.status === 502 || error.status === 503 || error.status === 504) {
     return { detail, status: "unknown" };
   }
   return { detail, status: "failed" };

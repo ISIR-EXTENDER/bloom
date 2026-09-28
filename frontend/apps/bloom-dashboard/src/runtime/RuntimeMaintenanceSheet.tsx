@@ -275,7 +275,7 @@ export function RuntimeMaintenanceSheet({
             <button onClick={closeAnd(onOpenTour)} type="button">
               {strings.settings.practiceTour}
             </button>
-            <button onClick={closeAnd(onOpenSupervisor)} type="button">
+            <button data-scan-touch-only={touchOnly} onClick={closeAnd(onOpenSupervisor)} type="button">
               {strings.kiosk.supervisorMirror}
             </button>
             <button data-scan-touch-only={touchOnly} onClick={onEditScreen} type="button">

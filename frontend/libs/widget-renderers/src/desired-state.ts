@@ -14,7 +14,7 @@ export type DesiredSnapshot = {
   marked: boolean;
   /** The fast retries are spent: "Robot has not confirmed". */
   late: boolean;
-  /** The robot refused an engaging state, which was dropped: the control shows its last confirmed one. */
+  /** A send was refused or cancelled, so nothing more is sent: the control shows its last confirmed state. */
   refused: boolean;
   detail?: string;
 };
@@ -27,6 +27,8 @@ export const DETACHED_GIVE_UP_MS = 60_000;
 
 type Entry = {
   key: string;
+  /** The app and configuration the control belongs to: an entry never adopts into, or sends for, another. */
+  scope: string;
   target: string;
   value: string;
   /** On, pressed or a mode: dropped when refused or cancelled. Off and release states are not. */
@@ -37,35 +39,48 @@ type Entry = {
   failures: number;
   inFlight: boolean;
   cancelled: boolean;
-  /** A send of this control got no reply, so the robot may hold it; cleared by an accepted send. */
-  uncertain: boolean;
+  /** The newest unanswered send's value, so the robot may hold it; cleared by a newer accepted send. */
+  uncertainValue: string | null;
+  uncertainSeq: number;
+  /** Sends not answered yet, by sequence: a stopped control may still be applied by one. */
+  open: Map<number, string>;
   lastConfirmed: string | null;
+  confirmedSeq: number;
+  /** No more sends: settled, refused, cancelled or claimed. */
+  idle: boolean;
+  /** Idle without an accepted send: it shows its last confirmed state or an unanswered one. */
+  stopped: boolean;
+  /** Stopped by a newer act of another control on its target. */
+  claimed: boolean;
   detachedAt: number;
   timers: Set<ReturnType<typeof setTimeout>>;
   snapshot: DesiredSnapshot;
 };
 
 const entries = new Map<string, Entry>();
+let attemptSeq = 0;
 const listenersByKey = new Map<string, Set<() => void>>();
 const mountedKeys = new Map<string, number>();
 
-function desiredKey(widgetId: string, target: string): string {
-  return `${widgetId}\u0000${target}`;
+function desiredKey(scope: string, widgetId: string, target: string): string {
+  return `${scope}\u0000${widgetId}\u0000${target}`;
 }
 
-/** The newest act on a target wins: an unconfirmed desired state of another control there stops at once. */
+/**
+ * The newest act on a target wins: another control's pending state there stops at once and shows its last
+ * confirmed state, or stays not confirmed if a send of it got no reply.
+ */
 export function claimTarget(target: string, exceptKey?: string): void {
   for (const entry of [...entries.values()]) {
     if (entry.target === target && entry.key !== exceptKey && !entry.snapshot.confirmed) {
-      settle(entry);
-      if (!isMounted(entry)) {
-        drop(entry);
-      }
+      stop(entry, undefined, false);
+      entry.claimed = true;
     }
   }
 }
 
 export function setDesired(options: {
+  scope?: string;
   widgetId: string;
   target: string;
   value: string;
@@ -73,12 +88,14 @@ export function setDesired(options: {
   intent: WidgetActionIntent;
   send: WidgetActionIntentHandler;
 }): void {
-  const key = desiredKey(options.widgetId, options.target);
+  const scope = options.scope ?? "";
+  const key = desiredKey(scope, options.widgetId, options.target);
   claimTarget(options.target, key);
   let entry = entries.get(key);
   if (!entry) {
     entry = {
       key,
+      scope,
       target: options.target,
       value: options.value,
       engage: options.engage,
@@ -88,8 +105,14 @@ export function setDesired(options: {
       failures: 0,
       inFlight: false,
       cancelled: false,
-      uncertain: false,
+      uncertainValue: null,
+      uncertainSeq: 0,
+      open: new Map(),
       lastConfirmed: null,
+      confirmedSeq: 0,
+      idle: false,
+      stopped: false,
+      claimed: false,
       detachedAt: Date.now(),
       timers: new Set(),
       snapshot: { value: options.value, confirmed: false, marked: false, late: false, refused: false },
@@ -100,6 +123,9 @@ export function setDesired(options: {
   entry.generation += 1;
   entry.failures = 0;
   entry.cancelled = false;
+  entry.idle = false;
+  entry.stopped = false;
+  entry.claimed = false;
   entry.value = options.value;
   entry.engage = options.engage;
   entry.intent = options.intent;
@@ -119,21 +145,23 @@ export function setDesired(options: {
  * A suspend or STOP: a pending engaging state is not sent again. It reads "not confirmed" if a send got no
  * reply, otherwise the last confirmed state. Off and release states keep going.
  */
-export function cancelPending(widgetId: string, target: string): void {
-  const entry = entries.get(desiredKey(widgetId, target));
-  if (!entry || entry.snapshot.confirmed || !entry.engage || entry.cancelled) {
-    return;
+export function cancelPending(widgetId: string, target: string, scope = ""): void {
+  const entry = entries.get(desiredKey(scope, widgetId, target));
+  if (entry) {
+    cancel(entry);
   }
-  entry.cancelled = true;
-  clearTimers(entry);
-  if (!entry.inFlight) {
-    stop(entry, entry.snapshot.detail);
+}
+
+/** Every pending engaging state, mounted or not: after a suspend or STOP only off and release states finish. */
+export function cancelAllPendingEngaging(): void {
+  for (const entry of [...entries.values()]) {
+    cancel(entry);
   }
 }
 
 /** Drops a settled entry, so a read-back from the robot speaks again. */
-export function forgetSettled(widgetId: string, target: string): void {
-  const entry = entries.get(desiredKey(widgetId, target));
+export function forgetSettled(widgetId: string, target: string, scope = ""): void {
+  const entry = entries.get(desiredKey(scope, widgetId, target));
   if (entry?.snapshot.confirmed) {
     drop(entry);
   }
@@ -144,8 +172,9 @@ export function useDesiredState(
   widgetId: string,
   target: string,
   send: WidgetActionIntentHandler | undefined,
+  scope = "",
 ): DesiredSnapshot | null {
-  const key = desiredKey(widgetId, target);
+  const key = desiredKey(scope, widgetId, target);
   const sendRef = useRef(send);
   sendRef.current = send;
   useEffect(() => {
@@ -185,6 +214,17 @@ export function resetDesiredStates(): void {
   mountedKeys.clear();
 }
 
+function cancel(entry: Entry): void {
+  if (entry.idle || !entry.engage || entry.cancelled) {
+    return;
+  }
+  entry.cancelled = true;
+  clearTimers(entry);
+  if (!entry.inFlight) {
+    stop(entry, entry.snapshot.detail, true);
+  }
+}
+
 function isMounted(entry: Entry): boolean {
   return (mountedKeys.get(entry.key) ?? 0) > 0;
 }
@@ -204,45 +244,67 @@ function attempt(entry: Entry, generation: number): void {
     return;
   }
   entry.inFlight = true;
+  attemptSeq += 1;
+  const sent = { generation, seq: attemptSeq, value: entry.value };
+  entry.open.set(sent.seq, sent.value);
   let outcome: ReturnType<WidgetActionIntentHandler>;
   try {
     outcome = entry.send(entry.intent);
   } catch (error: unknown) {
-    finish(entry, generation, "unknown", describe(error));
+    finish(entry, sent, "unknown", describe(error));
     return;
   }
   if (outcome instanceof Promise) {
     outcome.then(
-      (result) => finish(entry, generation, ...classify(result)),
-      (error: unknown) => finish(entry, generation, "unknown", describe(error)),
+      (result) => finish(entry, sent, ...classify(result)),
+      (error: unknown) => finish(entry, sent, "unknown", describe(error)),
     );
     return;
   }
-  finish(entry, generation, ...classify(outcome));
+  finish(entry, sent, ...classify(outcome));
 }
 
-function finish(entry: Entry, generation: number, status: WidgetActionStatus, detail: string | undefined): void {
-  if (!isLive(entry, generation)) {
+type Sent = { generation: number; seq: number; value: string };
+
+function finish(entry: Entry, sent: Sent, status: WidgetActionStatus, detail: string | undefined): void {
+  if (entries.get(entry.key) !== entry) {
+    return;
+  }
+  entry.open.delete(sent.seq);
+  // Every answer counts, even to an older send: the server applies them in send order.
+  if (status === "accepted" && sent.seq > entry.confirmedSeq) {
+    entry.lastConfirmed = sent.value;
+    entry.confirmedSeq = sent.seq;
+    if (entry.uncertainSeq <= sent.seq) {
+      entry.uncertainValue = null;
+    }
+  } else if (status === "unknown" && sent.seq > entry.confirmedSeq && sent.seq > entry.uncertainSeq) {
+    entry.uncertainValue = sent.value;
+    entry.uncertainSeq = sent.seq;
+  }
+  if (entry.generation !== sent.generation) {
+    if (entry.stopped) {
+      showIdle(entry, entry.snapshot.refused, entry.snapshot.detail);
+      if (entry.snapshot.confirmed && !isMounted(entry)) {
+        drop(entry);
+      }
+    }
     return;
   }
   entry.inFlight = false;
   if (status === "accepted" || status === "superseded") {
-    if (status === "accepted") {
-      entry.uncertain = false;
-      entry.lastConfirmed = entry.value;
-    }
     settle(entry);
+    if (status === "accepted") {
+      releaseClaimed(entry);
+    }
     if (!isMounted(entry)) {
       drop(entry);
     }
     return;
   }
-  if (status === "unknown") {
-    entry.uncertain = true;
-  }
   // An explicit refusal was not applied; only no reply or a transient refusal is worth sending again.
   if (status === "refused" || entry.cancelled) {
-    stop(entry, detail);
+    stop(entry, detail, true);
     return;
   }
   entry.failures += 1;
@@ -253,39 +315,55 @@ function finish(entry: Entry, generation: number, status: WidgetActionStatus, de
   }
   publish(entry, { ...entry.snapshot, marked: true, ...(detail ? { detail } : {}) });
   const delay = RETRY_DELAYS_MS[entry.failures - 1] ?? STEADY_RETRY_MS;
-  schedule(entry, delay, () => attempt(entry, generation));
+  schedule(entry, delay, () => attempt(entry, sent.generation));
 }
 
-/** No more sends: unconfirmed if the robot may hold it, else the last confirmed state (engaging) or the asked one. */
-function stop(entry: Entry, detail: string | undefined): void {
+/** No more sends: not confirmed if an unanswered send may hold, else the last confirmed state. */
+function stop(entry: Entry, detail: string | undefined, refused: boolean): void {
   clearTimers(entry);
   entry.generation += 1;
   entry.inFlight = false;
+  entry.idle = true;
+  entry.stopped = true;
+  showIdle(entry, refused, detail);
+  if (entry.snapshot.confirmed && !isMounted(entry)) {
+    drop(entry);
+  }
+}
+
+function showIdle(entry: Entry, refused: boolean, detail: string | undefined): void {
   const withDetail = detail ? { detail } : {};
-  if (entry.uncertain) {
+  const unanswered = entry.uncertainValue ?? newestOpenValue(entry);
+  if (unanswered !== null) {
     publish(entry, {
-      ...entry.snapshot,
-      value: entry.value,
+      value: unanswered,
       confirmed: false,
       marked: true,
+      late: entry.snapshot.late,
       refused: false,
       ...withDetail,
     });
     return;
   }
-  if (!entry.engage) {
-    entry.lastConfirmed = entry.value;
+  publish(entry, { value: entry.lastConfirmed, confirmed: true, marked: false, late: false, refused, ...withDetail });
+}
+
+function newestOpenValue(entry: Entry): string | null {
+  let newest: [number, string] | null = null;
+  for (const [seq, value] of entry.open) {
+    if (seq > entry.confirmedSeq && (!newest || seq > newest[0])) {
+      newest = [seq, value];
+    }
   }
-  publish(entry, {
-    value: entry.engage ? entry.lastConfirmed : entry.value,
-    confirmed: true,
-    marked: false,
-    late: false,
-    refused: entry.engage,
-    ...withDetail,
-  });
-  if (!isMounted(entry)) {
-    drop(entry);
+  return newest ? newest[1] : null;
+}
+
+/** A newer accepted send on the target defines it: controls it stopped there fall back to their own state. */
+function releaseClaimed(winner: Entry): void {
+  for (const entry of [...entries.values()]) {
+    if (entry !== winner && entry.target === winner.target && entry.claimed) {
+      drop(entry);
+    }
   }
 }
 
@@ -300,6 +378,8 @@ function settle(entry: Entry): void {
   clearTimers(entry);
   entry.generation += 1;
   entry.inFlight = false;
+  entry.idle = true;
+  entry.stopped = false;
   publish(entry, { value: entry.value, confirmed: true, marked: false, late: false, refused: false });
 }
 

@@ -278,8 +278,8 @@ describe("a switch-off still retrying from an unmounted servo switch", () => {
 });
 
 describe("a servo switch-off the robot refuses outright", () => {
-  // An explicit refusal (STOP latched, not the owner) was not applied, and the server's own resets cover it.
-  it("is not retried and reads a clean Off after an accepted On", async () => {
+  // An explicit refusal (STOP latched, not the owner) was not applied: the switch shows what was last confirmed.
+  it("is not retried and keeps reading the accepted On, never a clean Off", async () => {
     vi.useFakeTimers();
     const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
       intent.type === "topic-publish" && intent.payload === "{data: false}"
@@ -294,10 +294,10 @@ describe("a servo switch-off the robot refuses outright", () => {
     });
 
     expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Off" })).not.toHaveAttribute("data-confirmed");
+    expect(screen.getByRole("button", { name: "Servo: Servoing" })).not.toHaveAttribute("data-confirmed");
   });
 
-  it("keeps saying not confirmed, with the reason, when the On before it got no reply", async () => {
+  it("shows the unanswered On not confirmed when the Off after it is refused", async () => {
     vi.useFakeTimers();
     const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
       intent.type === "topic-publish" && intent.payload === "{data: false}"
@@ -312,7 +312,7 @@ describe("a servo switch-off the robot refuses outright", () => {
     });
 
     expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Off, not confirmed" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Servo: Servoing, not confirmed" })).toHaveAttribute(
       "data-confirmed",
       "false",
     );

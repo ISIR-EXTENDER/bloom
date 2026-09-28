@@ -192,30 +192,15 @@ export class BloomApiClient {
 
   publishRosTopic(request: RosTopicPublishRequest): Promise<RosTopicPublishResponse> {
     // A hanging press would hold a momentary widget's queue, and the release it owes, forever.
-    const timeoutMs = 4000;
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timedOut = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => {
-        controller.abort();
-        reject(new Error(`ROS publish on ${request.topic} timed out after ${timeoutMs / 1000} s.`));
-      }, timeoutMs);
-    });
-    const published = this.request<RosTopicPublishResponse>("/api/v1/ros/topics/publish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...nextPublishSeqHeader() },
-      body: JSON.stringify(request),
-      signal: controller.signal,
-    });
-    return Promise.race([published, timedOut]).finally(() => clearTimeout(timer));
+    return this.requestWithTimeout<RosTopicPublishResponse>(
+      "/api/v1/ros/topics/publish",
+      request,
+      `ROS publish on ${request.topic}`,
+    );
   }
 
   dispatchRuntimeAction(request: RuntimeActionDispatchRequest): Promise<RuntimeActionDispatchResponse> {
-    return this.request<RuntimeActionDispatchResponse>("/api/v1/runtime/actions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...nextPublishSeqHeader() },
-      body: JSON.stringify(request),
-    });
+    return this.requestWithTimeout<RuntimeActionDispatchResponse>("/api/v1/runtime/actions", request, "Runtime action");
   }
 
   /**
@@ -369,6 +354,26 @@ export class BloomApiClient {
   }
 
   private robotModel: { etag: string; response: RobotModelResponse } | null = null;
+
+  /** A robot-facing POST that gives up after 4 s, aborting the request; the caller treats it as no reply. */
+  private requestWithTimeout<T>(path: string, body: unknown, label: string): Promise<T> {
+    const timeoutMs = 4000;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timedOut = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        controller.abort();
+        reject(new Error(`${label} timed out after ${timeoutMs / 1000} s.`));
+      }, timeoutMs);
+    });
+    const sent = this.request<T>(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...nextPublishSeqHeader() },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    return Promise.race([sent, timedOut]).finally(() => clearTimeout(timer));
+  }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
     const response = await this.fetcher(`${this.baseUrl}${path}`, this.withRequestHeaders(init));

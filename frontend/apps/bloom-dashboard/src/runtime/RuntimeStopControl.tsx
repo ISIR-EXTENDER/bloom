@@ -72,7 +72,7 @@ export function RuntimeStopControl({
     }
   };
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
-  const assistiveResume = useAssistiveConfirm(resume, resumeDisabled);
+  const assistiveResume = useAssistiveConfirm(resume, resumeDisabled, `${stopped}:${latchId}`);
   const assistiveArmed = assistiveResume.armed;
   const disarm = assistiveResume.disarm;
   const resumeRef = useAssistiveActivation<HTMLButtonElement>(assistiveResume.activate);
@@ -196,9 +196,13 @@ export function RuntimeStopControl({
         {showStopAgain ? engageButton(true, stopAgainStyle) : null}
         <button
           key="resume"
-          aria-label={`${assistiveArmed ? strings.stop.resumeConfirmAria : strings.stop.resumeAria}${
-            requestError || resumeDisabledReason ? `. ${requestError || resumeDisabledReason}` : ""
-          }`}
+          aria-label={`${
+            assistiveArmed
+              ? strings.stop.resumeConfirmAria
+              : scanMode
+                ? strings.stop.resumeScanAria
+                : strings.stop.resumeAria
+          }${requestError || resumeDisabledReason ? `. ${requestError || resumeDisabledReason}` : ""}`}
           className="runtime-stop-control"
           // Armed, it holds the scan highlight so the confirming press lands on it, as an armed Go home does.
           data-armed={assistiveArmed ? "true" : undefined}

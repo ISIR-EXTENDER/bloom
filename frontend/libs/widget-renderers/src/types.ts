@@ -120,6 +120,8 @@ export type WidgetControlState = {
    */
   selection?: "selected" | "unconfirmed" | "unselected";
   toggleState?: "off" | "on";
+  /** With toggleState: the mode it derives from was asked for without an accepted reply. */
+  toggleUnconfirmed?: boolean;
 };
 
 /** A twist the runtime is sending: unit scale, linear in the base frame, angular in the named frame. */
@@ -150,6 +152,8 @@ export type WidgetRendererProps = {
   controlState?: WidgetControlState;
   data?: WidgetDataSnapshot;
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
+  /** The app and configuration the screen belongs to; a control's desired state never leaves it. */
+  desiredScope?: string;
   /** The profile's language; the descriptor's operator words already follow it. */
   language?: RuntimeLanguage;
   /** The operator profile's motor preset; renderers adapt their input model. */
@@ -183,6 +187,7 @@ export type ScreenRendererOptions = {
   conditioning?: SignalConditioning;
   controlStateByWidgetId?: Readonly<Record<string, WidgetControlState>>;
   dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
+  desiredScope?: string;
   language?: RuntimeLanguage;
   motorPreset?: MotorAccessibilityPreset;
   neutralRevision?: number;

@@ -17,6 +17,7 @@ export type RuntimeStrings = {
     resume: string;
     resumeAria: string;
     resumeConfirm: string;
+    resumeScanAria: string;
     resumeConfirmAria: string;
     stopAgain: string;
     stopAgainAria: string;

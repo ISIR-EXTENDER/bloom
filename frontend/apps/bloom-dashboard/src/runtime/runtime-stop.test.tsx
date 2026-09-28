@@ -83,7 +83,8 @@ describe("the STOP control", () => {
   it("leaves keys on Resume to the switch while scanning", () => {
     const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
     render(<RuntimeStopControl requestError="" scanMode stopped={true} {...handlers} />);
-    const resume = screen.getByRole("button", { name: /Hold for one second to resume/ });
+    const resume = screen.getByRole("button", { name: /Press twice to resume/ });
+    expect(screen.queryByRole("button", { name: /Hold for one second/ })).toBeNull();
 
     fireEvent.keyDown(resume, { key: " " });
     act(() => {
@@ -91,6 +92,26 @@ describe("the STOP control", () => {
     });
 
     expect(handlers.onResume).not.toHaveBeenCalled();
+  });
+
+  it("tells a switch user to press twice, not to hold, in every language", () => {
+    for (const [language, name] of [
+      ["fr", "Appuyez deux fois pour reprendre"],
+      ["es", "Pulsa dos veces para reanudar"],
+    ] as const) {
+      render(
+        <RuntimeStopControl
+          language={language}
+          onEngage={vi.fn()}
+          onResume={vi.fn()}
+          requestError=""
+          scanMode
+          stopped
+        />,
+      );
+      expect(screen.getByRole("button", { name })).toBeTruthy();
+      cleanup();
+    }
   });
 
   it("offers STOP again beside Resume while the latch is not asserted, first in order", () => {
@@ -127,6 +148,9 @@ describe("the STOP control", () => {
     const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
     const { rerender } = render(<RuntimeStopControl latchId="a" requestError="" stopped={true} {...handlers} />);
     act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+    act(() => {
       screen.getByRole("button").dispatchEvent(new CustomEvent("bloom-assistive-activate", { cancelable: true }));
     });
     expect(screen.getByRole("button", { name: /Press again to resume/ })).toBeTruthy();
@@ -140,6 +164,9 @@ describe("the STOP control", () => {
     const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
     const { rerender } = render(<RuntimeStopControl requestError="" stopped={true} {...handlers} />);
     const resume = screen.getByRole("button");
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
     act(() => {
       resume.dispatchEvent(new CustomEvent("bloom-assistive-activate", { cancelable: true }));
     });
@@ -478,6 +505,52 @@ describe("the stop mirror", () => {
       fireEvent.click(screen.getByRole("button", { name: "resume" }));
     });
     expect(screen.getByTestId("requested").textContent).toBe("false");
+  });
+
+  // The engage reply was lost but the latch is on: "stop request failed" on Resume was a false alarm.
+  it("clears the stop error when the follow-up read finds the latch asserted", async () => {
+    const client: RuntimeStopClient = {
+      getRuntimeStopState: vi.fn().mockResolvedValueOnce(running).mockResolvedValue(stoppedState),
+      engageRuntimeStop: () => Promise.reject(new Error("The stop request failed.")),
+    };
+    render(<Probe client={client} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "engage" }));
+    });
+
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("true"));
+    expect(screen.getByTestId("error").textContent).toBe("");
+  });
+
+  it("clears the stop error when a later poll finds the latch", async () => {
+    vi.useFakeTimers();
+    try {
+      const client: RuntimeStopClient = {
+        getRuntimeStopState: vi
+          .fn()
+          .mockResolvedValueOnce(running)
+          .mockRejectedValueOnce(new Error("offline"))
+          .mockResolvedValue(stoppedState),
+        engageRuntimeStop: () => Promise.reject(new Error("The stop request failed.")),
+      };
+      render(<Probe client={client} />);
+      await act(async () => {});
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "engage" }));
+      });
+      expect(screen.getByTestId("error").textContent).toBe("The stop request failed.");
+
+      await act(async () => {
+        vi.advanceTimersByTime(2000);
+      });
+
+      expect(screen.getByTestId("stopped").textContent).toBe("true");
+      expect(screen.getByTestId("error").textContent).toBe("");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("drops a late STOP answer that arrives after Resume", async () => {

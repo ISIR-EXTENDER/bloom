@@ -128,8 +128,9 @@ async function untilLitIsNot(predicate: (element: HTMLElement) => boolean) {
 
 const stopButton = () => screen.queryByRole("button", { name: "Stop the robot" });
 const stopAgainButton = () => screen.queryByRole("button", { name: "Stop the robot again" });
-const resumeButton = () =>
-  screen.queryByRole("button", { name: /Hold for one second to resume|Press again to resume/ });
+const resumeButton = () => screen.queryByRole("button", { name: /Press twice to resume|Press again to resume/ });
+// Resume listens only once the switch has rested after a latch: max(1.5 s, two periods).
+const settleAfterLatch = () => act(() => wait(Math.max(1500, 2 * PERIOD_MS) + 100));
 const isStopChrome = (element: HTMLElement) => element.hasAttribute("data-scan-priority");
 
 describe.each<Surface>(["main screen", "maintenance sheet", "settings", "tour"])(
@@ -152,7 +153,9 @@ describe.each<Surface>(["main screen", "maintenance sheet", "settings", "tour"])
       await waitFor(() => expect(client.engageRuntimeStop).toHaveBeenCalledOnce());
 
       // A 1.2 s press on a focused Resume is one press: it arms, never resumes by Resume's own key hold.
-      await untilLit(resumeButton);
+      await settleAfterLatch();
+      // The cycle moved on meanwhile; on a sheet Resume comes round again only after every target.
+      await untilLit(resumeButton, PERIOD_MS * 30);
       resumeButton()?.focus();
       await pressSwitch({ holdMs: 1200 });
       await screen.findByRole("button", { name: /Press again to resume/ });
@@ -172,7 +175,7 @@ describe.each<Surface>(["main screen", "maintenance sheet", "settings", "tour"])
       await pressSwitch();
       expect(fired).toHaveBeenCalledOnce();
       expect(client.engageRuntimeStop).toHaveBeenCalledOnce();
-    }, 30000);
+    }, 60000);
 
     it("re-sends STOP from STOP again when the assertion fails, then reaches Resume", async () => {
       scanProfile();
@@ -189,11 +192,13 @@ describe.each<Surface>(["main screen", "maintenance sheet", "settings", "tour"])
       await waitFor(() => expect(client.engageRuntimeStop).toHaveBeenCalledTimes(2));
 
       // A focused STOP again is no longer exempt: the press on Resume arms it, and STOP is not sent a third time.
-      await untilLit(resumeButton);
+      await settleAfterLatch();
+      // The cycle moved on meanwhile; on a sheet Resume comes round again only after every target.
+      await untilLit(resumeButton, PERIOD_MS * 30);
       await pressSwitch();
       await screen.findByRole("button", { name: /Press again to resume/ });
       expect(client.engageRuntimeStop).toHaveBeenCalledTimes(2);
       expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
-    }, 30000);
+    }, 60000);
   },
 );

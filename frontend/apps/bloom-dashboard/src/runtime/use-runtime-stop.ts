@@ -36,6 +36,8 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   // Bumped by every STOP and resume: a poll sent before one answers with the latch as it was.
   const actionCountRef = useRef(0);
   const stateRef = useRef<RuntimeStopState | null>(null);
+  // The shown error is a STOP that got no answer: any poll that finds the latch clears it.
+  const engageErrorRef = useRef(false);
 
   const mirrorState = useCallback((next: RuntimeStopState) => {
     stateRef.current = next;
@@ -57,6 +59,10 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
             mirrorState(next);
             if (next.stopped) {
               setEngageUnconfirmed(false);
+              if (engageErrorRef.current) {
+                engageErrorRef.current = false;
+                setRequestError("");
+              }
             }
           }
         })
@@ -83,6 +89,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     // A Resume or another STOP since this one was sent owns the state now.
     const current = () => actionsWhenSent === actionCountRef.current;
     setStopRequested(true);
+    engageErrorRef.current = false;
     engageRuntimeStop()
       .then((next) => {
         if (!current()) {
@@ -99,6 +106,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
         }
         const message = error instanceof Error ? error.message : "The stop request failed.";
         const getState = clientRef.current?.getRuntimeStopState;
+        engageErrorRef.current = true;
         if (!getState) {
           setEngageUnconfirmed(true);
           setRequestError(message);
@@ -113,7 +121,9 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
             // Not latched on the backend: the press still holds every control here until Resume.
             setStopRequested(!next.stopped);
             setEngageUnconfirmed(!next.stopped);
-            setRequestError(next.stopped && !next.asserted ? "" : message);
+            // Latched: the lost reply is not a failed stop (an unasserted latch reports its own detail).
+            engageErrorRef.current = !next.stopped;
+            setRequestError(next.stopped ? "" : message);
           })
           .catch(() => {
             if (current()) {
@@ -136,6 +146,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
     const current = () => actionsWhenSent === actionCountRef.current;
     setStopRequested(false);
     setEngageUnconfirmed(false);
+    engageErrorRef.current = false;
     resumeRuntimeStop(engagedAt ? { engagedAt } : undefined)
       .then((next) => {
         if (current()) {

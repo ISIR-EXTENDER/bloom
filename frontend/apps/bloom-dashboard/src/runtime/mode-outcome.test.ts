@@ -126,7 +126,9 @@ describe("a publish error", () => {
     ],
     ["a 403", apiError(403, "ROS topic is not allowed."), "failed"],
     ["a 422", apiError(422, "Payload does not match."), "failed"],
-    ["a 503 publish failure", apiError(503, "rosidl_runtime_py is required to publish ROS messages"), "failed"],
+    ["a 500", apiError(500, "Internal Server Error"), "unknown"],
+    ["a 502 publish failure", apiError(502, "Publisher crashed."), "unknown"],
+    ["a 503 publish failure", apiError(503, "rosidl_runtime_py is required to publish ROS messages"), "unknown"],
     ["a 503 service that did not answer", apiError(503, "Service /home did not answer within 2.0s."), "unknown"],
     ["a 504", new BloomApiError("504", 504, ""), "unknown"],
     ["a client timeout", new Error("ROS publish on /x timed out after 4 s."), "unknown"],
@@ -162,5 +164,68 @@ describe("a publish error", () => {
     const result = { detail: "", intent: modeIntent("geometric/both"), status } as RuntimeActionDispatchResult;
 
     expect(toWidgetActionStatus(result)).toBe(expected);
+  });
+});
+
+describe("a /mode_request toggle saved with YAML payload text", () => {
+  const modeToggle = (id: string, onMode: string) => ({
+    id,
+    kind: "toggle" as const,
+    title: id,
+    layout: { x: 0, y: 0, width: 10, height: 10 },
+    settings: {
+      topic: "/mode_request",
+      messageType: "std_msgs/msg/String",
+      onPayload: `{data: '${onMode}'}`,
+      offPayload: "{data: 'geometric/both'}",
+    },
+  });
+  const sandboxScreen = {
+    id: "sandbox",
+    title: "Sandbox",
+    widgets: [modeToggle("sandbox-mode", "geometric/jaco"), modeToggle("snake-mode-toggle", "geometric/snake")],
+  } as never;
+  const toggleIntent = (payload: string): WidgetActionIntent => ({
+    type: "topic-publish",
+    topic: "/mode_request",
+    messageType: "std_msgs/msg/String",
+    payload,
+    widgetId: "sandbox-mode",
+    widgetKind: "toggle",
+  });
+
+  it.each([
+    ["YAML", "{data: 'geometric/jaco'}"],
+    ["YAML with double quotes", '{data: "geometric/jaco"}'],
+    ["JSON", '{"data": "geometric/jaco"}'],
+  ])("is read as a mode request (%s)", (_name, payload) => {
+    const next = applyRuntimeModeOutcome(createDefaultRuntimeModeState(), toggleIntent(payload), "accepted");
+
+    expect(next.requestedMode).toBe("geometric/jaco");
+  });
+
+  it("is on only while its mode is the one requested", () => {
+    const states = createRuntimeControlStateByWidgetId(sandboxScreen, jacoRequested());
+
+    expect(states["sandbox-mode"]).toEqual({ toggleState: "on" });
+    expect(states["snake-mode-toggle"]).toEqual({ toggleState: "off" });
+  });
+
+  it("turns off when STOP resets the arm to geometric/both", () => {
+    const stopped = applyRuntimeStopLatch(jacoRequested(), { asserted: true });
+
+    expect(createRuntimeControlStateByWidgetId(sandboxScreen, stopped)["sandbox-mode"]).toEqual({ toggleState: "off" });
+  });
+
+  it("reads not confirmed while the requested mode is unknown", () => {
+    const unknown = applyRuntimeModeOutcome(jacoRequested(), toggleIntent("{data: 'geometric/snake'}"), "unknown");
+    const states = createRuntimeControlStateByWidgetId(sandboxScreen, unknown);
+
+    expect(states["sandbox-mode"]).toEqual({ toggleState: "off", toggleUnconfirmed: true });
+    expect(states["snake-mode-toggle"]).toEqual({ toggleState: "on", toggleUnconfirmed: true });
+  });
+
+  it("leaves the toggle its own state before any mode was requested", () => {
+    expect(createRuntimeControlStateByWidgetId(sandboxScreen, createDefaultRuntimeModeState())).toEqual({});
   });
 });
