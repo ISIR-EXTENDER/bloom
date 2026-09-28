@@ -167,7 +167,7 @@ async def runtime_camera_websocket(websocket: WebSocket) -> None:
 
     topic_error = ros_name_error(topic)
     if topic_error:
-        await websocket.close(code=1008, reason=topic_error[:120])
+        await websocket.close(code=1008, reason=close_reason(topic_error))
         return
 
     open_streams = getattr(websocket.app.state, "camera_streams_open", 0)
@@ -179,6 +179,11 @@ async def runtime_camera_websocket(websocket: WebSocket) -> None:
         await _stream_camera_topic(websocket, topic)
     finally:
         websocket.app.state.camera_streams_open -= 1
+
+
+def close_reason(text: str) -> str:
+    """A WebSocket close reason fits in 123 bytes; cut on a character boundary."""
+    return text.encode("utf-8")[:120].decode("utf-8", errors="ignore")
 
 
 async def _stream_camera_topic(websocket: WebSocket, topic: str) -> None:
@@ -198,7 +203,7 @@ async def _stream_camera_topic(websocket: WebSocket, topic: str) -> None:
     # Any error: rclpy raises its own, and an unanswered close left the widget waiting forever.
     except Exception as error:  # noqa: BLE001
         logger.warning("Cannot stream camera topic %s: %s", topic, error)
-        await websocket.close(code=1011, reason=str(error))
+        await websocket.close(code=1011, reason=close_reason(str(error)))
         return
 
     try:

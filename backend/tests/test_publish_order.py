@@ -151,17 +151,49 @@ def test_a_malformed_header_is_refused_422_before_publishing(raw: str) -> None:
         assert gateway.requests == []
 
 
-def test_a_failed_publish_does_not_record_its_seq() -> None:
+def test_a_publish_the_gateway_fails_still_supersedes_older_ones() -> None:
     client, gateway, _ = make_client()
     with client.websocket_connect("/api/v1/runtime/ws") as websocket:
         headers = owner_headers(websocket)
         gateway.fail_next = True
-        assert client.post(PUBLISH, headers=headers | seq(7), json=bool_msg("/ui/grip", True)).status_code == 503
+        assert client.post(PUBLISH, headers=headers | seq(7), json=bool_msg("/ui/grip", False)).status_code == 503
 
-        retry = client.post(PUBLISH, headers=headers | seq(7), json=bool_msg("/ui/grip", True))
+        # The press issued before that release, still in flight, must not land after it.
+        older = client.post(PUBLISH, headers=headers | seq(6), json=bool_msg("/ui/grip", True))
+        retry = client.post(PUBLISH, headers=headers | seq(8), json=bool_msg("/ui/grip", False))
 
+        assert older.status_code == 409
         assert retry.status_code == 200
-        assert gateway.data("/ui/grip") == [True]
+        assert gateway.data("/ui/grip") == [False]
+
+
+def test_a_publish_refused_by_policy_or_stop_does_not_record_its_seq() -> None:
+    client, gateway, _ = make_client()
+    manager: RuntimeSessionManager = client.app.state.runtime_session_manager
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        headers = owner_headers(websocket)
+        session_id = headers["X-Bloom-Runtime-Session"]
+        refused = {"topic": "/not/allowed", "message_type": "std_msgs/msg/Bool", "payload": {"data": True}}
+        assert client.post(PUBLISH, headers=headers | seq(7), json=refused).status_code == 403
+        assert manager.last_publish_seq(session_id, "/not/allowed") is None
+
+        client.post("/api/v1/runtime/stop")
+        assert client.post(PUBLISH, headers=headers | seq(9), json=bool_msg("/ui/grip", True)).status_code == 409
+        assert manager.last_publish_seq(session_id, "/ui/grip") is None
+
+
+def test_a_committed_operation_that_fails_records_its_seq() -> None:
+    manager = RuntimeSessionManager()
+    session = manager.connect()
+
+    def gateway_down(commit) -> None:
+        commit()
+        raise RuntimeError("down")
+
+    with pytest.raises(RuntimeError):
+        manager.execute_in_publish_order(session.id, "/ui/grip", 6, gateway_down)
+
+    assert manager.last_publish_seq(session.id, "/ui/grip") == 6
 
 
 def test_action_presets_are_ordered_by_their_topic_shared_with_plain_publishes() -> None:
@@ -204,7 +236,7 @@ def test_a_stale_lease_drop_forgets_the_record() -> None:
     manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=lambda: now[0])
     stale = manager.connect()
     manager.claim_control(stale)
-    manager.execute_in_publish_order(stale.id, "/ui/grip", 4, lambda: None)
+    manager.execute_in_publish_order(stale.id, "/ui/grip", 4, lambda _commit: None)
 
     now[0] = 11.0
     manager.claim_control(manager.connect())
@@ -215,20 +247,20 @@ def test_a_stale_lease_drop_forgets_the_record() -> None:
 def test_stop_does_not_reset_the_record() -> None:
     manager = RuntimeSessionManager()
     session = manager.connect()
-    manager.execute_in_publish_order(session.id, "/ui/grip", 4, lambda: None)
+    manager.execute_in_publish_order(session.id, "/ui/grip", 4, lambda _commit: None)
 
     manager.record_runtime_stop("/cmd")
 
     with pytest.raises(PublishSupersededError):
-        manager.execute_in_publish_order(session.id, "/ui/grip", 3, lambda: None)
+        manager.execute_in_publish_order(session.id, "/ui/grip", 3, lambda _commit: None)
 
 
-def test_a_failed_operation_leaves_the_last_applied_seq() -> None:
+def test_an_operation_refused_before_commit_leaves_the_last_applied_seq() -> None:
     manager = RuntimeSessionManager()
     session = manager.connect()
-    manager.execute_in_publish_order(session.id, "/ui/grip", 4, lambda: None)
+    manager.execute_in_publish_order(session.id, "/ui/grip", 4, lambda _commit: None)
 
-    def fail() -> None:
+    def fail(_commit) -> None:
         raise RuntimeError("down")
 
     with pytest.raises(RuntimeError):
@@ -236,7 +268,7 @@ def test_a_failed_operation_leaves_the_last_applied_seq() -> None:
 
     assert manager.last_publish_seq(session.id, "/ui/grip") == 4
     with pytest.raises(PublishSupersededError):
-        manager.execute_in_publish_order(session.id, "/ui/grip", 3, lambda: None)
+        manager.execute_in_publish_order(session.id, "/ui/grip", 3, lambda _commit: None)
 
 
 def test_a_lower_seq_arriving_while_a_higher_one_publishes_is_refused() -> None:
@@ -246,7 +278,7 @@ def test_a_lower_seq_arriving_while_a_higher_one_publishes_is_refused() -> None:
     outcomes: dict[int, str] = {}
     inside, release = Event(), Event()
 
-    def higher() -> None:
+    def higher(_commit) -> None:
         inside.set()
         release.wait(2)
         applied.append(2)
@@ -261,7 +293,7 @@ def test_a_lower_seq_arriving_while_a_higher_one_publishes_is_refused() -> None:
     first = Thread(target=run, args=(2, higher))
     first.start()
     assert inside.wait(2)
-    second = Thread(target=run, args=(1, lambda: applied.append(1)))
+    second = Thread(target=run, args=(1, lambda _commit: applied.append(1)))
     second.start()
     time.sleep(0.05)
     release.set()

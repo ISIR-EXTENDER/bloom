@@ -1,3 +1,4 @@
+import math
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -139,6 +140,12 @@ class Settings(BaseModel):
     max_manager_linear_acceleration: float = Field(default=6.0, gt=0, allow_inf_nan=False)
     max_manager_angular_acceleration: float = Field(default=6.0, gt=0, allow_inf_nan=False)
     max_jaco_angular_velocity: float = Field(default=1.2, gt=0, allow_inf_nan=False)
+    #: Petanque throw tuning: the admin sliders' ranges. The controller divides by total_duration squared and
+    #: takes tan(finish angle), so the duration stays above zero and the angle short of pi/2.
+    min_petanque_total_duration: float = Field(default=0.5, gt=0, allow_inf_nan=False)
+    max_petanque_total_duration: float = Field(default=10.0, gt=0, allow_inf_nan=False)
+    max_petanque_alpha: float = Field(default=0.5, ge=0, lt=math.pi / 2, allow_inf_nan=False)
+    max_petanque_finish_angle: float = Field(default=0.5, ge=0, lt=math.pi / 2, allow_inf_nan=False)
     #: Worker threads blocking ROS reads (parameters, robot model) may hold at once.
     ros_read_concurrency: int = Field(default=4, ge=1)
     # Per topic, per socket: the newest sample each interval. Zero forwards every sample.
@@ -205,6 +212,12 @@ class Settings(BaseModel):
                 "allowed_command_frame_ids",
                 (*self.allowed_command_frame_ids, ee_frame_id),
             )
+        return self
+
+    @model_validator(mode="after")
+    def petanque_duration_range_is_ordered(self) -> "Settings":
+        if self.min_petanque_total_duration > self.max_petanque_total_duration:
+            raise ValueError("min_petanque_total_duration must not exceed max_petanque_total_duration")
         return self
 
     @model_validator(mode="after")
@@ -376,6 +389,18 @@ class Settings(BaseModel):
             ),
             max_jaco_angular_velocity=_read_float_env(
                 "BLOOM_MAX_JACO_ANGULAR_VELOCITY", cls.model_fields["max_jaco_angular_velocity"].default
+            ),
+            min_petanque_total_duration=_read_float_env(
+                "BLOOM_MIN_PETANQUE_TOTAL_DURATION", cls.model_fields["min_petanque_total_duration"].default
+            ),
+            max_petanque_total_duration=_read_float_env(
+                "BLOOM_MAX_PETANQUE_TOTAL_DURATION", cls.model_fields["max_petanque_total_duration"].default
+            ),
+            max_petanque_alpha=_read_float_env(
+                "BLOOM_MAX_PETANQUE_ALPHA", cls.model_fields["max_petanque_alpha"].default
+            ),
+            max_petanque_finish_angle=_read_float_env(
+                "BLOOM_MAX_PETANQUE_FINISH_ANGLE", cls.model_fields["max_petanque_finish_angle"].default
             ),
             runtime_topic_max_rate_hz=_read_int_env(
                 "BLOOM_RUNTIME_TOPIC_MAX_RATE_HZ",

@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from dataclasses import asdict
 from hashlib import sha256
 from typing import Any
@@ -42,6 +43,7 @@ from libs.ros_adapters import (
     RosPublishReceipt,
     RosPublishRequest,
     RosServiceGateway,
+    RosServiceReceipt,
     RosServiceRequest,
     SafeRosPublishError,
     publish_with_runtime_policy,
@@ -288,7 +290,7 @@ def dispatch_runtime_action(
         record_runtime_action_rejection(audit_log, action_request, preset, payload, str(exc))
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    def publish_and_record() -> RosPublishReceipt:
+    def publish_and_record(commit: Callable[[], None]) -> RosPublishReceipt:
         receipt = stop_controller.execute_if_running(
             lambda: publish_with_runtime_policy(
                 get_ros_publisher_gateway(request),
@@ -296,6 +298,7 @@ def dispatch_runtime_action(
                 audit_log,
                 ros_publish_request,
                 get_runtime_command_rate_limiter(request),
+                before_publish=commit,
             )
         )
         # Under the lease gate a release waits on, as the HTTP publish path does.
@@ -373,16 +376,17 @@ def dispatch_service_call_preset(
         raise reject(429, str(exc)) from exc
 
     ros_service_gateway: RosServiceGateway = request.app.state.ros_service_gateway
+
+    def call(commit: Callable[[], None]) -> RosServiceReceipt:
+        commit()
+        return ros_service_gateway.call(RosServiceRequest(service=preset.topic, service_type=preset.message_type))
+
     try:
         receipt = execute_ordered_as_runtime_owner(
             request,
             preset.topic,
             seq,
-            lambda: stop_controller.execute_blocking_if_running(
-                lambda: ros_service_gateway.call(
-                    RosServiceRequest(service=preset.topic, service_type=preset.message_type)
-                )
-            ),
+            lambda commit: stop_controller.execute_blocking_if_running(lambda: call(commit)),
         )
     except PublishSupersededError as exc:
         reject(409, str(exc), {"reason": "superseded", "publish_seq": seq})

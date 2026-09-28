@@ -161,3 +161,19 @@ def test_the_subscription_uses_sensor_data_qos() -> None:
 
     assert node.created == [(FakeCompressedImage, "/camera/color/image_raw/compressed", "sensor-data")]
     assert node.destroyed == 1
+
+
+class FailingCameraStreamGateway:
+    def subscribe(self, topic: str, on_frame):
+        raise RuntimeError("caméra indisponible: " + "é" * 200)
+
+
+def test_a_long_subscribe_error_is_cut_to_a_valid_close_reason() -> None:
+    with build_client(FailingCameraStreamGateway()) as client:
+        with client.websocket_connect("/api/v1/runtime/camera?topic=/camera/color/image_raw/compressed") as socket:
+            with pytest.raises(WebSocketDisconnect) as refusal:
+                socket.receive_json()
+
+    assert refusal.value.code == 1011
+    assert refusal.value.reason.startswith("caméra indisponible")
+    assert len(refusal.value.reason.encode("utf-8")) <= 120

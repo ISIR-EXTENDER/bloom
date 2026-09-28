@@ -194,7 +194,9 @@ def publish_seq(request: Request) -> int | None:
         ) from exc
 
 
-def execute_ordered_as_runtime_owner(request: Request, target: str, seq: int | None, operation: Callable[[], T]) -> T:
+def execute_ordered_as_runtime_owner(
+    request: Request, target: str, seq: int | None, operation: Callable[[Callable[[], None]], T]
+) -> T:
     """Run a robot publish inside the lease gate, refused when a newer one already went to its target."""
     manager = request.app.state.runtime_session_manager
     session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()

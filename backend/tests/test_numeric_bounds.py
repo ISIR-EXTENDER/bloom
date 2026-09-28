@@ -179,5 +179,85 @@ def test_the_default_caps_cover_every_shipped_slider() -> None:
             for value in node:
                 walk(value)
 
-    for path in DEFAULT_SEED_DIR.glob("applications/*.json"):
+    for path in DEFAULT_SEED_DIR.glob("*.json"):
         walk(json.loads(path.read_text()))
+
+
+PETANQUE_PARAMETERS = ("total_duration", "alpha", "angle_between_start_and_finish")
+
+
+@pytest.mark.parametrize(
+    ("name", "refused", "accepted"),
+    [
+        ("total_duration", 0.0, 2.0),
+        ("total_duration", -1.0, 0.5),
+        ("total_duration", 0.1, 5.0),
+        ("alpha", -0.1, 0.0),
+        ("alpha", 40.0, 0.5),
+        ("angle_between_start_and_finish", 0.6, 0.5),
+        ("angle_between_start_and_finish", -1.57, -0.5),
+    ],
+)
+def test_petanque_throw_parameters_are_bounded(name: str, refused: float, accepted: float) -> None:
+    test_client = client()
+    body = {"node": "/petanque_throw", "name": name}
+    assert test_client.post(PARAMETER_SET, json={**body, "value": refused}).status_code == 422
+    assert test_client.post(PARAMETER_SET, json={**body, "value": accepted}).status_code == 200
+
+
+def test_a_lab_can_move_the_petanque_bounds_in_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BLOOM_MIN_PETANQUE_TOTAL_DURATION", "1.0")
+    monkeypatch.setenv("BLOOM_MAX_PETANQUE_ALPHA", "0.8")
+    monkeypatch.setenv("BLOOM_RUNTIME_CONTROL_REQUIRED", "false")
+    monkeypatch.setenv("BLOOM_HTTP_RATE_LIMIT_PER_MINUTE", "0")
+    test_client = TestClient(create_app(Settings.from_environment(), InMemoryConfigurationRepository()))
+    duration = {"node": "/petanque_throw", "name": "total_duration", "value": 0.7}
+    alpha = {"node": "/petanque_throw", "name": "alpha", "value": 0.7}
+    assert test_client.post(PARAMETER_SET, json=duration).status_code == 422
+    assert test_client.post(PARAMETER_SET, json=alpha).status_code == 200
+
+
+def test_settings_refuse_a_petanque_bound_the_controller_cannot_take() -> None:
+    with pytest.raises(ValueError):
+        Settings(max_petanque_finish_angle=1.6)
+    with pytest.raises(ValueError):
+        Settings(min_petanque_total_duration=0.0)
+    with pytest.raises(ValueError):
+        Settings(min_petanque_total_duration=3.0, max_petanque_total_duration=2.0)
+
+
+def test_every_petanque_seed_slider_stays_within_the_default_bounds() -> None:
+    from libs.config.seed import DEFAULT_SEED_DIR
+    from libs.ros_adapters.safety import petanque_parameter_bounds
+
+    settings = Settings()
+    bounds = {
+        key: (lower, upper)
+        for key, lower, upper in petanque_parameter_bounds(
+            settings.min_petanque_total_duration,
+            settings.max_petanque_total_duration,
+            settings.max_petanque_alpha,
+            settings.max_petanque_finish_angle,
+        )
+    }
+    seen: set[str] = set()
+
+    def walk(node: object) -> None:
+        if isinstance(node, dict):
+            mapping = node.get("runtime_binding", {}).get("value_mapping", {}) if "runtime_binding" in node else {}
+            key = f"{mapping.get('node')}:{mapping.get('parameter')}"
+            if key in bounds:
+                seen.add(key)
+                lower, upper = bounds[key]
+                for field in ("min", "max", "value"):
+                    if field in node:
+                        assert lower <= node[field] <= upper, (key, field, node[field])
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    for path in DEFAULT_SEED_DIR.glob("*.json"):
+        walk(json.loads(path.read_text()))
+    assert seen == {f"/petanque_throw:{name}" for name in PETANQUE_PARAMETERS}

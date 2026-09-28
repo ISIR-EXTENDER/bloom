@@ -30,6 +30,10 @@ MAX_RUNTIME_SESSIONS = 32
 CONTROL_LEASE_TIMEOUT_SEC = 10.0
 
 
+def _no_commit() -> None:
+    return None
+
+
 @dataclass(frozen=True)
 class RuntimeSession:
     id: str
@@ -227,10 +231,16 @@ class RuntimeSessionManager:
                 self._last_seen[session_id] = self._clock()
             return operation()
 
-    def execute_in_publish_order(self, session_id: str, target: str, seq: int | None, operation: Callable[[], T]) -> T:
-        """Refuse a publish whose seq is not above the last one applied; record it only once it succeeded."""
+    def execute_in_publish_order(
+        self, session_id: str, target: str, seq: int | None, operation: Callable[[Callable[[], None]], T]
+    ) -> T:
+        """Refuse a publish whose seq is not above the last one applied.
+
+        The operation calls `commit` once past policy and STOP, just before the gateway: from then its seq
+        supersedes older ones even if the gateway fails, and the client's retry carries a higher seq.
+        """
         if seq is None:
-            return operation()
+            return operation(_no_commit)
         with self._publish_order_lock:
             with self._lock:
                 # A request from no connected session has nothing to order against.
@@ -238,11 +248,15 @@ class RuntimeSessionManager:
                 last = self._publish_seqs.get(session_id, {}).get(target)
                 if ordered and last is not None and seq <= last:
                     raise PublishSupersededError(target)
-            result = operation()
-            if ordered:
-                with self._lock:
-                    if session_id in self._sessions:
-                        self._publish_seqs.setdefault(session_id, {})[target] = seq
+
+            def commit() -> None:
+                if ordered:
+                    with self._lock:
+                        if session_id in self._sessions:
+                            self._publish_seqs.setdefault(session_id, {})[target] = seq
+
+            result = operation(commit)
+            commit()
             return result
 
     def last_publish_seq(self, session_id: str, target: str) -> int | None:

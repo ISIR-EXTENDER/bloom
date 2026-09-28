@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -275,9 +276,11 @@ def publish_ros_topic(
     manager = request.app.state.runtime_session_manager
     session_id = request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
 
-    def publish_and_record() -> RosPublishReceipt:
+    def publish_and_record(commit: Callable[[], None]) -> RosPublishReceipt:
         receipt = stop_controller.execute_if_running(
-            lambda: publish_with_runtime_policy(gateway, policy, audit_log, ros_publish_request, rate_limiter)
+            lambda: publish_with_runtime_policy(
+                gateway, policy, audit_log, ros_publish_request, rate_limiter, before_publish=commit
+            )
         )
         # The shipped mode buttons publish here, not as action presets. Recorded under the lease gate a
         # release waits on, so a release never misses it and a non-owner never keeps it.

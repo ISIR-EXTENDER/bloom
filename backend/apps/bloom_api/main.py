@@ -44,6 +44,7 @@ from libs.ros_adapters.safety import (
     MAX_LINEAR_SPEED_TOPIC,
     RuntimeCommandPolicy,
     manager_parameter_bounds,
+    petanque_parameter_bounds,
 )
 from libs.ros_adapters.teleop_targets import TeleopTargetDirectory
 from libs.sessions import (
@@ -129,6 +130,12 @@ def create_app(
             app_settings.max_manager_linear_acceleration,
             app_settings.max_manager_angular_acceleration,
             app_settings.max_jaco_angular_velocity,
+        )
+        + petanque_parameter_bounds(
+            app_settings.min_petanque_total_duration,
+            app_settings.max_petanque_total_duration,
+            app_settings.max_petanque_alpha,
+            app_settings.max_petanque_finish_angle,
         ),
     )
     # The manager's input topics, read from its parameters; the ROS launcher starts the reads.

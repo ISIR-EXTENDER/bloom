@@ -25,8 +25,23 @@ def manager_parameter_bounds(
     )
 
 
+PETANQUE_THROW_NODE = "/petanque_throw"
+
+
+def petanque_parameter_bounds(
+    min_total_duration: float, max_total_duration: float, max_alpha: float, max_finish_angle: float
+) -> tuple[tuple[str, float, float], ...]:
+    # The throw divides by total_duration squared and takes tan(angle_between_start_and_finish).
+    return (
+        (f"{PETANQUE_THROW_NODE}:total_duration", min_total_duration, max_total_duration),
+        (f"{PETANQUE_THROW_NODE}:alpha", 0.0, max_alpha),
+        (f"{PETANQUE_THROW_NODE}:angle_between_start_and_finish", -max_finish_angle, max_finish_angle),
+    )
+
+
 #: About 3x what cartesian_manager ships: 2.0 for both accelerations, 0.4 rad/s for jaco.
-DEFAULT_PARAMETER_BOUNDS = manager_parameter_bounds(6.0, 6.0, 1.2)
+#: Petanque: the Petanque admin sliders' ranges, with duration room up to 10 s.
+DEFAULT_PARAMETER_BOUNDS = manager_parameter_bounds(6.0, 6.0, 1.2) + petanque_parameter_bounds(0.5, 10.0, 0.5, 0.5)
 _FLOAT32_MAX = 3.4028234663852886e38
 _INTEGER_RANGES: dict[str, tuple[int, int]] = {
     "std_msgs/msg/Int32": (-(2**31), 2**31 - 1),

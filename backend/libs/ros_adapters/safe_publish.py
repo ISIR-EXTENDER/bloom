@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Literal
 
@@ -23,6 +24,7 @@ def publish_with_runtime_policy(
     publish_request: RosPublishRequest,
     rate_limiter: RuntimeCommandRateLimiter | None = None,
     mode_request_topics: tuple[str, ...] = (MODE_REQUEST_TOPIC,),
+    before_publish: Callable[[], None] | None = None,
 ) -> RosPublishReceipt:
     try:
         publish_request = normalize_mode_request_payload(publish_request, mode_request_topics)
@@ -42,6 +44,10 @@ def publish_with_runtime_policy(
     except RuntimePayloadShapeError as exc:
         record_publish_audit(audit_log, publish_request, str(exc), "rejected")
         raise SafeRosPublishError(detail=str(exc), status_code=422) from exc
+
+    # Past policy: a rate-limit or gateway failure below still counts as issued.
+    if before_publish is not None:
+        before_publish()
 
     if rate_limiter is not None:
         try:
