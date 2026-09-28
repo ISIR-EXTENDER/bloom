@@ -67,3 +67,10 @@ request without an accepted reply marks its family unknown, not the previous mod
 - STOP and leaving still reset shaping, servoing and joint targets on the server; this decision covers the time
   in between.
 - A lab script that publishes without the header keeps the old behaviour; the operator runtime always sends it.
+
+## Amendment (2026-09-28)
+
+Section 1 stands. Sections 2 and 3, the client-side state per target with its retries and "Not confirmed" marks, are
+replaced by [ADR 0142](0142-command-state-lives-in-the-backend.md): the backend owns command state and every screen
+renders its pushed snapshot. Parameter sets on `POST /ros/parameters/set` and service calls carry `X-Bloom-Publish-Seq`
+too, ordered per node and parameter, or per service.

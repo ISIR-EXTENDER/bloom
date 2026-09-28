@@ -130,6 +130,18 @@ page (ADR 0141). Under the lease lock, a seq not above the last one applied for 
 preset's topic or service) is not published and gets `409` with `detail: {"code": "superseded", "message": ...}`. A
 malformed value is a `422`; without the header a request is applied as before.
 
+The backend also owns command state (ADR 0142). `CommandStateStore` keeps one entry per target — a topic,
+`/hub/digital_output:<pin>`, `param:<node>:<name>`, `service:<name>`, `manager:shaping`, `manager:behaviour`,
+`manager:target`, `servoing:active` and `petanque:state` — as `{value, source, updated_at, by, revision}`, where
+`source` is `measured`, `commanded`, `reset` or `unknown`. Every accepted publish, parameter set and service call
+writes it, and so do the server's own STOP and leave resets. `RclpyCommandStateFeedback` subscribes, apart from any
+widget, to the command topics themselves (mode requests, the gripper, the speed limits, the digital outputs, the
+servo switch), to `/parameter_events` seeded with `get_parameters`, to `/joint_states` for the Kinova finger, to
+`/fsm_viewer`, to `/visual_servoing/velocity_command` as a liveness signal and to `/ee_pose` to see a pose target
+reached, and marks a node's keys unknown when it leaves the graph. The runtime socket pushes
+`{"type": "command_state", "revision": N, "self": "<alias>", "snapshot": {...}}` on connect, on change (at most
+20 Hz) and every 500 ms. The frontend renders that snapshot and nothing else: no retries, no inferred state.
+
 The backend then reloads the saved configuration, resolves the command against the app's saved `action_presets`,
 rejects anything no saved preset backs, parses the payload, applies the app runtime policy, applies the global ROS
 policy and rate limit, publishes through the configured gateway, and audits the accepted or rejected operation.

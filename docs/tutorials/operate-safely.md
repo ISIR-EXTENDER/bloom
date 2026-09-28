@@ -60,21 +60,25 @@ Two more things the bar tells you, and they matter:
 - **Command failed** means the backend refused, blocked or could not complete the action, or did not reply.
 - **Not sent** means the configured gateway simulated it.
 
-A toggle, a mode button or a held Snake shows what you asked for straight away. It is not proof that the robot did it:
+A toggle or a mode button shows what the backend knows about the robot, not what this screen last sent. It is not
+proof that the robot did it:
 
-- When the backend accepts, the state is confirmed.
-- When it gives no reply, the control keeps what you asked for, reads **Not confirmed**, and re-sends it (after
-  250 ms, 500 ms, 1 s, 2 s, then every 2 s). After about 4 s the mark reads **Robot has not confirmed — STOP if in
-  doubt**. A mode with no reply lights no mode and reads **Mode not confirmed**.
-- When it refuses (STOP latched, not in control, not allowed, simulated), the control goes back to its last
-  confirmed state and the bar reads **Command failed** or **Not sent**.
+- **Sending…** means the backend has not recorded your press yet; it clears within 3 s.
+- **last asked** means the value was published, by you, another tablet or the robot's own scripts, and the robot
+  does not report that state back. **reported by the robot** means it does, and this is what it reports.
+- **Unknown** means the backend has not seen that state, or lost it (the manager restarted). The control lights
+  neither side and offers both actions, for example **Close gripper** and **Open gripper**.
+- When the backend gives no reply, the control reads **Not confirmed by the robot** until the backend reports that
+  target again. The screen never re-sends.
+- When it refuses (STOP latched, not in control, not allowed, simulated), the control keeps showing what the backend
+  knows and the bar reads **Command failed** or **Not sent**.
 
-What to do when a control reads **Not confirmed**:
+What to do when a control reads **Not confirmed by the robot** or **Unknown**:
 
-- Do not press again to test it; it is already re-sending.
+- Do not press again to test it; the next update from the backend says what happened.
 - Watch the arm.
-- Press STOP if the mark escalates or the arm does not match the screen. STOP cancels every pending on, press and
-  mode request, so nothing is re-applied after Resume without a new press.
+- Press STOP if the arm does not match the screen. STOP resets the shaper, cancels a target and switches visual
+  servoing off on the backend, every screen shows that, and nothing is re-applied after Resume without a new press.
 
 A latched or stepped control lets go by itself after 15 seconds without input. For the last 5 seconds it reads
 **Releases in N s** and shows a **Keep going** button: press it to keep holding without moving anything.

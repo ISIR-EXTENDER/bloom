@@ -48,9 +48,28 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **A real High visibility theme.** It was the Extender theme under another name; it is black on white with strong
   outlines.
 - **Publishes apply in the order they were sent**
-  ([ADR 0141](docs/decisions/0141-ordered-publishes-and-confirmed-state.md)). Each runtime publish and action carries `X-Bloom-Publish-Seq`; the server keeps the highest sequence it applied per
-  session and topic, and answers an older one with 409 `superseded`, unpublished and audited. A request without the
-  header behaves as before.
+  ([ADR 0141](docs/decisions/0141-ordered-publishes-and-confirmed-state.md)). Each runtime publish, action,
+  parameter set and service call carries `X-Bloom-Publish-Seq`; the server keeps the highest sequence it applied per
+  session and target (a topic, a node parameter, a service), and answers an older one with 409 `superseded`,
+  unpublished and audited. A request without the header behaves as before.
+- **The backend owns command state** ([ADR 0142](docs/decisions/0142-command-state-lives-in-the-backend.md)). One
+  store holds what each command target holds and where it came from: read back from the robot (parameters, the
+  Kinova gripper finger, the Petanque state machine, visual servoing seen commanding), last asked by anyone (the
+  backend subscribes to its own command topics, so the joystick mapper, another tablet and a lab script show up), reset
+  by STOP or a leave, or unknown. The runtime socket pushes the whole store to every screen, supervisor included, on
+  connect, on change and every 500 ms.
+- **Pose targets are one-shot behaviours.** `behaviour/pose_target/<name>` (cartesian_manager#11) is accepted like a
+  joint target: STOP and an owner leaving cancel it, and the store returns the behaviour to passthrough when the arm
+  reaches the pose, or forgets it after 30 s unseen.
+- **A service call carries its request.** Any service type the deployment allows can be called with its fields,
+  checked field by field like a publish; a service that answers `success: false` is reported as refused, and the
+  control shows the answer.
+- **Service-call presets in the Builder.** A preset can be a service call with its request fields, existing presets
+  can be edited, and the CLI line shows the `ros2 service call`. A navigation button opens a screen by purpose instead
+  of a magic command.
+- **The inspector and checklist flag what the robot will refuse**: mode-request typos, frame buttons the robot
+  refuses, speed caps, Go home and pose targets on a Kinova, empty toggle payloads, and a service or type the
+  deployment refuses. The capability report names the mode requests this robot refuses.
 - **STOP AGAIN.** It appears beside Resume when a STOP never reached the backend or the backend could not assert it on
   ROS. The supervisor mirror reads **Stopped, not confirmed on the robot**, with the reason.
 - **`BLOOM_TELEOP_DEADMAN_TIMEOUT_SEC`** (0.5 s). On the legacy `teleop_command` backend, which never expires a twist,
@@ -63,13 +82,15 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Changed
 
-- **A stateful control shows what the operator asked for, and says when the robot has not confirmed it.** Toggles,
-  latched mode buttons and the held Snake used to change only after the backend acknowledged them. They now show the
-  requested state at once. With no reply (timeout, network error, 500/502/503/504) or a 429 they read **Not
-  confirmed** and re-send at 250 ms, 500 ms, 1 s, 2 s, then every 2 s; after about 4 s the mark reads **Robot has not
-  confirmed — STOP if in doubt**. A refused send returns to the last confirmed state with **Command failed** or **Not
-  sent**, and a mode request with no reply lights no mode. STOP and suspend cancel a pending on, press or mode, so
-  nothing is re-applied after Resume without a new press.
+- **A stateful control shows what the backend knows, and says where it comes from**
+  ([ADR 0142](docs/decisions/0142-command-state-lives-in-the-backend.md)). Toggles, latched mode buttons and
+  parameter switches used to show what this screen last sent and re-send it until the robot answered. They now render
+  the backend's store only: a press reads **Sending…** until the store moves or 3 s pass; a known state is marked
+  **last asked** or **reported by the robot**; an unknown one reads **Unknown**, lights neither side and offers both
+  actions (**Close gripper** and **Open gripper**). Nothing is re-sent by the screen. A refused send keeps the store's
+  state with **Command failed** or **Not sent**; a send with no reply reads **Not confirmed by the robot** until the
+  store reports that target again. Shaping and behaviour are tracked apart, so Go home no longer unlights Jaco, and a
+  second tablet, the joystick mapper or a lab script pressing the same topic shows up on every screen.
 - **STOP engages on the key press.** Space or Enter on a focused STOP used to act on release; a fresh keydown now
   stops, and a held key's auto-repeat never stops or resumes a second time.
 - **The scanner alone owns a switch's keys** wherever the saved preset is scan: Enter and Space go to the active
@@ -79,8 +100,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   rest 1.5 s (or two scan periods), and a dwell that fired STOP does not carry over onto Resume.
 - **Maintenance exits are not scanned.** Exit to library, Supervisor mirror, Edit, Help and Home lead to pages with no
   scanner, so a caregiver opens them by touch, and the sheet says so. STOP is in the sheet's Tab loop.
-- **STOP resets the shaper.** It also sends `geometric/both`, so a Snake or Jaco does not outlive the latch, and the
-  screen shows Both after STOP (no mode when the STOP was not confirmed).
+- **STOP resets the shaper.** It also sends `geometric/both`, so a Snake or Jaco does not outlive the latch, and
+  every screen shows Both once the backend has published the reset.
 - **Visual servoing switches off on suspend.** Settings, maintenance, a screen change or a crash turn the servo switch
   off; other toggles, such as the gripper, stay as they are.
 - **One twist per teleop target.** A pad on a second manager input no longer sends the first pad's axes too. A widget's
@@ -168,6 +189,24 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **The command preset library points at topics that can work.** The trigger example published to `/example/trigger`,
   which no deployment allows, and now uses `/ui/trigger`; the Petanque command says it needs that stack; Neutral and
   Snake join the manager presets.
+- **Readings follow best-effort and latched publishers.** Reading widgets and the camera subscribed with one fixed
+  QoS, so such a topic delivered nothing (ORTHOPUS hit this); the subscription now takes reliability and durability
+  from the publishers, as `ros2 topic echo` does, and the camera stays best effort.
+- **A Resume always names the STOP it answers.** One without `engaged_at` is refused with 409 while a STOP is latched,
+  so an old client or a script cannot clear a latch it never saw, and a station that never saw the latch cannot clear
+  another station's; a 409 refreshes to the newer latch.
+- **A switch user stays on a scanned screen.** Under scan, roles with no scanner are touch-only, so a one-switch
+  operator cannot lose STOP; at fast scan periods the Resume lockout reads **Let go of the switch** until it ends.
+- **One dwell memory for every surface.** A rest that closes a sheet no longer fires the control beneath it, 2 px of
+  tremor across STOP's edge no longer arms and confirms Resume, Back to Builder and roles without dwell are touch-only
+  under dwell, Settings keeps a switch or dwell user's input method from being changed by that input, and an armed
+  Resume keeps its full hold after a re-arm.
+- **One-shot targets send once.** A pose or joint target button was retried like a mode button, re-sending the arm to
+  the pose; a pose target preset asks for a second press.
+- **Mode requests are checked on every `*mode_request` topic**, and pose targets are refused on a Kinova like Go home.
+  STOP forgets only the zeros it published, every cleanup step on a leave runs, and a disconnect that cannot
+  neutralize engages STOP with or without the lease.
+- **The checklist no longer flags a held String button that sends its command.**
 
 ## [0.4.1] - 2026-09-26
 

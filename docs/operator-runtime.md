@@ -112,30 +112,48 @@ unknown and does not disable the screen by guesswork.
 
 ### What a stateful control shows
 
-Since [ADR 0141](decisions/0141-ordered-publishes-and-confirmed-state.md), a toggle, a latched mode button or the
-momentary Snake shows the state the operator asked for at once, and keeps sending it until the robot answers:
+Since [ADR 0142](decisions/0142-command-state-lives-in-the-backend.md), the backend keeps one record per command
+target (a topic, a `/hub/digital_output` pin, a node parameter, the manager's shaping mode, behaviour and target,
+visual servoing, the Petanque state) and pushes the whole record to every runtime socket, supervisor included: on
+connect, on every change (at most 20 times a second) and every 500 ms regardless. A toggle, a latched mode button or
+a parameter switch renders that record and nothing else; the screen keeps no state of its own and never re-sends.
 
-- **Accepted** (`accepted`, `called` or `published`): the state is confirmed.
-- **No reply** (a timeout, a network error, or a 500, 502, 503 or 504) or a rate limit (429): the robot may have
-  applied it. The control keeps the requested state, reads **Not confirmed** after half a second, and re-sends it
-  after 250 ms, 500 ms, 1 s and 2 s, then every 2 s. After about 4 s the mark reads **Robot has not confirmed — STOP
-  if in doubt**. The kiosk bar reads **Command failed** for the send that got no reply.
+Each record says where its value came from:
+
+- **reported by the robot**: a parameter read back from `/parameter_events`, the Kinova gripper finger in
+  `/joint_states`, the Petanque state machine on `/fsm_viewer`, or visual servoing seen commanding on
+  `/visual_servoing/velocity_command`.
+- **last asked**: the last value published on the command topic, by this tablet, another tablet, the joystick mapper
+  or the server's own STOP and leave resets. The backend subscribes to its own command topics, so a press from any
+  source shows up. `cartesian_manager` reports no mode, so shaping, behaviour and targets, the speed limits and the
+  digital outputs stay **last asked**.
+- **Unknown**: never seen, or lost (the manager restarted, a pose target that nobody saw end for 30 s). The control
+  lights neither side and offers both actions, for example **Close gripper** and **Open gripper**; a known state
+  offers one.
+
+A press only sends the request:
+
+- The control reads **Sending…** until the store moves or 3 s pass, then shows whatever the store says.
+- **Accepted** (`accepted`, `called` or `published`): the store records the value as last asked at once; the robot's
+  feedback, where there is any, turns it into reported by the robot.
+- **No reply** (a timeout, a network error, or a 500, 502, 503 or 504): the robot may have applied it. The control
+  keeps showing the store and reads **Not confirmed by the robot** until the store moves on that target; nothing is
+  re-sent. The kiosk bar reads **Command failed** for the send that got no reply.
 - **Refused** (STOP latched, not in control, outside the app's policy, any other 4xx, or simulated with no ROS): the
-  robot did not apply it. The control returns to its last confirmed state, nothing is re-sent, and the kiosk bar
-  raises **Command failed** or **Not sent** with the backend detail. If an earlier send of it got no reply, it stays
-  marked **Not confirmed** instead, since the robot may hold that one.
-- **Superseded** (409): a newer send on the same topic already won; nothing to do.
-- A mode request with no reply lights no mode and reads **Mode not confirmed**.
+  robot did not apply it. The control keeps showing the store, with the reason as its mark, and the kiosk bar raises
+  **Command failed** or **Not sent** with the backend detail.
+- **Superseded** (409): a newer send on the same target already won; nothing to do.
+- A joint target sends once and is never lit. A pose target stays lit until the arm reaches it, when the store
+  returns the behaviour to passthrough.
 
-STOP and suspend cancel a pending on, press or mode request, so nothing is re-applied after Resume without a new
-press. The off and release states they ask for keep being sent. A control removed from the screen still finishes
-its last state, giving up after 60 s.
+STOP and a leave publish their resets themselves (shaping to Both, visual servoing off, a target cancelled), and the
+store shows them on every screen; nothing is re-applied after Resume without a new press.
 
 What to do when a mark shows:
 
-- Do not press again to test it; the control is already re-sending.
+- Do not press again to test it; the next push from the backend says what happened.
 - Watch the arm.
-- Press STOP if the mark escalates to **Robot has not confirmed** or the arm does not match the screen.
+- Press STOP if the arm does not match the screen.
 
 A simulated response is useful in development but is not robot work.
 
@@ -210,8 +228,8 @@ configuration and app, but the tour remains available for repetition.
   Outside scan, Enter or Space on a focused STOP engages it on the key press, not the release; under scan those keys
   are the switch. A held key's auto-repeat never stops or resumes a second time; only a fresh press does.
 - The latch cancels a joint target in progress (Go home), switches visual servoing off, and resets the shaper to
-  **Both**, and the screen then shows Both. It also cancels a pending on, press or mode request, so nothing is
-  re-applied after Resume without a new press.
+  **Both**, and the screen then shows Both. The backend records those resets in the command-state store, so every
+  screen shows them, and the screen keeps no pending press to re-apply after Resume.
 - If the backend cannot be reached, the controls stay stopped on this screen, it shows the error, and
   **HOLD TO RESUME** is the way back.
 - **STOP AGAIN** appears beside Resume when a STOP never reached the backend, or when the latch is on but the backend

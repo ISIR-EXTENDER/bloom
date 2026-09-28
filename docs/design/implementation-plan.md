@@ -418,8 +418,8 @@ a stored `Auto`.
 - Keyboard: every control reachable, STOP engage on Enter/Space, the 1.5 s and 1 s holds usable by keyboard.
 - Scan and dwell: scanning order on both Drive layouts and the settings screen; segment targets reachable; STOP never
   skipped.
-- Screen readers: roles, pressed and selected states, and the "requested, never confirmed" wording kept in accessible
-  names.
+- Screen readers: roles, pressed and selected states, and the source wording ("last asked", "reported by the robot",
+  "Unknown") kept in accessible names.
 
 ### 6.5 Robot-facing verification
 

@@ -155,8 +155,8 @@ kiosk height. Change the shared value only through an explicit design/architectu
 
 - Add a robot profile so Extender topic, mode, actuator, feedback, and frame defaults stop living in several frontend and
   backend constants.
-- Add authoritative mode feedback when `cartesian_manager` publishes it. Bloom currently shows last requested, not
-  confirmed controller state.
+- Add authoritative mode feedback when `cartesian_manager` publishes it. Bloom's command-state store holds the
+  manager's mode as last asked, never as reported by the robot (ADR 0142).
 - Petanque's future was decided on 2026-09-23: maintained, rebased onto `cartesian_manager` and the
   apps-petanque state machine, and active again.
 - Add a concrete non-ROS transport only when a real non-ROS project needs one; keep the ROS-free backend path healthy.

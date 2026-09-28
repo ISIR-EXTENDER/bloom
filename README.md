@@ -513,11 +513,14 @@ The kiosk, controls, profiles, gamepad, and command-frame contract is in the
 [operator runtime guide](docs/operator-runtime.md). Deployment settings and tablet startup are in the
 [Extender workspace deployment guide](docs/deployment.md).
 
-A toggle or mode button shows the state the operator asked for at once. If the robot does not reply, it keeps that
-state marked **Not confirmed** and re-sends it (250 ms, 500 ms, 1 s, 2 s, then every 2 s); after about 4 s the mark
-reads **Robot has not confirmed — STOP if in doubt**. A refused send returns the control to its last confirmed state,
-with **Command failed** (blocked, unsupported, failed) or **Not sent** (simulated) in the bar. Never read a visual
-toggle change as proof of robot motion; see [ADR 0141](docs/decisions/0141-ordered-publishes-and-confirmed-state.md).
+A toggle or mode button shows what the backend's command-state store holds, not what the screen last sent. A press
+reads **Sending…** until the store moves or 3 s pass, then shows the store again: a value the robot reports (a
+parameter, the Kinova gripper) is marked **reported by the robot**, one only published is marked **last asked**, and
+a target the store has never seen reads **Unknown**, lights neither side and offers both actions. The screen never
+re-sends. A refused send puts **Command failed** (blocked, unsupported, failed) or **Not sent** (simulated) in the
+bar; a send with no reply reads **Not confirmed by the robot** until the store reports that target again. Never read
+a visual toggle change as proof of robot motion; see
+[ADR 0142](docs/decisions/0142-command-state-lives-in-the-backend.md).
 
 Useful contract checks:
 

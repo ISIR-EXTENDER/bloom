@@ -160,7 +160,8 @@ ros2 param get /cartesian_manager frames.hybrid_frame
 - [ ] STOP latches in the backend, is reflected by a second client or reload, and cannot resume without the one-second
       hold. This supplements rather than replaces the hardware emergency-stop check.
 - [ ] STOP survives an API restart (`BLOOM_RUNTIME_STOP_STATE_PATH`); a STOP with ROS down shows STOP AGAIN; a publish
-      with no reply shows Not confirmed; a pose target is refused on a Kinova and Go home publishes there.
+      with no reply reads Not confirmed by the robot until the command-state store reports its target; a pose
+      target is refused on a Kinova and Go home publishes there.
 - [ ] Two operator Runtime tabs cannot command together. A waiting tab stays inert, cannot force takeover, and can claim
       only after owner release/disconnect; the old owner's moving targets reach zero before the new owner can command.
 - [ ] If owner disconnect neutralization is made to fail, the backend latch reads stopped before ownership becomes
