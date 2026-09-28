@@ -389,7 +389,9 @@ export function RuntimeWorkspace({
   useDwellActivation({
     dwellMs: runtimeProfile.dwellMs,
     enabled: runtimeProfile.dwellEnabled && !maintenanceOpen && !settingsOpen && !tourOpen,
-    isTargetEnabled: isAssistiveRuntimeTargetEnabled,
+    // Touch only: leaves for a page with no dwell.
+    isTargetEnabled: (target) =>
+      !target.hasAttribute("data-scan-touch-only") && isAssistiveRuntimeTargetEnabled(target),
     // The whole view, as scanning uses: a dwell operator needs the bar's maintenance button too.
     rootRef: workspaceRef,
   });
@@ -538,7 +540,9 @@ export function RuntimeWorkspace({
         stopped={runtimeStop.stopRequested ? true : (runtimeStop.state?.stopped ?? null)}
         reassert={stopNeedsReassert}
         scanMode={scanMode}
-        latchId={runtimeStop.state?.engaged_at ?? ""}
+        dwellMode={runtimeProfile.dwellEnabled}
+        // Always sent: "" (no latch seen here) must not release a STOP pressed at another station.
+        latchId={runtimeStop.state?.stopped ? runtimeStop.state.engaged_at : ""}
         language={runtimeProfile.language}
       />
     ) : null;

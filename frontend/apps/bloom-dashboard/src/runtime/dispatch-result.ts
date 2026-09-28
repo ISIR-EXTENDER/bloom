@@ -17,6 +17,7 @@ export type RuntimeActionDispatchStatus =
   | "coalesced"
   | "failed"
   | "published"
+  | "refused"
   | "simulated"
   | "superseded"
   | "transient"
@@ -48,11 +49,12 @@ export function isRuntimeActionConfirmed(result: RuntimeActionDispatchResult): b
 }
 
 export function isRuntimeActionProblem(result: RuntimeActionDispatchResult): result is RuntimeActionDispatchResult & {
-  status: "blocked" | "failed" | "simulated" | "transient" | "unknown" | "unsupported";
+  status: "blocked" | "failed" | "refused" | "simulated" | "transient" | "unknown" | "unsupported";
 } {
   return (
     result.status === "blocked" ||
     result.status === "failed" ||
+    result.status === "refused" ||
     result.status === "simulated" ||
     result.status === "transient" ||
     result.status === "unknown" ||
@@ -60,7 +62,10 @@ export function isRuntimeActionProblem(result: RuntimeActionDispatchResult): res
   );
 }
 
-/** ADR 0141: only "unknown" means nobody knows whether the robot applied it; a coalesced teleop tick counts as taken. */
+/**
+ * ADR 0141: only "unknown" means nobody knows whether the robot applied it; a coalesced teleop tick counts as taken.
+ * A service that answered success: false comes back "refused": definite, not applied.
+ */
 export function toWidgetActionStatus(result: RuntimeActionDispatchResult): WidgetActionStatus {
   if (isRuntimeActionConfirmed(result) || result.status === "coalesced") {
     return "accepted";

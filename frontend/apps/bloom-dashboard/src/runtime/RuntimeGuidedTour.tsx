@@ -258,6 +258,7 @@ function TourStopPractice({
       aria-label={assistiveResume.armed ? strings.stop.resumeConfirmAria : strings.stop.resumeAria}
       className="runtime-tour-stop"
       data-armed={assistiveResume.armed ? "true" : undefined}
+      data-dwell-quiet-until={assistiveResume.quietUntil}
       data-dwell-min-ms={RESUME_HOLD_MS}
       onKeyDown={(event) => {
         if (!event.repeat && (event.key === "Enter" || event.key === " ")) {

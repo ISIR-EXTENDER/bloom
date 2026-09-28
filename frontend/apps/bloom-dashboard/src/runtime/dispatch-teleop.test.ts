@@ -1,7 +1,8 @@
+import { DEFAULT_RUNTIME_POLICY } from "@bloom/api-client";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
-
-import { createTeleopCommandRequest } from "./dispatch-teleop";
+import { createTeleopCommandRequest, dispatchTeleopRequest } from "./dispatch-teleop";
+import type { RuntimeActionClient } from "./runtime-protocol";
 import { TeleopTwistComposer } from "./teleop-composition";
 
 function pad(widgetId: string, target: string, modeId: string, value: { x: number; y: number }) {
@@ -44,5 +45,24 @@ describe("a composed teleop request", () => {
 
     expect(both).toMatchObject({ mode: 3, linear: { x: 0.5 }, angular: { x: 0.3 } });
     expect(turnOnly).toMatchObject({ mode: 1, linear: { x: 0 }, angular: { x: 0.3 } });
+  });
+});
+
+describe("a teleop target allowlist", () => {
+  // The Builder and the backend read an entry ending in "/" as its whole namespace; the dispatcher must too.
+  it.each([
+    ["/arm/", "/arm/twist", "accepted"],
+    ["/arm/", "/other/twist", "blocked"],
+    ["/arm/twist", "/arm/twist", "accepted"],
+  ])("with %s sends to %s: %s", async (entry, target, expected) => {
+    const intent = pad("pad", target, "translation", { x: 0.5, y: 0 });
+    const request = createTeleopCommandRequest(intent, 1, new TeleopTwistComposer());
+    if (!request) throw new Error("Missing teleop request.");
+    const result = await dispatchTeleopRequest({} as RuntimeActionClient, intent, request, {
+      runtimePolicy: { ...DEFAULT_RUNTIME_POLICY, allowed_teleop_targets: [entry] },
+      teleopCommandSender: async () => ({ detail: "", status: "accepted" }),
+    });
+
+    expect(result.status).toBe(expected);
   });
 });

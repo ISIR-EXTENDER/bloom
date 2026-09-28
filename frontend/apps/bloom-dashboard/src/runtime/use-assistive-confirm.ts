@@ -26,6 +26,8 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
   const timerRef = useRef<number | null>(null);
   // True while the quiet window refuses presses, so Resume can say to let go instead of ignoring them silently.
   const [locked, setLocked] = useState(true);
+  // When the window ends, as a time: a dwell that completes inside it waits for it instead of being eaten.
+  const [quietUntil, setQuietUntil] = useState(() => Date.now() + quietMs());
   const lockTimerRef = useRef<number | null>(null);
   const onConfirmRef = useRef(onConfirm);
   onConfirmRef.current = onConfirm;
@@ -44,7 +46,9 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
       window.clearTimeout(lockTimerRef.current);
       lockTimerRef.current = null;
     }
-    const remaining = quietFromRef.current + quietMs() - Date.now();
+    const until = quietFromRef.current + quietMs();
+    const remaining = until - Date.now();
+    setQuietUntil(until);
     setLocked(remaining > 0);
     if (remaining > 0) {
       lockTimerRef.current = window.setTimeout(trackLock, remaining);
@@ -113,5 +117,5 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
     }, ASSISTIVE_CONFIRM_WINDOW_MS);
   };
 
-  return { activate, armed, disarm, locked };
+  return { activate, armed, disarm, locked, quietUntil };
 }

@@ -1963,7 +1963,8 @@ describe("App", () => {
     );
 
     selectRuntimeScreen("Snake Control");
-    const snakeModeToggle = screen.getByRole("button", { name: "Shaping mode: Both" });
+    // Jaco is the shaping mode now: the Both/Snake toggle lights neither, rather than claiming Both.
+    const snakeModeToggle = screen.getByRole("button", { name: "Shaping mode: Other mode" });
     fireEvent.click(snakeModeToggle);
     await waitFor(() =>
       expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(

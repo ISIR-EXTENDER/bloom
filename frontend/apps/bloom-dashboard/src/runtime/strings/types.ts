@@ -21,6 +21,8 @@ export type RuntimeStrings = {
     resumeConfirmAria: string;
     resumeLocked: string;
     resumeLockedAria: string;
+    resumeDwellLocked: string;
+    resumeDwellLockedAria: string;
     stopAgain: string;
     stopAgainAria: string;
   };
@@ -64,6 +66,7 @@ export type RuntimeStrings = {
     backToOperation: string;
     commandFailed: string;
     commandNotSent: string;
+    serviceAnswered: string;
     editApp: string;
     editScreen: string;
     fitDescription: (width: number, height: number, percent: number) => string;

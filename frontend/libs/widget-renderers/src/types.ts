@@ -119,7 +119,8 @@ export type WidgetControlState = {
    * that the robot is in that mode. "unconfirmed": this control asked last and got no reply.
    */
   selection?: "selected" | "unconfirmed" | "unselected";
-  toggleState?: "off" | "on";
+  /** "other": a /mode_request toggle whose shaping mode is neither its on nor its off mode, so neither is lit. */
+  toggleState?: "off" | "on" | "other";
   /** With toggleState: the mode it derives from was asked for without an accepted reply. */
   toggleUnconfirmed?: boolean;
 };

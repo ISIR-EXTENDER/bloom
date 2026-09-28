@@ -6,6 +6,45 @@ const TICK_MS = 40;
 const DWELL_TARGET_SELECTOR = "button:not([disabled])";
 /** Hand tremor and head-pointer jitter stay under this; a traversal does not. */
 const REST_TOLERANCE_PX = 6;
+/** Leaving a fired control by this much is a deliberate move off it; drifting inside it never is. */
+const FIRE_RELEASE_MARGIN_PX = 24;
+
+type FireMemory = { left: number; top: number; right: number; bottom: number; offSince: number | null };
+
+// Shared by every instance: a rest that fired in one surface must not continue onto whatever the next one shows.
+let lastFire: FireMemory | null = null;
+let enabledInstances = 0;
+
+const distanceOff = (fire: FireMemory, x: number, y: number) =>
+  Math.hypot(Math.max(fire.left - x, 0, x - fire.right), Math.max(fire.top - y, 0, y - fire.bottom));
+
+// Released by leaving the control plus a margin, or by staying off it (beyond tremor) for a dwell time.
+function releaseFire(x: number, y: number, dwellMs: number) {
+  if (!lastFire) {
+    return;
+  }
+  const off = distanceOff(lastFire, x, y);
+  const now = Date.now();
+  if (off > FIRE_RELEASE_MARGIN_PX || (lastFire.offSince !== null && now - lastFire.offSince >= dwellMs)) {
+    lastFire = null;
+  } else if (off <= REST_TOLERANCE_PX) {
+    lastFire.offSince = null;
+  } else {
+    lastFire.offSince ??= now;
+  }
+}
+
+function rememberFire(target: HTMLElement, x: number, y: number) {
+  const rect = target.getBoundingClientRect();
+  // The pointer is on the control, so the rectangle covers it even where layout reports none.
+  lastFire = {
+    left: Math.min(rect.left, x),
+    top: Math.min(rect.top, y),
+    right: Math.max(rect.right, x),
+    bottom: Math.max(rect.bottom, y),
+    offSince: null,
+  };
+}
 
 export type DwellActivationOptions = {
   activateTarget?: (target: HTMLElement) => void;
@@ -39,8 +78,6 @@ export function useDwellActivation(options: DwellActivationOptions): void {
   // rest that started on STOP must never complete as a resume.
   const startActionRef = useRef("");
   const firedRef = useRef(false);
-  // Where a rest last fired: STOP's rest must not carry over onto the Resume that replaces it.
-  const lastFireRef = useRef<{ x: number; y: number } | null>(null);
   const pointerRef = useRef({ x: 0, y: 0 });
   activateTargetRef.current = activateTarget;
   isTargetEnabledRef.current = isTargetEnabled;
@@ -50,6 +87,7 @@ export function useDwellActivation(options: DwellActivationOptions): void {
     if (!enabled || !root) {
       return;
     }
+    enabledInstances += 1;
 
     const clearTarget = () => {
       targetRef.current?.removeAttribute("data-dwell-active");
@@ -67,16 +105,9 @@ export function useDwellActivation(options: DwellActivationOptions): void {
       restAtRef.current = { x: event.clientX, y: event.clientY };
     };
 
-    // Until the pointer leaves the fire point, no control starts a rest: tremor across STOP's edge must not
-    // re-arm the Resume that replaced it.
-    const carriesOverFire = () => lastFireRef.current !== null;
-
     const onPointerMove = (event: PointerEvent) => {
       pointerRef.current = { x: event.clientX, y: event.clientY };
-      const fire = lastFireRef.current;
-      if (fire && Math.hypot(event.clientX - fire.x, event.clientY - fire.y) > REST_TOLERANCE_PX) {
-        lastFireRef.current = null;
-      }
+      releaseFire(event.clientX, event.clientY, dwellMs);
       const element = event.target;
       const candidate = element instanceof Element ? element.closest<HTMLElement>(DWELL_TARGET_SELECTOR) : null;
       const target = candidate && (isTargetEnabledRef.current?.(candidate) ?? true) ? candidate : null;
@@ -92,7 +123,8 @@ export function useDwellActivation(options: DwellActivationOptions): void {
         return;
       }
       clearTarget();
-      if (target && !carriesOverFire()) {
+      // Tremor across STOP's edge must not re-arm the Resume that replaced it.
+      if (target && lastFire === null) {
         beginRest(target, event);
       }
     };
@@ -113,7 +145,9 @@ export function useDwellActivation(options: DwellActivationOptions): void {
       const activationMs = Math.max(1, dwellMs, Number.isFinite(targetMinimum) ? targetMinimum : 0);
       const nextProgress = Math.min(1, elapsed / activationMs);
       target.style.setProperty("--bloom-dwell-progress", String(nextProgress));
-      if (nextProgress >= 1) {
+      // A control not listening yet (Resume's post-latch quiet) fires once it does, while the rest goes on.
+      const quietUntil = Number(target.dataset.dwellQuietUntil ?? 0);
+      if (nextProgress >= 1 && !(Date.now() < quietUntil)) {
         // The latch may have engaged mid-rest, and a programmatic click ignores
         // the canvas' pointer-events: none, so ask again before firing.
         if (!(isTargetEnabledRef.current?.(target) ?? true)) {
@@ -122,7 +156,7 @@ export function useDwellActivation(options: DwellActivationOptions): void {
         }
         // Fire once per rest; lingering must not repeat the command.
         firedRef.current = true;
-        lastFireRef.current = { ...pointerRef.current };
+        rememberFire(target, pointerRef.current.x, pointerRef.current.y);
         if (activateTargetRef.current) {
           activateTargetRef.current(target);
         } else {
@@ -134,9 +168,12 @@ export function useDwellActivation(options: DwellActivationOptions): void {
 
     const timer = window.setInterval(tick, TICK_MS);
     root.addEventListener("pointermove", onPointerMove);
-    const onPointerLeave = () => {
+    const onPointerLeave = (event: PointerEvent) => {
       clearTarget();
-      lastFireRef.current = null;
+      // Out of the window, not onto a sheet that opened over this root.
+      if (event.relatedTarget === null) {
+        lastFire = null;
+      }
     };
     root.addEventListener("pointerleave", onPointerLeave);
 
@@ -145,6 +182,13 @@ export function useDwellActivation(options: DwellActivationOptions): void {
       root.removeEventListener("pointermove", onPointerMove);
       root.removeEventListener("pointerleave", onPointerLeave);
       clearTarget();
+      enabledInstances -= 1;
+      // One surface hands over to the next within a commit; only dwell switched off everywhere forgets.
+      queueMicrotask(() => {
+        if (enabledInstances === 0) {
+          lastFire = null;
+        }
+      });
     };
   }, [dwellMs, enabled, rootRef]);
 }

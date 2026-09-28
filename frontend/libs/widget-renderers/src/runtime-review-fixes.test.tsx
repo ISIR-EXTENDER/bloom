@@ -11,9 +11,9 @@ import { CommandLikeWidget } from "./action-renderers";
 import {
   cancelAllPendingEngaging,
   claimTarget,
-  forgetAllConfirmedState,
   parameterTarget,
   resetDesiredStates,
+  settleForNewSession,
 } from "./desired-state";
 import { renderWidgetDescriptor } from "./index";
 import type { WidgetActionOutcome } from "./types";
@@ -240,17 +240,26 @@ describe("STOP during a gripper hold's release retry", () => {
 });
 
 describe("a new runtime session", () => {
-  it("forgets confirmed values and settled controls", async () => {
+  // The server resets shaping and servoing when a session ends, nothing else: the gripper keeps what it holds.
+  it("keeps the gripper's confirmed state and reads the servo switch off", async () => {
     const onActionIntent = vi.fn<Handler>(() => ({ accepted: true }));
-    const first = render(toggle("gripper", "Gripper", GRIPPER, onActionIntent));
-    fireEvent.click(screen.getByRole("button"));
+    const SERVO = { ...GRIPPER, topic: "/ui/visual_servoing/on", onLabel: "Servoing", offLabel: "Off" };
+    const first = render(
+      <div>
+        {toggle("gripper", "Gripper", GRIPPER, onActionIntent)}
+        {toggle("servo", "Servo", SERVO, onActionIntent)}
+      </div>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Gripper: Open" }));
+    fireEvent.click(screen.getByRole("button", { name: "Servo: Off" }));
     await settle(0);
-    expect(screen.getByRole("button", { name: "Gripper: Closed" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
 
-    act(() => forgetAllConfirmedState());
-    expect(screen.getByRole("button", { name: "Gripper: Open" })).not.toHaveAttribute("data-confirmed");
+    act(() => settleForNewSession());
+    expect(screen.getByRole("button", { name: "Gripper: Closed" })).not.toHaveAttribute("data-confirmed");
+    expect(screen.getByRole("button", { name: "Servo: Off" })).not.toHaveAttribute("data-confirmed");
     first.unmount();
     render(toggle("gripper", "Gripper", GRIPPER, onActionIntent));
-    expect(screen.getByRole("button", { name: "Gripper: Open" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gripper: Closed" })).toBeInTheDocument();
   });
 });

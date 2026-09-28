@@ -207,7 +207,8 @@ describe("the last confirmed value on a target", () => {
     expect(screen.getByRole("button", { name: "Gripper: Open" })).toBeInTheDocument();
   });
 
-  it("is forgotten when its runtime session ends", async () => {
+  // The robot has one state whichever app is open: leaving an app forgets nothing the server did not reset.
+  it("is kept when its app's workspace ends", async () => {
     const onActionIntent = vi.fn<Handler>(() => ({ accepted: true }));
     const first = render(toggle("gripper", "Gripper", GRIPPER, onActionIntent, { desiredScope: "a" }));
     fireEvent.click(screen.getByRole("button"));
@@ -215,9 +216,9 @@ describe("the last confirmed value on a target", () => {
     first.unmount();
     forgetConfirmedValues("a");
 
-    render(toggle("gripper", "Gripper", GRIPPER, onActionIntent, { desiredScope: "a" }));
+    render(toggle("gripper", "Gripper", GRIPPER, onActionIntent, { desiredScope: "b" }));
 
-    expect(screen.getByRole("button", { name: "Gripper: Open" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Gripper: Closed" })).not.toHaveAttribute("data-confirmed");
   });
 });
 

@@ -58,7 +58,8 @@ describe("dwell and STOP", () => {
     });
     await new Promise((r) => setTimeout(r, 150));
     fireEvent.pointerDown(stop);
-    await waitFor(() => expect(screen.getByRole("button", { name: /Hold for one second to resume/ })).toBeTruthy());
+    // Under dwell, Resume first says it is not listening yet.
+    await waitFor(() => expect(screen.getByRole("button", { name: /Resume listens in a moment/ })).toBeTruthy());
     await new Promise((resolve) => setTimeout(resolve, 1500));
     expect(client.resumeRuntimeStop).not.toHaveBeenCalled();
     expect(stopped).toBe(true);

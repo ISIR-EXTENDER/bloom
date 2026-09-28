@@ -31,7 +31,7 @@ import {
   applyRuntimeStopLatch,
   createDefaultRuntimeModeState,
   isRuntimeModeIntent,
-  ModeRequestLedger,
+  ModeRequestLedgers,
   markRuntimeModeUnknown,
   resetRuntimeModeForSession,
   resolveRuntimeModeRequest,
@@ -90,8 +90,8 @@ export function App({
   const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
   // Kept here, not in the workspace: a remount seeing the same latch must not undo a mode asked for since.
   const lastStopLatchRef = useRef("");
-  // Only the reply to the newest mode request, or a newer STOP, may set the mode: replies can arrive out of order.
-  const modeLedgerRef = useRef(new ModeRequestLedger());
+  // Per family (shaping, behaviour), only the newest request's reply, or a newer STOP, may set the mode.
+  const modeLedgerRef = useRef(new ModeRequestLedgers());
   const handleStopLatch = useCallback((latch: RuntimeStopState) => {
     const key = `${latch.engaged_at}:${latch.asserted}`;
     if (key === lastStopLatchRef.current) {
@@ -204,7 +204,7 @@ export function App({
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
     const status = toWidgetActionStatus(result);
-    const verdict = modeRequest === null ? null : modeLedgerRef.current.settle(modeRequest, status);
+    const verdict = modeRequest === null ? null : modeRequest.ledger.settle(modeRequest.id, status);
     if (verdict?.kind === "apply") {
       setRuntimeModeState((currentModeState) =>
         applyRuntimeModeOutcome(currentModeState, intent, status, applicationRuntime?.action_presets),

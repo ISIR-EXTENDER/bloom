@@ -435,7 +435,7 @@ describe("the stop mirror", () => {
         <button onClick={stop.engage} type="button">
           engage
         </button>
-        <button onClick={stop.resume} type="button">
+        <button onClick={() => stop.resume(stop.state?.stopped ? stop.state.engaged_at : "")} type="button">
           resume
         </button>
       </div>
@@ -719,5 +719,59 @@ describe("the stop mirror", () => {
 
     await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("true"));
     expect(screen.getByTestId("error").textContent).toBe(failedStopState.detail);
+  });
+});
+
+describe("a Resume hold across a new latch", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    cleanup();
+  });
+
+  function Wired({ client }: { client: RuntimeStopClient }) {
+    const stop = useRuntimeStop(client);
+    return (
+      <RuntimeStopControl
+        latchId={stop.state?.stopped ? stop.state.engaged_at : ""}
+        onEngage={stop.engage}
+        onResume={stop.resume}
+        requestError={stop.requestError}
+        stopped={stop.state?.stopped ?? null}
+      />
+    );
+  }
+
+  // The poll mirrors L2 before React renders it: a hold completing in that gap answered L2, which nobody resumed.
+  it("resumes the latch the operator held on, not one mirrored before the render", async () => {
+    const newer: RuntimeStopState = { ...stoppedState, engaged_at: "2026-09-15T10:00:05+00:00" };
+    let answerPoll: (state: RuntimeStopState) => void = () => {};
+    const resumeRuntimeStop = vi.fn(() => Promise.resolve(running));
+    const client: RuntimeStopClient = {
+      getRuntimeStopState: vi
+        .fn()
+        .mockResolvedValueOnce(stoppedState)
+        .mockImplementation(
+          () =>
+            new Promise<RuntimeStopState>((resolve) => {
+              answerPoll = resolve;
+            }),
+        ),
+      resumeRuntimeStop,
+    };
+    render(<Wired client={client} />);
+    await act(async () => {});
+    act(() => vi.advanceTimersByTime(1100));
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Hold for one second to resume" }));
+    act(() => vi.advanceTimersByTime(950));
+
+    await act(async () => {
+      answerPoll(newer);
+      await Promise.resolve();
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(resumeRuntimeStop).toHaveBeenCalledOnce();
+    expect(resumeRuntimeStop).toHaveBeenCalledWith({ engagedAt: stoppedState.engaged_at });
   });
 });

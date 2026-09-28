@@ -1,5 +1,6 @@
 import type { RuntimeAdapterPolicy } from "@bloom/api-client";
 import {
+  allowlistAllows,
   asRecord,
   clamp,
   isRecord,
@@ -305,8 +306,8 @@ function validateTeleopCommandRequest(
   // list and an app that declares none drives nothing, so reading empty as permissive let the screen
   // dispatch a command the server then refused -- the operator got "Command failed" from a control
   // that should never have been live.
-  const allowed = policy.allowed_teleop_targets;
-  if (allowed.includes("*") || allowed.includes(request.target)) {
+  // A namespace entry ("/arm/") covers its topics, as the Builder and the backend read it.
+  if (allowlistAllows(policy.allowed_teleop_targets, request.target)) {
     return null;
   }
   return `Teleop target "${request.target}" is not allowed by this app runtime policy.`;

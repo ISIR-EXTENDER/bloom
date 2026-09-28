@@ -1,4 +1,4 @@
-import { forgetAllConfirmedState } from "@bloom/widget-renderers";
+import { settleForNewSession } from "@bloom/widget-renderers";
 
 type SessionStartListener = (ownerModeRequest: string | null) => void;
 
@@ -13,7 +13,7 @@ export function onRuntimeSessionStart(listener: SessionStartListener): () => voi
 }
 
 export function announceRuntimeSessionStart(ownerModeRequest: string | null): void {
-  forgetAllConfirmedState();
+  settleForNewSession();
   for (const listener of [...listeners]) {
     listener(ownerModeRequest);
   }

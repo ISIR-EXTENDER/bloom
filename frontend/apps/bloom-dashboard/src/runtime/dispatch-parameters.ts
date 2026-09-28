@@ -1,5 +1,5 @@
 import type { RosParameterSetRequest, RuntimeAdapterPolicy } from "@bloom/api-client";
-import { claimTarget, isReconcilerSend, parameterTarget } from "@bloom/widget-renderers";
+import { beginAct, parameterTarget } from "@bloom/widget-renderers";
 import { asRecord, readOptionalNumber, readOptionalString, type WidgetActionIntent } from "@bloom/widgets";
 import {
   appScope,
@@ -7,6 +7,7 @@ import {
   isAllowedByPolicy,
   type RuntimeActionDispatchOptions,
   type RuntimeActionDispatchResult,
+  toWidgetActionStatus,
 } from "./dispatch-result";
 import type { RuntimeActionClient } from "./runtime-protocol";
 
@@ -23,16 +24,17 @@ export async function dispatchParameterRequest(
   if (!client.setRosParameter) {
     return { intent, status: "unsupported", detail: "Parameter intents need an API client before they can be sent." };
   }
-  // ADR 0141: an operator's set is the newest act on its parameter, so no toggle's pending retry may undo it.
-  if (!isReconcilerSend(intent)) {
-    claimTarget(parameterTarget(request.node, request.name));
-  }
+  // ADR 0141: a set is an act on its parameter; no toggle's older retry may undo it.
+  const settle = beginAct(parameterTarget(request.node, request.name), intent);
+  let result: RuntimeActionDispatchResult;
   try {
     const response = await client.setRosParameter({ ...request, ...appScope(options) });
-    return { intent, status: response.status === "set" ? "published" : response.status, detail: response.detail };
+    result = { intent, status: response.status === "set" ? "published" : response.status, detail: response.detail };
   } catch (error: unknown) {
-    return { intent, ...classifyDispatchError(error) };
+    result = { intent, ...classifyDispatchError(error) };
   }
+  settle(toWidgetActionStatus(result));
+  return result;
 }
 
 /**

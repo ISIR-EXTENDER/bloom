@@ -264,12 +264,15 @@ describe("runtime action dispatcher", () => {
         type: "runtime_action",
       },
     });
-    expect(client.dispatchRuntimeAction).toHaveBeenCalledWith({
-      app_id: "explorer-manager",
-      command: "explorer.deploy",
-      config_id: "explorer-manager",
-      preset_id: "explorer-deploy",
-    });
+    expect(client.dispatchRuntimeAction).toHaveBeenCalledWith(
+      {
+        app_id: "explorer-manager",
+        command: "explorer.deploy",
+        config_id: "explorer-manager",
+        preset_id: "explorer-deploy",
+      },
+      { presetKind: "topic-publish" },
+    );
     expect(client.publishRosTopic).not.toHaveBeenCalled();
   });
 
@@ -1013,5 +1016,23 @@ describe("parameter bindings", () => {
 
     expect(setRosParameter).not.toHaveBeenCalled();
     expect(result.status).toBe("blocked");
+  });
+});
+
+describe("a screen button that names no screen", () => {
+  it("sends nothing to the robot, which would only refuse navigate_screen", async () => {
+    const client = {
+      dispatchRuntimeAction: vi.fn(async () => ({ detail: "", status: "published" as const })),
+      publishRosTopic: vi.fn(),
+    } as unknown as RuntimeActionClient;
+    const result = await dispatchRuntimeActionIntent(
+      client,
+      { type: "command", command: "navigate_screen", widgetId: "open", widgetKind: "command-button" },
+      { appId: "app", configId: "config" },
+    );
+
+    expect(result.status).toBe("unsupported");
+    expect(client.dispatchRuntimeAction).not.toHaveBeenCalled();
+    expect(client.publishRosTopic).not.toHaveBeenCalled();
   });
 });

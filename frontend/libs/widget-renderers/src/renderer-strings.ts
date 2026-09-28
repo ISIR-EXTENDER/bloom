@@ -88,6 +88,7 @@ const STRINGS = {
     notConfirmed: "Not confirmed",
     notConfirmedLate: "Robot has not confirmed \u2014 STOP if in doubt",
     modeNotConfirmed: "Mode not confirmed",
+    otherMode: "Other mode",
     notConfirmedName: "not confirmed",
   },
   fr: {
@@ -176,6 +177,7 @@ const STRINGS = {
     notConfirmed: "Non confirmé",
     notConfirmedLate: "Le robot n'a pas confirmé \u2014 STOP en cas de doute",
     modeNotConfirmed: "Mode non confirmé",
+    otherMode: "Autre mode",
     notConfirmedName: "non confirmé",
   },
   es: {
@@ -263,6 +265,7 @@ const STRINGS = {
     notConfirmed: "Sin confirmar",
     notConfirmedLate: "El robot no ha confirmado \u2014 STOP si hay dudas",
     modeNotConfirmed: "Modo sin confirmar",
+    otherMode: "Otro modo",
     notConfirmedName: "sin confirmar",
   },
 } as const;

@@ -21,6 +21,8 @@ export const frRuntimeStrings: RuntimeStrings = {
     resumeConfirmAria: "Appuyez encore pour reprendre",
     resumeLocked: "RELÂCHEZ LE CONTACTEUR…",
     resumeLockedAria: "Relâchez d’abord le contacteur. Appuyez deux fois pour reprendre",
+    resumeDwellLocked: "UN INSTANT…",
+    resumeDwellLockedAria: "Reprendre répond dans un instant. Posez le pointeur dessus deux fois pour reprendre",
     stopAgain: "ARRÊTER DE NOUVEAU",
     stopAgainAria: "Arrêter de nouveau le robot",
   },
@@ -97,6 +99,7 @@ export const frRuntimeStrings: RuntimeStrings = {
     backToOperation: "Retour au pilotage",
     commandFailed: "Commande échouée",
     commandNotSent: "Non envoyée",
+    serviceAnswered: "Réponse du robot",
     editApp: "Modifier l'app",
     editScreen: "Modifier cet écran",
     fitDescription: (width, height, percent) =>

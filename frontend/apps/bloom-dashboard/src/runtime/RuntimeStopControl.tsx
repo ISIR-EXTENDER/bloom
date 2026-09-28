@@ -21,7 +21,8 @@ export type RuntimeStopControlProps = {
   stopped: boolean | null;
   requestError: string;
   onEngage: () => void;
-  onResume: () => void;
+  /** Called with the latch this control showed, so a newer one is never resumed by a hold begun on the old. */
+  onResume: (latchId: string) => void;
   language?: RuntimeLanguage;
   resumeDisabled?: boolean;
   resumeDisabledReason?: string;
@@ -33,6 +34,8 @@ export type RuntimeStopControlProps = {
   latchId?: string;
   /** Switch scanning: a key is the switch, so Resume only arms and confirms, never takes a key hold. */
   scanMode?: boolean;
+  /** Pointer dwell: Resume arms and confirms like a switch, and says when it is not listening yet. */
+  dwellMode?: boolean;
 };
 
 function isActivationKey(event: KeyboardEvent) {
@@ -55,6 +58,7 @@ export function RuntimeStopControl({
   reassert = false,
   latchId = "",
   scanMode = false,
+  dwellMode = false,
 }: RuntimeStopControlProps) {
   const placement = region ? "region" : "corner";
   const style = region ? { height: region.height, left: region.left, top: region.top, width: region.width } : undefined;
@@ -68,13 +72,15 @@ export function RuntimeStopControl({
   const resume = () => {
     if (!resumeDisabled) {
       keyboardPressRef.current = keyboardHoldRef.current;
-      onResume();
+      onResume(latchId);
     }
   };
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
   const assistiveResume = useAssistiveConfirm(resume, resumeDisabled, `${stopped}:${latchId}`);
   const assistiveArmed = assistiveResume.armed;
-  const scanLocked = scanMode && assistiveResume.locked;
+  const assistiveLocked = (scanMode || dwellMode) && assistiveResume.locked;
+  const lockedLabel = scanMode ? strings.stop.resumeLocked : strings.stop.resumeDwellLocked;
+  const lockedAria = scanMode ? strings.stop.resumeLockedAria : strings.stop.resumeDwellLockedAria;
   const disarm = assistiveResume.disarm;
   const resumeRef = useAssistiveActivation<HTMLButtonElement>(assistiveResume.activate);
   // STOP and Resume are two elements, so a rest begun on STOP never completes as a resume. The swap dropped a
@@ -200,8 +206,8 @@ export function RuntimeStopControl({
           aria-label={`${
             assistiveArmed
               ? strings.stop.resumeConfirmAria
-              : scanLocked
-                ? strings.stop.resumeLockedAria
+              : assistiveLocked
+                ? lockedAria
                 : scanMode
                   ? strings.stop.resumeScanAria
                   : strings.stop.resumeAria
@@ -210,6 +216,7 @@ export function RuntimeStopControl({
           // Armed, it holds the scan highlight so the confirming press lands on it, as an armed Go home does.
           data-armed={assistiveArmed ? "true" : undefined}
           data-dwell-action="resume"
+          data-dwell-quiet-until={assistiveResume.quietUntil}
           data-dwell-min-ms={RESUME_HOLD_MS}
           data-placement={placement}
           data-reassert={showStopAgain ? "true" : undefined}
@@ -249,7 +256,7 @@ export function RuntimeStopControl({
           type="button"
         >
           <span className="runtime-stop-label">
-            {assistiveArmed ? strings.stop.resumeConfirm : scanLocked ? strings.stop.resumeLocked : strings.stop.resume}
+            {assistiveArmed ? strings.stop.resumeConfirm : assistiveLocked ? lockedLabel : strings.stop.resume}
           </span>
           {requestError || resumeDisabledReason ? (
             <span className="runtime-stop-error">{requestError || resumeDisabledReason}</span>

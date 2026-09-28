@@ -13,6 +13,8 @@ import {
   applyRuntimeStopLatch,
   createDefaultRuntimeModeState,
   createRuntimeControlStateByWidgetId,
+  ModeRequestLedgers,
+  resetRuntimeModeForSession,
   UNKNOWN_REQUESTED_MODE,
 } from "./runtimeModeState";
 
@@ -67,12 +69,16 @@ describe("a mode request's outcome", () => {
     });
   });
 
-  it("makes the mode unknown when a Go home times out", () => {
+  // cartesian_manager keeps behaviour apart from shaping: a Go home never unlights Jaco.
+  it("makes the behaviour unknown, not the shaping mode, when a Go home times out", () => {
     const next = applyRuntimeModeOutcome(jacoRequested(), modeIntent("behaviour/joint_target/home"), "unknown");
 
-    expect(next.requestedMode).toBe(UNKNOWN_REQUESTED_MODE);
-    expect(createRuntimeControlStateByWidgetId(driveScreen, next)["positions-home"]).toEqual({
-      selection: "unconfirmed",
+    expect(next.requestedMode).toBe("geometric/jaco");
+    expect(next.requestedBehaviour).toBe(UNKNOWN_REQUESTED_MODE);
+    expect(createRuntimeControlStateByWidgetId(driveScreen, next)).toEqual({
+      "drive-mode-both": { selection: "unselected" },
+      "drive-mode-jaco": { selection: "selected" },
+      "positions-home": { selection: "unconfirmed" },
     });
   });
 
@@ -98,7 +104,65 @@ describe("a mode request's outcome", () => {
     const stopped = applyRuntimeStopLatch(unknown, { asserted: true });
     expect(stopped.requestedMode).toBe("geometric/both");
     expect(stopped.unconfirmedMode).toBeNull();
-    expect(applyRuntimeStopLatch(unknown, { asserted: false }).requestedMode).toBeNull();
+    expect(applyRuntimeStopLatch(unknown, { asserted: false }).requestedMode).toBe(UNKNOWN_REQUESTED_MODE);
+  });
+});
+
+describe("shaping and behaviour", () => {
+  const behaviourScreen = {
+    id: "drive",
+    title: "Drive",
+    widgets: [
+      modeButton("drive-mode-jaco", "geometric/jaco"),
+      modeButton("positions-home", "behaviour/joint_target/home"),
+      modeButton("release", "behaviour/passthrough"),
+    ],
+  } as never;
+
+  it("are lit apart: a Go home or a Release leaves Jaco lit", () => {
+    const home = applyRuntimeModeOutcome(jacoRequested(), modeIntent("behaviour/joint_target/home"), "accepted");
+    const released = applyRuntimeModeOutcome(home, modeIntent("behaviour/passthrough"), "accepted");
+
+    expect(createRuntimeControlStateByWidgetId(behaviourScreen, home)).toEqual({
+      "drive-mode-jaco": { selection: "selected" },
+      "positions-home": { selection: "selected" },
+      release: { selection: "unselected" },
+    });
+    expect(createRuntimeControlStateByWidgetId(behaviourScreen, released)).toEqual({
+      "drive-mode-jaco": { selection: "selected" },
+      "positions-home": { selection: "unselected" },
+      release: { selection: "selected" },
+    });
+  });
+
+  it("reset apart on STOP: shaping to both or unknown, behaviour to passthrough", () => {
+    const home = applyRuntimeModeOutcome(jacoRequested(), modeIntent("behaviour/joint_target/home"), "accepted");
+
+    expect(applyRuntimeStopLatch(home, { asserted: true })).toMatchObject({
+      requestedMode: "geometric/both",
+      requestedBehaviour: "behaviour/passthrough",
+    });
+    expect(applyRuntimeStopLatch(home, { asserted: false })).toMatchObject({
+      requestedMode: UNKNOWN_REQUESTED_MODE,
+      requestedBehaviour: "behaviour/passthrough",
+    });
+  });
+
+  it("seed the shaping highlight from the owner's shaping mode on a new session", () => {
+    expect(resetRuntimeModeForSession(jacoRequested(), "geometric/snake").requestedMode).toBe("geometric/snake");
+    expect(resetRuntimeModeForSession(jacoRequested(), "behaviour/passthrough")).toMatchObject({
+      requestedMode: null,
+      requestedBehaviour: "behaviour/passthrough",
+    });
+  });
+
+  it("keep one ledger each, so a Go home sent after Jaco does not swallow Jaco's reply", () => {
+    const ledgers = new ModeRequestLedgers();
+    const jaco = ledgers.begin("geometric/jaco");
+    const home = ledgers.begin("behaviour/joint_target/home");
+
+    expect(jaco.ledger.settle(jaco.id, "accepted")).toEqual({ kind: "apply" });
+    expect(home.ledger.settle(home.id, "accepted")).toEqual({ kind: "apply" });
   });
 });
 
@@ -204,11 +268,16 @@ describe("a /mode_request toggle saved with YAML payload text", () => {
     expect(next.requestedMode).toBe("geometric/jaco");
   });
 
-  it("is on only while its mode is the one requested", () => {
+  // A Both/Snake toggle lit Both while Jaco was active: off means its off mode, not any other one.
+  it("is on in its mode, off only in its off mode, and lights neither in another", () => {
     const states = createRuntimeControlStateByWidgetId(sandboxScreen, jacoRequested());
 
     expect(states["sandbox-mode"]).toEqual({ toggleState: "on" });
-    expect(states["snake-mode-toggle"]).toEqual({ toggleState: "off" });
+    expect(states["snake-mode-toggle"]).toEqual({ toggleState: "other" });
+    const both = { ...createDefaultRuntimeModeState(), requestedMode: "geometric/both" };
+    expect(createRuntimeControlStateByWidgetId(sandboxScreen, both)["snake-mode-toggle"]).toEqual({
+      toggleState: "off",
+    });
   });
 
   it("turns off when STOP resets the arm to geometric/both", () => {
@@ -221,8 +290,17 @@ describe("a /mode_request toggle saved with YAML payload text", () => {
     const unknown = applyRuntimeModeOutcome(jacoRequested(), toggleIntent("{data: 'geometric/snake'}"), "unknown");
     const states = createRuntimeControlStateByWidgetId(sandboxScreen, unknown);
 
-    expect(states["sandbox-mode"]).toEqual({ toggleState: "off", toggleUnconfirmed: true });
+    expect(states["sandbox-mode"]).toEqual({ toggleState: "other", toggleUnconfirmed: true });
     expect(states["snake-mode-toggle"]).toEqual({ toggleState: "on", toggleUnconfirmed: true });
+  });
+
+  it("reads not confirmed, lighting neither, after a STOP that did not reach ROS", () => {
+    const stopped = applyRuntimeStopLatch(jacoRequested(), { asserted: false });
+
+    expect(createRuntimeControlStateByWidgetId(sandboxScreen, stopped)).toEqual({
+      "sandbox-mode": { toggleState: "other", toggleUnconfirmed: true },
+      "snake-mode-toggle": { toggleState: "other", toggleUnconfirmed: true },
+    });
   });
 
   it("leaves the toggle its own state before any mode was requested", () => {

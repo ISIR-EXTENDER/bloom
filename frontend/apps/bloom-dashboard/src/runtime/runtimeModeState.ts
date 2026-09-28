@@ -7,6 +7,7 @@ import type {
 } from "@bloom/api-client";
 import type { WidgetActionStatus, WidgetControlState } from "@bloom/widget-renderers";
 import {
+  allowlistAllows,
   createDefaultWidgetRegistry,
   createWidgetActionIntent,
   describeUnavailableWidgetRuntime,
@@ -35,6 +36,12 @@ export type RuntimeModeState = {
   requestedMode: string | null;
   /** With requestedMode "unknown": the mode asked for whose reply never came (ADR 0141). */
   unconfirmedMode?: string | null;
+  /**
+   * The manager keeps behaviour (passthrough, a joint or pose target) apart from shaping (geometric/*), so a Go
+   * home never changes which shaping mode is lit. requestedMode is the shaping one.
+   */
+  requestedBehaviour?: string | null;
+  unconfirmedBehaviour?: string | null;
   source: "configuration-default" | "operator-command";
   updatedAt: string;
 };
@@ -59,6 +66,7 @@ const MODE_REQUEST_TOPIC = "/mode_request";
 /** A mode request without a reply: the manager may be in it or in the previous one. */
 export const UNKNOWN_REQUESTED_MODE = "unknown";
 const DEFAULT_GEOMETRIC_MODE = "geometric/both";
+const PASSTHROUGH_BEHAVIOUR = "behaviour/passthrough";
 const WIDGET_REGISTRY = createDefaultWidgetRegistry();
 const TOPIC_COMMAND_WIDGET_KINDS = new Set(["command-button", "gesture-pad", "slider", "toggle"]);
 
@@ -91,8 +99,7 @@ export function applyRuntimeModeIntent(
   if (requestedMode) {
     return {
       ...currentState,
-      requestedMode,
-      unconfirmedMode: null,
+      ...familyFields(requestedMode, requestedMode, null),
       source: "operator-command",
       updatedAt: now.toISOString(),
     };
@@ -155,6 +162,27 @@ type ModeRecord = { mode: string | null; outcome: "pending" | "accepted" | "unkn
  * request the manager may hold: accepted sets it, no reply yet or none at all makes it unknown (ADR 0141).
  * A STOP or a new session starts over.
  */
+/** One ledger per mode family: a Go home's reply never decides the shaping mode, nor the reverse. */
+export class ModeRequestLedgers {
+  private readonly byFamily = new Map<string, ModeRequestLedger>();
+
+  begin(mode: string | null): { id: number; ledger: ModeRequestLedger } {
+    const family = mode === null ? "" : isBehaviourMode(mode) ? "behaviour" : "geometric";
+    let ledger = this.byFamily.get(family);
+    if (!ledger) {
+      ledger = new ModeRequestLedger();
+      this.byFamily.set(family, ledger);
+    }
+    return { id: ledger.begin(mode), ledger };
+  }
+
+  reset(): void {
+    for (const ledger of this.byFamily.values()) {
+      ledger.reset();
+    }
+  }
+}
+
 export class ModeRequestLedger {
   private count = 0;
   private deciding = 0;
@@ -220,8 +248,7 @@ export class ModeRequestLedger {
 export function applyRequestedMode(currentState: RuntimeModeState, mode: string, now = new Date()): RuntimeModeState {
   return {
     ...currentState,
-    requestedMode: mode,
-    unconfirmedMode: null,
+    ...familyFields(mode, mode, null),
     source: "operator-command",
     updatedAt: now.toISOString(),
   };
@@ -229,17 +256,20 @@ export function applyRequestedMode(currentState: RuntimeModeState, mode: string,
 
 /**
  * A new session or lease: the server reset shaping when the old one ended, so the last request no longer holds.
- * The server's own record for the owner seeds it; without one the mode is not known.
+ * The server's record of the owner's shaping mode seeds it; without one the mode is not known.
  */
 export function resetRuntimeModeForSession(
   currentState: RuntimeModeState,
   ownerModeRequest: string | null,
   now = new Date(),
 ): RuntimeModeState {
+  const owner = asModeRequest(ownerModeRequest);
   return {
     ...currentState,
-    requestedMode: asModeRequest(ownerModeRequest),
+    requestedMode: owner && !isBehaviourMode(owner) ? owner : null,
     unconfirmedMode: null,
+    requestedBehaviour: owner && isBehaviourMode(owner) ? owner : null,
+    unconfirmedBehaviour: null,
     source: "configuration-default",
     updatedAt: now.toISOString(),
   };
@@ -253,14 +283,16 @@ export function markRuntimeModeUnknown(
 ): RuntimeModeState {
   return {
     ...currentState,
-    requestedMode: UNKNOWN_REQUESTED_MODE,
-    unconfirmedMode,
+    ...familyFields(unconfirmedMode, UNKNOWN_REQUESTED_MODE, unconfirmedMode),
     source: "operator-command",
     updatedAt: now.toISOString(),
   };
 }
 
-/** A STOP that reached ROS also sent geometric/both; one that did not leaves the shaper unknown. */
+/**
+ * A STOP that reached ROS also sent geometric/both; one that did not leaves the shaper unknown. Either way the
+ * server dropped any joint or pose target, so behaviour is back to passthrough.
+ */
 export function applyRuntimeStopLatch(
   currentState: RuntimeModeState,
   latch: { asserted: boolean },
@@ -268,10 +300,35 @@ export function applyRuntimeStopLatch(
 ): RuntimeModeState {
   return {
     ...currentState,
-    requestedMode: latch.asserted ? DEFAULT_GEOMETRIC_MODE : null,
+    requestedMode: latch.asserted ? DEFAULT_GEOMETRIC_MODE : UNKNOWN_REQUESTED_MODE,
     unconfirmedMode: null,
+    requestedBehaviour: PASSTHROUGH_BEHAVIOUR,
+    unconfirmedBehaviour: null,
     updatedAt: now.toISOString(),
   };
+}
+
+function isBehaviourMode(mode: string): boolean {
+  return mode.startsWith("behaviour/");
+}
+
+/** The fields of the family a mode belongs to: shaping (geometric) or behaviour. */
+function familyFields(
+  mode: string,
+  requested: string,
+  unconfirmed: string | null,
+): Partial<
+  Pick<RuntimeModeState, "requestedMode" | "unconfirmedMode" | "requestedBehaviour" | "unconfirmedBehaviour">
+> {
+  return isBehaviourMode(mode)
+    ? { requestedBehaviour: requested, unconfirmedBehaviour: unconfirmed }
+    : { requestedMode: requested, unconfirmedMode: unconfirmed };
+}
+
+function requestedInFamily(mode: string, modeState: RuntimeModeState): [string | null, string | null] {
+  return isBehaviourMode(mode)
+    ? [modeState.requestedBehaviour ?? null, modeState.unconfirmedBehaviour ?? null]
+    : [modeState.requestedMode, modeState.unconfirmedMode ?? null];
 }
 
 /**
@@ -389,7 +446,11 @@ export function createRuntimeControlStateByWidgetId(
         toggleState: modeState.mode === "b2" ? "on" : "off",
       };
     } else if (widget.kind === "toggle" && widget.settings.topic === MODE_REQUEST_TOPIC) {
-      controlState = resolveModeRequestToggle(asModeRequest(readPayloadData(widget.settings.onPayload)), modeState);
+      controlState = resolveModeRequestToggle(
+        asModeRequest(readPayloadData(widget.settings.onPayload)),
+        asModeRequest(readPayloadData(widget.settings.offPayload)),
+        modeState,
+      );
     } else {
       const widgetMode = resolveWidgetModeRequest(widget, options.actionPresets ?? []);
       if (widgetMode) {
@@ -451,24 +512,34 @@ export function createRuntimeControlStateByWidgetId(
 }
 
 function resolveModeSelection(widgetMode: string, modeState: RuntimeModeState): WidgetControlState["selection"] {
-  if (widgetMode === modeState.requestedMode) {
+  const [requested, unconfirmed] = requestedInFamily(widgetMode, modeState);
+  if (widgetMode === requested) {
     return "selected";
   }
-  return modeState.requestedMode === UNKNOWN_REQUESTED_MODE && widgetMode === modeState.unconfirmedMode
-    ? "unconfirmed"
-    : "unselected";
+  return requested === UNKNOWN_REQUESTED_MODE && widgetMode === unconfirmed ? "unconfirmed" : "unselected";
 }
 
-/** A /mode_request toggle is on while its mode is the one requested, and not confirmed while that is unknown. */
-function resolveModeRequestToggle(onMode: string | null, modeState: RuntimeModeState): WidgetControlState {
-  const requested = modeState.requestedMode;
-  if (!onMode || requested === null) {
+/**
+ * A /mode_request toggle is on in its on mode and off only in its off mode; any other mode lights neither. While
+ * the mode is unknown it is not confirmed, whatever another toggle last had accepted.
+ */
+function resolveModeRequestToggle(
+  onMode: string | null,
+  offMode: string | null,
+  modeState: RuntimeModeState,
+): WidgetControlState {
+  if (!onMode) {
+    return {};
+  }
+  const [requested, unconfirmed] = requestedInFamily(onMode, modeState);
+  const stateOf = (mode: string | null) => (mode === onMode ? "on" : mode === offMode && mode ? "off" : "other");
+  if (requested === null) {
     return {};
   }
   if (requested === UNKNOWN_REQUESTED_MODE) {
-    return { toggleState: modeState.unconfirmedMode === onMode ? "on" : "off", toggleUnconfirmed: true };
+    return { toggleState: stateOf(unconfirmed), toggleUnconfirmed: true };
   }
-  return { toggleState: requested === onMode ? "on" : "off" };
+  return { toggleState: stateOf(requested) };
 }
 
 /** The topic a teleop widget publishes on: its own, or the manager's input by default. */
@@ -488,10 +559,10 @@ function describeTeleopTargetRefusal(
   targets: NonNullable<Parameters<typeof createRuntimeControlStateByWidgetId>[2]>["teleopTargets"],
 ): string | null {
   const topic = resolveTeleopTargetTopic(widget);
-  if (!topic || !targets?.effective || targets.effective.includes("*") || targets.effective.includes(topic)) {
+  if (!topic || !targets?.effective || allowlistAllows(targets.effective, topic)) {
     return null;
   }
-  const appAllows = targets.app.includes("*") || targets.app.includes(topic);
+  const appAllows = allowlistAllows(targets.app, topic);
   return appAllows ? targets.reasons.server(topic) : targets.reasons.app(topic);
 }
 

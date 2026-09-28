@@ -1,6 +1,12 @@
 import type { RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
 import { cancelAllPendingEngaging } from "@bloom/widget-renderers";
-import { asRecord, resolveTeleopFrameId, TELEOP_DEFAULT_TARGET, type WidgetActionIntent } from "@bloom/widgets";
+import {
+  allowlistAllows,
+  asRecord,
+  resolveTeleopFrameId,
+  TELEOP_DEFAULT_TARGET,
+  type WidgetActionIntent,
+} from "@bloom/widgets";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   dispatchRuntimeActionIntent,
@@ -28,9 +34,13 @@ export type RuntimeActionRecord = {
 export type RuntimeActionFeedback = {
   appId?: string;
   detail: string;
-  status: Extract<RuntimeActionRecordStatus, "blocked" | "failed" | "simulated" | "unsupported">;
+  /** "info": a service's answer, shown for a moment; the rest are problems. */
+  status: Extract<RuntimeActionRecordStatus, "blocked" | "failed" | "simulated" | "unsupported"> | "info";
   widgetId: string;
 };
+
+/** How long a service's answer stays in the bar. */
+export const SERVICE_ANSWER_MS = 4000;
 
 export type RuntimeDispatchOptions = {
   actionPresets?: readonly RuntimeActionPreset[];
@@ -237,10 +247,22 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
           setFeedback({
             appId: options.appId,
             detail: result.detail,
-            // No reply or a rate limit reads as a failure in the bar; the control itself says it is not confirmed.
-            status: result.status === "unknown" || result.status === "transient" ? "failed" : result.status,
+            // No reply, a rate limit or a service's refusal reads as a failure in the bar.
+            status:
+              result.status === "unknown" || result.status === "transient" || result.status === "refused"
+                ? "failed"
+                : result.status,
             widgetId: intent.widgetId,
           });
+        } else if (result.status === "called" && result.detail) {
+          const answer: RuntimeActionFeedback = {
+            appId: options.appId,
+            detail: result.detail,
+            status: "info",
+            widgetId: intent.widgetId,
+          };
+          setFeedback(answer);
+          window.setTimeout(() => setFeedback((current) => (current === answer ? null : current)), SERVICE_ANSWER_MS);
         } else if (isRuntimeActionConfirmed(result)) {
           setFeedback((current) => (current?.widgetId === intent.widgetId ? null : current));
         }
@@ -372,7 +394,7 @@ function composeTargetRequest(
 
 function allowsTarget(policy: RuntimeAdapterPolicy | undefined, request: RuntimeTeleopCommandRequest): boolean {
   const allowed = policy?.allowed_teleop_targets;
-  return !allowed || allowed.includes("*") || allowed.includes(request.target);
+  return !allowed || allowlistAllows(allowed, request.target);
 }
 
 function isRestingValue(value: unknown): boolean {

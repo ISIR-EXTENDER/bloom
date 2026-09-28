@@ -46,7 +46,7 @@ export type RuntimeKioskBarProps = {
   application: ApplicationConfig;
   commandFeedback?: {
     detail: string;
-    status: "blocked" | "failed" | "simulated" | "unsupported";
+    status: "blocked" | "failed" | "info" | "simulated" | "unsupported";
   } | null;
   ownsRobotControl?: boolean;
   screen: ScreenConfig;
@@ -115,6 +115,7 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
     gamepadName = null,
     onBackToBuilder,
     scanning,
+    dwell,
   } = props;
   const strings = useRuntimeStrings(language);
   const [maintenanceOpen, setMaintenanceOpen] = useState(false);
@@ -201,19 +202,26 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
             {strings.kiosk.gamepadChip}
           </span>
         ) : null}
-        {commandFeedback ? (
+        {commandFeedback?.status === "info" ? (
           <span
-            aria-label={`${
-              commandFeedback.status === "simulated" ? strings.kiosk.commandNotSent : strings.kiosk.commandFailed
-            }: ${commandFeedback.detail}`}
+            aria-label={`${strings.kiosk.serviceAnswered}: ${commandFeedback.detail}`}
+            className="runtime-kiosk-command-feedback"
+            data-status="info"
+            role="status"
+            title={commandFeedback.detail}
+          >
+            <strong>{strings.kiosk.serviceAnswered}</strong>
+            <span>{commandFeedback.detail}</span>
+          </span>
+        ) : commandFeedback ? (
+          <span
+            aria-label={`${feedbackLabel(commandFeedback.status, strings)}: ${commandFeedback.detail}`}
             className="runtime-kiosk-command-feedback"
             data-status={commandFeedback.status}
             role="alert"
             title={commandFeedback.detail}
           >
-            <strong>
-              {commandFeedback.status === "simulated" ? strings.kiosk.commandNotSent : strings.kiosk.commandFailed}
-            </strong>
+            <strong>{feedbackLabel(commandFeedback.status, strings)}</strong>
             <span>{commandFeedback.detail}</span>
           </span>
         ) : null}
@@ -232,8 +240,8 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
         {onBackToBuilder ? (
           <button
             className="runtime-kiosk-builder"
-            // Leaves for a page with no scanner: a caregiver opens it by touch.
-            data-scan-touch-only={scanning?.enabled ? "" : undefined}
+            // Leaves for a page with no scanner or dwell: a caregiver opens it by touch.
+            data-scan-touch-only={scanning?.enabled || dwell?.enabled ? "" : undefined}
             onClick={onBackToBuilder}
             type="button"
           >
@@ -297,4 +305,8 @@ export function RuntimeKioskBar(props: RuntimeKioskBarProps) {
       ) : null}
     </>
   );
+}
+
+function feedbackLabel(status: string, strings: ReturnType<typeof useRuntimeStrings>): string {
+  return status === "simulated" ? strings.kiosk.commandNotSent : strings.kiosk.commandFailed;
 }

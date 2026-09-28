@@ -262,6 +262,7 @@ describe("a suspend or STOP", () => {
 });
 
 describe("a desired state in another app", () => {
+  // The robot has one state: another app's unanswered Close leaves this app's toggle on the same topic unconfirmed.
   it("is not adopted by a widget with the same id, and never sends through its handler", async () => {
     const appA = vi.fn(lost);
     const appB = vi.fn<Handler>(() => ({ accepted: true }));
@@ -275,7 +276,10 @@ describe("a desired state in another app", () => {
 
     expect(appB).not.toHaveBeenCalled();
     expect(appA.mock.calls.length).toBeGreaterThan(callsBefore);
-    expect(screen.getByRole("button", { name: "Gripper: Open" })).not.toHaveAttribute("data-confirmed");
+    expect(screen.getByRole("button", { name: "Gripper: Closed, not confirmed" })).toHaveAttribute(
+      "data-confirmed",
+      "false",
+    );
   });
 });
 

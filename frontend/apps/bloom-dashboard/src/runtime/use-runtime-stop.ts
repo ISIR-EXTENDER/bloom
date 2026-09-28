@@ -19,7 +19,8 @@ export type RuntimeStopHandle = {
   /** The last STOP failed or the backend answered not stopped: STOP must be resendable. */
   engageUnconfirmed: boolean;
   engage: () => void;
-  resume: () => void;
+  /** Answers the latch the operator saw: one read at send time could be a newer STOP they never resumed. */
+  resume: (engagedAt: string) => void;
 };
 
 /**
@@ -46,12 +47,10 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
   clientRef.current = client;
   // Bumped by every STOP and resume: a poll sent before one answers with the latch as it was.
   const actionCountRef = useRef(0);
-  const stateRef = useRef<RuntimeStopState | null>(null);
   // The shown error is a STOP that got no answer: any poll that finds the latch clears it.
   const engageErrorRef = useRef(false);
 
   const mirrorState = useCallback((next: RuntimeStopState) => {
-    stateRef.current = next;
     setState(next);
   }, []);
 
@@ -145,64 +144,65 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
       });
   }, [mirrorState, setEngageUnconfirmed, setStopRequested]);
 
-  const resume = useCallback(() => {
-    const resumeRuntimeStop = clientRef.current?.resumeRuntimeStop;
-    if (!resumeRuntimeStop) {
-      return;
-    }
-    // Always sent: "" (no latch seen here) must not release a STOP pressed at another station, as an omitted one would.
-    const engagedAt = stateRef.current?.stopped ? stateRef.current.engaged_at : "";
-    actionCountRef.current += 1;
-    const actionsWhenSent = actionCountRef.current;
-    const current = () => actionsWhenSent === actionCountRef.current;
-    const wasRequested = stopRequestedRef.current;
-    const wasUnconfirmed = engageUnconfirmedRef.current;
-    // A failed resume leaves this station's unconfirmed STOP holding, not a running look nothing confirmed.
-    const restoreRequested = (latched: boolean) => {
-      if (wasRequested && !latched) {
-        setStopRequested(true);
-        setEngageUnconfirmed(wasUnconfirmed);
+  const resume = useCallback(
+    (engagedAt: string) => {
+      const resumeRuntimeStop = clientRef.current?.resumeRuntimeStop;
+      if (!resumeRuntimeStop) {
+        return;
       }
-    };
-    setStopRequested(false);
-    setEngageUnconfirmed(false);
-    engageErrorRef.current = false;
-    resumeRuntimeStop({ engagedAt })
-      .then((next) => {
-        if (current()) {
-          mirrorState(next);
-          setRequestError("");
+      actionCountRef.current += 1;
+      const actionsWhenSent = actionCountRef.current;
+      const current = () => actionsWhenSent === actionCountRef.current;
+      const wasRequested = stopRequestedRef.current;
+      const wasUnconfirmed = engageUnconfirmedRef.current;
+      // A failed resume leaves this station's unconfirmed STOP holding, not a running look nothing confirmed.
+      const restoreRequested = (latched: boolean) => {
+        if (wasRequested && !latched) {
+          setStopRequested(true);
+          setEngageUnconfirmed(wasUnconfirmed);
         }
-      })
-      .catch((error: unknown) => {
-        if (!current()) {
-          return;
-        }
-        const message = error instanceof Error ? error.message : "The resume request failed.";
-        const getState = clientRef.current?.getRuntimeStopState;
-        if ((error as { status?: unknown } | null)?.status !== 409 || !getState) {
-          restoreRequested(false);
-          setRequestError(message);
-          return;
-        }
-        // 409 is also "not the owner": only a latch that moved on (a newer STOP, which stays) is answered silently.
-        getState()
-          .then((next) => {
-            if (!current()) {
-              return;
-            }
+      };
+      setStopRequested(false);
+      setEngageUnconfirmed(false);
+      engageErrorRef.current = false;
+      resumeRuntimeStop({ engagedAt })
+        .then((next) => {
+          if (current()) {
             mirrorState(next);
-            restoreRequested(next.stopped);
-            setRequestError(next.engaged_at !== engagedAt ? "" : message);
-          })
-          .catch(() => {
-            if (current()) {
-              restoreRequested(false);
-              setRequestError(message);
-            }
-          });
-      });
-  }, [mirrorState, setEngageUnconfirmed, setStopRequested]);
+            setRequestError("");
+          }
+        })
+        .catch((error: unknown) => {
+          if (!current()) {
+            return;
+          }
+          const message = error instanceof Error ? error.message : "The resume request failed.";
+          const getState = clientRef.current?.getRuntimeStopState;
+          if ((error as { status?: unknown } | null)?.status !== 409 || !getState) {
+            restoreRequested(false);
+            setRequestError(message);
+            return;
+          }
+          // 409 is also "not the owner": only a latch that moved on (a newer STOP, which stays) is answered silently.
+          getState()
+            .then((next) => {
+              if (!current()) {
+                return;
+              }
+              mirrorState(next);
+              restoreRequested(next.stopped);
+              setRequestError(next.engaged_at !== engagedAt ? "" : message);
+            })
+            .catch(() => {
+              if (current()) {
+                restoreRequested(false);
+                setRequestError(message);
+              }
+            });
+        });
+    },
+    [mirrorState, setEngageUnconfirmed, setStopRequested],
+  );
 
   const assertionError = state?.stopped && !state.asserted ? state.detail : "";
   return { state, requestError: assertionError || requestError, stopRequested, engageUnconfirmed, engage, resume };

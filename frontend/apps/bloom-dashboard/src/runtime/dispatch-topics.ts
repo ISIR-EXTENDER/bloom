@@ -1,5 +1,5 @@
 import type { RosTopicPublishRequest, RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import { claimTarget, isReconcilerSend } from "@bloom/widget-renderers";
+import { beginAct } from "@bloom/widget-renderers";
 import {
   asRecord,
   asTopic,
@@ -14,6 +14,7 @@ import {
   isAllowedByPolicy,
   type RuntimeActionDispatchOptions,
   type RuntimeActionDispatchResult,
+  toWidgetActionStatus,
 } from "./dispatch-result";
 import { isVector2Value } from "./dispatch-teleop";
 import type { RuntimeActionClient } from "./runtime-protocol";
@@ -29,20 +30,17 @@ export async function publishTopicRequest(
   if (policyError) {
     return { intent, request, status: "blocked", detail: policyError };
   }
-  claimUnlessReconciling(intent, request.topic);
+  // ADR 0141: recorded just before the request takes its publish sequence, and told how it went.
+  const settle = beginAct(request.topic, intent);
+  let result: RuntimeActionDispatchResult;
   try {
     const response = await client.publishRosTopic({ ...request, ...appScope(options) });
-    return { intent, request, status: response.status, detail: response.detail };
+    result = { intent, request, status: response.status, detail: response.detail };
   } catch (error: unknown) {
-    return { intent, request, ...classifyDispatchError(error) };
+    result = { intent, request, ...classifyDispatchError(error) };
   }
-}
-
-/** ADR 0141: an operator's publish is the newest act on its topic, so no control's pending retry may undo it. */
-export function claimUnlessReconciling(intent: WidgetActionIntent, topic: string): void {
-  if (!isReconcilerSend(intent)) {
-    claimTarget(topic);
-  }
+  settle(toWidgetActionStatus(result));
+  return result;
 }
 
 export async function dispatchTopicPublishIntent(

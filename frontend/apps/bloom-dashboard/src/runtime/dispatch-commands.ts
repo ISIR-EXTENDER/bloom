@@ -1,14 +1,15 @@
 import type { RuntimeActionPreset } from "@bloom/api-client";
-import { resolveCommandRoute, type WidgetActionIntent } from "@bloom/widgets";
+import { beginAct } from "@bloom/widget-renderers";
+import { NAVIGATE_SCREEN_COMMAND, resolveCommandRoute, type WidgetActionIntent } from "@bloom/widgets";
 import {
   classifyDispatchError,
   type RuntimeActionDispatchOptions,
   type RuntimeActionDispatchResult,
   type RuntimeConfiguredActionRequest,
+  toWidgetActionStatus,
 } from "./dispatch-result";
 import { dispatchTeleopFrameIntent } from "./dispatch-teleop";
 import {
-  claimUnlessReconciling,
   createPresetTopicPublishRequest,
   createRosTopicPublishRequest,
   publishTopicRequest,
@@ -25,6 +26,10 @@ export async function dispatchCommandIntent(
   intent: CommandIntent,
   options: RuntimeActionDispatchOptions,
 ): Promise<RuntimeActionDispatchResult> {
+  // A screen button whose screen is missing has nothing for the robot: the backend would only refuse it.
+  if (intent.command === NAVIGATE_SCREEN_COMMAND) {
+    return { intent, status: "unsupported", detail: "This button opens no screen: pick one under Opens screen." };
+  }
   const route = resolveCommandRoute(intent, options.actionPresets ?? []);
   if (route.kind === "teleop-frame") {
     return dispatchTeleopFrameIntent(client, intent, route.frameId, options);
@@ -44,6 +49,7 @@ export async function dispatchCommandIntent(
   const request = preset ? createPresetTopicPublishRequest(preset) : null;
   const configuredActionRequest = createConfiguredActionRequest(intent, options, preset);
   if (configuredActionRequest && client.dispatchRuntimeAction) {
+    let settle: ReturnType<typeof beginAct> = () => undefined;
     if (request) {
       const policyError = validateTopicPublishRequest(request, options.runtimePolicy);
       if (policyError) {
@@ -54,29 +60,27 @@ export async function dispatchCommandIntent(
           detail: policyError,
         };
       }
-      claimUnlessReconciling(intent, request.topic);
+      settle = beginAct(request.topic, intent);
     }
 
+    let result: RuntimeActionDispatchResult;
     try {
-      const response = await client.dispatchRuntimeAction({
-        app_id: configuredActionRequest.app_id,
-        command: configuredActionRequest.command,
-        config_id: configuredActionRequest.config_id,
-        preset_id: configuredActionRequest.preset_id,
-      });
-      return {
-        intent,
-        request: configuredActionRequest,
-        status: response.status,
-        detail: response.detail,
-      };
+      // A service call may take longer than a publish: the client picks its timeout by the preset's kind.
+      const response = await client.dispatchRuntimeAction(
+        {
+          app_id: configuredActionRequest.app_id,
+          command: configuredActionRequest.command,
+          config_id: configuredActionRequest.config_id,
+          preset_id: configuredActionRequest.preset_id,
+        },
+        { presetKind: preset?.kind },
+      );
+      result = { intent, request: configuredActionRequest, status: response.status, detail: response.detail };
     } catch (error: unknown) {
-      return {
-        intent,
-        request: configuredActionRequest,
-        ...classifyDispatchError(error),
-      };
+      result = { intent, request: configuredActionRequest, ...classifyDispatchError(error) };
     }
+    settle(toWidgetActionStatus(result));
+    return result;
   }
 
   if (!request) {

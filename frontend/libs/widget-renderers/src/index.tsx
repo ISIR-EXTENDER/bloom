@@ -14,14 +14,15 @@ import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
 export {
+  beginAct,
   cancelAllPendingEngaging,
   claimTarget,
-  forgetAllConfirmedState,
   forgetConfirmedValues,
   isReconcilerSend,
   parameterTarget,
   resetDesiredStates,
   settleForAssertedStop,
+  settleForNewSession,
 } from "./desired-state";
 export type {
   CommandedTwist,

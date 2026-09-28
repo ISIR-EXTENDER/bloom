@@ -21,6 +21,8 @@ export const enRuntimeStrings: RuntimeStrings = {
     resumeConfirmAria: "Press again to resume",
     resumeLocked: "LET GO OF THE SWITCH…",
     resumeLockedAria: "Let go of the switch first. Press twice to resume",
+    resumeDwellLocked: "ONE MOMENT…",
+    resumeDwellLockedAria: "Resume listens in a moment. Rest on it twice to resume",
     stopAgain: "STOP AGAIN",
     stopAgainAria: "Stop the robot again",
   },
@@ -97,6 +99,7 @@ export const enRuntimeStrings: RuntimeStrings = {
     backToOperation: "Back to operation",
     commandFailed: "Command failed",
     commandNotSent: "Not sent",
+    serviceAnswered: "Robot answered",
     editApp: "Edit app",
     editScreen: "Edit this screen in the builder",
     fitDescription: (width, height, percent) =>
