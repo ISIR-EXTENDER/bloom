@@ -204,20 +204,20 @@ describe("the checklist and the robot's own refusals", () => {
     expect(evaluateBuilderTour(app([speed]), [], { speedLimitCaps: { angular: 0.8, linear: 1 } }).topics).toBe(true);
   });
 
-  it("fails Go home and pose targets on a Kinova", () => {
+  it("fails pose targets on a Kinova and lets Go home through since cartesian_manager#11", () => {
     const home = button(purpose("go-home"));
     const pose = button({
       ...purpose("jaco"),
       command: "behaviour/pose_target/ready",
       payload: { data: "behaviour/pose_target/ready" },
     });
-    for (const target of [home, pose]) {
-      expect(describeWidgetSendProblems(target, [], { robotName: "Kinova Gen3" }).join(" ")).toMatch(
-        /not available on the Kinova/,
-      );
-      expect(evaluateBuilderTour(app([target]), [], { robotName: "gen3" }).topics).toBe(false);
-      expect(evaluateBuilderTour(app([target]), [], { robotName: "Explorer" }).topics).toBe(true);
-    }
+    expect(describeWidgetSendProblems(pose, [], { robotName: "Kinova Gen3" }).join(" ")).toMatch(
+      /not available on the Kinova/,
+    );
+    expect(evaluateBuilderTour(app([pose]), [], { robotName: "gen3" }).topics).toBe(false);
+    expect(evaluateBuilderTour(app([pose]), [], { robotName: "Explorer" }).topics).toBe(true);
+    expect(describeWidgetSendProblems(home, [], { robotName: "Kinova Gen3" })).toEqual([]);
+    expect(evaluateBuilderTour(app([home]), [], { robotName: "gen3" }).topics).toBe(true);
   });
 });
 

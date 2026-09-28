@@ -88,7 +88,7 @@ def get_camera_frame_gateway(connection: Request | WebSocket):
 def get_runtime_command_policy(connection: Request | WebSocket) -> RuntimeCommandPolicy:
     policy = connection.app.state.runtime_command_policy
     settings = connection.app.state.settings
-    refused = robot_refused_mode_requests(settings.robot_name, settings.allow_kinova_home)
+    refused = robot_refused_mode_requests(settings.robot_name, settings.allow_kinova_pose_targets)
     if refused:
         policy = replace(policy, refused_mode_requests=(*policy.refused_mode_requests, *refused))
     directory = getattr(connection.app.state, "teleop_target_directory", None)
@@ -283,10 +283,13 @@ async def run_runtime_thread(operation: Callable[..., Any], *args: Any, executor
     handler cancelled before then dropped the disconnect neutralization.
     """
     future = asyncio.get_running_loop().run_in_executor(executor, partial(operation, *args))
-    try:
-        return await asyncio.shield(future)
-    except asyncio.CancelledError:
-        return await future
+    # Awaited bare, a second cancellation cancelled the job itself when no worker had picked it up yet.
+    while True:
+        try:
+            return await asyncio.shield(future)
+        except asyncio.CancelledError:
+            if future.cancelled():
+                raise
 
 
 async def run_blocking_ros_read(request: Request, operation: Callable[..., Any], *args: Any) -> Any:

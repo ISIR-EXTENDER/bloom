@@ -80,8 +80,8 @@ class Settings(BaseModel):
     # Which arm this deployment drives, shown on the operator screen. One
     # backend instance serves one robot.
     robot_name: str = ""
-    # A Kinova's manager loads the Explorer's home pose (cartesian_manager#10); set once upstream is fixed.
-    allow_kinova_home: bool = False
+    # A Kinova's manager loads the Explorer's Cartesian pose targets; set once it carries its own.
+    allow_kinova_pose_targets: bool = False
     ros_command_backend: Literal["cartesian_manager", "teleop_command"] = Field(default="cartesian_manager")
     # Default stamp; must be one of the manager's command frames.
     ros_command_frame_id: str = "base_link"
@@ -150,6 +150,19 @@ class Settings(BaseModel):
     max_petanque_total_duration: float = Field(default=10.0, gt=0, allow_inf_nan=False)
     max_petanque_alpha: float = Field(default=0.5, ge=0, lt=math.pi / 2, allow_inf_nan=False)
     max_petanque_finish_angle: float = Field(default=0.5, ge=0, lt=math.pi / 2, allow_inf_nan=False)
+    #: Command state (ADR 0142): a full snapshot this often on every socket, and at most this rate on changes.
+    command_state_push_period_sec: float = Field(default=0.5, gt=0, allow_inf_nan=False)
+    command_state_max_rate_hz: float = Field(default=20.0, gt=0, allow_inf_nan=False)
+    #: The node whose mode requests the manager:* states model; its restart makes them unknown.
+    command_state_manager_node: str = "/cartesian_manager"
+    #: A pose target nobody can see end reads unknown after this.
+    command_state_pose_target_timeout_sec: float = Field(default=30.0, gt=0, allow_inf_nan=False)
+    gripper_command_topic: str = "/gripper_controller/commands"
+    #: The Kinova's Robotiq finger reports the gripper's position; the values match its app's payloads.
+    kinova_gripper_joint: str = "robotiq_85_left_knuckle_joint"
+    kinova_gripper_open_position: float = Field(default=0.0, allow_inf_nan=False)
+    kinova_gripper_close_position: float = Field(default=0.8, allow_inf_nan=False)
+    kinova_gripper_tolerance: float = Field(default=0.15, gt=0, allow_inf_nan=False)
     #: Worker threads blocking ROS reads (parameters, robot model) may hold at once.
     ros_read_concurrency: int = Field(default=4, ge=1)
     # Per topic, per socket: the newest sample each interval. Zero forwards every sample.
@@ -337,7 +350,7 @@ class Settings(BaseModel):
                 cls.model_fields["allowed_ros_service_types"].default,
             ),
             robot_name=os.getenv("BLOOM_ROBOT_NAME", ""),
-            allow_kinova_home=_read_bool_env("BLOOM_ALLOW_KINOVA_HOME", default=False),
+            allow_kinova_pose_targets=_read_bool_env("BLOOM_ALLOW_KINOVA_POSE_TARGETS", default=False),
             # Documented in the README but never read until now.
             ros_command_backend=_read_literal_env(
                 "BLOOM_ROS_COMMAND_BACKEND",

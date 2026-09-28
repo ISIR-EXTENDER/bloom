@@ -223,8 +223,8 @@ export BLOOM_MIN_PETANQUE_TOTAL_DURATION=0.5
 export BLOOM_MAX_PETANQUE_TOTAL_DURATION=10.0
 export BLOOM_MAX_PETANQUE_ALPHA=0.5
 export BLOOM_MAX_PETANQUE_FINISH_ANGLE=0.5
-# Go home is refused when BLOOM_ROBOT_NAME names a Kinova or gen3 (cartesian_manager#10); true once that is fixed.
-export BLOOM_ALLOW_KINOVA_HOME=false
+# Pose targets are refused when BLOOM_ROBOT_NAME names a Kinova or gen3: its manager loads the Explorer's poses.
+export BLOOM_ALLOW_KINOVA_POSE_TARGETS=false
 ```
 
 The speed caps are deployment-wide. On a Kinova, whose apps stop at 0.1 m/s, set `BLOOM_MAX_LINEAR_SPEED_LIMIT=0.1`

@@ -1,11 +1,6 @@
 import type { RuntimeActionPreset, ScreenConfig } from "@bloom/api-client";
-import { createWidgetActionIntent } from "@bloom/widgets";
 import { describe, expect, it } from "vitest";
-import {
-  applyRuntimeModeIntent,
-  createDefaultRuntimeModeState,
-  createRuntimeControlStateByWidgetId,
-} from "./runtimeModeState";
+import { createRuntimeControlStateByWidgetId } from "./runtimeModeState";
 
 const jaco: RuntimeActionPreset = {
   command: "geometric/jaco",
@@ -29,17 +24,13 @@ const widget = {
 const screen = { id: "drive", widgets: [widget] } as unknown as ScreenConfig;
 
 describe("a mode button driven by a preset", () => {
-  it("lights up once its preset was requested", () => {
-    const modeState = applyRuntimeModeIntent(
-      createDefaultRuntimeModeState(),
-      createWidgetActionIntent(widget as never, { type: "press" }),
-    );
-    const states = createRuntimeControlStateByWidgetId(screen, modeState, { actionPresets: [jaco] });
-    expect(states["jaco-button"]?.selection).toBe("selected");
+  it("reads the shaping mode its preset asks for", () => {
+    const states = createRuntimeControlStateByWidgetId(screen, { actionPresets: [jaco] });
+    expect(states["jaco-button"]?.commandBinding?.lit).toEqual([{ key: "manager:shaping", value: "geometric/jaco" }]);
   });
 
   it("waits for a subscriber on the preset's topic", () => {
-    const states = createRuntimeControlStateByWidgetId(screen, createDefaultRuntimeModeState(), {
+    const states = createRuntimeControlStateByWidgetId(screen, {
       actionPresets: [jaco],
       topicStatuses: [{ name: "/mode_request", publisher_count: 0, subscription_count: 0 } as never],
     });

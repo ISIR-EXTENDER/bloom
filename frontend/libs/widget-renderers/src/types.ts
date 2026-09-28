@@ -8,6 +8,7 @@ import type {
   WidgetRenderDescriptor,
 } from "@bloom/widgets";
 import type { ComponentType, ReactNode } from "react";
+import type { CommandStateBinding } from "./command-state";
 
 export type SavedPositionEntry = {
   name: string;
@@ -83,8 +84,8 @@ export type WidgetDataSnapshot =
     };
 
 /**
- * How a send ended (ADR 0141): refused was not applied; transient was not applied but may be retried (a rate
- * limit); superseded means a newer send owns the target; unknown means no reply, so it may have been applied.
+ * How a send ended: refused or transient was not applied; superseded means a newer send owns the target; unknown
+ * means no reply, so it may have been applied. The store says what the robot holds either way (ADR 0142).
  */
 export type WidgetActionStatus = "accepted" | "refused" | "superseded" | "transient" | "unknown";
 
@@ -110,19 +111,10 @@ export type WidgetControlState = {
   commandFrameId?: string;
   /** This robot will never offer it (design §09): dashed, not dimmed like a control that is only "not now". */
   unsupported?: boolean;
-  /**
-   * Whether this control is the one currently selected among a mutually
-   * exclusive set, such as the manager's mode.
-   *
-   * The manager publishes no mode feedback, so this only ever reflects what
-   * this session last requested. Renderers must not present it as confirmation
-   * that the robot is in that mode. "unconfirmed": this control asked last and got no reply.
-   */
-  selection?: "selected" | "unconfirmed" | "unselected";
-  /** "other": a /mode_request toggle whose shaping mode is neither its on nor its off mode, so neither is lit. */
-  toggleState?: "off" | "on" | "other";
-  /** With toggleState: the mode it derives from was asked for without an accepted reply. */
-  toggleUnconfirmed?: boolean;
+  /** A local choice among exclusive controls, such as the teleop frame; never the robot's state. */
+  selection?: "selected" | "unselected";
+  /** What a mode button reads and writes in the command-state store, resolved through the app's presets. */
+  commandBinding?: CommandStateBinding;
 };
 
 /** A twist the runtime is sending: unit scale, linear in the base frame, angular in the named frame. */
@@ -153,8 +145,6 @@ export type WidgetRendererProps = {
   controlState?: WidgetControlState;
   data?: WidgetDataSnapshot;
   descriptor: Extract<WidgetRenderDescriptor, { status: "resolved" }>;
-  /** The app and configuration the screen belongs to; a control's desired state never leaves it. */
-  desiredScope?: string;
   /** The profile's language; the descriptor's operator words already follow it. */
   language?: RuntimeLanguage;
   /** The operator profile's motor preset; renderers adapt their input model. */
@@ -188,7 +178,6 @@ export type ScreenRendererOptions = {
   conditioning?: SignalConditioning;
   controlStateByWidgetId?: Readonly<Record<string, WidgetControlState>>;
   dataByWidgetId?: Readonly<Record<string, WidgetDataSnapshot>>;
-  desiredScope?: string;
   language?: RuntimeLanguage;
   motorPreset?: MotorAccessibilityPreset;
   neutralRevision?: number;

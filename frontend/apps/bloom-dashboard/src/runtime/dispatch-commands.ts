@@ -1,12 +1,10 @@
 import type { RuntimeActionPreset } from "@bloom/api-client";
-import { beginAct } from "@bloom/widget-renderers";
 import { NAVIGATE_SCREEN_COMMAND, resolveCommandRoute, type WidgetActionIntent } from "@bloom/widgets";
 import {
   classifyDispatchError,
   type RuntimeActionDispatchOptions,
   type RuntimeActionDispatchResult,
   type RuntimeConfiguredActionRequest,
-  toWidgetActionStatus,
 } from "./dispatch-result";
 import { dispatchTeleopFrameIntent } from "./dispatch-teleop";
 import {
@@ -49,7 +47,6 @@ export async function dispatchCommandIntent(
   const request = preset ? createPresetTopicPublishRequest(preset) : null;
   const configuredActionRequest = createConfiguredActionRequest(intent, options, preset);
   if (configuredActionRequest && client.dispatchRuntimeAction) {
-    let settle: ReturnType<typeof beginAct> = () => undefined;
     if (request) {
       const policyError = validateTopicPublishRequest(request, options.runtimePolicy);
       if (policyError) {
@@ -60,7 +57,6 @@ export async function dispatchCommandIntent(
           detail: policyError,
         };
       }
-      settle = beginAct(request.topic, intent);
     }
 
     let result: RuntimeActionDispatchResult;
@@ -79,7 +75,6 @@ export async function dispatchCommandIntent(
     } catch (error: unknown) {
       result = { intent, request: configuredActionRequest, ...classifyDispatchError(error) };
     }
-    settle(toWidgetActionStatus(result));
     return result;
   }
 

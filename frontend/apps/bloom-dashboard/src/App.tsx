@@ -1,8 +1,8 @@
-import type { ApplicationConfig, RuntimeStopState } from "@bloom/api-client";
+import type { ApplicationConfig } from "@bloom/api-client";
 import { BLOOM_THEME_PRESETS, BloomThemeProvider } from "@bloom/ui";
-import { settleForAssertedStop, type WidgetActionOutcome } from "@bloom/widget-renderers";
+import { applyCommandStateMessage, clearCommandState, type WidgetActionOutcome } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import "./builder.css";
 import "./builder-tour.css";
@@ -24,18 +24,6 @@ import { HelpPage } from "./help/HelpPage";
 import { type BuilderMode, ProductWorkspace, type RuntimeMode } from "./product/ProductWorkspace";
 import { type RuntimeActionClient, toWidgetActionStatus } from "./runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "./runtime/runtime-profile-overrides";
-import { onRuntimeSessionStart } from "./runtime/runtime-session-events";
-import {
-  applyRequestedMode,
-  applyRuntimeModeOutcome,
-  applyRuntimeStopLatch,
-  createDefaultRuntimeModeState,
-  isRuntimeModeIntent,
-  ModeRequestLedgers,
-  markRuntimeModeUnknown,
-  resetRuntimeModeForSession,
-  resolveRuntimeModeRequest,
-} from "./runtime/runtimeModeState";
 import { createSupervisorRuntimeClient } from "./runtime/supervisor-client";
 import { useRuntimeActionDispatcher } from "./runtime/use-runtime-action-dispatcher";
 import { useRuntimeCapabilityReport } from "./runtime/use-runtime-capabilities";
@@ -87,31 +75,13 @@ export function App({
   const runtimeCapabilities = runtimeCapabilityReport?.capabilities ?? null;
   const { navigate, route } = useBloomRoute();
   const { activeView, builderMode, runtimeMode, supervisorTarget, libraryTarget } = route;
-  const [runtimeModeState, setRuntimeModeState] = useState(() => createDefaultRuntimeModeState());
-  // Kept here, not in the workspace: a remount seeing the same latch must not undo a mode asked for since.
-  const lastStopLatchRef = useRef("");
-  // Per family (shaping, behaviour), only the newest request's reply, or a newer STOP, may set the mode.
-  const modeLedgerRef = useRef(new ModeRequestLedgers());
-  const handleStopLatch = useCallback((latch: RuntimeStopState) => {
-    const key = `${latch.engaged_at}:${latch.asserted}`;
-    if (key === lastStopLatchRef.current) {
-      return;
-    }
-    lastStopLatchRef.current = key;
-    modeLedgerRef.current.reset();
-    if (latch.asserted) {
-      settleForAssertedStop();
-    }
-    setRuntimeModeState((current) => applyRuntimeStopLatch(current, latch));
-  }, []);
-  // A reconnect, a lease handover or a return to an app: the server reset shaping when the old session ended.
+  // ADR 0142: every screen renders the backend's command-state store, pushed on the runtime socket.
   useEffect(
     () =>
-      onRuntimeSessionStart((ownerModeRequest) => {
-        modeLedgerRef.current.reset();
-        setRuntimeModeState((current) => resetRuntimeModeForSession(current, ownerModeRequest));
-      }),
-    [],
+      runtimeActionClient.addRuntimeCommandStateListener?.((message) =>
+        message ? applyCommandStateMessage(message) : clearCommandState(),
+      ),
+    [runtimeActionClient],
   );
   const [runtimeUserPreferences, setRuntimeUserPreferences] = useState(() => loadRuntimeUserPreferences());
   const [selection, setSelection] = useState<WorkspaceSelection | null>(null);
@@ -192,9 +162,6 @@ export function App({
       return { accepted: true };
     }
 
-    const modeRequest = isRuntimeModeIntent(intent, applicationRuntime?.action_presets)
-      ? modeLedgerRef.current.begin(resolveRuntimeModeRequest(intent, applicationRuntime?.action_presets))
-      : null;
     const result = await runtimeActions.dispatch(intent, {
       actionPresets: applicationRuntime?.action_presets,
       allowedCommandFrameIds: applicationRuntime?.allowedCommandFrameIds,
@@ -204,16 +171,6 @@ export function App({
       runtimePolicy: applicationRuntime?.runtime_policy,
     });
     const status = toWidgetActionStatus(result);
-    const verdict = modeRequest === null ? null : modeRequest.ledger.settle(modeRequest.id, status);
-    if (verdict?.kind === "apply") {
-      setRuntimeModeState((currentModeState) =>
-        applyRuntimeModeOutcome(currentModeState, intent, status, applicationRuntime?.action_presets),
-      );
-    } else if (verdict?.kind === "set") {
-      setRuntimeModeState((currentModeState) => applyRequestedMode(currentModeState, verdict.mode));
-    } else if (verdict?.kind === "unknown") {
-      setRuntimeModeState((currentModeState) => markRuntimeModeUnknown(currentModeState, verdict.mode));
-    }
     // A coalesced or superseded update lost to a newer one, not to a refusal: its control must not snap home.
     return { accepted: status === "accepted" || status === "superseded", detail: result.detail, status };
   };
@@ -373,14 +330,12 @@ export function App({
                 onTopicSubscriptionRequest={runtimeActions.subscribeTopic}
                 onUploadThemeAsset={applicationActions.uploadThemeAsset}
                 onSuspendTeleop={runtimeActions.suspendTeleop}
-                onStopLatch={handleStopLatch}
                 profilePreferences={runtimeUserPreferences.profilePreferences}
                 profileOverrides={runtimeUserPreferences.profileOverrides}
                 recentRuntimeSelections={runtimeUserPreferences.recentRuntimeSelections}
                 runtimeActionClient={runtimeActionClient}
                 runtimeActionFeedback={runtimeActions.feedback}
                 runtimeMode={runtimeMode}
-                runtimeModeState={runtimeModeState}
                 supervisorRuntimeClient={supervisorRuntimeClient}
                 teleopActive={runtimeActions.teleopActive}
                 teleopNeutralRevision={runtimeActions.neutralRevision}

@@ -355,7 +355,7 @@ function collectModeRequests(
   ];
 }
 
-const KINOVA_REFUSED_MODE = /^behaviour\/(joint_target\/home|pose_target\/.+)$/;
+const KINOVA_REFUSED_MODE = /^behaviour\/pose_target\/.+$/;
 
 /** The manager's mode grammar, and the Kinova's refused targets, as the server checks them before publishing. */
 function describeModeRequestProblems(
@@ -377,7 +377,7 @@ function describeModeRequestProblems(
     }
     return kinova && KINOVA_REFUSED_MODE.test(parsed.normalized)
       ? [
-          `This robot refuses ${parsed.normalized}: Go home and pose targets are not available on the Kinova (cartesian_manager#10), so ${when} is refused.`,
+          `This robot refuses ${parsed.normalized}: pose targets are not available on the Kinova, whose manager loads the Explorer's Cartesian poses, so ${when} is refused.`,
         ]
       : [];
   });

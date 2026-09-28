@@ -1,5 +1,5 @@
-import type { ApplicationConfig, RuntimeCapabilityReport, RuntimeStopState, ScreenConfig } from "@bloom/api-client";
-import { forgetConfirmedValues, type WidgetActionIntentHandler } from "@bloom/widget-renderers";
+import type { ApplicationConfig, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
+import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -27,7 +27,7 @@ import { isRuntimeMotionHeld, resolveRuntimeIntentRefusal } from "./runtime-inte
 import { type RuntimeProfileOverrides, runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import type { RuntimeTeleopCommandRequest } from "./runtime-protocol";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
-import { createRuntimeControlStateByWidgetId, type RuntimeModeState, usesTeleopAdapter } from "./runtimeModeState";
+import { createRuntimeControlStateByWidgetId, usesTeleopAdapter } from "./runtimeModeState";
 import { resolveNavigableScreens, resolveRuntimeProfile } from "./runtimeProfile";
 import { type RuntimeStrings, useRuntimeStrings } from "./strings";
 import type { ComponentContribution } from "./teleop-composition";
@@ -86,8 +86,6 @@ type RuntimeWorkspaceProps = {
   onProfileOverridesChange: (profileId: string, overrides: RuntimeProfileOverrides) => void;
   onSelectionChange: (selection: WorkspaceSelection) => void;
   onSuspendTeleop: () => void;
-  /** A STOP latch seen engaged; the backend's STOP resets the shaper, so the requested mode follows. */
-  onStopLatch?: (latch: RuntimeStopState) => void;
   onTopicSample?: RuntimeActionClient["addRuntimeTopicSampleListener"];
   onTopicSubscriptionRequest?: (request: RuntimeTopicSubscriptionRequest) => void;
   /** Switching role from maintenance; the workspace opens that profile's layout. */
@@ -96,7 +94,6 @@ type RuntimeWorkspaceProps = {
   profileOverrides: Readonly<Record<string, RuntimeProfileOverrides>>;
   runtimeActionClient: RuntimeActionClient;
   runtimeActionFeedback: RuntimeActionFeedback | null;
-  runtimeModeState: RuntimeModeState;
   screen: ScreenConfig;
   selection: WorkspaceSelection;
 };
@@ -118,7 +115,6 @@ export function RuntimeWorkspace({
   onProfileOverridesChange,
   onSelectionChange,
   onSuspendTeleop,
-  onStopLatch,
   onTeleopCommand,
   onTeleopContribution,
   onTopicSample,
@@ -128,7 +124,6 @@ export function RuntimeWorkspace({
   profileOverrides,
   runtimeActionClient,
   runtimeActionFeedback,
-  runtimeModeState,
   screen,
   selection,
   openedFromBuilder = false,
@@ -232,7 +227,7 @@ export function RuntimeWorkspace({
   const parameterReadings = useParameterReadings(screen, runtimeActionClient);
   const baseControlStateByWidgetId = useMemo(
     () =>
-      createRuntimeControlStateByWidgetId(screen, runtimeModeState, {
+      createRuntimeControlStateByWidgetId(screen, {
         actionPresets: application.action_presets,
         activeCommandFrameId: commandFrameId,
         allowedCommandFrameIds,
@@ -258,7 +253,6 @@ export function RuntimeWorkspace({
       effectiveTeleopTargets,
       allowedCommandFrameIds,
       runtimeCapabilityReport?.capabilities,
-      runtimeModeState,
       screen,
       strings,
       teleopActive,
@@ -311,15 +305,6 @@ export function RuntimeWorkspace({
     screen,
   });
   const runtimeStop = useRuntimeStop(runtimeActionClient);
-  const onStopLatchRef = useRef(onStopLatch);
-  onStopLatchRef.current = onStopLatch;
-  const observedStop = runtimeStop.state;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new latch, or one now asserted, is reported once.
-  useEffect(() => {
-    if (observedStop?.stopped && observedStop.engaged_at) {
-      onStopLatchRef.current?.(observedStop);
-    }
-  }, [observedStop?.stopped, observedStop?.engaged_at, observedStop?.asserted]);
   const runtimeControl = useRuntimeControl(runtimeActionClient, onSuspendTeleop);
   const ownsRuntimeControl = !runtimeControl.supported || runtimeControl.state?.is_owner === true;
   const runtimeControlBlocked = runtimeControl.supported && !ownsRuntimeControl;
@@ -462,16 +447,14 @@ export function RuntimeWorkspace({
   // A new function identity each render would re-render every widget; the ref keeps the newest handler.
   const actionIntentRef = useRef(handleRuntimeActionIntent);
   actionIntentRef.current = handleRuntimeActionIntent;
-  // One handler per app and configuration, so a control's desired state never sends through another app.
-  const desiredScope = `${selection.appId}\u0000${selection.configId}`;
+  // One handler per app and configuration: a servo switch-off sent while leaving goes out under its own app.
+  const appScope = `${selection.appId}\u0000${selection.configId}`;
   const scopedAppsRef = useRef(new Map<string, ScopedApp>());
-  scopedAppsRef.current.set(desiredScope, { application, selection });
+  scopedAppsRef.current.set(appScope, { application, selection });
   const stableActionIntent = useCallback<WidgetActionIntentHandler>(
-    (intent) => actionIntentRef.current(intent, scopedAppsRef.current.get(desiredScope)),
-    [desiredScope],
+    (intent) => actionIntentRef.current(intent, scopedAppsRef.current.get(appScope)),
+    [appScope],
   );
-  // Leaving the app ends its session: what its controls confirmed no longer seeds the next one.
-  useEffect(() => () => forgetConfirmedValues(desiredScope), [desiredScope]);
 
   // Opening an app, closing Settings or the tour, and changing screen from
   // maintenance all replace the view; focus follows it to the named region
@@ -671,7 +654,6 @@ export function RuntimeWorkspace({
           <RuntimeRobotStatusPanel
             application={application}
             client={runtimeActionClient}
-            modeState={runtimeModeState}
             sessionStatus={runtimeActionClient.sendTeleopCommand ? "live" : "local"}
             strings={strings.supervisor.status}
           />
@@ -766,7 +748,6 @@ export function RuntimeWorkspace({
                 conditioning,
                 controlStateByWidgetId,
                 dataByWidgetId: effectiveDataByWidgetId,
-                desiredScope,
                 language: runtimeProfile.language,
                 motorPreset: runtimeProfile.motorAccessibilityPreset,
                 neutralRevision: teleopNeutralRevision,

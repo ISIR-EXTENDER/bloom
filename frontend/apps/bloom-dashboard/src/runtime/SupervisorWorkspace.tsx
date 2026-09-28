@@ -1,4 +1,5 @@
 import type { ApplicationConfig, RuntimeControlState, RuntimeStopState } from "@bloom/api-client";
+import { knownValue, managerKey, useCommandState } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
 import { useEffect, useMemo, useState } from "react";
 
@@ -7,7 +8,6 @@ import { RuntimeRobotStatusPanel } from "./RuntimeRobotStatusPanel";
 import type { RuntimeProfileOverrides } from "./runtime-profile-overrides";
 import { runtimeProfileOverrideKey } from "./runtime-profile-overrides";
 import { resolveRuntimeStatusChip } from "./runtime-status-chip";
-import type { RuntimeModeState } from "./runtimeModeState";
 import { resolveRuntimeProfile } from "./runtimeProfile";
 import { useRuntimeStrings } from "./strings";
 import type { SupervisorRuntimeClient } from "./supervisor-client";
@@ -20,7 +20,6 @@ type SupervisorWorkspaceProps = {
   application: ApplicationConfig;
   client: SupervisorRuntimeClient;
   commandFrameId: string | null;
-  modeState: RuntimeModeState;
   onBackToLibrary: () => void;
   preferredProfileId: string;
   profileOverrides: Readonly<Record<string, RuntimeProfileOverrides>>;
@@ -32,7 +31,6 @@ export function SupervisorWorkspace({
   application,
   client,
   commandFrameId,
-  modeState,
   onBackToLibrary,
   preferredProfileId,
   profileOverrides,
@@ -59,7 +57,9 @@ export function SupervisorWorkspace({
   // configured frame is what the next command would carry.
   const operatorFrameId = controlState?.owner_frame_id ?? "";
   const operatorIsDriving = controlState?.owner_moving === true;
-  const requestedMode = controlState?.owner_mode_request || modeState.requestedMode;
+  const shaping = useCommandState(managerKey("shaping"));
+  const shapingMode = knownValue(shaping)?.value;
+  const requestedMode = typeof shapingMode === "string" ? shapingMode : controlState?.owner_mode_request || null;
 
   return (
     <section
@@ -127,17 +127,15 @@ export function SupervisorWorkspace({
           <dd>
             {requestedMode ?? (controlState ? strings.supervisor.noModeRequested : strings.supervisor.neverRequested)}
           </dd>
-          {modeState.updatedAt ? <small>{strings.supervisor.updatedAt(formatTime(modeState.updatedAt))}</small> : null}
+          {shaping?.updated_at ? <small>{strings.supervisor.updatedAt(formatTime(shaping.updated_at))}</small> : null}
         </div>
       </dl>
 
       <RuntimeRobotStatusPanel
         application={application}
         client={client}
-        modeState={modeState}
         refreshIntervalMs={SUPERVISOR_REFRESH_MS}
         sessionStatus={resolveSessionStatus(link.state)}
-        showConfiguredModeFallback={false}
         strings={strings.supervisor.status}
       />
     </section>

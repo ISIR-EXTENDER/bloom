@@ -6,11 +6,7 @@ import { buildCliPreview, COMMAND_PURPOSES, createWidgetActionIntent } from "@bl
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { dispatchRuntimeActionIntent, type RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
-import {
-  applyRuntimeModeIntent,
-  createDefaultRuntimeModeState,
-  createRuntimeControlStateByWidgetId,
-} from "../runtime/runtimeModeState";
+import { createRuntimeControlStateByWidgetId } from "../runtime/runtimeModeState";
 import { BuilderGuidedTour, evaluateBuilderTour } from "./BuilderGuidedTour";
 import { BuilderWidgetSettingsEditor } from "./BuilderWidgetSettingsEditor";
 import { readDeploymentAllowlists, WidgetDestinationSummary } from "./BuilderWidgetSummaries";
@@ -122,14 +118,10 @@ describe("an older button saved with its own topic and a preset", () => {
       "geometric/jaco",
     );
 
-    const modeState = applyRuntimeModeIntent(createDefaultRuntimeModeState(), intent, presets);
-    expect(modeState.requestedMode).toBe("geometric/jaco");
-    const states = createRuntimeControlStateByWidgetId(
-      { id: "screen", widgets: [jaco] } as unknown as ScreenConfig,
-      modeState,
-      { actionPresets: presets },
-    );
-    expect(states.button?.selection).toBe("selected");
+    const states = createRuntimeControlStateByWidgetId({ id: "screen", widgets: [jaco] } as unknown as ScreenConfig, {
+      actionPresets: presets,
+    });
+    expect(states.button?.commandBinding?.lit).toEqual([{ key: "manager:shaping", value: "geometric/jaco" }]);
 
     renderEditor(jaco);
     expect(screen.getByText(/The press sends its own topic \/mode_request, not the preset/)).toBeTruthy();
@@ -150,14 +142,13 @@ describe("an older button saved with its own topic and a preset", () => {
   });
 });
 
-describe("the requested mode", () => {
-  it("is what the resolved preset sent, not the button's own command", () => {
-    const intent = createWidgetActionIntent(button({ command: "geometric/jaco", presetId: neutral.id }), {
-      type: "press",
+describe("the mode a button shows", () => {
+  it("is what the resolved preset sends, not the button's own command", () => {
+    const saved = { ...button({ command: "geometric/jaco", presetId: neutral.id }), id: "button" };
+    const states = createRuntimeControlStateByWidgetId({ id: "screen", widgets: [saved] } as unknown as ScreenConfig, {
+      actionPresets: presets,
     });
-    expect(applyRuntimeModeIntent(createDefaultRuntimeModeState(), intent, presets).requestedMode).toBe(
-      "geometric/both",
-    );
+    expect(states.button?.commandBinding?.lit).toEqual([{ key: "manager:shaping", value: "geometric/both" }]);
   });
 });
 

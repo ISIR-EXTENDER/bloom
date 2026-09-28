@@ -1,54 +1,8 @@
 import type { ApplicationConfig, ScreenConfig } from "@bloom/api-client";
 import { describe, expect, it } from "vitest";
-import {
-  applyRuntimeModeIntent,
-  createDefaultRuntimeModeState,
-  createRuntimeControlStateByWidgetId,
-  createRuntimeTopicStatusSummaries,
-  ModeRequestLedger,
-} from "./runtimeModeState";
+import { createRuntimeControlStateByWidgetId, createRuntimeTopicStatusSummaries } from "./runtimeModeState";
 
 describe("runtime mode state", () => {
-  it("tracks B1/B2 commands from mode topic publishes", () => {
-    const modeState = createDefaultRuntimeModeState();
-
-    const nextModeState = applyRuntimeModeIntent(
-      modeState,
-      {
-        type: "topic-publish",
-        widgetId: "mode-toggle",
-        widgetKind: "toggle",
-        topic: "/cmd/mode",
-        messageType: "std_msgs/msg/Int32",
-        nextState: "on",
-        payload: { data: 3 },
-      },
-      [],
-      new Date("2026-07-10T12:00:00.000Z"),
-    );
-
-    expect(nextModeState).toEqual({
-      mode: "b2",
-      requestedMode: null,
-      source: "operator-command",
-      updatedAt: "2026-07-10T12:00:00.000Z",
-    });
-  });
-
-  it("shares mode state with every compatible mode toggle on the active screen", () => {
-    expect(
-      createRuntimeControlStateByWidgetId(createModeScreen(), {
-        mode: "b2",
-        requestedMode: null,
-        source: "operator-command",
-        updatedAt: "",
-      }),
-    ).toEqual({
-      "mode-a": { toggleState: "on" },
-      "mode-b": { toggleState: "on" },
-    });
-  });
-
   it("summarizes configured runtime topic diagnostics", () => {
     expect(
       createRuntimeTopicStatusSummaries(createSandboxApp(), [
@@ -82,45 +36,6 @@ describe("runtime mode state", () => {
     );
   });
 });
-
-function createModeScreen(): ScreenConfig {
-  return {
-    id: "mode-screen",
-    title: "Mode screen",
-    canvas: { preset_id: "hd", runtime_mode: "fit" },
-    widgets: [
-      createModeToggle("mode-a"),
-      createModeToggle("mode-b"),
-      {
-        id: "other-toggle",
-        title: "Other toggle",
-        kind: "toggle",
-        layout: { x: 0, y: 0, width: 100, height: 80 },
-        settings: {
-          initialValue: false,
-          offPayload: { data: false },
-          onPayload: { data: true },
-          topic: "/other/topic",
-        },
-      },
-    ],
-  };
-}
-
-function createModeToggle(id: string): ScreenConfig["widgets"][number] {
-  return {
-    id,
-    title: "Mode B1/B2",
-    kind: "toggle",
-    layout: { x: 0, y: 0, width: 100, height: 80 },
-    settings: {
-      initialValue: false,
-      offPayload: { data: 0 },
-      onPayload: { data: 3 },
-      topic: "/cmd/mode",
-    },
-  };
-}
 
 function createSandboxApp(): ApplicationConfig {
   return {
@@ -201,80 +116,67 @@ describe("cartesian_manager mode requests", () => {
       ],
     }) as never;
 
-  it("records the mode a command intent asks for", () => {
-    const next = applyRuntimeModeIntent(createDefaultRuntimeModeState(), {
-      type: "command",
-      command: "geometric/jaco",
-      widgetId: "drive-mode-jaco",
-      widgetKind: "command-button",
-    } as never);
-
-    expect(next.requestedMode).toBe("geometric/jaco");
-  });
-
-  it("records the mode a momentary button publishes directly", () => {
-    const next = applyRuntimeModeIntent(createDefaultRuntimeModeState(), {
-      type: "topic-publish",
-      topic: "/mode_request",
-      messageType: "std_msgs/msg/String",
-      payload: { data: "geometric/snake" },
-      widgetId: "drive-snake-hold",
-      widgetKind: "command-button",
-    } as never);
-
-    expect(next.requestedMode).toBe("geometric/snake");
-  });
-
-  it("normalises the way the manager does, so a button still lights up", () => {
-    const next = applyRuntimeModeIntent(createDefaultRuntimeModeState(), {
-      type: "command",
-      command: "GEOMETRIC/Joint-Target",
-      widgetId: "x",
-      widgetKind: "command-button",
-    } as never);
-
-    expect(next.requestedMode).toBe("geometric/joint_target");
-  });
-
-  it("ignores commands that are not mode requests, rather than unlighting the set", () => {
-    const withMode = applyRuntimeModeIntent(createDefaultRuntimeModeState(), {
-      type: "command",
-      command: "geometric/both",
-      widgetId: "drive-mode-both",
-      widgetKind: "command-button",
-    } as never);
-
-    const afterOtherCommand = applyRuntimeModeIntent(withMode, {
-      type: "command",
-      command: "gripper/open",
-      widgetId: "drive-gripper",
-      widgetKind: "command-button",
-    } as never);
-
-    expect(afterOtherCommand.requestedMode).toBe("geometric/both");
-  });
-
-  it("marks exactly one latching button as selected", () => {
-    const state = { ...createDefaultRuntimeModeState(), requestedMode: "geometric/jaco" };
-
-    expect(createRuntimeControlStateByWidgetId(driveScreen(), state)).toEqual({
-      "drive-mode-both": { selection: "unselected" },
-      "drive-mode-jaco": { selection: "selected" },
-      "positions-release": { selection: "unselected" },
+  it("binds each latching mode button to the manager state it asks for", () => {
+    expect(createRuntimeControlStateByWidgetId(driveScreen())).toEqual({
+      "drive-mode-both": {
+        commandBinding: {
+          lit: [{ key: "manager:shaping", value: "geometric/both" }],
+          writes: [{ key: "manager:shaping", value: "geometric/both" }],
+        },
+      },
+      "drive-mode-jaco": {
+        commandBinding: {
+          lit: [{ key: "manager:shaping", value: "geometric/jaco" }],
+          writes: [{ key: "manager:shaping", value: "geometric/jaco" }],
+        },
+      },
+      "positions-release": {
+        commandBinding: {
+          lit: [{ key: "manager:behaviour", value: "behaviour/passthrough" }],
+          writes: [{ key: "manager:behaviour", value: "behaviour/passthrough" }],
+        },
+      },
     });
   });
 
-  it("leaves the momentary button out, since it already shows a held state", () => {
-    const state = { ...createDefaultRuntimeModeState(), requestedMode: "geometric/snake" };
-    const controlState = createRuntimeControlStateByWidgetId(driveScreen(), state);
+  it("normalises the way the manager does and binds a joint target as a one-shot", () => {
+    const screen = {
+      id: "positions",
+      title: "Positions",
+      widgets: [modeButton("home", "Behaviour/Joint-Target/Home"), modeButton("ready", "behaviour/pose_target/ready")],
+    } as never;
 
-    expect(controlState["drive-snake-hold"]).toBeUndefined();
+    expect(createRuntimeControlStateByWidgetId(screen)).toEqual({
+      home: { commandBinding: { writes: [{ key: "manager:target", value: "behaviour/joint_target/home" }] } },
+      ready: {
+        commandBinding: {
+          lit: [
+            { key: "manager:behaviour", value: "behaviour/pose_target" },
+            { key: "manager:target", value: "behaviour/pose_target/ready" },
+          ],
+          writes: [
+            { key: "manager:behaviour", value: "behaviour/pose_target" },
+            { key: "manager:target", value: "behaviour/pose_target/ready" },
+          ],
+        },
+      },
+    });
   });
 
-  it("selects nothing before any mode has been requested", () => {
-    const controlState = createRuntimeControlStateByWidgetId(driveScreen(), createDefaultRuntimeModeState());
+  it("keys a mode button on another mode topic by that topic", () => {
+    const screen = {
+      id: "drive",
+      title: "Drive",
+      widgets: [modeButton("arm2", "geometric/snake", { topic: "/arm2/mode_request" })],
+    } as never;
 
-    expect(Object.values(controlState).every((entry) => entry.selection === "unselected")).toBe(true);
+    expect(createRuntimeControlStateByWidgetId(screen).arm2?.commandBinding?.writes).toEqual([
+      { key: "manager:shaping@/arm2/mode_request", value: "geometric/snake" },
+    ]);
+  });
+
+  it("leaves the momentary button out, since it shows the operator's hold", () => {
+    expect(createRuntimeControlStateByWidgetId(driveScreen())["drive-snake-hold"]).toBeUndefined();
   });
 
   it("does not treat a button on another topic as a mode control", () => {
@@ -284,7 +186,7 @@ describe("cartesian_manager mode requests", () => {
       widgets: [modeButton("gripper", "open", { topic: "/gripper_controller/commands" })],
     } as never;
 
-    expect(createRuntimeControlStateByWidgetId(screen, createDefaultRuntimeModeState())).toEqual({});
+    expect(createRuntimeControlStateByWidgetId(screen)).toEqual({});
   });
 });
 
@@ -313,7 +215,7 @@ describe("runtime command-frame controls", () => {
 
   it("selects the active frame and disables frames this robot does not support", () => {
     expect(
-      createRuntimeControlStateByWidgetId(frameScreen, createDefaultRuntimeModeState(), {
+      createRuntimeControlStateByWidgetId(frameScreen, {
         activeCommandFrameId: "base_link",
         allowedCommandFrameIds: ["base_link"],
       }),
@@ -349,7 +251,7 @@ describe("runtime command-frame controls", () => {
       ],
     } as ScreenConfig;
 
-    const state = createRuntimeControlStateByWidgetId(echoes, createDefaultRuntimeModeState(), {
+    const state = createRuntimeControlStateByWidgetId(echoes, {
       activeCommandFrameId: "effector_frame",
     });
 
@@ -358,7 +260,7 @@ describe("runtime command-frame controls", () => {
   });
 
   it("keeps saying a frame is unsupported while the twist is moving", () => {
-    const state = createRuntimeControlStateByWidgetId(frameScreen, createDefaultRuntimeModeState(), {
+    const state = createRuntimeControlStateByWidgetId(frameScreen, {
       activeCommandFrameId: "base_link",
       allowedCommandFrameIds: ["base_link"],
       teleopActive: true,
@@ -369,7 +271,7 @@ describe("runtime command-frame controls", () => {
   });
 
   it("disables every frame change while the composed twist is moving", () => {
-    const state = createRuntimeControlStateByWidgetId(frameScreen, createDefaultRuntimeModeState(), {
+    const state = createRuntimeControlStateByWidgetId(frameScreen, {
       activeCommandFrameId: "base_link",
       allowedCommandFrameIds: ["base_link", "effector_frame"],
       teleopActive: true,
@@ -435,7 +337,7 @@ describe("runtime capability gating", () => {
   ];
 
   it("keeps every unavailable widget in state with the backend's reason", () => {
-    const state = createRuntimeControlStateByWidgetId(capabilityScreen, createDefaultRuntimeModeState(), {
+    const state = createRuntimeControlStateByWidgetId(capabilityScreen, {
       runtimeCapabilities: unavailableCapabilities,
     });
 
@@ -451,7 +353,7 @@ describe("runtime capability gating", () => {
 
   it("does not guess that a widget is unavailable before capabilities are known", () => {
     expect(
-      createRuntimeControlStateByWidgetId(capabilityScreen, createDefaultRuntimeModeState(), {
+      createRuntimeControlStateByWidgetId(capabilityScreen, {
         runtimeCapabilities: null,
       }),
     ).toEqual({});
@@ -462,7 +364,7 @@ describe("runtime ROS subscriber gating", () => {
   const speedScreen = createSandboxApp().screens[0] as ScreenConfig;
 
   it("keeps a topic control inert while subscriber readiness is unknown", () => {
-    const state = createRuntimeControlStateByWidgetId(speedScreen, createDefaultRuntimeModeState(), {
+    const state = createRuntimeControlStateByWidgetId(speedScreen, {
       topicStatuses: null,
     });
 
@@ -475,7 +377,7 @@ describe("runtime ROS subscriber gating", () => {
   });
 
   it("disables a topic control when publishing would have no consumer", () => {
-    const state = createRuntimeControlStateByWidgetId(speedScreen, createDefaultRuntimeModeState(), {
+    const state = createRuntimeControlStateByWidgetId(speedScreen, {
       topicStatuses: [],
     });
 
@@ -488,7 +390,7 @@ describe("runtime ROS subscriber gating", () => {
   });
 
   it("enables the topic control when its controller is subscribed", () => {
-    const state = createRuntimeControlStateByWidgetId(speedScreen, createDefaultRuntimeModeState(), {
+    const state = createRuntimeControlStateByWidgetId(speedScreen, {
       topicStatuses: [
         {
           name: "/robot/max_linear_speed",
@@ -530,7 +432,7 @@ describe("a joystick on a topic the server refuses", () => {
     server: (topic: string) => `server refuses ${topic}`,
   };
   const states = (topic: string | undefined, app: string[], effective: string[] | null) =>
-    createRuntimeControlStateByWidgetId(screen(topic), createDefaultRuntimeModeState(), {
+    createRuntimeControlStateByWidgetId(screen(topic), {
       teleopTargets: { app, effective, reasons },
     });
 
@@ -557,51 +459,5 @@ describe("a joystick on a topic the server refuses", () => {
     expect(states(undefined, ["/joystick_cartesian_command"], ["/joystick_cartesian_command"]).stick).toBeUndefined();
     expect(states("/tablet_cmd", ["/tablet_cmd"], null).stick).toBeUndefined();
     expect(states("/tablet_cmd", ["*"], ["*"]).stick).toBeUndefined();
-  });
-});
-
-describe("the mode request ledger", () => {
-  it("hands the decision to the newest older request still without a reply when the newest is refused", () => {
-    const ledger = new ModeRequestLedger();
-    const jaco = ledger.begin("geometric/jaco");
-    const snake = ledger.begin("geometric/snake");
-    const both = ledger.begin("geometric/both");
-
-    expect(ledger.settle(snake, "refused")).toEqual({ kind: "ignore" });
-    expect(ledger.settle(both, "refused")).toEqual({ kind: "unknown", mode: "geometric/jaco" });
-    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "apply" });
-  });
-
-  // An older answer that came while the newest was deciding used to be forgotten, so a refused newest showed
-  // the mode before both of them, clean.
-  it("sets the newest older accepted mode when the newest is refused", () => {
-    const ledger = new ModeRequestLedger();
-    ledger.begin("geometric/snake");
-    const jaco = ledger.begin("geometric/jaco");
-    const both = ledger.begin("geometric/both");
-
-    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "ignore" });
-    expect(ledger.settle(both, "refused")).toEqual({ kind: "set", mode: "geometric/jaco" });
-  });
-
-  it("marks the newest older request without a reply unknown when the newest is refused", () => {
-    const ledger = new ModeRequestLedger();
-    const jaco = ledger.begin("geometric/jaco");
-    const snake = ledger.begin("geometric/snake");
-    const both = ledger.begin("geometric/both");
-
-    expect(ledger.settle(snake, "unknown")).toEqual({ kind: "ignore" });
-    expect(ledger.settle(both, "refused")).toEqual({ kind: "unknown", mode: "geometric/snake" });
-    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "ignore" });
-  });
-
-  it("lets no older reply decide after a STOP", () => {
-    const ledger = new ModeRequestLedger();
-    const jaco = ledger.begin("geometric/jaco");
-    const both = ledger.begin("geometric/both");
-    ledger.reset();
-
-    expect(ledger.settle(both, "refused")).toEqual({ kind: "ignore" });
-    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "ignore" });
   });
 });

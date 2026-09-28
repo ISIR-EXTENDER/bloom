@@ -3,7 +3,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { describeApiError } from "../ui/api-error";
 
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
-import { announceRuntimeSessionStart } from "./runtime-session-events";
 
 export type RuntimeControlSnapshot = {
   claiming: boolean;
@@ -38,23 +37,6 @@ export function useRuntimeControl(
   onBeforeReleaseRef.current = onBeforeRelease;
   const [claiming, setClaiming] = useState(supported);
   const [error, setError] = useState("");
-  // Per mount: returning to an app is a new session for the screen, whatever id the server keeps.
-  const seenRef = useRef({ owner: "", session: "" });
-  const observeSession = useCallback((nextState: RuntimeControlState | null) => {
-    const seen = seenRef.current;
-    const session = nextState?.session_id ?? "";
-    const owner = nextState?.is_owner ? session : "";
-    const newSession = session !== "" && session !== seen.session;
-    const newLease = owner !== "" && owner !== seen.owner;
-    if (session) {
-      seen.session = session;
-    }
-    seen.owner = owner;
-    if (newSession || newLease) {
-      announceRuntimeSessionStart(owner ? nextState?.owner_mode_request || null : null);
-    }
-  }, []);
-
   const claim = useCallback(async () => {
     if (!client.claimRuntimeControl) {
       return;
@@ -68,14 +50,13 @@ export function useRuntimeControl(
         stateRevisionRef.current += 1;
         stateRef.current = nextState;
         setState(nextState);
-        observeSession(nextState);
       }
     } catch (claimError) {
       setError(describeApiError(claimError, "Bloom could not claim robot control."));
     } finally {
       setClaiming(false);
     }
-  }, [client, observeSession]);
+  }, [client]);
 
   useEffect(() => {
     const addListener = client.addRuntimeControlStateListener;
@@ -86,7 +67,6 @@ export function useRuntimeControl(
 
     let active = true;
     let claimedSessionId = "";
-    seenRef.current = { owner: "", session: "" };
     const removeListener = addListener((nextState) => {
       if (!active) {
         return;
@@ -94,7 +74,6 @@ export function useRuntimeControl(
       stateRevisionRef.current += 1;
       stateRef.current = nextState;
       setState(nextState);
-      observeSession(nextState);
       if (nextState?.session_id && nextState.session_id !== claimedSessionId) {
         claimedSessionId = nextState.session_id;
         void claim();
@@ -115,7 +94,6 @@ export function useRuntimeControl(
                 stateRevisionRef.current += 1;
                 stateRef.current = nextState;
                 setState(nextState);
-                observeSession(nextState);
               }
             })
             .catch(() => undefined);
@@ -142,7 +120,7 @@ export function useRuntimeControl(
         .catch(() => undefined)
         .finally(() => client.disconnectRuntime?.());
     };
-  }, [claim, client, observeSession]);
+  }, [claim, client]);
 
   return { claim, claiming, error, state, supported };
 }

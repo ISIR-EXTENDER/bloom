@@ -79,7 +79,8 @@ def capabilities(
         max_linear_speed_limit=_topic_cap(request, MAX_LINEAR_SPEED_TOPIC, settings.max_linear_speed_limit),
         max_angular_speed_limit=_topic_cap(request, MAX_ANGULAR_SPEED_TOPIC, settings.max_angular_speed_limit),
         refused_mode_requests=[
-            mode for mode, _reason in robot_refused_mode_requests(settings.robot_name, settings.allow_kinova_home)
+            mode
+            for mode, _reason in robot_refused_mode_requests(settings.robot_name, settings.allow_kinova_pose_targets)
         ],
         allowed_ros_publish_topics=list(policy.allowed_publish_topics),
         allowed_ros_message_types=list(policy.allowed_message_types),

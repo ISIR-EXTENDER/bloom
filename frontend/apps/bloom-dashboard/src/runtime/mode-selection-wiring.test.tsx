@@ -1,17 +1,14 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
+import { createCommandStateServer } from "../test-support/command-state-server";
 import { explorerManagerClient } from "../test-support/configuration-client";
 import { openRuntimeApp } from "../test-support/open-runtime-app";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
 
 /**
- * End to end through the real App state: pressing a mode button must light
- * that button and unlight the others.
- *
- * The pieces were unit tested separately, and all passed, while the buttons
- * still did nothing in the browser. Only a test that goes through App's state
- * catches an intent that never reaches the mode reducer.
+ * End to end through the real App: a mode button lights from the backend's store (ADR 0142), fed by the runtime
+ * socket, and a press only sends. The fake server writes what it publishes, as the backend does.
  */
 function createConfigurationClient() {
   return explorerManagerClient();
@@ -25,8 +22,9 @@ beforeEach(() => {
 
 const pressedState = (name: RegExp) => screen.getByRole("button", { name }).getAttribute("aria-pressed");
 
-function createRuntimeActionClient() {
+function createRuntimeActionClient(server = createCommandStateServer()) {
   return {
+    addRuntimeCommandStateListener: server.addRuntimeCommandStateListener,
     listRosTopicStatus: vi.fn(async () => [
       {
         name: "/mode_request",
@@ -35,72 +33,61 @@ function createRuntimeActionClient() {
         subscription_count: 1,
       },
     ]),
-    publishRosTopic: vi.fn(async (request) => ({
-      detail: "Published.",
-      message_type: request.message_type,
-      status: "published" as const,
-      topic: request.topic,
-    })),
+    publishRosTopic: vi.fn(async (request) => {
+      const data = (request.payload as { data?: unknown } | undefined)?.data;
+      if (request.topic === "/mode_request" && typeof data === "string" && data.startsWith("geometric/")) {
+        server.write({ "manager:shaping": data });
+      }
+      return {
+        detail: "Published.",
+        message_type: request.message_type,
+        status: "published" as const,
+        topic: request.topic,
+      };
+    }),
   } satisfies RuntimeActionClient;
 }
 
 describe("pressing a mode button", () => {
-  it("marks it as the requested mode and clears the others", async () => {
-    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={createRuntimeActionClient()} />);
+  it("lights what the store holds, which the server wrote for the press", async () => {
+    const server = createCommandStateServer();
+    render(
+      <App configurationClient={createConfigurationClient()} runtimeActionClient={createRuntimeActionClient(server)} />,
+    );
 
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
     await openRuntimeApp("Explorer Manager");
 
-    expect(await screen.findByRole("button", { name: /^Jaco/ })).toBeTruthy();
-    expect(pressedState(/^Jaco/)).toBe("false");
+    expect(await screen.findByRole("button", { name: /^Jaco: Unknown/ })).toBeTruthy();
     expect(pressedState(/^Both/)).toBe("false");
 
     fireEvent.click(screen.getByRole("button", { name: /^Jaco/ }));
-
     await waitFor(() => {
       expect(pressedState(/^Jaco/)).toBe("true");
       expect(pressedState(/^Both/)).toBe("false");
     });
 
     fireEvent.click(screen.getByRole("button", { name: /^Both/ }));
-
     await waitFor(() => {
       expect(pressedState(/^Both/)).toBe("true");
       expect(pressedState(/^Jaco/)).toBe("false");
     });
   });
-});
 
-describe("a late reply to an older mode request", () => {
-  it("does not override the newer request's mode", async () => {
-    const client = createRuntimeActionClient();
-    let answerJaco: () => void = () => {};
-    const published = (request: { message_type: string; topic: string }) => ({
-      detail: "Published.",
-      message_type: request.message_type,
-      status: "published" as const,
-      topic: request.topic,
-    });
-    client.publishRosTopic.mockImplementation(async (request) => {
-      if (JSON.stringify(request.payload ?? request).includes("geometric/jaco")) {
-        await new Promise<void>((resolve) => {
-          answerJaco = resolve;
-        });
-      }
-      return published(request);
-    });
-    render(<App configurationClient={createConfigurationClient()} runtimeActionClient={client} />);
-
+  it("follows a change another tablet made", async () => {
+    const server = createCommandStateServer();
+    render(
+      <App configurationClient={createConfigurationClient()} runtimeActionClient={createRuntimeActionClient(server)} />,
+    );
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
     await openRuntimeApp("Explorer Manager");
-    fireEvent.click(await screen.findByRole("button", { name: /^Jaco/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^Both/ }));
-    await waitFor(() => expect(pressedState(/^Both/)).toBe("true"));
+    await screen.findByRole("button", { name: /^Jaco/ });
 
-    answerJaco();
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    act(() => server.write({ "manager:shaping": "geometric/jaco" }, "0123456789ab"));
+    await waitFor(() => expect(pressedState(/^Jaco/)).toBe("true"));
 
-    expect(pressedState(/^Both/)).toBe("true");
+    act(() => server.disconnect());
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Jaco: Unknown/ })).toBeTruthy());
     expect(pressedState(/^Jaco/)).toBe("false");
   });
 });

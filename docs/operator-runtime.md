@@ -308,10 +308,11 @@ appear in Kinova's export, where the same numbers would mean different angles.
 
 The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, deleting
 a saved pose, and export of a `joint_targets` configuration block. Explorer offers **Go home**, which arms on the first
-press and publishes on the second. Kinova offers none: its manager loads the Explorer's home pose, and joint 4 at
-2.97 rad is outside the gen3's 2.57 rad limit (cartesian_manager#10). The server also refuses
-`behaviour/joint_target/home` when `BLOOM_ROBOT_NAME` names a Kinova or gen3, unless `BLOOM_ALLOW_KINOVA_HOME=true`
-once upstream is fixed. Both offer **Release**. A saved pose cannot be replayed or renamed from Bloom:
+press and publishes on the second. The Kinova Manager app ships none yet, but the Kinova has its own seven-joint home
+since cartesian_manager#11: the server publishes `behaviour/joint_target/home` on a Kinova and the Builder offers the
+Go home purpose there. Pose targets (`behaviour/pose_target/*`) stay refused when `BLOOM_ROBOT_NAME` names a Kinova or
+gen3, because its manager still loads the Explorer's Cartesian poses, unless `BLOOM_ALLOW_KINOVA_POSE_TARGETS=true`.
+Both offer **Release**. A saved pose cannot be replayed or renamed from Bloom:
 the manager moves only to targets it loaded at start, so a new pose reaches the robot through the export and a manager
 restart. Saved poses live in the API process and are lost when it restarts, so export them before stopping it. Robot
 Feedback and Command Sources expose measured state and the manager's summed inputs without placing debug detail on the

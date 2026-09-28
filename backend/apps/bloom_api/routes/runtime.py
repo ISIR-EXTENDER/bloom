@@ -64,6 +64,7 @@ from libs.sessions import (
     RuntimeStoppedError,
 )
 from libs.sessions.audit import summarize_payload
+from libs.sessions.command_state import EchoExpectingGateway
 from libs.sessions.stop import RuntimeStopLatchMismatchError, RuntimeStopState
 
 logger = logging.getLogger(__name__)
@@ -294,7 +295,7 @@ def dispatch_runtime_action(
     def publish_and_record(commit: Callable[[], None]) -> RosPublishReceipt:
         def publish() -> RosPublishReceipt:
             receipt = publish_with_runtime_policy(
-                get_ros_publisher_gateway(request),
+                EchoExpectingGateway(get_ros_publisher_gateway(request), request.app.state.command_state_tracker),
                 get_runtime_command_policy(request),
                 audit_log,
                 ros_publish_request,
@@ -307,6 +308,12 @@ def dispatch_runtime_action(
                 preset.topic,
                 payload,
                 require_owner=request.app.state.settings.runtime_control_required,
+            )
+            request.app.state.command_state_tracker.record_publish(
+                preset.topic,
+                preset.message_type,
+                payload,
+                request.headers.get(RUNTIME_SESSION_HEADER, "").strip(),
             )
             return receipt
 
@@ -389,9 +396,13 @@ def dispatch_service_call_preset(
 
     def call(commit: Callable[[], None]) -> RosServiceReceipt:
         commit()
-        return ros_service_gateway.call(
+        receipt = ros_service_gateway.call(
             RosServiceRequest(service=preset.topic, service_type=preset.message_type, payload=payload)
         )
+        request.app.state.command_state_tracker.record_service(
+            preset.topic, payload, receipt.success, request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+        )
+        return receipt
 
     try:
         receipt = execute_ordered_as_runtime_owner(

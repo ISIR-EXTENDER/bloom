@@ -36,7 +36,7 @@ describe("the canvas while the STOP latch is on", () => {
     render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
     fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
     await openRuntimeApp("Explorer Manager");
-    const gripper = await screen.findByRole("button", { name: "Gripper: Close gripper" });
+    const gripper = await screen.findByRole("button", { name: /^Gripper: Close gripper/ });
     expect(gripper.getAttribute("aria-disabled")).toBeNull();
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Stop the robot" }));

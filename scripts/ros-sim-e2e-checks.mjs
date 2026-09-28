@@ -168,12 +168,13 @@ async function operatorSession() {
     });
 
     await check(page, "gripper-toggle-publishes", async () => {
-      const close = page.getByRole("button", { name: /^Gripper: Close gripper/ });
+      const close = await offerGripper(page, "Close");
       let since = Date.now();
       await close.click();
       const closed = await ros.waitFor(GRIPPER, (data) => sameArray(data.data, robot.gripper.close), { since });
+      const open = await offerGripper(page, "Open");
       since = Date.now();
-      await page.getByRole("button", { name: /^Gripper: Open gripper/ }).click();
+      await open.click();
       const opened = await ros.waitFor(GRIPPER, (data) => sameArray(data.data, robot.gripper.open), { since });
       return `close ${JSON.stringify(closed.data)}, open ${JSON.stringify(opened.data)}`;
     });
@@ -459,8 +460,9 @@ async function freshAppSession() {
       assert(unavailable === 0, `${unavailable} widget(s) marked unavailable`);
       const drive = await driveAndMeasure(page, "fresh");
 
+      const close = await offerGripper(page, "Close");
       let since = Date.now();
-      await page.getByRole("button", { name: /Close gripper/ }).click();
+      await close.click();
       await ros.waitFor(GRIPPER, (data) => data.data[0] === robot.gripper.close[0], { since });
 
       since = Date.now();
@@ -541,8 +543,9 @@ async function labSession() {
     });
 
     await check(page, "lab-gripper-jaco-and-hold", async () => {
+      const close = await offerGripper(page, "Close");
       let since = Date.now();
-      await page.getByRole("button", { name: /^Gripper: Close gripper/ }).click();
+      await close.click();
       // The lab ships the Explorer's values on both robots; the shipped app's check holds each robot to its own.
       const closed = await ros.waitFor(GRIPPER, (data) => data.data.length > 0, { since });
       since = Date.now();
@@ -674,6 +677,22 @@ async function labSession() {
 // ---- Gestures ----
 
 /** Full forward deflection, so both layouts clamp to the same twist, then the same stroke back. */
+/**
+ * The gripper offers the press that changes it, or both while its state is not known. The Kinova's finger
+ * reports it, and may start closed: press the other action first so the wanted one is offered.
+ */
+async function offerGripper(page, action) {
+  const name = (verb) => new RegExp(`^Gripper: ${verb} gripper`);
+  const wanted = page.getByRole("button", { name: name(action) });
+  const other = page.getByRole("button", { name: name(action === "Close" ? "Open" : "Close") });
+  await wanted.or(other).first().waitFor({ timeout: 15000 });
+  if ((await wanted.count()) === 0) {
+    await other.click();
+    await wanted.waitFor({ timeout: 15000 });
+  }
+  return wanted;
+}
+
 async function driveAndMeasure(page, label) {
   const translation = page.getByRole("application", { name: "Translation" });
   const start = await ros.waitFor(POSE, () => true, { since: Date.now() });

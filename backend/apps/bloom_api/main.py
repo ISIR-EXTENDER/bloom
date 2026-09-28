@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import math
 from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
@@ -37,12 +38,14 @@ from libs.ros_adapters import (
 from libs.ros_adapters.camera_frames import CameraFrameGateway, NoopCameraFrameGateway
 from libs.ros_adapters.camera_streams import CameraStreamGateway, NoopCameraStreamGateway
 from libs.ros_adapters.manipulability import ManipulabilityDerivingGateway
+from libs.ros_adapters.names import ros_name_error
 from libs.ros_adapters.parameters import NoopRosParameterGateway, RosParameterGateway
 from libs.ros_adapters.robot_model import NoopRobotModelGateway, RobotModelGateway
 from libs.ros_adapters.safety import (
     MAX_ANGULAR_SPEED_TOPIC,
     MAX_LINEAR_SPEED_TOPIC,
     RuntimeCommandPolicy,
+    is_kinova_robot,
     manager_parameter_bounds,
     petanque_parameter_bounds,
 )
@@ -61,9 +64,17 @@ from libs.sessions import (
     RuntimeTopicSubscriptionGateway,
     TeleopCommandGateway,
 )
+from libs.sessions.command_state import (
+    DIGITAL_OUTPUT_TOPIC,
+    CommandStateStore,
+    CommandStateTracker,
+    EchoExpectingGateway,
+    GripperFeedback,
+    is_mode_request_topic,
+)
 from libs.sessions.deadman import run_teleop_deadman, zero_stale_teleop
 from libs.sessions.positions import PositionStore, SQLitePositionStore
-from libs.sessions.stop import DEFAULT_TELEOP_TARGET, LEGACY_TELEOP_TARGET
+from libs.sessions.stop import DEFAULT_TELEOP_TARGET, LEGACY_TELEOP_TARGET, VISUAL_SERVOING_ON_TOPIC
 from libs.sessions.topics import is_live_subscription_gateway
 
 
@@ -153,10 +164,12 @@ def create_app(
     app.state.runtime_session_manager = RuntimeSessionManager(
         zero_orphaned_teleop=app_settings.ros_command_backend == "teleop_command"
     )
+    app.state.command_state_store = CommandStateStore()
+    app.state.command_state_tracker = create_command_state_tracker(app_settings, app.state.command_state_store)
     # After the gateways; still latches when both are Noops.
     app.state.runtime_stop_controller = runtime_stop_controller or RuntimeStopController(
         teleop_gateway=app.state.teleop_command_gateway,
-        ros_publisher_gateway=app.state.ros_publisher_gateway,
+        ros_publisher_gateway=EchoExpectingGateway(app.state.ros_publisher_gateway, app.state.command_state_tracker),
         audit_log=app.state.runtime_audit_log,
         teleop_target=(
             LEGACY_TELEOP_TARGET if app_settings.ros_command_backend == "teleop_command" else DEFAULT_TELEOP_TARGET
@@ -169,6 +182,7 @@ def create_app(
         joint_target_topics=app.state.runtime_session_manager.joint_target_topics,
         shaping_topics=app.state.runtime_session_manager.shaping_topics,
         state_path=app_settings.runtime_stop_state_path,
+        on_reset=app.state.command_state_tracker.record_reset,
     )
     # STOP never waits for a pool worker, and ROS reads that hang on a node that is down never hold the shared one.
     app.state.runtime_stop_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="bloom-stop")
@@ -267,6 +281,69 @@ def create_teleop_command_gateway(settings: Settings, node: object) -> TeleopCom
     )
 
 
+def create_command_state_tracker(settings: Settings, store: CommandStateStore) -> CommandStateTracker:
+    """Only the Kinova's finger reports the gripper; the Explorer's stays what was last commanded."""
+    gripper = (
+        GripperFeedback(
+            topic=settings.gripper_command_topic,
+            joint_name=settings.kinova_gripper_joint,
+            open_position=settings.kinova_gripper_open_position,
+            close_position=settings.kinova_gripper_close_position,
+            tolerance=settings.kinova_gripper_tolerance,
+        )
+        if is_kinova_robot(settings.robot_name)
+        else None
+    )
+    return CommandStateTracker(
+        store, gripper=gripper, pose_target_timeout_sec=settings.command_state_pose_target_timeout_sec
+    )
+
+
+def command_state_echo_topics(settings: Settings, policy: RuntimeCommandPolicy) -> dict[str, str]:
+    """The command topics whose every publish, from any source, the store follows."""
+    mode_topics = [
+        topic
+        for topic in ("/mode_request", *policy.allowed_publish_topics)
+        if is_mode_request_topic(topic) and ros_name_error(topic) is None
+    ]
+    return {
+        **dict.fromkeys(mode_topics, "std_msgs/msg/String"),
+        settings.gripper_command_topic: "std_msgs/msg/Float64MultiArray",
+        MAX_LINEAR_SPEED_TOPIC: "std_msgs/msg/Float64",
+        MAX_ANGULAR_SPEED_TOPIC: "std_msgs/msg/Float64",
+        DIGITAL_OUTPUT_TOPIC: "std_msgs/msg/Float32MultiArray",
+        VISUAL_SERVOING_ON_TOPIC: "std_msgs/msg/Bool",
+    }
+
+
+def create_command_state_feedback(app: FastAPI, node: object):
+    """The backend's own command and feedback subscriptions, on its ROS node."""
+    from libs.ros_adapters.command_state_feedback import RclpyCommandStateFeedback
+
+    settings: Settings = app.state.settings
+    tracker: CommandStateTracker = app.state.command_state_tracker
+    policy: RuntimeCommandPolicy = app.state.runtime_command_policy
+    return RclpyCommandStateFeedback(
+        node,
+        tracker,
+        app.state.ros_parameter_gateway,
+        echo_topics=command_state_echo_topics(settings, policy),
+        parameters=policy.allowed_parameters,
+        read_only_parameters=(f"{settings.command_state_manager_node}:inputs.sources",),
+        manager_node=settings.command_state_manager_node,
+        gripper_topic=settings.gripper_command_topic if is_kinova_robot(settings.robot_name) else None,
+    )
+
+
+async def run_command_state_ticker(tracker: CommandStateTracker, period_sec: float = 0.1) -> None:
+    while True:
+        try:
+            tracker.tick()
+        except Exception:  # noqa: BLE001 - the next tick tries again
+            logging.getLogger(__name__).exception("Command state tick failed.")
+        await asyncio.sleep(period_sec)
+
+
 def create_runtime_recording_gateway(settings: Settings) -> RuntimeRecordingGateway:
     if settings.runtime_recording_gateway == "rosbag":
         return RosbagRuntimeRecordingGateway(
@@ -337,9 +414,13 @@ def start_teleop_deadman(app: FastAPI) -> asyncio.Task | None:
 async def _runtime_lifespan(app: FastAPI) -> AsyncIterator[None]:
     deadman = start_teleop_deadman(app)
     app.state.teleop_deadman_task = deadman
+    ticker = asyncio.create_task(run_command_state_ticker(app.state.command_state_tracker))
     try:
         yield
     finally:
+        ticker.cancel()
+        with suppress(asyncio.CancelledError):
+            await ticker
         if deadman is not None:
             deadman.cancel()
             with suppress(asyncio.CancelledError):

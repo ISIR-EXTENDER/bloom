@@ -1,0 +1,547 @@
+"""The backend's record of what each command target holds (ADR 0142): screens render it, nothing else."""
+
+from __future__ import annotations
+
+import math
+import threading
+from collections import deque
+from collections.abc import Callable, Collection, Iterable, Mapping
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
+from hashlib import sha256
+from time import monotonic
+from typing import Any, Literal
+
+from libs.ros_adapters.mode_request import (
+    GEOMETRIC_PREFIX,
+    MODE_REQUEST_TOPIC,
+    PASSTHROUGH_MODE,
+    ModeRequestError,
+    normalize_mode_request,
+    parse_mode_request,
+)
+
+CommandSource = Literal["measured", "commanded", "reset", "unknown"]
+
+BY_ROBOT = "robot"
+BY_SERVER = "server"
+BY_OTHER = "other-publisher"
+#: An HTTP request that named no runtime session: a lab script.
+BY_API = "api"
+
+POSE_TARGET_BEHAVIOUR = "behaviour/pose_target"
+SERVOING_ACTIVE_KEY = "servoing:active"
+PETANQUE_STATE_KEY = "petanque:state"
+DIGITAL_OUTPUT_TOPIC = "/hub/digital_output"
+
+#: How long Bloom's own publish may take to come back on its echo subscription.
+OWN_ECHO_WINDOW_SEC = 2.0
+DEFAULT_POSE_TARGET_TIMEOUT_SEC = 30.0
+DEFAULT_SERVOING_WINDOW_SEC = 0.5
+#: A measurement that disagrees with a fresh command is the actuator still travelling.
+DEFAULT_GRIPPER_SETTLE_SEC = 2.0
+
+_FLOAT_TYPES = frozenset({"std_msgs/msg/Float32", "std_msgs/msg/Float64"})
+_INT_TYPES = frozenset({f"std_msgs/msg/{kind}{bits}" for kind in ("Int", "UInt") for bits in ("8", "16", "32", "64")})
+_FLOAT_ARRAY_TYPES = frozenset({"std_msgs/msg/Float32MultiArray", "std_msgs/msg/Float64MultiArray"})
+_INT_ARRAY_TYPES = frozenset({f"{name}MultiArray" for name in _INT_TYPES})
+
+
+def session_alias(session_id: str) -> str:
+    """A session id proves ownership, so every socket sees the same stable alias the audit log uses."""
+    return sha256(session_id.encode()).hexdigest()[:12] if session_id else BY_API
+
+
+def manager_key(state: str, topic: str = MODE_REQUEST_TOPIC) -> str:
+    return f"manager:{state}" if topic == MODE_REQUEST_TOPIC else f"manager:{state}@{topic}"
+
+
+def parameter_key(node: str, name: str) -> str:
+    return f"param:{node}:{name}"
+
+
+def digital_output_key(pin: int) -> str:
+    return f"{DIGITAL_OUTPUT_TOPIC}:{pin}"
+
+
+def is_mode_request_topic(topic: str) -> bool:
+    return topic.endswith("mode_request")
+
+
+@dataclass(frozen=True)
+class CommandStateEntry:
+    value: Any
+    source: CommandSource
+    updated_at: str
+    by: str
+    revision: int
+
+
+class CommandStateStore:
+    """One record per command target, a global revision, and listeners told after every change."""
+
+    def __init__(self, wall_clock: Callable[[], datetime] | None = None) -> None:
+        self._wall_clock = wall_clock or (lambda: datetime.now(timezone.utc))
+        self._entries: dict[str, CommandStateEntry] = {}
+        self._revision = 0
+        self._lock = threading.Lock()
+        self._listeners: list[Callable[[], None]] = []
+
+    @property
+    def revision(self) -> int:
+        with self._lock:
+            return self._revision
+
+    def get(self, key: str) -> CommandStateEntry | None:
+        with self._lock:
+            return self._entries.get(key)
+
+    def write(
+        self,
+        key: str,
+        value: Any,
+        source: CommandSource,
+        by: str,
+        *,
+        keep_if_equal: Collection[CommandSource] = (),
+    ) -> bool:
+        """False when nothing changed: an equal value already held from one of `keep_if_equal`."""
+        return self.write_many(((key, value),), source, by, keep_if_equal=keep_if_equal) > 0
+
+    def write_many(
+        self,
+        items: Iterable[tuple[str, Any]],
+        source: CommandSource,
+        by: str,
+        *,
+        keep_if_equal: Collection[CommandSource] = (),
+    ) -> int:
+        changed = 0
+        with self._lock:
+            for key, value in items:
+                current = self._entries.get(key)
+                if current is not None and current.source in keep_if_equal and current.value == value:
+                    continue
+                if current is not None and (current.value, current.source, current.by) == (value, source, by):
+                    continue
+                self._revision += 1
+                self._entries[key] = CommandStateEntry(
+                    value=value,
+                    source=source,
+                    updated_at=self._wall_clock().isoformat(),
+                    by=by,
+                    revision=self._revision,
+                )
+                changed += 1
+        if changed:
+            self._notify()
+        return changed
+
+    def mark_unknown(self, keys: Iterable[str], by: str) -> int:
+        """Only keys the store holds: a target never seen is already unknown."""
+        with self._lock:
+            held = [key for key in keys if key in self._entries and self._entries[key].source != "unknown"]
+        return self.write_many(((key, None) for key in held), "unknown", by)
+
+    def keys(self) -> tuple[str, ...]:
+        with self._lock:
+            return tuple(self._entries)
+
+    def snapshot(self) -> tuple[int, dict[str, dict[str, Any]]]:
+        with self._lock:
+            return self._revision, {key: asdict(entry) for key, entry in sorted(self._entries.items())}
+
+    def subscribe(self, listener: Callable[[], None]) -> Callable[[], None]:
+        with self._lock:
+            self._listeners.append(listener)
+
+        def unsubscribe() -> None:
+            with self._lock:
+                if listener in self._listeners:
+                    self._listeners.remove(listener)
+
+        return unsubscribe
+
+    def _notify(self) -> None:
+        with self._lock:
+            listeners = tuple(self._listeners)
+        for listener in listeners:
+            try:
+                listener()
+            except Exception:  # noqa: BLE001 - a closed socket's loop must not break the writer
+                pass
+
+
+def build_command_state_message(store: CommandStateStore, self_alias: str | None = None) -> dict[str, Any]:
+    """`self` is the recipient's own alias, so a screen can tell its own writes from others'."""
+    revision, snapshot = store.snapshot()
+    message: dict[str, Any] = {"type": "command_state", "revision": revision, "snapshot": snapshot}
+    if self_alias is not None:
+        message["self"] = self_alias
+    return message
+
+
+def normalize_payload(message_type: str, payload: Any) -> Any:
+    """The shape both a Bloom publish and an echoed ROS message reduce to, so they compare equal."""
+    if not isinstance(payload, Mapping):
+        return payload
+    data = payload.get("data")
+    try:
+        if message_type == "std_msgs/msg/String" and isinstance(data, str):
+            return {"data": data}
+        if message_type == "std_msgs/msg/Bool" and isinstance(data, bool):
+            return {"data": data}
+        if message_type in _FLOAT_TYPES and _is_number(data):
+            return {"data": float(data)}
+        if message_type in _INT_TYPES and _is_number(data):
+            return {"data": int(data)}
+        if message_type in _FLOAT_ARRAY_TYPES and isinstance(data, (list, tuple)):
+            return {"data": [float(item) for item in data]}
+        if message_type in _INT_ARRAY_TYPES and isinstance(data, (list, tuple)):
+            return {"data": [int(item) for item in data]}
+    except (TypeError, ValueError):
+        pass
+    return dict(payload)
+
+
+@dataclass(frozen=True)
+class PoseTargetSpec:
+    frame_id: str
+    position: tuple[float, float, float]
+    orientation: tuple[float, float, float, float]
+    position_tolerance: float
+    orientation_tolerance: float
+
+
+@dataclass(frozen=True)
+class GripperFeedback:
+    """A finger joint that reports the gripper's position, classified to the nearer command payload."""
+
+    topic: str
+    joint_name: str
+    open_position: float
+    close_position: float
+    tolerance: float
+
+    def payload_for(self, position: float) -> dict[str, list[float]] | None:
+        nearest = min((self.open_position, self.close_position), key=lambda target: abs(position - target))
+        if abs(position - nearest) > self.tolerance:
+            return None
+        return {"data": [float(nearest)]}
+
+
+@dataclass
+class _ActivePoseTarget:
+    topic: str
+    name: str
+    started_at: float
+    last_determined_at: float
+
+
+class CommandStateTracker:
+    """Turns what Bloom publishes, what others publish and what the robot reports into store writes."""
+
+    def __init__(
+        self,
+        store: CommandStateStore,
+        *,
+        gripper: GripperFeedback | None = None,
+        pose_target_timeout_sec: float = DEFAULT_POSE_TARGET_TIMEOUT_SEC,
+        servoing_window_sec: float = DEFAULT_SERVOING_WINDOW_SEC,
+        gripper_settle_sec: float = DEFAULT_GRIPPER_SETTLE_SEC,
+        own_echo_window_sec: float = OWN_ECHO_WINDOW_SEC,
+        clock: Callable[[], float] = monotonic,
+    ) -> None:
+        self.store = store
+        self._gripper = gripper
+        self._pose_target_timeout_sec = pose_target_timeout_sec
+        self._servoing_window_sec = servoing_window_sec
+        self._gripper_settle_sec = gripper_settle_sec
+        self._own_echo_window_sec = own_echo_window_sec
+        self._clock = clock
+        self._lock = threading.RLock()
+        self._own_publishes: dict[str, deque[tuple[float, Any]]] = {}
+        self._pose_targets: dict[str, dict[str, PoseTargetSpec]] = {}
+        self._active_pose_targets: dict[str, _ActivePoseTarget] = {}
+        self._commanded_at: dict[str, float] = {}
+        self._servoing_since: float | None = None
+        self._servoing_last: float | None = None
+
+    # Writers: publishes
+
+    def record_publish(self, topic: str, message_type: str, payload: Any, session_id: str = "") -> None:
+        """A publish the gateway accepted from a runtime session or an HTTP client."""
+        self._record_sent(topic, message_type, payload, "commanded", session_alias(session_id))
+
+    def record_reset(self, topic: str, message_type: str, payload: Any) -> None:
+        """A reset the server published itself: STOP, a leave, a stale lease."""
+        self._record_sent(topic, message_type, payload, "reset", BY_SERVER)
+
+    def expect_echo(self, topic: str, message_type: str, payload: Any) -> object:
+        """Called just before Bloom publishes: its own message comes back on the echo subscription, maybe first."""
+        entry = (self._clock(), self._value(topic, message_type, payload))
+        with self._lock:
+            self._own_publishes.setdefault(topic, deque()).append(entry)
+            self._prune_own_publishes(entry[0])
+        return entry
+
+    def forget_echo(self, topic: str, token: object) -> None:
+        """The publish failed, so no echo is coming."""
+        with self._lock:
+            pending = self._own_publishes.get(topic)
+            if pending is not None:
+                for index, entry in enumerate(pending):
+                    if entry is token:
+                        del pending[index]
+                        break
+
+    def record_echo(self, topic: str, message_type: str, payload: Any) -> None:
+        """A message seen on a command topic; Bloom's own come back too, and are recognised."""
+        value = self._value(topic, message_type, payload)
+        with self._lock:
+            if self._consume_own_echo(topic, value):
+                return
+            current = self.store.get(topic)
+            if current is None or current.value != value:
+                self._commanded_at[topic] = self._clock()
+            self._apply(topic, value, "commanded", BY_OTHER, keep_if_equal=("commanded", "reset", "measured"))
+
+    def record_service(self, service: str, payload: Any, success: bool | None, session_id: str = "") -> None:
+        if success is False:
+            return
+        self.store.write(
+            f"service:{service}", {"request": payload, "success": success}, "commanded", session_alias(session_id)
+        )
+
+    # Writers: parameters
+
+    def record_parameter(
+        self, node: str, name: str, value: Any, *, source: CommandSource = "measured", by: str = BY_ROBOT
+    ) -> None:
+        key = parameter_key(node, name)
+        if value is None:
+            self.store.mark_unknown((key,), by)
+            return
+        self.store.write(key, value, source, by, keep_if_equal=("measured",) if source == "measured" else ())
+
+    def record_parameter_set(self, node: str, name: str, value: Any, status: str, session_id: str = "") -> None:
+        """A set the node confirmed is what it holds; a simulated one only what was asked."""
+        self.record_parameter(
+            node, name, value, source="measured" if status == "set" else "commanded", by=session_alias(session_id)
+        )
+
+    # Writers: measured feedback
+
+    def record_joint_states(self, names: Iterable[str], positions: Iterable[float]) -> None:
+        gripper = self._gripper
+        if gripper is None:
+            return
+        for name, position in zip(names, positions, strict=False):
+            if name != gripper.joint_name:
+                continue
+            if not _is_number(position) or not math.isfinite(position):
+                return
+            payload = gripper.payload_for(float(position))
+            if payload is None:
+                return
+            with self._lock:
+                current = self.store.get(gripper.topic)
+                commanded_at = self._commanded_at.get(gripper.topic)
+                travelling = (
+                    current is not None
+                    and current.source == "commanded"
+                    and current.value != payload
+                    and commanded_at is not None
+                    and self._clock() - commanded_at < self._gripper_settle_sec
+                )
+                if not travelling:
+                    self.store.write(gripper.topic, payload, "measured", BY_ROBOT, keep_if_equal=("measured",))
+            return
+
+    def record_petanque_state(self, state: str | None) -> None:
+        self.store.write(PETANQUE_STATE_KEY, state, "measured", BY_ROBOT, keep_if_equal=("measured",))
+
+    def start_servoing_liveness(self) -> None:
+        with self._lock:
+            self._servoing_since = self._clock()
+
+    def record_servoing_velocity(self) -> None:
+        with self._lock:
+            now = self._clock()
+            self._servoing_last = now
+            if self._servoing_since is None:
+                self._servoing_since = now
+        self.store.write(SERVOING_ACTIVE_KEY, True, "measured", BY_ROBOT, keep_if_equal=("measured",))
+
+    def set_pose_targets(self, topic: str, targets: Mapping[str, PoseTargetSpec] | None) -> None:
+        with self._lock:
+            if targets is None:
+                self._pose_targets.pop(topic, None)
+            else:
+                self._pose_targets[topic] = dict(targets)
+
+    def record_ee_pose(
+        self, frame_id: str, position: tuple[float, float, float], orientation: tuple[float, float, float, float]
+    ) -> None:
+        with self._lock:
+            if not self._active_pose_targets:
+                return
+            now = self._clock()
+            for topic, active in list(self._active_pose_targets.items()):
+                spec = self._pose_targets.get(topic, {}).get(active.name)
+                if spec is None or (spec.frame_id and frame_id and spec.frame_id != frame_id):
+                    continue
+                active.last_determined_at = now
+                if pose_reached(spec, position, orientation):
+                    del self._active_pose_targets[topic]
+                    self.store.write(manager_key("behaviour", topic), PASSTHROUGH_MODE, "measured", BY_ROBOT)
+
+    def tick(self) -> None:
+        """Timed transitions: servoing going quiet, a pose target nobody can see end."""
+        with self._lock:
+            now = self._clock()
+            if self._servoing_since is not None:
+                last = self._servoing_last if self._servoing_last is not None else self._servoing_since
+                if now - last > self._servoing_window_sec:
+                    self.store.write(SERVOING_ACTIVE_KEY, False, "measured", BY_ROBOT, keep_if_equal=("measured",))
+            for topic, active in list(self._active_pose_targets.items()):
+                if now - max(active.started_at, active.last_determined_at) > self._pose_target_timeout_sec:
+                    del self._active_pose_targets[topic]
+                    self.store.mark_unknown((manager_key("behaviour", topic),), BY_SERVER)
+            self._prune_own_publishes(now)
+
+    # Writers: loss
+
+    def mark_unknown(self, keys: Iterable[str], by: str = BY_SERVER) -> None:
+        self.store.mark_unknown(keys, by)
+
+    def mark_manager_lost(self, topic: str = MODE_REQUEST_TOPIC) -> None:
+        with self._lock:
+            self._active_pose_targets.pop(topic, None)
+            self.store.mark_unknown(
+                (manager_key("shaping", topic), manager_key("behaviour", topic), manager_key("target", topic), topic),
+                BY_SERVER,
+            )
+
+    def mark_node_lost(self, node: str) -> None:
+        prefix = parameter_key(node, "")
+        self.store.mark_unknown((key for key in self.store.keys() if key.startswith(prefix)), BY_SERVER)
+
+    # Internals
+
+    def _record_sent(self, topic: str, message_type: str, payload: Any, source: CommandSource, by: str) -> None:
+        value = self._value(topic, message_type, payload)
+        with self._lock:
+            self._commanded_at[topic] = self._clock()
+            self._apply(topic, value, source, by)
+
+    @staticmethod
+    def _value(topic: str, message_type: str, payload: Any) -> Any:
+        value = normalize_payload(message_type, payload)
+        data = value.get("data") if isinstance(value, Mapping) else None
+        if is_mode_request_topic(topic) and isinstance(data, str):
+            return {**value, "data": normalize_mode_request(data)}
+        return value
+
+    def _apply(
+        self, topic: str, value: Any, source: CommandSource, by: str, *, keep_if_equal: Collection[CommandSource] = ()
+    ) -> None:
+        data = value.get("data") if isinstance(value, Mapping) else None
+        if topic == DIGITAL_OUTPUT_TOPIC and isinstance(data, list):
+            pins = [
+                (digital_output_key(int(pin)), bool(state))
+                for pin, state in zip(data[0::2], data[1::2], strict=False)
+                if _is_number(pin) and _is_number(state) and pin >= 0
+            ]
+            self.store.write_many(pins, source, by, keep_if_equal=keep_if_equal)
+            return
+        self.store.write(topic, value, source, by, keep_if_equal=keep_if_equal)
+        if is_mode_request_topic(topic) and isinstance(data, str):
+            self._apply_mode_request(topic, data, source, by, keep_if_equal)
+
+    def _apply_mode_request(
+        self, topic: str, raw: str, source: CommandSource, by: str, keep_if_equal: Collection[CommandSource]
+    ) -> None:
+        try:
+            request = parse_mode_request(raw)
+        except ModeRequestError:
+            return
+        mode = request.normalized
+        shaping, behaviour, target = (
+            manager_key("shaping", topic),
+            manager_key("behaviour", topic),
+            manager_key("target", topic),
+        )
+        if mode.startswith(f"{GEOMETRIC_PREFIX}/"):
+            self.store.write(shaping, mode, source, by, keep_if_equal=keep_if_equal)
+            return
+        if mode == PASSTHROUGH_MODE:
+            self._active_pose_targets.pop(topic, None)
+            self.store.write_many(
+                ((behaviour, PASSTHROUGH_MODE), (target, None)), source, by, keep_if_equal=keep_if_equal
+            )
+            return
+        if mode.startswith(f"{POSE_TARGET_BEHAVIOUR}/"):
+            now = self._clock()
+            self._active_pose_targets[topic] = _ActivePoseTarget(
+                topic=topic, name=mode.rsplit("/", 1)[1], started_at=now, last_determined_at=now
+            )
+            self.store.write_many(
+                ((behaviour, POSE_TARGET_BEHAVIOUR), (target, mode)), source, by, keep_if_equal=keep_if_equal
+            )
+            return
+        # A joint target is dispatched once; the manager is back in passthrough on its next cycle.
+        self._active_pose_targets.pop(topic, None)
+        self.store.write_many(((target, mode), (behaviour, PASSTHROUGH_MODE)), source, by, keep_if_equal=keep_if_equal)
+
+    def _consume_own_echo(self, topic: str, value: Any) -> bool:
+        pending = self._own_publishes.get(topic)
+        if not pending:
+            return False
+        self._prune_own_publishes(self._clock())
+        for index, (_sent_at, sent) in enumerate(pending):
+            if sent == value:
+                for _ in range(index + 1):
+                    pending.popleft()
+                return True
+        return False
+
+    def _prune_own_publishes(self, now: float) -> None:
+        for topic, pending in list(self._own_publishes.items()):
+            while pending and now - pending[0][0] > self._own_echo_window_sec:
+                pending.popleft()
+            if not pending:
+                del self._own_publishes[topic]
+
+
+def pose_reached(
+    spec: PoseTargetSpec, position: tuple[float, float, float], orientation: tuple[float, float, float, float]
+) -> bool:
+    distance = math.dist(spec.position, position)
+    dot = abs(sum(a * b for a, b in zip(spec.orientation, orientation, strict=False)))
+    norms = math.sqrt(sum(a * a for a in spec.orientation)) * math.sqrt(sum(b * b for b in orientation))
+    if norms == 0:
+        return False
+    angle = 2 * math.acos(min(1.0, dot / norms))
+    # The manager stops once inside its tolerance; a little slack absorbs the measurement's noise.
+    return distance <= 1.5 * spec.position_tolerance and angle <= 1.5 * spec.orientation_tolerance
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+class EchoExpectingGateway:
+    """Tells the tracker about each publish before it leaves, so its echo is known as Bloom's own."""
+
+    def __init__(self, gateway: Any, tracker: CommandStateTracker) -> None:
+        self._gateway = gateway
+        self._tracker = tracker
+
+    def publish(self, request: Any) -> Any:
+        token = self._tracker.expect_echo(request.topic, request.message_type, request.payload)
+        try:
+            return self._gateway.publish(request)
+        except BaseException:
+            self._tracker.forget_echo(request.topic, token)
+            raise

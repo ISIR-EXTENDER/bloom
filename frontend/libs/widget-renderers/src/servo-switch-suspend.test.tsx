@@ -7,13 +7,13 @@ import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { resetDesiredStates } from "./desired-state";
+import { applyCommandStateMessage, resetCommandStateForTests } from "./command-state";
 import { renderWidgetDescriptor } from "./index";
 import type { WidgetActionOutcome, WidgetControlState } from "./types";
 
 afterEach(() => {
   cleanup();
-  resetDesiredStates();
+  resetCommandStateForTests();
   vi.useRealTimers();
 });
 
@@ -34,19 +34,41 @@ const GRIPPER = {
   title: "Gripper",
   settings: {
     topic: "/gripper_controller/commands",
-    messageType: "std_msgs/msg/Bool",
+    messageType: "std_msgs/msg/Float64MultiArray",
     onLabel: "Closed",
     offLabel: "Open",
-    onPayload: "{data: true}",
-    offPayload: "{data: false}",
+    onPayload: "{data: [0.8]}",
+    offPayload: "{data: [0.0]}",
   },
 };
 
-type Outcome = WidgetActionOutcome | Promise<WidgetActionOutcome>;
+let revision = 0;
+function push(entries: Record<string, { value: unknown; source?: string; by?: string }>) {
+  revision += 1;
+  applyCommandStateMessage({
+    type: "command_state",
+    revision,
+    self: "me",
+    snapshot: Object.fromEntries(
+      Object.entries(entries).map(([key, entry]) => [
+        key,
+        {
+          value: entry.value,
+          source: (entry.source ?? "commanded") as "commanded",
+          updated_at: "",
+          by: entry.by ?? "me",
+          revision,
+        },
+      ]),
+    ),
+  });
+}
 
 function renderToggle(
   widget: typeof SERVO,
-  handler: (intent: WidgetActionIntent) => Outcome = () => ({ accepted: true }),
+  handler: (intent: WidgetActionIntent) => WidgetActionOutcome | Promise<WidgetActionOutcome> = () => ({
+    accepted: true,
+  }),
 ) {
   const onActionIntent = vi.fn(handler);
   const [descriptor] = renderScreenDescriptors(
@@ -69,264 +91,82 @@ function renderToggle(
     </div>
   );
   const utils = render(view(0));
-  fireEvent.click(screen.getByRole("button"));
   return {
     onActionIntent,
-    rerender: (revision: number, state?: WidgetControlState) => utils.rerender(view(revision, state)),
+    rerender: (neutral: number, state?: WidgetControlState) => utils.rerender(view(neutral, state)),
     unmount: utils.unmount,
   };
 }
 
-const lastPayload = (onActionIntent: ReturnType<typeof vi.fn>) => onActionIntent.mock.calls.at(-1)?.[0];
+const sent = (onActionIntent: ReturnType<typeof vi.fn>) =>
+  onActionIntent.mock.calls.map(([intent]) => [(intent as { payload?: unknown }).payload, intent.release]);
 
-describe("the visual servoing switch on a suspend", () => {
-  it("publishes its off payload as a release and reads off", async () => {
+describe("the visual servoing switch", () => {
+  it("reads on from the store and switches off once on a suspend, as a release", () => {
+    act(() => push({ "/ui/visual_servoing/on": { value: { data: true } } }));
     const { onActionIntent, rerender } = renderToggle(SERVO);
-    await act(async () => {});
-    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Servo: Servoing/ })).toBeInTheDocument();
 
     rerender(1);
+    rerender(1);
 
-    expect(lastPayload(onActionIntent)).toMatchObject({
-      payload: "{data: false}",
-      release: true,
-      topic: "/ui/visual_servoing/on",
-    });
-    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
+    expect(sent(onActionIntent)).toEqual([["{data: false}", true]]);
   });
 
-  it("switches off when STOP disables it and when it unmounts", async () => {
+  it("switches off when STOP disables it and when it unmounts", () => {
+    act(() => push({ "/ui/visual_servoing/on": { value: { data: true } } }));
     const stopped = renderToggle(SERVO);
-    await act(async () => {});
     stopped.rerender(0, { disabled: true });
-    expect(lastPayload(stopped.onActionIntent)).toMatchObject({ payload: "{data: false}", release: true });
+    expect(sent(stopped.onActionIntent)).toEqual([["{data: false}", true]]);
     cleanup();
 
     const left = renderToggle(SERVO);
-    await act(async () => {});
     left.unmount();
-    expect(lastPayload(left.onActionIntent)).toMatchObject({ payload: "{data: false}", release: true });
+    expect(sent(left.onActionIntent)).toEqual([["{data: false}", true]]);
   });
 
-  it("leaves another toggle, such as the gripper, as it was", async () => {
+  it("sends nothing on a suspend when the store says it is off or does not know", () => {
+    const unknown = renderToggle(SERVO);
+    unknown.rerender(1);
+    expect(unknown.onActionIntent).not.toHaveBeenCalled();
+    cleanup();
+
+    act(() => push({ "/ui/visual_servoing/on": { value: { data: false } } }));
+    const off = renderToggle(SERVO);
+    off.rerender(1);
+    expect(off.onActionIntent).not.toHaveBeenCalled();
+  });
+
+  it("switches off an On still sending when the suspend comes", () => {
+    const { onActionIntent, rerender } = renderToggle(SERVO, () => new Promise(() => undefined));
+    act(() => push({ "/ui/visual_servoing/on": { value: { data: false }, by: "robot" } }));
+    fireEvent.click(screen.getByRole("button"));
+
+    rerender(1);
+
+    expect(sent(onActionIntent)).toEqual([
+      ["{data: true}", undefined],
+      ["{data: false}", true],
+    ]);
+  });
+
+  it("shows servoing live only while the store measures it", () => {
+    act(() => push({ "/ui/visual_servoing/on": { value: { data: true } }, "servoing:active": { value: true } }));
+    renderToggle(SERVO);
+    expect(screen.getByText("Servoing", { selector: ".bloom-toggle-live" })).toBeInTheDocument();
+
+    act(() => push({ "/ui/visual_servoing/on": { value: { data: true } }, "servoing:active": { value: false } }));
+    expect(screen.queryByText("Servoing", { selector: ".bloom-toggle-live" })).not.toBeInTheDocument();
+  });
+});
+
+describe("another toggle on a suspend", () => {
+  it("leaves the gripper as the store holds it", () => {
+    act(() => push({ "/gripper_controller/commands": { value: { data: [0.8] }, source: "measured", by: "robot" } }));
     const { onActionIntent, rerender } = renderToggle(GRIPPER as typeof SERVO);
-    await act(async () => {});
     rerender(1);
 
-    expect(onActionIntent).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: "Gripper: Closed" })).toBeInTheDocument();
-  });
-});
-
-const payloads = (onActionIntent: ReturnType<typeof vi.fn>) =>
-  onActionIntent.mock.calls.map(([intent]) => (intent as { payload?: unknown }).payload);
-
-// ADR 0141 replaced the servo epochs: the server orders the Off after the On, so a late On cannot land after it.
-describe("the visual servoing switch turned on just before a suspend", () => {
-  it("sends the Off at once and ignores the On's late answer", async () => {
-    let answerOn: (outcome: WidgetActionOutcome) => void = () => {};
-    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: true}"
-        ? new Promise<WidgetActionOutcome>((resolve) => {
-            answerOn = resolve;
-          })
-        : { accepted: true },
-    );
-
-    rerender(1);
-    await act(async () => answerOn({ accepted: true }));
-
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Off" })).toBeInTheDocument();
-  });
-
-  it("switches off when it unmounts with the On still travelling", async () => {
-    let answerOn: (outcome: WidgetActionOutcome) => void = () => {};
-    const { onActionIntent, unmount } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: true}"
-        ? new Promise<WidgetActionOutcome>((resolve) => {
-            answerOn = resolve;
-          })
-        : { accepted: true },
-    );
-
-    unmount();
-    await act(async () => answerOn({ accepted: true }));
-
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
-    expect(lastPayload(onActionIntent)).toMatchObject({ release: true });
-  });
-});
-
-describe("a servo switch-off without a reply or rate-limited", () => {
-  // It used to keep reading On; it now shows the Off it asked for, not confirmed, until one is accepted.
-  it("shows Off not confirmed, retries, and reads Off once accepted", async () => {
-    vi.useFakeTimers();
-    let refusals = 2;
-    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) => {
-      if (intent.type === "topic-publish" && intent.payload === "{data: false}" && refusals > 0) {
-        refusals -= 1;
-        return { accepted: false, detail: "Too many requests.", status: "transient" };
-      }
-      return { accepted: true };
-    });
-    await act(async () => {});
-
-    rerender(1);
-    expect(screen.getByRole("button", { name: "Servo: Off, not confirmed" })).toHaveAttribute(
-      "data-confirmed",
-      "false",
-    );
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
-    });
-
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}", "{data: false}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Off" })).not.toHaveAttribute("data-confirmed");
-  });
-
-  it("keeps retrying every 2 s and says to STOP if in doubt when no attempt gets a reply", async () => {
-    vi.useFakeTimers();
-    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: false}"
-        ? Promise.reject(new Error("timed out"))
-        : { accepted: true },
-    );
-    await act(async () => {});
-
-    rerender(1);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(3800);
-    });
-    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(5);
-    expect(screen.getByText("Not confirmed")).toBeInTheDocument();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(4200);
-    });
-
-    expect(payloads(onActionIntent).filter((payload) => payload === "{data: false}")).toHaveLength(7);
-    expect(screen.getByText("Robot has not confirmed \u2014 STOP if in doubt")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Servo: Off, not confirmed" })).toBeInTheDocument();
-  });
-});
-
-describe("a servo On whose reply was lost", () => {
-  // It used to switch the servo off at once; ADR 0141 shows On, not confirmed, and keeps asking for it.
-  it("shows On not confirmed, retries the On, and converges", async () => {
-    vi.useFakeTimers();
-    let lost = 1;
-    const { onActionIntent } = renderToggle(SERVO, (intent) => {
-      if (intent.type === "topic-publish" && intent.payload === "{data: true}" && lost > 0) {
-        lost -= 1;
-        return Promise.reject(new Error("timed out"));
-      }
-      return { accepted: true };
-    });
-    await act(async () => {});
-    expect(screen.getByRole("button", { name: "Servo: Servoing, not confirmed" })).toBeInTheDocument();
-
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(300);
-    });
-
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: true}"]);
-    expect(screen.getByRole("button", { name: "Servo: Servoing" })).not.toHaveAttribute("data-confirmed");
-  });
-
-  it("asks for Off on unmount and keeps asking after it is gone", async () => {
-    vi.useFakeTimers();
-    const { onActionIntent, unmount } = renderToggle(SERVO, () => Promise.reject(new Error("lost")));
-    await act(async () => {});
-
-    unmount();
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(4000);
-    });
-
-    const sent = payloads(onActionIntent);
-    expect(sent.slice(0, 2)).toEqual(["{data: true}", "{data: false}"]);
-    expect(sent.filter((payload) => payload === "{data: true}")).toHaveLength(1);
-    expect(sent.filter((payload) => payload === "{data: false}")).toHaveLength(5);
-  });
-});
-
-describe("a refused switch-off from an unmounted servo switch", () => {
-  it("leaves the remounted switch on the confirmed On, with nothing retried", async () => {
-    vi.useFakeTimers();
-    const log: unknown[] = [];
-    const handler = (intent: WidgetActionIntent): Outcome => {
-      const payload = intent.type === "topic-publish" ? intent.payload : null;
-      log.push(payload);
-      return { accepted: payload !== "{data: false}" };
-    };
-    const first = renderToggle(SERVO, handler);
-    await act(async () => {});
-    first.rerender(1);
-    first.unmount();
-    const sentBeforeRemount = log.length;
-
-    render(toggleOnly(SERVO, handler));
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
-    });
-
-    expect(log).toHaveLength(sentBeforeRemount);
-    expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
-  });
-});
-
-function toggleOnly(widget: typeof SERVO, handler: (intent: WidgetActionIntent) => Outcome) {
-  const [descriptor] = renderScreenDescriptors(
-    {
-      id: "drive",
-      title: "Drive",
-      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
-      widgets: [{ kind: "toggle", layout: { x: 0, y: 0, width: 300, height: 168 }, ...widget }],
-    } as ScreenConfig,
-    createDefaultWidgetRegistry(),
-  );
-  if (!descriptor) throw new Error("Missing descriptor.");
-  return <div>{renderWidgetDescriptor(descriptor, { neutralRevision: 0, onActionIntent: handler })}</div>;
-}
-
-describe("a servo switch-off the robot refuses outright", () => {
-  // An explicit refusal (STOP latched, not the owner) was not applied: the switch shows what was last confirmed.
-  it("is not retried and keeps reading the accepted On, never a clean Off", async () => {
-    vi.useFakeTimers();
-    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: false}"
-        ? { accepted: false, detail: "The robot is stopped." }
-        : { accepted: true },
-    );
-    await act(async () => {});
-
-    rerender(1);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(10_000);
-    });
-
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Servoing" })).not.toHaveAttribute("data-confirmed");
-  });
-
-  it("shows the unanswered On not confirmed when the Off after it is refused", async () => {
-    vi.useFakeTimers();
-    const { onActionIntent, rerender } = renderToggle(SERVO, (intent) =>
-      intent.type === "topic-publish" && intent.payload === "{data: false}"
-        ? { accepted: false, detail: "The robot is stopped." }
-        : Promise.reject(new Error("timed out")),
-    );
-    await act(async () => {});
-
-    rerender(1);
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(10_000);
-    });
-
-    expect(payloads(onActionIntent)).toEqual(["{data: true}", "{data: false}"]);
-    expect(screen.getByRole("button", { name: "Servo: Servoing, not confirmed" })).toHaveAttribute(
-      "data-confirmed",
-      "false",
-    );
+    expect(onActionIntent).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Gripper: Closed, reported by the robot" })).toBeInTheDocument();
   });
 });

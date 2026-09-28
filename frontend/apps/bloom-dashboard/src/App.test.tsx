@@ -20,6 +20,7 @@ import sandboxTeleopLabConfiguration from "../../../../tests/fixtures/sandbox-te
 import { App } from "./App";
 import type { ConfigurationClient } from "./configurations/configuration-client";
 import type { RuntimeActionClient, RuntimeTopicSampleMessage } from "./runtime/runtime-action-dispatcher";
+import { createCommandStateServer } from "./test-support/command-state-server";
 import { openRuntimeApp } from "./test-support/open-runtime-app";
 import { BLOOM_APP_SCREEN_REORDER_DRAG_TYPE, BLOOM_SCREEN_DRAG_TYPE } from "./ui/dragDrop";
 
@@ -1457,7 +1458,7 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     await openSandboxRuntimeFromNavigation();
-    fireEvent.click(await screen.findByRole("button", { name: "Digital output: Inactive" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Digital output: Active" }));
 
     expect(screen.getByRole("region", { name: "Runtime application" })).toBeVisible();
     expect(screen.getByRole("heading", { level: 2, name: "Sandbox" })).toBeVisible();
@@ -1470,7 +1471,7 @@ describe("App", () => {
       message_type: "std_msgs/msg/Int32MultiArray",
       payload_text: "{data: [13, 1]}",
     });
-    expect(await screen.findByRole("button", { name: "Digital output: Active" })).toBeVisible();
+    expect(await screen.findByRole("button", { name: "Digital output: Active, last asked" })).toBeVisible();
   });
 
   it("keeps a second operator inert until control is explicitly available", async () => {
@@ -1518,7 +1519,7 @@ describe("App", () => {
     await waitFor(() => expect(runtimeActionClient.engageRuntimeStop).toHaveBeenCalledOnce());
   });
 
-  // ADR 0141: "simulated" (no ROS) was not applied, so it is final: no retry, the acknowledged state stays.
+  // "simulated" (no ROS) was not applied: sent once, and the toggle still shows what the store holds.
   it("keeps the acknowledged control state and alerts when a command is not sent", async () => {
     const runtimeActionClient = createRuntimeActionClient();
     runtimeActionClient.publishRosTopic = vi.fn(async (request) => ({
@@ -1531,14 +1532,14 @@ describe("App", () => {
     render(<App configurationClient={createConfigurationClient()} runtimeActionClient={runtimeActionClient} />);
 
     await openSandboxRuntimeFromNavigation();
-    fireEvent.click(await screen.findByRole("button", { name: "Digital output: Inactive" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Digital output: Active" }));
 
     expect(
       await screen.findByRole("alert", {
         name: "Not sent: ROS publisher gateway is not configured.",
       }),
     ).toBeVisible();
-    expect(await screen.findByRole("button", { name: "Digital output: Inactive" })).toHaveAttribute(
+    expect(await screen.findByRole("button", { name: "Digital output: Active" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
@@ -1717,7 +1718,7 @@ describe("App", () => {
     await screen.findByRole("region", { name: "Runtime application" });
     selectRuntimeScreen("Teleop settings");
 
-    const modeToggle = await screen.findByRole("button", { name: "Teleop mode: Idle" });
+    const modeToggle = await screen.findByRole("button", { name: "Teleop mode: Teleop" });
     fireEvent.click(modeToggle);
 
     await waitFor(() => expect(runtimeActionClient.publishRosTopic).toHaveBeenCalled());
@@ -1884,7 +1885,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: "Resume operating" }));
 
     // The shaping mode now goes to the manager, not to sandbox_controller's TeleopCommand enum.
-    const modeToggle = screen.getByRole("button", { name: "Shaping mode: Both" });
+    const modeToggle = screen.getByRole("button", { name: "Shaping mode: Jaco" });
     fireEvent.click(modeToggle);
     await waitFor(() => expect(runtimeActionClient.publishRosTopic).toHaveBeenCalled());
     expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
@@ -1895,10 +1896,10 @@ describe("App", () => {
     );
 
     selectRuntimeScreen("Control Panel");
-    expect(await screen.findByRole("button", { name: "Visual Servoing: Off" })).toBeVisible();
+    expect(await screen.findByRole("button", { name: "Visual Servoing: On" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Save Tag" })).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Visual Servoing: Off" }));
+    fireEvent.click(screen.getByRole("button", { name: "Visual Servoing: On" }));
     await waitFor(() =>
       expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1963,8 +1964,10 @@ describe("App", () => {
     );
 
     selectRuntimeScreen("Snake Control");
-    // Jaco is the shaping mode now: the Both/Snake toggle lights neither, rather than claiming Both.
-    const snakeModeToggle = screen.getByRole("button", { name: "Shaping mode: Other mode" });
+    // Jaco is the shaping mode now: the Both/Snake toggle lights neither and offers both, rather than claiming Both.
+    expect(screen.getByRole("button", { name: "Shaping mode: Both" })).toHaveAttribute("aria-pressed", "false");
+    const snakeModeToggle = screen.getByRole("button", { name: "Shaping mode: Snake" });
+    expect(snakeModeToggle).toHaveAttribute("aria-pressed", "false");
     fireEvent.click(snakeModeToggle);
     await waitFor(() =>
       expect(runtimeActionClient.publishRosTopic).toHaveBeenCalledWith(
@@ -2400,8 +2403,10 @@ const TEST_READY_COMMAND_TOPICS = [
 
 function createRuntimeActionClient(): TestRuntimeActionClient {
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
+  const commandState = createCommandStateServer();
 
   return {
+    addRuntimeCommandStateListener: commandState.addRuntimeCommandStateListener,
     addRuntimeTopicSampleListener: vi.fn((listener) => {
       topicSampleListeners.add(listener);
       return () => topicSampleListeners.delete(listener);
@@ -2411,15 +2416,15 @@ function createRuntimeActionClient(): TestRuntimeActionClient {
         listener(sample);
       }
     },
-    publishRosTopic: vi.fn(
-      async (request) =>
-        ({
-          topic: request.topic,
-          message_type: request.message_type,
-          status: "published",
-          detail: "Published.",
-        }) as const,
-    ),
+    publishRosTopic: vi.fn(async (request) => {
+      commandState.recordPublish(request);
+      return {
+        topic: request.topic,
+        message_type: request.message_type,
+        status: "published",
+        detail: "Published.",
+      } as const;
+    }),
     setRosParameter: vi.fn(async (request) => ({ ...request, status: "set", detail: "Parameter set." }) as const),
     getRosParameters: vi.fn(async (node: string, names: readonly string[]) =>
       names.map((name) => ({ node, name, value: null })),

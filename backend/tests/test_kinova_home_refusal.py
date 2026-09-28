@@ -1,4 +1,4 @@
-"""The Kinova's manager carries the Explorer's home pose (cartesian_manager#10), so Go home is refused there."""
+"""cartesian_manager#11 gives the Kinova its own home, so Go home publishes there; pose targets are still refused."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository, load_configuration_file
 from libs.config.models import RuntimeActionPreset
 from libs.ros_adapters import RosPublishReceipt, RosPublishRequest
-from libs.ros_adapters.safety import KINOVA_HOME_REFUSAL, is_kinova_robot
+from libs.ros_adapters.safety import KINOVA_POSE_TARGET_REFUSAL, is_kinova_robot
 from libs.sessions.audit import InMemoryRuntimeAuditLog
 
 EXPLORER_FIXTURE_PATH = Path(__file__).parents[1] / "seed" / "applications" / "explorer-manager.json"
@@ -57,7 +57,7 @@ def make_client(robot_name: str, allow: bool = False) -> tuple[TestClient, Recor
             environment="test",
             runtime_control_required=False,
             robot_name=robot_name,
-            allow_kinova_home=allow,
+            allow_kinova_pose_targets=allow,
             allowed_ros_publish_topics=("/mode_request", "/arm2/mode_request"),
         ),
         InMemoryConfigurationRepository({"explorer-manager": explorer_with_a_home_preset()}),
@@ -73,55 +73,43 @@ def test_kinova_family_matches_the_frontend(name: str) -> None:
     assert not is_kinova_robot("Explorer")
 
 
+@pytest.mark.parametrize("robot_name", ["Kinova Gen3", "Explorer", ""])
 @pytest.mark.parametrize("topic", ["/mode_request", "/arm2/mode_request"])
-def test_go_home_on_a_kinova_is_refused_on_the_topic_path(topic: str) -> None:
-    client, gateway, audit_log = make_client("Kinova Gen3")
+def test_go_home_publishes_on_the_topic_path(robot_name: str, topic: str) -> None:
+    client, gateway, _ = make_client(robot_name)
 
     response = client.post("/api/v1/ros/topics/publish", json=HOME | {"topic": topic})
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == KINOVA_HOME_REFUSAL
-    assert gateway.requests == []
-    assert any(r.status == "rejected" and r.detail == KINOVA_HOME_REFUSAL for r in audit_log.list_records(20))
+    assert response.status_code == 200
+    assert [(r.topic, r.payload["data"]) for r in gateway.requests] == [(topic, "behaviour/joint_target/home")]
 
 
-def test_go_home_on_a_kinova_is_refused_on_the_action_preset_path() -> None:
-    client, gateway, audit_log = make_client("kinova gen3")
+def test_go_home_publishes_on_a_kinova_through_the_action_preset_path() -> None:
+    client, gateway, _ = make_client("kinova gen3")
 
     response = client.post(
         "/api/v1/runtime/actions",
         json={"app_id": "explorer-manager", "command": "behaviour/joint_target/home", "config_id": "explorer-manager"},
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"] == KINOVA_HOME_REFUSAL
-    assert gateway.requests == []
-    assert any(r.status == "rejected" and r.detail == KINOVA_HOME_REFUSAL for r in audit_log.list_records(20))
+    assert response.status_code == 200
+    assert [r.payload["data"] for r in gateway.requests] == ["behaviour/joint_target/home"]
 
 
-def test_other_joint_targets_and_modes_still_publish_on_a_kinova() -> None:
-    client, gateway, _ = make_client("Kinova Gen3")
+def test_a_pose_target_is_still_refused_on_a_kinova() -> None:
+    client, gateway, audit_log = make_client("Kinova Gen3")
 
-    for mode in ("behaviour/joint_target/ready", "geometric/snake"):
-        assert client.post("/api/v1/ros/topics/publish", json=HOME | {"payload": {"data": mode}}).status_code == 200
-    assert [r.payload["data"] for r in gateway.requests] == ["behaviour/joint_target/ready", "geometric/snake"]
-
-
-@pytest.mark.parametrize(("robot_name", "allow"), [("Explorer", False), ("", False), ("Kinova Gen3", True)])
-def test_go_home_still_works_on_the_explorer_and_when_allowed(robot_name: str, allow: bool) -> None:
-    client, gateway, _ = make_client(robot_name, allow)
-
-    assert client.post("/api/v1/ros/topics/publish", json=HOME).status_code == 200
-    action = client.post(
-        "/api/v1/runtime/actions",
-        json={"app_id": "explorer-manager", "command": "behaviour/joint_target/home", "config_id": "explorer-manager"},
+    response = client.post(
+        "/api/v1/ros/topics/publish", json=HOME | {"payload": {"data": "behaviour/pose_target/ready"}}
     )
 
-    assert action.status_code == 200
-    assert [r.payload["data"] for r in gateway.requests] == ["behaviour/joint_target/home"] * 2
+    assert response.status_code == 422
+    assert response.json()["detail"] == KINOVA_POSE_TARGET_REFUSAL
+    assert gateway.requests == []
+    assert any(r.status == "rejected" and r.detail == KINOVA_POSE_TARGET_REFUSAL for r in audit_log.list_records(20))
 
 
 def test_the_allow_setting_reads_its_env_var(monkeypatch: pytest.MonkeyPatch) -> None:
-    assert Settings.from_environment().allow_kinova_home is False
-    monkeypatch.setenv("BLOOM_ALLOW_KINOVA_HOME", "true")
-    assert Settings.from_environment().allow_kinova_home is True
+    assert Settings.from_environment().allow_kinova_pose_targets is False
+    monkeypatch.setenv("BLOOM_ALLOW_KINOVA_POSE_TARGETS", "true")
+    assert Settings.from_environment().allow_kinova_pose_targets is True

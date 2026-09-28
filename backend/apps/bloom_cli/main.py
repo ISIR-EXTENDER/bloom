@@ -9,6 +9,7 @@ from apps.bloom_api.main import (
     create_app,
     create_camera_frame_gateway,
     create_camera_stream_gateway,
+    create_command_state_feedback,
     create_teleop_command_gateway,
 )
 from apps.bloom_api.settings import get_settings
@@ -134,10 +135,14 @@ def run_ros_api(
         app.state.camera_frame_gateway = create_camera_frame_gateway(node)
         app.state.camera_stream_gateway = create_camera_stream_gateway(node)
         app.state.teleop_target_directory.start()
+        command_state_feedback = create_command_state_feedback(app, node)
+        command_state_feedback.start()
         uvicorn.run(app, host=host, port=port, reload=False)
     finally:
         if "app" in locals():
             app.state.teleop_target_directory.stop()
+        if "command_state_feedback" in locals():
+            command_state_feedback.stop()
         executor.shutdown()
         spin_thread.join(timeout=2.0)
         node.destroy_node()

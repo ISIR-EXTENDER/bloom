@@ -6,7 +6,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from libs.ros_adapters.mode_request import BEHAVIOUR_PREFIX, JOINT_TARGET_PREFIX, normalize_mode_request
+from libs.ros_adapters.mode_request import BEHAVIOUR_PREFIX, normalize_mode_request
 
 MAX_LINEAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed"
 MAX_ANGULAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed"
@@ -68,11 +68,6 @@ _NON_NEGATIVE_PARAMETER = re.compile(r"(^|\.)max_\w*speed$")
 _POSITIVE_PARAMETER = re.compile(r"(^|\.)max_\w*(velocity|acceleration)$")
 
 
-KINOVA_HOME_MODE = f"{JOINT_TARGET_PREFIX}/home"
-KINOVA_HOME_REFUSAL = (
-    "Go home is not available on the Kinova: its manager loads the Explorer's home pose (cartesian_manager#10)."
-)
-
 #: An entry ending in "/" refuses every target under it.
 KINOVA_POSE_TARGETS = f"{BEHAVIOUR_PREFIX}/pose_target/"
 KINOVA_POSE_TARGET_REFUSAL = (
@@ -85,9 +80,10 @@ def is_kinova_robot(robot_name: str) -> bool:
     return "kinova" in name or "gen3" in name
 
 
-def robot_refused_mode_requests(robot_name: str, allow_kinova_home: bool) -> tuple[tuple[str, str], ...]:
-    if is_kinova_robot(robot_name) and not allow_kinova_home:
-        return ((KINOVA_HOME_MODE, KINOVA_HOME_REFUSAL), (KINOVA_POSE_TARGETS, KINOVA_POSE_TARGET_REFUSAL))
+def robot_refused_mode_requests(robot_name: str, allow_kinova_pose_targets: bool) -> tuple[tuple[str, str], ...]:
+    # Go home is allowed: cartesian_manager#11 gives the Kinova its own seven-joint home.
+    if is_kinova_robot(robot_name) and not allow_kinova_pose_targets:
+        return ((KINOVA_POSE_TARGETS, KINOVA_POSE_TARGET_REFUSAL),)
     return ()
 
 

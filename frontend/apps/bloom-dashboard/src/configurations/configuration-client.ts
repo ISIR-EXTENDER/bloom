@@ -42,6 +42,7 @@ export function createDashboardRuntimeActionClient(): RuntimeActionClient {
     },
   });
   return {
+    addRuntimeCommandStateListener: runtimeWebSocketClient.addRuntimeCommandStateListener,
     addRuntimeControlStateListener: runtimeWebSocketClient.addRuntimeControlStateListener,
     addRuntimeLinkStateListener: runtimeWebSocketClient.addRuntimeLinkStateListener,
     deleteSavedPosition: apiClient.deleteSavedPosition.bind(apiClient),

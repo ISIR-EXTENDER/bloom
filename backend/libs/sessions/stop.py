@@ -8,6 +8,7 @@ Not an IEC emergency stop.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 from collections.abc import Callable, Iterable, Sequence
@@ -31,6 +32,7 @@ DEFAULT_TELEOP_TARGET = "/joystick_cartesian_command"
 LEGACY_TELEOP_TARGET = "/teleop_cmd"
 
 T = TypeVar("T")
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,7 @@ class RuntimeStopController:
         joint_target_topics: Callable[[], Iterable[str]] | None = None,
         shaping_topics: Callable[[], Iterable[str]] | None = None,
         state_path: Path | None = None,
+        on_reset: Callable[[str, str, dict[str, Any]], None] | None = None,
     ) -> None:
         self._teleop_gateway = teleop_gateway
         self._ros_publisher_gateway = ros_publisher_gateway
@@ -92,6 +95,8 @@ class RuntimeStopController:
         self._state_path = state_path
         # Told the targets whose zero published, and what else published, so session state can follow.
         self._on_asserted = on_asserted
+        # Told every mode request and servo-off this controller published, STOP's and a leave's alike.
+        self._on_reset = on_reset
         self._lock = threading.Lock()
         self._stopped = False
         self._asserted = False
@@ -308,6 +313,7 @@ class RuntimeStopController:
             receipt = self._ros_publisher_gateway.publish(request)
         except Exception as exc:  # noqa: BLE001
             return False, f"{label} could not be published: {exc}", False
+        self._reported_reset(request)
         return True, f"{label} ({mode}) {receipt.status} on {receipt.topic}.", receipt.status == "simulated"
 
     def _publish_visual_servoing_off(self) -> tuple[bool, str, bool]:
@@ -321,7 +327,16 @@ class RuntimeStopController:
             receipt = self._ros_publisher_gateway.publish(request)
         except Exception as exc:  # noqa: BLE001
             return False, f"Visual servoing off could not be published: {exc}", False
+        self._reported_reset(request)
         return True, f"Visual servoing off {receipt.status} on {receipt.topic}.", receipt.status == "simulated"
+
+    def _reported_reset(self, request: RosPublishRequest) -> None:
+        if self._on_reset is None:
+            return
+        try:
+            self._on_reset(request.topic, request.message_type, request.payload)
+        except Exception:  # noqa: BLE001 - bookkeeping never blocks a STOP
+            logger.exception("Command state could not record the reset on %s.", request.topic)
 
     def _rejection_reason_unlocked(self) -> str:
         return "Runtime stop is engaged. Hold the stop control to resume before commanding the robot."

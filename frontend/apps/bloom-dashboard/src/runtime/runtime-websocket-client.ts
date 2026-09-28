@@ -1,4 +1,4 @@
-import type { RuntimeControlState } from "@bloom/api-client";
+import type { RuntimeCommandStateMessage, RuntimeControlState } from "@bloom/api-client";
 import type {
   RuntimeActionClient,
   RuntimeAppContextRequest,
@@ -14,6 +14,7 @@ import type {
 } from "./runtime-action-dispatcher";
 import {
   parseAppContextAck,
+  parseCommandState,
   parsePong,
   parseRuntimeControlState,
   parseRuntimeError,
@@ -73,6 +74,7 @@ export function createRuntimeWebSocketClient(
 ): Required<
   Pick<
     RuntimeActionClient,
+    | "addRuntimeCommandStateListener"
     | "addRuntimeControlStateListener"
     | "addRuntimeLinkStateListener"
     | "addRuntimeTopicSampleListener"
@@ -104,6 +106,9 @@ export function createRuntimeWebSocketClient(
   const topicSampleListeners = new Set<(sample: RuntimeTopicSampleMessage) => void>();
   const linkStateListeners = new Set<(state: RuntimeLinkState) => void>();
   const controlStateListeners = new Set<(state: RuntimeControlState | null) => void>();
+  // Null when the socket closes or a new session starts: nothing is known until its first snapshot.
+  const commandStateListeners = new Set<(message: RuntimeCommandStateMessage | null) => void>();
+  let commandState: RuntimeCommandStateMessage | null = null;
 
   function setLinkState(nextState: RuntimeLinkState) {
     if (linkState === nextState) {
@@ -112,6 +117,16 @@ export function createRuntimeWebSocketClient(
     linkState = nextState;
     for (const listener of linkStateListeners) {
       listener(nextState);
+    }
+  }
+
+  function setCommandState(message: RuntimeCommandStateMessage | null) {
+    if (message === null && commandState === null) {
+      return;
+    }
+    commandState = message;
+    for (const listener of commandStateListeners) {
+      listener(message);
     }
   }
 
@@ -196,6 +211,7 @@ export function createRuntimeWebSocketClient(
       socket = null;
       connectPromise = null;
       sessionId = "";
+      setCommandState(null);
       setControlState(null);
       setLinkState("disconnected");
     };
@@ -210,7 +226,17 @@ export function createRuntimeWebSocketClient(
       if (connectedState) {
         if (isCurrent()) {
           sessionId = connectedState.session_id;
+          setCommandState(null);
           setControlState(connectedState);
+        }
+        return;
+      }
+
+      // Pushed, never asked for: taking it off the reply queue would fail whichever request is waiting.
+      const pushedCommandState = parseCommandState(event.data);
+      if (pushedCommandState) {
+        if (isCurrent()) {
+          setCommandState(pushedCommandState);
         }
         return;
       }
@@ -339,6 +365,13 @@ export function createRuntimeWebSocketClient(
   }
 
   return {
+    addRuntimeCommandStateListener(listener: (message: RuntimeCommandStateMessage | null) => void) {
+      commandStateListeners.add(listener);
+      listener(commandState);
+      return () => {
+        commandStateListeners.delete(listener);
+      };
+    },
     addRuntimeControlStateListener(listener: (state: RuntimeControlState | null) => void) {
       controlStateListeners.add(listener);
       listener(controlState);

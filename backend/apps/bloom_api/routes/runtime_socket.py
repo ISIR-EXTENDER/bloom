@@ -67,6 +67,7 @@ from libs.sessions import (
     TeleopCommandGateway,
     parse_runtime_client_message,
 )
+from libs.sessions.command_state import CommandStateStore, build_command_state_message, session_alias
 from libs.sessions.manager import VISUAL_SERVOING_OFF, zero_of
 from libs.sessions.stop import VISUAL_SERVOING_ON_TOPIC
 from libs.sessions.teleop_runtime import build_teleop_ack, to_teleop_command
@@ -113,6 +114,8 @@ async def runtime_websocket(websocket: WebSocket) -> None:
     socket_policy = RuntimeSocketPolicy(policy=get_runtime_command_policy(websocket))
     receive_task: asyncio.Task | None = None
     sample_task: asyncio.Task | None = None
+    command_state_task: asyncio.Task | None = None
+    command_state: CommandStateFeed | None = None
     message_budget = SocketMessageBudget()
 
     try:
@@ -126,15 +129,28 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 session_id=session.id,
             ).model_dump()
         )
+        command_state = CommandStateFeed(
+            websocket.app.state.command_state_store,
+            event_loop,
+            websocket.app.state.settings.command_state_push_period_sec,
+            1.0 / websocket.app.state.settings.command_state_max_rate_hz,
+            self_alias=session_alias(session.id),
+        )
+        await websocket.send_json(command_state.message())
 
         receive_task = asyncio.create_task(websocket.receive_json())
         sample_task = asyncio.create_task(topic_samples.get())
+        command_state_task = asyncio.create_task(command_state.next())
 
         while True:
             done_tasks, _ = await asyncio.wait(
-                {receive_task, sample_task},
+                {receive_task, sample_task, command_state_task},
                 return_when=asyncio.FIRST_COMPLETED,
             )
+
+            if command_state_task in done_tasks:
+                await websocket.send_json(command_state_task.result())
+                command_state_task = asyncio.create_task(command_state.next())
 
             if receive_task in done_tasks:
                 # A frame that is not JSON, or not text at all, is one client's mistake. Answering it the
@@ -234,6 +250,56 @@ async def runtime_websocket(websocket: WebSocket) -> None:
                 handle.close()
             await cancel_runtime_task(receive_task)
             await cancel_runtime_task(sample_task)
+            await cancel_runtime_task(command_state_task)
+            if command_state is not None:
+                command_state.close()
+
+
+class CommandStateFeed:
+    """This socket's view of the command-state store: every change, at most `min_interval_sec` apart, and a
+    full snapshot at least every `period_sec` so a lost message heals."""
+
+    def __init__(
+        self,
+        store: CommandStateStore,
+        loop: asyncio.AbstractEventLoop,
+        period_sec: float,
+        min_interval_sec: float,
+        clock: Callable[[], float] = monotonic,
+        self_alias: str | None = None,
+    ) -> None:
+        self._store = store
+        self._self_alias = self_alias
+        self._period_sec = period_sec
+        self._min_interval_sec = min_interval_sec
+        self._clock = clock
+        self._changed = asyncio.Event()
+        self._sent_at = clock()
+
+        def on_change() -> None:
+            # Writers run on request and ROS threads; the socket's loop may already be gone.
+            with suppress(RuntimeError):
+                loop.call_soon_threadsafe(self._changed.set)
+
+        self._unsubscribe = store.subscribe(on_change)
+
+    def message(self) -> dict:
+        self._changed.clear()
+        self._sent_at = self._clock()
+        return build_command_state_message(self._store, self._self_alias)
+
+    async def next(self) -> dict:
+        remaining = self._sent_at + self._period_sec - self._clock()
+        if remaining > 0 and not self._changed.is_set():
+            with suppress(asyncio.TimeoutError):
+                await asyncio.wait_for(self._changed.wait(), remaining)
+        spacing = self._sent_at + self._min_interval_sec - self._clock()
+        if spacing > 0:
+            await asyncio.sleep(spacing)
+        return self.message()
+
+    def close(self) -> None:
+        self._unsubscribe()
 
 
 #: Keep-alives and teleop, which has its own command rate limit, are never throttled here.

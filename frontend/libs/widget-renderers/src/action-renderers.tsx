@@ -6,29 +6,34 @@ import {
   getStringSetting,
   hidesTitle,
   localizeOperatorText,
+  readModeRequestData,
   resolveCommandPayload,
   type WidgetActionIntent,
 } from "@bloom/widgets";
 
 import { type PointerEvent, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
-  actorKey,
-  actValueKey,
-  cancelPending,
+  type CommandStateBinding,
+  isModeRequestTopic,
+  knownValue,
   MODE_REQUEST_TOPIC,
-  parameterTarget,
-  payloadKey,
-  readMomentary,
-  readToggle,
-  sendOneShot,
-  setDesired,
-  useTargetState,
-  useWidgetJob,
+  modeCommandBinding,
+  outcomeOf,
+  parameterKey,
+  parameterToggleBinding,
+  readSelection,
+  readToggleState,
+  SERVOING_ACTIVE_KEY,
+  type ToggleBinding,
+  topicToggleBinding,
+  useCommandPress,
+  useCommandState,
+  useCommandStateStore,
   VISUAL_SERVOING_SWITCH_TOPIC,
-} from "./desired-state";
+} from "./command-state";
 import { LatchCountdownNotice } from "./latch-countdown-notice";
 import { type RendererStrings, rendererStrings } from "./renderer-strings";
-import type { WidgetRendererProps } from "./types";
+import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
 
 /** A confirming press closer than this to the arming one is the same gesture, not a second decision. */
@@ -41,7 +46,6 @@ export function CommandLikeWidget({
   conditioning,
   controlState,
   descriptor,
-  desiredScope,
   language,
   neutralRevision,
   onActionIntent,
@@ -60,39 +64,39 @@ export function CommandLikeWidget({
   const confirmPress = getBooleanSetting(descriptor.widget.settings, "confirm_press", false);
   const confirmLabel = getStringSetting(descriptor.widget.settings, "confirm_label", "Confirm?");
   const confirmTimeoutSeconds = getNumberSetting(descriptor.widget.settings, "confirm_timeout_seconds", 5);
-  // Only set for latching mode buttons. The manager never reports its mode, so
-  // this says "this is what we last asked for", never "the arm is in this mode".
-  const selection = controlState?.selection;
+  const widgetId = descriptor.widget.id;
+  // A mode button reads the manager's state from the store (ADR 0142); a frame button keeps its local selection.
+  const binding = useMemo(
+    () =>
+      momentary ? null : (controlState?.commandBinding ?? ownModeBinding(descriptor.widget.settings, messageType)),
+    [controlState?.commandBinding, descriptor.widget.settings, messageType, momentary],
+  );
+  const store = useCommandStateStore();
+  const entryOf = (key: string) => store.snapshot[key] ?? null;
+  const storeSelection = readSelection(binding, entryOf);
+  const commandPress = useCommandPress();
+  const sending = commandPress.phase === "sending";
+  const selection: string | undefined = sending
+    ? "sending"
+    : storeSelection
+      ? storeSelection.state
+      : controlState?.selection;
   const isSelected = selection === "selected";
   const disabled = controlState?.disabled === true;
   const disabledReason = controlState?.disabledReason;
   // An unavailable widget's frame already states the reason; saying it twice only grows the card.
   const showsDisabledReason = Boolean(disabledReason) && controlState?.unavailable !== true;
   const disabledReasonId = showsDisabledReason ? `${descriptor.widget.id}-disabled-reason` : undefined;
-  // A latched mode button asks for a state, so it keeps asking until the robot takes it (ADR 0141).
-  // A joint or pose target is a one-shot: it claims the target once, and a retry would move the arm again.
-  const reconcilesLatch =
-    !momentary &&
-    !confirmPress &&
-    !isOneShotBehaviour(descriptor.widget.settings) &&
-    (selection !== undefined || topic === MODE_REQUEST_TOPIC);
-  const widgetId = descriptor.widget.id;
-  const target = topic || `widget:${widgetId}`;
-  const job = useWidgetJob(widgetId, target, onActionIntent, desiredScope);
-  const targetState = useTargetState(target);
-  const actor = actorKey(desiredScope ?? "", widgetId);
-  const pressKey = momentary ? payloadKey(resolveCommandPayload(descriptor.widget.settings, messageType)) : "";
   const isMomentaryPressedRef = useRef(false);
   // Only the pointer that began a hold may end it; a latch (click, scan, dwell) has none.
   const holdPointerIdRef = useRef<number | null>(null);
   const [isMomentaryHeld, setIsMomentaryHeld] = useState(false);
   const [isMomentaryLatched, setIsMomentaryLatched] = useState(false);
-  const momentaryView = momentary ? readMomentary(targetState, actor, pressKey, isMomentaryHeld) : null;
-  const isMomentaryPressed = momentary && (momentaryView?.pressed ?? isMomentaryHeld);
+  const [holdRefusal, setHoldRefusal] = useState("");
   const [isArmed, setIsArmed] = useState(false);
   const armedAtRef = useRef(0);
   const visibleButtonLabel = momentary
-    ? isMomentaryPressed
+    ? isMomentaryHeld
       ? pressedLabel
       : releasedLabel
     : isArmed
@@ -115,19 +119,10 @@ export function CommandLikeWidget({
   // snake mode after the button that requested it is gone.
   const releaseHeldRef = useRef(() => {});
   const latch = useLatchCountdown(isMomentaryLatched, null, () => releaseHeldRef.current());
-  // An armed Go home must not survive a disable, a STOP or a suspend either.
-  // A mode still being asked for is not asked again after a STOP or a suspend.
-  const cancelPendingRef = useRef(() => {});
-  cancelPendingRef.current = () => {
-    if (reconcilesLatch) {
-      cancelPending(widgetId, target, desiredScope);
-    }
-  };
   useEffect(() => {
     if (disabled) {
       setIsArmed(false);
       releaseHeldRef.current();
-      cancelPendingRef.current();
     }
   }, [disabled]);
   useEffect(() => () => releaseHeldRef.current(), []);
@@ -139,30 +134,7 @@ export function CommandLikeWidget({
     lastNeutralRevisionRef.current = neutralRevision;
     setIsArmed(false);
     releaseHeldRef.current();
-    cancelPendingRef.current();
   }, [neutralRevision]);
-  // A refused press was not applied: the hold ends there, with nothing to release.
-  const pressRefused = momentary && job?.refused === true && job.value === "pressed";
-  useEffect(() => {
-    if (pressRefused && isMomentaryPressedRef.current) {
-      holdPointerIdRef.current = null;
-      isMomentaryPressedRef.current = false;
-      setIsMomentaryHeld(false);
-      setIsMomentaryLatched(false);
-    }
-  }, [pressRefused]);
-  // A newer act of another control (or STOP, or a new session) was applied: the hold ends, and its release would
-  // undo that act. A refused one changes nothing, so the release is still owed.
-  const holdClaimed =
-    momentary && job !== null && targetState.appliedSeq > job.lastActSeq && targetState.appliedBy !== actor;
-  useEffect(() => {
-    if (holdClaimed && isMomentaryPressedRef.current) {
-      holdPointerIdRef.current = null;
-      isMomentaryPressedRef.current = false;
-      setIsMomentaryHeld(false);
-      setIsMomentaryLatched(false);
-    }
-  }, [holdClaimed]);
 
   const handlePress = () => {
     if (disabled) {
@@ -183,21 +155,8 @@ export function CommandLikeWidget({
     }
     setIsArmed(false);
     const intent = createWidgetActionIntent(descriptor.widget, { type: "press" });
-    if (intent.type === "topic-publish" && reconcilesLatch && onActionIntent) {
-      setDesired({
-        scope: desiredScope,
-        widgetId,
-        target: intent.topic,
-        value: "requested",
-        engage: true,
-        intent,
-        send: onActionIntent,
-      });
-      return;
-    }
-    // A one-shot publish is the newest act on its topic: a pending retry there must not undo it.
-    if (intent.type === "topic-publish" && onActionIntent) {
-      sendOneShot({ scope: desiredScope, widgetId, target: intent.topic, intent, send: onActionIntent });
+    if (binding && onActionIntent) {
+      commandPress.press(binding.writes, () => onActionIntent(intent));
       return;
     }
     onActionIntent?.(intent);
@@ -242,11 +201,14 @@ export function CommandLikeWidget({
     setIsMomentaryLatched(true);
     publishMomentary("pressed");
   };
-  const releaseMomentary = () => {
+  const endHold = () => {
     holdPointerIdRef.current = null;
     isMomentaryPressedRef.current = false;
     setIsMomentaryHeld(false);
     setIsMomentaryLatched(false);
+  };
+  const releaseMomentary = () => {
+    endHold();
     publishMomentary("released");
   };
   releaseHeldRef.current = () => {
@@ -267,33 +229,48 @@ export function CommandLikeWidget({
     }
     releaseMomentary();
   };
-  // Press and release are absolute payloads, so each replaces the other at once; the server orders them.
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  // Press and release are absolute payloads, each sent once; the server orders them.
   const publishMomentary = (value: "pressed" | "released") => {
     if (!topic || !messageType || !onActionIntent) {
       return;
     }
-    setDesired({
-      scope: desiredScope,
+    const outcome = onActionIntent({
+      type: "topic-publish",
       widgetId,
-      target: topic,
-      value,
-      engage: value === "pressed",
-      momentary: true,
-      intent: {
-        type: "topic-publish",
-        widgetId,
-        widgetKind: descriptor.widget.kind,
-        topic,
-        messageType,
-        // The press resolves as a one-shot press does: a String hold with no payload sends its command.
-        payload:
-          value === "pressed"
-            ? resolveCommandPayload(descriptor.widget.settings, messageType)
-            : resolveReleasedPayload(topic, descriptor.widget.settings.releasedPayload),
-        ...(value === "released" ? { release: true } : {}),
-      } satisfies WidgetActionIntent,
-      send: onActionIntent,
-    });
+      widgetKind: descriptor.widget.kind,
+      topic,
+      messageType,
+      // The press resolves as a one-shot press does: a String hold with no payload sends its command.
+      payload:
+        value === "pressed"
+          ? resolveCommandPayload(descriptor.widget.settings, messageType)
+          : resolveReleasedPayload(topic, descriptor.widget.settings.releasedPayload),
+      ...(value === "released" ? { release: true } : {}),
+    } satisfies WidgetActionIntent);
+    if (value !== "pressed") {
+      return;
+    }
+    setHoldRefusal("");
+    // A refused press was not applied: the hold ends there, with nothing to release.
+    const settle = (result: WidgetActionOutcome | undefined) => {
+      const { detail, outcome: kind } = outcomeOf(result);
+      if (kind === "refused" && mountedRef.current && isMomentaryPressedRef.current) {
+        endHold();
+        setHoldRefusal(detail ?? "");
+      }
+    };
+    if (outcome instanceof Promise) {
+      outcome.then(settle, () => undefined);
+    } else {
+      settle(outcome);
+    }
   };
 
   const layout = getBooleanSetting(descriptor.widget.settings, "hide_title", false) ? "bare" : "card";
@@ -301,73 +278,66 @@ export function CommandLikeWidget({
     layout === "card" && descriptor.widget.title.trim().toLowerCase() !== buttonLabel.trim().toLowerCase();
   const detail = actionLabel || command;
   const authoredHint = getStringSetting(descriptor.widget.settings, "hint", "");
+  const strings = rendererStrings(language);
+  const refusal = commandPress.phase === "refused" ? (commandPress.detail ?? "") : holdRefusal;
+  const notConfirmed = commandPress.phase === "not-confirmed";
   // A timeout of zero means the button stays armed until it is pressed again, which is the opposite of
   // what the countdown wording promised on exactly the guard that protects a destructive command.
-  const strings = rendererStrings(language);
-  // Only this control's own unanswered act marks it; the mode highlight says the rest.
-  // A hold nothing on its target confirms (its press not applied, retries ended by a newer act) is not clean either.
-  const unconfirmed =
-    ((momentary || reconcilesLatch) && targetState.pending?.widget === actor) ||
-    (momentaryView !== null && !momentaryView.clean && momentaryView.pressed === null && isMomentaryHeld);
-  const marked = unconfirmed && (job?.marked === true || targetState.pending?.marked === true);
-  const late = marked && job?.late === true;
-  const modeUnconfirmed = selection === "unconfirmed" || (reconcilesLatch && unconfirmed);
-  const mark = marked
-    ? confirmationMarkText(late, strings, reconcilesLatch)
-    : selection === "unconfirmed"
-      ? strings.modeNotConfirmed
-      : "";
-  const refusal = momentary && job && (job.refused || marked) ? (job.detail ?? "") : "";
   const hint = refusal
     ? refusal
-    : isArmed
-      ? confirmTimeoutSeconds > 0
-        ? strings.armedFor(confirmTimeoutSeconds)
-        : strings.armedUntilPressed
-      : authoredHint
-        ? authoredHint
-        : showDetails && detail
-          ? isSelected
-            ? strings.lastRequested(detail)
-            : detail
-          : "";
-  const stateName = mark
-    ? strings.notConfirmedName
-    : selection
-      ? isSelected
-        ? strings.requested
-        : strings.notRequested
-      : "";
+    : sending
+      ? strings.sending
+      : isArmed
+        ? confirmTimeoutSeconds > 0
+          ? strings.armedFor(confirmTimeoutSeconds)
+          : strings.armedUntilPressed
+        : authoredHint
+          ? authoredHint
+          : showDetails && detail
+            ? isSelected
+              ? strings.lastRequested(detail)
+              : detail
+            : "";
+  const mark = notConfirmed ? strings.notConfirmedByRobot : "";
+  const stateName = sending
+    ? strings.sending
+    : selection === "unknown"
+      ? strings.unknownState
+      : selection
+        ? `${isSelected ? strings.requested : strings.notRequested}${sourceSuffix(storeSelection?.source, strings)}`
+        : "";
 
   return (
     <div
       className="bloom-action-widget"
       data-armed={isArmed ? "true" : undefined}
-      data-confirmed={unconfirmed || modeUnconfirmed ? "false" : undefined}
+      data-command-state={storeSelection || sending ? selection : undefined}
+      data-confirmed={notConfirmed ? "false" : undefined}
       data-layout={layout}
       data-momentary={momentary ? "true" : "false"}
-      data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
+      data-pressed={momentary && isMomentaryHeld ? "true" : undefined}
       data-selection={selection}
       data-show-details={showDetails ? "true" : "false"}
+      data-source={storeSelection?.source ?? undefined}
       data-variant={variant || undefined}
     >
       <button
-        // Busy only while the first send is out: a busy control through the whole retry went unannounced.
-        aria-busy={unconfirmed && !marked ? true : undefined}
+        aria-busy={sending ? true : undefined}
         aria-describedby={
-          [disabledReasonId, mark ? `${descriptor.widget.id}-confirm-mark` : ""].join(" ").trim() || undefined
+          [disabledReasonId, mark || refusal ? `${descriptor.widget.id}-confirm-mark` : ""].join(" ").trim() ||
+          undefined
         }
         aria-label={`${stateName ? `${visibleButtonLabel}: ${stateName}` : visibleButtonLabel}${
           disabledReason ? `. ${disabledReason}` : ""
         }`}
-        aria-pressed={momentary ? isMomentaryPressed : selection ? isSelected : undefined}
+        aria-pressed={momentary ? isMomentaryHeld : selection ? isSelected : undefined}
         className="bloom-command-button"
         data-armed={isArmed ? "true" : undefined}
-        data-confirmed={unconfirmed || modeUnconfirmed ? "false" : undefined}
+        data-confirmed={notConfirmed ? "false" : undefined}
         data-selected={isSelected ? "true" : undefined}
         data-confirm-press={confirmPress ? "true" : undefined}
         data-momentary={momentary ? "true" : "false"}
-        data-pressed={momentary && isMomentaryPressed ? "true" : undefined}
+        data-pressed={momentary && isMomentaryHeld ? "true" : undefined}
         data-unsupported={controlState?.unsupported ? "true" : undefined}
         disabled={disabled}
         onClick={momentary ? handleMomentaryActivation : handlePress}
@@ -386,8 +356,12 @@ export function CommandLikeWidget({
       >
         {showsTitle ? <span className="bloom-action-title">{descriptor.widget.title}</span> : null}
         <span className="bloom-action-label">{visibleButtonLabel}</span>
-        {hint ? <span className="bloom-action-hint">{hint}</span> : null}
-        <ConfirmationMark id={`${descriptor.widget.id}-confirm-mark`} late={late} text={mark} />
+        {hint && !refusal ? <span className="bloom-action-hint">{hint}</span> : null}
+        <ConfirmationMark
+          id={`${descriptor.widget.id}-confirm-mark`}
+          refused={Boolean(refusal)}
+          text={refusal || mark}
+        />
         {showsDisabledReason ? (
           <small className="bloom-command-button-disabled-reason" id={disabledReasonId}>
             {disabledReason}
@@ -399,46 +373,48 @@ export function CommandLikeWidget({
   );
 }
 
-function confirmationMarkText(late: boolean, strings: RendererStrings, isMode: boolean): string {
-  if (late) {
-    return strings.notConfirmedLate;
+function sourceSuffix(source: string | null | undefined, strings: RendererStrings): string {
+  if (source === "measured") {
+    return `, ${strings.reportedByRobot}`;
   }
-  return isMode ? strings.modeNotConfirmed : strings.notConfirmed;
+  return source === "commanded" || source === "reset" ? `, ${strings.lastAsked}` : "";
 }
 
 // The button's aria-label hides its content, so the button points here by aria-describedby.
-function ConfirmationMark({ id, late, text }: { id: string; late: boolean; text: string }) {
+function ConfirmationMark({ id, refused, text }: { id: string; refused?: boolean; text: string }) {
   return text ? (
-    <span className="bloom-confirm-mark" data-late={late ? "true" : undefined} id={id}>
+    <span className="bloom-confirm-mark" data-late={refused ? "true" : undefined} id={id}>
       {text}
     </span>
   ) : null;
 }
 
-const ONE_SHOT_BEHAVIOUR = /behaviour\/(joint|pose)[_-]target\//i;
-
-function isOneShotBehaviour(settings: Record<string, unknown>): boolean {
-  const payload = settings.payload;
-  const data = typeof payload === "object" && payload !== null ? asRecord(payload).data : payload;
-  return [settings.command, data].some((value) => typeof value === "string" && ONE_SHOT_BEHAVIOUR.test(value));
-}
-
-/** A parameter toggle's state lives on its parameter, which a slider or preset on it claims too. */
-function resolveToggleTarget(settings: Record<string, unknown>, widgetId: string): string {
+/** A button publishing a mode request itself; a preset-routed one gets its binding from the runtime. */
+function ownModeBinding(settings: Record<string, unknown>, messageType: string): CommandStateBinding | null {
   const topic = getStringSetting(settings, "topic", "");
-  if (topic) {
-    return topic;
+  if (!topic || !isModeRequestTopic(topic)) {
+    return null;
   }
-  const binding = asRecord(settings.runtime_binding);
-  const mapping = asRecord(binding.value_mapping);
-  if (binding.adapter === "parameter" && typeof mapping.node === "string" && typeof mapping.parameter === "string") {
-    return parameterTarget(mapping.node, mapping.parameter);
-  }
-  return `widget:${widgetId}`;
+  const data = readModeRequestData(resolveCommandPayload(settings, messageType || "std_msgs/msg/String"));
+  return data ? modeCommandBinding(topic, data) : null;
 }
 
-function toggleValueKey(widget: WidgetRendererProps["descriptor"]["widget"], nextState: "on" | "off"): string | null {
-  return actValueKey(createWidgetActionIntent(widget, { nextState, type: "toggle" }));
+/** What a toggle reads in the store: its topic's payloads, or the node parameter it sets. */
+function toggleBindingOf(widget: WidgetRendererProps["descriptor"]["widget"]): ToggleBinding | null | "local" {
+  const on = createWidgetActionIntent(widget, { nextState: "on", type: "toggle" });
+  const off = createWidgetActionIntent(widget, { nextState: "off", type: "toggle" });
+  if (on.type === "topic-publish" && off.type === "topic-publish") {
+    return topicToggleBinding(on.topic, on.messageType, on.payload, off.payload);
+  }
+  if (on.type === "toggle-state") {
+    const binding = asRecord(on.runtimeBinding);
+    const mapping = asRecord(binding.value_mapping);
+    if (binding.adapter === "parameter" && typeof mapping.node === "string" && typeof mapping.parameter === "string") {
+      return parameterToggleBinding(mapping.node, mapping.parameter);
+    }
+    return on.runtimeBinding === undefined ? "local" : null;
+  }
+  return null;
 }
 
 /** A /mode_request hold saved without a release payload let go with {}, which the server refuses: send Neutral. */
@@ -491,7 +467,6 @@ export function ToggleWidget({
   conditioning,
   controlState,
   descriptor,
-  desiredScope,
   language,
   neutralRevision,
   onActionIntent,
@@ -502,87 +477,80 @@ export function ToggleWidget({
   const showDetails = getBooleanSetting(descriptor.widget.settings, "show_details", false);
   const variant = getStringSetting(descriptor.widget.settings, "variant", "");
   const widgetId = descriptor.widget.id;
-  const target = resolveToggleTarget(descriptor.widget.settings, widgetId);
-  const job = useWidgetJob(widgetId, target, onActionIntent, desiredScope);
-  const targetState = useTargetState(target);
-  const actor = actorKey(desiredScope ?? "", widgetId);
-  // The payloads this toggle sends, which is how it recognises what the robot holds on its target.
-  const keys = useMemo(
-    () => ({ on: toggleValueKey(descriptor.widget, "on"), off: toggleValueKey(descriptor.widget, "off") }),
-    [descriptor.widget],
-  );
-  const view = readToggle(targetState, keys);
+  const binding = useMemo(() => toggleBindingOf(descriptor.widget), [descriptor.widget]);
+  const isLocal = binding === "local";
+  const store = useCommandStateStore();
+  const entryOf = (key: string) => store.snapshot[key] ?? null;
+  const view = readToggleState(isLocal ? null : binding, entryOf);
+  const commandPress = useCommandPress();
+  const sending = commandPress.phase === "sending";
+  const askedRef = useRef<"off" | "on">("off");
   const [localIsOn, setLocalIsOn] = useState(() =>
     getBooleanSetting(descriptor.widget.settings, "initialValue", false),
   );
-  const readBackValue = controlState?.value;
-  useEffect(() => {
-    if (typeof readBackValue === "boolean") {
-      setLocalIsOn(readBackValue);
-    }
-  }, [readBackValue]);
   const allowToggle = useRepeatGuard(conditioning?.repeatGuardMs);
-  const controlledToggleState = controlState?.toggleState;
-  // A /mode_request toggle shows the requested mode, which STOP and every other mode control move too.
-  const modeDriven = topic === MODE_REQUEST_TOPIC && controlledToggleState !== undefined;
-  const pendingAct = modeDriven ? null : view.pending;
-  const ownPending = pendingAct?.widget === actor;
-  // Nothing newer is out, but what is known is not one of this toggle's payloads, or is not known at all.
-  const knownUnclear =
-    !modeDriven && !pendingAct && !controlledToggleState && typeof readBackValue !== "boolean" && !view.clean;
-  const unconfirmed = modeDriven ? controlState?.toggleUnconfirmed === true : pendingAct !== null || knownUnclear;
-  const viewIsOn = view.state === null ? localIsOn : view.state === "on";
-  // Unconfirmed shows what was asked for, never the old state (ADR 0141).
-  const isOn = modeDriven
-    ? controlledToggleState === "on"
-    : pendingAct
-      ? viewIsOn
-      : controlledToggleState
-        ? controlledToggleState === "on"
-        : typeof readBackValue === "boolean"
-          ? readBackValue
-          : viewIsOn;
-  // The shaping mode is known and is neither of this toggle's: no segment is lit, and it does not say Off.
-  const otherMode = modeDriven && controlledToggleState === "other";
+  const state: "off" | "on" | "other" | "sending" | "unknown" = isLocal
+    ? localIsOn
+      ? "on"
+      : "off"
+    : sending
+      ? "sending"
+      : view.state;
+  const isOn = state === "on";
   const strings = rendererStrings(language);
-  const stateLabel = otherMode ? strings.otherMode : isOn ? onLabel : offLabel;
+  const modeTopic = isModeRequestTopic(topic);
+  const stateLabel =
+    state === "on"
+      ? onLabel
+      : state === "off"
+        ? offLabel
+        : state === "sending"
+          ? strings.sending
+          : state === "other"
+            ? modeTopic
+              ? strings.otherMode
+              : strings.otherValue
+            : strings.unknownState;
   const stateTextId = useId();
   const isServoSwitch = topic === VISUAL_SERVOING_SWITCH_TOPIC;
-  const [isPending, setIsPending] = useState(false);
+  const servoing = useCommandState(isServoSwitch ? SERVOING_ACTIVE_KEY : null);
+  const servoLive = isServoSwitch && knownValue(servoing)?.value === true;
+  const inputHint = useUndeclaredInputHint(descriptor.widget.settings, strings);
 
-  const requestState = (nextState: "off" | "on", release: boolean): boolean => {
-    if (!onActionIntent) {
-      return false;
+  const send = (nextState: "off" | "on", release: boolean) => {
+    if (!onActionIntent || isLocal || binding === null) {
+      return;
     }
     const intent = createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" });
-    const reconciles =
-      intent.type === "topic-publish" || (intent.type === "toggle-state" && intent.runtimeBinding !== undefined);
-    if (!reconciles) {
-      return false;
-    }
-    setDesired({
-      scope: desiredScope,
-      widgetId,
-      target,
-      value: nextState,
-      engage: nextState === "on",
-      // Marked a release so the STOP and hold gates let a switch-off through.
-      intent: release && intent.type === "topic-publish" ? { ...intent, release: true } : intent,
-      send: onActionIntent,
-    });
-    return true;
+    // Marked a release so the STOP and hold gates let a switch-off through.
+    const sent = release && intent.type === "topic-publish" ? { ...intent, release: true } : intent;
+    askedRef.current = nextState;
+    commandPress.press(
+      binding.keys.map(({ key, off, on }) => ({ key, value: nextState === "on" ? on : off })),
+      () => onActionIntent(sent),
+    );
   };
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  // A suspend, a STOP, a disable or leaving the screen switches servoing off, once.
   const switchOffServoRef = useRef(() => {});
   switchOffServoRef.current = () => {
-    if (isServoSwitch && (isOn || (job?.active === true && job.value === "on"))) {
-      requestState("off", true);
+    if (!isServoSwitch || !onActionIntent || !(isOn || (sending && askedRef.current === "on"))) {
+      return;
     }
-  };
-  // A suspend or STOP cancels an On still being asked for; the servo switch turns off instead.
-  const settleForSuspendRef = useRef(() => {});
-  settleForSuspendRef.current = () => {
-    switchOffServoRef.current();
-    cancelPending(widgetId, target, desiredScope);
+    if (mountedRef.current) {
+      send("off", true);
+      return;
+    }
+    const intent = createWidgetActionIntent(descriptor.widget, { nextState: "off", type: "toggle" });
+    if (intent.type === "topic-publish") {
+      void Promise.resolve(onActionIntent({ ...intent, release: true })).catch(() => undefined);
+    }
   };
   const lastNeutralRevisionRef = useRef(neutralRevision);
   useEffect(() => {
@@ -590,98 +558,130 @@ export function ToggleWidget({
       return;
     }
     lastNeutralRevisionRef.current = neutralRevision;
-    settleForSuspendRef.current();
+    switchOffServoRef.current();
   }, [neutralRevision]);
   const disabled = controlState?.disabled === true;
   useEffect(() => {
     if (disabled) {
-      settleForSuspendRef.current();
+      switchOffServoRef.current();
     }
   }, [disabled]);
   // Settings, the tour and a screen change unmount the canvas before their suspend lands here.
-  useEffect(() => () => switchOffServoRef.current(), []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+      switchOffServoRef.current();
+    },
+    [],
+  );
 
-  const handleToggle = async () => {
-    if (isPending || !allowToggle()) {
+  const handleToggle = () => {
+    if (!allowToggle()) {
       return;
     }
-    const nextState = isOn ? "off" : "on";
-    if (!onActionIntent) {
+    if (isLocal) {
+      const nextState = localIsOn ? "off" : "on";
       setLocalIsOn(nextState === "on");
+      if (onActionIntent) {
+        void Promise.resolve(
+          onActionIntent(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" })),
+        ).catch(() => undefined);
+      }
       return;
     }
-    if (requestState(nextState, isServoSwitch && nextState === "off")) {
-      return;
-    }
-    // A local toggle with nothing on the robot to reconcile: one send, applied if accepted.
-    setIsPending(true);
-    let accepted = false;
-    try {
-      const outcome = await onActionIntent(createWidgetActionIntent(descriptor.widget, { nextState, type: "toggle" }));
-      accepted = outcome === undefined || outcome.accepted;
-    } catch {
-      // The runtime shell owns visible error reporting; a rejected publish counts as refused.
-    } finally {
-      setIsPending(false);
-    }
-    if (!controlledToggleState && accepted) {
-      setLocalIsOn(nextState === "on");
-    }
+    // What the press is measured against: the store, or what this control is still sending.
+    const basis = sending ? askedRef.current : state;
+    const nextState = basis === "on" ? "off" : "on";
+    send(nextState, isServoSwitch && nextState === "off");
   };
 
   const onStateLabel = getStringSetting(descriptor.widget.settings, "onStateLabel", "");
   const offStateLabel = getStringSetting(descriptor.widget.settings, "offStateLabel", "");
-  const commandedState = otherMode ? "" : isOn ? onStateLabel : offStateLabel;
+  const commandedState = state === "on" ? onStateLabel : state === "off" ? offStateLabel : "";
   const stateText = commandedState
     ? `${localizeOperatorText("commanded", language)}${language === "fr" ? " : " : ": "}${commandedState}`
     : "";
   const inline = getStringSetting(descriptor.widget.settings, "layout", "") === "inline";
   // With state labels the button words are verbs ("Open gripper"): "pressed" would contradict the commanded state.
   const labelsAreActions = Boolean(onStateLabel || offStateLabel);
-  const marked = modeDriven
-    ? unconfirmed
-    : pendingAct
-      ? pendingAct.marked || (ownPending && job?.marked === true)
-      : knownUnclear;
-  const late = marked && ownPending && job?.late === true;
-  const accessibleName = `${descriptor.widget.title}: ${stateLabel}${marked ? `, ${strings.notConfirmedName}` : ""}`;
-  const mark = (
-    <ConfirmationMark
-      id={`${widgetId}-confirm-mark`}
-      late={late}
-      text={
-        !marked ? "" : late ? strings.notConfirmedLate : modeDriven ? strings.modeNotConfirmed : strings.notConfirmed
-      }
-    />
-  );
+  const refusal = commandPress.phase === "refused" ? (commandPress.detail ?? "") : "";
+  const notConfirmed = commandPress.phase === "not-confirmed";
+  const source = isLocal || sending ? null : view.source;
+  const accessibleName = `${descriptor.widget.title}: ${stateLabel}${
+    state === "on" || state === "off" || state === "other" ? sourceSuffix(source, strings) : ""
+  }${notConfirmed ? `, ${strings.notConfirmedName}` : ""}`;
+  const markText = refusal || (notConfirmed ? strings.notConfirmedByRobot : "");
+  const markId = `${widgetId}-confirm-mark`;
+  const mark = <ConfirmationMark id={markId} refused={Boolean(refusal)} text={markText} />;
+  const stateAttributes = {
+    "data-command-state": isLocal ? undefined : state,
+    "data-confirmed": notConfirmed ? "false" : undefined,
+    "data-source": source ?? undefined,
+    "data-state": isOn ? "active" : "inactive",
+  };
+  const pressed = state === "on" ? true : state === "off" ? false : undefined;
+  // Not knowing what the robot holds, the toggle offers both sides; action words ask for the opposite state.
+  const choices: { label: string; next: "off" | "on" }[] | null =
+    !isLocal && (state === "unknown" || state === "other")
+      ? [
+          { label: offLabel, next: labelsAreActions ? "on" : "off" },
+          { label: onLabel, next: labelsAreActions ? "off" : "on" },
+        ]
+      : null;
+  const choose = (next: "off" | "on") => {
+    if (allowToggle()) {
+      send(next, isServoSwitch && next === "off");
+    }
+  };
+  const choiceName = (label: string) =>
+    `${descriptor.widget.title}: ${label}${notConfirmed ? `, ${strings.notConfirmedName}` : ""}`;
+  // The two sides fill the box the single button fills: a row of equal buttons, or the segmented track.
+  const renderChoices = (segmented: boolean, describedBy: string) =>
+    choices ? (
+      <div className={segmented ? "bloom-toggle-button bloom-toggle-track" : "bloom-toggle-choices"}>
+        {choices.map(({ label, next }) => (
+          <button
+            aria-describedby={describedBy || undefined}
+            aria-label={choiceName(label)}
+            aria-pressed={labelsAreActions ? undefined : false}
+            className={segmented ? "bloom-toggle-segment" : "bloom-toggle-button is-off"}
+            data-active={segmented ? "false" : undefined}
+            data-confirmed={notConfirmed ? "false" : undefined}
+            key={next}
+            onClick={() => choose(next)}
+            type="button"
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    ) : null;
 
   if (variant === "mode-segmented") {
     return (
-      <div
-        className="bloom-toggle-widget"
-        data-confirmed={unconfirmed ? "false" : undefined}
-        data-state={isOn ? "active" : "inactive"}
-        data-variant={variant}
-      >
+      <div className="bloom-toggle-widget" data-variant={variant} {...stateAttributes}>
         <strong className="bloom-toggle-title">{descriptor.widget.title}</strong>
-        <button
-          aria-pressed={isOn}
-          aria-label={accessibleName}
-          aria-busy={isPending || (unconfirmed && !marked)}
-          aria-describedby={marked ? `${widgetId}-confirm-mark` : undefined}
-          className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
-          data-confirmed={unconfirmed ? "false" : undefined}
-          disabled={isPending}
-          onClick={handleToggle}
-          type="button"
-        >
-          <span className="bloom-toggle-segment" data-active={!isOn && !otherMode ? "true" : "false"}>
-            {offLabel}
-          </span>
-          <span className="bloom-toggle-segment" data-active={isOn ? "true" : "false"}>
-            {onLabel}
-          </span>
-        </button>
+        {choices ? (
+          renderChoices(true, markText ? markId : "")
+        ) : (
+          <button
+            aria-pressed={pressed ?? false}
+            aria-label={accessibleName}
+            aria-busy={sending || undefined}
+            aria-describedby={markText ? markId : undefined}
+            className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
+            data-confirmed={notConfirmed ? "false" : undefined}
+            onClick={handleToggle}
+            type="button"
+          >
+            <span className="bloom-toggle-segment" data-active={state === "off" ? "true" : "false"}>
+              {offLabel}
+            </span>
+            <span className="bloom-toggle-segment" data-active={isOn ? "true" : "false"}>
+              {onLabel}
+            </span>
+          </button>
+        )}
         {mark}
       </div>
     );
@@ -690,40 +690,58 @@ export function ToggleWidget({
   return (
     <div
       className="bloom-toggle-widget bloom-info-card"
-      data-confirmed={unconfirmed ? "false" : undefined}
       data-layout={inline ? "inline" : "stacked"}
       data-narrow={descriptor.widget.layout.width < 260 ? "true" : undefined}
-      data-state={isOn ? "active" : "inactive"}
+      {...stateAttributes}
     >
       {hidesTitle(descriptor.widget.settings) ? null : (
         <header className="bloom-widget-head bloom-toggle-head">
           <strong>{descriptor.widget.title}</strong>
-          {stateText ? (
+          {stateText || (choices && labelsAreActions) ? (
             <span className="bloom-toggle-state" id={stateTextId}>
-              {stateText}
+              {stateText || stateLabel}
             </span>
           ) : null}
+          {servoLive ? <span className="bloom-toggle-live">{strings.servoRunning}</span> : null}
         </header>
       )}
-      <button
-        aria-describedby={
-          [stateText ? stateTextId : "", marked ? `${widgetId}-confirm-mark` : ""].join(" ").trim() || undefined
-        }
-        aria-pressed={labelsAreActions ? undefined : isOn}
-        aria-label={accessibleName}
-        aria-busy={isPending || (unconfirmed && !marked)}
-        className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
-        data-confirmed={unconfirmed ? "false" : undefined}
-        disabled={isPending}
-        onClick={handleToggle}
-        type="button"
-      >
-        {stateLabel}
-      </button>
+      {choices ? (
+        renderChoices(
+          false,
+          [labelsAreActions && !hidesTitle(descriptor.widget.settings) ? stateTextId : "", markText ? markId : ""]
+            .join(" ")
+            .trim(),
+        )
+      ) : (
+        <button
+          aria-describedby={[stateText ? stateTextId : "", markText ? markId : ""].join(" ").trim() || undefined}
+          aria-pressed={labelsAreActions ? undefined : (pressed ?? false)}
+          aria-label={accessibleName}
+          aria-busy={sending || undefined}
+          className={`bloom-toggle-button ${isOn ? "is-on" : "is-off"}`}
+          data-confirmed={notConfirmed ? "false" : undefined}
+          onClick={handleToggle}
+          type="button"
+        >
+          {stateLabel}
+        </button>
+      )}
       {mark}
+      {inputHint ? <span className="bloom-action-hint">{inputHint}</span> : null}
       {showDetails && topic ? <span className="bloom-widget-topic">{topic}</span> : null}
     </div>
   );
+}
+
+const INPUT_ENABLED = /^inputs\.(.+)\.enabled$/;
+
+/** A manager input switch whose source the manager does not declare changes nothing: say so. */
+function useUndeclaredInputHint(settings: Record<string, unknown>, strings: RendererStrings): string {
+  const mapping = asRecord(asRecord(settings.runtime_binding).value_mapping);
+  const node = typeof mapping.node === "string" ? mapping.node : "";
+  const source = typeof mapping.parameter === "string" ? INPUT_ENABLED.exec(mapping.parameter)?.[1] : undefined;
+  const sources = knownValue(useCommandState(node && source ? parameterKey(node, "inputs.sources") : null));
+  return source && Array.isArray(sources?.value) && !sources.value.includes(source) ? strings.inputNotDeclared : "";
 }
 
 function getLabelAlignment(value: string): "center" | "left" | "right" {

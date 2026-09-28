@@ -106,6 +106,16 @@ class RclpyRosParameterGateway:
         return response.values[0].type if len(response.values) == 1 else None
 
     def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
+        values = self.get_values(node, names)
+        return tuple(
+            RosParameterReading(
+                node=node, name=name, value=value if isinstance(value, bool | int | float | str) else None
+            )
+            for name, value in values.items()
+        )
+
+    def get_values(self, node: str, names: tuple[str, ...]) -> dict[str, Any]:
+        """Every value as Python, arrays included; None for an undeclared name."""
         from rcl_interfaces.srv import GetParameters
         from rclpy.parameter import parameter_value_to_python
 
@@ -116,19 +126,13 @@ class RclpyRosParameterGateway:
         if len(response.values) != len(names):
             # A node answers nothing at all when one name is undeclared, so ask each name on its own.
             if len(names) == 1:
-                return (RosParameterReading(node=node, name=names[0], value=None),)
-            return tuple(reading for name in names for reading in self.get(node, (name,)))
-        readings = []
+                return {names[0]: None}
+            return {name: value for name in names for value in self.get_values(node, (name,)).values()}
+        values: dict[str, Any] = {}
         for name, value in zip(names, response.values, strict=True):
             python_value = parameter_value_to_python(value)
-            readings.append(
-                RosParameterReading(
-                    node=node,
-                    name=name,
-                    value=python_value if isinstance(python_value, bool | int | float | str) else None,
-                )
-            )
-        return tuple(readings)
+            values[name] = list(python_value) if isinstance(python_value, (list, tuple)) else python_value
+        return values
 
     def _client(self, node: str, service: str, service_cls: Any) -> Any:
         key = (node, service)

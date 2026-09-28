@@ -927,6 +927,13 @@
   font-size: 14px;
 }
 
+/* ADR 0142: servoing measured live by the backend, apart from what the switch last asked. */
+.bloom-toggle-live {
+  color: var(--bloom-color-forest);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .bloom-toggle-widget[data-narrow="true"] .bloom-toggle-head {
   flex-direction: column;
   gap: 0;
@@ -946,6 +953,25 @@
   line-height: 1.2;
   cursor: pointer;
   touch-action: manipulation;
+}
+
+/* State not known: both sides offered, neither lit, in the box the single button fills. */
+.bloom-toggle-choices {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* A label wraps to two lines inside the button, never cut; 16 px is the runtime scale's readout step. */
+.bloom-toggle-choices .bloom-toggle-button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 6px;
+  font-size: 16px;
+  line-height: 1.15;
+  white-space: normal;
+  overflow-wrap: normal;
 }
 
 .bloom-toggle-widget[data-narrow="true"] .bloom-toggle-button,
@@ -1001,6 +1027,15 @@
   min-height: 48px;
   padding: 0 12px;
   border-radius: 10px;
+}
+
+button.bloom-toggle-segment {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 .bloom-toggle-segment[data-active="true"] {

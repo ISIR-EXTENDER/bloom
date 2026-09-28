@@ -14,7 +14,6 @@ from apps.bloom_api.settings import Settings
 from libs.config import InMemoryConfigurationRepository, load_configuration_file
 from libs.ros_adapters import RosPublishReceipt, RosPublishRequest
 from libs.ros_adapters.safety import (
-    KINOVA_HOME_REFUSAL,
     KINOVA_POSE_TARGET_REFUSAL,
     RuntimeCommandPolicy,
     RuntimePayloadShapeError,
@@ -205,7 +204,7 @@ def make_client(robot_name: str, allow: bool = False) -> tuple[TestClient, RosGa
             environment="test",
             runtime_control_required=False,
             robot_name=robot_name,
-            allow_kinova_home=allow,
+            allow_kinova_pose_targets=allow,
             allowed_ros_publish_topics=("/mode_request", "/arm2/mode_request"),
         ),
         InMemoryConfigurationRepository({"explorer-manager": load_configuration_file(EXPLORER_FIXTURE_PATH)}),
@@ -218,8 +217,8 @@ def mode(topic: str, data: str) -> dict:
     return {"topic": topic, "message_type": "std_msgs/msg/String", "payload": {"data": data}}
 
 
-@pytest.mark.parametrize("data", ["behaviour/joint_target/home/", "Behaviour//Joint-Target/Home"])
-def test_a_malformed_go_home_on_another_mode_topic_is_refused(data: str) -> None:
+@pytest.mark.parametrize("data", ["behaviour/pose_target/ready/", "Behaviour//Pose-Target/Ready"])
+def test_a_malformed_pose_target_on_another_mode_topic_is_refused(data: str) -> None:
     client, gateway = make_client("Kinova Gen3")
 
     response = client.post(PUBLISH, json=mode("/arm2/mode_request", data))
@@ -243,8 +242,9 @@ def test_the_kinova_refusal_compares_the_normalized_form() -> None:
         allowed_teleop_targets=(),
         refused_mode_requests=robot_refused_mode_requests("Kinova Gen3", False),
     )
-    with pytest.raises(RuntimePayloadShapeError, match="Go home"):
-        policy.ensure_mode_request_allowed("/arm2/mode_request", {"data": "behaviour/joint_target/home/"})
+    with pytest.raises(RuntimePayloadShapeError, match="Pose targets"):
+        policy.ensure_mode_request_allowed("/arm2/mode_request", {"data": "Behaviour//Pose-Target/Ready/"})
+    policy.ensure_mode_request_allowed("/arm2/mode_request", {"data": "behaviour/joint_target/home/"})
 
 
 @pytest.mark.parametrize("topic", ["/mode_request", "/arm2/mode_request"])
@@ -268,12 +268,13 @@ def test_pose_targets_publish_on_the_explorer_and_when_allowed(robot_name: str, 
     assert gateway.sent("/mode_request") == ["behaviour/pose_target/ready"]
 
 
-def test_the_kinova_still_refuses_go_home_by_its_own_reason() -> None:
-    client, _ = make_client("Kinova Gen3")
+def test_the_kinova_publishes_go_home() -> None:
+    client, gateway = make_client("Kinova Gen3")
 
     response = client.post(PUBLISH, json=mode("/mode_request", "behaviour/joint_target/home"))
 
-    assert response.json()["detail"] == KINOVA_HOME_REFUSAL
+    assert response.status_code == 200
+    assert gateway.sent("/mode_request") == ["behaviour/joint_target/home"]
 
 
 def test_a_stop_racing_a_joint_target_on_another_topic_still_cancels_it() -> None:

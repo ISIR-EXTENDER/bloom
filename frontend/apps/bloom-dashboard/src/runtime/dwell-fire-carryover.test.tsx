@@ -31,7 +31,7 @@ async function openDwellRuntime() {
   render(<App configurationClient={configurationClient()} runtimeActionClient={client} />);
   fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
   await openRuntimeApp("Explorer Manager");
-  await screen.findByRole("button", { name: "Gripper: Close gripper" });
+  await screen.findByRole("button", { name: /^Gripper: Close gripper/ });
   return client;
 }
 
@@ -77,7 +77,7 @@ describe("a dwell that fires in one surface", () => {
     await openSheet();
     await restUntilGone("Resume operating", noSheet);
 
-    const gripper = screen.getByRole("button", { name: "Gripper: Close gripper" });
+    const gripper = screen.getByRole("button", { name: /^Gripper: Close gripper/ });
     await tremorOn(gripper);
     expect(gripperPublishes(client)).toBe(0);
 
@@ -95,7 +95,7 @@ describe("a dwell that fires in one surface", () => {
       await screen.findByRole("button", { name }, { timeout: 5000 });
       await restUntilGone(name, () => screen.queryByRole("button", { name }) === null);
 
-      await tremorOn(screen.getByRole("button", { name: "Gripper: Close gripper" }));
+      await tremorOn(screen.getByRole("button", { name: /^Gripper: Close gripper/ }));
       expect(gripperPublishes(client)).toBe(0);
     },
     30000,
@@ -108,7 +108,7 @@ describe("a dwell that fires in one surface", () => {
     await screen.findByRole("button", { name: "Close practice" }, { timeout: 5000 });
     await restUntilGone("Close practice", () => screen.queryByRole("button", { name: "Close practice" }) === null);
 
-    await tremorOn(screen.getByRole("button", { name: "Gripper: Close gripper" }));
+    await tremorOn(screen.getByRole("button", { name: /^Gripper: Close gripper/ }));
     expect(gripperPublishes(client)).toBe(0);
   }, 30000);
 
@@ -117,7 +117,7 @@ describe("a dwell that fires in one surface", () => {
     await openSheet();
     await restUntilGone("Joystick lab", noSheet);
     // A new screen: the gripper under the pointer is another screen's control.
-    const gripper = screen.getByRole("button", { name: "Gripper: Close gripper" });
+    const gripper = screen.getByRole("button", { name: /^Gripper: Close gripper/ });
 
     await tremorOn(gripper);
     expect(gripperPublishes(client)).toBe(0);

@@ -1,5 +1,4 @@
 import type { RosTopicPublishRequest, RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import { beginAct } from "@bloom/widget-renderers";
 import {
   asRecord,
   asTopic,
@@ -14,7 +13,6 @@ import {
   isAllowedByPolicy,
   type RuntimeActionDispatchOptions,
   type RuntimeActionDispatchResult,
-  toWidgetActionStatus,
 } from "./dispatch-result";
 import { isVector2Value } from "./dispatch-teleop";
 import type { RuntimeActionClient } from "./runtime-protocol";
@@ -30,8 +28,6 @@ export async function publishTopicRequest(
   if (policyError) {
     return { intent, request, status: "blocked", detail: policyError };
   }
-  // ADR 0141: recorded just before the request takes its publish sequence, and told how it went.
-  const settle = beginAct(request.topic, intent);
   let result: RuntimeActionDispatchResult;
   try {
     const response = await client.publishRosTopic({ ...request, ...appScope(options) });
@@ -39,7 +35,6 @@ export async function publishTopicRequest(
   } catch (error: unknown) {
     result = { intent, request, ...classifyDispatchError(error) };
   }
-  settle(toWidgetActionStatus(result));
   return result;
 }
 

@@ -135,6 +135,8 @@ def test_a_slow_service_call_does_not_freeze_other_sockets() -> None:
             started = time.monotonic()
             watcher.send(json.dumps({"type": "ping"}))
             reply = json.loads(watcher.recv(timeout=SLOW_SECONDS * 2))
+            while reply["type"] == "command_state":
+                reply = json.loads(watcher.recv(timeout=SLOW_SECONDS * 2))
             elapsed = time.monotonic() - started
 
             assert reply["type"] == "pong"

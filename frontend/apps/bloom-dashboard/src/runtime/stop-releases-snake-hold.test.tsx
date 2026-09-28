@@ -16,8 +16,6 @@ afterEach(() => {
   window.sessionStorage.clear();
 });
 
-const modeOf = (request: RosTopicPublishRequest) =>
-  (request.payload as { data?: unknown } | undefined)?.data ?? request.payload_text;
 const published = (request: RosTopicPublishRequest) => ({
   detail: "Published.",
   message_type: request.message_type,
@@ -30,30 +28,6 @@ async function openExplorer(client: RuntimeActionClient) {
   fireEvent.click(await screen.findByRole("button", { name: "Runtime: Operate and inspect" }));
   await openRuntimeApp("Explorer Manager");
 }
-
-describe("a refused mode request while an older one has no reply", () => {
-  it("marks the older mode not confirmed instead of hiding it", async () => {
-    const client = {
-      publishRosTopic: vi.fn((request: RosTopicPublishRequest) =>
-        modeOf(request) === "geometric/jaco"
-          ? new Promise<never>(() => {})
-          : Promise.reject(new BloomApiError("Forbidden", 403, JSON.stringify({ detail: "Not allowed." }))),
-      ),
-    } satisfies RuntimeActionClient;
-    await openExplorer(client);
-
-    fireEvent.click(await screen.findByRole("button", { name: /^Jaco/ }));
-    fireEvent.click(screen.getByRole("button", { name: /^Both/ }));
-    await waitFor(() => expect(client.publishRosTopic).toHaveBeenCalledTimes(2));
-
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /^Jaco/ }).closest("[data-selection]")).toHaveAttribute(
-        "data-selection",
-        "unconfirmed",
-      ),
-    );
-  }, 20000);
-});
 
 describe("an asserted STOP during a Snake hold", () => {
   it("shows Snake released, though its release was refused by the latch", async () => {
@@ -77,7 +51,6 @@ describe("an asserted STOP during a Snake hold", () => {
     const snake = await screen.findByRole("button", { name: /^Hold snake/ });
     fireEvent.pointerDown(snake, { pointerId: 1 });
     await waitFor(() => expect(snake).toHaveAttribute("aria-pressed", "true"));
-    await waitFor(() => expect(snake).not.toHaveAttribute("data-confirmed"));
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Stop the robot" }));
     await waitFor(() => expect(client.engageRuntimeStop).toHaveBeenCalled());

@@ -1,10 +1,4 @@
-import type {
-  ApplicationConfig,
-  RuntimeCapability,
-  RuntimeCapabilityReport,
-  RuntimeStopState,
-  ScreenConfig,
-} from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeCapability, RuntimeCapabilityReport, ScreenConfig } from "@bloom/api-client";
 import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { WidgetActionIntent } from "@bloom/widgets";
 import { BuilderAppConfig } from "../builder/BuilderAppConfig";
@@ -17,7 +11,6 @@ import { RuntimeHome } from "../runtime/RuntimeHome";
 import { RuntimeWorkspace } from "../runtime/RuntimeWorkspace";
 import type { RuntimeActionClient } from "../runtime/runtime-action-dispatcher";
 import type { RuntimeProfileOverrides } from "../runtime/runtime-profile-overrides";
-import type { RuntimeModeState } from "../runtime/runtimeModeState";
 import { resolveInitialScreen } from "../runtime/runtimeProfile";
 import { SupervisorWorkspace } from "../runtime/SupervisorWorkspace";
 import type { SupervisorRuntimeClient } from "../runtime/supervisor-client";
@@ -77,7 +70,6 @@ type ProductWorkspaceProps = {
   onTopicSubscriptionRequest: ReturnType<typeof useRuntimeActionDispatcher>["subscribeTopic"];
   onUploadThemeAsset: (file: File) => Promise<string>;
   onSuspendTeleop: ReturnType<typeof useRuntimeActionDispatcher>["suspendTeleop"];
-  onStopLatch?: (latch: RuntimeStopState) => void;
   profilePreferences: Record<string, string>;
   profileOverrides: Record<string, RuntimeProfileOverrides>;
   recentRuntimeSelections: readonly WorkspaceSelection[];
@@ -86,7 +78,6 @@ type ProductWorkspaceProps = {
   runtimeActionClient: RuntimeActionClient;
   runtimeActionFeedback: RuntimeActionFeedback | null;
   runtimeMode: RuntimeMode;
-  runtimeModeState: RuntimeModeState;
   supervisorRuntimeClient: SupervisorRuntimeClient;
   teleopActive: boolean;
   teleopNeutralRevision: number;
@@ -125,7 +116,6 @@ export function ProductWorkspace({
   onTopicSubscriptionRequest,
   onUploadThemeAsset,
   onSuspendTeleop,
-  onStopLatch,
   profilePreferences,
   profileOverrides,
   recentRuntimeSelections,
@@ -134,7 +124,6 @@ export function ProductWorkspace({
   runtimeActionClient,
   runtimeActionFeedback,
   runtimeMode,
-  runtimeModeState,
   supervisorRuntimeClient,
   teleopActive,
   teleopNeutralRevision,
@@ -215,7 +204,6 @@ export function ProductWorkspace({
           runtimeCapabilityReport?.command_frame_id ||
           null
         }
-        modeState={runtimeModeState}
         onBackToLibrary={onBackToRuntimeHome}
         preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
         profileOverrides={profileOverrides}
@@ -254,12 +242,10 @@ export function ProductWorkspace({
       onTopicSample={onTopicSample}
       onTopicSubscriptionRequest={onTopicSubscriptionRequest}
       onSuspendTeleop={onSuspendTeleop}
-      onStopLatch={onStopLatch}
       preferredProfileId={profilePreferences[runtimePreferenceKey(selection)] ?? ""}
       profileOverrides={profileOverrides}
       runtimeActionClient={runtimeActionClient}
       runtimeActionFeedback={runtimeActionFeedback}
-      runtimeModeState={runtimeModeState}
       screen={selectedWorkspace.screen}
       selection={selection}
       teleopActive={teleopActive}

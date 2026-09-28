@@ -53,6 +53,7 @@ from libs.sessions import (
     RuntimeStoppedError,
 )
 from libs.sessions.audit import summarize_payload
+from libs.sessions.command_state import EchoExpectingGateway
 
 router = APIRouter(prefix="/ros", tags=["ros"])
 
@@ -288,7 +289,12 @@ def publish_ros_topic(
     def publish_and_record(commit: Callable[[], None]) -> RosPublishReceipt:
         def publish() -> RosPublishReceipt:
             receipt = publish_with_runtime_policy(
-                gateway, policy, audit_log, ros_publish_request, rate_limiter, before_publish=commit
+                EchoExpectingGateway(gateway, request.app.state.command_state_tracker),
+                policy,
+                audit_log,
+                ros_publish_request,
+                rate_limiter,
+                before_publish=commit,
             )
             # The shipped mode buttons publish here, not as action presets. Recorded under the lease gate a
             # release waits on and the STOP gate, so neither a release nor a STOP misses it.
@@ -297,6 +303,9 @@ def publish_ros_topic(
                 ros_publish_request.topic,
                 ros_publish_request.payload,
                 require_owner=request.app.state.settings.runtime_control_required,
+            )
+            request.app.state.command_state_tracker.record_publish(
+                ros_publish_request.topic, ros_publish_request.message_type, ros_publish_request.payload, session_id
             )
             return receipt
 
@@ -406,9 +415,17 @@ def set_ros_parameter(
 
     def set_parameter(commit: Callable[[], None]) -> RosParameterReceipt:
         commit()
-        return get_ros_parameter_gateway(request).set(
+        receipt = get_ros_parameter_gateway(request).set(
             RosParameterRequest(node=set_request.node, name=set_request.name, value=set_request.value)
         )
+        request.app.state.command_state_tracker.record_parameter_set(
+            receipt.node,
+            receipt.name,
+            receipt.value,
+            receipt.status,
+            request.headers.get(RUNTIME_SESSION_HEADER, "").strip(),
+        )
+        return receipt
 
     # Reconciled toggles resend: a late older set must not undo a newer one (ADR 0141).
     try:
@@ -483,7 +500,11 @@ def call_ros_service(
 
     def call(commit: Callable[[], None]) -> RosServiceReceipt:
         commit()
-        return get_ros_service_gateway(request).call(ros_service_request)
+        receipt = get_ros_service_gateway(request).call(ros_service_request)
+        request.app.state.command_state_tracker.record_service(
+            receipt.service, payload, receipt.success, request.headers.get(RUNTIME_SESSION_HEADER, "").strip()
+        )
+        return receipt
 
     try:
         receipt = execute_ordered_as_runtime_owner(

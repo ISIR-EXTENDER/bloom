@@ -14,16 +14,22 @@ import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
 export {
-  beginAct,
-  cancelAllPendingEngaging,
-  claimTarget,
-  forgetConfirmedValues,
-  isReconcilerSend,
-  parameterTarget,
-  resetDesiredStates,
-  settleForAssertedStop,
-  settleForNewSession,
-} from "./desired-state";
+  applyCommandStateMessage,
+  type CommandStateBinding,
+  type CommandStateCondition,
+  type CommandStateMessage,
+  clearCommandState,
+  getCommandStateEntry,
+  knownValue,
+  MODE_REQUEST_TOPIC,
+  managerKey,
+  modeCommandBinding,
+  normalizeCommandPayload,
+  parameterKey,
+  resetCommandStateForTests,
+  useCommandState,
+  VISUAL_SERVOING_SWITCH_TOPIC,
+} from "./command-state";
 export type {
   CommandedTwist,
   PlotSeriesSnapshot,
@@ -96,7 +102,6 @@ export function renderWidgetDescriptor(
       controlState={options.controlStateByWidgetId?.[descriptor.widget.id]}
       data={options.dataByWidgetId?.[descriptor.widget.id]}
       descriptor={localized}
-      desiredScope={options.desiredScope}
       robotModel={options.robotModel}
       language={options.language}
       motorPreset={options.motorPreset}

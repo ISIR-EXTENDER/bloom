@@ -5,50 +5,23 @@ import type {
   ScreenConfig,
   WidgetConfig,
 } from "@bloom/api-client";
-import type { WidgetActionStatus, WidgetControlState } from "@bloom/widget-renderers";
+import { modeCommandBinding, type WidgetControlState } from "@bloom/widget-renderers";
 import {
   allowlistAllows,
   createDefaultWidgetRegistry,
   createWidgetActionIntent,
   describeUnavailableWidgetRuntime,
+  isModeRequestTopic,
   type RuntimeCapability,
   readValueMappingTopic,
   resolveTeleopFrameId,
   resolveWidgetReadiness,
   TELEOP_DEFAULT_TARGET,
-  type WidgetActionIntent,
 } from "@bloom/widgets";
 import { resolveCommandRoute } from "./dispatch-commands";
 
-export type RuntimeRobotMode = "b1" | "b2";
-
-export type RuntimeModeState = {
-  mode: RuntimeRobotMode;
-  /**
-   * The last mode this session asked `cartesian_manager` for, normalised the
-   * way the manager normalises it.
-   *
-   * The manager publishes only `/cartesian_command` and
-   * `/joint_target_command`; it never reports which mode it is in. So this is
-   * a record of what was requested, never a confirmation of what the arm is
-   * doing, and the UI has to say so.
-   */
-  requestedMode: string | null;
-  /** With requestedMode "unknown": the mode asked for whose reply never came (ADR 0141). */
-  unconfirmedMode?: string | null;
-  /**
-   * The manager keeps behaviour (passthrough, a joint or pose target) apart from shaping (geometric/*), so a Go
-   * home never changes which shaping mode is lit. requestedMode is the shaping one.
-   */
-  requestedBehaviour?: string | null;
-  unconfirmedBehaviour?: string | null;
-  source: "configuration-default" | "operator-command";
-  updatedAt: string;
-};
-
 export type RuntimeRobotStatus = {
   api: "connected" | "not-checked" | "unavailable";
-  mode: RuntimeModeState;
   topics: RuntimeTopicStatusSummary[];
 };
 
@@ -62,20 +35,8 @@ export type RuntimeTopicStatusSummary = {
 
 type RuntimeTopicRequirement = Pick<RuntimeTopicStatusSummary, "label" | "requirement" | "topic">;
 
-const MODE_REQUEST_TOPIC = "/mode_request";
-/** A mode request without a reply: the manager may be in it or in the previous one. */
-export const UNKNOWN_REQUESTED_MODE = "unknown";
-const DEFAULT_GEOMETRIC_MODE = "geometric/both";
-const PASSTHROUGH_BEHAVIOUR = "behaviour/passthrough";
 const WIDGET_REGISTRY = createDefaultWidgetRegistry();
 const TOPIC_COMMAND_WIDGET_KINDS = new Set(["command-button", "gesture-pad", "slider", "toggle"]);
-
-const DEFAULT_MODE_STATE: RuntimeModeState = {
-  mode: "b1",
-  requestedMode: null,
-  source: "configuration-default",
-  updatedAt: "",
-};
 
 const RUNTIME_TOPIC_REQUIREMENTS: RuntimeTopicRequirement[] = [
   { label: "Teleop", requirement: "subscriber", topic: "/joystick_cartesian_command" },
@@ -84,252 +45,6 @@ const RUNTIME_TOPIC_REQUIREMENTS: RuntimeTopicRequirement[] = [
   { label: "Controller", requirement: "publisher", topic: "/cartesian_command" },
   { label: "Servo velocity", requirement: "publisher", topic: "/visual_servoing/velocity_command" },
 ];
-
-export function createDefaultRuntimeModeState(): RuntimeModeState {
-  return { ...DEFAULT_MODE_STATE };
-}
-
-export function applyRuntimeModeIntent(
-  currentState: RuntimeModeState,
-  intent: WidgetActionIntent,
-  presets: readonly RuntimeActionPreset[] = [],
-  now = new Date(),
-): RuntimeModeState {
-  const requestedMode = resolveModeRequestFromIntent(intent, presets);
-  if (requestedMode) {
-    return {
-      ...currentState,
-      ...familyFields(requestedMode, requestedMode, null),
-      source: "operator-command",
-      updatedAt: now.toISOString(),
-    };
-  }
-
-  const mode = resolveModeFromIntent(intent);
-  if (!mode) {
-    return currentState;
-  }
-
-  return {
-    ...currentState,
-    mode,
-    source: "operator-command",
-    updatedAt: now.toISOString(),
-  };
-}
-
-/** Whether an intent asks the manager for a mode, on /mode_request or /cmd/mode. */
-export function isRuntimeModeIntent(intent: WidgetActionIntent, presets: readonly RuntimeActionPreset[] = []): boolean {
-  return resolveModeRequestFromIntent(intent, presets) !== null || resolveModeFromIntent(intent) !== null;
-}
-
-/**
- * What a mode request's outcome says about the mode: accepted sets it, no reply makes it unknown, and a
- * refusal (final or transient) or a superseded send leaves it.
- */
-export function applyRuntimeModeOutcome(
-  currentState: RuntimeModeState,
-  intent: WidgetActionIntent,
-  outcome: WidgetActionStatus,
-  presets: readonly RuntimeActionPreset[] = [],
-  now = new Date(),
-): RuntimeModeState {
-  if (outcome === "accepted") {
-    return applyRuntimeModeIntent(currentState, intent, presets, now);
-  }
-  const requestedMode = outcome === "unknown" ? resolveModeRequestFromIntent(intent, presets) : null;
-  return requestedMode ? markRuntimeModeUnknown(currentState, requestedMode, now) : currentState;
-}
-
-/** The mode a request asks for, normalised, or null when it asks for none. */
-export function resolveRuntimeModeRequest(
-  intent: WidgetActionIntent,
-  presets: readonly RuntimeActionPreset[] = [],
-): string | null {
-  return resolveModeRequestFromIntent(intent, presets);
-}
-
-export type ModeReplyVerdict =
-  | { kind: "apply" }
-  | { kind: "ignore" }
-  | { kind: "set"; mode: string }
-  | { kind: "unknown"; mode: string };
-
-type ModeRecord = { mode: string | null; outcome: "pending" | "accepted" | "unknown" | "none" };
-
-/**
- * Which reply may set the requested mode: the newest request's, or, when that one is refused, the newest older
- * request the manager may hold: accepted sets it, no reply yet or none at all makes it unknown (ADR 0141).
- * A STOP or a new session starts over.
- */
-/** One ledger per mode family: a Go home's reply never decides the shaping mode, nor the reverse. */
-export class ModeRequestLedgers {
-  private readonly byFamily = new Map<string, ModeRequestLedger>();
-
-  begin(mode: string | null): { id: number; ledger: ModeRequestLedger } {
-    const family = mode === null ? "" : isBehaviourMode(mode) ? "behaviour" : "geometric";
-    let ledger = this.byFamily.get(family);
-    if (!ledger) {
-      ledger = new ModeRequestLedger();
-      this.byFamily.set(family, ledger);
-    }
-    return { id: ledger.begin(mode), ledger };
-  }
-
-  reset(): void {
-    for (const ledger of this.byFamily.values()) {
-      ledger.reset();
-    }
-  }
-}
-
-export class ModeRequestLedger {
-  private count = 0;
-  private deciding = 0;
-  private readonly records = new Map<number, ModeRecord>();
-
-  begin(mode: string | null): number {
-    this.count += 1;
-    this.deciding = this.count;
-    this.records.set(this.count, { mode, outcome: "pending" });
-    return this.count;
-  }
-
-  reset(): void {
-    this.count += 1;
-    this.deciding = this.count;
-    this.records.clear();
-  }
-
-  settle(id: number, outcome: WidgetActionStatus): ModeReplyVerdict {
-    const record = this.records.get(id);
-    if (!record) {
-      return { kind: "ignore" };
-    }
-    record.outcome = outcome === "accepted" ? "accepted" : outcome === "unknown" ? "unknown" : "none";
-    if (id !== this.deciding) {
-      return { kind: "ignore" };
-    }
-    if (outcome === "refused" || outcome === "transient") {
-      const older = this.newestHeldBefore(id);
-      if (older) {
-        this.deciding = older[0];
-        if (older[1].outcome === "accepted") {
-          this.forgetThrough(older[0]);
-          return { kind: "set", mode: older[1].mode as string };
-        }
-        return { kind: "unknown", mode: older[1].mode as string };
-      }
-    }
-    this.forgetThrough(id);
-    return { kind: "apply" };
-  }
-
-  private newestHeldBefore(id: number): [number, ModeRecord] | null {
-    let newest: [number, ModeRecord] | null = null;
-    for (const [other, record] of this.records) {
-      if (other < id && record.mode && record.outcome !== "none" && (!newest || other > newest[0])) {
-        newest = [other, record];
-      }
-    }
-    return newest;
-  }
-
-  private forgetThrough(id: number): void {
-    for (const other of [...this.records.keys()]) {
-      if (other <= id) {
-        this.records.delete(other);
-      }
-    }
-  }
-}
-
-/** An older request the manager accepted, now the newest one it holds. */
-export function applyRequestedMode(currentState: RuntimeModeState, mode: string, now = new Date()): RuntimeModeState {
-  return {
-    ...currentState,
-    ...familyFields(mode, mode, null),
-    source: "operator-command",
-    updatedAt: now.toISOString(),
-  };
-}
-
-/**
- * A new session or lease: the server reset shaping when the old one ended, so the last request no longer holds.
- * The server's record of the owner's shaping mode seeds it; without one the mode is not known.
- */
-export function resetRuntimeModeForSession(
-  currentState: RuntimeModeState,
-  ownerModeRequest: string | null,
-  now = new Date(),
-): RuntimeModeState {
-  const owner = asModeRequest(ownerModeRequest);
-  return {
-    ...currentState,
-    requestedMode: owner && !isBehaviourMode(owner) ? owner : null,
-    unconfirmedMode: null,
-    requestedBehaviour: owner && isBehaviourMode(owner) ? owner : null,
-    unconfirmedBehaviour: null,
-    source: "configuration-default",
-    updatedAt: now.toISOString(),
-  };
-}
-
-/** A mode request that may still be applied: the manager is in it or in the previous one. */
-export function markRuntimeModeUnknown(
-  currentState: RuntimeModeState,
-  unconfirmedMode: string,
-  now = new Date(),
-): RuntimeModeState {
-  return {
-    ...currentState,
-    ...familyFields(unconfirmedMode, UNKNOWN_REQUESTED_MODE, unconfirmedMode),
-    source: "operator-command",
-    updatedAt: now.toISOString(),
-  };
-}
-
-/**
- * A STOP that reached ROS also sent geometric/both; one that did not leaves the shaper unknown. Either way the
- * server dropped any joint or pose target, so behaviour is back to passthrough.
- */
-export function applyRuntimeStopLatch(
-  currentState: RuntimeModeState,
-  latch: { asserted: boolean },
-  now = new Date(),
-): RuntimeModeState {
-  return {
-    ...currentState,
-    requestedMode: latch.asserted ? DEFAULT_GEOMETRIC_MODE : UNKNOWN_REQUESTED_MODE,
-    unconfirmedMode: null,
-    requestedBehaviour: PASSTHROUGH_BEHAVIOUR,
-    unconfirmedBehaviour: null,
-    updatedAt: now.toISOString(),
-  };
-}
-
-function isBehaviourMode(mode: string): boolean {
-  return mode.startsWith("behaviour/");
-}
-
-/** The fields of the family a mode belongs to: shaping (geometric) or behaviour. */
-function familyFields(
-  mode: string,
-  requested: string,
-  unconfirmed: string | null,
-): Partial<
-  Pick<RuntimeModeState, "requestedMode" | "unconfirmedMode" | "requestedBehaviour" | "unconfirmedBehaviour">
-> {
-  return isBehaviourMode(mode)
-    ? { requestedBehaviour: requested, unconfirmedBehaviour: unconfirmed }
-    : { requestedMode: requested, unconfirmedMode: unconfirmed };
-}
-
-function requestedInFamily(mode: string, modeState: RuntimeModeState): [string | null, string | null] {
-  return isBehaviourMode(mode)
-    ? [modeState.requestedBehaviour ?? null, modeState.unconfirmedBehaviour ?? null]
-    : [modeState.requestedMode, modeState.unconfirmedMode ?? null];
-}
 
 /**
  * `cartesian_manager` normalises a mode request before matching it, so two
@@ -354,39 +69,6 @@ function isModeRequest(value: string): boolean {
   return /^(behaviour|geometric)\//.test(value);
 }
 
-function resolveModeRequestFromIntent(
-  intent: WidgetActionIntent,
-  presets: readonly RuntimeActionPreset[],
-): string | null {
-  if (intent.type === "topic-publish") {
-    return intent.topic === MODE_REQUEST_TOPIC ? asModeRequest(readPayloadData(intent.payload)) : null;
-  }
-  if (intent.type !== "command") {
-    return null;
-  }
-  // The mode is what the resolved route sent, not what the button's own command says.
-  const route = resolveCommandRoute(intent, presets);
-  if (route.kind === "topic") {
-    return route.publish.topic === MODE_REQUEST_TOPIC ? asModeRequest(readPayloadData(route.publish.payload)) : null;
-  }
-  if (route.kind === "preset") {
-    const { preset } = route;
-    return preset.kind === "topic-publish" && preset.topic === MODE_REQUEST_TOPIC
-      ? (asModeRequest(readPayloadData(preset.payload)) ?? asModeRequest(preset.command))
-      : null;
-  }
-  // No preset to route by: the command string is the mode string, so the grammar identifies it.
-  return route.kind === "none" ? asModeRequest(intent.command) : null;
-}
-
-function asModeRequest(value: unknown): string | null {
-  if (typeof value !== "string" || !value) {
-    return null;
-  }
-  const normalized = normalizeModeRequest(value);
-  return isModeRequest(normalized) ? normalized : null;
-}
-
 const DEFAULT_FRAME_REASONS = {
   releaseControls: "Release controls.",
   unavailableOnRobot: "Unavailable on this robot.",
@@ -394,7 +76,6 @@ const DEFAULT_FRAME_REASONS = {
 
 export function createRuntimeControlStateByWidgetId(
   screen: ScreenConfig,
-  modeState: RuntimeModeState,
   options: {
     /** The app's presets, so a preset-driven button is lit and gated by the topic its press really goes to. */
     actionPresets?: readonly RuntimeActionPreset[];
@@ -441,20 +122,12 @@ export function createRuntimeControlStateByWidgetId(
       options.activeCommandFrameId
     ) {
       controlState = { commandFrameId: options.activeCommandFrameId };
-    } else if (isModeToggleWidget(widget)) {
-      controlState = {
-        toggleState: modeState.mode === "b2" ? "on" : "off",
-      };
-    } else if (widget.kind === "toggle" && widget.settings.topic === MODE_REQUEST_TOPIC) {
-      controlState = resolveModeRequestToggle(
-        asModeRequest(readPayloadData(widget.settings.onPayload)),
-        asModeRequest(readPayloadData(widget.settings.offPayload)),
-        modeState,
-      );
     } else {
+      // The mode it asks for, routed through the app's presets; the renderer reads the store for it (ADR 0142).
       const widgetMode = resolveWidgetModeRequest(widget, options.actionPresets ?? []);
-      if (widgetMode) {
-        controlState = { selection: resolveModeSelection(widgetMode, modeState) };
+      const commandBinding = widgetMode ? modeCommandBinding(widgetMode.topic, widgetMode.mode) : null;
+      if (commandBinding) {
+        controlState = { commandBinding };
       }
     }
 
@@ -511,37 +184,6 @@ export function createRuntimeControlStateByWidgetId(
   return controlStateByWidgetId;
 }
 
-function resolveModeSelection(widgetMode: string, modeState: RuntimeModeState): WidgetControlState["selection"] {
-  const [requested, unconfirmed] = requestedInFamily(widgetMode, modeState);
-  if (widgetMode === requested) {
-    return "selected";
-  }
-  return requested === UNKNOWN_REQUESTED_MODE && widgetMode === unconfirmed ? "unconfirmed" : "unselected";
-}
-
-/**
- * A /mode_request toggle is on in its on mode and off only in its off mode; any other mode lights neither. While
- * the mode is unknown it is not confirmed, whatever another toggle last had accepted.
- */
-function resolveModeRequestToggle(
-  onMode: string | null,
-  offMode: string | null,
-  modeState: RuntimeModeState,
-): WidgetControlState {
-  if (!onMode) {
-    return {};
-  }
-  const [requested, unconfirmed] = requestedInFamily(onMode, modeState);
-  const stateOf = (mode: string | null) => (mode === onMode ? "on" : mode === offMode && mode ? "off" : "other");
-  if (requested === null) {
-    return {};
-  }
-  if (requested === UNKNOWN_REQUESTED_MODE) {
-    return { toggleState: stateOf(unconfirmed), toggleUnconfirmed: true };
-  }
-  return { toggleState: stateOf(requested) };
-}
-
 /** The topic a teleop widget publishes on: its own, or the manager's input by default. */
 export function resolveTeleopTargetTopic(widget: WidgetConfig): string | null {
   if (!usesTeleopAdapter(widget)) {
@@ -556,7 +198,7 @@ export function resolveTeleopTargetTopic(widget: WidgetConfig): string | null {
 
 function describeTeleopTargetRefusal(
   widget: WidgetConfig,
-  targets: NonNullable<Parameters<typeof createRuntimeControlStateByWidgetId>[2]>["teleopTargets"],
+  targets: NonNullable<Parameters<typeof createRuntimeControlStateByWidgetId>[1]>["teleopTargets"],
 ): string | null {
   const topic = resolveTeleopTargetTopic(widget);
   if (!topic || !targets?.effective || allowlistAllows(targets.effective, topic)) {
@@ -583,12 +225,15 @@ export function usesTeleopAdapter(widget: WidgetConfig): boolean {
  * while pressed, and it restores a different mode on release, so giving it a
  * latching highlight as well would say two contradictory things at once.
  */
-function resolveWidgetModeRequest(widget: WidgetConfig, presets: readonly RuntimeActionPreset[]): string | null {
+function resolveWidgetModeRequest(
+  widget: WidgetConfig,
+  presets: readonly RuntimeActionPreset[],
+): { mode: string; topic: string } | null {
   if (widget.kind !== "command-button" || widget.settings.momentary === true) {
     return null;
   }
   const press = resolveCommandPress(widget, presets);
-  if (press?.topic !== MODE_REQUEST_TOPIC) {
+  if (!press || !isModeRequestTopic(press.topic)) {
     return null;
   }
 
@@ -599,7 +244,7 @@ function resolveWidgetModeRequest(widget: WidgetConfig, presets: readonly Runtim
   }
 
   const normalized = normalizeModeRequest(raw);
-  return isModeRequest(normalized) ? normalized : null;
+  return isModeRequest(normalized) ? { mode: normalized, topic: press.topic } : null;
 }
 
 /** The topic and payload a button's press publishes, resolved as the dispatcher resolves it. */
@@ -631,13 +276,11 @@ function stringOrUndefined(value: unknown): string | undefined {
 
 export function createRuntimeRobotStatus(
   application: ApplicationConfig,
-  modeState: RuntimeModeState,
   topicStatuses: readonly RosTopicStatus[] | null,
   api: RuntimeRobotStatus["api"] = topicStatuses ? "connected" : "not-checked",
 ): RuntimeRobotStatus {
   return {
     api,
-    mode: modeState,
     topics: createRuntimeTopicStatusSummaries(application, topicStatuses),
   };
 }
@@ -709,30 +352,6 @@ function resolveWidgetCommandTopic(widget: WidgetConfig, presets: readonly Runti
 
 function asTopicPath(topic: unknown): string | null {
   return typeof topic === "string" && topic.startsWith("/") ? topic : null;
-}
-
-function resolveModeFromIntent(intent: WidgetActionIntent): RuntimeRobotMode | null {
-  if (intent.type !== "topic-publish" || intent.topic !== "/cmd/mode") {
-    return null;
-  }
-
-  const payloadData = readPayloadData(intent.payload);
-  if (payloadData === 3) {
-    return "b2";
-  }
-  if (payloadData === 0) {
-    return "b1";
-  }
-  return null;
-}
-
-function isModeToggleWidget(widget: WidgetConfig): boolean {
-  return (
-    widget.kind === "toggle" &&
-    widget.settings.topic === "/cmd/mode" &&
-    readPayloadData(widget.settings.onPayload) === 3 &&
-    readPayloadData(widget.settings.offPayload) === 0
-  );
 }
 
 function readPayloadData(payload: unknown): unknown {

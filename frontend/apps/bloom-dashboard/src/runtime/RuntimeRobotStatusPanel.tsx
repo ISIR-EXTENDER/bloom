@@ -1,28 +1,25 @@
 import type { ApplicationConfig, RosTopicStatus } from "@bloom/api-client";
+import { knownValue, managerKey, useCommandState } from "@bloom/widget-renderers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { describeApiError } from "../ui/api-error";
 import type { RuntimeActionClient } from "./runtime-action-dispatcher";
-import { createRuntimeRobotStatus, type RuntimeModeState, type RuntimeRobotStatus } from "./runtimeModeState";
+import { createRuntimeRobotStatus, type RuntimeRobotStatus } from "./runtimeModeState";
 import { enRuntimeStrings } from "./strings/en";
 import type { RuntimeStrings } from "./strings/types";
 
 type RuntimeRobotStatusPanelProps = {
   application: ApplicationConfig;
   client: Pick<RuntimeActionClient, "listRosTopicStatus">;
-  modeState: RuntimeModeState;
   refreshIntervalMs?: number;
   sessionStatus?: "checking" | "live" | "local" | "unavailable";
-  showConfiguredModeFallback?: boolean;
   strings?: RuntimeStrings["supervisor"]["status"];
 };
 
 export function RuntimeRobotStatusPanel({
   application,
   client,
-  modeState,
   refreshIntervalMs = 0,
   sessionStatus = "local",
-  showConfiguredModeFallback = true,
   strings = enRuntimeStrings.supervisor.status,
 }: RuntimeRobotStatusPanelProps) {
   const [apiStatus, setApiStatus] = useState<RuntimeRobotStatus["api"]>(() =>
@@ -32,9 +29,12 @@ export function RuntimeRobotStatusPanel({
   const [topicStatuses, setTopicStatuses] = useState<readonly RosTopicStatus[] | null>(null);
 
   const robotStatus = useMemo(
-    () => createRuntimeRobotStatus(application, modeState, topicStatuses, apiStatus),
-    [apiStatus, application, modeState, topicStatuses],
+    () => createRuntimeRobotStatus(application, topicStatuses, apiStatus),
+    [apiStatus, application, topicStatuses],
   );
+
+  // The manager's shaping mode as the backend's store holds it (ADR 0142).
+  const shaping = knownValue(useCommandState(managerKey("shaping")));
 
   const refreshStatus = useCallback(async () => {
     if (!client.listRosTopicStatus) {
@@ -76,15 +76,8 @@ export function RuntimeRobotStatusPanel({
         <RuntimeStatusPill label={strings.session} status={resolveSessionPillStatus(sessionStatus)}>
           {resolveSessionLabel(sessionStatus, strings)}
         </RuntimeStatusPill>
-        <RuntimeStatusPill
-          label={strings.mode}
-          status={robotStatus.mode.source === "operator-command" ? "ready" : "unknown"}
-        >
-          {robotStatus.mode.requestedMode
-            ? robotStatus.mode.requestedMode.toUpperCase()
-            : showConfiguredModeFallback
-              ? robotStatus.mode.mode.toUpperCase()
-              : strings.notChecked}
+        <RuntimeStatusPill label={strings.mode} status={shaping ? "ready" : "unknown"}>
+          {typeof shaping?.value === "string" ? shaping.value.toUpperCase() : strings.notChecked}
         </RuntimeStatusPill>
       </div>
 

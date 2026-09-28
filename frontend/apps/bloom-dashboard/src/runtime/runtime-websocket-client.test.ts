@@ -627,6 +627,85 @@ describe("runtime WebSocket client", () => {
   });
 });
 
+describe("the command-state push", () => {
+  const push = (revision: number, value: string) => ({
+    type: "command_state",
+    revision,
+    self: "abcdef012345",
+    snapshot: {
+      "manager:shaping": { value, source: "commanded", updated_at: "", by: "abcdef012345", revision },
+    },
+  });
+
+  it("never takes a pending request's reply slot", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const pushed: unknown[] = [];
+    client.addRuntimeCommandStateListener((message) => pushed.push(message));
+
+    const reply = client.subscribeRuntimeTopic({
+      type: "subscribe_topic",
+      topic: "/joint_states",
+      message_type: "sensor_msgs/msg/JointState",
+    } as never);
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message({ type: "session_connected", session_id: "s", detail: "" });
+    socket.message(push(1, "geometric/both"));
+    socket.message(push(2, "geometric/jaco"));
+    socket.message({
+      type: "subscription_ack",
+      session_id: "s",
+      detail: "Subscribed.",
+      payload: { topic: "/joint_states" },
+    });
+
+    await expect(reply).resolves.toMatchObject({ type: "subscription_ack" });
+    expect(pushed.at(-1)).toMatchObject({ revision: 2, self: "abcdef012345" });
+  });
+
+  it("reports nothing known when the socket closes or a new session starts", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    const pushed: unknown[] = [];
+    client.addRuntimeCommandStateListener((message) => pushed.push(message));
+    void client.ensureRuntimeConnected();
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message({ type: "session_connected", session_id: "s", detail: "" });
+    socket.message(push(1, "geometric/both"));
+    socket.close();
+
+    expect(pushed).toEqual([null, expect.objectContaining({ revision: 1 }), null]);
+
+    void client.ensureRuntimeConnected();
+    const next = WebSocketCtor.instances[1];
+    next.open();
+    await flushPromises();
+    next.message(push(4, "geometric/snake"));
+    next.message({ type: "session_connected", session_id: "t", detail: "" });
+
+    expect(pushed.at(-1)).toBeNull();
+  });
+
+  it("hands a late listener the newest snapshot", async () => {
+    const WebSocketCtor = createFakeWebSocketConstructor();
+    const client = createRuntimeWebSocketClient({ url: "ws://localhost:8000/api/v1/runtime/ws", WebSocketCtor });
+    void client.ensureRuntimeConnected();
+    const socket = WebSocketCtor.instances[0];
+    socket.open();
+    await flushPromises();
+    socket.message(push(3, "geometric/jaco"));
+
+    const late = vi.fn();
+    client.addRuntimeCommandStateListener(late);
+
+    expect(late).toHaveBeenCalledWith(expect.objectContaining({ revision: 3 }));
+  });
+});
+
 describe("the runtime link state", () => {
   it("reports the connection settling open", async () => {
     const WebSocketCtor = createFakeWebSocketConstructor();

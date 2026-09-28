@@ -481,3 +481,32 @@ export type RuntimeControlState = {
   owner_mode_request?: string;
   owner_moving?: boolean;
 };
+
+/** Where a command target's value came from (ADR 0142). */
+export type CommandStateSource = "measured" | "commanded" | "reset" | "unknown";
+
+/**
+ * One command target as the backend holds it. `by` is "robot", "server", "other-publisher", "api" (an HTTP call
+ * without a runtime session) or a session's 12-character alias: the first 12 hex digits of its id's SHA-256.
+ */
+export type CommandStateEntry = {
+  value: unknown;
+  source: CommandStateSource;
+  updated_at: string;
+  by: string;
+  revision: number;
+};
+
+/**
+ * The whole store, pushed on the runtime socket right after `session_connected`, on every change (at most 20 Hz)
+ * and every 500 ms. Keys: a topic, `<topic>:<pin>` for `/hub/digital_output`, `param:<node>:<name>`,
+ * `service:<name>`, `manager:shaping|behaviour|target` (suffixed `@<topic>` off `/mode_request`),
+ * `servoing:active` and `petanque:state`.
+ */
+export type RuntimeCommandStateMessage = {
+  type: "command_state";
+  revision: number;
+  snapshot: Record<string, CommandStateEntry>;
+  /** The recipient session's own alias, so a screen can tell its own writes. */
+  self?: string;
+};

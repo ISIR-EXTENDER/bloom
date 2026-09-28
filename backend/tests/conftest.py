@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.testclient import WebSocketTestSession
 
 from apps.bloom_api.main import create_app
 from apps.bloom_api.settings import Settings
@@ -12,6 +13,22 @@ from libs.config import (
 )
 
 SHARED_FIXTURE_PATH = Path(__file__).parents[2] / "tests" / "fixtures" / "configuration-bundle.json"
+RECEIVE_EVERY_MESSAGE = WebSocketTestSession.receive_json
+
+
+@pytest.fixture(autouse=True)
+def hide_command_state_pushes(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The socket pushes command state on its own clock; a test that reads replies in order skips them."""
+    if request.node.get_closest_marker("command_state"):
+        return
+
+    def receive_json(self: WebSocketTestSession, mode: str = "text") -> object:
+        while True:
+            message = RECEIVE_EVERY_MESSAGE(self, mode)
+            if not (isinstance(message, dict) and message.get("type") == "command_state"):
+                return message
+
+    monkeypatch.setattr(WebSocketTestSession, "receive_json", receive_json)
 
 
 @pytest.fixture(autouse=True)

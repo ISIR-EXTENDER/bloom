@@ -1,4 +1,4 @@
-import type { RuntimeControlState } from "@bloom/api-client";
+import type { RuntimeCommandStateMessage, RuntimeControlState } from "@bloom/api-client";
 import { isRecord } from "@bloom/widgets";
 import type {
   RuntimeAppContextResponse,
@@ -95,6 +95,25 @@ export const parseTopicSample = replyParser<RuntimeTopicSampleMessage>(
   "topic_sample",
   (payload) => typeof payload.topic === "string",
 );
+
+/** The command-state store the server pushes on its own (ADR 0142); never a reply to a request. */
+export function parseCommandState(data: unknown): RuntimeCommandStateMessage | null {
+  const parsed = parseFrame(data);
+  if (
+    parsed?.type !== "command_state" ||
+    typeof parsed.revision !== "number" ||
+    !isRecord(parsed.snapshot) ||
+    Array.isArray(parsed.snapshot)
+  ) {
+    return null;
+  }
+  return {
+    type: "command_state",
+    revision: parsed.revision,
+    snapshot: parsed.snapshot as RuntimeCommandStateMessage["snapshot"],
+    ...(typeof parsed.self === "string" ? { self: parsed.self } : {}),
+  };
+}
 
 export function parsePong(data: unknown): { type: "pong" } | null {
   return parseFrame(data)?.type === "pong" ? { type: "pong" } : null;

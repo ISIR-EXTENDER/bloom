@@ -1,4 +1,4 @@
-import type { BloomApiClient, RuntimeControlState } from "@bloom/api-client";
+import type { BloomApiClient, RuntimeCommandStateMessage, RuntimeControlState } from "@bloom/api-client";
 
 /** What crosses the runtime socket, and the client surface the runtime hooks drive. */
 export type RuntimeVector3 = {
@@ -93,6 +93,8 @@ export type RuntimeLinkState = "connecting" | "connected" | "disconnected";
 export type RuntimeActionClient = Pick<BloomApiClient, "publishRosTopic"> & {
   setRosParameter?: BloomApiClient["setRosParameter"];
   getRosParameters?: BloomApiClient["getRosParameters"];
+  /** The backend's command-state store as pushed on the runtime socket; null while nothing is known. */
+  addRuntimeCommandStateListener?: (listener: (message: RuntimeCommandStateMessage | null) => void) => () => void;
   addRuntimeControlStateListener?: (listener: (state: RuntimeControlState | null) => void) => () => void;
   addRuntimeLinkStateListener?: (listener: (state: RuntimeLinkState) => void) => () => void;
   addRuntimeTopicSampleListener?: (listener: (sample: RuntimeTopicSampleMessage) => void) => () => void;

@@ -1,5 +1,4 @@
 import type { RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
-import { cancelAllPendingEngaging } from "@bloom/widget-renderers";
 import {
   allowlistAllows,
   asRecord,
@@ -324,8 +323,6 @@ export function useRuntimeActionDispatcher(client: RuntimeActionClient) {
       }
     }
     teleopComposer.current.clear();
-    // STOP engages through here too: an on, press or mode still being asked for, mounted or not, stops now.
-    cancelAllPendingEngaging();
     settlingAfterSuspend.current = true;
     teleopRateGate.current?.discardPending();
     void teleopPump.current?.suspend().catch(() => undefined);

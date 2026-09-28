@@ -14,6 +14,7 @@ import {
 } from "@bloom/widgets";
 import * as SliderPrimitive from "@radix-ui/react-slider";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { knownValue, parameterKey, useCommandState } from "./command-state";
 import { bindArrowToWord } from "./JoystickPrimitive";
 import { LatchCountdownNotice } from "./latch-countdown-notice";
 import { resolveStepTargetPreset } from "./motor-preset-hints";
@@ -22,6 +23,30 @@ import { rendererStrings } from "./renderer-strings";
 import type { WidgetActionOutcome, WidgetRendererProps } from "./types";
 import { useLatchCountdown } from "./use-latch-countdown";
 import { useSettledAnnouncement } from "./use-settled-announcement";
+
+const STORE_QUIET_MS = 1000;
+
+/** Where a non-teleop slider's value lives in the command-state store. */
+function sliderStateKey(settings: Record<string, unknown>): string | null {
+  const binding = asRecord(settings.runtime_binding);
+  if (binding.adapter === "teleop") {
+    return null;
+  }
+  const mapping = asRecord(binding.value_mapping);
+  if (binding.adapter === "parameter") {
+    return typeof mapping.node === "string" && typeof mapping.parameter === "string"
+      ? parameterKey(mapping.node, mapping.parameter)
+      : null;
+  }
+  const topic = getStringSetting(settings, "topic", "");
+  return topic.startsWith("/") ? topic : null;
+}
+
+function readStoreNumber(entry: ReturnType<typeof useCommandState>): number | null {
+  const held = knownValue(entry)?.value;
+  const value = typeof held === "object" && held !== null && "data" in held ? (held as { data: unknown }).data : held;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
 
 const SLIDER_STEP_KEYS = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown"]);
 
@@ -57,14 +82,26 @@ export function SliderWidget({
   const latestEmitRef = useRef(0);
   // What the robot was last asked for: a refused value snaps the thumb home, but the release must still go out.
   const lastEmittedRef = useRef(defaultValue);
-  const readBackValue = controlState?.value;
-  // A parameter slider opens on what the node holds, not on the seed's guess.
+  // A limit or a parameter shows what the store holds (ADR 0142); the node's read-back stands in until it knows.
+  const storeEntry = useCommandState(sliderStateKey(sliderSettings));
+  const storeValue = readStoreNumber(storeEntry);
+  const readBackValue = storeValue ?? controlState?.value;
+  const lastInputAtRef = useRef(0);
+  const [settleTick, setSettleTick] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new store revision or the end of a drag re-applies it.
   useEffect(() => {
-    if (typeof readBackValue === "number" && Number.isFinite(readBackValue)) {
-      confirmedValueRef.current = clamp(readBackValue, min, max);
-      setCurrentValue(confirmedValueRef.current);
+    if (typeof readBackValue !== "number" || !Number.isFinite(readBackValue)) {
+      return;
     }
-  }, [readBackValue, min, max]);
+    // A drag in progress keeps the thumb under the finger; the store's value follows once it rests.
+    const quietIn = lastInputAtRef.current + STORE_QUIET_MS - Date.now();
+    if (storeValue !== null && quietIn > 0) {
+      const timer = setTimeout(() => setSettleTick((tick) => tick + 1), quietIn);
+      return () => clearTimeout(timer);
+    }
+    confirmedValueRef.current = clamp(readBackValue, min, max);
+    setCurrentValue(confirmedValueRef.current);
+  }, [readBackValue, min, max, storeEntry?.revision, settleTick]);
   // Counts operator input, so the attention window restarts on input only.
   const [inputRevision, setInputRevision] = useState(0);
   const formattedValue = formatSliderValue(currentValue, step, unit);
@@ -74,6 +111,7 @@ export function SliderWidget({
   const usesStepTargets = stepPreset !== null;
 
   const emitValueChange = (value: number) => {
+    lastInputAtRef.current = Date.now();
     setInputRevision((revision) => revision + 1);
     lastEmittedRef.current = value;
     const emit = ++latestEmitRef.current;
@@ -278,6 +316,7 @@ export function SliderWidget({
         className="bloom-slider-widget bloom-info-card"
         data-show-details={showDetails ? "true" : "false"}
         data-slider-kind="segments"
+        data-source={storeValue !== null ? storeEntry?.source : undefined}
       >
         {hidesTitle(descriptor.widget.settings) ? null : (
           <header className="bloom-widget-head">
@@ -313,6 +352,7 @@ export function SliderWidget({
         className="bloom-slider-widget bloom-info-card"
         data-show-details={showDetails ? "true" : "false"}
         data-slider-kind="limit"
+        data-source={storeValue !== null ? storeEntry?.source : undefined}
       >
         {hidesTitle(descriptor.widget.settings) ? null : (
           <header className="bloom-widget-head">
