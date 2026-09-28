@@ -10,6 +10,8 @@ from libs.config.seed import DEFAULT_SEED_DIR
 
 T = TypeVar("T", bound=str)
 MIN_PRODUCTION_API_KEY_LENGTH = 32
+#: A server launched from another directory still finds the STOP latch it saved.
+DEFAULT_RUNTIME_STOP_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "runtime_stop.json"
 
 
 class Settings(BaseModel):
@@ -78,6 +80,8 @@ class Settings(BaseModel):
     # Which arm this deployment drives, shown on the operator screen. One
     # backend instance serves one robot.
     robot_name: str = ""
+    # A Kinova's manager loads the Explorer's home pose (cartesian_manager#10); set once upstream is fixed.
+    allow_kinova_home: bool = False
     ros_command_backend: Literal["cartesian_manager", "teleop_command"] = Field(default="cartesian_manager")
     # Default stamp; must be one of the manager's command frames.
     ros_command_frame_id: str = "base_link"
@@ -333,6 +337,7 @@ class Settings(BaseModel):
                 cls.model_fields["allowed_ros_service_types"].default,
             ),
             robot_name=os.getenv("BLOOM_ROBOT_NAME", ""),
+            allow_kinova_home=_read_bool_env("BLOOM_ALLOW_KINOVA_HOME", default=False),
             # Documented in the README but never read until now.
             ros_command_backend=_read_literal_env(
                 "BLOOM_ROS_COMMAND_BACKEND",
@@ -408,7 +413,7 @@ class Settings(BaseModel):
             ),
             service_name=os.getenv("BLOOM_SERVICE_NAME", cls.model_fields["service_name"].default),
             runtime_stop_state_path=Path(
-                os.getenv("BLOOM_RUNTIME_STOP_STATE_PATH", str(cls.model_fields["runtime_stop_state_path"].default))
+                os.getenv("BLOOM_RUNTIME_STOP_STATE_PATH", str(DEFAULT_RUNTIME_STOP_STATE_PATH))
             ),
             theme_asset_dir=Path(os.getenv("BLOOM_THEME_ASSET_DIR", str(cls.model_fields["theme_asset_dir"].default))),
         )

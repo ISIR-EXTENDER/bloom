@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from typing import Any
 
 from libs.ros_adapters.spin import spin_node_once
@@ -14,6 +15,8 @@ class RclpyTeleopCommandGateway:
         self._qos_profile = qos_profile
         self._flush_after_publish = flush_after_publish
         self._publishers: dict[str, Any] = {}
+        # STOP, the deadman and the socket threads publish at once; two creations would leak a publisher.
+        self._publishers_lock = threading.Lock()
 
     def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
         publisher = self._ensure_publisher(command.target)
@@ -28,14 +31,15 @@ class RclpyTeleopCommandGateway:
         )
 
     def _ensure_publisher(self, target: str) -> Any:
-        publisher = self._publishers.get(target)
-        if publisher is not None:
-            return publisher
+        with self._publishers_lock:
+            publisher = self._publishers.get(target)
+            if publisher is not None:
+                return publisher
 
-        message_cls = self._get_teleop_message_class()
-        publisher = self._node.create_publisher(message_cls, target, self._qos_profile)
-        self._publishers[target] = publisher
-        return publisher
+            message_cls = self._get_teleop_message_class()
+            publisher = self._node.create_publisher(message_cls, target, self._qos_profile)
+            self._publishers[target] = publisher
+            return publisher
 
     @staticmethod
     def _to_ros_message(command: TeleopCommand) -> Any:

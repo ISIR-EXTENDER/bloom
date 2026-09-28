@@ -146,3 +146,30 @@ def test_a_resume_for_an_older_stop_is_refused(tmp_path: Path) -> None:
     assert client.post("/api/v1/runtime/stop").status_code == 200
     # Without engaged_at, resume keeps working as before.
     assert client.post("/api/v1/runtime/stop/resume").json()["stopped"] is False
+
+
+def test_a_latch_that_cannot_be_saved_says_so_in_the_stop_state(tmp_path: Path) -> None:
+    blocker = tmp_path / "not-a-directory"
+    blocker.write_text("", encoding="utf-8")
+    client = app_with(blocker / "runtime_stop.json")
+
+    body = client.post("/api/v1/runtime/stop").json()
+
+    assert body["stopped"] is True
+    assert body["persisted"] is False
+    assert "could not be saved" in body["detail"]
+    assert client.get("/api/v1/runtime/stop").json()["persisted"] is False
+
+
+def test_a_saved_latch_reports_persisted(tmp_path: Path) -> None:
+    assert app_with(tmp_path / "runtime_stop.json").post("/api/v1/runtime/stop").json()["persisted"] is True
+
+
+def test_the_default_latch_path_does_not_depend_on_the_working_directory(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("BLOOM_RUNTIME_STOP_STATE_PATH")
+    path = Settings.from_environment().runtime_stop_state_path
+    assert path.is_absolute()
+    assert path == Path(__file__).resolve().parents[1] / "data" / "runtime_stop.json"
+
+    monkeypatch.setenv("BLOOM_RUNTIME_STOP_STATE_PATH", "/tmp/elsewhere.json")
+    assert Settings.from_environment().runtime_stop_state_path == Path("/tmp/elsewhere.json")

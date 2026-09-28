@@ -32,7 +32,8 @@ def zero_stale_teleop(
                 receipt = stop_controller.execute_if_running(lambda zero=zero: gateway.publish(zero))
             except RuntimeStoppedError:
                 receipt = gateway.publish(zero)
-        except RuntimeError as exc:
+        # Any gateway error: one bad command must not stop the sweep zeroing the rest.
+        except Exception as exc:  # noqa: BLE001
             # Kept recorded, so the next sweep tries again.
             detail, status = f"Teleop deadman could not zero a silent twist: {exc}", "rejected"
         else:

@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import functools
 import math
 import re
 from dataclasses import dataclass
 from typing import Any
+
+from libs.ros_adapters.mode_request import JOINT_TARGET_PREFIX, normalize_mode_request
 
 MAX_LINEAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_linear_speed"
 MAX_ANGULAR_SPEED_TOPIC = "/explorer_user_interfaces/rqt_armcontrol/max_angular_speed"
@@ -48,10 +51,38 @@ _INTEGER_RANGES: dict[str, tuple[int, int]] = {
     "std_msgs/msg/Int32MultiArray": (-(2**31), 2**31 - 1),
     "std_msgs/msg/UInt8MultiArray": (0, 255),
 }
+_FLOAT_FIELD_TYPES = frozenset({"float", "double", "float32", "float64"})
+_INTEGER_FIELD_RANGES: dict[str, tuple[int, int]] = {
+    **{f"int{bits}": (-(2 ** (bits - 1)), 2 ** (bits - 1) - 1) for bits in (8, 16, 32, 64)},
+    **{f"uint{bits}": (0, 2**bits - 1) for bits in (8, 16, 32, 64)},
+    "byte": (0, 255),
+    "char": (0, 255),
+    "octet": (0, 255),
+}
+_SEQUENCE_FIELD = re.compile(r"^sequence<([^,>]+)(?:,\s*\d+)?>$")
+_ARRAY_FIELD = re.compile(r"^(.+)\[\d*\]$")
+_NON_FINITE_TEXT = frozenset({"nan", "inf", "infinity"})
 _FLOAT32_TYPES = frozenset({"std_msgs/msg/Float32", "std_msgs/msg/Float32MultiArray"})
 _NON_NEGATIVE_PARAMETER = re.compile(r"(^|\.)max_\w*speed$")
 # cartesian_manager reads <= 0 on these as "no limit": the rate limiter and the jaco clamp switch off.
 _POSITIVE_PARAMETER = re.compile(r"(^|\.)max_\w*(velocity|acceleration)$")
+
+
+KINOVA_HOME_MODE = f"{JOINT_TARGET_PREFIX}/home"
+KINOVA_HOME_REFUSAL = (
+    "Go home is not available on the Kinova: its manager loads the Explorer's home pose (cartesian_manager#10)."
+)
+
+
+def is_kinova_robot(robot_name: str) -> bool:
+    name = robot_name.lower()
+    return "kinova" in name or "gen3" in name
+
+
+def robot_refused_mode_requests(robot_name: str, allow_kinova_home: bool) -> tuple[tuple[str, str], ...]:
+    if is_kinova_robot(robot_name) and not allow_kinova_home:
+        return ((KINOVA_HOME_MODE, KINOVA_HOME_REFUSAL),)
+    return ()
 
 
 class RuntimeCommandPolicyError(ValueError):
@@ -76,12 +107,24 @@ class RuntimeCommandPolicy:
     topic_value_bounds: tuple[tuple[str, float, float], ...] = DEFAULT_TOPIC_VALUE_BOUNDS
     #: ("<node>:<parameter>", min, max) for live parameters the manager does not bound itself.
     parameter_bounds: tuple[tuple[str, float, float], ...] = DEFAULT_PARAMETER_BOUNDS
+    #: (normalized mode, reason) pairs refused on any mode-request topic on this robot.
+    refused_mode_requests: tuple[tuple[str, str], ...] = ()
 
     def ensure_publish_allowed(self, topic: str, message_type: str, payload: dict[str, Any]) -> None:
         ensure_allowed(topic, self.allowed_publish_topics, "ROS topic")
         ensure_allowed(message_type, self.allowed_message_types, "ROS message type")
         validate_minimum_payload_shape(message_type, payload)
         self.ensure_topic_value_in_bounds(topic, payload)
+        self.ensure_mode_request_allowed(topic, payload)
+
+    def ensure_mode_request_allowed(self, topic: str, payload: dict[str, Any]) -> None:
+        data = payload.get("data")
+        if not self.refused_mode_requests or not topic.endswith("mode_request") or not isinstance(data, str):
+            return
+        mode = normalize_mode_request(data)
+        for refused, reason in self.refused_mode_requests:
+            if mode == refused:
+                raise RuntimePayloadShapeError(reason)
 
     def ensure_topic_value_in_bounds(self, topic: str, payload: dict[str, Any]) -> None:
         for bounded_topic, lower, upper in self.topic_value_bounds:
@@ -128,6 +171,9 @@ def ensure_allowed(value: str, allowed_values: tuple[str, ...], label: str) -> N
 def validate_minimum_payload_shape(message_type: str, payload: dict[str, Any]) -> None:
     if _holds_non_finite(payload):
         raise RuntimePayloadShapeError(f"{message_type} payload must not hold NaN, infinite or out-of-range numbers.")
+    field_error = message_field_error(message_type, payload)
+    if field_error is not None:
+        raise RuntimePayloadShapeError(f"{message_type} payload field {field_error}")
     if not message_type.startswith("std_msgs/msg/"):
         return
 
@@ -164,6 +210,95 @@ def _ensure_numeric_range(message_type: str, data: object) -> None:
             raise RuntimePayloadShapeError(
                 f"{message_type} payload field 'data' must hold integers from {lower} to {upper}."
             )
+
+
+def message_field_error(message_type: str, payload: dict[str, Any]) -> str | None:
+    """rosidl turns "nan" into a float and wraps an out-of-range nested int; check each field by its declared type."""
+    message_cls = message_class(message_type)
+    if message_cls is None:
+        if message_type == "std_msgs/msg/String":
+            return None
+        return next(
+            (f"{path} must be a number, not {value!r}." for path, value in _non_finite_texts(payload, "")), None
+        )
+    return _fields_error(message_cls, payload, "")
+
+
+@functools.lru_cache(maxsize=256)
+def message_class(message_type: str) -> Any:
+    """The rosidl class, or None without rosidl or for a type it does not know."""
+    try:
+        from rosidl_runtime_py.utilities import get_message
+    except ModuleNotFoundError:
+        return None
+    parts = message_type.split("/")
+    if len(parts) == 2:
+        parts = [parts[0], "msg", parts[1]]
+    try:
+        return get_message("/".join(parts))
+    except (AttributeError, ModuleNotFoundError, ValueError):
+        return None
+
+
+def _fields_error(message_cls: Any, payload: object, path: str) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    try:
+        field_types = message_cls.get_fields_and_field_types()
+    except AttributeError:
+        return None
+    for name, value in payload.items():
+        field_type = field_types.get(name)
+        if field_type is not None:
+            error = _field_error(field_type, value, f"{path}{name}")
+            if error is not None:
+                return error
+    return None
+
+
+def _field_error(field_type: str, value: object, path: str) -> str | None:
+    element = _element_type(field_type)
+    if element != field_type:
+        if not isinstance(value, list | tuple):
+            return None
+        return next(
+            (e for i, item in enumerate(value) if (e := _field_error(element, item, f"{path}[{i}]")) is not None), None
+        )
+    if element in _FLOAT_FIELD_TYPES:
+        if not is_finite_number(value):
+            return f"'{path}' must be a finite number."
+        if element in {"float", "float32"} and abs(value) > _FLOAT32_MAX:  # type: ignore[arg-type]
+            return f"'{path}' exceeds the float32 range."
+        return None
+    if element in _INTEGER_FIELD_RANGES:
+        lower, upper = _INTEGER_FIELD_RANGES[element]
+        if isinstance(value, int) and not isinstance(value, bool) and not lower <= value <= upper:
+            return f"'{path}' must be an integer from {lower} to {upper}."
+        return None
+    if "/" in element:
+        nested = message_class(element)
+        return None if nested is None else _fields_error(nested, value, f"{path}.")
+    return None
+
+
+def _element_type(field_type: str) -> str:
+    sequence = _SEQUENCE_FIELD.match(field_type)
+    if sequence:
+        return sequence.group(1).strip()
+    array = _ARRAY_FIELD.match(field_type)
+    return array.group(1) if array else field_type
+
+
+def _non_finite_texts(value: object, path: str) -> list[tuple[str, str]]:
+    if isinstance(value, str):
+        return [(f"'{path}'", value)] if value.strip().lower().lstrip("+-") in _NON_FINITE_TEXT else []
+    if isinstance(value, dict):
+        return [
+            hit for key, item in value.items() for hit in _non_finite_texts(item, f"{path}{'.' if path else ''}{key}")
+        ]
+    if isinstance(value, list | tuple):
+        return [hit for i, item in enumerate(value) for hit in _non_finite_texts(item, f"{path}[{i}]")]
+    return []
 
 
 def _holds_non_finite(value: object) -> bool:

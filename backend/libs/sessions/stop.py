@@ -41,6 +41,8 @@ class RuntimeStopState:
     detail: str
     # True when an assertion was only simulated, so `asserted` does not mean the robot was told.
     simulated: bool = False
+    # False when the latch could not be saved, so a restart may come up unlatched.
+    persisted: bool = True
 
 
 class RuntimeStoppedError(RuntimeError):
@@ -96,6 +98,7 @@ class RuntimeStopController:
         self._simulated = False
         self._engaged_at = ""
         self._detail = "Runtime stop is not engaged."
+        self._persisted = True
         self._restore_latch()
 
     @property
@@ -153,10 +156,10 @@ class RuntimeStopController:
             prefix = "Runtime stop engaged." if self._asserted else "Runtime stop latched, but ROS assertion failed."
             detail = f"{prefix} {zero_detail} {cancel_detail} {reset_detail} {servo_detail}"
             self._detail = detail
-            save_error = self._save_latch()
+            self._detail += self._save_latch()
             state = self._state_unlocked()
 
-        self._record("accepted" if state.asserted else "rejected", detail + save_error)
+        self._record("accepted" if state.asserted else "rejected", state.detail)
         # Session state forgets only what was actually told: a failed cancel is still owed when its sender leaves.
         if self._on_asserted is not None:
             for target in targets:
@@ -186,6 +189,7 @@ class RuntimeStopController:
             self._engaged_at = ""
             self._detail = "Runtime stop is not engaged."
             save_error = self._save_latch()
+            self._detail += save_error
             state = self._state_unlocked()
 
         self._record("accepted", "Runtime stop resumed by operator hold." + save_error)
@@ -281,6 +285,7 @@ class RuntimeStopController:
 
     def _save_latch(self) -> str:
         """Called with the lock held. Returns why the latch could not be saved, or an empty string."""
+        self._persisted = True
         if self._state_path is None:
             return ""
         saved = {"stopped": self._stopped, "engaged_at": self._engaged_at, "reason": self._detail}
@@ -290,6 +295,7 @@ class RuntimeStopController:
             temporary.write_text(json.dumps(saved), encoding="utf-8")
             os.replace(temporary, self._state_path)
         except OSError as exc:
+            self._persisted = False
             return f" Latch state could not be saved: {exc}."
         return ""
 
@@ -324,6 +330,7 @@ class RuntimeStopController:
             engaged_at=self._engaged_at,
             detail=self._detail,
             simulated=self._simulated,
+            persisted=self._persisted,
         )
 
     def _record(self, status: RuntimeAuditStatus, detail: str) -> None:

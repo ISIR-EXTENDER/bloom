@@ -370,12 +370,15 @@ class RuntimeSessionManager:
         with self._lock:
             return bool(self._orphaned_mode_resets or self._orphaned_teleop_zeros)
 
-    def take_orphaned_mode_resets(self) -> tuple[tuple[str, str], ...]:
-        """What a displaced stale owner left set, handed once to the session that now holds control."""
+    def orphaned_mode_resets(self) -> tuple[tuple[str, str], ...]:
+        """What a displaced stale owner left set; each stays owed, and STOP cancels it, until it publishes."""
         with self._lock:
-            resets = tuple(self._orphaned_mode_resets)
-            self._orphaned_mode_resets.clear()
-            return resets
+            return tuple(self._orphaned_mode_resets)
+
+    def resolve_orphaned_mode_reset(self, reset: tuple[str, str]) -> None:
+        with self._lock:
+            if reset in self._orphaned_mode_resets:
+                self._orphaned_mode_resets.remove(reset)
 
     def take_orphaned_teleop_zeros(self) -> tuple[TeleopCommand, ...]:
         with self._lock:
@@ -395,6 +398,11 @@ class RuntimeSessionManager:
         with self._lock:
             _forget_topics(self._joint_target_topics, cancelled_topics)
             _forget_topics(self._shaping_topics, reset_shaping_topics)
+            self._orphaned_mode_resets = [
+                (topic, mode)
+                for topic, mode in self._orphaned_mode_resets
+                if not _told_by_stop(topic, mode, cancelled_topics, reset_shaping_topics, servo_off)
+            ]
             if servo_off:
                 self._visual_servoing_sessions.clear()
             for session_id in self._sessions:
@@ -406,11 +414,13 @@ class RuntimeSessionManager:
 
     def joint_target_topics(self) -> tuple[str, ...]:
         with self._lock:
-            return tuple(dict.fromkeys(self._joint_target_topics.values()))
+            orphaned = (topic for topic, mode in self._orphaned_mode_resets if mode == STOP_MODE_REQUEST)
+            return tuple(dict.fromkeys([*self._joint_target_topics.values(), *orphaned]))
 
     def shaping_topics(self) -> tuple[str, ...]:
         with self._lock:
-            return tuple(dict.fromkeys(self._shaping_topics.values()))
+            orphaned = (topic for topic, mode in self._orphaned_mode_resets if mode == DEFAULT_GEOMETRIC_MODE)
+            return tuple(dict.fromkeys([*self._shaping_topics.values(), *orphaned]))
 
     def moving_teleop_targets(self) -> tuple[str, ...]:
         """Every target some session is driving now, including one granted through a namespace entry."""
@@ -498,6 +508,19 @@ def _forget_topics(records: dict[str, str], published: Collection[str] | None) -
     for session_id, topic in list(records.items()):
         if published is None or topic in published:
             del records[session_id]
+
+
+def _told_by_stop(
+    topic: str,
+    mode: str,
+    cancelled_topics: Collection[str] | None,
+    reset_shaping_topics: Collection[str] | None,
+    servo_off: bool,
+) -> bool:
+    if mode == VISUAL_SERVOING_OFF:
+        return servo_off
+    published = cancelled_topics if mode == STOP_MODE_REQUEST else reset_shaping_topics
+    return published is None or topic in published
 
 
 def zero_of(command: TeleopCommand) -> TeleopCommand:

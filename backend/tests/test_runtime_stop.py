@@ -106,6 +106,7 @@ def test_stop_state_starts_not_engaged() -> None:
         "engaged_at": "",
         "detail": "Runtime stop is not engaged.",
         "simulated": False,
+        "persisted": True,
     }
 
 
@@ -402,6 +403,7 @@ def test_resume_clears_the_latch_and_publishes_nothing() -> None:
         "engaged_at": "",
         "detail": "Runtime stop is not engaged.",
         "simulated": False,
+        "persisted": True,
     }
     assert len(teleop_gateway.commands) == commands_after_engage
     assert len(ros_gateway.requests) == requests_after_engage

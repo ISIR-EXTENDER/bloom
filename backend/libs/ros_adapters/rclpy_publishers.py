@@ -34,7 +34,12 @@ class RclpyRosPublisherGateway:
         self._set_message_fields(message, request.payload)
         # Under the lock that evicts: another thread must not destroy this publisher mid-publish.
         with self._publishers_lock:
-            self._ensure_publisher(request.topic, request.message_type, message_cls).publish(message)
+            publisher = self._ensure_publisher(request.topic, request.message_type, message_cls)
+            try:
+                publisher.publish(message)
+            # rclpy raises SystemError converting a field C cannot hold, e.g. a uint32 set to -1.
+            except (AssertionError, OverflowError, SystemError, TypeError, ValueError) as exc:
+                raise ValueError(f"Invalid ROS message payload: {exc}") from exc
         return RosPublishReceipt(
             topic=request.topic,
             message_type=request.message_type,
@@ -68,5 +73,5 @@ class RclpyRosPublisherGateway:
 
         try:
             set_message_fields(message, payload)
-        except (AttributeError, OverflowError, TypeError, ValueError) as exc:
+        except Exception as exc:  # noqa: BLE001
             raise ValueError(f"Invalid ROS message payload: {exc}") from exc

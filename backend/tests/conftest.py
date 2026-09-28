@@ -29,6 +29,8 @@ def isolate_configuration_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     unreachable no matter how a test builds its settings.
     """
     monkeypatch.chdir(tmp_path)
+    # The environment default is anchored to the backend directory, not the working one.
+    monkeypatch.setenv("BLOOM_RUNTIME_STOP_STATE_PATH", str(tmp_path / "runtime_stop.json"))
 
 
 @pytest.fixture

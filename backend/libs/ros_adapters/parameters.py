@@ -75,22 +75,35 @@ class RclpyRosParameterGateway:
         self._clients_lock = threading.Lock()
 
     def set(self, request: RosParameterRequest) -> RosParameterReceipt:
-        from rcl_interfaces.msg import Parameter
+        from rcl_interfaces.msg import Parameter, ParameterType
         from rcl_interfaces.srv import SetParameters
         from rclpy.parameter import Parameter as RclpyParameter
 
+        value = request.value
+        # JSON sends a slider's 2.0 as 2, and a node refuses an INTEGER on a DOUBLE parameter.
+        if isinstance(value, int) and not isinstance(value, bool):
+            if self._declared_type(request.node, request.name) == ParameterType.PARAMETER_DOUBLE:
+                value = float(value)
         client = self._client(request.node, "set_parameters", SetParameters)
         message = SetParameters.Request()
         message.parameters = [
-            Parameter(name=request.name, value=RclpyParameter(request.name, value=request.value).get_parameter_value())
+            Parameter(name=request.name, value=RclpyParameter(request.name, value=value).get_parameter_value())
         ]
         response = self._call(client, message, request.node)
         [result] = response.results
         if not result.successful:
             raise RuntimeError(result.reason or f"{request.node} refused {request.name}.")
         return RosParameterReceipt(
-            node=request.node, name=request.name, value=request.value, status="set", detail="Parameter set."
+            node=request.node, name=request.name, value=value, status="set", detail="Parameter set."
         )
+
+    def _declared_type(self, node: str, name: str) -> int | None:
+        from rcl_interfaces.srv import GetParameters
+
+        message = GetParameters.Request()
+        message.names = [name]
+        response = self._call(self._client(node, "get_parameters", GetParameters), message, node)
+        return response.values[0].type if len(response.values) == 1 else None
 
     def get(self, node: str, names: tuple[str, ...]) -> tuple[RosParameterReading, ...]:
         from rcl_interfaces.srv import GetParameters
@@ -134,5 +147,14 @@ class RclpyRosParameterGateway:
         future.add_done_callback(lambda _: done.set())
         # The response arrives on the node's own spin thread.
         if not done.wait(self._response_timeout_sec):
+            forget_pending_request(client, future)
             raise RuntimeError(f"Node {node} did not answer within {self._response_timeout_sec}s.")
         return future.result()
+
+
+def forget_pending_request(client: Any, future: Any) -> None:
+    """A timed-out call would otherwise stay in the client's pending table for good."""
+    remove = getattr(client, "remove_pending_request", None)
+    if remove is not None:
+        remove(future)
+    future.cancel()

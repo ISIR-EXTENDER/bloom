@@ -10,6 +10,8 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
+from libs.ros_adapters.parameters import forget_pending_request
+
 RosServiceCallStatus = Literal["called", "simulated"]
 
 
@@ -71,6 +73,7 @@ class RclpyRosServiceGateway:
         future.add_done_callback(lambda _: done.set())
         # The response arrives on the node's own spin thread.
         if not done.wait(self._response_timeout_sec):
+            forget_pending_request(client, future)
             raise RuntimeError(f"Service {request.service} did not answer within {self._response_timeout_sec}s.")
 
         response = future.result()

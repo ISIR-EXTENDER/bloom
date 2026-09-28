@@ -98,3 +98,30 @@ def test_a_legacy_hyphenated_pose_and_a_new_one_load_as_one(tmp_path: Path) -> N
     export = client.get("/api/v1/runtime/positions/export", params=SCOPE)
     assert export.status_code == 200
     assert export.json()["target_names"] == ["pose_1", "home"]
+
+
+def test_a_failed_write_leaves_the_library_as_the_store_has_it() -> None:
+    import sqlite3
+
+    import pytest
+
+    from libs.sessions.positions import PositionLibrary
+
+    home = JointPose(name="home", joint_names=tuple(JOINTS), positions=(0.0,) * 6)
+    reach = JointPose(name="reach", joint_names=tuple(JOINTS), positions=(0.5,) * 6)
+    library = PositionLibrary(poses=[home])
+
+    def failing_write(_poses: list[JointPose]) -> None:
+        raise sqlite3.OperationalError("database is locked")
+
+    library.on_change = failing_write
+    with pytest.raises(sqlite3.OperationalError):
+        library.remove("home")
+    with pytest.raises(sqlite3.OperationalError):
+        library.rename("home", "rest")
+    with pytest.raises(sqlite3.OperationalError):
+        library.save(reach)
+    with pytest.raises(sqlite3.OperationalError):
+        library.save(JointPose(name="home", joint_names=tuple(JOINTS), positions=(0.9,) * 6))
+
+    assert library.list() == (home,)

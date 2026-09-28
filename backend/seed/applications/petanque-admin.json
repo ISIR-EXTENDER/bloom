@@ -8,7 +8,7 @@
     {
       "id": "app-petanque-admin",
       "name": "Petanque admin",
-      "description": "Legacy Petanque workflow rebased onto the current stack: teleop through cartesian_manager, match states through apps-petanque's state machine, measure results from the tablet bridge topics. Home screen: default_control.",
+      "description": "Legacy Petanque workflow rebased onto the current stack: teleop through cartesian_manager, match states through apps-petanque's state machine, measure results from the tablet bridge topics. Explorer only: its drive axes and gripper travel are the Explorer's, and Go home is Explorer only. Home screen: default_control.",
       "lifecycle": "active",
       "action_presets": [
         {
@@ -987,7 +987,7 @@
                 "action_feedback": "none",
                 "action_id": "petanque-stop",
                 "action_label": "Request stop",
-                "button_label": "Stop",
+                "button_label": "Stop match",
                 "cancellable": false,
                 "command": "stop",
                 "topic": "/petanque_state_machine/change_state",

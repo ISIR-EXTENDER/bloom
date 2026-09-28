@@ -134,3 +134,55 @@ def test_the_legacy_app_zeros_a_displaced_owners_teleop_for_the_next_claim() -> 
         nxt.send_json({"type": "claim_control"})
         assert nxt.receive_json()["payload"]["is_owner"]
         assert [(c.target, c.linear.x) for c in gateway.commands] == [("/teleop_cmd", 0.5), ("/teleop_cmd", 0.0)]
+
+
+class FailingStopController:
+    def publish_mode_reset(self, topic: str, mode: str) -> str:
+        raise RuntimeError(f"{topic} is down")
+
+
+def displaced_owner_with_snake_and_joint_target() -> tuple[RuntimeSessionManager, object]:
+    clock = MovableClock()
+    manager = RuntimeSessionManager(lease_timeout_sec=10.0, clock=clock)
+    stale = manager.connect()
+    manager.claim_control(stale)
+    manager.record_published_mode_request(stale.id, "/kinova/mode_request", {"data": "geometric/snake"})
+    manager.record_published_mode_request(stale.id, "/kinova/mode_request", {"data": "behaviour/joint_target/home"})
+    clock.now = 11.0
+    successor = manager.connect()
+    assert manager.claim_control(successor).is_owner
+    return manager, successor
+
+
+def test_a_failed_orphaned_reset_stays_owed_to_the_next_claim_and_to_stop() -> None:
+    manager, successor = displaced_owner_with_snake_and_joint_target()
+    audit_log = InMemoryRuntimeAuditLog()
+
+    reset_orphaned_modes(manager, successor, FailingStopController(), audit_log)
+
+    assert {r.status for r in audit_log.list_records()} == {"rejected"}
+    assert manager.has_orphaned_mode_resets()
+    assert "/kinova/mode_request" in manager.joint_target_topics()
+    assert "/kinova/mode_request" in manager.shaping_topics()
+
+    retry = RecordingStopController()
+    reset_orphaned_modes(manager, successor, retry, audit_log)
+    assert sorted(retry.resets) == [
+        ("/kinova/mode_request", "behaviour/passthrough"),
+        ("/kinova/mode_request", "geometric/both"),
+    ]
+    assert not manager.has_orphaned_mode_resets()
+    assert manager.joint_target_topics() == ()
+    assert manager.shaping_topics() == ()
+
+
+def test_a_stop_that_cancels_an_orphaned_topic_settles_it() -> None:
+    manager, _successor = displaced_owner_with_snake_and_joint_target()
+
+    manager.record_runtime_stop(
+        "/joystick_cartesian_command", cancelled_topics=("/kinova/mode_request",), reset_shaping_topics=()
+    )
+
+    assert manager.joint_target_topics() == ()
+    assert manager.shaping_topics() == ("/kinova/mode_request",)
+    assert manager.orphaned_mode_resets() == (("/kinova/mode_request", "geometric/both"),)

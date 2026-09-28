@@ -383,14 +383,16 @@ def reset_orphaned_modes(
     """Undo the joint target or shaping mode a displaced stale owner left, before the new owner drives."""
     for zero in manager.take_orphaned_teleop_zeros() if teleop_gateway is not None else ():
         publish_orphaned_zero(teleop_gateway, zero, session, audit_log)
-    for topic, mode in manager.take_orphaned_mode_resets():
+    for topic, mode in manager.orphaned_mode_resets():
         try:
             if mode == VISUAL_SERVOING_OFF:
                 detail = stop_controller.turn_off_visual_servoing()
             else:
                 detail = stop_controller.publish_mode_reset(topic, mode)
             status = "accepted"
+            manager.resolve_orphaned_mode_reset((topic, mode))
         except RuntimeError as exc:
+            # Still owed: the next claim retries it and STOP keeps cancelling on its topic.
             detail = str(exc)
             status = "rejected"
         audit_log.record(

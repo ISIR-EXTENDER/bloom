@@ -83,17 +83,19 @@ class JointPose:
 class PositionLibrary:
     """Ordered, name-unique collection of poses for one application.
 
-    `on_change` receives the whole list after every mutation, under the lock, so
-    a store can write it through without reasoning about partial updates.
+    `on_change` receives the whole new list, under the lock, before the library keeps it; if it raises, nothing
+    changes, so a store can write it through without reasoning about partial updates.
     """
 
     poses: list[JointPose] = field(default_factory=list)
     on_change: Callable[[list[JointPose]], None] | None = field(default=None, repr=False, compare=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
-    def _changed(self) -> None:
+    def _commit(self, poses: list[JointPose]) -> None:
+        """Write first, then keep: a failed write leaves the list as the store has it."""
         if self.on_change is not None:
-            self.on_change(list(self.poses))
+            self.on_change(list(poses))
+        self.poses = poses
 
     def save(self, pose: JointPose) -> JointPose:
         """Add a pose, or replace one with the same name in place.
@@ -103,21 +105,21 @@ class PositionLibrary:
         """
         with self._lock:
             self._ensure_consistent_joints(pose)
-            for index, existing in enumerate(self.poses):
+            poses = list(self.poses)
+            for index, existing in enumerate(poses):
                 if normalize_pose_name(existing.name) == normalize_pose_name(pose.name):
-                    self.poses[index] = pose
-                    self._changed()
-                    return pose
-            self.poses.append(pose)
-            self._changed()
+                    poses[index] = pose
+                    break
+            else:
+                poses.append(pose)
+            self._commit(poses)
             return pose
 
     def remove(self, name: str) -> bool:
         with self._lock:
             for index, existing in enumerate(self.poses):
                 if normalize_pose_name(existing.name) == normalize_pose_name(name):
-                    del self.poses[index]
-                    self._changed()
+                    self._commit(self.poses[:index] + self.poses[index + 1 :])
                     return True
             return False
 
@@ -139,8 +141,7 @@ class PositionLibrary:
             for index, existing in enumerate(self.poses):
                 if existing.name == name:
                     renamed = replace(existing, name=new_name)
-                    self.poses[index] = renamed
-                    self._changed()
+                    self._commit([*self.poses[:index], renamed, *self.poses[index + 1 :]])
                     return renamed
             raise PositionLibraryError(f"no saved position named '{name}'")
 

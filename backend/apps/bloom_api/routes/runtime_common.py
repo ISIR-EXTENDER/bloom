@@ -30,6 +30,7 @@ from libs.ros_adapters.camera_streams import (
 )
 from libs.ros_adapters.safety import (
     RuntimeCommandPolicy,
+    robot_refused_mode_requests,
 )
 from libs.sessions import (
     RuntimeAuditLog,
@@ -86,6 +87,10 @@ def get_camera_frame_gateway(connection: Request | WebSocket):
 
 def get_runtime_command_policy(connection: Request | WebSocket) -> RuntimeCommandPolicy:
     policy = connection.app.state.runtime_command_policy
+    settings = connection.app.state.settings
+    refused = robot_refused_mode_requests(settings.robot_name, settings.allow_kinova_home)
+    if refused:
+        policy = replace(policy, refused_mode_requests=(*policy.refused_mode_requests, *refused))
     directory = getattr(connection.app.state, "teleop_target_directory", None)
     return policy if directory is None else replace(policy, allowed_teleop_targets=directory.targets())
 
@@ -190,6 +195,7 @@ def narrow_policy_to_application(
         allowed_parameters=narrow_allowlist(policy.allowed_parameters, application_policy.allowed_parameters),
         topic_value_bounds=policy.topic_value_bounds,
         parameter_bounds=policy.parameter_bounds,
+        refused_mode_requests=policy.refused_mode_requests,
     )
 
 

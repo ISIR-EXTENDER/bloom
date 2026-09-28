@@ -61,7 +61,8 @@ def publish_with_runtime_policy(
     except ValueError as exc:
         record_publish_audit(audit_log, publish_request, str(exc), "rejected")
         raise SafeRosPublishError(detail=str(exc), status_code=422) from exc
-    except RuntimeError as exc:
+    except Exception as exc:  # noqa: BLE001
+        # RuntimeError, or anything else rclpy raises: audited, never a bare 500.
         record_publish_audit(audit_log, publish_request, str(exc), "rejected")
         raise SafeRosPublishError(detail=str(exc), status_code=503) from exc
 

@@ -19,6 +19,7 @@ Runtime clients must keep sending zeros on release.
 from __future__ import annotations
 
 import math
+import threading
 from typing import Any
 
 from libs.ros_adapters.spin import spin_node_once
@@ -42,6 +43,8 @@ class RclpyCartesianManagerGateway:
         self._flush_after_publish = flush_after_publish
         self._command_frame_id = command_frame_id.strip()
         self._publishers: dict[str, Any] = {}
+        # STOP, the deadman and the socket threads publish at once; two creations would leak a publisher.
+        self._publishers_lock = threading.Lock()
 
     @property
     def command_frame_id(self) -> str:
@@ -61,13 +64,14 @@ class RclpyCartesianManagerGateway:
         )
 
     def _ensure_publisher(self, target: str) -> Any:
-        publisher = self._publishers.get(target)
-        if publisher is not None:
-            return publisher
+        with self._publishers_lock:
+            publisher = self._publishers.get(target)
+            if publisher is not None:
+                return publisher
 
-        publisher = self._node.create_publisher(self._get_twist_stamped_message_class(), target, self._qos_profile)
-        self._publishers[target] = publisher
-        return publisher
+            publisher = self._node.create_publisher(self._get_twist_stamped_message_class(), target, self._qos_profile)
+            self._publishers[target] = publisher
+            return publisher
 
     def _to_ros_message(self, command: TeleopCommand) -> Any:
         message_cls = self._get_twist_stamped_message_class()

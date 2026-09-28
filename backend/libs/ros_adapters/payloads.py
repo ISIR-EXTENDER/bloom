@@ -25,6 +25,8 @@ def parse_ros_payload_text(payload_text: str) -> dict[str, Any]:
         parsed_payload = yaml.load(trimmed_payload, Loader=_NoAliasSafeLoader)
     except yaml.YAMLError as exc:
         raise ValueError(f"Invalid ROS payload text: {exc}") from exc
+    except RecursionError as exc:
+        raise ValueError("Invalid ROS payload text: nested too deeply") from exc
 
     if parsed_payload is None:
         raise ValueError("ROS payload text is empty")

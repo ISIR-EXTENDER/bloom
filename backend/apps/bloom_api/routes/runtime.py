@@ -123,6 +123,7 @@ class RuntimeStopStateResponse(BaseModel):
     engaged_at: str
     detail: str
     simulated: bool = False
+    persisted: bool = True
 
 
 class RuntimeControlStateResponse(BaseModel):

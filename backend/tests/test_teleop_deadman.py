@@ -187,3 +187,28 @@ def test_a_half_open_socket_stops_driving_the_legacy_arm() -> None:
             time.sleep(0.02)
 
         assert [(c.target, c.linear.x) for c in gateway.commands[:2]] == [("/teleop_cmd", 0.5), ("/teleop_cmd", 0.0)]
+
+
+def test_one_command_whose_publish_raises_anything_does_not_stop_the_sweep() -> None:
+    clock = MovableClock()
+    manager = RuntimeSessionManager(clock=clock)
+    first, second = manager.connect(), manager.connect()
+    manager.record_teleop_command(first, moving(target="/broken"))
+    manager.record_teleop_command(second, moving(target="/teleop_cmd"))
+
+    class OneBrokenTarget(RecordingTeleopGateway):
+        def publish(self, command: TeleopCommand) -> TeleopPublishReceipt:
+            if command.target == "/broken":
+                raise SystemError("rclpy conversion failed")
+            return super().publish(command)
+
+    gateway, audit_log = OneBrokenTarget(), InMemoryRuntimeAuditLog()
+    clock.now = 0.6
+    assert sweep(manager, gateway, audit_log) == 2
+
+    assert [c.target for c in gateway.commands] == ["/teleop_cmd"]
+    assert {(r.target, r.status) for r in audit_log.list_records()} == {
+        ("/broken", "rejected"),
+        ("/teleop_cmd", "accepted"),
+    }
+    assert [c.target for c in manager.moving_teleop_commands(first)] == ["/broken"]

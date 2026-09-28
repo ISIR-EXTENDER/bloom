@@ -8,7 +8,7 @@
     {
       "id": "sandbox",
       "name": "Sandbox V0.0",
-      "description": "Bloom runtime port of the six-screen Extender Sandbox V0.0 app.",
+      "description": "Bloom runtime port of the six-screen Extender Sandbox V0.0 app. Explorer only: its drive axes and gripper travel are the Explorer's.",
       "lifecycle": "active",
       "action_presets": [
         {
