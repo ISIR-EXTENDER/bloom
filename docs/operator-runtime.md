@@ -1,6 +1,6 @@
 # Bloom Operator Runtime
 
-Current behavior as of 2026-09-17. This is the canonical operating contract for Bloom runtime. It documents what the
+Current behavior as of 2026-09-28. This is the canonical operating contract for Bloom runtime. It documents what the
 merged product does; live robot acceptance is tracked separately in
 [Extender and Petanque end-to-end validation](extender-petanque-validation.md).
 
@@ -85,12 +85,14 @@ Resuming closes the sheet and publishing resumes at once. Nothing in the sheet c
 
 Focus moves into the sheet when it opens and is trapped there while it is open: the artboard behind the scrim is
 hidden from screen readers by `aria-modal`, so Tab must not walk into it. **Close**, **Resume operating** and Escape all
-return focus to **⋯**. STOP stays live above the scrim for pointer and scanning; a keyboard operator closes the sheet
-first, which is one keypress away.
+return focus to **⋯**. STOP stays live above the scrim for pointer and scanning, and it is part of the sheet's Tab
+loop, so a keyboard operator reaches it without closing the sheet.
 
 Under scanning the sheet becomes the scan root while it is open, with STOP first and its own SWITCH bar in the footer,
 so Settings, a screen change, a role switch and **Resume operating** are all reachable by switch. The canvas behind the
-scrim is never scanned. Settings does the same with its own controls.
+scrim is never scanned. Settings does the same with its own controls. The entries that leave the runtime (**Exit to
+library**, **Supervisor mirror**, **Edit**, Help and Home) are not scanned, and the sheet says so: they lead to a page
+with no scanner, so a caregiver opens them by touch.
 
 The publish rate is the ceiling while a control moves. At rest nothing is streamed: a release sends a short tail of
 zeros, and `cartesian_manager` expires an input after 0.2 s, so its output stays at zero.
@@ -108,10 +110,34 @@ explicitly reports a required publisher, subscriber, service, or teleop seam una
 authored position but becomes inert and shows the backend's reason. A missing or failed capability report remains
 unknown and does not disable the screen by guesswork.
 
-Command controls show acknowledged state, not an optimistic guess. A mode selection or toggle changes only after the
-backend reports `accepted`, `called`, or `published`. A blocked, failed, unsupported, or simulated action leaves the
-last acknowledged state in place and raises **Command failed** or **Not sent** in the kiosk bar with the backend detail.
-Treat either message as an incomplete operation; a simulated response is useful in development but is not robot work.
+### What a stateful control shows
+
+Since [ADR 0141](decisions/0141-ordered-publishes-and-confirmed-state.md), a toggle, a latched mode button or the
+momentary Snake shows the state the operator asked for at once, and keeps sending it until the robot answers:
+
+- **Accepted** (`accepted`, `called` or `published`): the state is confirmed.
+- **No reply** (a timeout, a network error, or a 500, 502, 503 or 504) or a rate limit (429): the robot may have
+  applied it. The control keeps the requested state, reads **Not confirmed** after half a second, and re-sends it
+  after 250 ms, 500 ms, 1 s and 2 s, then every 2 s. After about 4 s the mark reads **Robot has not confirmed — STOP
+  if in doubt**. The kiosk bar reads **Command failed** for the send that got no reply.
+- **Refused** (STOP latched, not in control, outside the app's policy, any other 4xx, or simulated with no ROS): the
+  robot did not apply it. The control returns to its last confirmed state, nothing is re-sent, and the kiosk bar
+  raises **Command failed** or **Not sent** with the backend detail. If an earlier send of it got no reply, it stays
+  marked **Not confirmed** instead, since the robot may hold that one.
+- **Superseded** (409): a newer send on the same topic already won; nothing to do.
+- A mode request with no reply lights no mode and reads **Mode not confirmed**.
+
+STOP and suspend cancel a pending on, press or mode request, so nothing is re-applied after Resume without a new
+press. The off and release states they ask for keep being sent. A control removed from the screen still finishes
+its last state, giving up after 60 s.
+
+What to do when a mark shows:
+
+- Do not press again to test it; the control is already re-sending.
+- Watch the arm.
+- Press STOP if the mark escalates to **Robot has not confirmed** or the arm does not match the screen.
+
+A simulated response is useful in development but is not robot work.
 
 ## Control Ownership And Handover
 
@@ -181,9 +207,16 @@ configuration and app, but the tour remains available for repetition.
 ## Stop And Resume
 
 - A pointer press on **STOP** releases every control on the screen at once and engages the backend runtime stop.
-  Keyboard activation is also supported.
+  Outside scan, Enter or Space on a focused STOP engages it on the key press, not the release; under scan those keys
+  are the switch. A held key's auto-repeat never stops or resumes a second time; only a fresh press does.
+- The latch cancels a joint target in progress (Go home), switches visual servoing off, and resets the shaper to
+  **Both**, and the screen then shows Both. It also cancels a pending on, press or mode request, so nothing is
+  re-applied after Resume without a new press.
 - If the backend cannot be reached, the controls stay stopped on this screen, it shows the error, and
   **HOLD TO RESUME** is the way back.
+- **STOP AGAIN** appears beside Resume when a STOP never reached the backend, or when the latch is on but the backend
+  could not assert it on ROS. Press it until it goes away. The supervisor mirror shows such a latch as **Stopped, not
+  confirmed on the robot**, with the reason. If it stays, use the hardware emergency stop.
 - STOP is the first stop in the keyboard tab order, the runtime's only positive `tabindex`; it used to be
   second-to-last, behind every control on the screen.
 - The stop is a backend latch shared by runtime clients; it is not a decorative local button.
@@ -201,11 +234,18 @@ configuration and app, but the tour remains available for repetition.
   a control to zero is still allowed, so a held control can come back to rest.
 - A dwell in progress when STOP engages is abandoned rather than completed. Resting on a screen control while another
   operator or a hardware event latches the stop never fires that control; the pointer has to move away and rest again.
+  The same holds for the Resume that replaces a STOP fired by dwell.
 - Resume requires a continuous one-second hold. Leaving or releasing the target cancels the hold.
 - Scanning stays on while stopped, and the highlight rests on the resume control and on the **⋯** button, so an
   operator who stopped is not held on that screen. Neither a switch press nor a dwell can hold, so resume asks twice:
   the first activation arms it and the control reads **PRESS AGAIN TO RESUME**, the second within eight seconds
   resumes, and the arming lapses on its own. A pointer still holds the full second.
+- Under scan, only a switch key, the **SWITCH** bar, or a tap on Resume itself fires Resume. A tap elsewhere on the
+  screen (the 3D view, a camera) still fires STOP when it is lit, but never Resume.
+- Right after a STOP, a switch or dwell Resume waits for the switch to rest for 1.5 s, or two scan periods if that is
+  longer; a press in that window starts it again, so the presses that stopped the robot never resume it. The
+  confirming press must come at least one scan period (never under 600 ms) after the arming one, with no other press
+  between; otherwise it arms afresh.
 - Link, stop, and recovery transitions can produce audio cues when the selected profile enables them.
 
 This control does not replace the robot's hardware emergency stop, controller limits, or the operator's normal lab
@@ -268,8 +308,10 @@ appear in Kinova's export, where the same numbers would mean different angles.
 
 The Positions screen supports confirmed named targets, explicit release/cancel, saving the current joint state, deleting
 a saved pose, and export of a `joint_targets` configuration block. Explorer offers **Go home**, which arms on the first
-press and publishes on the second; Kinova offers none, because its manager loads no home joint target
-(cartesian_manager#10). Both offer **Release**. A saved pose cannot be replayed or renamed from Bloom:
+press and publishes on the second. Kinova offers none: its manager loads the Explorer's home pose, and joint 4 at
+2.97 rad is outside the gen3's 2.57 rad limit (cartesian_manager#10). The server also refuses
+`behaviour/joint_target/home` when `BLOOM_ROBOT_NAME` names a Kinova or gen3, unless `BLOOM_ALLOW_KINOVA_HOME=true`
+once upstream is fixed. Both offer **Release**. A saved pose cannot be replayed or renamed from Bloom:
 the manager moves only to targets it loaded at start, so a new pose reaches the robot through the export and a manager
 restart. Saved poses live in the API process and are lost when it restarts, so export them before stopping it. Robot
 Feedback and Command Sources expose measured state and the manager's summed inputs without placing debug detail on the
@@ -346,7 +388,7 @@ Supported motor presets are:
 | `assisted-touch` | Larger targets and touch-oriented presentation. |
 | `step` | Joysticks/sliders expose discrete tap targets instead of requiring sustained dragging; held teleop values expire after 15 seconds. |
 | `latch` | Compatible controls hold their value until explicit zero/release or the 15-second attention timeout. |
-| `scan` | Joysticks and sliders render step targets, and a highlight advances through STOP and then every button on the screen in order; Space, Enter, a tap outside a control, or a tap on the full-width switch bar fires the lit target. |
+| `scan` | Joysticks and sliders render step targets, and a highlight advances through STOP and then every button on the screen in order; Space, Enter, a tap outside a control, or a tap on the full-width switch bar fires the lit target; a tap outside a control never fires Resume. |
 | `dwell` | Legacy combined step-and-dwell preset; existing profiles remain supported. |
 
 Profile bounds are enforced by the model: dead zone `0..0.5`, repeat guard `0..600 ms`, scan period `600..3000 ms`,
@@ -399,8 +441,12 @@ controls first.
 
 The scan set is read from the DOM, so it contains exactly the buttons a screen renders; a pad is never a scan target
 because a click on it moves nothing. STOP opens every cycle, ahead of the screen's own controls, on every surface that
-draws it: the canvas, Settings, and the maintenance sheet. Under scan, dwelling on the full-width SWITCH bar activates the highlighted target
-without a firm press. Single-switch and combined scan-plus-dwell teleop are covered by tests but not yet validated with
+draws it: the canvas, Settings, and the maintenance sheet. Under scan, dwelling on the full-width SWITCH bar activates
+the highlighted target without a firm press.
+
+Whenever the saved preset is scan, the scanner alone owns Enter and Space: a press goes to the active scanner (a
+dialog's first), never to the focused button, and the scanner does not move focus. A camera view never takes focus,
+and focus that lands in an embedded frame returns to the workspace, so it cannot swallow the switch. Single-switch and combined scan-plus-dwell teleop are covered by tests but not yet validated with
 the intended devices.
 
 Joysticks are keyboard operable. Focus the pad and use arrow keys; the same conditioning and command path are used as
@@ -424,8 +470,10 @@ operator review before participant use.
 
 ## Cartesian Command Frame
 
-Every virtual Cartesian control and physical gamepad contribution in one runtime session uses one effective command
-frame. Its initial value is:
+Bloom composes one twist per teleop target: the virtual controls and a physical gamepad that drive the same manager
+input add up, and a pad on another input sends its own. A twist carries the session's command frame, except that a
+widget which names its own frame is honoured while it is the only one turning; two widgets turning under different
+frames fall back to the session frame. The session frame's initial value is:
 
 1. `application.runtime_policy.command_frame_id`, when set;
 2. otherwise the backend `BLOOM_ROS_COMMAND_FRAME_ID` deployment default.

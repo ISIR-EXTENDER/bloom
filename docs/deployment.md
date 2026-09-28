@@ -63,6 +63,10 @@ test suites.
 | `BLOOM_CAMERA` | `auto` | `scripts/extender-workspace-dev.sh` only: the camera `camera_interface` starts; `none` skips it, or name a driver (`usb_cam`, `camera_ros`, `kinova_vision`). Optional: a driver whose package is not built, such as `kinova_vision`, which no repos file provides, is skipped. |
 | `BLOOM_SEED_DIR` | `backend/seed/applications` | Where the shared applications live; the Builder's **Share** writes here. |
 | `BLOOM_THEME_ASSET_DIR` | `data/theme-assets` | Where uploaded theme images are stored. |
+| `BLOOM_CONFIGURATION_STORAGE` | `sqlite` | Where apps are stored: `sqlite` (`BLOOM_CONFIGURATION_DATABASE_PATH`, `data/bloom.db`) or `file` (`BLOOM_CONFIGURATION_DIR`, `data/configurations`). |
+| `BLOOM_ENVIRONMENT` | `local` | `local`, `test`, `staging` or `production`; production refuses to start without auth, an admin key and runtime ownership. |
+| `BLOOM_HTTP_RATE_LIMIT_PER_MINUTE` | `600` | HTTP requests per minute per client address, STOP exempt; `0` turns the limit off. |
+| `BLOOM_ALLOWED_ROS_PARAMETERS` | the manager's live tuning and `/petanque_throw`'s throw | `<node>:<parameter>` pairs the runtime may set. |
 | `BLOOM_API_PREFIX` | `/api/v1` | API route prefix. The dashboard calls `/api/v1`, so change it only behind a proxy that maps it back. |
 | `BLOOM_APP_NAME`, `BLOOM_SERVICE_NAME`, `BLOOM_APP_DESCRIPTION` | Bloom defaults | Names reported by the API and its OpenAPI page. |
 | `BLOOM_APP_VERSION` | the release version | Version the API reports. Leave it unset, or it hides the real version. |
@@ -207,6 +211,20 @@ export BLOOM_MAX_MANAGER_ANGULAR_ACCELERATION=6.0
 export BLOOM_MAX_JACO_ANGULAR_VELOCITY=1.2
 # Where the STOP latch is kept, so a backend restart comes back stopped if it went down stopped.
 export BLOOM_RUNTIME_STOP_STATE_PATH=data/runtime_stop.json
+# cartesian_manager (default) or teleop_command, the legacy /teleop_cmd rollback path.
+export BLOOM_ROS_COMMAND_BACKEND=cartesian_manager
+# teleop_command only: a moving twist not refreshed for this long is zeroed server side; the manager expires its own.
+export BLOOM_TELEOP_DEADMAN_TIMEOUT_SEC=0.5
+# The end-effector frame to offer as a command frame (effector_frame on both arms); empty offers none.
+export BLOOM_ROS_EE_FRAME_ID=effector_frame
+# Petanque throw bounds on /petanque_throw's parameters: duration in seconds, alpha and finish angle in radians
+# (the angle is bounded to +-this value). Both angles must stay below pi/2.
+export BLOOM_MIN_PETANQUE_TOTAL_DURATION=0.5
+export BLOOM_MAX_PETANQUE_TOTAL_DURATION=10.0
+export BLOOM_MAX_PETANQUE_ALPHA=0.5
+export BLOOM_MAX_PETANQUE_FINISH_ANGLE=0.5
+# Go home is refused when BLOOM_ROBOT_NAME names a Kinova or gen3 (cartesian_manager#10); true once that is fixed.
+export BLOOM_ALLOW_KINOVA_HOME=false
 ```
 
 The speed caps are deployment-wide. On a Kinova, whose apps stop at 0.1 m/s, set `BLOOM_MAX_LINEAR_SPEED_LIMIT=0.1`
@@ -223,7 +241,7 @@ to match it.
 
 Avoid `*` for robot-facing sessions unless you are deliberately running a temporary diagnostic setup. Prefer adding the
 smallest topic/message set needed by the app under test. The example is a Manager Drive allowlist; do not reuse it for
-Sandbox or archived Petanque without adding their explicitly reviewed topics.
+Sandbox or Petanque without adding their explicitly reviewed topics.
 
 The backend frame is the fallback. Each app may select one value from the reported frame allowlist under **Builder > App
 configuration > Adapter guardrails**. That application frame is then shared by all virtual Cartesian controls and a
@@ -511,7 +529,7 @@ Before a robot-facing Bloom session or release:
 - open **Explorer Manager** or **Kinova Manager** in runtime, as Operator and as Bench;
 - confirm the kiosk bar names the expected app, screen, frame and role, and the maintenance sheet the expected link,
   profile and device class. The robot name is no longer in the bar; read it on the supervisor mirror or from
-  `GET /api/v1/capabilities`;
+  `GET /api/v1/capabilities`, which needs an observer key or above when auth is on;
 - confirm the kiosk reads `READY` and the maintenance sheet's Link fact adds **you control the robot**; open the same
   app in a second Runtime tab and verify it reads `NOT IN CONTROL`, its artboard is inert, its **Take control** action
   cannot force handover, and its STOP remains available;
@@ -524,8 +542,7 @@ Before a robot-facing Bloom session or release:
   confirm that no movement, STOP, resume, publish, action, or takeover controls are present there;
 - connect any intended gamepad or assistive input and verify its real mapping and disconnect behavior;
 - open Bloom Debug and verify topic catalog, topic echo, plot, audit, and recording controls;
-- if archived Petanque is still required, open its screens and validate camera/debug/state-machine interactions against
-  the legacy behavior.
+- for Petanque, open its screens and validate camera/debug/state-machine interactions against the legacy behavior.
 
 ## Legacy Retirement Rule
 

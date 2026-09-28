@@ -64,7 +64,7 @@ fallbacks can be made unavailable:
 - Sandbox scalar controls: confirm slider publishes are stable and audited during the same live session.
 - Bloom Debug: confirm topic catalog, preflight statuses, topic echo/plot subscriptions, recording controls, and audit
   refresh against live ROS topics.
-- Archived Petanque app, only if the workflow remains required: confirm runtime launch, teleop, camera/stream behavior,
+- Petanque app: confirm runtime launch, teleop, camera/stream behavior,
   state-machine commands, gesture controls, and backend/app policy allowlists against the Petanque stack.
 - Security/deployment: rerun dependency and dynamic security checks with the staging/shared-lab environment variables.
 - Tablet UX: confirm `1024x600`, `1280x720`, and the `1820x720` logical workspace on target hardware.
@@ -286,7 +286,7 @@ Use this table during validation sessions.
 | 2026-07-10 | Repo contract | Runtime fixtures and backend policy | Accepted for tracked fixture/backend contract | Added `npm run validation:frontend-backend`; it caught and fixed stale Explorer seeded config plus missing backend publish/recording allowlist entries. See [record](validation/2026-07-10-frontend-backend-coherence.md). | Codex |
 | _pending_ | Sandbox simulation | Sandbox teleop lab | Pending | Needs operator pass. | _pending_ |
 | _pending_ | Sandbox simulation | Bloom Debug | Pending | Needs live topic pass. | _pending_ |
-| _pending_ | Petanque stack | Archived Petanque app, if retained | Pending | Needs a live stack/operator pass only if the workflow remains supported. | _pending_ |
+| _pending_ | Petanque stack | Petanque app | Pending | Needs a live stack/operator pass. | _pending_ |
 
 ## Exit Criteria For Removing Legacy Fallbacks
 

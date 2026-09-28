@@ -188,7 +188,8 @@ Work through these deliberately; none of them can be tested any other way.
 
 - **Kinova has no Go home button.** `cartesian_manager`'s Kinova parameters still carry Explorer's six-joint home
   target, and joint 4 at 2.97 rad is outside the gen3 limit of 2.57 rad. Bloom removed the button on purpose and
-  returns it when that is corrected upstream (`cartesian_manager#10`). **Do not hand-edit `kinova_params.yaml`
+  returns it when that is corrected upstream (`cartesian_manager#10`); the server refuses a Go home sent on a Kinova
+  too. **Do not hand-edit `kinova_params.yaml`
   mid-session to get it back.**
 - **Saved poses live in the API process and are lost when it restarts.** Export them before stopping it.
 - **A saved pose cannot be replayed from Bloom** until the manager restarts with it, because the manager only

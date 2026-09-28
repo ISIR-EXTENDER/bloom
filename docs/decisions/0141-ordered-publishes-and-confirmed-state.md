@@ -33,7 +33,7 @@ state, which is always an absolute payload and so safe to repeat, until one send
 
 - accepted: the state is **confirmed**;
 - superseded: a newer send owns the topic, nothing to do;
-- no reply (timeout, network error, 5xx) or a transient refusal (429): it may have been applied, so retry at
+- no reply (timeout, network error, 500, 502, 503 or 504) or a rate limit (429): it may have been applied, so retry at
   250 ms, 500 ms, 1 s, 2 s, then every 2 s while the control is mounted, and on unmount hand the last desired
   state to a module-level reconciler that finishes it within 60 s;
 - any other refusal (STOP latched, not the owner, 4xx, no ROS): the server did not apply it, so nothing is

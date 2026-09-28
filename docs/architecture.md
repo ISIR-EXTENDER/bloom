@@ -95,8 +95,8 @@ The app configuration page is also the screen lifecycle hub: users can create bl
 add reusable screens from other apps, reorder screens, remove screens from the current app, then save/discard the draft
 composition. It owns application-wide runtime guardrails, including the default Cartesian command frame and allowed
 publish, recording, teleop, and service targets. Runtime may
-select another supported frame for the current session only while motion is zero; virtual controls and physical
-gamepads continue to share one effective frame.
+select another supported frame for the current session only while motion is zero. Virtual controls and physical
+gamepads use that session frame, except a widget that names its own frame while it is the only one turning.
 
 Its Builder review is a derived validation surface, not another configuration model. Geometry, interactive bounds,
 overlap, command frame, and widget destinations are read from the saved application; profile preview and JSON export
@@ -140,8 +140,8 @@ same policy, payload, rate-limit, and audit path.
 
 The details the robot side observes are preserved deliberately: joystick values stay normalized to the unit-disk
 contract, teleop uses the runtime WebSocket `teleop_cmd` contract against configured targets such as
-`/joystick_cartesian_command`, several widgets and a physical gamepad compose one 6-DoF twist with per-axis scaled dead
-zones and release-to-zero, and one effective Cartesian command frame stamps every contribution.
+`/joystick_cartesian_command`, several widgets and a physical gamepad compose one 6-DoF twist per teleop target with
+per-axis scaled dead zones and release-to-zero, and the session frame stamps it unless a widget's own frame applies.
 
 ## Runtime Composition
 

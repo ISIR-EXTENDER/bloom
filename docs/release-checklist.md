@@ -151,13 +151,16 @@ ros2 param get /cartesian_manager frames.hybrid_frame
       a valid mode request is accepted, an invalid one returns 422 and is
       audited. The procedure is in
       [extender-petanque-validation.md](extender-petanque-validation.md).
-- [ ] The active manager session has exactly one effective command frame for both virtual controls and a connected
-      gamepad, and the kiosk bar shows it before motion. Joystick Lab rejects a frame change until the composed twist
-      returns to zero and disables frames absent from backend capabilities.
+- [ ] The active manager session sends one twist per teleop target in the session frame the kiosk bar shows before
+      motion, for virtual controls and a connected gamepad alike; a widget's own frame is honoured while it alone
+      turns. Joystick Lab rejects a frame change until the composed twist returns to zero and disables frames absent
+      from backend capabilities.
 - [ ] Two joysticks plus Z/RZ release to a zero composed twist; Neutral, Jaco, momentary Snake, gripper open/close, and
       speed controls publish the expected topics and payloads.
 - [ ] STOP latches in the backend, is reflected by a second client or reload, and cannot resume without the one-second
       hold. This supplements rather than replaces the hardware emergency-stop check.
+- [ ] STOP survives an API restart (`BLOOM_RUNTIME_STOP_STATE_PATH`); a STOP with ROS down shows STOP AGAIN; a publish
+      with no reply shows Not confirmed; Go home is refused on a Kinova.
 - [ ] Two operator Runtime tabs cannot command together. A waiting tab stays inert, cannot force takeover, and can claim
       only after owner release/disconnect; the old owner's moving targets reach zero before the new owner can command.
 - [ ] If owner disconnect neutralization is made to fail, the backend latch reads stopped before ownership becomes

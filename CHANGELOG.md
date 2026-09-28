@@ -47,9 +47,50 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
   asking for an id under Advanced (ROS).
 - **A real High visibility theme.** It was the Extender theme under another name; it is black on white with strong
   outlines.
+- **Publishes apply in the order they were sent**
+  ([ADR 0141](docs/decisions/0141-ordered-publishes-and-confirmed-state.md)). Each runtime publish and action carries `X-Bloom-Publish-Seq`; the server keeps the highest sequence it applied per
+  session and topic, and answers an older one with 409 `superseded`, unpublished and audited. A request without the
+  header behaves as before.
+- **STOP AGAIN.** It appears beside Resume when a STOP never reached the backend or the backend could not assert it on
+  ROS. The supervisor mirror reads **Stopped, not confirmed on the robot**, with the reason.
+- **`BLOOM_TELEOP_DEADMAN_TIMEOUT_SEC`** (0.5 s). On the legacy `teleop_command` backend, which never expires a twist,
+  a moving command not refreshed in time is zeroed server side, audited and retried until it lands.
+- **Petanque throw bounds.** `/petanque_throw`'s duration is bounded to 0.5–10 s, alpha to 0–0.5 rad and the finish
+  angle to ±0.5 rad (`BLOOM_MIN_PETANQUE_TOTAL_DURATION`, `BLOOM_MAX_PETANQUE_TOTAL_DURATION`,
+  `BLOOM_MAX_PETANQUE_ALPHA`, `BLOOM_MAX_PETANQUE_FINISH_ANGLE`). A duration of 0 or an angle near 90° threw violently.
+- **The capability report lists the deployment's allowlists**: publish topics, message types, parameters and service
+  calls, so the Builder can tell an entry the app can allow from one the robot refuses anyway.
 
 ### Changed
 
+- **A stateful control shows what the operator asked for, and says when the robot has not confirmed it.** Toggles,
+  latched mode buttons and the held Snake used to change only after the backend acknowledged them. They now show the
+  requested state at once. With no reply (timeout, network error, 500/502/503/504) or a 429 they read **Not
+  confirmed** and re-send at 250 ms, 500 ms, 1 s, 2 s, then every 2 s; after about 4 s the mark reads **Robot has not
+  confirmed — STOP if in doubt**. A refused send returns to the last confirmed state with **Command failed** or **Not
+  sent**, and a mode request with no reply lights no mode. STOP and suspend cancel a pending on, press or mode, so
+  nothing is re-applied after Resume without a new press.
+- **STOP engages on the key press.** Space or Enter on a focused STOP used to act on release; a fresh keydown now
+  stops, and a held key's auto-repeat never stops or resumes a second time.
+- **The scanner alone owns a switch's keys** wherever the saved preset is scan: Enter and Space go to the active
+  scanner, never to a focused button's handler or the browser's click, and Resume's key hold is off under scan.
+- **Stray taps never resume.** Under scan, Resume needs a switch key, the SWITCH bar or a tap on Resume itself; a tap
+  on the 3D view or a camera still fires STOP. Right after a STOP, a switch or dwell Resume waits for the switch to
+  rest 1.5 s (or two scan periods), and a dwell that fired STOP does not carry over onto Resume.
+- **Maintenance exits are not scanned.** Exit to library, Supervisor mirror, Edit, Help and Home lead to pages with no
+  scanner, so a caregiver opens them by touch, and the sheet says so. STOP is in the sheet's Tab loop.
+- **STOP resets the shaper.** It also sends `geometric/both`, so a Snake or Jaco does not outlive the latch, and the
+  screen shows Both after STOP (no mode when the STOP was not confirmed).
+- **Visual servoing switches off on suspend.** Settings, maintenance, a screen change or a crash turn the servo switch
+  off; other toggles, such as the gripper, stay as they are.
+- **One twist per teleop target.** A pad on a second manager input no longer sends the first pad's axes too. A widget's
+  own rotation frame is honoured while it is the only one turning; a rotation without a frame counts as the session's.
+- **`GET /api/v1/capabilities` needs a key** (observer or above) when auth is on, like every other read route.
+- **Go home is refused on a Kinova.** The manager loads the Explorer's home pose, outside the gen3's joint 4 limit
+  (cartesian_manager#10), so the server refuses `behaviour/joint_target/home` when `BLOOM_ROBOT_NAME` names a Kinova
+  or gen3. `BLOOM_ALLOW_KINOVA_HOME=true` lifts it once upstream is fixed.
+- **App descriptions name their robot.** Sandbox and Petanque are Explorer only; Petanque's state-machine stop reads
+  **Stop match**.
 - **Sandbox and Petanque drive the Explorer the way the Explorer Manager does.** Their pads used an identity mapping,
   so a push moved a different axis than the Manager's pad; they now carry its mapping and pivot sign, and their labels
   say Forward, Left, Tilt instead of axis names. Visual servoing's Forward and Sideways sliders drive the Kinova axes
@@ -65,6 +106,19 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 
 ### Fixed
 
+- **An older preset button keeps its topic.** Apps saved before preset precedence carried both, so a Jaco button that
+  once had a Home preset picked moved the arm home in one tap. A preset now wins only when the button has no topic of
+  its own or sends the preset's command; the inspector says which one a press sends.
+- **A String command button with an empty payload sends its command** as `{data: <command>}` instead of an empty text
+  the backend refused on every press.
+- **Suspend always ends on a zero.** A move queued behind a slow first reply was flushed after a suspend with no zero
+  behind it.
+- **A camera never takes the switch's focus.** A camera iframe no longer takes pointer or tab focus, and focus that
+  lands in one returns to the workspace.
+- **A displaced owner's reset stays owed until it publishes.** A failed reset is retried on the next claim, and STOP
+  keeps cancelling on its topic.
+- **A whole-number slider value reaches a double parameter.** JSON sends 2.0 as 2, which a node refused; it is sent as
+  a float when the parameter is declared double. A message field out of its ROS type's range gets a 422.
 - **Leaving control undoes what it left running.** A Go home kept moving, and a held Snake kept shaping the next
   operator's motion, after their tablet disconnected, released control, or went stale; the backend cancels the one,
   resets the other to Neutral and switches off visual servoing it started, and a stale owner's are reset by the next
@@ -88,7 +142,8 @@ Detailed rationale for architectural choices lives in [docs/decisions](docs/deci
 - **The Sandbox's safe max velocity is safe.** Its preset sent 0.5 m/s; it sends 0.15.
 - **Switch and keyboard presses at a scan station.** A held switch key auto-repeated and could arm then confirm Go
   home, or resume after STOP, in one press: a scan press now activates once, and a confirmation within 600 ms of
-  arming counts as the same press. Enter on a focused STOP fired the lit control instead of stopping. An armed Resume
+  arming counts as the same press. Under scan the scanner alone owns Enter and Space, so a press never reaches the
+  focused button's own handler. An armed Resume
   or Go home holds the scan so the confirming press lands on it; the maintenance Tab loop skips a disabled Resume;
   "Scanning N of M" is no longer read at every step.
 - **The gesture pad no longer floods the API.** It published on every move, which spent the rate limit for every

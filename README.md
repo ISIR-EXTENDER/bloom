@@ -172,11 +172,11 @@ Every app below ships with Bloom, so a fresh copy opens with the same library ev
 | --- | --- | --- |
 | **Explorer Manager** | Drive the Explorer arm: move and aim the hand, open and close the gripper, go to saved positions, follow the robot's feedback. | Operator, Bench, One switch |
 | **Kinova Manager** | The same, for the Kinova Gen3 arm. | Operator, Bench, One switch |
-| **Visual servoing** | Show the gripper camera a printed tag, save that view as the target, and let the arm find its own way back to it. | Operator, Bench |
+| **Visual servoing** | Show the gripper camera a printed tag, save that view as the target, and let the arm find its own way back to it. Kinova gen3 axes today. | Operator, Bench |
 | **Bloom Debug** | For engineers on a laptop: live plots, joint readings, the robot in 3D and every topic's status. | Bench |
-| **Widget Lab** | Every widget Bloom offers, connected to a real or simulated robot, as a live catalogue. | Lab |
-| **Petanque admin** | The pétanque game with the robot: drive the throw, follow the match and measure the result. | |
-| **Sandbox V0.0** | The earlier Extender tablet app, rebuilt in Bloom. | |
+| **Widget Lab** | Every widget Bloom offers, connected to a real or simulated robot, as a live catalogue. Its axes are the Explorer's; on a real Kinova use it in simulation only. | Lab |
+| **Petanque admin** | The pétanque game with the robot: drive the throw, follow the match and measure the result. Explorer only: its drive axes and gripper travel are the Explorer's, and Go home is Explorer only. | |
+| **Sandbox V0.0** | The earlier Extender tablet app, rebuilt in Bloom. Explorer only: its drive axes and gripper travel are the Explorer's. | |
 | **Explorer and Kinova camera test** | Drive with the gripper camera on screen, to check the camera before adding it to an app. | Bench |
 | **Webcam visualizer** | Check a camera screen in the browser, with no robot needed. | |
 
@@ -513,9 +513,11 @@ The kiosk, controls, profiles, gamepad, and command-frame contract is in the
 [operator runtime guide](docs/operator-runtime.md). Deployment settings and tablet startup are in the
 [Extender workspace deployment guide](docs/deployment.md).
 
-Bloom changes a mode or toggle only after the runtime acknowledges the command. **Not sent** means the configured
-gateway simulated the request; **Command failed** means it was blocked, unsupported, or failed. In both cases the
-control keeps its previous state, so never read a visual toggle change as proof of robot motion.
+A toggle or mode button shows the state the operator asked for at once. If the robot does not reply, it keeps that
+state marked **Not confirmed** and re-sends it (250 ms, 500 ms, 1 s, 2 s, then every 2 s); after about 4 s the mark
+reads **Robot has not confirmed — STOP if in doubt**. A refused send returns the control to its last confirmed state,
+with **Command failed** (blocked, unsupported, failed) or **Not sent** (simulated) in the bar. Never read a visual
+toggle change as proof of robot motion; see [ADR 0141](docs/decisions/0141-ordered-publishes-and-confirmed-state.md).
 
 Useful contract checks:
 
@@ -590,6 +592,8 @@ export BLOOM_RUNTIME_CONTROL_REQUIRED=true
 export BLOOM_ROS_COMMAND_BACKEND=cartesian_manager
 # A frame the manager knows: base_link or hybrid_frame, or effector_frame once BLOOM_ROS_EE_FRAME_ID names it
 export BLOOM_ROS_COMMAND_FRAME_ID=base_link
+# teleop_command only: a moving twist not refreshed for this long is zeroed (the manager expires its own inputs)
+export BLOOM_TELEOP_DEADMAN_TIMEOUT_SEC=0.5
 ```
 
 Since `cartesian_manager` PR #6, `frame_id` selects the frame the rotation part
@@ -605,8 +609,9 @@ lookup.
 The deployment value is the fallback. In **Builder -> App configuration ->
 Adapter guardrails**, set **Cartesian command frame** as the runtime-session
 default. Joystick Lab may switch to another supported frame while the composed
-twist is zero. Every virtual control and physical gamepad contribution still
-shares the one effective session frame shown in the kiosk bar.
+twist is zero. Bloom sends one twist per teleop target, in the session frame
+shown in the kiosk bar, unless a widget that names its own frame is the only
+one turning.
 
 Use `X-Bloom-API-Key` for API calls. Admin keys can mutate configuration; operator keys can read configuration and use
 runtime/ROS endpoints. Robot-facing HTTP calls also carry the browser's opaque `X-Bloom-Runtime-Session` lease. Bloom

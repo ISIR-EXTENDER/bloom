@@ -93,7 +93,8 @@ parameter remains a last fallback for a key that is not a valid subprotocol toke
 but a proxy in front may still record it.
 
 Three roles exist. Admin edits configuration, operator commands the robot, and observer may only read: saved apps,
-runtime control state, the STOP latch, the audit log, saved positions, the ROS topic catalog, and the robot model:
+runtime control state, the STOP latch, the audit log, saved positions, the ROS topic catalog, the capability report
+(`GET /api/v1/capabilities`, which also lists the deployment's allowlists), and the robot model:
 the manager's `robot_description` and the mesh files it names, served only from a package share and only with mesh
 suffixes, since a supervisor screen draws the arm too. An observer may open
 the runtime WebSocket, because live status and topic samples are what a supervisor mirror is for, but the server refuses

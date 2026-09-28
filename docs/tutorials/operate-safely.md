@@ -57,11 +57,24 @@ catalog and live telemetry.
 
 Two more things the bar tells you, and they matter:
 
-- **Command failed** means the backend refused, blocked or could not complete the action.
+- **Command failed** means the backend refused, blocked or could not complete the action, or did not reply.
 - **Not sent** means the configured gateway simulated it.
 
-In both cases the control keeps its previous state. A toggle that flips is never on its own proof that the robot moved;
-Bloom changes a control only after the backend acknowledges it.
+A toggle, a mode button or a held Snake shows what you asked for straight away. It is not proof that the robot did it:
+
+- When the backend accepts, the state is confirmed.
+- When it gives no reply, the control keeps what you asked for, reads **Not confirmed**, and re-sends it (after
+  250 ms, 500 ms, 1 s, 2 s, then every 2 s). After about 4 s the mark reads **Robot has not confirmed — STOP if in
+  doubt**. A mode with no reply lights no mode and reads **Mode not confirmed**.
+- When it refuses (STOP latched, not in control, not allowed, simulated), the control goes back to its last
+  confirmed state and the bar reads **Command failed** or **Not sent**.
+
+What to do when a control reads **Not confirmed**:
+
+- Do not press again to test it; it is already re-sending.
+- Watch the arm.
+- Press STOP if the mark escalates or the arm does not match the screen. STOP cancels every pending on, press and
+  mode request, so nothing is re-applied after Resume without a new press.
 
 A latched or stepped control lets go by itself after 15 seconds without input. For the last 5 seconds it reads
 **Releases in N s** and shows a **Keep going** button: press it to keep holding without moving anything.
@@ -71,12 +84,19 @@ A latched or stepped control lets go by itself after 15 seconds without input. F
 STOP is always live. It sits in the screen's reserved region, which no widget can occupy, and it stays above the
 maintenance scrim, Settings and the practice tour — over those last two it becomes a full-height rail on the right.
 
-- A press releases every control on this screen at once and engages the backend latch. Keyboard activation works
-  too. If the backend cannot be told, the controls stay held here, the screen shows the error, and **HOLD TO RESUME**
-  is the way back.
+- A press releases every control on this screen at once and engages the backend latch. Enter or Space engages it
+  when the key goes down; holding the key never stops or resumes a second time. If the backend cannot be told, the
+  controls stay held here, the screen shows the error, and **HOLD TO RESUME** is the way back.
+- STOP cancels a Go home, switches visual servoing off and resets the shaper to Both; the screen shows Both.
+- **STOP AGAIN** appears when a STOP never reached the backend or the backend could not assert it on the robot. Press
+  it. The supervisor mirror then reads **Stopped, not confirmed on the robot**. If it stays, use the hardware
+  emergency stop.
 - The latch is shared by every runtime client, not a local button.
 - While stopped, the widgets go muted and inert and the control becomes **HOLD TO RESUME**.
 - Resume needs a continuous one-second hold. Leaving or releasing the target cancels it.
+- Under scan or dwell, Resume takes two presses. Under scan only a switch key, the SWITCH bar or a tap on Resume
+  itself counts; a tap elsewhere on the screen never resumes. Right after a STOP, Resume ignores the switch until it
+  has rested for 1.5 s (longer with a slow scan).
 - Resume needs control of the robot. STOP does not, so a blocked session can still stop the arm.
 
 Find the cause before you resume. If STOP does not assert, treat that as a failure of the software path and use the
