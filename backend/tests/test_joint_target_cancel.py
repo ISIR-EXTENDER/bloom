@@ -155,3 +155,26 @@ def test_a_release_waits_for_an_in_flight_publish_and_then_sees_its_joint_target
 
     # The release neutralizes what the publish recorded, so nothing is left for a later disconnect to cancel.
     assert seen_by_release == ["/mode_request"]
+
+
+def test_the_owner_leaving_cancels_its_pose_target() -> None:
+    gateway = RecordingRosPublisherGateway()
+    app = create_app(
+        Settings(environment="test", runtime_control_required=True),
+        InMemoryConfigurationRepository(),
+        ros_publisher_gateway=gateway,
+    )
+    client = TestClient(app)
+
+    with client.websocket_connect("/api/v1/runtime/ws") as websocket:
+        session_id = websocket.receive_json()["session_id"]
+        websocket.send_json({"type": "claim_control"})
+        websocket.receive_json()
+        response = client.post(
+            "/api/v1/ros/topics/publish",
+            headers={"X-Bloom-Runtime-Session": session_id},
+            json=mode("behaviour/pose_target/ready"),
+        )
+        assert response.status_code == 200
+
+    assert eventually(lambda: len(gateway.cancels()) == 1)

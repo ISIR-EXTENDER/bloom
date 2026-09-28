@@ -69,3 +69,12 @@ def test_joint_targets_are_one_shot() -> None:
 def test_joint_target_names_are_not_validated_here() -> None:
     # The manager owns the target-name list through its parameters.
     assert parse_mode_request("behaviour/joint_target/anything").normalized == ("behaviour/joint_target/anything")
+
+
+def test_pose_targets_are_one_shot_like_joint_targets() -> None:
+    """The manager returns to passthrough once the pose is within tolerance, and passthrough cancels it."""
+    request = parse_mode_request("Behaviour/Pose-Target/Ready")
+    assert request.normalized == "behaviour/pose_target/ready"
+    assert request.one_shot is True
+    with pytest.raises(ModeRequestError):
+        parse_mode_request("behaviour/pose_target")

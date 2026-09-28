@@ -96,7 +96,18 @@ def parse_mode_request(raw: str) -> ModeRequest:
                 one_shot=True,
             )
 
-        raise ModeRequestError(f"unknown behaviour '{parts[1]}', expected passthrough or joint_target")
+        if parts[1] == "pose_target":
+            if len(parts) != 3:
+                raise ModeRequestError("behaviour/pose_target needs a target name, such as behaviour/pose_target/ready")
+            # Like a joint target: it runs until the pose is within tolerance, then the manager returns to
+            # passthrough, and passthrough cancels it earlier.
+            return ModeRequest(
+                normalized=normalized,
+                detail=f"behaviour pose target {parts[2]}",
+                one_shot=True,
+            )
+
+        raise ModeRequestError(f"unknown behaviour '{parts[1]}', expected passthrough, joint_target or pose_target")
 
     raise ModeRequestError(f"unknown mode family '{parts[0]}', expected {GEOMETRIC_PREFIX} or {BEHAVIOUR_PREFIX}")
 
