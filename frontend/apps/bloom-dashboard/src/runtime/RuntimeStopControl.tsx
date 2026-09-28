@@ -74,6 +74,7 @@ export function RuntimeStopControl({
   const resumeHold = useHoldGesture(RESUME_HOLD_MS, resume);
   const assistiveResume = useAssistiveConfirm(resume, resumeDisabled, `${stopped}:${latchId}`);
   const assistiveArmed = assistiveResume.armed;
+  const scanLocked = scanMode && assistiveResume.locked;
   const disarm = assistiveResume.disarm;
   const resumeRef = useAssistiveActivation<HTMLButtonElement>(assistiveResume.activate);
   // STOP and Resume are two elements, so a rest begun on STOP never completes as a resume. The swap dropped a
@@ -199,9 +200,11 @@ export function RuntimeStopControl({
           aria-label={`${
             assistiveArmed
               ? strings.stop.resumeConfirmAria
-              : scanMode
-                ? strings.stop.resumeScanAria
-                : strings.stop.resumeAria
+              : scanLocked
+                ? strings.stop.resumeLockedAria
+                : scanMode
+                  ? strings.stop.resumeScanAria
+                  : strings.stop.resumeAria
           }${requestError || resumeDisabledReason ? `. ${requestError || resumeDisabledReason}` : ""}`}
           className="runtime-stop-control"
           // Armed, it holds the scan highlight so the confirming press lands on it, as an armed Go home does.
@@ -246,7 +249,7 @@ export function RuntimeStopControl({
           type="button"
         >
           <span className="runtime-stop-label">
-            {assistiveArmed ? strings.stop.resumeConfirm : strings.stop.resume}
+            {assistiveArmed ? strings.stop.resumeConfirm : scanLocked ? strings.stop.resumeLocked : strings.stop.resume}
           </span>
           {requestError || resumeDisabledReason ? (
             <span className="runtime-stop-error">{requestError || resumeDisabledReason}</span>

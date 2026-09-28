@@ -29,8 +29,19 @@ export type RuntimeStopHandle = {
 export function useRuntimeStop(client: RuntimeStopClient | null | undefined): RuntimeStopHandle {
   const [state, setState] = useState<RuntimeStopState | null>(null);
   const [requestError, setRequestError] = useState("");
-  const [stopRequested, setStopRequested] = useState(false);
-  const [engageUnconfirmed, setEngageUnconfirmed] = useState(false);
+  const [stopRequested, setStopRequestedState] = useState(false);
+  const [engageUnconfirmed, setEngageUnconfirmedState] = useState(false);
+  // Read by a resume that fails: it puts back the unconfirmed STOP it cleared.
+  const stopRequestedRef = useRef(false);
+  const engageUnconfirmedRef = useRef(false);
+  const setStopRequested = useCallback((next: boolean) => {
+    stopRequestedRef.current = next;
+    setStopRequestedState(next);
+  }, []);
+  const setEngageUnconfirmed = useCallback((next: boolean) => {
+    engageUnconfirmedRef.current = next;
+    setEngageUnconfirmedState(next);
+  }, []);
   const clientRef = useRef(client);
   clientRef.current = client;
   // Bumped by every STOP and resume: a poll sent before one answers with the latch as it was.
@@ -77,7 +88,7 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
       cancelled = true;
       clearInterval(timer);
     };
-  }, [client, mirrorState]);
+  }, [client, mirrorState, setEngageUnconfirmed]);
 
   const engage = useCallback(() => {
     const engageRuntimeStop = clientRef.current?.engageRuntimeStop;
@@ -132,22 +143,31 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
             }
           });
       });
-  }, [mirrorState]);
+  }, [mirrorState, setEngageUnconfirmed, setStopRequested]);
 
   const resume = useCallback(() => {
     const resumeRuntimeStop = clientRef.current?.resumeRuntimeStop;
     if (!resumeRuntimeStop) {
       return;
     }
-    // The latch on screen: a STOP pressed elsewhere since then is a new latch this resume must not release.
+    // Always sent: "" (no latch seen here) must not release a STOP pressed at another station, as an omitted one would.
     const engagedAt = stateRef.current?.stopped ? stateRef.current.engaged_at : "";
     actionCountRef.current += 1;
     const actionsWhenSent = actionCountRef.current;
     const current = () => actionsWhenSent === actionCountRef.current;
+    const wasRequested = stopRequestedRef.current;
+    const wasUnconfirmed = engageUnconfirmedRef.current;
+    // A failed resume leaves this station's unconfirmed STOP holding, not a running look nothing confirmed.
+    const restoreRequested = (latched: boolean) => {
+      if (wasRequested && !latched) {
+        setStopRequested(true);
+        setEngageUnconfirmed(wasUnconfirmed);
+      }
+    };
     setStopRequested(false);
     setEngageUnconfirmed(false);
     engageErrorRef.current = false;
-    resumeRuntimeStop(engagedAt ? { engagedAt } : undefined)
+    resumeRuntimeStop({ engagedAt })
       .then((next) => {
         if (current()) {
           mirrorState(next);
@@ -160,7 +180,8 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
         }
         const message = error instanceof Error ? error.message : "The resume request failed.";
         const getState = clientRef.current?.getRuntimeStopState;
-        if (!engagedAt || (error as { status?: unknown } | null)?.status !== 409 || !getState) {
+        if ((error as { status?: unknown } | null)?.status !== 409 || !getState) {
+          restoreRequested(false);
           setRequestError(message);
           return;
         }
@@ -171,15 +192,17 @@ export function useRuntimeStop(client: RuntimeStopClient | null | undefined): Ru
               return;
             }
             mirrorState(next);
+            restoreRequested(next.stopped);
             setRequestError(next.engaged_at !== engagedAt ? "" : message);
           })
           .catch(() => {
             if (current()) {
+              restoreRequested(false);
               setRequestError(message);
             }
           });
       });
-  }, [mirrorState]);
+  }, [mirrorState, setEngageUnconfirmed, setStopRequested]);
 
   const assertionError = state?.stopped && !state.asserted ? state.detail : "";
   return { state, requestError: assertionError || requestError, stopRequested, engageUnconfirmed, engage, resume };

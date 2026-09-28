@@ -352,7 +352,7 @@ describe("a superseded send", () => {
   it.each([
     ["accepted", superseded],
     ["refused", { accepted: false, status: "superseded" } satisfies WidgetActionOutcome],
-  ])("is never retried and shows no mark (%s flag)", async (_flag, outcome) => {
+  ])("is never retried, not taken as confirmed, and shows no mark (%s flag)", async (_flag, outcome) => {
     const onActionIntent = vi.fn(() => outcome);
     render(toggleView({}, onActionIntent));
 
@@ -360,7 +360,7 @@ describe("a superseded send", () => {
     await settle(10_000);
 
     expect(onActionIntent).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: "Gripper: Closed" })).not.toHaveAttribute("data-confirmed");
+    expect(screen.getByRole("button", { name: "Gripper: Open" })).not.toHaveAttribute("data-confirmed");
     expect(screen.queryByText("Not confirmed")).not.toBeInTheDocument();
   });
 });

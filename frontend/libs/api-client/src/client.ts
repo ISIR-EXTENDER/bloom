@@ -298,11 +298,11 @@ export class BloomApiClient {
   }
 
   setRosParameter(request: RosParameterSetRequest): Promise<RosParameterSetResponse> {
-    return this.request<RosParameterSetResponse>("/api/v1/ros/parameters/set", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    });
+    return this.requestWithTimeout<RosParameterSetResponse>(
+      "/api/v1/ros/parameters/set",
+      request,
+      `Parameter set on ${request.node}:${request.name}`,
+    );
   }
 
   async getRosParameters(node: string, names: readonly string[]): Promise<RosParameterReading[]> {
@@ -336,7 +336,7 @@ export class BloomApiClient {
   resumeRuntimeStop(latch?: { engagedAt?: string }): Promise<RuntimeStopState> {
     return this.request<RuntimeStopState>(
       "/api/v1/runtime/stop/resume",
-      latch?.engagedAt
+      latch?.engagedAt !== undefined
         ? {
             method: "POST",
             headers: { "Content-Type": "application/json" },

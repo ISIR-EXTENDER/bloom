@@ -19,6 +19,8 @@ export const enRuntimeStrings: RuntimeStrings = {
     resumeConfirm: "PRESS AGAIN TO RESUME",
     resumeScanAria: "Press twice to resume",
     resumeConfirmAria: "Press again to resume",
+    resumeLocked: "LET GO OF THE SWITCH…",
+    resumeLockedAria: "Let go of the switch first. Press twice to resume",
     stopAgain: "STOP AGAIN",
     stopAgainAria: "Stop the robot again",
   },
@@ -162,6 +164,7 @@ export const enRuntimeStrings: RuntimeStrings = {
       "Closing resumes publishing immediately. Nothing here changes what the app sends — topics, frame and rate are shown so you can read them, not set them.",
     touchOnlyNote:
       "Exit to library, Supervisor mirror, Edit, Help and Home are not scanned: a caregiver can open them by touch.",
+    touchOnlyRolesNote: "Roles that do not scan are touch only too.",
     resume: "Resume operating",
   },
   supervisor: {

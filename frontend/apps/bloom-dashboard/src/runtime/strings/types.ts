@@ -19,6 +19,8 @@ export type RuntimeStrings = {
     resumeConfirm: string;
     resumeScanAria: string;
     resumeConfirmAria: string;
+    resumeLocked: string;
+    resumeLockedAria: string;
     stopAgain: string;
     stopAgainAria: string;
   };
@@ -123,6 +125,7 @@ export type RuntimeStrings = {
     more: string;
     resumeNote: string;
     touchOnlyNote: string;
+    touchOnlyRolesNote: string;
     resume: string;
   };
   supervisor: {

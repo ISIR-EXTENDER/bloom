@@ -53,6 +53,13 @@ export function RuntimeMaintenanceSheet({
   const scanPreset = scanning?.enabled === true;
   // Pages with no scanner would strand a one-switch operator: a caregiver opens them by touch.
   const touchOnly = scanPreset ? "" : undefined;
+  // A role with no scanner leaves nothing lit, STOP included: under scan only a scanning role is switch-reachable.
+  const roleTouchOnly = (candidate: { motorAccessibilityPreset?: string }) =>
+    scanPreset && candidate.motorAccessibilityPreset !== "scan";
+  const switchRoleTouchOnly =
+    scanPreset && !profiles.some((candidate) => candidate.id !== profile.id && !roleTouchOnly(candidate));
+  const roleSwitchShown = onSwitchProfile !== undefined && profiles.length > 1;
+  const someRoleTouchOnly = roleSwitchShown && (choosingRole ? profiles.some(roleTouchOnly) : switchRoleTouchOnly);
   const sheetScanning = useSwitchScanning({
     enabled: scanPreset,
     isTargetEnabled: (target) => !target.hasAttribute("data-scan-touch-only"),
@@ -216,10 +223,11 @@ export function RuntimeMaintenanceSheet({
               label={strings.kiosk.settings}
               onClick={closeAnd(onOpenSettings)}
             />
-            {onSwitchProfile && profiles.length > 1 ? (
+            {roleSwitchShown ? (
               <button
                 aria-label={strings.kiosk.switchRoleAria}
                 className="runtime-maintenance-action"
+                data-scan-touch-only={switchRoleTouchOnly ? "" : undefined}
                 onBlur={roleHold.cancel}
                 onKeyDown={(event) => {
                   if (!event.repeat && (event.key === "Enter" || event.key === " ")) {
@@ -260,6 +268,7 @@ export function RuntimeMaintenanceSheet({
                 <button
                   aria-pressed={candidate.id === profile.id}
                   data-role={resolveRuntimeRole(candidate)}
+                  data-scan-touch-only={roleTouchOnly(candidate) ? "" : undefined}
                   key={candidate.id}
                   onClick={closeAnd(() => onSwitchProfile?.(candidate.id))}
                   type="button"
@@ -304,7 +313,13 @@ export function RuntimeMaintenanceSheet({
               ))}
             </fieldset>
           </div>
-          {scanPreset ? <p className="runtime-maintenance-touch-note">{strings.kiosk.touchOnlyNote}</p> : null}
+          {scanPreset ? (
+            <p className="runtime-maintenance-touch-note">
+              {someRoleTouchOnly
+                ? `${strings.kiosk.touchOnlyNote} ${strings.kiosk.touchOnlyRolesNote}`
+                : strings.kiosk.touchOnlyNote}
+            </p>
+          ) : null}
 
           {diagnostics ? <div className="runtime-maintenance-diagnostics">{diagnostics}</div> : null}
         </div>

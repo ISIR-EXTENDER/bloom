@@ -24,6 +24,9 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
   const pressesSinceArmRef = useRef(0);
   const quietFromRef = useRef(Date.now());
   const timerRef = useRef<number | null>(null);
+  // True while the quiet window refuses presses, so Resume can say to let go instead of ignoring them silently.
+  const [locked, setLocked] = useState(true);
+  const lockTimerRef = useRef<number | null>(null);
   const onConfirmRef = useRef(onConfirm);
   onConfirmRef.current = onConfirm;
 
@@ -36,10 +39,23 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
     setArmed(false);
   }, []);
 
+  const trackLock = useCallback(() => {
+    if (lockTimerRef.current !== null) {
+      window.clearTimeout(lockTimerRef.current);
+      lockTimerRef.current = null;
+    }
+    const remaining = quietFromRef.current + quietMs() - Date.now();
+    setLocked(remaining > 0);
+    if (remaining > 0) {
+      lockTimerRef.current = window.setTimeout(trackLock, remaining);
+    }
+  }, []);
+
   useLayoutEffect(() => {
     void latchKey;
     quietFromRef.current = Date.now();
-  }, [latchKey]);
+    trackLock();
+  }, [latchKey, trackLock]);
 
   // A press inside the quiet window starts it again: a panicking operator hammering the switch never resumes.
   useEffect(
@@ -48,10 +64,11 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
         const now = Date.now();
         if (now - quietFromRef.current < quietMs()) {
           quietFromRef.current = now;
+          trackLock();
         }
         pressesSinceArmRef.current += 1;
       }),
-    [],
+    [trackLock],
   );
 
   // A confirm armed before the control was disabled must not survive to complete once it is enabled again.
@@ -63,8 +80,10 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
 
   useEffect(
     () => () => {
-      if (timerRef.current !== null) {
-        window.clearTimeout(timerRef.current);
+      for (const timer of [timerRef.current, lockTimerRef.current]) {
+        if (timer !== null) {
+          window.clearTimeout(timer);
+        }
       }
     },
     [],
@@ -94,5 +113,5 @@ export function useAssistiveConfirm(onConfirm: () => void, disabled = false, lat
     }, ASSISTIVE_CONFIRM_WINDOW_MS);
   };
 
-  return { activate, armed, disarm };
+  return { activate, armed, disarm, locked };
 }

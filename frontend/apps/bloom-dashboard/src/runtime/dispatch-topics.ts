@@ -1,4 +1,5 @@
 import type { RosTopicPublishRequest, RuntimeActionPreset, RuntimeAdapterPolicy } from "@bloom/api-client";
+import { claimTarget, isReconcilerSend } from "@bloom/widget-renderers";
 import {
   asRecord,
   asTopic,
@@ -28,11 +29,19 @@ export async function publishTopicRequest(
   if (policyError) {
     return { intent, request, status: "blocked", detail: policyError };
   }
+  claimUnlessReconciling(intent, request.topic);
   try {
     const response = await client.publishRosTopic({ ...request, ...appScope(options) });
     return { intent, request, status: response.status, detail: response.detail };
   } catch (error: unknown) {
     return { intent, request, ...classifyDispatchError(error) };
+  }
+}
+
+/** ADR 0141: an operator's publish is the newest act on its topic, so no control's pending retry may undo it. */
+export function claimUnlessReconciling(intent: WidgetActionIntent, topic: string): void {
+  if (!isReconcilerSend(intent)) {
+    claimTarget(topic);
   }
 }
 

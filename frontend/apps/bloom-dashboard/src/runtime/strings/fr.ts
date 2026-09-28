@@ -19,6 +19,8 @@ export const frRuntimeStrings: RuntimeStrings = {
     resumeConfirm: "APPUYEZ ENCORE POUR REPRENDRE",
     resumeScanAria: "Appuyez deux fois pour reprendre",
     resumeConfirmAria: "Appuyez encore pour reprendre",
+    resumeLocked: "RELÂCHEZ LE CONTACTEUR…",
+    resumeLockedAria: "Relâchez d’abord le contacteur. Appuyez deux fois pour reprendre",
     stopAgain: "ARRÊTER DE NOUVEAU",
     stopAgainAria: "Arrêter de nouveau le robot",
   },
@@ -163,6 +165,7 @@ export const frRuntimeStrings: RuntimeStrings = {
       "Fermer reprend l'envoi immédiatement. Rien ici ne change ce que l'app envoie : sujets, repère et fréquence sont affichés pour être lus, pas réglés.",
     touchOnlyNote:
       "Quitter vers la bibliothèque, Vue superviseur, Modifier, Aide et Accueil ne sont pas balayés : un aidant peut les ouvrir au toucher.",
+    touchOnlyRolesNote: "Les rôles sans balayage se choisissent aussi au toucher.",
     resume: "Reprendre le pilotage",
   },
   supervisor: {

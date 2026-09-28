@@ -16,8 +16,13 @@ export type DesiredSnapshot = {
   late: boolean;
   /** A send was refused or cancelled, so nothing more is sent: the control shows its last confirmed state. */
   refused: boolean;
+  /** A newer act of another control owns the target: a hold ends here, without sending its release. */
+  claimed?: boolean;
   detail?: string;
 };
+
+export const VISUAL_SERVOING_SWITCH_TOPIC = "/ui/visual_servoing/on";
+const MODE_REQUEST_TOPIC = "/mode_request";
 
 const RETRY_DELAYS_MS = [250, 500, 1000, 2000] as const;
 const STEADY_RETRY_MS = 2000;
@@ -33,6 +38,8 @@ type Entry = {
   value: string;
   /** On, pressed or a mode: dropped when refused or cancelled. Off and release states are not. */
   engage: boolean;
+  /** A hold (pressed or released), which a newer act on its target ends even once confirmed. */
+  momentary: boolean;
   intent: WidgetActionIntent;
   send: WidgetActionIntentHandler;
   generation: number;
@@ -61,20 +68,95 @@ const entries = new Map<string, Entry>();
 let attemptSeq = 0;
 const listenersByKey = new Map<string, Set<() => void>>();
 const mountedKeys = new Map<string, number>();
+/** The last accepted value per scope and target; it outlives the control that sent it (ADR 0141). */
+const confirmedByTarget = new Map<string, { scope: string; target: string; value: string; seq: number }>();
+const reconcilerIntents = new WeakSet<object>();
 
 function desiredKey(scope: string, widgetId: string, target: string): string {
   return `${scope}\u0000${widgetId}\u0000${target}`;
 }
 
+function confirmedKey(scope: string, target: string): string {
+  return `\u0001${scope}\u0000${target}`;
+}
+
+/** Whether a send comes from the reconciler rather than a new operator act. */
+export function isReconcilerSend(intent: WidgetActionIntent): boolean {
+  return reconcilerIntents.has(intent);
+}
+
+/**
+ * A publish that is not a control's desired state (a one-shot, a preset, a slider) is the newest act on its
+ * target: controls there stop, and what they last confirmed is no longer known.
+ */
+export function claimTarget(target: string): void {
+  claim(target);
+  for (const [key, confirmed] of [...confirmedByTarget]) {
+    if (confirmed.target === target) {
+      confirmedByTarget.delete(key);
+      notify(key);
+    }
+  }
+}
+
 /**
  * The newest act on a target wins: another control's pending state there stops at once and shows its last
- * confirmed state, or stays not confirmed if a send of it got no reply.
+ * confirmed state, or stays not confirmed if a send of it got no reply. A confirmed hold ends without a release.
  */
-export function claimTarget(target: string, exceptKey?: string): void {
+function claim(target: string, exceptKey?: string): void {
   for (const entry of [...entries.values()]) {
-    if (entry.target === target && entry.key !== exceptKey && !entry.snapshot.confirmed) {
-      stop(entry, undefined, false);
+    if (entry.target !== target || entry.key === exceptKey) {
+      continue;
+    }
+    if (!entry.snapshot.confirmed) {
       entry.claimed = true;
+      stop(entry, undefined, false);
+    } else if (entry.momentary && entry.value === "pressed" && !entry.claimed) {
+      entry.claimed = true;
+      publish(entry, { value: null, confirmed: true, marked: false, late: false, refused: false, claimed: true });
+    }
+  }
+}
+
+/** The value last accepted on a target in a scope, whichever control sent it. */
+export function useConfirmedValue(target: string, scope = ""): string | null {
+  const key = confirmedKey(scope, target);
+  return useSyncExternalStore(
+    (listener) => subscribe(key, listener),
+    () => confirmedByTarget.get(key)?.value ?? null,
+    () => null,
+  );
+}
+
+/** A runtime session over: what its controls confirmed no longer seeds new ones. */
+export function forgetConfirmedValues(scope: string): void {
+  for (const [key, confirmed] of [...confirmedByTarget]) {
+    if (confirmed.scope === scope) {
+      confirmedByTarget.delete(key);
+      notify(key);
+    }
+  }
+}
+
+/**
+ * An asserted STOP switched servoing off and sent geometric/both on the server: the servo switch reads off and a
+ * Snake hold released, confirmed, whatever became of their own refused sends.
+ */
+export function settleForAssertedStop(): void {
+  for (const entry of [...entries.values()]) {
+    if (entry.target === VISUAL_SERVOING_SWITCH_TOPIC) {
+      markConfirmed(entry, "off", false);
+    } else if (entry.momentary && entry.target === MODE_REQUEST_TOPIC) {
+      markConfirmed(entry, "released", true);
+    }
+  }
+  for (const [key, confirmed] of [...confirmedByTarget]) {
+    if (confirmed.target === VISUAL_SERVOING_SWITCH_TOPIC) {
+      confirmedByTarget.set(key, { ...confirmed, value: "off", seq: attemptSeq });
+      notify(key);
+    } else if (confirmed.target === MODE_REQUEST_TOPIC) {
+      confirmedByTarget.delete(key);
+      notify(key);
     }
   }
 }
@@ -85,12 +167,13 @@ export function setDesired(options: {
   target: string;
   value: string;
   engage: boolean;
+  momentary?: boolean;
   intent: WidgetActionIntent;
   send: WidgetActionIntentHandler;
 }): void {
   const scope = options.scope ?? "";
   const key = desiredKey(scope, options.widgetId, options.target);
-  claimTarget(options.target, key);
+  claim(options.target, key);
   let entry = entries.get(key);
   if (!entry) {
     entry = {
@@ -99,6 +182,7 @@ export function setDesired(options: {
       target: options.target,
       value: options.value,
       engage: options.engage,
+      momentary: options.momentary === true,
       intent: options.intent,
       send: options.send,
       generation: 0,
@@ -128,6 +212,7 @@ export function setDesired(options: {
   entry.claimed = false;
   entry.value = options.value;
   entry.engage = options.engage;
+  entry.momentary = options.momentary === true;
   entry.intent = options.intent;
   entry.send = options.send;
   if (!isMounted(entry)) {
@@ -212,6 +297,7 @@ export function resetDesiredStates(): void {
   }
   entries.clear();
   mountedKeys.clear();
+  confirmedByTarget.clear();
 }
 
 function cancel(entry: Entry): void {
@@ -247,6 +333,7 @@ function attempt(entry: Entry, generation: number): void {
   attemptSeq += 1;
   const sent = { generation, seq: attemptSeq, value: entry.value };
   entry.open.set(sent.seq, sent.value);
+  reconcilerIntents.add(entry.intent);
   let outcome: ReturnType<WidgetActionIntentHandler>;
   try {
     outcome = entry.send(entry.intent);
@@ -278,6 +365,17 @@ function finish(entry: Entry, sent: Sent, status: WidgetActionStatus, detail: st
     if (entry.uncertainSeq <= sent.seq) {
       entry.uncertainValue = null;
     }
+    recordConfirmed(entry, sent);
+  } else if (status === "superseded") {
+    // A newer send was applied on the target after this one, so nothing this control sent before it holds.
+    if (entry.uncertainSeq < sent.seq) {
+      entry.uncertainValue = null;
+    }
+    for (const seq of [...entry.open.keys()]) {
+      if (seq < sent.seq) {
+        entry.open.delete(seq);
+      }
+    }
   } else if (status === "unknown" && sent.seq > entry.confirmedSeq && sent.seq > entry.uncertainSeq) {
     entry.uncertainValue = sent.value;
     entry.uncertainSeq = sent.seq;
@@ -292,14 +390,18 @@ function finish(entry: Entry, sent: Sent, status: WidgetActionStatus, detail: st
     return;
   }
   entry.inFlight = false;
-  if (status === "accepted" || status === "superseded") {
+  if (status === "accepted") {
     settle(entry);
-    if (status === "accepted") {
-      releaseClaimed(entry);
-    }
+    releaseClaimed(entry);
     if (!isMounted(entry)) {
       drop(entry);
     }
+    return;
+  }
+  // Another send owns the target: the last confirmed state shows, and the claiming act decides.
+  if (status === "superseded") {
+    entry.claimed = true;
+    stop(entry, undefined, false);
     return;
   }
   // An explicit refusal was not applied; only no reply or a transient refusal is worth sending again.
@@ -333,6 +435,7 @@ function stop(entry: Entry, detail: string | undefined, refused: boolean): void 
 
 function showIdle(entry: Entry, refused: boolean, detail: string | undefined): void {
   const withDetail = detail ? { detail } : {};
+  const claimedMark = entry.claimed ? { claimed: true } : {};
   const unanswered = entry.uncertainValue ?? newestOpenValue(entry);
   if (unanswered !== null) {
     publish(entry, {
@@ -341,11 +444,69 @@ function showIdle(entry: Entry, refused: boolean, detail: string | undefined): v
       marked: true,
       late: entry.snapshot.late,
       refused: false,
+      ...claimedMark,
       ...withDetail,
     });
     return;
   }
-  publish(entry, { value: entry.lastConfirmed, confirmed: true, marked: false, late: false, refused, ...withDetail });
+  publish(entry, {
+    value: entry.lastConfirmed,
+    confirmed: true,
+    marked: false,
+    late: false,
+    refused,
+    ...claimedMark,
+    ...withDetail,
+  });
+}
+
+function markConfirmed(entry: Entry, value: string, claimed: boolean): void {
+  clearTimers(entry);
+  entry.generation += 1;
+  entry.inFlight = false;
+  entry.idle = true;
+  entry.stopped = false;
+  entry.value = value;
+  entry.lastConfirmed = value;
+  entry.confirmedSeq = attemptSeq;
+  entry.uncertainValue = null;
+  entry.open.clear();
+  entry.claimed = claimed;
+  publish(entry, {
+    value,
+    confirmed: true,
+    marked: false,
+    late: false,
+    refused: false,
+    ...(claimed ? { claimed } : {}),
+  });
+  if (!isMounted(entry)) {
+    drop(entry);
+  }
+}
+
+/** The newest accepted value on the target; other settled controls there stop showing their own. */
+function recordConfirmed(entry: Entry, sent: Sent): void {
+  const key = confirmedKey(entry.scope, entry.target);
+  const current = confirmedByTarget.get(key);
+  if (current && current.seq > sent.seq) {
+    return;
+  }
+  confirmedByTarget.set(key, { scope: entry.scope, target: entry.target, value: sent.value, seq: sent.seq });
+  notify(key);
+  for (const other of [...entries.values()]) {
+    if (
+      other !== entry &&
+      other.scope === entry.scope &&
+      other.target === entry.target &&
+      !other.momentary &&
+      other.idle &&
+      !other.stopped &&
+      other.snapshot.confirmed
+    ) {
+      drop(other);
+    }
+  }
 }
 
 function newestOpenValue(entry: Entry): string | null {
@@ -362,7 +523,12 @@ function newestOpenValue(entry: Entry): string | null {
 function releaseClaimed(winner: Entry): void {
   for (const entry of [...entries.values()]) {
     if (entry !== winner && entry.target === winner.target && entry.claimed) {
-      drop(entry);
+      if (entry.momentary && isMounted(entry)) {
+        // Kept while mounted, so the hold still learns it ended and sends no release.
+        publish(entry, { value: null, confirmed: true, marked: false, late: false, refused: false, claimed: true });
+      } else {
+        drop(entry);
+      }
     }
   }
 }

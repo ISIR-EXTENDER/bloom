@@ -429,6 +429,29 @@ describe("Bloom API client", () => {
     expect(seqs[2]).toBeGreaterThan(seqs[1] ?? Number.NaN);
   });
 
+  it("numbers a parameter set and gives up on one that hangs", async () => {
+    vi.useFakeTimers();
+    try {
+      let init: RequestInit | undefined;
+      const fetcher = vi.fn<typeof fetch>((_input, requestInit) => {
+        init = requestInit;
+        return new Promise<Response>(() => undefined);
+      });
+      const client = createBloomApiClient({ fetcher });
+
+      const outcome = expect(
+        client.setRosParameter({ node: "/cartesian_manager", name: "shapers.snake.enabled", value: true }),
+      ).rejects.toThrow("timed out");
+      await vi.advanceTimersByTimeAsync(4000);
+
+      await outcome;
+      expect(new Headers(init?.headers).get("X-Bloom-Publish-Seq")).toMatch(/^\d+$/);
+      expect(init?.signal?.aborted).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not number reads", async () => {
     const fetcher = createJsonFetcher({ configuration_ids: [] });
     const client = createBloomApiClient({ fetcher });
@@ -516,5 +539,18 @@ describe("resumeRuntimeStop", () => {
       body: JSON.stringify({ engaged_at: "2026-09-26T10:00:00+00:00" }),
     });
     expect(fetcher).toHaveBeenNthCalledWith(2, "/api/v1/runtime/stop/resume", { method: "POST" });
+  });
+
+  it("sends an empty engaged_at, so a station that never saw a latch can't clear one", async () => {
+    const fetcher = createJsonFetcher({ stopped: false, asserted: false, engaged_at: "", detail: "" });
+    const client = createBloomApiClient({ fetcher });
+
+    await client.resumeRuntimeStop({ engagedAt: "" });
+
+    expect(fetcher).toHaveBeenCalledWith("/api/v1/runtime/stop/resume", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ engaged_at: "" }),
+    });
   });
 });

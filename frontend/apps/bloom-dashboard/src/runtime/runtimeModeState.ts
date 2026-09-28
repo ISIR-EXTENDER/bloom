@@ -131,13 +131,72 @@ export function applyRuntimeModeOutcome(
     return applyRuntimeModeIntent(currentState, intent, presets, now);
   }
   const requestedMode = outcome === "unknown" ? resolveModeRequestFromIntent(intent, presets) : null;
-  if (!requestedMode) {
-    return currentState;
+  return requestedMode ? markRuntimeModeUnknown(currentState, requestedMode, now) : currentState;
+}
+
+/** The mode a request asks for, normalised, or null when it asks for none. */
+export function resolveRuntimeModeRequest(
+  intent: WidgetActionIntent,
+  presets: readonly RuntimeActionPreset[] = [],
+): string | null {
+  return resolveModeRequestFromIntent(intent, presets);
+}
+
+export type ModeReplyVerdict = { kind: "apply" } | { kind: "ignore" } | { kind: "unknown"; mode: string };
+
+/**
+ * Which reply may set the requested mode: the newest request's, or, when that one is refused, the newest older
+ * request still without a reply, which the manager may yet apply (ADR 0141). A STOP starts over.
+ */
+export class ModeRequestLedger {
+  private count = 0;
+  private deciding = 0;
+  private readonly unanswered = new Map<number, string | null>();
+
+  begin(mode: string | null): number {
+    this.count += 1;
+    this.deciding = this.count;
+    this.unanswered.set(this.count, mode);
+    return this.count;
   }
+
+  reset(): void {
+    this.count += 1;
+    this.deciding = this.count;
+    this.unanswered.clear();
+  }
+
+  settle(id: number, outcome: WidgetActionStatus): ModeReplyVerdict {
+    this.unanswered.delete(id);
+    if (id !== this.deciding) {
+      return { kind: "ignore" };
+    }
+    if (outcome === "refused" || outcome === "transient") {
+      let older: [number, string] | null = null;
+      for (const [other, mode] of this.unanswered) {
+        if (other < id && mode && (!older || other > older[0])) {
+          older = [other, mode];
+        }
+      }
+      if (older) {
+        this.deciding = older[0];
+        return { kind: "unknown", mode: older[1] };
+      }
+    }
+    return { kind: "apply" };
+  }
+}
+
+/** A mode request that may still be applied: the manager is in it or in the previous one. */
+export function markRuntimeModeUnknown(
+  currentState: RuntimeModeState,
+  unconfirmedMode: string,
+  now = new Date(),
+): RuntimeModeState {
   return {
     ...currentState,
     requestedMode: UNKNOWN_REQUESTED_MODE,
-    unconfirmedMode: requestedMode,
+    unconfirmedMode,
     source: "operator-command",
     updatedAt: now.toISOString(),
   };

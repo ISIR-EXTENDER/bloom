@@ -19,6 +19,8 @@ export const esRuntimeStrings: RuntimeStrings = {
     resumeConfirm: "PULSA OTRA VEZ PARA REANUDAR",
     resumeScanAria: "Pulsa dos veces para reanudar",
     resumeConfirmAria: "Pulsa otra vez para reanudar",
+    resumeLocked: "SUELTA EL PULSADOR…",
+    resumeLockedAria: "Suelta primero el pulsador. Pulsa dos veces para reanudar",
     stopAgain: "DETENER DE NUEVO",
     stopAgainAria: "Detener el robot de nuevo",
   },
@@ -163,6 +165,7 @@ export const esRuntimeStrings: RuntimeStrings = {
       "Al cerrar, el envío se reanuda de inmediato. Nada aquí cambia lo que envía la app: temas, marco y frecuencia se muestran para leerlos, no para ajustarlos.",
     touchOnlyNote:
       "Salir a la biblioteca, Vista de supervisión, Editar, Ayuda e Inicio no entran en el barrido: un cuidador puede abrirlos tocándolos.",
+    touchOnlyRolesNote: "Los roles sin barrido también se eligen tocándolos.",
     resume: "Reanudar la operación",
   },
   supervisor: {

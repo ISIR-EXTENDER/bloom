@@ -5,6 +5,7 @@ import {
   createDefaultRuntimeModeState,
   createRuntimeControlStateByWidgetId,
   createRuntimeTopicStatusSummaries,
+  ModeRequestLedger,
 } from "./runtimeModeState";
 
 describe("runtime mode state", () => {
@@ -556,5 +557,28 @@ describe("a joystick on a topic the server refuses", () => {
     expect(states(undefined, ["/joystick_cartesian_command"], ["/joystick_cartesian_command"]).stick).toBeUndefined();
     expect(states("/tablet_cmd", ["/tablet_cmd"], null).stick).toBeUndefined();
     expect(states("/tablet_cmd", ["*"], ["*"]).stick).toBeUndefined();
+  });
+});
+
+describe("the mode request ledger", () => {
+  it("hands the decision to the newest older request without a reply when the newest is refused", () => {
+    const ledger = new ModeRequestLedger();
+    const jaco = ledger.begin("geometric/jaco");
+    const snake = ledger.begin("geometric/snake");
+    const both = ledger.begin("geometric/both");
+
+    expect(ledger.settle(snake, "unknown")).toEqual({ kind: "ignore" });
+    expect(ledger.settle(both, "refused")).toEqual({ kind: "unknown", mode: "geometric/jaco" });
+    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "apply" });
+  });
+
+  it("lets no older reply decide after a STOP", () => {
+    const ledger = new ModeRequestLedger();
+    const jaco = ledger.begin("geometric/jaco");
+    const both = ledger.begin("geometric/both");
+    ledger.reset();
+
+    expect(ledger.settle(both, "refused")).toEqual({ kind: "ignore" });
+    expect(ledger.settle(jaco, "accepted")).toEqual({ kind: "ignore" });
   });
 });

@@ -1,5 +1,5 @@
 import type { ApplicationConfig, RuntimeCapabilityReport, RuntimeStopState, ScreenConfig } from "@bloom/api-client";
-import type { WidgetActionIntentHandler } from "@bloom/widget-renderers";
+import { forgetConfirmedValues, type WidgetActionIntentHandler } from "@bloom/widget-renderers";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -468,6 +468,8 @@ export function RuntimeWorkspace({
     (intent) => actionIntentRef.current(intent, scopedAppsRef.current.get(desiredScope)),
     [desiredScope],
   );
+  // Leaving the app ends its session: what its controls confirmed no longer seeds the next one.
+  useEffect(() => () => forgetConfirmedValues(desiredScope), [desiredScope]);
 
   // Opening an app, closing Settings or the tour, and changing screen from
   // maintenance all replace the view; focus follows it to the named region
@@ -648,6 +650,9 @@ export function RuntimeWorkspace({
         profiles={application.profiles.map((candidate) => ({
           id: candidate.id,
           layoutId: candidate.preferred_control_layout_id,
+          motorAccessibilityPreset:
+            profileOverrides[runtimeProfileOverrideKey(selection, candidate.id)]?.motorAccessibilityPreset ??
+            candidate.motor_accessibility_preset,
           name: candidate.name,
         }))}
         publishRateHz={resolvePublishRateHz(screen)}

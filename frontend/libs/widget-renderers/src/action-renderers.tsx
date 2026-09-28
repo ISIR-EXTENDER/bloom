@@ -16,7 +16,9 @@ import {
   type DesiredSnapshot,
   forgetSettled,
   setDesired,
+  useConfirmedValue,
   useDesiredState,
+  VISUAL_SERVOING_SWITCH_TOPIC,
 } from "./desired-state";
 import { LatchCountdownNotice } from "./latch-countdown-notice";
 import { type RendererStrings, rendererStrings } from "./renderer-strings";
@@ -25,8 +27,10 @@ import { useLatchCountdown } from "./use-latch-countdown";
 
 /** A confirming press closer than this to the arming one is the same gesture, not a second decision. */
 const CONFIRM_SETTLE_MS = 600;
+
 /** The visual servoing switch: while on, the servo node moves the arm, so a suspend or STOP turns it off. */
-export const VISUAL_SERVOING_SWITCH_TOPIC = "/ui/visual_servoing/on";
+export { VISUAL_SERVOING_SWITCH_TOPIC };
+
 const MODE_REQUEST_TOPIC = "/mode_request";
 
 export function CommandLikeWidget({
@@ -134,6 +138,16 @@ export function CommandLikeWidget({
       setIsMomentaryLatched(false);
     }
   }, [pressRefused]);
+  // Another control's newer act owns the target: the hold ends, and its release would undo that act.
+  const holdClaimed = momentary && desired?.claimed === true;
+  useEffect(() => {
+    if (holdClaimed && isMomentaryPressedRef.current) {
+      holdPointerIdRef.current = null;
+      isMomentaryPressedRef.current = false;
+      setIsMomentaryHeld(false);
+      setIsMomentaryLatched(false);
+    }
+  }, [holdClaimed]);
 
   const handlePress = () => {
     if (disabled) {
@@ -248,6 +262,7 @@ export function CommandLikeWidget({
       target: topic,
       value,
       engage: value === "pressed",
+      momentary: true,
       intent: {
         type: "topic-publish",
         widgetId,
@@ -447,8 +462,13 @@ export function ToggleWidget({
   const widgetId = descriptor.widget.id;
   const target = topic || `widget:${widgetId}`;
   const desired = useDesiredState(widgetId, target, onActionIntent, desiredScope);
+  // What the robot last accepted on this target, from this control before a screen change or from another one.
+  const confirmedValue = useConfirmedValue(target, desiredScope);
+  const confirmedIsOn = confirmedValue === "on" ? true : confirmedValue === "off" ? false : null;
   const [localIsOn, setLocalIsOn] = useState(() =>
-    desired ? desired.value === "on" : getBooleanSetting(descriptor.widget.settings, "initialValue", false),
+    desired
+      ? desired.value === "on"
+      : (confirmedIsOn ?? getBooleanSetting(descriptor.widget.settings, "initialValue", false)),
   );
   const readBackValue = controlState?.value;
   useEffect(() => {
@@ -472,7 +492,9 @@ export function ToggleWidget({
         ? controlledToggleState === "on"
         : desired && desired.value !== null
           ? desired.value === "on"
-          : localIsOn;
+          : typeof readBackValue === "boolean"
+            ? readBackValue
+            : (confirmedIsOn ?? localIsOn);
   const stateLabel = isOn ? onLabel : offLabel;
   const stateTextId = useId();
   const strings = rendererStrings(language);

@@ -1,4 +1,4 @@
-import type { ApplicationConfig, RuntimeLanguage, ScreenConfig } from "@bloom/api-client";
+import type { ApplicationConfig, RuntimeLanguage, ScreenConfig, UserProfile } from "@bloom/api-client";
 import { localizeOperatorText } from "@bloom/widgets";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useAssistiveActivation } from "./assistive-activation";
@@ -33,7 +33,14 @@ export type RuntimeStatusChip = {
 export type RuntimeLinkFact = "connected" | "connecting" | "down" | null;
 
 /** `menuOnTap` roles open maintenance with a tap; the others need the hold. */
-export type RuntimeProfileSummary = { id: string; layoutId: string; menuOnTap?: boolean; name: string };
+export type RuntimeProfileSummary = {
+  id: string;
+  layoutId: string;
+  menuOnTap?: boolean;
+  /** With this station's overrides applied: under scan, only a scanning role is offered to the switch. */
+  motorAccessibilityPreset?: UserProfile["motor_accessibility_preset"];
+  name: string;
+};
 
 export type RuntimeKioskBarProps = {
   application: ApplicationConfig;

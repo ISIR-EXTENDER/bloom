@@ -250,8 +250,8 @@ describe("a servo On whose reply was lost", () => {
   });
 });
 
-describe("a switch-off still retrying from an unmounted servo switch", () => {
-  it("is replaced by the remounted switch's newer On", async () => {
+describe("a refused switch-off from an unmounted servo switch", () => {
+  it("leaves the remounted switch on the confirmed On, with nothing retried", async () => {
     vi.useFakeTimers();
     const log: unknown[] = [];
     const handler = (intent: WidgetActionIntent): Outcome => {
@@ -263,19 +263,31 @@ describe("a switch-off still retrying from an unmounted servo switch", () => {
     await act(async () => {});
     first.rerender(1);
     first.unmount();
+    const sentBeforeRemount = log.length;
 
-    renderToggle(SERVO, handler);
-    await act(async () => {});
-    const remountedOn = log.lastIndexOf("{data: true}");
+    render(toggleOnly(SERVO, handler));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
 
-    expect(remountedOn).toBeGreaterThan(0);
-    expect(log.slice(remountedOn + 1)).toEqual([]);
+    expect(log).toHaveLength(sentBeforeRemount);
     expect(screen.getByRole("button", { name: "Servo: Servoing" })).toBeInTheDocument();
   });
 });
+
+function toggleOnly(widget: typeof SERVO, handler: (intent: WidgetActionIntent) => Outcome) {
+  const [descriptor] = renderScreenDescriptors(
+    {
+      id: "drive",
+      title: "Drive",
+      canvas: { preset_id: "native-1280x720", runtime_mode: "fit" },
+      widgets: [{ kind: "toggle", layout: { x: 0, y: 0, width: 300, height: 168 }, ...widget }],
+    } as ScreenConfig,
+    createDefaultWidgetRegistry(),
+  );
+  if (!descriptor) throw new Error("Missing descriptor.");
+  return <div>{renderWidgetDescriptor(descriptor, { neutralRevision: 0, onActionIntent: handler })}</div>;
+}
 
 describe("a servo switch-off the robot refuses outright", () => {
   // An explicit refusal (STOP latched, not the owner) was not applied: the switch shows what was last confirmed.

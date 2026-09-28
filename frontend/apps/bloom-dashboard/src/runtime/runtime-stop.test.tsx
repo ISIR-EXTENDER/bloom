@@ -83,6 +83,9 @@ describe("the STOP control", () => {
   it("leaves keys on Resume to the switch while scanning", () => {
     const handlers = { onEngage: vi.fn(), onResume: vi.fn() };
     render(<RuntimeStopControl requestError="" scanMode stopped={true} {...handlers} />);
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
     const resume = screen.getByRole("button", { name: /Press twice to resume/ });
     expect(screen.queryByRole("button", { name: /Hold for one second/ })).toBeNull();
 
@@ -95,9 +98,10 @@ describe("the STOP control", () => {
   });
 
   it("tells a switch user to press twice, not to hold, in every language", () => {
-    for (const [language, name] of [
-      ["fr", "Appuyez deux fois pour reprendre"],
-      ["es", "Pulsa dos veces para reanudar"],
+    for (const [language, name, locked] of [
+      ["en", "Press twice to resume", "Let go of the switch first. Press twice to resume"],
+      ["fr", "Appuyez deux fois pour reprendre", "Relâchez d’abord le contacteur. Appuyez deux fois pour reprendre"],
+      ["es", "Pulsa dos veces para reanudar", "Suelta primero el pulsador. Pulsa dos veces para reanudar"],
     ] as const) {
       render(
         <RuntimeStopControl
@@ -109,6 +113,11 @@ describe("the STOP control", () => {
           stopped
         />,
       );
+      // Just latched, the switch must rest first, and Resume says so.
+      expect(screen.getByRole("button", { name: locked })).toBeTruthy();
+      act(() => {
+        vi.advanceTimersByTime(1500);
+      });
       expect(screen.getByRole("button", { name })).toBeTruthy();
       cleanup();
     }
@@ -641,6 +650,58 @@ describe("the stop mirror", () => {
     });
 
     await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("not the owner"));
+  });
+
+  it("sends an empty latch id when this station never saw a STOP, and shows the one pressed elsewhere", async () => {
+    const elsewhere: RuntimeStopState = { ...stoppedState, engaged_at: "2026-09-15T10:07:00+00:00" };
+    const getRuntimeStopState = vi
+      .fn()
+      .mockResolvedValueOnce(running)
+      .mockResolvedValueOnce(running)
+      .mockResolvedValue(elsewhere);
+    const resumeRuntimeStop = vi.fn(() =>
+      Promise.reject(Object.assign(new Error("Bloom API request failed with status 409"), { status: 409 })),
+    );
+    const client: RuntimeStopClient = {
+      getRuntimeStopState,
+      engageRuntimeStop: () => Promise.reject(new Error("offline")),
+      resumeRuntimeStop,
+    };
+    render(<Probe client={client} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "engage" }));
+    });
+    await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("offline"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "resume" }));
+    });
+
+    expect(resumeRuntimeStop).toHaveBeenCalledWith({ engagedAt: "" });
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("true"));
+    expect(screen.getByTestId("error").textContent).toBe("");
+  });
+
+  it("keeps an unconfirmed STOP holding when the resume fails", async () => {
+    const client: RuntimeStopClient = {
+      getRuntimeStopState: vi.fn().mockResolvedValueOnce(running).mockRejectedValue(new Error("offline")),
+      engageRuntimeStop: () => Promise.reject(new Error("offline")),
+      resumeRuntimeStop: () => Promise.reject(new Error("still offline")),
+    };
+    render(<Probe client={client} />);
+    await waitFor(() => expect(screen.getByTestId("stopped").textContent).toBe("false"));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "engage" }));
+    });
+    await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("offline"));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "resume" }));
+    });
+
+    await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("still offline"));
+    expect(screen.getByTestId("requested").textContent).toBe("true");
   });
 
   it("surfaces a failed assertion and immediately mirrors the latched state", async () => {

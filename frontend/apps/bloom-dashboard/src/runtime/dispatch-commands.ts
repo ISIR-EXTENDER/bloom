@@ -8,6 +8,7 @@ import {
 } from "./dispatch-result";
 import { dispatchTeleopFrameIntent } from "./dispatch-teleop";
 import {
+  claimUnlessReconciling,
   createPresetTopicPublishRequest,
   createRosTopicPublishRequest,
   publishTopicRequest,
@@ -53,6 +54,7 @@ export async function dispatchCommandIntent(
           detail: policyError,
         };
       }
+      claimUnlessReconciling(intent, request.topic);
     }
 
     try {

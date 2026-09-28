@@ -13,7 +13,14 @@ import { WidgetBoundary } from "./WidgetBoundary";
 import { WidgetFrame } from "./WidgetFrame";
 
 export { resolveJoystickControlSize, resolveTitlePlacement } from "@bloom/widgets";
-export { cancelAllPendingEngaging, resetDesiredStates } from "./desired-state";
+export {
+  cancelAllPendingEngaging,
+  claimTarget,
+  forgetConfirmedValues,
+  isReconcilerSend,
+  resetDesiredStates,
+  settleForAssertedStop,
+} from "./desired-state";
 export type {
   CommandedTwist,
   PlotSeriesSnapshot,
