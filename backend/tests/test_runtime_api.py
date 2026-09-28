@@ -249,13 +249,18 @@ def test_a_silent_owner_is_displaced_and_the_next_operator_can_resume() -> None:
         with client.websocket_connect("/api/v1/runtime/ws") as waiting:
             waiting_session = waiting.receive_json()["session_id"]
             # STOP never needs the lease, from either operator.
-            assert client.post("/api/v1/runtime/stop").status_code == 200
+            engaged = client.post("/api/v1/runtime/stop")
+            assert engaged.status_code == 200
 
             clock.now = 11.0
             waiting.send_json({"type": "claim_control"})
 
             assert waiting.receive_json()["payload"]["is_owner"] is True
-            resumed = client.post("/api/v1/runtime/stop/resume", headers={"X-Bloom-Runtime-Session": waiting_session})
+            resumed = client.post(
+                "/api/v1/runtime/stop/resume",
+                headers={"X-Bloom-Runtime-Session": waiting_session},
+                json={"engaged_at": engaged.json()["engaged_at"]},
+            )
             assert resumed.status_code == 200
 
 
@@ -323,12 +328,15 @@ def test_robot_facing_http_commands_require_the_control_owner_session() -> None:
         assert owner["is_owner"] is True
 
         # STOP stays available without the lease; only resume is owner-only.
-        assert client.post("/api/v1/runtime/stop").status_code == 200
-        assert client.post("/api/v1/runtime/stop/resume").status_code == 409
+        engaged = client.post("/api/v1/runtime/stop")
+        assert engaged.status_code == 200
+        latch = {"engaged_at": engaged.json()["engaged_at"]}
+        assert client.post("/api/v1/runtime/stop/resume", json=latch).status_code == 409
         assert (
             client.post(
                 "/api/v1/runtime/stop/resume",
                 headers={"X-Bloom-Runtime-Session": connected["session_id"]},
+                json=latch,
             ).status_code
             == 200
         )

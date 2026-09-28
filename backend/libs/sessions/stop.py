@@ -177,8 +177,10 @@ class RuntimeStopController:
         )
 
     def resume(self, engaged_at: str | None = None) -> RuntimeStopState:
-        """Clear the latch; publishes nothing. With `engaged_at`, only the STOP it names."""
+        """Clear the latch; publishes nothing, and only the STOP `engaged_at` names."""
         with self._lock:
+            if engaged_at is None and self._stopped:
+                raise RuntimeStopLatchMismatchError("Resume must name the STOP it answers; refresh.")
             if engaged_at is not None and self._stopped and engaged_at != self._engaged_at:
                 raise RuntimeStopLatchMismatchError(
                     "A newer STOP was engaged after this resume was requested. Review it and hold resume again."

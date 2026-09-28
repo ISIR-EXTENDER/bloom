@@ -117,7 +117,8 @@ def test_a_latched_stop_survives_a_restart(tmp_path: Path) -> None:
     assert restarted["stopped"] is True
     assert restarted["engaged_at"] == engaged_at
 
-    assert app_with(state_path).post("/api/v1/runtime/stop/resume").status_code == 200
+    resumed = app_with(state_path).post("/api/v1/runtime/stop/resume", json={"engaged_at": engaged_at})
+    assert resumed.status_code == 200
     assert app_with(state_path).get("/api/v1/runtime/stop").json()["stopped"] is False
 
 
@@ -143,9 +144,20 @@ def test_a_resume_for_an_older_stop_is_refused(tmp_path: Path) -> None:
     assert client.get("/api/v1/runtime/stop").json()["stopped"] is True
 
     assert client.post("/api/v1/runtime/stop/resume", json={"engaged_at": newer}).status_code == 200
-    assert client.post("/api/v1/runtime/stop").status_code == 200
-    # Without engaged_at, resume keeps working as before.
-    assert client.post("/api/v1/runtime/stop/resume").json()["stopped"] is False
+
+
+def test_a_resume_that_names_no_stop_is_refused_while_latched(tmp_path: Path) -> None:
+    client = app_with(tmp_path / "runtime_stop.json")
+    assert client.post("/api/v1/runtime/stop/resume").status_code == 200
+
+    engaged_at = client.post("/api/v1/runtime/stop").json()["engaged_at"]
+    refused = client.post("/api/v1/runtime/stop/resume")
+    assert refused.status_code == 409
+    assert refused.json()["detail"] == "Resume must name the STOP it answers; refresh."
+    assert client.get("/api/v1/runtime/stop").json()["stopped"] is True
+
+    resumed = client.post("/api/v1/runtime/stop/resume", json={"engaged_at": engaged_at})
+    assert resumed.json()["stopped"] is False
 
 
 def test_a_resume_from_a_station_that_never_saw_the_latch_is_refused(tmp_path: Path) -> None:

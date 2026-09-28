@@ -224,8 +224,8 @@ def test_the_record_lives_with_the_session_and_is_dropped_on_disconnect() -> Non
         headers = owner_headers(websocket)
         session_id = headers["X-Bloom-Runtime-Session"]
         client.post(PUBLISH, headers=headers | seq(9), json=bool_msg("/ui/grip", True))
-        client.post("/api/v1/runtime/stop")
-        client.post("/api/v1/runtime/stop/resume", headers=headers)
+        engaged_at = client.post("/api/v1/runtime/stop").json()["engaged_at"]
+        client.post("/api/v1/runtime/stop/resume", headers=headers, json={"engaged_at": engaged_at})
 
         assert manager.last_publish_seq(session_id, "/ui/grip") == 9
 

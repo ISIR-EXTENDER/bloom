@@ -182,9 +182,9 @@ def test_camera_frames_are_refused_while_stopped() -> None:
     frame = "data:image/jpeg;base64," + base64.b64encode(JPEG_MARKERS * 16).decode("ascii")
     request = {"topic": "/ui/camera/compressed", "image_data_url": frame, "frame_id": "tablet"}
 
-    client.post("/api/v1/runtime/stop")
+    engaged_at = client.post("/api/v1/runtime/stop").json()["engaged_at"]
     refused = client.post("/api/v1/runtime/camera-frames", json=request)
-    client.post("/api/v1/runtime/stop/resume")
+    client.post("/api/v1/runtime/stop/resume", json={"engaged_at": engaged_at})
     accepted = client.post("/api/v1/runtime/camera-frames", json=request)
 
     assert (refused.status_code, accepted.status_code) == (409, 200)
@@ -271,7 +271,9 @@ def test_teleop_is_rejected_while_stopped_and_accepted_after_resume() -> None:
         assert rejection["payload"]["code"] == "runtime_stopped"
         assert len(teleop_gateway.commands) == commands_after_engage
 
-        client.post("/api/v1/runtime/stop/resume")
+        client.post(
+            "/api/v1/runtime/stop/resume", json={"engaged_at": client.get("/api/v1/runtime/stop").json()["engaged_at"]}
+        )
         websocket.send_json(
             {
                 "type": "teleop_cmd",
@@ -390,11 +392,11 @@ def test_resume_clears_the_latch_and_publishes_nothing() -> None:
     teleop_gateway = RecordingTeleopGateway()
     ros_gateway = RecordingRosPublisherGateway()
     client = create_stop_test_client(teleop_gateway, ros_gateway)
-    client.post("/api/v1/runtime/stop")
+    engaged_at = client.post("/api/v1/runtime/stop").json()["engaged_at"]
     commands_after_engage = len(teleop_gateway.commands)
     requests_after_engage = len(ros_gateway.requests)
 
-    response = client.post("/api/v1/runtime/stop/resume")
+    response = client.post("/api/v1/runtime/stop/resume", json={"engaged_at": engaged_at})
 
     assert response.status_code == 200
     assert response.json() == {
@@ -413,8 +415,8 @@ def test_stop_transitions_are_audited() -> None:
     audit_log = InMemoryRuntimeAuditLog()
     client = create_stop_test_client(RecordingTeleopGateway(), RecordingRosPublisherGateway(), audit_log)
 
-    client.post("/api/v1/runtime/stop")
-    client.post("/api/v1/runtime/stop/resume")
+    engaged_at = client.post("/api/v1/runtime/stop").json()["engaged_at"]
+    client.post("/api/v1/runtime/stop/resume", json={"engaged_at": engaged_at})
 
     stop_records = [record for record in audit_log.list_records() if record.channel == "runtime_stop"]
     assert [record.status for record in stop_records] == ["accepted", "accepted"]
@@ -432,7 +434,7 @@ def test_controller_engage_survives_publish_failures_without_http() -> None:
     assert state.stopped is True
     assert state.asserted is False
     assert controller.rejection_reason() is not None
-    assert controller.resume().stopped is False
+    assert controller.resume(state.engaged_at).stopped is False
     assert controller.rejection_reason() is None
 
 

@@ -179,7 +179,7 @@ async def engage_runtime_stop(
 
 
 class RuntimeStopResumeRequest(BaseModel):
-    #: The `engaged_at` of the STOP this resume answers; a newer latch refuses it. Omitted resumes any.
+    #: The `engaged_at` of the STOP this resume answers; a newer latch refuses it, and so does an omitted one.
     engaged_at: str | None = None
 
 
